@@ -30,6 +30,9 @@
     "access": "public",
     "registry": "https://npm.pkg.github.com"
   },
+  "overrides": {
+    "esbuild": "0.28.1"
+  },
   "dependencies": {
     "@types/crypto-js": "^4.2.2",
     "@uiw/react-md-editor": "^4.1.1",
