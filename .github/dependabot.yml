@@ -1,0 +1,59 @@
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels: [ "dependencies" ]
+    versioning-strategy: increase
+    commit-message:
+      prefix: "deps:"
+      include: "scope"
+    groups:
+      react-ecosystem:
+        patterns:
+          - "react*"
+          - "react-dom*"
+          - "@types/react*"
+          - "react-icons"
+          - "@uiw/react-md-editor"
+          - "recharts"
+      peer-dependencies:
+        patterns:
+          - "typescript"
+          - "tailwind-css*"
+          - "postcss*"
+          - "@tailwindcss/postcss"
+          - "tailwind-merge"
+        exclude-patterns:
+          - "react*"
+          - "react-dom*"
+          - "@types/react*"
+      production-deps:
+        patterns:
+          - "clsx"
+          - "classnames"
+          - "crypto-js"
+          - "@types/crypto-js"
+      dev-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "react*"
+          - "react-dom*"
+          - "react-icons"
+          - "@uiw/react-md-editor"
+          - "recharts"
+          - "typescript"
+          - "tailwind*"
+          - "postcss*"
+          - "tsup"
+          - "tsx"
+          - "@types/node"
+          - "clsx"
+          - "classnames"
+          - "crypto-js"
+          - "@types/crypto-js"
