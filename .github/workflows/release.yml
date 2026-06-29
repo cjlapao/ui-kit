@@ -1,0 +1,82 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: "Release type (major, minor, or patch)"
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+
+jobs:
+  release:
+    name: Bump and Create PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: "false"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Get current version
+        id: current
+        run: |
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version;")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version
+        id: bump
+        run: |
+          VERSION="${{ steps.current.outputs.version }}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+          if [ "${{ github.event.inputs.release-type }}" == "major" ]; then
+            NEW_VERSION=$((MAJOR + 1)).0.0
+          elif [ "${{ github.event.inputs.release-type }}" == "minor" ]; then
+            NEW_VERSION=$MAJOR.$((MINOR + 1)).0
+          else
+            NEW_VERSION=$MAJOR.$MINOR.$((PATCH + 1))
+          fi
+
+          node -e "const pkg=require('./package.json'); pkg.version='$NEW_VERSION'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create release branch and commit
+        id: branch
+        run: |
+          BRANCH_NAME="release/v${{ steps.bump.outputs.new-version }}"
+          git checkout -b "$BRANCH_NAME"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new-version }}"
+          git config --global --add safe.directory /github/workspace
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Push branch
+        run: |
+          git push origin ${{ steps.branch.outputs.branch-name }}
+
+      - name: Create Pull Request
+        run: |
+          gh pr create \
+            --title "release: v${{ steps.bump.outputs.new-version }}" \
+            --body "Version bump to ${{ steps.bump.outputs.new-version }}
+
+          - Current: ${{ steps.current.outputs.version }}
+          - New: ${{ steps.bump.outputs.new-version }}
+          " \
+            --base main \
+            --head ${{ steps.branch.outputs.branch-name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
