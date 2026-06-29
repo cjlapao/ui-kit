@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Button, CustomIcon, IconButton, type ThemeColor } from "@prl/ui-kit";
+import { Button, CustomIcon, IconButton, type ThemeColor } from "@cjlapao/ui-kit";
 
 export interface SmartGridItemDefinition {
   id: string;

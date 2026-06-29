@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import type { CapsuleBlueprintParameter } from "@prl/ui-kit";
-import { CapsuleBlueprintValueType } from "@prl/ui-kit";
-import { CollapsibleHelpText, Input, Checkbox, Select } from "@prl/ui-kit";
+import type { CapsuleBlueprintParameter } from "@cjlapao/ui-kit";
+import { CapsuleBlueprintValueType } from "@cjlapao/ui-kit";
+import { CollapsibleHelpText, Input, Checkbox, Select } from "@cjlapao/ui-kit";
 import classNames from "classnames";
 
 type DynamicValue = string | boolean;
