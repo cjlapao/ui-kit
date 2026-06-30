@@ -164,11 +164,6 @@ export {
   default as CollapsibleHelpText,
   type CollapsibleHelpTextProps,
 } from "./CollapsibleHelpText";
-export {
-  default as HelpButton,
-  type HelpButtonProps,
-  type HelpButtonPlacement,
-} from "./HelpButton";
 
 // Dropdown
 export {
@@ -196,7 +191,6 @@ export {
   type TabItem,
   type TabItemAction,
 } from "./Tabs";
-export { default as MarkdownEditor } from "./MarkdownEditor";
 export {
   default as Modal,
   type ModalProps,
