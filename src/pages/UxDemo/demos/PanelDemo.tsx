@@ -25,6 +25,9 @@ import notificationService from "../mocks/NotificationService";
 import { GLOBAL_NOTIFICATION_CHANNEL } from "../constants";
 import { v4 as uuidv4 } from "uuid";
 import parallels from "../../../assets/images/parallels.png";
+import backdropLight from "../../../assets/images/backdrop_demo_light.png";
+import backdropDark from "../../../assets/images/backdrop_demo_dark.png";
+import { useTheme } from "../../../hooks/useTheme";
 
 const createUpdateToast = (message?: string) => {
   const id = uuidv4();
@@ -58,6 +61,15 @@ export const PanelDemo: React.FC = () => {
   const [panelFullWidth, setPanelFullWidth] = useState<boolean>(false);
   const [panelHoverShadow, setPanelHoverShadow] = useState<boolean>(false);
   const [panelDisabled, setPanelDisabled] = useState<boolean>(false);
+  const [glassVibrancy, setGlassVibrancy] = useState<
+    "low" | "medium" | "high"
+  >("medium");
+  const [glassOpacity, setGlassOpacity] = useState<
+    "frosted" | "light" | "clear"
+  >("frosted");
+  const [specularHighlight, setSpecularHighlight] = useState<boolean>(true);
+  const [panelHasBackground, setPanelHasBackground] = useState<boolean>(false);
+  const { effectiveTheme } = useTheme();
 
   const panelActions: PanelAction[] = panelHasActions
     ? [
@@ -82,6 +94,9 @@ export const PanelDemo: React.FC = () => {
       subtitle="This is a subtitle"
       tone={panelTone}
       variant={panelVariant}
+      vibrancy={glassVibrancy}
+      glassOpacity={glassOpacity}
+      specularHighlight={specularHighlight}
       media={panelHasMedia ? <img src={parallels} alt="Parallels" /> : null}
       mediaPlacement={panelMediaPlacement}
       badge={panelHasBadge ? <Badge count={10} tone="primary" /> : null}
@@ -100,6 +115,47 @@ export const PanelDemo: React.FC = () => {
     >
       This Panel uses the {panelVariant} variant
     </Panel>
+  );
+
+  const previewChildren = (
+    <div className="space-y-4 p-6">
+      {panelPreview}
+      {!panelFullWidth && (
+        <Panel
+          title="Secondary Panel"
+          subtitle="Loading demo"
+          tone={panelTone}
+          variant={panelVariant}
+          vibrancy={glassVibrancy}
+          glassOpacity={glassOpacity}
+          specularHighlight={specularHighlight}
+          loaderProgress={45}
+          loading={panelLoading}
+          loaderType="progress"
+          padding={panelPadding}
+          actionLayout={panelActionLayout}
+          actions={panelActions}
+          hoverShadow={panelHoverShadow}
+        >
+          Secondary panel preview
+        </Panel>
+      )}
+    </div>
+  );
+
+  const preview = panelHasBackground ? (
+    <div
+      className="relative overflow-hidden rounded-2xl bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `url(${
+          effectiveTheme === "dark" ? backdropDark : backdropLight
+        })`,
+      }}
+    >
+      {previewChildren}
+    </div>
+  ) : (
+    previewChildren
   );
 
   return (
@@ -228,6 +284,11 @@ export const PanelDemo: React.FC = () => {
                 value: panelHoverShadow,
                 setter: setPanelHoverShadow,
               },
+              {
+                label: "Background image",
+                value: panelHasBackground,
+                setter: setPanelHasBackground,
+              },
             ].map((option) => (
               <label
                 key={option.label}
@@ -242,30 +303,51 @@ export const PanelDemo: React.FC = () => {
               </label>
             ))}
           </div>
-        </div>
-      }
-      preview={
-        <div className="space-y-4">
-          {panelPreview}
-          {!panelFullWidth && (
-            <Panel
-              title="Secondary Panel"
-              subtitle="Loading demo"
-              tone={panelTone}
-              variant={panelVariant}
-              loaderProgress={45}
-              loading={panelLoading}
-              loaderType="progress"
-              padding={panelPadding}
-              actionLayout={panelActionLayout}
-              actions={panelActions}
-              hoverShadow={panelHoverShadow}
-            >
-              Secondary panel preview
-            </Panel>
+          {panelVariant === "liquid-glass" && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="flex flex-col gap-2">
+                <span>Glass vibrancy</span>
+                <MultiToggle
+                  fullWidth
+                  options={[
+                    { label: "Low", value: "low" },
+                    { label: "Medium", value: "medium" },
+                    { label: "High", value: "high" },
+                  ]}
+                  value={glassVibrancy}
+                  size="sm"
+                  onChange={(v) => setGlassVibrancy(v as "low" | "medium" | "high")}
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span>Glass opacity</span>
+                <MultiToggle
+                  fullWidth
+                  options={[
+                    { label: "Frosted", value: "frosted" },
+                    { label: "Light", value: "light" },
+                    { label: "Clear", value: "clear" },
+                  ]}
+                  value={glassOpacity}
+                  size="sm"
+                  onChange={(v) =>
+                    setGlassOpacity(v as "frosted" | "light" | "clear")
+                  }
+                />
+              </label>
+              <label className="flex items-center justify-between">
+                <span>Specular highlight</span>
+                <Toggle
+                  size="sm"
+                  checked={specularHighlight}
+                  onChange={(event) => setSpecularHighlight(event.target.checked)}
+                />
+              </label>
+            </div>
           )}
         </div>
       }
+      preview={preview}
     />
   );
 };

@@ -78,6 +78,7 @@ export const panelVariantOptions: MultiToggleOption[] = [
   { label: "Outlined", value: "outlined" },
   { label: "Subtle", value: "subtle" },
   { label: "Tonal", value: "tonal" },
+  { label: "Liquid Glass", value: "liquid-glass" },
 ];
 
 export const panelToneOptions: MultiToggleOption[] = [

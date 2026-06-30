@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Input, Button } from "../../components";
+import { useTheme } from "../../hooks/useTheme";
+import { ThemeToggle } from "./ThemeToggle";
 
 import { BadgeIconDemo } from "./demos/BadgeIconDemo";
 import { InputGroupDemo } from "./demos/InputGroupDemo";
@@ -44,6 +46,7 @@ import { TimelinePanelDemo } from "./demos/TimelinePanelDemo";
 export const UxDemo: React.FC = () => {
   const [sectionSearch, setSectionSearch] = useState("");
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { theme, setTheme } = useTheme();
 
   const sectionList = useMemo(
     () => [
@@ -234,9 +237,12 @@ export const UxDemo: React.FC = () => {
   return (
     <div className=" flex flex-col gap-6">
       <div className="sticky top-0 z-20 flex flex-col gap-3 px-6 pt-0 pb-3 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
-        <label className="text-sm font-semibold text-slate-600 dark:text-slate-200">
-          Jump to component
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm font-semibold text-slate-600 dark:text-slate-200 whitespace-nowrap">
+            Jump to component
+          </label>
+          <ThemeToggle theme={theme} onChange={setTheme} />
+        </div>
         <div className="relative flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Input

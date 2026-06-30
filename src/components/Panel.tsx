@@ -15,7 +15,8 @@ export type PanelVariant =
   | "tonal"
   | "default"
   | "glass"
-  | "simple";
+  | "simple"
+  | "liquid-glass";
 export type PanelTone = ThemeColor;
 export type PanelDecoration = "none" | "gradient" | "shapes" | "both";
 export type PanelMediaPlacement = "top" | "start" | "end" | "overlay";
@@ -109,6 +110,22 @@ export interface PanelProps
    * @default true
    */
   scrollable?: boolean;
+  /**
+   * Backdrop vibrancy for the liquid-glass variant.
+   * Preset takes priority over a numeric value when both are provided.
+   */
+  vibrancy?: "low" | "medium" | "high" | number;
+  /**
+   * Glass fill opacity for the liquid-glass variant.
+   * Preset takes priority over a numeric value when both are provided.
+   * @default "frosted"
+   */
+  glassOpacity?: "frosted" | "light" | "clear" | number;
+  /**
+   * Whether the liquid-glass variant shows a specular highlight at the top.
+   * @default true
+   */
+  specularHighlight?: boolean;
 }
 
 const variantBaseStyles: Record<PanelVariant, string> = {
@@ -124,6 +141,8 @@ const variantBaseStyles: Record<PanelVariant, string> = {
     "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass:
     "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass":
+    "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple:
     "text-neutral-900  ring-transparent dark:text-neutral-100 dark:ring-white/5",
 };
@@ -200,6 +219,9 @@ const Panel: React.FC<PanelProps> = ({
   borderColor,
   backgroundColor,
   scrollable = true,
+  vibrancy = "medium",
+  glassOpacity = "frosted",
+  specularHighlight = true,
   ...rest
 }) => {
   const palette = getPanelToneStyles(tone);
@@ -256,6 +278,34 @@ const Panel: React.FC<PanelProps> = ({
     return styles;
   })();
 
+  const vibrancyValue = (() => {
+    if (typeof vibrancy === "number") return vibrancy;
+    if (vibrancy === "low") return 1;
+    if (vibrancy === "medium") return 1.2;
+    if (vibrancy === "high") return 1.4;
+    return 1.2;
+  })();
+  const vibrancyClass = `backdrop-saturate-[${vibrancyValue}]`;
+
+  const glassFillClass = (() => {
+    const litOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.round((glassOpacity as number) * 100);
+      if (glassOpacity === "frosted") return 45;
+      if (glassOpacity === "light") return 70;
+      if (glassOpacity === "clear") return 20;
+      return 45;
+    })();
+    const drkOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.min(Math.round((glassOpacity as number) * 30), 30);
+      if (glassOpacity === "frosted") return 15;
+      if (glassOpacity === "light") return 25;
+      if (glassOpacity === "clear") return 5;
+      return 15;
+    })();
+    const base = resolveColor(tone);
+    return `bg-${base}-50/${litOpacity} dark:bg-${base}-500/${drkOpacity}`;
+  })();
+
   const variantClasses = (() => {
     switch (variant) {
       case "outlined":
@@ -287,6 +337,15 @@ const Panel: React.FC<PanelProps> = ({
           effectiveBorderClass ?? colorPalette.glassBorder,
           effectiveBgClass ?? palette.glassBg,
         );
+      case "liquid-glass":
+        return classNames(
+          "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
+          vibrancyClass,
+          glassFillClass,
+          effectiveBorderClass ?? palette.liquidBorder,
+          palette.liquidShadow,
+          palette.liquidHeading,
+        );
       case "simple":
         return classNames(
           variantBaseStyles.simple,
@@ -316,7 +375,11 @@ const Panel: React.FC<PanelProps> = ({
     ? "relative overflow-hidden text-white shadow-xl ring-0"
     : undefined;
 
-  const headingClass = isOverlay ? "text-white" : palette.heading;
+  const headingClass = isOverlay
+    ? "text-white"
+    : variant === "liquid-glass"
+      ? palette.liquidHeading
+      : palette.heading;
   const subtitleClass = isOverlay ? "text-white/80" : palette.muted;
   const descriptionClass = isOverlay ? "text-white/75" : palette.muted;
   const badgeNode =
@@ -578,6 +641,16 @@ const Panel: React.FC<PanelProps> = ({
       {isHoverable && !hoverColorName && (
         <div
           className="pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]"
+          aria-hidden="true"
+        />
+      )}
+      {variant === "liquid-glass" && specularHighlight && (
+        <div
+          className={classNames(
+            "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
+            "bg-gradient-to-r from-transparent via-white/40 to-transparent",
+            "dark:via-white/10",
+          )}
           aria-hidden="true"
         />
       )}

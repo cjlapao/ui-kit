@@ -347,6 +347,8 @@ const variantShellStyles: Record<PanelVariant, string> = {
     "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass:
     "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass":
+    "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple:
     "text-neutral-900 ring-transparent dark:text-neutral-100 dark:ring-white/5",
 };

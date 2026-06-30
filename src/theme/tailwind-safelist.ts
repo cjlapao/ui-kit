@@ -308,3 +308,21 @@ const importantDarkText300 =
 // ---------- SplitView subContent grid animation ----------
 // Used for the expand/collapse height animation via CSS grid-template-rows trick
 const gridRows = "grid-rows-[0fr] grid-rows-[1fr]";
+
+// ---------- Liquid-glass variant (Panel.tsx) ----------
+// Glass fill opacity: bg-{color}-50/{litOpacity} for frosted(45), light(70), clear(20)
+const bg50_45 =
+  "bg-red-50/45 bg-orange-50/45 bg-amber-50/45 bg-yellow-50/45 bg-lime-50/45 bg-green-50/45 bg-emerald-50/45 bg-teal-50/45 bg-cyan-50/45 bg-sky-50/45 bg-blue-50/45 bg-indigo-50/45 bg-violet-50/45 bg-purple-50/45 bg-fuchsia-50/45 bg-pink-50/45 bg-rose-50/45 bg-slate-50/45 bg-gray-50/45 bg-zinc-50/45 bg-neutral-50/45 bg-stone-50/45";
+const bg50_70 =
+  "bg-red-50/70 bg-orange-50/70 bg-amber-50/70 bg-yellow-50/70 bg-lime-50/70 bg-green-50/70 bg-emerald-50/70 bg-teal-50/70 bg-cyan-50/70 bg-sky-50/70 bg-blue-50/70 bg-indigo-50/70 bg-violet-50/70 bg-purple-50/70 bg-fuchsia-50/70 bg-pink-50/70 bg-rose-50/70 bg-slate-50/70 bg-gray-50/70 bg-zinc-50/70 bg-neutral-50/70 bg-stone-50/70";
+// Dark glass fill opacity: dark:bg-{color}-500/{drkOpacity} for frosted(15), light(25), clear(5)
+const darkBg500_25 =
+  "dark:bg-red-500/25 dark:bg-orange-500/25 dark:bg-amber-500/25 dark:bg-yellow-500/25 dark:bg-lime-500/25 dark:bg-green-500/25 dark:bg-emerald-500/25 dark:bg-teal-500/25 dark:bg-cyan-500/25 dark:bg-sky-500/25 dark:bg-blue-500/25 dark:bg-indigo-500/25 dark:bg-violet-500/25 dark:bg-purple-500/25 dark:bg-fuchsia-500/25 dark:bg-pink-500/25 dark:bg-rose-500/25 dark:bg-slate-500/25 dark:bg-gray-500/25 dark:bg-zinc-500/25 dark:bg-neutral-500/25 dark:bg-stone-500/25";
+const darkBg500_5 =
+  "dark:bg-red-500/5 dark:bg-orange-500/5 dark:bg-amber-500/5 dark:bg-yellow-500/5 dark:bg-lime-500/5 dark:bg-green-500/5 dark:bg-emerald-500/5 dark:bg-teal-500/5 dark:bg-cyan-500/5 dark:bg-sky-500/5 dark:bg-blue-500/5 dark:bg-indigo-500/5 dark:bg-violet-500/5 dark:bg-purple-500/5 dark:bg-fuchsia-500/5 dark:bg-pink-500/5 dark:bg-rose-500/5 dark:bg-slate-500/5 dark:bg-gray-500/5 dark:bg-zinc-500/5 dark:bg-neutral-500/5 dark:bg-stone-500/5";
+
+// ---------- Backdrop vibrancy (liquid-glass variant) ----------
+// backdrop-saturate arbitrary values for low(1), medium(1.2), high(1.4)
+const backdropSaturate1 = "backdrop-saturate-[1]";
+const backdropSaturate12 = "backdrop-saturate-[1.2]";
+const backdropSaturate14 = "backdrop-saturate-[1.4]";

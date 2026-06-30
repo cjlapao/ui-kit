@@ -124,6 +124,10 @@ type PanelToneConfig = {
   tonalBg: string;
   glassBg: string;
   glassBorder: string;
+  liquidBg: string;
+  liquidBorder: string;
+  liquidShadow: string;
+  liquidHeading: string;
   overlayGradient: string;
   decorationShape: string;
   decorationGradient: string;
@@ -632,6 +636,10 @@ const createTheme = (): ThemeDefinition => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient:
           "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
@@ -649,6 +657,10 @@ const createTheme = (): ThemeDefinition => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient:
           "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
@@ -665,6 +677,10 @@ const createTheme = (): ThemeDefinition => {
         tonalBg: `bg-${c}-100/80 dark:bg-${c}-500/15`,
         glassBg: `bg-${c}-50/50 dark:bg-${c}-500/15`,
         glassBorder: `border-${c}-500 dark:border-${c}-400`,
+        liquidBg: `bg-${c}-50/30 dark:bg-${c}-500/10`,
+        liquidBorder: `border-${c}-300/50 dark:border-${c}-500/25`,
+        liquidShadow: "shadow-lg",
+        liquidHeading: `text-${c}-700 dark:text-${c}-200`,
         overlayGradient: `from-${c}-900/70 via-${c}-900/40 to-${c}-900/15`,
         decorationShape: `bg-${c}-400/10 dark:bg-${c}-300/5`,
         decorationGradient: `from-${c}-100/60 to-transparent dark:from-${c}-500/10 dark:to-transparent`,
