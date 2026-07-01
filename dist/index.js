@@ -363,6 +363,10 @@ var createTheme = () => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient: "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
         decorationGradient: "from-neutral-200/15 to-transparent dark:from-neutral-600/10 dark:to-transparent"
@@ -377,6 +381,10 @@ var createTheme = () => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient: "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
         decorationGradient: "from-neutral-200/15 to-transparent dark:from-neutral-600/10 dark:to-transparent"
@@ -391,6 +399,10 @@ var createTheme = () => {
         tonalBg: `bg-${c}-100/80 dark:bg-${c}-500/15`,
         glassBg: `bg-${c}-50/50 dark:bg-${c}-500/15`,
         glassBorder: `border-${c}-500 dark:border-${c}-400`,
+        liquidBg: `bg-${c}-50/30 dark:bg-${c}-500/10`,
+        liquidBorder: `border-${c}-300/50 dark:border-${c}-500/25`,
+        liquidShadow: "shadow-lg",
+        liquidHeading: `text-${c}-700 dark:text-${c}-200`,
         overlayGradient: `from-${c}-900/70 via-${c}-900/40 to-${c}-900/15`,
         decorationShape: `bg-${c}-400/10 dark:bg-${c}-300/5`,
         decorationGradient: `from-${c}-100/60 to-transparent dark:from-${c}-500/10 dark:to-transparent`
@@ -13133,6 +13145,7 @@ var variantBaseStyles = {
   tonal: "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   default: "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass: "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass": "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple: "text-neutral-900  ring-transparent dark:text-neutral-100 dark:ring-white/5"
 };
 var paddingStyles2 = {
@@ -13202,6 +13215,9 @@ var Panel = ({
   borderColor,
   backgroundColor,
   scrollable = true,
+  vibrancy = "medium",
+  glassOpacity = "frosted",
+  specularHighlight = true,
   ...rest
 }) => {
   const palette = getPanelToneStyles(tone);
@@ -13238,6 +13254,32 @@ var Panel = ({
     }
     return styles;
   })();
+  const vibrancyValue = (() => {
+    if (typeof vibrancy === "number") return vibrancy;
+    if (vibrancy === "low") return 1;
+    if (vibrancy === "medium") return 1.2;
+    if (vibrancy === "high") return 1.4;
+    return 1.2;
+  })();
+  const vibrancyClass = `backdrop-saturate-[${vibrancyValue}]`;
+  const glassFillClass = (() => {
+    const litOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.round(glassOpacity * 100);
+      if (glassOpacity === "frosted") return 45;
+      if (glassOpacity === "light") return 70;
+      if (glassOpacity === "clear") return 20;
+      return 45;
+    })();
+    const drkOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.min(Math.round(glassOpacity * 30), 30);
+      if (glassOpacity === "frosted") return 15;
+      if (glassOpacity === "light") return 25;
+      if (glassOpacity === "clear") return 5;
+      return 15;
+    })();
+    const base = resolveColor(tone);
+    return `bg-${base}-50/${litOpacity} dark:bg-${base}-500/${drkOpacity}`;
+  })();
   const variantClasses2 = (() => {
     switch (variant) {
       case "outlined":
@@ -13269,6 +13311,15 @@ var Panel = ({
           effectiveBorderClass ?? colorPalette.glassBorder,
           effectiveBgClass ?? palette.glassBg
         );
+      case "liquid-glass":
+        return classNames37(
+          "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
+          vibrancyClass,
+          glassFillClass,
+          effectiveBorderClass ?? palette.liquidBorder,
+          palette.liquidShadow,
+          palette.liquidHeading
+        );
       case "simple":
         return classNames37(
           variantBaseStyles.simple,
@@ -13292,7 +13343,7 @@ var Panel = ({
     }
   })();
   const overlayClasses = isOverlay ? "relative overflow-hidden text-white shadow-xl ring-0" : void 0;
-  const headingClass = isOverlay ? "text-white" : palette.heading;
+  const headingClass = isOverlay ? "text-white" : variant === "liquid-glass" ? palette.liquidHeading : palette.heading;
   const subtitleClass = isOverlay ? "text-white/80" : palette.muted;
   const descriptionClass = isOverlay ? "text-white/75" : palette.muted;
   const badgeNode = typeof badge === "string" ? /* @__PURE__ */ jsx184(
@@ -13515,6 +13566,17 @@ var Panel = ({
           "div",
           {
             className: "pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]",
+            "aria-hidden": "true"
+          }
+        ),
+        variant === "liquid-glass" && specularHighlight && /* @__PURE__ */ jsx184(
+          "div",
+          {
+            className: classNames37(
+              "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
+              "bg-gradient-to-r from-transparent via-white/40 to-transparent",
+              "dark:via-white/10"
+            ),
             "aria-hidden": "true"
           }
         ),
@@ -20320,7 +20382,7 @@ var StatGraphTile = ({
 var StatGraphTile_default = StatGraphTile;
 
 // src/components/Stepper.tsx
-import { useLayoutEffect as useLayoutEffect6, useMemo as useMemo24, useRef as useRef23, useState as useState39 } from "react";
+import { useLayoutEffect as useLayoutEffect7, useMemo as useMemo24, useRef as useRef23, useState as useState40 } from "react";
 import classNames54 from "classnames";
 
 // src/hooks/useStepper.ts
@@ -20448,6 +20510,60 @@ function useStepper(steps, {
     isActive,
     isCompleted
   };
+}
+
+// src/hooks/useTheme.ts
+import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect22, useState as useState39 } from "react";
+var STORAGE_KEY = "ui-kit-demo-theme";
+function getStoredTheme() {
+  if (typeof window === "undefined") return "light";
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === "light" || stored === "dark" || stored === "system") {
+    return stored;
+  }
+  return "light";
+}
+function isSystemDark() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function applyTheme(mode) {
+  if (typeof document === "undefined") return;
+  const isDark = mode === "system" ? isSystemDark() : mode === "dark";
+  const root = document.documentElement;
+  root.classList.toggle("dark", isDark);
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(STORAGE_KEY, mode);
+    } catch {
+    }
+  }
+}
+function useTheme() {
+  const [theme, setTheme] = useState39(getStoredTheme);
+  const [effectiveTheme, setEffectiveTheme] = useState39(() => {
+    const t = getStoredTheme();
+    return t === "system" ? isSystemDark() ? "dark" : "light" : t;
+  });
+  useLayoutEffect6(() => {
+    applyTheme(theme);
+  }, [theme]);
+  useEffect22(() => {
+    setEffectiveTheme(theme === "system" ? isSystemDark() ? "dark" : "light" : theme);
+  }, [theme]);
+  useEffect22(() => {
+    if (typeof window === "undefined") return;
+    if (theme !== "system") return;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      const isDark = mql.matches;
+      document.documentElement.classList.toggle("dark", isDark);
+      setEffectiveTheme(isDark ? "dark" : "light");
+    };
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [theme]);
+  return { theme, effectiveTheme, setTheme };
 }
 
 // src/components/Stepper.tsx
@@ -20580,7 +20696,7 @@ var Stepper = ({
   });
   const nodeRefs = useRef23([]);
   const verticalContainerRef = useRef23(null);
-  const [verticalSegments, setVerticalSegments] = useState39([]);
+  const [verticalSegments, setVerticalSegments] = useState40([]);
   const palette = getStepperTonePalette(tone);
   const sizeToken = sizeTokens13[size];
   const connectorThicknessClass = connectorThickness[size];
@@ -20649,7 +20765,7 @@ var Stepper = ({
     };
   });
   nodeRefs.current.length = stepMeta.length;
-  useLayoutEffect6(() => {
+  useLayoutEffect7(() => {
     if (orientation !== "vertical") {
       if (verticalSegments.length !== 0) {
         setVerticalSegments([]);
@@ -21088,7 +21204,7 @@ var Stepper = ({
 var Stepper_default = Stepper;
 
 // src/components/Table.tsx
-import React53, { useEffect as useEffect22, useMemo as useMemo25, useRef as useRef24, useState as useState40 } from "react";
+import React53, { useEffect as useEffect23, useMemo as useMemo25, useRef as useRef24, useState as useState41 } from "react";
 import classNames55 from "classnames";
 import { Fragment as Fragment19, jsx as jsx212, jsxs as jsxs107 } from "react/jsx-runtime";
 var resolveColor3 = (color) => {
@@ -21604,14 +21720,14 @@ function TableComponent({
   };
   const showViewToggle = !!columns?.length && !!panelItem;
   const defaultViewResolved = tableSettings?.activeView ?? defaultView ?? (showViewToggle ? "table" : panelItem ? "panel" : "table");
-  const [activeView, setActiveView] = useState40(
+  const [activeView, setActiveView] = useState41(
     defaultViewResolved
   );
-  const [internalSort, setInternalSort] = useState40(
+  const [internalSort, setInternalSort] = useState41(
     defaultSort ?? null
   );
   const resolvedSort = sortState ?? internalSort;
-  const [colVisibility, setColVisibility] = useState40(
+  const [colVisibility, setColVisibility] = useState41(
     () => {
       const init = {};
       const source = tableSettings?.columnVisibility ?? columnVisibilityProp;
@@ -21621,7 +21737,7 @@ function TableComponent({
       return init;
     }
   );
-  useEffect22(() => {
+  useEffect23(() => {
     const source = tableSettings?.columnVisibility ?? columnVisibilityProp;
     if (!source) return;
     setColVisibility((prev) => {
@@ -21632,9 +21748,9 @@ function TableComponent({
       return next;
     });
   }, [columnVisibilityProp, tableSettings?.columnVisibility]);
-  const [colPanelOpen, setColPanelOpen] = useState40(false);
+  const [colPanelOpen, setColPanelOpen] = useState41(false);
   const colPanelRef = useRef24(null);
-  const [internalColWidths, setInternalColWidths] = useState40(() => {
+  const [internalColWidths, setInternalColWidths] = useState41(() => {
     const init = {};
     const widthSource = tableSettings?.columnWidths ?? columnWidthsProp;
     if (widthSource) {
@@ -21650,7 +21766,7 @@ function TableComponent({
     }
     return init;
   });
-  useEffect22(() => {
+  useEffect23(() => {
     const widthSource = tableSettings?.columnWidths ?? columnWidthsProp;
     if (!widthSource) return;
     setInternalColWidths((prev) => ({ ...prev, ...widthSource }));
@@ -21658,7 +21774,7 @@ function TableComponent({
   const thRefs = useRef24({});
   const resizingRef = useRef24(null);
   const widthsDuringResizeRef = useRef24({});
-  useEffect22(() => {
+  useEffect23(() => {
     return () => {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
@@ -21708,8 +21824,8 @@ function TableComponent({
     document.addEventListener("mouseup", onMouseUp);
   };
   const useFixedLayout = resizableColumns && Object.keys(internalColWidths).length > 0;
-  const [internalStickyColumns, setInternalStickyColumns] = useState40(tableSettings?.stickyColumns ?? defaultStickyColumns ?? {});
-  const [stickyPanelOpen, setStickyPanelOpen] = useState40(false);
+  const [internalStickyColumns, setInternalStickyColumns] = useState41(tableSettings?.stickyColumns ?? defaultStickyColumns ?? {});
+  const [stickyPanelOpen, setStickyPanelOpen] = useState41(false);
   const stickyPanelRef = useRef24(null);
   const settingsSnapshotRef = useRef24({});
   const handleStickyChange = (colId, pin) => {
@@ -21726,14 +21842,14 @@ function TableComponent({
     });
   };
   const hasStickyColumns = Object.keys(internalStickyColumns).length > 0;
-  const [internalGroupBy, setInternalGroupBy] = useState40(
+  const [internalGroupBy, setInternalGroupBy] = useState41(
     tableSettings?.groupBy ?? defaultGroupBy ?? null
   );
-  const [expandedGroups, setExpandedGroups] = useState40(
+  const [expandedGroups, setExpandedGroups] = useState41(
     {}
   );
-  const [groupPanelOpen, setGroupPanelOpen] = useState40(false);
-  const [showGroupHeaderLocal, setShowGroupHeaderLocal] = useState40(
+  const [groupPanelOpen, setGroupPanelOpen] = useState41(false);
+  const [showGroupHeaderLocal, setShowGroupHeaderLocal] = useState41(
     tableSettings?.showGroupHeader ?? showGroupHeader ?? true
   );
   const groupPanelRef = useRef24(null);
@@ -21761,7 +21877,7 @@ function TableComponent({
     });
     return lookup;
   }, [selectedItems, rowKey]);
-  useEffect22(() => {
+  useEffect23(() => {
     if (!colPanelOpen) return;
     const handler = (e) => {
       if (colPanelRef.current && !colPanelRef.current.contains(e.target)) {
@@ -21771,7 +21887,7 @@ function TableComponent({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [colPanelOpen]);
-  useEffect22(() => {
+  useEffect23(() => {
     if (!groupPanelOpen) return;
     const handler = (e) => {
       if (groupPanelRef.current && !groupPanelRef.current.contains(e.target)) {
@@ -21781,7 +21897,7 @@ function TableComponent({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [groupPanelOpen]);
-  useEffect22(() => {
+  useEffect23(() => {
     if (!stickyPanelOpen) return;
     const handler = (e) => {
       if (stickyPanelRef.current && !stickyPanelRef.current.contains(e.target)) {
@@ -21907,7 +22023,7 @@ function TableComponent({
     });
     return groups;
   }, [resolvedGroupBy, effectiveColumns, sortedData]);
-  useEffect22(() => {
+  useEffect23(() => {
     if (!groupedData) return;
     setExpandedGroups((prev) => {
       const next = { ...prev };
@@ -22828,7 +22944,7 @@ function Table(props) {
 var Table_default = Table;
 
 // src/components/AccessMatrix.tsx
-import { useMemo as useMemo26, useState as useState41 } from "react";
+import { useMemo as useMemo26, useState as useState42 } from "react";
 import classNames56 from "classnames";
 import { jsx as jsx213, jsxs as jsxs108 } from "react/jsx-runtime";
 function ChevronSvg2({ expanded }) {
@@ -22896,8 +23012,8 @@ var AccessMatrix = ({
   stickyBackground,
   hoverable = false
 }) => {
-  const [expanded, setExpanded] = useState41(false);
-  const [collapsedGroups, setCollapsedGroups] = useState41(
+  const [expanded, setExpanded] = useState42(false);
+  const [collapsedGroups, setCollapsedGroups] = useState42(
     /* @__PURE__ */ new Set()
   );
   const actions = useMemo26(() => {
@@ -23065,7 +23181,7 @@ var AccessMatrix = ({
 var AccessMatrix_default = AccessMatrix;
 
 // src/components/KeyValueArrayField.tsx
-import { useEffect as useEffect23, useState as useState42 } from "react";
+import { useEffect as useEffect24, useState as useState43 } from "react";
 import { jsx as jsx214, jsxs as jsxs109 } from "react/jsx-runtime";
 var KeyValueArrayField = ({
   label,
@@ -23077,8 +23193,8 @@ var KeyValueArrayField = ({
   isVisible = true,
   addLabel
 }) => {
-  const [pairs, setPairs] = useState42(value || []);
-  useEffect23(() => {
+  const [pairs, setPairs] = useState43(value || []);
+  useEffect24(() => {
     setPairs(value || []);
   }, [value]);
   const handleAddPair = () => {
@@ -23394,7 +23510,7 @@ var NotificationModal = ({
 var NotificationModal_default = NotificationModal;
 
 // src/components/SidePanel.tsx
-import { useCallback as useCallback19, useEffect as useEffect24, useRef as useRef25, useState as useState43 } from "react";
+import { useCallback as useCallback19, useEffect as useEffect25, useRef as useRef25, useState as useState44 } from "react";
 import classNames58 from "classnames";
 import { jsx as jsx218, jsxs as jsxs112 } from "react/jsx-runtime";
 var SidePanel = ({
@@ -23414,9 +23530,9 @@ var SidePanel = ({
   maxWidth = 900,
   color = "neutral"
 }) => {
-  const [mounted, setMounted] = useState43(isOpen);
+  const [mounted, setMounted] = useState44(isOpen);
   const prevOpenRef = useRef25(isOpen);
-  useEffect24(() => {
+  useEffect25(() => {
     if (isOpen && !prevOpenRef.current) {
       setMounted(true);
     }
@@ -23425,11 +23541,11 @@ var SidePanel = ({
   const handleTransitionEnd = () => {
     if (!isOpen) setMounted(false);
   };
-  const [currentWidth, setCurrentWidth] = useState43(width);
+  const [currentWidth, setCurrentWidth] = useState44(width);
   const isDraggingRef = useRef25(false);
   const startXRef = useRef25(0);
   const startWidthRef = useRef25(0);
-  useEffect24(() => {
+  useEffect25(() => {
     if (!isDraggingRef.current) setCurrentWidth(width);
   }, [width]);
   const onMouseDown = useCallback19(
@@ -23534,10 +23650,10 @@ var SidePanel_default = SidePanel;
 // src/components/TimelinePanel/TimelinePanel.tsx
 import React58, {
   useCallback as useCallback20,
-  useEffect as useEffect25,
-  useLayoutEffect as useLayoutEffect7,
+  useEffect as useEffect26,
+  useLayoutEffect as useLayoutEffect8,
   useRef as useRef26,
-  useState as useState44
+  useState as useState45
 } from "react";
 import classNames59 from "classnames";
 
@@ -23826,8 +23942,8 @@ function useIsDark() {
     probe.remove();
     return dark;
   };
-  const [isDark, setIsDark] = useState44(() => detect());
-  useEffect25(() => {
+  const [isDark, setIsDark] = useState45(() => detect());
+  useEffect26(() => {
     const update = () => setIsDark(detect());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -24061,6 +24177,7 @@ var variantShellStyles = {
   tonal: "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   default: "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass: "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass": "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple: "text-neutral-900 ring-transparent dark:text-neutral-100 dark:ring-white/5"
 };
 var cornerStyles2 = {
@@ -24076,7 +24193,7 @@ var OverflowButton = ({
   options,
   onSelect
 }) => {
-  const [open, setOpen] = useState44(false);
+  const [open, setOpen] = useState45(false);
   const ref = useRef26(null);
   if (options.length === 0) return null;
   return /* @__PURE__ */ jsxs113(Fragment20, { children: [
@@ -24215,14 +24332,14 @@ var TimelinePanel = ({
   const isDark = useIsDark();
   const palette = getPanelToneStyles(tone);
   const itemEls = useRef26([]);
-  const [itemHeights, setItemHeights] = useState44([]);
+  const [itemHeights, setItemHeights] = useState45([]);
   const measureHeights = useCallback20(() => {
     const heights = itemEls.current.map((el) => el?.offsetHeight ?? 0);
     setItemHeights(
       (prev) => prev.length === heights.length && prev.every((h, i) => h === heights[i]) ? prev : heights
     );
   }, []);
-  useLayoutEffect7(() => {
+  useLayoutEffect8(() => {
     itemEls.current = itemEls.current.slice(0, items.length);
     measureHeights();
     const ro = new ResizeObserver(measureHeights);
@@ -24363,16 +24480,16 @@ var TimelinePanel_default = TimelinePanel;
 // src/components/ConnectionFlow/ConnectionFlow.tsx
 import React64, {
   useCallback as useCallback22,
-  useEffect as useEffect31,
-  useLayoutEffect as useLayoutEffect9,
+  useEffect as useEffect32,
+  useLayoutEffect as useLayoutEffect10,
   useMemo as useMemo28,
   useRef as useRef31,
-  useState as useState50
+  useState as useState51
 } from "react";
 import classNames63 from "classnames";
 
 // src/components/ConnectionFlow/ConnectionFlowConnector.tsx
-import { useEffect as useEffect26, useLayoutEffect as useLayoutEffect8, useRef as useRef27, useState as useState45 } from "react";
+import { useEffect as useEffect27, useLayoutEffect as useLayoutEffect9, useRef as useRef27, useState as useState46 } from "react";
 import { Fragment as Fragment21, jsx as jsx220, jsxs as jsxs114 } from "react/jsx-runtime";
 function useIsDark2() {
   const detectDark = () => {
@@ -24384,8 +24501,8 @@ function useIsDark2() {
     probe.remove();
     return darkActive;
   };
-  const [isDark, setIsDark] = useState45(() => detectDark());
-  useEffect26(() => {
+  const [isDark, setIsDark] = useState46(() => detectDark());
+  useEffect27(() => {
     const update = () => setIsDark(detectDark());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -24436,8 +24553,8 @@ var ConnectionFlowConnector = ({
 }) => {
   const isDark = useIsDark2();
   const containerRef = useRef27(null);
-  const [measuredWidth, setMeasuredWidth] = useState45(width);
-  useLayoutEffect8(() => {
+  const [measuredWidth, setMeasuredWidth] = useState46(width);
+  useLayoutEffect9(() => {
     if (!fullWidth) {
       setMeasuredWidth(width);
       return;
@@ -24873,11 +24990,11 @@ var ConnectionFlowConnector = ({
 var ConnectionFlowConnector_default = ConnectionFlowConnector;
 
 // src/components/ConnectionFlow/ConnectionFlowColumn.tsx
-import { useCallback as useCallback21, useEffect as useEffect29, useRef as useRef29, useState as useState48 } from "react";
+import { useCallback as useCallback21, useEffect as useEffect30, useRef as useRef29, useState as useState49 } from "react";
 import classNames61 from "classnames";
 
 // src/components/TreeView/TreeItemCard.tsx
-import { useEffect as useEffect27, useRef as useRef28, useState as useState46 } from "react";
+import { useEffect as useEffect28, useRef as useRef28, useState as useState47 } from "react";
 import classNames60 from "classnames";
 import { jsx as jsx221, jsxs as jsxs115 } from "react/jsx-runtime";
 var TreeItemCard = ({
@@ -24908,12 +25025,12 @@ var TreeItemCard = ({
   activePulse = false
 }) => {
   const tokens = getTreeColorTokens(tone);
-  const [internalExpanded, setInternalExpanded] = useState46(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = useState47(defaultExpanded);
   const isExpanded = expanded ?? internalExpanded;
   const canExpand = forceToggle || body !== void 0 && body !== null;
   const titleRef = useRef28(null);
-  const [isTitleClamped, setIsTitleClamped] = useState46(false);
-  useEffect27(() => {
+  const [isTitleClamped, setIsTitleClamped] = useState47(false);
+  useEffect28(() => {
     if (!titleWrap || titleScroll) {
       setIsTitleClamped(false);
       return;
@@ -25065,7 +25182,7 @@ var TreeItemCard = ({
 var TreeItemCard_default = TreeItemCard;
 
 // src/components/TreeView/TreeFlowSvg.tsx
-import { useEffect as useEffect28, useState as useState47 } from "react";
+import { useEffect as useEffect29, useState as useState48 } from "react";
 import { Fragment as Fragment22, jsx as jsx222, jsxs as jsxs116 } from "react/jsx-runtime";
 function useIsDark3() {
   const detectDark = () => {
@@ -25077,8 +25194,8 @@ function useIsDark3() {
     probe.remove();
     return darkActive;
   };
-  const [isDark, setIsDark] = useState47(() => detectDark());
-  useEffect28(() => {
+  const [isDark, setIsDark] = useState48(() => detectDark());
+  useEffect29(() => {
     const update = () => setIsDark(detectDark());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -25526,8 +25643,8 @@ var TreeFlowSvg_default = TreeFlowSvg;
 // src/components/ConnectionFlow/ConnectionFlowColumn.tsx
 import { jsx as jsx223, jsxs as jsxs117 } from "react/jsx-runtime";
 function useElementHeight(ref) {
-  const [h, setH] = useState48(0);
-  useEffect29(() => {
+  const [h, setH] = useState49(0);
+  useEffect30(() => {
     const el = ref.current;
     if (!el) return;
     let raf;
@@ -25559,7 +25676,7 @@ var ChildRow = ({
   const minHRef = useRef29(null);
   const resolvedTone = item.tone ?? globalTone ?? "neutral";
   const isActive = item.active ?? false;
-  useEffect29(() => {
+  useEffect30(() => {
     if (rowH > 0) {
       onHeightChange(rowH);
       if (minHRef.current === null || rowH < minHRef.current) {
@@ -25568,10 +25685,10 @@ var ChildRow = ({
       }
     }
   }, [rowH, onHeightChange, onAnchorChange]);
-  useEffect29(() => {
+  useEffect30(() => {
     onToneChange(resolvedTone);
   }, [resolvedTone, onToneChange]);
-  useEffect29(() => {
+  useEffect30(() => {
     onActiveChange(isActive);
   }, [isActive, onActiveChange]);
   return /* @__PURE__ */ jsx223("div", { ref: rowRef, className: "mb-2 min-w-0", children: /* @__PURE__ */ jsx223(
@@ -25623,19 +25740,19 @@ var ConnectionFlowColumn = ({
   const parentCardRef = useRef29(null);
   const parentCardH = useElementHeight(parentCardRef);
   const columnH = useElementHeight(columnRef);
-  const [cardHeights, setCardHeights] = useState48(
+  const [cardHeights, setCardHeights] = useState49(
     () => Array(childCount).fill(0)
   );
-  const [cardAnchors, setCardAnchors] = useState48(
+  const [cardAnchors, setCardAnchors] = useState49(
     () => Array(childCount).fill(0)
   );
-  const [toneList, setToneList] = useState48(
+  const [toneList, setToneList] = useState49(
     () => Array(childCount).fill(globalTone ?? "neutral")
   );
-  const [activeList, setActiveList] = useState48(
+  const [activeList, setActiveList] = useState49(
     () => Array(childCount).fill(false)
   );
-  useEffect29(() => {
+  useEffect30(() => {
     setCardHeights(Array(childCount).fill(0));
     setCardAnchors(Array(childCount).fill(0));
     setToneList(Array(childCount).fill(globalTone ?? "neutral"));
@@ -25677,7 +25794,7 @@ var ConnectionFlowColumn = ({
     }),
     []
   );
-  useEffect29(() => {
+  useEffect30(() => {
     if (!onGeometryChange || parentCardH === 0 || columnH === 0) return;
     const anchors = [parentCardH / 2];
     if (hasChildren && cardHeights.length > 0 && cardHeights.every((h) => h > 0)) {
@@ -25781,13 +25898,13 @@ var ConnectionFlowColumn = ({
 var ConnectionFlowColumn_default = ConnectionFlowColumn;
 
 // src/components/ConnectionFlow/ConnectionFlowParallelGroup.tsx
-import { useEffect as useEffect30, useRef as useRef30, useState as useState49 } from "react";
+import { useEffect as useEffect31, useRef as useRef30, useState as useState50 } from "react";
 import classNames62 from "classnames";
 import { jsx as jsx224 } from "react/jsx-runtime";
 var GROUP_ROW_GAP = 8;
 function useElementHeight2(ref) {
-  const [h, setH] = useState49(0);
-  useEffect30(() => {
+  const [h, setH] = useState50(0);
+  useEffect31(() => {
     const el = ref.current;
     if (!el) return;
     let raf;
@@ -25809,14 +25926,14 @@ var ConnectionFlowParallelGroup = ({ items, globalTone, itemWidth, hoverable = f
   const groupH = useElementHeight2(groupRef);
   const itemCount = items.length;
   const itemRefs = useRef30([]);
-  const [itemHeights, setItemHeights] = useState49(
+  const [itemHeights, setItemHeights] = useState50(
     () => Array(itemCount).fill(0)
   );
-  useEffect30(() => {
+  useEffect31(() => {
     setItemHeights(Array(itemCount).fill(0));
     itemRefs.current = itemRefs.current.slice(0, itemCount);
   }, [itemCount]);
-  useEffect30(() => {
+  useEffect31(() => {
     const observers = [];
     const rafs = [];
     itemRefs.current.forEach((el, i) => {
@@ -25842,7 +25959,7 @@ var ConnectionFlowParallelGroup = ({ items, globalTone, itemWidth, hoverable = f
       observers.forEach((ro) => ro.disconnect());
     };
   }, [itemCount]);
-  useEffect30(() => {
+  useEffect31(() => {
     if (!onGeometryChange || groupH === 0) return;
     if (itemHeights.some((h) => h === 0)) return;
     const anchors = [];
@@ -25917,8 +26034,8 @@ function useIsDark4() {
     probe.remove();
     return dark;
   };
-  const [isDark, setIsDark] = useState50(() => detect());
-  useEffect31(() => {
+  const [isDark, setIsDark] = useState51(() => detect());
+  useEffect32(() => {
     const update = () => setIsDark(detect());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -25990,7 +26107,7 @@ var ConnectionFlow = ({
   fullWidthConnectors = false
 }) => {
   const isDark = useIsDark4();
-  const [colGeo, setColGeo] = useState50({});
+  const [colGeo, setColGeo] = useState51({});
   const handleGeo = useCallback22((idx, geo) => {
     setColGeo((prev) => {
       const cur = prev[idx];
@@ -26001,11 +26118,11 @@ var ConnectionFlow = ({
   }, []);
   const containerRef = useRef31(null);
   const contentRef = useRef31(null);
-  const [scale, setScale] = useState50(1);
-  const [scaledHeight, setScaledHeight] = useState50(
+  const [scale, setScale] = useState51(1);
+  const [scaledHeight, setScaledHeight] = useState51(
     void 0
   );
-  useLayoutEffect9(() => {
+  useLayoutEffect10(() => {
     if (!autoScale) {
       setScale(1);
       setScaledHeight(void 0);
@@ -26031,7 +26148,7 @@ var ConnectionFlow = ({
     return () => ro.disconnect();
   }, [autoScale, minScale, items]);
   const groupDivRefs = useRef31([]);
-  const [bypassArcs, setBypassArcs] = useState50([]);
+  const [bypassArcs, setBypassArcs] = useState51([]);
   const groups = buildGroups(items);
   const autoSkippedSet = useMemo28(() => {
     const set = /* @__PURE__ */ new Set();
@@ -26088,7 +26205,7 @@ var ConnectionFlow = ({
     }
     setBypassArcs(arcs);
   }, [items, scale, autoSkippedSet]);
-  useLayoutEffect9(() => {
+  useLayoutEffect10(() => {
     computeBypassArcs();
     const ro = new ResizeObserver(computeBypassArcs);
     if (contentRef.current) ro.observe(contentRef.current);
@@ -26373,10 +26490,10 @@ var ConnectionFlow_default = ConnectionFlow;
 // src/components/TreeView/TreeView.tsx
 import {
   useCallback as useCallback23,
-  useEffect as useEffect32,
-  useLayoutEffect as useLayoutEffect10,
+  useEffect as useEffect33,
+  useLayoutEffect as useLayoutEffect11,
   useRef as useRef32,
-  useState as useState51
+  useState as useState52
 } from "react";
 import classNames64 from "classnames";
 import { jsx as jsx226, jsxs as jsxs119 } from "react/jsx-runtime";
@@ -26408,8 +26525,8 @@ function moveItem(list, from, to) {
   return next;
 }
 function useElementHeight3(ref) {
-  const [h, setH] = useState51(0);
-  useEffect32(() => {
+  const [h, setH] = useState52(0);
+  useEffect33(() => {
     const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver(([e]) => setH(e.contentRect.height));
@@ -26442,11 +26559,11 @@ var TreeItemRow = ({
   const childLevelWrapRef = useRef32(null);
   const rowHeight = useElementHeight3(rowRef);
   const cardHeight = useElementHeight3(cardRef);
-  const [childLevelOffset, setChildLevelOffset] = useState51(0);
+  const [childLevelOffset, setChildLevelOffset] = useState52(0);
   const resolvedTone = item.tone ?? globalTone ?? "neutral";
   const isActive = item.active ?? false;
   const hasChildren = Boolean(item.children && item.children.length > 0);
-  const [childrenExpanded, setChildrenExpanded] = useState51(
+  const [childrenExpanded, setChildrenExpanded] = useState52(
     item.defaultExpanded ?? true
   );
   const setRowElement = useCallback23(
@@ -26456,17 +26573,17 @@ var TreeItemRow = ({
     },
     [onRowElement]
   );
-  useEffect32(() => {
+  useEffect33(() => {
     if (rowHeight > 0) {
       onHeightChange(rowHeight);
     }
   }, [rowHeight, onHeightChange]);
-  useEffect32(() => {
+  useEffect33(() => {
     if (cardHeight > 0) {
       onAnchorChange(cardHeight / 2);
     }
   }, [cardHeight, onAnchorChange]);
-  useEffect32(() => {
+  useEffect33(() => {
     const cardEl = cardRef.current;
     const childWrapEl = childLevelWrapRef.current;
     if (!cardEl || !childWrapEl || !hasChildren || !childrenExpanded) {
@@ -26488,10 +26605,10 @@ var TreeItemRow = ({
       window.removeEventListener("resize", computeOffset);
     };
   }, [childrenExpanded, hasChildren]);
-  useEffect32(() => {
+  useEffect33(() => {
     onToneChange(resolvedTone);
   }, [resolvedTone, onToneChange]);
-  useEffect32(() => {
+  useEffect33(() => {
     onActiveChange(isActive);
   }, [isActive, onActiveChange]);
   return /* @__PURE__ */ jsxs119(
@@ -26584,10 +26701,10 @@ var TreeLevel = ({
   const resolvedRowGap = svgProps.rowGap ?? 8;
   const indentPx = INDENT_PX[resolvedIndent];
   const isReorderEnabled = Boolean(svgProps.reorderable && items.length > 1);
-  const [orderedItems, setOrderedItems] = useState51(items);
+  const [orderedItems, setOrderedItems] = useState52(items);
   const prevIncomingOrderKeyRef = useRef32(buildOrderKey(items));
   const hasLocalOrderOverride = useRef32(false);
-  useEffect32(() => {
+  useEffect33(() => {
     const incomingKey = buildOrderKey(items);
     setOrderedItems((prev) => {
       if (!hasLocalOrderOverride.current) {
@@ -26601,21 +26718,21 @@ var TreeLevel = ({
     });
     prevIncomingOrderKeyRef.current = incomingKey;
   }, [items]);
-  const [cardHeightById, setCardHeightById] = useState51(
+  const [cardHeightById, setCardHeightById] = useState52(
     {}
   );
-  const [cardAnchorById, setCardAnchorById] = useState51(
+  const [cardAnchorById, setCardAnchorById] = useState52(
     {}
   );
-  const [toneById, setToneById] = useState51({});
-  const [activeById, setActiveById] = useState51({});
+  const [toneById, setToneById] = useState52({});
+  const [activeById, setActiveById] = useState52({});
   const rowElementsRef = useRef32({});
   const previousTopByIdRef = useRef32({});
   const dragStartRef = useRef32(null);
   const dropTargetRef = useRef32(null);
-  const [draggingId, setDraggingId] = useState51(null);
-  const [dropTarget, setDropTarget] = useState51(null);
-  useEffect32(() => {
+  const [draggingId, setDraggingId] = useState52(null);
+  const [dropTarget, setDropTarget] = useState52(null);
+  useEffect33(() => {
     const validIds = new Set(orderedItems.map((item) => item.id));
     const prune = (prev) => {
       let dirty = false;
@@ -26696,7 +26813,7 @@ var TreeLevel = ({
     }
     clearDragState();
   }, [clearDragState, isReorderEnabled, orderedItems, svgProps]);
-  useLayoutEffect10(() => {
+  useLayoutEffect11(() => {
     const nextTopById = {};
     for (const item of orderedItems) {
       const rowEl = rowElementsRef.current[item.id];
@@ -26989,10 +27106,10 @@ import {
   createContext as createContext3,
   useCallback as useCallback24,
   useContext as useContext3,
-  useEffect as useEffect33,
+  useEffect as useEffect34,
   useMemo as useMemo29,
   useRef as useRef33,
-  useState as useState52
+  useState as useState53
 } from "react";
 import { createPortal as createPortal11 } from "react-dom";
 import classNames65 from "classnames";
@@ -27008,8 +27125,8 @@ var renderSlot = (slot, controls) => {
 var BottomSheetProvider = ({
   children
 }) => {
-  const [sheet, setSheet] = useState52(null);
-  const [isVisible, setIsVisible] = useState52(false);
+  const [sheet, setSheet] = useState53(null);
+  const [isVisible, setIsVisible] = useState53(false);
   const pendingCloseRef = useRef33(null);
   const dismissSheet = useCallback24(() => {
     setIsVisible(false);
@@ -27027,7 +27144,7 @@ var BottomSheetProvider = ({
       setTimeout(animateIn, 0);
     }
   }, []);
-  useEffect33(() => {
+  useEffect34(() => {
     if (!isVisible && sheet) {
       pendingCloseRef.current = setTimeout(() => {
         sheet.onClose?.();
@@ -27042,7 +27159,7 @@ var BottomSheetProvider = ({
     }
     return void 0;
   }, [isVisible, sheet]);
-  useEffect33(
+  useEffect34(
     () => () => {
       if (pendingCloseRef.current) {
         clearTimeout(pendingCloseRef.current);
@@ -27556,198 +27673,78 @@ MetricBar.displayName = "MetricBar";
 export {
   AccessMatrix_default as AccessMatrix,
   Accordion_default as Accordion,
-  Add,
   Alert_default as Alert,
   ApiErrorState_default as ApiErrorState,
   AppDivider_default as AppDivider,
-  Apple,
   ApplyConfirmModal,
-  ArrowChevronLeft,
-  ArrowChevronRight,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  Artifactory,
-  Attached,
-  Attachment,
-  Aws,
-  Azure,
-  Back,
   Badge_default as Badge,
   BadgeIcon_default as BadgeIcon,
-  Blueprint,
   BottomSheetProvider,
-  Bug,
   Button_default as Button,
   ButtonSelector_default as ButtonSelector,
-  Cache,
-  Calendar,
   CapsuleBlueprintValueType2 as CapsuleBlueprintValueType,
-  CatalogVersion,
-  CentOS,
-  Chat,
-  Check,
-  CheckCircle,
   Checkbox_default as Checkbox,
-  ChevronLeft,
-  ChevronRight,
-  Claim,
-  Claims,
-  Clean,
-  CleanBrush,
-  Clone,
-  Close,
-  Close1,
-  CloudOff,
-  Cog,
   CollapsibleHelpText_default as CollapsibleHelpText,
   CollapsiblePanel_default as CollapsiblePanel,
   Combobox_default as Combobox,
-  Complete,
   ConfirmInlinePanel,
   ConfirmModal,
   ConnectionFlow_default as ConnectionFlow,
   ConnectionFlowColumn_default as ConnectionFlowColumn,
   ConnectionFlowConnector,
   ConnectionFlowParallelGroup_default as ConnectionFlowParallelGroup,
-  Container,
-  Copy,
-  CopyClipboard,
   CustomIcon_default as CustomIcon,
-  Dashboard,
-  Database,
-  Debian,
   DeleteConfirmInlinePanel,
   DeleteConfirmModal,
   DetailItemCard_default as DetailItemCard,
-  Details,
-  Docker,
-  DockerCopy,
-  Dots,
-  Download,
-  Drag,
   DropdownButton_default as DropdownButton,
   DropdownMenu_default as DropdownMenu,
   DynamicFormField_default as DynamicFormField,
   DynamicImg_default as DynamicImg,
-  Edit,
   EmptyState_default as EmptyState,
-  Equal,
-  Error2 as Error,
-  Export,
-  EyeClosed,
-  EyeOpen,
-  Fedora,
-  File,
-  Folder,
   FormField_default as FormField,
   FormLayout_default as FormLayout,
   FormSection_default as FormSection,
-  Globe,
-  Group,
   HeaderGroup_default as HeaderGroup,
-  HealthCheck,
-  Help,
   Hero_default as Hero,
-  Host,
   IconButton_default as IconButton,
   IconContext,
   IconProvider,
-  Idea,
-  Image,
   InfiniteScrollPanel_default as InfiniteScrollPanel,
-  Info,
   InfoRow_default as InfoRow,
   InlinePanel_default as InlinePanel,
   Input_default as Input,
   InputGroup_default as InputGroup,
-  Jobs,
-  KaliLinux,
-  Key,
-  KeyManagement,
   KeyValueArrayField_default as KeyValueArrayField,
-  LXC,
-  LXCOld,
-  Library,
-  Live,
   Loader_default as Loader,
-  Log,
-  Login,
-  Logout,
   MetricBar,
-  Minio,
   Modal_default as Modal,
   ModalActions,
   Moon,
   MultiProgressBar_default as MultiProgressBar,
   MultiSelectPills_default as MultiSelectPills,
   MultiToggle_default as MultiToggle,
-  Notification,
   NotificationModal_default as NotificationModal,
-  Official,
-  Offline,
-  OpenApp,
-  Orchestrator,
   PagedPanel_default as PagedPanel,
   Panel_default as Panel,
-  Parameter,
   PasswordInput_default as PasswordInput,
-  Pause,
   Picker_default as Picker,
   Pill_default as Pill,
-  Pin,
-  Podman,
-  PodmanDesktop,
-  Praise,
   Progress_default as Progress,
-  Pull,
-  Push,
-  RedHat,
-  Refresh,
-  RemoteHost,
-  ReportFeedback,
-  Reset,
-  Restart,
-  ReverseProxy,
-  ReverseProxyCORS,
-  ReverseProxyFrom,
-  ReverseProxyHTTP,
-  ReverseProxyHeadersRequest,
-  ReverseProxyHeadersResponse,
-  ReverseProxyRoutes,
-  ReverseProxyTCP,
-  ReverseProxyTLS,
-  ReverseProxyTo,
-  Revert,
-  Revoke,
-  Rocket,
-  Role,
-  Roles,
-  Run,
   SMART_VAR_REGEX,
   SYSTEM_VARIABLES,
-  Save,
-  Scale,
-  Script,
-  Search,
   SearchBar_default as SearchBar,
   Section_default as Section,
   SectionCard_default as SectionCard,
   Select_default as Select,
-  Send,
-  Settings,
-  Shop,
   SideMenu_default as SideMenu,
   SideMenuActionsProvider,
   SideMenuLayout_default as SideMenuLayout,
   SidePanel_default as SidePanel,
   SmartInput_default as SmartInput,
   SmartValue_default as SmartValue,
-  Snapshot,
   Spinner_default as Spinner,
   SplitView_default as SplitView,
-  Star,
   StartupStageStepper_default as StartupStageStepper,
   StatChartTile_default as StatChartTile,
   StatCountTile_default as StatCountTile,
@@ -27756,42 +27753,25 @@ export {
   StatTile_default as StatTile,
   StatusSpinner_default as StatusSpinner,
   Stepper_default as Stepper,
-  Stop,
   Sun,
-  Suspend,
   INDENT_PX as TREE_INDENT_PX,
   NEUTRAL_TOKENS as TREE_NEUTRAL_TOKENS,
   Table_default as Table,
   Tabs_default as Tabs,
   TagPanel_default as TagPanel,
   TagPicker_default as TagPicker,
-  Taint,
   Textarea_default as Textarea,
   ThemeAuto,
-  ThemeDark,
-  ThemeLight,
   TimelinePanel_default as TimelinePanel,
   Toggle_default as Toggle,
   Tooltip_default as Tooltip,
   TooltipWrapper_default as TooltipWrapper,
-  Trash,
   TreeFlowSvg_default as TreeFlowSvg,
   TreeItemCard_default as TreeItemCard,
   TreeView_default as TreeView,
   TruncatedText_default as TruncatedText,
-  UX,
-  Ubuntu,
-  Unlock,
-  User,
   UserAvatar_default as UserAvatar,
-  Users,
   VariablePicker_default as VariablePicker,
-  Verified,
-  ViewGrid,
-  ViewRows,
-  VirtualMachine,
-  Warning,
-  Windows,
   cleanupFocusHandler,
   configureTheme,
   createIntelligentFocusHandler,
@@ -27859,6 +27839,7 @@ export {
   useResizable,
   useSideMenuActions,
   useStepper,
+  useTheme,
   widthTokenRegex
 };
 //# sourceMappingURL=index.js.map

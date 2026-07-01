@@ -1,10 +1,10 @@
 // src/components/MarkdownEditor.tsx
-import React67, { useMemo as useMemo30, useState as useState53, useRef as useRef34 } from "react";
+import React67, { useMemo as useMemo30, useState as useState54, useRef as useRef34 } from "react";
 import MDEditor, { commands } from "@uiw/react-md-editor";
 import classNames67 from "classnames";
 
 // src/components/VariablePicker.tsx
-import { useMemo as useMemo29, useState as useState52 } from "react";
+import { useMemo as useMemo29, useState as useState53 } from "react";
 
 // src/components/Alert.tsx
 import React2 from "react";
@@ -365,6 +365,10 @@ var createTheme = () => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient: "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
         decorationGradient: "from-neutral-200/15 to-transparent dark:from-neutral-600/10 dark:to-transparent"
@@ -379,6 +383,10 @@ var createTheme = () => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient: "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
         decorationGradient: "from-neutral-200/15 to-transparent dark:from-neutral-600/10 dark:to-transparent"
@@ -393,6 +401,10 @@ var createTheme = () => {
         tonalBg: `bg-${c}-100/80 dark:bg-${c}-500/15`,
         glassBg: `bg-${c}-50/50 dark:bg-${c}-500/15`,
         glassBorder: `border-${c}-500 dark:border-${c}-400`,
+        liquidBg: `bg-${c}-50/30 dark:bg-${c}-500/10`,
+        liquidBorder: `border-${c}-300/50 dark:border-${c}-500/25`,
+        liquidShadow: "shadow-lg",
+        liquidHeading: `text-${c}-700 dark:text-${c}-200`,
         overlayGradient: `from-${c}-900/70 via-${c}-900/40 to-${c}-900/15`,
         decorationShape: `bg-${c}-400/10 dark:bg-${c}-300/5`,
         decorationGradient: `from-${c}-100/60 to-transparent dark:from-${c}-500/10 dark:to-transparent`
@@ -11347,6 +11359,7 @@ var variantBaseStyles = {
   tonal: "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   default: "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass: "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass": "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple: "text-neutral-900  ring-transparent dark:text-neutral-100 dark:ring-white/5"
 };
 var paddingStyles2 = {
@@ -11416,6 +11429,9 @@ var Panel = ({
   borderColor,
   backgroundColor,
   scrollable = true,
+  vibrancy = "medium",
+  glassOpacity = "frosted",
+  specularHighlight = true,
   ...rest
 }) => {
   const palette = getPanelToneStyles(tone);
@@ -11452,6 +11468,32 @@ var Panel = ({
     }
     return styles;
   })();
+  const vibrancyValue = (() => {
+    if (typeof vibrancy === "number") return vibrancy;
+    if (vibrancy === "low") return 1;
+    if (vibrancy === "medium") return 1.2;
+    if (vibrancy === "high") return 1.4;
+    return 1.2;
+  })();
+  const vibrancyClass = `backdrop-saturate-[${vibrancyValue}]`;
+  const glassFillClass = (() => {
+    const litOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.round(glassOpacity * 100);
+      if (glassOpacity === "frosted") return 45;
+      if (glassOpacity === "light") return 70;
+      if (glassOpacity === "clear") return 20;
+      return 45;
+    })();
+    const drkOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.min(Math.round(glassOpacity * 30), 30);
+      if (glassOpacity === "frosted") return 15;
+      if (glassOpacity === "light") return 25;
+      if (glassOpacity === "clear") return 5;
+      return 15;
+    })();
+    const base = resolveColor(tone);
+    return `bg-${base}-50/${litOpacity} dark:bg-${base}-500/${drkOpacity}`;
+  })();
   const variantClasses2 = (() => {
     switch (variant) {
       case "outlined":
@@ -11483,6 +11525,15 @@ var Panel = ({
           effectiveBorderClass ?? colorPalette.glassBorder,
           effectiveBgClass ?? palette.glassBg
         );
+      case "liquid-glass":
+        return classNames37(
+          "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
+          vibrancyClass,
+          glassFillClass,
+          effectiveBorderClass ?? palette.liquidBorder,
+          palette.liquidShadow,
+          palette.liquidHeading
+        );
       case "simple":
         return classNames37(
           variantBaseStyles.simple,
@@ -11506,7 +11557,7 @@ var Panel = ({
     }
   })();
   const overlayClasses = isOverlay ? "relative overflow-hidden text-white shadow-xl ring-0" : void 0;
-  const headingClass = isOverlay ? "text-white" : palette.heading;
+  const headingClass = isOverlay ? "text-white" : variant === "liquid-glass" ? palette.liquidHeading : palette.heading;
   const subtitleClass = isOverlay ? "text-white/80" : palette.muted;
   const descriptionClass = isOverlay ? "text-white/75" : palette.muted;
   const badgeNode = typeof badge === "string" ? /* @__PURE__ */ jsx184(
@@ -11729,6 +11780,17 @@ var Panel = ({
           "div",
           {
             className: "pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]",
+            "aria-hidden": "true"
+          }
+        ),
+        variant === "liquid-glass" && specularHighlight && /* @__PURE__ */ jsx184(
+          "div",
+          {
+            className: classNames37(
+              "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
+              "bg-gradient-to-r from-transparent via-white/40 to-transparent",
+              "dark:via-white/10"
+            ),
             "aria-hidden": "true"
           }
         ),
@@ -15564,27 +15626,30 @@ import {
 import { Fragment as Fragment17, jsx as jsx209, jsxs as jsxs104 } from "react/jsx-runtime";
 
 // src/components/Stepper.tsx
-import { useLayoutEffect as useLayoutEffect6, useMemo as useMemo23, useRef as useRef23, useState as useState38 } from "react";
+import { useLayoutEffect as useLayoutEffect7, useMemo as useMemo23, useRef as useRef23, useState as useState39 } from "react";
 import classNames54 from "classnames";
 
 // src/hooks/useStepper.ts
 import { useCallback as useCallback18, useMemo as useMemo22, useState as useState37 } from "react";
 
+// src/hooks/useTheme.ts
+import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect22, useState as useState38 } from "react";
+
 // src/components/Stepper.tsx
 import { Fragment as Fragment18, jsx as jsx210, jsxs as jsxs105 } from "react/jsx-runtime";
 
 // src/components/Table.tsx
-import React52, { useEffect as useEffect22, useMemo as useMemo24, useRef as useRef24, useState as useState39 } from "react";
+import React52, { useEffect as useEffect23, useMemo as useMemo24, useRef as useRef24, useState as useState40 } from "react";
 import classNames55 from "classnames";
 import { Fragment as Fragment19, jsx as jsx211, jsxs as jsxs106 } from "react/jsx-runtime";
 
 // src/components/AccessMatrix.tsx
-import { useMemo as useMemo25, useState as useState40 } from "react";
+import { useMemo as useMemo25, useState as useState41 } from "react";
 import classNames56 from "classnames";
 import { jsx as jsx212, jsxs as jsxs107 } from "react/jsx-runtime";
 
 // src/components/KeyValueArrayField.tsx
-import { useEffect as useEffect23, useState as useState41 } from "react";
+import { useEffect as useEffect24, useState as useState42 } from "react";
 import { jsx as jsx213, jsxs as jsxs108 } from "react/jsx-runtime";
 
 // src/components/ApiErrorState.tsx
@@ -15601,17 +15666,17 @@ import { jsx as jsx215, jsxs as jsxs109 } from "react/jsx-runtime";
 import { jsx as jsx216, jsxs as jsxs110 } from "react/jsx-runtime";
 
 // src/components/SidePanel.tsx
-import { useCallback as useCallback19, useEffect as useEffect24, useRef as useRef25, useState as useState42 } from "react";
+import { useCallback as useCallback19, useEffect as useEffect25, useRef as useRef25, useState as useState43 } from "react";
 import classNames58 from "classnames";
 import { jsx as jsx217, jsxs as jsxs111 } from "react/jsx-runtime";
 
 // src/components/TimelinePanel/TimelinePanel.tsx
 import React57, {
   useCallback as useCallback20,
-  useEffect as useEffect25,
-  useLayoutEffect as useLayoutEffect7,
+  useEffect as useEffect26,
+  useLayoutEffect as useLayoutEffect8,
   useRef as useRef26,
-  useState as useState43
+  useState as useState44
 } from "react";
 import classNames59 from "classnames";
 
@@ -15900,8 +15965,8 @@ function useIsDark() {
     probe.remove();
     return dark;
   };
-  const [isDark, setIsDark] = useState43(() => detect());
-  useEffect25(() => {
+  const [isDark, setIsDark] = useState44(() => detect());
+  useEffect26(() => {
     const update = () => setIsDark(detect());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -16135,6 +16200,7 @@ var variantShellStyles = {
   tonal: "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   default: "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass: "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass": "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple: "text-neutral-900 ring-transparent dark:text-neutral-100 dark:ring-white/5"
 };
 var cornerStyles2 = {
@@ -16150,7 +16216,7 @@ var OverflowButton = ({
   options,
   onSelect
 }) => {
-  const [open, setOpen] = useState43(false);
+  const [open, setOpen] = useState44(false);
   const ref = useRef26(null);
   if (options.length === 0) return null;
   return /* @__PURE__ */ jsxs112(Fragment20, { children: [
@@ -16289,14 +16355,14 @@ var TimelinePanel = ({
   const isDark = useIsDark();
   const palette = getPanelToneStyles(tone);
   const itemEls = useRef26([]);
-  const [itemHeights, setItemHeights] = useState43([]);
+  const [itemHeights, setItemHeights] = useState44([]);
   const measureHeights = useCallback20(() => {
     const heights = itemEls.current.map((el) => el?.offsetHeight ?? 0);
     setItemHeights(
       (prev) => prev.length === heights.length && prev.every((h, i) => h === heights[i]) ? prev : heights
     );
   }, []);
-  useLayoutEffect7(() => {
+  useLayoutEffect8(() => {
     itemEls.current = itemEls.current.slice(0, items.length);
     measureHeights();
     const ro = new ResizeObserver(measureHeights);
@@ -16436,24 +16502,24 @@ TimelinePanel.displayName = "TimelinePanel";
 // src/components/ConnectionFlow/ConnectionFlow.tsx
 import React64, {
   useCallback as useCallback23,
-  useEffect as useEffect32,
-  useLayoutEffect as useLayoutEffect9,
+  useEffect as useEffect33,
+  useLayoutEffect as useLayoutEffect10,
   useMemo as useMemo28,
   useRef as useRef32,
-  useState as useState50
+  useState as useState51
 } from "react";
 import classNames65 from "classnames";
 
 // src/components/ConnectionFlow/ConnectionFlowConnector.tsx
-import { useEffect as useEffect26, useLayoutEffect as useLayoutEffect8, useRef as useRef27, useState as useState44 } from "react";
+import { useEffect as useEffect27, useLayoutEffect as useLayoutEffect9, useRef as useRef27, useState as useState45 } from "react";
 import { Fragment as Fragment21, jsx as jsx219, jsxs as jsxs113 } from "react/jsx-runtime";
 
 // src/components/ConnectionFlow/ConnectionFlowColumn.tsx
-import { useCallback as useCallback22, useEffect as useEffect30, useRef as useRef30, useState as useState48 } from "react";
+import { useCallback as useCallback22, useEffect as useEffect31, useRef as useRef30, useState as useState49 } from "react";
 import classNames63 from "classnames";
 
 // src/components/TreeView/TreeItemCard.tsx
-import { useEffect as useEffect28, useRef as useRef29, useState as useState46 } from "react";
+import { useEffect as useEffect29, useRef as useRef29, useState as useState47 } from "react";
 import classNames62 from "classnames";
 
 // src/contexts/BottomSheetContext.tsx
@@ -16461,10 +16527,10 @@ import {
   createContext as createContext3,
   useCallback as useCallback21,
   useContext as useContext3,
-  useEffect as useEffect27,
+  useEffect as useEffect28,
   useMemo as useMemo27,
   useRef as useRef28,
-  useState as useState45
+  useState as useState46
 } from "react";
 import { createPortal as createPortal11 } from "react-dom";
 import classNames60 from "classnames";
@@ -16598,14 +16664,14 @@ MetricBar.displayName = "MetricBar";
 import { jsx as jsx222, jsxs as jsxs116 } from "react/jsx-runtime";
 
 // src/components/TreeView/TreeFlowSvg.tsx
-import { useEffect as useEffect29, useState as useState47 } from "react";
+import { useEffect as useEffect30, useState as useState48 } from "react";
 import { Fragment as Fragment22, jsx as jsx223, jsxs as jsxs117 } from "react/jsx-runtime";
 
 // src/components/ConnectionFlow/ConnectionFlowColumn.tsx
 import { jsx as jsx224, jsxs as jsxs118 } from "react/jsx-runtime";
 
 // src/components/ConnectionFlow/ConnectionFlowParallelGroup.tsx
-import { useEffect as useEffect31, useRef as useRef31, useState as useState49 } from "react";
+import { useEffect as useEffect32, useRef as useRef31, useState as useState50 } from "react";
 import classNames64 from "classnames";
 import { jsx as jsx225 } from "react/jsx-runtime";
 
@@ -16615,10 +16681,10 @@ import { jsx as jsx226, jsxs as jsxs119 } from "react/jsx-runtime";
 // src/components/TreeView/TreeView.tsx
 import {
   useCallback as useCallback24,
-  useEffect as useEffect33,
-  useLayoutEffect as useLayoutEffect10,
+  useEffect as useEffect34,
+  useLayoutEffect as useLayoutEffect11,
   useRef as useRef33,
-  useState as useState51
+  useState as useState52
 } from "react";
 import classNames66 from "classnames";
 import { jsx as jsx227, jsxs as jsxs120 } from "react/jsx-runtime";
@@ -16631,8 +16697,8 @@ var VariablePicker = ({
   globalParameters,
   serviceNames
 }) => {
-  const [searchTerm, setSearchTerm] = useState52("");
-  const [activeTab, setActiveTab] = useState52("global");
+  const [searchTerm, setSearchTerm] = useState53("");
+  const [activeTab, setActiveTab] = useState53("global");
   const globalVars = useMemo29(() => {
     return globalParameters.map((p) => ({
       fullToken: createSmartToken(
@@ -16759,8 +16825,8 @@ var MarkdownEditor = ({
   serviceNames = [],
   context = {}
 }) => {
-  const [showPicker, setShowPicker] = useState53(false);
-  const [pickerPos, setPickerPos] = useState53({ top: 0, left: 0 });
+  const [showPicker, setShowPicker] = useState54(false);
+  const [pickerPos, setPickerPos] = useState54({ top: 0, left: 0 });
   const selectionRef = useRef34({
     start: 0,
     end: 0

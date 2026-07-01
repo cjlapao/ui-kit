@@ -36,12 +36,12 @@ __export(markdown_exports, {
 module.exports = __toCommonJS(markdown_exports);
 
 // src/components/MarkdownEditor.tsx
-var import_react215 = __toESM(require("react"), 1);
+var import_react216 = __toESM(require("react"), 1);
 var import_react_md_editor = __toESM(require("@uiw/react-md-editor"), 1);
 var import_classnames67 = __toESM(require("classnames"), 1);
 
 // src/components/VariablePicker.tsx
-var import_react214 = require("react");
+var import_react215 = require("react");
 
 // src/components/Alert.tsx
 var import_react2 = __toESM(require("react"), 1);
@@ -402,6 +402,10 @@ var createTheme = () => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient: "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
         decorationGradient: "from-neutral-200/15 to-transparent dark:from-neutral-600/10 dark:to-transparent"
@@ -416,6 +420,10 @@ var createTheme = () => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient: "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
         decorationGradient: "from-neutral-200/15 to-transparent dark:from-neutral-600/10 dark:to-transparent"
@@ -430,6 +438,10 @@ var createTheme = () => {
         tonalBg: `bg-${c}-100/80 dark:bg-${c}-500/15`,
         glassBg: `bg-${c}-50/50 dark:bg-${c}-500/15`,
         glassBorder: `border-${c}-500 dark:border-${c}-400`,
+        liquidBg: `bg-${c}-50/30 dark:bg-${c}-500/10`,
+        liquidBorder: `border-${c}-300/50 dark:border-${c}-500/25`,
+        liquidShadow: "shadow-lg",
+        liquidHeading: `text-${c}-700 dark:text-${c}-200`,
         overlayGradient: `from-${c}-900/70 via-${c}-900/40 to-${c}-900/15`,
         decorationShape: `bg-${c}-400/10 dark:bg-${c}-300/5`,
         decorationGradient: `from-${c}-100/60 to-transparent dark:from-${c}-500/10 dark:to-transparent`
@@ -11328,6 +11340,7 @@ var variantBaseStyles = {
   tonal: "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   default: "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass: "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass": "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple: "text-neutral-900  ring-transparent dark:text-neutral-100 dark:ring-white/5"
 };
 var paddingStyles2 = {
@@ -11397,6 +11410,9 @@ var Panel = ({
   borderColor,
   backgroundColor,
   scrollable = true,
+  vibrancy = "medium",
+  glassOpacity = "frosted",
+  specularHighlight = true,
   ...rest
 }) => {
   const palette = getPanelToneStyles(tone);
@@ -11433,6 +11449,32 @@ var Panel = ({
     }
     return styles;
   })();
+  const vibrancyValue = (() => {
+    if (typeof vibrancy === "number") return vibrancy;
+    if (vibrancy === "low") return 1;
+    if (vibrancy === "medium") return 1.2;
+    if (vibrancy === "high") return 1.4;
+    return 1.2;
+  })();
+  const vibrancyClass = `backdrop-saturate-[${vibrancyValue}]`;
+  const glassFillClass = (() => {
+    const litOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.round(glassOpacity * 100);
+      if (glassOpacity === "frosted") return 45;
+      if (glassOpacity === "light") return 70;
+      if (glassOpacity === "clear") return 20;
+      return 45;
+    })();
+    const drkOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.min(Math.round(glassOpacity * 30), 30);
+      if (glassOpacity === "frosted") return 15;
+      if (glassOpacity === "light") return 25;
+      if (glassOpacity === "clear") return 5;
+      return 15;
+    })();
+    const base = resolveColor(tone);
+    return `bg-${base}-50/${litOpacity} dark:bg-${base}-500/${drkOpacity}`;
+  })();
   const variantClasses2 = (() => {
     switch (variant) {
       case "outlined":
@@ -11464,6 +11506,15 @@ var Panel = ({
           effectiveBorderClass ?? colorPalette.glassBorder,
           effectiveBgClass ?? palette.glassBg
         );
+      case "liquid-glass":
+        return (0, import_classnames37.default)(
+          "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
+          vibrancyClass,
+          glassFillClass,
+          effectiveBorderClass ?? palette.liquidBorder,
+          palette.liquidShadow,
+          palette.liquidHeading
+        );
       case "simple":
         return (0, import_classnames37.default)(
           variantBaseStyles.simple,
@@ -11487,7 +11538,7 @@ var Panel = ({
     }
   })();
   const overlayClasses = isOverlay ? "relative overflow-hidden text-white shadow-xl ring-0" : void 0;
-  const headingClass = isOverlay ? "text-white" : palette.heading;
+  const headingClass = isOverlay ? "text-white" : variant === "liquid-glass" ? palette.liquidHeading : palette.heading;
   const subtitleClass = isOverlay ? "text-white/80" : palette.muted;
   const descriptionClass = isOverlay ? "text-white/75" : palette.muted;
   const badgeNode = typeof badge === "string" ? /* @__PURE__ */ (0, import_jsx_runtime184.jsx)(
@@ -11710,6 +11761,17 @@ var Panel = ({
           "div",
           {
             className: "pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]",
+            "aria-hidden": "true"
+          }
+        ),
+        variant === "liquid-glass" && specularHighlight && /* @__PURE__ */ (0, import_jsx_runtime184.jsx)(
+          "div",
+          {
+            className: (0, import_classnames37.default)(
+              "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
+              "bg-gradient-to-r from-transparent via-white/40 to-transparent",
+              "dark:via-white/10"
+            ),
             "aria-hidden": "true"
           }
         ),
@@ -15509,34 +15571,37 @@ var import_recharts = require("recharts");
 var import_jsx_runtime209 = require("react/jsx-runtime");
 
 // src/components/Stepper.tsx
-var import_react199 = require("react");
+var import_react200 = require("react");
 var import_classnames54 = __toESM(require("classnames"), 1);
 
 // src/hooks/useStepper.ts
 var import_react198 = require("react");
 
+// src/hooks/useTheme.ts
+var import_react199 = require("react");
+
 // src/components/Stepper.tsx
 var import_jsx_runtime210 = require("react/jsx-runtime");
 
 // src/components/Table.tsx
-var import_react200 = __toESM(require("react"), 1);
+var import_react201 = __toESM(require("react"), 1);
 var import_classnames55 = __toESM(require("classnames"), 1);
 var import_jsx_runtime211 = require("react/jsx-runtime");
 
 // src/components/AccessMatrix.tsx
-var import_react201 = require("react");
+var import_react202 = require("react");
 var import_classnames56 = __toESM(require("classnames"), 1);
 var import_jsx_runtime212 = require("react/jsx-runtime");
 
 // src/components/KeyValueArrayField.tsx
-var import_react202 = require("react");
+var import_react203 = require("react");
 var import_jsx_runtime213 = require("react/jsx-runtime");
 
 // src/components/ApiErrorState.tsx
 var import_jsx_runtime214 = require("react/jsx-runtime");
 
 // src/components/DynamicFormField.tsx
-var import_react203 = require("react");
+var import_react204 = require("react");
 var import_ui_kit = require("@cjlapao/ui-kit");
 var import_ui_kit2 = require("@cjlapao/ui-kit");
 var import_classnames57 = __toESM(require("classnames"), 1);
@@ -15546,12 +15611,12 @@ var import_jsx_runtime215 = require("react/jsx-runtime");
 var import_jsx_runtime216 = require("react/jsx-runtime");
 
 // src/components/SidePanel.tsx
-var import_react204 = require("react");
+var import_react205 = require("react");
 var import_classnames58 = __toESM(require("classnames"), 1);
 var import_jsx_runtime217 = require("react/jsx-runtime");
 
 // src/components/TimelinePanel/TimelinePanel.tsx
-var import_react205 = __toESM(require("react"), 1);
+var import_react206 = __toESM(require("react"), 1);
 var import_classnames59 = __toESM(require("classnames"), 1);
 
 // src/components/TreeView/toneColors.ts
@@ -15839,8 +15904,8 @@ function useIsDark() {
     probe.remove();
     return dark;
   };
-  const [isDark, setIsDark] = (0, import_react205.useState)(() => detect());
-  (0, import_react205.useEffect)(() => {
+  const [isDark, setIsDark] = (0, import_react206.useState)(() => detect());
+  (0, import_react206.useEffect)(() => {
     const update = () => setIsDark(detect());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -16074,6 +16139,7 @@ var variantShellStyles = {
   tonal: "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   default: "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass: "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass": "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple: "text-neutral-900 ring-transparent dark:text-neutral-100 dark:ring-white/5"
 };
 var cornerStyles2 = {
@@ -16089,8 +16155,8 @@ var OverflowButton = ({
   options,
   onSelect
 }) => {
-  const [open, setOpen] = (0, import_react205.useState)(false);
-  const ref = (0, import_react205.useRef)(null);
+  const [open, setOpen] = (0, import_react206.useState)(false);
+  const ref = (0, import_react206.useRef)(null);
   if (options.length === 0) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime218.jsxs)(import_jsx_runtime218.Fragment, { children: [
     /* @__PURE__ */ (0, import_jsx_runtime218.jsx)(
@@ -16209,7 +16275,7 @@ var TimelineItemRow = ({
   );
 };
 function isHeaderActionObject(v) {
-  return typeof v === "object" && v !== null && !import_react205.default.isValidElement(v) && "label" in v;
+  return typeof v === "object" && v !== null && !import_react206.default.isValidElement(v) && "label" in v;
 }
 var TimelinePanel = ({
   title,
@@ -16227,15 +16293,15 @@ var TimelinePanel = ({
 }) => {
   const isDark = useIsDark();
   const palette = getPanelToneStyles(tone);
-  const itemEls = (0, import_react205.useRef)([]);
-  const [itemHeights, setItemHeights] = (0, import_react205.useState)([]);
-  const measureHeights = (0, import_react205.useCallback)(() => {
+  const itemEls = (0, import_react206.useRef)([]);
+  const [itemHeights, setItemHeights] = (0, import_react206.useState)([]);
+  const measureHeights = (0, import_react206.useCallback)(() => {
     const heights = itemEls.current.map((el) => el?.offsetHeight ?? 0);
     setItemHeights(
       (prev) => prev.length === heights.length && prev.every((h, i) => h === heights[i]) ? prev : heights
     );
   }, []);
-  (0, import_react205.useLayoutEffect)(() => {
+  (0, import_react206.useLayoutEffect)(() => {
     itemEls.current = itemEls.current.slice(0, items.length);
     measureHeights();
     const ro = new ResizeObserver(measureHeights);
@@ -16373,27 +16439,27 @@ var TimelinePanel = ({
 TimelinePanel.displayName = "TimelinePanel";
 
 // src/components/ConnectionFlow/ConnectionFlow.tsx
-var import_react212 = __toESM(require("react"), 1);
+var import_react213 = __toESM(require("react"), 1);
 var import_classnames65 = __toESM(require("classnames"), 1);
 
 // src/components/ConnectionFlow/ConnectionFlowConnector.tsx
-var import_react206 = require("react");
+var import_react207 = require("react");
 var import_jsx_runtime219 = require("react/jsx-runtime");
 
 // src/components/ConnectionFlow/ConnectionFlowColumn.tsx
-var import_react210 = require("react");
+var import_react211 = require("react");
 var import_classnames63 = __toESM(require("classnames"), 1);
 
 // src/components/TreeView/TreeItemCard.tsx
-var import_react208 = require("react");
+var import_react209 = require("react");
 var import_classnames62 = __toESM(require("classnames"), 1);
 
 // src/contexts/BottomSheetContext.tsx
-var import_react207 = require("react");
+var import_react208 = require("react");
 var import_react_dom11 = require("react-dom");
 var import_classnames60 = __toESM(require("classnames"), 1);
 var import_jsx_runtime220 = require("react/jsx-runtime");
-var BottomSheetContext = (0, import_react207.createContext)(null);
+var BottomSheetContext = (0, import_react208.createContext)(null);
 
 // src/utils/gravatar.ts
 var import_crypto_js = __toESM(require("crypto-js"), 1);
@@ -16522,14 +16588,14 @@ MetricBar.displayName = "MetricBar";
 var import_jsx_runtime222 = require("react/jsx-runtime");
 
 // src/components/TreeView/TreeFlowSvg.tsx
-var import_react209 = require("react");
+var import_react210 = require("react");
 var import_jsx_runtime223 = require("react/jsx-runtime");
 
 // src/components/ConnectionFlow/ConnectionFlowColumn.tsx
 var import_jsx_runtime224 = require("react/jsx-runtime");
 
 // src/components/ConnectionFlow/ConnectionFlowParallelGroup.tsx
-var import_react211 = require("react");
+var import_react212 = require("react");
 var import_classnames64 = __toESM(require("classnames"), 1);
 var import_jsx_runtime225 = require("react/jsx-runtime");
 
@@ -16537,7 +16603,7 @@ var import_jsx_runtime225 = require("react/jsx-runtime");
 var import_jsx_runtime226 = require("react/jsx-runtime");
 
 // src/components/TreeView/TreeView.tsx
-var import_react213 = require("react");
+var import_react214 = require("react");
 var import_classnames66 = __toESM(require("classnames"), 1);
 var import_jsx_runtime227 = require("react/jsx-runtime");
 
@@ -16549,9 +16615,9 @@ var VariablePicker = ({
   globalParameters,
   serviceNames
 }) => {
-  const [searchTerm, setSearchTerm] = (0, import_react214.useState)("");
-  const [activeTab, setActiveTab] = (0, import_react214.useState)("global");
-  const globalVars = (0, import_react214.useMemo)(() => {
+  const [searchTerm, setSearchTerm] = (0, import_react215.useState)("");
+  const [activeTab, setActiveTab] = (0, import_react215.useState)("global");
+  const globalVars = (0, import_react215.useMemo)(() => {
     return globalParameters.map((p) => ({
       fullToken: createSmartToken(
         p.type === "env" ? "env" : "var",
@@ -16565,7 +16631,7 @@ var VariablePicker = ({
       defaultValue: p.default_value
     }));
   }, [globalParameters]);
-  const serviceVars = (0, import_react214.useMemo)(() => {
+  const serviceVars = (0, import_react215.useMemo)(() => {
     return serviceNames.map((name) => ({
       fullToken: createSmartToken("var", "service", name),
       type: "var",
@@ -16677,9 +16743,9 @@ var MarkdownEditor = ({
   serviceNames = [],
   context = {}
 }) => {
-  const [showPicker, setShowPicker] = (0, import_react215.useState)(false);
-  const [pickerPos, setPickerPos] = (0, import_react215.useState)({ top: 0, left: 0 });
-  const selectionRef = (0, import_react215.useRef)({
+  const [showPicker, setShowPicker] = (0, import_react216.useState)(false);
+  const [pickerPos, setPickerPos] = (0, import_react216.useState)({ top: 0, left: 0 });
+  const selectionRef = (0, import_react216.useRef)({
     start: 0,
     end: 0
   });
@@ -16734,7 +16800,7 @@ var MarkdownEditor = ({
     return { value: "", isResolved: false };
   };
   const SAFE_VAR_PATTERN = "SVAR(\\w+)SVAR(\\w+)SVAR([a-zA-Z0-9_\\-\\.]+)END";
-  const preprocess = import_react215.default.useCallback((text) => {
+  const preprocess = import_react216.default.useCallback((text) => {
     const regex = new RegExp(SMART_VAR_REGEX, "gi");
     return text.replace(
       regex,
@@ -16743,7 +16809,7 @@ var MarkdownEditor = ({
       }
     );
   }, []);
-  const replaceVariablesInString = import_react215.default.useCallback(
+  const replaceVariablesInString = import_react216.default.useCallback(
     (text) => {
       const combined = new RegExp(
         `${SAFE_VAR_PATTERN}|${SMART_VAR_REGEX.source}`,
@@ -16820,7 +16886,7 @@ Original: ${match[0]}`,
   const createVariableRenderer = (TagName) => {
     const VariableRenderer = (props) => {
       const { children, node, ...rest } = props;
-      return /* @__PURE__ */ (0, import_jsx_runtime229.jsx)(TagName, { ...rest, children: import_react215.default.Children.map(children, (child) => {
+      return /* @__PURE__ */ (0, import_jsx_runtime229.jsx)(TagName, { ...rest, children: import_react216.default.Children.map(children, (child) => {
         if (typeof child === "string") {
           return renderWithVariables(child);
         }
@@ -16836,7 +16902,7 @@ Original: ${match[0]}`,
     };
   };
   const CodeRenderer = ({ children, className: className2, node, ...props }) => {
-    return /* @__PURE__ */ (0, import_jsx_runtime229.jsx)("code", { className: className2, ...props, children: import_react215.default.Children.map(children, (child) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime229.jsx)("code", { className: className2, ...props, children: import_react216.default.Children.map(children, (child) => {
       if (typeof child === "string") {
         return renderWithVariables(child);
       }
@@ -16846,14 +16912,14 @@ Original: ${match[0]}`,
   const LinkRenderer = (props) => {
     const { href, children, ...rest } = props;
     const resolvedHref = href ? replaceVariablesInString(href) : href;
-    return /* @__PURE__ */ (0, import_jsx_runtime229.jsx)("a", { href: resolvedHref, ...rest, children: import_react215.default.Children.map(children, (child) => {
+    return /* @__PURE__ */ (0, import_jsx_runtime229.jsx)("a", { href: resolvedHref, ...rest, children: import_react216.default.Children.map(children, (child) => {
       if (typeof child === "string") {
         return renderWithVariables(child);
       }
       return child;
     }) });
   };
-  const components = (0, import_react215.useMemo)(
+  const components = (0, import_react216.useMemo)(
     () => ({
       p: createVariableRenderer("p"),
       li: createVariableRenderer("li"),
@@ -16875,7 +16941,7 @@ Original: ${match[0]}`,
     }),
     [globalParameters, serviceNames, context]
   );
-  const variableCommand = (0, import_react215.useMemo)(
+  const variableCommand = (0, import_react216.useMemo)(
     () => ({
       name: "variable",
       keyCommand: "variable",
@@ -16969,7 +17035,7 @@ Original: ${match[0]}`,
             previewOptions: {
               components
             },
-            renderPreview: import_react215.default.useCallback(
+            renderPreview: import_react216.default.useCallback(
               (source) => /* @__PURE__ */ (0, import_jsx_runtime229.jsx)(
                 import_react_md_editor.default.Markdown,
                 {

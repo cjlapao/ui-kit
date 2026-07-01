@@ -13,7 +13,14 @@ const uiKitNodeModules = path.join(demoRoot, "..", "node_modules");
 
 // Resolve bare specifiers from demo/node_modules when source files
 // live outside demo/ (e.g. ui-kit/src/) which Rollup can't reach.
-// Falls back to ui-kit/node_modules if not found in demo's.
+// Falls back to ui-kit/node_modules if not found in demo's. The
+// plugin is still needed: the demo imports ui-kit source via symlink
+// (e.g. "../../src/pages/UxDemo/UxDemo"), and those source files
+// have their own bare imports (e.g. "uuid") that resolve only when
+// demo's node_modules is consulted.
+// NOTE: This plugin cannot be removed while source files in
+// ui-kit/src/ have bare specifier imports that only exist in
+// demo/node_modules/ (currently "uuid").
 function demoNodeModulesPlugin() {
   return {
     name: "demo-node-modules-resolver",
@@ -109,6 +116,7 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
     alias: {
       "@cjlapao/ui-kit": path.resolve(demoRoot, "../src/index.ts"),
+      "@assets": path.resolve(demoRoot, "../src/assets"),
     },
   },
   build: {
@@ -116,6 +124,6 @@ export default defineConfig({
   },
   server: {
     port: 5174,
-    host: "0.0.0.0"
+    host: "0.0.0.0",
   },
 });

@@ -54,3 +54,6 @@ packages/ui-kit/.claude-flow/agents/
 # RuFlo runtime
 node_modules/
 notarize/
+.projects/
+!.projects/learnings.md
+!.projects/project.md

@@ -32,198 +32,78 @@ var src_exports = {};
 __export(src_exports, {
   AccessMatrix: () => AccessMatrix_default,
   Accordion: () => Accordion_default,
-  Add: () => Add,
   Alert: () => Alert_default,
   ApiErrorState: () => ApiErrorState_default,
   AppDivider: () => AppDivider_default,
-  Apple: () => Apple,
   ApplyConfirmModal: () => ApplyConfirmModal,
-  ArrowChevronLeft: () => ArrowChevronLeft,
-  ArrowChevronRight: () => ArrowChevronRight,
-  ArrowDown: () => ArrowDown,
-  ArrowLeft: () => ArrowLeft,
-  ArrowRight: () => ArrowRight,
-  ArrowUp: () => ArrowUp,
-  Artifactory: () => Artifactory,
-  Attached: () => Attached,
-  Attachment: () => Attachment,
-  Aws: () => Aws,
-  Azure: () => Azure,
-  Back: () => Back,
   Badge: () => Badge_default,
   BadgeIcon: () => BadgeIcon_default,
-  Blueprint: () => Blueprint,
   BottomSheetProvider: () => BottomSheetProvider,
-  Bug: () => Bug,
   Button: () => Button_default,
   ButtonSelector: () => ButtonSelector_default,
-  Cache: () => Cache,
-  Calendar: () => Calendar,
   CapsuleBlueprintValueType: () => CapsuleBlueprintValueType2,
-  CatalogVersion: () => CatalogVersion,
-  CentOS: () => CentOS,
-  Chat: () => Chat,
-  Check: () => Check,
-  CheckCircle: () => CheckCircle,
   Checkbox: () => Checkbox_default,
-  ChevronLeft: () => ChevronLeft,
-  ChevronRight: () => ChevronRight,
-  Claim: () => Claim,
-  Claims: () => Claims,
-  Clean: () => Clean,
-  CleanBrush: () => CleanBrush,
-  Clone: () => Clone,
-  Close: () => Close,
-  Close1: () => Close1,
-  CloudOff: () => CloudOff,
-  Cog: () => Cog,
   CollapsibleHelpText: () => CollapsibleHelpText_default,
   CollapsiblePanel: () => CollapsiblePanel_default,
   Combobox: () => Combobox_default,
-  Complete: () => Complete,
   ConfirmInlinePanel: () => ConfirmInlinePanel,
   ConfirmModal: () => ConfirmModal,
   ConnectionFlow: () => ConnectionFlow_default,
   ConnectionFlowColumn: () => ConnectionFlowColumn_default,
   ConnectionFlowConnector: () => ConnectionFlowConnector,
   ConnectionFlowParallelGroup: () => ConnectionFlowParallelGroup_default,
-  Container: () => Container,
-  Copy: () => Copy,
-  CopyClipboard: () => CopyClipboard,
   CustomIcon: () => CustomIcon_default,
-  Dashboard: () => Dashboard,
-  Database: () => Database,
-  Debian: () => Debian,
   DeleteConfirmInlinePanel: () => DeleteConfirmInlinePanel,
   DeleteConfirmModal: () => DeleteConfirmModal,
   DetailItemCard: () => DetailItemCard_default,
-  Details: () => Details,
-  Docker: () => Docker,
-  DockerCopy: () => DockerCopy,
-  Dots: () => Dots,
-  Download: () => Download,
-  Drag: () => Drag,
   DropdownButton: () => DropdownButton_default,
   DropdownMenu: () => DropdownMenu_default,
   DynamicFormField: () => DynamicFormField_default,
   DynamicImg: () => DynamicImg_default,
-  Edit: () => Edit,
   EmptyState: () => EmptyState_default,
-  Equal: () => Equal,
-  Error: () => Error2,
-  Export: () => Export,
-  EyeClosed: () => EyeClosed,
-  EyeOpen: () => EyeOpen,
-  Fedora: () => Fedora,
-  File: () => File,
-  Folder: () => Folder,
   FormField: () => FormField_default,
   FormLayout: () => FormLayout_default,
   FormSection: () => FormSection_default,
-  Globe: () => Globe,
-  Group: () => Group,
   HeaderGroup: () => HeaderGroup_default,
-  HealthCheck: () => HealthCheck,
-  Help: () => Help,
   Hero: () => Hero_default,
-  Host: () => Host,
   IconButton: () => IconButton_default,
   IconContext: () => IconContext,
   IconProvider: () => IconProvider,
-  Idea: () => Idea,
-  Image: () => Image,
   InfiniteScrollPanel: () => InfiniteScrollPanel_default,
-  Info: () => Info,
   InfoRow: () => InfoRow_default,
   InlinePanel: () => InlinePanel_default,
   Input: () => Input_default,
   InputGroup: () => InputGroup_default,
-  Jobs: () => Jobs,
-  KaliLinux: () => KaliLinux,
-  Key: () => Key,
-  KeyManagement: () => KeyManagement,
   KeyValueArrayField: () => KeyValueArrayField_default,
-  LXC: () => LXC,
-  LXCOld: () => LXCOld,
-  Library: () => Library,
-  Live: () => Live,
   Loader: () => Loader_default,
-  Log: () => Log,
-  Login: () => Login,
-  Logout: () => Logout,
   MetricBar: () => MetricBar,
-  Minio: () => Minio,
   Modal: () => Modal_default,
   ModalActions: () => ModalActions,
   Moon: () => Moon,
   MultiProgressBar: () => MultiProgressBar_default,
   MultiSelectPills: () => MultiSelectPills_default,
   MultiToggle: () => MultiToggle_default,
-  Notification: () => Notification,
   NotificationModal: () => NotificationModal_default,
-  Official: () => Official,
-  Offline: () => Offline,
-  OpenApp: () => OpenApp,
-  Orchestrator: () => Orchestrator,
   PagedPanel: () => PagedPanel_default,
   Panel: () => Panel_default,
-  Parameter: () => Parameter,
   PasswordInput: () => PasswordInput_default,
-  Pause: () => Pause,
   Picker: () => Picker_default,
   Pill: () => Pill_default,
-  Pin: () => Pin,
-  Podman: () => Podman,
-  PodmanDesktop: () => PodmanDesktop,
-  Praise: () => Praise,
   Progress: () => Progress_default,
-  Pull: () => Pull,
-  Push: () => Push,
-  RedHat: () => RedHat,
-  Refresh: () => Refresh,
-  RemoteHost: () => RemoteHost,
-  ReportFeedback: () => ReportFeedback,
-  Reset: () => Reset,
-  Restart: () => Restart,
-  ReverseProxy: () => ReverseProxy,
-  ReverseProxyCORS: () => ReverseProxyCORS,
-  ReverseProxyFrom: () => ReverseProxyFrom,
-  ReverseProxyHTTP: () => ReverseProxyHTTP,
-  ReverseProxyHeadersRequest: () => ReverseProxyHeadersRequest,
-  ReverseProxyHeadersResponse: () => ReverseProxyHeadersResponse,
-  ReverseProxyRoutes: () => ReverseProxyRoutes,
-  ReverseProxyTCP: () => ReverseProxyTCP,
-  ReverseProxyTLS: () => ReverseProxyTLS,
-  ReverseProxyTo: () => ReverseProxyTo,
-  Revert: () => Revert,
-  Revoke: () => Revoke,
-  Rocket: () => Rocket,
-  Role: () => Role,
-  Roles: () => Roles,
-  Run: () => Run,
   SMART_VAR_REGEX: () => SMART_VAR_REGEX,
   SYSTEM_VARIABLES: () => SYSTEM_VARIABLES,
-  Save: () => Save,
-  Scale: () => Scale,
-  Script: () => Script,
-  Search: () => Search,
   SearchBar: () => SearchBar_default,
   Section: () => Section_default,
   SectionCard: () => SectionCard_default,
   Select: () => Select_default,
-  Send: () => Send,
-  Settings: () => Settings,
-  Shop: () => Shop,
   SideMenu: () => SideMenu_default,
   SideMenuActionsProvider: () => SideMenuActionsProvider,
   SideMenuLayout: () => SideMenuLayout_default,
   SidePanel: () => SidePanel_default,
   SmartInput: () => SmartInput_default,
   SmartValue: () => SmartValue_default,
-  Snapshot: () => Snapshot,
   Spinner: () => Spinner_default,
   SplitView: () => SplitView_default,
-  Star: () => Star,
   StartupStageStepper: () => StartupStageStepper_default,
   StatChartTile: () => StatChartTile_default,
   StatCountTile: () => StatCountTile_default,
@@ -232,42 +112,25 @@ __export(src_exports, {
   StatTile: () => StatTile_default,
   StatusSpinner: () => StatusSpinner_default,
   Stepper: () => Stepper_default,
-  Stop: () => Stop,
   Sun: () => Sun,
-  Suspend: () => Suspend,
   TREE_INDENT_PX: () => INDENT_PX,
   TREE_NEUTRAL_TOKENS: () => NEUTRAL_TOKENS,
   Table: () => Table_default,
   Tabs: () => Tabs_default,
   TagPanel: () => TagPanel_default,
   TagPicker: () => TagPicker_default,
-  Taint: () => Taint,
   Textarea: () => Textarea_default,
   ThemeAuto: () => ThemeAuto,
-  ThemeDark: () => ThemeDark,
-  ThemeLight: () => ThemeLight,
   TimelinePanel: () => TimelinePanel_default,
   Toggle: () => Toggle_default,
   Tooltip: () => Tooltip_default,
   TooltipWrapper: () => TooltipWrapper_default,
-  Trash: () => Trash,
   TreeFlowSvg: () => TreeFlowSvg_default,
   TreeItemCard: () => TreeItemCard_default,
   TreeView: () => TreeView_default,
   TruncatedText: () => TruncatedText_default,
-  UX: () => UX,
-  Ubuntu: () => Ubuntu,
-  Unlock: () => Unlock,
-  User: () => User,
   UserAvatar: () => UserAvatar_default,
-  Users: () => Users,
   VariablePicker: () => VariablePicker_default,
-  Verified: () => Verified,
-  ViewGrid: () => ViewGrid,
-  ViewRows: () => ViewRows,
-  VirtualMachine: () => VirtualMachine,
-  Warning: () => Warning,
-  Windows: () => Windows,
   cleanupFocusHandler: () => cleanupFocusHandler,
   configureTheme: () => configureTheme,
   createIntelligentFocusHandler: () => createIntelligentFocusHandler,
@@ -335,6 +198,7 @@ __export(src_exports, {
   useResizable: () => useResizable,
   useSideMenuActions: () => useSideMenuActions,
   useStepper: () => useStepper,
+  useTheme: () => useTheme,
   widthTokenRegex: () => widthTokenRegex
 });
 module.exports = __toCommonJS(src_exports);
@@ -704,6 +568,10 @@ var createTheme = () => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient: "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
         decorationGradient: "from-neutral-200/15 to-transparent dark:from-neutral-600/10 dark:to-transparent"
@@ -718,6 +586,10 @@ var createTheme = () => {
         tonalBg: "bg-neutral-100/80 dark:bg-neutral-800/70",
         glassBg: "bg-white/70 dark:bg-neutral-900/70",
         glassBorder: "border-neutral-200 dark:border-neutral-700",
+        liquidBg: "bg-neutral-100/30 dark:bg-neutral-800/10",
+        liquidBorder: "border-neutral-300/60 dark:border-neutral-600/30",
+        liquidShadow: "shadow-lg",
+        liquidHeading: "text-neutral-900 dark:text-neutral-100",
         overlayGradient: "from-neutral-900/70 via-neutral-900/30 to-neutral-900/20",
         decorationShape: "bg-neutral-200/15 dark:bg-neutral-100/5",
         decorationGradient: "from-neutral-200/15 to-transparent dark:from-neutral-600/10 dark:to-transparent"
@@ -732,6 +604,10 @@ var createTheme = () => {
         tonalBg: `bg-${c}-100/80 dark:bg-${c}-500/15`,
         glassBg: `bg-${c}-50/50 dark:bg-${c}-500/15`,
         glassBorder: `border-${c}-500 dark:border-${c}-400`,
+        liquidBg: `bg-${c}-50/30 dark:bg-${c}-500/10`,
+        liquidBorder: `border-${c}-300/50 dark:border-${c}-500/25`,
+        liquidShadow: "shadow-lg",
+        liquidHeading: `text-${c}-700 dark:text-${c}-200`,
         overlayGradient: `from-${c}-900/70 via-${c}-900/40 to-${c}-900/15`,
         decorationShape: `bg-${c}-400/10 dark:bg-${c}-300/5`,
         decorationGradient: `from-${c}-100/60 to-transparent dark:from-${c}-500/10 dark:to-transparent`
@@ -13418,6 +13294,7 @@ var variantBaseStyles = {
   tonal: "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   default: "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass: "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass": "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple: "text-neutral-900  ring-transparent dark:text-neutral-100 dark:ring-white/5"
 };
 var paddingStyles2 = {
@@ -13487,6 +13364,9 @@ var Panel = ({
   borderColor,
   backgroundColor,
   scrollable = true,
+  vibrancy = "medium",
+  glassOpacity = "frosted",
+  specularHighlight = true,
   ...rest
 }) => {
   const palette = getPanelToneStyles(tone);
@@ -13523,6 +13403,32 @@ var Panel = ({
     }
     return styles;
   })();
+  const vibrancyValue = (() => {
+    if (typeof vibrancy === "number") return vibrancy;
+    if (vibrancy === "low") return 1;
+    if (vibrancy === "medium") return 1.2;
+    if (vibrancy === "high") return 1.4;
+    return 1.2;
+  })();
+  const vibrancyClass = `backdrop-saturate-[${vibrancyValue}]`;
+  const glassFillClass = (() => {
+    const litOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.round(glassOpacity * 100);
+      if (glassOpacity === "frosted") return 45;
+      if (glassOpacity === "light") return 70;
+      if (glassOpacity === "clear") return 20;
+      return 45;
+    })();
+    const drkOpacity = (() => {
+      if (typeof glassOpacity === "number") return Math.min(Math.round(glassOpacity * 30), 30);
+      if (glassOpacity === "frosted") return 15;
+      if (glassOpacity === "light") return 25;
+      if (glassOpacity === "clear") return 5;
+      return 15;
+    })();
+    const base = resolveColor(tone);
+    return `bg-${base}-50/${litOpacity} dark:bg-${base}-500/${drkOpacity}`;
+  })();
   const variantClasses2 = (() => {
     switch (variant) {
       case "outlined":
@@ -13554,6 +13460,15 @@ var Panel = ({
           effectiveBorderClass ?? colorPalette.glassBorder,
           effectiveBgClass ?? palette.glassBg
         );
+      case "liquid-glass":
+        return (0, import_classnames37.default)(
+          "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
+          vibrancyClass,
+          glassFillClass,
+          effectiveBorderClass ?? palette.liquidBorder,
+          palette.liquidShadow,
+          palette.liquidHeading
+        );
       case "simple":
         return (0, import_classnames37.default)(
           variantBaseStyles.simple,
@@ -13577,7 +13492,7 @@ var Panel = ({
     }
   })();
   const overlayClasses = isOverlay ? "relative overflow-hidden text-white shadow-xl ring-0" : void 0;
-  const headingClass = isOverlay ? "text-white" : palette.heading;
+  const headingClass = isOverlay ? "text-white" : variant === "liquid-glass" ? palette.liquidHeading : palette.heading;
   const subtitleClass = isOverlay ? "text-white/80" : palette.muted;
   const descriptionClass = isOverlay ? "text-white/75" : palette.muted;
   const badgeNode = typeof badge === "string" ? /* @__PURE__ */ (0, import_jsx_runtime184.jsx)(
@@ -13800,6 +13715,17 @@ var Panel = ({
           "div",
           {
             className: "pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]",
+            "aria-hidden": "true"
+          }
+        ),
+        variant === "liquid-glass" && specularHighlight && /* @__PURE__ */ (0, import_jsx_runtime184.jsx)(
+          "div",
+          {
+            className: (0, import_classnames37.default)(
+              "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
+              "bg-gradient-to-r from-transparent via-white/40 to-transparent",
+              "dark:via-white/10"
+            ),
             "aria-hidden": "true"
           }
         ),
@@ -20569,7 +20495,7 @@ var StatGraphTile = ({
 var StatGraphTile_default = StatGraphTile;
 
 // src/components/Stepper.tsx
-var import_react200 = require("react");
+var import_react201 = require("react");
 var import_classnames54 = __toESM(require("classnames"), 1);
 
 // src/hooks/useStepper.ts
@@ -20697,6 +20623,60 @@ function useStepper(steps, {
     isActive,
     isCompleted
   };
+}
+
+// src/hooks/useTheme.ts
+var import_react200 = require("react");
+var STORAGE_KEY = "ui-kit-demo-theme";
+function getStoredTheme() {
+  if (typeof window === "undefined") return "light";
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === "light" || stored === "dark" || stored === "system") {
+    return stored;
+  }
+  return "light";
+}
+function isSystemDark() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function applyTheme(mode) {
+  if (typeof document === "undefined") return;
+  const isDark = mode === "system" ? isSystemDark() : mode === "dark";
+  const root = document.documentElement;
+  root.classList.toggle("dark", isDark);
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(STORAGE_KEY, mode);
+    } catch {
+    }
+  }
+}
+function useTheme() {
+  const [theme, setTheme] = (0, import_react200.useState)(getStoredTheme);
+  const [effectiveTheme, setEffectiveTheme] = (0, import_react200.useState)(() => {
+    const t = getStoredTheme();
+    return t === "system" ? isSystemDark() ? "dark" : "light" : t;
+  });
+  (0, import_react200.useLayoutEffect)(() => {
+    applyTheme(theme);
+  }, [theme]);
+  (0, import_react200.useEffect)(() => {
+    setEffectiveTheme(theme === "system" ? isSystemDark() ? "dark" : "light" : theme);
+  }, [theme]);
+  (0, import_react200.useEffect)(() => {
+    if (typeof window === "undefined") return;
+    if (theme !== "system") return;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      const isDark = mql.matches;
+      document.documentElement.classList.toggle("dark", isDark);
+      setEffectiveTheme(isDark ? "dark" : "light");
+    };
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [theme]);
+  return { theme, effectiveTheme, setTheme };
 }
 
 // src/components/Stepper.tsx
@@ -20827,16 +20807,16 @@ var Stepper = ({
     completedStepIds,
     onChange
   });
-  const nodeRefs = (0, import_react200.useRef)([]);
-  const verticalContainerRef = (0, import_react200.useRef)(null);
-  const [verticalSegments, setVerticalSegments] = (0, import_react200.useState)([]);
+  const nodeRefs = (0, import_react201.useRef)([]);
+  const verticalContainerRef = (0, import_react201.useRef)(null);
+  const [verticalSegments, setVerticalSegments] = (0, import_react201.useState)([]);
   const palette = getStepperTonePalette(tone);
   const sizeToken = sizeTokens13[size];
   const connectorThicknessClass = connectorThickness[size];
   const verticalConnectorThicknessClass = verticalConnectorThickness[size];
   const variantToken = variantConfig[variant];
   const isInteractive = interactive && !readOnly;
-  const loaderSet = (0, import_react200.useMemo)(
+  const loaderSet = (0, import_react201.useMemo)(
     () => new Set(loaderStepIds ?? []),
     [loaderStepIds]
   );
@@ -20898,7 +20878,7 @@ var Stepper = ({
     };
   });
   nodeRefs.current.length = stepMeta.length;
-  (0, import_react200.useLayoutEffect)(() => {
+  (0, import_react201.useLayoutEffect)(() => {
     if (orientation !== "vertical") {
       if (verticalSegments.length !== 0) {
         setVerticalSegments([]);
@@ -21337,7 +21317,7 @@ var Stepper = ({
 var Stepper_default = Stepper;
 
 // src/components/Table.tsx
-var import_react201 = __toESM(require("react"), 1);
+var import_react202 = __toESM(require("react"), 1);
 var import_classnames55 = __toESM(require("classnames"), 1);
 var import_jsx_runtime212 = require("react/jsx-runtime");
 var resolveColor3 = (color) => {
@@ -21853,14 +21833,14 @@ function TableComponent({
   };
   const showViewToggle = !!columns?.length && !!panelItem;
   const defaultViewResolved = tableSettings?.activeView ?? defaultView ?? (showViewToggle ? "table" : panelItem ? "panel" : "table");
-  const [activeView, setActiveView] = (0, import_react201.useState)(
+  const [activeView, setActiveView] = (0, import_react202.useState)(
     defaultViewResolved
   );
-  const [internalSort, setInternalSort] = (0, import_react201.useState)(
+  const [internalSort, setInternalSort] = (0, import_react202.useState)(
     defaultSort ?? null
   );
   const resolvedSort = sortState ?? internalSort;
-  const [colVisibility, setColVisibility] = (0, import_react201.useState)(
+  const [colVisibility, setColVisibility] = (0, import_react202.useState)(
     () => {
       const init = {};
       const source = tableSettings?.columnVisibility ?? columnVisibilityProp;
@@ -21870,7 +21850,7 @@ function TableComponent({
       return init;
     }
   );
-  (0, import_react201.useEffect)(() => {
+  (0, import_react202.useEffect)(() => {
     const source = tableSettings?.columnVisibility ?? columnVisibilityProp;
     if (!source) return;
     setColVisibility((prev) => {
@@ -21881,9 +21861,9 @@ function TableComponent({
       return next;
     });
   }, [columnVisibilityProp, tableSettings?.columnVisibility]);
-  const [colPanelOpen, setColPanelOpen] = (0, import_react201.useState)(false);
-  const colPanelRef = (0, import_react201.useRef)(null);
-  const [internalColWidths, setInternalColWidths] = (0, import_react201.useState)(() => {
+  const [colPanelOpen, setColPanelOpen] = (0, import_react202.useState)(false);
+  const colPanelRef = (0, import_react202.useRef)(null);
+  const [internalColWidths, setInternalColWidths] = (0, import_react202.useState)(() => {
     const init = {};
     const widthSource = tableSettings?.columnWidths ?? columnWidthsProp;
     if (widthSource) {
@@ -21899,15 +21879,15 @@ function TableComponent({
     }
     return init;
   });
-  (0, import_react201.useEffect)(() => {
+  (0, import_react202.useEffect)(() => {
     const widthSource = tableSettings?.columnWidths ?? columnWidthsProp;
     if (!widthSource) return;
     setInternalColWidths((prev) => ({ ...prev, ...widthSource }));
   }, [columnWidthsProp, tableSettings?.columnWidths]);
-  const thRefs = (0, import_react201.useRef)({});
-  const resizingRef = (0, import_react201.useRef)(null);
-  const widthsDuringResizeRef = (0, import_react201.useRef)({});
-  (0, import_react201.useEffect)(() => {
+  const thRefs = (0, import_react202.useRef)({});
+  const resizingRef = (0, import_react202.useRef)(null);
+  const widthsDuringResizeRef = (0, import_react202.useRef)({});
+  (0, import_react202.useEffect)(() => {
     return () => {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
@@ -21957,10 +21937,10 @@ function TableComponent({
     document.addEventListener("mouseup", onMouseUp);
   };
   const useFixedLayout = resizableColumns && Object.keys(internalColWidths).length > 0;
-  const [internalStickyColumns, setInternalStickyColumns] = (0, import_react201.useState)(tableSettings?.stickyColumns ?? defaultStickyColumns ?? {});
-  const [stickyPanelOpen, setStickyPanelOpen] = (0, import_react201.useState)(false);
-  const stickyPanelRef = (0, import_react201.useRef)(null);
-  const settingsSnapshotRef = (0, import_react201.useRef)({});
+  const [internalStickyColumns, setInternalStickyColumns] = (0, import_react202.useState)(tableSettings?.stickyColumns ?? defaultStickyColumns ?? {});
+  const [stickyPanelOpen, setStickyPanelOpen] = (0, import_react202.useState)(false);
+  const stickyPanelRef = (0, import_react202.useRef)(null);
+  const settingsSnapshotRef = (0, import_react202.useRef)({});
   const handleStickyChange = (colId, pin) => {
     setInternalStickyColumns((prev) => {
       const next = { ...prev };
@@ -21975,17 +21955,17 @@ function TableComponent({
     });
   };
   const hasStickyColumns = Object.keys(internalStickyColumns).length > 0;
-  const [internalGroupBy, setInternalGroupBy] = (0, import_react201.useState)(
+  const [internalGroupBy, setInternalGroupBy] = (0, import_react202.useState)(
     tableSettings?.groupBy ?? defaultGroupBy ?? null
   );
-  const [expandedGroups, setExpandedGroups] = (0, import_react201.useState)(
+  const [expandedGroups, setExpandedGroups] = (0, import_react202.useState)(
     {}
   );
-  const [groupPanelOpen, setGroupPanelOpen] = (0, import_react201.useState)(false);
-  const [showGroupHeaderLocal, setShowGroupHeaderLocal] = (0, import_react201.useState)(
+  const [groupPanelOpen, setGroupPanelOpen] = (0, import_react202.useState)(false);
+  const [showGroupHeaderLocal, setShowGroupHeaderLocal] = (0, import_react202.useState)(
     tableSettings?.showGroupHeader ?? showGroupHeader ?? true
   );
-  const groupPanelRef = (0, import_react201.useRef)(null);
+  const groupPanelRef = (0, import_react202.useRef)(null);
   const resolvedGroupBy = groupBy ?? internalGroupBy;
   const resolvedShowGroupHeader = showGroupHeader ?? showGroupHeaderLocal;
   settingsSnapshotRef.current = {
@@ -21996,7 +21976,7 @@ function TableComponent({
     showGroupHeader: showGroupHeaderLocal,
     stickyColumns: internalStickyColumns
   };
-  const selectionLookup = (0, import_react201.useMemo)(() => {
+  const selectionLookup = (0, import_react202.useMemo)(() => {
     if (!selectedItems || selectedItems.length === 0) return null;
     const lookup = /* @__PURE__ */ new Set();
     selectedItems.forEach((item) => {
@@ -22010,7 +21990,7 @@ function TableComponent({
     });
     return lookup;
   }, [selectedItems, rowKey]);
-  (0, import_react201.useEffect)(() => {
+  (0, import_react202.useEffect)(() => {
     if (!colPanelOpen) return;
     const handler = (e) => {
       if (colPanelRef.current && !colPanelRef.current.contains(e.target)) {
@@ -22020,7 +22000,7 @@ function TableComponent({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [colPanelOpen]);
-  (0, import_react201.useEffect)(() => {
+  (0, import_react202.useEffect)(() => {
     if (!groupPanelOpen) return;
     const handler = (e) => {
       if (groupPanelRef.current && !groupPanelRef.current.contains(e.target)) {
@@ -22030,7 +22010,7 @@ function TableComponent({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [groupPanelOpen]);
-  (0, import_react201.useEffect)(() => {
+  (0, import_react202.useEffect)(() => {
     if (!stickyPanelOpen) return;
     const handler = (e) => {
       if (stickyPanelRef.current && !stickyPanelRef.current.contains(e.target)) {
@@ -22064,7 +22044,7 @@ function TableComponent({
       groupBy: columnId
     });
   };
-  const sortedData = (0, import_react201.useMemo)(() => {
+  const sortedData = (0, import_react202.useMemo)(() => {
     if (manualSorting) {
       return data;
     }
@@ -22109,7 +22089,7 @@ function TableComponent({
     (col) => colVisibility[col.id] !== false && col.id !== resolvedGroupBy
   );
   const hasHideableColumns = menuColumns.some((col) => col.hideable !== false);
-  const orderedVisibleColumns = (0, import_react201.useMemo)(() => {
+  const orderedVisibleColumns = (0, import_react202.useMemo)(() => {
     const left = [];
     const middle = [];
     const right = [];
@@ -22125,7 +22105,7 @@ function TableComponent({
     });
     return [...left, ...middle, ...right];
   }, [visibleColumns, internalStickyColumns, stickyActions]);
-  const groupedData = (0, import_react201.useMemo)(() => {
+  const groupedData = (0, import_react202.useMemo)(() => {
     if (!resolvedGroupBy) return null;
     const column = effectiveColumns.find((c) => c.id === resolvedGroupBy);
     if (!column) return null;
@@ -22156,7 +22136,7 @@ function TableComponent({
     });
     return groups;
   }, [resolvedGroupBy, effectiveColumns, sortedData]);
-  (0, import_react201.useEffect)(() => {
+  (0, import_react202.useEffect)(() => {
     if (!groupedData) return;
     setExpandedGroups((prev) => {
       const next = { ...prev };
@@ -22173,7 +22153,7 @@ function TableComponent({
   const toggleGroup = (key) => {
     setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
-  const panelRows = (0, import_react201.useMemo)(() => {
+  const panelRows = (0, import_react202.useMemo)(() => {
     if (!panelDeduplicateBy) return sortedData;
     const seen = /* @__PURE__ */ new Set();
     return sortedData.filter((row) => {
@@ -22188,7 +22168,7 @@ function TableComponent({
   const hasLeftStickyColumn = orderedVisibleColumns.some(
     (col) => getEffectiveSticky(col) === "left"
   );
-  const rightStickyOffsets = (0, import_react201.useMemo)(() => {
+  const rightStickyOffsets = (0, import_react202.useMemo)(() => {
     const offsets = {};
     let cumulative = 0;
     for (let i = orderedVisibleColumns.length - 1; i >= 0; i--) {
@@ -22875,7 +22855,7 @@ function TableComponent({
                         ) }),
                         /* @__PURE__ */ (0, import_jsx_runtime212.jsx)("tbody", { className: tbodyClasses, children: groupedData ? hasRows ? groupedData.map((group) => {
                           const isExpanded = expandedGroups[group.key] !== false;
-                          return /* @__PURE__ */ (0, import_jsx_runtime212.jsxs)(import_react201.default.Fragment, { children: [
+                          return /* @__PURE__ */ (0, import_jsx_runtime212.jsxs)(import_react202.default.Fragment, { children: [
                             resolvedShowGroupHeader && /* @__PURE__ */ (0, import_jsx_runtime212.jsx)(
                               "tr",
                               {
@@ -22987,7 +22967,7 @@ function TableComponent({
                       gap: panelGap != null ? typeof panelGap === "number" ? `${panelGap}px` : panelGap : "1rem"
                     };
                   })() : void 0,
-                  children: panelRows.map((row, rowIndex) => /* @__PURE__ */ (0, import_jsx_runtime212.jsx)(import_react201.default.Fragment, { children: panelItem(row, rowIndex) }, resolveRowKey(row, rowIndex, rowKey)))
+                  children: panelRows.map((row, rowIndex) => /* @__PURE__ */ (0, import_jsx_runtime212.jsx)(import_react202.default.Fragment, { children: panelItem(row, rowIndex) }, resolveRowKey(row, rowIndex, rowKey)))
                 }
               ) : renderPanelEmptyState()
             ]
@@ -23077,7 +23057,7 @@ function Table(props) {
 var Table_default = Table;
 
 // src/components/AccessMatrix.tsx
-var import_react202 = require("react");
+var import_react203 = require("react");
 var import_classnames56 = __toESM(require("classnames"), 1);
 var import_jsx_runtime213 = require("react/jsx-runtime");
 function ChevronSvg2({ expanded }) {
@@ -23145,11 +23125,11 @@ var AccessMatrix = ({
   stickyBackground,
   hoverable = false
 }) => {
-  const [expanded, setExpanded] = (0, import_react202.useState)(false);
-  const [collapsedGroups, setCollapsedGroups] = (0, import_react202.useState)(
+  const [expanded, setExpanded] = (0, import_react203.useState)(false);
+  const [collapsedGroups, setCollapsedGroups] = (0, import_react203.useState)(
     /* @__PURE__ */ new Set()
   );
-  const actions = (0, import_react202.useMemo)(() => {
+  const actions = (0, import_react203.useMemo)(() => {
     const seen = /* @__PURE__ */ new Set();
     const result = [];
     for (const p of permissions) {
@@ -23160,7 +23140,7 @@ var AccessMatrix = ({
     }
     return result;
   }, [permissions]);
-  const allGroups = (0, import_react202.useMemo)(() => {
+  const allGroups = (0, import_react203.useMemo)(() => {
     const seen = /* @__PURE__ */ new Set();
     const result = [];
     for (const p of permissions) {
@@ -23173,7 +23153,7 @@ var AccessMatrix = ({
   }, [permissions]);
   const visibleGroups = expanded ? allGroups : allGroups.slice(0, limit);
   const hiddenCount = allGroups.length - limit;
-  const rows = (0, import_react202.useMemo)(() => {
+  const rows = (0, import_react203.useMemo)(() => {
     const lookup = /* @__PURE__ */ new Map();
     for (const p of permissions) {
       lookup.set(`${p.group}::${p.resource}::${p.action}`, p.enabled);
@@ -23210,7 +23190,7 @@ var AccessMatrix = ({
     }
     return result;
   }, [permissions, visibleGroups, actions, collapsedGroups]);
-  const stripeMap = (0, import_react202.useMemo)(() => {
+  const stripeMap = (0, import_react203.useMemo)(() => {
     const map = /* @__PURE__ */ new Map();
     let idx = 0;
     for (const row of rows) {
@@ -23231,7 +23211,7 @@ var AccessMatrix = ({
       return next;
     });
   };
-  const columns = (0, import_react202.useMemo)(() => {
+  const columns = (0, import_react203.useMemo)(() => {
     const resourceCol = {
       id: "_resource",
       header: "Resource",
@@ -23314,7 +23294,7 @@ var AccessMatrix = ({
 var AccessMatrix_default = AccessMatrix;
 
 // src/components/KeyValueArrayField.tsx
-var import_react203 = require("react");
+var import_react204 = require("react");
 var import_jsx_runtime214 = require("react/jsx-runtime");
 var KeyValueArrayField = ({
   label,
@@ -23326,8 +23306,8 @@ var KeyValueArrayField = ({
   isVisible = true,
   addLabel
 }) => {
-  const [pairs, setPairs] = (0, import_react203.useState)(value || []);
-  (0, import_react203.useEffect)(() => {
+  const [pairs, setPairs] = (0, import_react204.useState)(value || []);
+  (0, import_react204.useEffect)(() => {
     setPairs(value || []);
   }, [value]);
   const handleAddPair = () => {
@@ -23432,7 +23412,7 @@ var ApiErrorState = ({
 var ApiErrorState_default = ApiErrorState;
 
 // src/components/DynamicFormField.tsx
-var import_react204 = require("react");
+var import_react205 = require("react");
 var import_ui_kit = require("@cjlapao/ui-kit");
 var import_ui_kit2 = require("@cjlapao/ui-kit");
 var import_classnames57 = __toESM(require("classnames"), 1);
@@ -23472,7 +23452,7 @@ var DynamicFormField = ({
   isVisible = true
 }) => {
   const { name, key, hint, is_required, options, is_secret, help } = parameter;
-  const normalizedOptions = (0, import_react204.useMemo)(() => normalizeOptions(options), [options]);
+  const normalizedOptions = (0, import_react205.useMemo)(() => normalizeOptions(options), [options]);
   const handleChange = (fieldValue, trigger) => {
     onChange(
       parameter.service_name || "global",
@@ -23643,7 +23623,7 @@ var NotificationModal = ({
 var NotificationModal_default = NotificationModal;
 
 // src/components/SidePanel.tsx
-var import_react205 = require("react");
+var import_react206 = require("react");
 var import_classnames58 = __toESM(require("classnames"), 1);
 var import_jsx_runtime218 = require("react/jsx-runtime");
 var SidePanel = ({
@@ -23663,9 +23643,9 @@ var SidePanel = ({
   maxWidth = 900,
   color = "neutral"
 }) => {
-  const [mounted, setMounted] = (0, import_react205.useState)(isOpen);
-  const prevOpenRef = (0, import_react205.useRef)(isOpen);
-  (0, import_react205.useEffect)(() => {
+  const [mounted, setMounted] = (0, import_react206.useState)(isOpen);
+  const prevOpenRef = (0, import_react206.useRef)(isOpen);
+  (0, import_react206.useEffect)(() => {
     if (isOpen && !prevOpenRef.current) {
       setMounted(true);
     }
@@ -23674,14 +23654,14 @@ var SidePanel = ({
   const handleTransitionEnd = () => {
     if (!isOpen) setMounted(false);
   };
-  const [currentWidth, setCurrentWidth] = (0, import_react205.useState)(width);
-  const isDraggingRef = (0, import_react205.useRef)(false);
-  const startXRef = (0, import_react205.useRef)(0);
-  const startWidthRef = (0, import_react205.useRef)(0);
-  (0, import_react205.useEffect)(() => {
+  const [currentWidth, setCurrentWidth] = (0, import_react206.useState)(width);
+  const isDraggingRef = (0, import_react206.useRef)(false);
+  const startXRef = (0, import_react206.useRef)(0);
+  const startWidthRef = (0, import_react206.useRef)(0);
+  (0, import_react206.useEffect)(() => {
     if (!isDraggingRef.current) setCurrentWidth(width);
   }, [width]);
-  const onMouseDown = (0, import_react205.useCallback)(
+  const onMouseDown = (0, import_react206.useCallback)(
     (e) => {
       if (!resizable) return;
       e.preventDefault();
@@ -23781,7 +23761,7 @@ var SidePanel = ({
 var SidePanel_default = SidePanel;
 
 // src/components/TimelinePanel/TimelinePanel.tsx
-var import_react206 = __toESM(require("react"), 1);
+var import_react207 = __toESM(require("react"), 1);
 var import_classnames59 = __toESM(require("classnames"), 1);
 
 // src/components/TreeView/toneColors.ts
@@ -24069,8 +24049,8 @@ function useIsDark() {
     probe.remove();
     return dark;
   };
-  const [isDark, setIsDark] = (0, import_react206.useState)(() => detect());
-  (0, import_react206.useEffect)(() => {
+  const [isDark, setIsDark] = (0, import_react207.useState)(() => detect());
+  (0, import_react207.useEffect)(() => {
     const update = () => setIsDark(detect());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -24304,6 +24284,7 @@ var variantShellStyles = {
   tonal: "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   default: "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass: "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  "liquid-glass": "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
   simple: "text-neutral-900 ring-transparent dark:text-neutral-100 dark:ring-white/5"
 };
 var cornerStyles2 = {
@@ -24319,8 +24300,8 @@ var OverflowButton = ({
   options,
   onSelect
 }) => {
-  const [open, setOpen] = (0, import_react206.useState)(false);
-  const ref = (0, import_react206.useRef)(null);
+  const [open, setOpen] = (0, import_react207.useState)(false);
+  const ref = (0, import_react207.useRef)(null);
   if (options.length === 0) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime219.jsxs)(import_jsx_runtime219.Fragment, { children: [
     /* @__PURE__ */ (0, import_jsx_runtime219.jsx)(
@@ -24439,7 +24420,7 @@ var TimelineItemRow = ({
   );
 };
 function isHeaderActionObject(v) {
-  return typeof v === "object" && v !== null && !import_react206.default.isValidElement(v) && "label" in v;
+  return typeof v === "object" && v !== null && !import_react207.default.isValidElement(v) && "label" in v;
 }
 var TimelinePanel = ({
   title,
@@ -24457,15 +24438,15 @@ var TimelinePanel = ({
 }) => {
   const isDark = useIsDark();
   const palette = getPanelToneStyles(tone);
-  const itemEls = (0, import_react206.useRef)([]);
-  const [itemHeights, setItemHeights] = (0, import_react206.useState)([]);
-  const measureHeights = (0, import_react206.useCallback)(() => {
+  const itemEls = (0, import_react207.useRef)([]);
+  const [itemHeights, setItemHeights] = (0, import_react207.useState)([]);
+  const measureHeights = (0, import_react207.useCallback)(() => {
     const heights = itemEls.current.map((el) => el?.offsetHeight ?? 0);
     setItemHeights(
       (prev) => prev.length === heights.length && prev.every((h, i) => h === heights[i]) ? prev : heights
     );
   }, []);
-  (0, import_react206.useLayoutEffect)(() => {
+  (0, import_react207.useLayoutEffect)(() => {
     itemEls.current = itemEls.current.slice(0, items.length);
     measureHeights();
     const ro = new ResizeObserver(measureHeights);
@@ -24604,11 +24585,11 @@ TimelinePanel.displayName = "TimelinePanel";
 var TimelinePanel_default = TimelinePanel;
 
 // src/components/ConnectionFlow/ConnectionFlow.tsx
-var import_react212 = __toESM(require("react"), 1);
+var import_react213 = __toESM(require("react"), 1);
 var import_classnames63 = __toESM(require("classnames"), 1);
 
 // src/components/ConnectionFlow/ConnectionFlowConnector.tsx
-var import_react207 = require("react");
+var import_react208 = require("react");
 var import_jsx_runtime220 = require("react/jsx-runtime");
 function useIsDark2() {
   const detectDark = () => {
@@ -24620,8 +24601,8 @@ function useIsDark2() {
     probe.remove();
     return darkActive;
   };
-  const [isDark, setIsDark] = (0, import_react207.useState)(() => detectDark());
-  (0, import_react207.useEffect)(() => {
+  const [isDark, setIsDark] = (0, import_react208.useState)(() => detectDark());
+  (0, import_react208.useEffect)(() => {
     const update = () => setIsDark(detectDark());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -24671,9 +24652,9 @@ var ConnectionFlowConnector = ({
   fullWidth = false
 }) => {
   const isDark = useIsDark2();
-  const containerRef = (0, import_react207.useRef)(null);
-  const [measuredWidth, setMeasuredWidth] = (0, import_react207.useState)(width);
-  (0, import_react207.useLayoutEffect)(() => {
+  const containerRef = (0, import_react208.useRef)(null);
+  const [measuredWidth, setMeasuredWidth] = (0, import_react208.useState)(width);
+  (0, import_react208.useLayoutEffect)(() => {
     if (!fullWidth) {
       setMeasuredWidth(width);
       return;
@@ -25109,11 +25090,11 @@ var ConnectionFlowConnector = ({
 var ConnectionFlowConnector_default = ConnectionFlowConnector;
 
 // src/components/ConnectionFlow/ConnectionFlowColumn.tsx
-var import_react210 = require("react");
+var import_react211 = require("react");
 var import_classnames61 = __toESM(require("classnames"), 1);
 
 // src/components/TreeView/TreeItemCard.tsx
-var import_react208 = require("react");
+var import_react209 = require("react");
 var import_classnames60 = __toESM(require("classnames"), 1);
 var import_jsx_runtime221 = require("react/jsx-runtime");
 var TreeItemCard = ({
@@ -25144,12 +25125,12 @@ var TreeItemCard = ({
   activePulse = false
 }) => {
   const tokens = getTreeColorTokens(tone);
-  const [internalExpanded, setInternalExpanded] = (0, import_react208.useState)(defaultExpanded);
+  const [internalExpanded, setInternalExpanded] = (0, import_react209.useState)(defaultExpanded);
   const isExpanded = expanded ?? internalExpanded;
   const canExpand = forceToggle || body !== void 0 && body !== null;
-  const titleRef = (0, import_react208.useRef)(null);
-  const [isTitleClamped, setIsTitleClamped] = (0, import_react208.useState)(false);
-  (0, import_react208.useEffect)(() => {
+  const titleRef = (0, import_react209.useRef)(null);
+  const [isTitleClamped, setIsTitleClamped] = (0, import_react209.useState)(false);
+  (0, import_react209.useEffect)(() => {
     if (!titleWrap || titleScroll) {
       setIsTitleClamped(false);
       return;
@@ -25301,7 +25282,7 @@ var TreeItemCard = ({
 var TreeItemCard_default = TreeItemCard;
 
 // src/components/TreeView/TreeFlowSvg.tsx
-var import_react209 = require("react");
+var import_react210 = require("react");
 var import_jsx_runtime222 = require("react/jsx-runtime");
 function useIsDark3() {
   const detectDark = () => {
@@ -25313,8 +25294,8 @@ function useIsDark3() {
     probe.remove();
     return darkActive;
   };
-  const [isDark, setIsDark] = (0, import_react209.useState)(() => detectDark());
-  (0, import_react209.useEffect)(() => {
+  const [isDark, setIsDark] = (0, import_react210.useState)(() => detectDark());
+  (0, import_react210.useEffect)(() => {
     const update = () => setIsDark(detectDark());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -25762,8 +25743,8 @@ var TreeFlowSvg_default = TreeFlowSvg;
 // src/components/ConnectionFlow/ConnectionFlowColumn.tsx
 var import_jsx_runtime223 = require("react/jsx-runtime");
 function useElementHeight(ref) {
-  const [h, setH] = (0, import_react210.useState)(0);
-  (0, import_react210.useEffect)(() => {
+  const [h, setH] = (0, import_react211.useState)(0);
+  (0, import_react211.useEffect)(() => {
     const el = ref.current;
     if (!el) return;
     let raf;
@@ -25790,12 +25771,12 @@ var ChildRow = ({
   onToneChange,
   onActiveChange
 }) => {
-  const rowRef = (0, import_react210.useRef)(null);
+  const rowRef = (0, import_react211.useRef)(null);
   const rowH = useElementHeight(rowRef);
-  const minHRef = (0, import_react210.useRef)(null);
+  const minHRef = (0, import_react211.useRef)(null);
   const resolvedTone = item.tone ?? globalTone ?? "neutral";
   const isActive = item.active ?? false;
-  (0, import_react210.useEffect)(() => {
+  (0, import_react211.useEffect)(() => {
     if (rowH > 0) {
       onHeightChange(rowH);
       if (minHRef.current === null || rowH < minHRef.current) {
@@ -25804,10 +25785,10 @@ var ChildRow = ({
       }
     }
   }, [rowH, onHeightChange, onAnchorChange]);
-  (0, import_react210.useEffect)(() => {
+  (0, import_react211.useEffect)(() => {
     onToneChange(resolvedTone);
   }, [resolvedTone, onToneChange]);
-  (0, import_react210.useEffect)(() => {
+  (0, import_react211.useEffect)(() => {
     onActiveChange(isActive);
   }, [isActive, onActiveChange]);
   return /* @__PURE__ */ (0, import_jsx_runtime223.jsx)("div", { ref: rowRef, className: "mb-2 min-w-0", children: /* @__PURE__ */ (0, import_jsx_runtime223.jsx)(
@@ -25855,29 +25836,29 @@ var ConnectionFlowColumn = ({
   const hasChildren = !!(item.children && item.children.length > 0);
   const resolvedTone = item.tone ?? globalTone ?? "neutral";
   const childCount = item.children?.length ?? 0;
-  const columnRef = (0, import_react210.useRef)(null);
-  const parentCardRef = (0, import_react210.useRef)(null);
+  const columnRef = (0, import_react211.useRef)(null);
+  const parentCardRef = (0, import_react211.useRef)(null);
   const parentCardH = useElementHeight(parentCardRef);
   const columnH = useElementHeight(columnRef);
-  const [cardHeights, setCardHeights] = (0, import_react210.useState)(
+  const [cardHeights, setCardHeights] = (0, import_react211.useState)(
     () => Array(childCount).fill(0)
   );
-  const [cardAnchors, setCardAnchors] = (0, import_react210.useState)(
+  const [cardAnchors, setCardAnchors] = (0, import_react211.useState)(
     () => Array(childCount).fill(0)
   );
-  const [toneList, setToneList] = (0, import_react210.useState)(
+  const [toneList, setToneList] = (0, import_react211.useState)(
     () => Array(childCount).fill(globalTone ?? "neutral")
   );
-  const [activeList, setActiveList] = (0, import_react210.useState)(
+  const [activeList, setActiveList] = (0, import_react211.useState)(
     () => Array(childCount).fill(false)
   );
-  (0, import_react210.useEffect)(() => {
+  (0, import_react211.useEffect)(() => {
     setCardHeights(Array(childCount).fill(0));
     setCardAnchors(Array(childCount).fill(0));
     setToneList(Array(childCount).fill(globalTone ?? "neutral"));
     setActiveList(Array(childCount).fill(false));
   }, [childCount]);
-  const updH = (0, import_react210.useCallback)(
+  const updH = (0, import_react211.useCallback)(
     (i, h) => setCardHeights((p) => {
       if (p[i] === h) return p;
       const n = [...p];
@@ -25886,7 +25867,7 @@ var ConnectionFlowColumn = ({
     }),
     []
   );
-  const updA = (0, import_react210.useCallback)(
+  const updA = (0, import_react211.useCallback)(
     (i, a) => setCardAnchors((p) => {
       if (p[i] === a) return p;
       const n = [...p];
@@ -25895,7 +25876,7 @@ var ConnectionFlowColumn = ({
     }),
     []
   );
-  const updT = (0, import_react210.useCallback)(
+  const updT = (0, import_react211.useCallback)(
     (i, t) => setToneList((p) => {
       if (p[i] === t) return p;
       const n = [...p];
@@ -25904,7 +25885,7 @@ var ConnectionFlowColumn = ({
     }),
     []
   );
-  const updAc = (0, import_react210.useCallback)(
+  const updAc = (0, import_react211.useCallback)(
     (i, v) => setActiveList((p) => {
       if (p[i] === v) return p;
       const n = [...p];
@@ -25913,7 +25894,7 @@ var ConnectionFlowColumn = ({
     }),
     []
   );
-  (0, import_react210.useEffect)(() => {
+  (0, import_react211.useEffect)(() => {
     if (!onGeometryChange || parentCardH === 0 || columnH === 0) return;
     const anchors = [parentCardH / 2];
     if (hasChildren && cardHeights.length > 0 && cardHeights.every((h) => h > 0)) {
@@ -26017,13 +25998,13 @@ var ConnectionFlowColumn = ({
 var ConnectionFlowColumn_default = ConnectionFlowColumn;
 
 // src/components/ConnectionFlow/ConnectionFlowParallelGroup.tsx
-var import_react211 = require("react");
+var import_react212 = require("react");
 var import_classnames62 = __toESM(require("classnames"), 1);
 var import_jsx_runtime224 = require("react/jsx-runtime");
 var GROUP_ROW_GAP = 8;
 function useElementHeight2(ref) {
-  const [h, setH] = (0, import_react211.useState)(0);
-  (0, import_react211.useEffect)(() => {
+  const [h, setH] = (0, import_react212.useState)(0);
+  (0, import_react212.useEffect)(() => {
     const el = ref.current;
     if (!el) return;
     let raf;
@@ -26041,18 +26022,18 @@ function useElementHeight2(ref) {
   return h;
 }
 var ConnectionFlowParallelGroup = ({ items, globalTone, itemWidth, hoverable = false, onGeometryChange }) => {
-  const groupRef = (0, import_react211.useRef)(null);
+  const groupRef = (0, import_react212.useRef)(null);
   const groupH = useElementHeight2(groupRef);
   const itemCount = items.length;
-  const itemRefs = (0, import_react211.useRef)([]);
-  const [itemHeights, setItemHeights] = (0, import_react211.useState)(
+  const itemRefs = (0, import_react212.useRef)([]);
+  const [itemHeights, setItemHeights] = (0, import_react212.useState)(
     () => Array(itemCount).fill(0)
   );
-  (0, import_react211.useEffect)(() => {
+  (0, import_react212.useEffect)(() => {
     setItemHeights(Array(itemCount).fill(0));
     itemRefs.current = itemRefs.current.slice(0, itemCount);
   }, [itemCount]);
-  (0, import_react211.useEffect)(() => {
+  (0, import_react212.useEffect)(() => {
     const observers = [];
     const rafs = [];
     itemRefs.current.forEach((el, i) => {
@@ -26078,7 +26059,7 @@ var ConnectionFlowParallelGroup = ({ items, globalTone, itemWidth, hoverable = f
       observers.forEach((ro) => ro.disconnect());
     };
   }, [itemCount]);
-  (0, import_react211.useEffect)(() => {
+  (0, import_react212.useEffect)(() => {
     if (!onGeometryChange || groupH === 0) return;
     if (itemHeights.some((h) => h === 0)) return;
     const anchors = [];
@@ -26153,8 +26134,8 @@ function useIsDark4() {
     probe.remove();
     return dark;
   };
-  const [isDark, setIsDark] = (0, import_react212.useState)(() => detect());
-  (0, import_react212.useEffect)(() => {
+  const [isDark, setIsDark] = (0, import_react213.useState)(() => detect());
+  (0, import_react213.useEffect)(() => {
     const update = () => setIsDark(detect());
     const obs = new MutationObserver(update);
     obs.observe(document.documentElement, { attributeFilter: ["class"] });
@@ -26226,8 +26207,8 @@ var ConnectionFlow = ({
   fullWidthConnectors = false
 }) => {
   const isDark = useIsDark4();
-  const [colGeo, setColGeo] = (0, import_react212.useState)({});
-  const handleGeo = (0, import_react212.useCallback)((idx, geo) => {
+  const [colGeo, setColGeo] = (0, import_react213.useState)({});
+  const handleGeo = (0, import_react213.useCallback)((idx, geo) => {
     setColGeo((prev) => {
       const cur = prev[idx];
       if (cur && cur.totalHeight === geo.totalHeight && cur.isParallelGroup === geo.isParallelGroup && cur.anchors.length === geo.anchors.length && cur.anchors.every((a, i) => a === geo.anchors[i]))
@@ -26235,13 +26216,13 @@ var ConnectionFlow = ({
       return { ...prev, [idx]: geo };
     });
   }, []);
-  const containerRef = (0, import_react212.useRef)(null);
-  const contentRef = (0, import_react212.useRef)(null);
-  const [scale, setScale] = (0, import_react212.useState)(1);
-  const [scaledHeight, setScaledHeight] = (0, import_react212.useState)(
+  const containerRef = (0, import_react213.useRef)(null);
+  const contentRef = (0, import_react213.useRef)(null);
+  const [scale, setScale] = (0, import_react213.useState)(1);
+  const [scaledHeight, setScaledHeight] = (0, import_react213.useState)(
     void 0
   );
-  (0, import_react212.useLayoutEffect)(() => {
+  (0, import_react213.useLayoutEffect)(() => {
     if (!autoScale) {
       setScale(1);
       setScaledHeight(void 0);
@@ -26266,10 +26247,10 @@ var ConnectionFlow = ({
     ro.observe(container);
     return () => ro.disconnect();
   }, [autoScale, minScale, items]);
-  const groupDivRefs = (0, import_react212.useRef)([]);
-  const [bypassArcs, setBypassArcs] = (0, import_react212.useState)([]);
+  const groupDivRefs = (0, import_react213.useRef)([]);
+  const [bypassArcs, setBypassArcs] = (0, import_react213.useState)([]);
   const groups = buildGroups(items);
-  const autoSkippedSet = (0, import_react212.useMemo)(() => {
+  const autoSkippedSet = (0, import_react213.useMemo)(() => {
     const set = /* @__PURE__ */ new Set();
     if (!autoConnectorState) return set;
     const grps = buildGroups(items);
@@ -26282,7 +26263,7 @@ var ConnectionFlow = ({
     });
     return set;
   }, [items, autoConnectorState]);
-  const computeBypassArcs = (0, import_react212.useCallback)(() => {
+  const computeBypassArcs = (0, import_react213.useCallback)(() => {
     if (!contentRef.current) return;
     const contentEl = contentRef.current;
     const contentRect = contentEl.getBoundingClientRect();
@@ -26324,7 +26305,7 @@ var ConnectionFlow = ({
     }
     setBypassArcs(arcs);
   }, [items, scale, autoSkippedSet]);
-  (0, import_react212.useLayoutEffect)(() => {
+  (0, import_react213.useLayoutEffect)(() => {
     computeBypassArcs();
     const ro = new ResizeObserver(computeBypassArcs);
     if (contentRef.current) ro.observe(contentRef.current);
@@ -26393,7 +26374,7 @@ var ConnectionFlow = ({
             }
             return state;
           }) : [];
-          return /* @__PURE__ */ (0, import_jsx_runtime225.jsxs)(import_react212.default.Fragment, { children: [
+          return /* @__PURE__ */ (0, import_jsx_runtime225.jsxs)(import_react213.default.Fragment, { children: [
             renderConnector && /* @__PURE__ */ (0, import_jsx_runtime225.jsx)(
               ConnectionFlowConnector_default,
               {
@@ -26607,7 +26588,7 @@ var ConnectionFlow = ({
 var ConnectionFlow_default = ConnectionFlow;
 
 // src/components/TreeView/TreeView.tsx
-var import_react213 = require("react");
+var import_react214 = require("react");
 var import_classnames64 = __toESM(require("classnames"), 1);
 var import_jsx_runtime226 = require("react/jsx-runtime");
 function buildOrderKey(items) {
@@ -26638,8 +26619,8 @@ function moveItem(list, from, to) {
   return next;
 }
 function useElementHeight3(ref) {
-  const [h, setH] = (0, import_react213.useState)(0);
-  (0, import_react213.useEffect)(() => {
+  const [h, setH] = (0, import_react214.useState)(0);
+  (0, import_react214.useEffect)(() => {
     const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver(([e]) => setH(e.contentRect.height));
@@ -26667,36 +26648,36 @@ var TreeItemRow = ({
   onToneChange,
   onActiveChange
 }) => {
-  const rowRef = (0, import_react213.useRef)(null);
-  const cardRef = (0, import_react213.useRef)(null);
-  const childLevelWrapRef = (0, import_react213.useRef)(null);
+  const rowRef = (0, import_react214.useRef)(null);
+  const cardRef = (0, import_react214.useRef)(null);
+  const childLevelWrapRef = (0, import_react214.useRef)(null);
   const rowHeight = useElementHeight3(rowRef);
   const cardHeight = useElementHeight3(cardRef);
-  const [childLevelOffset, setChildLevelOffset] = (0, import_react213.useState)(0);
+  const [childLevelOffset, setChildLevelOffset] = (0, import_react214.useState)(0);
   const resolvedTone = item.tone ?? globalTone ?? "neutral";
   const isActive = item.active ?? false;
   const hasChildren = Boolean(item.children && item.children.length > 0);
-  const [childrenExpanded, setChildrenExpanded] = (0, import_react213.useState)(
+  const [childrenExpanded, setChildrenExpanded] = (0, import_react214.useState)(
     item.defaultExpanded ?? true
   );
-  const setRowElement = (0, import_react213.useCallback)(
+  const setRowElement = (0, import_react214.useCallback)(
     (el) => {
       rowRef.current = el;
       onRowElement(el);
     },
     [onRowElement]
   );
-  (0, import_react213.useEffect)(() => {
+  (0, import_react214.useEffect)(() => {
     if (rowHeight > 0) {
       onHeightChange(rowHeight);
     }
   }, [rowHeight, onHeightChange]);
-  (0, import_react213.useEffect)(() => {
+  (0, import_react214.useEffect)(() => {
     if (cardHeight > 0) {
       onAnchorChange(cardHeight / 2);
     }
   }, [cardHeight, onAnchorChange]);
-  (0, import_react213.useEffect)(() => {
+  (0, import_react214.useEffect)(() => {
     const cardEl = cardRef.current;
     const childWrapEl = childLevelWrapRef.current;
     if (!cardEl || !childWrapEl || !hasChildren || !childrenExpanded) {
@@ -26718,10 +26699,10 @@ var TreeItemRow = ({
       window.removeEventListener("resize", computeOffset);
     };
   }, [childrenExpanded, hasChildren]);
-  (0, import_react213.useEffect)(() => {
+  (0, import_react214.useEffect)(() => {
     onToneChange(resolvedTone);
   }, [resolvedTone, onToneChange]);
-  (0, import_react213.useEffect)(() => {
+  (0, import_react214.useEffect)(() => {
     onActiveChange(isActive);
   }, [isActive, onActiveChange]);
   return /* @__PURE__ */ (0, import_jsx_runtime226.jsxs)(
@@ -26814,10 +26795,10 @@ var TreeLevel = ({
   const resolvedRowGap = svgProps.rowGap ?? 8;
   const indentPx = INDENT_PX[resolvedIndent];
   const isReorderEnabled = Boolean(svgProps.reorderable && items.length > 1);
-  const [orderedItems, setOrderedItems] = (0, import_react213.useState)(items);
-  const prevIncomingOrderKeyRef = (0, import_react213.useRef)(buildOrderKey(items));
-  const hasLocalOrderOverride = (0, import_react213.useRef)(false);
-  (0, import_react213.useEffect)(() => {
+  const [orderedItems, setOrderedItems] = (0, import_react214.useState)(items);
+  const prevIncomingOrderKeyRef = (0, import_react214.useRef)(buildOrderKey(items));
+  const hasLocalOrderOverride = (0, import_react214.useRef)(false);
+  (0, import_react214.useEffect)(() => {
     const incomingKey = buildOrderKey(items);
     setOrderedItems((prev) => {
       if (!hasLocalOrderOverride.current) {
@@ -26831,21 +26812,21 @@ var TreeLevel = ({
     });
     prevIncomingOrderKeyRef.current = incomingKey;
   }, [items]);
-  const [cardHeightById, setCardHeightById] = (0, import_react213.useState)(
+  const [cardHeightById, setCardHeightById] = (0, import_react214.useState)(
     {}
   );
-  const [cardAnchorById, setCardAnchorById] = (0, import_react213.useState)(
+  const [cardAnchorById, setCardAnchorById] = (0, import_react214.useState)(
     {}
   );
-  const [toneById, setToneById] = (0, import_react213.useState)({});
-  const [activeById, setActiveById] = (0, import_react213.useState)({});
-  const rowElementsRef = (0, import_react213.useRef)({});
-  const previousTopByIdRef = (0, import_react213.useRef)({});
-  const dragStartRef = (0, import_react213.useRef)(null);
-  const dropTargetRef = (0, import_react213.useRef)(null);
-  const [draggingId, setDraggingId] = (0, import_react213.useState)(null);
-  const [dropTarget, setDropTarget] = (0, import_react213.useState)(null);
-  (0, import_react213.useEffect)(() => {
+  const [toneById, setToneById] = (0, import_react214.useState)({});
+  const [activeById, setActiveById] = (0, import_react214.useState)({});
+  const rowElementsRef = (0, import_react214.useRef)({});
+  const previousTopByIdRef = (0, import_react214.useRef)({});
+  const dragStartRef = (0, import_react214.useRef)(null);
+  const dropTargetRef = (0, import_react214.useRef)(null);
+  const [draggingId, setDraggingId] = (0, import_react214.useState)(null);
+  const [dropTarget, setDropTarget] = (0, import_react214.useState)(null);
+  (0, import_react214.useEffect)(() => {
     const validIds = new Set(orderedItems.map((item) => item.id));
     const prune = (prev) => {
       let dirty = false;
@@ -26864,21 +26845,21 @@ var TreeLevel = ({
     setToneById(prune);
     setActiveById(prune);
   }, [orderedItems]);
-  const updateHeight = (0, import_react213.useCallback)((id, h) => {
+  const updateHeight = (0, import_react214.useCallback)((id, h) => {
     setCardHeightById((prev) => prev[id] === h ? prev : { ...prev, [id]: h });
   }, []);
-  const updateAnchor = (0, import_react213.useCallback)((id, a) => {
+  const updateAnchor = (0, import_react214.useCallback)((id, a) => {
     setCardAnchorById((prev) => prev[id] === a ? prev : { ...prev, [id]: a });
   }, []);
-  const updateTone = (0, import_react213.useCallback)((id, t) => {
+  const updateTone = (0, import_react214.useCallback)((id, t) => {
     setToneById((prev) => prev[id] === t ? prev : { ...prev, [id]: t });
   }, []);
-  const updateActive = (0, import_react213.useCallback)((id, active) => {
+  const updateActive = (0, import_react214.useCallback)((id, active) => {
     setActiveById(
       (prev) => prev[id] === active ? prev : { ...prev, [id]: active }
     );
   }, []);
-  const setRowElement = (0, import_react213.useCallback)((id, el) => {
+  const setRowElement = (0, import_react214.useCallback)((id, el) => {
     if (el) {
       rowElementsRef.current[id] = el;
       return;
@@ -26886,13 +26867,13 @@ var TreeLevel = ({
     delete rowElementsRef.current[id];
     delete previousTopByIdRef.current[id];
   }, []);
-  const clearDragState = (0, import_react213.useCallback)(() => {
+  const clearDragState = (0, import_react214.useCallback)(() => {
     dragStartRef.current = null;
     dropTargetRef.current = null;
     setDraggingId(null);
     setDropTarget(null);
   }, []);
-  const commitDrop = (0, import_react213.useCallback)(() => {
+  const commitDrop = (0, import_react214.useCallback)(() => {
     if (!isReorderEnabled) {
       clearDragState();
       return;
@@ -26926,7 +26907,7 @@ var TreeLevel = ({
     }
     clearDragState();
   }, [clearDragState, isReorderEnabled, orderedItems, svgProps]);
-  (0, import_react213.useLayoutEffect)(() => {
+  (0, import_react214.useLayoutEffect)(() => {
     const nextTopById = {};
     for (const item of orderedItems) {
       const rowEl = rowElementsRef.current[item.id];
@@ -26954,7 +26935,7 @@ var TreeLevel = ({
   const activeList = orderedItems.map(
     (item) => activeById[item.id] ?? Boolean(item.active)
   );
-  const handleLevelDragOver = (0, import_react213.useCallback)(
+  const handleLevelDragOver = (0, import_react214.useCallback)(
     (event) => {
       if (!isReorderEnabled || !dragStartRef.current) return;
       event.preventDefault();
@@ -26986,7 +26967,7 @@ var TreeLevel = ({
     },
     [isReorderEnabled, orderedItems]
   );
-  const handleLevelDrop = (0, import_react213.useCallback)(
+  const handleLevelDrop = (0, import_react214.useCallback)(
     (event) => {
       if (!isReorderEnabled) return;
       event.preventDefault();
@@ -27215,11 +27196,11 @@ var TreeView = ({
 var TreeView_default = TreeView;
 
 // src/contexts/BottomSheetContext.tsx
-var import_react214 = require("react");
+var import_react215 = require("react");
 var import_react_dom11 = require("react-dom");
 var import_classnames65 = __toESM(require("classnames"), 1);
 var import_jsx_runtime227 = require("react/jsx-runtime");
-var BottomSheetContext = (0, import_react214.createContext)(null);
+var BottomSheetContext = (0, import_react215.createContext)(null);
 var TRANSITION_MS = 260;
 var renderSlot = (slot, controls) => {
   if (!slot) {
@@ -27230,13 +27211,13 @@ var renderSlot = (slot, controls) => {
 var BottomSheetProvider = ({
   children
 }) => {
-  const [sheet, setSheet] = (0, import_react214.useState)(null);
-  const [isVisible, setIsVisible] = (0, import_react214.useState)(false);
-  const pendingCloseRef = (0, import_react214.useRef)(null);
-  const dismissSheet = (0, import_react214.useCallback)(() => {
+  const [sheet, setSheet] = (0, import_react215.useState)(null);
+  const [isVisible, setIsVisible] = (0, import_react215.useState)(false);
+  const pendingCloseRef = (0, import_react215.useRef)(null);
+  const dismissSheet = (0, import_react215.useCallback)(() => {
     setIsVisible(false);
   }, []);
-  const presentSheet = (0, import_react214.useCallback)((options) => {
+  const presentSheet = (0, import_react215.useCallback)((options) => {
     if (pendingCloseRef.current) {
       clearTimeout(pendingCloseRef.current);
       pendingCloseRef.current = null;
@@ -27249,7 +27230,7 @@ var BottomSheetProvider = ({
       setTimeout(animateIn, 0);
     }
   }, []);
-  (0, import_react214.useEffect)(() => {
+  (0, import_react215.useEffect)(() => {
     if (!isVisible && sheet) {
       pendingCloseRef.current = setTimeout(() => {
         sheet.onClose?.();
@@ -27264,7 +27245,7 @@ var BottomSheetProvider = ({
     }
     return void 0;
   }, [isVisible, sheet]);
-  (0, import_react214.useEffect)(
+  (0, import_react215.useEffect)(
     () => () => {
       if (pendingCloseRef.current) {
         clearTimeout(pendingCloseRef.current);
@@ -27272,13 +27253,13 @@ var BottomSheetProvider = ({
     },
     []
   );
-  const controls = (0, import_react214.useMemo)(
+  const controls = (0, import_react215.useMemo)(
     () => ({
       dismiss: dismissSheet
     }),
     [dismissSheet]
   );
-  const contextValue = (0, import_react214.useMemo)(
+  const contextValue = (0, import_react215.useMemo)(
     () => ({
       presentSheet,
       dismissSheet,
@@ -27345,7 +27326,7 @@ var BottomSheetProvider = ({
   ] });
 };
 var useBottomSheet = () => {
-  const context = (0, import_react214.useContext)(BottomSheetContext);
+  const context = (0, import_react215.useContext)(BottomSheetContext);
   if (!context) {
     throw new Error("useBottomSheet must be used within a BottomSheetProvider");
   }
@@ -27779,198 +27760,78 @@ MetricBar.displayName = "MetricBar";
 0 && (module.exports = {
   AccessMatrix,
   Accordion,
-  Add,
   Alert,
   ApiErrorState,
   AppDivider,
-  Apple,
   ApplyConfirmModal,
-  ArrowChevronLeft,
-  ArrowChevronRight,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  Artifactory,
-  Attached,
-  Attachment,
-  Aws,
-  Azure,
-  Back,
   Badge,
   BadgeIcon,
-  Blueprint,
   BottomSheetProvider,
-  Bug,
   Button,
   ButtonSelector,
-  Cache,
-  Calendar,
   CapsuleBlueprintValueType,
-  CatalogVersion,
-  CentOS,
-  Chat,
-  Check,
-  CheckCircle,
   Checkbox,
-  ChevronLeft,
-  ChevronRight,
-  Claim,
-  Claims,
-  Clean,
-  CleanBrush,
-  Clone,
-  Close,
-  Close1,
-  CloudOff,
-  Cog,
   CollapsibleHelpText,
   CollapsiblePanel,
   Combobox,
-  Complete,
   ConfirmInlinePanel,
   ConfirmModal,
   ConnectionFlow,
   ConnectionFlowColumn,
   ConnectionFlowConnector,
   ConnectionFlowParallelGroup,
-  Container,
-  Copy,
-  CopyClipboard,
   CustomIcon,
-  Dashboard,
-  Database,
-  Debian,
   DeleteConfirmInlinePanel,
   DeleteConfirmModal,
   DetailItemCard,
-  Details,
-  Docker,
-  DockerCopy,
-  Dots,
-  Download,
-  Drag,
   DropdownButton,
   DropdownMenu,
   DynamicFormField,
   DynamicImg,
-  Edit,
   EmptyState,
-  Equal,
-  Error,
-  Export,
-  EyeClosed,
-  EyeOpen,
-  Fedora,
-  File,
-  Folder,
   FormField,
   FormLayout,
   FormSection,
-  Globe,
-  Group,
   HeaderGroup,
-  HealthCheck,
-  Help,
   Hero,
-  Host,
   IconButton,
   IconContext,
   IconProvider,
-  Idea,
-  Image,
   InfiniteScrollPanel,
-  Info,
   InfoRow,
   InlinePanel,
   Input,
   InputGroup,
-  Jobs,
-  KaliLinux,
-  Key,
-  KeyManagement,
   KeyValueArrayField,
-  LXC,
-  LXCOld,
-  Library,
-  Live,
   Loader,
-  Log,
-  Login,
-  Logout,
   MetricBar,
-  Minio,
   Modal,
   ModalActions,
   Moon,
   MultiProgressBar,
   MultiSelectPills,
   MultiToggle,
-  Notification,
   NotificationModal,
-  Official,
-  Offline,
-  OpenApp,
-  Orchestrator,
   PagedPanel,
   Panel,
-  Parameter,
   PasswordInput,
-  Pause,
   Picker,
   Pill,
-  Pin,
-  Podman,
-  PodmanDesktop,
-  Praise,
   Progress,
-  Pull,
-  Push,
-  RedHat,
-  Refresh,
-  RemoteHost,
-  ReportFeedback,
-  Reset,
-  Restart,
-  ReverseProxy,
-  ReverseProxyCORS,
-  ReverseProxyFrom,
-  ReverseProxyHTTP,
-  ReverseProxyHeadersRequest,
-  ReverseProxyHeadersResponse,
-  ReverseProxyRoutes,
-  ReverseProxyTCP,
-  ReverseProxyTLS,
-  ReverseProxyTo,
-  Revert,
-  Revoke,
-  Rocket,
-  Role,
-  Roles,
-  Run,
   SMART_VAR_REGEX,
   SYSTEM_VARIABLES,
-  Save,
-  Scale,
-  Script,
-  Search,
   SearchBar,
   Section,
   SectionCard,
   Select,
-  Send,
-  Settings,
-  Shop,
   SideMenu,
   SideMenuActionsProvider,
   SideMenuLayout,
   SidePanel,
   SmartInput,
   SmartValue,
-  Snapshot,
   Spinner,
   SplitView,
-  Star,
   StartupStageStepper,
   StatChartTile,
   StatCountTile,
@@ -27979,42 +27840,25 @@ MetricBar.displayName = "MetricBar";
   StatTile,
   StatusSpinner,
   Stepper,
-  Stop,
   Sun,
-  Suspend,
   TREE_INDENT_PX,
   TREE_NEUTRAL_TOKENS,
   Table,
   Tabs,
   TagPanel,
   TagPicker,
-  Taint,
   Textarea,
   ThemeAuto,
-  ThemeDark,
-  ThemeLight,
   TimelinePanel,
   Toggle,
   Tooltip,
   TooltipWrapper,
-  Trash,
   TreeFlowSvg,
   TreeItemCard,
   TreeView,
   TruncatedText,
-  UX,
-  Ubuntu,
-  Unlock,
-  User,
   UserAvatar,
-  Users,
   VariablePicker,
-  Verified,
-  ViewGrid,
-  ViewRows,
-  VirtualMachine,
-  Warning,
-  Windows,
   cleanupFocusHandler,
   configureTheme,
   createIntelligentFocusHandler,
@@ -28082,6 +27926,7 @@ MetricBar.displayName = "MetricBar";
   useResizable,
   useSideMenuActions,
   useStepper,
+  useTheme,
   widthTokenRegex
 });
 //# sourceMappingURL=index.cjs.map
