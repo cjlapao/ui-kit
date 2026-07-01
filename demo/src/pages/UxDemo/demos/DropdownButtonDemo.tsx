@@ -6,8 +6,8 @@ import {
   MultiToggle,
   Toggle,
   Button,
-} from "../../..";
-import { ButtonColor, ButtonSize, ButtonVariant } from "../../..";
+} from "@cjlapao/ui-kit";
+import { ButtonColor, ButtonSize, ButtonVariant } from "@cjlapao/ui-kit";
 import {
   dropdownButtonOptions,
   dropdownMenuPreviewOptions,

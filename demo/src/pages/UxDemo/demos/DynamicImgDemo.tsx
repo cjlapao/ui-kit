@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { DynamicImg, Select } from "../../..";
+import { DynamicImg, Select } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 
 export const DynamicImgDemo: React.FC = () => {

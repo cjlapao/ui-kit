@@ -1,9 +1,9 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Toggle, MultiToggle } from "../../..";
-import { ThemeColor } from "../../..";
-import { ToggleSize, ToggleAlign, ToggleDescriptionPlacement } from "../../..";
+import { Toggle, MultiToggle } from "@cjlapao/ui-kit";
+import { ThemeColor } from "@cjlapao/ui-kit";
+import { ToggleSize, ToggleAlign, ToggleDescriptionPlacement } from "@cjlapao/ui-kit";
 import {
   colorOptions,
   toggleSizeOptions,

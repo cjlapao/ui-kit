@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { IconButton, MultiToggle, Toggle } from "../../..";
-import { ButtonColor, ButtonSize, ButtonVariant } from "../../..";
+import { IconButton, MultiToggle, Toggle } from "@cjlapao/ui-kit";
+import { ButtonColor, ButtonSize, ButtonVariant } from "@cjlapao/ui-kit";
 import {
   colorOptions,
   buttonVariantOptions,

@@ -7,7 +7,7 @@ import {
   Select,
   Toggle,
   Input,
-} from "../../..";
+} from "@cjlapao/ui-kit";
 
 export const FormDemo: React.FC = () => {
   const [formFieldValidation, setFormFieldValidation] = useState<

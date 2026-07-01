@@ -1,5 +1,5 @@
 import React from "react";
-import { CustomIcon } from "../../..";
+import { CustomIcon } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 
 export const CustomIconDemo: React.FC = () => (

@@ -1,4 +1,4 @@
-import { UxDemo } from "../../src/pages/UxDemo/UxDemo";
+import { UxDemo } from "./pages/UxDemo/UxDemo";
 
 export const App = () => {
   return (

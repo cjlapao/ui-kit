@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { StatusSpinner, MultiToggle, Toggle } from "../../..";
-import { StatusSpinnerIntent, StatusSpinnerSize } from "../../..";
+import { StatusSpinner, MultiToggle, Toggle } from "@cjlapao/ui-kit";
+import { StatusSpinnerIntent, StatusSpinnerSize } from "@cjlapao/ui-kit";
 import {
   statusSpinnerIntentOptions,
   statusSpinnerSizeOptions,

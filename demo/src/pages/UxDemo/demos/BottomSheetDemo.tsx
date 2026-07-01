@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Button, useBottomSheet } from "../../..";
+import { Button, useBottomSheet } from "@cjlapao/ui-kit";
 import notificationService from "../mocks/NotificationService";
 import { GLOBAL_NOTIFICATION_CHANNEL } from "../constants";
 

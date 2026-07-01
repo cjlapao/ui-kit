@@ -8,8 +8,8 @@ import {
   type ButtonVariant,
   type ButtonColor,
   type ButtonSize,
-} from "../../..";
-import type { IconName } from "../../../icons/registry";
+} from "@cjlapao/ui-kit";
+import type { IconName } from "@cjlapao/ui-kit";
 
 type EmptyStateTone = EmptyStateProps["tone"];
 import { PlaygroundSection } from "../PlaygroundSection";

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Spinner, Loader, Toggle, MultiToggle } from "../../..";
+import { Spinner, Loader, Toggle, MultiToggle } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 import { colorOptions } from "../constants";
 import {
@@ -8,7 +8,7 @@ import {
   SpinnerColor,
   SpinnerVariant,
   SpinnerThickness,
-} from "../../..";
+} from "@cjlapao/ui-kit";
 
 export const SpinnerDemo: React.FC = () => {
   const [spinnerSize, setSpinnerSize] = useState<SpinnerSize>("md");

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { DetailItemCard, Input, Select, Pill } from "../../..";
+import { DetailItemCard, Input, Select, Pill } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 
 export const DetailItemCardDemo: React.FC = () => {

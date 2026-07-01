@@ -1,15 +1,15 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Stepper, MultiToggle, Toggle, Button } from "../../..";
+import { Stepper, MultiToggle, Toggle, Button } from "@cjlapao/ui-kit";
 import {
   StepperVariant,
   StepperOrientation,
   StepperSize,
   StepperConnector,
   StepperConnectorAlign,
-} from "../../../controls/Stepper";
-import { PanelTone } from "../../..";
+} from "@cjlapao/ui-kit";
+import { PanelTone } from "@cjlapao/ui-kit";
 import {
   stepperVariantOptions,
   stepperOrientationOptions,

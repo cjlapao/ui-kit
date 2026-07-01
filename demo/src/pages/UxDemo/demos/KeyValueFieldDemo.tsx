@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { KeyValueArrayField, Input } from "../../..";
-import type { KeyValuePair } from "../../../controls/KeyValueArrayField";
+import { KeyValueArrayField, Input } from "@cjlapao/ui-kit";
+import type { KeyValuePair } from "@cjlapao/ui-kit";
 
 export const KeyValueFieldDemo: React.FC = () => {
   const [keyValuePairs, setKeyValuePairs] = useState<KeyValuePair[]>([

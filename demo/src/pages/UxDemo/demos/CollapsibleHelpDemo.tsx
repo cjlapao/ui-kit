@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { CollapsibleHelpText, MultiToggle, Toggle } from "../../..";
-import { ThemeColor } from "../../..";
+import { CollapsibleHelpText, MultiToggle, Toggle } from "@cjlapao/ui-kit";
+import { ThemeColor } from "@cjlapao/ui-kit";
 import { colorOptions, collapsibleVariantOptions } from "../constants";
 
 export const CollapsibleHelpDemo: React.FC = () => {

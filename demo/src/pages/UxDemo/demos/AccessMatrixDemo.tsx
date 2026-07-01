@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { AccessMatrix, MultiToggle, Toggle } from "../../..";
-import type { AccessMatrixPermission, TableVariant, PanelTone } from "../../..";
+import { AccessMatrix, MultiToggle, Toggle } from "@cjlapao/ui-kit";
+import type { AccessMatrixPermission, TableVariant, PanelTone } from "@cjlapao/ui-kit";
 import { tableVariantOptions, tableToneOptions } from "../constants";
 
 const SAMPLE_PERMISSIONS: AccessMatrixPermission[] = [

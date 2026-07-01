@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { TimelinePanel, MultiToggle, Toggle } from "../../..";
+import { TimelinePanel, MultiToggle, Toggle } from "@cjlapao/ui-kit";
 import type {
   TimelinePanelItem,
   TimelinePanelVariant,
   TimelinePanelPadding,
-} from "../../..";
+} from "@cjlapao/ui-kit";
 
 // ── Inline SVG icons used in the demo ─────────────────────────────────────
 

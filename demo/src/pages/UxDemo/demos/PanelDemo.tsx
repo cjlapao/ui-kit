@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Panel, MultiToggle, Toggle, Badge } from "../../..";
+import { Panel, MultiToggle, Toggle, Badge } from "@cjlapao/ui-kit";
 import {
   PanelActionLayout,
   PanelCorner,
@@ -11,7 +11,7 @@ import {
   PanelTone,
   PanelVariant,
   PanelAction,
-} from "../../..";
+} from "@cjlapao/ui-kit";
 import {
   panelVariantOptions,
   panelToneOptions,
@@ -24,10 +24,10 @@ import {
 import notificationService from "../mocks/NotificationService";
 import { GLOBAL_NOTIFICATION_CHANNEL } from "../constants";
 import { v4 as uuidv4 } from "uuid";
-import parallels from "../../../assets/images/parallels.png";
-import backdropLight from "../../../assets/images/backdrop_demo_light.png";
-import backdropDark from "../../../assets/images/backdrop_demo_dark.png";
-import { useTheme } from "../../../hooks/useTheme";
+import parallels from "@assets/images/parallels.png";
+import backdropLight from "@assets/images/backdrop_demo_light.png";
+import backdropDark from "@assets/images/backdrop_demo_dark.png";
+import { useTheme } from "@cjlapao/ui-kit";
 
 const createUpdateToast = (message?: string) => {
   const id = uuidv4();

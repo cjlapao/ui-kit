@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { HeaderGroup, Input, CustomIcon } from "../../..";
+import { HeaderGroup, Input, CustomIcon } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 
 export const HeaderGroupDemo: React.FC = () => {

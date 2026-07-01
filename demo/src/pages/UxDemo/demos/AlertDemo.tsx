@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Alert, Button, MultiToggle, Toggle, Pill } from "../../..";
-import { AlertTone, AlertVariant } from "../../..";
+import { Alert, Button, MultiToggle, Toggle, Pill } from "@cjlapao/ui-kit";
+import { AlertTone, AlertVariant } from "@cjlapao/ui-kit";
 import { alertToneOptions, alertVariantOptions } from "../constants";
 import notificationService from "../mocks/NotificationService";
 import { GLOBAL_NOTIFICATION_CHANNEL } from "../constants";

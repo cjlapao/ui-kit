@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BadgeIcon, Input, Select, Toggle } from "../../..";
+import { BadgeIcon, Input, Select, Toggle } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 
 export const BadgeIconDemo: React.FC = () => {

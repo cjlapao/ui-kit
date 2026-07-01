@@ -2,4 +2,17 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source "./src/**/*.{ts,tsx}";
+
+/* ---- Backdrop vibrancy (liquid-glass variant, Panel.tsx).
+   tailwind-safelist.ts has the class strings for backdrop-saturate
+   arbitrary values, but `@tailwindcss/cli` doesn't generate them because
+   they are not standard utility values. Emit as raw CSS in the
+   @layer utilities block.  */
+@layer utilities {
+  .backdrop-saturate-\[1\]  { --tw-backdrop-saturate: saturate(1); }
+  .backdrop-saturate-\[1\.2\] { --tw-backdrop-saturate: saturate(1.2); }
+  .backdrop-saturate-\[1\.4\] { --tw-backdrop-saturate: saturate(1.4); }
+}

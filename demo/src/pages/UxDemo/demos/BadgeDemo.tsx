@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Badge } from "../../..";
+import { Badge } from "@cjlapao/ui-kit";
 
 export const BadgeDemo: React.FC = () => (
   <PlaygroundSection

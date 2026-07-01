@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { SearchBar, Input, Toggle, Button } from "../../..";
+import { SearchBar, Input, Toggle, Button } from "@cjlapao/ui-kit";
 
 export const SearchBarDemo: React.FC = () => {
   const [searchBarPlaceholder, setSearchBarPlaceholder] = useState("Search...");

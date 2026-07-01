@@ -1,6 +1,6 @@
 import React from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { AppDivider } from "../../..";
+import { AppDivider } from "@cjlapao/ui-kit";
 
 export const AppDividerDemo: React.FC = () => (
   <PlaygroundSection

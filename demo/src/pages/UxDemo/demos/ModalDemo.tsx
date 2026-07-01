@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Modal, Button, Input, Select } from "../../..";
+import { Modal, Button, Input, Select } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 
 export const ModalDemo: React.FC = () => {

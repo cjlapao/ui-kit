@@ -1,16 +1,16 @@
 // @ts-nocheck
 import React, { useState, useMemo } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Tabs, MultiToggle, Toggle, Button } from "../../..";
+import { Tabs, MultiToggle, Toggle, Button } from "@cjlapao/ui-kit";
 import {
   TabsVariant,
   TabsSize,
   TabsOrientation,
   TabsJustify,
   TabItem,
-} from "../../..";
-import { ButtonColor } from "../../..";
-import type { IconName } from "../../../icons/registry";
+} from "@cjlapao/ui-kit";
+import { ButtonColor } from "@cjlapao/ui-kit";
+import type { IconName } from "@cjlapao/ui-kit";
 import {
   tabVariantOptions,
   tabSizeOptions,

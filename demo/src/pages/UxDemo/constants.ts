@@ -1,4 +1,4 @@
-import { MultiToggleOption } from "../../..";
+import { MultiToggleOption } from "@cjlapao/ui-kit";
 
 export const GLOBAL_NOTIFICATION_CHANNEL = "global_notification_channel";
 

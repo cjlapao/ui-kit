@@ -1,14 +1,14 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Accordion, MultiToggle, Toggle, Button, useAccordion } from "../../..";
+import { Accordion, MultiToggle, Toggle, Button, useAccordion } from "@cjlapao/ui-kit";
 import {
   AccordionVariant,
   AccordionSize,
   AccordionIndicator,
   AccordionChevronPlacement,
-} from "../../..";
-import { PanelTone } from "../../..";
+} from "@cjlapao/ui-kit";
+import { PanelTone } from "@cjlapao/ui-kit";
 import {
   accordionVariantOptions,
   accordionSizeOptions,

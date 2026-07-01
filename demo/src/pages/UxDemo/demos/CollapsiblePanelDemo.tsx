@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { CollapsiblePanel, MultiToggle, Toggle, Button } from "../../..";
-import { PanelTone } from "../../..";
+import { CollapsiblePanel, MultiToggle, Toggle, Button } from "@cjlapao/ui-kit";
+import { PanelTone } from "@cjlapao/ui-kit";
 import { panelToneOptions } from "../constants";
 import notificationService from "../mocks/NotificationService";
 import { GLOBAL_NOTIFICATION_CHANNEL } from "../constants";

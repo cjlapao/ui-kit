@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Pill, MultiToggle, Toggle, CustomIcon } from "../../..";
-import { PillTone, PillVariant, PillSize } from "../../..";
+import { Pill, MultiToggle, Toggle, CustomIcon } from "@cjlapao/ui-kit";
+import { PillTone, PillVariant, PillSize } from "@cjlapao/ui-kit";
 import { alertToneOptions } from "../constants";
 
 export const PillDemo: React.FC = () => {

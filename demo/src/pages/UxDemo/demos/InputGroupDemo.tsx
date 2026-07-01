@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { InputGroup, Input, MultiToggle, Toggle } from "../../..";
-import { ButtonColor } from "../../..";
+import { InputGroup, Input, MultiToggle, Toggle } from "@cjlapao/ui-kit";
+import { ButtonColor } from "@cjlapao/ui-kit";
 import { colorOptions } from "../constants";
 import { PlaygroundSection } from "../PlaygroundSection";
 

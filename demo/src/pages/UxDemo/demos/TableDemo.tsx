@@ -1,13 +1,13 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Table, Button, IconButton, MultiToggle, Toggle } from "../../..";
+import { Table, Button, IconButton, MultiToggle, Toggle } from "@cjlapao/ui-kit";
 import {
   TableVariant,
   TableSortState,
   TableColumn,
-} from "../../../controls/Table";
-import { PanelTone } from "../../..";
+} from "@cjlapao/ui-kit";
+import { PanelTone } from "@cjlapao/ui-kit";
 import { tableVariantOptions, tableToneOptions } from "../constants";
 
 type UserRow = {

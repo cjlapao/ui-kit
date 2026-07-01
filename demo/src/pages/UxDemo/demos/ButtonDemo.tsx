@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Button, Toggle, MultiToggle } from "../../..";
+import { Button, Toggle, MultiToggle } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 import {
   colorOptions,
@@ -8,7 +8,7 @@ import {
   buttonSizeOptions,
   buttonWeightOptions,
 } from "../constants";
-import { ButtonVariant, ButtonSize, ButtonWeight, ButtonColor } from "../../..";
+import { ButtonVariant, ButtonSize, ButtonWeight, ButtonColor } from "@cjlapao/ui-kit";
 
 export const ButtonDemo: React.FC = () => {
   const [buttonVariant, setButtonVariant] = useState<ButtonVariant>("solid");

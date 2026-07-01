@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MultiSelectPills, Select } from "../../..";
+import { MultiSelectPills, Select } from "@cjlapao/ui-kit";
 
 import { PlaygroundSection } from "../PlaygroundSection";
 

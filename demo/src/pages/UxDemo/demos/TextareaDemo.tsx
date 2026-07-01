@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Textarea, Select, Toggle } from "../../..";
-import { ButtonColor } from "../../..";
+import { Textarea, Select, Toggle } from "@cjlapao/ui-kit";
+import { ButtonColor } from "@cjlapao/ui-kit";
 import { colorOptions } from "../constants";
 
 export const TextareaDemo: React.FC = () => {

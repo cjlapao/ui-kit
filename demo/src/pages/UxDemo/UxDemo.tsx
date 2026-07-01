@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Input, Button } from "../../components";
-import { useTheme } from "../../hooks/useTheme";
+import { Input, Button } from "@cjlapao/ui-kit";
+import { useTheme } from "@cjlapao/ui-kit";
 import { ThemeToggle } from "./ThemeToggle";
 
 import { BadgeIconDemo } from "./demos/BadgeIconDemo";

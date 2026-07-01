@@ -1,10 +1,10 @@
 import React from "react";
-import MultiToggle from "../../components/MultiToggle";
-import { useTheme } from "../../hooks/useTheme";
-import { Sun } from "../../icons/components/Sun";
-import { Moon } from "../../icons/components/Moon";
-import { ThemeAuto } from "../../icons/components/ThemeAuto";
-import type { ThemeMode } from "../../hooks/useTheme";
+import { MultiToggle } from "@cjlapao/ui-kit";
+import { useTheme } from "@cjlapao/ui-kit";
+import { Sun } from "@cjlapao/ui-kit";
+import { Moon } from "@cjlapao/ui-kit";
+import { ThemeAuto } from "@cjlapao/ui-kit";
+import type { ThemeMode } from "@cjlapao/ui-kit";
 
 type ThemeToggleProps = {
   theme: ThemeMode;

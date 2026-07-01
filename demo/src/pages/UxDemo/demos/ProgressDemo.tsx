@@ -1,12 +1,12 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Progress, MultiToggle } from "../../..";
+import { Progress, MultiToggle } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 import { colorOptions } from "../constants";
-import { ProgressSize } from "../../..";
-import { SpinnerColor } from "../../..";
-import { ProgressMotion, ProgressMotionSpeed } from "../../..";
-import { ProgressMotionDirection } from "../../..";
+import { ProgressSize } from "@cjlapao/ui-kit";
+import { SpinnerColor } from "@cjlapao/ui-kit";
+import { ProgressMotion, ProgressMotionSpeed } from "@cjlapao/ui-kit";
+import { ProgressMotionDirection } from "@cjlapao/ui-kit";
 
 export const ProgressDemo: React.FC = () => {
   const [progressValue, setProgressValue] = useState(45);

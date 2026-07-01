@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { InfiniteScrollPanel, Toggle, Button } from "../../..";
+import { InfiniteScrollPanel, Toggle, Button } from "@cjlapao/ui-kit";
 
 export const InfiniteScrollDemo: React.FC = () => {
   const [infiniteItems, setInfiniteItems] = useState<number[]>(

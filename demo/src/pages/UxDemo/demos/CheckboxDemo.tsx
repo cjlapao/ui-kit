@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Checkbox, MultiToggle, Toggle } from "../../..";
-import { CheckboxColor } from "../../..";
+import { Checkbox, MultiToggle, Toggle } from "@cjlapao/ui-kit";
+import { CheckboxColor } from "@cjlapao/ui-kit";
 import { colorOptions } from "../constants";
 
 export const CheckboxDemo: React.FC = () => {

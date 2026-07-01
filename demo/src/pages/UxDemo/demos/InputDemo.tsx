@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Input, Toggle, MultiToggle, ButtonColor } from "../../..";
+import { Input, Toggle, MultiToggle, ButtonColor } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 import { colorOptions } from "../constants";
 
