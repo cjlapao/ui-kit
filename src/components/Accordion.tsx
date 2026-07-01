@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import classNames from "classnames";
-import IconButton from "./IconButton";
 import Loader, { type LoaderProps } from "./Loader";
 import { useAccordion, type UseAccordionOptions } from "../hooks/useAccordion";
 import type { PanelTone } from "./Panel";
@@ -287,24 +286,30 @@ export const Accordion: React.FC<AccordionProps> = ({
                 ? "-rotate-180"
                 : "";
 
-          const indicatorButton =
-            showIndicator && indicatorIcon ? (
-              <IconButton
-                icon={indicatorIcon}
-                size="sm"
-                variant="icon"
-                color="slate"
-                rounded="full"
+          const isIndicator = showIndicator && indicatorIcon;
+          const indicatorSizeConfig = size === "sm"
+            ? { width: 32, height: 32, icon: 16 }
+            : size === "lg"
+              ? { width: 36, height: 36, icon: 20 }
+              : { width: 32, height: 32, icon: 16 };
+
+          const indicatorElement = isIndicator
+            ? (
+              <span
                 className={classNames(
-                  "pointer-events-none text-neutral-400 dark:text-neutral-300",
+                  `mt-1 flex h-${indicatorSizeConfig.height} w-${indicatorSizeConfig.width} flex-shrink-0 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700`,
+                  "pointer-events-none",
                   toneToken.indicator,
                   indicatorRotationClass[indicator],
                   indicatorRotation,
                 )}
                 aria-hidden="true"
                 tabIndex={-1}
-              />
-            ) : null;
+              >
+                {renderIcon(indicatorIcon, "xs")}
+              </span>
+            )
+            : null;
 
           return (
             <div
@@ -317,8 +322,9 @@ export const Accordion: React.FC<AccordionProps> = ({
                 itemClassName,
               )}
             >
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={isDisabled ? -1 : 0}
                 className={classNames(
                   "flex w-full items-start gap-4 text-left transition-colors duration-150",
                   sizeToken.header,
@@ -330,15 +336,21 @@ export const Accordion: React.FC<AccordionProps> = ({
                 aria-expanded={isOpen}
                 aria-controls={`${item.id}-content`}
                 id={`${item.id}-trigger`}
-                disabled={isDisabled}
                 onClick={() => {
                   accordion.toggle(item.id);
                   onItemToggle?.(item.id, !isOpen);
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    accordion.toggle(item.id);
+                    onItemToggle?.(item.id, !isOpen);
+                  }
+                }}
               >
-                {chevronPlacement === "left" && indicatorButton ? (
+                {chevronPlacement === "left" && indicatorElement ? (
                   <div className="mt-1 flex items-center">
-                    {indicatorButton}
+                    {indicatorElement}
                   </div>
                 ) : null}
                 <div className="flex flex-1 items-start gap-3">
@@ -385,12 +397,12 @@ export const Accordion: React.FC<AccordionProps> = ({
                     {item.actions}
                   </div>
                 ) : null}
-                {chevronPlacement === "right" && indicatorButton ? (
+                {chevronPlacement === "right" && indicatorElement ? (
                   <div className="mt-1 flex items-center">
-                    {indicatorButton}
+                    {indicatorElement}
                   </div>
                 ) : null}
-              </button>
+              </div>
               <div
                 id={`${item.id}-content`}
                 role="region"
