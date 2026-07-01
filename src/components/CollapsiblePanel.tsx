@@ -58,6 +58,13 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
     onToggle?.(next);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleToggle();
+    }
+  };
+
   const computedContentMaxHeight = `min(${contentMaxHeight ?? 320}px, 65vh)`;
   const resolvedPadding = paddingStyles[padding] || paddingStyles.md;
 
@@ -83,18 +90,21 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
           fillHeight && isExpanded && "h-full",
         )}
       >
-        {/* Header Button */}
-        <button
-          type="button"
+        {/* Header — div with button roles keeps actions (which may render their own <button>) out of a native <button>. */}
+        <div
+          role="button"
+          tabIndex={disabled ? -1 : 0}
           className={classNames(
             "flex w-full items-center gap-3 text-left focus:outline-none transition-opacity",
             resolvedPadding,
             disabled
               ? "cursor-not-allowed opacity-60"
-              : "cursor-pointer hover:opacity-80",
+              : "cursor-pointer hover:opacity-80 focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg",
           )}
           onClick={handleToggle}
-          disabled={disabled}
+          onKeyDown={handleKeyDown}
+          aria-expanded={isExpanded}
+          aria-controls="collapsible-panel-content"
         >
           <div className="flex flex-1 flex-col gap-0.5">
             <span className="text-sm font-semibold">{title}</span>
@@ -111,10 +121,10 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
           >
             {renderIcon("ArrowDown", "sm")}
           </span>
-        </button>
+        </div>
 
         {/* Content Wrapper */}
-        <div
+        <div id="collapsible-panel-content" role="region" aria-label="panel content"
           className={classNames(
             "overflow-hidden transition-[max-height,opacity,margin] duration-300 ease-in-out",
             fillHeight && isExpanded && "flex-1 min-h-0",
