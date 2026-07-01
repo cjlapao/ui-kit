@@ -290,22 +290,18 @@ export const PanelDemo: React.FC = () => {
                 setter: setPanelHasBackground,
               },
             ].map((option) => (
-              <label
-                key={option.label}
-                className="flex items-center justify-between"
-              >
-                <span>{option.label}</span>
+
                 <Toggle
-                  size="sm"
+                size="sm"
+                label={option.label}
                   checked={option.value}
                   onChange={(event) => option.setter(event.target.checked)}
                 />
-              </label>
             ))}
           </div>
           {panelVariant === "liquid-glass" && (
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="flex flex-col gap-2">
+              <label className="flex flex-col gap-2 dark:text-white">
                 <span>Glass vibrancy</span>
                 <MultiToggle
                   fullWidth

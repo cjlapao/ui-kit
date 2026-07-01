@@ -13740,6 +13740,12 @@ var CollapsiblePanel = ({
     if (!isControlled) setInternalExpanded(next);
     onToggle?.(next);
   };
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleToggle();
+    }
+  };
   const computedContentMaxHeight = `min(${contentMaxHeight ?? 320}px, 65vh)`;
   const resolvedPadding = paddingStyles2[padding] || paddingStyles2.md;
   return /* @__PURE__ */ jsx186(
@@ -13767,16 +13773,19 @@ var CollapsiblePanel = ({
           ),
           children: [
             /* @__PURE__ */ jsxs84(
-              "button",
+              "div",
               {
-                type: "button",
+                role: "button",
+                tabIndex: disabled ? -1 : 0,
                 className: classNames39(
                   "flex w-full items-center gap-3 text-left focus:outline-none transition-opacity",
                   resolvedPadding,
-                  disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:opacity-80"
+                  disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:opacity-80 focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg"
                 ),
                 onClick: handleToggle,
-                disabled,
+                onKeyDown: handleKeyDown,
+                "aria-expanded": isExpanded,
+                "aria-controls": "collapsible-panel-content",
                 children: [
                   /* @__PURE__ */ jsxs84("div", { className: "flex flex-1 flex-col gap-0.5", children: [
                     /* @__PURE__ */ jsx186("span", { className: "text-sm font-semibold", children: title }),
@@ -13799,6 +13808,9 @@ var CollapsiblePanel = ({
             /* @__PURE__ */ jsx186(
               "div",
               {
+                id: "collapsible-panel-content",
+                role: "region",
+                "aria-label": "panel content",
                 className: classNames39(
                   "overflow-hidden transition-[max-height,opacity,margin] duration-300 ease-in-out",
                   fillHeight && isExpanded && "flex-1 min-h-0",
@@ -14666,22 +14678,21 @@ var Accordion = ({
           const isDisabled = Boolean(item.disabled);
           const isLoading = Boolean(item.loading);
           const indicatorRotation = indicator === "plus-minus" ? isOpen ? "rotate-45" : "" : isOpen ? "-rotate-180" : "";
-          const indicatorButton = showIndicator && indicatorIcon ? /* @__PURE__ */ jsx192(
-            IconButton_default,
+          const isIndicator = showIndicator && indicatorIcon;
+          const indicatorSizeConfig = size === "sm" ? { width: 32, height: 32, icon: 16 } : size === "lg" ? { width: 36, height: 36, icon: 20 } : { width: 32, height: 32, icon: 16 };
+          const indicatorElement = isIndicator ? /* @__PURE__ */ jsx192(
+            "span",
             {
-              icon: indicatorIcon,
-              size: "sm",
-              variant: "icon",
-              color: "slate",
-              rounded: "full",
               className: classNames42(
-                "pointer-events-none text-neutral-400 dark:text-neutral-300",
+                `mt-1 flex h-${indicatorSizeConfig.height} w-${indicatorSizeConfig.width} flex-shrink-0 items-center justify-center rounded-full border border-slate-200 dark:border-slate-700`,
+                "pointer-events-none",
                 toneToken.indicator,
                 indicatorRotationClass[indicator],
                 indicatorRotation
               ),
               "aria-hidden": "true",
-              tabIndex: -1
+              tabIndex: -1,
+              children: renderIcon2(indicatorIcon, "xs")
             }
           ) : null;
           return /* @__PURE__ */ jsxs88(
@@ -14696,9 +14707,10 @@ var Accordion = ({
               ),
               children: [
                 /* @__PURE__ */ jsxs88(
-                  "button",
+                  "div",
                   {
-                    type: "button",
+                    role: "button",
+                    tabIndex: isDisabled ? -1 : 0,
                     className: classNames42(
                       "flex w-full items-start gap-4 text-left transition-colors duration-150",
                       sizeToken.header,
@@ -14710,13 +14722,19 @@ var Accordion = ({
                     "aria-expanded": isOpen,
                     "aria-controls": `${item.id}-content`,
                     id: `${item.id}-trigger`,
-                    disabled: isDisabled,
                     onClick: () => {
                       accordion.toggle(item.id);
                       onItemToggle?.(item.id, !isOpen);
                     },
+                    onKeyDown: (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        accordion.toggle(item.id);
+                        onItemToggle?.(item.id, !isOpen);
+                      }
+                    },
                     children: [
-                      chevronPlacement === "left" && indicatorButton ? /* @__PURE__ */ jsx192("div", { className: "mt-1 flex items-center", children: indicatorButton }) : null,
+                      chevronPlacement === "left" && indicatorElement ? /* @__PURE__ */ jsx192("div", { className: "mt-1 flex items-center", children: indicatorElement }) : null,
                       /* @__PURE__ */ jsxs88("div", { className: "flex flex-1 items-start gap-3", children: [
                         item.icon ? /* @__PURE__ */ jsx192(
                           "div",
@@ -14749,7 +14767,7 @@ var Accordion = ({
                         ] })
                       ] }),
                       item.actions ? /* @__PURE__ */ jsx192("div", { className: "flex shrink-0 items-center gap-2 text-neutral-500 dark:text-neutral-300", children: item.actions }) : null,
-                      chevronPlacement === "right" && indicatorButton ? /* @__PURE__ */ jsx192("div", { className: "mt-1 flex items-center", children: indicatorButton }) : null
+                      chevronPlacement === "right" && indicatorElement ? /* @__PURE__ */ jsx192("div", { className: "mt-1 flex items-center", children: indicatorElement }) : null
                     ]
                   }
                 ),

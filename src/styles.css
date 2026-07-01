@@ -6,6 +6,12 @@
 
 @source "./src/**/*.{ts,tsx}";
 
+/* Include safelist files — @source inline lets `@tailwindcss/cli` scan the
+   .css safelist for dynamic class names (e.g. dark:border-${{c}}-700) that
+   the @source JS scanner can't resolve from template literals. */
+@source inline("src/safelist-classes.css");
+@source inline("src/safelist.css");
+
 /* ---- Backdrop vibrancy (liquid-glass variant, Panel.tsx).
    tailwind-safelist.ts has the class strings for backdrop-saturate
    arbitrary values, but `@tailwindcss/cli` doesn't generate them because

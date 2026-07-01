@@ -57,3 +57,5 @@ notarize/
 .projects/
 !.projects/learnings.md
 !.projects/project.md
+
+mutagen.*
