@@ -58,10 +58,132 @@ When you add a variant, extend the existing `variant`/`color`/`tone` enums and t
 
 - **Actions/inputs:** `Button`, `IconButton`, `DropdownButton`, `DropdownMenu`, `Input`, `InputGroup`, `PasswordInput`, `SmartInput`, `Textarea`, `Checkbox`, `Toggle`, `MultiToggle`, `Select`, `Combobox`, `MultiSelectPills`, `ButtonSelector`, `Picker`, `TagPicker`, `VariablePicker`, `SearchBar`, `KeyValueArrayField`.
 - **Forms:** `FormField`, `FormLayout`, `FormSection`, `DynamicFormField`, `SmartValue`.
-- **Surfaces/layout:** `Panel`, `InlinePanel`, `CollapsiblePanel`, `SidePanel`, `PagedPanel`, `InfiniteScrollPanel`, `Section`, `SectionCard`, `DetailItemCard`, `SmartGridLayout`, `SplitView`, `SideMenu`, `SideMenuLayout`, `AppDivider`, `HeaderGroup`, `Hero`, `Tabs`, `Accordion`, `TagPanel`, `TimelinePanel`.
+- **Surfaces/layout:** `GlassBackground`, `Panel`, `InlinePanel`, `CollapsiblePanel`, `SidePanel`, `PagedPanel`, `InfiniteScrollPanel`, `Section`, `SectionCard`, `DetailItemCard`, `SmartGridLayout`, `SplitView`, `SideMenu`, `SideMenuLayout`, `AppDivider`, `HeaderGroup`, `Hero`, `Tabs`, `Accordion`, `TagPanel`, `TimelinePanel`.
 - **Data/stat:** `StatTile`, `StatCountTile`, `StatChartTile`, `StatGoalTile`, `StatGraphTile`, `MetricBar`, `Progress`, `MultiProgressBar`, `Table`, `AccessMatrix`, `InfoRow`.
 - **Feedback/status:** `Alert`, `Badge`, `BadgeIcon`, `Pill`, `Loader`, `Spinner`, `StatusSpinner`, `Tooltip`, `TooltipWrapper`, `EmptyState`, `ApiErrorState`, `Modal`, `NotificationModal`, `Stepper`, `StartupStageStepper`, `CollapsibleHelpText`, `HelpButton`.
 - **Content/util:** `MarkdownEditor`, `TruncatedText`, `TreeView`, `UserAvatar`, `CustomIcon`, `DynamicImg`, `Toggle`, `ConnectionFlow`.
+
+## Component: `GlassBackground`
+
+> **Purpose:** Provides a configurable gradient background layer with ambient glows and optional shimmer.
+> Used wherever a colorful, atmospheric backdrop is needed — full-viewport pages or scoped to a container.
+>
+> **Import:** `import { GlassBackground } from "@cjlapao/ui-kit";`
+>
+> **Source:** `src/components/GlassBackground.tsx`
+
+### What it does
+
+1. **3-stop gradient** computed from the Tailwind palette via `ThemeColor` props (light + dark pairs).
+2. **Ambient glows** — two large `blur-3xl` circles positioned at opposite corners, with a subtle pulse animation.
+3. **Shimmer overlay** — a slow horizontal sweep of a faint white gradient (opt-in).
+4. **`children`** rendered in a `relative z-10` wrapper so panels, cards, and other surfaces sit above.
+
+Gradient shade ranges:
+
+| mode | stop 1 | stop 2 | stop 3 |
+|---|---|---|---|
+| Light | `{color}-300` | `{colorSecondary}-200` | `{colorDeep}-50` |
+| Dark | `{color}-700` | `{colorSecondary}-600` | `{colorDeep}-800` |
+
+Ambient glow shades:
+
+| mode | color |
+|---|---|
+| Light | `{color}-400` at 12% opacity |
+| Dark | `{color}-500` at 15% opacity |
+
+### Props (complete list)
+
+| prop | type | default | description |
+|---|---|---|---|
+| `color` | `ThemeColor` | `"purple"` | Primary gradient color. Resolved through `resolveColor()` (semantic aliases like `brand` → `blue` work). |
+| `colorSecondary` | `ThemeColor` | *auto-derived* | Middle gradient stop. If omitted, a neighboring hue is chosen (e.g. `purple` → `blue`). |
+| `colorDeep` | `ThemeColor` | *auto-derived* | Final gradient stop. If omitted, a deeper hue is chosen (e.g. `purple` → `indigo`). |
+| `direction` | `GradientDirection` | `"br"` | Gradient angle. Values: `"t"`, `"tr"`, `"r"`, `"br"`, `"b"`, `"bl"`, `"l"`, `"tl"`. |
+| `position` | `"fixed" \| "absolute"` | `"fixed"` | `"fixed"` covers the full viewport. `"absolute"` fills a `position: relative` parent (useful inside `PlaygroundSection` previews). |
+| `shimmer` | `boolean` | `false` | Enable a slow horizontal shimmer sweep. Off by default; opt-in. |
+| `ambient` | `boolean` | `true` | Show the two blurred ambient glow circles. Turn off for a pure gradient. |
+| `className` | `string` | — | Applied to the root container. |
+| `style` | `React.CSSProperties` | — | Inline styles on the root container. |
+| `children` | `ReactNode` | — | Rendered in a `relative z-10` layer on top of the background. |
+
+### Auto-derivation logic
+
+When `colorSecondary` or `colorDeep` are not provided, the component chooses neighboring hues:
+
+```
+color        → secondary (neighbor)  → deep (deeper neighbor)
+purple       → blue                  → indigo
+blue         → indigo                → violet
+rose         → pink                  → red
+emerald      → teal                  → cyan
+amber        → orange                → red
+... (full map in component source)
+```
+
+This means `<GlassBackground color="purple">` produces a purple→blue→indigo gradient automatically.
+
+### Position modes
+
+**`position="fixed"`** (default):
+```
+┌─────────────────────────────┐
+│  GlassBackground (fixed)    │ ← covers full viewport, scrolls with page
+│  ┌─────────────────────┐    │
+│  │  children (z-10)    │    │
+│  └─────────────────────┘    │
+└─────────────────────────────┘
+```
+
+**`position="absolute"`** (inside a relative container):
+```
+┌─────────────────────────────┐
+│  parent (relative)          │
+│  ┌─────────────────────┐    │
+│  │ GlassBackground     │    │ ← fills parent, does NOT escape
+│  │ (absolute inset-0)  │    │
+│  │ ┌───────────────┐   │    │
+│  │ │ children (z-10)│   │    │
+│  │ └───────────────┘   │    │
+│  └─────────────────────┘    │
+└─────────────────────────────┘
+```
+
+The parent **must** have `position: relative` (or `absolute`/`fixed`) for `absolute` positioning to work correctly.
+
+### Accessibility
+
+- `prefers-reduced-motion` disables both the shimmer animation and the ambient pulse (defined in `src/styles.css`).
+- The background is purely decorative; text contrast is ensured by the glass panels sitting on top.
+- Ambient glows use low opacity (12–15%) so they don't interfere with readability.
+
+### Usage patterns
+
+**Full-page background:**
+```tsx
+<GlassBackground color="purple">
+  <div className="relative z-10 p-8">
+    <Panel variant="liquid-glass" title="Hello" />
+  </div>
+</GlassBackground>
+```
+
+**Scoped to a container (e.g. playground preview):**
+```tsx
+<div className="relative h-96 w-full overflow-hidden rounded-xl">
+  <GlassBackground position="absolute" color="blue" shimmer>
+    <Panel variant="liquid-glass" title="Preview" />
+  </GlassBackground>
+</div>
+```
+
+**Minimal (all defaults):**
+```tsx
+<GlassBackground>
+  {children}
+</GlassBackground>
+```
 
 ## Target design direction (Liquid Glass) — recipes to ADD
 

@@ -21,4 +21,30 @@
   .backdrop-saturate-\[1\]  { --tw-backdrop-saturate: saturate(1); }
   .backdrop-saturate-\[1\.2\] { --tw-backdrop-saturate: saturate(1.2); }
   .backdrop-saturate-\[1\.4\] { --tw-backdrop-saturate: saturate(1.4); }
+
+  /* ---- GlassBackground shimmer animation ---- */
+  @keyframes shimmer {
+    0%   { transform: translateX(-150%); }
+    100% { transform: translateX(150%); }
+  }
+  .animate-shimmer {
+    animation: shimmer 8s ease-in-out infinite;
+  }
+
+  /* ---- GlassBackground ambient pulse (optional) ---- */
+  @keyframes ambient-pulse {
+    0%, 100% { opacity: 0.12; }
+    50%      { opacity: 0.22; }
+  }
+  .ambient-pulse {
+    animation: ambient-pulse 6s ease-in-out infinite;
+  }
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer,
+  .ambient-pulse {
+    animation: none !important;
+  }
 }

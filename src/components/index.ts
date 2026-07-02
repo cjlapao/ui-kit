@@ -119,6 +119,12 @@ export { default as SearchBar, type SearchBarProps } from "./SearchBar";
 
 // Layout
 export {
+  default as GlassBackground,
+  type GlassBackgroundProps,
+  type GradientDirection,
+  type GlassBackgroundPosition,
+} from "./GlassBackground";
+export {
   default as TruncatedText,
   type TruncatedTextProps,
 } from "./TruncatedText";
