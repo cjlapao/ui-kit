@@ -59,42 +59,16 @@ const GlassBackground: React.FC<GlassBackgroundProps> = ({
   const s = resolveColor(colorSecondary ?? getFallbackSecondary(color));
   const d = resolveColor(colorDeep ?? getFallbackDeep(color));
 
-  // Compute gradient inline so we can use resolved color names
-  const directionArg =
-    direction === "t"
-      ? "top"
-      : direction === "r"
-        ? "right"
-        : direction === "b"
-          ? "bottom"
-          : direction === "l"
-            ? "left"
-            : direction === "tr"
-              ? "top right"
-              : direction === "bl"
-                ? "bottom left"
-                : direction === "tl"
-                  ? "top left"
-                  : "bottom right";
-
-  const gradientStyle: React.CSSProperties = {
-    backgroundImage: `
-      linear-gradient(to ${directionArg},
-        var(--color-${c}-300) 0%,
-        var(--color-${s}-200) 50%,
-        var(--color-${d}-50) 100%
-      )
-    `,
-  };
-
-  const darkGradientStyle: React.CSSProperties = {
-    backgroundImage: `
-      linear-gradient(to ${directionArg},
-        var(--color-${c}-700) 0%,
-        var(--color-${s}-600) 50%,
-        var(--color-${d}-800) 100%
-      )
-    `,
+  // Map direction codes to CSS gradient angle strings
+  const directionArg: Record<GradientDirection, string> = {
+    t: "to top",
+    tr: "to top right",
+    r: "to right",
+    br: "to bottom right",
+    b: "to bottom",
+    bl: "to bottom left",
+    l: "to left",
+    tl: "to top left",
   };
 
   // Ambient glow positions
@@ -114,12 +88,22 @@ const GlassBackground: React.FC<GlassBackgroundProps> = ({
     >
       {/* Gradient background */}
       <div
-        className="absolute inset-0 transition-colors duration-300 dark:hidden"
-        style={gradientStyle}
+        className="absolute inset-0 transition-colors duration-300 dark:hidden glass-gradient"
+        style={{
+          "--glass-from": `var(--color-${c}-300)`,
+          "--glass-via": `var(--color-${s}-200)`,
+          "--glass-to": `var(--color-${d}-50)`,
+          "--glass-angle": directionArg[direction],
+        } as React.CSSProperties}
       />
       <div
-        className="absolute inset-0 hidden transition-colors duration-300 dark:block"
-        style={darkGradientStyle}
+        className="absolute inset-0 hidden transition-colors duration-300 dark:block glass-gradient"
+        style={{
+          "--glass-from": `var(--color-${c}-700)`,
+          "--glass-via": `var(--color-${s}-600)`,
+          "--glass-to": `var(--color-${d}-800)`,
+          "--glass-angle": directionArg[direction],
+        } as React.CSSProperties}
       />
 
       {/* Ambient glows */}

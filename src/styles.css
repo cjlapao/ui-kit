@@ -41,6 +41,19 @@
   }
 }
 
+/* GlassBackground dynamic gradient — works with any color combo */
+.glass-gradient {
+  --_gf: color-mix(in srgb, var(--glass-from) 100%, transparent);
+  --_gv: color-mix(in srgb, var(--glass-via) 100%, transparent);
+  --_gt: color-mix(in srgb, var(--glass-to) 100%, transparent);
+  background-image: linear-gradient(
+    var(--glass-angle, to bottom right),
+    var(--_gf) 0%,
+    var(--_gv) 50%,
+    var(--_gt) 100%
+  );
+}
+
 /* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   .animate-shimmer,
