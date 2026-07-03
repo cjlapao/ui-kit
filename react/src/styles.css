@@ -1,16 +1,20 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
+/* Safelist — a sequence of @source inline(...) directives that resolve the
+   dynamic class names Theme.ts builds in template literals. Imports must
+   precede all non-import statements. */
+@import "../../common/safelist.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@source "./src/**/*.{ts,tsx}";
-
-/* Include safelist files — @source inline lets `@tailwindcss/cli` scan the
-   .css safelist for dynamic class names (e.g. dark:border-${{c}}-700) that
-   the @source JS scanner can't resolve from template literals. */
-@source inline("src/safelist-classes.css");
-@source inline("src/safelist.css");
+/* Scan the React sources plus the shared (framework-agnostic) TS in common/.
+   @source paths are relative to this file (react/src/). */
+@source "./**/*.{ts,tsx}";
+@source "../../common/**/*.ts";
+/* safelist-classes.css holds class-shaped tokens (e.g. !dark:text-amber-300)
+   that the scanner picks up as candidates — scanned, not imported. */
+@source "../../common/safelist-classes.css";
 
 /* ---- Backdrop vibrancy (liquid-glass variant, Panel.tsx).
    tailwind-safelist.ts has the class strings for backdrop-saturate

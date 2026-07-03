@@ -1,4 +1,14 @@
-import type { ButtonVariant } from "../components/Button";
+// Defined here (not in components/Button) so this module stays free of
+// framework-specific imports — the Vue kit re-uses it as-is. Button re-exports
+// it, keeping the public API unchanged.
+export type ButtonVariant =
+  | "solid"
+  | "soft"
+  | "outline"
+  | "ghost"
+  | "link"
+  | "clear"
+  | "icon";
 
 export type ThemeMultiColor =
   | "red"

@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@cjlapao/ui-kit": "file:../..",
+    "@cjlapao/ui-kit": "file:..",
     "@types/react-router-dom": "^5.3.3",
     "@types/uuid": "^10.0.0",
     "react": "^19.2.0",

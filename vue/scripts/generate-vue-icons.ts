@@ -1,0 +1,207 @@
+/**
+ * Generate Vue icon components from the React kit's SVG icon components.
+ *
+ * Reads src/icons/components/*.tsx (forwardRef'd <svg> wrappers), extracts the
+ * SVG markup and emits vue/src/icons/components/*.ts Vue components that render
+ * the same SVG via innerHTML. Also generates vue/src/icons/registry.ts and
+ * vue/src/icons/index.ts from their React counterparts.
+ *
+ * Run from vue/: npm run generate:icons  (or: npx tsx scripts/generate-vue-icons.ts)
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, "../..");
+const srcIconsDir = path.join(repoRoot, "react/src/icons/components");
+const outIconsDir = path.join(repoRoot, "vue/src/icons/components");
+
+// React JSX attribute -> SVG attribute. Anything camelCase NOT in this map and
+// NOT in KEEP_CAMEL is an error so we never silently emit invalid SVG.
+const ATTR_RENAMES: Record<string, string> = {
+  className: "class",
+  clipRule: "clip-rule",
+  fillRule: "fill-rule",
+  fillOpacity: "fill-opacity",
+  strokeLinecap: "stroke-linecap",
+  strokeLinejoin: "stroke-linejoin",
+  strokeMiterlimit: "stroke-miterlimit",
+  strokeOpacity: "stroke-opacity",
+  strokeWidth: "stroke-width",
+  strokeDasharray: "stroke-dasharray",
+  strokeDashoffset: "stroke-dashoffset",
+  stopColor: "stop-color",
+  stopOpacity: "stop-opacity",
+  clipPath: "clip-path",
+  xlinkHref: "xlink:href",
+  xmlnsXlink: "xmlns:xlink",
+};
+
+// camelCase attributes that are camelCase in the SVG spec itself.
+const KEEP_CAMEL = new Set([
+  "viewBox",
+  "baseProfile",
+  "preserveAspectRatio",
+  "gradientUnits",
+  "gradientTransform",
+  "patternUnits",
+  "patternTransform",
+  "patternContentUnits",
+  "filterUnits",
+  "primitiveUnits",
+  "maskUnits",
+  "maskContentUnits",
+  "clipPathUnits",
+  "stdDeviation",
+  "spreadMethod",
+  "markerWidth",
+  "markerHeight",
+  "markerUnits",
+  "refX",
+  "refY",
+  "tableValues",
+  "startOffset",
+]);
+
+function renameAttrs(markup: string, file: string): string {
+  // Only attribute positions: preceded by whitespace, followed by `=`.
+  return markup.replace(/(\s)([a-zA-Z][a-zA-Z0-9]*)(=)/g, (full, ws, name, eq) => {
+    if (ATTR_RENAMES[name]) return `${ws}${ATTR_RENAMES[name]}${eq}`;
+    if (/[A-Z]/.test(name) && !KEEP_CAMEL.has(name)) {
+      throw new Error(`${file}: unknown camelCase attribute "${name}" — add it to ATTR_RENAMES or KEEP_CAMEL`);
+    }
+    return full;
+  });
+}
+
+/** Convert JSX-expression attribute values like width={24} to width="24". */
+function inlineJsxExpressions(markup: string, file: string): string {
+  return markup.replace(/=\{([^{}]*)\}/g, (_full, expr: string) => {
+    const trimmed = expr.trim();
+    if (/^-?\d+(\.\d+)?$/.test(trimmed)) return `="${trimmed}"`;
+    const strMatch = trimmed.match(/^"([^"]*)"$|^'([^']*)'$/);
+    if (strMatch) return `="${strMatch[1] ?? strMatch[2]}"`;
+    throw new Error(`${file}: cannot statically inline JSX expression attribute value: {${trimmed}}`);
+  });
+}
+
+function stripJsxComments(markup: string): string {
+  return markup.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+}
+
+interface ParsedIcon {
+  componentName: string;
+  rootAttrs: Record<string, string>;
+  childrenMarkup: string;
+}
+
+function parseIconFile(filePath: string): ParsedIcon {
+  const file = path.basename(filePath);
+  const source = fs.readFileSync(filePath, "utf8");
+
+  const nameMatch = source.match(/export const (\w+)\s*=\s*forwardRef/);
+  if (!nameMatch) throw new Error(`${file}: does not match the forwardRef icon pattern`);
+  const componentName = nameMatch[1];
+
+  const svgStart = source.indexOf("<svg");
+  const svgEnd = source.lastIndexOf("</svg>");
+  if (svgStart === -1 || svgEnd === -1) throw new Error(`${file}: no <svg> element found`);
+  let svg = source.slice(svgStart, svgEnd + "</svg>".length);
+
+  svg = stripJsxComments(svg);
+  svg = svg.replace(/\{\.\.\.props\}/g, "").replace(/ref=\{ref\}/g, "");
+  svg = inlineJsxExpressions(svg, file);
+  svg = renameAttrs(svg, file);
+
+  const openTagEnd = svg.indexOf(">");
+  if (openTagEnd === -1) throw new Error(`${file}: malformed <svg> open tag`);
+  const openTag = svg.slice(4, openTagEnd).replace(/\/$/, ""); // between "<svg" and ">"
+  const childrenMarkup = svg
+    .slice(openTagEnd + 1, svg.lastIndexOf("</svg>"))
+    .replace(/\s+/g, " ")
+    .replace(/> </g, "><")
+    .trim();
+
+  const rootAttrs: Record<string, string> = {};
+  const attrRegex = /([\w:-]+)="([^"]*)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = attrRegex.exec(openTag)) !== null) {
+    rootAttrs[m[1]] = m[2];
+  }
+
+  return { componentName, rootAttrs, childrenMarkup };
+}
+
+function emitIcon(parsed: ParsedIcon, sourceFile: string): string {
+  const attrEntries = Object.entries(parsed.rootAttrs)
+    .map(([k, v]) => `        ${JSON.stringify(k)}: ${JSON.stringify(v)},`)
+    .join("\n");
+  return `// AUTO-GENERATED by vue/scripts/generate-vue-icons.ts — do not edit manually.
+// Source: react/src/icons/components/${sourceFile}
+import { defineComponent, h } from "vue";
+
+export const ${parsed.componentName} = defineComponent({
+  name: ${JSON.stringify(parsed.componentName)},
+  setup() {
+    return () =>
+      h("svg", {
+${attrEntries}
+        innerHTML: ${JSON.stringify(parsed.childrenMarkup)},
+      });
+  },
+});
+`;
+}
+
+function generateComponents(): string[] {
+  fs.mkdirSync(outIconsDir, { recursive: true });
+  const files = fs.readdirSync(srcIconsDir).filter((f) => f.endsWith(".tsx"));
+  const failures: string[] = [];
+  for (const file of files) {
+    try {
+      const parsed = parseIconFile(path.join(srcIconsDir, file));
+      const outFile = path.join(outIconsDir, file.replace(/\.tsx$/, ".ts"));
+      fs.writeFileSync(outFile, emitIcon(parsed, file));
+    } catch (err) {
+      failures.push(String(err));
+    }
+  }
+  console.log(`Generated ${files.length - failures.length}/${files.length} icon components`);
+  return failures;
+}
+
+function generateIndex(): void {
+  const source = fs.readFileSync(path.join(repoRoot, "react/src/icons/index.ts"), "utf8");
+  fs.writeFileSync(
+    path.join(repoRoot, "vue/src/icons/index.ts"),
+    `// AUTO-GENERATED by vue/scripts/generate-vue-icons.ts — do not edit manually.\n${source}`,
+  );
+}
+
+function generateRegistry(): void {
+  let source = fs.readFileSync(path.join(repoRoot, "react/src/icons/registry.ts"), "utf8");
+  source = source.replace(/import React from "react";\n/, 'import type { Component } from "vue";\n');
+  source = source.replace(
+    /export const iconRegistry: Record<\s*IconName,\s*React\.ForwardRefExoticComponent<React\.SVGProps<SVGSVGElement>>\s*> = \{/,
+    "export const iconRegistry: Record<IconName, Component> = {",
+  );
+  if (source.includes("React.")) {
+    throw new Error("registry.ts: leftover React references after transform");
+  }
+  fs.writeFileSync(
+    path.join(repoRoot, "vue/src/icons/registry.ts"),
+    `// AUTO-GENERATED by vue/scripts/generate-vue-icons.ts — do not edit manually.\n${source}`,
+  );
+}
+
+const failures = generateComponents();
+generateIndex();
+generateRegistry();
+if (failures.length > 0) {
+  console.error(`\n${failures.length} icon(s) failed to convert:`);
+  for (const f of failures) console.error(`  - ${f}`);
+  process.exitCode = 1;
+} else {
+  console.log("Registry and index generated. All icons converted.");
+}

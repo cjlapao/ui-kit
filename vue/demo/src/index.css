@@ -1,0 +1,25 @@
+@import "tailwindcss";
+/* Dynamic class-name safelist shared with the React kit — a sequence of
+   @source inline(...) directives (must precede non-import statements). */
+@import "../../../common/safelist.css";
+
+/* Class-based dark mode — toggled via .dark on <html>. Same variant as the
+   React demo so dark: classes cascade through the whole app. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Generate utilities straight from the kit sources (no prebuilt dist css):
+   the Vue kit, the shared framework-agnostic theme maps, and the demo. */
+@source "../../src/**/*.{ts,vue}";
+@source "../../../common/**/*.ts";
+@source "./**/*.{ts,vue}";
+/* safelist-classes.css holds class-shaped tokens (e.g. !dark:text-amber-300)
+   that the scanner picks up as candidates — scanned, not imported. */
+@source "../../../common/safelist-classes.css";
+
+/* Backdrop vibrancy utilities (liquid-glass Panel variant) — arbitrary
+   backdrop-saturate values the scanner does not generate. */
+@layer utilities {
+  .backdrop-saturate-\[1\]  { --tw-backdrop-saturate: saturate(1); }
+  .backdrop-saturate-\[1\.2\] { --tw-backdrop-saturate: saturate(1.2); }
+  .backdrop-saturate-\[1\.4\] { --tw-backdrop-saturate: saturate(1.4); }
+}

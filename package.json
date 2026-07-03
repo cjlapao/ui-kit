@@ -1,0 +1,22 @@
+{
+  "name": "ui-kit-monorepo",
+  "private": true,
+  "version": "0.1.4",
+  "type": "module",
+  "description": "Meta root for @cjlapao/ui-kit (react/), @cjlapao/ui-kit-vue (vue/) and the shared framework-agnostic source (common/).",
+  "scripts": {
+    "build": "npm run build:react && npm run build:vue",
+    "build:react": "npm --prefix react run build",
+    "build:vue": "npm --prefix vue run build",
+    "lint": "npm run lint:react && npm run lint:vue",
+    "lint:react": "npm --prefix react run lint",
+    "lint:vue": "npm --prefix vue run lint",
+    "install:all": "npm --prefix react install && npm --prefix vue install && npm --prefix react/demo install && npm --prefix vue/demo install"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2"
+  }
+}

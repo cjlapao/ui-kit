@@ -13,20 +13,14 @@ import {
   getButtonActiveClasses,
   getButtonActiveHoverClasses,
   type ThemeColor,
+  type ButtonVariant,
 } from "../theme/Theme";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
 
 export type ButtonColor = ThemeColor;
-export type ButtonVariant =
-  | "solid"
-  | "soft"
-  | "outline"
-  | "ghost"
-  | "link"
-  | "clear"
-  | "icon";
+export type { ButtonVariant };
 
 export type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
 export type ButtonWeight = "normal" | "medium" | "semibold" | "bold";

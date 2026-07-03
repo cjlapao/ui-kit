@@ -31,7 +31,7 @@ jobs:
       - name: Get current version
         id: current
         run: |
-          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version;")
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('react/package.json','utf8')).version;")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Bump version
@@ -50,7 +50,15 @@ jobs:
             NEW_VERSION=$MAJOR.$MINOR.$((PATCH + 1))
           fi
 
-          node -e "const pkg=require('./package.json'); pkg.version='$NEW_VERSION'; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n'); require('fs').writeFileSync('VERSION', '$NEW_VERSION\n');"
+          node -e "
+            const fs = require('fs');
+            for (const p of ['react/package.json', 'vue/package.json', 'package.json']) {
+              const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
+              pkg.version = '$NEW_VERSION';
+              fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + '\n');
+            }
+            fs.writeFileSync('VERSION', '$NEW_VERSION\n');
+          "
           echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Create release branch and commit
@@ -60,7 +68,7 @@ jobs:
           git checkout -b "$BRANCH_NAME"
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add package.json VERSION
+          git add package.json react/package.json vue/package.json VERSION
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new-version }}"
           git config --global --add safe.directory /github/workspace
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
