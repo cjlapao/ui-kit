@@ -125,8 +125,18 @@ export interface PanelProps
   /**
    * Whether the liquid-glass variant shows a specular highlight at the top.
    * @default true
+   *
+   * @deprecated Use specularMode instead. Kept for backward compatibility.
+   * When both are provided, specularMode takes precedence. If neither is set,
+   * defaults to "classic".
    */
   specularHighlight?: boolean;
+  /**
+   * Specular highlight mode for the liquid-glass variant.
+   * Controls how light reflects off the glass surface.
+   * @default "classic"
+   */
+  specularMode?: PanelSpecularMode;
 }
 
 const variantBaseStyles: Record<PanelVariant, string> = {
@@ -223,11 +233,18 @@ const Panel: React.FC<PanelProps> = ({
   vibrancy = "medium",
   glassOpacity = "frosted",
   specularHighlight = true,
+  specularMode,
   ...rest
 }) => {
   const palette = getPanelToneStyles(tone);
   const colorPalette = color ? getPanelToneStyles(color) : palette;
   const isHoverable = hoverable ?? Boolean(rest.onClick);
+
+  const resolvedSpecularMode: PanelSpecularMode = (() => {
+    if (specularMode !== undefined) return specularMode;
+    if (specularHighlight === false) return "none";
+    return "classic";
+  })();
 
   const effectiveHoverColor =
     hoverColor ?? (color && color !== "neutral" ? color : undefined);
@@ -645,15 +662,43 @@ const Panel: React.FC<PanelProps> = ({
           aria-hidden="true"
         />
       )}
-      {variant === "liquid-glass" && specularHighlight && (
-        <div
-          className={classNames(
-            "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
-            "bg-gradient-to-r from-transparent via-white/40 to-transparent",
-            "dark:via-white/10",
+      {variant === "liquid-glass" && resolvedSpecularMode !== "none" && (
+        <>
+          {resolvedSpecularMode === "classic" && (
+            <div
+              className={classNames(
+                "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
+                "bg-gradient-to-r from-transparent via-white/40 to-transparent",
+                "dark:via-white/10",
+              )}
+              aria-hidden="true"
+            />
           )}
-          aria-hidden="true"
-        />
+          {resolvedSpecularMode === "halo" && (
+            <>
+              {/* Top-left corner cap */}
+              <div
+                className="pointer-events-none absolute top-0 left-0 w-24 h-12 rounded-tl-[inherit] bg-gradient-to-br from-white/45 via-white/15 to-transparent"
+                aria-hidden="true"
+              />
+              {/* Top-right corner cap */}
+              <div
+                className="pointer-events-none absolute top-0 right-0 w-24 h-12 rounded-tr-[inherit] bg-gradient-to-bl from-white/45 via-white/15 to-transparent"
+                aria-hidden="true"
+              />
+              {/* Diffuse glow band */}
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-white/20 via-white/8 to-transparent"
+                aria-hidden="true"
+              />
+              {/* Bottom darken */}
+              <div
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-[15%] bg-gradient-to-t from-transparent to-black/4"
+                aria-hidden="true"
+              />
+            </>
+          )}
+        </>
       )}
       <div
         className={classNames(
