@@ -152,6 +152,7 @@ export {
   type PanelProps,
   type PanelTone,
   type PanelDecoration,
+  type PanelSpecularMode,
 } from "./Panel.vue";
 export {
   default as CollapsiblePanel,
