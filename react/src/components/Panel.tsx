@@ -31,6 +31,7 @@ export type PanelCorner =
   | "none";
 export type PanelActionLayout = "auto" | "stacked" | "inline";
 export type PanelLoaderType = Exclude<LoaderProps["variant"], undefined>;
+export type PanelSpecularMode = "none" | "classic" | "halo";
 
 export interface PanelAction
   extends Pick<
