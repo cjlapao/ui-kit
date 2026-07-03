@@ -115,11 +115,19 @@ export interface PanelProps {
    * @default "frosted"
    */
   glassOpacity?: "frosted" | "light" | "clear" | number;
-  /**
-   * Whether the liquid-glass variant shows a specular highlight at the top.
-   * @default true
-   */
-  specularHighlight?: boolean;
+/**
+    * Whether the liquid-glass variant shows a specular highlight at the top.
+    * @default true
+    *
+    * @deprecated Use specularMode instead. Kept for backward compatibility.
+    */
+   specularHighlight?: boolean;
+   /**
+    * Specular highlight mode for the liquid-glass variant.
+    * Controls how light reflects off the glass surface.
+    * @default "classic"
+    */
+   specularMode?: PanelSpecularMode;
 }
 
 const variantBaseStyles: Record<PanelVariant, string> = {
@@ -200,8 +208,9 @@ const props = withDefaults(defineProps<PanelProps>(), {
   decoration: "none",
   scrollable: true,
   vibrancy: "medium",
-  glassOpacity: "frosted",
-  specularHighlight: true,
+glassOpacity: "frosted",
+   specularHighlight: true,
+   specularMode: "classic",
 });
 
 const slots = useSlots();
@@ -475,6 +484,12 @@ const sectionClass = computed(() =>
     classAttr.value,
   ),
 );
+
+const resolvedSpecularMode = computed<PanelSpecularMode>(() => {
+  if (props.specularMode !== undefined) return props.specularMode;
+  if (props.specularHighlight === false) return "none";
+  return "classic";
+});
 </script>
 
 <template>
@@ -551,17 +566,43 @@ const sectionClass = computed(() =>
       class="pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]"
       aria-hidden="true"
     />
-    <div
-      v-if="variant === 'liquid-glass' && specularHighlight"
-      :class="
-        classNames(
-          'pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]',
-          'bg-gradient-to-r from-transparent via-white/40 to-transparent',
-          'dark:via-white/10',
-        )
-      "
-      aria-hidden="true"
-    />
+    <template v-if="variant === 'liquid-glass' && resolvedSpecularMode !== 'none'">
+      <!-- Classic: single hairline -->
+      <div
+        v-if="resolvedSpecularMode === 'classic'"
+        :class="
+          classNames(
+            'pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]',
+            'bg-gradient-to-r from-transparent via-white/40 to-transparent',
+            'dark:via-white/10',
+          )
+        "
+        aria-hidden="true"
+      />
+      <!-- Halo: corner caps + diffuse band + bottom darken -->
+      <template v-if="resolvedSpecularMode === 'halo'">
+        <!-- Top-left corner cap -->
+        <div
+          class="pointer-events-none absolute top-0 left-0 w-24 h-12 rounded-tl-[inherit] bg-gradient-to-br from-white/45 via-white/15 to-transparent"
+          aria-hidden="true"
+        />
+        <!-- Top-right corner cap -->
+        <div
+          class="pointer-events-none absolute top-0 right-0 w-24 h-12 rounded-tr-[inherit] bg-gradient-to-bl from-white/45 via-white/15 to-transparent"
+          aria-hidden="true"
+        />
+        <!-- Diffuse glow band -->
+        <div
+          class="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-white/20 via-white/8 to-transparent"
+          aria-hidden="true"
+        />
+        <!-- Bottom darken (depth cue) -->
+        <div
+          class="pointer-events-none absolute inset-x-0 bottom-0 h-[15%] bg-gradient-to-t from-transparent to-black/4"
+          aria-hidden="true"
+        />
+      </template>
+    </template>
     <div
       :class="
         classNames(
