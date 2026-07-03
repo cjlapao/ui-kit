@@ -146,6 +146,7 @@ export {
   type PanelProps,
   type PanelTone,
   type PanelDecoration,
+  type PanelSpecularMode,
 } from "./Panel";
 export {
   default as CollapsiblePanel,
