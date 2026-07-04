@@ -11,6 +11,7 @@ import {
   PanelTone,
   PanelVariant,
   PanelAction,
+  type PanelSpecularMode,
 } from "@cjlapao/ui-kit";
 import {
   panelVariantOptions,
@@ -67,7 +68,7 @@ export const PanelDemo: React.FC = () => {
   const [glassOpacity, setGlassOpacity] = useState<
     "frosted" | "light" | "clear"
   >("frosted");
-  const [specularHighlight, setSpecularHighlight] = useState<boolean>(true);
+  const [specularMode, setSpecularMode] = useState<PanelSpecularMode>("classic");
   const [panelHasBackground, setPanelHasBackground] = useState<boolean>(false);
   const { effectiveTheme } = useTheme();
 
@@ -96,7 +97,7 @@ export const PanelDemo: React.FC = () => {
       variant={panelVariant}
       vibrancy={glassVibrancy}
       glassOpacity={glassOpacity}
-      specularHighlight={specularHighlight}
+      specularMode={specularMode}
       media={panelHasMedia ? <img src={parallels} alt="Parallels" /> : null}
       mediaPlacement={panelMediaPlacement}
       badge={panelHasBadge ? <Badge count={10} tone="primary" /> : null}
@@ -128,7 +129,7 @@ export const PanelDemo: React.FC = () => {
           variant={panelVariant}
           vibrancy={glassVibrancy}
           glassOpacity={glassOpacity}
-          specularHighlight={specularHighlight}
+specularMode={specularMode}
           loaderProgress={45}
           loading={panelLoading}
           loaderType="progress"
@@ -332,11 +333,17 @@ export const PanelDemo: React.FC = () => {
                 />
               </label>
               <label className="flex items-center justify-between">
-                <span>Specular highlight</span>
-                <Toggle
+                <span>Specular mode</span>
+                <MultiToggle
+                  fullWidth
+                  options={[
+                    { label: "None", value: "none" },
+                    { label: "Classic", value: "classic" },
+                    { label: "Halo", value: "halo" },
+                  ]}
+                  value={specularMode}
                   size="sm"
-                  checked={specularHighlight}
-                  onChange={(event) => setSpecularHighlight(event.target.checked)}
+                  onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
                 />
               </label>
             </div>

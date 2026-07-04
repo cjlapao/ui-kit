@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import { Panel, MultiToggle, Toggle, Badge, useTheme } from "@cjlapao/ui-kit-vue";
-import type { PanelProps, PanelTone } from "@cjlapao/ui-kit-vue";
+import type { PanelProps, PanelTone, PanelSpecularMode } from "@cjlapao/ui-kit-vue";
 import {
   panelVariantOptions,
   panelToneOptions,
@@ -67,7 +67,7 @@ const panelHoverShadow = ref<boolean>(false);
 const panelDisabled = ref<boolean>(false);
 const glassVibrancy = ref<"low" | "medium" | "high">("medium");
 const glassOpacity = ref<"frosted" | "light" | "clear">("frosted");
-const specularHighlight = ref<boolean>(true);
+const specularMode = ref<PanelSpecularMode>("classic");
 const panelHasBackground = ref<boolean>(false);
 const { effectiveTheme } = useTheme();
 
@@ -110,6 +110,12 @@ const glassVibrancyOptions = [
   { label: "Low", value: "low" },
   { label: "Medium", value: "medium" },
   { label: "High", value: "high" },
+];
+
+const specularModeOptions = [
+  { label: "None", value: "none" },
+  { label: "Classic", value: "classic" },
+  { label: "Halo", value: "halo" },
 ];
 
 const glassOpacityOptions = [
@@ -244,9 +250,15 @@ const glassOpacityOptions = [
               "
             />
           </label>
-          <label class="flex items-center justify-between">
-            <span>Specular highlight</span>
-            <Toggle size="sm" v-model="specularHighlight" />
+          <label class="flex flex-col gap-2">
+            <span>Specular mode</span>
+            <MultiToggle
+              full-width
+              :options="specularModeOptions"
+              :model-value="specularMode"
+              size="sm"
+              @update:model-value="specularMode = $event as PanelSpecularMode"
+            />
           </label>
         </div>
       </div>
@@ -276,7 +288,7 @@ const glassOpacityOptions = [
             :variant="panelVariant"
             :vibrancy="glassVibrancy"
             :glass-opacity="glassOpacity"
-            :specular-highlight="specularHighlight"
+            :specular-mode="specularMode"
             :media-placement="panelMediaPlacement"
             :corner="panelCorner"
             :loader-progress="30"
@@ -307,7 +319,7 @@ const glassOpacityOptions = [
             :variant="panelVariant"
             :vibrancy="glassVibrancy"
             :glass-opacity="glassOpacity"
-            :specular-highlight="specularHighlight"
+            :specular-mode="specularMode"
             :loader-progress="45"
             :loading="panelLoading"
             loader-type="progress"
