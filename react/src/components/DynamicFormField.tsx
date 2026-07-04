@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import type { CapsuleBlueprintParameter } from "@cjlapao/ui-kit";
-import { CapsuleBlueprintValueType } from "@cjlapao/ui-kit";
-import { CollapsibleHelpText, Input, Checkbox, Select } from "@cjlapao/ui-kit";
+import type { CapsuleBlueprintParameter } from "../../../common/types/CapsuleBlueprint";
+import { CapsuleBlueprintValueType } from "../../../common/types/CapsuleBlueprint";
+import { CollapsibleHelpText, Input, Checkbox, Select } from ".";
 import classNames from "classnames";
 
 type DynamicValue = string | boolean;
@@ -90,7 +90,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
         className="w-full"
         type={type}
         value={String(value ?? "")}
-        onChange={(event) => handleChange(event.target.value)}
+        onChange={(event: React.ChangeEvent<HTMLInputElement>) => handleChange(event.target.value)}
         onBlur={handleBlur}
         required={is_required}
         validationStatus={error ? "error" : "none"}
@@ -115,7 +115,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
         return (
           <Checkbox
             checked={Boolean(value)}
-            onChange={(event) => handleChange(event.target.checked)}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => handleChange(event.target.checked)}
             label={name}
             description={hint}
           />
@@ -129,7 +129,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
             </label>
             <Select
               value={String(value ?? "")}
-              onChange={(event) => handleChange(event.target.value ?? "")}
+              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => handleChange(event.target.value ?? "")}
               required={is_required}
               validationStatus={error ? "error" : "none"}
             >

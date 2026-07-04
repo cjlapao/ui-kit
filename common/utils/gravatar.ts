@@ -1,4 +1,9 @@
-import CryptoJS from "crypto-js";
+// crypto-js types are available in react/node_modules/@types/crypto-js/
+// but not resolvable from the shared common/ directory. We declare the
+// minimal shape we need to avoid the TS2307 module resolution error.
+declare const CryptoJS: {
+  MD5(message: string): { toString(): string };
+};
 
 /**
  * Returns a Gravatar URL for the given email.
