@@ -59,3 +59,10 @@ notarize/
 !.projects/project.md
 
 mutagen.*
+# Vue kit build outputs
+vue/dist/
+vue/demo/build/
+
+# React kit build outputs
+react/dist/
+*.tsbuildinfo

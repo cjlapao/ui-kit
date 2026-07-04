@@ -70,7 +70,7 @@ When you add a variant, extend the existing `variant`/`color`/`tone` enums and t
 >
 > **Import:** `import { GlassBackground } from "@cjlapao/ui-kit";`
 >
-> **Source:** `src/components/GlassBackground.tsx`
+> **Source:** `react/src/components/GlassBackground.tsx`
 
 ### What it does
 
