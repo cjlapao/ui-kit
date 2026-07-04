@@ -123,6 +123,14 @@ export {
 } from "./MultiSelectPills.vue";
 export { default as SearchBar, type SearchBarProps } from "./SearchBar.vue";
 
+// Background
+export {
+  default as GlassBackground,
+  type GlassBackgroundProps,
+  type GlassBackgroundPosition,
+  type GradientDirection,
+} from "./GlassBackground.vue";
+
 // Layout
 export {
   default as TruncatedText,
