@@ -57,6 +57,7 @@ export {
   type ButtonColor,
   type ButtonSize,
 } from "./Button.vue";
+export type { GlassVibrancy, GlassOpacity, SpecularMode } from "../theme/glass";
 export { default as IconButton, type IconButtonProps } from "./IconButton.vue";
 export {
   default as DropdownButton,
