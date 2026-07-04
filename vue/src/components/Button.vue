@@ -2,9 +2,15 @@
 import type { VNode } from "vue";
 import type { ThemeColor, ButtonVariant } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
+import type {
+  GlassVibrancy,
+  GlassOpacity,
+  SpecularMode,
+} from "../../../common/theme/glass";
 
 export type ButtonColor = ThemeColor;
 export type { ButtonVariant };
+export type { GlassVibrancy, GlassOpacity, SpecularMode };
 
 export type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
 export type ButtonWeight = "normal" | "medium" | "semibold" | "bold";
@@ -23,6 +29,14 @@ export interface ButtonProps {
   accentColor?: ThemeColor;
   /** When true, renders in a persistent lighter "on" state with hover suppressed. accentColor overrides the active color. */
   active?: boolean;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
+  /** Backdrop vibrancy level for glass surfaces. */
+  vibrancy?: GlassVibrancy;
+  /** Glass fill transparency level for glass surfaces. */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for glass surfaces. */
+  specularMode?: SpecularMode;
   disabled?: boolean;
   /** When set, a styled tooltip is shown on hover. */
   tooltip?: string;
@@ -96,6 +110,11 @@ import {
 } from "../theme/Theme";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import { useClassAttrs } from "../utils/attrsUtils";
+import {
+  getGlassFillClass,
+  getGlassVibrancyClass,
+  getSpecularClasses,
+} from "../../../common/theme/glass";
 import TooltipWrapper from "./TooltipWrapper.vue";
 import VNodeRenderer from "./internal/VNodeRenderer";
 
@@ -111,6 +130,10 @@ const props = withDefaults(defineProps<ButtonProps>(), {
   iconOnly: false,
   accent: false,
   active: false,
+  glass: false,
+  vibrancy: "medium",
+  glassOpacity: "frosted",
+  specularMode: "none",
   disabled: false,
 });
 
@@ -140,6 +163,33 @@ const accentClasses = computed(() =>
         accentHoverClass.value,
       )
     : null,
+);
+
+// Glass styling — variant="glass" auto-enables glass; glass prop overrides
+const isGlass = computed(
+  () => props.variant === "glass" || props.glass,
+);
+const glassClasses = computed(() =>
+  isGlass.value
+    ? classNames(
+        "backdrop-blur-sm",
+        getGlassFillClass(props.color, props.glassOpacity),
+        getGlassVibrancyClass(props.vibrancy),
+      )
+    : null,
+);
+
+// Specular overlay — only when glass is active
+const effectiveSpecularMode = computed<SpecularMode>(() =>
+  isGlass.value ? props.specularMode : "none",
+);
+const specularOverlayClasses = computed(() =>
+  effectiveSpecularMode.value !== "none"
+    ? classNames(
+        "pointer-events-none absolute inset-0 rounded-[inherit]",
+        getSpecularClasses(effectiveSpecularMode.value) ?? "",
+      )
+    : undefined,
 );
 
 const isEffectivelyDisabled = computed(
@@ -174,6 +224,8 @@ const computedClassName = computed(() =>
     accentClasses.value ?? colorClasses.value,
     weightClasses[props.weight],
     props.fullWidth && "w-full",
+    isGlass.value && "relative",
+    glassClasses.value,
     classAttr.value,
   ),
 );
@@ -196,6 +248,7 @@ const buttonBindings = computed(() => ({
   "data-variant": props.variant,
   "data-color": props.color,
   "data-size": props.size,
+  "data-glass": props.glass,
   "aria-busy": props.loading || undefined,
   ...restAttrs.value,
 }));
@@ -204,9 +257,51 @@ const buttonBindings = computed(() => ({
 <template>
   <TooltipWrapper v-if="tooltip" :text="tooltip" :position="tooltipPosition">
     <button ref="el" v-bind="buttonBindings">
-      <span v-if="loading" :class="spinnerClass" aria-hidden="true" />
+      <div
+        v-if="specularOverlayClasses"
+        :class="specularOverlayClasses"
+        aria-hidden="true"
+      />
+      <template v-if="loading">
+        <span :class="spinnerClass" aria-hidden="true" />
+      </template>
+      <template v-else>
+        <VNodeRenderer
+          :nodes="
+            renderIconFn(
+              leadingIcon,
+              size as IconSize,
+              classNames(' flex-shrink-0', sizeConfig.icon),
+            )
+          "
+        />
+        <span v-if="isIconMode" class="sr-only">{{
+          srOnlyContent ?? "Button"
+        }}</span>
+        <slot v-else />
+        <VNodeRenderer
+          :nodes="
+            renderIconFn(
+              trailingIcon,
+              size as IconSize,
+              classNames('flex-shrink-0', sizeConfig.icon),
+            )
+          "
+        />
+      </template>
+    </button>
+  </TooltipWrapper>
+  <button v-else ref="el" v-bind="buttonBindings">
+    <div
+      v-if="specularOverlayClasses"
+      :class="specularOverlayClasses"
+      aria-hidden="true"
+    />
+    <template v-if="loading">
+      <span :class="spinnerClass" aria-hidden="true" />
+    </template>
+    <template v-else>
       <VNodeRenderer
-        v-else
         :nodes="
           renderIconFn(
             leadingIcon,
@@ -220,7 +315,6 @@ const buttonBindings = computed(() => ({
       }}</span>
       <slot v-else />
       <VNodeRenderer
-        v-if="!loading"
         :nodes="
           renderIconFn(
             trailingIcon,
@@ -229,33 +323,6 @@ const buttonBindings = computed(() => ({
           )
         "
       />
-    </button>
-  </TooltipWrapper>
-  <button v-else ref="el" v-bind="buttonBindings">
-    <span v-if="loading" :class="spinnerClass" aria-hidden="true" />
-    <VNodeRenderer
-      v-else
-      :nodes="
-        renderIconFn(
-          leadingIcon,
-          size as IconSize,
-          classNames(' flex-shrink-0', sizeConfig.icon),
-        )
-      "
-    />
-    <span v-if="isIconMode" class="sr-only">{{
-      srOnlyContent ?? "Button"
-    }}</span>
-    <slot v-else />
-    <VNodeRenderer
-      v-if="!loading"
-      :nodes="
-        renderIconFn(
-          trailingIcon,
-          size as IconSize,
-          classNames('flex-shrink-0', sizeConfig.icon),
-        )
-      "
-    />
+    </template>
   </button>
 </template>
