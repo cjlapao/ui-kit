@@ -10,9 +10,10 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      include: ["src/components/Button.tsx"],
+      include: ["src/components/Button.tsx", "src/components/IconButton.tsx"],
       exclude: [
         "src/components/Button.test.tsx",
+        "src/components/IconButton.test.tsx",
         "**/node_modules/**",
       ],
     },
