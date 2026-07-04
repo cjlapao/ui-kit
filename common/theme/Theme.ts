@@ -8,7 +8,8 @@ export type ButtonVariant =
   | "ghost"
   | "link"
   | "clear"
-  | "icon";
+  | "icon"
+  | "glass";
 
 export type ThemeMultiColor =
   | "red"
@@ -283,6 +284,7 @@ const createTheme = (): ThemeDefinition => {
       link: empty(),
       clear: empty(),
       icon: empty(),
+      glass: empty(), // glass variant uses dynamic classes (getGlassFillClass)
     },
     buttonHover: {
       solid: empty(),
@@ -292,6 +294,7 @@ const createTheme = (): ThemeDefinition => {
       link: empty(),
       clear: empty(),
       icon: empty(),
+      glass: empty(), // glass variant uses dynamic classes at runtime
     },
     buttonActive: {
       solid: empty(),
@@ -301,6 +304,7 @@ const createTheme = (): ThemeDefinition => {
       link: empty(),
       clear: empty(),
       icon: empty(),
+      glass: empty(), // glass variant uses dynamic classes at runtime
     },
     buttonActiveHover: {
       solid: empty(),
@@ -310,6 +314,7 @@ const createTheme = (): ThemeDefinition => {
       link: empty(),
       clear: empty(),
       icon: empty(),
+      glass: empty(), // glass variant uses dynamic classes at runtime
     },
     toggle: {} as ToggleTheme,
     checkbox: {} as CheckboxTheme,
