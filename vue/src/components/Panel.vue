@@ -115,7 +115,7 @@ export interface PanelProps {
    * @default "frosted"
    */
   glassOpacity?: "frosted" | "light" | "clear" | number;
-/**
+    /**
     * Whether the liquid-glass variant shows a specular highlight at the top.
     * @default true
     *
@@ -128,7 +128,7 @@ export interface PanelProps {
     * @default "classic"
     */
    specularMode?: PanelSpecularMode;
- }
+   }
 
 const variantBaseStyles: Record<PanelVariant, string> = {
   elevated:
@@ -208,7 +208,7 @@ const props = withDefaults(defineProps<PanelProps>(), {
   decoration: "none",
   scrollable: true,
   vibrancy: "medium",
-glassOpacity: "frosted",
+   glassOpacity: "frosted",
    specularHighlight: true,
    specularMode: "classic",
 });
