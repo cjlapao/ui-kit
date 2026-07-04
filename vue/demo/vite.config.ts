@@ -15,6 +15,8 @@ export default defineConfig({
     alias: {
       // Consume the Vue kit source directly, mirroring the React demo.
       "@cjlapao/ui-kit-vue": path.resolve(demoRoot, "../src/index.ts"),
+      // Share images from the React kit's assets, mirroring the React demo.
+      "@assets": path.resolve(demoRoot, "../../react/src/assets"),
     },
   },
   build: {

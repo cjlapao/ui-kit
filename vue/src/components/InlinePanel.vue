@@ -5,6 +5,7 @@ import {
   mergeProps,
   ref,
   watch,
+  resolveComponent,
   type Component,
   type PropType,
   type Ref,
@@ -16,12 +17,11 @@ import type { ButtonProps, ButtonVariant, ButtonColor } from "./Button.vue";
 import type { ModalFocusTarget } from "./Modal.vue";
 import type { ModalSize } from "../theme";
 import { type IconName } from "../icons/registry";
-// Self-import so the Confirm/DeleteConfirm wrappers below can render the
-// panel (mirrors the React module's local `InlinePanel` reference). Widened
-// to `Component` so `h()` accepts the merged fallthrough-attr prop bag.
-import InlinePanelSfc from "./InlinePanel.vue";
 
-const InlinePanel = InlinePanelSfc as Component;
+// Resolve the main InlinePanel component by name at render time.
+// This avoids a circular self-import that causes "Cannot access before
+// initialization" errors in ESM.
+const getInlinePanel = () => resolveComponent("InlinePanel") as Component;
 
 // ── Size presets (mirrors Modal) ──────────────────────────────────────────────
 
@@ -181,7 +181,7 @@ export const ConfirmInlinePanel = defineComponent({
   setup(props, { attrs, slots, emit }) {
     return () =>
       h(
-        InlinePanel,
+        getInlinePanel(),
         mergeProps(attrs, {
           anchor: props.anchor,
           showBackdrop: props.showBackdrop,

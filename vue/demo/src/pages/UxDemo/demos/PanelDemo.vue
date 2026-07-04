@@ -3,6 +3,9 @@ import { computed, ref } from "vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import { Panel, MultiToggle, Toggle, Badge, useTheme } from "@cjlapao/ui-kit-vue";
 import type { PanelProps, PanelTone, PanelSpecularMode } from "@cjlapao/ui-kit-vue";
+import parallels from "@assets/images/parallels.png";
+import backdropLight from "@assets/images/backdrop_demo_light.png";
+import backdropDark from "@assets/images/backdrop_demo_dark.png";
 import {
   panelVariantOptions,
   panelToneOptions,
@@ -23,19 +26,6 @@ type PanelLoaderType = NonNullable<PanelProps["loaderType"]>;
 type PanelActionLayout = NonNullable<PanelProps["actionLayout"]>;
 type PanelPadding = NonNullable<PanelProps["padding"]>;
 type PanelAction = NonNullable<PanelProps["actions"]>[number];
-
-const parallels = new URL(
-  "../../../../../../src/assets/images/parallels.png",
-  import.meta.url,
-).href;
-const backdropLight = new URL(
-  "../../../../../../src/assets/images/backdrop_demo_light.png",
-  import.meta.url,
-).href;
-const backdropDark = new URL(
-  "../../../../../../src/assets/images/backdrop_demo_dark.png",
-  import.meta.url,
-).href;
 
 const createUpdateToast = (message?: string) => {
   const id = uuidv4();
