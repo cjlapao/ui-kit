@@ -3,6 +3,11 @@ import type { VNode } from "vue";
 import type { ButtonColor, ButtonSize, ButtonVariant } from "./Button.vue";
 import type { SpinnerColor, SpinnerSize } from "./Spinner.vue";
 import type { TooltipPosition } from "./Tooltip.vue";
+import type {
+  GlassVibrancy,
+  GlassOpacity,
+  SpecularMode,
+} from "../../../common/theme/glass";
 
 type IconButtonRounded = "md" | "lg" | "xl" | "full";
 
@@ -50,6 +55,14 @@ export interface IconButtonProps {
   tooltip?: string;
   /** Position of the tooltip relative to the button. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
+  /** Backdrop vibrancy level for glass surfaces. */
+  vibrancy?: GlassVibrancy;
+  /** Glass fill transparency level for glass surfaces. Defaults to "clear" for IconButton. */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for glass surfaces. Defaults to "none" for IconButton. */
+  specularMode?: SpecularMode;
 }
 </script>
 
@@ -61,6 +74,11 @@ import { getButtonColorClasses } from "../theme/Theme";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import type { IconSize } from "../types/Icon";
 import { useClassAttrs } from "../utils/attrsUtils";
+import {
+  getGlassFillClass,
+  getGlassVibrancyClass,
+  getSpecularClasses,
+} from "../../../common/theme/glass";
 import Spinner from "./Spinner.vue";
 import TooltipWrapper from "./TooltipWrapper.vue";
 import VNodeRenderer from "./internal/VNodeRenderer";
@@ -76,6 +94,10 @@ const props = withDefaults(defineProps<IconButtonProps>(), {
   spinnerVariant: "segments",
   accent: false,
   disabled: false,
+  glass: false,
+  vibrancy: "medium",
+  glassOpacity: "clear",
+  specularMode: "none",
 });
 
 const { classAttr, restAttrs } = useClassAttrs();
@@ -113,6 +135,33 @@ const nonAccentHover = computed(() =>
     : null,
 );
 
+// Glass styling — variant="glass" auto-enables glass; glass prop overrides
+const isGlass = computed(
+  () => props.variant === "glass" || props.glass,
+);
+const glassClasses = computed(() =>
+  isGlass.value
+    ? classNames(
+        "backdrop-blur-sm",
+        getGlassFillClass(props.color, props.glassOpacity),
+        getGlassVibrancyClass(props.vibrancy),
+      )
+    : null,
+);
+
+// Specular overlay — only when glass is active
+const effectiveSpecularMode = computed<SpecularMode>(() =>
+  isGlass.value ? props.specularMode : "none",
+);
+const specularOverlayClasses = computed(() =>
+  effectiveSpecularMode.value !== "none"
+    ? classNames(
+        "pointer-events-none absolute inset-0 rounded-[inherit]",
+        getSpecularClasses(effectiveSpecularMode.value) ?? "",
+      )
+    : undefined,
+);
+
 const dimensionClass = computed(
   () => props.customSizeClass ?? sizeConfig.value.button,
 );
@@ -127,6 +176,8 @@ const computedClassName = computed(() =>
     roundedMap[props.rounded] ?? roundedMap.full,
     accentClasses.value ?? baseColorClasses.value,
     nonAccentHover.value,
+    isGlass.value && "relative",
+    glassClasses.value,
     classAttr.value,
   ),
 );
@@ -161,6 +212,7 @@ const buttonBindings = computed(() => ({
   "data-variant": props.variant,
   "data-color": props.color,
   "data-size": props.size,
+  "data-glass": props.glass,
   disabled: props.disabled || props.loading,
   "aria-label": computedAriaLabel.value,
   title: computedTitle.value,
@@ -171,6 +223,11 @@ const buttonBindings = computed(() => ({
 <template>
   <TooltipWrapper v-if="tooltip" :text="tooltip" :position="tooltipPosition">
     <button ref="el" v-bind="buttonBindings">
+      <div
+        v-if="specularOverlayClasses"
+        :class="specularOverlayClasses"
+        aria-hidden="true"
+      />
       <Spinner
         v-if="loading"
         :size="sizeConfig.spinner"
@@ -185,6 +242,11 @@ const buttonBindings = computed(() => ({
     </button>
   </TooltipWrapper>
   <button v-else ref="el" v-bind="buttonBindings">
+    <div
+      v-if="specularOverlayClasses"
+      :class="specularOverlayClasses"
+      aria-hidden="true"
+    />
     <Spinner
       v-if="loading"
       :size="sizeConfig.spinner"
