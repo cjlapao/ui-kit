@@ -25,4 +25,42 @@
   .backdrop-saturate-\[1\]  { --tw-backdrop-saturate: saturate(1); }
   .backdrop-saturate-\[1\.2\] { --tw-backdrop-saturate: saturate(1.2); }
   .backdrop-saturate-\[1\.4\] { --tw-backdrop-saturate: saturate(1.4); }
+  /* ---- GlassBackground shimmer animation ---- */
+  @keyframes shimmer {
+    0%   { transform: translateX(-150%); }
+    100% { transform: translateX(150%); }
+  }
+  .animate-shimmer {
+    animation: shimmer 8s ease-in-out infinite;
+  }
+
+  /* ---- GlassBackground ambient pulse (optional) ---- */
+  @keyframes ambient-pulse {
+    0%, 100% { opacity: 0.12; }
+    50%      { opacity: 0.22; }
+  }
+  .ambient-pulse {
+    animation: ambient-pulse 6s ease-in-out infinite;
+  }
+}
+
+/* GlassBackground dynamic gradient — works with any color combo */
+.glass-gradient {
+  --_gf: color-mix(in srgb, var(--glass-from) 100%, transparent);
+  --_gv: color-mix(in srgb, var(--glass-via) 100%, transparent);
+  --_gt: color-mix(in srgb, var(--glass-to) 100%, transparent);
+  background-image: linear-gradient(
+    var(--glass-angle, to bottom right),
+    var(--_gf) 0%,
+    var(--_gv) 50%,
+    var(--_gt) 100%
+  );
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer,
+  .ambient-pulse {
+    animation: none !important;
+  }
 }

@@ -42,6 +42,7 @@ import { AppDividerDemo } from "./demos/AppDividerDemo";
 import { BadgeDemo } from "./demos/BadgeDemo";
 import { AccessMatrixDemo } from "./demos/AccessMatrixDemo";
 import { TimelinePanelDemo } from "./demos/TimelinePanelDemo";
+import { GlassBackgroundDemo } from "./demos/GlassBackgroundDemo";
 
 export const UxDemo: React.FC = () => {
   const [sectionSearch, setSectionSearch] = useState("");
@@ -50,6 +51,11 @@ export const UxDemo: React.FC = () => {
 
   const sectionList = useMemo(
     () => [
+      {
+        id: "sections-glass-background",
+        title: "Glass Background",
+        render: () => <GlassBackgroundDemo />,
+      },
       {
         id: "sections-badge-icon",
         title: "Badge Icon",
