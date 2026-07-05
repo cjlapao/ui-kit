@@ -41,6 +41,84 @@ describe("Toggle — glass props", () => {
     // Should NOT have glass-related classes
     expect(track!.className).not.toContain("backdrop-blur-sm");
     expect(track!.className).not.toContain("backdrop-saturate-");
+    // Should have solid color styles from peer-checked variants
+    expect(track!.className).toContain("peer-checked:bg-blue-500");
+  });
+
+  it("glass=true renders backdrop-blur-sm on track", () => {
+    const { container } = render(<Toggle label="Test" glass />);
+
+    const track = container.querySelector('span[aria-hidden="true"]');
+    expect(track).not.toBeNull();
+    expect(track!.className).toContain("backdrop-blur-sm");
+  });
+
+  it("glass=true renders glass fill class on track", () => {
+    const { container } = render(<Toggle label="Test" glass />);
+
+    const track = container.querySelector('span[aria-hidden="true"]');
+    expect(track).not.toBeNull();
+    // Default color=blue, glassOpacity=frosted → bg-blue-100/55
+    expect(track!.className).toContain("bg-blue-100/55");
+  });
+
+  it("glass=true renders vibrancy class on track", () => {
+    const { container } = render(<Toggle label="Test" glass />);
+
+    const track = container.querySelector('span[aria-hidden="true"]');
+    expect(track).not.toBeNull();
+    // Default vibrancy=medium → backdrop-saturate-[1.2]
+    expect(track!.className).toContain("backdrop-saturate-[1.2]");
+  });
+
+  it("glass=true with vibrancy=low renders correct vibrancy class", () => {
+    const { container } = render(
+      <Toggle label="Test" glass vibrancy="low" />,
+    );
+
+    const track = container.querySelector('span[aria-hidden="true"]');
+    expect(track).not.toBeNull();
+    expect(track!.className).toContain("backdrop-saturate-[1]");
+  });
+
+  it("glass=true with vibrancy=high renders correct vibrancy class", () => {
+    const { container } = render(
+      <Toggle label="Test" glass vibrancy="high" />,
+    );
+
+    const track = container.querySelector('span[aria-hidden="true"]');
+    expect(track).not.toBeNull();
+    expect(track!.className).toContain("backdrop-saturate-[1.4]");
+  });
+
+  it("glass=true with glassOpacity=light renders correct fill class", () => {
+    const { container } = render(
+      <Toggle label="Test" glass glassOpacity="light" />,
+    );
+
+    const track = container.querySelector('span[aria-hidden="true"]');
+    expect(track).not.toBeNull();
+    // glassOpacity=light → 75
+    expect(track!.className).toContain("bg-blue-100/75");
+  });
+
+  it("glass=true with glassOpacity=clear renders correct fill class", () => {
+    const { container } = render(
+      <Toggle label="Test" glass glassOpacity="clear" />,
+    );
+
+    const track = container.querySelector('span[aria-hidden="true"]');
+    expect(track).not.toBeNull();
+    // glassOpacity=clear → 30
+    expect(track!.className).toContain("bg-blue-100/30");
+  });
+
+  it("glass=true does not render solid color peer-checked classes", () => {
+    const { container } = render(<Toggle label="Test" glass />);
+
+    const track = container.querySelector('span[aria-hidden="true"]');
+    expect(track).not.toBeNull();
+    expect(track!.className).not.toContain("peer-checked:bg-blue-500");
   });
 
   it("accepts glass=true prop", () => {
