@@ -159,9 +159,6 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
     const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
     const colorStyles = getToggleColorClasses(color);
 
-    // Glass utility values (T2/T3 will compose these into the track element)
-    const glassFillClass = glass ? getGlassFillClass(color, glassOpacity) : "";
-    const glassVibrancyClass = glass ? getGlassVibrancyClass(vibrancy) : "";
     const glassSpecularClass = glass
       ? getSpecularClasses(specularMode)
       : null;
@@ -253,11 +250,16 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
           <span
             aria-hidden="true"
             className={classNames(
-              "block rounded-full border border-transparent bg-neutral-200 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 dark:bg-neutral-600",
+              "block rounded-full border border-transparent transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
               sizeStyles.track,
-              colorStyles,
-              glassFillClass,
-              glassVibrancyClass,
+              glass
+                ? classNames(
+                    "bg-neutral-200 backdrop-blur-sm",
+                    getGlassFillClass(color, glassOpacity),
+                    getGlassVibrancyClass(vibrancy),
+                    "dark:bg-neutral-600",
+                  )
+                : colorStyles,
               disabled && "opacity-70 peer-checked:opacity-70 dark:opacity-50",
             )}
           />
