@@ -1,12 +1,14 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Button, IconButton } from "@cjlapao/ui-kit";
+import { Button, IconButton, useTheme } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 import {
   GlassVibrancy,
   GlassOpacity,
   SpecularMode,
 } from "@cjlapao/ui-kit";
+import backdropLight from "@assets/images/backdrop_demo_light.png";
+import backdropDark from "@assets/images/backdrop_demo_dark.png";
 
 const COLORS = ["blue", "brand", "red", "green", "purple"] as const;
 const SPECULAR_MODES: SpecularMode[] = ["classic", "halo", "none"];
@@ -44,6 +46,8 @@ export const GlassButtonDemo: React.FC = () => {
   const [glassSize, setGlassSize] = useState<"xs" | "sm" | "md" | "lg" | "xl">(
     "md",
   );
+  const [showBg, setShowBg] = useState(false);
+  const { effectiveTheme } = useTheme();
 
   return (
     <>
@@ -163,33 +167,80 @@ export const GlassButtonDemo: React.FC = () => {
                 ))}
               </div>
             </div>
+            <div className="flex items-end">
+              <label className="flex items-center gap-2">
+                <Toggle
+                  size="sm"
+                  checked={showBg}
+                  onChange={(e) => setShowBg(e.target.checked)}
+                />
+                <span className="text-xs font-medium text-neutral-600 dark:text-neutral-200">
+                  Background image
+                </span>
+              </label>
+            </div>
           </div>
         </div>
       }
       preview={
-        <GlassButtonCard
-          label={`${glassColor} · ${opacityLabel(glassOpacity)} · ${specularLabel(glassSpecular)} · ${glassVibrancy}`}
-        >
-          <Button
-            variant="glass"
-            color={glassColor}
-            vibrancy={glassVibrancy}
-            glassOpacity={glassOpacity}
-            specularMode={glassSpecular}
-            size={glassSize}
+        showBg ? (
+          <div
+            className="relative min-h-[200px] overflow-hidden rounded-2xl bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url(${
+                effectiveTheme === "dark" ? backdropDark : backdropLight
+              })`,
+            }}
           >
-            Glass Button
-          </Button>
-          <IconButton
-            icon="Search"
-            variant="glass"
-            color={glassColor}
-            vibrancy={glassVibrancy}
-            glassOpacity={glassOpacity}
-            specularMode={glassSpecular}
-            size={glassSize}
-          />
-        </GlassButtonCard>
+            <GlassButtonCard
+              label={`${glassColor} · ${opacityLabel(glassOpacity)} · ${specularLabel(glassSpecular)} · ${glassVibrancy}`}
+            >
+              <Button
+                variant="glass"
+                color={glassColor}
+                vibrancy={glassVibrancy}
+                glassOpacity={glassOpacity}
+                specularMode={glassSpecular}
+                size={glassSize}
+              >
+                Glass Button
+              </Button>
+              <IconButton
+                icon="Search"
+                variant="glass"
+                color={glassColor}
+                vibrancy={glassVibrancy}
+                glassOpacity={glassOpacity}
+                specularMode={glassSpecular}
+                size={glassSize}
+              />
+            </GlassButtonCard>
+          </div>
+        ) : (
+          <GlassButtonCard
+            label={`${glassColor} · ${opacityLabel(glassOpacity)} · ${specularLabel(glassSpecular)} · ${glassVibrancy}`}
+          >
+            <Button
+              variant="glass"
+              color={glassColor}
+              vibrancy={glassVibrancy}
+              glassOpacity={glassOpacity}
+              specularMode={glassSpecular}
+              size={glassSize}
+            >
+              Glass Button
+            </Button>
+            <IconButton
+              icon="Search"
+              variant="glass"
+              color={glassColor}
+              vibrancy={glassVibrancy}
+              glassOpacity={glassOpacity}
+              specularMode={glassSpecular}
+              size={glassSize}
+            />
+          </GlassButtonCard>
+        )
       }
     />
     <GlassButtonCard label="States">

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { Button, IconButton } from "@cjlapao/ui-kit-vue";
+import { ref, computed } from "vue";
+import { Button, IconButton, useTheme } from "@cjlapao/ui-kit-vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import type {
   GlassVibrancy,
   GlassOpacity,
   SpecularMode,
 } from "@cjlapao/ui-kit-vue";
+import backdropLight from "@assets/images/backdrop_demo_light.png";
+import backdropDark from "@assets/images/backdrop_demo_dark.png";
 
 const COLORS = ["blue", "brand", "red", "green", "purple"] as const;
 const SPECULAR_MODES: SpecularMode[] = ["classic", "halo", "none"];
@@ -20,6 +22,14 @@ const glassVibrancy = ref<GlassVibrancy>("medium");
 const glassOpacity = ref<GlassOpacity>("frosted");
 const glassSpecular = ref<SpecularMode>("none");
 const glassSize = ref<"xs" | "sm" | "md" | "lg" | "xl">("md");
+const showBg = ref(false);
+const { effectiveTheme } = useTheme();
+
+const bgStyle = computed(() => ({
+  backgroundImage: `url(${
+    effectiveTheme.value === "dark" ? backdropDark : backdropLight
+  })`,
+}));
 
 const opacityLabel = (o: GlassOpacity): string =>
   typeof o === "number" ? `${Math.round(o * 100)}%` : o;
@@ -146,11 +156,54 @@ const specularLabel = (m: SpecularMode): string =>
               </button>
             </div>
           </div>
+          <div class="flex items-end">
+            <label class="flex items-center gap-2">
+              <Toggle size="sm" v-model="showBg" />
+              <span class="text-xs font-medium text-neutral-600 dark:text-neutral-200">
+                Background image
+              </span>
+            </label>
+          </div>
         </div>
       </div>
     </template>
     <template #preview>
       <div
+        v-if="showBg"
+        class="relative min-h-[200px] overflow-hidden rounded-2xl bg-cover bg-center bg-no-repeat"
+        :style="bgStyle"
+      >
+        <div
+          class="flex min-h-[48px] flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-4 dark:border-slate-600 dark:bg-slate-800/50"
+        >
+          <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
+            {{ `${glassColor} · ${opacityLabel(glassOpacity)} · ${specularLabel(glassSpecular)} · ${glassVibrancy}` }}
+          </span>
+          <div class="flex min-h-[48px] items-center justify-center gap-3">
+            <Button
+              variant="glass"
+              :color="glassColor"
+              :vibrancy="glassVibrancy"
+              :glass-opacity="glassOpacity"
+              :specular-mode="glassSpecular"
+              :size="glassSize"
+            >
+              Glass Button
+            </Button>
+            <IconButton
+              icon="Search"
+              variant="glass"
+              :color="glassColor"
+              :vibrancy="glassVibrancy"
+              :glass-opacity="glassOpacity"
+              :specular-mode="glassSpecular"
+              :size="glassSize"
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        v-else
         class="flex min-h-[48px] flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-4 dark:border-slate-600 dark:bg-slate-800/50"
       >
         <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
