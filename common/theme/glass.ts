@@ -76,24 +76,24 @@ export const getGlassFillClass = (
 ): string => {
   const litOpacity: number = (() => {
     if (typeof opacity === "number") return Math.round(opacity * 100);
-    if (opacity === "frosted") return 45;
-    if (opacity === "light") return 70;
-    if (opacity === "clear") return 20;
-    return 45; // fallback
+    if (opacity === "frosted") return 55;
+    if (opacity === "light") return 75;
+    if (opacity === "clear") return 30;
+    return 55; // fallback
   })();
 
   const drkOpacity: number = (() => {
     if (typeof opacity === "number")
       return Math.min(Math.round(opacity * 30), 30);
-    if (opacity === "frosted") return 15;
-    if (opacity === "light") return 25;
-    if (opacity === "clear") return 5;
-    return 15; // fallback
+    if (opacity === "frosted") return 25;
+    if (opacity === "light") return 35;
+    if (opacity === "clear") return 10;
+    return 25; // fallback
   })();
 
   const base = resolveColor(color);
 
-  return `bg-${base}-50/${litOpacity} dark:bg-${base}-500/${drkOpacity}`;
+  return `bg-${base}-100/${litOpacity} dark:bg-${base}-600/${drkOpacity}`;
 };
 
 // ---------------------------------------------------------------------------
