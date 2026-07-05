@@ -217,18 +217,18 @@ const colorClasses = computed(() => {
 });
 
 const computedClassName = computed(() =>
-  classNames(
-    baseClasses,
-    sizeConfig.value.gap,
-    isIconMode.value ? sizeConfig.value.iconOnly : sizeConfig.value.base,
-    accentClasses.value ?? colorClasses.value,
-    weightClasses[props.weight],
-    props.fullWidth && "w-full",
-    isGlass.value && "relative",
-    glassClasses.value,
-    classAttr.value,
-  ),
-);
+   classNames(
+     baseClasses,
+     sizeConfig.value.gap,
+     isIconMode.value ? sizeConfig.value.iconOnly : sizeConfig.value.base,
+     isGlass.value ? (accentClasses.value ?? "") : (accentClasses.value ?? colorClasses.value),
+     weightClasses[props.weight],
+     props.fullWidth && "w-full",
+     isGlass.value && "relative",
+     glassClasses.value,
+     classAttr.value,
+   ),
+ );
 
 const spinnerClass = computed(() =>
   classNames(

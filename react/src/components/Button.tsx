@@ -214,10 +214,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       baseClasses,
       sizeConfig.gap,
       isIconMode ? sizeConfig.iconOnly : sizeConfig.base,
-      accentClasses ?? colorClasses,
+      isGlass ? accentClasses : (accentClasses ?? colorClasses),
       weightClasses[weight],
       fullWidth && "w-full",
-      glass && "relative",
+      isGlass && "relative",
       glassClasses,
       className,
     );
