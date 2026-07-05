@@ -205,6 +205,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
 
     const toggle = (
       <label
+        data-glass={glass}
         className={classNames(
           "group flex select-none items-center",
           alignLabel === "left" ? "flex-row-reverse" : "flex-row",
@@ -265,7 +266,13 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
           />
 
           {glassSpecularClass && (
-            <span className={glassSpecularClass} />
+            <div
+              aria-hidden="true"
+              className={classNames(
+                "pointer-events-none absolute inset-0 rounded-full",
+                glassSpecularClass,
+              )}
+            />
           )}
 
           {iconOff && (

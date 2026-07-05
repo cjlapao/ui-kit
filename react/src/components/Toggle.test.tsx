@@ -271,4 +271,84 @@ describe("Toggle — glass props", () => {
     const mode: SpecularMode = "classic";
     render(<Toggle label="Test" glass specularMode={mode} />);
   });
+
+  describe("specular overlay (T3)", () => {
+    it("renders specular overlay div when glass=true and specularMode='classic'", () => {
+      const { container } = render(
+        <Toggle label="Test" glass specularMode="classic" />,
+      );
+      const overlay = container.querySelector(
+        'div.pointer-events-none.absolute.inset-0.rounded-full',
+      );
+      expect(overlay).not.toBeNull();
+      expect(overlay!.getAttribute("aria-hidden")).toBe("true");
+      expect(overlay!.className).toContain("bg-gradient-to-r");
+    });
+
+    it("renders specular overlay div when glass=true and specularMode='halo'", () => {
+      const { container } = render(
+        <Toggle label="Test" glass specularMode="halo" />,
+      );
+      const overlay = container.querySelector(
+        'div.pointer-events-none.absolute.inset-0.rounded-full',
+      );
+      expect(overlay).not.toBeNull();
+      expect(overlay!.getAttribute("aria-hidden")).toBe("true");
+      expect(overlay!.className).toContain("rounded-tl-[inherit]");
+    });
+
+    it('does not render specular overlay when specularMode="none"', () => {
+      const { container } = render(
+        <Toggle label="Test" glass specularMode="none" />,
+      );
+      const overlay = container.querySelector(
+        'div.pointer-events-none.absolute.inset-0.rounded-full',
+      );
+      expect(overlay).toBeNull();
+    });
+
+    it("does not render specular overlay when glass=false", () => {
+      const { container } = render(
+        <Toggle label="Test" glass={false} specularMode="classic" />,
+      );
+      const overlay = container.querySelector(
+        'div.pointer-events-none.absolute.inset-0.rounded-full',
+      );
+      expect(overlay).toBeNull();
+    });
+
+    it("overlay div has correct positioning classes", () => {
+      const { container } = render(
+        <Toggle label="Test" glass specularMode="classic" />,
+      );
+      const overlay = container.querySelector(
+        'div.pointer-events-none.absolute.inset-0.rounded-full',
+      );
+      expect(overlay).not.toBeNull();
+      expect(overlay!.className).toContain("pointer-events-none");
+      expect(overlay!.className).toContain("absolute");
+      expect(overlay!.className).toContain("inset-0");
+      expect(overlay!.className).toContain("rounded-full");
+    });
+  });
+
+  describe("data-glass attribute (T3)", () => {
+    it('label has data-glass="true" when glass=true', () => {
+      const { container } = render(<Toggle label="Test" glass />);
+      const label = container.querySelector("label[data-glass='true']");
+      expect(label).not.toBeNull();
+    });
+
+    it('label has data-glass="false" when glass=false', () => {
+      const { container } = render(<Toggle label="Test" glass={false} />);
+      const label = container.querySelector("label[data-glass='false']");
+      expect(label).not.toBeNull();
+    });
+
+    it('label has data-glass="false" by default', () => {
+      const { container } = render(<Toggle label="Test" />);
+      const label = container.querySelector("label[data-glass='false']");
+      expect(label).not.toBeNull();
+    });
+  });
 });
