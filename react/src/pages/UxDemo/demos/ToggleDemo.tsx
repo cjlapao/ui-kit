@@ -1,7 +1,13 @@
 // @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Toggle, MultiToggle } from "../../..";
+import {
+  Toggle,
+  MultiToggle,
+  type GlassVibrancy,
+  type GlassOpacity,
+  type SpecularMode,
+} from "../../..";
 import { ThemeColor } from "../../..";
 import { ToggleSize, ToggleAlign, ToggleDescriptionPlacement } from "../../..";
 import {
@@ -23,6 +29,12 @@ export const ToggleDemo: React.FC = () => {
   const [toggleDisabled, setToggleDisabled] = useState<boolean>(false);
   const [toggleDescriptionPlacement, setToggleDescriptionPlacement] =
     useState<ToggleDescriptionPlacement>("stacked");
+
+  // Glass state
+  const [glass, setGlass] = useState<boolean>(false);
+  const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
+  const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("frosted");
+  const [specularMode, setSpecularMode] = useState<SpecularMode>("none");
 
   const toggleBooleanOptions = [
     { label: "Show label", value: toggleLabel, setter: setToggleLabel },
@@ -110,6 +122,75 @@ export const ToggleDemo: React.FC = () => {
               </label>
             ))}
           </div>
+
+          {/* Glass section */}
+          <div className="space-y-2">
+            <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+              Glass
+            </span>
+            <div className="grid gap-2 text-sm md:grid-cols-2">
+              <label className="flex items-center justify-between">
+                <span>Enabled</span>
+                <Toggle
+                  size="sm"
+                  checked={glass}
+                  onChange={(event) => setGlass(event.target.checked)}
+                />
+              </label>
+            </div>
+            {glass && (
+              <div className="space-y-3 pt-2">
+                <label className="flex flex-col gap-2 text-sm">
+                  <span>Vibrancy</span>
+                  <MultiToggle
+                    fullWidth
+                    options={[
+                      { label: "Low", value: "low" },
+                      { label: "Medium", value: "medium" },
+                      { label: "High", value: "high" },
+                    ]}
+                    value={vibrancy}
+                    size="sm"
+                    onChange={(value) =>
+                      setVibrancy(value as GlassVibrancy)
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-sm">
+                  <span>Glass Opacity</span>
+                  <MultiToggle
+                    fullWidth
+                    options={[
+                      { label: "Frosted", value: "frosted" },
+                      { label: "Light", value: "light" },
+                      { label: "Clear", value: "clear" },
+                    ]}
+                    value={glassOpacity}
+                    size="sm"
+                    onChange={(value) =>
+                      setGlassOpacity(value as GlassOpacity)
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-sm">
+                  <span>Specular Mode</span>
+                  <MultiToggle
+                    fullWidth
+                    options={[
+                      { label: "None", value: "none" },
+                      { label: "Classic", value: "classic" },
+                      { label: "Halo", value: "halo" },
+                    ]}
+                    value={specularMode}
+                    size="sm"
+                    onChange={(value) =>
+                      setSpecularMode(value as SpecularMode)
+                    }
+                  />
+                </label>
+              </div>
+            )}
+          </div>
         </div>
       }
       preview={
@@ -129,6 +210,10 @@ export const ToggleDemo: React.FC = () => {
           fullWidth={toggleFullWidth}
           iconOn={toggleCustomIcons ? "Send" : undefined}
           iconOff={toggleCustomIcons ? "Close" : undefined}
+          glass={glass}
+          vibrancy={vibrancy}
+          glassOpacity={glassOpacity}
+          specularMode={specularMode}
           onChange={(value) => setToggleChecked(value.target.checked)}
         />
       }
