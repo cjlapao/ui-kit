@@ -65,7 +65,7 @@ export const resolveColor = (color: string): string => {
 /**
  * Compute the Tailwind fill classes for a glass surface.
  *
- * Returns a string like `"bg-blue-50/45 dark:bg-blue-500/15"`.
+ * Returns a string like `"bg-blue-100/55 hover:bg-blue-100/65 dark:bg-blue-600/25 dark:hover:bg-blue-600/35"`.
  *
  * @param color   - ThemeColour token (e.g. `"blue"`, `"brand"`, `"success"`)
  * @param opacity - Glass opacity preset or numeric fraction (0–1)
@@ -93,7 +93,7 @@ export const getGlassFillClass = (
 
   const base = resolveColor(color);
 
-  return `bg-${base}-100/${litOpacity} dark:bg-${base}-600/${drkOpacity}`;
+  return `bg-${base}-100/${litOpacity} hover:bg-${base}-100/${litOpacity + 10} dark:bg-${base}-600/${drkOpacity} dark:hover:bg-${base}-600/${drkOpacity + 10}`;
 };
 
 // ---------------------------------------------------------------------------
