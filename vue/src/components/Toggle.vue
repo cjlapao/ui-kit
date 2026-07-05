@@ -2,6 +2,7 @@
 import type { VNode } from "vue";
 import type { ThemeColor } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
+import type { GlassVibrancy, GlassOpacity, SpecularMode } from "../../../common/theme/glass";
 
 export type ToggleSize = "sm" | "md" | "lg";
 export type ToggleAlign = "left" | "right";
@@ -37,6 +38,14 @@ export interface ToggleProps {
   tooltip?: string;
   /** Position of the tooltip relative to the toggle. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
+  /** Backdrop vibrancy level for glass surfaces. */
+  vibrancy?: GlassVibrancy;
+  /** Glass fill transparency level for glass surfaces. */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for glass surfaces. */
+  specularMode?: SpecularMode;
 }
 
 const sizeTokens: Record<
@@ -95,6 +104,11 @@ import { useIconRenderer } from "../contexts/IconContext";
 import { useClassAttrs } from "../utils/attrsUtils";
 import TooltipWrapper from "./TooltipWrapper.vue";
 import VNodeRenderer from "./internal/VNodeRenderer";
+import {
+  getGlassFillClass as _getGlassFillClass,
+  getGlassVibrancyClass as _getGlassVibrancyClass,
+  getSpecularClasses as _getSpecularClasses,
+} from "../../../common/theme/glass";
 
 defineOptions({ name: "Toggle", inheritAttrs: false });
 
@@ -107,6 +121,10 @@ const props = withDefaults(defineProps<ToggleProps>(), {
   fullWidth: false,
   disabled: false,
   readonly: false,
+  glass: false,
+  vibrancy: "medium",
+  glassOpacity: "frosted",
+  specularMode: "none",
 });
 
 const emit = defineEmits<{
