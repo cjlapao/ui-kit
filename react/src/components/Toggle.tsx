@@ -8,6 +8,14 @@ import {
 } from "react";
 import classNames from "classnames";
 import { type ThemeColor, getToggleColorClasses } from "../theme/Theme";
+import {
+  getGlassFillClass,
+  getGlassVibrancyClass,
+  getSpecularClasses,
+  type GlassVibrancy,
+  type GlassOpacity,
+  type SpecularMode,
+} from "../../../common/theme/glass";
 import { useIconRenderer } from "../contexts/IconContext";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
@@ -46,6 +54,14 @@ export interface ToggleProps
   tooltip?: string;
   /** Position of the tooltip relative to the toggle. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
+  /** Backdrop vibrancy level for glass surfaces. */
+  vibrancy?: GlassVibrancy;
+  /** Glass fill transparency level for glass surfaces. */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for glass surfaces. */
+  specularMode?: SpecularMode;
 }
 
 const sizeTokens: Record<
@@ -114,6 +130,10 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
       onChange,
       tooltip,
       tooltipPosition,
+      glass = false,
+      vibrancy = "medium",
+      glassOpacity = "frosted",
+      specularMode = "none",
       ...inputProps
     },
     forwardedRef,
@@ -138,6 +158,13 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
 
     const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
     const colorStyles = getToggleColorClasses(color);
+
+    // Glass utility values (T2/T3 will compose these into the track element)
+    const glassFillClass = glass ? getGlassFillClass(color, glassOpacity) : "";
+    const glassVibrancyClass = glass ? getGlassVibrancyClass(vibrancy) : "";
+    const glassSpecularClass = glass
+      ? getSpecularClasses(specularMode)
+      : null;
 
     const labelBlock =
       label || description ? (
@@ -229,9 +256,15 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
               "block rounded-full border border-transparent bg-neutral-200 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 dark:bg-neutral-600",
               sizeStyles.track,
               colorStyles,
+              glassFillClass,
+              glassVibrancyClass,
               disabled && "opacity-70 peer-checked:opacity-70 dark:opacity-50",
             )}
           />
+
+          {glassSpecularClass && (
+            <span className={glassSpecularClass} />
+          )}
 
           {iconOff && (
             <span
