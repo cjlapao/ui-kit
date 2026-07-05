@@ -155,3 +155,173 @@ describe("Toggle — glass props", () => {
     }
   });
 });
+
+describe("Toggle — glass class composition", () => {
+  it("glass=true track includes backdrop-blur-sm", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, color: "blue", glassOpacity: "frosted", vibrancy: "medium" },
+    });
+    const track = wrapper.find("span[aria-hidden='true']");
+    expect(track.classes()).toContain("backdrop-blur-sm");
+  });
+
+  it("glass=true track includes glass fill class from color+opacity", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, color: "blue", glassOpacity: "frosted", vibrancy: "medium" },
+    });
+    const track = wrapper.find("span[aria-hidden='true']");
+    expect(track.classes()).toContain("bg-blue-100/55");
+  });
+
+  it("glass=true track includes glass fill class with hover and dark variants", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, color: "blue", glassOpacity: "frosted", vibrancy: "medium" },
+    });
+    const track = wrapper.find("span[aria-hidden='true']");
+    expect(track.classes()).toContain("hover:bg-blue-100/65");
+    expect(track.classes()).toContain("dark:bg-blue-600/25");
+    expect(track.classes()).toContain("dark:hover:bg-blue-600/35");
+  });
+
+  it("glass=true track includes vibrancy class", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, color: "success", glassOpacity: "light", vibrancy: "high" },
+    });
+    const track = wrapper.find("span[aria-hidden='true']");
+    expect(track.classes()).toContain("backdrop-saturate-[1.4]");
+  });
+
+  it("glass=false track preserves peer-checked color styles (no glass classes)", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: false, color: "blue" },
+    });
+    const track = wrapper.find("span[aria-hidden='true']");
+    expect(track.classes()).toContain("peer-checked:bg-blue-500");
+    expect(track.classes()).not.toContain("backdrop-blur-sm");
+  });
+
+  it("glass=false track has no glass fill or vibrancy classes", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: false, color: "rose", glassOpacity: "frosted", vibrancy: "high" },
+    });
+    const track = wrapper.find("span[aria-hidden='true']");
+    expect(track.classes()).not.toContain("bg-rose-100/55");
+    expect(track.classes()).not.toContain("backdrop-saturate");
+  });
+
+  it("glass=true track retains base classes (rounded-full, border, transition, peer-focus)", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, color: "blue" },
+    });
+    const track = wrapper.find("span[aria-hidden='true']");
+    expect(track.classes()).toContain("rounded-full");
+    expect(track.classes()).toContain("border-transparent");
+    expect(track.classes()).toContain("transition-colors");
+    expect(track.classes()).toContain("peer-focus:ring-2");
+    expect(track.classes()).toContain("peer-focus:ring-offset-2");
+  });
+
+  it("glass=true track has bg-neutral-200 base for light mode", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, color: "brand" },
+    });
+    const track = wrapper.find("span[aria-hidden='true']");
+    expect(track.classes()).toContain("bg-neutral-200");
+  });
+});
+
+describe("Toggle — specular overlay", () => {
+  it("specular overlay div renders when glass=true and specularMode='classic'", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, specularMode: "classic", color: "blue" },
+    });
+    const overlays = wrapper.findAll("div[aria-hidden='true']");
+    expect(overlays.length).toBeGreaterThan(0);
+    expect(overlays[0].classes()).toContain("pointer-events-none");
+    expect(overlays[0].classes()).toContain("bg-gradient-to-r");
+  });
+
+  it("specular overlay div renders when glass=true and specularMode='halo'", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, specularMode: "halo", color: "blue" },
+    });
+    const overlays = wrapper.findAll("div[aria-hidden='true']");
+    expect(overlays.length).toBeGreaterThan(0);
+    expect(overlays[0].classes()).toContain("pointer-events-none");
+  });
+
+  it("no specular overlay when specularMode='none'", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, specularMode: "none", color: "blue" },
+    });
+    const overlays = wrapper.findAll("div[aria-hidden='true']");
+    expect(overlays.length).toBe(0);
+  });
+
+  it("no specular overlay when glass=false regardless of specularMode", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: false, specularMode: "classic", color: "blue" },
+    });
+    const overlays = wrapper.findAll("div[aria-hidden='true']");
+    expect(overlays.length).toBe(0);
+  });
+
+  it("specular overlay renders with tooltip wrapper when glass=true", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, specularMode: "classic", tooltip: "Tip", color: "blue" },
+    });
+    const overlays = wrapper.findAll("div[aria-hidden='true']");
+    // Specular overlay div renders inside the track wrapper (same as non-tooltip branch)
+    expect(overlays.length).toBeGreaterThan(0);
+    expect(overlays[0].classes()).toContain("pointer-events-none");
+  });
+
+  it("specular overlay has correct sizing classes for classic mode", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, specularMode: "classic", color: "indigo" },
+    });
+    const overlays = wrapper.findAll("div[aria-hidden='true']");
+    expect(overlays.length).toBeGreaterThan(0);
+    expect(overlays[0].classes()).toContain("absolute");
+    expect(overlays[0].classes()).toContain("inset-x-0");
+    expect(overlays[0].classes()).toContain("top-0");
+    expect(overlays[0].classes()).toContain("h-px");
+    expect(overlays[0].classes()).toContain("rounded-t-[inherit]");
+  });
+});
+
+describe("Toggle — data-glass attribute", () => {
+  it("data-glass='true' on label when glass=true (no tooltip)", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, color: "blue" },
+    });
+    const label = wrapper.get("label");
+    expect(label.attributes("data-glass")).toBe("true");
+  });
+
+  it("data-glass='false' on label when glass=false (no tooltip)", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: false, color: "blue" },
+    });
+    const label = wrapper.get("label");
+    expect(label.attributes("data-glass")).toBe("false");
+  });
+
+  it("data-glass attribute present in tooltip branch when glass=true", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: true, tooltip: "Tip", color: "blue" },
+    });
+    const label = wrapper.find("label");
+    expect(label.exists()).toBe(true);
+    expect(label.attributes("data-glass")).toBe("true");
+  });
+
+  it("data-glass attribute present in tooltip branch when glass=false", () => {
+    const wrapper = mount(Toggle, {
+      props: { label: "Test", glass: false, tooltip: "Tip", color: "blue" },
+    });
+    const label = wrapper.find("label");
+    expect(label.exists()).toBe(true);
+    expect(label.attributes("data-glass")).toBe("false");
+  });
+});

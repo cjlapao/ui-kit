@@ -10,7 +10,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      include: ["src/components/Button.vue", "src/components/IconButton.vue"],
+      include: ["src/components/Button.vue", "src/components/IconButton.vue", "src/components/Toggle.vue"],
       exclude: [
         "src/components/Button.test.ts",
         "src/components/IconButton.test.ts",
