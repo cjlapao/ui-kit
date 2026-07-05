@@ -15,12 +15,21 @@ import {
   type ThemeColor,
   type ButtonVariant,
 } from "../theme/Theme";
+import {
+  getGlassFillClass,
+  getGlassVibrancyClass,
+  getSpecularClasses,
+  type GlassVibrancy,
+  type GlassOpacity,
+  type SpecularMode,
+} from "../../../common/theme/glass";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
 
 export type ButtonColor = ThemeColor;
 export type { ButtonVariant };
+export type { GlassVibrancy, GlassOpacity, SpecularMode };
 
 export type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
 export type ButtonWeight = "normal" | "medium" | "semibold" | "bold";
@@ -39,6 +48,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   accentColor?: ThemeColor;
   /** When true, renders in a persistent lighter "on" state with hover suppressed. accentColor overrides the active color. */
   active?: boolean;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
+  /** Backdrop vibrancy level for glass surfaces. */
+  vibrancy?: GlassVibrancy;
+  /** Glass fill transparency level for glass surfaces. */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for glass surfaces. */
+  specularMode?: SpecularMode;
   className?: string;
   children?: ReactNode;
   /** When set, a styled tooltip is shown on hover. */
@@ -113,6 +130,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       accent = false,
       accentColor,
       active = false,
+      glass = false,
+      vibrancy = "medium",
+      glassOpacity = "frosted",
+      specularMode = "none",
       className,
       children,
       disabled,
@@ -162,13 +183,42 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       return baseColorClasses;
     })();
 
+    // Glass styling — variant="glass" auto-enables glass; glass prop overrides
+    const isGlass = variant === "glass" || glass;
+    const glassClasses = isGlass
+      ? classNames(
+          "backdrop-blur-sm",
+          getGlassFillClass(color, glassOpacity),
+          getGlassVibrancyClass(vibrancy),
+        )
+      : null;
+
+    const resolvedSpecularMode = isGlass ? specularMode : "none";
+    const specularOverlay =
+      resolvedSpecularMode !== "none"
+        ? (() => {
+            const specClasses = getSpecularClasses(resolvedSpecularMode);
+            return specClasses ? (
+              <div
+                className={classNames(
+                  "pointer-events-none absolute inset-0 rounded-[inherit]",
+                  specClasses,
+                )}
+                aria-hidden="true"
+              />
+            ) : null;
+          })()
+        : null;
+
     const computedClassName = classNames(
       baseClasses,
       sizeConfig.gap,
       isIconMode ? sizeConfig.iconOnly : sizeConfig.base,
-      accentClasses ?? colorClasses,
+      isGlass ? accentClasses : (accentClasses ?? colorClasses),
       weightClasses[weight],
       fullWidth && "w-full",
+      isGlass && "relative",
+      glassClasses,
       className,
     );
 
@@ -203,10 +253,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         data-variant={variant}
         data-color={color}
         data-size={size}
+        data-glass={glass}
         aria-busy={loading || undefined}
         onClick={handleClick}
         {...props}
       >
+        {specularOverlay}
         {loading
           ? spinner
           : renderIcon(

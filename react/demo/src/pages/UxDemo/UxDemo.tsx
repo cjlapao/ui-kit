@@ -43,6 +43,7 @@ import { BadgeDemo } from "./demos/BadgeDemo";
 import { AccessMatrixDemo } from "./demos/AccessMatrixDemo";
 import { TimelinePanelDemo } from "./demos/TimelinePanelDemo";
 import { GlassBackgroundDemo } from "./demos/GlassBackgroundDemo";
+import { GlassButtonDemo } from "./demos/GlassButtonDemo";
 
 export const UxDemo: React.FC = () => {
   const [sectionSearch, setSectionSearch] = useState("");
@@ -55,6 +56,11 @@ export const UxDemo: React.FC = () => {
         id: "sections-glass-background",
         title: "Glass Background",
         render: () => <GlassBackgroundDemo />,
+      },
+      {
+        id: "sections-glass-buttons",
+        title: "Glass Buttons",
+        render: () => <GlassButtonDemo />,
       },
       {
         id: "sections-badge-icon",

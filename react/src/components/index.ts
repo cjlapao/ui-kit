@@ -51,6 +51,7 @@ export {
   type ButtonColor,
   type ButtonSize,
 } from "./Button";
+export type { GlassVibrancy, GlassOpacity, SpecularMode } from "../theme/glass";
 export { default as IconButton, type IconButtonProps } from "./IconButton";
 export {
   default as DropdownButton,
