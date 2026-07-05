@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { Button, IconButton, useTheme } from "@cjlapao/ui-kit";
+import { Button, IconButton, Toggle, useTheme } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
 import {
   GlassVibrancy,

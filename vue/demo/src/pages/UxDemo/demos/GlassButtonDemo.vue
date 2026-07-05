@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Button, IconButton, useTheme } from "@cjlapao/ui-kit-vue";
+import { Button, IconButton, Toggle, useTheme } from "@cjlapao/ui-kit-vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import type {
   GlassVibrancy,
