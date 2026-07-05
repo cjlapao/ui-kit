@@ -184,11 +184,26 @@ const inputClass = computed(() =>
 
 const trackClass = computed(() =>
   classNames(
-    "block rounded-full border border-transparent bg-neutral-200 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 dark:bg-neutral-600",
+    "block rounded-full border border-transparent transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
     sizeStyles.value.track,
-    colorStyles.value,
+    props.glass
+      ? classNames(
+          "bg-neutral-200 backdrop-blur-sm",
+          _getGlassFillClass(props.color, props.glassOpacity),
+          _getGlassVibrancyClass(props.vibrancy),
+          "dark:bg-neutral-600",
+        )
+      : colorStyles.value,
     props.disabled && "opacity-70 peer-checked:opacity-70 dark:opacity-50",
   ),
+);
+
+const effectiveSpecularMode = computed(() =>
+  props.glass ? props.specularMode : "none",
+);
+
+const specularOverlayClasses = computed(() =>
+  _getSpecularClasses(effectiveSpecularMode.value),
 );
 
 const iconOffClass = computed(() =>
@@ -267,7 +282,11 @@ const handleChange = (e: Event) => {
 
 <template>
   <TooltipWrapper v-if="tooltip" :text="tooltip" :position="tooltipPosition">
-    <label :class="rootClass" @click="handleLabelClick">
+    <label
+      :data-glass="glass"
+      :class="rootClass"
+      @click="handleLabelClick"
+    >
       <span class="relative inline-flex shrink-0">
         <input
           :id="toggleId"
@@ -285,6 +304,12 @@ const handleChange = (e: Event) => {
         />
 
         <span aria-hidden="true" :class="trackClass" />
+
+        <div
+          v-if="glass && specularOverlayClasses"
+          aria-hidden="true"
+          :class="specularOverlayClasses"
+        />
 
         <span v-if="iconOff" :class="iconOffClass">
           <VNodeRenderer :nodes="renderIcon(iconOff, 'sm')" />
@@ -310,7 +335,12 @@ const handleChange = (e: Event) => {
       </span>
     </label>
   </TooltipWrapper>
-  <label v-else :class="rootClass" @click="handleLabelClick">
+  <label
+    v-else
+    :data-glass="glass"
+    :class="rootClass"
+    @click="handleLabelClick"
+  >
     <span class="relative inline-flex shrink-0">
       <input
         :id="toggleId"
@@ -328,6 +358,12 @@ const handleChange = (e: Event) => {
       />
 
       <span aria-hidden="true" :class="trackClass" />
+
+      <div
+        v-if="glass && specularOverlayClasses"
+        aria-hidden="true"
+        :class="specularOverlayClasses"
+      />
 
       <span v-if="iconOff" :class="iconOffClass">
         <VNodeRenderer :nodes="renderIcon(iconOff, 'sm')" />
