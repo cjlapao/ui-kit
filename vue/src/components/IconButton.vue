@@ -170,17 +170,17 @@ const spinnerColorToken = computed<SpinnerColor>(
 );
 
 const computedClassName = computed(() =>
-  classNames(
-    baseClasses,
-    dimensionClass.value,
-    roundedMap[props.rounded] ?? roundedMap.full,
-    accentClasses.value ?? baseColorClasses.value,
-    nonAccentHover.value,
-    isGlass.value && "relative",
-    glassClasses.value,
-    classAttr.value,
-  ),
-);
+   classNames(
+     baseClasses,
+     dimensionClass.value,
+     roundedMap[props.rounded] ?? roundedMap.full,
+     isGlass.value ? (accentClasses.value ?? "") : (accentClasses.value ?? baseColorClasses.value),
+     nonAccentHover.value,
+     isGlass.value && "relative",
+     glassClasses.value,
+     classAttr.value,
+   ),
+ );
 
 const iconContent = computed(() =>
   renderIcon(

@@ -161,9 +161,9 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       baseClasses,
       dimensionClass,
       roundedMap[rounded] ?? roundedMap.full,
-      accentClasses ?? baseColorClasses,
+      isGlass ? (accentClasses ?? "") : (accentClasses ?? baseColorClasses),
       nonAccentHover,
-      glass && "relative",
+      isGlass && "relative",
       glassClasses,
       className,
     );
