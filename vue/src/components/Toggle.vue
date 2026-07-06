@@ -2,6 +2,7 @@
 import type { VNode } from "vue";
 import type { ThemeColor } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
+import type { GlassVibrancy, GlassOpacity, SpecularMode } from "../../../common/theme/glass";
 
 export type ToggleSize = "sm" | "md" | "lg";
 export type ToggleAlign = "left" | "right";
@@ -37,6 +38,14 @@ export interface ToggleProps {
   tooltip?: string;
   /** Position of the tooltip relative to the toggle. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
+  /** Backdrop vibrancy level for glass surfaces. */
+  vibrancy?: GlassVibrancy;
+  /** Glass fill transparency level for glass surfaces. */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for glass surfaces. */
+  specularMode?: SpecularMode;
 }
 
 const sizeTokens: Record<
@@ -95,6 +104,11 @@ import { useIconRenderer } from "../contexts/IconContext";
 import { useClassAttrs } from "../utils/attrsUtils";
 import TooltipWrapper from "./TooltipWrapper.vue";
 import VNodeRenderer from "./internal/VNodeRenderer";
+import {
+  getGlassFillClass as _getGlassFillClass,
+  getGlassVibrancyClass as _getGlassVibrancyClass,
+  getSpecularClasses as _getSpecularClasses,
+} from "../../../common/theme/glass";
 
 defineOptions({ name: "Toggle", inheritAttrs: false });
 
@@ -107,6 +121,10 @@ const props = withDefaults(defineProps<ToggleProps>(), {
   fullWidth: false,
   disabled: false,
   readonly: false,
+  glass: false,
+  vibrancy: "medium",
+  glassOpacity: "frosted",
+  specularMode: "none",
 });
 
 const emit = defineEmits<{
@@ -166,11 +184,26 @@ const inputClass = computed(() =>
 
 const trackClass = computed(() =>
   classNames(
-    "block rounded-full border border-transparent bg-neutral-200 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 dark:bg-neutral-600",
+    "block rounded-full border border-transparent transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
     sizeStyles.value.track,
-    colorStyles.value,
+    props.glass
+      ? classNames(
+          "bg-neutral-200 backdrop-blur-sm",
+          _getGlassFillClass(props.color, props.glassOpacity),
+          _getGlassVibrancyClass(props.vibrancy),
+          "dark:bg-neutral-600",
+        )
+      : colorStyles.value,
     props.disabled && "opacity-70 peer-checked:opacity-70 dark:opacity-50",
   ),
+);
+
+const effectiveSpecularMode = computed(() =>
+  props.glass ? props.specularMode : "none",
+);
+
+const specularOverlayClasses = computed(() =>
+  _getSpecularClasses(effectiveSpecularMode.value),
 );
 
 const iconOffClass = computed(() =>
@@ -249,7 +282,11 @@ const handleChange = (e: Event) => {
 
 <template>
   <TooltipWrapper v-if="tooltip" :text="tooltip" :position="tooltipPosition">
-    <label :class="rootClass" @click="handleLabelClick">
+    <label
+      :data-glass="glass"
+      :class="rootClass"
+      @click="handleLabelClick"
+    >
       <span class="relative inline-flex shrink-0">
         <input
           :id="toggleId"
@@ -267,6 +304,12 @@ const handleChange = (e: Event) => {
         />
 
         <span aria-hidden="true" :class="trackClass" />
+
+        <div
+          v-if="glass && specularOverlayClasses"
+          aria-hidden="true"
+          :class="specularOverlayClasses"
+        />
 
         <span v-if="iconOff" :class="iconOffClass">
           <VNodeRenderer :nodes="renderIcon(iconOff, 'sm')" />
@@ -292,7 +335,12 @@ const handleChange = (e: Event) => {
       </span>
     </label>
   </TooltipWrapper>
-  <label v-else :class="rootClass" @click="handleLabelClick">
+  <label
+    v-else
+    :data-glass="glass"
+    :class="rootClass"
+    @click="handleLabelClick"
+  >
     <span class="relative inline-flex shrink-0">
       <input
         :id="toggleId"
@@ -310,6 +358,12 @@ const handleChange = (e: Event) => {
       />
 
       <span aria-hidden="true" :class="trackClass" />
+
+      <div
+        v-if="glass && specularOverlayClasses"
+        aria-hidden="true"
+        :class="specularOverlayClasses"
+      />
 
       <span v-if="iconOff" :class="iconOffClass">
         <VNodeRenderer :nodes="renderIcon(iconOff, 'sm')" />

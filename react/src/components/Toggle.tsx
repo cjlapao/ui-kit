@@ -8,6 +8,14 @@ import {
 } from "react";
 import classNames from "classnames";
 import { type ThemeColor, getToggleColorClasses } from "../theme/Theme";
+import {
+  getGlassFillClass,
+  getGlassVibrancyClass,
+  getSpecularClasses,
+  type GlassVibrancy,
+  type GlassOpacity,
+  type SpecularMode,
+} from "../../../common/theme/glass";
 import { useIconRenderer } from "../contexts/IconContext";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
@@ -46,6 +54,14 @@ export interface ToggleProps
   tooltip?: string;
   /** Position of the tooltip relative to the toggle. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
+  /** Backdrop vibrancy level for glass surfaces. */
+  vibrancy?: GlassVibrancy;
+  /** Glass fill transparency level for glass surfaces. */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for glass surfaces. */
+  specularMode?: SpecularMode;
 }
 
 const sizeTokens: Record<
@@ -114,6 +130,10 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
       onChange,
       tooltip,
       tooltipPosition,
+      glass = false,
+      vibrancy = "medium",
+      glassOpacity = "frosted",
+      specularMode = "none",
       ...inputProps
     },
     forwardedRef,
@@ -138,6 +158,10 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
 
     const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
     const colorStyles = getToggleColorClasses(color);
+
+    const glassSpecularClass = glass
+      ? getSpecularClasses(specularMode)
+      : null;
 
     const labelBlock =
       label || description ? (
@@ -181,6 +205,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
 
     const toggle = (
       <label
+        data-glass={glass}
         className={classNames(
           "group flex select-none items-center",
           alignLabel === "left" ? "flex-row-reverse" : "flex-row",
@@ -226,12 +251,29 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
           <span
             aria-hidden="true"
             className={classNames(
-              "block rounded-full border border-transparent bg-neutral-200 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 dark:bg-neutral-600",
+              "block rounded-full border border-transparent transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
               sizeStyles.track,
-              colorStyles,
+              glass
+                ? classNames(
+                    "bg-neutral-200 backdrop-blur-sm",
+                    getGlassFillClass(color, glassOpacity),
+                    getGlassVibrancyClass(vibrancy),
+                    "dark:bg-neutral-600",
+                  )
+                : colorStyles,
               disabled && "opacity-70 peer-checked:opacity-70 dark:opacity-50",
             )}
           />
+
+          {glassSpecularClass && (
+            <div
+              aria-hidden="true"
+              className={classNames(
+                "pointer-events-none absolute inset-0 rounded-full",
+                glassSpecularClass,
+              )}
+            />
+          )}
 
           {iconOff && (
             <span
