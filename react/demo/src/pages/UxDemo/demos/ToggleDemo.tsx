@@ -24,6 +24,12 @@ export const ToggleDemo: React.FC = () => {
   const [toggleDescriptionPlacement, setToggleDescriptionPlacement] =
     useState<ToggleDescriptionPlacement>("stacked");
 
+  // Glass state
+  const [glass, setGlass] = useState<boolean>(false);
+  const [vibrancy, setVibrancy] = useState<"low" | "medium" | "high">("medium");
+  const [glassOpacity, setGlassOpacity] = useState<"frosted" | "light" | "clear">("frosted");
+  const [specularMode, setSpecularMode] = useState<"none" | "classic" | "halo">("none");
+
   const toggleBooleanOptions = [
     { label: "Show label", value: toggleLabel, setter: setToggleLabel },
     { label: "Disabled", value: toggleDisabled, setter: setToggleDisabled },
@@ -95,6 +101,70 @@ export const ToggleDemo: React.FC = () => {
               }
             />
           </label>
+
+          {/* Glass section */}
+          <div className="space-y-2">
+            <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+              Glass
+            </span>
+            <div className="grid gap-2 text-sm md:grid-cols-2">
+              <label className="flex items-center justify-between">
+                <span>Enabled</span>
+                <Toggle
+                  size="sm"
+                  checked={glass}
+                  onChange={(event) => setGlass(event.target.checked)}
+                />
+              </label>
+            </div>
+            {glass && (
+              <div className="space-y-3 pt-2">
+                <label className="flex flex-col gap-2 text-sm">
+                  <span>Vibrancy</span>
+                  <MultiToggle
+                    fullWidth
+                    options={[
+                      { label: "Low", value: "low" },
+                      { label: "Medium", value: "medium" },
+                      { label: "High", value: "high" },
+                    ]}
+                    value={vibrancy}
+                    size="sm"
+                    onChange={(value) => setVibrancy(value as "low" | "medium" | "high")}
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-sm">
+                  <span>Glass Opacity</span>
+                  <MultiToggle
+                    fullWidth
+                    options={[
+                      { label: "Frosted", value: "frosted" },
+                      { label: "Light", value: "light" },
+                      { label: "Clear", value: "clear" },
+                    ]}
+                    value={glassOpacity}
+                    size="sm"
+                    onChange={(value) => setGlassOpacity(value as "frosted" | "light" | "clear")}
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-sm">
+                  <span>Specular Mode</span>
+                  <MultiToggle
+                    fullWidth
+                    options={[
+                      { label: "None", value: "none" },
+                      { label: "Classic", value: "classic" },
+                      { label: "Halo", value: "halo" },
+                    ]}
+                    value={specularMode}
+                    size="sm"
+                    onChange={(value) => setSpecularMode(value as "none" | "classic" | "halo")}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+
           <div className="grid gap-2 text-sm md:grid-cols-2">
             {toggleBooleanOptions.map((option) => (
               <label
@@ -129,6 +199,10 @@ export const ToggleDemo: React.FC = () => {
           fullWidth={toggleFullWidth}
           iconOn={toggleCustomIcons ? "Send" : undefined}
           iconOff={toggleCustomIcons ? "Close" : undefined}
+          glass={glass}
+          vibrancy={vibrancy}
+          glassOpacity={glassOpacity}
+          specularMode={specularMode}
           onChange={(value) => setToggleChecked(value.target.checked)}
         />
       }

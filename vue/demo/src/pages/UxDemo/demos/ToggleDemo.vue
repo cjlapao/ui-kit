@@ -33,6 +33,12 @@ const toggleDescription = ref<boolean>(false);
 const toggleDisabled = ref<boolean>(false);
 const toggleDescriptionPlacement = ref<ToggleDescriptionPlacement>("stacked");
 
+// Glass state
+const glass = ref<boolean>(false);
+const vibrancy = ref<"low" | "medium" | "high">("medium");
+const glassOpacity = ref<"frosted" | "light" | "clear">("frosted");
+const specularMode = ref<"none" | "classic" | "halo">("none");
+
 const toggleBooleanOptions = computed(() => [
   {
     label: "Show label",
@@ -126,6 +132,65 @@ const toggleBooleanOptions = computed(() => [
             "
           />
         </label>
+        <div class="space-y-2">
+          <span class="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+            Glass
+          </span>
+          <div class="grid gap-2 text-sm md:grid-cols-2">
+            <label class="flex items-center justify-between">
+              <span>Enabled</span>
+              <Toggle
+                size="sm"
+                :model-value="glass"
+                @update:model-value="(checked: boolean) => (glass = checked)"
+              />
+            </label>
+          </div>
+          <div v-if="glass" class="space-y-3 pt-2">
+            <label class="flex flex-col gap-2 text-sm">
+              <span>Vibrancy</span>
+              <MultiToggle
+                full-width
+                :options="[
+                  { label: 'Low', value: 'low' },
+                  { label: 'Medium', value: 'medium' },
+                  { label: 'High', value: 'high' },
+                ]"
+                :model-value="vibrancy"
+                size="sm"
+                @update:model-value="(value: string) => (vibrancy = value as any)"
+              />
+            </label>
+            <label class="flex flex-col gap-2 text-sm">
+              <span>Glass Opacity</span>
+              <MultiToggle
+                full-width
+                :options="[
+                  { label: 'Frosted', value: 'frosted' },
+                  { label: 'Light', value: 'light' },
+                  { label: 'Clear', value: 'clear' },
+                ]"
+                :model-value="glassOpacity"
+                size="sm"
+                @update:model-value="(value: string) => (glassOpacity = value as any)"
+              />
+            </label>
+            <label class="flex flex-col gap-2 text-sm">
+              <span>Specular Mode</span>
+              <MultiToggle
+                full-width
+                :options="[
+                  { label: 'None', value: 'none' },
+                  { label: 'Classic', value: 'classic' },
+                  { label: 'Halo', value: 'halo' },
+                ]"
+                :model-value="specularMode"
+                size="sm"
+                @update:model-value="(value: string) => (specularMode = value as any)"
+              />
+            </label>
+          </div>
+        </div>
         <div class="grid gap-2 text-sm md:grid-cols-2">
           <label
             v-for="option in toggleBooleanOptions"
@@ -159,6 +224,10 @@ const toggleBooleanOptions = computed(() => [
         :full-width="toggleFullWidth"
         :icon-on="toggleCustomIcons ? 'Send' : undefined"
         :icon-off="toggleCustomIcons ? 'Close' : undefined"
+        :glass="glass"
+        :vibrancy="vibrancy"
+        :glass-opacity="glassOpacity"
+        :specular-mode="specularMode"
       />
     </template>
   </PlaygroundSection>

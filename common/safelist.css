@@ -14,7 +14,9 @@
 
 @source inline("peer-checked:border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone}-500");
 
-@source inline("peer-focus:ring-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone}-400");
+@source inline("peer-focus:ring-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-400");
+
+@source inline("peer-focus:ring-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-400/50");
 
 @source inline("peer-checked:bg-white");
 
@@ -33,7 +35,11 @@
  * fractions that map to 5, 18, 30, 60.
  * ────────────────────────────────────────────────────────────────── */
 
+@source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/20");
+@source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/25");
 @source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/30");
+@source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/40");
+@source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/45");
 @source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/55");
 @source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/65");
 @source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/75");
@@ -45,7 +51,9 @@
 @source inline("hover:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/75");
 @source inline("hover:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-100/85");
 
+@source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-600/5");
 @source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-600/10");
+@source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-600/15");
 @source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-600/25");
 @source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone,white,brand,info,success,warning,danger,theme,parallels}-600/35");
 
