@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import { Toggle, useTheme } from "@cjlapao/ui-kit-vue";
+import backdropLight from "@assets/images/backdrop_demo_light.png";
+import backdropDark from "@assets/images/backdrop_demo_dark.png";
+
 
 defineProps<{
   title: string;
@@ -7,6 +11,8 @@ defineProps<{
   description?: string;
 }>();
 
+const panelHasBackground = ref<boolean>(false);
+const { effectiveTheme } = useTheme();
 const isDomAvailable = typeof window !== "undefined";
 const controlsRatio = ref(0.45);
 const isWide = ref(
@@ -86,9 +92,7 @@ const gridStyle = computed(() => ({
 </script>
 
 <template>
-  <section
-    class="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm transition dark:border-slate-800 dark:bg-slate-900/60"
-  >
+  <section class="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm transition dark:border-slate-800 dark:bg-slate-900/60">
     <header class="mb-4 flex flex-wrap items-center gap-3">
       <div>
         <div class="flex items-baseline gap-2">
@@ -103,26 +107,22 @@ const gridStyle = computed(() => ({
           {{ description }}
         </p>
       </div>
+      <div class="ml-auto flex items-center gap-2">
+        <Toggle v-model="panelHasBackground" size="sm" align-label="left" tone="blue" label="Show background image" />
+      </div>
     </header>
     <div ref="gridRef" class="relative grid gap-4" :style="gridStyle">
-      <div
-        class="space-y-4 rounded-2xl border border-slate-100/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/50"
-      >
+      <div class="space-y-4 rounded-2xl border border-slate-100/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/50">
         <slot name="controls" />
       </div>
-      <div
-        class="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-4 dark:border-slate-800 dark:bg-slate-900/50"
-      >
+      <div class="rounded-2xl border border-dashed border-slate-200 
+        bg-white/60 p-4 dark:border-slate-800 dark:bg-slate-900/50"
+        :class="{ 'elative overflow-hidden rounded-2xl bg-cover bg-center bg-no-repeat bg-[url(@assets/images/backdrop_demo_light.png)] dark:bg-[url(@assets/images/backdrop_demo_dark.png)]': panelHasBackground }">
         <slot name="preview" />
       </div>
-      <button
-        type="button"
-        aria-label="Resize playground columns"
+      <button type="button" aria-label="Resize playground columns"
         class="pointer-events-auto absolute top-4 bottom-4 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full bg-slate-200 shadow-sm transition hover:bg-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 lg:block"
-        :style="{ left: `${controlsRatio * 100}%`, opacity: isWide ? 1 : 0 }"
-        @mousedown="handleDragStart"
-        @touchstart="handleDragStart"
-      />
+        :style="{ left: `${controlsRatio * 100}%`, opacity: isWide ? 1 : 0 }" @mousedown="handleDragStart" @touchstart="handleDragStart" />
     </div>
   </section>
 </template>

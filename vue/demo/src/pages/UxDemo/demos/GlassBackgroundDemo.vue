@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import {
+  Button,
   GlassBackground,
   Panel,
   Toggle,
@@ -262,22 +263,25 @@ const shimmerColor = ref<ThemeColor>("purple");
                         Remember me
                       </span>
                       <Toggle
+                        glass
                         :model-value="true"
                         @update:model-value="() => {}"
                         color="blue"
                         size="sm"
                       />
                     </div>
-                    <button
-                      class="w-full rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-300"
+                    <Button
+                      color="blue"
+                      variant="glass"
                     >
                       Continue
-                    </button>
-                    <button
-                      class="w-full py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+                    </Button>
+                    <Button
+                    color="slate"
+                    variant="ghost"
                     >
                       Skip for now
-                    </button>
+                    </Button>
                   </div>
                 </Panel>
 
