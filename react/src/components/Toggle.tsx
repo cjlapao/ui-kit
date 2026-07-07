@@ -12,7 +12,6 @@ import {
   getGlassFillClass,
   getGlassVibrancyClass,
   getSpecularClasses,
-  resolveColor,
   type GlassVibrancy,
   type GlassOpacity,
   type SpecularMode,
@@ -25,7 +24,6 @@ export type ToggleSize = "sm" | "md" | "lg";
 export type ToggleAlign = "left" | "right";
 export type ToggleDescriptionPlacement = "inline" | "stacked";
 export type TogglePadding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
-export type ToggleVariant = "default" | "glass";
 
 const paddingStyles: Record<TogglePadding, string> = {
   none: "",
@@ -56,8 +54,8 @@ export interface ToggleProps
   tooltip?: string;
   /** Position of the tooltip relative to the toggle. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
-  /** Visual variant of the toggle track. */
-  variant?: ToggleVariant;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
   /** Backdrop vibrancy level for glass surfaces. */
   vibrancy?: GlassVibrancy;
   /** Glass fill transparency level for glass surfaces. */
@@ -132,7 +130,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
       onChange,
       tooltip,
       tooltipPosition,
-      variant = "default",
+      glass = false,
       vibrancy = "medium",
       glassOpacity = "frosted",
       specularMode = "none",
@@ -145,7 +143,6 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
     const toggleId = id ?? generatedId;
     const descriptionId = description ? `${toggleId}-description` : undefined;
     const inputRef = useRef<HTMLInputElement>(null);
-    const isGlass = variant === "glass";
 
     const mergeRefs = useCallback(
       (node: HTMLInputElement | null) => {
@@ -162,53 +159,13 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
     const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
     const colorStyles = getToggleColorClasses(color);
 
-    const glassSpecularClass = isGlass
+    const glassSpecularClass = glass
       ? getSpecularClasses(specularMode)
       : null;
 
-    const labelBlock =
-      label || description ? (
-        <span
-          className={classNames(
-            "min-w-0",
-            descriptionPlacement === "inline"
-              ? "flex flex-wrap items-center gap-2 text-neutral-900 dark:text-neutral-100"
-              : "flex flex-col",
-            descriptionPlacement === "inline" &&
-              !label &&
-              "text-neutral-400 dark:text-neutral-300",
-          )}
-        >
-          {label && (
-            <span
-              className={classNames(
-                sizeStyles.font,
-                "font-medium leading-tight text-neutral-900 dark:text-neutral-100 mt-0.5",
-                disabled && "text-neutral-400 dark:text-neutral-300",
-              )}
-            >
-              {label}
-            </span>
-          )}
-          {description && (
-            <span
-              id={descriptionId}
-              className={classNames(
-                sizeStyles.description,
-                "text-neutral-400 dark:text-neutral-300",
-                descriptionPlacement === "stacked" && "mt-1",
-                disabled && "text-neutral-300 dark:text-neutral-400",
-              )}
-            >
-              {description}
-            </span>
-          )}
-        </span>
-      ) : null;
-
     const toggle = (
-      <label
-        data-glass={isGlass}
+      <div
+        data-glass={glass}
         className={classNames(
           "group flex select-none items-center",
           alignLabel === "left" ? "flex-row-reverse" : "flex-row",
@@ -237,7 +194,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
             type="checkbox"
             role="switch"
             className={classNames(
-              "peer sr-only peer-focus:ring-0",
+              "peer sr-only",
               disabled
                 ? "cursor-not-allowed"
                 : inputProps.readOnly
@@ -258,29 +215,29 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
           <span
             aria-hidden="true"
             className={classNames(
-              "block relative rounded-full overflow-hidden border border-transparent bg-neutral-200 dark:bg-neutral-600 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
+              "block rounded-full border border-transparent transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
               sizeStyles.track,
-              isGlass
+              glass
                 ? classNames(
-                    "backdrop-blur-sm",
+                    "bg-neutral-200 backdrop-blur-sm",
                     getGlassFillClass(color, glassOpacity),
                     getGlassVibrancyClass(vibrancy),
-                    `peer-focus:ring-${resolveColor(color)}-400/50`,
+                    "dark:bg-neutral-600",
                   )
                 : colorStyles,
               disabled && "opacity-70 peer-checked:opacity-70 dark:opacity-50",
             )}
-          >
-            {glassSpecularClass && (
-              <div
-                aria-hidden="true"
-                className={classNames(
-                  "pointer-events-none absolute inset-0 rounded-full",
-                  glassSpecularClass,
-                )}
-              />
-            )}
-          </span>
+          />
+
+          {glassSpecularClass && (
+            <div
+              aria-hidden="true"
+              className={classNames(
+                "pointer-events-none absolute inset-0 rounded-full",
+                glassSpecularClass,
+              )}
+            />
+          )}
 
           {iconOff && (
             <span
@@ -308,7 +265,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
 
           <span
             className={classNames(
-              "pointer-events-none absolute transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200 ease-in-out dark:ring-white/10 dark:bg-neutral-200",
+              "pointer-events-none absolute transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out dark:bg-neutral-200",
               "translate-x-0",
               sizeStyles.thumb,
               sizeStyles.thumbOffset,
@@ -316,8 +273,54 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
             )}
           />
         </span>
-        {labelBlock}
-      </label>
+        {label && (
+          <label
+            htmlFor={toggleId}
+            className={classNames(
+              "min-w-0",
+              descriptionPlacement === "inline"
+                ? "flex flex-wrap items-center gap-2 text-neutral-900 dark:text-neutral-100"
+                : "flex flex-col",
+            )}
+          >
+            <span
+              className={classNames(
+                sizeStyles.font,
+                "font-medium leading-tight text-neutral-900 dark:text-neutral-100 mt-0.5",
+                disabled && "text-neutral-400 dark:text-neutral-300",
+              )}
+            >
+              {label}
+            </span>
+            {description && (
+              <span
+                id={descriptionId}
+                className={classNames(
+                  sizeStyles.description,
+                  "text-neutral-400 dark:text-neutral-300",
+                  descriptionPlacement === "stacked" && "mt-1",
+                  disabled && "text-neutral-300 dark:text-neutral-400",
+                )}
+              >
+                {description}
+              </span>
+            )}
+          </label>
+        )}
+        {!label && description && (
+          <span
+            id={descriptionId}
+            className={classNames(
+              sizeStyles.description,
+              "text-neutral-400 dark:text-neutral-300",
+              descriptionPlacement === "stacked" && "mt-1",
+              disabled && "text-neutral-300 dark:text-neutral-400",
+            )}
+          >
+            {description}
+          </span>
+        )}
+      </div>
     );
 
     if (tooltip) {

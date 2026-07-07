@@ -8,7 +8,6 @@ export type ToggleSize = "sm" | "md" | "lg";
 export type ToggleAlign = "left" | "right";
 export type ToggleDescriptionPlacement = "inline" | "stacked";
 export type TogglePadding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
-export type ToggleVariant = "default" | "glass";
 
 const paddingStyles: Record<TogglePadding, string> = {
   none: "",
@@ -39,8 +38,8 @@ export interface ToggleProps {
   tooltip?: string;
   /** Position of the tooltip relative to the toggle. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
-  /** Visual variant of the toggle track. */
-  variant?: ToggleVariant;
+  /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
+  glass?: boolean;
   /** Backdrop vibrancy level for glass surfaces. */
   vibrancy?: GlassVibrancy;
   /** Glass fill transparency level for glass surfaces. */
@@ -109,7 +108,6 @@ import {
   getGlassFillClass as _getGlassFillClass,
   getGlassVibrancyClass as _getGlassVibrancyClass,
   getSpecularClasses as _getSpecularClasses,
-  resolveColor as _resolveColor,
 } from "../../../common/theme/glass";
 
 defineOptions({ name: "Toggle", inheritAttrs: false });
@@ -123,7 +121,7 @@ const props = withDefaults(defineProps<ToggleProps>(), {
   fullWidth: false,
   disabled: false,
   readonly: false,
-  variant: "default",
+  glass: false,
   vibrancy: "medium",
   glassOpacity: "frosted",
   specularMode: "none",
@@ -148,7 +146,6 @@ const toggleId = computed(() => props.id ?? generatedId);
 const el = ref<HTMLInputElement | null>(null);
 defineExpose({ el });
 
-const hasLabel = computed(() => Boolean(props.label) || Boolean(slots.label));
 const hasDescription = computed(
   () => Boolean(props.description) || Boolean(slots.description),
 );
@@ -158,7 +155,6 @@ const descriptionId = computed(() =>
 
 const sizeStyles = computed(() => sizeTokens[props.size] ?? sizeTokens.md);
 const colorStyles = computed(() => getToggleColorClasses(props.color));
-const isGlass = computed(() => props.variant === "glass");
 
 const rootClass = computed(() =>
   classNames(
@@ -176,7 +172,7 @@ const rootClass = computed(() =>
 
 const inputClass = computed(() =>
   classNames(
-    "peer sr-only peer-focus:ring-0",
+    "peer sr-only",
     props.disabled
       ? "cursor-not-allowed"
       : props.readonly
@@ -187,14 +183,14 @@ const inputClass = computed(() =>
 
 const trackClass = computed(() =>
   classNames(
-    "block relative rounded-full overflow-hidden border border-transparent bg-neutral-200 dark:bg-neutral-600 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
+    "block rounded-full border border-transparent transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
     sizeStyles.value.track,
-    isGlass.value
+    props.glass
       ? classNames(
-          "backdrop-blur-sm",
+          "bg-neutral-200 backdrop-blur-sm",
           _getGlassFillClass(props.color, props.glassOpacity),
           _getGlassVibrancyClass(props.vibrancy),
-          `peer-focus:ring-${_resolveColor(props.color)}-400/50`,
+          "dark:bg-neutral-600",
         )
       : colorStyles.value,
     props.disabled && "opacity-70 peer-checked:opacity-70 dark:opacity-50",
@@ -202,7 +198,7 @@ const trackClass = computed(() =>
 );
 
 const effectiveSpecularMode = computed(() =>
-  isGlass.value ? props.specularMode : "none",
+  props.glass ? props.specularMode : "none",
 );
 
 const specularOverlayClasses = computed(() =>
@@ -227,7 +223,7 @@ const iconOnClass = computed(() =>
 
 const thumbClass = computed(() =>
   classNames(
-    "pointer-events-none absolute transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200 ease-in-out dark:ring-white/10 dark:bg-neutral-200",
+    "pointer-events-none absolute transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out dark:bg-neutral-200",
     "translate-x-0",
     sizeStyles.value.thumb,
     sizeStyles.value.thumbOffset,
@@ -258,9 +254,6 @@ const labelBlockClass = computed(() =>
     props.descriptionPlacement === "inline"
       ? "flex flex-wrap items-center gap-2 text-neutral-900 dark:text-neutral-100"
       : "flex flex-col",
-    props.descriptionPlacement === "inline" &&
-      !hasLabel.value &&
-      "text-neutral-400 dark:text-neutral-300",
   ),
 );
 
@@ -288,8 +281,8 @@ const handleChange = (e: Event) => {
 
 <template>
   <TooltipWrapper v-if="tooltip" :text="tooltip" :position="tooltipPosition">
-    <label
-      :data-glass="isGlass"
+    <div
+      :data-glass="glass"
       :class="rootClass"
       @click="handleLabelClick"
     >
@@ -309,13 +302,13 @@ const handleChange = (e: Event) => {
           @click="handleInputClick"
         />
 
-        <span aria-hidden="true" :class="trackClass">
-          <div
-            v-if="isGlass && specularOverlayClasses"
-            aria-hidden="true"
-            :class="specularOverlayClasses"
-          />
-        </span>
+        <span aria-hidden="true" :class="trackClass" />
+
+        <div
+          v-if="glass && specularOverlayClasses"
+          aria-hidden="true"
+          :class="specularOverlayClasses"
+        />
 
         <span v-if="iconOff" :class="iconOffClass">
           <VNodeRenderer :nodes="renderIcon(iconOff, 'sm')" />
@@ -327,8 +320,12 @@ const handleChange = (e: Event) => {
 
         <span :class="thumbClass" />
       </span>
-      <span v-if="hasLabel || hasDescription" :class="labelBlockClass">
-        <span v-if="hasLabel" :class="labelTextClass">
+      <label
+        v-if="label"
+        :for="toggleId"
+        :class="labelBlockClass"
+      >
+        <span :class="labelTextClass">
           <slot name="label">{{ label }}</slot>
         </span>
         <span
@@ -338,12 +335,19 @@ const handleChange = (e: Event) => {
         >
           <slot name="description">{{ description }}</slot>
         </span>
+      </label>
+      <span
+        v-else-if="hasDescription"
+        :id="descriptionId"
+        :class="descriptionTextClass"
+      >
+        <slot name="description">{{ description }}</slot>
       </span>
-    </label>
+    </div>
   </TooltipWrapper>
-  <label
+  <div
     v-else
-    :data-glass="isGlass"
+    :data-glass="glass"
     :class="rootClass"
     @click="handleLabelClick"
   >
@@ -363,13 +367,13 @@ const handleChange = (e: Event) => {
         @click="handleInputClick"
       />
 
-      <span aria-hidden="true" :class="trackClass">
-        <div
-          v-if="isGlass && specularOverlayClasses"
-          aria-hidden="true"
-          :class="specularOverlayClasses"
-        />
-      </span>
+      <span aria-hidden="true" :class="trackClass" />
+
+      <div
+        v-if="glass && specularOverlayClasses"
+        aria-hidden="true"
+        :class="specularOverlayClasses"
+      />
 
       <span v-if="iconOff" :class="iconOffClass">
         <VNodeRenderer :nodes="renderIcon(iconOff, 'sm')" />
@@ -381,8 +385,12 @@ const handleChange = (e: Event) => {
 
       <span :class="thumbClass" />
     </span>
-    <span v-if="hasLabel || hasDescription" :class="labelBlockClass">
-      <span v-if="hasLabel" :class="labelTextClass">
+    <label
+      v-if="label"
+      :for="toggleId"
+      :class="labelBlockClass"
+    >
+      <span :class="labelTextClass">
         <slot name="label">{{ label }}</slot>
       </span>
       <span
@@ -392,6 +400,13 @@ const handleChange = (e: Event) => {
       >
         <slot name="description">{{ description }}</slot>
       </span>
+    </label>
+    <span
+      v-else-if="hasDescription"
+      :id="descriptionId"
+      :class="descriptionTextClass"
+    >
+      <slot name="description">{{ description }}</slot>
     </span>
-  </label>
+  </div>
 </template>
