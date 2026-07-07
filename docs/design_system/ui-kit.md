@@ -11,44 +11,35 @@
 - **Package:** `@cjlapao/ui-kit` (published to GitHub Packages). React 18/19 + `react-router-dom`.
 - **Styling:** **Tailwind v4** — CSS-first. `src/styles.css` is just:
   `@layer theme, base, components, utilities; @import "tailwindcss/theme.css"; @import "tailwindcss/utilities.css"; @source "./src/**/*.{ts,tsx}";`
-  There is **no `tailwind.config.js`**. Class strings are composed in TS (`classnames` / `clsx` / `tailwind-merge`), with a large **safelist** in `src/theme/tailwind*Safelist.ts` so dynamic `color`-driven classes survive the build.
+  There is **no `tailwind.config.js`**. Class strings are composed in TS (`classnames` / `clsx` / `tailwind-merge`), with an auto-generated **safelist** in `common/safelist.css` (run `node scripts/generate-safelist.mjs` to regenerate).
 - **Charts:** `recharts` (+ the `Stat*Tile` components).
 - **Build/lint:** `npm run build` = `tsup`; `npm run lint` = `tsc --noEmit`. (No unit-test runner configured — visual + typecheck is the gate.)
 - **Dark mode:** yes — `dark:` variants throughout (66+ components).
 - **Editor:** `@uiw/react-md-editor` (the `MarkdownEditor` component). Icons via `react-icons` + `src/icons`.
 
-## Color model — semantic `ThemeColor` (THIS is the system; don't hardcode hex)
+## Color model — `TrueColor` (the only valid color type)
 
-Components take a **`color` / `tone` prop of type `ThemeColor`**, not raw hex. `ThemeColor` = the full
-Tailwind palette (`red`…`rose`, `slate`…`stone`, `white`) **plus semantic aliases** resolved by
-`resolveColor()` in `src/theme/Theme.ts`:
-
-| semantic | resolves to | role |
-|---|---|---|
-| `brand` | **blue** | primary brand accent (component default `color`) |
-| `info` | sky | informational |
-| `success` | emerald | success / positive |
-| `warning` | amber | warning |
-| `danger` | rose | error / destructive |
-| `theme` | neutral | neutral chrome |
-| `parallels` | red | (product-specific accent) |
+Components take a **`color` / `tone` prop of type `TrueColor`**, not raw hex. `TrueColor` comprises
+the **21 Tailwind palette color names** (`red` through `stone`, including `fuchsia` and `rose`).
+See [theme.md](./theme.md) for the complete color taxonomy, shade range, glass system, and migration
+guide from the old semantic alias system.
 
 There is also a **runtime `theme-*` surface set** consumed as Tailwind colors: `theme-background`,
 `theme-foreground`, `theme-surface`, `theme-border`, `theme-muted`, `theme-secondary`,
 `theme-primary` (light + `dark:` pairs). Surfaces/text/borders use these so the whole kit re-themes
 (incl. dark mode) without touching components.
 
-**To restyle: pass a different `color`/`tone`, or change the `theme-*` / `brand` mapping — never hand-edit hex in a component.**
+**To restyle: pass a different `color`/`tone` from the TrueColor set, or change the `theme-*` tokens — never hand-edit hex in a component.**
 
 ## Variant conventions (match these when adding variants)
 
 Components are configured by **`variant` + `color`/`tone` + `size`** props. Observed:
 
-- **Button** — `variant: solid | soft | outline | ghost | link | clear | icon`; `color: ThemeColor` (default `brand`); `size: xs|sm|md|lg|xl`; `fullWidth`, `loading`, `iconOnly`, an "active/on" state (`accentColor`). Base radius **`rounded-md`** (NOT pill by default).
+- **Button** — `variant: solid | soft | outline | ghost | link | clear | icon`; `color: TrueColor` (default `blue`); `size: xs|sm|md|lg|xl`; `fullWidth`, `loading`, `iconOnly`, an "active/on" state (`accentColor`). Base radius **`rounded-md`** (NOT pill by default).
 - **Pill** — `tone: PillTone`, `variant: PillVariant`, `size`, `dot`; `rounded-full`.
-- **Badge** — `tone: ThemeColor` (default neutral), dot/count; `rounded-full`; tiny count badge.
+- **Badge** — `tone: TrueColor` (default neutral), dot/count; `rounded-full`; tiny count badge.
 - **Panel** — `corner: rounded | rounded-sm | rounded-md | rounded-lg | rounded-full`; header + `actions` (full `ButtonProps`); built-in loader (`Loader`).
-- **Stat tiles** — `StatTile`, `StatCountTile` (label + count + breakdowns, `color: ThemeColor`, corner rounding, decorative corner blob), `StatChartTile`, `StatGoalTile`, `StatGraphTile` — the dashboard stat cards.
+- **Stat tiles** — `StatTile`, `StatCountTile` (label + count + breakdowns, `color: TrueColor`, corner rounding, decorative corner blob), `StatChartTile`, `StatGoalTile`, `StatGraphTile` — the dashboard stat cards.
 
 When you add a variant, extend the existing `variant`/`color`/`tone` enums and the safelist — don't invent a parallel styling mechanism.
 
@@ -97,9 +88,9 @@ Ambient glow shades:
 
 | prop | type | default | description |
 |---|---|---|---|
-| `color` | `ThemeColor` | `"purple"` | Primary gradient color. Resolved through `resolveColor()` (semantic aliases like `brand` → `blue` work). |
-| `colorSecondary` | `ThemeColor` | *auto-derived* | Middle gradient stop. If omitted, a neighboring hue is chosen (e.g. `purple` → `blue`). |
-| `colorDeep` | `ThemeColor` | *auto-derived* | Final gradient stop. If omitted, a deeper hue is chosen (e.g. `purple` → `indigo`). |
+| `color` | `TrueColor` | `"purple"` | Primary gradient color. See [theme.md](./theme.md) for the full color list. |
+| `colorSecondary` | `TrueColor` | *auto-derived* | Middle gradient stop. If omitted, a neighboring hue is chosen (e.g. `purple` → `blue`). |
+| `colorDeep` | `TrueColor` | *auto-derived* | Final gradient stop. If omitted, a deeper hue is chosen (e.g. `purple` → `indigo`). |
 | `direction` | `GradientDirection` | `"br"` | Gradient angle. Values: `"t"`, `"tr"`, `"r"`, `"br"`, `"b"`, `"bl"`, `"l"`, `"tl"`. |
 | `position` | `"fixed" \| "absolute"` | `"fixed"` | `"fixed"` covers the full viewport. `"absolute"` fills a `position: relative` parent (useful inside `PlaygroundSection` previews). |
 | `shimmer` | `boolean` | `false` | Enable a slow horizontal shimmer sweep. Off by default; opt-in. |
