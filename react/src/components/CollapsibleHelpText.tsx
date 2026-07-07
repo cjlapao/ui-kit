@@ -81,7 +81,8 @@ const toneTokens: Partial<
     text: "text-slate-700 dark:text-slate-200",
     focusRing: "focus-visible:ring-slate-200 dark:focus-visible:ring-slate-600",
     hover: "hover:bg-slate-50 dark:hover:bg-slate-800/80",
-  },};
+  },
+};
 
 const truncate = (value: string, limit: number) => {
   if (value.length <= limit) {

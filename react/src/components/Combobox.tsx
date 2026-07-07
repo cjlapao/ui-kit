@@ -127,7 +127,8 @@ const toneTokens: Record<
       "hover:bg-fuchsia-50 hover:text-fuchsia-700 dark:hover:bg-fuchsia-900/30 dark:hover:text-fuchsia-300",
     optionSelected:
       "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
-  },  rose: {
+  },
+  rose: {
     focusRing:
       "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
     optionHover:

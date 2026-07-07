@@ -19,7 +19,7 @@ export interface HeroProps
   subtitle?: React.ReactNode;
   /** Icon name from the registry, or a pre-built React element. When omitted the icon slot is not rendered. */
   icon?: IconName | React.ReactElement;
-  /** Colour tone — drives the gradient background. Defaults to `"parallels"`. */
+  /** Colour tone — drives the gradient background. Defaults to `"blue"`. */
   tone?: TrueColor;
   /** Size of the title text. Colour is always white. Defaults to `"sm"`. */
   titleSize?: HeroTitleSize;
@@ -58,7 +58,8 @@ const toneGradient: Record<TrueColor, string> = {
   indigo: "from-indigo-500 to-violet-600",
   violet: "from-violet-500 to-purple-600",
   purple: "from-purple-500 to-fuchsia-600",
-  fuchsia: "from-fuchsia-500 to-pink-600",  rose: "from-rose-500 to-red-600",
+  fuchsia: "from-fuchsia-500 to-pink-600",
+  rose: "from-rose-500 to-red-600",
   slate: "from-slate-600 to-slate-800",
   gray: "from-gray-600 to-gray-800",
   zinc: "from-zinc-600 to-zinc-800",

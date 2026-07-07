@@ -102,7 +102,8 @@ const toneMap: Partial<Record<TrueColor, ToneTokens>> = {
     strip: "border-t-rose-500    bg-rose-50/70    dark:bg-rose-950/40",
     accent: "text-rose-700    dark:text-rose-300",
     iconBg: "bg-rose-100/80    dark:bg-rose-900/40",
-  },  slate: {
+  },
+  slate: {
     strip: "border-t-slate-400   bg-slate-50/80   dark:bg-slate-800/50",
     accent: "text-slate-700   dark:text-slate-300",
     iconBg: "bg-slate-100/80   dark:bg-slate-800",
@@ -396,7 +397,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
     };
   }, [open, recompute]);
 
-  const tone = toneMap[color as TrueColor] ?? fallbackTone;
+  const tone = toneMap[color] ?? fallbackTone;
   const isMarkdown = typeof content === "string";
 
   return (

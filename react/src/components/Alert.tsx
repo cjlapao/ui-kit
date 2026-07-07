@@ -39,7 +39,8 @@ const defaultIcons: Partial<Record<TrueColor, string>> = {
   indigo: "CheckCircle",
   violet: "CheckCircle",
   purple: "CheckCircle",
-  fuchsia: "CheckCircle",  rose: "Error",
+  fuchsia: "CheckCircle",
+  rose: "Error",
 };
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(

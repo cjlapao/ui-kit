@@ -169,7 +169,8 @@ const COLOR_TOKENS: Record<TrueColor, SelectedTokens> = {
     label: "text-fuchsia-700 dark:text-fuchsia-300",
     indicatorBg: "bg-fuchsia-500",
     indicatorBorder: "border-fuchsia-500",
-  },  rose: {
+  },
+  rose: {
     border: "border-rose-400 dark:border-rose-500",
     bg: "bg-rose-50 dark:bg-rose-500/10",
     icon: "text-rose-600 dark:text-rose-400",

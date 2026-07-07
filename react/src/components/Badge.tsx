@@ -23,7 +23,7 @@ export interface BadgeProps {
 
   /**
    * Badge color variant
-   * @default "danger"
+   * @default "neutral"
    */
   tone?: TrueColor;
 

@@ -25,7 +25,7 @@ export interface PillProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const Pill: React.FC<PillProps> = ({
-  tone = "info",
+  tone = "blue",
   variant = "soft",
   size = "md",
   uppercase = false,
@@ -35,7 +35,7 @@ export const Pill: React.FC<PillProps> = ({
   children,
   ...rest
 }) => {
-  const toneTokens = getPillColorClasses(tone as TrueColor, variant);
+  const toneTokens = getPillColorClasses(tone, variant);
   const sizeToken = sizeStyles[size];
 
   const pillClasses = classNames(
