@@ -203,7 +203,7 @@ const props = withDefaults(defineProps<StepperProps>(), {
   orientation: "horizontal",
   variant: "card",
   size: "md",
-  tone: "brand",
+  tone: "blue",
   connector: "progress",
   interactive: true,
   showProgressSummary: false,

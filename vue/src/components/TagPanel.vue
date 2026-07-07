@@ -2,7 +2,7 @@
 import type { VNodeChild } from "vue";
 import type { SectionSize, SectionVariant } from "./Section.vue";
 import type { PillVariant, PillSize } from "./Pill.vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -10,7 +10,7 @@ export interface TagPanelTag {
   id?: string;
   label: string;
   /** Pill tone. Defaults to `'neutral'`. */
-  tone?: ThemeColor;
+  tone?: TrueColor;
   /** Pill variant. Defaults to `'soft'`. */
   variant?: PillVariant;
   /** Pill size. Defaults to `'sm'`. */
@@ -36,7 +36,7 @@ export interface TagPanelProps {
    * Tone used for the `+N` overflow pill.
    * Defaults to `'neutral'`.
    */
-  overflowTone?: ThemeColor;
+  overflowTone?: TrueColor;
   /** Controls header padding and font size. Defaults to `'md'`. */
   size?: SectionSize;
   /** Visual style of the section header. Defaults to `'uppercase'`. */

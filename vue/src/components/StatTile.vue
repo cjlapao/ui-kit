@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import type { IconName } from "../icons/registry";
 
 export interface StatTileTrend {
@@ -13,7 +13,7 @@ export interface StatTileMeta {
   text: string | number | VNode;
   icon?: IconName;
   variant?: "text" | "badge";
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 export interface StatTileError {
@@ -25,7 +25,7 @@ export interface StatTileError {
 export interface StatTileProgress {
   value: number;
   label?: string;
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 export interface StatTileProps {
@@ -33,7 +33,7 @@ export interface StatTileProps {
   value?: string | number;
   subtitle?: string;
   icon?: IconName;
-  color?: ThemeColor;
+  color?: TrueColor;
   trend?: StatTileTrend;
   progress?: StatTileProgress;
   meta?: StatTileMeta[];
@@ -42,11 +42,11 @@ export interface StatTileProps {
   onClick?: () => void;
   withDecoration?: boolean;
   withHoverEffect?: boolean;
-  textColor?: ThemeColor;
+  textColor?: TrueColor;
   loading?: boolean;
   spinnerVariant?: "solid" | "segments";
   spinnerThickness?: "thin" | "normal" | "thick";
-  spinnerColor?: ThemeColor;
+  spinnerColor?: TrueColor;
   error?: StatTileError | null;
 }
 </script>
@@ -171,7 +171,7 @@ const progressBarClass = computed(() =>
   classNames(
     "h-full rounded-full transition-all duration-500",
     // Let's use simpler map:
-    props.progress?.color === "brand"
+    props.progress?.color === "blue"
       ? "bg-blue-500"
       : props.progress?.color
         ? `bg-${props.progress.color}-500`

@@ -1,6 +1,6 @@
 <script lang="ts">
 import { h, type CSSProperties, type VNode, type VNodeChild } from "vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -23,7 +23,7 @@ export interface HelpButtonProps {
    */
   placement?: HelpButtonPlacement;
   /** Accent color for the trigger button and the panel header stripe. */
-  color?: ThemeColor;
+  color?: TrueColor;
   /** Size of the trigger icon button. */
   size?: "xs" | "sm" | "md" | "lg";
   /** Icon for the trigger button. Defaults to "Help". */
@@ -38,7 +38,7 @@ export interface HelpButtonProps {
 
 type ToneTokens = { strip: string; accent: string; iconBg: string };
 
-const toneMap: Partial<Record<ThemeColor, ToneTokens>> = {
+const toneMap: Partial<Record<TrueColor, ToneTokens>> = {
   blue: {
     strip: "border-t-blue-500    bg-blue-50/70    dark:bg-blue-950/40",
     accent: "text-blue-700    dark:text-blue-300",
@@ -94,41 +94,10 @@ const toneMap: Partial<Record<ThemeColor, ToneTokens>> = {
     accent: "text-rose-700    dark:text-rose-300",
     iconBg: "bg-rose-100/80    dark:bg-rose-900/40",
   },
-  pink: {
-    strip: "border-t-pink-500    bg-pink-50/70    dark:bg-pink-950/40",
-    accent: "text-pink-700    dark:text-pink-300",
-    iconBg: "bg-pink-100/80    dark:bg-pink-900/40",
-  },
   slate: {
     strip: "border-t-slate-400   bg-slate-50/80   dark:bg-slate-800/50",
     accent: "text-slate-700   dark:text-slate-300",
     iconBg: "bg-slate-100/80   dark:bg-slate-800",
-  },
-  // Semantic aliases
-  info: {
-    strip: "border-t-sky-500     bg-sky-50/70     dark:bg-sky-950/40",
-    accent: "text-sky-700     dark:text-sky-300",
-    iconBg: "bg-sky-100/80     dark:bg-sky-900/40",
-  },
-  success: {
-    strip: "border-t-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40",
-    accent: "text-emerald-700 dark:text-emerald-300",
-    iconBg: "bg-emerald-100/80 dark:bg-emerald-900/40",
-  },
-  warning: {
-    strip: "border-t-amber-500   bg-amber-50/70   dark:bg-amber-950/40",
-    accent: "text-amber-700   dark:text-amber-300",
-    iconBg: "bg-amber-100/80   dark:bg-amber-900/40",
-  },
-  danger: {
-    strip: "border-t-rose-500    bg-rose-50/70    dark:bg-rose-950/40",
-    accent: "text-rose-700    dark:text-rose-300",
-    iconBg: "bg-rose-100/80    dark:bg-rose-900/40",
-  },
-  brand: {
-    strip: "border-t-blue-500    bg-blue-50/70    dark:bg-blue-950/40",
-    accent: "text-blue-700    dark:text-blue-300",
-    iconBg: "bg-blue-100/80    dark:bg-blue-900/40",
   },
 };
 
@@ -528,7 +497,7 @@ defineOptions({ name: "HelpButton", inheritAttrs: false });
 
 const props = withDefaults(defineProps<HelpButtonProps>(), {
   placement: "auto",
-  color: "info",
+  color: "blue",
   size: "xs",
   icon: "Help",
   maxWidth: 360,

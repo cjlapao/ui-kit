@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 // Mirrors React's `(Select as ...).__UI_SELECT = true` marker used by InputGroup.
 export default {
@@ -42,19 +42,7 @@ type SelectToneTokens = {
   icon: string;
 };
 
-const toneTokens: Partial<Record<ThemeColor, SelectToneTokens>> = {
-  parallels: {
-    focusRing: "focus:border-red-400 focus:ring-2 focus:ring-red-400/60",
-    icon: "text-red-500 dark:text-red-300",
-  },
-  theme: {
-    focusRing: "focus:border-red-400 focus:ring-2 focus:ring-red-400/60",
-    icon: "text-red-500 dark:text-red-300",
-  },
-  brand: {
-    focusRing: "focus:border-red-400 focus:ring-2 focus:ring-red-400/60",
-    icon: "text-red-500 dark:text-red-300",
-  },
+const toneTokens: Partial<Record<TrueColor, SelectToneTokens>> = {
   red: {
     focusRing: "focus:border-red-400 focus:ring-2 focus:ring-red-400/60",
     icon: "text-red-500 dark:text-red-300",
@@ -117,10 +105,6 @@ const toneTokens: Partial<Record<ThemeColor, SelectToneTokens>> = {
       "focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-400/60",
     icon: "text-fuchsia-500 dark:text-fuchsia-300",
   },
-  pink: {
-    focusRing: "focus:border-pink-400 focus:ring-2 focus:ring-pink-400/60",
-    icon: "text-pink-500 dark:text-pink-300",
-  },
   rose: {
     focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
     icon: "text-rose-500 dark:text-rose-300",
@@ -149,27 +133,6 @@ const toneTokens: Partial<Record<ThemeColor, SelectToneTokens>> = {
       "focus:border-neutral-500 focus:ring-2 focus:ring-neutral-500/60",
     icon: "text-neutral-500 dark:text-neutral-200",
   },
-  white: {
-    focusRing: "focus:border-slate-400 focus:ring-2 focus:ring-slate-400/60",
-    icon: "text-slate-400 dark:text-slate-200",
-  },
-  success: {
-    focusRing:
-      "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/60",
-    icon: "text-emerald-500 dark:text-emerald-300",
-  },
-  warning: {
-    focusRing: "focus:border-amber-400 focus:ring-2 focus:ring-amber-400/60",
-    icon: "text-amber-500 dark:text-amber-300",
-  },
-  danger: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    icon: "text-rose-500 dark:text-rose-300",
-  },
-  info: {
-    focusRing: "focus:border-sky-400 focus:ring-2 focus:ring-sky-400/60",
-    icon: "text-sky-500 dark:text-sky-300",
-  },
 };
 
 const statusClasses: Record<Exclude<SelectValidationStatus, "none">, string> = {
@@ -185,7 +148,7 @@ const disabledClasses =
 export interface SelectProps {
   modelValue?: string;
   size?: SelectSize;
-  tone?: ThemeColor;
+  tone?: TrueColor;
   validationStatus?: SelectValidationStatus;
   placeholder?: string;
   leadingIcon?: string | VNode;
@@ -231,7 +194,7 @@ defineExpose({ el });
 
 const sizeToken = computed(() => sizeStyles[props.size] ?? sizeStyles.md);
 const tokens = computed(
-  () => (toneTokens[props.tone] ?? toneTokens.theme) as SelectToneTokens,
+  () => (toneTokens[props.tone] ?? toneTokens.blue) as SelectToneTokens,
 );
 const hasLeadingIcon = computed(() => Boolean(props.leadingIcon));
 const showCaret = computed(() => !props.hideCaret && !props.multiple);

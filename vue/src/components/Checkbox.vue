@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ThemeColor, ThemeSize } from "../theme/Theme";
+import type { TrueColor, Size } from "../theme/Theme";
 
 type CheckboxDescriptionPlacement = "bottom" | "inline";
 type CheckboxAlign = "left" | "right";
@@ -23,11 +23,11 @@ export interface CheckboxProps {
   /**
    * Adjusts checkbox dimensions and typography.
    */
-  size?: ThemeSize;
+  size?: Size;
   /**
    * Accent color applied to the checkbox.
    */
-  color?: ThemeColor;
+  color?: TrueColor;
   /**
    * Enables the native indeterminate visual state.
    */
@@ -48,7 +48,7 @@ export interface CheckboxProps {
 }
 
 const sizeTokens: Record<
-  ThemeSize,
+  Size,
   {
     gap: string;
     control: string;

@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { VNodeChild } from "vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export interface SmartGridItemDefinition {
   id: string;
@@ -62,7 +62,7 @@ interface SmartGridLayoutProps {
   defaultLayout: SmartGridSectionDefinition[];
   persistedLayout?: SmartGridLayoutState | null;
   maxColumns?: number;
-  editThemeColor?: ThemeColor;
+  editTrueColor?: TrueColor;
   isEditMode?: boolean;
 }
 
@@ -721,7 +721,7 @@ defineOptions({ name: "SmartGridLayout", inheritAttrs: false });
 
 const props = withDefaults(defineProps<SmartGridLayoutProps>(), {
   maxColumns: 12,
-  editThemeColor: "blue",
+  editTrueColor: "blue",
 });
 
 const emit = defineEmits<{
@@ -1966,7 +1966,7 @@ watch(rowResizeState, (state, _prevState, onCleanup) => {
 });
 
 const editTheme = computed(
-  () => EDIT_THEME_COLORS[props.editThemeColor] ?? EDIT_THEME_COLORS.blue,
+  () => EDIT_THEME_COLORS[props.editTrueColor] ?? EDIT_THEME_COLORS.blue,
 );
 
 function resetDragState(): void {
@@ -3009,7 +3009,7 @@ function onNewSectionDrop(event: DragEvent): void {
                   icon="Add"
                   variant="ghost"
                   size="xs"
-                  :color="editThemeColor"
+                  :color="editTrueColor"
                   :aria-label="`Add item to ${section.title} row`"
                   title="Add item to row"
                   @click="onRowAddItem(section.id, rv.row.id)"

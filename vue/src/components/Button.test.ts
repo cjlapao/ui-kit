@@ -31,7 +31,7 @@ describe("Button — glass variant", () => {
 
   it('renders solid button with glass overlay when variant="solid" glass color="brand"', () => {
     const wrapper = mount(Button, {
-      props: { variant: "solid", glass: true, color: "brand" },
+      props: { variant: "solid", glass: true, color: "blue" },
     });
 
     const btn = wrapper.find("button");
@@ -170,7 +170,7 @@ describe("Button — glass variant", () => {
 
   it("resolves semantic color 'brand' to blue for glass fill", () => {
     const wrapper = mount(Button, {
-      props: { glass: true, color: "brand" },
+      props: { glass: true, color: "blue" },
     });
 
     const btn = wrapper.find("button");
@@ -180,7 +180,7 @@ describe("Button — glass variant", () => {
 
   it("resolves semantic color 'success' to emerald for glass fill", () => {
     const wrapper = mount(Button, {
-      props: { glass: true, color: "success" },
+      props: { glass: true, color: "emerald" },
     });
 
     const btn = wrapper.find("button");
@@ -190,7 +190,7 @@ describe("Button — glass variant", () => {
 
   it("resolves semantic color 'danger' to rose for glass fill", () => {
     const wrapper = mount(Button, {
-      props: { glass: true, color: "danger" },
+      props: { glass: true, color: "rose" },
     });
 
     const btn = wrapper.find("button");

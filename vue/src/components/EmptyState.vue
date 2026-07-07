@@ -6,9 +6,11 @@ import type {
   ButtonColor,
 } from "./Button.vue";
 import type { IconSize } from "../types/Icon";
-import type { ThemeSize, ThemeColor } from "../theme/Theme";
+import type { Size, TrueColor } from "../theme/Theme";
 
 export type TextSize = "xs" | "sm" | "md" | "lg" | "xl";
+
+export type EmptyStateTone = TrueColor;
 
 const iconSizes: Record<IconSize, string> = {
   xs: "h-6 w-6",
@@ -26,94 +28,56 @@ const textSizes: Record<TextSize, string> = {
   xl: "text-2xl",
 };
 
-/** Accepts all theme colors. The original five semantic names (neutral/info/success/warning/danger) are preserved unchanged. */
-export type EmptyStateTone = ThemeColor;
-
-// ── Color resolution (mirrors Theme.ts) ────────────────────────────────────
-
-const resolveColor = (color: ThemeColor): string => {
-  switch (color) {
-    case "brand":
-      return "blue";
-    case "info":
-      return "sky";
-    case "success":
-      return "emerald";
-    case "warning":
-      return "amber";
-    case "danger":
-      return "rose";
-    case "theme":
-      return "neutral";
-    case "parallels":
-      return "red";
-    default:
-      return color;
-  }
-};
-
 type ToneConfig = { border: string; text: string; bg: string; icon: string };
 
 // ── Preserved original semantic entries (static strings — Tailwind picks these up directly) ──
 
-const semanticTones: Partial<Record<ThemeColor, ToneConfig>> = {
+const semanticTones: Partial<Record<TrueColor, ToneConfig>> = {
   neutral: {
     border: "border-slate-300/70 dark:border-slate-700/60",
     text: "text-slate-600 dark:text-slate-300",
     bg: "bg-white/80 dark:bg-slate-900/40",
     icon: "text-slate-400 dark:text-slate-500",
   },
-  info: {
+  blue: {
     border: "border-blue-300/60 dark:border-blue-500/40",
     text: "text-blue-700 dark:text-blue-200",
     bg: "bg-blue-50/60 dark:bg-blue-950/20",
     icon: "text-blue-500 dark:text-blue-300",
   },
-  success: {
+  sky: {
+    border: "border-sky-300/60 dark:border-sky-500/40",
+    text: "text-sky-700 dark:text-sky-200",
+    bg: "bg-sky-50/60 dark:bg-sky-950/20",
+    icon: "text-sky-500 dark:text-sky-300",
+  },
+  emerald: {
     border: "border-emerald-300/60 dark:border-emerald-500/40",
     text: "text-emerald-700 dark:text-emerald-200",
     bg: "bg-emerald-50/60 dark:bg-emerald-950/20",
     icon: "text-emerald-500 dark:text-emerald-300",
   },
-  warning: {
+  amber: {
     border: "border-amber-300/60 dark:border-amber-500/40",
     text: "text-amber-700 dark:text-amber-200",
     bg: "bg-amber-50/60 dark:bg-amber-950/20",
     icon: "text-amber-500 dark:text-amber-300",
   },
-  danger: {
+  rose: {
     border: "border-rose-300/60 dark:border-rose-500/40",
     text: "text-rose-700 dark:text-rose-200",
     bg: "bg-rose-50/60 dark:bg-rose-950/20",
     icon: "text-rose-500 dark:text-rose-300",
   },
-  parallels: {
+  red: {
     border: "border-red-300/60 dark:border-red-500/40",
     text: "text-red-700 dark:text-red-200",
     bg: "bg-red-50/60 dark:bg-red-950/20",
     icon: "text-red-500 dark:text-red-300",
   },
-  brand: {
-    border: "border-blue-300/60 dark:border-blue-500/40",
-    text: "text-blue-700 dark:text-blue-200",
-    bg: "bg-blue-50/60 dark:bg-blue-950/20",
-    icon: "text-blue-500 dark:text-blue-300",
-  },
-  theme: {
-    border: "border-slate-300/60 dark:border-slate-500/40",
-    text: "text-slate-700 dark:text-slate-200",
-    bg: "bg-slate-50/60 dark:bg-slate-950/20",
-    icon: "text-slate-500 dark:text-slate-300",
-  },
-  white: {
-    border: "border-slate-300/60 dark:border-slate-500/40",
-    text: "text-slate-700 dark:text-slate-200",
-    bg: "bg-slate-50/60 dark:bg-slate-950/20",
-    icon: "text-slate-500 dark:text-slate-300",
-  },
 };
 
-const sizes: Record<ThemeSize, string> = {
+const sizes: Record<Size, string> = {
   xs: "h-[30%] w-[30%]",
   sm: "h-[35%] w-[35%]",
   md: "h-[40%] w-[40%]",
@@ -126,7 +90,7 @@ const sizes: Record<ThemeSize, string> = {
   "3xl": "h-[70%] w-[70%]",
 };
 
-// ── Dynamic builder for all other ThemeColor values ────────────────────────
+// ── Dynamic builder for all other TrueColor values ────────────────────────
 // Uses only class patterns already declared in tailwind-safelist.ts:
 //   border-{c}-200            (border200)
 //   dark:border-{c}-500/40    (darkBorder500_40)
@@ -137,11 +101,10 @@ const sizes: Record<ThemeSize, string> = {
 //   text-{c}-500              (text500)
 //   dark:text-{c}-300         (darkText300)
 
-function buildToneClasses(color: ThemeColor): ToneConfig {
+function buildToneClasses(color: TrueColor): ToneConfig {
   if (semanticTones[color]) return semanticTones[color]!;
-  if (color === "white" || color === "theme") return semanticTones.neutral!;
 
-  const c = resolveColor(color);
+  const c = color;
   return {
     border: `border-${c}-200 dark:border-${c}-500/40`,
     text: `text-${c}-700 dark:text-${c}-200`,
@@ -161,7 +124,7 @@ export interface EmptyStateProps {
   actionColor?: ButtonColor;
   icon?: string | VNode;
   iconSize?: IconSize;
-  iconColor?: ThemeColor;
+  iconColor?: TrueColor;
   textSize?: TextSize;
   showIcon?: boolean;
   tone?: EmptyStateTone;
@@ -171,7 +134,7 @@ export interface EmptyStateProps {
   fullHeight?: boolean;
   actionSize?: ButtonSize;
   actionLeadingIcon?: string | VNode;
-  size?: ThemeSize;
+  size?: Size;
 }
 </script>
 

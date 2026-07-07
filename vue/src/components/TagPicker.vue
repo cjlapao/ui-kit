@@ -1,12 +1,12 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import { type ThemeColor } from "../theme/Theme";
+import { type TrueColor } from "../theme/Theme";
 import type { PickerTag } from "./Picker.vue";
 
 // ── Tone tokens (mirrors Picker) ──────────────────────────────────────────────
 
 const toneTokens: Record<
-  ThemeColor,
+  TrueColor,
   {
     triggerOpen: string;
     optionSelectedBg: string;
@@ -17,33 +17,6 @@ const toneTokens: Record<
     createRowLabel: string;
   }
 > = {
-  parallels: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-    focusedBg: "bg-rose-50/60 dark:bg-rose-900/10",
-    createRowIcon: "text-rose-500 dark:text-rose-400",
-    createRowLabel: "text-rose-700 dark:text-rose-300",
-  },
-  brand: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-    focusedBg: "bg-rose-50/60 dark:bg-rose-900/10",
-    createRowIcon: "text-rose-500 dark:text-rose-400",
-    createRowLabel: "text-rose-700 dark:text-rose-300",
-  },
-  theme: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-    focusedBg: "bg-rose-50/60 dark:bg-rose-900/10",
-    createRowIcon: "text-rose-500 dark:text-rose-400",
-    createRowLabel: "text-rose-700 dark:text-rose-300",
-  },
   red: {
     triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
     optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
@@ -188,15 +161,6 @@ const toneTokens: Record<
     createRowIcon: "text-fuchsia-500 dark:text-fuchsia-400",
     createRowLabel: "text-fuchsia-700 dark:text-fuchsia-300",
   },
-  pink: {
-    triggerOpen: "border-pink-500 ring-2 ring-pink-500/20 dark:border-pink-400",
-    optionSelectedBg: "bg-pink-50 dark:bg-pink-900/20",
-    optionSelectedText: "text-pink-700 dark:text-pink-300",
-    optionSelectedIcon: "text-pink-500 dark:text-pink-400",
-    focusedBg: "bg-pink-50/60 dark:bg-pink-900/10",
-    createRowIcon: "text-pink-500 dark:text-pink-400",
-    createRowLabel: "text-pink-700 dark:text-pink-300",
-  },
   rose: {
     triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
     optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
@@ -253,54 +217,6 @@ const toneTokens: Record<
     focusedBg: "bg-stone-50/60 dark:bg-stone-900/10",
     createRowIcon: "text-stone-500 dark:text-stone-400",
     createRowLabel: "text-stone-700 dark:text-stone-300",
-  },
-  white: {
-    triggerOpen:
-      "border-slate-500 ring-2 ring-slate-500/20 dark:border-slate-400",
-    optionSelectedBg: "bg-slate-50 dark:bg-slate-900/20",
-    optionSelectedText: "text-slate-700 dark:text-slate-300",
-    optionSelectedIcon: "text-slate-500 dark:text-slate-400",
-    focusedBg: "bg-slate-50/60 dark:bg-slate-900/10",
-    createRowIcon: "text-slate-500 dark:text-slate-400",
-    createRowLabel: "text-slate-700 dark:text-slate-300",
-  },
-  info: {
-    triggerOpen: "border-sky-500 ring-2 ring-sky-500/20 dark:border-sky-400",
-    optionSelectedBg: "bg-sky-50 dark:bg-sky-900/20",
-    optionSelectedText: "text-sky-700 dark:text-sky-300",
-    optionSelectedIcon: "text-sky-500 dark:text-sky-400",
-    focusedBg: "bg-sky-50/60 dark:bg-sky-900/10",
-    createRowIcon: "text-sky-500 dark:text-sky-400",
-    createRowLabel: "text-sky-700 dark:text-sky-300",
-  },
-  success: {
-    triggerOpen:
-      "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400",
-    optionSelectedBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    optionSelectedText: "text-emerald-700 dark:text-emerald-300",
-    optionSelectedIcon: "text-emerald-500 dark:text-emerald-400",
-    focusedBg: "bg-emerald-50/60 dark:bg-emerald-900/10",
-    createRowIcon: "text-emerald-500 dark:text-emerald-400",
-    createRowLabel: "text-emerald-700 dark:text-emerald-300",
-  },
-  warning: {
-    triggerOpen:
-      "border-yellow-500 ring-2 ring-yellow-500/20 dark:border-yellow-400",
-    optionSelectedBg: "bg-yellow-50 dark:bg-yellow-900/20",
-    optionSelectedText: "text-yellow-700 dark:text-yellow-300",
-    optionSelectedIcon: "text-yellow-500 dark:text-yellow-400",
-    focusedBg: "bg-yellow-50/60 dark:bg-yellow-900/10",
-    createRowIcon: "text-yellow-500 dark:text-yellow-400",
-    createRowLabel: "text-yellow-700 dark:text-yellow-300",
-  },
-  danger: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-    focusedBg: "bg-rose-50/60 dark:bg-rose-900/10",
-    createRowIcon: "text-rose-500 dark:text-rose-400",
-    createRowLabel: "text-rose-700 dark:text-rose-300",
   },
 };
 
@@ -414,8 +330,8 @@ export interface TagPickerProps {
   emptyMessage?: string;
   loading?: boolean;
   loadingMessage?: string;
-  color?: ThemeColor;
-  itemColor?: ThemeColor;
+  color?: TrueColor;
+  itemColor?: TrueColor;
   /**
    * When true, the dropdown positions against the viewport instead of a clipping ancestor.
    * Useful when the component is inside a modal or constrained panel.

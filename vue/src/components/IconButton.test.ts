@@ -132,7 +132,7 @@ describe("IconButton — glass variant", () => {
 
   it("resolves semantic color 'brand' to blue for glass fill", () => {
     const wrapper = mount(IconButton, {
-      props: { icon: "Search", glass: true, color: "brand" },
+      props: { icon: "Search", glass: true, color: "blue" },
     });
 
     const btn = wrapper.find("button");
@@ -142,7 +142,7 @@ describe("IconButton — glass variant", () => {
 
   it("resolves semantic color 'success' to emerald for glass fill", () => {
     const wrapper = mount(IconButton, {
-      props: { icon: "Search", glass: true, color: "success" },
+      props: { icon: "Search", glass: true, color: "emerald" },
     });
 
     const btn = wrapper.find("button");
@@ -152,7 +152,7 @@ describe("IconButton — glass variant", () => {
 
   it("resolves semantic color 'danger' to rose for glass fill", () => {
     const wrapper = mount(IconButton, {
-      props: { icon: "Search", glass: true, color: "danger" },
+      props: { icon: "Search", glass: true, color: "rose" },
     });
 
     const btn = wrapper.find("button");

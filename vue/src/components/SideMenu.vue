@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { VNodeChild } from "vue";
 import { type IconName } from "../icons/registry";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 
 export type SideMenuItemType = "link" | "group" | "divider";
 
@@ -62,7 +62,7 @@ export interface SideMenuSettings {
 }
 
 export interface SideMenuItemLink extends SideMenuItemBase {
-  color?: ThemeColor;
+  color?: TrueColor;
   type?: "link";
   label: string;
   path: string;
@@ -90,7 +90,7 @@ export type SideMenuItem =
   | SideMenuItemDivider;
 
 export interface SideMenuProps {
-  color?: ThemeColor;
+  color?: TrueColor;
   title?: string;
   /** Icon element shown in the logo area (always visible, collapsed or expanded) */
   logoIcon?: VNodeChild;
@@ -123,19 +123,9 @@ export interface SideMenuProps {
   moduleViewOptions?: readonly string[];
 }
 
-const getSideMenuColorTokens = (color: ThemeColor) => {
+const getSideMenuColorTokens = (color: TrueColor) => {
   switch (color) {
-    case "white":
-      return {
-        bg: "bg-white dark:bg-neutral-800",
-        text: "text-neutral-900 dark:text-white",
-        hoverBg: "hover:bg-neutral-100 dark:hover:bg-neutral-700/50",
-        hoverText: "hover:text-neutral-900 dark:hover:text-white",
-        iconActive: "text-neutral-900 dark:text-white",
-        iconHover: "group-hover:text-neutral-900 dark:group-hover:text-white",
-      };
     case "neutral":
-    case "theme":
       return {
         bg: "bg-neutral-100 dark:bg-neutral-800/60",
         text: "text-neutral-900 dark:text-neutral-100",
@@ -145,7 +135,6 @@ const getSideMenuColorTokens = (color: ThemeColor) => {
         iconHover:
           "group-hover:text-neutral-900 dark:group-hover:text-neutral-100",
       };
-    case "brand":
     case "blue":
       return {
         bg: "bg-blue-50 dark:bg-blue-500/10",
@@ -155,7 +144,6 @@ const getSideMenuColorTokens = (color: ThemeColor) => {
         iconActive: "text-blue-600 dark:text-blue-400",
         iconHover: "group-hover:text-blue-700 dark:group-hover:text-blue-300",
       };
-    case "info":
     case "sky":
       return {
         bg: "bg-sky-50 dark:bg-sky-500/10",
@@ -165,7 +153,6 @@ const getSideMenuColorTokens = (color: ThemeColor) => {
         iconActive: "text-sky-600 dark:text-sky-400",
         iconHover: "group-hover:text-sky-700 dark:group-hover:text-sky-300",
       };
-    case "success":
     case "emerald":
       return {
         bg: "bg-emerald-50 dark:bg-emerald-500/10",
@@ -176,7 +163,6 @@ const getSideMenuColorTokens = (color: ThemeColor) => {
         iconHover:
           "group-hover:text-emerald-700 dark:group-hover:text-emerald-300",
       };
-    case "warning":
     case "amber":
       return {
         bg: "bg-amber-50 dark:bg-amber-500/10",
@@ -186,7 +172,6 @@ const getSideMenuColorTokens = (color: ThemeColor) => {
         iconActive: "text-amber-600 dark:text-amber-400",
         iconHover: "group-hover:text-amber-700 dark:group-hover:text-amber-300",
       };
-    case "danger":
     case "rose":
       return {
         bg: "bg-rose-50 dark:bg-rose-500/10",
@@ -196,7 +181,6 @@ const getSideMenuColorTokens = (color: ThemeColor) => {
         iconActive: "text-rose-600 dark:text-rose-400",
         iconHover: "group-hover:text-rose-700 dark:group-hover:text-rose-300",
       };
-    case "parallels":
     case "red":
       return {
         bg: "bg-red-50 dark:bg-red-500/10",
@@ -301,15 +285,6 @@ const getSideMenuColorTokens = (color: ThemeColor) => {
         iconActive: "text-fuchsia-600 dark:text-fuchsia-400",
         iconHover:
           "group-hover:text-fuchsia-700 dark:group-hover:text-fuchsia-300",
-      };
-    case "pink":
-      return {
-        bg: "bg-pink-50 dark:bg-pink-500/10",
-        text: "text-pink-700 dark:text-pink-400",
-        hoverBg: "hover:bg-pink-100 dark:hover:bg-pink-500/20",
-        hoverText: "hover:text-pink-900 dark:hover:text-pink-300",
-        iconActive: "text-pink-600 dark:text-pink-400",
-        iconHover: "group-hover:text-pink-700 dark:group-hover:text-pink-300",
       };
     case "slate":
       return {

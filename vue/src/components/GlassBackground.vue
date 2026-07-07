@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { CSSProperties } from "vue";
-import type { ThemeColor } from "../theme/Theme";
-import { resolveColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export type GradientDirection =
   | "t"
@@ -23,11 +22,11 @@ export interface GlassBackgroundProps {
    */
   position?: GlassBackgroundPosition;
   /** Primary theme color driving the gradient (default: "purple"). */
-  color?: ThemeColor;
+  color?: TrueColor;
   /** Secondary color for the middle gradient stop. Derived from color if omitted. */
-  colorSecondary?: ThemeColor;
+  colorSecondary?: TrueColor;
   /** Deep color for the final gradient stop. Derived if omitted. */
-  colorDeep?: ThemeColor;
+  colorDeep?: TrueColor;
   /** Gradient direction (default: "br" → bottom-right). */
   direction?: GradientDirection;
   /** Enable a slow-moving shimmer overlay (default: false). */
@@ -43,15 +42,13 @@ export interface GlassBackgroundProps {
 /**
  * Derive a sensible secondary color based on the primary.
  */
-export function getFallbackSecondary(color: ThemeColor): ThemeColor {
-  const c = resolveColor(color);
-  const neighbors: Record<string, ThemeColor> = {
+export function getFallbackSecondary(color: TrueColor): TrueColor {
+  const neighbors: Record<string, TrueColor> = {
     purple: "blue",
     blue: "indigo",
     indigo: "violet",
     violet: "purple",
-    rose: "pink",
-    pink: "rose",
+    rose: "red",
     emerald: "teal",
     teal: "emerald",
     amber: "orange",
@@ -66,21 +63,19 @@ export function getFallbackSecondary(color: ThemeColor): ThemeColor {
     stone: "neutral",
     gray: "zinc",
   };
-  return neighbors[c] ?? color;
+  return neighbors[color] ?? color;
 }
 
 /**
  * Derive a deep color for the final gradient stop.
  */
-export function getFallbackDeep(color: ThemeColor): ThemeColor {
-  const c = resolveColor(color);
-  const deepMap: Record<string, ThemeColor> = {
+export function getFallbackDeep(color: TrueColor): TrueColor {
+  const deepMap: Record<string, TrueColor> = {
     purple: "indigo",
     blue: "violet",
     indigo: "purple",
     violet: "blue",
     rose: "red",
-    pink: "rose",
     emerald: "green",
     teal: "cyan",
     amber: "red",
@@ -95,7 +90,7 @@ export function getFallbackDeep(color: ThemeColor): ThemeColor {
     stone: "gray",
     gray: "neutral",
   };
-  return deepMap[c] ?? color;
+  return deepMap[color] ?? color;
 }
 </script>
 
@@ -111,12 +106,12 @@ const props = withDefaults(defineProps<GlassBackgroundProps>(), {
 });
 
 // Resolve semantic colors to Tailwind color names
-const c = computed(() => resolveColor(props.color!));
+const c = computed(() => props.color!);
 const s = computed(() =>
-  resolveColor(props.colorSecondary ?? getFallbackSecondary(props.color!)),
+  props.colorSecondary ?? getFallbackSecondary(props.color!),
 );
 const d = computed(() =>
-  resolveColor(props.colorDeep ?? getFallbackDeep(props.color!)),
+  props.colorDeep ?? getFallbackDeep(props.color!),
 );
 
 // Map direction codes to CSS gradient angle strings

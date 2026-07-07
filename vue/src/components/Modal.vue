@@ -18,7 +18,7 @@ import type {
   ButtonColor,
 } from "./Button.vue";
 import type { TabsProps } from "./Tabs.vue";
-import type { ModalSize } from "../theme";
+import type { Size } from "../theme";
 import { type IconName } from "../icons/registry";
 // Self-import so the Confirm/DeleteConfirm/ApplyConfirm wrappers below can
 // render the modal (mirrors the React module's local `Modal` reference).
@@ -27,7 +27,7 @@ import Modal from "./Modal.vue";
 type ModalActionsAlign = "start" | "center" | "end" | "between";
 
 const sizePresets: Record<
-  ModalSize,
+  Size,
   {
     width?: number;
     className: string;
@@ -116,7 +116,7 @@ export interface ModalProps {
   bodyClassName?: string;
   footer?: string;
   actions?: string;
-  size?: ModalSize;
+  size?: Size;
   maxWidth?: number | string;
   minWidth?: number | string;
   minHeight?: number | string;
@@ -382,7 +382,7 @@ const createTypedConfirmModal = (options: {
 export const DeleteConfirmModal = createTypedConfirmModal({
   name: "DeleteConfirmModal",
   defaultConfirmLabel: "Delete",
-  confirmColor: "danger",
+  confirmColor: "rose",
   inputFocusClasses:
     "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/30",
 });
@@ -390,7 +390,7 @@ export const DeleteConfirmModal = createTypedConfirmModal({
 export const ApplyConfirmModal = createTypedConfirmModal({
   name: "ApplyConfirmModal",
   defaultConfirmLabel: "Apply",
-  confirmColor: "brand",
+  confirmColor: "blue",
   inputFocusClasses: "focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30",
 });
 </script>

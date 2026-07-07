@@ -1,11 +1,11 @@
 <script lang="ts">
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import type { IconName } from "../icons/registry";
 
 export interface StatCountTileBreakdown {
   label: string;
   value: string | number;
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 export interface StatCountTileProps {
@@ -13,15 +13,15 @@ export interface StatCountTileProps {
   count?: string | number;
   breakdown?: StatCountTileBreakdown[];
   icon?: IconName;
-  color?: ThemeColor;
+  color?: TrueColor;
   onClick?: () => void;
   withDecoration?: boolean;
   withHoverEffect?: boolean;
-  textColor?: ThemeColor;
+  textColor?: TrueColor;
   loading?: boolean;
   spinnerVariant?: "solid" | "segments";
   spinnerThickness?: "thin" | "normal" | "thick";
-  spinnerColor?: ThemeColor;
+  spinnerColor?: TrueColor;
   error?: {
     icon?: IconName;
     message?: string;

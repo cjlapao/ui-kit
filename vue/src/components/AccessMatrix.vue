@@ -334,7 +334,7 @@ const rowClassNameFn = (row: MatrixRow) => {
     <div v-if="hiddenCount > 0" class="mt-3 flex justify-center">
       <Button
         variant="ghost"
-        color="brand"
+        color="blue"
         size="sm"
         :trailing-icon="expanded ? 'ArrowUp' : 'ArrowDown'"
         @click="expanded = !expanded"
