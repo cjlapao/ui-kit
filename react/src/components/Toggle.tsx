@@ -99,7 +99,7 @@ const sizeTokens: Record<
   lg: {
     track: "h-7 w-14",
     thumb: "h-6 w-6",
-    thumbOffset: "top-1 left-1",
+    thumbOffset: "top-0.5 left-0.5",
     thumbTranslate: "peer-checked:translate-x-6",
     gap: "gap-3.5",
     font: "text-base",
