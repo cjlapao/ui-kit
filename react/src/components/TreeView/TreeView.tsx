@@ -746,7 +746,7 @@ const TreeView: React.FC<TreeViewProps> = ({
                 ? error
                 : "An unexpected error occurred."
             }
-            tone="danger"
+            tone="rose"
             showIcon
             actionLabel={onRetry ? "Retry" : undefined}
             onAction={onRetry}

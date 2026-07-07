@@ -1,11 +1,12 @@
 import React from "react";
 import classNames from "classnames";
 
-import { type ThemeColor, getPillColorClasses } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
+import { getPillColorClasses } from "../theme/Theme";
 
 export type PillVariant = "solid" | "soft" | "outline";
 export type PillSize = "xs" | "sm" | "md" | "lg";
-export type PillTone = ThemeColor;
+export type PillTone = TrueColor;
 
 const sizeStyles: Record<PillSize, string> = {
   xs: "text-[11px] h-4 px-2",
@@ -34,7 +35,7 @@ export const Pill: React.FC<PillProps> = ({
   children,
   ...rest
 }) => {
-  const toneTokens = getPillColorClasses(tone, variant);
+  const toneTokens = getPillColorClasses(tone as TrueColor, variant);
   const sizeToken = sizeStyles[size];
 
   const pillClasses = classNames(

@@ -9,7 +9,7 @@ import classNames from "classnames";
 import Button from "../Button";
 import DropdownMenu from "../DropdownMenu";
 import type { DropdownMenuOption } from "../DropdownMenu";
-import { getPanelToneStyles, ThemeColor } from "../../theme/Theme";
+import { getPanelToneStyles, TrueColor } from "../../theme/Theme";
 import { getTreeColorTokens } from "../TreeView/toneColors";
 import { paddingStyles } from "../Panel";
 import type {
@@ -88,7 +88,7 @@ interface TimelineSvgProps {
   /** Measured offsetHeight of each item row div */
   itemHeights: number[];
   isDark: boolean;
-  tone: ThemeColor;
+  tone: TrueColor;
   showTrunkDots: boolean;
 }
 
@@ -418,7 +418,7 @@ const OverflowButton: React.FC<OverflowButtonProps> = ({
 
 interface TimelineItemRowProps {
   item: TimelinePanelItem;
-  color: ThemeColor;
+  color: TrueColor;
   itemRef: (el: HTMLDivElement | null) => void;
   actionSize: TimelinePanelAction["size"];
 }

@@ -16,13 +16,13 @@ import {
   type ButtonVariant,
   type ButtonColor,
 } from ".";
-import type { ModalSize } from "../theme";
+import type { Size } from "../theme";
 import { type IconName } from "../icons/registry";
 import { renderIcon } from "../utils/renderIcon";
 
 // ── Size presets (mirrors Modal) ──────────────────────────────────────────────
 
-const sizePresets: Record<ModalSize, { className: string; maxWidth?: string }> =
+const sizePresets: Record<Size, { className: string; maxWidth?: string }> =
   {
     xs: { maxWidth: "320px", className: "max-w-[320px]" },
     sm: { maxWidth: "400px", className: "max-w-[400px]" },
@@ -65,7 +65,7 @@ export interface InlinePanelProps
    * Width preset for the content card. Only meaningful when anchor is
    * "top" or "bottom". Ignored for "fill". Default: "md".
    */
-  size?: ModalSize;
+  size?: Size;
   maxWidth?: number | string;
   minWidth?: number | string;
   height?: number | string;
@@ -584,7 +584,7 @@ export const DeleteConfirmInlinePanel: React.FC<
       confirmLabel={confirmLabel}
       cancelLabel={cancelLabel}
       confirmVariant="solid"
-      confirmColor="danger"
+      confirmColor="rose"
       isConfirmDisabled={!isMatch || isConfirmDisabled}
       initialFocusRef={inputRef}
     >

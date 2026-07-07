@@ -1,7 +1,7 @@
 import type React from "react";
-import type { ThemeColor } from "../../theme/Theme";
+import type { TrueColor } from "../../theme/Theme";
 
-export type TreeTone = ThemeColor;
+export type TreeTone = TrueColor;
 
 export interface TreeReorderEvent {
   id: string;

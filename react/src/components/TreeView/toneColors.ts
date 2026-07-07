@@ -1,4 +1,4 @@
-import type { ThemeColor } from "../../theme/Theme";
+import type { TrueColor } from "../../theme/Theme";
 
 // ── Color token interface ────────────────────────────────────────────────────
 
@@ -273,22 +273,22 @@ const BASE_TOKENS: Record<string, TreeColorTokens> = {
 
 // ── Public accessor ──────────────────────────────────────────────────────────
 
-function resolveBaseColor(color: ThemeColor): string {
+function resolveBaseColor(color: TrueColor): string {
   switch (color) {
-    case "brand":
+    case "blue":
       return "blue";
-    case "info":
+    case "sky":
       return "sky";
-    case "success":
+    case "emerald":
       return "emerald";
-    case "warning":
+    case "amber":
       return "amber";
-    case "danger":
+    case "rose":
       return "rose";
-    case "theme":
-    case "white":
+    case "neutral":
+    case "slate":
       return "neutral";
-    case "parallels":
+    case "red":
       return "red";
     default:
       return color;
@@ -296,7 +296,7 @@ function resolveBaseColor(color: ThemeColor): string {
 }
 
 export function getTreeColorTokens(
-  tone: ThemeColor | undefined,
+  tone: TrueColor | undefined,
 ): TreeColorTokens {
   if (!tone) return NEUTRAL_TOKENS;
   const base = resolveBaseColor(tone);

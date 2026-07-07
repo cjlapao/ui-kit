@@ -1,6 +1,6 @@
 import React, { useId } from "react";
 import classNames from "classnames";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 import { useIconRenderer } from "../contexts/IconContext";
 import type { IconSize } from "../types/Icon";
 
@@ -24,7 +24,7 @@ export interface ButtonSelectorProps<T extends string = string> {
   onChange: (value: T | T[]) => void;
   /** "single" enforces radio-like behaviour; "multi" allows multiple selections (default). */
   mode?: ButtonSelectorMode;
-  color?: ThemeColor;
+  color?: TrueColor;
   /** Number of grid columns (default: 2) */
   cols?: 1 | 2 | 3 | 4;
   /** Tailwind gap class applied to the grid (default: "gap-2") */
@@ -49,7 +49,7 @@ type SelectedTokens = {
   indicatorBorder: string;
 };
 
-const COLOR_TOKENS: Record<ThemeColor, SelectedTokens> = {
+const COLOR_TOKENS: Record<TrueColor, SelectedTokens> = {
   red: {
     border: "border-red-400 dark:border-red-500",
     bg: "bg-red-50 dark:bg-red-500/10",
@@ -169,16 +169,7 @@ const COLOR_TOKENS: Record<ThemeColor, SelectedTokens> = {
     label: "text-fuchsia-700 dark:text-fuchsia-300",
     indicatorBg: "bg-fuchsia-500",
     indicatorBorder: "border-fuchsia-500",
-  },
-  pink: {
-    border: "border-pink-400 dark:border-pink-500",
-    bg: "bg-pink-50 dark:bg-pink-500/10",
-    icon: "text-pink-600 dark:text-pink-400",
-    label: "text-pink-700 dark:text-pink-300",
-    indicatorBg: "bg-pink-500",
-    indicatorBorder: "border-pink-500",
-  },
-  rose: {
+  },  rose: {
     border: "border-rose-400 dark:border-rose-500",
     bg: "bg-rose-50 dark:bg-rose-500/10",
     icon: "text-rose-600 dark:text-rose-400",
@@ -225,71 +216,6 @@ const COLOR_TOKENS: Record<ThemeColor, SelectedTokens> = {
     label: "text-stone-700 dark:text-stone-300",
     indicatorBg: "bg-stone-500",
     indicatorBorder: "border-stone-500",
-  },
-  // Semantic aliases
-  white: {
-    border: "border-neutral-400 dark:border-neutral-400",
-    bg: "bg-neutral-100 dark:bg-neutral-500/10",
-    icon: "text-neutral-700 dark:text-neutral-300",
-    label: "text-neutral-800 dark:text-neutral-200",
-    indicatorBg: "bg-neutral-600",
-    indicatorBorder: "border-neutral-600",
-  },
-  brand: {
-    border: "border-blue-400 dark:border-blue-500",
-    bg: "bg-blue-50 dark:bg-blue-500/10",
-    icon: "text-blue-600 dark:text-blue-400",
-    label: "text-blue-700 dark:text-blue-300",
-    indicatorBg: "bg-blue-500",
-    indicatorBorder: "border-blue-500",
-  },
-  info: {
-    border: "border-sky-400 dark:border-sky-500",
-    bg: "bg-sky-50 dark:bg-sky-500/10",
-    icon: "text-sky-600 dark:text-sky-400",
-    label: "text-sky-700 dark:text-sky-300",
-    indicatorBg: "bg-sky-500",
-    indicatorBorder: "border-sky-500",
-  },
-  success: {
-    border: "border-emerald-400 dark:border-emerald-500",
-    bg: "bg-emerald-50 dark:bg-emerald-500/10",
-    icon: "text-emerald-600 dark:text-emerald-400",
-    label: "text-emerald-700 dark:text-emerald-300",
-    indicatorBg: "bg-emerald-500",
-    indicatorBorder: "border-emerald-500",
-  },
-  warning: {
-    border: "border-amber-400 dark:border-amber-500",
-    bg: "bg-amber-50 dark:bg-amber-500/10",
-    icon: "text-amber-600 dark:text-amber-400",
-    label: "text-amber-700 dark:text-amber-300",
-    indicatorBg: "bg-amber-500",
-    indicatorBorder: "border-amber-500",
-  },
-  danger: {
-    border: "border-rose-400 dark:border-rose-500",
-    bg: "bg-rose-50 dark:bg-rose-500/10",
-    icon: "text-rose-600 dark:text-rose-400",
-    label: "text-rose-700 dark:text-rose-300",
-    indicatorBg: "bg-rose-500",
-    indicatorBorder: "border-rose-500",
-  },
-  theme: {
-    border: "border-neutral-400 dark:border-neutral-400",
-    bg: "bg-neutral-100 dark:bg-neutral-500/10",
-    icon: "text-neutral-700 dark:text-neutral-300",
-    label: "text-neutral-800 dark:text-neutral-200",
-    indicatorBg: "bg-neutral-600",
-    indicatorBorder: "border-neutral-600",
-  },
-  parallels: {
-    border: "border-red-400 dark:border-red-500",
-    bg: "bg-red-50 dark:bg-red-500/10",
-    icon: "text-red-600 dark:text-red-400",
-    label: "text-red-700 dark:text-red-300",
-    indicatorBg: "bg-red-500",
-    indicatorBorder: "border-red-500",
   },
 };
 

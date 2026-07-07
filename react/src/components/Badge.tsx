@@ -1,7 +1,8 @@
 import React from "react";
 import classNames from "classnames";
 
-import { type ThemeColor, getBadgeColorClasses } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
+import { getBadgeColorClasses } from "../theme/Theme";
 
 export interface BadgeProps {
   /**
@@ -24,7 +25,7 @@ export interface BadgeProps {
    * Badge color variant
    * @default "danger"
    */
-  tone?: ThemeColor;
+  tone?: TrueColor;
 
   /**
    * Additional class names

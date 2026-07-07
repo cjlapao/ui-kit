@@ -1,7 +1,7 @@
 import React, { type ReactNode, useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getTabsColorTokens, type ThemeColor } from "../theme/Theme";
+import { getTabsColorTokens, type TrueColor } from "../theme/Theme";
 import IconButton from "./IconButton";
 import { iconAccentActive } from "../theme/ButtonTypes";
 import Badge from "./Badge";
@@ -23,7 +23,7 @@ export interface TabItemAction {
   node?: ReactNode;
   icon?: string | React.ReactElement;
   onClick?: () => void;
-  color?: ThemeColor;
+  color?: TrueColor;
   active?: boolean;
 }
 
@@ -35,7 +35,7 @@ export interface TabItem {
   badge?: string | number;
   disabled?: boolean;
   panel?: ReactNode;
-  badgeColor?: ThemeColor;
+  badgeColor?: TrueColor;
   actions?: TabItemAction[];
 }
 
@@ -46,7 +46,7 @@ export interface TabsProps {
   onChange?: (id: string, item: TabItem) => void;
   variant?: TabsVariant;
   size?: TabsSize;
-  color?: ThemeColor;
+  color?: TrueColor;
   orientation?: TabsOrientation;
   justify?: TabsJustify;
   fullWidth?: boolean;
@@ -77,7 +77,7 @@ const baseTabClasses =
 const focusOffset =
   "focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-0";
 
-const focusRing = (color: ThemeColor) => getTabsColorTokens(color).focusRing;
+const focusRing = (color: TrueColor) => getTabsColorTokens(color).focusRing;
 
 const sizeStyles: Record<
   TabsSize,
@@ -119,7 +119,7 @@ const neutralTextInactive = "text-neutral-600 dark:text-neutral-300";
 
 const buildVariantConfig = (
   variant: TabsVariant,
-  color: ThemeColor,
+  color: TrueColor,
   orientation: TabsOrientation,
   hideUnderlineContainer?: boolean,
 ): VariantConfig => {

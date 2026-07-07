@@ -7,7 +7,7 @@ import Button, {
 } from "./Button";
 import { type IconSize } from "../types/Icon";
 import { useIconRenderer } from "../contexts/IconContext";
-import { ThemeSize, type ThemeColor } from "../theme/Theme";
+import type { TrueColor, Size } from "../theme/Theme";
 export type TextSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 const iconSizes: Record<IconSize, string> = {
@@ -26,94 +26,46 @@ const textSizes: Record<TextSize, string> = {
   xl: "text-2xl",
 };
 
-/** Accepts all theme colors. The original five semantic names (neutral/info/success/warning/danger) are preserved unchanged. */
-export type EmptyStateTone = ThemeColor;
-
-// ── Color resolution (mirrors Theme.ts) ────────────────────────────────────
-
-const resolveColor = (color: ThemeColor): string => {
-  switch (color) {
-    case "brand":
-      return "blue";
-    case "info":
-      return "sky";
-    case "success":
-      return "emerald";
-    case "warning":
-      return "amber";
-    case "danger":
-      return "rose";
-    case "theme":
-      return "neutral";
-    case "parallels":
-      return "red";
-    default:
-      return color;
-  }
-};
+export type EmptyStateTone = TrueColor;
 
 type ToneConfig = { border: string; text: string; bg: string; icon: string };
 
-// ── Preserved original semantic entries (static strings — Tailwind picks these up directly) ──
+// ── Neutral palette tones (static strings — Tailwind picks these up directly) ──
 
-const semanticTones: Partial<Record<ThemeColor, ToneConfig>> = {
+const neutralTones: Record<Extract<TrueColor, "neutral" | "slate" | "gray" | "zinc" | "stone">, ToneConfig> = {
   neutral: {
+    border: "border-neutral-300/70 dark:border-neutral-700/60",
+    text: "text-neutral-600 dark:text-neutral-300",
+    bg: "bg-white/80 dark:bg-neutral-900/40",
+    icon: "text-neutral-400 dark:text-neutral-500",
+  },
+  slate: {
     border: "border-slate-300/70 dark:border-slate-700/60",
     text: "text-slate-600 dark:text-slate-300",
-    bg: "bg-white/80 dark:bg-slate-900/40",
+    bg: "bg-slate-50/80 dark:bg-slate-900/40",
     icon: "text-slate-400 dark:text-slate-500",
   },
-  info: {
-    border: "border-blue-300/60 dark:border-blue-500/40",
-    text: "text-blue-700 dark:text-blue-200",
-    bg: "bg-blue-50/60 dark:bg-blue-950/20",
-    icon: "text-blue-500 dark:text-blue-300",
+  gray: {
+    border: "border-gray-300/70 dark:border-gray-700/60",
+    text: "text-gray-600 dark:text-gray-300",
+    bg: "bg-gray-50/80 dark:bg-gray-900/40",
+    icon: "text-gray-400 dark:text-gray-500",
   },
-  success: {
-    border: "border-emerald-300/60 dark:border-emerald-500/40",
-    text: "text-emerald-700 dark:text-emerald-200",
-    bg: "bg-emerald-50/60 dark:bg-emerald-950/20",
-    icon: "text-emerald-500 dark:text-emerald-300",
+  zinc: {
+    border: "border-zinc-300/70 dark:border-zinc-700/60",
+    text: "text-zinc-600 dark:text-zinc-300",
+    bg: "bg-zinc-50/80 dark:bg-zinc-900/40",
+    icon: "text-zinc-400 dark:text-zinc-500",
   },
-  warning: {
-    border: "border-amber-300/60 dark:border-amber-500/40",
-    text: "text-amber-700 dark:text-amber-200",
-    bg: "bg-amber-50/60 dark:bg-amber-950/20",
-    icon: "text-amber-500 dark:text-amber-300",
-  },
-  danger: {
-    border: "border-rose-300/60 dark:border-rose-500/40",
-    text: "text-rose-700 dark:text-rose-200",
-    bg: "bg-rose-50/60 dark:bg-rose-950/20",
-    icon: "text-rose-500 dark:text-rose-300",
-  },
-  parallels: {
-    border: "border-red-300/60 dark:border-red-500/40",
-    text: "text-red-700 dark:text-red-200",
-    bg: "bg-red-50/60 dark:bg-red-950/20",
-    icon: "text-red-500 dark:text-red-300",
-  },
-  brand: {
-    border: "border-blue-300/60 dark:border-blue-500/40",
-    text: "text-blue-700 dark:text-blue-200",
-    bg: "bg-blue-50/60 dark:bg-blue-950/20",
-    icon: "text-blue-500 dark:text-blue-300",
-  },
-  theme: {
-    border: "border-slate-300/60 dark:border-slate-500/40",
-    text: "text-slate-700 dark:text-slate-200",
-    bg: "bg-slate-50/60 dark:bg-slate-950/20",
-    icon: "text-slate-500 dark:text-slate-300",
-  },
-  white: {
-    border: "border-slate-300/60 dark:border-slate-500/40",
-    text: "text-slate-700 dark:text-slate-200",
-    bg: "bg-slate-50/60 dark:bg-slate-950/20",
-    icon: "text-slate-500 dark:text-slate-300",
+  stone: {
+    border: "border-stone-300/70 dark:border-stone-700/60",
+    text: "text-stone-600 dark:text-stone-300",
+    bg: "bg-stone-50/80 dark:bg-stone-900/40",
+    icon: "text-stone-400 dark:text-stone-500",
   },
 };
 
-const sizes: Record<ThemeSize, string> = {
+const sizes: Record<Size, string> = {
   xs: "h-[30%] w-[30%]",
   sm: "h-[35%] w-[35%]",
   md: "h-[40%] w-[40%]",
@@ -126,7 +78,7 @@ const sizes: Record<ThemeSize, string> = {
   "3xl": "h-[70%] w-[70%]",
 };
 
-// ── Dynamic builder for all other ThemeColor values ────────────────────────
+// ── Dynamic builder for all TrueColor values ────────────────────────────────
 // Uses only class patterns already declared in tailwind-safelist.ts:
 //   border-{c}-200            (border200)
 //   dark:border-{c}-500/40    (darkBorder500_40)
@@ -137,16 +89,20 @@ const sizes: Record<ThemeSize, string> = {
 //   text-{c}-500              (text500)
 //   dark:text-{c}-300         (darkText300)
 
-function buildToneClasses(color: ThemeColor): ToneConfig {
-  if (semanticTones[color]) return semanticTones[color]!;
-  if (color === "white" || color === "theme") return semanticTones.neutral!;
+function buildToneClasses(color: TrueColor): ToneConfig {
+  // Static tones for neutral palettes
+  if (color === "neutral") return neutralTones.neutral;
+  if (color === "slate") return neutralTones.slate;
+  if (color === "gray") return neutralTones.gray;
+  if (color === "zinc") return neutralTones.zinc;
+  if (color === "stone") return neutralTones.stone;
 
-  const c = resolveColor(color);
+  // All other TrueColor values (red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose)
   return {
-    border: `border-${c}-200 dark:border-${c}-500/40`,
-    text: `text-${c}-700 dark:text-${c}-200`,
-    bg: `bg-${c}-50/80 dark:bg-${c}-500/10`,
-    icon: `text-${c}-500 dark:text-${c}-300`,
+    border: `border-${color}-200 dark:border-${color}-500/40`,
+    text: `text-${color}-700 dark:text-${color}-200`,
+    bg: `bg-${color}-50/80 dark:bg-${color}-500/10`,
+    icon: `text-${color}-500 dark:text-${color}-300`,
   };
 }
 
@@ -162,7 +118,7 @@ export interface EmptyStateProps
   actionColor?: ButtonColor;
   icon?: string | React.ReactElement;
   iconSize?: IconSize;
-  iconColor?: ThemeColor;
+  iconColor?: TrueColor;
   textSize?: TextSize;
   showIcon?: boolean;
   tone?: EmptyStateTone;
@@ -172,7 +128,7 @@ export interface EmptyStateProps
   fullHeight?: boolean;
   actionSize?: ButtonSize;
   actionLeadingIcon?: string | React.ReactElement;
-  size?: ThemeSize;
+  size?: Size;
 }
 
 // ── Component ───────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import React from "react";
 import classNames from "classnames";
-import { getStatTileColorClasses, type ThemeColor } from "../theme";
+import { getStatTileColorClasses, type TrueColor } from "../theme";
 import { Panel, Loader } from ".";
 import { CustomIcon } from "./CustomIcon";
 import { type IconName } from "../icons/registry";
@@ -8,7 +8,7 @@ import { type IconName } from "../icons/registry";
 export interface StatCountTileBreakdown {
   label: string;
   value: string | number;
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 export interface StatCountTileProps {
@@ -16,16 +16,16 @@ export interface StatCountTileProps {
   count?: React.ReactNode;
   breakdown?: StatCountTileBreakdown[];
   icon?: IconName;
-  color?: ThemeColor;
+  color?: TrueColor;
   className?: string;
   onClick?: () => void;
   withDecoration?: boolean;
   withHoverEffect?: boolean;
-  textColor?: ThemeColor;
+  textColor?: TrueColor;
   loading?: boolean;
   spinnerVariant?: "solid" | "segments";
   spinnerThickness?: "thin" | "normal" | "thick";
-  spinnerColor?: ThemeColor;
+  spinnerColor?: TrueColor;
   error?: {
     icon?: IconName;
     message?: string;

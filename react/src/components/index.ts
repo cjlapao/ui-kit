@@ -95,7 +95,7 @@ export {
   type TagPanelTag,
 } from "./TagPanel";
 export { default as Checkbox, type CheckboxProps } from "./Checkbox";
-export { default as Toggle, type ToggleProps, type ToggleSize, type ToggleAlign, type ToggleDescriptionPlacement, type TogglePadding, type ToggleVariant } from "./Toggle";
+export { default as Toggle, type ToggleProps, type ToggleSize, type ToggleAlign, type ToggleDescriptionPlacement, type TogglePadding } from "./Toggle";
 export {
   default as MultiToggle,
   type MultiToggleProps,

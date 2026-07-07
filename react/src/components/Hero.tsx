@@ -2,7 +2,7 @@ import React from "react";
 import classNames from "classnames";
 import { CustomIcon } from "./CustomIcon";
 import { type IconName } from "../icons/registry";
-import { type ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import { type PanelDecoration } from "./Panel";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ export interface HeroProps
   /** Icon name from the registry, or a pre-built React element. When omitted the icon slot is not rendered. */
   icon?: IconName | React.ReactElement;
   /** Colour tone — drives the gradient background. Defaults to `"parallels"`. */
-  tone?: ThemeColor;
+  tone?: TrueColor;
   /** Size of the title text. Colour is always white. Defaults to `"sm"`. */
   titleSize?: HeroTitleSize;
   /** Size of the subtitle text. Colour is always white/75. Defaults to `"xs"`. */
@@ -43,7 +43,7 @@ export interface HeroProps
 // All values are complete, literal Tailwind class strings so the JIT scanner
 // includes them without needing a safelist entry.
 
-const toneGradient: Record<ThemeColor, string> = {
+const toneGradient: Record<TrueColor, string> = {
   red: "from-red-500 to-rose-600",
   orange: "from-orange-400 to-orange-600",
   amber: "from-amber-400 to-orange-500",
@@ -58,22 +58,12 @@ const toneGradient: Record<ThemeColor, string> = {
   indigo: "from-indigo-500 to-violet-600",
   violet: "from-violet-500 to-purple-600",
   purple: "from-purple-500 to-fuchsia-600",
-  fuchsia: "from-fuchsia-500 to-pink-600",
-  pink: "from-pink-500 to-rose-600",
-  rose: "from-rose-500 to-red-600",
+  fuchsia: "from-fuchsia-500 to-pink-600",  rose: "from-rose-500 to-red-600",
   slate: "from-slate-600 to-slate-800",
   gray: "from-gray-600 to-gray-800",
   zinc: "from-zinc-600 to-zinc-800",
   neutral: "from-neutral-600 to-neutral-800",
   stone: "from-stone-600 to-stone-800",
-  white: "from-slate-500 to-slate-700",
-  brand: "from-blue-500 to-indigo-600",
-  info: "from-sky-400 to-blue-600",
-  success: "from-emerald-500 to-teal-600",
-  warning: "from-amber-400 to-orange-500",
-  danger: "from-rose-500 to-red-600",
-  theme: "from-neutral-600 to-neutral-800",
-  parallels: "from-red-500 to-rose-600",
 };
 
 // ── Size maps ─────────────────────────────────────────────────────────────────

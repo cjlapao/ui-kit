@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import IconButton from "./IconButton";
 import { IconSize } from "../types";
-import { ThemeColor } from "../theme/Theme";
+import { TrueColor } from "../theme/Theme";
 
 export interface SidePanelProps {
   /** Whether the panel is open */
@@ -31,7 +31,7 @@ export interface SidePanelProps {
   /** Maximum width in px when resizable. @default 900 */
   maxWidth?: number;
   /** color for the resizer */
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 /**

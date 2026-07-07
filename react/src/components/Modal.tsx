@@ -19,7 +19,7 @@ import {
   type ButtonProps,
   type ButtonVariant,
 } from ".";
-import type { ModalSize } from "../theme";
+import { type Size as ModalSize } from "../theme";
 import { type IconName } from "../icons/registry";
 import { renderIcon } from "../utils/renderIcon";
 
@@ -621,7 +621,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           </Button>
           <Button
             variant="solid"
-            color="danger"
+            color="rose"
             onClick={onConfirm}
             disabled={!isMatch || isConfirmDisabled}
             {...confirmButtonProps}
@@ -709,7 +709,7 @@ const ApplyConfirmModal: React.FC<ApplyConfirmModalProps> = ({
           </Button>
           <Button
             variant="solid"
-            color="brand"
+            color="blue"
             onClick={onConfirm}
             disabled={!isMatch || isConfirmDisabled}
             {...confirmButtonProps}

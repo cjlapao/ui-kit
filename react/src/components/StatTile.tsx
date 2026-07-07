@@ -1,7 +1,7 @@
 import React from "react";
 import classNames from "classnames";
 import { Panel, Loader } from ".";
-import { getStatTileColorClasses, type ThemeColor } from "../theme";
+import { getStatTileColorClasses, type TrueColor } from "../theme";
 import { CustomIcon } from "./CustomIcon";
 import { type IconName } from "../icons/registry";
 
@@ -15,7 +15,7 @@ export interface StatTileMeta {
   text: React.ReactNode;
   icon?: IconName;
   variant?: "text" | "badge";
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 export interface StatTileError {
@@ -27,7 +27,7 @@ export interface StatTileError {
 export interface StatTileProgress {
   value: number;
   label?: string;
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 export interface StatTileProps {
@@ -36,7 +36,7 @@ export interface StatTileProps {
   subtitle?: React.ReactNode;
   body?: React.ReactNode;
   icon?: IconName;
-  color?: ThemeColor;
+  color?: TrueColor;
   trend?: StatTileTrend;
   progress?: StatTileProgress;
   meta?: StatTileMeta[];
@@ -46,11 +46,11 @@ export interface StatTileProps {
   onClick?: () => void;
   withDecoration?: boolean;
   withHoverEffect?: boolean;
-  textColor?: ThemeColor;
+  textColor?: TrueColor;
   loading?: boolean;
   spinnerVariant?: "solid" | "segments";
   spinnerThickness?: "thin" | "normal" | "thick";
-  spinnerColor?: ThemeColor;
+  spinnerColor?: TrueColor;
   error?: StatTileError | null;
 }
 
@@ -274,7 +274,7 @@ const StatTile: React.FC<StatTileProps> = ({
                     className={classNames(
                       "h-full rounded-full transition-all duration-500",
                       // Let's use simpler map:
-                      progress.color === "brand"
+                      progress.color === "blue"
                         ? "bg-blue-500"
                         : progress.color
                           ? `bg-${progress.color}-500`

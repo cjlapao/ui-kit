@@ -9,11 +9,11 @@ import React, {
 import { createPortal } from "react-dom";
 import classNames from "classnames";
 import Pill from "./Pill";
-import { type ThemeColor } from "../theme/Theme";
+import { type TrueColor } from "../theme/Theme";
 import type { TreeTone } from "./TreeView/types";
 
 const toneTokens: Record<
-  ThemeColor,
+  TrueColor,
   {
     triggerOpen: string;
     filterActive: string;
@@ -22,30 +22,6 @@ const toneTokens: Record<
     optionSelectedIcon: string;
   }
 > = {
-  parallels: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    filterActive:
-      "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-  },
-  brand: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    filterActive:
-      "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-  },
-  theme: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    filterActive:
-      "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-  },
   red: {
     triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
     filterActive:
@@ -174,16 +150,7 @@ const toneTokens: Record<
     optionSelectedBg: "bg-fuchsia-50 dark:bg-fuchsia-900/20",
     optionSelectedText: "text-fuchsia-700 dark:text-fuchsia-300",
     optionSelectedIcon: "text-fuchsia-500 dark:text-fuchsia-400",
-  },
-  pink: {
-    triggerOpen: "border-pink-500 ring-2 ring-pink-500/20 dark:border-pink-400",
-    filterActive:
-      "bg-pink-100 text-pink-600 dark:bg-pink-900/40 dark:text-pink-400",
-    optionSelectedBg: "bg-pink-50 dark:bg-pink-900/20",
-    optionSelectedText: "text-pink-700 dark:text-pink-300",
-    optionSelectedIcon: "text-pink-500 dark:text-pink-400",
-  },
-  rose: {
+  },  rose: {
     triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
     filterActive:
       "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
@@ -233,51 +200,7 @@ const toneTokens: Record<
     optionSelectedBg: "bg-stone-50 dark:bg-stone-900/20",
     optionSelectedText: "text-stone-700 dark:text-stone-300",
     optionSelectedIcon: "text-stone-500 dark:text-stone-400",
-  },
-  white: {
-    triggerOpen:
-      "border-slate-500 ring-2 ring-slate-500/20 dark:border-slate-400",
-    filterActive:
-      "bg-slate-100 text-slate-600 dark:bg-slate-900/40 dark:text-slate-400",
-    optionSelectedBg: "bg-slate-50 dark:bg-slate-900/20",
-    optionSelectedText: "text-slate-700 dark:text-slate-300",
-    optionSelectedIcon: "text-slate-500 dark:text-slate-400",
-  },
-  info: {
-    triggerOpen: "border-sky-500 ring-2 ring-sky-500/20 dark:border-sky-400",
-    filterActive:
-      "bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400",
-    optionSelectedBg: "bg-sky-50 dark:bg-sky-900/20",
-    optionSelectedText: "text-sky-700 dark:text-sky-300",
-    optionSelectedIcon: "text-sky-500 dark:text-sky-400",
-  },
-  success: {
-    triggerOpen:
-      "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400",
-    filterActive:
-      "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",
-    optionSelectedBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    optionSelectedText: "text-emerald-700 dark:text-emerald-300",
-    optionSelectedIcon: "text-emerald-500 dark:text-emerald-400",
-  },
-  warning: {
-    triggerOpen:
-      "border-yellow-500 ring-2 ring-yellow-500/20 dark:border-yellow-400",
-    filterActive:
-      "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400",
-    optionSelectedBg: "bg-yellow-50 dark:bg-yellow-900/20",
-    optionSelectedText: "text-yellow-700 dark:text-yellow-300",
-    optionSelectedIcon: "text-yellow-500 dark:text-yellow-400",
-  },
-  danger: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    filterActive:
-      "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-  },
-};
+  },};
 
 // ── Shared positioning helpers (mirrors DropdownMenu) ─────────────────────────
 
@@ -396,7 +319,7 @@ export interface PickerProps {
    */
   escapeBoundary?: boolean;
   className?: string;
-  color?: ThemeColor;
+  color?: TrueColor;
 
   // ── Multi-select ────────────────────────────────────────────────────────
   /** Enable multi-select mode. Use selectedIds + onMultiChange instead of selectedId + onSelect. */
@@ -451,7 +374,7 @@ const Picker: React.FC<PickerProps> = ({
   const [style, setStyle] = useState<React.CSSProperties>();
   const [computedMaxHeight, setComputedMaxHeight] =
     useState(MAX_DROPDOWN_HEIGHT);
-  const colorTokens = toneTokens[color] ?? toneTokens.theme;
+  const colorTokens = toneTokens[color] ?? toneTokens.neutral;
 
   // Normalised selection for both modes
   const effectiveSelectedIds = useMemo<string[]>(
