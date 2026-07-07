@@ -1,7 +1,6 @@
-import type { ThemeColor } from "./Theme";
-import { resolveColor } from "./Theme";
+import type { TrueColor } from "./Theme";
 
-const colors: ThemeColor[] = [
+const colors: TrueColor[] = [
   "red",
   "orange",
   "amber",
@@ -17,72 +16,41 @@ const colors: ThemeColor[] = [
   "violet",
   "purple",
   "fuchsia",
-  "pink",
   "rose",
   "slate",
   "gray",
   "zinc",
   "neutral",
   "stone",
-  "white",
-  "brand",
-  "info",
-  "success",
-  "warning",
-  "danger",
-  "theme",
-  "parallels",
 ];
 
-const createIconAccentRing = (): Record<ThemeColor, string> => {
+const createIconAccentRing = (): Record<TrueColor, string> => {
   const rings: Record<string, string> = {};
   colors.forEach((color) => {
-    const c = resolveColor(color);
-    if (color === "white") {
-      rings[color] = "focus-visible:ring-slate-200";
-    } else if (color === "theme") {
-      rings[color] =
-        "focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500";
-    } else {
-      rings[color] = `focus-visible:ring-${c}-500`;
-    }
+    rings[color] = `focus-visible:ring-${color}-500`;
   });
-  return rings as Record<ThemeColor, string>;
+  return rings as Record<TrueColor, string>;
 };
 
-const createIconAccentHover = (): Record<ThemeColor, string> => {
+const createIconAccentHover = (): Record<TrueColor, string> => {
   const hovers: Record<string, string> = {};
   colors.forEach((color) => {
-    const c = resolveColor(color);
-    if (color === "white") {
-      hovers[color] = "hover:text-white dark:hover:text-neutral-100";
-    } else if (color === "theme") {
-      hovers[color] = "hover:text-neutral-800 dark:hover:text-neutral-100";
-    } else {
-      hovers[color] = `hover:text-${c}-500 dark:hover:text-${c}-300`;
-    }
+    hovers[color] = `hover:text-${color}-500 dark:hover:text-${color}-300`;
   });
-  return hovers as Record<ThemeColor, string>;
+  return hovers as Record<TrueColor, string>;
 };
 
-const createIconAccentActive = (): Record<ThemeColor, string> => {
+const createIconAccentActive = (): Record<TrueColor, string> => {
   const actives: Record<string, string> = {};
   colors.forEach((color) => {
-    const c = resolveColor(color);
-    if (color === "white") {
-      actives[color] = "!text-white !dark:text-neutral-100";
-    } else if (color === "theme") {
-      actives[color] = "!text-neutral-800 !dark:text-neutral-100";
-    } else {
-      actives[color] = `!text-${c}-500 !dark:text-${c}-300`;
-    }
+    actives[color] = `!text-${color}-500 !dark:text-${color}-300`;
   });
-  return actives as Record<ThemeColor, string>;
+  return actives as Record<TrueColor, string>;
 };
 
-export const iconAccentRing: Record<ThemeColor, string> =
+export const iconAccentRing: Record<TrueColor, string> =
   createIconAccentRing();
-export const iconAccentHover: Record<ThemeColor, string> =
+export const iconAccentHover: Record<TrueColor, string> =
   createIconAccentHover();
-export const iconAccentActive: Record<ThemeColor, string> =
+export const iconAccentActive: Record<TrueColor, string> =
   createIconAccentActive();
