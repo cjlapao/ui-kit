@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { VNodeChild } from "vue";
 import { type IconName } from "../icons/registry";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 
 export type SideMenuItemType = "link" | "group" | "divider";
 
@@ -62,7 +62,7 @@ export interface SideMenuSettings {
 }
 
 export interface SideMenuItemLink extends SideMenuItemBase {
-  color?: ThemeColor;
+  color?: TrueColor;
   type?: "link";
   label: string;
   path: string;
@@ -90,7 +90,7 @@ export type SideMenuItem =
   | SideMenuItemDivider;
 
 export interface SideMenuProps {
-  color?: ThemeColor;
+  color?: TrueColor;
   title?: string;
   /** Icon element shown in the logo area (always visible, collapsed or expanded) */
   logoIcon?: VNodeChild;
@@ -123,243 +123,188 @@ export interface SideMenuProps {
   moduleViewOptions?: readonly string[];
 }
 
-const getSideMenuColorTokens = (color: ThemeColor) => {
-  switch (color) {
-    case "white":
-      return {
-        bg: "bg-white dark:bg-neutral-800",
-        text: "text-neutral-900 dark:text-white",
-        hoverBg: "hover:bg-neutral-100 dark:hover:bg-neutral-700/50",
-        hoverText: "hover:text-neutral-900 dark:hover:text-white",
-        iconActive: "text-neutral-900 dark:text-white",
-        iconHover: "group-hover:text-neutral-900 dark:group-hover:text-white",
-      };
-    case "neutral":
-    case "theme":
-      return {
-        bg: "bg-neutral-100 dark:bg-neutral-800/60",
-        text: "text-neutral-900 dark:text-neutral-100",
-        hoverBg: "hover:bg-neutral-200 dark:hover:bg-neutral-700/50",
-        hoverText: "hover:text-neutral-900 dark:hover:text-neutral-100",
-        iconActive: "text-neutral-900 dark:text-neutral-100",
-        iconHover:
-          "group-hover:text-neutral-900 dark:group-hover:text-neutral-100",
-      };
-    case "brand":
-    case "blue":
-      return {
-        bg: "bg-blue-50 dark:bg-blue-500/10",
-        text: "text-blue-700 dark:text-blue-400",
-        hoverBg: "hover:bg-blue-100 dark:hover:bg-blue-500/20",
-        hoverText: "hover:text-blue-900 dark:hover:text-blue-300",
-        iconActive: "text-blue-600 dark:text-blue-400",
-        iconHover: "group-hover:text-blue-700 dark:group-hover:text-blue-300",
-      };
-    case "info":
-    case "sky":
-      return {
-        bg: "bg-sky-50 dark:bg-sky-500/10",
-        text: "text-sky-700 dark:text-sky-400",
-        hoverBg: "hover:bg-sky-100 dark:hover:bg-sky-500/20",
-        hoverText: "hover:text-sky-900 dark:hover:text-sky-300",
-        iconActive: "text-sky-600 dark:text-sky-400",
-        iconHover: "group-hover:text-sky-700 dark:group-hover:text-sky-300",
-      };
-    case "success":
-    case "emerald":
-      return {
-        bg: "bg-emerald-50 dark:bg-emerald-500/10",
-        text: "text-emerald-700 dark:text-emerald-400",
-        hoverBg: "hover:bg-emerald-100 dark:hover:bg-emerald-500/20",
-        hoverText: "hover:text-emerald-900 dark:hover:text-emerald-300",
-        iconActive: "text-emerald-600 dark:text-emerald-400",
-        iconHover:
-          "group-hover:text-emerald-700 dark:group-hover:text-emerald-300",
-      };
-    case "warning":
-    case "amber":
-      return {
-        bg: "bg-amber-50 dark:bg-amber-500/10",
-        text: "text-amber-700 dark:text-amber-400",
-        hoverBg: "hover:bg-amber-100 dark:hover:bg-amber-500/20",
-        hoverText: "hover:text-amber-900 dark:hover:text-amber-300",
-        iconActive: "text-amber-600 dark:text-amber-400",
-        iconHover: "group-hover:text-amber-700 dark:group-hover:text-amber-300",
-      };
-    case "danger":
-    case "rose":
-      return {
-        bg: "bg-rose-50 dark:bg-rose-500/10",
-        text: "text-rose-700 dark:text-rose-400",
-        hoverBg: "hover:bg-rose-100 dark:hover:bg-rose-500/20",
-        hoverText: "hover:text-rose-900 dark:hover:text-rose-300",
-        iconActive: "text-rose-600 dark:text-rose-400",
-        iconHover: "group-hover:text-rose-700 dark:group-hover:text-rose-300",
-      };
-    case "parallels":
-    case "red":
-      return {
-        bg: "bg-red-50 dark:bg-red-500/10",
-        text: "text-red-700 dark:text-red-400",
-        hoverBg: "hover:bg-red-100 dark:hover:bg-red-500/20",
-        hoverText: "hover:text-red-900 dark:hover:text-red-300",
-        iconActive: "text-red-600 dark:text-red-400",
-        iconHover: "group-hover:text-red-700 dark:group-hover:text-red-300",
-      };
-    case "orange":
-      return {
-        bg: "bg-orange-50 dark:bg-orange-500/10",
-        text: "text-orange-700 dark:text-orange-400",
-        hoverBg: "hover:bg-orange-100 dark:hover:bg-orange-500/20",
-        hoverText: "hover:text-orange-900 dark:hover:text-orange-300",
-        iconActive: "text-orange-600 dark:text-orange-400",
-        iconHover:
-          "group-hover:text-orange-700 dark:group-hover:text-orange-300",
-      };
-    case "yellow":
-      return {
-        bg: "bg-yellow-50 dark:bg-yellow-500/10",
-        text: "text-yellow-700 dark:text-yellow-400",
-        hoverBg: "hover:bg-yellow-100 dark:hover:bg-yellow-500/20",
-        hoverText: "hover:text-yellow-900 dark:hover:text-yellow-300",
-        iconActive: "text-yellow-600 dark:text-yellow-400",
-        iconHover:
-          "group-hover:text-yellow-700 dark:group-hover:text-yellow-300",
-      };
-    case "lime":
-      return {
-        bg: "bg-lime-50 dark:bg-lime-500/10",
-        text: "text-lime-700 dark:text-lime-400",
-        hoverBg: "hover:bg-lime-100 dark:hover:bg-lime-500/20",
-        hoverText: "hover:text-lime-900 dark:hover:text-lime-300",
-        iconActive: "text-lime-600 dark:text-lime-400",
-        iconHover: "group-hover:text-lime-700 dark:group-hover:text-lime-300",
-      };
-    case "green":
-      return {
-        bg: "bg-green-50 dark:bg-green-500/10",
-        text: "text-green-700 dark:text-green-400",
-        hoverBg: "hover:bg-green-100 dark:hover:bg-green-500/20",
-        hoverText: "hover:text-green-900 dark:hover:text-green-300",
-        iconActive: "text-green-600 dark:text-green-400",
-        iconHover: "group-hover:text-green-700 dark:group-hover:text-green-300",
-      };
-    case "teal":
-      return {
-        bg: "bg-teal-50 dark:bg-teal-500/10",
-        text: "text-teal-700 dark:text-teal-400",
-        hoverBg: "hover:bg-teal-100 dark:hover:bg-teal-500/20",
-        hoverText: "hover:text-teal-900 dark:hover:text-teal-300",
-        iconActive: "text-teal-600 dark:text-teal-400",
-        iconHover: "group-hover:text-teal-700 dark:group-hover:text-teal-300",
-      };
-    case "cyan":
-      return {
-        bg: "bg-cyan-50 dark:bg-cyan-500/10",
-        text: "text-cyan-700 dark:text-cyan-400",
-        hoverBg: "hover:bg-cyan-100 dark:hover:bg-cyan-500/20",
-        hoverText: "hover:text-cyan-900 dark:hover:text-cyan-300",
-        iconActive: "text-cyan-600 dark:text-cyan-400",
-        iconHover: "group-hover:text-cyan-700 dark:group-hover:text-cyan-300",
-      };
-    case "indigo":
-      return {
-        bg: "bg-indigo-50 dark:bg-indigo-500/10",
-        text: "text-indigo-700 dark:text-indigo-400",
-        hoverBg: "hover:bg-indigo-100 dark:hover:bg-indigo-500/20",
-        hoverText: "hover:text-indigo-900 dark:hover:text-indigo-300",
-        iconActive: "text-indigo-600 dark:text-indigo-400",
-        iconHover:
-          "group-hover:text-indigo-700 dark:group-hover:text-indigo-300",
-      };
-    case "violet":
-      return {
-        bg: "bg-violet-50 dark:bg-violet-500/10",
-        text: "text-violet-700 dark:text-violet-400",
-        hoverBg: "hover:bg-violet-100 dark:hover:bg-violet-500/20",
-        hoverText: "hover:text-violet-900 dark:hover:text-violet-300",
-        iconActive: "text-violet-600 dark:text-violet-400",
-        iconHover:
-          "group-hover:text-violet-700 dark:group-hover:text-violet-300",
-      };
-    case "purple":
-      return {
-        bg: "bg-purple-50 dark:bg-purple-500/10",
-        text: "text-purple-700 dark:text-purple-400",
-        hoverBg: "hover:bg-purple-100 dark:hover:bg-purple-500/20",
-        hoverText: "hover:text-purple-900 dark:hover:text-purple-300",
-        iconActive: "text-purple-600 dark:text-purple-400",
-        iconHover:
-          "group-hover:text-purple-700 dark:group-hover:text-purple-300",
-      };
-    case "fuchsia":
-      return {
-        bg: "bg-fuchsia-50 dark:bg-fuchsia-500/10",
-        text: "text-fuchsia-700 dark:text-fuchsia-400",
-        hoverBg: "hover:bg-fuchsia-100 dark:hover:bg-fuchsia-500/20",
-        hoverText: "hover:text-fuchsia-900 dark:hover:text-fuchsia-300",
-        iconActive: "text-fuchsia-600 dark:text-fuchsia-400",
-        iconHover:
-          "group-hover:text-fuchsia-700 dark:group-hover:text-fuchsia-300",
-      };
-    case "pink":
-      return {
-        bg: "bg-pink-50 dark:bg-pink-500/10",
-        text: "text-pink-700 dark:text-pink-400",
-        hoverBg: "hover:bg-pink-100 dark:hover:bg-pink-500/20",
-        hoverText: "hover:text-pink-900 dark:hover:text-pink-300",
-        iconActive: "text-pink-600 dark:text-pink-400",
-        iconHover: "group-hover:text-pink-700 dark:group-hover:text-pink-300",
-      };
-    case "slate":
-      return {
-        bg: "bg-slate-50 dark:bg-slate-500/10",
-        text: "text-slate-700 dark:text-slate-400",
-        hoverBg: "hover:bg-slate-100 dark:hover:bg-slate-500/20",
-        hoverText: "hover:text-slate-900 dark:hover:text-slate-300",
-        iconActive: "text-slate-600 dark:text-slate-400",
-        iconHover: "group-hover:text-slate-700 dark:group-hover:text-slate-300",
-      };
-    case "gray":
-      return {
-        bg: "bg-gray-50 dark:bg-gray-500/10",
-        text: "text-gray-700 dark:text-gray-400",
-        hoverBg: "hover:bg-gray-100 dark:hover:bg-gray-500/20",
-        hoverText: "hover:text-gray-900 dark:hover:text-gray-300",
-        iconActive: "text-gray-600 dark:text-gray-400",
-        iconHover: "group-hover:text-gray-700 dark:group-hover:text-gray-300",
-      };
-    case "zinc":
-      return {
-        bg: "bg-zinc-50 dark:bg-zinc-500/10",
-        text: "text-zinc-700 dark:text-zinc-400",
-        hoverBg: "hover:bg-zinc-100 dark:hover:bg-zinc-500/20",
-        hoverText: "hover:text-zinc-900 dark:hover:text-zinc-300",
-        iconActive: "text-zinc-600 dark:text-zinc-400",
-        iconHover: "group-hover:text-zinc-700 dark:group-hover:text-zinc-300",
-      };
-    case "stone":
-      return {
-        bg: "bg-stone-50 dark:bg-stone-500/10",
-        text: "text-stone-700 dark:text-stone-400",
-        hoverBg: "hover:bg-stone-100 dark:hover:bg-stone-500/20",
-        hoverText: "hover:text-stone-900 dark:hover:text-stone-300",
-        iconActive: "text-stone-600 dark:text-stone-400",
-        iconHover: "group-hover:text-stone-700 dark:group-hover:text-stone-300",
-      };
-    default:
-      return {
-        bg: "bg-blue-50 dark:bg-blue-500/10",
-        text: "text-blue-700 dark:text-blue-400",
-        hoverBg: "hover:bg-blue-100 dark:hover:bg-blue-500/20",
-        hoverText: "hover:text-blue-900 dark:hover:text-blue-300",
-        iconActive: "text-blue-600 dark:text-blue-400",
-        iconHover: "group-hover:text-blue-700 dark:group-hover:text-blue-300",
-      };
-  }
+const getSideMenuColorTokens = (color: TrueColor): SideMenuColorTokens => {
+  const tokens: Record<TrueColor, SideMenuColorTokens> = {
+    red: {
+      bg: "bg-red-50 dark:bg-red-500/10",
+      text: "text-red-700 dark:text-red-400",
+      hoverBg: "hover:bg-red-100 dark:hover:bg-red-500/20",
+      hoverText: "hover:text-red-900 dark:hover:text-red-300",
+      iconActive: "text-red-600 dark:text-red-400",
+      iconHover: "group-hover:text-red-700 dark:group-hover:text-red-300",
+    },
+    orange: {
+      bg: "bg-orange-50 dark:bg-orange-500/10",
+      text: "text-orange-700 dark:text-orange-400",
+      hoverBg: "hover:bg-orange-100 dark:hover:bg-orange-500/20",
+      hoverText: "hover:text-orange-900 dark:hover:text-orange-300",
+      iconActive: "text-orange-600 dark:text-orange-400",
+      iconHover: "group-hover:text-orange-700 dark:group-hover:text-orange-300",
+    },
+    amber: {
+      bg: "bg-amber-50 dark:bg-amber-500/10",
+      text: "text-amber-700 dark:text-amber-400",
+      hoverBg: "hover:bg-amber-100 dark:hover:bg-amber-500/20",
+      hoverText: "hover:text-amber-900 dark:hover:text-amber-300",
+      iconActive: "text-amber-600 dark:text-amber-400",
+      iconHover: "group-hover:text-amber-700 dark:group-hover:text-amber-300",
+    },
+    yellow: {
+      bg: "bg-yellow-50 dark:bg-yellow-500/10",
+      text: "text-yellow-700 dark:text-yellow-400",
+      hoverBg: "hover:bg-yellow-100 dark:hover:bg-yellow-500/20",
+      hoverText: "hover:text-yellow-900 dark:hover:text-yellow-300",
+      iconActive: "text-yellow-600 dark:text-yellow-400",
+      iconHover: "group-hover:text-yellow-700 dark:group-hover:text-yellow-300",
+    },
+    lime: {
+      bg: "bg-lime-50 dark:bg-lime-500/10",
+      text: "text-lime-700 dark:text-lime-400",
+      hoverBg: "hover:bg-lime-100 dark:hover:bg-lime-500/20",
+      hoverText: "hover:text-lime-900 dark:hover:text-lime-300",
+      iconActive: "text-lime-600 dark:text-lime-400",
+      iconHover: "group-hover:text-lime-700 dark:group-hover:text-lime-300",
+    },
+    green: {
+      bg: "bg-green-50 dark:bg-green-500/10",
+      text: "text-green-700 dark:text-green-400",
+      hoverBg: "hover:bg-green-100 dark:hover:bg-green-500/20",
+      hoverText: "hover:text-green-900 dark:hover:text-green-300",
+      iconActive: "text-green-600 dark:text-green-400",
+      iconHover: "group-hover:text-green-700 dark:group-hover:text-green-300",
+    },
+    emerald: {
+      bg: "bg-emerald-50 dark:bg-emerald-500/10",
+      text: "text-emerald-700 dark:text-emerald-400",
+      hoverBg: "hover:bg-emerald-100 dark:hover:bg-emerald-500/20",
+      hoverText: "hover:text-emerald-900 dark:hover:text-emerald-300",
+      iconActive: "text-emerald-600 dark:text-emerald-400",
+      iconHover: "group-hover:text-emerald-700 dark:group-hover:text-emerald-300",
+    },
+    teal: {
+      bg: "bg-teal-50 dark:bg-teal-500/10",
+      text: "text-teal-700 dark:text-teal-400",
+      hoverBg: "hover:bg-teal-100 dark:hover:bg-teal-500/20",
+      hoverText: "hover:text-teal-900 dark:hover:text-teal-300",
+      iconActive: "text-teal-600 dark:text-teal-400",
+      iconHover: "group-hover:text-teal-700 dark:group-hover:text-teal-300",
+    },
+    cyan: {
+      bg: "bg-cyan-50 dark:bg-cyan-500/10",
+      text: "text-cyan-700 dark:text-cyan-400",
+      hoverBg: "hover:bg-cyan-100 dark:hover:bg-cyan-500/20",
+      hoverText: "hover:text-cyan-900 dark:hover:text-cyan-300",
+      iconActive: "text-cyan-600 dark:text-cyan-400",
+      iconHover: "group-hover:text-cyan-700 dark:group-hover:text-cyan-300",
+    },
+    sky: {
+      bg: "bg-sky-50 dark:bg-sky-500/10",
+      text: "text-sky-700 dark:text-sky-400",
+      hoverBg: "hover:bg-sky-100 dark:hover:bg-sky-500/20",
+      hoverText: "hover:text-sky-900 dark:hover:text-sky-300",
+      iconActive: "text-sky-600 dark:text-sky-400",
+      iconHover: "group-hover:text-sky-700 dark:group-hover:text-sky-300",
+    },
+    blue: {
+      bg: "bg-blue-50 dark:bg-blue-500/10",
+      text: "text-blue-700 dark:text-blue-400",
+      hoverBg: "hover:bg-blue-100 dark:hover:bg-blue-500/20",
+      hoverText: "hover:text-blue-900 dark:hover:text-blue-300",
+      iconActive: "text-blue-600 dark:text-blue-400",
+      iconHover: "group-hover:text-blue-700 dark:group-hover:text-blue-300",
+    },
+    indigo: {
+      bg: "bg-indigo-50 dark:bg-indigo-500/10",
+      text: "text-indigo-700 dark:text-indigo-400",
+      hoverBg: "hover:bg-indigo-100 dark:hover:bg-indigo-500/20",
+      hoverText: "hover:text-indigo-900 dark:hover:text-indigo-300",
+      iconActive: "text-indigo-600 dark:text-indigo-400",
+      iconHover: "group-hover:text-indigo-700 dark:group-hover:text-indigo-300",
+    },
+    violet: {
+      bg: "bg-violet-50 dark:bg-violet-500/10",
+      text: "text-violet-700 dark:text-violet-400",
+      hoverBg: "hover:bg-violet-100 dark:hover:bg-violet-500/20",
+      hoverText: "hover:text-violet-900 dark:hover:text-violet-300",
+      iconActive: "text-violet-600 dark:text-violet-400",
+      iconHover: "group-hover:text-violet-700 dark:group-hover:text-violet-300",
+    },
+    purple: {
+      bg: "bg-purple-50 dark:bg-purple-500/10",
+      text: "text-purple-700 dark:text-purple-400",
+      hoverBg: "hover:bg-purple-100 dark:hover:bg-purple-500/20",
+      hoverText: "hover:text-purple-900 dark:hover:text-purple-300",
+      iconActive: "text-purple-600 dark:text-purple-400",
+      iconHover: "group-hover:text-purple-700 dark:group-hover:text-purple-300",
+    },
+    fuchsia: {
+      bg: "bg-fuchsia-50 dark:bg-fuchsia-500/10",
+      text: "text-fuchsia-700 dark:text-fuchsia-400",
+      hoverBg: "hover:bg-fuchsia-100 dark:hover:bg-fuchsia-500/20",
+      hoverText: "hover:text-fuchsia-900 dark:hover:text-fuchsia-300",
+      iconActive: "text-fuchsia-600 dark:text-fuchsia-400",
+      iconHover: "group-hover:text-fuchsia-700 dark:group-hover:text-fuchsia-300",
+    },
+    rose: {
+      bg: "bg-rose-50 dark:bg-rose-500/10",
+      text: "text-rose-700 dark:text-rose-400",
+      hoverBg: "hover:bg-rose-100 dark:hover:bg-rose-500/20",
+      hoverText: "hover:text-rose-900 dark:hover:text-rose-300",
+      iconActive: "text-rose-600 dark:text-rose-400",
+      iconHover: "group-hover:text-rose-700 dark:group-hover:text-rose-300",
+    },
+    slate: {
+      bg: "bg-slate-50 dark:bg-slate-500/10",
+      text: "text-slate-700 dark:text-slate-400",
+      hoverBg: "hover:bg-slate-100 dark:hover:bg-slate-500/20",
+      hoverText: "hover:text-slate-900 dark:hover:text-slate-300",
+      iconActive: "text-slate-600 dark:text-slate-400",
+      iconHover: "group-hover:text-slate-700 dark:group-hover:text-slate-300",
+    },
+    gray: {
+      bg: "bg-gray-50 dark:bg-gray-500/10",
+      text: "text-gray-700 dark:text-gray-400",
+      hoverBg: "hover:bg-gray-100 dark:hover:bg-gray-500/20",
+      hoverText: "hover:text-gray-900 dark:hover:text-gray-300",
+      iconActive: "text-gray-600 dark:text-gray-400",
+      iconHover: "group-hover:text-gray-700 dark:group-hover:text-gray-300",
+    },
+    zinc: {
+      bg: "bg-zinc-50 dark:bg-zinc-500/10",
+      text: "text-zinc-700 dark:text-zinc-400",
+      hoverBg: "hover:bg-zinc-100 dark:hover:bg-zinc-500/20",
+      hoverText: "hover:text-zinc-900 dark:hover:text-zinc-300",
+      iconActive: "text-zinc-600 dark:text-zinc-400",
+      iconHover: "group-hover:text-zinc-700 dark:group-hover:text-zinc-300",
+    },
+    neutral: {
+      bg: "bg-neutral-100 dark:bg-neutral-800/60",
+      text: "text-neutral-900 dark:text-neutral-100",
+      hoverBg: "hover:bg-neutral-200 dark:hover:bg-neutral-700/50",
+      hoverText: "hover:text-neutral-900 dark:hover:text-neutral-100",
+      iconActive: "text-neutral-900 dark:text-neutral-100",
+      iconHover: "group-hover:text-neutral-900 dark:group-hover:text-neutral-100",
+    },
+    stone: {
+      bg: "bg-stone-50 dark:bg-stone-500/10",
+      text: "text-stone-700 dark:text-stone-400",
+      hoverBg: "hover:bg-stone-100 dark:hover:bg-stone-500/20",
+      hoverText: "hover:text-stone-900 dark:hover:text-stone-300",
+      iconActive: "text-stone-600 dark:text-stone-400",
+      iconHover: "group-hover:text-stone-700 dark:group-hover:text-stone-300",
+    },
+  };
+  return tokens[color] ?? tokens.blue;
 };
 
-type SideMenuColorTokens = ReturnType<typeof getSideMenuColorTokens>;
+type SideMenuColorTokens = {
+  bg: string;
+  text: string;
+  hoverBg: string;
+  hoverText: string;
+  iconActive: string;
+  iconHover: string;
+};
 
 type SideMenuRenderEntry =
   | { kind: "divider"; key: string }

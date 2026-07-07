@@ -1,10 +1,10 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export type PillVariant = "solid" | "soft" | "outline";
 export type PillSize = "xs" | "sm" | "md" | "lg";
-export type PillTone = ThemeColor;
+export type PillTone = TrueColor;
 
 const sizeStyles: Record<PillSize, string> = {
   xs: "text-[11px] h-4 px-2",
@@ -33,7 +33,7 @@ import VNodeRenderer from "./internal/VNodeRenderer";
 defineOptions({ name: "Pill", inheritAttrs: false });
 
 const props = withDefaults(defineProps<PillProps>(), {
-  tone: "info",
+  tone: "blue",
   variant: "soft",
   size: "md",
   uppercase: false,

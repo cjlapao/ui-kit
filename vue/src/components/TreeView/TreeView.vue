@@ -114,7 +114,7 @@ const errorSubtitle = computed(() =>
         icon="Error"
         title="Something went wrong"
         :subtitle="errorSubtitle"
-        tone="danger"
+        tone="rose"
         show-icon
         :action-label="hasRetryListener ? 'Retry' : undefined"
         @action="emit('retry')"

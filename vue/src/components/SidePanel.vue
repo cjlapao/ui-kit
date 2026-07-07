@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { VNode } from "vue";
 import type { IconSize } from "../types";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export interface SidePanelProps {
   /** Whether the panel is open */
@@ -24,7 +24,7 @@ export interface SidePanelProps {
   /** Maximum width in px when resizable. @default 900 */
   maxWidth?: number;
   /** color for the resizer */
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 </script>
 

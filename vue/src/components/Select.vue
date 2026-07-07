@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 // Mirrors React's `(Select as ...).__UI_SELECT = true` marker used by InputGroup.
 export default {
@@ -42,84 +42,23 @@ type SelectToneTokens = {
   icon: string;
 };
 
-const toneTokens: Partial<Record<ThemeColor, SelectToneTokens>> = {
-  parallels: {
-    focusRing: "focus:border-red-400 focus:ring-2 focus:ring-red-400/60",
-    icon: "text-red-500 dark:text-red-300",
+const toneTokens: Partial<Record<TrueColor, SelectToneTokens>> = {
+  indigo: {
+    focusRing: "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/60",
+    icon: "text-indigo-500 dark:text-indigo-300",
   },
-  theme: {
-    focusRing: "focus:border-red-400 focus:ring-2 focus:ring-red-400/60",
-    icon: "text-red-500 dark:text-red-300",
-  },
-  brand: {
-    focusRing: "focus:border-red-400 focus:ring-2 focus:ring-red-400/60",
-    icon: "text-red-500 dark:text-red-300",
-  },
-  red: {
-    focusRing: "focus:border-red-400 focus:ring-2 focus:ring-red-400/60",
-    icon: "text-red-500 dark:text-red-300",
-  },
-  orange: {
-    focusRing: "focus:border-orange-400 focus:ring-2 focus:ring-orange-400/60",
-    icon: "text-orange-500 dark:text-orange-300",
-  },
-  amber: {
-    focusRing: "focus:border-amber-400 focus:ring-2 focus:ring-amber-400/60",
-    icon: "text-amber-500 dark:text-amber-300",
-  },
-  yellow: {
-    focusRing: "focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/60",
-    icon: "text-yellow-500 dark:text-yellow-300",
-  },
-  lime: {
-    focusRing: "focus:border-lime-400 focus:ring-2 focus:ring-lime-400/60",
-    icon: "text-lime-500 dark:text-lime-300",
-  },
-  green: {
-    focusRing: "focus:border-green-400 focus:ring-2 focus:ring-green-400/60",
-    icon: "text-green-500 dark:text-green-300",
+  blue: {
+    focusRing: "focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60",
+    icon: "text-blue-500 dark:text-blue-300",
   },
   emerald: {
     focusRing:
       "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/60",
     icon: "text-emerald-500 dark:text-emerald-300",
   },
-  teal: {
-    focusRing: "focus:border-teal-400 focus:ring-2 focus:ring-teal-400/60",
-    icon: "text-teal-500 dark:text-teal-300",
-  },
-  cyan: {
-    focusRing: "focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/60",
-    icon: "text-cyan-500 dark:text-cyan-300",
-  },
-  sky: {
-    focusRing: "focus:border-sky-400 focus:ring-2 focus:ring-sky-400/60",
-    icon: "text-sky-500 dark:text-sky-300",
-  },
-  blue: {
-    focusRing: "focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60",
-    icon: "text-blue-500 dark:text-blue-300",
-  },
-  indigo: {
-    focusRing: "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/60",
-    icon: "text-indigo-500 dark:text-indigo-300",
-  },
-  violet: {
-    focusRing: "focus:border-violet-400 focus:ring-2 focus:ring-violet-400/60",
-    icon: "text-violet-500 dark:text-violet-300",
-  },
-  purple: {
-    focusRing: "focus:border-purple-400 focus:ring-2 focus:ring-purple-400/60",
-    icon: "text-purple-500 dark:text-purple-300",
-  },
-  fuchsia: {
-    focusRing:
-      "focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-400/60",
-    icon: "text-fuchsia-500 dark:text-fuchsia-300",
-  },
-  pink: {
-    focusRing: "focus:border-pink-400 focus:ring-2 focus:ring-pink-400/60",
-    icon: "text-pink-500 dark:text-pink-300",
+  amber: {
+    focusRing: "focus:border-amber-400 focus:ring-2 focus:ring-amber-400/60",
+    icon: "text-amber-500 dark:text-amber-300",
   },
   rose: {
     focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
@@ -129,46 +68,10 @@ const toneTokens: Partial<Record<ThemeColor, SelectToneTokens>> = {
     focusRing: "focus:border-slate-500 focus:ring-2 focus:ring-slate-500/60",
     icon: "text-slate-500 dark:text-slate-200",
   },
-  gray: {
-    focusRing:
-      "focus:border-neutral-500 focus:ring-2 focus:ring-neutral-500/60",
-    icon: "text-neutral-500 dark:text-neutral-200",
-  },
-  zinc: {
-    focusRing:
-      "focus:border-neutral-500 focus:ring-2 focus:ring-neutral-500/60",
-    icon: "text-neutral-500 dark:text-neutral-200",
-  },
   neutral: {
     focusRing:
       "focus:border-neutral-500 focus:ring-2 focus:ring-neutral-500/60",
     icon: "text-neutral-500 dark:text-neutral-200",
-  },
-  stone: {
-    focusRing:
-      "focus:border-neutral-500 focus:ring-2 focus:ring-neutral-500/60",
-    icon: "text-neutral-500 dark:text-neutral-200",
-  },
-  white: {
-    focusRing: "focus:border-slate-400 focus:ring-2 focus:ring-slate-400/60",
-    icon: "text-slate-400 dark:text-slate-200",
-  },
-  success: {
-    focusRing:
-      "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/60",
-    icon: "text-emerald-500 dark:text-emerald-300",
-  },
-  warning: {
-    focusRing: "focus:border-amber-400 focus:ring-2 focus:ring-amber-400/60",
-    icon: "text-amber-500 dark:text-amber-300",
-  },
-  danger: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    icon: "text-rose-500 dark:text-rose-300",
-  },
-  info: {
-    focusRing: "focus:border-sky-400 focus:ring-2 focus:ring-sky-400/60",
-    icon: "text-sky-500 dark:text-sky-300",
   },
 };
 
@@ -185,7 +88,7 @@ const disabledClasses =
 export interface SelectProps {
   modelValue?: string;
   size?: SelectSize;
-  tone?: ThemeColor;
+  tone?: TrueColor;
   validationStatus?: SelectValidationStatus;
   placeholder?: string;
   leadingIcon?: string | VNode;
@@ -231,7 +134,7 @@ defineExpose({ el });
 
 const sizeToken = computed(() => sizeStyles[props.size] ?? sizeStyles.md);
 const tokens = computed(
-  () => (toneTokens[props.tone] ?? toneTokens.theme) as SelectToneTokens,
+  () => (toneTokens[props.tone] ?? toneTokens.blue) as SelectToneTokens,
 );
 const hasLeadingIcon = computed(() => Boolean(props.leadingIcon));
 const showCaret = computed(() => !props.hideCaret && !props.multiple);

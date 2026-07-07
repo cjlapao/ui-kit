@@ -1,12 +1,12 @@
 <script lang="ts">
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import type { StatTileProps } from "./StatTile.vue";
 
 export interface StatChartItem {
   label: string;
   value: number;
   /** Omit to auto-assign from the theme palette. */
-  color?: ThemeColor;
+  color?: TrueColor;
   intensity?: string;
   onClick?: () => void;
 }
@@ -44,7 +44,7 @@ const resolvedItems = computed(() => {
   const palette = getColorPaletteNames(currentDataset.value.items.length);
   return currentDataset.value.items.map((item, i) => ({
     ...item,
-    color: (item.color ?? palette[i]) as ThemeColor,
+    color: (item.color ?? palette[i]) as TrueColor,
   }));
 });
 

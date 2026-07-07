@@ -1,34 +1,10 @@
 <script lang="ts">
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 const toneTokens: Record<
-  ThemeColor,
+  TrueColor,
   { focusRing: string; optionHover: string; optionSelected: string }
 > = {
-  parallels: {
-    focusRing:
-      "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
-    optionHover:
-      "hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/30 dark:hover:text-rose-300",
-    optionSelected:
-      "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-  },
-  brand: {
-    focusRing:
-      "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
-    optionHover:
-      "hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/30 dark:hover:text-rose-300",
-    optionSelected:
-      "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-  },
-  theme: {
-    focusRing:
-      "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
-    optionHover:
-      "hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/30 dark:hover:text-rose-300",
-    optionSelected:
-      "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-  },
   red: {
     focusRing:
       "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
@@ -149,14 +125,6 @@ const toneTokens: Record<
     optionSelected:
       "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
   },
-  pink: {
-    focusRing:
-      "focus:border-pink-500 focus:ring-pink-200 dark:focus:border-pink-400 dark:focus:ring-pink-900/40",
-    optionHover:
-      "hover:bg-pink-50 hover:text-pink-700 dark:hover:bg-pink-900/30 dark:hover:text-pink-300",
-    optionSelected:
-      "bg-pink-50 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
-  },
   rose: {
     focusRing:
       "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
@@ -205,46 +173,6 @@ const toneTokens: Record<
     optionSelected:
       "bg-stone-50 text-stone-700 dark:bg-stone-900/30 dark:text-stone-300",
   },
-  white: {
-    focusRing:
-      "focus:border-slate-500 focus:ring-slate-200 dark:focus:border-slate-400 dark:focus:ring-slate-900/40",
-    optionHover:
-      "hover:bg-slate-50 hover:text-slate-700 dark:hover:bg-slate-900/30 dark:hover:text-slate-300",
-    optionSelected:
-      "bg-slate-50 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
-  },
-  info: {
-    focusRing:
-      "focus:border-sky-500 focus:ring-sky-200 dark:focus:border-sky-400 dark:focus:ring-sky-900/40",
-    optionHover:
-      "hover:bg-sky-50 hover:text-sky-700 dark:hover:bg-sky-900/30 dark:hover:text-sky-300",
-    optionSelected:
-      "bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-  },
-  success: {
-    focusRing:
-      "focus:border-emerald-500 focus:ring-emerald-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-900/40",
-    optionHover:
-      "hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300",
-    optionSelected:
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  },
-  warning: {
-    focusRing:
-      "focus:border-yellow-500 focus:ring-yellow-200 dark:focus:border-yellow-400 dark:focus:ring-yellow-900/40",
-    optionHover:
-      "hover:bg-yellow-50 hover:text-yellow-700 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-300",
-    optionSelected:
-      "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-  },
-  danger: {
-    focusRing:
-      "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
-    optionHover:
-      "hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/30 dark:hover:text-rose-300",
-    optionSelected:
-      "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-  },
 };
 
 export interface ComboboxProps {
@@ -254,7 +182,7 @@ export interface ComboboxProps {
   disabled?: boolean;
   error?: boolean;
   emptyMessage?: string;
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 </script>
 
@@ -290,7 +218,7 @@ const filter = ref(props.modelValue);
 const containerEl = ref<HTMLDivElement | null>(null);
 const inputEl = ref<HTMLInputElement | null>(null);
 
-const colorTokens = computed(() => toneTokens[props.color] ?? toneTokens.theme);
+const colorTokens = computed(() => toneTokens[props.color] ?? toneTokens.blue);
 
 watch(
   () => props.modelValue,

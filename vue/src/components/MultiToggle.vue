@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { CSSProperties, VNode } from "vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export type MultiToggleSize = "sm" | "md" | "lg";
 export type MultiToggleShape =
@@ -32,7 +32,7 @@ export interface MultiToggleProps {
   rounded?: MultiToggleShape;
 
   size?: MultiToggleSize;
-  color?: ThemeColor;
+  color?: TrueColor;
   fullWidth?: boolean;
   showOnlyActiveLabel?: boolean;
   truncateOverflow?: boolean;
@@ -41,32 +41,14 @@ export interface MultiToggleProps {
   activeWidthStrategy?: MultiToggleActiveWidthStrategy;
   variant?: MultiToggleVariant;
   /** When set, overrides the active option's text color with this color's active-text token. */
-  accentColor?: ThemeColor;
+  accentColor?: TrueColor;
   disabled?: boolean;
 }
 
 const toneTokens: Record<
-  ThemeColor,
+  TrueColor,
   { activeText: string; indicator: string; hover: string }
 > = {
-  parallels: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
-  brand: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
-  theme: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
   red: {
     activeText: "text-rose-700 dark:text-rose-200",
     indicator:
@@ -157,12 +139,6 @@ const toneTokens: Record<
       "bg-fuchsia-500/15 dark:bg-fuchsia-400/20 border border-fuchsia-400/40 dark:border-fuchsia-300/20",
     hover: "hover:text-fuchsia-600 dark:hover:text-fuchsia-300",
   },
-  pink: {
-    activeText: "text-pink-700 dark:text-pink-200",
-    indicator:
-      "bg-pink-500/15 dark:bg-pink-400/20 border border-pink-400/40 dark:border-pink-300/20",
-    hover: "hover:text-pink-600 dark:hover:text-pink-300",
-  },
   rose: {
     activeText: "text-rose-700 dark:text-rose-200",
     indicator:
@@ -198,36 +174,6 @@ const toneTokens: Record<
     indicator:
       "bg-stone-500/15 dark:bg-stone-400/20 border border-stone-400/40 dark:border-stone-300/20",
     hover: "hover:text-stone-600 dark:hover:text-stone-300",
-  },
-  white: {
-    activeText: "text-slate-700 dark:text-slate-200",
-    indicator:
-      "bg-slate-400/15 dark:bg-slate-300/20 border border-slate-300/40 dark:border-slate-200/20",
-    hover: "hover:text-slate-600 dark:hover:text-slate-300",
-  },
-  info: {
-    activeText: "text-sky-700 dark:text-sky-200",
-    indicator:
-      "bg-sky-500/15 dark:bg-sky-400/20 border border-sky-400/40 dark:border-sky-300/20",
-    hover: "hover:text-sky-600 dark:hover:text-sky-300",
-  },
-  success: {
-    activeText: "text-emerald-700 dark:text-emerald-200",
-    indicator:
-      "bg-emerald-500/15 dark:bg-emerald-400/20 border border-emerald-400/40 dark:border-emerald-300/20",
-    hover: "hover:text-emerald-600 dark:hover:text-emerald-300",
-  },
-  warning: {
-    activeText: "text-yellow-700 dark:text-yellow-200",
-    indicator:
-      "bg-yellow-500/15 dark:bg-yellow-400/20 border border-yellow-400/40 dark:border-yellow-300/20",
-    hover: "hover:text-yellow-600 dark:hover:text-yellow-300",
-  },
-  danger: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
   },
 };
 
@@ -413,7 +359,7 @@ const activeIndex = computed(() =>
   ),
 );
 const sizeStyles = computed(() => sizeTokens[props.size] ?? sizeTokens.md);
-const colorStyles = computed(() => toneTokens[props.color] ?? toneTokens.theme);
+const colorStyles = computed(() => toneTokens[props.color] ?? toneTokens.blue);
 const variantTokens = computed(() => getMultiToggleVariantTokens(props.color));
 const isVariantMode = computed(
   () => props.variant === "solid" || props.variant === "soft",
@@ -422,7 +368,7 @@ const activeTextClass = computed(() =>
   props.accentColor
     ? isVariantMode.value
       ? getMultiToggleVariantTokens(props.accentColor).activeText
-      : (toneTokens[props.accentColor] ?? toneTokens.theme).activeText
+      : (toneTokens[props.accentColor] ?? toneTokens.blue).activeText
     : isVariantMode.value
       ? variantTokens.value.activeText
       : colorStyles.value.activeText,

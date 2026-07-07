@@ -15,7 +15,7 @@ import classNames from "classnames";
 import Button from "./Button.vue";
 import type { ButtonProps, ButtonVariant, ButtonColor } from "./Button.vue";
 import type { ModalFocusTarget } from "./Modal.vue";
-import type { ModalSize } from "../theme";
+import type { Size } from "../theme";
 import { type IconName } from "../icons/registry";
 
 // Resolve the main InlinePanel component by name at render time.
@@ -25,7 +25,7 @@ const getInlinePanel = () => resolveComponent("InlinePanel") as Component;
 
 // ── Size presets (mirrors Modal) ──────────────────────────────────────────────
 
-const sizePresets: Record<ModalSize, { className: string; maxWidth?: string }> =
+const sizePresets: Record<Size, { className: string; maxWidth?: string }> =
   {
     xs: { maxWidth: "320px", className: "max-w-[320px]" },
     sm: { maxWidth: "400px", className: "max-w-[400px]" },
@@ -84,7 +84,7 @@ export interface InlinePanelProps {
    * Width preset for the content card. Only meaningful when anchor is
    * "top" or "bottom". Ignored for "fill". Default: "md".
    */
-  size?: ModalSize;
+  size?: Size;
   maxWidth?: number | string;
   minWidth?: number | string;
   height?: number | string;
@@ -158,7 +158,7 @@ export const ConfirmInlinePanel = defineComponent({
       default: "center",
     },
     showBackdrop: { type: Boolean, default: true },
-    size: { type: String as PropType<ModalSize>, default: "sm" },
+    size: { type: String as PropType<Size>, default: "sm" },
     confirmLabel: {
       type: [String, Object] as PropType<string | VNode>,
       default: "Confirm",

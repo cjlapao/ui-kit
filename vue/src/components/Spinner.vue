@@ -1,8 +1,8 @@
 <script lang="ts">
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export type SpinnerSize = "xs" | "sm" | "md" | "lg" | "xl";
-export type SpinnerColor = ThemeColor;
+export type SpinnerColor = TrueColor;
 export type SpinnerVariant = "solid" | "segments";
 export type SpinnerThickness = "thin" | "normal" | "thick";
 
