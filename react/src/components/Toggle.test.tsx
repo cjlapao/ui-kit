@@ -19,7 +19,7 @@ vi.mock("./TooltipWrapper", () => ({
   }) => <>{children}</>,
 }));
 
-describe("Toggle — variant prop", () => {
+describe("Toggle — glass props", () => {
   it("renders a basic toggle without glass by default", () => {
     const { container } = render(<Toggle label="Test" />);
 
@@ -33,8 +33,8 @@ describe("Toggle — variant prop", () => {
     expect(track!.className).toContain("transition-colors");
   });
 
-  it("variant='default' (explicit) preserves solid color behavior", () => {
-    const { container } = render(<Toggle label="Test" variant="default" />);
+  it("glass=false (explicit) preserves solid color behavior", () => {
+    const { container } = render(<Toggle label="Test" glass={false} />);
 
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
@@ -45,16 +45,16 @@ describe("Toggle — variant prop", () => {
     expect(track!.className).toContain("peer-checked:bg-blue-500");
   });
 
-  it("variant='glass' renders backdrop-blur-sm on track", () => {
-    const { container } = render(<Toggle label="Test" variant="glass" />);
+  it("glass=true renders backdrop-blur-sm on track", () => {
+    const { container } = render(<Toggle label="Test" glass />);
 
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
     expect(track!.className).toContain("backdrop-blur-sm");
   });
 
-  it("variant='glass' renders glass fill class on track", () => {
-    const { container } = render(<Toggle label="Test" variant="glass" />);
+  it("glass=true renders glass fill class on track", () => {
+    const { container } = render(<Toggle label="Test" glass />);
 
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
@@ -62,8 +62,8 @@ describe("Toggle — variant prop", () => {
     expect(track!.className).toContain("bg-blue-100/55");
   });
 
-  it("variant='glass' renders vibrancy class on track", () => {
-    const { container } = render(<Toggle label="Test" variant="glass" />);
+  it("glass=true renders vibrancy class on track", () => {
+    const { container } = render(<Toggle label="Test" glass />);
 
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
@@ -71,9 +71,9 @@ describe("Toggle — variant prop", () => {
     expect(track!.className).toContain("backdrop-saturate-[1.2]");
   });
 
-  it("variant='glass' with vibrancy=low renders correct vibrancy class", () => {
+  it("glass=true with vibrancy=low renders correct vibrancy class", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" vibrancy="low" />,
+      <Toggle label="Test" glass vibrancy="low" />,
     );
 
     const track = container.querySelector('span[aria-hidden="true"]');
@@ -81,9 +81,9 @@ describe("Toggle — variant prop", () => {
     expect(track!.className).toContain("backdrop-saturate-[1]");
   });
 
-  it("variant='glass' with vibrancy=high renders correct vibrancy class", () => {
+  it("glass=true with vibrancy=high renders correct vibrancy class", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" vibrancy="high" />,
+      <Toggle label="Test" glass vibrancy="high" />,
     );
 
     const track = container.querySelector('span[aria-hidden="true"]');
@@ -91,9 +91,9 @@ describe("Toggle — variant prop", () => {
     expect(track!.className).toContain("backdrop-saturate-[1.4]");
   });
 
-  it("variant='glass' with glassOpacity=light renders correct fill class", () => {
+  it("glass=true with glassOpacity=light renders correct fill class", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" glassOpacity="light" />,
+      <Toggle label="Test" glass glassOpacity="light" />,
     );
 
     const track = container.querySelector('span[aria-hidden="true"]');
@@ -102,9 +102,9 @@ describe("Toggle — variant prop", () => {
     expect(track!.className).toContain("bg-blue-100/75");
   });
 
-  it("variant='glass' with glassOpacity=clear renders correct fill class", () => {
+  it("glass=true with glassOpacity=clear renders correct fill class", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" glassOpacity="clear" />,
+      <Toggle label="Test" glass glassOpacity="clear" />,
     );
 
     const track = container.querySelector('span[aria-hidden="true"]');
@@ -113,23 +113,23 @@ describe("Toggle — variant prop", () => {
     expect(track!.className).toContain("bg-blue-100/30");
   });
 
-  it("variant='glass' does not render solid color peer-checked classes", () => {
-    const { container } = render(<Toggle label="Test" variant="glass" />);
+  it("glass=true does not render solid color peer-checked classes", () => {
+    const { container } = render(<Toggle label="Test" glass />);
 
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
     expect(track!.className).not.toContain("peer-checked:bg-blue-500");
   });
 
-  it("accepts variant='glass' prop", () => {
-    const { container } = render(<Toggle label="Test" variant="glass" />);
+  it("accepts glass=true prop", () => {
+    const { container } = render(<Toggle label="Test" glass />);
     const label = container.querySelector("label");
     expect(label).not.toBeNull();
   });
 
   it("accepts vibrancy='low'", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" vibrancy="low" />,
+      <Toggle label="Test" glass vibrancy="low" />,
     );
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
@@ -137,7 +137,7 @@ describe("Toggle — variant prop", () => {
 
   it("accepts vibrancy='medium' (default)", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" vibrancy="medium" />,
+      <Toggle label="Test" glass vibrancy="medium" />,
     );
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
@@ -145,7 +145,7 @@ describe("Toggle — variant prop", () => {
 
   it("accepts vibrancy='high'", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" vibrancy="high" />,
+      <Toggle label="Test" glass vibrancy="high" />,
     );
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
@@ -153,21 +153,21 @@ describe("Toggle — variant prop", () => {
 
   it("accepts numeric vibrancy", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" vibrancy={1.5} />,
+      <Toggle label="Test" glass vibrancy={1.5} />,
     );
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
   });
 
   it("accepts glassOpacity='frosted' (default)", () => {
-    const { container } = render(<Toggle label="Test" variant="glass" glassOpacity="frosted" />);
+    const { container } = render(<Toggle label="Test" glass glassOpacity="frosted" />);
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
   });
 
   it("accepts glassOpacity='light'", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" glassOpacity="light" />,
+      <Toggle label="Test" glass glassOpacity="light" />,
     );
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
@@ -175,7 +175,7 @@ describe("Toggle — variant prop", () => {
 
   it("accepts glassOpacity='clear'", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" glassOpacity="clear" />,
+      <Toggle label="Test" glass glassOpacity="clear" />,
     );
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
@@ -183,21 +183,21 @@ describe("Toggle — variant prop", () => {
 
   it("accepts numeric glassOpacity", () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" glassOpacity={0.7} />,
+      <Toggle label="Test" glass glassOpacity={0.7} />,
     );
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
   });
 
   it('specularMode="none" (default) renders normally', () => {
-    const { container } = render(<Toggle label="Test" variant="glass" specularMode="none" />);
+    const { container } = render(<Toggle label="Test" glass specularMode="none" />);
     const label = container.querySelector("label");
     expect(label).not.toBeNull();
   });
 
   it('accepts specularMode="classic"', () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" specularMode="classic" />,
+      <Toggle label="Test" glass specularMode="classic" />,
     );
     const label = container.querySelector("label");
     expect(label).not.toBeNull();
@@ -205,22 +205,22 @@ describe("Toggle — variant prop", () => {
 
   it('accepts specularMode="halo"', () => {
     const { container } = render(
-      <Toggle label="Test" variant="glass" specularMode="halo" />,
+      <Toggle label="Test" glass specularMode="halo" />,
     );
     const label = container.querySelector("label");
     expect(label).not.toBeNull();
   });
 
   it("preserves peer-focus:ring classes on track", () => {
-    const { container } = render(<Toggle label="Test" variant="default" />);
+    const { container } = render(<Toggle label="Test" glass={false} />);
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
     expect(track!.className).toContain("peer-focus:ring-2");
     expect(track!.className).toContain("peer-focus:ring-offset-2");
   });
 
-  it("preserves peer-focus:ring classes on track when variant='glass'", () => {
-    const { container } = render(<Toggle label="Test" variant="glass" />);
+  it("preserves peer-focus:ring classes on track when glass=true", () => {
+    const { container } = render(<Toggle label="Test" glass />);
     const track = container.querySelector('span[aria-hidden="true"]');
     expect(track).not.toBeNull();
     expect(track!.className).toContain("peer-focus:ring-2");
@@ -231,7 +231,7 @@ describe("Toggle — variant prop", () => {
     const { container } = render(
       <Toggle
         label="Test"
-        variant="glass"
+        glass
         vibrancy="high"
         glassOpacity="light"
         specularMode="classic"
@@ -257,25 +257,25 @@ describe("Toggle — variant prop", () => {
   it("accepts GlassVibrancy type from glass module", () => {
     // Compile-time test: ensures the type is importable and usable
     const vibrant: GlassVibrancy = "medium";
-    render(<Toggle label="Test" variant="glass" vibrancy={vibrant} />);
+    render(<Toggle label="Test" glass vibrancy={vibrant} />);
   });
 
   it("accepts GlassOpacity type from glass module", () => {
     // Compile-time test: ensures the type is importable and usable
     const opacity: GlassOpacity = "frosted";
-    render(<Toggle label="Test" variant="glass" glassOpacity={opacity} />);
+    render(<Toggle label="Test" glass glassOpacity={opacity} />);
   });
 
   it("accepts SpecularMode type from glass module", () => {
     // Compile-time test: ensures the type is importable and usable
     const mode: SpecularMode = "classic";
-    render(<Toggle label="Test" variant="glass" specularMode={mode} />);
+    render(<Toggle label="Test" glass specularMode={mode} />);
   });
 
   describe("specular overlay (T3)", () => {
-    it("renders specular overlay div when variant='glass' and specularMode='classic'", () => {
+    it("renders specular overlay div when glass=true and specularMode='classic'", () => {
       const { container } = render(
-        <Toggle label="Test" variant="glass" specularMode="classic" />,
+        <Toggle label="Test" glass specularMode="classic" />,
       );
       const overlay = container.querySelector(
         'div.pointer-events-none.absolute.inset-0.rounded-full',
@@ -285,9 +285,9 @@ describe("Toggle — variant prop", () => {
       expect(overlay!.className).toContain("bg-gradient-to-r");
     });
 
-    it("renders specular overlay div when variant='glass' and specularMode='halo'", () => {
+    it("renders specular overlay div when glass=true and specularMode='halo'", () => {
       const { container } = render(
-        <Toggle label="Test" variant="glass" specularMode="halo" />,
+        <Toggle label="Test" glass specularMode="halo" />,
       );
       const overlay = container.querySelector(
         'div.pointer-events-none.absolute.inset-0.rounded-full',
@@ -299,7 +299,7 @@ describe("Toggle — variant prop", () => {
 
     it('does not render specular overlay when specularMode="none"', () => {
       const { container } = render(
-        <Toggle label="Test" variant="glass" specularMode="none" />,
+        <Toggle label="Test" glass specularMode="none" />,
       );
       const overlay = container.querySelector(
         'div.pointer-events-none.absolute.inset-0.rounded-full',
@@ -307,9 +307,9 @@ describe("Toggle — variant prop", () => {
       expect(overlay).toBeNull();
     });
 
-    it("does not render specular overlay when variant='default'", () => {
+    it("does not render specular overlay when glass=false", () => {
       const { container } = render(
-        <Toggle label="Test" variant="default" specularMode="classic" />,
+        <Toggle label="Test" glass={false} specularMode="classic" />,
       );
       const overlay = container.querySelector(
         'div.pointer-events-none.absolute.inset-0.rounded-full',
@@ -319,7 +319,7 @@ describe("Toggle — variant prop", () => {
 
     it("overlay div has correct positioning classes", () => {
       const { container } = render(
-        <Toggle label="Test" variant="glass" specularMode="classic" />,
+        <Toggle label="Test" glass specularMode="classic" />,
       );
       const overlay = container.querySelector(
         'div.pointer-events-none.absolute.inset-0.rounded-full',
@@ -333,22 +333,22 @@ describe("Toggle — variant prop", () => {
   });
 
   describe("data-glass attribute (T3)", () => {
-    it('label has data-glass="true" when variant="glass"', () => {
-      const { container } = render(<Toggle label="Test" variant="glass" />);
-      const label = container.querySelector("label[data-glass='true']");
-      expect(label).not.toBeNull();
+    it('root container has data-glass="true" when glass=true', () => {
+      const { container } = render(<Toggle label="Test" glass />);
+      const root = container.querySelector("[data-glass='true']");
+      expect(root).not.toBeNull();
     });
 
-    it('label has data-glass="false" when variant="default"', () => {
-      const { container } = render(<Toggle label="Test" variant="default" />);
-      const label = container.querySelector("label[data-glass='false']");
-      expect(label).not.toBeNull();
+    it('root container has data-glass="false" when glass=false', () => {
+      const { container } = render(<Toggle label="Test" glass={false} />);
+      const root = container.querySelector("[data-glass='false']");
+      expect(root).not.toBeNull();
     });
 
-    it('label has data-glass="false" by default', () => {
+    it('root container has data-glass="false" by default', () => {
       const { container } = render(<Toggle label="Test" />);
-      const label = container.querySelector("label[data-glass='false']");
-      expect(label).not.toBeNull();
+      const root = container.querySelector("[data-glass='false']");
+      expect(root).not.toBeNull();
     });
   });
 });
