@@ -238,7 +238,7 @@ const thumbClass = computed(() =>
 const labelTextClass = computed(() =>
   classNames(
     sizeStyles.value.font,
-    "font-medium text-neutral-900 dark:text-neutral-100",
+    "font-medium leading-tight text-neutral-900 dark:text-neutral-100 mt-0.5",
     props.disabled && "text-neutral-400 dark:text-neutral-300",
   ),
 );
