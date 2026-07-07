@@ -4,7 +4,7 @@ import StatTile from "./StatTile";
 import type { StatTileProps } from "./StatTile";
 import { CustomIcon } from "./CustomIcon";
 import { type IconName } from "../icons/registry";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import { getColorPaletteNames } from "../theme";
 
 export interface StatGoalItem {
@@ -12,7 +12,7 @@ export interface StatGoalItem {
   label: string;
   icon: IconName;
   /** Omit to auto-assign from the theme palette. */
-  color?: ThemeColor;
+  color?: TrueColor;
   tooltip?: string;
 }
 
@@ -23,7 +23,7 @@ export interface StatGoalTileProps
 
 const CircularProgress: React.FC<{
   value: number;
-  color: ThemeColor;
+  color: TrueColor;
   icon: IconName;
   size?: number;
   strokeWidth?: number;
@@ -80,7 +80,7 @@ const StatGoalTile: React.FC<StatGoalTileProps> = ({ goals, ...props }) => {
     const palette = getColorPaletteNames(goals.length);
     return goals.map((g, i) => ({
       ...g,
-      color: (g.color ?? palette[i]) as ThemeColor,
+      color: (g.color ?? palette[i]) as TrueColor,
     }));
   }, [goals]);
 

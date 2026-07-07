@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import classNames from "classnames";
 import { Section, type SectionSize, type SectionVariant } from "./Section";
 import { Pill, type PillVariant, type PillSize } from "./Pill";
-import { type ThemeColor } from "../theme/Theme";
+import { type TrueColor } from "../theme/Theme";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -10,7 +10,7 @@ export interface TagPanelTag {
   id?: string;
   label: string;
   /** Pill tone. Defaults to `'neutral'`. */
-  tone?: ThemeColor;
+  tone?: TrueColor;
   /** Pill variant. Defaults to `'soft'`. */
   variant?: PillVariant;
   /** Pill size. Defaults to `'sm'`. */
@@ -36,7 +36,7 @@ export interface TagPanelProps {
    * Tone used for the `+N` overflow pill.
    * Defaults to `'neutral'`.
    */
-  overflowTone?: ThemeColor;
+  overflowTone?: TrueColor;
   /** Rendered when `tags` is empty. */
   emptyState?: React.ReactNode;
   /** Optional actions rendered on the right side of the section header. */

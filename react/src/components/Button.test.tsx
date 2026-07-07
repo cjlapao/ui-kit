@@ -32,9 +32,9 @@ describe("Button — glass variant", () => {
     expect(btn!.className).toContain("backdrop-saturate-[1.2]");
   });
 
-  it('renders solid button with glass overlay when variant="solid" glass color="brand"', () => {
+  it('renders solid button with glass overlay when variant="solid" glass color="blue"', () => {
     const { container } = render(
-      <Button variant="solid" glass color="brand">
+      <Button variant="solid" glass color="blue">
         Click me
       </Button>,
     );
@@ -210,7 +210,7 @@ describe("Button — glass variant", () => {
 
   it("resolves semantic color 'brand' to blue for glass fill", () => {
     const { container } = render(
-      <Button glass color="brand">
+      <Button glass color="blue">
         Click me
       </Button>,
     );
@@ -222,7 +222,7 @@ describe("Button — glass variant", () => {
 
   it("resolves semantic color 'success' to emerald for glass fill", () => {
     const { container } = render(
-      <Button glass color="success">
+      <Button glass color="emerald">
         Click me
       </Button>,
     );
@@ -234,7 +234,7 @@ describe("Button — glass variant", () => {
 
   it("resolves semantic color 'danger' to rose for glass fill", () => {
     const { container } = render(
-      <Button glass color="danger">
+      <Button glass color="rose">
         Click me
       </Button>,
     );

@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import type { TrueColor } from "../../../common/theme/Theme";
 import {
   getGlassFillClass,
   getGlassVibrancyClass,
@@ -96,7 +97,7 @@ describe("getGlassFillClass", () => {
     ];
 
     trueColors.forEach((color) => {
-      const result = getGlassFillClass(color as unknown as typeof import("/home/cjlapao/code/cjlapao/ui-kit/common/theme/glass").TrueColor, "frosted");
+      const result = getGlassFillClass(color as TrueColor, "frosted");
       expect(result).toMatch(`bg-${color}-100/55`);
       expect(result).toMatch(`hover:bg-${color}-100/65`);
       expect(result).toMatch(`dark:bg-${color}-600/25`);
@@ -108,7 +109,7 @@ describe("getGlassFillClass", () => {
     // The TrueColor type constrains inputs, but the safelist gate still
     // defensively handles unexpected values at runtime.
     const result = getGlassFillClass(
-      "unknown" as unknown as typeof import("/home/cjlapao/code/cjlapao/ui-kit/common/theme/glass").TrueColor,
+      "unknown" as unknown as TrueColor,
       "frosted",
     );
     expect(result).toBe(

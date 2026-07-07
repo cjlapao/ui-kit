@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import { Loader, IconButton, Button, Select, Badge, type PanelTone } from ".";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import type { IconName } from "../icons/registry";
 import TruncatedText from "./TruncatedText";
 
@@ -101,7 +101,7 @@ export interface TableProps<T> {
   variant?: TableVariant;
   tone?: PanelTone;
   /** Theme color applied to action buttons, sort indicators, group dot, badges, and pagination. */
-  color?: ThemeColor;
+  color?: TrueColor;
   striped?: boolean;
   noBorders?: boolean;
   hoverable?: boolean;
@@ -247,40 +247,17 @@ export interface TableProps<T> {
   onTableSettingsChange?: (settings: TableSettings) => void;
 }
 
-const resolveColor = (color: ThemeColor): string => {
-  switch (color) {
-    case "brand":
-      return "indigo";
-    case "info":
-      return "sky";
-    case "success":
-      return "emerald";
-    case "warning":
-      return "amber";
-    case "danger":
-      return "rose";
-    case "theme":
-      return "neutral";
-    case "parallels":
-      return "red";
-    default:
-      return color;
-  }
-};
-
-const getToneHeaderClasses = (tone: ThemeColor): string => {
-  const c = resolveColor(tone);
-
-  if (tone === "neutral" || tone === "theme" || tone === "white") {
+const getToneHeaderClasses = (tone: TrueColor): string => {
+  if (tone === "neutral" || tone === "slate" || tone === "gray" || tone === "zinc" || tone === "stone") {
     return "bg-neutral-50 text-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700";
   }
 
-  return `bg-${c}-50 text-${c}-700 dark:bg-${c}-500/15 dark:text-${c}-100 border-${c}-200 dark:border-${c}-500/30`;
+  return `bg-${tone}-50 text-${tone}-700 dark:bg-${tone}-500/15 dark:text-${tone}-100 border-${tone}-200 dark:border-${tone}-500/30`;
 };
 
 /** Returns a static `bg-*-500` class for the active-group indicator dot. */
-function getDotColorClass(color: ThemeColor): string {
-  switch (resolveColor(color)) {
+function getDotColorClass(color: TrueColor): string {
+  switch (color) {
     case "blue":
       return "bg-blue-500";
     case "green":
@@ -310,10 +287,7 @@ function getDotColorClass(color: ThemeColor): string {
     case "sky":
       return "bg-sky-500";
     case "fuchsia":
-      return "bg-fuchsia-500";
-    case "pink":
-      return "bg-pink-500";
-    case "rose":
+      return "bg-fuchsia-500";    case "rose":
       return "bg-rose-500";
     case "slate":
       return "bg-slate-500";
@@ -331,8 +305,8 @@ function getDotColorClass(color: ThemeColor): string {
 }
 
 /** Returns static `accent-*` classes for native checkbox/radio inputs. */
-function getAccentClass(color: ThemeColor): string {
-  switch (resolveColor(color)) {
+function getAccentClass(color: TrueColor): string {
+  switch (color) {
     case "blue":
       return "accent-blue-600 dark:accent-blue-400";
     case "green":
@@ -362,10 +336,7 @@ function getAccentClass(color: ThemeColor): string {
     case "sky":
       return "accent-sky-600 dark:accent-sky-400";
     case "fuchsia":
-      return "accent-fuchsia-600 dark:accent-fuchsia-400";
-    case "pink":
-      return "accent-pink-600 dark:accent-pink-400";
-    case "rose":
+      return "accent-fuchsia-600 dark:accent-fuchsia-400";    case "rose":
       return "accent-rose-600 dark:accent-rose-400";
     case "slate":
       return "accent-slate-600 dark:accent-slate-400";
@@ -383,8 +354,8 @@ function getAccentClass(color: ThemeColor): string {
 }
 
 /** Returns a static `bg-*-50` class for the selected row background. */
-function getSelectedRowClass(color: ThemeColor): string {
-  switch (resolveColor(color)) {
+function getSelectedRowClass(color: TrueColor): string {
+  switch (color) {
     case "blue":
       return "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800";
     case "green":
@@ -414,10 +385,7 @@ function getSelectedRowClass(color: ThemeColor): string {
     case "sky":
       return "bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-800";
     case "fuchsia":
-      return "bg-fuchsia-50 dark:bg-fuchsia-500/10 border-fuchsia-200 dark:border-fuchsia-800";
-    case "pink":
-      return "bg-pink-50 dark:bg-pink-500/10 border-pink-200 dark:border-pink-800";
-    case "rose":
+      return "bg-fuchsia-50 dark:bg-fuchsia-500/10 border-fuchsia-200 dark:border-fuchsia-800";    case "rose":
       return "bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-800";
     case "slate":
       return "bg-slate-50 dark:bg-slate-500/10 border-slate-200 dark:border-slate-800";
@@ -434,8 +402,8 @@ function getSelectedRowClass(color: ThemeColor): string {
   }
 }
 
-function getHighlightRowClass(color: ThemeColor): string {
-  switch (resolveColor(color)) {
+function getHighlightRowClass(color: TrueColor): string {
+  switch (color) {
     case "blue":
       return "bg-blue-100 dark:bg-blue-500/20";
     case "green":
@@ -465,10 +433,7 @@ function getHighlightRowClass(color: ThemeColor): string {
     case "sky":
       return "bg-sky-100 dark:bg-sky-500/20";
     case "fuchsia":
-      return "bg-fuchsia-100 dark:bg-fuchsia-500/20";
-    case "pink":
-      return "bg-pink-100 dark:bg-pink-500/20";
-    case "rose":
+      return "bg-fuchsia-100 dark:bg-fuchsia-500/20";    case "rose":
       return "bg-rose-100 dark:bg-rose-500/20";
     case "slate":
       return "bg-slate-100 dark:bg-slate-500/20";
@@ -485,8 +450,8 @@ function getHighlightRowClass(color: ThemeColor): string {
   }
 }
 
-function getHighlightBorderClass(color: ThemeColor): string {
-  switch (resolveColor(color)) {
+function getHighlightBorderClass(color: TrueColor): string {
+  switch (color) {
     case "blue":
       return "border-l-blue-500";
     case "green":
@@ -516,10 +481,7 @@ function getHighlightBorderClass(color: ThemeColor): string {
     case "sky":
       return "border-l-sky-500";
     case "fuchsia":
-      return "border-l-fuchsia-500";
-    case "pink":
-      return "border-l-pink-500";
-    case "rose":
+      return "border-l-fuchsia-500";    case "rose":
       return "border-l-rose-500";
     case "slate":
       return "border-l-slate-500";
@@ -537,8 +499,8 @@ function getHighlightBorderClass(color: ThemeColor): string {
 }
 
 /** Returns static Tailwind hover class for the column resize handle track. */
-function getResizeHandleHoverClass(color: ThemeColor): string {
-  switch (resolveColor(color)) {
+function getResizeHandleHoverClass(color: TrueColor): string {
+  switch (color) {
     case "blue":
       return "group-hover/rh:bg-blue-500    dark:group-hover/rh:bg-blue-400";
     case "green":
@@ -568,10 +530,7 @@ function getResizeHandleHoverClass(color: ThemeColor): string {
     case "sky":
       return "group-hover/rh:bg-sky-500     dark:group-hover/rh:bg-sky-400";
     case "fuchsia":
-      return "group-hover/rh:bg-fuchsia-500 dark:group-hover/rh:bg-fuchsia-400";
-    case "pink":
-      return "group-hover/rh:bg-pink-500    dark:group-hover/rh:bg-pink-400";
-    case "rose":
+      return "group-hover/rh:bg-fuchsia-500 dark:group-hover/rh:bg-fuchsia-400";    case "rose":
       return "group-hover/rh:bg-rose-500    dark:group-hover/rh:bg-rose-400";
     case "slate":
       return "group-hover/rh:bg-slate-500   dark:group-hover/rh:bg-slate-400";

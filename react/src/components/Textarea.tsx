@@ -6,7 +6,7 @@ import {
   forwardRef,
   useMemo,
 } from "react";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 type TextareaSize = "sm" | "md" | "lg";
 type TextareaValidationStatus = "none" | "error" | "success";
@@ -29,7 +29,7 @@ type ToneTokens = {
   darkBackground: string;
 };
 
-const toneTokens: Partial<Record<ThemeColor, ToneTokens>> = {
+const toneTokens: Partial<Record<TrueColor, ToneTokens>> = {
   indigo: {
     focusRing: "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/60",
     border: "border-neutral-300",
@@ -72,59 +72,7 @@ const toneTokens: Partial<Record<ThemeColor, ToneTokens>> = {
     darkBorder: "dark:border-neutral-700",
     background: "bg-white",
     darkBackground: "dark:bg-neutral-900",
-  },
-  white: {
-    focusRing: "focus:border-slate-400 focus:ring-2 focus:ring-slate-400/60",
-    border: "border-neutral-300",
-    darkBorder: "dark:border-neutral-700",
-    background: "bg-white",
-    darkBackground: "dark:bg-neutral-900",
-  },
-  theme: {
-    focusRing:
-      "focus:border-neutral-400 focus:ring-2 focus:ring-neutral-400/60 dark:focus:border-neutral-500 dark:focus:ring-neutral-500/60",
-    border: "border-neutral-300",
-    darkBorder: "dark:border-neutral-700",
-    background: "bg-white",
-    darkBackground: "dark:bg-neutral-900",
-  },
-  brand: {
-    focusRing: "focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60",
-    border: "border-neutral-300",
-    darkBorder: "dark:border-neutral-700",
-    background: "bg-white",
-    darkBackground: "dark:bg-neutral-900",
-  },
-  success: {
-    focusRing:
-      "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/60",
-    border: "border-neutral-300",
-    darkBorder: "dark:border-neutral-700",
-    background: "bg-white",
-    darkBackground: "dark:bg-neutral-900",
-  },
-  warning: {
-    focusRing: "focus:border-amber-400 focus:ring-2 focus:ring-amber-400/60",
-    border: "border-neutral-300",
-    darkBorder: "dark:border-neutral-700",
-    background: "bg-white",
-    darkBackground: "dark:bg-neutral-900",
-  },
-  danger: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    border: "border-neutral-300",
-    darkBorder: "dark:border-neutral-700",
-    background: "bg-white",
-    darkBackground: "dark:bg-neutral-900",
-  },
-  info: {
-    focusRing: "focus:border-sky-400 focus:ring-2 focus:ring-sky-400/60",
-    border: "border-neutral-300",
-    darkBorder: "dark:border-neutral-700",
-    background: "bg-white",
-    darkBackground: "dark:bg-neutral-900",
-  },
-  neutral: {
+  },  neutral: {
     focusRing: "focus:border-slate-500 focus:ring-2 focus:ring-slate-500/60",
     border: "border-neutral-300",
     darkBorder: "dark:border-neutral-700",
@@ -149,7 +97,7 @@ const disabledClasses =
 export interface TextareaProps
   extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size" | "color"> {
   size?: TextareaSize;
-  tone?: ThemeColor;
+  tone?: TrueColor;
   validationStatus?: TextareaValidationStatus;
   resize?: TextareaResize;
   helpText?: ReactNode;
@@ -166,7 +114,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   function Textarea(
     {
       size = "md",
-      tone = "theme",
+      tone = "neutral",
       validationStatus = "none",
       className,
       resize = "vertical",
@@ -176,7 +124,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     ref: ForwardedRef<HTMLTextAreaElement>,
   ) {
     const sizeToken = sizeTokens[size] ?? sizeTokens.md;
-    const tokens = (toneTokens[tone] ?? toneTokens.theme) as ToneTokens;
+    const tokens = (toneTokens[tone] ?? toneTokens.neutral) as ToneTokens;
     const resizeClass = resizeClasses[resize] ?? resizeClasses.vertical;
 
     const classes = useMemo(

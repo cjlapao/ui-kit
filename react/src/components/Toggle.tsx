@@ -7,7 +7,7 @@ import {
   useRef,
 } from "react";
 import classNames from "classnames";
-import { type ThemeColor, getToggleColorClasses } from "../theme/Theme";
+import { type TrueColor, getToggleColorClasses } from "../theme/Theme";
 import {
   getGlassFillClass,
   getGlassVibrancyClass,
@@ -44,7 +44,7 @@ export interface ToggleProps
   descriptionPlacement?: ToggleDescriptionPlacement;
   size?: ToggleSize;
   padding?: TogglePadding;
-  color?: ThemeColor;
+  color?: TrueColor;
   alignLabel?: ToggleAlign;
   iconOn?: string | React.ReactElement;
   iconOff?: string | React.ReactElement;

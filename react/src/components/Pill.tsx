@@ -1,11 +1,12 @@
 import React from "react";
 import classNames from "classnames";
 
-import { type ThemeColor, getPillColorClasses } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
+import { getPillColorClasses } from "../theme/Theme";
 
 export type PillVariant = "solid" | "soft" | "outline";
 export type PillSize = "xs" | "sm" | "md" | "lg";
-export type PillTone = ThemeColor;
+export type PillTone = TrueColor;
 
 const sizeStyles: Record<PillSize, string> = {
   xs: "text-[11px] h-4 px-2",
@@ -24,7 +25,7 @@ export interface PillProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const Pill: React.FC<PillProps> = ({
-  tone = "info",
+  tone = "blue",
   variant = "soft",
   size = "md",
   uppercase = false,

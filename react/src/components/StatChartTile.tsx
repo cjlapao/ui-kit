@@ -3,14 +3,14 @@ import classNames from "classnames";
 import StatTile from "./StatTile";
 import type { StatTileProps } from "./StatTile";
 import { CustomIcon } from "./CustomIcon";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import { getColorPaletteNames } from "../theme";
 
 export interface StatChartItem {
   label: string;
   value: number;
   /** Omit to auto-assign from the theme palette. */
-  color?: ThemeColor;
+  color?: TrueColor;
   intensity?: string;
   onClick?: () => void;
 }
@@ -35,7 +35,7 @@ const StatChartTile: React.FC<StatChartTileProps> = ({ data, ...props }) => {
     const palette = getColorPaletteNames(currentDataset.items.length);
     return currentDataset.items.map((item, i) => ({
       ...item,
-      color: (item.color ?? palette[i]) as ThemeColor,
+      color: (item.color ?? palette[i]) as TrueColor,
     }));
   }, [currentDataset]);
 

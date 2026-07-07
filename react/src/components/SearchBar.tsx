@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 // ── Color tokens ──────────────────────────────────────────────────────────────
 // Full class strings are required so Tailwind's JIT scanner can pick them up.
 
 const COLOR_TOKENS: Partial<
   Record<
-    ThemeColor,
+    TrueColor,
     {
       border: string; // focus-within border
       ring: string; // focus-within ring
@@ -51,15 +51,7 @@ const COLOR_TOKENS: Partial<
     icon: "group-focus-within:text-fuchsia-500",
     btnHover:
       "hover:bg-fuchsia-100 hover:text-fuchsia-600 dark:hover:bg-fuchsia-900/40 dark:hover:text-fuchsia-400",
-  },
-  pink: {
-    border: "focus-within:border-pink-500",
-    ring: "focus-within:ring-pink-400/40",
-    icon: "group-focus-within:text-pink-500",
-    btnHover:
-      "hover:bg-pink-100 hover:text-pink-600 dark:hover:bg-pink-900/40 dark:hover:text-pink-400",
-  },
-  rose: {
+  },  rose: {
     border: "focus-within:border-rose-500",
     ring: "focus-within:ring-rose-400/40",
     icon: "group-focus-within:text-rose-500",
@@ -154,21 +146,19 @@ const COLOR_TOKENS: Partial<
 
 const DEFAULT_TOKENS = COLOR_TOKENS.blue!;
 
-function getTokens(color: ThemeColor) {
+function getTokens(color: TrueColor) {
   return COLOR_TOKENS[color] ?? DEFAULT_TOKENS;
 }
 
 // ── Gradient pairs (600 → 400 within the same hue) ───────────────────────────
 // Each entry is [darker, lighter] — used as the default glow gradient.
 
-const GRADIENT_MAP: Partial<Record<ThemeColor, [string, string]>> = {
+const GRADIENT_MAP: Partial<Record<TrueColor, [string, string]>> = {
   blue: ["#2563eb", "#60a5fa"],
   indigo: ["#4f46e5", "#818cf8"],
   violet: ["#7c3aed", "#a78bfa"],
   purple: ["#9333ea", "#c084fc"],
-  fuchsia: ["#c026d3", "#e879f9"],
-  pink: ["#db2777", "#f472b6"],
-  rose: ["#e11d48", "#fb7185"],
+  fuchsia: ["#c026d3", "#e879f9"],  rose: ["#e11d48", "#fb7185"],
   red: ["#dc2626", "#f87171"],
   orange: ["#ea580c", "#fb923c"],
   amber: ["#d97706", "#fbbf24"],
@@ -187,7 +177,7 @@ const GRADIENT_MAP: Partial<Record<ThemeColor, [string, string]>> = {
 };
 
 function resolveGradient(
-  color: ThemeColor,
+  color: TrueColor,
   from?: string,
   to?: string,
 ): [string, string] {
@@ -210,7 +200,7 @@ export interface SearchBarProps {
   leadingIcon?: string | React.ReactElement;
   variant?: "default" | "gradient";
   /** Accent colour for focus ring, icon highlight, and clear-button hover. Default: 'blue' */
-  color?: ThemeColor;
+  color?: TrueColor;
   /**
    * Start (darker) colour of the gradient glow (gradient variant only).
    * Defaults to the -600 shade of `color` when omitted.

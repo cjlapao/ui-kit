@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export interface CollapsibleHelpTextProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -11,14 +11,14 @@ export interface CollapsibleHelpTextProps
   children?: React.ReactNode;
   showIcon?: boolean;
   icon?: string;
-  tone?: ThemeColor;
+  tone?: TrueColor;
   variant?: "card" | "plain";
   renderMarkdown?: (text: string) => React.ReactNode;
 }
 
 const toneTokens: Partial<
   Record<
-    ThemeColor,
+    TrueColor,
     {
       border: string;
       accent: string;
@@ -82,22 +82,6 @@ const toneTokens: Partial<
     focusRing: "focus-visible:ring-slate-200 dark:focus-visible:ring-slate-600",
     hover: "hover:bg-slate-50 dark:hover:bg-slate-800/80",
   },
-  white: {
-    border: "border-slate-200 dark:border-slate-700",
-    accent: "text-slate-600 dark:text-slate-300",
-    iconBg: "bg-slate-100 dark:bg-slate-800",
-    text: "text-slate-700 dark:text-slate-200",
-    focusRing: "focus-visible:ring-slate-200 dark:focus-visible:ring-slate-600",
-    hover: "hover:bg-slate-50 dark:hover:bg-slate-800/80",
-  },
-  theme: {
-    border: "border-slate-200 dark:border-slate-700",
-    accent: "text-slate-600 dark:text-slate-300",
-    iconBg: "bg-slate-100 dark:bg-slate-800",
-    text: "text-slate-700 dark:text-slate-200",
-    focusRing: "focus-visible:ring-slate-200 dark:focus-visible:ring-slate-600",
-    hover: "hover:bg-slate-50 dark:hover:bg-slate-800/80",
-  },
 };
 
 const truncate = (value: string, limit: number) => {
@@ -125,7 +109,7 @@ export const CollapsibleHelpText: React.FC<CollapsibleHelpTextProps> = ({
   const needsTruncation = sanitized.length > maxLength;
   const [expanded, setExpanded] = useState(false);
 
-  const colorTokens = toneTokens[tone] ?? toneTokens.theme!;
+  const colorTokens = toneTokens[tone] ?? toneTokens.neutral!;
   const displayText =
     expanded || !needsTruncation ? sanitized : truncate(sanitized, maxLength);
 

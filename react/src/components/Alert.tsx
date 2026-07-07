@@ -1,14 +1,15 @@
 import React from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import { type ThemeColor, getAlertColorClasses } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
+import { getAlertColorClasses } from "../theme/Theme";
 
 export type AlertVariant = "subtle" | "solid" | "outline";
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   // @deprecated Use color instead
-  tone?: ThemeColor;
-  color?: ThemeColor;
+  tone?: TrueColor;
+  color?: TrueColor;
   variant?: AlertVariant;
   title?: string;
   description?: string;
@@ -18,13 +19,28 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   onDismiss?: () => void;
 }
 
-const defaultIcons: Partial<Record<ThemeColor, string>> = {
+const defaultIcons: Partial<Record<TrueColor, string>> = {
   neutral: "Info",
-  info: "Info",
-  success: "CheckCircle",
-  warning: "Chat",
-  danger: "Error",
-  theme: "Info",
+  slate: "Info",
+  gray: "Info",
+  zinc: "Info",
+  stone: "Info",
+  red: "Error",
+  orange: "Warning",
+  amber: "Warning",
+  yellow: "Warning",
+  lime: "CheckCircle",
+  green: "CheckCircle",
+  emerald: "CheckCircle",
+  teal: "CheckCircle",
+  cyan: "CheckCircle",
+  sky: "CheckCircle",
+  blue: "CheckCircle",
+  indigo: "CheckCircle",
+  violet: "CheckCircle",
+  purple: "CheckCircle",
+  fuchsia: "CheckCircle",
+  rose: "Error",
 };
 
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(

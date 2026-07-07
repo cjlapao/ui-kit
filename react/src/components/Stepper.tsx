@@ -193,7 +193,7 @@ export const Stepper: React.FC<StepperProps> = ({
   orientation = "horizontal",
   variant = "card",
   size = "md",
-  tone = "brand",
+  tone = "blue",
   connector = "progress",
   interactive = true,
   readOnly,
