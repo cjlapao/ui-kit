@@ -101,7 +101,7 @@ const sizeTokens: Record<
     thumb: "h-6 w-6",
     thumbOffset: "top-0.5 left-0.5",
     thumbTranslate: "peer-checked:translate-x-6",
-    gap: "gap-3.5",
+    gap: "gap-3",
     font: "text-base",
     description: "text-sm",
   },
@@ -223,6 +223,10 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
         onClick={(e) => {
           if (inputProps.readOnly) {
             e.preventDefault();
+          }
+          if (!disabled && !inputProps.readOnly && onChange) {
+            const newChecked = !inputRef.current?.checked;
+            onChange({ target: { checked: newChecked } } as any);
           }
         }}
       >

@@ -84,7 +84,7 @@ const sizeTokens: Record<
     thumb: "h-6 w-6",
     thumbOffset: "top-0.5 left-0.5",
     thumbTranslate: "peer-checked:translate-x-6",
-    gap: "gap-3.5",
+    gap: "gap-3",
     font: "text-base",
     description: "text-sm",
   },
@@ -267,6 +267,9 @@ const labelBlockClass = computed(() =>
 const handleLabelClick = (e: MouseEvent) => {
   if (props.readonly) {
     e.preventDefault();
+  }
+  if (!props.disabled && !props.readonly) {
+    emit("update:modelValue", !el.value?.checked);
   }
 };
 
