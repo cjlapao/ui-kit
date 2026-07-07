@@ -215,11 +215,11 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
           <span
             aria-hidden="true"
             className={classNames(
-              "block rounded-full border border-transparent transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
+              "block relative rounded-full overflow-hidden border border-transparent bg-neutral-200 dark:bg-neutral-600 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
               sizeStyles.track,
               glass
                 ? classNames(
-                    "bg-neutral-200 backdrop-blur-sm",
+                    "backdrop-blur-sm",
                     getGlassFillClass(color, glassOpacity),
                     getGlassVibrancyClass(vibrancy),
                     "dark:bg-neutral-600",

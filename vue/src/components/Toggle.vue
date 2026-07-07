@@ -183,11 +183,11 @@ const inputClass = computed(() =>
 
 const trackClass = computed(() =>
   classNames(
-    "block rounded-full border border-transparent transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
+    "block relative rounded-full overflow-hidden border border-transparent bg-neutral-200 dark:bg-neutral-600 transition-colors duration-200 ease-in-out peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2",
     sizeStyles.value.track,
     props.glass
       ? classNames(
-          "bg-neutral-200 backdrop-blur-sm",
+          "backdrop-blur-sm",
           _getGlassFillClass(props.color, props.glassOpacity),
           _getGlassVibrancyClass(props.vibrancy),
           "dark:bg-neutral-600",
