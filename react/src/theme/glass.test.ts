@@ -9,6 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import type { TrueColor } from "../../../common/theme/Theme";
+import type { GlassOpacity } from "../../../common/theme/glass";
 import {
   getGlassFillClass,
   getGlassVibrancyClass,
@@ -62,10 +63,10 @@ describe("getGlassFillClass", () => {
     );
   });
 
-  it("falls back to frosted defaults when opacity is unrecognized", () => {
-    // TypeScript won't allow non-GlassOpacity values, but the fallback
-    // branch still executes for the implicit `return 55` / `return 25` path.
-    const result = getGlassFillClass("amber", "frosted" as "frosted");
+  it("falls back to defaults for invalid opacity", () => {
+    // A truly invalid string bypasses the frosted/light/clear branches
+    // and exercises the `return 55` / `return 25` fallback at the end.
+    const result = getGlassFillClass("amber", "bogus" as GlassOpacity);
     expect(result).toBe(
       "bg-amber-100/55 hover:bg-amber-100/65 dark:bg-amber-600/25 dark:hover:bg-amber-600/35",
     );
