@@ -59,7 +59,7 @@ const actionLabel = computed(() =>
     :title="title"
     :subtitle="subtitle"
     icon="CloudOff"
-    tone="danger"
+    tone="rose"
     :on-action="onRetry"
     :action-label="actionLabel"
     :action-leading-icon="actionLeadingIcon"

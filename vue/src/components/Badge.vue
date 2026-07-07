@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export interface BadgeProps {
   /**
@@ -20,9 +20,9 @@ export interface BadgeProps {
 
   /**
    * Badge color variant
-   * @default "danger"
+   * @default "neutral"
    */
-  tone?: ThemeColor;
+  tone?: TrueColor;
 }
 </script>
 

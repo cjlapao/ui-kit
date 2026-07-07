@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import type { IconName } from "../icons/registry";
 import type { StatTileProps } from "./StatTile.vue";
 
@@ -8,7 +8,7 @@ export interface StatGoalItem {
   label: string;
   icon: IconName;
   /** Omit to auto-assign from the theme palette. */
-  color?: ThemeColor;
+  color?: TrueColor;
   tooltip?: string;
 }
 
@@ -32,7 +32,7 @@ const resolvedGoals = computed(() => {
   const palette = getColorPaletteNames(props.goals.length);
   return props.goals.map((g, i) => ({
     ...g,
-    color: (g.color ?? palette[i]) as ThemeColor,
+    color: (g.color ?? palette[i]) as TrueColor,
   }));
 });
 

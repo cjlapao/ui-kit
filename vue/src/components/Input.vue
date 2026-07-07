@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { VNode } from "vue";
 import type { ButtonColor } from "./Button.vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 type InputValidationStatus = "none" | "error" | "success";
 type InputSize = "sm" | "md" | "lg";
@@ -53,22 +53,7 @@ type InputToneTokens = {
   icon: string;
 };
 
-const toneTokens: Partial<Record<ThemeColor, InputToneTokens>> = {
-  parallels: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    focusBorder: "focus:border-rose-500",
-    icon: "text-rose-500 dark:text-rose-300",
-  },
-  brand: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    focusBorder: "focus:border-rose-500",
-    icon: "text-rose-500 dark:text-rose-300",
-  },
-  theme: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    focusBorder: "focus:border-rose-500",
-    icon: "text-rose-500 dark:text-rose-300",
-  },
+const toneTokens: Partial<Record<TrueColor, InputToneTokens>> = {
   red: {
     focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
     focusBorder: "focus:border-rose-500",
@@ -147,11 +132,6 @@ const toneTokens: Partial<Record<ThemeColor, InputToneTokens>> = {
     focusBorder: "focus:border-fuchsia-500",
     icon: "text-fuchsia-500 dark:text-fuchsia-300",
   },
-  pink: {
-    focusRing: "focus:border-pink-400 focus:ring-2 focus:ring-pink-400/60",
-    focusBorder: "focus:border-pink-500",
-    icon: "text-pink-500 dark:text-pink-300",
-  },
   rose: {
     focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
     focusBorder: "focus:border-rose-500",
@@ -182,32 +162,6 @@ const toneTokens: Partial<Record<ThemeColor, InputToneTokens>> = {
     focusRing: "focus:border-stone-400 focus:ring-2 focus:ring-stone-400/60",
     focusBorder: "focus:border-stone-500",
     icon: "text-stone-500 dark:text-stone-300",
-  },
-  white: {
-    focusRing: "focus:border-slate-400 focus:ring-2 focus:ring-slate-400/60",
-    focusBorder: "focus:border-slate-500",
-    icon: "text-slate-400 dark:text-slate-200",
-  },
-  info: {
-    focusRing: "focus:border-sky-400 focus:ring-2 focus:ring-sky-400/60",
-    focusBorder: "focus:border-sky-500",
-    icon: "text-sky-500 dark:text-sky-300",
-  },
-  success: {
-    focusRing:
-      "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/60",
-    focusBorder: "focus:border-emerald-500",
-    icon: "text-emerald-500 dark:text-emerald-300",
-  },
-  warning: {
-    focusRing: "focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/60",
-    focusBorder: "focus:border-yellow-500",
-    icon: "text-yellow-500 dark:text-yellow-300",
-  },
-  danger: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    focusBorder: "focus:border-rose-500",
-    icon: "text-rose-500 dark:text-rose-300",
   },
 };
 
@@ -308,7 +262,7 @@ defineExpose({ el });
 
 const sizeToken = computed(() => sizeStyles[props.size] ?? sizeStyles.md);
 const tokens = computed(
-  () => (toneTokens[props.tone] ?? toneTokens.theme) as InputToneTokens,
+  () => (toneTokens[props.tone] ?? toneTokens.blue) as InputToneTokens,
 );
 const hasLeadingIcon = computed(() => Boolean(props.leadingIcon));
 const hasTrailingIcon = computed(() => Boolean(props.trailingIcon));

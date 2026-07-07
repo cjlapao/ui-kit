@@ -1,12 +1,12 @@
 <script lang="ts">
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import type { StatTileProps } from "./StatTile.vue";
 
 export interface StatGraphSeries {
   key: string;
   label: string;
   /** Omit to auto-assign from the theme palette. */
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 export interface StatGraphTileProps
@@ -71,8 +71,6 @@ const colorMap: Record<string, string> = {
   zinc: "#71717a",
   neutral: "#737373",
   stone: "#78716c",
-  // Semantic aliases
-  parallels: "#e4001b",
   text: "#64748b",
   grid: "#e2e8f0",
 };
@@ -116,7 +114,7 @@ const resolvedSeries = computed(() => {
   const palette = getColorPaletteNames(props.series.length);
   return props.series.map((s, i) => ({
     ...s,
-    color: (s.color ?? palette[i]) as ThemeColor,
+    color: (s.color ?? palette[i]) as TrueColor,
   }));
 });
 

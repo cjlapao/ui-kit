@@ -1,13 +1,13 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export type AlertVariant = "subtle" | "solid" | "outline";
 
 export interface AlertProps {
   // @deprecated Use color instead
-  tone?: ThemeColor;
-  color?: ThemeColor;
+  tone?: TrueColor;
+  color?: TrueColor;
   variant?: AlertVariant;
   title?: string;
   description?: string;
@@ -16,13 +16,8 @@ export interface AlertProps {
   dismissible?: boolean;
 }
 
-const defaultIcons: Partial<Record<ThemeColor, string>> = {
+const defaultIcons: Partial<Record<TrueColor, string>> = {
   neutral: "Info",
-  info: "Info",
-  success: "CheckCircle",
-  warning: "Chat",
-  danger: "Error",
-  theme: "Info",
 };
 </script>
 

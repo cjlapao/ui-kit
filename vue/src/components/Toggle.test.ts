@@ -119,7 +119,7 @@ describe("Toggle — glass props", () => {
         glassOpacity: "light",
         specularMode: "halo",
         modelValue: true,
-        color: "success",
+        color: "green",
       },
     });
     expect(wrapper.props("glass")).toBe(true);
@@ -131,7 +131,7 @@ describe("Toggle — glass props", () => {
 
   it("renders label with glass=true", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Enable Feature", glass: true, color: "brand" },
+      props: { label: "Enable Feature", glass: true, color: "blue" },
     });
     expect(wrapper.text()).toContain("Enable Feature");
   });
@@ -146,7 +146,7 @@ describe("Toggle — glass props", () => {
 
     for (const combo of combinations) {
       const wrapper = mount(Toggle, {
-        props: { label: "Combo", ...combo, color: "info" },
+        props: { label: "Combo", ...combo, color: "sky" },
       });
       expect(wrapper.props("glass")).toBe(combo.glass);
       expect(wrapper.props("vibrancy")).toBe(combo.vibrancy);
@@ -185,7 +185,7 @@ describe("Toggle — glass class composition", () => {
 
   it("glass=true track includes vibrancy class", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, color: "success", glassOpacity: "light", vibrancy: "high" },
+      props: { label: "Test", glass: true, color: "green", glassOpacity: "light", vibrancy: "high" },
     });
     const track = wrapper.find("span[aria-hidden='true']");
     expect(track.classes()).toContain("backdrop-saturate-[1.4]");
@@ -223,7 +223,7 @@ describe("Toggle — glass class composition", () => {
 
   it("glass=true track has bg-neutral-200 base for light mode", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, color: "brand" },
+      props: { label: "Test", glass: true, color: "blue" },
     });
     const track = wrapper.find("span[aria-hidden='true']");
     expect(track.classes()).toContain("bg-neutral-200");
