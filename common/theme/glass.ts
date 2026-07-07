@@ -8,6 +8,8 @@
  * This file is pure TypeScript — no React, Vue, or DOM imports.
  */
 
+import type { TrueColor } from "./Theme";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -39,26 +41,15 @@ export type GlassOpacity = "frosted" | "light" | "clear" | number;
 export type SpecularMode = "none" | "classic" | "halo";
 
 // ---------------------------------------------------------------------------
-// Minimal colour resolver (mirrors `resolveColor` from Theme.ts)
+// Colour safelist
 // ---------------------------------------------------------------------------
-
-/** Maps semantic colour tokens to Tailwind colour names. */
-const SEMANTIC_MAP: Record<string, string> = {
-  brand: "blue",
-  info: "sky",
-  success: "emerald",
-  warning: "amber",
-  danger: "rose",
-  theme: "neutral",
-  parallels: "red",
-};
 
 /**
  * Tailwind colour names that are safe to use in dynamic utility classes.
- * Used to gate glass fill generation — colours outside this set fall back
- * to "neutral" so no invalid CSS is emitted.
+ * Mirrors the TrueColor union from Theme.ts to guard against invalid CSS
+ * being emitted for colours that don't exist in Tailwind's palette.
  */
-const GLASS_COLOR_SAFELIST: ReadonlySet<string> = new Set([
+const GLASS_COLOR_SAFELIST: ReadonlySet<TrueColor> = new Set([
   "red",
   "orange",
   "amber",
@@ -73,7 +64,7 @@ const GLASS_COLOR_SAFELIST: ReadonlySet<string> = new Set([
   "indigo",
   "violet",
   "purple",
-  "pink",
+  "fuchsia",
   "rose",
   "slate",
   "gray",
@@ -81,11 +72,6 @@ const GLASS_COLOR_SAFELIST: ReadonlySet<string> = new Set([
   "neutral",
   "stone",
 ]);
-
-/** Resolve a semantic/theme colour to a Tailwind colour name. */
-export const resolveColor = (color: string): string => {
-  return SEMANTIC_MAP[color] ?? color;
-};
 
 // ---------------------------------------------------------------------------
 // getGlassFillClass
@@ -96,11 +82,11 @@ export const resolveColor = (color: string): string => {
  *
  * Returns a string like `"bg-blue-100/55 hover:bg-blue-100/65 dark:bg-blue-600/25 dark:hover:bg-blue-600/35"`.
  *
- * @param color   - ThemeColour token (e.g. `"blue"`, `"brand"`, `"success"`)
+ * @param color   - TrueColor token (e.g. `"blue"`, `"red"`, `"fuchsia"`)
  * @param opacity - Glass opacity preset or numeric fraction (0–1)
  */
 export const getGlassFillClass = (
-  color: string,
+  color: TrueColor,
   opacity: GlassOpacity,
 ): string => {
   const litOpacity: number = (() => {
@@ -120,12 +106,12 @@ export const getGlassFillClass = (
     return 25; // fallback
   })();
 
-  const base = resolveColor(color);
-
   // Gate against colours that don't exist in Tailwind's palette (e.g.
-  // "fuchsia" was removed in v3.2, "white" is a literal, not a colour).
+  // "white" is a literal, not a colour).
   // Fall back to "neutral" so no invalid CSS is emitted.
-  const safeBase = GLASS_COLOR_SAFELIST.has(base) ? base : "neutral";
+  const safeBase: TrueColor = GLASS_COLOR_SAFELIST.has(color)
+    ? color
+    : "neutral";
 
   return `bg-${safeBase}-100/${litOpacity} hover:bg-${safeBase}-100/${litOpacity + 10} dark:bg-${safeBase}-600/${drkOpacity} dark:hover:bg-${safeBase}-600/${drkOpacity + 10}`;
 };
