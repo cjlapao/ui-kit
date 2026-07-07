@@ -168,7 +168,7 @@ describe("Button — glass variant", () => {
     expect(wrapper.find("button").attributes("data-glass")).toBe("false");
   });
 
-  it("resolves semantic color 'brand' to blue for glass fill", () => {
+  it("renders glass fill with blue color", () => {
     const wrapper = mount(Button, {
       props: { glass: true, color: "blue" },
     });
@@ -178,7 +178,7 @@ describe("Button — glass variant", () => {
     expect(btn.classes()).toContain("dark:bg-blue-500/15");
   });
 
-  it("resolves semantic color 'success' to emerald for glass fill", () => {
+  it("renders glass fill with emerald color", () => {
     const wrapper = mount(Button, {
       props: { glass: true, color: "green" },
     });
@@ -188,7 +188,7 @@ describe("Button — glass variant", () => {
     expect(btn.classes()).toContain("dark:bg-emerald-500/15");
   });
 
-  it("resolves semantic color 'danger' to rose for glass fill", () => {
+  it("renders glass fill with rose color", () => {
     const wrapper = mount(Button, {
       props: { glass: true, color: "rose" },
     });

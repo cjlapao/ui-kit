@@ -272,7 +272,7 @@ export const DeleteConfirmInlinePanel = defineComponent({
           confirmLabel: props.confirmLabel,
           cancelLabel: props.cancelLabel,
           confirmVariant: "solid" as const,
-          confirmColor: "danger" as const,
+          confirmColor: "rose" as const,
           isConfirmDisabled: !isMatch || props.isConfirmDisabled,
           initialFocusRef: inputRef,
           onClose: () => emit("close"),
