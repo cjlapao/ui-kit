@@ -50,8 +50,16 @@ const bg50_80 =
   "bg-red-50/80 bg-orange-50/80 bg-amber-50/80 bg-yellow-50/80 bg-lime-50/80 bg-green-50/80 bg-emerald-50/80 bg-teal-50/80 bg-cyan-50/80 bg-sky-50/80 bg-blue-50/80 bg-indigo-50/80 bg-violet-50/80 bg-purple-50/80 bg-fuchsia-50/80 bg-pink-50/80 bg-rose-50/80 bg-slate-50/80 bg-gray-50/80 bg-zinc-50/80 bg-neutral-50/80 bg-stone-50/80";
 const bg100 =
   "bg-red-100 bg-orange-100 bg-amber-100 bg-yellow-100 bg-lime-100 bg-green-100 bg-emerald-100 bg-teal-100 bg-cyan-100 bg-sky-100 bg-blue-100 bg-indigo-100 bg-violet-100 bg-purple-100 bg-fuchsia-100 bg-pink-100 bg-rose-100 bg-slate-100 bg-gray-100 bg-zinc-100 bg-neutral-100 bg-stone-100";
+const bg100_30 =
+  "bg-red-100/30 bg-orange-100/30 bg-amber-100/30 bg-yellow-100/30 bg-lime-100/30 bg-green-100/30 bg-emerald-100/30 bg-teal-100/30 bg-cyan-100/30 bg-sky-100/30 bg-blue-100/30 bg-indigo-100/30 bg-violet-100/30 bg-purple-100/30 bg-fuchsia-100/30 bg-pink-100/30 bg-rose-100/30 bg-slate-100/30 bg-gray-100/30 bg-zinc-100/30 bg-neutral-100/30 bg-stone-100/30";
+const bg100_55 =
+  "bg-red-100/55 bg-orange-100/55 bg-amber-100/55 bg-yellow-100/55 bg-lime-100/55 bg-green-100/55 bg-emerald-100/55 bg-teal-100/55 bg-cyan-100/55 bg-sky-100/55 bg-blue-100/55 bg-indigo-100/55 bg-violet-100/55 bg-purple-100/55 bg-fuchsia-100/55 bg-pink-100/55 bg-rose-100/55 bg-slate-100/55 bg-gray-100/55 bg-zinc-100/55 bg-neutral-100/55 bg-stone-100/55";
 const bg100_60 =
   "bg-red-100/60 bg-orange-100/60 bg-amber-100/60 bg-yellow-100/60 bg-lime-100/60 bg-green-100/60 bg-emerald-100/60 bg-teal-100/60 bg-cyan-100/60 bg-sky-100/60 bg-blue-100/60 bg-indigo-100/60 bg-violet-100/60 bg-purple-100/60 bg-fuchsia-100/60 bg-pink-100/60 bg-rose-100/60 bg-slate-100/60 bg-gray-100/60 bg-zinc-100/60 bg-neutral-100/60 bg-stone-100/60";
+const bg100_65 =
+  "bg-red-100/65 bg-orange-100/65 bg-amber-100/65 bg-yellow-100/65 bg-lime-100/65 bg-green-100/65 bg-emerald-100/65 bg-teal-100/65 bg-cyan-100/65 bg-sky-100/65 bg-blue-100/65 bg-indigo-100/65 bg-violet-100/65 bg-purple-100/65 bg-fuchsia-100/65 bg-pink-100/65 bg-rose-100/65 bg-slate-100/65 bg-gray-100/65 bg-zinc-100/65 bg-neutral-100/65 bg-stone-100/65";
+const bg100_75 =
+  "bg-red-100/75 bg-orange-100/75 bg-amber-100/75 bg-yellow-100/75 bg-lime-100/75 bg-green-100/75 bg-emerald-100/75 bg-teal-100/75 bg-cyan-100/75 bg-sky-100/75 bg-blue-100/75 bg-indigo-100/75 bg-violet-100/75 bg-purple-100/75 bg-fuchsia-100/75 bg-pink-100/75 bg-rose-100/75 bg-slate-100/75 bg-gray-100/75 bg-zinc-100/75 bg-neutral-100/75 bg-stone-100/75";
 const bg100_80 =
   "bg-red-100/80 bg-orange-100/80 bg-amber-100/80 bg-yellow-100/80 bg-lime-100/80 bg-green-100/80 bg-emerald-100/80 bg-teal-100/80 bg-cyan-100/80 bg-sky-100/80 bg-blue-100/80 bg-indigo-100/80 bg-violet-100/80 bg-purple-100/80 bg-fuchsia-100/80 bg-pink-100/80 bg-rose-100/80 bg-slate-100/80 bg-gray-100/80 bg-zinc-100/80 bg-neutral-100/80 bg-stone-100/80";
 const bg200 =
@@ -76,6 +84,12 @@ const bg500_90 =
   "bg-red-500/90 bg-orange-500/90 bg-amber-500/90 bg-yellow-500/90 bg-lime-500/90 bg-green-500/90 bg-emerald-500/90 bg-teal-500/90 bg-cyan-500/90 bg-sky-500/90 bg-blue-500/90 bg-indigo-500/90 bg-violet-500/90 bg-purple-500/90 bg-fuchsia-500/90 bg-pink-500/90 bg-rose-500/90 bg-slate-500/90 bg-gray-500/90 bg-zinc-500/90 bg-neutral-500/90 bg-stone-500/90";
 const bg600 =
   "bg-red-600 bg-orange-600 bg-amber-600 bg-yellow-600 bg-lime-600 bg-green-600 bg-emerald-600 bg-teal-600 bg-cyan-600 bg-sky-600 bg-blue-600 bg-indigo-600 bg-violet-600 bg-purple-600 bg-fuchsia-600 bg-pink-600 bg-rose-600 bg-slate-600 bg-gray-600 bg-zinc-600 bg-neutral-600 bg-stone-600";
+const bg600_10 =
+  "bg-red-600/10 bg-orange-600/10 bg-amber-600/10 bg-yellow-600/10 bg-lime-600/10 bg-green-600/10 bg-emerald-600/10 bg-teal-600/10 bg-cyan-600/10 bg-sky-600/10 bg-blue-600/10 bg-indigo-600/10 bg-violet-600/10 bg-purple-600/10 bg-fuchsia-600/10 bg-pink-600/10 bg-rose-600/10 bg-slate-600/10 bg-gray-600/10 bg-zinc-600/10 bg-neutral-600/10 bg-stone-600/10";
+const bg600_25 =
+  "bg-red-600/25 bg-orange-600/25 bg-amber-600/25 bg-yellow-600/25 bg-lime-600/25 bg-green-600/25 bg-emerald-600/25 bg-teal-600/25 bg-cyan-600/25 bg-sky-600/25 bg-blue-600/25 bg-indigo-600/25 bg-violet-600/25 bg-purple-600/25 bg-fuchsia-600/25 bg-pink-600/25 bg-rose-600/25 bg-slate-600/25 bg-gray-600/25 bg-zinc-600/25 bg-neutral-600/25 bg-stone-600/25";
+const bg600_35 =
+  "bg-red-600/35 bg-orange-600/35 bg-amber-600/35 bg-yellow-600/35 bg-lime-600/35 bg-green-600/35 bg-emerald-600/35 bg-teal-600/35 bg-cyan-600/35 bg-sky-600/35 bg-blue-600/35 bg-indigo-600/35 bg-violet-600/35 bg-purple-600/35 bg-fuchsia-600/35 bg-pink-600/35 bg-rose-600/35 bg-slate-600/35 bg-gray-600/35 bg-zinc-600/35 bg-neutral-600/35 bg-stone-600/35";
 const bg600_60 =
   "bg-red-600/60 bg-orange-600/60 bg-amber-600/60 bg-yellow-600/60 bg-lime-600/60 bg-green-600/60 bg-emerald-600/60 bg-teal-600/60 bg-cyan-600/60 bg-sky-600/60 bg-blue-600/60 bg-indigo-600/60 bg-violet-600/60 bg-purple-600/60 bg-fuchsia-600/60 bg-pink-600/60 bg-rose-600/60 bg-slate-600/60 bg-gray-600/60 bg-zinc-600/60 bg-neutral-600/60 bg-stone-600/60";
 const bg700_10 =
@@ -86,6 +100,10 @@ const bg900_40 =
   "bg-red-900/40 bg-orange-900/40 bg-amber-900/40 bg-yellow-900/40 bg-lime-900/40 bg-green-900/40 bg-emerald-900/40 bg-teal-900/40 bg-cyan-900/40 bg-sky-900/40 bg-blue-900/40 bg-indigo-900/40 bg-violet-900/40 bg-purple-900/40 bg-fuchsia-900/40 bg-pink-900/40 bg-rose-900/40 bg-slate-900/40 bg-gray-900/40 bg-zinc-900/40 bg-neutral-900/40 bg-stone-900/40";
 const bg900_60 =
   "bg-red-900/60 bg-orange-900/60 bg-amber-900/60 bg-yellow-900/60 bg-lime-900/60 bg-green-900/60 bg-emerald-900/60 bg-teal-900/60 bg-cyan-900/60 bg-sky-900/60 bg-blue-900/60 bg-indigo-900/60 bg-violet-900/60 bg-purple-900/60 bg-fuchsia-900/60 bg-pink-900/60 bg-rose-900/60 bg-slate-900/60 bg-gray-900/60 bg-zinc-900/60 bg-neutral-900/60 bg-stone-900/60";
+
+// ---------- Toggle glass fill (arbitrary values) ----------
+const toggleGlassBgLight = "bg-[#d1d5db]";
+const toggleGlassBgDark = "dark:bg-[#4b5563]";
 
 // --------- text ----------
 const text50 =
@@ -140,6 +158,18 @@ const hoverBg50 =
   "hover:bg-red-50 hover:bg-orange-50 hover:bg-amber-50 hover:bg-yellow-50 hover:bg-lime-50 hover:bg-green-50 hover:bg-emerald-50 hover:bg-teal-50 hover:bg-cyan-50 hover:bg-sky-50 hover:bg-blue-50 hover:bg-indigo-50 hover:bg-violet-50 hover:bg-purple-50 hover:bg-fuchsia-50 hover:bg-pink-50 hover:bg-rose-50 hover:bg-slate-50 hover:bg-gray-50 hover:bg-zinc-50 hover:bg-neutral-50 hover:bg-stone-50";
 const hoverBg100 =
   "hover:bg-red-100 hover:bg-orange-100 hover:bg-amber-100 hover:bg-yellow-100 hover:bg-lime-100 hover:bg-green-100 hover:bg-emerald-100 hover:bg-teal-100 hover:bg-cyan-100 hover:bg-sky-100 hover:bg-blue-100 hover:bg-indigo-100 hover:bg-violet-100 hover:bg-purple-100 hover:bg-fuchsia-100 hover:bg-pink-100 hover:bg-rose-100 hover:bg-slate-100 hover:bg-gray-100 hover:bg-zinc-100 hover:bg-neutral-100 hover:bg-stone-100";
+const hoverBg100_30 =
+  "hover:bg-red-100/30 hover:bg-orange-100/30 hover:bg-amber-100/30 hover:bg-yellow-100/30 hover:bg-lime-100/30 hover:bg-green-100/30 hover:bg-emerald-100/30 hover:bg-teal-100/30 hover:bg-cyan-100/30 hover:bg-sky-100/30 hover:bg-blue-100/30 hover:bg-indigo-100/30 hover:bg-violet-100/30 hover:bg-purple-100/30 hover:bg-fuchsia-100/30 hover:bg-pink-100/30 hover:bg-rose-100/30 hover:bg-slate-100/30 hover:bg-gray-100/30 hover:bg-zinc-100/30 hover:bg-neutral-100/30 hover:bg-stone-100/30";
+const hoverBg100_55 =
+  "hover:bg-red-100/55 hover:bg-orange-100/55 hover:bg-amber-100/55 hover:bg-yellow-100/55 hover:bg-lime-100/55 hover:bg-green-100/55 hover:bg-emerald-100/55 hover:bg-teal-100/55 hover:bg-cyan-100/55 hover:bg-sky-100/55 hover:bg-blue-100/55 hover:bg-indigo-100/55 hover:bg-violet-100/55 hover:bg-purple-100/55 hover:bg-fuchsia-100/55 hover:bg-pink-100/55 hover:bg-rose-100/55 hover:bg-slate-100/55 hover:bg-gray-100/55 hover:bg-zinc-100/55 hover:bg-neutral-100/55 hover:bg-stone-100/55";
+const hoverBg100_60 =
+  "hover:bg-red-100/60 hover:bg-orange-100/60 hover:bg-amber-100/60 hover:bg-yellow-100/60 hover:bg-lime-100/60 hover:bg-green-100/60 hover:bg-emerald-100/60 hover:bg-teal-100/60 hover:bg-cyan-100/60 hover:bg-sky-100/60 hover:bg-blue-100/60 hover:bg-indigo-100/60 hover:bg-violet-100/60 hover:bg-purple-100/60 hover:bg-fuchsia-100/60 hover:bg-pink-100/60 hover:bg-rose-100/60 hover:bg-slate-100/60 hover:bg-gray-100/60 hover:bg-zinc-100/60 hover:bg-neutral-100/60 hover:bg-stone-100/60";
+const hoverBg100_65 =
+  "hover:bg-red-100/65 hover:bg-orange-100/65 hover:bg-amber-100/65 hover:bg-yellow-100/65 hover:bg-lime-100/65 hover:bg-green-100/65 hover:bg-emerald-100/65 hover:bg-teal-100/65 hover:bg-cyan-100/65 hover:bg-sky-100/65 hover:bg-blue-100/65 hover:bg-indigo-100/65 hover:bg-violet-100/65 hover:bg-purple-100/65 hover:bg-fuchsia-100/65 hover:bg-pink-100/65 hover:bg-rose-100/65 hover:bg-slate-100/65 hover:bg-gray-100/65 hover:bg-zinc-100/65 hover:bg-neutral-100/65 hover:bg-stone-100/65";
+const hoverBg100_75 =
+  "hover:bg-red-100/75 hover:bg-orange-100/75 hover:bg-amber-100/75 hover:bg-yellow-100/75 hover:bg-lime-100/75 hover:bg-green-100/75 hover:bg-emerald-100/75 hover:bg-teal-100/75 hover:bg-cyan-100/75 hover:bg-sky-100/75 hover:bg-blue-100/75 hover:bg-indigo-100/75 hover:bg-violet-100/75 hover:bg-purple-100/75 hover:bg-fuchsia-100/75 hover:bg-pink-100/75 hover:bg-rose-100/75 hover:bg-slate-100/75 hover:bg-gray-100/75 hover:bg-zinc-100/75 hover:bg-neutral-100/75 hover:bg-stone-100/75";
+const hoverBg100_80 =
+  "hover:bg-red-100/80 hover:bg-orange-100/80 hover:bg-amber-100/80 hover:bg-yellow-100/80 hover:bg-lime-100/80 hover:bg-green-100/80 hover:bg-emerald-100/80 hover:bg-teal-100/80 hover:bg-cyan-100/80 hover:bg-sky-100/80 hover:bg-blue-100/80 hover:bg-indigo-100/80 hover:bg-violet-100/80 hover:bg-purple-100/80 hover:bg-fuchsia-100/80 hover:bg-pink-100/80 hover:bg-rose-100/80 hover:bg-slate-100/80 hover:bg-gray-100/80 hover:bg-zinc-100/80 hover:bg-neutral-100/80 hover:bg-stone-100/80";
 const hoverBg400 =
   "hover:bg-red-400 hover:bg-orange-400 hover:bg-amber-400 hover:bg-yellow-400 hover:bg-lime-400 hover:bg-green-400 hover:bg-emerald-400 hover:bg-teal-400 hover:bg-cyan-400 hover:bg-sky-400 hover:bg-blue-400 hover:bg-indigo-400 hover:bg-violet-400 hover:bg-purple-400 hover:bg-fuchsia-400 hover:bg-pink-400 hover:bg-rose-400 hover:bg-slate-400 hover:bg-gray-400 hover:bg-zinc-400 hover:bg-neutral-400 hover:bg-stone-400";
 
@@ -178,6 +208,14 @@ const darkBg900_60 =
 // ---------- dark:hover:bg ----------
 const darkHoverBg300 =
   "dark:hover:bg-red-300 dark:hover:bg-orange-300 dark:hover:bg-amber-300 dark:hover:bg-yellow-300 dark:hover:bg-lime-300 dark:hover:bg-green-300 dark:hover:bg-emerald-300 dark:hover:bg-teal-300 dark:hover:bg-cyan-300 dark:hover:bg-sky-300 dark:hover:bg-blue-300 dark:hover:bg-indigo-300 dark:hover:bg-violet-300 dark:hover:bg-purple-300 dark:hover:bg-fuchsia-300 dark:hover:bg-pink-300 dark:hover:bg-rose-300 dark:hover:bg-slate-300 dark:hover:bg-gray-300 dark:hover:bg-zinc-300 dark:hover:bg-neutral-300 dark:hover:bg-stone-300";
+const darkHoverBg600_10 =
+  "dark:hover:bg-red-600/10 dark:hover:bg-orange-600/10 dark:hover:bg-amber-600/10 dark:hover:bg-yellow-600/10 dark:hover:bg-lime-600/10 dark:hover:bg-green-600/10 dark:hover:bg-emerald-600/10 dark:hover:bg-teal-600/10 dark:hover:bg-cyan-600/10 dark:hover:bg-sky-600/10 dark:hover:bg-blue-600/10 dark:hover:bg-indigo-600/10 dark:hover:bg-violet-600/10 dark:hover:bg-purple-600/10 dark:hover:bg-fuchsia-600/10 dark:hover:bg-pink-600/10 dark:hover:bg-rose-600/10 dark:hover:bg-slate-600/10 dark:hover:bg-gray-600/10 dark:hover:bg-zinc-600/10 dark:hover:bg-neutral-600/10 dark:hover:bg-stone-600/10";
+const darkHoverBg600_20 =
+  "dark:hover:bg-red-600/20 dark:hover:bg-orange-600/20 dark:hover:bg-amber-600/20 dark:hover:bg-yellow-600/20 dark:hover:bg-lime-600/20 dark:hover:bg-green-600/20 dark:hover:bg-emerald-600/20 dark:hover:bg-teal-600/20 dark:hover:bg-cyan-600/20 dark:hover:bg-sky-600/20 dark:hover:bg-blue-600/20 dark:hover:bg-indigo-600/20 dark:hover:bg-violet-600/20 dark:hover:bg-purple-600/20 dark:hover:bg-fuchsia-600/20 dark:hover:bg-pink-600/20 dark:hover:bg-rose-600/20 dark:hover:bg-slate-600/20 dark:hover:bg-gray-600/20 dark:hover:bg-zinc-600/20 dark:hover:bg-neutral-600/20 dark:hover:bg-stone-600/20";
+const darkHoverBg600_35 =
+  "dark:hover:bg-red-600/35 dark:hover:bg-orange-600/35 dark:hover:bg-amber-600/35 dark:hover:bg-yellow-600/35 dark:hover:bg-lime-600/35 dark:hover:bg-green-600/35 dark:hover:bg-emerald-600/35 dark:hover:bg-teal-600/35 dark:hover:bg-cyan-600/35 dark:hover:bg-sky-600/35 dark:hover:bg-blue-600/35 dark:hover:bg-indigo-600/35 dark:hover:bg-violet-600/35 dark:hover:bg-purple-600/35 dark:hover:bg-fuchsia-600/35 dark:hover:bg-pink-600/35 dark:hover:bg-rose-600/35 dark:hover:bg-slate-600/35 dark:hover:bg-gray-600/35 dark:hover:bg-zinc-600/35 dark:hover:bg-neutral-600/35 dark:hover:bg-stone-600/35";
+const darkHoverBg600_45 =
+  "dark:hover:bg-red-600/45 dark:hover:bg-orange-600/45 dark:hover:bg-amber-600/45 dark:hover:bg-yellow-600/45 dark:hover:bg-lime-600/45 dark:hover:bg-green-600/45 dark:hover:bg-emerald-600/45 dark:hover:bg-teal-600/45 dark:hover:bg-cyan-600/45 dark:hover:bg-sky-600/45 dark:hover:bg-blue-600/45 dark:hover:bg-indigo-600/45 dark:hover:bg-violet-600/45 dark:hover:bg-purple-600/45 dark:hover:bg-fuchsia-600/45 dark:hover:bg-pink-600/45 dark:hover:bg-rose-600/45 dark:hover:bg-slate-600/45 dark:hover:bg-gray-600/45 dark:hover:bg-zinc-600/45 dark:hover:bg-neutral-600/45 dark:hover:bg-stone-600/45";
 const darkHoverBg500_10 =
   "dark:hover:bg-red-500/10 dark:hover:bg-orange-500/10 dark:hover:bg-amber-500/10 dark:hover:bg-yellow-500/10 dark:hover:bg-lime-500/10 dark:hover:bg-green-500/10 dark:hover:bg-emerald-500/10 dark:hover:bg-teal-500/10 dark:hover:bg-cyan-500/10 dark:hover:bg-sky-500/10 dark:hover:bg-blue-500/10 dark:hover:bg-indigo-500/10 dark:hover:bg-violet-500/10 dark:hover:bg-purple-500/10 dark:hover:bg-fuchsia-500/10 dark:hover:bg-pink-500/10 dark:hover:bg-rose-500/10 dark:hover:bg-slate-500/10 dark:hover:bg-gray-500/10 dark:hover:bg-zinc-500/10 dark:hover:bg-neutral-500/10 dark:hover:bg-stone-500/10";
 const darkHoverBg500_20 =
@@ -274,6 +312,8 @@ const peerCheckedBorder500 =
   "peer-checked:border-red-500 peer-checked:border-orange-500 peer-checked:border-amber-500 peer-checked:border-yellow-500 peer-checked:border-lime-500 peer-checked:border-green-500 peer-checked:border-emerald-500 peer-checked:border-teal-500 peer-checked:border-cyan-500 peer-checked:border-sky-500 peer-checked:border-blue-500 peer-checked:border-indigo-500 peer-checked:border-violet-500 peer-checked:border-purple-500 peer-checked:border-fuchsia-500 peer-checked:border-pink-500 peer-checked:border-rose-500 peer-checked:border-slate-500 peer-checked:border-gray-500 peer-checked:border-zinc-500 peer-checked:border-neutral-500 peer-checked:border-stone-500";
 const peerFocusRing400 =
   "peer-focus:ring-red-400 peer-focus:ring-orange-400 peer-focus:ring-amber-400 peer-focus:ring-yellow-400 peer-focus:ring-lime-400 peer-focus:ring-green-400 peer-focus:ring-emerald-400 peer-focus:ring-teal-400 peer-focus:ring-cyan-400 peer-focus:ring-sky-400 peer-focus:ring-blue-400 peer-focus:ring-indigo-400 peer-focus:ring-violet-400 peer-focus:ring-purple-400 peer-focus:ring-fuchsia-400 peer-focus:ring-pink-400 peer-focus:ring-rose-400 peer-focus:ring-slate-400 peer-focus:ring-gray-400 peer-focus:ring-zinc-400 peer-focus:ring-neutral-400 peer-focus:ring-stone-400";
+const peerFocusRing400_50 =
+  "peer-focus:ring-red-400/50 peer-focus:ring-orange-400/50 peer-focus:ring-amber-400/50 peer-focus:ring-yellow-400/50 peer-focus:ring-lime-400/50 peer-focus:ring-green-400/50 peer-focus:ring-emerald-400/50 peer-focus:ring-teal-400/50 peer-focus:ring-cyan-400/50 peer-focus:ring-sky-400/50 peer-focus:ring-blue-400/50 peer-focus:ring-indigo-400/50 peer-focus:ring-violet-400/50 peer-focus:ring-purple-400/50 peer-focus:ring-fuchsia-400/50 peer-focus:ring-pink-400/50 peer-focus:ring-rose-400/50 peer-focus:ring-slate-400/50 peer-focus:ring-gray-400/50 peer-focus:ring-zinc-400/50 peer-focus:ring-neutral-400/50 peer-focus:ring-stone-400/50";
 
 // ---------- checkbox (accent) ----------
 const accent600 =

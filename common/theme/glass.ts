@@ -53,6 +53,35 @@ const SEMANTIC_MAP: Record<string, string> = {
   parallels: "red",
 };
 
+/**
+ * Tailwind colour names that are safe to use in dynamic utility classes.
+ * Used to gate glass fill generation — colours outside this set fall back
+ * to "neutral" so no invalid CSS is emitted.
+ */
+const GLASS_COLOR_SAFELIST: ReadonlySet<string> = new Set([
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "pink",
+  "rose",
+  "slate",
+  "gray",
+  "zinc",
+  "neutral",
+  "stone",
+]);
+
 /** Resolve a semantic/theme colour to a Tailwind colour name. */
 export const resolveColor = (color: string): string => {
   return SEMANTIC_MAP[color] ?? color;
@@ -93,7 +122,12 @@ export const getGlassFillClass = (
 
   const base = resolveColor(color);
 
-  return `bg-${base}-100/${litOpacity} hover:bg-${base}-100/${litOpacity + 10} dark:bg-${base}-600/${drkOpacity} dark:hover:bg-${base}-600/${drkOpacity + 10}`;
+  // Gate against colours that don't exist in Tailwind's palette (e.g.
+  // "fuchsia" was removed in v3.2, "white" is a literal, not a colour).
+  // Fall back to "neutral" so no invalid CSS is emitted.
+  const safeBase = GLASS_COLOR_SAFELIST.has(base) ? base : "neutral";
+
+  return `bg-${safeBase}-100/${litOpacity} hover:bg-${safeBase}-100/${litOpacity + 10} dark:bg-${safeBase}-600/${drkOpacity} dark:hover:bg-${safeBase}-600/${drkOpacity + 10}`;
 };
 
 // ---------------------------------------------------------------------------
@@ -126,8 +160,8 @@ export const getGlassVibrancyClass = (vibrancy: GlassVibrancy): string => {
  * Build Tailwind classes for a specular highlight overlay.
  *
  * - `"none"`       → `null` (no overlay)
- * - `"classic"`    → top-edge hairline gradient
- * - `"halo"`       → corner caps + diffuse band + bottom darken
+ * - `"classic"`    → soft top-edge hairline reflection
+ * - `"halo"`       → corner caps + diffuse top glow
  *
  * @returns class string or `null`
  */
@@ -136,27 +170,37 @@ export const getSpecularClasses = (mode: SpecularMode): string | null => {
     case "none":
       return null;
 
+    /**
+     * Classic: a soft top-edge reflection, like light grazing the upper edge
+     * of a pane of glass. Subtle white-to-transparent gradient, 10px tall,
+     * spanning the full width, softly clipped by the track's rounded corners.
+     */
     case "classic":
       return (
-        "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]" +
-        " bg-gradient-to-r from-transparent via-white/40 to-transparent" +
-        " dark:via-white/10"
+        "pointer-events-none absolute inset-x-0 top-0 h-[10px]" +
+        " bg-gradient-to-b from-white/12 via-white/4 to-transparent" +
+        " dark:from-white/5 dark:via-white/2"
       );
 
+    /**
+     * Halo: two corner reflections (top-left + top-right) plus a diffuse
+     * glow band across the top. Mimics light scattering across a curved
+     * glass surface — soft, wide, and very low opacity.
+     */
     case "halo":
       return (
-        // Top-left corner cap
-        "pointer-events-none absolute top-0 left-0 w-24 h-12 rounded-tl-[inherit]" +
-        " bg-gradient-to-br from-white/45 via-white/15 to-transparent" +
-        // Top-right corner cap
-        " pointer-events-none absolute top-0 right-0 w-24 h-12 rounded-tr-[inherit]" +
-        " bg-gradient-to-bl from-white/45 via-white/15 to-transparent" +
-        // Diffuse glow band
-        " pointer-events-none absolute inset-x-0 top-0 h-[28%]" +
-        " bg-gradient-to-b from-white/20 via-white/8 to-transparent" +
-        // Bottom darken
-        " pointer-events-none absolute inset-x-0 bottom-0 h-[15%]" +
-        " bg-gradient-to-t from-transparent to-black/4"
+        // Top-left corner reflection
+        "pointer-events-none absolute top-0 left-0 w-[40%] h-[35%]" +
+        " rounded-tl-[inherit]" +
+        " bg-gradient-to-br from-white/10 via-white/4 to-transparent" +
+        // Top-right corner reflection
+        " pointer-events-none absolute top-0 right-0 w-[40%] h-[35%]" +
+        " rounded-tr-[inherit]" +
+        " bg-gradient-to-bl from-white/10 via-white/4 to-transparent" +
+        // Diffuse top glow band
+        " pointer-events-none absolute inset-x-0 top-0 h-[20%]" +
+        " bg-gradient-to-b from-white/6 via-white/2 to-transparent" +
+        " dark:from-white/3 dark:via-white/1"
       );
 
     default:

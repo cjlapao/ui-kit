@@ -5,6 +5,7 @@ import {
   MultiToggle,
   type ThemeColor,
   type ToggleProps,
+  type ToggleVariant,
 } from "@cjlapao/ui-kit-vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import {
@@ -25,6 +26,7 @@ type ToggleDescriptionPlacement = NonNullable<
 const toggleChecked = ref<boolean>(true);
 const toggleColor = ref<ThemeColor>("blue");
 const toggleSize = ref<ToggleSize>("md");
+const toggleVariant = ref<ToggleVariant>("default");
 const toggleAlign = ref<ToggleAlign>("left");
 const toggleLabel = ref<boolean>(true);
 const toggleFullWidth = ref<boolean>(false);
@@ -33,8 +35,7 @@ const toggleDescription = ref<boolean>(false);
 const toggleDisabled = ref<boolean>(false);
 const toggleDescriptionPlacement = ref<ToggleDescriptionPlacement>("stacked");
 
-// Glass state
-const glass = ref<boolean>(false);
+// Glass-specific state (shown when variant === "glass")
 const vibrancy = ref<"low" | "medium" | "high">("medium");
 const glassOpacity = ref<"frosted" | "light" | "clear">("frosted");
 const specularMode = ref<"none" | "classic" | "halo">("none");
@@ -76,21 +77,35 @@ const toggleBooleanOptions = computed(() => [
   >
     <template #controls>
       <div class="space-y-4">
-        <div class="space-y-2">
-          <span
-            class="text-sm font-semibold text-neutral-600 dark:text-neutral-200"
-          >
-            Tone
-          </span>
-          <MultiToggle
-            full-width
-            :options="colorOptions"
-            :model-value="toggleColor"
-            size="sm"
-            @update:model-value="
-              (value: string) => (toggleColor = value as ThemeColor)
-            "
-          />
+        <div class="grid gap-3 md:grid-cols-2">
+          <label class="flex flex-col gap-2 text-sm">
+            <span>Tone</span>
+            <MultiToggle
+              full-width
+              :options="colorOptions"
+              :model-value="toggleColor"
+              size="sm"
+              @update:model-value="
+                (value: string) => (toggleColor = value as ThemeColor)
+              "
+            />
+          </label>
+          <label class="flex flex-col gap-2 text-sm">
+            <span>Variant</span>
+            <MultiToggle
+              full-width
+              :model-value="toggleVariant"
+              size="sm"
+              :options="[
+                { label: 'Default', value: 'default' },
+                { label: 'Glass', value: 'glass' },
+              ]"
+              @update:model-value="
+                (value: string) =>
+                  (toggleVariant = value as ToggleVariant)
+              "
+            />
+          </label>
         </div>
         <div class="grid gap-4 md:grid-cols-2">
           <label class="flex flex-col gap-2 text-sm">
@@ -132,21 +147,11 @@ const toggleBooleanOptions = computed(() => [
             "
           />
         </label>
-        <div class="space-y-2">
+        <div v-if="toggleVariant === 'glass'" class="space-y-3">
           <span class="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
             Glass
           </span>
-          <div class="grid gap-2 text-sm md:grid-cols-2">
-            <label class="flex items-center justify-between">
-              <span>Enabled</span>
-              <Toggle
-                size="sm"
-                :model-value="glass"
-                @update:model-value="(checked: boolean) => (glass = checked)"
-              />
-            </label>
-          </div>
-          <div v-if="glass" class="space-y-3 pt-2">
+          <div class="grid gap-3 md:grid-cols-2">
             <label class="flex flex-col gap-2 text-sm">
               <span>Vibrancy</span>
               <MultiToggle
@@ -212,6 +217,7 @@ const toggleBooleanOptions = computed(() => [
         v-model="toggleChecked"
         :size="toggleSize"
         :color="toggleColor"
+        :variant="toggleVariant"
         :disabled="toggleDisabled"
         :label="toggleLabel ? 'Toggle Label' : undefined"
         :description="
@@ -224,7 +230,6 @@ const toggleBooleanOptions = computed(() => [
         :full-width="toggleFullWidth"
         :icon-on="toggleCustomIcons ? 'Send' : undefined"
         :icon-off="toggleCustomIcons ? 'Close' : undefined"
-        :glass="glass"
         :vibrancy="vibrancy"
         :glass-opacity="glassOpacity"
         :specular-mode="specularMode"
