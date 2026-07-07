@@ -130,7 +130,7 @@ describe("IconButton — glass variant", () => {
     expect(btn.attributes("data-glass")).toBe("false");
   });
 
-  it("resolves semantic color 'brand' to blue for glass fill", () => {
+  it("renders glass fill with blue color", () => {
     const wrapper = mount(IconButton, {
       props: { icon: "Search", glass: true, color: "blue" },
     });
@@ -140,7 +140,7 @@ describe("IconButton — glass variant", () => {
     expect(btn.classes()).toContain("dark:bg-blue-500/5");
   });
 
-  it("resolves semantic color 'success' to emerald for glass fill", () => {
+  it("renders glass fill with emerald color", () => {
     const wrapper = mount(IconButton, {
       props: { icon: "Search", glass: true, color: "green" },
     });
@@ -150,7 +150,7 @@ describe("IconButton — glass variant", () => {
     expect(btn.classes()).toContain("dark:bg-emerald-500/5");
   });
 
-  it("resolves semantic color 'danger' to rose for glass fill", () => {
+  it("renders glass fill with rose color", () => {
     const wrapper = mount(IconButton, {
       props: { icon: "Search", glass: true, color: "rose" },
     });
