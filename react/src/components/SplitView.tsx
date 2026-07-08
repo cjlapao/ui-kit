@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import classNames from "classnames";
-import { type ThemeColor, getPillColorClasses } from "../theme/Theme";
+import { type TrueColor, getPillColorClasses } from "../theme/Theme";
 import CustomIcon from "./CustomIcon";
 import EmptyState from "./EmptyState";
 import { type IconName } from "../icons/registry";
@@ -25,7 +25,7 @@ export type SplitViewSize = "sm" | "md" | "lg";
 
 export interface SplitViewItemBadge {
   label: React.ReactNode;
-  tone?: ThemeColor;
+  tone?: TrueColor;
   variant?: "solid" | "soft" | "outline";
 }
 
@@ -67,7 +67,7 @@ export interface SplitViewHeaderDetails {
    * When provided, it overrides title/subtitle/description/tags content.
    */
   headerBody?: React.ReactNode;
-  tone?: ThemeColor;
+  tone?: TrueColor;
   variant?: PanelVariant;
   /** Alias for `variant` */
   variants?: PanelVariant;
@@ -118,7 +118,7 @@ export interface SplitViewProps {
   /** Width of the list panel – Tailwind class (when not resizable) or initial px value for resizable */
   listWidth?: string;
   /** Accent color used for active item highlight */
-  color?: ThemeColor;
+  color?: TrueColor;
   size?: SplitViewSize;
 
   /** Deprecated: one visible item is now always shown as detail-only (list hidden). */
@@ -254,7 +254,7 @@ const neutralActive: ActiveColorTokens = {
   resizer: "bg-neutral-400/40",
 };
 
-const activeColors: Record<ThemeColor, ActiveColorTokens> = {
+const activeColors: Record<TrueColor, ActiveColorTokens> = {
   red: {
     bg: "bg-red-50 dark:bg-red-900/30",
     border: "border-l-red-600",
@@ -359,15 +359,7 @@ const activeColors: Record<ThemeColor, ActiveColorTokens> = {
     text: "text-fuchsia-900 dark:text-fuchsia-100",
     subtitle: "text-fuchsia-600 dark:text-fuchsia-400",
     resizer: "bg-fuchsia-400",
-  },
-  pink: {
-    bg: "bg-pink-50 dark:bg-pink-900/30",
-    border: "border-l-pink-600",
-    text: "text-pink-900 dark:text-pink-100",
-    subtitle: "text-pink-600 dark:text-pink-400",
-    resizer: "bg-pink-400",
-  },
-  rose: {
+  },  rose: {
     bg: "bg-rose-50 dark:bg-rose-900/30",
     border: "border-l-rose-600",
     text: "text-rose-900 dark:text-rose-100",
@@ -397,51 +389,6 @@ const activeColors: Record<ThemeColor, ActiveColorTokens> = {
   },
   neutral: neutralActive,
   stone: neutralActive,
-  white: neutralActive,
-  // Semantic aliases
-  brand: {
-    bg: "bg-blue-50 dark:bg-blue-900/30",
-    border: "border-l-blue-600",
-    text: "text-blue-900 dark:text-blue-100",
-    subtitle: "text-blue-600 dark:text-blue-400",
-    resizer: "bg-blue-400",
-  },
-  info: {
-    bg: "bg-sky-50 dark:bg-sky-900/30",
-    border: "border-l-sky-600",
-    text: "text-sky-900 dark:text-sky-100",
-    subtitle: "text-sky-600 dark:text-sky-400",
-    resizer: "bg-sky-400",
-  },
-  success: {
-    bg: "bg-emerald-50 dark:bg-emerald-900/30",
-    border: "border-l-emerald-600",
-    text: "text-emerald-900 dark:text-emerald-100",
-    subtitle: "text-emerald-600 dark:text-emerald-400",
-    resizer: "bg-emerald-400",
-  },
-  warning: {
-    bg: "bg-amber-50 dark:bg-amber-900/30",
-    border: "border-l-amber-600",
-    text: "text-amber-900 dark:text-amber-100",
-    subtitle: "text-amber-600 dark:text-amber-400",
-    resizer: "bg-amber-400",
-  },
-  danger: {
-    bg: "bg-rose-50 dark:bg-rose-900/30",
-    border: "border-l-rose-600",
-    text: "text-rose-900 dark:text-rose-100",
-    subtitle: "text-rose-600 dark:text-rose-400",
-    resizer: "bg-rose-400",
-  },
-  theme: neutralActive,
-  parallels: {
-    bg: "bg-red-50 dark:bg-red-900/30",
-    border: "border-l-red-600",
-    text: "text-red-900 dark:text-red-100",
-    subtitle: "text-red-600 dark:text-red-400",
-    resizer: "bg-red-400",
-  },
 };
 
 type HighlightTokens = { bg: string; dot: string };
@@ -452,7 +399,7 @@ const neutralHighlight: HighlightTokens = {
 };
 
 // All class names are written as full strings so Tailwind's JIT scanner can detect them.
-const highlightColors: Record<ThemeColor, HighlightTokens> = {
+const highlightColors: Record<TrueColor, HighlightTokens> = {
   red: { bg: "bg-red-100 dark:bg-red-900/50", dot: "bg-red-500" },
   orange: { bg: "bg-orange-100 dark:bg-orange-900/50", dot: "bg-orange-500" },
   amber: { bg: "bg-amber-100 dark:bg-amber-900/50", dot: "bg-amber-500" },
@@ -474,24 +421,12 @@ const highlightColors: Record<ThemeColor, HighlightTokens> = {
     bg: "bg-fuchsia-100 dark:bg-fuchsia-900/50",
     dot: "bg-fuchsia-500",
   },
-  pink: { bg: "bg-pink-100 dark:bg-pink-900/50", dot: "bg-pink-500" },
   rose: { bg: "bg-rose-100 dark:bg-rose-900/50", dot: "bg-rose-500" },
   slate: { bg: "bg-slate-100 dark:bg-slate-800/50", dot: "bg-slate-500" },
   gray: { bg: "bg-gray-100 dark:bg-gray-800/50", dot: "bg-gray-500" },
   zinc: { bg: "bg-zinc-100 dark:bg-zinc-800/50", dot: "bg-zinc-500" },
   neutral: neutralHighlight,
   stone: neutralHighlight,
-  white: neutralHighlight,
-  brand: { bg: "bg-blue-100 dark:bg-blue-900/50", dot: "bg-blue-500" },
-  info: { bg: "bg-sky-100 dark:bg-sky-900/50", dot: "bg-sky-500" },
-  success: {
-    bg: "bg-emerald-100 dark:bg-emerald-900/50",
-    dot: "bg-emerald-500",
-  },
-  warning: { bg: "bg-amber-100 dark:bg-amber-900/50", dot: "bg-amber-500" },
-  danger: { bg: "bg-rose-100 dark:bg-rose-900/50", dot: "bg-rose-500" },
-  theme: neutralHighlight,
-  parallels: { bg: "bg-red-100 dark:bg-red-900/50", dot: "bg-red-500" },
 };
 
 /* ------------------------------------------------------------------ */
@@ -664,7 +599,7 @@ const SplitView: React.FC<SplitViewProps> = ({
 
   const renderBadge = (badge: SplitViewItemBadge, idx: number) => {
     const pillTokens = getPillColorClasses(
-      badge.tone ?? "info",
+      badge.tone ?? "sky",
       badge.variant ?? "soft",
     );
     return (
@@ -896,7 +831,7 @@ const SplitView: React.FC<SplitViewProps> = ({
               actionColor={color}
               disableBorder
               transparentBackground
-              iconColor="danger"
+              iconColor="rose"
               size="lg"
             />
           )}

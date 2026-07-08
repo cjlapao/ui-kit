@@ -1,6 +1,6 @@
 import type React from "react";
 import type { ButtonVariant, ButtonSize } from "../Button";
-import type { ThemeColor } from "../../theme/Theme";
+import type { TrueColor } from "../../theme/Theme";
 import type { PanelVariant, PanelPadding, PanelCorner } from "../Panel";
 import { LoaderProps } from "../Loader";
 
@@ -14,7 +14,7 @@ export interface TimelinePanelAction {
   label: React.ReactNode;
   onClick?: () => void;
   variant?: ButtonVariant;
-  color?: ThemeColor;
+  color?: TrueColor;
   size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
@@ -64,7 +64,7 @@ export interface TimelinePanelHeaderAction {
   label: React.ReactNode;
   onClick?: () => void;
   variant?: ButtonVariant;
-  color?: ThemeColor;
+  color?: TrueColor;
   size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
@@ -80,7 +80,7 @@ export interface TimelinePanelProps {
   items: TimelinePanelItem[];
   // ── Appearance ────────────────────────────────────────────────────────────
   variant?: PanelVariant;
-  tone?: ThemeColor;
+  tone?: TrueColor;
   padding?: PanelPadding;
   corner?: PanelCorner;
   /** Color of the connecting vertical line */

@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useState } from "react";
-import { type ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 
 export type MultiSelectPillOption = {
   value: string;
@@ -51,9 +51,9 @@ export interface MultiSelectPillsProps {
   size?: "xs" | "sm" | "base" | "lg";
   /**
    * Theme color used when a pill is selected.
-   * Accepts any ThemeColor value. Defaults to "blue".
+   * Accepts any TrueColor value. Defaults to "blue".
    */
-  color?: ThemeColor;
+  color?: TrueColor;
   /**
    * Border radius of the pills.
    * Defaults to "full" (fully rounded).
@@ -95,22 +95,7 @@ const gapMap = {
   "4": "gap-4",
 } as const;
 
-const colorTokens: Record<ThemeColor, { selected: string; ring: string }> = {
-  parallels: {
-    selected:
-      "border-rose-500 bg-rose-500 text-white dark:bg-rose-500 dark:border-rose-500",
-    ring: "focus-visible:ring-rose-400",
-  },
-  brand: {
-    selected:
-      "border-rose-500 bg-rose-500 text-white dark:bg-rose-500 dark:border-rose-500",
-    ring: "focus-visible:ring-rose-400",
-  },
-  theme: {
-    selected:
-      "border-rose-500 bg-rose-500 text-white dark:bg-rose-500 dark:border-rose-500",
-    ring: "focus-visible:ring-rose-400",
-  },
+const colorTokens: Record<TrueColor, { selected: string; ring: string }> = {
   red: {
     selected:
       "border-rose-500 bg-rose-500 text-white dark:bg-rose-500 dark:border-rose-500",
@@ -185,13 +170,7 @@ const colorTokens: Record<ThemeColor, { selected: string; ring: string }> = {
     selected:
       "border-fuchsia-500 bg-fuchsia-500 text-white dark:bg-fuchsia-500 dark:border-fuchsia-500",
     ring: "focus-visible:ring-fuchsia-400",
-  },
-  pink: {
-    selected:
-      "border-pink-500 bg-pink-500 text-white dark:bg-pink-500 dark:border-pink-500",
-    ring: "focus-visible:ring-pink-400",
-  },
-  rose: {
+  },  rose: {
     selected:
       "border-rose-500 bg-rose-500 text-white dark:bg-rose-500 dark:border-rose-500",
     ring: "focus-visible:ring-rose-400",
@@ -220,33 +199,7 @@ const colorTokens: Record<ThemeColor, { selected: string; ring: string }> = {
     selected:
       "border-stone-600 bg-stone-600 text-white dark:bg-stone-500 dark:border-stone-500",
     ring: "focus-visible:ring-stone-400",
-  },
-  white: {
-    selected:
-      "border-slate-400 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200",
-    ring: "focus-visible:ring-slate-300",
-  },
-  info: {
-    selected:
-      "border-sky-500 bg-sky-500 text-white dark:bg-sky-500 dark:border-sky-500",
-    ring: "focus-visible:ring-sky-400",
-  },
-  success: {
-    selected:
-      "border-emerald-600 bg-emerald-600 text-white dark:bg-emerald-500 dark:border-emerald-500",
-    ring: "focus-visible:ring-emerald-400",
-  },
-  warning: {
-    selected:
-      "border-amber-500 bg-amber-500 text-white dark:bg-amber-400 dark:border-amber-400",
-    ring: "focus-visible:ring-amber-400",
-  },
-  danger: {
-    selected:
-      "border-rose-500 bg-rose-500 text-white dark:bg-rose-500 dark:border-rose-500",
-    ring: "focus-visible:ring-rose-400",
-  },
-};
+  },};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 

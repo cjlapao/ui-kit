@@ -12,7 +12,7 @@ import {
   getButtonHoverClasses,
   getButtonActiveClasses,
   getButtonActiveHoverClasses,
-  type ThemeColor,
+  type TrueColor,
   type ButtonVariant,
 } from "../theme/Theme";
 import {
@@ -27,7 +27,7 @@ import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
 
-export type ButtonColor = ThemeColor;
+export type ButtonColor = TrueColor;
 export type { ButtonVariant };
 export type { GlassVibrancy, GlassOpacity, SpecularMode };
 
@@ -36,7 +36,7 @@ export type ButtonWeight = "normal" | "medium" | "semibold" | "bold";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
-  color?: ThemeColor;
+  color?: TrueColor;
   size?: ButtonSize;
   weight?: ButtonWeight;
   fullWidth?: boolean;
@@ -45,7 +45,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   iconOnly?: boolean;
   accent?: boolean;
-  accentColor?: ThemeColor;
+  accentColor?: TrueColor;
   /** When true, renders in a persistent lighter "on" state with hover suppressed. accentColor overrides the active color. */
   active?: boolean;
   /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
@@ -119,7 +119,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       variant = "solid",
-      color = "brand",
+      color = "blue",
       size = "md",
       weight = "normal",
       fullWidth = false,

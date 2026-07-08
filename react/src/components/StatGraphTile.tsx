@@ -19,14 +19,14 @@ import {
 } from "recharts";
 import StatTile from "./StatTile";
 import type { StatTileProps } from "./StatTile";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import { getColorPaletteNames } from "../theme";
 
 export interface StatGraphSeries {
   key: string;
   label: string;
   /** Omit to auto-assign from the theme palette. */
-  color?: ThemeColor;
+  color?: TrueColor;
 }
 
 export interface StatGraphTileProps
@@ -154,35 +154,31 @@ const StatGraphTile: React.FC<StatGraphTileProps> = ({
 
   // Graph colors helper
   const getColor = useCallback((color: string) => {
-    const colorMap: Record<string, string> = {
-      // Spectrum colors (ThemeMultiColor — Tailwind 500 hex values)
-      red: "#ef4444",
-      orange: "#f97316",
-      amber: "#f59e0b",
-      yellow: "#eab308",
-      lime: "#84cc16",
-      green: "#22c55e",
-      emerald: "#10b981",
-      teal: "#14b8a6",
-      cyan: "#06b6d4",
-      sky: "#0ea5e9",
-      blue: "#3b82f6",
-      indigo: "#6366f1",
-      violet: "#8b5cf6",
-      purple: "#a855f7",
-      fuchsia: "#d946ef",
-      pink: "#ec4899",
-      rose: "#f43f5e",
-      slate: "#64748b",
-      gray: "#6b7280",
-      zinc: "#71717a",
-      neutral: "#737373",
-      stone: "#78716c",
-      // Semantic aliases
-      parallels: "#e4001b",
-      text: "#64748b",
-      grid: "#e2e8f0",
-    };
+const colorMap: Record<string, string> = {
+    // Spectrum colors (Tailwind 500 hex values)
+    red: "#ef4444",
+    orange: "#f97316",
+    amber: "#f59e0b",
+    yellow: "#eab308",
+    lime: "#84cc16",
+    green: "#22c55e",
+    emerald: "#10b981",
+    teal: "#14b8a6",
+    cyan: "#06b6d4",
+    sky: "#0ea5e9",
+    blue: "#3b82f6",
+    indigo: "#6366f1",
+    violet: "#8b5cf6",
+    purple: "#a855f7",
+    fuchsia: "#d946ef",
+    pink: "#ec4899",
+    rose: "#f43f5e",
+    slate: "#64748b",
+    gray: "#6b7280",
+    zinc: "#71717a",
+    neutral: "#737373",
+    stone: "#78716c",
+  };
     return colorMap[color] || "#3b82f6";
   }, []);
 
@@ -190,7 +186,7 @@ const StatGraphTile: React.FC<StatGraphTileProps> = ({
     const palette = getColorPaletteNames(series.length);
     return series.map((s, i) => ({
       ...s,
-      color: (s.color ?? palette[i]) as ThemeColor,
+      color: (s.color ?? palette[i]) as TrueColor,
     }));
   }, [series]);
 

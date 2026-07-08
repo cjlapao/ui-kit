@@ -295,7 +295,7 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
         <div className="mt-3 flex justify-center">
           <Button
             variant="ghost"
-            color="brand"
+            color="blue"
             size="sm"
             trailingIcon={expanded ? "ArrowUp" : "ArrowDown"}
             onClick={() => setExpanded((prev) => !prev)}

@@ -1,9 +1,9 @@
 import classNames from "classnames";
 import React from "react";
-import { getSpinnerColorTokens, type ThemeColor } from "../theme/Theme";
+import { getSpinnerColorTokens, type TrueColor } from "../theme/Theme";
 
 export type SpinnerSize = "xs" | "sm" | "md" | "lg" | "xl";
-export type SpinnerColor = ThemeColor;
+export type SpinnerColor = TrueColor;
 export type SpinnerVariant = "solid" | "segments";
 export type SpinnerThickness = "thin" | "normal" | "thick";
 

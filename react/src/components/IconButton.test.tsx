@@ -168,7 +168,7 @@ describe("IconButton — glass variant", () => {
   });
 
   it("resolves semantic color 'brand' to blue for glass fill", () => {
-    const { container } = render(<IconButton icon="Search" glass color="brand" />);
+    const { container } = render(<IconButton icon="Search" glass color="blue" />);
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("bg-blue-50/20");
@@ -176,7 +176,7 @@ describe("IconButton — glass variant", () => {
   });
 
   it("resolves semantic color 'success' to emerald for glass fill", () => {
-    const { container } = render(<IconButton icon="Search" glass color="success" />);
+    const { container } = render(<IconButton icon="Search" glass color="emerald" />);
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("bg-emerald-50/20");
@@ -184,7 +184,7 @@ describe("IconButton — glass variant", () => {
   });
 
   it("resolves semantic color 'danger' to rose for glass fill", () => {
-    const { container } = render(<IconButton icon="Search" glass color="danger" />);
+    const { container } = render(<IconButton icon="Search" glass color="rose" />);
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("bg-rose-50/20");
@@ -221,7 +221,7 @@ describe("IconButton — glass variant", () => {
 
   it("renders with variant='solid' glass color='brand'", () => {
     const { container } = render(
-      <IconButton icon="Search" variant="solid" glass color="brand" />,
+      <IconButton icon="Search" variant="solid" glass color="blue" />,
     );
 
     const btn = container.querySelector("button");

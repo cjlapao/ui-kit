@@ -122,35 +122,7 @@ const toneTokens: Partial<Record<ButtonColor, ToneTokens>> = {
     darkAddonBackground: "dark:bg-slate-800/70",
     darkAddonBorder: "dark:border-slate-700",
     darkAddonText: "dark:text-slate-200",
-  },
-  white: {
-    focusRing: "focus-within:ring-slate-400",
-    ring: "ring-slate-200/70",
-    background: "bg-white",
-    addonBackground: "bg-slate-100",
-    addonBorder: "border-slate-200",
-    addonText: "text-slate-700",
-    darkBackground: "dark:bg-neutral-900",
-    darkRing: "dark:ring-slate-500/40",
-    darkAddonBackground: "dark:bg-slate-800/70",
-    darkAddonBorder: "dark:border-slate-700",
-    darkAddonText: "dark:text-slate-200",
-  },
-  theme: {
-    focusRing:
-      "focus-within:ring-neutral-400 dark:focus-within:ring-neutral-500 focus-within:ring-2",
-    ring: "ring-neutral-200/80",
-    background: "bg-white",
-    addonBackground: "bg-neutral-50",
-    addonBorder: "border-neutral-200",
-    addonText: "text-neutral-600",
-    darkBackground: "dark:bg-neutral-900",
-    darkRing: "dark:ring-neutral-700",
-    darkAddonBackground: "dark:bg-neutral-800/70",
-    darkAddonBorder: "dark:border-neutral-700",
-    darkAddonText: "dark:text-neutral-200",
-  },
-};
+  },};
 
 const statusRing: Record<
   Exclude<InputGroupValidationStatus, "none">,
@@ -212,7 +184,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
   validationStatus = "none",
   disabled = false,
 }) => {
-  const toneToken = (toneTokens[tone] ?? toneTokens.theme) as ToneTokens;
+  const toneToken = (toneTokens[tone] ?? toneTokens.neutral) as ToneTokens;
   const sizeToken = sizeTokens[size] ?? sizeTokens.md;
 
   const ringClasses =

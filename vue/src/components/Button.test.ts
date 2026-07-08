@@ -29,9 +29,9 @@ describe("Button — glass variant", () => {
     expect(btn.classes()).toContain("backdrop-saturate-[1.2]");
   });
 
-  it('renders solid button with glass overlay when variant="solid" glass color="brand"', () => {
+  it('renders solid button with glass overlay when variant="solid" glass color="blue"', () => {
     const wrapper = mount(Button, {
-      props: { variant: "solid", glass: true, color: "brand" },
+      props: { variant: "solid", glass: true, color: "blue" },
     });
 
     const btn = wrapper.find("button");
@@ -168,9 +168,9 @@ describe("Button — glass variant", () => {
     expect(wrapper.find("button").attributes("data-glass")).toBe("false");
   });
 
-  it("resolves semantic color 'brand' to blue for glass fill", () => {
+  it("renders glass fill with blue color", () => {
     const wrapper = mount(Button, {
-      props: { glass: true, color: "brand" },
+      props: { glass: true, color: "blue" },
     });
 
     const btn = wrapper.find("button");
@@ -178,9 +178,9 @@ describe("Button — glass variant", () => {
     expect(btn.classes()).toContain("dark:bg-blue-500/15");
   });
 
-  it("resolves semantic color 'success' to emerald for glass fill", () => {
+  it("renders glass fill with emerald color", () => {
     const wrapper = mount(Button, {
-      props: { glass: true, color: "success" },
+      props: { glass: true, color: "green" },
     });
 
     const btn = wrapper.find("button");
@@ -188,9 +188,9 @@ describe("Button — glass variant", () => {
     expect(btn.classes()).toContain("dark:bg-emerald-500/15");
   });
 
-  it("resolves semantic color 'danger' to rose for glass fill", () => {
+  it("renders glass fill with rose color", () => {
     const wrapper = mount(Button, {
-      props: { glass: true, color: "danger" },
+      props: { glass: true, color: "rose" },
     });
 
     const btn = wrapper.find("button");

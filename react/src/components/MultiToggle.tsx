@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getMultiToggleVariantTokens, type ThemeColor } from "../theme/Theme";
+import { getMultiToggleVariantTokens, type TrueColor } from "../theme/Theme";
 import type { IconSize } from "../types/Icon";
 
 export type MultiToggleSize = "sm" | "md" | "lg";
@@ -44,7 +44,7 @@ export interface MultiToggleProps
 
   onChange: (value: string) => void;
   size?: MultiToggleSize;
-  color?: ThemeColor;
+  color?: TrueColor;
   fullWidth?: boolean;
   className?: string;
   showOnlyActiveLabel?: boolean;
@@ -54,31 +54,13 @@ export interface MultiToggleProps
   activeWidthStrategy?: MultiToggleActiveWidthStrategy;
   variant?: MultiToggleVariant;
   /** When set, overrides the active option's text color with this color's active-text token. */
-  accentColor?: ThemeColor;
+  accentColor?: TrueColor;
 }
 
 const toneTokens: Record<
-  ThemeColor,
+  TrueColor,
   { activeText: string; indicator: string; hover: string }
 > = {
-  parallels: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
-  brand: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
-  theme: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
   red: {
     activeText: "text-rose-700 dark:text-rose-200",
     indicator:
@@ -168,14 +150,7 @@ const toneTokens: Record<
     indicator:
       "bg-fuchsia-500/15 dark:bg-fuchsia-400/20 border border-fuchsia-400/40 dark:border-fuchsia-300/20",
     hover: "hover:text-fuchsia-600 dark:hover:text-fuchsia-300",
-  },
-  pink: {
-    activeText: "text-pink-700 dark:text-pink-200",
-    indicator:
-      "bg-pink-500/15 dark:bg-pink-400/20 border border-pink-400/40 dark:border-pink-300/20",
-    hover: "hover:text-pink-600 dark:hover:text-pink-300",
-  },
-  rose: {
+  },  rose: {
     activeText: "text-rose-700 dark:text-rose-200",
     indicator:
       "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
@@ -210,38 +185,7 @@ const toneTokens: Record<
     indicator:
       "bg-stone-500/15 dark:bg-stone-400/20 border border-stone-400/40 dark:border-stone-300/20",
     hover: "hover:text-stone-600 dark:hover:text-stone-300",
-  },
-  white: {
-    activeText: "text-slate-700 dark:text-slate-200",
-    indicator:
-      "bg-slate-400/15 dark:bg-slate-300/20 border border-slate-300/40 dark:border-slate-200/20",
-    hover: "hover:text-slate-600 dark:hover:text-slate-300",
-  },
-  info: {
-    activeText: "text-sky-700 dark:text-sky-200",
-    indicator:
-      "bg-sky-500/15 dark:bg-sky-400/20 border border-sky-400/40 dark:border-sky-300/20",
-    hover: "hover:text-sky-600 dark:hover:text-sky-300",
-  },
-  success: {
-    activeText: "text-emerald-700 dark:text-emerald-200",
-    indicator:
-      "bg-emerald-500/15 dark:bg-emerald-400/20 border border-emerald-400/40 dark:border-emerald-300/20",
-    hover: "hover:text-emerald-600 dark:hover:text-emerald-300",
-  },
-  warning: {
-    activeText: "text-yellow-700 dark:text-yellow-200",
-    indicator:
-      "bg-yellow-500/15 dark:bg-yellow-400/20 border border-yellow-400/40 dark:border-yellow-300/20",
-    hover: "hover:text-yellow-600 dark:hover:text-yellow-300",
-  },
-  danger: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
-};
+  },};
 
 const sizeTokens: Record<
   MultiToggleSize,
@@ -374,13 +318,13 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     options.findIndex((option) => option.value === value),
   );
   const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
-  const colorStyles = toneTokens[color] ?? toneTokens.theme;
+  const colorStyles = toneTokens[color] ?? toneTokens.neutral;
   const variantTokens = getMultiToggleVariantTokens(color);
   const isVariantMode = variant === "solid" || variant === "soft";
   const activeTextClass = accentColor
     ? isVariantMode
       ? getMultiToggleVariantTokens(accentColor).activeText
-      : (toneTokens[accentColor] ?? toneTokens.theme).activeText
+      : (toneTokens[accentColor] ?? toneTokens.neutral).activeText
     : isVariantMode
       ? variantTokens.activeText
       : colorStyles.activeText;

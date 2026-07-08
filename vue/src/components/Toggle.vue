@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { ThemeColor } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
 import type { GlassVibrancy, GlassOpacity, SpecularMode } from "../../../common/theme/glass";
 
@@ -27,7 +27,7 @@ export interface ToggleProps {
   descriptionPlacement?: ToggleDescriptionPlacement;
   size?: ToggleSize;
   padding?: TogglePadding;
-  color?: ThemeColor;
+  color?: TrueColor;
   alignLabel?: ToggleAlign;
   iconOn?: string | VNode;
   iconOff?: string | VNode;

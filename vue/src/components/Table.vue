@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { CSSProperties, VNodeChild } from "vue";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 import type { IconName } from "../icons/registry";
 import type { PanelTone } from "./Panel.vue";
 
@@ -100,7 +100,7 @@ export interface TableProps<T> {
   variant?: TableVariant;
   tone?: PanelTone;
   /** Theme color applied to action buttons, sort indicators, group dot, badges, and pagination. */
-  color?: ThemeColor;
+  color?: TrueColor;
   striped?: boolean;
   noBorders?: boolean;
   hoverable?: boolean;
@@ -226,39 +226,18 @@ export interface TableProps<T> {
   tableSettings?: TableSettings;
 }
 
-const resolveColor = (color: ThemeColor): string => {
-  switch (color) {
-    case "brand":
-      return "indigo";
-    case "info":
-      return "sky";
-    case "success":
-      return "emerald";
-    case "warning":
-      return "amber";
-    case "danger":
-      return "rose";
-    case "theme":
-      return "neutral";
-    case "parallels":
-      return "red";
-    default:
-      return color;
-  }
-};
+const resolveColor = (color: TrueColor): string => color;
 
-const getToneHeaderClasses = (tone: ThemeColor): string => {
-  const c = resolveColor(tone);
-
-  if (tone === "neutral" || tone === "theme" || tone === "white") {
+const getToneHeaderClasses = (tone: TrueColor): string => {
+  if (tone === "neutral" || tone === "slate" || tone === "gray" || tone === "zinc") {
     return "bg-neutral-50 text-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700";
   }
 
-  return `bg-${c}-50 text-${c}-700 dark:bg-${c}-500/15 dark:text-${c}-100 border-${c}-200 dark:border-${c}-500/30`;
+  return `bg-${tone}-50 text-${tone}-700 dark:bg-${tone}-500/15 dark:text-${tone}-100 border-${tone}-200 dark:border-${tone}-500/30`;
 };
 
 /** Returns a static `bg-*-500` class for the active-group indicator dot. */
-function getDotColorClass(color: ThemeColor): string {
+function getDotColorClass(color: TrueColor): string {
   switch (resolveColor(color)) {
     case "blue":
       return "bg-blue-500";
@@ -310,7 +289,7 @@ function getDotColorClass(color: ThemeColor): string {
 }
 
 /** Returns static `accent-*` classes for native checkbox/radio inputs. */
-function getAccentClass(color: ThemeColor): string {
+function getAccentClass(color: TrueColor): string {
   switch (resolveColor(color)) {
     case "blue":
       return "accent-blue-600 dark:accent-blue-400";
@@ -362,7 +341,7 @@ function getAccentClass(color: ThemeColor): string {
 }
 
 /** Returns a static `bg-*-50` class for the selected row background. */
-function getSelectedRowClass(color: ThemeColor): string {
+function getSelectedRowClass(color: TrueColor): string {
   switch (resolveColor(color)) {
     case "blue":
       return "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800";
@@ -413,7 +392,7 @@ function getSelectedRowClass(color: ThemeColor): string {
   }
 }
 
-function getHighlightRowClass(color: ThemeColor): string {
+function getHighlightRowClass(color: TrueColor): string {
   switch (resolveColor(color)) {
     case "blue":
       return "bg-blue-100 dark:bg-blue-500/20";
@@ -464,7 +443,7 @@ function getHighlightRowClass(color: ThemeColor): string {
   }
 }
 
-function getHighlightBorderClass(color: ThemeColor): string {
+function getHighlightBorderClass(color: TrueColor): string {
   switch (resolveColor(color)) {
     case "blue":
       return "border-l-blue-500";
@@ -516,7 +495,7 @@ function getHighlightBorderClass(color: ThemeColor): string {
 }
 
 /** Returns static Tailwind hover class for the column resize handle track. */
-function getResizeHandleHoverClass(color: ThemeColor): string {
+function getResizeHandleHoverClass(color: TrueColor): string {
   switch (resolveColor(color)) {
     case "blue":
       return "group-hover/rh:bg-blue-500    dark:group-hover/rh:bg-blue-400";

@@ -1,4 +1,4 @@
-import { resolveColor, type ThemeColor, type ThemeMultiColor } from "./Theme";
+import type { TrueColor } from "./Theme";
 
 type RandomIntensity = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
 
@@ -6,10 +6,9 @@ const RANDOM_INTENSITIES: RandomIntensity[] = [
   100, 200, 300, 400, 500, 600, 700, 800, 900,
 ];
 
-// Keep this aligned with ThemeColor values that resolve to Tailwind palette names.
-// `white` is excluded because Tailwind has no `white-100..900` scale.
-// `slate`, `neutral`, and `theme` are excluded to avoid neutral/gray outputs.
-const RANDOM_THEME_COLORS: ThemeColor[] = [
+// Keep this aligned with TrueColor values that map to Tailwind palette names.
+// `slate` and `neutral` are excluded to avoid neutral/gray outputs.
+const RANDOM_THEME_COLORS: TrueColor[] = [
   "red",
   "orange",
   "amber",
@@ -25,17 +24,10 @@ const RANDOM_THEME_COLORS: ThemeColor[] = [
   "violet",
   "purple",
   "fuchsia",
-  "pink",
   "rose",
   "gray",
   "zinc",
   "stone",
-  "brand",
-  "info",
-  "success",
-  "warning",
-  "danger",
-  "parallels",
 ];
 
 const randomFrom = <T>(arr: readonly T[]): T =>
@@ -53,12 +45,11 @@ export interface RandomThemeColorValue {
  */
 export const getRandomThemeColorValue = (): RandomThemeColorValue => {
   const themeColor = randomFrom(RANDOM_THEME_COLORS);
-  const color = resolveColor(themeColor);
   const intensity = randomFrom(RANDOM_INTENSITIES);
   return {
-    color,
+    color: themeColor,
     intensity,
-    token: `${color}-${intensity}`,
+    token: `${themeColor}-${intensity}`,
   };
 };
 
@@ -73,8 +64,8 @@ export const getRandomThemeColorClass = (
   return `${prefix}-${token}`;
 };
 
-// Ordered spectrum colors from ThemeMultiColor — used as the primary palette before falling back to random.
-const THEME_MULTI_COLORS: ThemeMultiColor[] = [
+// Ordered spectrum colors from TrueColor — used as the primary palette before falling back to random.
+const THEME_MULTI_COLORS: TrueColor[] = [
   "red",
   "orange",
   "amber",
@@ -100,7 +91,7 @@ const THEME_MULTI_COLORS: ThemeMultiColor[] = [
 
 /**
  * Returns an array of `count` Tailwind color utility classes.
- * Uses ThemeMultiColor values in order (at intensity 500) for the first N items,
+ * Uses TrueColor values in order (at intensity 500) for the first N items,
  * then falls back to `getRandomThemeColorClass` for any overflow.
  *
  * @example
@@ -113,24 +104,24 @@ export const getColorPalette = (
 ): string[] =>
   Array.from({ length: count }, (_, i) => {
     if (i < THEME_MULTI_COLORS.length) {
-      return `${prefix}-${resolveColor(THEME_MULTI_COLORS[i])}-500`;
+      return `${prefix}-${THEME_MULTI_COLORS[i]}-500`;
     }
     return getRandomThemeColorClass(prefix);
   });
 
 /**
- * Returns an array of `count` ThemeColor names (e.g. `'red'`, `'orange'`, `'blue'`).
- * Uses ThemeMultiColor values in order for the first N items,
+ * Returns an array of `count` TrueColor names (e.g. `'red'`, `'orange'`, `'blue'`).
+ * Uses TrueColor values in order for the first N items,
  * then falls back to random colors from RANDOM_THEME_COLORS for overflow.
  * Useful when components construct their own Tailwind class strings via template literals.
  *
  * @example
  * getColorPaletteNames(3) // ['red', 'orange', 'amber']
  */
-export const getColorPaletteNames = (count: number): ThemeColor[] =>
+export const getColorPaletteNames = (count: number): TrueColor[] =>
   Array.from({ length: count }, (_, i) => {
     if (i < THEME_MULTI_COLORS.length) {
-      return THEME_MULTI_COLORS[i] as ThemeColor;
+      return THEME_MULTI_COLORS[i];
     }
     return randomFrom(RANDOM_THEME_COLORS);
   });

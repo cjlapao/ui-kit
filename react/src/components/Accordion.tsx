@@ -155,44 +155,6 @@ const toneClasses: Partial<
     badge:
       "bg-neutral-200 text-neutral-700 dark:bg-neutral-700 dark:text-neutral-300",
   },
-  info: {
-    header:
-      "bg-blue-50/50 text-blue-900 shadow-sm hover:bg-blue-100/60 ring-1 ring-blue-100/50 dark:bg-blue-950/20 dark:text-blue-100 dark:ring-blue-900/30 dark:hover:bg-blue-900/30",
-    indicator: "text-blue-400 dark:text-blue-500",
-    icon: "text-blue-600 dark:text-blue-400",
-    badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
-  },
-  success: {
-    header:
-      "bg-emerald-50/50 text-emerald-900 shadow-sm hover:bg-emerald-100/60 ring-1 ring-emerald-100/50 dark:bg-emerald-950/20 dark:text-emerald-100 dark:ring-emerald-900/30 dark:hover:bg-emerald-900/30",
-    indicator: "text-emerald-500 dark:text-emerald-500",
-    icon: "text-emerald-600 dark:text-emerald-400",
-    badge:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300",
-  },
-  warning: {
-    header:
-      "bg-amber-50/50 text-amber-900 shadow-sm hover:bg-amber-100/60 ring-1 ring-amber-100/50 dark:bg-amber-950/20 dark:text-amber-100 dark:ring-amber-900/30 dark:hover:bg-amber-900/30",
-    indicator: "text-amber-500 dark:text-amber-500",
-    icon: "text-amber-600 dark:text-amber-400",
-    badge:
-      "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
-  },
-  danger: {
-    header:
-      "bg-rose-50/50 text-rose-900 shadow-sm hover:bg-rose-100/60 ring-1 ring-rose-100/50 dark:bg-rose-950/20 dark:text-rose-100 dark:ring-rose-900/30 dark:hover:bg-rose-900/30",
-    indicator: "text-rose-500 dark:text-rose-500",
-    icon: "text-rose-600 dark:text-rose-400",
-    badge: "bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300",
-  },
-  brand: {
-    header:
-      "bg-indigo-50/50 text-indigo-900 shadow-sm hover:bg-indigo-100/60 ring-1 ring-indigo-100/50 dark:bg-indigo-950/20 dark:text-indigo-100 dark:ring-indigo-900/30 dark:hover:bg-indigo-900/30",
-    indicator: "text-indigo-400 dark:text-indigo-500",
-    icon: "text-indigo-600 dark:text-indigo-400",
-    badge:
-      "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300",
-  },
 };
 
 const indicatorIconMap: Record<AccordionIndicator, string | undefined> = {

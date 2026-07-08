@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { ThemeColor, ButtonVariant } from "../theme/Theme";
+import type { TrueColor, ButtonVariant } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
 import type {
   GlassVibrancy,
@@ -8,7 +8,7 @@ import type {
   SpecularMode,
 } from "../../../common/theme/glass";
 
-export type ButtonColor = ThemeColor;
+export type ButtonColor = TrueColor;
 export type { ButtonVariant };
 export type { GlassVibrancy, GlassOpacity, SpecularMode };
 
@@ -17,7 +17,7 @@ export type ButtonWeight = "normal" | "medium" | "semibold" | "bold";
 
 export interface ButtonProps {
   variant?: ButtonVariant;
-  color?: ThemeColor;
+  color?: TrueColor;
   size?: ButtonSize;
   weight?: ButtonWeight;
   fullWidth?: boolean;
@@ -26,7 +26,7 @@ export interface ButtonProps {
   loading?: boolean;
   iconOnly?: boolean;
   accent?: boolean;
-  accentColor?: ThemeColor;
+  accentColor?: TrueColor;
   /** When true, renders in a persistent lighter "on" state with hover suppressed. accentColor overrides the active color. */
   active?: boolean;
   /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
@@ -122,7 +122,7 @@ defineOptions({ name: "Button", inheritAttrs: false });
 
 const props = withDefaults(defineProps<ButtonProps>(), {
   variant: "solid",
-  color: "brand",
+  color: "blue",
   size: "md",
   weight: "normal",
   fullWidth: false,

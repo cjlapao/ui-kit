@@ -4,8 +4,7 @@ import Button, { type ButtonProps } from "./Button";
 import Loader, { type LoaderProps } from "./Loader";
 import {
   getPanelToneStyles,
-  resolveColor,
-  type ThemeColor,
+  type TrueColor,
 } from "../theme/Theme";
 
 export type PanelVariant =
@@ -17,7 +16,7 @@ export type PanelVariant =
   | "glass"
   | "simple"
   | "liquid-glass";
-export type PanelTone = ThemeColor;
+export type PanelTone = TrueColor;
 export type PanelDecoration = "none" | "gradient" | "shapes" | "both";
 export type PanelMediaPlacement = "top" | "start" | "end" | "overlay";
 export type PanelPadding = "none" | "xs" | "sm" | "md" | "lg";
@@ -67,7 +66,7 @@ export interface PanelProps
   actions?: PanelAction[];
   actionLayout?: PanelActionLayout;
   variant?: PanelVariant;
-  tone?: ThemeColor;
+  tone?: TrueColor;
   padding?: PanelPadding;
   corner?: PanelCorner;
   fullWidth?: boolean;
@@ -91,21 +90,21 @@ export interface PanelProps
    * Defaults to `true` when an `onClick` handler is present, otherwise `false`.
    */
   hoverable?: boolean;
-  color?: ThemeColor;
+  color?: TrueColor;
   /**
    * Override the default hover color.
    * If not provided, it defaults to the `color` prop if available, or a neutral tint.
    */
-  hoverColor?: ThemeColor;
+  hoverColor?: TrueColor;
   /**
    * Override the default border color.
    * If not provided, it defaults to the `tone` or `color` prop depending on variant.
    */
-  borderColor?: ThemeColor;
+  borderColor?: TrueColor;
   /**
    * Override the default background color.
    */
-  backgroundColor?: ThemeColor;
+  backgroundColor?: TrueColor;
   /**
    * controls if the panel body should be scrollable
    * @default true
@@ -188,7 +187,7 @@ const actionWrapperLayout: Record<PanelActionLayout, string> = {
   inline: "flex-wrap items-center gap-3",
 };
 
-const defaultActionColor: ThemeColor = "theme";
+const defaultActionColor: TrueColor = "neutral";
 
 const Panel: React.FC<PanelProps> = ({
   title,
@@ -249,7 +248,7 @@ const Panel: React.FC<PanelProps> = ({
   const effectiveHoverColor =
     hoverColor ?? (color && color !== "neutral" ? color : undefined);
   const hoverColorName = effectiveHoverColor
-    ? resolveColor(effectiveHoverColor)
+    ? effectiveHoverColor
     : undefined;
 
   const borderPalette = borderColor
@@ -263,7 +262,7 @@ const Panel: React.FC<PanelProps> = ({
 
   const effectiveBgClass = (() => {
     if (!backgroundColor) return undefined;
-    if (backgroundColor === "white") return "bg-white dark:bg-neutral-900";
+    if (backgroundColor === "neutral") return "bg-white dark:bg-neutral-900";
     if (bgPalette) {
       if (variant === "glass") return bgPalette.glassBg;
       if (variant === "subtle") return bgPalette.subtleBg;
@@ -320,7 +319,7 @@ const Panel: React.FC<PanelProps> = ({
       if (glassOpacity === "clear") return 5;
       return 15;
     })();
-    const base = resolveColor(tone);
+    const base = tone;
     return `bg-${base}-50/${litOpacity} dark:bg-${base}-500/${drkOpacity}`;
   })();
 

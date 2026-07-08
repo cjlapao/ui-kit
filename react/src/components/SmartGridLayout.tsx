@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { Button, CustomIcon, IconButton } from ".";
-import type { ThemeColor } from "../theme";
+import type { TrueColor } from "../theme";
 
 export interface SmartGridItemDefinition {
   id: string;
@@ -70,7 +70,7 @@ interface SmartGridLayoutProps {
   onLayoutChange?: (layout: SmartGridLayoutState) => void;
   maxColumns?: number;
   className?: string;
-  editThemeColor?: ThemeColor;
+  editThemeColor?: TrueColor;
   isEditMode?: boolean;
   onEditModeChange?: (isEditMode: boolean) => void;
 }
