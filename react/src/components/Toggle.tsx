@@ -7,7 +7,7 @@ import {
   useRef,
 } from "react";
 import classNames from "classnames";
-import { type TrueColor, getToggleColorClasses } from "../theme/Theme";
+import { type TrueColor, type Size, getToggleColorClasses } from "../theme/Theme";
 import {
   getGlassFillClass,
   getGlassVibrancyClass,
@@ -20,7 +20,6 @@ import { useIconRenderer } from "../contexts/IconContext";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
 
-export type ToggleSize = "sm" | "md" | "lg";
 export type ToggleAlign = "left" | "right";
 export type ToggleDescriptionPlacement = "inline" | "stacked";
 export type TogglePadding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
@@ -42,7 +41,7 @@ export interface ToggleProps
   label?: ReactNode;
   description?: ReactNode;
   descriptionPlacement?: ToggleDescriptionPlacement;
-  size?: ToggleSize;
+  size?: Size;
   padding?: TogglePadding;
   color?: TrueColor;
   alignLabel?: ToggleAlign;
@@ -65,7 +64,7 @@ export interface ToggleProps
 }
 
 const sizeTokens: Record<
-  ToggleSize,
+  "sm" | "md" | "lg",
   {
     track: string;
     thumb: string;
@@ -105,11 +104,17 @@ const sizeTokens: Record<
   },
 };
 
-const iconWrapSize: Record<ToggleSize, string> = {
+const iconWrapSize: Record<"sm" | "md" | "lg", string> = {
   sm: "h-4 w-4",
   md: "h-5 w-5",
   lg: "h-6 w-6",
 };
+
+const resolveSizeStyles = (size: Size): (typeof sizeTokens)["sm"] =>
+  size in sizeTokens ? sizeTokens[size as keyof typeof sizeTokens] : sizeTokens.md;
+
+const resolveIconWrapSize = (size: Size): string =>
+  size in iconWrapSize ? iconWrapSize[size as keyof typeof iconWrapSize] : iconWrapSize.md;
 
 const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
   (
@@ -156,7 +161,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
       [forwardedRef],
     );
 
-    const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
+    const sizeStyles = resolveSizeStyles(size);
     const colorStyles = getToggleColorClasses(color);
 
     const glassSpecularClass = glass
@@ -243,7 +248,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
             <span
               className={classNames(
                 "pointer-events-none absolute inset-y-0 left-1 flex items-center text-neutral-400 transition-opacity duration-200 ease-in-out",
-                iconWrapSize[size],
+                resolveIconWrapSize(size),
                 "peer-checked:opacity-0",
               )}
             >
@@ -255,7 +260,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
             <span
               className={classNames(
                 "pointer-events-none text-black absolute inset-y-0 right-1 flex items-center text-black opacity-0 transition-opacity duration-200 ease-in-out",
-                iconWrapSize[size],
+                resolveIconWrapSize(size),
                 "peer-checked:opacity-100",
               )}
             >

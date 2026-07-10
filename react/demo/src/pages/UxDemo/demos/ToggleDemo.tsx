@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
 import { Toggle, MultiToggle } from "@cjlapao/ui-kit";
 import { ThemeColor } from "@cjlapao/ui-kit";
-import { ToggleSize, ToggleAlign, ToggleDescriptionPlacement, ToggleVariant } from "@cjlapao/ui-kit";
+import { Size, ToggleAlign, ToggleDescriptionPlacement, ToggleVariant } from "@cjlapao/ui-kit";
 import {
   colorOptions,
   toggleSizeOptions,
@@ -14,7 +14,7 @@ import {
 export const ToggleDemo: React.FC = () => {
   const [toggleChecked, setToggleChecked] = useState<boolean>(true);
   const [toggleColor, setToggleColor] = useState<ThemeColor>("blue");
-  const [toggleSize, setToggleSize] = useState<ToggleSize>("md");
+  const [toggleSize, setToggleSize] = useState<Size>("md");
   const [toggleVariant, setToggleVariant] = useState<ToggleVariant>("default");
   const [toggleAlign, setToggleAlign] = useState<ToggleAlign>("left");
   const [toggleLabel, setToggleLabel] = useState<boolean>(true);
@@ -86,7 +86,7 @@ export const ToggleDemo: React.FC = () => {
                 options={toggleSizeOptions}
                 value={toggleSize}
                 size="sm"
-                onChange={(value) => setToggleSize(value as ToggleSize)}
+                onChange={(value) => setToggleSize(value as Size)}
               />
             </label>
             <label className="flex flex-col gap-2 text-sm">
