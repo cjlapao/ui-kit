@@ -1,13 +1,15 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { TrueColor } from "../theme/Theme";
+import type { TrueColor, Size } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
 import type { GlassVibrancy, GlassOpacity, SpecularMode } from "../../../common/theme/glass";
 
-export type ToggleSize = "sm" | "md" | "lg";
 export type ToggleAlign = "left" | "right";
 export type ToggleDescriptionPlacement = "inline" | "stacked";
 export type TogglePadding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
+
+/** Supported toggle sizes (subset of shared Size). */
+type ToggleSizeImpl = Extract<Size, "sm" | "md" | "lg">;
 
 const paddingStyles: Record<TogglePadding, string> = {
   none: "",
@@ -25,7 +27,7 @@ export interface ToggleProps {
   label?: string;
   description?: string;
   descriptionPlacement?: ToggleDescriptionPlacement;
-  size?: ToggleSize;
+  size?: ToggleSizeImpl;
   padding?: TogglePadding;
   color?: TrueColor;
   alignLabel?: ToggleAlign;
@@ -49,7 +51,7 @@ export interface ToggleProps {
 }
 
 const sizeTokens: Record<
-  ToggleSize,
+  ToggleSizeImpl,
   {
     track: string;
     thumb: string;
@@ -89,7 +91,7 @@ const sizeTokens: Record<
   },
 };
 
-const iconWrapSize: Record<ToggleSize, string> = {
+const iconWrapSize: Record<ToggleSizeImpl, string> = {
   sm: "h-4 w-4",
   md: "h-5 w-5",
   lg: "h-6 w-6",
