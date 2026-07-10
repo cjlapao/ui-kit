@@ -9,10 +9,9 @@ import React, {
 } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getMultiToggleVariantTokens, type TrueColor } from "../theme/Theme";
+import { getMultiToggleVariantTokens, type Size, type TrueColor } from "../theme/Theme";
 import type { IconSize } from "../types/Icon";
 
-export type MultiToggleSize = "sm" | "md" | "lg";
 export type MultiToggleShape =
   | "none"
   | "xs"
@@ -43,7 +42,7 @@ export interface MultiToggleProps
   rounded?: MultiToggleShape;
 
   onChange: (value: string) => void;
-  size?: MultiToggleSize;
+  size?: Size;
   color?: TrueColor;
   fullWidth?: boolean;
   className?: string;
@@ -188,7 +187,7 @@ const toneTokens: Record<
   },};
 
 const sizeTokens: Record<
-  MultiToggleSize,
+  "sm" | "md" | "lg",
   {
     track: string;
     indicatorInset: string;
@@ -230,6 +229,9 @@ const sizeTokens: Record<
 
 const CONTAINER_HORIZONTAL_PADDING = 2;
 const INDICATOR_MARGIN = 1;
+
+const resolveSizeStyles = (size: Size): (typeof sizeTokens)["sm"] =>
+  size in sizeTokens ? sizeTokens[size as keyof typeof sizeTokens] : sizeTokens.md;
 
 const computeInset = (segmentWidth: number) => {
   if (segmentWidth <= 0) {
@@ -317,7 +319,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     0,
     options.findIndex((option) => option.value === value),
   );
-  const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
+  const sizeStyles = resolveSizeStyles(size);
   const colorStyles = toneTokens[color] ?? toneTokens.neutral;
   const variantTokens = getMultiToggleVariantTokens(color);
   const isVariantMode = variant === "solid" || variant === "soft";
