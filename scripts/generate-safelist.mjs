@@ -164,6 +164,15 @@ L("");
 src(`@source inline("peer-focus:ring-{COLOR}-400");`);
 L("");
 
+// ── Padding utilities (no color dependency) ───────────────────────
+L(`/* ── Padding utilities ─────────────────────────────────────── */`);
+L(`@source inline("p-0.5");`);
+L(`@source inline("p-1");`);
+L(`@source inline("p-1.5");`);
+L(`@source inline("p-2");`);
+L(`@source inline("p-3");`);
+L("");
+
 // accent-{color}-{shade}
 src(`@source inline("accent-{COLOR}-600");`);
 L("");

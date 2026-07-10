@@ -55,6 +55,35 @@ export type Size =
   | "3xl"
   | "full";
 
+/**
+ * Shared padding type used across all frameworks and components.
+ * Maps to Tailwind spacing scale values via getPaddingClass().
+ */
+export type Padding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
+
+/**
+ * Returns the Tailwind padding class string for a given Padding value.
+ *
+ * @param padding - One of "none" | "xs" | "sm" | "md" | "lg" | "xl"
+ * @returns Corresponding Tailwind class ("", "p-0.5", "p-1", "p-1.5", "p-2", "p-3")
+ */
+export const getPaddingClass = (padding: Padding): string => {
+  switch (padding) {
+    case "none":
+      return "";
+    case "xs":
+      return "p-0.5";
+    case "sm":
+      return "p-1";
+    case "md":
+      return "p-1.5";
+    case "lg":
+      return "p-2";
+    case "xl":
+      return "p-3";
+  }
+};
+
 const colors: TrueColor[] = [
   "red",
   "orange",
