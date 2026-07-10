@@ -1,24 +1,15 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { TrueColor, Size } from "../theme/Theme";
+import type { TrueColor, Size, Padding } from "../theme/Theme";
+import { getPaddingClass } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
 import type { GlassVibrancy, GlassOpacity, SpecularMode } from "../../../common/theme/glass";
 
 export type ToggleAlign = "left" | "right";
 export type ToggleDescriptionPlacement = "inline" | "stacked";
-export type TogglePadding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
 
 /** Supported toggle sizes (subset of shared Size). */
 type ToggleSizeImpl = Extract<Size, "sm" | "md" | "lg">;
-
-const paddingStyles: Record<TogglePadding, string> = {
-  none: "",
-  xs: "p-0.5",
-  sm: "p-1",
-  md: "p-1.5",
-  lg: "p-2",
-  xl: "p-3",
-};
 
 export interface ToggleProps {
   /** Controlled checked state (v-model). */
@@ -28,7 +19,7 @@ export interface ToggleProps {
   description?: string;
   descriptionPlacement?: ToggleDescriptionPlacement;
   size?: ToggleSizeImpl;
-  padding?: TogglePadding;
+  padding?: Padding;
   color?: TrueColor;
   alignLabel?: ToggleAlign;
   iconOn?: string | VNode;
@@ -163,7 +154,7 @@ const rootClass = computed(() =>
     "group flex select-none items-center",
     props.alignLabel === "left" ? "flex-row-reverse" : "flex-row",
     sizeStyles.value.gap,
-    paddingStyles[props.padding],
+    getPaddingClass(props.padding),
     props.fullWidth && "w-full",
     props.disabled && "cursor-not-allowed opacity-60",
     props.readonly && !props.disabled && "cursor-default",

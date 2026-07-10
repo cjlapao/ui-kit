@@ -7,7 +7,7 @@ import {
   useRef,
 } from "react";
 import classNames from "classnames";
-import { type TrueColor, type Size, getToggleColorClasses } from "../theme/Theme";
+import { type TrueColor, type Size, type Padding, getToggleColorClasses, getPaddingClass } from "../theme/Theme";
 import {
   getGlassFillClass,
   getGlassVibrancyClass,
@@ -22,16 +22,6 @@ import type { TooltipPosition } from "./Tooltip";
 
 export type ToggleAlign = "left" | "right";
 export type ToggleDescriptionPlacement = "inline" | "stacked";
-export type TogglePadding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
-
-const paddingStyles: Record<TogglePadding, string> = {
-  none: "",
-  xs: "p-0.5",
-  sm: "p-1",
-  md: "p-1.5",
-  lg: "p-2",
-  xl: "p-3",
-};
 
 export interface ToggleProps
   extends Omit<
@@ -42,7 +32,7 @@ export interface ToggleProps
   description?: ReactNode;
   descriptionPlacement?: ToggleDescriptionPlacement;
   size?: Size;
-  padding?: TogglePadding;
+  padding?: Padding;
   color?: TrueColor;
   alignLabel?: ToggleAlign;
   iconOn?: string | React.ReactElement;
@@ -175,7 +165,7 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
           "group flex select-none items-center",
           alignLabel === "left" ? "flex-row-reverse" : "flex-row",
           sizeStyles.gap,
-          paddingStyles[padding],
+          getPaddingClass(padding),
           fullWidth && "w-full",
           disabled && "cursor-not-allowed opacity-60",
           inputProps.readOnly && !disabled && "cursor-default",

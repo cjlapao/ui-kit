@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import classNames from "classnames";
-import Panel, { PanelProps, paddingStyles } from "./Panel";
+import Panel, { PanelProps } from "./Panel";
+import { getPaddingClass } from "../theme/Theme";
 import { useIconRenderer } from "../contexts/IconContext";
 
 // Override specific props for CollapsiblePanel
@@ -66,7 +67,7 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   };
 
   const computedContentMaxHeight = `min(${contentMaxHeight ?? 320}px, 65vh)`;
-  const resolvedPadding = paddingStyles[padding] || paddingStyles.md;
+  const resolvedPadding = getPaddingClass(padding);
 
   return (
     <Panel
