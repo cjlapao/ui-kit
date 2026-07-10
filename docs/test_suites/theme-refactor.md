@@ -225,3 +225,83 @@
 - data: N/A
 - expected: ui-kit.md exists, semantic alias table removed, references TrueColor and redirects to theme.md
 - added: 2026-07-07 (loop theme-refactor-core)
+
+## TC {CAP}-024 — Padding type exported from Theme.ts
+- area: core/types
+- preconditions: N/A
+- steps:
+  1. Read common/theme/Theme.ts
+  2. Verify `export type Padding` with exactly 6 values
+- data: N/A
+- expected: `export type Padding = "none" | "xs" | "sm" | "md" | "lg" | "xl"` present in Theme.ts
+- added: 2026-07-10 (loop toggle-type-unification)
+- new: true
+
+## TC {CAP}-025 — getPaddingClass() returns correct Tailwind classes
+- area: core/types
+- preconditions: N/A
+- steps:
+  1. Read common/theme/Theme.ts
+  2. Verify getPaddingClass switch-case mapping for all 6 Padding values
+- data: N/A
+- expected: getPaddingClass("none") → "", getPaddingClass("xs") → "p-0.5", getPaddingClass("sm") → "p-1", getPaddingClass("md") → "p-1.5", getPaddingClass("lg") → "p-2", getPaddingClass("xl") → "p-3"
+- added: 2026-07-10 (loop toggle-type-unification)
+- new: true
+
+## TC {CAP}-026 — No ToggleSize/MultiToggleSize/TogglePadding type refs in source
+- area: components/react
+- preconditions: feature/toggle-type-unification branch checked out
+- steps:
+  1. Grep react/src/ for `ToggleSize`, `MultiToggleSize`, `TogglePadding` as type names or imports
+  2. Distinguish local variable names (e.g. `toggleSize`) from type references
+- data: N/A
+- expected: Zero type-level references to ToggleSize, MultiToggleSize, or TogglePadding. Local state variable names like `toggleSize` are acceptable; they must use shared Size type annotation.
+- added: 2026-07-10 (loop toggle-type-unification)
+- new: true
+
+## TC {CAP}-027 — No ToggleSize/MultiToggleSize/TogglePadding type refs in Vue source
+- area: components/vue
+- preconditions: feature/toggle-type-unification branch checked out
+- steps:
+  1. Grep vue/src/ for `ToggleSize`, `MultiToggleSize`, `TogglePadding` as type names or imports
+  2. Distinguish internal impl aliases (e.g. `ToggleSizeImpl = Extract<Size, ...>`) from public type references
+- data: N/A
+- expected: Zero references to removed public types. Internal implementation aliases using Extract<> for Record keying are acceptable.
+- added: 2026-07-10 (loop toggle-type-unification)
+- new: true
+
+## TC {CAP}-028 — React Toggle uses shared Size type
+- area: components/react/toggle
+- preconditions: feature/toggle-type-unification branch checked out
+- steps:
+  1. Read react/src/components/Toggle.tsx
+  2. Verify size prop typed as Size (or subset), import from Theme
+  3. Verify no ToggleSize definition or export remains
+- data: N/A
+- expected: Toggle.tsx imports Size from Theme; uses Size for size prop; default "md"; no ToggleSize type definition or export
+- added: 2026-07-10 (loop toggle-type-unification)
+- new: true
+
+## TC {CAP}-029 — Vue Toggle uses shared Size type
+- area: components/vue/toggle
+- preconditions: feature/toggle-type-unification branch checked out
+- steps:
+  1. Read vue/src/components/Toggle.vue
+  2. Verify size prop typed as Size (or Extract<> subset), import from Theme
+  3. Verify no ToggleSize definition or export remains
+- data: N/A
+- expected: Toggle.vue imports Size from Theme; uses Size (or Extract<Size, "sm"|"md"|"lg"> via impl alias) for size prop; default "md"; no ToggleSize type definition or export
+- added: 2026-07-10 (loop toggle-type-unification)
+- new: true
+
+## TC {CAP}-030 — theme.md documents Padding type and migration guide
+- area: docs
+- preconditions: feature/toggle-type-unification branch checked out
+- steps:
+  1. Read docs/design_system/theme.md
+  2. Verify Section 3 "Padding Type" exists with type definition, mapping table, getPaddingClass() docs
+  3. Verify Migration Guide includes entries for ToggleSize→Size, MultiToggleSize→Size, TogglePadding→Padding
+- data: N/A
+- expected: theme.md has dedicated Padding section (type + mapping + helper function + component usage table); Migration Guide items cover all three old type migrations
+- added: 2026-07-10 (loop toggle-type-unification)
+- new: true
