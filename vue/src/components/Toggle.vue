@@ -1,22 +1,15 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { TrueColor } from "../theme/Theme";
+import type { TrueColor, Size, Padding } from "../theme/Theme";
+import { getPaddingClass } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
 import type { GlassVibrancy, GlassOpacity, SpecularMode } from "../../../common/theme/glass";
 
-export type ToggleSize = "sm" | "md" | "lg";
 export type ToggleAlign = "left" | "right";
 export type ToggleDescriptionPlacement = "inline" | "stacked";
-export type TogglePadding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
 
-const paddingStyles: Record<TogglePadding, string> = {
-  none: "",
-  xs: "p-0.5",
-  sm: "p-1",
-  md: "p-1.5",
-  lg: "p-2",
-  xl: "p-3",
-};
+/** Supported toggle sizes (subset of shared Size). */
+type ToggleSizeImpl = Extract<Size, "sm" | "md" | "lg">;
 
 export interface ToggleProps {
   /** Controlled checked state (v-model). */
@@ -25,8 +18,8 @@ export interface ToggleProps {
   label?: string;
   description?: string;
   descriptionPlacement?: ToggleDescriptionPlacement;
-  size?: ToggleSize;
-  padding?: TogglePadding;
+  size?: ToggleSizeImpl;
+  padding?: Padding;
   color?: TrueColor;
   alignLabel?: ToggleAlign;
   iconOn?: string | VNode;
@@ -49,7 +42,7 @@ export interface ToggleProps {
 }
 
 const sizeTokens: Record<
-  ToggleSize,
+  ToggleSizeImpl,
   {
     track: string;
     thumb: string;
@@ -89,7 +82,7 @@ const sizeTokens: Record<
   },
 };
 
-const iconWrapSize: Record<ToggleSize, string> = {
+const iconWrapSize: Record<ToggleSizeImpl, string> = {
   sm: "h-4 w-4",
   md: "h-5 w-5",
   lg: "h-6 w-6",
@@ -161,7 +154,7 @@ const rootClass = computed(() =>
     "group flex select-none items-center",
     props.alignLabel === "left" ? "flex-row-reverse" : "flex-row",
     sizeStyles.value.gap,
-    paddingStyles[props.padding],
+    getPaddingClass(props.padding),
     props.fullWidth && "w-full",
     props.disabled && "cursor-not-allowed opacity-60",
     props.readonly && !props.disabled && "cursor-default",

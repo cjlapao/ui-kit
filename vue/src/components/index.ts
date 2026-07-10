@@ -101,7 +101,7 @@ export {
   type TagPanelTag,
 } from "./TagPanel.vue";
 export { default as Checkbox, type CheckboxProps } from "./Checkbox.vue";
-export { default as Toggle, type ToggleProps, type ToggleSize, type ToggleAlign, type ToggleDescriptionPlacement, type TogglePadding } from "./Toggle.vue";
+export { default as Toggle, type ToggleProps, type ToggleAlign, type ToggleDescriptionPlacement } from "./Toggle.vue";
 export {
   default as MultiToggle,
   type MultiToggleProps,

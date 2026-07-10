@@ -141,33 +141,34 @@ export type Size =
 
 ### Component usage
 
-Not every component accepts every size value. Each component defines its own size subset as a component-local type that is compatible with (and often assignable to) `Size`:
+Not every component accepts every size value or padding option. The table below shows each component's accepted `Size` values alongside its `Padding` support (if any). Components use either the shared `Size` type directly, or a component-local subset that remains assignable to `Size`.
 
-| Component | Local size type | Accepted values | Notes |
-|-----------|----------------|-----------------|-------|
-| **Button** | `ButtonSize` | `xs`, `sm`, `md`, `lg`, `xl` | Controls padding, text size, icon dimensions |
-| **IconButton** | `ButtonSize` | `xs`, `sm`, `md`, `lg`, `xl` | Reuses ButtonSize |
-| **Spinner** | `SpinnerSize` | `xs`, `sm`, `md`, `lg`, `xl` | Controls spinner diameter |
-| **Toggle** | `ToggleSize` | `sm`, `md`, `lg` | Smaller range — toggles are inherently compact |
-| **Modal** | `Size` (direct) | All 10 values | Dialog width presets; `full` = full-screen |
-| **Hero** | `HeroTitleSize` / `HeroSubtitleSize` | Title: `xs`–`xl`; Subtitle: `xs`–`md` | Typography sizes |
-| **Pill** | `PillSize` | `xs`, `sm`, `md`, `lg` | Chip sizing |
-| **Badge** | — | (no size prop) | Always small |
-| **Section / SectionCard** | `SectionSize` | `xs`, `sm`, `md`, `lg` | Padding presets |
-| **InfoRow** | `InfoRowSize` | `xs`, `sm`, `md`, `lg` | Row height + text size |
-| **Input / Textarea / Select** | — | `sm`, `md`, `lg` | Form field heights |
-| **InputGroup** | — | `sm`, `md`, `lg` | Input group heights |
-| **MultiToggle** | — | `sm`, `md`, `lg` | Segmented control height |
-| **Accordion** | — | `sm`, `md`, `lg` | Header height + text size |
-| **Stepper** | — | `sm`, `md`, `lg` | Step indicator size |
-| **StatGraphTile** | — | `xs`, `sm`, `md`, `lg` | Chart area size |
-| **SplitView** | — | `sm`, `md`, `lg` | Panel size |
-| **Tabs** | — | `sm`, `md`, `lg` | Tab bar height |
-| **Loader** | — | `sm`, `md`, `lg` | Loader diameter |
-| **StatusSpinner** | — | `xs`, `sm`, `md`, `lg` | Inline spinner size |
-| **EmptyState** | `TextSize` | `xs`, `sm`, `md`, `lg`, `xl` | Title/subtitle text |
-| **Icon** | `IconSize` | `xs`, `sm`, `md`, `lg`, `xl` | Icon dimensions |
-| **Progress** | `ProgressSize` | `xs`, `sm`, `md`, `lg` | Bar thickness |
+| Component | Size | Padding | Notes |
+|-----------|------|---------|-------|
+| **Button** | `xs`, `sm`, `md`, `lg`, `xl` | — | Controls padding, text size, icon dimensions |
+| **IconButton** | `xs`, `sm`, `md`, `lg`, `xl` | — | Reuses ButtonSize |
+| **Spinner** | `xs`, `sm`, `md`, `lg`, `xl` | — | Controls spinner diameter |
+| **Toggle** | `sm`, `md`, `lg` | `none`–`xl` | Uses shared `Size` + `Padding` types |
+| **CollapsiblePanel** | — | `none`–`xl` | Accepts `Padding`; delegates to child Panel |
+| **Modal** | All 10 values | — | Dialog width presets; `full` = full-screen |
+| **Hero** | Title: `xs`–`xl`<br/>Subtitle: `xs`–`md` | `none`–`xl` | Typography sizes; local `HeroPadding` |
+| **Pill** | `xs`, `sm`, `md`, `lg` | — | Chip sizing |
+| **Badge** | N/A | — | Always small; no size prop |
+| **Section / SectionCard** | `xs`, `sm`, `md`, `lg` | — | Padding presets via tokens |
+| **InfoRow** | `xs`, `sm`, `md`, `lg` | `none`–`lg` | Row height + text size; local `InfoRowPadding` |
+| **Input / Textarea / Select** | `sm`, `md`, `lg` | — | Form field heights |
+| **InputGroup** | `sm`, `md`, `lg` | — | Input group heights |
+| **MultiToggle** | `sm`, `md`, `lg` | — | Segmented control height; uses shared `Size` |
+| **Accordion** | `sm`, `md`, `lg` | — | Header height + text size |
+| **Stepper** | `sm`, `md`, `lg` | — | Step indicator size |
+| **StatGraphTile** | `xs`, `sm`, `md`, `lg` | — | Chart area size |
+| **SplitView** | `sm`, `md`, `lg` | — | Panel size |
+| **Tabs** | `sm`, `md`, `lg` | — | Tab bar height |
+| **Loader** | `sm`, `md`, `lg` | — | Loader diameter |
+| **StatusSpinner** | `xs`, `sm`, `md`, `lg` | — | Inline spinner size |
+| **EmptyState** | `xs`, `sm`, `md`, `lg`, `xl` | — | Title/subtitle text |
+| **Icon** | `xs`, `sm`, `md`, `lg`, `xl` | — | Icon dimensions |
+| **Progress** | `xs`, `sm`, `md`, `lg` | — | Bar thickness |
 
 ### Adding a new size
 
@@ -200,7 +201,71 @@ The shared `Size` type lives in `common/theme/Theme.ts`. To add a new size value
 
 ---
 
-## 3. Glass System
+## 3. Padding Type
+
+### Shared `Padding` type
+
+A single `Padding` type with **6 values** is defined in `common/theme/Theme.ts`. It provides a uniform vocabulary for padding across Toggle, CollapsiblePanel, and any future component that needs structured padding control:
+
+```ts
+// common/theme/Theme.ts
+export type Padding =
+  | "none"
+  | "xs"
+  | "sm"
+  | "md"
+  | "lg"
+  | "xl";
+```
+
+### Mapping to Tailwind classes
+
+| Value | Tailwind class | Spacing |
+|-------|---------------|---------|
+| `"none"` | *(empty string)* | No padding |
+| `"xs"` | `p-0.5` | 2px (0.125rem) |
+| `"sm"` | `p-1` | 4px (0.25rem) |
+| `"md"` | `p-1.5` | 6px (0.375rem) |
+| `"lg"` | `p-2` | 8px (0.5rem) |
+| `"xl"` | `p-3` | 12px (0.75rem) |
+
+### Helper function — `getPaddingClass(padding)`
+
+Returns the corresponding Tailwind padding class string for a given `Padding` value. Used internally by components to compose the final `className`:
+
+```ts
+import { getPaddingClass, type Padding } from "@cjlapao/ui-kit";
+
+getPaddingClass("none") // → ""
+getPaddingClass("xs")   // → "p-0.5"
+getPaddingClass("sm")   // → "p-1"
+getPaddingClass("md")   // → "p-1.5"
+getPaddingClass("lg")   // → "p-2"
+getPaddingClass("xl")   // → "p-3"
+```
+
+**Parameters:**
+- `padding` (`Padding`) — One of `"none"`, `"xs"`, `"sm"`, `"md"`, `"lg"`, `"xl"`
+
+**Return value:** A Tailwind class string (or `""` for `"none"`). The return type is `string`.
+
+### Component usage
+
+Only a subset of components accept the shared `Padding` type. Others define local padding types (e.g. `PanelPadding`, `HeroPadding`) or omit padding entirely:
+
+| Component | Padding prop | Accepted values | Notes |
+|-----------|-------------|-----------------|-------|
+| **Toggle** | `padding?: Padding` | `none`, `xs`, `sm`, `md`, `lg`, `xl` | Default: `undefined` (no padding) |
+| **CollapsiblePanel** | `padding?: Padding` | `none`, `xs`, `sm`, `md`, `lg`, `xl` | Passes resolved class to child Panel |
+| **Panel** | `padding?: PanelPadding` | `none`, `xs`, `sm`, `md`, `lg` | Local type; does not include `"xl"` |
+| **Hero** | `padding?: HeroPadding` | `none`, `xs`, `sm`, `md`, `lg`, `xl` | Local type with its own mapping |
+| **InfoRow** | `padding?: InfoRowPadding` | `none`, `xs`, `sm`, `md`, `lg` | Local type with default padding tokens |
+| **TimelinePanel** | `padding?: TimelinePanelPadding` | `none`, `xs`, `sm`, `md`, `lg` | Re-exports `PanelPadding` |
+| Other components | — | (no padding prop) | Omit padding entirely |
+
+---
+
+## 4. Glass System
 
 The glass system lives in `common/theme/glass.ts` and provides framework-agnostic utilities for frosted-glass styling. It is used by the Button `glass` variant, the Panel glass variant, and any other component that needs a glass surface.
 
@@ -308,7 +373,7 @@ const specular = getSpecularClasses(specularMode ?? "classic");
 
 ---
 
-## 4. How to Add a New Color
+## 5. How to Add a New Color
 
 Adding a new color to the ui-kit theme involves two steps: updating the type definition and regenerating the safelist.
 
@@ -379,7 +444,7 @@ The build should pass. If the component typechecks, the new color is integrated 
 
 ---
 
-## 5. How to Add a New Size
+## 6. How to Add a New Size
 
 See the "Adding a new size" subsection in the [Size System](#2-size-system) section above. The complete procedure is:
 
@@ -390,7 +455,7 @@ See the "Adding a new size" subsection in the [Size System](#2-size-system) sect
 
 ---
 
-## 6. Migration Guide — From ThemeColor to TrueColor
+## 7. Migration Guide — From ThemeColor to TrueColor
 
 ### What changed
 
@@ -439,8 +504,11 @@ Replace every occurrence of these old color names with their TrueColor equivalen
 4. **Find all `white` used as a ThemeColor** — replace with `slate-50` or `neutral-50`
 5. **Find `ModalSize` imports** — replace with `Size`
 6. **Find `ThemeSize` imports** — replace with `Size` (it was dead code anyway)
-7. **Find `SEMANTIC_MAP` or `resolveColor` imports from `glass.ts`** — remove; glass now accepts `TrueColor` directly
-8. **Run `npm run build`** — verify typecheck passes in both `react/` and `vue/`
+7. **Find `ToggleSize` imports** — replace with `import { Size } from "@cjlapao/ui-kit"` and use `Size` instead
+8. **Find `MultiToggleSize` imports** — replace with `import { Size } from "@cjlapao/ui-kit"` and use `Size` instead
+9. **Find `TogglePadding` imports** — replace with `import { Padding, getPaddingClass } from "@cjlapao/ui-kit"` and use `Padding` + `getPaddingClass()` instead
+10. **Find `SEMANTIC_MAP` or `resolveColor` imports from `glass.ts`** — remove; glass now accepts `TrueColor` directly
+11. **Run `npm run build`** — verify typecheck passes in both `react/` and `vue/`
 
 ### Tone map example
 
@@ -488,7 +556,7 @@ const toneTokens: Record<TrueColor, ToneConfig> = {
 
 ---
 
-## 7. Loop Record — Theme Refactor (Issue #79)
+## 8. Loop Record — Theme Refactor (Issue #79)
 
 ### Completed tasks
 

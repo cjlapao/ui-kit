@@ -21,7 +21,8 @@ export interface CollapsiblePanelProps
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import classNames from "classnames";
-import Panel, { paddingStyles } from "./Panel.vue";
+import Panel from "./Panel.vue";
+import { getPaddingClass } from "../theme/Theme";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
@@ -80,9 +81,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
 const computedContentMaxHeight = computed(
   () => `min(${props.contentMaxHeight ?? 320}px, 65vh)`,
 );
-const resolvedPadding = computed(
-  () => paddingStyles[props.padding] || paddingStyles.md,
-);
+const resolvedPadding = computed(() => getPaddingClass(props.padding));
 
 const panelBindings = computed(() => {
   const {

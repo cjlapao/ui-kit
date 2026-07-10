@@ -1,8 +1,10 @@
 <script lang="ts">
 import type { CSSProperties, VNode } from "vue";
-import type { TrueColor } from "../theme/Theme";
+import type { TrueColor, Size } from "../theme/Theme";
 
-export type MultiToggleSize = "sm" | "md" | "lg";
+/** Supported multi-toggle sizes (subset of shared Size). */
+type MultiToggleSizeImpl = Extract<Size, "sm" | "md" | "lg">;
+
 export type MultiToggleShape =
   | "none"
   | "xs"
@@ -31,7 +33,7 @@ export interface MultiToggleProps {
   modelValue: string;
   rounded?: MultiToggleShape;
 
-  size?: MultiToggleSize;
+  size?: MultiToggleSizeImpl;
   color?: TrueColor;
   fullWidth?: boolean;
   showOnlyActiveLabel?: boolean;
@@ -178,7 +180,7 @@ const toneTokens: Record<
 };
 
 const sizeTokens: Record<
-  MultiToggleSize,
+  MultiToggleSizeImpl,
   {
     track: string;
     indicatorInset: string;
