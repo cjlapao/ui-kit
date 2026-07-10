@@ -80,6 +80,13 @@
 
 @source inline("peer-focus:ring-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-400");
 
+/* ── Padding utilities ─────────────────────────────────────── */
+@source inline("p-0.5");
+@source inline("p-1");
+@source inline("p-1.5");
+@source inline("p-2");
+@source inline("p-3");
+
 @source inline("accent-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-600");
 
 @source inline("dark:peer-checked:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-400");
