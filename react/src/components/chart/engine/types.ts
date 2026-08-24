@@ -282,6 +282,8 @@ export interface CandleGeometry {
   bodyTop: number;
   bodyHeight: number;
   direction: "up" | "down" | "flat";
+  /** Body width in px. */
+  bodyWidth: number;
   item: unknown;
   index: number;
 }

@@ -10,3 +10,8 @@ export * from "./scales";
 export * from "./layout";
 export * from "./animation";
 export * from "./theme";
+export * from "./decimation";
+export * from "./series/line";
+export * from "./series/bar";
+export * from "./series/pie";
+export * from "./series/candlestick";
