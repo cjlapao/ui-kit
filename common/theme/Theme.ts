@@ -89,6 +89,18 @@ export const CONTROL_SIZES = ["xs", "sm", "md", "lg", "xl"] as const;
 export type ControlSize = (typeof CONTROL_SIZES)[number];
 
 /**
+ * The two layouts a linear control can take.
+ *
+ * This union was declared independently in `Slider`, `Rating`, `AppDivider`,
+ * `Stepper` and `Tabs` (five names for one scale), so a rename or addition in
+ * the theme would never reach any of them. It lives here once; each control
+ * keeps its own alias (`SliderOrientation`, …) so call sites and the barrels
+ * are unaffected.
+ */
+export const ORIENTATIONS = ["horizontal", "vertical"] as const;
+export type Orientation = (typeof ORIENTATIONS)[number];
+
+/**
  * The geometry of an interactive control at each shared size.
  *
  * Every control in the trigger family needs the same answer to "how big is the

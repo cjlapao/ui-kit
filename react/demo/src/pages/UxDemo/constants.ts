@@ -424,9 +424,14 @@ export const tableDensityOptions: MultiToggleOption[] = TABLE_DENSITIES.map(
   (density) => ({ label: titleCase(density), value: density }),
 );
 
-export const surfaceCornerOptions: MultiToggleOption[] = SURFACE_CORNERS.map(
-  (corner) => ({ label: titleCase(corner.replace(/-/g, " ")), value: corner }),
-);
+// Table corners: drop the fully-rounded shapes (pill / rounded-full) — a grid
+// reads wrong with a pill end-cap; those belong to pills, badges and panels.
+export const surfaceCornerOptions: MultiToggleOption[] = SURFACE_CORNERS.filter(
+  (corner) => corner !== "rounded-full" && corner !== "pill",
+).map((corner) => ({
+  label: titleCase(corner.replace(/-/g, " ")),
+  value: corner,
+}));
 
 // Semantic role labels mapped to real palette tones — the table's tone is a
 // TrueColor, so the values must stay inside the kit's actual palette.

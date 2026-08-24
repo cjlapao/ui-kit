@@ -8,11 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { getSliderVariantTokens, SLIDER_VARIANTS } from "../theme/Theme";
-import type { SliderVariant, TrueColor } from "../theme/Theme";
+import { getSliderVariantTokens, ORIENTATIONS, SLIDER_VARIANTS } from "../theme/Theme";
+import type { Orientation, SliderVariant, TrueColor } from "../theme/Theme";
 
-export const SLIDER_ORIENTATIONS = ["horizontal", "vertical"] as const;
-export type SliderOrientation = (typeof SLIDER_ORIENTATIONS)[number];
+export const SLIDER_ORIENTATIONS = ORIENTATIONS;
+export type SliderOrientation = Orientation;
 
 /** Re-exported from the theme, where the runtime lists live. */
 export { SLIDER_VARIANTS };

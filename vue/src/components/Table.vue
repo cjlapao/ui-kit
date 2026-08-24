@@ -292,6 +292,9 @@ export interface TableProps<T> {
 
 const NEUTRAL_HEADER_CLASSES =
   "bg-neutral-50 text-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700";
+// Zebra stripe — kept close to the white base so rows read as one surface with
+// a faint alternation rather than two distinct bands.
+const STRIPED_ROW_BG = "bg-neutral-50 dark:bg-neutral-800/20";
 
 /**
  * Tinted header band per tone. Generated from TRUE_COLORS — every class
@@ -1595,7 +1598,7 @@ const buildRowEntry = (
     : "";
   const baseRowBgClass =
     props.striped && originalIndex % 2 === 1
-      ? "bg-neutral-100 dark:bg-neutral-800/40"
+      ? STRIPED_ROW_BG
       : "bg-white dark:bg-neutral-900";
   // Use fully-opaque hover for all cells so the whole row shifts uniformly.
   // Sticky cells need !important to override their explicit base background class.
@@ -1618,9 +1621,7 @@ const buildRowEntry = (
       ? selectedClass
       : isHighlighted
         ? highlightRowClass
-        : props.striped &&
-          originalIndex % 2 === 1 &&
-          "bg-neutral-100 dark:bg-neutral-800/40",
+        : props.striped && originalIndex % 2 === 1 && STRIPED_ROW_BG,
     isHighlighted && props.hoverable && "hover:brightness-95",
     "transition-colors duration-150 ease-out",
     hasRowClickListener.value ? "cursor-pointer" : "cursor-default",
@@ -1674,7 +1675,7 @@ const buildRowEntry = (
             : isHighlighted
               ? getHighlightRowClass(controlColor.value)
               : props.striped && originalIndex % 2 === 1
-                ? "bg-neutral-100 dark:bg-neutral-800/40"
+                ? STRIPED_ROW_BG
                 : (column.stickyBackgroundFn?.(row, originalIndex) ??
                   column.stickyBackground ??
                   "bg-white dark:bg-neutral-900")),

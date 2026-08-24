@@ -366,6 +366,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/detail-item-card/DetailItemCardPage")),
   },
   {
+    slug: "carousel",
+    name: "Carousel",
+    description:
+      "A sliding gallery of items — one or many visible at a time, circular wrap with invisible snap, autoplay, vertical orientation, responsive breakpoints, swipe support and full tone matrix.",
+    icon: "Image",
+    category: "Data",
+    Page: lazy(() => import("./components/carousel/CarouselPage")),
+  },
+  {
     slug: "alert",
     name: "Alert",
     description:

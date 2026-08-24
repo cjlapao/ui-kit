@@ -82,9 +82,13 @@ function ChevronSvg({ expanded }: { expanded: boolean }) {
   );
 }
 
-const EnabledCell: React.FC = () => (
+const EnabledCell: React.FC<{ tone: PanelTone }> = ({ tone }) => (
   <span className="flex items-center justify-center" aria-label="Enabled">
-    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5 text-emerald-500">
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className={`h-5 w-5 text-${tone}-500 dark:text-${tone}-400`}
+    >
       <circle cx="10" cy="10" r="9" fill="currentColor" fillOpacity="0.12" />
       <path
         d="M6.5 10.5l2.5 2.5 4.5-5"
@@ -212,21 +216,6 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
     return result;
   }, [permissions, visibleGroups, actions, collapsedGroups]);
 
-  // Pre-compute per-group alternating stripe index (resets per group, skips headers)
-  const stripeMap = useMemo(() => {
-    const map = new Map<string, boolean>();
-    let idx = 0;
-    for (const row of rows) {
-      if (row._isGroupHeader) {
-        idx = 0;
-      } else {
-        map.set(row._key, idx % 2 === 1);
-        idx++;
-      }
-    }
-    return map;
-  }, [rows]);
-
   const toggleGroup = (group: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -235,6 +224,13 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
       return next;
     });
   };
+
+  // Group-header (collapsible) rows sit a shade darker than striped data rows
+  // so the headers stay distinguishable when striping is on.
+  const groupHeaderBaseBg = striped ? "bg-neutral-100" : "bg-neutral-50";
+  const groupHeaderBg = striped
+    ? "bg-neutral-100 hover:bg-neutral-200"
+    : "bg-neutral-50 hover:bg-neutral-100";
 
   const columns = useMemo((): TableColumn<MatrixRow>[] => {
     // Resource column — sticky left, no expand-spacer sibling so it lands at left-0
@@ -250,7 +246,9 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
       // group-header rows override it via stickyBackgroundFn below.
       stickyBackground,
       stickyBackgroundFn: (row) =>
-        row._isGroupHeader ? "bg-neutral-50 dark:bg-neutral-800/40" : undefined,
+        row._isGroupHeader
+          ? `${groupHeaderBaseBg} dark:bg-neutral-800/40`
+          : undefined,
       render: (row) => {
         if (row._isGroupHeader) {
           return (
@@ -281,13 +279,13 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
       hideable: false,
       render: (row: MatrixRow) => {
         if (row._isGroupHeader) return null;
-        return row[action] === true ? <EnabledCell /> : <DisabledCell />;
+        return row[action] === true ? <EnabledCell tone={tone} /> : <DisabledCell />;
       },
     }));
 
     return [resourceCol, ...actionCols];
     // collapsedGroups is needed so the chevron direction re-renders on toggle
-  }, [actions, stickyBackground, tone, collapsedGroups]);
+  }, [actions, stickyBackground, tone, collapsedGroups, groupHeaderBaseBg]);
 
   return (
     <div
@@ -314,20 +312,17 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
         onRowClick={(row) => {
           if (row._isGroupHeader) toggleGroup(row._group);
         }}
-        rowClassName={(row) => {
-          if (row._isGroupHeader) {
-            return "cursor-pointer select-none border-b border-neutral-100 bg-neutral-50 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-800/40 dark:hover:bg-neutral-700/50";
-          }
-          return striped && stripeMap.get(row._key)
-            ? "bg-neutral-100 dark:bg-neutral-800/40"
-            : "";
-        }}
+        rowClassName={(row) =>
+          row._isGroupHeader
+            ? `cursor-pointer select-none border-b border-neutral-100 ${groupHeaderBg} dark:border-neutral-800 dark:bg-neutral-800/40 dark:hover:bg-neutral-700/50`
+            : ""
+        }
       />
       {hiddenCount > 0 && (
         <div className="mt-3 flex justify-center">
           <Button
             variant="ghost"
-            color="blue"
+            color={tone}
             size="sm"
             trailingIcon={expanded ? "ArrowUp" : "ArrowDown"}
             onClick={() => setExpanded((prev) => !prev)}

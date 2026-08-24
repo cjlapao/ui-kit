@@ -79,7 +79,7 @@ function ChevronSvg({ expanded }: { expanded: boolean }): VNode {
   );
 }
 
-const EnabledCell = (): VNode =>
+const EnabledCell = (tone: PanelTone): VNode =>
   h(
     "span",
     { class: "flex items-center justify-center", "aria-label": "Enabled" },
@@ -89,7 +89,7 @@ const EnabledCell = (): VNode =>
         {
           viewBox: "0 0 20 20",
           fill: "none",
-          class: "h-5 w-5 text-emerald-500",
+          class: `h-5 w-5 text-${tone}-500 dark:text-${tone}-400`,
         },
         [
           h("circle", {
@@ -245,27 +245,23 @@ const rows = computed((): MatrixRow[] => {
   return result;
 });
 
-// Pre-compute per-group alternating stripe index (resets per group, skips headers)
-const stripeMap = computed(() => {
-  const map = new Map<string, boolean>();
-  let idx = 0;
-  for (const row of rows.value) {
-    if (row._isGroupHeader) {
-      idx = 0;
-    } else {
-      map.set(row._key, idx % 2 === 1);
-      idx++;
-    }
-  }
-  return map;
-});
-
 const toggleGroup = (group: string) => {
   const next = new Set(collapsedGroups.value);
   if (next.has(group)) next.delete(group);
   else next.add(group);
   collapsedGroups.value = next;
 };
+
+// Group-header (collapsible) rows sit a shade darker than striped data rows
+// so the headers stay distinguishable when striping is on.
+const groupHeaderBaseBg = computed(() =>
+  props.striped ? "bg-neutral-100" : "bg-neutral-50"
+);
+const groupHeaderBg = computed(() =>
+  props.striped
+    ? "bg-neutral-100 hover:bg-neutral-200"
+    : "bg-neutral-50 hover:bg-neutral-100"
+);
 
 const columns = computed((): TableColumn<MatrixRow>[] => {
   // Resource column — sticky left, no expand-spacer sibling so it lands at left-0
@@ -281,7 +277,9 @@ const columns = computed((): TableColumn<MatrixRow>[] => {
       // group-header rows override it via stickyBackgroundFn below.
       stickyBackground: props.stickyBackground,
       stickyBackgroundFn: (row) =>
-        row._isGroupHeader ? "bg-neutral-50 dark:bg-neutral-800/40" : undefined,
+        row._isGroupHeader
+          ? `${groupHeaderBaseBg.value} dark:bg-neutral-800/40`
+          : undefined,
     render: (row) => {
       if (row._isGroupHeader) {
         return h("span", { class: "inline-flex items-center gap-2" }, [
@@ -314,7 +312,7 @@ const columns = computed((): TableColumn<MatrixRow>[] => {
     hideable: false,
     render: (row: MatrixRow) => {
       if (row._isGroupHeader) return null;
-      return row[action] === true ? EnabledCell() : DisabledCell();
+      return row[action] === true ? EnabledCell(props.tone) : DisabledCell();
     },
   }));
 
@@ -327,14 +325,10 @@ const onRowClick = (row: MatrixRow) => {
   if (row._isGroupHeader) toggleGroup(row._group);
 };
 
-const rowClassNameFn = (row: MatrixRow) => {
-  if (row._isGroupHeader) {
-    return "cursor-pointer select-none border-b border-neutral-100 bg-neutral-50 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-800/40 dark:hover:bg-neutral-700/50";
-  }
-  return props.striped && stripeMap.value.get(row._key)
-    ? "bg-neutral-100 dark:bg-neutral-800/40"
+const rowClassNameFn = (row: MatrixRow) =>
+  row._isGroupHeader
+    ? `cursor-pointer select-none border-b border-neutral-100 ${groupHeaderBg.value} dark:border-neutral-800 dark:bg-neutral-800/40 dark:hover:bg-neutral-700/50`
     : "";
-};
 </script>
 
 <template>
@@ -366,7 +360,7 @@ const rowClassNameFn = (row: MatrixRow) => {
     <div v-if="hiddenCount > 0" class="mt-3 flex justify-center">
       <Button
         variant="ghost"
-        color="blue"
+        :color="tone"
         size="sm"
         :trailing-icon="expanded ? 'ArrowUp' : 'ArrowDown'"
         @click="expanded = !expanded"

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { AccessMatrix, MultiToggle, Toggle } from "@cjlapao/ui-kit";
+import { AccessMatrix, MultiToggle, Toggle, Select } from "@cjlapao/ui-kit";
 import type {
   AccessMatrixPermission,
   TableVariant,
@@ -12,7 +12,7 @@ import {
   tableVariantOptions,
   tableDensityOptions,
   surfaceCornerOptions,
-  tableToneOptions,
+  trueColorOptions,
 } from "../constants";
 
 const SAMPLE_PERMISSIONS: AccessMatrixPermission[] = [
@@ -143,37 +143,38 @@ export const AccessMatrixDemo: React.FC = () => {
               onChange={(value) => setVariant(value as TableVariant)}
             />
           </label>
-          <div className="grid gap-2 md:grid-cols-2">
-            <label className="flex flex-col gap-2">
-              <span>Density</span>
-              <MultiToggle
-                fullWidth
-                options={tableDensityOptions}
-                value={density}
-                size="sm"
-                onChange={(value) => setDensity(value as TableDensity)}
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span>Corner</span>
-              <MultiToggle
-                fullWidth
-                options={surfaceCornerOptions}
-                value={corner}
-                size="sm"
-                onChange={(value) => setCorner(value as SurfaceCorner)}
-              />
-            </label>
-          </div>
           <label className="flex flex-col gap-2">
-            <span>Tone</span>
+            <span>Density</span>
             <MultiToggle
               fullWidth
-              options={tableToneOptions}
-              value={tone}
+              options={tableDensityOptions}
+              value={density}
               size="sm"
-              onChange={(value) => setTone(value as PanelTone)}
+              onChange={(value) => setDensity(value as TableDensity)}
             />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span>Corner</span>
+            <MultiToggle
+              fullWidth
+              options={surfaceCornerOptions}
+              value={corner}
+              size="sm"
+              onChange={(value) => setCorner(value as SurfaceCorner)}
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span>Tone</span>
+            <Select
+              value={tone}
+              onChange={(event) => setTone(event.target.value as PanelTone)}
+            >
+              {trueColorOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           </label>
           <label className="flex flex-col gap-2">
             <span>Row limit (before expand)</span>

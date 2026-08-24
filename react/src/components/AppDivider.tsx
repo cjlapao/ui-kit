@@ -1,9 +1,9 @@
 import React from "react";
 import classNames from "classnames";
 import { useSurfaceText } from "../contexts/SurfaceContext";
-import type { ControlSize, TrueColor } from "../theme/Theme";
+import type { ControlSize, Orientation, TrueColor } from "../theme/Theme";
 
-export type AppDividerOrientation = "vertical" | "horizontal";
+export type AppDividerOrientation = Orientation;
 export type AppDividerLabelPosition = "start" | "center" | "end";
 
 export const APP_DIVIDER_VARIANTS = [

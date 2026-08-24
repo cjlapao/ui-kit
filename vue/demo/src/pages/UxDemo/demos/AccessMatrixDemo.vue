@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
-import { AccessMatrix, MultiToggle, Toggle } from "@cjlapao/ui-kit-vue";
+import { AccessMatrix, MultiToggle, Toggle, Select } from "@cjlapao/ui-kit-vue";
 import type {
   AccessMatrixPermission,
   TableVariant,
@@ -13,7 +13,7 @@ import {
   tableVariantOptions,
   tableDensityOptions,
   surfaceCornerOptions,
-  tableToneOptions,
+  trueColorOptions,
 } from "../constants";
 
 const SAMPLE_PERMISSIONS: AccessMatrixPermission[] = [
@@ -151,37 +151,40 @@ const hoverable = ref(false);
             @update:model-value="variant = $event as TableVariant"
           />
         </label>
-        <div class="grid gap-2 md:grid-cols-2">
-          <label class="flex flex-col gap-2">
-            <span>Density</span>
-            <MultiToggle
-              full-width
-              :options="tableDensityOptions"
-              :model-value="density"
-              size="sm"
-              @update:model-value="density = $event as TableDensity"
-            />
-          </label>
-          <label class="flex flex-col gap-2">
-            <span>Corner</span>
-            <MultiToggle
-              full-width
-              :options="surfaceCornerOptions"
-              :model-value="corner"
-              size="sm"
-              @update:model-value="corner = $event as SurfaceCorner"
-            />
-          </label>
-        </div>
         <label class="flex flex-col gap-2">
-          <span>Tone</span>
+          <span>Density</span>
           <MultiToggle
             full-width
-            :options="tableToneOptions"
-            :model-value="tone"
+            :options="tableDensityOptions"
+            :model-value="density"
             size="sm"
-            @update:model-value="tone = $event as PanelTone"
+            @update:model-value="density = $event as TableDensity"
           />
+        </label>
+        <label class="flex flex-col gap-2">
+          <span>Corner</span>
+          <MultiToggle
+            full-width
+            :options="surfaceCornerOptions"
+            :model-value="corner"
+            size="sm"
+            @update:model-value="corner = $event as SurfaceCorner"
+          />
+        </label>
+        <label class="flex flex-col gap-2">
+          <span>Tone</span>
+          <Select
+            :model-value="tone"
+            @update:model-value="tone = $event as PanelTone"
+          >
+            <option
+              v-for="option in trueColorOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </Select>
         </label>
         <label class="flex flex-col gap-2">
           <span>Row limit (before expand)</span>

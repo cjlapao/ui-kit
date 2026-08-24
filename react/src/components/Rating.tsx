@@ -8,13 +8,13 @@ import React, {
   useId,
   useState,
 } from "react";
-import { TRUE_COLORS } from "../theme/Theme";
-import type { ControlSize, TrueColor } from "../theme/Theme";
+import { ORIENTATIONS, TRUE_COLORS } from "../theme/Theme";
+import type { ControlSize, Orientation, TrueColor } from "../theme/Theme";
 import { useIconRenderer } from "../contexts/IconContext";
 import type { IconName } from "../icons/registry";
 
-export const RATING_ORIENTATIONS = ["horizontal", "vertical"] as const;
-export type RatingOrientation = (typeof RATING_ORIENTATIONS)[number];
+export const RATING_ORIENTATIONS = ORIENTATIONS;
+export type RatingOrientation = Orientation;
 
 export type RatingSize = ControlSize;
 

@@ -3,7 +3,7 @@ import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import { type PanelTone, Loader, type LoaderProps } from ".";
 import { useStepper } from "../hooks";
-import { getStepperTonePalette } from "../theme";
+import { getStepperTonePalette, type Orientation } from "../theme";
 import { type IconName } from "../icons/registry";
 import { renderIcon } from "../utils/renderIcon";
 
@@ -23,7 +23,7 @@ export interface StepperStep {
 
 export type Step = StepperStep;
 
-export type StepperOrientation = "horizontal" | "vertical";
+export type StepperOrientation = Orientation;
 export type StepperVariant = "card" | "minimal";
 export type StepperSize = "sm" | "md" | "lg";
 export type StepperConnector = "line" | "progress" | "none";

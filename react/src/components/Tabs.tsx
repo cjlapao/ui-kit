@@ -1,7 +1,7 @@
 import React, { type ReactNode, useEffect, useMemo, useState } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getTabsColorTokens, type TrueColor } from "../theme/Theme";
+import { getTabsColorTokens, type Orientation, type TrueColor } from "../theme/Theme";
 import {
   getGlassChromeClasses,
   getGlassFillClass,
@@ -24,7 +24,7 @@ export type TabsVariant =
   | "glass"
   | "liquid-glass";
 export type TabsSize = "sm" | "md" | "lg";
-export type TabsOrientation = "horizontal" | "vertical";
+export type TabsOrientation = Orientation;
 export type TabsJustify = "start" | "center" | "end" | "between";
 export type TabsRadius = "none" | "xs" | "sm" | "md" | "lg" | "xl" | "full";
 

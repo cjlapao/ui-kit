@@ -229,6 +229,13 @@ export {
   type CheckboxValidationStatus,
   type CheckboxVariant,
 } from "./Checkbox";
+export {
+  default as Carousel,
+  CAROUSEL_ORIENTATIONS,
+  type CarouselProps,
+  type CarouselOrientation,
+  type CarouselResponsiveOption,
+} from "./Carousel";
 export { default as Toggle, TOGGLE_VARIANTS, type ToggleProps, type ToggleVariant, type ToggleSize, type ToggleAlign, type ToggleDescriptionPlacement, type TogglePadding } from "./Toggle";
 export {
   default as MultiToggle,

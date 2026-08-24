@@ -6,6 +6,7 @@ import {
   BUTTON_SIZES,
   BUTTON_VARIANTS,
   BUTTON_WEIGHTS,
+  CAROUSEL_ORIENTATIONS,
   CHECKBOX_ALIGNS,
   CHECKBOX_DESCRIPTION_PLACEMENTS,
   CHECKBOX_VALIDATION_STATUSES,
@@ -71,6 +72,7 @@ export const alertVariantOptions = toOptions(ALERT_VARIANTS);
 export const inputVariantOptions = toOptions(INPUT_VARIANTS);
 export const glowIntensityOptions = toOptions(GLOW_INTENSITIES);
 export const otpVariantOptions = toOptions(OTP_VARIANTS);
+export const carouselOrientationOptions = toOptions(CAROUSEL_ORIENTATIONS);
 export const ratingOrientationOptions = toOptions(RATING_ORIENTATIONS);
 export const sliderOrientationOptions = toOptions(SLIDER_ORIENTATIONS);
 export const sliderVariantOptions = toOptions(SLIDER_VARIANTS);
