@@ -68,3 +68,5 @@ react/dist/
 *.tsbuildinfo
 .primevue/
 .playwright-mcp/
+# brainstorming visual companion mockups
+.superpowers/
