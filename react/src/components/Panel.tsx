@@ -3,57 +3,71 @@ import classNames from "classnames";
 import Button, { type ButtonProps } from "./Button";
 import Loader, { type LoaderProps } from "./Loader";
 import {
+  DEFAULT_SURFACE_CORNER,
   getPanelToneStyles,
+  getSurfaceCornerClass,
+  getSurfacePaddingClass,
+  getSurfacePaddingClasses,
+  getSurfaceTextTokens,
+  type SurfaceCorner,
+  type SurfacePadding,
+  type SurfaceVariant,
   type TrueColor,
 } from "../theme/Theme";
+import {
+  SURFACE_HALO_DARK,
+  SURFACE_HALO_LIGHT,
+  getGlassVibrancyClass,
+  getSurfaceGlassFillClass,
+  type GlassOpacity,
+  type GlassVibrancy,
+} from "../theme/glass";
+import { SurfaceProvider } from "../contexts/SurfaceContext";
 
-export type PanelVariant =
-  | "elevated"
-  | "outlined"
-  | "subtle"
-  | "tonal"
-  | "default"
-  | "glass"
-  | "simple"
-  | "liquid-glass";
+/**
+ * The shared container surface set, from the theme. Aliased rather than
+ * redeclared so `Panel` and `FormSection` cannot drift.
+ */
+export type PanelVariant = SurfaceVariant;
 export type PanelTone = TrueColor;
 export type PanelDecoration = "none" | "gradient" | "shapes" | "both";
 export type PanelMediaPlacement = "top" | "start" | "end" | "overlay";
-export type PanelPadding = "none" | "xs" | "sm" | "md" | "lg";
-export type PanelCorner =
-  | "rounded"
-  | "rounded-sm"
-  | "rounded-md"
-  | "rounded-lg"
-  | "rounded-full"
-  | "pill"
-  | "none";
+/**
+ * `none` plus the shared `ControlSize` scale, so a Panel's inset and the
+ * Button inside it are described in the same language. Gained `xl`.
+ */
+export type PanelPadding = SurfacePadding;
+/** The shared container radius scale. Gained `rounded-xl`. */
+export type PanelCorner = SurfaceCorner;
 export type PanelActionLayout = "auto" | "stacked" | "inline";
-export type PanelLoaderType = Exclude<LoaderProps["variant"], undefined>;
+export type PanelLoaderType =
+  | Exclude<LoaderProps["variant"], undefined>
+  | "skeleton";
 export type PanelSpecularMode = "none" | "classic" | "halo";
 
-export interface PanelAction
-  extends Pick<
-    ButtonProps,
-    | "variant"
-    | "color"
-    | "size"
-    | "weight"
-    | "leadingIcon"
-    | "trailingIcon"
-    | "loading"
-    | "disabled"
-    | "accent"
-    | "accentColor"
-  > {
+export interface PanelAction extends Pick<
+  ButtonProps,
+  | "variant"
+  | "color"
+  | "size"
+  | "weight"
+  | "leadingIcon"
+  | "trailingIcon"
+  | "loading"
+  | "disabled"
+  | "accent"
+  | "accentColor"
+> {
   id?: string;
   label: React.ReactNode;
   onClick?: ButtonProps["onClick"];
   className?: string;
 }
 
-export interface PanelProps
-  extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
+export interface PanelProps extends Omit<
+  React.HTMLAttributes<HTMLElement>,
+  "title"
+> {
   title?: React.ReactNode;
   titleClassName?: string;
   subtitle?: React.ReactNode;
@@ -83,6 +97,11 @@ export interface PanelProps
   loaderMessage?: React.ReactNode;
   loaderProgress?: number;
   loaderColor?: LoaderProps["color"];
+  /**
+   * Body placeholder lines rendered by `loaderType="skeleton"`.
+   * @default 3
+   */
+  skeletonLines?: number;
   hoverShadow?: boolean;
   decoration?: PanelDecoration;
   /**
@@ -112,15 +131,16 @@ export interface PanelProps
   scrollable?: boolean;
   /**
    * Backdrop vibrancy for the liquid-glass variant.
-   * Preset takes priority over a numeric value when both are provided.
+   * Shares its type with the control-side glass helpers.
    */
-  vibrancy?: "low" | "medium" | "high" | number;
+  vibrancy?: GlassVibrancy;
   /**
    * Glass fill opacity for the liquid-glass variant.
-   * Preset takes priority over a numeric value when both are provided.
+   * Only the three presets are safelisted — a numeric value emits an arbitrary
+   * opacity Tailwind's scanner cannot see, so the fill silently disappears.
    * @default "frosted"
    */
-  glassOpacity?: "frosted" | "light" | "clear" | number;
+  glassOpacity?: GlassOpacity;
   /**
    * Whether the liquid-glass variant shows a specular highlight at the top.
    * @default true
@@ -138,42 +158,45 @@ export interface PanelProps
   specularMode?: PanelSpecularMode;
 }
 
+/**
+ * Chrome only — fill, shadow, ring, border, blur. Text colour is NOT set here:
+ * it comes from `getSurfaceTextTokens(variant)`, so the translucent variants
+ * automatically get the higher-contrast copy instead of each entry carrying
+ * its own hardcoded `text-neutral-*` pair that only worked on an opaque card.
+ */
 const variantBaseStyles: Record<PanelVariant, string> = {
   elevated:
-    "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10 text-neutral-900 dark:text-neutral-100",
-  outlined:
-    "bg-white/90 text-neutral-900 ring-1 dark:bg-neutral-900/80 dark:text-neutral-100 dark:ring-white/10",
-  subtle:
-    "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
-  tonal:
-    "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+    "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10",
+  // A real 1px border, not a ring. `ring-1` with no ring colour resolves to
+  // currentColor, which painted a near-black rule in light mode.
+  outlined: "border bg-white/90 dark:bg-neutral-900/80",
+  subtle: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
+  tonal: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
   default:
-    "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+    "border bg-white/80 backdrop-blur-xl shadow-2xl dark:bg-neutral-900/70",
   glass:
-    "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
-  "liquid-glass":
-    "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
-  simple:
-    "text-neutral-900  ring-transparent dark:text-neutral-100 dark:ring-white/5",
+    "border backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20",
+  "liquid-glass": "border backdrop-blur-2xl",
+  simple: "ring-transparent dark:ring-white/5",
 };
 
-export const paddingStyles: Record<PanelPadding, string> = {
-  none: "p-0",
-  xs: "p-2 sm:p-3",
-  sm: "p-4 sm:p-5",
-  md: "p-6 sm:p-8",
-  lg: "p-8 sm:p-10",
-};
+/**
+ * Rim for the translucent variants. Deliberately tone-independent: a saturated
+ * `{tone}-500` edge fights the backdrop it is meant to sit over, so glass gets
+ * a light rim that reads as a bevel instead of an outline. Pass `borderColor`
+ * for a coloured rim.
+ */
+const GLASS_RIM = "border-white/50 dark:border-white/10";
 
-const cornerStyles: Record<PanelCorner, string> = {
-  rounded: "rounded-sm",
-  "rounded-sm": "rounded-lg",
-  "rounded-md": "rounded-2xl",
-  "rounded-lg": "rounded-3xl",
-  "rounded-full": "rounded-full",
-  pill: "rounded-3xl",
-  none: "rounded-none",
-};
+/** Variants whose surface is see-through, so they get a specular top edge. */
+const GLASS_VARIANTS: PanelVariant[] = ["glass", "liquid-glass", "default"];
+
+/**
+ * Re-exported from the theme for `CollapsiblePanel` and `TimelinePanel`, which
+ * import the map directly rather than taking a Panel.
+ */
+export const paddingStyles: Record<PanelPadding, string> =
+  getSurfacePaddingClasses();
 
 const actionButtonWidth: Record<PanelActionLayout, string> = {
   auto: "w-full sm:w-auto",
@@ -189,55 +212,166 @@ const actionWrapperLayout: Record<PanelActionLayout, string> = {
 
 const defaultActionColor: TrueColor = "neutral";
 
-const Panel: React.FC<PanelProps> = ({
-  title,
-  subtitle,
-  description,
-  badge,
-  media,
-  mediaPlacement = "top",
-  actions,
-  actionLayout = "auto",
-  variant = "elevated",
-  tone = "neutral",
-  padding = "md",
-  corner = "rounded-sm",
-  fullWidth,
-  maxWidth,
-  minHeight,
-  className,
-  bodyClassName,
-  bodyStyle,
-  style,
-  children,
-  loading = false,
-  disabled = false,
-  flexBody = false,
-  loaderType = "spinner",
-  loaderTitle,
-  loaderMessage,
-  loaderProgress,
-  loaderColor,
-  hoverShadow = false,
-  decoration = "none",
-  hoverable,
-  titleClassName,
-  subtitleClassName,
-  descriptionClassName,
-  color,
-  hoverColor,
-  borderColor,
-  backgroundColor,
-  scrollable = true,
-  vibrancy = "medium",
-  glassOpacity = "frosted",
-  specularHighlight = true,
-  specularMode,
-  ...rest
-}) => {
+/**
+ * One placeholder bar. `bg-black/10 dark:bg-white/10` rather than a neutral
+ * shade so the same bar reads correctly on a solid card and on glass.
+ */
+const SkeletonBar: React.FC<{
+  width?: string;
+  className?: string;
+}> = ({ width, className }) => (
+  <span
+    className={classNames(
+      "block h-3 rounded-full bg-black/10 dark:bg-white/10",
+      className,
+    )}
+    style={width ? { width } : undefined}
+  />
+);
+
+interface PanelSkeletonProps {
+  hasMedia: boolean;
+  hasBadge: boolean;
+  hasTitle: boolean;
+  hasSubtitle: boolean;
+  hasDescription: boolean;
+  hasBody: boolean;
+  actionCount: number;
+  lines: number;
+  actionLayout: PanelActionLayout;
+}
+
+/**
+ * Placeholder shaped like the Panel's own content: only the slots the caller
+ * actually passed get a bar, so the skeleton keeps the card's real height
+ * instead of collapsing or over-reserving.
+ */
+const PanelSkeleton: React.FC<PanelSkeletonProps> = ({
+  hasMedia,
+  hasBadge,
+  hasTitle,
+  hasSubtitle,
+  hasDescription,
+  hasBody,
+  actionCount,
+  lines,
+  actionLayout,
+}) => (
+  <div
+    className="flex min-h-0 flex-1 animate-pulse flex-col gap-4 motion-reduce:animate-none"
+    aria-hidden="true"
+  >
+    {hasMedia && (
+      <span className="block h-40 w-full rounded-xl bg-black/10 dark:bg-white/10" />
+    )}
+    {(hasBadge || hasTitle || hasSubtitle || hasDescription) && (
+      <div className="space-y-3">
+        {hasBadge && <SkeletonBar width="4.5rem" className="h-5" />}
+        {hasTitle && <SkeletonBar width="55%" className="h-5" />}
+        {hasSubtitle && <SkeletonBar width="35%" className="h-4" />}
+        {hasDescription && (
+          <div className="space-y-2">
+            <SkeletonBar width="100%" className="h-2.5" />
+            <SkeletonBar width="80%" className="h-2.5" />
+          </div>
+        )}
+      </div>
+    )}
+    {hasBody && lines > 0 && (
+      <div className="flex-1 space-y-2.5">
+        {Array.from({ length: lines }).map((_, index) => (
+          <SkeletonBar
+            key={index}
+            width={index === lines - 1 ? "60%" : "100%"}
+            className="h-2.5"
+          />
+        ))}
+      </div>
+    )}
+    {actionCount > 0 && (
+      <div
+        className={classNames(
+          "flex pt-3",
+          actionLayout === "stacked"
+            ? "flex-col gap-3"
+            : "flex-wrap items-center gap-3",
+        )}
+      >
+        {Array.from({ length: actionCount }).map((_, index) => (
+          <SkeletonBar
+            key={index}
+            width={actionLayout === "stacked" ? "100%" : "6.5rem"}
+            className="h-9 rounded-md"
+          />
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+/**
+ * `forwardRef` so callers that need the card element itself — `Modal` uses it
+ * for its focus trap and drag clamping — can reach it without a wrapper div
+ * that would disturb the layout.
+ */
+const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
+  {
+    title,
+    subtitle,
+    description,
+    badge,
+    media,
+    mediaPlacement = "top",
+    actions,
+    actionLayout = "auto",
+    variant = "elevated",
+    tone = "neutral",
+    padding = "md",
+    corner = DEFAULT_SURFACE_CORNER,
+    fullWidth,
+    maxWidth,
+    minHeight,
+    className,
+    bodyClassName,
+    bodyStyle,
+    style,
+    children,
+    loading = false,
+    disabled = false,
+    flexBody = false,
+    loaderType = "spinner",
+    loaderTitle,
+    loaderMessage,
+    loaderProgress,
+    loaderColor,
+    skeletonLines = 3,
+    hoverShadow = false,
+    decoration = "none",
+    hoverable,
+    titleClassName,
+    subtitleClassName,
+    descriptionClassName,
+    color,
+    hoverColor,
+    borderColor,
+    backgroundColor,
+    scrollable = true,
+    vibrancy = "medium",
+    glassOpacity = "frosted",
+    specularHighlight = true,
+    specularMode,
+    ...rest
+  },
+  ref,
+) {
   const palette = getPanelToneStyles(tone);
-  const colorPalette = color ? getPanelToneStyles(color) : palette;
+  // A translucent card composites over whatever the app puts behind it, so the
+  // light end of the neutral scale disappears — subtitles and descriptions on
+  // a glass Panel over a photo were effectively invisible while the title
+  // still read. These tokens step the copy two shades in the right direction.
+  const surfaceText = getSurfaceTextTokens(variant);
   const isHoverable = hoverable ?? Boolean(rest.onClick);
+  const isGlass = GLASS_VARIANTS.includes(variant);
 
   const resolvedSpecularMode: PanelSpecularMode = (() => {
     if (specularMode !== undefined) return specularMode;
@@ -247,9 +381,7 @@ const Panel: React.FC<PanelProps> = ({
 
   const effectiveHoverColor =
     hoverColor ?? (color && color !== "neutral" ? color : undefined);
-  const hoverColorName = effectiveHoverColor
-    ? effectiveHoverColor
-    : undefined;
+  const hoverColorName = effectiveHoverColor ? effectiveHoverColor : undefined;
 
   const borderPalette = borderColor
     ? getPanelToneStyles(borderColor)
@@ -295,40 +427,18 @@ const Panel: React.FC<PanelProps> = ({
     return styles;
   })();
 
-  const vibrancyValue = (() => {
-    if (typeof vibrancy === "number") return vibrancy;
-    if (vibrancy === "low") return 1;
-    if (vibrancy === "medium") return 1.2;
-    if (vibrancy === "high") return 1.4;
-    return 1.2;
-  })();
-  const vibrancyClass = `backdrop-saturate-[${vibrancyValue}]`;
-
-  const glassFillClass = (() => {
-    const litOpacity = (() => {
-      if (typeof glassOpacity === "number") return Math.round((glassOpacity as number) * 100);
-      if (glassOpacity === "frosted") return 45;
-      if (glassOpacity === "light") return 70;
-      if (glassOpacity === "clear") return 20;
-      return 45;
-    })();
-    const drkOpacity = (() => {
-      if (typeof glassOpacity === "number") return Math.min(Math.round((glassOpacity as number) * 30), 30);
-      if (glassOpacity === "frosted") return 15;
-      if (glassOpacity === "light") return 25;
-      if (glassOpacity === "clear") return 5;
-      return 15;
-    })();
-    const base = tone;
-    return `bg-${base}-50/${litOpacity} dark:bg-${base}-500/${drkOpacity}`;
-  })();
+  // Both were assembled inline from magic numbers that had drifted from the
+  // control-side helpers in theme/glass.ts. The container scale lives there
+  // now, next to the control scale and the safelist that covers both.
+  const vibrancyClass = getGlassVibrancyClass(vibrancy);
+  const glassFillClass = getSurfaceGlassFillClass(tone, glassOpacity);
 
   const variantClasses = (() => {
     switch (variant) {
       case "outlined":
         return classNames(
           variantBaseStyles.outlined,
-          effectiveBorderClass ?? palette.border,
+          effectiveBorderClass ?? palette.outlineBorder,
         );
       case "subtle":
         return classNames(
@@ -345,18 +455,19 @@ const Panel: React.FC<PanelProps> = ({
       case "default":
         return classNames(
           variantBaseStyles.default,
-          effectiveBorderClass ?? "border border-white/40",
+          effectiveBorderClass ?? GLASS_RIM,
         );
       case "glass":
         return classNames(
           variantBaseStyles.glass,
-          "border",
-          effectiveBorderClass ?? colorPalette.glassBorder,
+          effectiveBorderClass ?? GLASS_RIM,
           effectiveBgClass ?? palette.glassBg,
         );
       case "liquid-glass":
         return classNames(
-          "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
+          // `border` was missing, so liquidBorder — a colour-only class — never
+          // rendered and the panel had no rim at all.
+          variantBaseStyles["liquid-glass"],
           vibrancyClass,
           glassFillClass,
           effectiveBorderClass ?? palette.liquidBorder,
@@ -369,19 +480,16 @@ const Panel: React.FC<PanelProps> = ({
           effectiveBgClass ?? palette.tonalBg,
           effectiveBorderClass,
         );
+      // `elevated` is also the fallback — the two branches used to be
+      // byte-identical copies.
       case "elevated":
-        return classNames(
-          !effectiveBgClass && variantBaseStyles.elevated,
-          effectiveBgClass &&
-            "text-neutral-900 shadow-xl ring-1 ring-black/5 dark:text-neutral-100 dark:ring-white/10",
-          effectiveBorderClass,
-          effectiveBgClass,
-        );
       default:
         return classNames(
-          !effectiveBgClass && variantBaseStyles.elevated,
-          effectiveBgClass &&
-            "text-neutral-900 shadow-xl ring-1 ring-black/5 dark:text-neutral-100 dark:ring-white/10",
+          // A caller-supplied background replaces the variant's own white fill
+          // but keeps its shadow and ring.
+          effectiveBgClass
+            ? "shadow-xl ring-1 ring-black/5 dark:ring-white/10"
+            : variantBaseStyles.elevated,
           effectiveBorderClass,
           effectiveBgClass,
         );
@@ -397,8 +505,8 @@ const Panel: React.FC<PanelProps> = ({
     : variant === "liquid-glass"
       ? palette.liquidHeading
       : palette.heading;
-  const subtitleClass = isOverlay ? "text-white/80" : palette.muted;
-  const descriptionClass = isOverlay ? "text-white/75" : palette.muted;
+  const subtitleClass = isOverlay ? "text-white/80" : surfaceText.description;
+  const descriptionClass = isOverlay ? "text-white/75" : surfaceText.muted;
   const badgeNode =
     typeof badge === "string" ? (
       <span
@@ -475,7 +583,7 @@ const Panel: React.FC<PanelProps> = ({
       className={classNames(
         padding === "none" ? "" : "space-y-3 leading-6",
         flexBody ? "flex-1 flex flex-col w-full" : "",
-        isOverlay ? "text-white/80" : "text-neutral-700 dark:text-neutral-300",
+        isOverlay ? "text-white/80" : surfaceText.body,
         bodyClassName,
       )}
       style={bodyStyle}
@@ -547,7 +655,27 @@ const Panel: React.FC<PanelProps> = ({
       </div>
     ) : null;
 
+  const showSkeleton = loading && loaderType === "skeleton";
+
+  const skeletonSection = showSkeleton ? (
+    <PanelSkeleton
+      hasMedia={hasMedia && mediaPlacement !== "overlay"}
+      hasBadge={Boolean(badge)}
+      hasTitle={Boolean(title)}
+      hasSubtitle={Boolean(subtitle)}
+      hasDescription={Boolean(description)}
+      hasBody={Boolean(children)}
+      actionCount={actions?.length ?? 0}
+      lines={skeletonLines}
+      actionLayout={actionLayout}
+    />
+  ) : null;
+
   const contentSection = (() => {
+    if (skeletonSection) {
+      return skeletonSection;
+    }
+
     if (mediaPlacement === "start" || mediaPlacement === "end") {
       return (
         <div
@@ -577,154 +705,166 @@ const Panel: React.FC<PanelProps> = ({
     );
   })();
 
+  // Published so nested content — FormField hints, dividers, anything using
+  // `useSurfaceText` — knows whether it is sitting on a see-through card.
   return (
-    <section
-      className={classNames(
-        "relative flex w-full min-h-0 flex-col overflow-hidden shrink-0",
-        variantClasses,
-        paddingStyles[padding],
-        cornerStyles[corner],
-        fullWidth ? "w-full" : undefined,
-        isOverlay ? overlayClasses : undefined,
-        hoverShadow &&
-          "transition-shadow duration-200 hover:shadow-xl hover:-translate-y-[1px]",
-        isHoverable && "group cursor-pointer",
-        isHoverable &&
-          hoverColorName &&
-          `hover:bg-${hoverColorName}-50 dark:hover:bg-${hoverColorName}-900/20`,
-        className,
-      )}
-      style={resolvedStyle}
-      data-variant={variant}
-      data-tone={tone}
-      aria-busy={loading}
-      {...rest}
-    >
-      {isOverlay && (
-        <>
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="h-full w-full">{media}</div>
-          </div>
+    <SurfaceProvider variant={variant}>
+      <section
+        ref={ref}
+        className={classNames(
+          "relative flex w-full min-h-0 flex-col overflow-hidden shrink-0",
+          !isOverlay && surfaceText.body,
+          variantClasses,
+          getSurfacePaddingClass(padding),
+          getSurfaceCornerClass(corner),
+          fullWidth ? "w-full" : undefined,
+          isOverlay ? overlayClasses : undefined,
+          hoverShadow &&
+            "transition-shadow duration-200 hover:shadow-xl hover:-translate-y-[1px]",
+          isHoverable && "group cursor-pointer",
+          isHoverable &&
+            hoverColorName &&
+            `hover:bg-${hoverColorName}-50 dark:hover:bg-${hoverColorName}-900/20`,
+          className,
+        )}
+        style={resolvedStyle}
+        data-variant={variant}
+        data-tone={tone}
+        aria-busy={loading}
+        {...rest}
+      >
+        {isOverlay && !showSkeleton && (
+          <>
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="h-full w-full">{media}</div>
+            </div>
+            <div
+              className={classNames(
+                "pointer-events-none absolute inset-0 bg-gradient-to-br",
+                palette.overlayGradient,
+              )}
+            />
+          </>
+        )}
+        {showDecorationGradient && (
           <div
             className={classNames(
               "pointer-events-none absolute inset-0 bg-gradient-to-br",
-              palette.overlayGradient,
-            )}
-          />
-        </>
-      )}
-      {showDecorationGradient && (
-        <div
-          className={classNames(
-            "pointer-events-none absolute inset-0 bg-gradient-to-br",
-            palette.decorationGradient,
-            isHoverable &&
-              "transition-opacity duration-200 group-hover:opacity-50",
-          )}
-          aria-hidden="true"
-        />
-      )}
-      {showDecorationShapes && (
-        <>
-          <div
-            className={classNames(
-              "pointer-events-none absolute -right-10 -top-10 w-52 h-52 rounded-full",
-              palette.decorationShape,
+              palette.decorationGradient,
               isHoverable &&
                 "transition-opacity duration-200 group-hover:opacity-50",
             )}
             aria-hidden="true"
           />
-          <div
-            className={classNames(
-              "pointer-events-none absolute -left-8 -bottom-10 w-36 h-36 rounded-full opacity-70",
-              palette.decorationShape,
-              isHoverable &&
-                "transition-opacity duration-200 group-hover:opacity-40",
-            )}
-            aria-hidden="true"
-          />
-          <div
-            className={classNames(
-              "pointer-events-none absolute right-10 bottom-8 w-16 h-16 rounded-full opacity-50",
-              palette.decorationShape,
-              isHoverable &&
-                "transition-opacity duration-200 group-hover:opacity-25",
-            )}
-            aria-hidden="true"
-          />
-        </>
-      )}
-      {isHoverable && !hoverColorName && (
-        <div
-          className="pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]"
-          aria-hidden="true"
-        />
-      )}
-      {variant === "liquid-glass" && resolvedSpecularMode !== "none" && (
-        <>
-          {resolvedSpecularMode === "classic" && (
+        )}
+        {showDecorationShapes && (
+          <>
             <div
               className={classNames(
-                "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
-                "bg-gradient-to-r from-transparent via-white/40 to-transparent",
-                "dark:via-white/10",
+                "pointer-events-none absolute -right-10 -top-10 w-52 h-52 rounded-full",
+                palette.decorationShape,
+                isHoverable &&
+                  "transition-opacity duration-200 group-hover:opacity-50",
               )}
               aria-hidden="true"
             />
-          )}
-          {resolvedSpecularMode === "halo" && (
-            <>
-              {/* Top-left corner cap */}
-              <div
-                className="pointer-events-none absolute top-0 left-0 w-24 h-12 rounded-tl-[inherit] bg-gradient-to-br from-white/45 via-white/15 to-transparent"
-                aria-hidden="true"
-              />
-              {/* Top-right corner cap */}
-              <div
-                className="pointer-events-none absolute top-0 right-0 w-24 h-12 rounded-tr-[inherit] bg-gradient-to-bl from-white/45 via-white/15 to-transparent"
-                aria-hidden="true"
-              />
-              {/* Diffuse glow band */}
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-white/20 via-white/8 to-transparent"
-                aria-hidden="true"
-              />
-              {/* Bottom darken */}
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-[15%] bg-gradient-to-t from-transparent to-black/4"
-                aria-hidden="true"
-              />
-            </>
-          )}
-        </>
-      )}
-      <div
-        className={classNames(
-          "relative z-10 flex min-h-0 flex-1 flex-col gap-4",
-          isOverlay && "backdrop-blur-sm",
+            <div
+              className={classNames(
+                "pointer-events-none absolute -left-8 -bottom-10 w-36 h-36 rounded-full opacity-70",
+                palette.decorationShape,
+                isHoverable &&
+                  "transition-opacity duration-200 group-hover:opacity-40",
+              )}
+              aria-hidden="true"
+            />
+            <div
+              className={classNames(
+                "pointer-events-none absolute right-10 bottom-8 w-16 h-16 rounded-full opacity-50",
+                palette.decorationShape,
+                isHoverable &&
+                  "transition-opacity duration-200 group-hover:opacity-25",
+              )}
+              aria-hidden="true"
+            />
+          </>
         )}
-      >
-        {disabled && (
+        {isHoverable && !hoverColorName && (
           <div
-            className="absolute inset-0 z-10 bg-white/70 dark:bg-slate-900/70"
+            className="pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]"
             aria-hidden="true"
           />
         )}
-        {contentSection}
-      </div>
-      {loading && (
-        <Loader
-          overlay
-          variant={loaderType}
-          title={loaderTitle}
-          label={loaderMessage}
-          progress={loaderProgress}
-          color={loaderColor}
-        />
-      )}
-    </section>
+        {isGlass && resolvedSpecularMode !== "none" && (
+          <>
+            {resolvedSpecularMode === "classic" && (
+              <>
+                {/* Bright top edge — the bevel that sells the surface as glass. */}
+                <div
+                  className={classNames(
+                    "pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit]",
+                    "bg-gradient-to-r from-transparent via-white/60 to-transparent",
+                    "dark:via-white/20",
+                  )}
+                  aria-hidden="true"
+                />
+                {/* Light falling across the upper third, so the fill is not flat. */}
+                <div
+                  className="pointer-events-none absolute inset-x-0 top-0 h-1/3 rounded-t-[inherit] bg-gradient-to-b from-white/25 to-transparent dark:from-white/5"
+                  aria-hidden="true"
+                />
+              </>
+            )}
+            {resolvedSpecularMode === "halo" && (
+              <>
+                {/* One full-bleed layer per mode — see SURFACE_HALO_LIGHT. */}
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-[inherit] dark:hidden"
+                  style={{ backgroundImage: SURFACE_HALO_LIGHT }}
+                  aria-hidden="true"
+                />
+                <div
+                  className="pointer-events-none absolute inset-0 hidden rounded-[inherit] dark:block"
+                  style={{ backgroundImage: SURFACE_HALO_DARK }}
+                  aria-hidden="true"
+                />
+                {/* Same bevel the classic mode draws — 1px, so it cannot seam. */}
+                <div
+                  className="pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit] bg-gradient-to-r from-transparent via-white/70 to-transparent dark:via-white/25"
+                  aria-hidden="true"
+                />
+              </>
+            )}
+          </>
+        )}
+        <div
+          className={classNames(
+            "relative z-10 flex min-h-0 flex-1 flex-col gap-4",
+            isOverlay && "backdrop-blur-sm",
+          )}
+        >
+          {disabled && (
+            <div
+              className="absolute inset-0 z-10 bg-white/70 dark:bg-neutral-900/70"
+              aria-hidden="true"
+            />
+          )}
+          {contentSection}
+        </div>
+        {loading && !showSkeleton && (
+          <Loader
+            overlay
+            variant={loaderType as Exclude<LoaderProps["variant"], undefined>}
+            title={loaderTitle}
+            label={loaderMessage}
+            progress={loaderProgress}
+            color={loaderColor}
+          />
+        )}
+      </section>
+    </SurfaceProvider>
   );
-};
+});
+
+Panel.displayName = "Panel";
 
 export default Panel;

@@ -19,11 +19,54 @@ import {
   type ButtonProps,
   type ButtonVariant,
 } from ".";
+import Panel from "./Panel";
 import { type Size as ModalSize } from "../theme";
+import { DEFAULT_SURFACE_CORNER, getSurfaceTextTokens } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
+import type { PanelCorner, PanelSpecularMode, PanelVariant } from "./Panel";
+import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
 import { type IconName } from "../icons/registry";
 import { renderIcon } from "../utils/renderIcon";
 
 type ModalActionsAlign = "start" | "center" | "end" | "between";
+
+/** Where the dialog sits in the viewport before any dragging. */
+export const MODAL_POSITIONS = [
+  "center",
+  "top",
+  "bottom",
+  "left",
+  "right",
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+] as const;
+export type ModalPosition = (typeof MODAL_POSITIONS)[number];
+
+const POSITION_CLASSES: Record<ModalPosition, string> = {
+  center: "items-center justify-center",
+  top: "items-start justify-center",
+  bottom: "items-end justify-center",
+  left: "items-center justify-start",
+  right: "items-center justify-end",
+  "top-left": "items-start justify-start",
+  "top-right": "items-start justify-end",
+  "bottom-left": "items-end justify-start",
+  "bottom-right": "items-end justify-end",
+};
+
+/**
+ * Every open dialog, innermost last. Escape used to be handled by a document
+ * listener in *every* mounted Modal, so one key press closed the whole stack.
+ */
+const modalStack: string[] = [];
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Keeps the dialog at least this far inside the viewport when dragged. */
+const DRAG_MARGIN = 48;
 
 const sizePresets: Record<
   ModalSize,
@@ -90,7 +133,12 @@ const ModalActions: React.FC<ModalActionsProps> = ({
 };
 
 export interface ModalProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "title" | "children"> {
+  // `color` is omitted because `Panel` redefines it as a TrueColor; the plain
+  // HTML attribute of the same name would collide when forwarded.
+  extends Omit<
+    React.HTMLAttributes<HTMLDivElement>,
+    "title" | "children" | "color"
+  > {
   isOpen: boolean;
   onClose: () => void;
   title: ReactNode;
@@ -117,6 +165,7 @@ export interface ModalProps
   headerActions?: ButtonProps[];
   header_actions?: ButtonProps[];
   headerTabs?: TabsProps;
+  /** @deprecated Declared but never read. Use `headerTabs`. */
   header_tabs?: TabsProps;
   loading?: boolean;
   loadingTitle?: ReactNode;
@@ -129,6 +178,43 @@ export interface ModalProps
   initialFocusRef?: React.RefObject<HTMLElement>;
   ariaLabel?: string;
   role?: "dialog" | "alertdialog";
+
+  // ── Window behaviour ──────────────────────────────────────────────────────
+  /**
+   * Lets the dialog be dragged by its header, like a window.
+   * @default true
+   */
+  draggable?: boolean;
+  /** Where the dialog sits before it is dragged. @default "center" */
+  position?: ModalPosition;
+  /** Opens filling the whole viewport. */
+  showMaximized?: boolean;
+  /** Adds a maximise / restore toggle to the header. */
+  showMaximizeButton?: boolean;
+  /** Called whenever the maximised state changes. */
+  onMaximizedChange?: (maximized: boolean) => void;
+  /** Drops the header entirely — no title, no close button, no drag handle. */
+  headless?: boolean;
+  /**
+   * On a narrow viewport, ignore `position`, dragging and the size preset and
+   * fill the screen instead. A dialog dragged half off a phone is unusable.
+   * @default true
+   */
+  responsive?: boolean;
+  /** Width below which `responsive` takes over, in pixels. @default 640 */
+  responsiveBreakpoint?: number;
+
+  // ── Surface ───────────────────────────────────────────────────────────────
+  /** Corner rounding. Defaults to the same scale the Panels use. */
+  corner?: PanelCorner;
+  /** Surface treatment, shared with `Panel`. @default "elevated" */
+  variant?: PanelVariant;
+  tone?: TrueColor;
+  glassOpacity?: GlassOpacity;
+  vibrancy?: GlassVibrancy;
+  specularMode?: PanelSpecularMode;
+  /** Icon for the maximise toggle. @default "Scale" */
+  maximizeIcon?: IconName;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -159,6 +245,8 @@ const Modal: React.FC<ModalProps> = ({
   headerActions,
   header_actions,
   headerTabs,
+  // Destructured only so the deprecated alias cannot land on the DOM.
+  header_tabs: _headerTabs,
   loading,
   loadingTitle,
   loadingLabel,
@@ -169,6 +257,21 @@ const Modal: React.FC<ModalProps> = ({
   ariaLabel,
   role = "dialog",
   showFooterDivider,
+  draggable = true,
+  position = "center",
+  showMaximized = false,
+  showMaximizeButton = false,
+  onMaximizedChange,
+  headless = false,
+  responsive = true,
+  responsiveBreakpoint = 640,
+  corner = DEFAULT_SURFACE_CORNER,
+  variant = "elevated",
+  tone = "neutral",
+  glassOpacity,
+  vibrancy,
+  specularMode,
+  maximizeIcon = "Scale",
   onMouseDown,
   onClick,
   onKeyDown,
@@ -181,6 +284,109 @@ const Modal: React.FC<ModalProps> = ({
 
   const headingId = useId();
   const bodyId = useId();
+  const instanceId = useId();
+
+  const [maximized, setMaximized] = useState(showMaximized);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+  } | null>(null);
+
+  // ── Responsive ────────────────────────────────────────────────────────────
+  const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    if (!hasDom || !responsive) {
+      setIsNarrow(false);
+      return undefined;
+    }
+    const query = window.matchMedia(`(max-width: ${responsiveBreakpoint}px)`);
+    const update = () => setIsNarrow(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, [hasDom, responsive, responsiveBreakpoint]);
+
+  /** Narrow viewports fill the screen; a dialog dragged half off a phone is unusable. */
+  const isFullScreen = maximized || isNarrow;
+  const canDrag = draggable && !isFullScreen;
+
+  const toggleMaximized = useCallback(() => {
+    setMaximized((previous) => {
+      const next = !previous;
+      onMaximizedChange?.(next);
+      return next;
+    });
+    // Restoring should put the dialog back where `position` says, not where it
+    // happened to be dragged to before it was maximised.
+    setOffset({ x: 0, y: 0 });
+  }, [onMaximizedChange]);
+
+  // Reopening resets the window state, so a dialog never returns dragged
+  // off-screen from a previous session.
+  useEffect(() => {
+    if (isOpen) {
+      setMaximized(showMaximized);
+      setOffset({ x: 0, y: 0 });
+    }
+  }, [isOpen, showMaximized]);
+
+  // ── Dragging ──────────────────────────────────────────────────────────────
+  const handleDragStart = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!canDrag || event.button !== 0) return;
+      // Never start a drag from a control inside the header.
+      if (
+        (event.target as HTMLElement).closest(
+          "button, a, input, select, textarea, [role='tab'], [data-no-drag]",
+        )
+      ) {
+        return;
+      }
+      event.currentTarget.setPointerCapture(event.pointerId);
+      dragRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX - offset.x,
+        startY: event.clientY - offset.y,
+      };
+    },
+    [canDrag, offset.x, offset.y],
+  );
+
+  const handleDragMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+
+      const rect = contentRef.current?.getBoundingClientRect();
+      let nextX = event.clientX - drag.startX;
+      let nextY = event.clientY - drag.startY;
+
+      // Clamped so the dialog can never be dragged fully off-screen and
+      // stranded — its header stays reachable.
+      if (rect) {
+        const minX = -(rect.left - offset.x) - rect.width + DRAG_MARGIN;
+        const maxX = window.innerWidth - (rect.left - offset.x) - DRAG_MARGIN;
+        const minY = -(rect.top - offset.y);
+        const maxY = window.innerHeight - (rect.top - offset.y) - DRAG_MARGIN;
+        nextX = Math.min(Math.max(nextX, minX), maxX);
+        nextY = Math.min(Math.max(nextY, minY), maxY);
+      }
+
+      setOffset({ x: nextX, y: nextY });
+    },
+    [offset.x, offset.y],
+  );
+
+  const handleDragEnd = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (dragRef.current?.pointerId !== event.pointerId) return;
+      event.currentTarget.releasePointerCapture(event.pointerId);
+      dragRef.current = null;
+    },
+    [],
+  );
 
   const isDarkOverlay = darkOverlay ?? dark_overlay ?? false;
   const footerContent = footer ?? actions;
@@ -223,29 +429,58 @@ const Modal: React.FC<ModalProps> = ({
         ? `min(100%, ${presetWidthValue})`
         : undefined;
 
+  // The dialog's own regions — the recessed body, the footer, the hairlines —
+  // are painted here rather than left to the Panel, so they have to follow the
+  // variant. An opaque `bg-neutral-50` over a glass card reads as a hole
+  // punched through it: the header looked like glass and nothing else did.
+  const surfaceTokens = getSurfaceTextTokens(variant);
+  const isTranslucent = surfaceTokens.translucent;
+
+  /** Slightly recessed area behind the body and footer. */
+  const recessedClass = isTranslucent
+    ? "bg-white/10 dark:bg-white/5"
+    : "bg-neutral-50 dark:bg-neutral-800/60";
+  /** Hairline between the dialog's regions. */
+  const dividerClass = isTranslucent
+    ? surfaceTokens.divider
+    : "border-neutral-200/70 dark:border-neutral-700/60";
+
   const overlayClasses = classNames(
-    "fixed inset-0 z-[1600] flex min-h-full items-start justify-center overflow-y-auto px-4 py-6 sm:px-8 sm:py-12 sm:items-center",
+    "fixed inset-0 z-[1600] flex min-h-full overflow-y-auto",
+    isFullScreen ? "p-0 sm:p-4" : "px-4 py-6 sm:px-8 sm:py-12",
+    // `position` decides where the dialog sits; it was hardcoded to
+    // start-then-centre.
+    isFullScreen ? "items-stretch justify-center" : POSITION_CLASSES[position],
     isDarkOverlay ? "bg-neutral-950/70" : "bg-neutral-900/40",
     "backdrop-blur-sm",
     overlayClassName,
   );
 
   const contentClasses = classNames(
-    "relative flex w-full max-h-[90vh] sm:max-h-[85vh] flex-col overflow-hidden rounded-[28px] border border-neutral-200/70 bg-white shadow-2xl transition-all duration-200 ease-out dark:border-neutral-700/60 dark:bg-neutral-800",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-0",
-    sizeClass,
+    "relative flex w-full flex-col",
+    isFullScreen ? "h-full max-h-none" : "max-h-[90vh] sm:max-h-[85vh]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset",
+    `focus-visible:ring-${tone === "neutral" ? "blue" : tone}-400`,
+    !isFullScreen && sizeClass,
     backgroundClassName,
     background_color,
     className,
   );
 
   const showFooterDividerClass = showFooterDivider
-    ? "border-t border-neutral-200/70 dark:border-neutral-700/60"
+    ? classNames("border-t", dividerClass)
     : "";
 
   const contentStyle: React.CSSProperties = {
-    ...(resolvedWidth ? { width: resolvedWidth } : undefined),
-    ...(resolvedMaxWidth ? { maxWidth: resolvedMaxWidth } : undefined),
+    ...(offset.x || offset.y
+      ? { transform: `translate(${offset.x}px, ${offset.y}px)` }
+      : undefined),
+    ...(isFullScreen
+      ? { width: "100%", maxWidth: "none" }
+      : {
+          ...(resolvedWidth ? { width: resolvedWidth } : undefined),
+          ...(resolvedMaxWidth ? { maxWidth: resolvedMaxWidth } : undefined),
+        }),
     ...(minWidth !== undefined
       ? { minWidth: toCssDimension(minWidth) }
       : undefined),
@@ -262,12 +497,63 @@ const Modal: React.FC<ModalProps> = ({
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (closeOnEsc && event.key === "Escape") {
+      if (!closeOnEsc || event.key !== "Escape") return;
+      // Only the innermost dialog reacts. Every mounted Modal used to add its
+      // own document listener, so one Escape closed the entire stack.
+      if (modalStack[modalStack.length - 1] !== instanceId) return;
+      event.preventDefault();
+      onClose();
+    },
+    [closeOnEsc, onClose, instanceId],
+  );
+
+  // ── Stack registration ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!hasDom || !isOpen) return undefined;
+    modalStack.push(instanceId);
+    return () => {
+      const index = modalStack.indexOf(instanceId);
+      if (index >= 0) modalStack.splice(index, 1);
+    };
+  }, [hasDom, isOpen, instanceId]);
+
+  // ── Focus trap ────────────────────────────────────────────────────────────
+  // `aria-modal="true"` promises focus stays inside; nothing enforced it, so
+  // Tab walked straight out into the page behind the overlay.
+  const handleTrapKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLElement>) => {
+      if (event.key !== "Tab") return;
+      const root = contentRef.current;
+      if (!root) return;
+
+      // Filtering on `offsetParent` would be wrong twice over: it is `null`
+      // for any `position: fixed` element, and always `null` without layout.
+      // Hidden markers are what actually matter here.
+      const focusable = [
+        ...root.querySelectorAll<HTMLElement>(FOCUSABLE),
+      ].filter(
+        (element) =>
+          !element.closest("[inert], [hidden], [aria-hidden='true']"),
+      );
+      if (focusable.length === 0) {
         event.preventDefault();
-        onClose();
+        root.focus({ preventScroll: true });
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (active === first || active === root)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
       }
     },
-    [closeOnEsc, onClose],
+    [],
   );
 
   // Effect to handle initial focus
@@ -379,10 +665,117 @@ const Modal: React.FC<ModalProps> = ({
     return null;
   }
 
+  const header = headless ? null : (
+    <div
+      // The drag handle. Pointer events, so a pen or touch works the same as a
+      // mouse, and `setPointerCapture` keeps the drag alive when the cursor
+      // outruns the header.
+      onPointerDown={handleDragStart}
+      onPointerMove={handleDragMove}
+      onPointerUp={handleDragEnd}
+      onPointerCancel={handleDragEnd}
+      className={classNames(
+        "flex shrink-0 items-start justify-between gap-4 border-b py-4 pl-4 pr-3",
+        dividerClass,
+        canDrag && "cursor-grab select-none active:cursor-grabbing",
+      )}
+    >
+      {onBack && (
+        <div className="flex shrink-0 items-center self-center">
+          <IconButton
+            icon="ArrowChevronLeft"
+            variant="ghost"
+            color="slate"
+            size="sm"
+            tooltip={backTooltip}
+            tooltipPosition="bottom"
+            aria-label={backTooltip}
+            onClick={onBack}
+          />
+        </div>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 items-center gap-3">
+          {icon && (
+            <div
+              className={classNames(
+                "flex shrink-0 items-center justify-center",
+                surfaceTokens.muted,
+              )}
+            >
+              {renderIcon(icon, "sm")}
+            </div>
+          )}
+          <div className="min-w-0">
+            <h2
+              id={headingId}
+              className={classNames(
+                "truncate text-xl font-medium tracking-tight",
+                surfaceTokens.heading,
+              )}
+            >
+              {title}
+            </h2>
+          </div>
+        </div>
+        {description && (
+          <p className={classNames("text-sm", surfaceTokens.description)}>
+            {description}
+          </p>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {effectiveHeaderActions.map((action, index) => (
+          <Button key={`modal-header-action-${index}`} {...action} />
+        ))}
+        {showMaximizeButton && !isNarrow && (
+          <IconButton
+            icon={maximizeIcon}
+            variant="ghost"
+            color="slate"
+            size="sm"
+            aria-label={maximized ? "Restore dialog" : "Maximise dialog"}
+            tooltip={maximized ? "Restore" : "Maximise"}
+            aria-pressed={maximized}
+            onClick={toggleMaximized}
+          />
+        )}
+        {!hideCloseButton && (
+          <IconButton
+            ref={closeButtonRef}
+            icon="Close"
+            variant="ghost"
+            color="slate"
+            size="sm"
+            aria-label="Close dialog"
+            onClick={onClose}
+          />
+        )}
+      </div>
+    </div>
+  );
+
   const content = (
     <div className={overlayClasses} onMouseDown={handleBackdropMouseDown}>
-      <div
+      <Panel
+        // The dialog is a card, so it renders one — every surface, tone and
+        // corner comes from the shared scale instead of a hardcoded
+        // `rounded-[28px]` white box.
         ref={contentRef}
+        variant={variant}
+        tone={tone}
+        corner={isFullScreen && isNarrow ? "none" : corner}
+        padding="none"
+        scrollable={false}
+        // The dialog's own header / body / footer are a flex column, so the
+        // Panel's children wrapper has to be one too — otherwise the body's
+        // `flex-1` has no flex parent and a maximised dialog leaves the space
+        // below its footer empty.
+        flexBody
+        bodyClassName="!space-y-0 !gap-0"
+        glassOpacity={glassOpacity}
+        vibrancy={vibrancy}
+        specularMode={specularMode}
         className={contentClasses}
         style={contentStyle}
         role={role}
@@ -394,66 +787,18 @@ const Modal: React.FC<ModalProps> = ({
         tabIndex={-1}
         onMouseDown={handleContentMouseDown}
         onClick={handleContentClick}
-        onKeyDown={handleContentKeyDown}
+        onKeyDown={(event: React.KeyboardEvent<HTMLElement>) => {
+          handleTrapKeyDown(event);
+          handleContentKeyDown(event as React.KeyboardEvent<HTMLDivElement>);
+        }}
         {...rest}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-neutral-200/70 pl-4 pr-3 py-4 dark:border-neutral-700/60">
-          {onBack && (
-            <div className="flex shrink-0 items-center self-center">
-              <IconButton
-                icon="ArrowChevronLeft"
-                variant="ghost"
-                color="slate"
-                size="sm"
-                tooltip={backTooltip}
-                tooltipPosition="bottom"
-                aria-label={backTooltip}
-                onClick={onBack}
-              />
-            </div>
-          )}
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <div className="flex min-w-0 items-center gap-3">
-              {icon && (
-                <div className="flex shrink-0 items-center justify-center text-neutral-600 dark:text-neutral-200">
-                  {renderIcon(icon, "sm")}
-                </div>
-              )}
-              <div className="min-w-0">
-                <h2
-                  id={headingId}
-                  className="truncate text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100"
-                >
-                  {title}
-                </h2>
-              </div>
-            </div>
-            {description && (
-              <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                {description}
-              </p>
-            )}
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {effectiveHeaderActions.map((action, index) => (
-              <Button key={`modal-header-action-${index}`} {...action} />
-            ))}
-            {!hideCloseButton && (
-              <IconButton
-                ref={closeButtonRef}
-                icon="Close"
-                variant="ghost"
-                color="slate"
-                size="sm"
-                aria-label="Close dialog"
-                onClick={onClose}
-              />
-            )}
-          </div>
-        </div>
+        {header}
 
         {tabsConfig && (
-          <div className="shrink-0 border-b border-neutral-200/70 px-6 py-2 dark:border-neutral-700/60">
+          <div
+            className={classNames("shrink-0 border-b px-6 py-2", dividerClass)}
+          >
             <Tabs
               {...tabsConfig}
               className={classNames(
@@ -465,12 +810,22 @@ const Modal: React.FC<ModalProps> = ({
         )}
 
         {bodyHeader && (
-          <div className="shrink-0 border-b border-neutral-200/70 bg-neutral-50 px-6 py-3 dark:border-neutral-700/60 dark:bg-neutral-800/60">
-            {" "}
+          <div
+            className={classNames(
+              "shrink-0 border-b px-6 py-3",
+              dividerClass,
+              recessedClass,
+            )}
+          >
             {bodyHeader}
           </div>
         )}
-        <div className="relative flex flex-1 min-h-0 overflow-hidden bg-neutral-50 dark:bg-neutral-800/60">
+        <div
+          className={classNames(
+            "relative flex min-h-0 flex-1 overflow-hidden",
+            recessedClass,
+          )}
+        >
           {loading && (
             <Loader
               overlay
@@ -482,7 +837,7 @@ const Modal: React.FC<ModalProps> = ({
           <div
             id={bodyId}
             className={classNames(
-              "relative flex-1 min-h-0 overflow-y-auto px-6 py-5",
+              "relative min-h-0 flex-1 overflow-y-auto px-6 py-5",
               "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent",
               bodyClassName,
               loading && "pointer-events-none",
@@ -494,25 +849,25 @@ const Modal: React.FC<ModalProps> = ({
         {footerContent && (
           <div
             className={classNames(
-              "flex shrink-0 items-center  justify-end gap-3 bg-neutral-50 px-6 py-4 dark:bg-neutral-800/60",
+              "flex shrink-0 items-center justify-end gap-3 px-6 py-4",
+              recessedClass,
               showFooterDividerClass,
             )}
           >
             {footerContent}
           </div>
         )}
-      </div>
+      </Panel>
     </div>
   );
 
   return createPortal(content, document.body);
 };
 
-interface ConfirmModalProps
-  extends Omit<
-    ModalProps,
-    "footer" | "actions" | "children" | "onClose" | "title"
-  > {
+interface ConfirmModalProps extends Omit<
+  ModalProps,
+  "footer" | "actions" | "children" | "onClose" | "title"
+> {
   title: ReactNode;
   children?: ReactNode;
   onClose: () => void;
@@ -570,11 +925,10 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   );
 };
 
-interface DeleteConfirmModalProps
-  extends Omit<
-    ConfirmModalProps,
-    "confirmLabel" | "confirmVariant" | "confirmColor"
-  > {
+interface DeleteConfirmModalProps extends Omit<
+  ConfirmModalProps,
+  "confirmLabel" | "confirmVariant" | "confirmColor"
+> {
   /** The exact string the user must type to enable the delete button. */
   confirmValue: string;
   /** Human-readable label shown in the instruction, e.g. "key name". Default: "name" */
@@ -658,11 +1012,10 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   );
 };
 
-interface ApplyConfirmModalProps
-  extends Omit<
-    ConfirmModalProps,
-    "confirmLabel" | "confirmVariant" | "confirmColor"
-  > {
+interface ApplyConfirmModalProps extends Omit<
+  ConfirmModalProps,
+  "confirmLabel" | "confirmVariant" | "confirmColor"
+> {
   /** The exact string the user must type to enable the apply button. */
   confirmValue: string;
   /** Human-readable label shown in the instruction, e.g. "key name". Default: "name" */

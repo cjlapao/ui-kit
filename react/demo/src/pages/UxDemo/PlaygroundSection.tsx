@@ -1,4 +1,8 @@
 import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import classNames from "classnames";
+import { Button, Toggle, useTheme } from "@cjlapao/ui-kit";
+import backdropLight from "@assets/images/backdrop_demo_light.png";
+import backdropDark from "@assets/images/backdrop_demo_dark.png";
 
 interface PlaygroundSectionProps {
   title: string;
@@ -6,6 +10,11 @@ interface PlaygroundSectionProps {
   description?: string;
   controls: ReactNode;
   preview: ReactNode;
+  /**
+   * Hide the header's background-image toggle for demos that supply their own
+   * backdrop (GlassBackground draws one itself, so a second would fight it).
+   */
+  hideBackgroundToggle?: boolean;
 }
 
 export const PlaygroundSection: React.FC<PlaygroundSectionProps> = ({
@@ -14,8 +23,12 @@ export const PlaygroundSection: React.FC<PlaygroundSectionProps> = ({
   description,
   controls,
   preview,
+  hideBackgroundToggle = false,
 }) => {
   const isDomAvailable = typeof window !== "undefined";
+  const { effectiveTheme } = useTheme();
+  const [showBackground, setShowBackground] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const [controlsRatio, setControlsRatio] = useState(0.45);
   const [isWide, setIsWide] = useState(() =>
     isDomAvailable ? window.matchMedia("(min-width: 1024px)").matches : false,
@@ -102,6 +115,20 @@ export const PlaygroundSection: React.FC<PlaygroundSectionProps> = ({
     [controlsRatio, isWide],
   );
 
+  const showSplit = showControls && isWide;
+
+  const previewBackgroundStyle = useMemo<React.CSSProperties | undefined>(
+    () =>
+      showBackground
+        ? {
+            backgroundImage: `url(${
+              effectiveTheme === "dark" ? backdropDark : backdropLight
+            })`,
+          }
+        : undefined,
+    [showBackground, effectiveTheme],
+  );
+
   return (
     <section className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm transition dark:border-slate-800 dark:bg-slate-900/60">
       <header className="mb-4 flex flex-wrap items-center gap-3">
@@ -120,22 +147,62 @@ export const PlaygroundSection: React.FC<PlaygroundSectionProps> = ({
             </p>
           )}
         </div>
-      </header>
-      <div ref={gridRef} className="relative grid gap-4" style={gridStyle}>
-        <div className="space-y-4 rounded-2xl border border-slate-100/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-          {controls}
+        <div className="ml-auto flex items-center gap-3">
+          {!hideBackgroundToggle && (
+            <Toggle
+              size="sm"
+              alignLabel="left"
+              color="blue"
+              label="Background image"
+              checked={showBackground}
+              onChange={(event) => setShowBackground(event.target.checked)}
+            />
+          )}
+          <Button
+            size="xs"
+            variant="ghost"
+            color="blue"
+            onClick={() => setShowControls((visible) => !visible)}
+            aria-expanded={showControls}
+          >
+            {showControls ? "Hide options" : "Show options"}
+          </Button>
         </div>
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+      </header>
+      <div
+        ref={gridRef}
+        className="relative grid gap-4"
+        style={showControls ? gridStyle : { gridTemplateColumns: "1fr" }}
+      >
+        {showControls && (
+          <div className="space-y-4 rounded-2xl border border-slate-100/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+            {controls}
+          </div>
+        )}
+        <div
+          className={classNames(
+            "rounded-2xl border border-dashed border-slate-200 p-4 dark:border-slate-800",
+            showBackground
+              ? "overflow-hidden bg-cover bg-center bg-no-repeat"
+              : "bg-white/60 dark:bg-slate-900/50",
+          )}
+          style={previewBackgroundStyle}
+        >
           {preview}
         </div>
-        <button
-          type="button"
-          aria-label="Resize playground columns"
-          className="pointer-events-auto absolute top-4 bottom-4 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full bg-slate-200 shadow-sm transition hover:bg-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 lg:block"
-          style={{ left: `${controlsRatio * 100}%`, opacity: isWide ? 1 : 0 }}
-          onMouseDown={handleDragStart}
-          onTouchStart={handleDragStart}
-        />
+        {showSplit && (
+          // Wide invisible grab area, thin visible bar.
+          <button
+            type="button"
+            aria-label="Resize playground columns"
+            className="group pointer-events-auto absolute top-4 bottom-4 flex w-4 -translate-x-1/2 cursor-col-resize items-stretch justify-center bg-transparent focus-visible:outline-none"
+            style={{ left: `${controlsRatio * 100}%` }}
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
+          >
+            <span className="h-full w-1 rounded-full bg-slate-200 transition group-hover:bg-slate-300 group-focus-visible:bg-blue-400 dark:bg-slate-700 dark:group-hover:bg-slate-600" />
+          </button>
+        )}
       </div>
     </section>
   );

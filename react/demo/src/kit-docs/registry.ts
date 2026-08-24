@@ -1,0 +1,479 @@
+import { lazy, type ComponentType, type LazyExoticComponent } from "react";
+import type { IconName } from "@cjlapao/ui-kit";
+
+/**
+ * The single source of truth for the docs site: which component pages exist,
+ * how they are grouped in the side menu, and what their blurbs say.
+ *
+ * Adding a page = one entry here + one folder under `components/`. The menu,
+ * the routes and the overview index all derive from this list.
+ */
+export interface DocComponent {
+  /** URL segment and folder name: /docs/<slug> */
+  slug: string;
+  /** Display name in the menu and page header. */
+  name: string;
+  /** One-line description under the page title and in the overview grid. */
+  description: string;
+  /** Side-menu icon (a kit registry name). */
+  icon: IconName;
+  /** Side-menu category, in display order. */
+  category: DocCategory;
+  /** The page component, lazy-loaded so the first paint stays small. */
+  Page: LazyExoticComponent<ComponentType>;
+}
+
+export type DocCategory =
+  | "Layout"
+  | "Basics"
+  | "Forms"
+  | "Data"
+  | "Feedback"
+  | "Overlays";
+
+export const DOC_CATEGORIES: DocCategory[] = [
+  "Layout",
+  "Basics",
+  "Forms",
+  "Data",
+  "Feedback",
+  "Overlays",
+];
+
+export const DOC_COMPONENTS: DocComponent[] = [
+  {
+    slug: "side-menu",
+    name: "Side Menu",
+    description:
+      "App navigation in four surface treatments, with icon/offcanvas collapse, hover rails, nested items, search and top/footer menus — plus dual and multi-sidebar layouts.",
+    icon: "ViewRows",
+    category: "Layout",
+    Page: lazy(() => import("./components/side-menu/SideMenuPage")),
+  },
+  {
+    slug: "breadcrumb",
+    name: "Breadcrumb",
+    description:
+      "The page hierarchy as a trail of crumbs — router links, a home crumb, custom separators, an ellipsis for hidden levels and the full tone set.",
+    icon: "Folder",
+    category: "Layout",
+    Page: lazy(() => import("./components/breadcrumb/BreadcrumbPage")),
+  },
+  {
+    slug: "glass-background",
+    name: "Glass Background",
+    description:
+      "Full-bleed gradient backdrops with ambient glows and shimmer, built to sit behind glass panels.",
+    icon: "Globe",
+    category: "Layout",
+    Page: lazy(() => import("./components/glass-background/GlassBackgroundPage")),
+  },
+  {
+    slug: "panel",
+    name: "Panel",
+    description:
+      "The shared container — eight surfaces, media placements, badges, actions, decorations and loaders.",
+    icon: "Container",
+    category: "Layout",
+    Page: lazy(() => import("./components/panel/PanelPage")),
+  },
+  {
+    slug: "collapsible-help-text",
+    name: "Collapsible Help Text",
+    description:
+      "Inline helper copy that truncates to a summary and expands — every Panel surface plus a plain variant.",
+    icon: "Help",
+    category: "Layout",
+    Page: lazy(() => import("./components/collapsible-help-text/CollapsibleHelpTextPage")),
+  },
+  {
+    slug: "collapsible-panel",
+    name: "Collapsible Panel",
+    description:
+      "Accordion-style panel built on Panel — controlled or uncontrolled, with header actions and a scrollable content cap.",
+    icon: "ChevronRight",
+    category: "Layout",
+    Page: lazy(() => import("./components/collapsible-panel/CollapsiblePanelPage")),
+  },
+  {
+    slug: "app-divider",
+    name: "App Divider",
+    description:
+      "A rule between sections — vertical or horizontal, optionally labelled, adapting to the surface's divider colour.",
+    icon: "Equal",
+    category: "Layout",
+    Page: lazy(() => import("./components/app-divider/AppDividerPage")),
+  },
+  {
+    slug: "header-group",
+    name: "Header Group",
+    description:
+      "Clusters related header controls; adjacent groups get an automatic separator that a lone group never draws.",
+    icon: "ViewGrid",
+    category: "Layout",
+    Page: lazy(() => import("./components/header-group/HeaderGroupPage")),
+  },
+  {
+    slug: "button",
+    name: "Button",
+    description:
+      "Actions in every variant, size and weight — from solid primaries to quiet ghosts.",
+    icon: "Cog",
+    category: "Basics",
+    Page: lazy(() => import("./components/button/ButtonPage")),
+  },
+  {
+    slug: "toggle",
+    name: "Toggle",
+    description:
+      "On/off switches with labels, descriptions, sizes and glass surfaces.",
+    icon: "Settings",
+    category: "Basics",
+    Page: lazy(() => import("./components/toggle/TogglePage")),
+  },
+  {
+    slug: "checkbox",
+    name: "Checkbox",
+    description:
+      "Multi-select inputs with labels, descriptions and the indeterminate state.",
+    icon: "Verified",
+    category: "Basics",
+    Page: lazy(() => import("./components/checkbox/CheckboxPage")),
+  },
+  {
+    slug: "custom-icon",
+    name: "Custom Icon",
+    description:
+      "Any icon in the registry — theme-tone or raw-colour tinting, button mode, spin, and a size-preserving fallback.",
+    icon: "Library",
+    category: "Basics",
+    Page: lazy(() => import("./components/custom-icon/CustomIconPage")),
+  },
+  {
+    slug: "dynamic-img",
+    name: "Dynamic Image",
+    description:
+      "Data URLs and raw SVG, sanitised against an allowlist and recoloured to the theme — with a size scale, fallback and accessible names.",
+    icon: "Image",
+    category: "Basics",
+    Page: lazy(() => import("./components/dynamic-img/DynamicImgPage")),
+  },
+  {
+    slug: "pill",
+    name: "Pill",
+    description:
+      "Small status and metadata labels — three opaque variants plus two glass, the full tone set, icons, a remove button and a status dot.",
+    icon: "Pin",
+    category: "Basics",
+    Page: lazy(() => import("./components/pill/PillPage")),
+  },
+  {
+    slug: "dropdown-button",
+    name: "Dropdown Button",
+    description:
+      "A Button with a caret trigger that opens a menu — split or collapsed, full variant/size/tone range, and the caret vanishes when the menu is empty.",
+    icon: "ArrowDown",
+    category: "Basics",
+    Page: lazy(() => import("./components/dropdown-button/DropdownButtonPage")),
+  },
+  {
+    slug: "icon-button",
+    name: "Icon Button",
+    description:
+      "A square icon-only control — the full Button palette plus corner radius, loading, accent, icon tint, glass with specular highlights and a styled tooltip.",
+    icon: "ThemeAuto",
+    category: "Basics",
+    Page: lazy(() => import("./components/icon-button/IconButtonPage")),
+  },
+  {
+    slug: "tabs",
+    name: "Tabs",
+    description:
+      "Switch between panes with icons, descriptions, badges and contextual actions. Seven variants — including glass — plus size, tone, orientation and justify.",
+    icon: "ViewGrid",
+    category: "Basics",
+    Page: lazy(() => import("./components/tabs/TabsPage")),
+  },
+  {
+    slug: "input",
+    name: "Input",
+    description:
+      "Text fields with six surface variants, tones, icons and validation states.",
+    icon: "Edit",
+    category: "Forms",
+    Page: lazy(() => import("./components/input/InputPage")),
+  },
+  {
+    slug: "searchbar",
+    name: "Search Bar",
+    description:
+      "Debounced search with clear, Enter and Escape — sharing Input's variants and sizes, plus a gradient glow.",
+    icon: "Search",
+    category: "Forms",
+    Page: lazy(() => import("./components/searchbar/SearchBarPage")),
+  },
+  {
+    slug: "textarea",
+    name: "Textarea",
+    description:
+      "Multi-line input sharing Input's variants and sizes, with label, status-aware help text and a character counter.",
+    icon: "Log",
+    category: "Forms",
+    Page: lazy(() => import("./components/textarea/TextareaPage")),
+  },
+  {
+    slug: "form",
+    name: "Form",
+    description:
+      "FormSection, FormLayout and FormField — a panel with header and footer, a responsive grid, and label/a11y wiring for each control.",
+    icon: "File",
+    category: "Forms",
+    Page: lazy(() => import("./components/form/FormPage")),
+  },
+  {
+    slug: "key-value-array-field",
+    name: "Key/Value Array",
+    description:
+      "Collect arbitrary metadata pairs — every container surface, duplicate-key flagging, a row cap and collapsible help.",
+    icon: "Database",
+    category: "Forms",
+    Page: lazy(() => import("./components/key-value-array-field/KeyValueArrayFieldPage")),
+  },
+  {
+    slug: "smart-input",
+    name: "Smart Input",
+    description:
+      "A value that can embed variable tokens — picker insertion, token/value preview and a read-only SmartValue twin.",
+    icon: "Idea",
+    category: "Forms",
+    Page: lazy(() => import("./components/smart-input/SmartInputPage")),
+  },
+  {
+    slug: "multi-select-pills",
+    name: "Multi Select Pills",
+    description:
+      "A row of pills as a checkbox or radio group — it renders the kit's Pill, inheriting every variant, tone, size and corner, including glass.",
+    icon: "Check",
+    category: "Forms",
+    Page: lazy(() => import("./components/multi-select-pills/MultiSelectPillsPage")),
+  },
+  {
+    slug: "input-otp",
+    name: "Input OTP",
+    description:
+      "Single-character cells for one-time codes — masked or plain, integer-only, with paste and arrow-key navigation.",
+    icon: "Key",
+    category: "Forms",
+    Page: lazy(() => import("./components/input-otp/InputOtpPage")),
+  },
+  {
+    slug: "rating",
+    name: "Rating",
+    description:
+      "Star-based selection with half stars, sizes, tones, vertical layout and custom icons.",
+    icon: "Star",
+    category: "Forms",
+    Page: lazy(() => import("./components/rating/RatingPage")),
+  },
+  {
+    slug: "slider",
+    name: "Slider",
+    description:
+      "Drag a handle along a track — solid, soft, outline, ghost and glass variants, range mode, steps, vertical layout and full keyboard support.",
+    icon: "Parameter",
+    category: "Forms",
+    Page: lazy(() => import("./components/slider/SliderPage")),
+  },
+  {
+    slug: "select",
+    name: "Select",
+    description:
+      "The native dropdown with the kit's caret — six shared surfaces, the full control scale and generated tone focus rings.",
+    icon: "Edit",
+    category: "Forms",
+    Page: lazy(() => import("./components/select/SelectPage")),
+  },
+  {
+    slug: "input-group",
+    name: "Input Group",
+    description:
+      "A field with addons welded to its edges — the group owns the box and its children render unstyled, so it takes the shared surface, size and tone scales.",
+    icon: "Attached",
+    category: "Forms",
+    Page: lazy(() => import("./components/input-group/InputGroupPage")),
+  },
+  {
+    slug: "table",
+    name: "Table",
+    description:
+      "A data grid on the shared panel surface — sorting, grouping, pagination, column management, and opt-in settings persistence.",
+    icon: "ViewRows",
+    category: "Data",
+    Page: lazy(() => import("./components/table/TablePage")),
+  },
+  {
+    slug: "tree",
+    name: "Tree",
+    description:
+      "Hierarchical data with expand/collapse, selection modes, filtering and keyboard navigation.",
+    icon: "Details",
+    category: "Data",
+    Page: lazy(() => import("./components/tree/TreePage")),
+  },
+  {
+    slug: "organization-chart",
+    name: "Organization Chart",
+    description:
+      "Hierarchical org data as a branching diagram with collapsible nodes and selection modes.",
+    icon: "Users",
+    category: "Data",
+    Page: lazy(() => import("./components/org-chart/OrgChartPage")),
+  },
+  {
+    slug: "timeline-panel",
+    name: "Timeline Panel",
+    description:
+      "A Panel with a vertical timeline: SVG trunk and branch connectors, root and current anchors, nested depth, inline actions and loaders.",
+    icon: "Calendar",
+    category: "Data",
+    Page: lazy(() => import("./components/timeline-panel/TimelinePanelPage")),
+  },
+  {
+    slug: "workflow-tracker",
+    name: "Workflow Tracker",
+    description:
+      "A pipeline tracker from one data object: status timeline rail, active-step detail with sub-steps and roll-up cards.",
+    icon: "Jobs",
+    category: "Data",
+    Page: lazy(() => import("./components/workflow-tracker/WorkflowTrackerPage")),
+  },
+  {
+    slug: "infinite-scroll-panel",
+    name: "Infinite Scroll Panel",
+    description:
+      "A scrolling list that fetches the next page as the end comes into view — masonry, grid, columns and list layouts.",
+    icon: "Download",
+    category: "Data",
+    Page: lazy(() => import("./components/infinite-scroll-panel/InfiniteScrollPanelPage")),
+  },
+  {
+    slug: "detail-item-card",
+    name: "Detail Item Card",
+    description:
+      "A list row with an expandable detail — plain by default, a real card with a variant, clickable rows as keyboard-reachable buttons.",
+    icon: "Info",
+    category: "Data",
+    Page: lazy(() => import("./components/detail-item-card/DetailItemCardPage")),
+  },
+  {
+    slug: "alert",
+    name: "Alert",
+    description:
+      "Semantic callouts — intent-driven tones, five variants and optional actions.",
+    icon: "Warning",
+    category: "Feedback",
+    Page: lazy(() => import("./components/alert/AlertPage")),
+  },
+  {
+    slug: "badge",
+    name: "Badge",
+    description:
+      "Counts and status dots in three variants, with overflow and zero handling.",
+    icon: "Notification",
+    category: "Feedback",
+    Page: lazy(() => import("./components/badge/BadgePage")),
+  },
+  {
+    slug: "badge-icon",
+    name: "Badge Icon",
+    description:
+      "Icon buttons with a corner-pinned badge — count or dot, overflow cap, and custom badge content.",
+    icon: "Notification",
+    category: "Feedback",
+    Page: lazy(() => import("./components/badge-icon/BadgeIconPage")),
+  },
+  {
+    slug: "ecg-monitor",
+    name: "ECG Monitor",
+    description:
+      "A canvas ECG trace for service health — a steady rhythm when healthy, a jittered one when degraded, a flatline when down.",
+    icon: "HealthCheck",
+    category: "Feedback",
+    Page: lazy(() => import("./components/ecg-monitor/EcgMonitorPage")),
+  },
+  {
+    slug: "empty-state",
+    name: "Empty State",
+    description:
+      "The placeholder for nothing to display — every Panel surface plus plain, a dashed drop-zone rule, and an action that scales with the type.",
+    icon: "CloudOff",
+    category: "Feedback",
+    Page: lazy(() => import("./components/empty-state/EmptyStatePage")),
+  },
+  {
+    slug: "progress",
+    name: "Progress",
+    description:
+      "A determinate or indeterminate bar on the shared size and tone scales, with six class-driven motion overlays a reduced-motion preference can switch off.",
+    icon: "Scale",
+    category: "Feedback",
+    Page: lazy(() => import("./components/progress/ProgressPage")),
+  },
+  {
+    slug: "spinner",
+    name: "Spinner",
+    description:
+      "An indeterminate ring on the shared control scale — solid or segmented, three border weights, and a label announced only once.",
+    icon: "Refresh",
+    category: "Feedback",
+    Page: lazy(() => import("./components/spinner/SpinnerPage")),
+  },
+  {
+    slug: "status-spinner",
+    name: "Status Spinner",
+    description:
+      "A spinner with a glowing centre dot for async states — the shared control scale, the full 21-colour tone set, and a label announced only once.",
+    icon: "Live",
+    category: "Feedback",
+    Page: lazy(() => import("./components/status-spinner/StatusSpinnerPage")),
+  },
+  {
+    slug: "loader",
+    name: "Loader",
+    description:
+      "A spinner, a progress bar, or a card-covering overlay — the shared size scale drives ring, bar and type together, and the glass fill comes from the theme.",
+    icon: "Pause",
+    category: "Feedback",
+    Page: lazy(() => import("./components/loader/LoaderPage")),
+  },
+  {
+    slug: "modal",
+    name: "Modal",
+    description:
+      "Dialogs with surface variants, actions, focus trapping and drag-to-move windows.",
+    icon: "OpenApp",
+    category: "Overlays",
+    Page: lazy(() => import("./components/modal/ModalPage")),
+  },
+  {
+    slug: "tooltip",
+    name: "Tooltip",
+    description:
+      "Lightweight hover hints with top/bottom placement and configurable delay.",
+    icon: "Chat",
+    category: "Overlays",
+    Page: lazy(() => import("./components/tooltip/TooltipPage")),
+  },
+  {
+    slug: "dropdown-menu",
+    name: "Dropdown Menu",
+    description:
+      "The raw positioning-only menu — align, side, width and max-height against the viewport, with icons, descriptions, disabled/danger items and full keyboard support.",
+    icon: "Dots",
+    category: "Overlays",
+    Page: lazy(() => import("./components/dropdown-menu/DropdownMenuPage")),
+  },
+];
+
+export const findDocComponent = (slug: string | undefined) =>
+  DOC_COMPONENTS.find((component) => component.slug === slug);

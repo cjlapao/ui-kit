@@ -25,6 +25,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           )
         }
         onTrailingIconClick={() => setShowPassword((v) => !v)}
+        trailingIconLabel={showPassword ? "Hide password" : "Show password"}
       />
     );
   },

@@ -25,20 +25,20 @@ describe("IconButton — glass variant", () => {
     const btn = wrapper.find("button");
     expect(btn.exists()).toBe(true);
     expect(btn.classes()).toContain("backdrop-blur-sm");
-    expect(btn.classes()).toContain("bg-blue-50/20");
-    expect(btn.classes()).toContain("dark:bg-blue-500/5");
+    expect(btn.classes()).toContain("bg-blue-100/30");
+    expect(btn.classes()).toContain("dark:bg-blue-600/10");
     expect(btn.classes()).toContain("backdrop-saturate-[1.2]");
     expect(btn.classes()).toContain("relative");
   });
 
-  it("glassOpacity defaults to clear (20% light / 5% dark)", () => {
+  it("glassOpacity defaults to clear (30% light / 10% dark)", () => {
     const wrapper = mount(IconButton, {
       props: { icon: "Search", glass: true, color: "blue" },
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-blue-50/20");
-    expect(btn.classes()).toContain("dark:bg-blue-500/5");
+    expect(btn.classes()).toContain("bg-blue-100/30");
+    expect(btn.classes()).toContain("dark:bg-blue-600/10");
   });
 
   it("specularMode defaults to none (no overlay div)", () => {
@@ -50,24 +50,24 @@ describe("IconButton — glass variant", () => {
     expect(overlays.length).toBe(0);
   });
 
-  it('glassOpacity="frosted" overrides default to 45% light / 15% dark', () => {
+  it('glassOpacity="frosted" overrides default to 65% light / 25% dark', () => {
     const wrapper = mount(IconButton, {
       props: { icon: "Search", glass: true, glassOpacity: "frosted", color: "red" },
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-red-50/45");
-    expect(btn.classes()).toContain("dark:bg-red-500/15");
+    expect(btn.classes()).toContain("bg-red-100/65");
+    expect(btn.classes()).toContain("dark:bg-red-600/25");
   });
 
-  it('glassOpacity="light" produces 70% light / 25% dark', () => {
+  it('glassOpacity="light" produces 85% light / 35% dark', () => {
     const wrapper = mount(IconButton, {
       props: { icon: "Search", glass: true, glassOpacity: "light", color: "green" },
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-green-50/70");
-    expect(btn.classes()).toContain("dark:bg-green-500/25");
+    expect(btn.classes()).toContain("bg-green-100/85");
+    expect(btn.classes()).toContain("dark:bg-green-600/35");
   });
 
   it('specularMode="classic" renders a specular highlight overlay', () => {
@@ -136,18 +136,18 @@ describe("IconButton — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-blue-50/20");
-    expect(btn.classes()).toContain("dark:bg-blue-500/5");
+    expect(btn.classes()).toContain("bg-blue-100/30");
+    expect(btn.classes()).toContain("dark:bg-blue-600/10");
   });
 
-  it("renders glass fill with emerald color", () => {
+  it("builds the glass fill from the tone it is given", () => {
     const wrapper = mount(IconButton, {
-      props: { icon: "Search", glass: true, color: "green" },
+      props: { icon: "Search", glass: true, color: "emerald" },
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-emerald-50/20");
-    expect(btn.classes()).toContain("dark:bg-emerald-500/5");
+    expect(btn.classes()).toContain("bg-emerald-100/30");
+    expect(btn.classes()).toContain("dark:bg-emerald-600/10");
   });
 
   it("renders glass fill with rose color", () => {
@@ -156,8 +156,8 @@ describe("IconButton — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-rose-50/20");
-    expect(btn.classes()).toContain("dark:bg-rose-500/5");
+    expect(btn.classes()).toContain("bg-rose-100/30");
+    expect(btn.classes()).toContain("dark:bg-rose-600/10");
   });
 
   it("vibrancy defaults to medium (1.2)", () => {
@@ -193,8 +193,8 @@ describe("IconButton — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-indigo-50/60");
-    expect(btn.classes()).toContain("dark:bg-indigo-500/18");
+    expect(btn.classes()).toContain("bg-indigo-100/60");
+    expect(btn.classes()).toContain("dark:bg-indigo-600/18");
   });
 
   it("numeric vibrancy works correctly", () => {
@@ -252,7 +252,7 @@ describe("IconButton — glass variant", () => {
 
     const btn = wrapper.find("button");
     expect(btn.classes()).toContain("backdrop-blur-sm");
-    expect(btn.classes()).toContain("bg-purple-50/20");
+    expect(btn.classes()).toContain("bg-purple-100/30");
   });
 
   it("renders glass overlay with variant='ghost' and glass=true", () => {
@@ -262,6 +262,6 @@ describe("IconButton — glass variant", () => {
 
     const btn = wrapper.find("button");
     expect(btn.classes()).toContain("backdrop-blur-sm");
-    expect(btn.classes()).toContain("bg-teal-50/20");
+    expect(btn.classes()).toContain("bg-teal-100/30");
   });
 });

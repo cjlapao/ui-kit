@@ -27,7 +27,7 @@ export const Details = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
         d="M9,22H19a1,1,0,0,0,0-2H9a1,1,0,0,0,0,2Z"
         className="clr-i-outline clr-i-outline-path-4"
       ></path>
-      <rect x="0" y="0" width="36" height="36" fill-opacity="0"></rect>
+      <rect x="0" y="0" width="36" height="36" fillOpacity="0"></rect>
     </svg>
   ),
 );

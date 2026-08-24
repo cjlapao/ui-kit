@@ -1,387 +1,480 @@
-import React, { useState, useRef, useEffect } from "react";
-import { IconButton } from ".";
-import { VariablePicker } from "./VariablePicker";
-import { type SmartVariable } from "../types/Variables";
-import { SMART_VAR_REGEX } from "../utils/smartVariables";
-import { type CapsuleBlueprintParameter } from "../types/CapsuleBlueprint";
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import classNames from "classnames";
 import { createPortal } from "react-dom";
+import IconButton from "./IconButton";
+import { VariablePicker } from "./VariablePicker";
+import { SmartValueParts, type SmartViewMode } from "./SmartVariableParts";
+import { getInputVariantTokens } from "../theme/Theme";
+import {
+  createDefaultResolver,
+  extractVariables,
+  findDefinition,
+  hasSmartVariables,
+} from "../utils/smartVariables";
+import type { ControlSize, InputVariant, TrueColor } from "../theme/Theme";
+import type {
+  SmartVariable,
+  SmartVariableGroup,
+  SmartVariableResolver,
+} from "../types/Variables";
+
+/** `Input`'s three-step scale, so the two line up when stacked. */
+export type SmartInputSize = "sm" | "md" | "lg";
+
+const SIZE_STYLES: Record<
+  SmartInputSize,
+  { pad: string; text: string; icon: ControlSize; minHeight: string }
+> = {
+  sm: { pad: "px-3 py-1.5", text: "text-sm", icon: "xs", minHeight: "min-h-8" },
+  md: { pad: "px-3.5 py-2.5", text: "text-sm", icon: "sm", minHeight: "min-h-10" },
+  lg: { pad: "px-4 py-3", text: "text-base", icon: "sm", minHeight: "min-h-12" },
+};
+
+/** Distance from the viewport edge at which the picker flips above the field. */
+const PICKER_HEIGHT = 420;
+
+const SCROLLBAR =
+  "pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
 
 export interface SmartInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
-  globalParameters?: CapsuleBlueprintParameter[];
-  serviceNames?: string[];
-  context?: {
-    slug?: string;
-    enable_https?: boolean;
-  };
-  multiline?: boolean; // If true, behaves like a textarea (kinda) or restricted? For now assuming single line mostly.
+  /**
+   * The variable groups offered by the picker. Each group's `id` becomes the
+   * token's middle segment, so the taxonomy is entirely the caller's.
+   */
+  groups?: SmartVariableGroup[];
+  /**
+   * Turns a token into a display value. Defaults to a lookup over `groups`;
+   * supply your own for derived or environment-dependent values.
+   */
+  resolve?: SmartVariableResolver;
+  /** Renders a textarea instead of a single-line field. */
+  multiline?: boolean;
+  /** Rows for the multiline field. @default 4 */
+  rows?: number;
+  disabled?: boolean;
+  /** @default "md" */
+  size?: SmartInputSize;
+  /** Surface treatment, shared with `Input`, `Textarea` and `SearchBar`. */
+  variant?: InputVariant;
+  /** Accent colour for focus and the picker trigger. @default "blue" */
+  tone?: TrueColor;
+  /** Which view the preview opens in. @default "token" */
+  defaultViewMode?: SmartViewMode;
+  /** Typing the opening `{{` opens the picker. @default true */
+  autocomplete?: boolean;
+  /** Marks unresolvable tokens in both views, and counts them. @default true */
+  flagMissing?: boolean;
+  "aria-label"?: string;
 }
 
 export const SmartInput: React.FC<SmartInputProps> = ({
   value = "",
   onChange,
   placeholder,
-  className = "",
-  globalParameters = [],
-  serviceNames = [],
-  context = {},
-  // multiline // reserved for future
+  className,
+  groups = [],
+  resolve,
+  multiline = false,
+  rows = 4,
+  disabled = false,
+  size = "md",
+  variant = "flat",
+  tone = "blue",
+  defaultViewMode = "token",
+  autocomplete = true,
+  flagMissing = true,
+  "aria-label": ariaLabel,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [viewMode, setViewMode] = useState<"token" | "value">("token"); // New state
+  const [viewMode, setViewMode] = useState<SmartViewMode>(defaultViewMode);
+  const [pickerFilter, setPickerFilter] = useState("");
+  const [pickerPos, setPickerPos] = useState({ top: 0, left: 0, width: 0 });
+
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const fieldRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
+  /** Cursor position to restore after an insertion. */
+  const caretRef = useRef<number | null>(null);
+  /**
+   * True when the picker was opened by typing `{{`. Only then does an
+   * insertion replace the partial token — opening it from the button should
+   * insert at the caret and leave the rest of the value alone.
+   */
+  const autoTriggeredRef = useRef(false);
 
-  // Calculate picker position (basic implementation)
-  const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
+  const pickerId = useId();
+  const sizeToken = SIZE_STYLES[size] ?? SIZE_STYLES.md;
+  const surface = getInputVariantTokens(variant);
 
-  const hasVariables = React.useMemo(() => {
-    const regex = new RegExp(SMART_VAR_REGEX);
-    return regex.test(value);
-  }, [value]);
+  const resolver = useMemo<SmartVariableResolver>(
+    () => resolve ?? createDefaultResolver(groups),
+    [resolve, groups],
+  );
 
-  const handleContainerClick = () => {
-    setIsEditing(true);
-  };
+  const hasVariables = useMemo(() => hasSmartVariables(value), [value]);
 
-  const handleBlur = (e: React.FocusEvent) => {
-    // Only stop editing if we didn't click into the picker or the toggle button
-    if (
-      !containerRef.current?.contains(e.relatedTarget as Node) &&
-      !pickerRef.current?.contains(e.relatedTarget as Node)
-    ) {
-      setIsEditing(false);
-      setShowPicker(false);
-    }
-  };
+  // Counts tokens that name no known variable — a typo or a stale reference.
+  // A variable that exists but has no value yet is a different, softer state
+  // and is not counted here.
+  const missingCount = useMemo(() => {
+    if (!flagMissing || !hasVariables) return 0;
+    return extractVariables(value).filter((variable) =>
+      groups.length > 0
+        ? !findDefinition(groups, variable)
+        : resolver(variable).state === "missing",
+    ).length;
+  }, [value, resolver, groups, hasVariables, flagMissing]);
 
-  const togglePicker = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent container click from focusing input immediately if unnecessary
-    if (showPicker) {
-      setShowPicker(false);
-    } else {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setPickerPos({
-          top: rect.bottom + window.scrollY + 4,
-          left: rect.left + window.scrollX,
-        });
-      }
+  // ── Picker placement ──────────────────────────────────────────────────────
+  const positionPicker = useCallback(() => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // Flip above when there is not enough room below, instead of running off
+    // the bottom of the viewport.
+    const below = window.innerHeight - rect.bottom;
+    const flip = below < PICKER_HEIGHT && rect.top > below;
+    setPickerPos({
+      top: flip
+        ? rect.top + window.scrollY - PICKER_HEIGHT - 4
+        : rect.bottom + window.scrollY + 4,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!showPicker) return undefined;
+    positionPicker();
+    // The old version measured once on open, so the panel stayed behind when
+    // the page scrolled or the window resized.
+    window.addEventListener("scroll", positionPicker, true);
+    window.addEventListener("resize", positionPicker);
+    return () => {
+      window.removeEventListener("scroll", positionPicker, true);
+      window.removeEventListener("resize", positionPicker);
+    };
+  }, [showPicker, positionPicker]);
+
+  const openPicker = useCallback(
+    (filter = "", fromTyping = false) => {
+      if (disabled) return;
+      autoTriggeredRef.current = fromTyping;
+      setPickerFilter(filter);
+      setIsEditing(true);
       setShowPicker(true);
-      setIsEditing(true); // Ensure we are in edit mode to receive insertion
-    }
-  };
+    },
+    [disabled],
+  );
 
-  const handleSelectVariable = (variable: SmartVariable) => {
-    // Insert variable at cursor position or append
-    const input = inputRef.current;
-    let newValue = value;
-
-    if (input) {
-      const start = input.selectionStart || 0;
-      const end = input.selectionEnd || 0;
-      newValue =
-        value.substring(0, start) + variable.fullToken + value.substring(end);
-
-      // Restore focus and cursor?
-      // Setting state is async, so cursor restoration is tricky without effect.
-      // For now simple append/replace.
-    } else {
-      newValue += variable.fullToken;
-    }
-
-    onChange(newValue);
+  const closePicker = useCallback(() => {
+    autoTriggeredRef.current = false;
     setShowPicker(false);
-    // keep editing
-    input?.focus();
-  };
+    setPickerFilter("");
+  }, []);
 
+  // ── Focus and caret ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (isEditing) fieldRef.current?.focus();
   }, [isEditing]);
 
-  // Close picker if clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const caret = caretRef.current;
+    if (caret === null || !fieldRef.current) return;
+    // Restoring after the value prop has landed: setting state is async, so
+    // the old version simply dropped the cursor to the end after every insert.
+    fieldRef.current.setSelectionRange(caret, caret);
+    caretRef.current = null;
+  }, [value]);
+
+  // A pointer press outside both the field and the picker is what dismisses
+  // them. This owns the pointer case entirely, so `handleBlur` does not have
+  // to guess from a focus event whether the user left.
+  useEffect(() => {
+    if (!showPicker && !isEditing) return undefined;
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
-        showPicker &&
-        pickerRef.current &&
-        !pickerRef.current.contains(event.target as Node) &&
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        pickerRef.current?.contains(target) ||
+        containerRef.current?.contains(target)
       ) {
-        setShowPicker(false);
+        return;
       }
+      setIsEditing(false);
+      closePicker();
     };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [showPicker, isEditing, closePicker]);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showPicker]);
-
-  const resolveVariable = (
-    type: string,
-    source: string,
-    name: string,
-  ): { value: string; isResolved: boolean; isRuntime?: boolean } => {
-    if (source === "global" || source === "env") {
-      // NOTE: Current regex match groups: 1=type, 2=source, 3=name
-      // But typically we see {{ var::global::NAME }}.
-      // 'source' argument here comes from the second part.
-      // If the user types {{ env::global::NAME }}, source is 'global'.
-
-      let param = globalParameters.find((p) => p.key === name);
-      if (!param) {
-        // Fallback: Try case-insensitive comparison
-        param = globalParameters.find(
-          (p) => p.key.toLowerCase() === name.toLowerCase(),
-        );
-      }
-
-      if (param) {
-        // Strict Type Check
-        if (param.type !== type) {
-          return { value: "", isResolved: false };
-        }
-        return { value: param.default_value || "", isResolved: true };
-      }
-      return { value: "", isResolved: false };
+  const handleBlur = (event: React.FocusEvent) => {
+    const next = event.relatedTarget as Node | null;
+    // Pressing a non-focusable part of our own UI — the picker's header, a
+    // label, the gap between rows — fires focusout with a null relatedTarget.
+    // Reading that as "focus left the control" closed the picker whenever the
+    // user clicked its own chrome. The outside-pointer listener above covers
+    // the case this was trying to catch, so blur only handles a *keyboard*
+    // move to some other focusable element.
+    if (!next) return;
+    if (
+      containerRef.current?.contains(next) ||
+      pickerRef.current?.contains(next)
+    ) {
+      return;
     }
-    if (source === "service") {
-      return { value: name, isResolved: true };
-    }
-    if (source === "system") {
-      const lowerName = name.toLowerCase();
-      // Derived Variables
-      if (lowerName === "sub_domain") {
-        return { value: context.slug || "", isResolved: true };
-      }
-      if (lowerName === "domain") {
-        return { value: "parallels.private", isResolved: true };
-      }
-      if (lowerName === "host_url") {
-        const protocol = context.enable_https ? "https" : "http";
-        const domain = "parallels.private";
-        const sub = context.slug || "";
-        if (sub) {
-          return { value: `${protocol}://${sub}.${domain}`, isResolved: true };
-        }
-        return { value: "", isResolved: false };
-      }
-
-      // Runtime Variables
-      const runtimeVars = [
-        "name",
-        "reverse_proxy_host",
-        "ip_address",
-        "host_gateway_ip",
-        "capsule_id",
-        "capsule_name",
-        "host_ip",
-        "app_url",
-      ];
-      if (runtimeVars.includes(lowerName)) {
-        return { value: `[${lowerName}]`, isResolved: true, isRuntime: true };
-      }
-
-      // Fallback for unknown system vars
-      return { value: `[System: ${name}]`, isResolved: true, isRuntime: true };
-    }
-    return { value: "", isResolved: false };
+    setIsEditing(false);
+    closePicker();
   };
 
-  // Render parsed view
-  const renderView = () => {
-    if (!value) {
-      return (
-        <span className="text-slate-400 italic">{placeholder || "Empty"}</span>
-      );
-    }
+  const handleSelect = (variable: SmartVariable) => {
+    const field = fieldRef.current;
+    const start = field?.selectionStart ?? value.length;
+    const end = field?.selectionEnd ?? value.length;
 
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-    // Case insensitive regex match to align with MarkdownEditor
-    const regex = new RegExp(SMART_VAR_REGEX, "gi");
+    // When the picker was opened by typing `{{`, that partial token is
+    // replaced rather than left behind in front of the inserted one. The
+    // previous condition tested the filter and a literal `{{` suffix, so
+    // typing `{{ ` — with a trailing space — produced `{{ {{ var::… }}`.
+    const triggerStart = autoTriggeredRef.current
+      ? findTriggerStart(value, start)
+      : start;
 
-    while ((match = regex.exec(value)) !== null) {
-      // Text before match
-      if (match.index > lastIndex) {
-        parts.push(
-          <span key={`text-${lastIndex}`}>
-            {value.substring(lastIndex, match.index)}
-          </span>,
-        );
-      }
+    const next =
+      value.slice(0, triggerStart) + variable.fullToken + value.slice(end);
+    caretRef.current = triggerStart + variable.fullToken.length;
 
-      // The variable token
-      // const fullToken = match[0];
-      const type = match[1]; // var | env
-      const source = match[2]; // global | system | service
-      const name = match[3];
-
-      if (viewMode === "value") {
-        const {
-          value: resolvedVal,
-          isResolved,
-          isRuntime,
-        } = resolveVariable(type, source, name);
-        const isEmpty = !resolvedVal;
-
-        let badgeClass = "bg-green-50 text-green-700 border-green-200";
-        if (isEmpty) {
-          badgeClass = "bg-red-50 text-red-700 border-red-200";
-        }
-
-        if (isResolved && isRuntime) {
-          badgeClass = "bg-purple-50 text-purple-700 border-purple-200";
-        } else if (source === "system" && !isEmpty) {
-          // Derived or resolved system vars (green/amber)
-          badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-        }
-
-        parts.push(
-          <span
-            key={`token-${match.index}`}
-            className={`mx-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono border ${badgeClass} select-none cursor-help`}
-            title={isResolved ? `Value: ${resolvedVal}` : "Variable not found"}
-          >
-            {isEmpty ? "empty" : resolvedVal}
-          </span>,
-        );
-      } else {
-        let badgeClass = "bg-slate-100 text-slate-700 border-slate-200";
-        if (source === "global") {
-          if (type === "var") {
-            badgeClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
-          } else if (type === "env") {
-            badgeClass = "bg-teal-50 text-teal-700 border-teal-200";
-          } else {
-            badgeClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
-          }
-        }
-        if (source === "system")
-          badgeClass = "bg-amber-50 text-amber-900 border-amber-200";
-        if (source === "service")
-          badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-
-        let labelPrefix = "G";
-        if (source === "global") {
-          labelPrefix = type === "env" ? "ENV" : "VAR";
-        } else if (source === "system") {
-          labelPrefix = "SYS";
-        } else if (source === "service") {
-          labelPrefix = "SVC";
-        }
-
-        parts.push(
-          <span
-            key={`token-${match.index}`}
-            className={`mx-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono border ${badgeClass} select-none cursor-help`}
-            title={`${type}::${source}`}
-          >
-            {labelPrefix}:{name}
-          </span>,
-        );
-      }
-
-      lastIndex = regex.lastIndex;
-    }
-
-    // Remaining text
-    if (lastIndex < value.length) {
-      parts.push(
-        <span key={`text-${lastIndex}`}>{value.substring(lastIndex)}</span>,
-      );
-    }
-
-    return <div className="truncate">{parts}</div>;
+    onChange(next);
+    closePicker();
+    field?.focus();
   };
+
+  const handleFieldChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const next = event.target.value;
+    onChange(next);
+
+    if (!autocomplete) return;
+    const caret = event.target.selectionStart ?? next.length;
+    const before = next.slice(0, caret);
+    const trigger = findTriggerStart(next, caret);
+    const partial = before.slice(trigger);
+
+    if (partial.startsWith("{{")) {
+      // Only a name can follow the opening braces. Once the text after them
+      // stops looking like one — a newline, another brace — the caret has
+      // left the token and the picker should close rather than keep filtering
+      // on nonsense.
+      const typed = partial.slice(2);
+      if (/^[\s]*[a-zA-Z0-9_\-.:]*$/.test(typed) && !typed.includes("\n")) {
+        openPicker(typed.trim(), true);
+        return;
+      }
+    }
+    if (autoTriggeredRef.current) {
+      closePicker();
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Escape" && showPicker) {
+      event.preventDefault();
+      closePicker();
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  const fieldClasses = classNames(
+    "min-w-0 flex-1 resize-none border-none bg-transparent font-mono outline-none placeholder:font-sans",
+    sizeToken.text,
+    sizeToken.pad,
+    surface.text,
+    // A multiline field scrolls, and the platform scrollbar landed hard
+    // against the button column. Same thin treatment the Panel body uses,
+    // plus a gutter so the two do not touch.
+    multiline && SCROLLBAR,
+  );
+
+  const preview = (
+    <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      onClick={() => !disabled && setIsEditing(true)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setIsEditing(true);
+        }
+      }}
+      aria-label={ariaLabel ?? placeholder ?? "Edit value"}
+      className={classNames(
+        "min-w-0 flex-1 cursor-text",
+        sizeToken.text,
+        sizeToken.pad,
+        surface.text,
+        multiline ? "whitespace-pre-wrap" : "truncate",
+        disabled && "cursor-not-allowed",
+      )}
+    >
+      <SmartValueParts
+        value={value}
+        groups={groups}
+        resolve={resolver}
+        mode={viewMode}
+        flagMissing={flagMissing}
+        placeholder={
+          <span className={classNames("italic", surface.icon)}>
+            {placeholder || "Empty"}
+          </span>
+        }
+      />
+    </div>
+  );
 
   return (
     <div
       ref={containerRef}
-      className={`relative min-h-[38px] flex items-center rounded-lg border bg-white ${isEditing ? "border-blue-500 ring-1 ring-blue-500/20" : "border-slate-300 hover:border-slate-400"} ${className}`}
+      onBlur={handleBlur}
+      className={classNames(
+        "group relative flex w-full transition",
+        multiline ? "items-start" : "items-center",
+        sizeToken.minHeight,
+        // The surface comes from the shared input tokens, so this control is
+        // the same box as the Input beside it. It used to hard-code
+        // `bg-white border-slate-300` with no dark-mode partner at all.
+        surface.surface,
+        isEditing && `ring-2 ring-inset ring-${tone}-400/60 border-${tone}-400`,
+        disabled && "opacity-60",
+        className,
+      )}
     >
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={handleBlur}
-          className="flex-1 w-full h-full px-3 py-2 bg-transparent border-none outline-none text-sm font-mono placeholder:font-sans"
-          placeholder={placeholder}
-          autoComplete="off"
-        />
+      {isEditing && !disabled ? (
+        multiline ? (
+          <textarea
+            ref={fieldRef}
+            rows={rows}
+            value={value}
+            onChange={handleFieldChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            aria-label={ariaLabel}
+            className={fieldClasses}
+            autoComplete="off"
+          />
+        ) : (
+          <input
+            ref={fieldRef}
+            type="text"
+            value={value}
+            onChange={handleFieldChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            aria-label={ariaLabel}
+            className={fieldClasses}
+            autoComplete="off"
+          />
+        )
       ) : (
-        <div
-          onClick={handleContainerClick}
-          className="flex-1 px-3 py-2 text-sm cursor-text h-full flex items-center"
-        >
-          {renderView()}
-        </div>
+        preview
       )}
 
-      <div className="flex items-center pr-1 border-l border-transparent gap-0.5">
+      <div
+        className={classNames(
+          "flex shrink-0 items-center gap-0.5 pr-1",
+          multiline && "pt-1",
+        )}
+      >
+        {missingCount > 0 && (
+          <span
+            title={`${missingCount} variable${missingCount === 1 ? "" : "s"} could not be resolved`}
+            className="mr-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
+          >
+            {missingCount} missing
+          </span>
+        )}
         {hasVariables && (
           <IconButton
-            icon={viewMode === "token" ? "EyeOpen" : ("EyeClosed" as any)}
+            icon={viewMode === "token" ? "EyeOpen" : "EyeClosed"}
             variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsEditing(false); // Force exit edit mode to see changes
+            color={tone}
+            size={sizeToken.icon}
+            disabled={disabled}
+            // Only the preview has two modes, so toggling drops out of editing
+            // — but deliberately, and it returns you to the view you asked for.
+            onClick={() => {
+              setIsEditing(false);
               setViewMode((prev) => (prev === "token" ? "value" : "token"));
             }}
-            className="text-slate-400 hover:text-slate-600"
-            title={viewMode === "token" ? "Show Values" : "Show Tokens"}
+            srLabel={viewMode === "token" ? "Show values" : "Show tokens"}
+            tooltip={viewMode === "token" ? "Show values" : "Show tokens"}
           />
         )}
         <IconButton
-          icon="Plus"
-          variant="ghost"
-          size="sm"
-          onClick={togglePicker}
-          className={
-            showPicker
-              ? "text-blue-600 bg-blue-50"
-              : "text-slate-400 hover:text-slate-600"
-          }
-          title="Insert Variable"
+          // Was `icon="Plus"`, which is not in the registry — the button
+          // rendered with no icon at all.
+          icon="Add"
+          variant={showPicker ? "soft" : "ghost"}
+          color={tone}
+          size={sizeToken.icon}
+          disabled={disabled}
+          onClick={() => (showPicker ? closePicker() : openPicker())}
+          srLabel="Insert variable"
+          tooltip="Insert variable"
+          aria-expanded={showPicker}
+          aria-controls={showPicker ? pickerId : undefined}
         />
       </div>
 
-      {/* Portal for Variable Picker to avoid z-index/overflow issues */}
       {showPicker &&
+        typeof document !== "undefined" &&
         createPortal(
           <div
+            id={pickerId}
             ref={pickerRef}
             style={{
               position: "absolute",
               top: pickerPos.top,
               left: pickerPos.left,
+              minWidth: Math.max(pickerPos.width, 320),
               zIndex: 9999,
             }}
           >
             <VariablePicker
-              onSelect={handleSelectVariable}
-              onClose={() => setShowPicker(false)}
-              globalParameters={globalParameters}
-              serviceNames={serviceNames}
+              groups={groups}
+              resolve={resolver}
+              tone={tone}
+              size={size}
+              initialSearch={pickerFilter}
+              onSelect={handleSelect}
+              onClose={closePicker}
             />
           </div>,
           document.body,
         )}
     </div>
   );
+};
+
+/** Index of the `{{` that opens the token the caret currently sits in, or -1. */
+const findTriggerStart = (value: string, caret: number): number => {
+  const before = value.slice(0, caret);
+  const open = before.lastIndexOf("{{");
+  if (open === -1) return caret;
+  // A closed token before the caret means we are not inside one.
+  if (before.slice(open).includes("}}")) return caret;
+  return open;
 };
 
 export default SmartInput;

@@ -1,13 +1,22 @@
 import type React from "react";
 import type { ButtonVariant, ButtonSize } from "../Button";
 import type { TrueColor } from "../../theme/Theme";
-import type { PanelVariant, PanelPadding, PanelCorner } from "../Panel";
+import type {
+  PanelVariant,
+  PanelPadding,
+  PanelCorner,
+  PanelLoaderType,
+  PanelSpecularMode,
+} from "../Panel";
+import type { ControlSize } from "../../theme/Theme";
+import type { GlassOpacity, GlassVibrancy } from "../../theme/glass";
 import { LoaderProps } from "../Loader";
 
 export type {
   PanelVariant as TimelinePanelVariant,
   PanelPadding as TimelinePanelPadding,
   PanelCorner as TimelinePanelCorner,
+  PanelLoaderType as TimelinePanelLoaderType,
 };
 
 export interface TimelinePanelAction {
@@ -79,18 +88,48 @@ export interface TimelinePanelProps {
   /** Timeline items */
   items: TimelinePanelItem[];
   // ── Appearance ────────────────────────────────────────────────────────────
+  /** Every container surface the `Panel` supports — this renders one. */
   variant?: PanelVariant;
   tone?: TrueColor;
   padding?: PanelPadding;
   corner?: PanelCorner;
-  /** Color of the connecting vertical line */
+  /**
+   * Overrides the stroke of the trunk and branch connectors. Any CSS colour.
+   * Defaults to the tone's own rail colour.
+   */
   lineColor?: string;
   /** Render a small dot on the trunk line at every item's midpoint (solid segment only). @default false */
   showTrunkDots?: boolean;
+  /** Size of the inline row action buttons. @default "sm" */
+  actionSize?: ControlSize;
+  /** Expands the panel to fill the available width. */
+  fullWidth?: boolean;
+  /** Lifts the card on hover. */
+  hoverShadow?: boolean;
+  // ── Glass (forwarded to the underlying Panel) ─────────────────────────────
+  vibrancy?: GlassVibrancy;
+  glassOpacity?: GlassOpacity;
+  specularMode?: PanelSpecularMode;
   // ── State ─────────────────────────────────────────────────────────────────
   loading?: boolean;
-  /** Node to show when items is empty */
+  /**
+   * How `loading` is presented, matching `Panel`:
+   * - `"skeleton"` — a placeholder shaped like the timeline itself
+   * - anything else — the matching `Loader` variant, centred when there are no
+   *   items yet and as a glass overlay when refreshing over existing ones
+   * @default "spinner"
+   */
+  loaderType?: PanelLoaderType;
+  /** Placeholder rows drawn by `loaderType="skeleton"`. @default 4 */
+  skeletonRows?: number;
+  /** Node to show when items is empty. A default is rendered when omitted. */
   emptyState?: React.ReactNode;
+  /**
+   * Staggered entry animation for the rows, and a soft pulse on the current
+   * anchor. Always suppressed under `prefers-reduced-motion`.
+   * @default true
+   */
+  animate?: boolean;
   className?: string;
   loaderProps?: LoaderProps;
 }

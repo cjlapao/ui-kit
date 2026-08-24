@@ -1,16 +1,25 @@
 <script lang="ts">
-import type { TrueColor } from "../theme/Theme";
+import type { ControlSize, TrueColor } from "../theme/Theme";
 
-export type SpinnerSize = "xs" | "sm" | "md" | "lg" | "xl";
+/**
+ * The shared control scale, so a spinner lines up with the Button next to it
+ * instead of speaking its own size language.
+ */
+export type SpinnerSize = ControlSize;
 export type SpinnerColor = TrueColor;
-export type SpinnerVariant = "solid" | "segments";
-export type SpinnerThickness = "thin" | "normal" | "thick";
+
+export const SPINNER_VARIANTS = ["solid", "segments"] as const;
+export type SpinnerVariant = (typeof SPINNER_VARIANTS)[number];
+
+export const SPINNER_THICKNESSES = ["thin", "normal", "thick"] as const;
+export type SpinnerThickness = (typeof SPINNER_THICKNESSES)[number];
 
 export interface SpinnerProps {
   size?: SpinnerSize;
   color?: SpinnerColor;
   variant?: SpinnerVariant;
   thickness?: SpinnerThickness;
+  /** Visible text beside the ring. Also announced — the ring alone reads as "Loading". */
   label?: string;
 }
 
@@ -60,7 +69,7 @@ const sizeTokens: Record<
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import classNames from "classnames";
-import { getSpinnerColorTokens } from "../theme/Theme";
+import { getSpinnerColorTokens, getSurfaceTextTokens } from "../theme/Theme";
 import { useClassAttrs } from "../utils/attrsUtils";
 
 defineOptions({ name: "Spinner", inheritAttrs: false });
@@ -83,6 +92,10 @@ const borderThickness = computed(
 );
 const colorStyles = computed(() => getSpinnerColorTokens(props.color));
 
+// Vue has no SurfaceProvider yet, so the label takes the solid-surface tokens
+// and cannot adapt to a glass panel around it.
+const labelClass = `text-sm font-medium ${getSurfaceTextTokens("elevated").body}`;
+
 const spinnerBase = computed(() =>
   classNames(
     "inline-flex rounded-full border-solid border-transparent",
@@ -95,7 +108,7 @@ const spinnerBase = computed(() =>
 const spinnerClass = computed(() =>
   classNames(
     spinnerBase.value,
-    "transition-all duration-150 ease-in-out",
+    "transition-all duration-150 ease-in-out motion-reduce:animate-none",
     props.variant === "segments"
       ? ["animate-[spin_1s_linear_infinite]", ...colorStyles.value]
       : ["animate-spin", colorStyles.value[0]],
@@ -104,14 +117,11 @@ const spinnerClass = computed(() =>
 </script>
 
 <template>
-  <span class="inline-flex items-center gap-2" role="status" aria-live="polite">
+  <span class="inline-flex items-center gap-2" role="status">
     <span ref="el" :class="spinnerClass" v-bind="restAttrs" />
-    <span
-      v-if="label"
-      class="text-sm font-medium text-neutral-600 dark:text-neutral-300"
-    >
-      {{ label }}
-    </span>
-    <span class="sr-only">{{ label ?? "Loading" }}</span>
+    <!-- With a visible label the text is already inside the status region —
+         an sr-only copy beside it would be announced twice. -->
+    <span v-if="label" :class="labelClass">{{ label }}</span>
+    <span v-else class="sr-only">Loading</span>
   </span>
 </template>

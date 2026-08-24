@@ -1,200 +1,226 @@
 <script lang="ts">
-import type { CapsuleBlueprintParameter } from "../types/CapsuleBlueprint";
+import type {
+  SmartVariable,
+  SmartVariableGroup,
+  SmartVariableResolver,
+} from "../types/Variables";
+import type { TrueColor } from "../theme/Theme";
 
 export interface VariablePickerProps {
-  globalParameters: CapsuleBlueprintParameter[];
-  serviceNames: string[];
+  /** The groups to offer, one tab each. */
+  groups: SmartVariableGroup[];
+  /** Shows each variable's resolved value beside it. */
+  resolve?: SmartVariableResolver;
+  /** Accent colour. @default "blue" */
+  tone?: TrueColor;
+  /**
+   * Scale of the search field, matched to the control that opened the picker
+   * so the two do not look like different widgets stacked on each other.
+   * @default "md"
+   */
+  size?: "sm" | "md" | "lg";
+  /** Pre-fills the search box — used when the picker is opened by typing. */
+  initialSearch?: string;
+  title?: string;
 }
 </script>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, h, ref, type VNode } from "vue";
-import Tabs from "./Tabs.vue";
-import type { TabItem } from "./Tabs.vue";
-import Input from "./Input.vue";
+import { computed, ref, watch } from "vue";
+import classNames from "classnames";
 import IconButton from "./IconButton.vue";
-import { type SmartVariable, SYSTEM_VARIABLES } from "../types/Variables";
-import { createSmartToken } from "../utils/smartVariables";
+import Panel from "./Panel.vue";
+import SearchBar from "./SearchBar.vue";
+import Tabs from "./Tabs.vue";
+import SmartVariableBadge from "./SmartVariableBadge.vue";
+import { getSurfaceTriggerTokens } from "../theme/Theme";
+import { groupToVariables } from "../utils/smartVariables";
+import { useClassAttrs } from "../utils/attrsUtils";
 
-defineOptions({ name: "VariablePicker" });
+defineOptions({ name: "VariablePicker", inheritAttrs: false });
 
-const props = defineProps<VariablePickerProps>();
+const props = withDefaults(defineProps<VariablePickerProps>(), {
+  tone: "blue",
+  size: "md",
+  initialSearch: "",
+  title: "Insert variable",
+});
 
 const emit = defineEmits<{
-  select: [variable: SmartVariable];
-  close: [];
+  (event: "select", variable: SmartVariable): void;
+  (event: "close"): void;
 }>();
 
-const searchTerm = ref("");
-const activeTab = ref("global");
+const { classAttr, restAttrs } = useClassAttrs();
 
-// The close button is only rendered when a `close` listener is attached
-// (mirrors the optional `onClose` prop of the React component).
-const instance = getCurrentInstance();
-const hasCloseListener = computed(() => !!instance?.vnode.props?.onClose);
+const search = ref(props.initialSearch);
+const activeTab = ref(props.groups[0]?.id ?? "");
 
-const globalVars = computed<SmartVariable[]>(() => {
-  return props.globalParameters.map((p) => ({
-    fullToken: createSmartToken(
-      p.type === "env" ? "env" : "var",
-      "global",
-      p.key,
-    ),
-    type: p.type === "env" ? "env" : "var",
-    source: "global",
-    name: p.key,
-    description: p.name || p.help,
-    defaultValue: p.default_value,
-  }));
+// Reopening with a typed filter has to replace the previous search, and the
+// active tab has to survive the group list changing.
+watch(
+  () => props.initialSearch,
+  (next) => {
+    search.value = next;
+  },
+);
+watch(
+  () => props.groups,
+  (next) => {
+    if (!next.some((group) => group.id === activeTab.value)) {
+      activeTab.value = next[0]?.id ?? "";
+    }
+  },
+);
+
+const term = computed(() => search.value.trim().toLowerCase());
+
+const filtered = computed(() =>
+  props.groups.map((group) => ({
+    group,
+    variables: groupToVariables(group).filter((variable) => {
+      if (!term.value) return true;
+      return (
+        variable.name.toLowerCase().includes(term.value) ||
+        (variable.label ?? "").toLowerCase().includes(term.value) ||
+        (variable.description ?? "").toLowerCase().includes(term.value)
+      );
+    }),
+  })),
+);
+
+const tabs = computed(() =>
+  filtered.value.map(({ group, variables }) => ({
+    id: group.id,
+    label: group.label,
+    icon: group.icon,
+    badge: variables.length ? String(variables.length) : undefined,
+  })),
+);
+
+const active = computed(
+  () => filtered.value.find(({ group }) => group.id === activeTab.value) ?? null,
+);
+
+const emptyMessage = computed(() => {
+  if (!active.value) return "No variables available.";
+  const { group } = active.value;
+  if (group.emptyMessage) return group.emptyMessage;
+  return term.value
+    ? `Nothing matches “${search.value}”.`
+    : `No ${group.label.toLowerCase()} variables.`;
 });
 
-const serviceVars = computed<SmartVariable[]>(() => {
-  return props.serviceNames.map((name) => ({
-    fullToken: createSmartToken("var", "service", name),
-    type: "var",
-    source: "service",
-    name: name,
-    description: `Reference to service: ${name}`,
-  }));
-});
-
-const filterVars = (vars: SmartVariable[]) => {
-  if (!searchTerm.value) return vars;
-  const lower = searchTerm.value.toLowerCase();
-  return vars.filter(
-    (v) =>
-      v.name.toLowerCase().includes(lower) ||
-      (v.description && v.description.toLowerCase().includes(lower)),
+const rowClass = (groupTone?: TrueColor) => {
+  const trigger = getSurfaceTriggerTokens(groupTone ?? props.tone);
+  return classNames(
+    "flex w-full flex-col items-start gap-1 rounded-lg px-3 py-2.5 text-left transition",
+    trigger.hover,
+    trigger.focusRing,
   );
 };
-
-const renderList = (vars: SmartVariable[], emptyMsg: string): VNode => {
-  const filtered = filterVars(vars);
-  if (filtered.length === 0) {
-    return h(
-      "div",
-      { class: "p-4 text-center text-slate-500 italic" },
-      emptyMsg,
-    );
-  }
-  return h(
-    "div",
-    { class: "flex flex-col gap-1 p-2" },
-    filtered.map((v) =>
-      h(
-        "button",
-        {
-          key: v.fullToken,
-          onClick: () => emit("select", v),
-          class:
-            "flex flex-col items-start p-2 hover:bg-slate-100 rounded text-left group transition-colors",
-        },
-        [
-          h("div", { class: "flex items-center gap-2 w-full" }, [
-            h(
-              "span",
-              {
-                class:
-                  "font-mono text-xs font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100",
-              },
-              v.name,
-            ),
-            v.defaultValue
-              ? h(
-                  "span",
-                  {
-                    class:
-                      "text-xs text-slate-400 ml-auto truncate max-w-[150px]",
-                  },
-                  `Def: ${v.defaultValue}`,
-                )
-              : null,
-          ]),
-          v.description
-            ? h(
-                "span",
-                {
-                  class:
-                    "text-xs text-slate-500 mt-1 line-clamp-1 group-hover:text-slate-700",
-                },
-                v.description,
-              )
-            : null,
-          h(
-            "span",
-            {
-              class:
-                "text-[10px] text-slate-300 mt-0.5 font-mono hidden group-hover:block",
-            },
-            v.fullToken,
-          ),
-        ],
-      ),
-    ),
-  );
-};
-
-const tabs = computed<TabItem[]>(() => [
-  {
-    id: "global",
-    label: "Global",
-    icon: "Globe",
-    panel: h("div", { class: "h-64 overflow-y-auto" }, [
-      renderList(globalVars.value, "No global parameters found."),
-    ]),
-  },
-  {
-    id: "system",
-    label: "System",
-    icon: "Cog",
-    panel: h("div", { class: "h-64 overflow-y-auto" }, [
-      renderList(SYSTEM_VARIABLES, "No system variables found."),
-    ]),
-  },
-  {
-    id: "services",
-    label: "Services",
-    icon: "Container",
-    panel: h("div", { class: "h-64 overflow-y-auto" }, [
-      renderList(serviceVars.value, "No services found."),
-    ]),
-  },
-]);
 </script>
 
 <template>
-  <div
-    class="w-[400px] bg-white rounded-lg shadow-xl border border-slate-200 flex flex-col overflow-hidden"
+  <!-- A Panel, so the picker is a card from the kit rather than a hard-coded
+       `bg-white border-slate-200` box with no dark mode. -->
+  <Panel
+    v-bind="restAttrs"
+    variant="elevated"
+    tone="neutral"
+    padding="none"
+    :scrollable="false"
+    :class="classNames('w-[26rem] max-w-[calc(100vw-2rem)]', classAttr)"
   >
     <div
-      class="flex items-center justify-between p-3 border-b border-slate-100 bg-slate-50"
+      class="flex items-center justify-between gap-2 border-b border-neutral-200 px-4 py-3 dark:border-neutral-700"
     >
-      <h3 class="text-sm font-semibold text-slate-900">Insert Variable</h3>
+      <h3 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+        {{ title }}
+      </h3>
       <IconButton
-        v-if="hasCloseListener"
         icon="Close"
         size="xs"
         variant="ghost"
+        color="neutral"
+        sr-label="Close"
         @click="emit('close')"
       />
     </div>
 
-    <div class="p-2 border-b border-slate-100">
-      <Input
-        v-model="searchTerm"
+    <div class="px-4 py-3">
+      <SearchBar
+        :size="size"
+        :color="tone"
+        :debounce-ms="0"
+        :initial-value="initialSearch"
         placeholder="Search variables..."
-        autofocus
-        class="text-sm"
+        @search="(next: string) => (search = next)"
       />
     </div>
 
-    <div class="flex-1">
-      <Tabs
-        v-model="activeTab"
-        :items="tabs"
-        variant="minimal"
-        class="h-full flex flex-col"
-      />
+    <div v-if="groups.length === 0" class="p-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
+      No variables available.
     </div>
-  </div>
+    <template v-else>
+      <div class="px-2 pb-2">
+      <Tabs
+        :items="tabs"
+        :model-value="activeTab"
+        variant="minimal"
+        :color="tone"
+        @update:model-value="(next: string) => (activeTab = next)"
+      />
+      </div>
+      <div class="max-h-64 overflow-y-auto p-2">
+        <div
+          v-if="!active || active.variables.length === 0"
+          class="p-6 text-center text-sm text-neutral-500 dark:text-neutral-400"
+        >
+          {{ emptyMessage }}
+        </div>
+        <div v-else class="flex flex-col gap-0.5">
+          <button
+            v-for="variable in active.variables"
+            :key="variable.fullToken"
+            type="button"
+            :class="rowClass(active.group.tone)"
+            @click="emit('select', variable)"
+          >
+            <span class="flex w-full items-center gap-2">
+              <span
+                class="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100"
+              >
+                {{ variable.label || variable.name }}
+              </span>
+              <span
+                v-if="resolve"
+                :class="
+                  classNames(
+                    'ml-auto max-w-[45%] shrink-0 truncate font-mono text-xs',
+                    resolve(variable).state === 'missing'
+                      ? 'text-rose-500'
+                      : 'text-neutral-500 dark:text-neutral-400',
+                  )
+                "
+              >
+                {{ variable.secret ? "••••••" : resolve(variable).value || "—" }}
+              </span>
+            </span>
+            <span
+              v-if="variable.description"
+              class="line-clamp-2 text-xs text-neutral-500 dark:text-neutral-400"
+            >
+              {{ variable.description }}
+            </span>
+            <SmartVariableBadge
+              :variable="variable"
+              mode="token"
+              :flag-missing="false"
+            />
+          </button>
+        </div>
+      </div>
+    </template>
+  </Panel>
 </template>

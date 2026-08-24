@@ -8,4 +8,5 @@ export type {
   TimelinePanelVariant,
   TimelinePanelPadding,
   TimelinePanelCorner,
+  TimelinePanelLoaderType,
 } from "./types";

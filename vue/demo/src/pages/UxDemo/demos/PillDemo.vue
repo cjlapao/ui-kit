@@ -1,11 +1,21 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
-import { Pill, MultiToggle, Toggle, CustomIcon } from "@cjlapao/ui-kit-vue";
+import {
+  Pill,
+  MultiToggle,
+  Select,
+  Toggle,
+  CustomIcon,
+} from "@cjlapao/ui-kit-vue";
 import type { PillTone, PillVariant, PillSize } from "@cjlapao/ui-kit-vue";
-import { alertToneOptions } from "../constants";
+import {
+  controlSizeOptions,
+  pillVariantOptions,
+  trueColorOptions,
+} from "../constants";
 
-const pillTone = ref<PillTone>("info");
+const pillTone = ref<PillTone>("sky");
 const pillVariant = ref<PillVariant>("soft");
 const pillSize = ref<PillSize>("md");
 const pillUppercase = ref(false);
@@ -30,39 +40,40 @@ const toggles = [
         <div class="grid gap-3 md:grid-cols-2">
           <label class="flex flex-col gap-2">
             <span>Tone</span>
-            <MultiToggle
-              full-width
-              :options="alertToneOptions"
+            <Select
               :model-value="pillTone"
-              size="sm"
               @update:model-value="pillTone = $event as PillTone"
-            />
+            >
+              <option
+                v-for="option in trueColorOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </Select>
           </label>
           <label class="flex flex-col gap-2">
             <span>Variant</span>
-            <MultiToggle
-              full-width
-              :options="[
-                { label: 'Soft', value: 'soft' },
-                { label: 'Solid', value: 'solid' },
-                { label: 'Outline', value: 'outline' },
-              ]"
+            <Select
               :model-value="pillVariant"
-              size="sm"
               @update:model-value="pillVariant = $event as PillVariant"
-            />
+            >
+              <option
+                v-for="option in pillVariantOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </Select>
           </label>
         </div>
         <label class="flex flex-col gap-2">
           <span>Size</span>
           <MultiToggle
             full-width
-            :options="[
-              { label: 'XS', value: 'xs' },
-              { label: 'SM', value: 'sm' },
-              { label: 'MD', value: 'md' },
-              { label: 'LG', value: 'lg' },
-            ]"
+            :options="controlSizeOptions"
             :model-value="pillSize"
             size="sm"
             @update:model-value="pillSize = $event as PillSize"
@@ -94,11 +105,11 @@ const toggles = [
           </template>
           <template v-if="!pillDot" #default>In review</template>
         </Pill>
-        <Pill tone="success" variant="solid">
+        <Pill tone="emerald" variant="solid">
           <template #icon><CustomIcon icon="CheckCircle" /></template>
           Healthy
         </Pill>
-        <Pill tone="warning" variant="outline">Pending approval</Pill>
+        <Pill tone="amber" variant="outline">Pending approval</Pill>
       </div>
     </template>
   </PlaygroundSection>

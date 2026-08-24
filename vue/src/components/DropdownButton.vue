@@ -136,6 +136,7 @@ const hasOptions = computed(() => menuOptions.value.length > 0);
 const showCaret = computed(
   () => hasOptions.value || !props.hideDropdownTriggerWhenEmpty,
 );
+const menuOpen = computed(() => open.value && hasOptions.value && showCaret.value);
 
 watch([hasOptions, open], () => {
   if (!hasOptions.value && open.value) {
@@ -181,6 +182,8 @@ const caretButtonClass = computed(() =>
       :size="size"
       icon-only
       aria-label="Toggle dropdown menu"
+      aria-haspopup="menu"
+      :aria-expanded="menuOpen"
       :leading-icon="dropdownIcon"
       data-dropdown-caret
       :class="caretButtonClass"
@@ -189,7 +192,7 @@ const caretButtonClass = computed(() =>
     />
     <DropdownMenu
       :anchor-ref="anchorEl"
-      :open="open && hasOptions && showCaret"
+      :open="menuOpen"
       :items="menuOptions"
       :width="menuWidth"
       align="end"

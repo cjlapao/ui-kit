@@ -1,9 +1,35 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
-import { Loader, IconButton, Button, Select, Badge, type PanelTone } from ".";
+import {
+  Loader,
+  IconButton,
+  Button,
+  Select,
+  Badge,
+  Panel,
+  type PanelTone,
+} from ".";
 import type { TrueColor } from "../theme";
+import {
+  NEUTRAL_TONES,
+  TRUE_COLORS,
+  getSurfaceTextTokens,
+  getTableDensityTokens,
+  type SurfaceCorner,
+  type SurfaceVariant,
+  type TableDensity,
+} from "../theme";
 import type { IconName } from "../icons/registry";
 import TruncatedText from "./TruncatedText";
+import {
+  TABLE_STORAGE_DEFAULT_PREFIX,
+  buildTableStorageKey,
+  createSafeLocalStorage,
+  decodeStoredSettings,
+  encodeStoredSettings,
+  type TableStorageAdapter,
+} from "../utils/tableStorage";
+import type { TableSettings } from "../types/TableSettings";
 
 type SortDirection = "asc" | "desc";
 
@@ -18,16 +44,6 @@ export interface TablePaginationState {
   total: number;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
-}
-
-/** Unified snapshot of all user-configurable table preferences. */
-export interface TableSettings {
-  columnVisibility?: Record<string, boolean>;
-  columnWidths?: Record<string, number>;
-  activeView?: "table" | "panel";
-  groupBy?: string | null;
-  showGroupHeader?: boolean;
-  stickyColumns?: Record<string, "left" | "right">;
 }
 
 type AccessorFn<T> = (row: T, index: number) => React.ReactNode;
@@ -79,12 +95,14 @@ export interface TableColumn<T> {
 
 export type Column<T> = TableColumn<T>;
 
-export type TableVariant =
-  | "default"
-  | "compact"
-  | "minimal"
-  | "bordered"
-  | "flat";
+/**
+ * The container surface, on the shared panel family — the same eight
+ * treatments as `Panel`, so a table reads identically to the card beside it.
+ * The former density members (`compact`, `minimal`) moved to the `density`
+ * prop and `bordered` to a boolean prop, so those old values are now type
+ * errors by design.
+ */
+export type TableVariant = SurfaceVariant;
 
 /** Internal type for a single group entry when grouping is active. */
 type GroupEntry<T> = {
@@ -98,9 +116,38 @@ export interface TableProps<T> {
   data: T[];
   selectedItems?: T[];
   rowKey?: (row: T, index: number) => string | number;
+  /**
+   * The container surface — the shared panel family (`elevated`,
+   * `outlined`, `subtle`, `tonal`, `default`, `glass`, `simple`,
+   * `liquid-glass`). Rendered by `Panel`, so the table sits on the exact
+   * surface a `Panel` beside it would. Defaults to `outlined`.
+   */
   variant?: TableVariant;
+  /**
+   * How tight the cells sit — `default`, `compact` or `minimal`
+   * (`TABLE_DENSITIES`). Orthogonal to `variant`: a compact table on glass
+   * reads the same as a compact table on an outlined card.
+   */
+  density?: TableDensity;
+  /**
+   * Draws grid lines between cells (vertical rules per column plus a
+   * stronger header rule). `noBorders` still wins when both are set.
+   */
+  bordered?: boolean;
+  /** Corner radius of the container, on the shared surface corner scale. */
+  corner?: SurfaceCorner;
+  /**
+   * Palette tone of the table: the header band, tone accents, and — unless
+   * overridden by `color` — the controls inside the table (action buttons,
+   * sort indicators, group dots, badges, pagination, selected/highlight rows,
+   * focus rings).
+   */
   tone?: PanelTone;
-  /** Theme color applied to action buttons, sort indicators, group dot, badges, and pagination. */
+  /**
+   * Control-only tone override: tints the interior controls (buttons, sort
+   * indicators, group dots, badges, pagination, selected/highlight rows,
+   * focus rings) independently of `tone`. Defaults to `tone`.
+   */
   color?: TrueColor;
   striped?: boolean;
   noBorders?: boolean;
@@ -116,10 +163,15 @@ export interface TableProps<T> {
   loadingMessage?: string;
   loaderType?: "spinner" | "progress";
   loaderProgress?: number;
-  emptyState?: React.ReactNode;
-  sortState?: TableSortState;
-  defaultSort?: TableSortState;
-  onSortChange?: (sort: TableSortState | null) => void;
+   emptyState?: React.ReactNode;
+  /**
+   * Controlled sort state. Pass `null` to clear the sort — like every other
+   * prop, `undefined` means "uncontrolled" (the table keeps its own state),
+   * so the two must not be conflated.
+   */
+   sortState?: TableSortState | null;
+   defaultSort?: TableSortState;
+   onSortChange?: (sort: TableSortState | null) => void;
   headerActions?: React.ReactNode;
   footer?: React.ReactNode;
   pagination?: TablePaginationState;
@@ -134,8 +186,6 @@ export interface TableProps<T> {
   style?: React.CSSProperties;
   fullHeight?: boolean;
   manualSorting?: boolean;
-  /** When true, wraps the table in a rounded border regardless of the variant. */
-  rounded?: boolean;
   /** Title shown in the header bar alongside headerActions / view toggle. Defaults to empty. */
   headerTitle?: string;
   /**
@@ -243,349 +293,144 @@ export interface TableProps<T> {
    * Called whenever any user-configurable table setting changes (visibility,
    * widths, view, group-by, sticky columns). Use a single handler to persist
    * the full settings object instead of wiring up all individual callbacks.
+   * When `storageKey` is set the table also persists to storage itself — this
+   * callback remains as an observer.
    */
   onTableSettingsChange?: (settings: TableSettings) => void;
+  // ── Built-in settings persistence ──────────────────────────────────────────
+  /**
+   * Enables built-in settings persistence. When set, the table restores its
+   * settings from storage on mount and saves the full `TableSettings`
+   * snapshot after every change, under
+   * `{storagePrefix}:{storageKey}` (default prefix `ui-kit:table`).
+   *
+   * An explicitly passed `tableSettings` (or the individual initial props)
+   * still wins over the stored value on mount, so an app can pin settings;
+   * afterwards every change flows back through `onTableSettingsChange` AND
+   * into storage. Omit to keep the current fully-manual behaviour.
+   */
+  storageKey?: string;
+  /** Prefix for the composed storage key. Defaults to `ui-kit:table`. */
+  storagePrefix?: string;
+  /**
+   * Storage backend override — anything with `getItem`/`setItem`/
+   * `removeItem` (sessionStorage, a test mock, an IndexedDB adapter).
+   * Defaults to a best-effort localStorage wrapper that never throws.
+   */
+  storage?: TableStorageAdapter;
 }
+const NEUTRAL_HEADER_CLASSES =
+  "bg-neutral-50 text-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700";
 
-const getToneHeaderClasses = (tone: TrueColor): string => {
-  if (tone === "neutral" || tone === "slate" || tone === "gray" || tone === "zinc" || tone === "stone") {
-    return "bg-neutral-50 text-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700";
-  }
+/**
+ * Tinted header band per tone. Generated from TRUE_COLORS — every class
+ * below is in the safelist (`scripts/generate-safelist.mjs`, Table section)
+ * because the scanner cannot see interpolated candidates. The neutral
+ * family shares one treatment instead of painting a grey-blue header.
+ */
+const toneHeaderClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map(
+      (tone) => [
+        tone,
+        `bg-${tone}-50 text-${tone}-700 dark:bg-${tone}-500/15 dark:text-${tone}-100 border-${tone}-200 dark:border-${tone}-500/30`,
+      ],
+    ),
+  ),
+  ...Object.fromEntries(NEUTRAL_TONES.map((tone) => [tone, NEUTRAL_HEADER_CLASSES])),
+} as Record<TrueColor, string>;
 
-  return `bg-${tone}-50 text-${tone}-700 dark:bg-${tone}-500/15 dark:text-${tone}-100 border-${tone}-200 dark:border-${tone}-500/30`;
-};
+const getToneHeaderClasses = (tone: TrueColor): string =>
+  toneHeaderClasses[tone] ?? NEUTRAL_HEADER_CLASSES;
 
-/** Returns a static `bg-*-500` class for the active-group indicator dot. */
-function getDotColorClass(color: TrueColor): string {
-  switch (color) {
-    case "blue":
-      return "bg-blue-500";
-    case "green":
-      return "bg-green-500";
-    case "teal":
-      return "bg-teal-500";
-    case "cyan":
-      return "bg-cyan-500";
-    case "indigo":
-      return "bg-indigo-500";
-    case "purple":
-      return "bg-purple-500";
-    case "violet":
-      return "bg-violet-500";
-    case "red":
-      return "bg-red-500";
-    case "orange":
-      return "bg-orange-500";
-    case "amber":
-      return "bg-amber-500";
-    case "yellow":
-      return "bg-yellow-500";
-    case "lime":
-      return "bg-lime-500";
-    case "emerald":
-      return "bg-emerald-500";
-    case "sky":
-      return "bg-sky-500";
-    case "fuchsia":
-      return "bg-fuchsia-500";    case "rose":
-      return "bg-rose-500";
-    case "slate":
-      return "bg-slate-500";
-    case "gray":
-      return "bg-gray-500";
-    case "zinc":
-      return "bg-zinc-500";
-    case "neutral":
-      return "bg-neutral-500";
-    case "stone":
-      return "bg-stone-500";
-    default:
-      return "bg-blue-500";
-  }
-}
+/** Static `bg-*-500` class for the active-group / sticky indicator dot. */
+const dotColorClasses: Record<TrueColor, string> = Object.fromEntries(
+  TRUE_COLORS.map((tone) => [tone, `bg-${tone}-500`]),
+) as Record<TrueColor, string>;
 
-/** Returns static `accent-*` classes for native checkbox/radio inputs. */
-function getAccentClass(color: TrueColor): string {
-  switch (color) {
-    case "blue":
-      return "accent-blue-600 dark:accent-blue-400";
-    case "green":
-      return "accent-green-600 dark:accent-green-400";
-    case "teal":
-      return "accent-teal-600 dark:accent-teal-400";
-    case "cyan":
-      return "accent-cyan-600 dark:accent-cyan-400";
-    case "indigo":
-      return "accent-indigo-600 dark:accent-indigo-400";
-    case "purple":
-      return "accent-purple-600 dark:accent-purple-400";
-    case "violet":
-      return "accent-violet-600 dark:accent-violet-400";
-    case "red":
-      return "accent-red-600 dark:accent-red-400";
-    case "orange":
-      return "accent-orange-600 dark:accent-orange-400";
-    case "amber":
-      return "accent-amber-600 dark:accent-amber-400";
-    case "yellow":
-      return "accent-yellow-600 dark:accent-yellow-400";
-    case "lime":
-      return "accent-lime-600 dark:accent-lime-400";
-    case "emerald":
-      return "accent-emerald-600 dark:accent-emerald-400";
-    case "sky":
-      return "accent-sky-600 dark:accent-sky-400";
-    case "fuchsia":
-      return "accent-fuchsia-600 dark:accent-fuchsia-400";    case "rose":
-      return "accent-rose-600 dark:accent-rose-400";
-    case "slate":
-      return "accent-slate-600 dark:accent-slate-400";
-    case "gray":
-      return "accent-gray-600 dark:accent-gray-400";
-    case "zinc":
-      return "accent-zinc-600 dark:accent-zinc-400";
-    case "neutral":
-      return "accent-neutral-700 dark:accent-neutral-300";
-    case "stone":
-      return "accent-stone-600 dark:accent-stone-400";
-    default:
-      return "accent-blue-600 dark:accent-blue-400";
-  }
-}
+const getDotColorClass = (color: TrueColor): string =>
+  dotColorClasses[color] ?? dotColorClasses.blue;
 
-/** Returns a static `bg-*-50` class for the selected row background. */
-function getSelectedRowClass(color: TrueColor): string {
-  switch (color) {
-    case "blue":
-      return "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800";
-    case "green":
-      return "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-800";
-    case "teal":
-      return "bg-teal-50 dark:bg-teal-500/10 border-teal-200 dark:border-teal-800";
-    case "cyan":
-      return "bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-800";
-    case "indigo":
-      return "bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-800";
-    case "purple":
-      return "bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-800";
-    case "violet":
-      return "bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-800";
-    case "red":
-      return "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-800";
-    case "orange":
-      return "bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-800";
-    case "amber":
-      return "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-800";
-    case "yellow":
-      return "bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-800";
-    case "lime":
-      return "bg-lime-50 dark:bg-lime-500/10 border-lime-200 dark:border-lime-800";
-    case "emerald":
-      return "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-800";
-    case "sky":
-      return "bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-800";
-    case "fuchsia":
-      return "bg-fuchsia-50 dark:bg-fuchsia-500/10 border-fuchsia-200 dark:border-fuchsia-800";    case "rose":
-      return "bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-800";
-    case "slate":
-      return "bg-slate-50 dark:bg-slate-500/10 border-slate-200 dark:border-slate-800";
-    case "gray":
-      return "bg-gray-50 dark:bg-gray-500/10 border-gray-200 dark:border-gray-800";
-    case "zinc":
-      return "bg-zinc-50 dark:bg-zinc-500/10 border-zinc-200 dark:border-zinc-800";
-    case "neutral":
-      return "bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700";
-    case "stone":
-      return "bg-stone-50 dark:bg-stone-500/10 border-stone-200 dark:border-stone-800";
-    default:
-      return "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-800";
-  }
-}
+/**
+ * Static `accent-*` classes for native checkbox/radio inputs. The neutral
+ * tone sits two shades off the pattern (its `-600` is too dark against the
+ * light header band), so it keeps an explicit entry.
+ */
+const accentClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.map((tone) => [tone, `accent-${tone}-600 dark:accent-${tone}-400`]),
+  ),
+  neutral: "accent-neutral-700 dark:accent-neutral-300",
+} as Record<TrueColor, string>;
 
-function getHighlightRowClass(color: TrueColor): string {
-  switch (color) {
-    case "blue":
-      return "bg-blue-100 dark:bg-blue-500/20";
-    case "green":
-      return "bg-green-100 dark:bg-green-500/20";
-    case "teal":
-      return "bg-teal-100 dark:bg-teal-500/20";
-    case "cyan":
-      return "bg-cyan-100 dark:bg-cyan-500/20";
-    case "indigo":
-      return "bg-indigo-100 dark:bg-indigo-500/20";
-    case "purple":
-      return "bg-purple-100 dark:bg-purple-500/20";
-    case "violet":
-      return "bg-violet-100 dark:bg-violet-500/20";
-    case "red":
-      return "bg-red-100 dark:bg-red-500/20";
-    case "orange":
-      return "bg-orange-100 dark:bg-orange-500/20";
-    case "amber":
-      return "bg-amber-100 dark:bg-amber-500/20";
-    case "yellow":
-      return "bg-yellow-100 dark:bg-yellow-500/20";
-    case "lime":
-      return "bg-lime-100 dark:bg-lime-500/20";
-    case "emerald":
-      return "bg-emerald-100 dark:bg-emerald-500/20";
-    case "sky":
-      return "bg-sky-100 dark:bg-sky-500/20";
-    case "fuchsia":
-      return "bg-fuchsia-100 dark:bg-fuchsia-500/20";    case "rose":
-      return "bg-rose-100 dark:bg-rose-500/20";
-    case "slate":
-      return "bg-slate-100 dark:bg-slate-500/20";
-    case "gray":
-      return "bg-gray-100 dark:bg-gray-500/20";
-    case "zinc":
-      return "bg-zinc-100 dark:bg-zinc-500/20";
-    case "neutral":
-      return "bg-neutral-100 dark:bg-neutral-700/50";
-    case "stone":
-      return "bg-stone-100 dark:bg-stone-500/20";
-    default:
-      return "bg-blue-100 dark:bg-blue-500/20";
-  }
-}
+const getAccentClass = (color: TrueColor): string =>
+  accentClasses[color] ?? accentClasses.blue;
 
-function getHighlightBorderClass(color: TrueColor): string {
-  switch (color) {
-    case "blue":
-      return "border-l-blue-500";
-    case "green":
-      return "border-l-green-500";
-    case "teal":
-      return "border-l-teal-500";
-    case "cyan":
-      return "border-l-cyan-500";
-    case "indigo":
-      return "border-l-indigo-500";
-    case "purple":
-      return "border-l-purple-500";
-    case "violet":
-      return "border-l-violet-500";
-    case "red":
-      return "border-l-red-500";
-    case "orange":
-      return "border-l-orange-500";
-    case "amber":
-      return "border-l-amber-500";
-    case "yellow":
-      return "border-l-yellow-500";
-    case "lime":
-      return "border-l-lime-500";
-    case "emerald":
-      return "border-l-emerald-500";
-    case "sky":
-      return "border-l-sky-500";
-    case "fuchsia":
-      return "border-l-fuchsia-500";    case "rose":
-      return "border-l-rose-500";
-    case "slate":
-      return "border-l-slate-500";
-    case "gray":
-      return "border-l-gray-500";
-    case "zinc":
-      return "border-l-zinc-500";
-    case "neutral":
-      return "border-l-neutral-500";
-    case "stone":
-      return "border-l-stone-500";
-    default:
-      return "border-l-blue-500";
-  }
-}
+/**
+ * Selected-row fill + edge per tone. The neutral tone steps to `-100`
+ * (its `-50` is indistinguishable from the page background).
+ */
+const selectedRowClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.map((tone) => [
+      tone,
+      `bg-${tone}-50 dark:bg-${tone}-500/10 border-${tone}-200 dark:border-${tone}-800`,
+    ]),
+  ),
+  neutral:
+    "bg-neutral-100 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-700",
+} as Record<TrueColor, string>;
 
-/** Returns static Tailwind hover class for the column resize handle track. */
-function getResizeHandleHoverClass(color: TrueColor): string {
-  switch (color) {
-    case "blue":
-      return "group-hover/rh:bg-blue-500    dark:group-hover/rh:bg-blue-400";
-    case "green":
-      return "group-hover/rh:bg-green-500   dark:group-hover/rh:bg-green-400";
-    case "teal":
-      return "group-hover/rh:bg-teal-500    dark:group-hover/rh:bg-teal-400";
-    case "cyan":
-      return "group-hover/rh:bg-cyan-500    dark:group-hover/rh:bg-cyan-400";
-    case "indigo":
-      return "group-hover/rh:bg-indigo-500  dark:group-hover/rh:bg-indigo-400";
-    case "purple":
-      return "group-hover/rh:bg-purple-500  dark:group-hover/rh:bg-purple-400";
-    case "violet":
-      return "group-hover/rh:bg-violet-500  dark:group-hover/rh:bg-violet-400";
-    case "red":
-      return "group-hover/rh:bg-red-500     dark:group-hover/rh:bg-red-400";
-    case "orange":
-      return "group-hover/rh:bg-orange-500  dark:group-hover/rh:bg-orange-400";
-    case "amber":
-      return "group-hover/rh:bg-amber-500   dark:group-hover/rh:bg-amber-400";
-    case "yellow":
-      return "group-hover/rh:bg-yellow-500  dark:group-hover/rh:bg-yellow-400";
-    case "lime":
-      return "group-hover/rh:bg-lime-500    dark:group-hover/rh:bg-lime-400";
-    case "emerald":
-      return "group-hover/rh:bg-emerald-500 dark:group-hover/rh:bg-emerald-400";
-    case "sky":
-      return "group-hover/rh:bg-sky-500     dark:group-hover/rh:bg-sky-400";
-    case "fuchsia":
-      return "group-hover/rh:bg-fuchsia-500 dark:group-hover/rh:bg-fuchsia-400";    case "rose":
-      return "group-hover/rh:bg-rose-500    dark:group-hover/rh:bg-rose-400";
-    case "slate":
-      return "group-hover/rh:bg-slate-500   dark:group-hover/rh:bg-slate-400";
-    case "gray":
-      return "group-hover/rh:bg-gray-500    dark:group-hover/rh:bg-gray-400";
-    case "zinc":
-      return "group-hover/rh:bg-zinc-500    dark:group-hover/rh:bg-zinc-400";
-    case "neutral":
-      return "group-hover/rh:bg-neutral-500 dark:group-hover/rh:bg-neutral-400";
-    case "stone":
-      return "group-hover/rh:bg-stone-500   dark:group-hover/rh:bg-stone-400";
-    default:
-      return "group-hover/rh:bg-blue-500    dark:group-hover/rh:bg-blue-400";
-  }
-}
+const getSelectedRowClass = (color: TrueColor): string =>
+  selectedRowClasses[color] ?? selectedRowClasses.blue;
 
-const variantCellPadding: Record<TableVariant, string> = {
-  default: "px-6 py-5 text-sm",
-  compact: "px-4 py-3 text-sm",
-  minimal: "px-3 py-4 text-xs",
-  bordered: "px-5 py-5 text-sm",
-  flat: "px-4 py-3 text-sm",
-};
+/**
+ * Highlighted-row fill per tone. The neutral tone drops to a 50% `-700` in
+ * dark mode (its `-500/20` would be nearly invisible on the dark surface).
+ */
+const highlightRowClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.map((tone) => [
+      tone,
+      `bg-${tone}-100 dark:bg-${tone}-500/20`,
+    ]),
+  ),
+  neutral: "bg-neutral-100 dark:bg-neutral-700/50",
+} as Record<TrueColor, string>;
 
-const variantSidePadding: Record<
-  TableVariant,
-  { left: string; right: string; contentVertical: string }
-> = {
-  default: { left: "pl-6", right: "pr-6", contentVertical: "py-1.5" },
-  compact: { left: "pl-4", right: "pr-4", contentVertical: "py-1" },
-  minimal: { left: "pl-3", right: "pr-3", contentVertical: "py-1.5" },
-  bordered: { left: "pl-5", right: "pr-5", contentVertical: "py-1.5" },
-  flat: { left: "pl-4", right: "pr-4", contentVertical: "py-1.5" },
-};
+const getHighlightRowClass = (color: TrueColor): string =>
+  highlightRowClasses[color] ?? highlightRowClasses.blue;
 
-const variantTableBase: Record<TableVariant, string> = {
-  default: "min-w-full divide-y divide-neutral-200 dark:divide-neutral-700",
-  compact: "min-w-full divide-y divide-neutral-200 dark:divide-neutral-700",
-  minimal: "min-w-full divide-y divide-neutral-200 dark:divide-neutral-700",
-  bordered: "min-w-full border border-neutral-200 dark:border-neutral-700",
-  flat: "min-w-full divide-y divide-neutral-100 dark:divide-neutral-800",
-};
+/** Pulsing left-border indicator for highlighted rows. */
+const highlightBorderClasses: Record<TrueColor, string> = Object.fromEntries(
+  TRUE_COLORS.map((tone) => [tone, `border-l-${tone}-500`]),
+) as Record<TrueColor, string>;
 
-const variantWrapperBase: Record<TableVariant, string> = {
-  default:
-    "overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-700/60 dark:bg-neutral-900/90",
-  compact:
-    "overflow-hidden rounded-2xl border border-neutral-200/60 bg-white shadow-sm dark:border-neutral-700/60 dark:bg-neutral-900/90",
-  minimal:
-    "overflow-hidden rounded-xl border border-neutral-200/60 bg-white/95 shadow-sm dark:border-neutral-700/60 dark:bg-neutral-900/90",
-  bordered:
-    "overflow-hidden rounded-2xl border border-neutral-300 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-900",
-  flat: "overflow-hidden bg-transparent dark:bg-transparent",
-};
+const getHighlightBorderClass = (color: TrueColor): string =>
+  highlightBorderClasses[color] ?? highlightBorderClasses.blue;
+/**
+ * Hover fill for the column resize handle track, driven off the header
+ * cell's `group/rh`. Generated from TRUE_COLORS (the `group-hover/rh:`
+ * candidates are in the safelist — the scanner never sees them otherwise).
+ */
+const resizeHandleHoverClasses: Record<TrueColor, string> = Object.fromEntries(
+  TRUE_COLORS.map((tone) => [
+    tone,
+    `group-hover/rh:bg-${tone}-500 dark:group-hover/rh:bg-${tone}-400`,
+  ]),
+) as Record<TrueColor, string>;
 
+const getResizeHandleHoverClass = (color: TrueColor): string =>
+  resizeHandleHoverClasses[color] ?? resizeHandleHoverClasses.blue;
+
+/**
+ * Row rules. The container chrome (fill, shadow, ring, glass) now comes from
+ * the `Panel` rendered below — only the table's own internal rules live here.
+ * Translucent surfaces (glass / liquid-glass / default / simple) use light
+ * rules so the backdrop still shows through the row separators.
+ */
+const SOLID_ROW_RULES = "divide-neutral-200 dark:divide-neutral-700";
+const TRANSLUCENT_ROW_RULES = "divide-white/30 dark:divide-white/10";
 const alignmentClass: Record<
   NonNullable<TableColumn<unknown>["align"]>,
   string
@@ -678,11 +523,12 @@ function applyWidthStyle(
   return style;
 }
 
-function getNextSortDirection(current?: SortDirection): SortDirection {
-  if (current === "asc") {
-    return "desc";
-  }
-
+/** asc → desc → (clear) → asc. `null` is the "no sort" step. */
+function getNextSortDirection(
+  current?: SortDirection,
+): SortDirection | null {
+  if (current === "asc") return "desc";
+  if (current === "desc") return null;
   return "asc";
 }
 
@@ -716,7 +562,10 @@ function TableComponent<T>({
   data,
   selectedItems,
   rowKey,
-  variant = "default",
+  variant = "outlined",
+  density = "default",
+  bordered = false,
+  corner,
   tone = "neutral",
   striped = false,
   noBorders = false,
@@ -744,7 +593,6 @@ function TableComponent<T>({
   fullHeight,
   pagination,
   manualSorting = false,
-  rounded = false,
   panelItem,
   defaultView,
   onViewChange,
@@ -772,7 +620,10 @@ function TableComponent<T>({
   onStickyColumnsChange,
   tableSettings,
   onTableSettingsChange,
-  color = "blue",
+  storageKey,
+  storagePrefix,
+  storage,
+  color,
 }: TableProps<T>) {
   const getDefaultColumnVisibility = (column: TableColumn<T>) => {
     if (column.hideable === false) {
@@ -782,9 +633,48 @@ function TableComponent<T>({
     return column.defaultHidden !== true;
   };
 
+  // ── Built-in settings persistence ──────────────────────────────────────────
+  // The adapter is created once per backend; the composed key is stable for
+  // the life of the component, so the stored snapshot is read exactly once
+  // per (key, backend) pair. An explicit `tableSettings` prop (or the
+  // individual initial props) always outranks the stored value on mount.
+  const storageAdapter = useMemo(
+    () => storage ?? createSafeLocalStorage(),
+    [storage],
+  );
+  const fullStorageKey = storageKey
+    ? buildTableStorageKey(storagePrefix ?? TABLE_STORAGE_DEFAULT_PREFIX, storageKey)
+    : null;
+  const storedSettings = useMemo(
+    () =>
+      fullStorageKey
+        ? decodeStoredSettings(storageAdapter.getItem(fullStorageKey))
+        : null,
+    [fullStorageKey, storageAdapter],
+  );
+  /** Precedence: explicit prop → stored snapshot → individual initial prop. */
+  const settingsSource: TableSettings | undefined =
+    tableSettings ?? storedSettings ?? undefined;
+
+  /** Fire the observer callback AND persist when storage is enabled. */
+  const emitSettingsChange = (settings: TableSettings) => {
+    onTableSettingsChange?.(settings);
+    if (fullStorageKey) {
+      storageAdapter.setItem(fullStorageKey, encodeStoredSettings(settings));
+    }
+  };
+
+  // The tone tints the interior controls too, unless the caller overrides
+  // just those with `color` (e.g. an emerald table with blue actions).
+  const controlColor: TrueColor = color ?? tone;
+  const focusRingClass = `focus-visible:ring-${controlColor}-500 dark:focus-visible:ring-${controlColor}-400`;
+  const densityTokens = getTableDensityTokens(density);
+  const cellPadding = densityTokens.cell;
+  const sidePaddingTokens = densityTokens;
+
   const showViewToggle = !!columns?.length && !!panelItem;
   const defaultViewResolved: "table" | "panel" =
-    tableSettings?.activeView ??
+    settingsSource?.activeView ??
     defaultView ??
     (showViewToggle ? "table" : panelItem ? "panel" : "table");
   const [activeView, setActiveView] = useState<"table" | "panel">(
@@ -795,13 +685,16 @@ function TableComponent<T>({
     defaultSort ?? null,
   );
 
-  const resolvedSort = sortState ?? internalSort;
+  // `!== undefined`, not `??`: a controlled `null` (sort cleared by the
+  // parent) must NOT fall back to the internal state.
+  const resolvedSort = sortState !== undefined ? sortState : internalSort;
 
   // ── Column visibility ────────────────────────────────────────────────────────
   const [colVisibility, setColVisibility] = useState<Record<string, boolean>>(
     () => {
       const init: Record<string, boolean> = {};
-      const source = tableSettings?.columnVisibility ?? columnVisibilityProp;
+      const source =
+        settingsSource?.columnVisibility ?? columnVisibilityProp;
       for (const col of columns ?? []) {
         init[col.id] = source?.[col.id] ?? getDefaultColumnVisibility(col);
       }
@@ -832,7 +725,8 @@ function TableComponent<T>({
     Record<string, number>
   >(() => {
     const init: Record<string, number> = {};
-    const widthSource = tableSettings?.columnWidths ?? columnWidthsProp;
+    const widthSource =
+      settingsSource?.columnWidths ?? columnWidthsProp;
     if (widthSource) {
       Object.assign(init, widthSource);
     } else {
@@ -919,7 +813,7 @@ function TableComponent<T>({
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       onColumnWidthChange?.(widthsDuringResizeRef.current);
-      onTableSettingsChange?.({
+      emitSettingsChange({
         ...settingsSnapshotRef.current,
         columnWidths: widthsDuringResizeRef.current,
       });
@@ -940,7 +834,7 @@ function TableComponent<T>({
   // ── User sticky columns state ────────────────────────────────────────────────
   const [internalStickyColumns, setInternalStickyColumns] = useState<
     Record<string, "left" | "right">
-  >(tableSettings?.stickyColumns ?? defaultStickyColumns ?? {});
+  >(settingsSource?.stickyColumns ?? defaultStickyColumns ?? {});
   const [stickyPanelOpen, setStickyPanelOpen] = useState(false);
   const stickyPanelRef = useRef<HTMLDivElement>(null);
 
@@ -949,16 +843,17 @@ function TableComponent<T>({
   const settingsSnapshotRef = useRef<TableSettings>({});
 
   const handleStickyChange = (colId: string, pin: "left" | "right" | null) => {
-    setInternalStickyColumns((prev) => {
-      const next = { ...prev };
-      if (pin === null) delete next[colId];
-      else next[colId] = pin;
-      onStickyColumnsChange?.(next);
-      onTableSettingsChange?.({
-        ...settingsSnapshotRef.current,
-        stickyColumns: next,
-      });
-      return next;
+    // The callbacks live OUTSIDE the state updater: React may invoke an
+    // updater twice (StrictMode, concurrent re-render) and every side effect
+    // in there would fire twice — the persistence write included.
+    const next = { ...internalStickyColumns };
+    if (pin === null) delete next[colId];
+    else next[colId] = pin;
+    setInternalStickyColumns(next);
+    onStickyColumnsChange?.(next);
+    emitSettingsChange({
+      ...settingsSnapshotRef.current,
+      stickyColumns: next,
     });
   };
 
@@ -966,14 +861,14 @@ function TableComponent<T>({
 
   // ── Grouping state ───────────────────────────────────────────────────────────
   const [internalGroupBy, setInternalGroupBy] = useState<string | null>(
-    tableSettings?.groupBy ?? defaultGroupBy ?? null,
+    settingsSource?.groupBy ?? defaultGroupBy ?? null,
   );
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {},
   );
   const [groupPanelOpen, setGroupPanelOpen] = useState(false);
   const [showGroupHeaderLocal, setShowGroupHeaderLocal] = useState(
-    tableSettings?.showGroupHeader ?? showGroupHeader ?? true,
+    settingsSource?.showGroupHeader ?? showGroupHeader ?? true,
   );
   const groupPanelRef = useRef<HTMLDivElement>(null);
 
@@ -1071,7 +966,7 @@ function TableComponent<T>({
       ? { columnId: column.id, direction: nextDirection }
       : null;
 
-    if (!sortState) {
+    if (sortState === undefined) {
       setInternalSort(nextSort);
     }
 
@@ -1085,7 +980,7 @@ function TableComponent<T>({
     setInternalGroupBy(columnId);
     setExpandedGroups({}); // reset expansion state when group changes
     onGroupByChange?.(columnId);
-    onTableSettingsChange?.({
+    emitSettingsChange({
       ...settingsSnapshotRef.current,
       groupBy: columnId,
     });
@@ -1121,39 +1016,46 @@ function TableComponent<T>({
         : (row: T, index: number) =>
             column.render ? column.render(row, index) : null;
 
-    const sorted = [...data];
-    sorted.sort((a, b) => {
-      const aValue = getValue(a, data.indexOf(a));
-      const bValue = getValue(b, data.indexOf(b));
+    const safeString = (val: React.ReactNode): string => {
+      if (typeof val === "string") return val;
+      if (typeof val === "number") return String(val);
+      if (typeof val === "boolean") return String(val);
+      return "";
+    };
 
-      if (aValue === bValue) {
+    // Precompute the comparable value per row ONCE. Computing it inside the
+    // comparator (via data.indexOf(row)) made every comparison an O(n)
+    // lookup — O(n²) log n overall on large tables.
+    const indexed = data.map((row, index) => ({
+      row,
+      key:
+        typeof getValue(row, index) === "number"
+          ? (getValue(row, index) as number)
+          : safeString(getValue(row, index) as React.ReactNode).toLowerCase(),
+    }));
+
+    const sorted = indexed.sort((a, b) => {
+      if (a.key === b.key) {
         return 0;
       }
 
-      const safeString = (val: React.ReactNode): string => {
-        if (typeof val === "string") return val;
-        if (typeof val === "number") return String(val);
-        if (typeof val === "boolean") return String(val);
-        return "";
-      };
-
-      const aComparable =
-        typeof aValue === "number"
-          ? aValue
-          : safeString(aValue as React.ReactNode).toLowerCase();
-      const bComparable =
-        typeof bValue === "number"
-          ? bValue
-          : safeString(bValue as React.ReactNode).toLowerCase();
-
-      if (aComparable < bComparable) {
-        return resolvedSort.direction === "asc" ? -1 : 1;
+      // Type-safe stand-in for `a.key < b.key` (TS rejects `<` on
+      // number | string). Numbers compare numerically; anything else —
+      // including the mixed case — falls back to string order, which is
+      // exactly what the JS relational operator did via coercion.
+      let cmp: number;
+      if (typeof a.key === "number" && typeof b.key === "number") {
+        cmp = a.key - b.key;
+      } else {
+        const sa = String(a.key);
+        const sb = String(b.key);
+        cmp = sa < sb ? -1 : sa > sb ? 1 : 0;
       }
 
-      return resolvedSort.direction === "asc" ? 1 : -1;
+      return resolvedSort.direction === "asc" ? cmp : -cmp;
     });
 
-    return sorted;
+    return sorted.map(({ row }) => row);
   }, [resolvedSort, columns, data, manualSorting]);
 
   // ── Column helpers ───────────────────────────────────────────────────────────
@@ -1321,28 +1223,39 @@ function TableComponent<T>({
   ]);
 
   // ── Visual class helpers ─────────────────────────────────────────────────────
-  const wrapperClasses = classNames(
-    "w-full",
-    variantWrapperBase[variant],
-    rounded &&
-      "overflow-hidden rounded-2xl border border-neutral-200/80 dark:border-neutral-700/60",
-    fullHeight && "h-full flex flex-col",
-    className,
+  // Container chrome (fill, shadow, ring, glass) now lives on the `Panel`
+  // rendered below. Everything here is the table's OWN interior rule; on
+  // translucent surfaces (glass / liquid-glass / default / simple) fills and
+  // separators stay light so the backdrop still shows through.
+  const surfaceText = getSurfaceTextTokens(variant);
+  const gridLinesOn = bordered && !noBorders;
+
+  const wrapperClasses = classNames(fullHeight && "h-full", className);
+  const tableClasses = classNames(
+    "min-w-full divide-y",
+    surfaceText.translucent ? TRANSLUCENT_ROW_RULES : SOLID_ROW_RULES,
+    gridLinesOn && "border border-neutral-200 dark:border-neutral-700",
+    tableClassName,
   );
-  const tableClasses = classNames(variantTableBase[variant], tableClassName);
+  const gridLineClass =
+    gridLinesOn && "border-neutral-200 dark:border-neutral-700";
 
-  const cellPadding = variantCellPadding[variant];
-  const sidePaddingTokens = variantSidePadding[variant];
-
-  const headerToneClasses =
-    variant === "flat"
-      ? "bg-white text-neutral-500 dark:bg-transparent dark:text-neutral-400 border-neutral-200 dark:border-neutral-700"
-      : getToneHeaderClasses(tone);
+  // On a see-through surface the header band must stay see-through too — an
+  // opaque band reads as a hole punched in the glass. The light-mode tint is a
+  // translucent half of the solid tone fill (`-50/50`); dark mode reuses the
+  // already-translucent `-500/15` tint. Neutral steps down to white/20 (its
+  // `-50` is a paper-white that would still mask the backdrop).
+  const headerToneClasses = surfaceText.translucent
+    ? NEUTRAL_TONES.includes(tone)
+      ? "bg-white/20 text-neutral-700 border-neutral-200/60 dark:bg-white/5 dark:text-neutral-100 dark:border-white/10"
+      : `bg-${tone}-50/50 text-${tone}-700 border-${tone}-200/60 dark:bg-${tone}-500/15 dark:text-${tone}-100 dark:border-${tone}-500/30`
+    : getToneHeaderClasses(tone);
   const headerBaseClasses =
     "text-xs font-semibold uppercase tracking-wide text-left text-neutral-600 dark:text-neutral-200";
 
   const tbodyClasses = classNames(
-    "bg-white dark:bg-neutral-900/40 divide-y divide-neutral-200 dark:divide-neutral-800",
+    "divide-y",
+    surfaceText.translucent ? TRANSLUCENT_ROW_RULES : SOLID_ROW_RULES,
     (striped || noBorders) && "divide-y-0",
     bodyClassName,
   );
@@ -1392,8 +1305,8 @@ function TableComponent<T>({
     const isHighlighted =
       !isSelected && (rowHighlight?.(row, originalIndex) ?? false);
 
-    const selectedClass = isSelected ? getSelectedRowClass(color) : "";
-    const highlightRowClass = isHighlighted ? getHighlightRowClass(color) : "";
+    const selectedClass = isSelected ? getSelectedRowClass(controlColor) : "";
+    const highlightRowClass = isHighlighted ? getHighlightRowClass(controlColor) : "";
     const baseRowBgClass =
       striped && originalIndex % 2 === 1
         ? "bg-neutral-100 dark:bg-neutral-800/40"
@@ -1443,9 +1356,9 @@ function TableComponent<T>({
               // otherwise the spacer can remain transparent.
               hasLeftStickyColumn &&
                 (isSelected
-                  ? getSelectedRowClass(color)
+                  ? getSelectedRowClass(controlColor)
                   : isHighlighted
-                    ? getHighlightRowClass(color)
+                    ? getHighlightRowClass(controlColor)
                     : baseRowBgClass),
               // When there are sticky columns use the opaque hover; otherwise use the normal semi-transparent hover.
               hasLeftStickyColumn ? stickyCellHoverClass : rowCellHoverClass,
@@ -1487,9 +1400,9 @@ function TableComponent<T>({
                 (isStickyLeft || isStickyRight) && "z-10",
                 (isStickyLeft || isStickyRight) &&
                   (isSelected
-                    ? getSelectedRowClass(color)
+                    ? getSelectedRowClass(controlColor)
                     : isHighlighted
-                      ? getHighlightRowClass(color)
+                      ? getHighlightRowClass(controlColor)
                       : striped && originalIndex % 2 === 1
                         ? "bg-neutral-100 dark:bg-neutral-800/40"
                         : (column.stickyBackgroundFn?.(row, originalIndex) ??
@@ -1505,15 +1418,21 @@ function TableComponent<T>({
                   hoverable &&
                   "group-hover:brightness-95",
                 getCellAlignment(column.align),
-                colIndex === 0 && sidePaddingTokens.left,
+                colIndex === 0 && sidePaddingTokens.sideLeft,
                 colIndex === orderedVisibleColumns.length - 1 &&
-                  sidePaddingTokens.right,
+                  sidePaddingTokens.sideRight,
+                // `pr-2` keeps cell text off the vertical grid line — with the
+                // rule painted at the cell edge, the stock horizontal padding
+                // leaves short values sitting almost on top of it.
+                gridLinesOn &&
+                  colIndex < orderedVisibleColumns.length - 1 &&
+                  `${gridLineClass} border-r pr-2`,
                 // Pulsing left border indicator on the first visible cell for highlighted rows
                 colIndex === 0 &&
                   isHighlighted &&
                   classNames(
                     "border-l-4 animate-pulse",
-                    getHighlightBorderClass(color),
+                    getHighlightBorderClass(controlColor),
                   ),
                 isStickyRight &&
                   effectiveSticky === "right" &&
@@ -1574,11 +1493,20 @@ function TableComponent<T>({
     typeof col.header === "string" ? col.header : col.id;
 
   return (
-    <div className={wrapperClasses} style={style}>
+    <Panel
+      variant={variant}
+      tone={tone}
+      padding="none"
+      corner={corner}
+      scrollable={false}
+      flexBody={fullHeight}
+      className={wrapperClasses}
+      style={style}
+    >
       <div
         className={classNames(
           "relative flex flex-col",
-          fullHeight && "flex-1 overflow-hidden h-full",
+          fullHeight && "flex-1 min-h-0 overflow-hidden",
         )}
       >
         {/* ── Header bar ────────────────────────────────────────────────────── */}
@@ -1587,7 +1515,12 @@ function TableComponent<T>({
           (showColumnSelector && hasHideableColumns) ||
           isUserGroupable ||
           userStickyColumns) && (
-          <div className="flex-none flex items-center gap-3 border-b border-neutral-200 px-6 py-3 dark:border-neutral-700">
+          <div
+            className={classNames(
+              "flex-none flex items-center gap-3 border-b px-6 py-3",
+              surfaceText.divider,
+            )}
+          >
             {headerTitle && (
               <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">
                 {headerTitle}
@@ -1602,7 +1535,7 @@ function TableComponent<T>({
                     icon="ViewRows"
                     size="xs"
                     variant="ghost"
-                    color={color}
+                    color={controlColor}
                     tooltip="Table view"
                     tooltipPosition="bottom"
                     disabled={activeView === "table"}
@@ -1610,7 +1543,7 @@ function TableComponent<T>({
                     onClick={() => {
                       setActiveView("table");
                       onViewChange?.("table");
-                      onTableSettingsChange?.({
+                      emitSettingsChange({
                         ...settingsSnapshotRef.current,
                         activeView: "table",
                       });
@@ -1621,7 +1554,7 @@ function TableComponent<T>({
                     icon="ViewGrid"
                     size="xs"
                     variant="ghost"
-                    color={color}
+                    color={controlColor}
                     tooltip="Panel view"
                     tooltipPosition="bottom"
                     disabled={activeView === "panel"}
@@ -1629,7 +1562,7 @@ function TableComponent<T>({
                     onClick={() => {
                       setActiveView("panel");
                       onViewChange?.("panel");
-                      onTableSettingsChange?.({
+                      emitSettingsChange({
                         ...settingsSnapshotRef.current,
                         activeView: "panel",
                       });
@@ -1648,7 +1581,7 @@ function TableComponent<T>({
                       icon="EyeOpen"
                       size="xs"
                       variant="ghost"
-                      color={color}
+                      color={controlColor}
                       tooltip="Columns"
                       tooltipPosition="bottom"
                       aria-pressed={colPanelOpen}
@@ -1689,14 +1622,14 @@ function TableComponent<T>({
                                     };
                                     setColVisibility(next);
                                     onColumnVisibilityChange?.(next);
-                                    onTableSettingsChange?.({
+                                    emitSettingsChange({
                                       ...settingsSnapshotRef.current,
                                       columnVisibility: next,
                                     });
                                   }}
                                   className={classNames(
                                     "h-3.5 w-3.5 rounded border-neutral-300",
-                                    getAccentClass(color),
+                                    getAccentClass(controlColor),
                                   )}
                                 />
                                 <span className="text-neutral-700 dark:text-neutral-200">
@@ -1709,7 +1642,7 @@ function TableComponent<T>({
                         <div className="border-t border-neutral-100 px-3 py-2 dark:border-neutral-800">
                           <Button
                             variant="ghost"
-                            color={color}
+                            color={controlColor}
                             size="xs"
                             onClick={() => {
                               const reset: Record<string, boolean> = {};
@@ -1718,7 +1651,7 @@ function TableComponent<T>({
                               }
                               setColVisibility(reset);
                               onColumnVisibilityChange?.(reset);
-                              onTableSettingsChange?.({
+                              emitSettingsChange({
                                 ...settingsSnapshotRef.current,
                                 columnVisibility: reset,
                               });
@@ -1741,7 +1674,7 @@ function TableComponent<T>({
                       icon="Group"
                       size="xs"
                       variant="ghost"
-                      color={color}
+                      color={controlColor}
                       tooltip="Group by"
                       tooltipPosition="bottom"
                       aria-pressed={groupPanelOpen || !!resolvedGroupBy}
@@ -1753,7 +1686,7 @@ function TableComponent<T>({
                       <span
                         className={classNames(
                           "pointer-events-none absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-white dark:ring-neutral-900",
-                          getDotColorClass(color),
+                          getDotColorClass(controlColor),
                         )}
                         aria-hidden="true"
                       />
@@ -1788,7 +1721,7 @@ function TableComponent<T>({
                             onChange={() => handleGroupChange(null)}
                             className={classNames(
                               "h-3.5 w-3.5 border-neutral-300",
-                              getAccentClass(color),
+                              getAccentClass(controlColor),
                             )}
                           />
                           <span className="italic text-neutral-400 dark:text-neutral-500">
@@ -1809,7 +1742,7 @@ function TableComponent<T>({
                                 onChange={() => handleGroupChange(col.id)}
                                 className={classNames(
                                   "h-3.5 w-3.5 border-neutral-300",
-                                  getAccentClass(color),
+                                  getAccentClass(controlColor),
                                 )}
                               />
                               <span className="text-neutral-700 dark:text-neutral-200">
@@ -1832,18 +1765,16 @@ function TableComponent<T>({
                             type="checkbox"
                             checked={resolvedShowGroupHeader}
                             onChange={() => {
-                              setShowGroupHeaderLocal((v) => {
-                                const next = !v;
-                                onTableSettingsChange?.({
-                                  ...settingsSnapshotRef.current,
-                                  showGroupHeader: next,
-                                });
-                                return next;
+                              const next = !resolvedShowGroupHeader;
+                              setShowGroupHeaderLocal(next);
+                              emitSettingsChange({
+                                ...settingsSnapshotRef.current,
+                                showGroupHeader: next,
                               });
                             }}
                             className={classNames(
                               "h-3.5 w-3.5 rounded border-neutral-300",
-                              getAccentClass(color),
+                              getAccentClass(controlColor),
                             )}
                           />
                           <span className="text-neutral-700 dark:text-neutral-200">
@@ -1864,7 +1795,7 @@ function TableComponent<T>({
                       icon="Pin"
                       size="xs"
                       variant="ghost"
-                      color={color}
+                      color={controlColor}
                       tooltip="Sticky columns"
                       tooltipPosition="bottom"
                       aria-pressed={stickyPanelOpen || hasStickyColumns}
@@ -1875,7 +1806,7 @@ function TableComponent<T>({
                       <span
                         className={classNames(
                           "pointer-events-none absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-white dark:ring-neutral-900",
-                          getDotColorClass(color),
+                          getDotColorClass(controlColor),
                         )}
                         aria-hidden="true"
                       />
@@ -2110,15 +2041,18 @@ function TableComponent<T>({
                                 : isStickyLeft || isStickyRight
                                   ? "z-10"
                                   : "",
-                            getCellAlignment(column.align),
-                            "overflow-hidden",
-                            isResizable && "relative",
-                            isStickyRight &&
-                              thEffectiveSticky === "right" &&
-                              !noBorders &&
-                              "border-l border-neutral-200 dark:border-neutral-700",
-                            column.headerClassName,
-                          )}
+                             getCellAlignment(column.align),
+                             "overflow-hidden",
+                             isResizable && "relative",
+                             isStickyRight &&
+                               thEffectiveSticky === "right" &&
+                               !noBorders &&
+                               "border-l border-neutral-200 dark:border-neutral-700",
+                              gridLinesOn &&
+                                colIndex < orderedVisibleColumns.length - 1 &&
+                                `${gridLineClass} border-r pr-2`,
+                             column.headerClassName,
+                           )}
                           style={{
                             ...(resizeWidth
                               ? {
@@ -2140,7 +2074,12 @@ function TableComponent<T>({
                               ? sortDirection === "asc"
                                 ? "ascending"
                                 : "descending"
-                              : "none"
+                              : column.sortable
+                                ? // "other" = sortable but not currently sorted
+                                  // ("none" would falsely claim the column
+                                  // can't be sorted at all).
+                                  "other"
+                                : "none"
                           }
                           title={column.tooltip}
                         >
@@ -2166,7 +2105,7 @@ function TableComponent<T>({
                                 }
                                 size="xs"
                                 variant="icon"
-                                color={isSorted ? color : "slate"}
+                                color={isSorted ? controlColor : "slate"}
                                 rounded="md"
                                 accent={false}
                                 tooltip={
@@ -2210,7 +2149,7 @@ function TableComponent<T>({
                               <div
                                 className={classNames(
                                   "h-1/2 w-px bg-neutral-300 dark:bg-neutral-600 transition-colors",
-                                  getResizeHandleHoverClass(color),
+                                  getResizeHandleHoverClass(controlColor),
                                 )}
                               />
                             </div>
@@ -2241,9 +2180,28 @@ function TableComponent<T>({
                                   >
                                     <div
                                       className={classNames(
-                                        "sticky left-0 flex w-fit items-center gap-2 bg-inherit",
-                                        sidePaddingTokens.left,
+                                        "sticky left-0 flex w-fit items-center gap-2 bg-inherit rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                                        focusRingClass,
+                                        sidePaddingTokens.sideLeft,
                                       )}
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-expanded={isExpanded}
+                                      aria-label={`${
+                                        isExpanded ? "Collapse" : "Expand"
+                                      } group ${group.display}`}
+                                      onKeyDown={(e) => {
+                                        // The row click covers the mouse; this
+                                        // makes the toggle reachable by
+                                        // keyboard (Enter / Space).
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          toggleGroup(group.key);
+                                        }
+                                      }}
                                     >
                                       <span
                                         className={classNames(
@@ -2261,7 +2219,7 @@ function TableComponent<T>({
                                       </span>
                                       <Badge
                                         count={group.rows.length}
-                                        tone={color as PanelTone}
+                                        tone={controlColor}
                                       />
                                     </div>
                                   </td>
@@ -2365,7 +2323,18 @@ function TableComponent<T>({
 
         {/* ── Footer / pagination ───────────────────────────────────────────── */}
         {(footer || (pagination && pagination.total > 0)) && (
-          <div className="border-t border-neutral-200 bg-neutral-50 px-6 py-3 text-sm text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-300">
+          <div
+            className={classNames(
+              "border-t px-6 py-3 text-sm text-neutral-600 dark:text-neutral-300",
+              // The footer band is interior chrome — on a see-through surface
+              // an opaque `bg-neutral-50` strip would seal the bottom of the
+              // glass, so it drops to the same translucent fill as the header.
+              surfaceText.translucent
+                ? "bg-white/20 dark:bg-white/5"
+                : "bg-neutral-50 dark:bg-neutral-900/60",
+              surfaceText.divider,
+            )}
+          >
             {footer
               ? footer
               : pagination && (
@@ -2388,16 +2357,22 @@ function TableComponent<T>({
                           }}
                           size="sm"
                         >
-                          <option value={20}>20 per page</option>
-                          <option value={50}>50 per page</option>
-                          <option value={100}>100 per page</option>
+                          {Array.from(
+                            new Set([20, 50, 100, pagination.pageSize]),
+                          )
+                            .sort((a, b) => a - b)
+                            .map((size) => (
+                              <option key={size} value={size}>
+                                {size} per page
+                              </option>
+                            ))}
                         </Select>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="soft"
-                        color={color}
+                        color={controlColor}
                         size="sm"
                         disabled={pagination.page === 1 || loading}
                         onClick={() =>
@@ -2415,7 +2390,7 @@ function TableComponent<T>({
                       </span>
                       <Button
                         variant="soft"
-                        color={color}
+                        color={controlColor}
                         size="sm"
                         disabled={
                           pagination.page >=
@@ -2440,7 +2415,7 @@ function TableComponent<T>({
           </div>
         )}
       </div>
-    </div>
+    </Panel>
   );
 }
 

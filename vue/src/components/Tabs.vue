@@ -2,16 +2,28 @@
 import type { VNode } from "vue";
 import classNames from "classnames";
 import { getTabsColorTokens, type TrueColor } from "../theme/Theme";
+import {
+  getGlassChromeClasses,
+  getGlassFillClass,
+  getGlassVibrancyClass,
+  getSpecularClasses,
+  type GlassVibrancy,
+  type GlassOpacity,
+  type SpecularMode,
+} from "../theme/glass";
 
 export type TabsVariant =
   | "underline"
   | "soft"
   | "pill"
   | "segmented"
-  | "minimal";
+  | "minimal"
+  | "glass"
+  | "liquid-glass";
 export type TabsSize = "sm" | "md" | "lg";
 export type TabsOrientation = "horizontal" | "vertical";
 export type TabsJustify = "start" | "center" | "end" | "between";
+export type TabsRadius = "none" | "xs" | "sm" | "md" | "lg" | "xl" | "full";
 
 export interface TabItemAction {
   id?: string;
@@ -61,6 +73,17 @@ export interface TabsProps {
    */
   scrollFade?: boolean;
   scrollFadeFrom?: string;
+  /** Backdrop vibrancy level for the `glass` / `liquid-glass` variants. */
+  vibrancy?: GlassVibrancy;
+  /** Glass fill transparency level for the `glass` / `liquid-glass` variants. */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for the `glass` / `liquid-glass` variants. */
+  specularMode?: SpecularMode;
+  /**
+   * Corner radius for the `glass` / `liquid-glass` tab pills. Default: `"md"`
+   * (`rounded-md`). Pass `"full"` to restore the pill shape.
+   */
+  radius?: TabsRadius;
 }
 
 const joinClasses = (...parts: Array<string | false | null | undefined>) =>
@@ -86,7 +109,8 @@ const sizeStyles: Record<
   },
   md: {
     padding: "px-4 py-2",
-    text: "text-md",
+    // `text-md` is not a Tailwind class — this row silently had no type size.
+    text: "text-base",
     gap: "gap-2",
     icon: "h-5 w-5",
   },
@@ -112,11 +136,26 @@ type VariantConfig = {
 
 const neutralTextInactive = "text-neutral-600 dark:text-neutral-300";
 
+// Corner radius for the `glass` / `liquid-glass` tab pills, mapped to the
+// standard Tailwind `rounded-*` scale (the same set `MultiToggle` exposes). The
+// default is `md`; a bare `rounded-full` made the glass tabs read as oversized
+// pills, so it is a parameter now.
+const TAB_RADIUS: Record<TabsRadius, string> = {
+  none: "rounded-none",
+  xs: "rounded-xs",
+  sm: "rounded-sm",
+  md: "rounded-md",
+  lg: "rounded-lg",
+  xl: "rounded-xl",
+  full: "rounded-full",
+};
+
 const buildVariantConfig = (
   variant: TabsVariant,
   color: TrueColor,
   orientation: TabsOrientation,
   hideUnderlineContainer?: boolean,
+  radius: TabsRadius = "md",
 ): VariantConfig => {
   const tokens = getTabsColorTokens(color);
   const hoverAccentText = tokens.hoverText;
@@ -135,13 +174,13 @@ const buildVariantConfig = (
     case "soft":
       return {
         container: joinClasses(
-          "rounded-full",
+          "rounded-xl",
           subtleBg,
           orientation === "vertical" ? "p-1.5" : "p-1",
         ),
         list: "gap-1",
         base: joinClasses(
-          "rounded-full font-medium",
+          "rounded-lg font-medium",
           neutralTextInactive,
           hoverAccentText,
           "hover:bg-white/70 dark:hover:bg-white/10",
@@ -218,6 +257,24 @@ const buildVariantConfig = (
         badgeActive: badgeStrong,
         badgeInactive: badgeSubtle,
       };
+    case "glass":
+    case "liquid-glass":
+      // The frosted fill, backdrop vibrancy, rim and specular are layered on in
+      // the component (they depend on the glass sub-props), so this carries only
+      // the structure and the state hook. On glass the active tab is marked by a
+      // tone ring + specular, painted in the component; every tab already reads
+      // in the control's own tone via `getGlassChromeClasses`.
+      return {
+        container: "gap-1",
+        list: orientation === "vertical" ? "gap-1.5" : "gap-1",
+        base: joinClasses(TAB_RADIUS[radius], "font-medium"),
+        active: "",
+        inactive: "",
+        disabled: "opacity-50",
+        badge: badgeSubtle,
+        badgeActive: badgeOnAccent,
+        badgeInactive: badgeSubtle,
+      };
     case "underline":
     default:
       return {
@@ -281,6 +338,10 @@ const props = withDefaults(defineProps<TabsProps>(), {
   hideUnderlineContainer: false,
   scrollFade: true,
   scrollFadeFrom: "from-white dark:from-neutral-900",
+  vibrancy: "medium",
+  glassOpacity: "frosted",
+  specularMode: "none",
+  radius: "md",
 });
 
 const emit = defineEmits<{
@@ -314,12 +375,40 @@ const config = computed(() =>
     props.color,
     props.orientation,
     props.hideUnderlineContainer,
+    props.radius,
   ),
 );
 
 const sizeConfig = computed(() => sizeStyles[props.size] ?? sizeStyles.md);
 const iconClasses = computed(() =>
   classNames("flex-shrink-0", sizeConfig.value.icon),
+);
+
+// Glass variants. The shared glass helpers carry the frosted fill, backdrop
+// vibrancy, tone rim and (if set) the specular paint — the same treatment the
+// other controls use, so a glass tab bar drops onto a glass card coherently.
+const isGlass = computed(
+  () => props.variant === "glass" || props.variant === "liquid-glass",
+);
+const glassSurfaceClasses = computed(() =>
+  isGlass.value
+    ? classNames(
+        props.variant === "liquid-glass" ? "backdrop-blur-2xl" : "backdrop-blur-sm",
+        getGlassVibrancyClass(props.vibrancy),
+        getGlassFillClass(props.color, props.glassOpacity),
+        getGlassChromeClasses(props.color),
+      )
+    : null,
+);
+// `ring-{color}-400/60` + `dark:ring-{color}-400/50` are pre-safelisted for all
+// 21 tones, so the selected tab's tone ring renders in every colour.
+const glassActiveRing = computed(() =>
+  isGlass.value
+    ? `ring-1 ring-inset ring-${props.color}-400/60 dark:ring-${props.color}-400/50`
+    : null,
+);
+const glassSpecular = computed(() =>
+  isGlass.value ? getSpecularClasses(props.specularMode) : null,
 );
 
 const shouldShowDividers = computed(
@@ -364,10 +453,6 @@ const rootClass = computed(() =>
   ),
 );
 
-// const badgeBase = config.badge ?? "bg-slate-100 text-slate-600";
-// const badgeActive = config.badgeActive ?? badgeBase;
-// const badgeInactive = config.badgeInactive ?? badgeBase;
-
 const renderTabIcon = (icon: string | VNode | undefined): VNodeChild => {
   if (!icon) {
     return null;
@@ -404,6 +489,8 @@ const tabButtonClass = (item: TabItem, isActive: boolean) =>
     isActive ? config.value.active : config.value.inactive,
     item.disabled && config.value.disabled,
     props.fullWidth && "flex-1 justify-center",
+    isGlass.value && glassSurfaceClasses.value,
+    isGlass.value && isActive && glassActiveRing.value,
   );
 
 const handleTabClick = (item: TabItem) => {
@@ -423,6 +510,10 @@ const handleTabClick = (item: TabItem) => {
 const activeActions = computed(
   () => props.items.find((item) => item.id === activeId.value)?.actions,
 );
+// The spacer + actions block is only rendered when there is something to pin to
+// the end — otherwise the `flex-grow` spacer eats all the free space and
+// `justify` can never distribute the tabs.
+const hasActions = computed(() => (activeActions.value?.length ?? 0) > 0);
 
 const panelClass = (isActive: boolean) =>
   classNames(
@@ -447,18 +538,30 @@ const panelClass = (isActive: boolean) =>
           role="tab"
           :id="`tab-${item.id}`"
           :aria-selected="item.id === activeId"
-          :aria-controls="`${panelIdPrefix}-${item.id}`"
+          :aria-controls="
+            item.panel !== undefined ? `${panelIdPrefix}-${item.id}` : undefined
+          "
           :disabled="item.disabled"
           :class="tabButtonClass(item, item.id === activeId)"
           :tabindex="item.id === activeId ? 0 : -1"
           @click="handleTabClick(item)"
         >
+          <div
+            v-if="isGlass && glassSpecular"
+            aria-hidden="true"
+            :class="
+              classNames(
+                'pointer-events-none absolute inset-0 rounded-[inherit]',
+                glassSpecular,
+              )
+            "
+          />
           <VNodeRenderer :nodes="renderTabIcon(item.icon)" />
           <span class="flex min-w-0 flex-col text-left">
             <span class="truncate"><VNodeRenderer :nodes="item.label" /></span>
             <span
               v-if="item.description"
-              class="mt-1 text-xs text-slate-500 dark:text-slate-400"
+              class="mt-1 text-xs opacity-70"
             >
               <VNodeRenderer :nodes="item.description" />
             </span>
@@ -478,38 +581,45 @@ const panelClass = (isActive: boolean) =>
           "
         />
       </template>
-      <div class="flex-grow" />
-      <div
-        id="tab-item-actions-end"
-        class="flex items-center gap-1 pr-2 text-neutral-400 dark:text-neutral-500"
-      >
-        <template
-          v-for="(action, idx) in activeActions"
-          :key="action.id ?? `tab-action-${idx}`"
+      <template v-if="hasActions">
+        <div class="flex-grow" />
+        <div
+          id="tab-item-actions-end"
+          :class="
+            classNames(
+              'flex items-center gap-1 pr-2 text-neutral-400 dark:text-neutral-500',
+              orientation === 'vertical' && 'justify-end',
+            )
+          "
         >
-          <VNodeRenderer v-if="action.node" :nodes="action.node" />
-          <IconButton
-            v-else-if="action.icon"
-            :accent="true"
-            :color="action.color ?? color"
-            :accent-color="action.color ?? color"
-            :icon="action.icon"
-            :size="size"
-            :aria-pressed="action.active || undefined"
-            :aria-label="
-              typeof action.label === 'string'
-                ? action.label
-                : `Action ${idx + 1}`
-            "
-            :class="
-              classNames(
-                `${action.active && iconAccentActive[action.color ?? color]}`,
-              )
-            "
-            @click="(action.onClick ?? (() => undefined))()"
-          />
-        </template>
-      </div>
+          <template
+            v-for="(action, idx) in activeActions"
+            :key="action.id ?? `tab-action-${idx}`"
+          >
+            <VNodeRenderer v-if="action.node" :nodes="action.node" />
+            <IconButton
+              v-else-if="action.icon"
+              :accent="true"
+              :color="action.color ?? color"
+              :accent-color="action.color ?? color"
+              :icon="action.icon"
+              :size="size"
+              :aria-pressed="action.active || undefined"
+              :aria-label="
+                typeof action.label === 'string'
+                  ? action.label
+                  : `Action ${idx + 1}`
+              "
+              :class="
+                classNames(
+                  `${action.active && iconAccentActive[action.color ?? color]}`,
+                )
+              "
+              @click="(action.onClick ?? (() => undefined))()"
+            />
+          </template>
+        </div>
+      </template>
     </div>
     <template v-for="item in items" :key="`${panelIdPrefix}-${item.id}`">
       <div

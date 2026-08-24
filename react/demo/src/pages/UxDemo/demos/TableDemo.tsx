@@ -1,14 +1,19 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
 import { Table, Button, IconButton, MultiToggle, Toggle } from "@cjlapao/ui-kit";
 import {
-  TableVariant,
-  TableSortState,
-  TableColumn,
+  type TableVariant,
+  type TableDensity,
+  type TableSortState,
+  type TableColumn,
+  type TableSettings,
 } from "@cjlapao/ui-kit";
-import { PanelTone } from "@cjlapao/ui-kit";
-import { tableVariantOptions, tableToneOptions } from "../constants";
+import { type PanelTone } from "@cjlapao/ui-kit";
+import {
+  tableVariantOptions,
+  tableDensityOptions,
+  tableToneOptions,
+} from "../constants";
 
 type UserRow = {
   id: string;
@@ -40,15 +45,36 @@ const filledData: UserRow[] = [
     role: "Viewer",
     lastSeen: "Just now",
   },
+  {
+    id: "4",
+    name: "Mia P.",
+    email: "mia@company.com",
+    role: "Editor",
+    lastSeen: "3 days ago",
+  },
+  {
+    id: "5",
+    name: "Omar F.",
+    email: "omar@company.com",
+    role: "Admin",
+    lastSeen: "Last week",
+  },
+  {
+    id: "6",
+    name: "Nina K.",
+    email: "nina@company.com",
+    role: "Viewer",
+    lastSeen: "5 hours ago",
+  },
 ];
 
 const emptyData: UserRow[] = [];
 
 const columns: TableColumn<UserRow>[] = [
-  { id: "name", header: "User", sortable: true },
-  { id: "email", header: "Email", sortable: true },
-  { id: "role", header: "Role", sortable: true },
-  { id: "lastSeen", header: "Last Seen", sortable: true },
+  { id: "name", header: "User", accessor: "name", sortable: true, minWidth: 240 },
+  { id: "email", header: "Email", accessor: "email", sortable: true, minWidth: 240 },
+  { id: "role", header: "Role", accessor: "role", sortable: true, minWidth: 240 },
+  { id: "lastSeen", header: "Last Seen", accessor: "lastSeen", sortable: true, minWidth: 240 },
 ];
 
 export const TableDemo: React.FC = () => {
@@ -58,20 +84,29 @@ export const TableDemo: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<UserRow[]>(filledData);
-  const [tableVariant, setTableVariant] = useState<TableVariant>("default");
+  const [tableVariant, setTableVariant] = useState<TableVariant>("outlined");
+  const [tableDensity, setTableDensity] = useState<TableDensity>("default");
+  const [tableBordered, setTableBordered] = useState(false);
   const [tableTone, setTableTone] = useState<PanelTone>("neutral");
   const [tableStriped, setTableStriped] = useState(true);
   const [tableHoverable, setTableHoverable] = useState(true);
+  const [tableGroupable, setTableGroupable] = useState(true);
+  const [tableStickyColumns, setTableStickyColumns] = useState(true);
+  const [tableResizable, setTableResizable] = useState(true);
+  const [persist, setPersist] = useState(false);
+  const [storedSettings, setStoredSettings] = useState<TableSettings | null>(
+    null,
+  );
 
   return (
     <PlaygroundSection
       title="Table"
       label="[Table]"
-      description="Data grid with sorting, loading, and tones."
+      description="Data grid on a panel surface, with sorting, density, group-by, sticky columns, column resize, and optional built-in settings persistence."
       controls={
         <div className="space-y-4 text-sm">
           <label className="flex flex-col gap-2">
-            <span>Variant</span>
+            <span>Surface (variant)</span>
             <MultiToggle
               fullWidth
               options={tableVariantOptions}
@@ -80,17 +115,37 @@ export const TableDemo: React.FC = () => {
               onChange={(value) => setTableVariant(value as TableVariant)}
             />
           </label>
-          <label className="flex flex-col gap-2">
-            <span>Tone</span>
-            <MultiToggle
-              fullWidth
-              options={tableToneOptions}
-              value={tableTone}
-              size="sm"
-              onChange={(value) => setTableTone(value as PanelTone)}
-            />
-          </label>
           <div className="grid gap-2 md:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span>Density</span>
+              <MultiToggle
+                fullWidth
+                options={tableDensityOptions}
+                value={tableDensity}
+                size="sm"
+                onChange={(value) => setTableDensity(value as TableDensity)}
+              />
+            </label>
+            <label className="flex flex-col gap-2">
+              <span>Tone</span>
+              <MultiToggle
+                fullWidth
+                options={tableToneOptions}
+                value={tableTone}
+                size="sm"
+                onChange={(value) => setTableTone(value as PanelTone)}
+              />
+            </label>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            <label className="flex items-center justify-between">
+              <span>Bordered grid</span>
+              <Toggle
+                size="sm"
+                checked={tableBordered}
+                onChange={(event) => setTableBordered(event.target.checked)}
+              />
+            </label>
             <label className="flex items-center justify-between">
               <span>Striped rows</span>
               <Toggle
@@ -107,6 +162,38 @@ export const TableDemo: React.FC = () => {
                 onChange={(event) => setTableHoverable(event.target.checked)}
               />
             </label>
+            <label className="flex items-center justify-between">
+              <span>Group by</span>
+              <Toggle
+                size="sm"
+                checked={tableGroupable}
+                onChange={(event) => setTableGroupable(event.target.checked)}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span>Sticky columns</span>
+              <Toggle
+                size="sm"
+                checked={tableStickyColumns}
+                onChange={(event) => setTableStickyColumns(event.target.checked)}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span>Column resize</span>
+              <Toggle
+                size="sm"
+                checked={tableResizable}
+                onChange={(event) => setTableResizable(event.target.checked)}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span>Persist settings</span>
+              <Toggle
+                size="sm"
+                checked={persist}
+                onChange={(event) => setPersist(event.target.checked)}
+              />
+            </label>
           </div>
         </div>
       }
@@ -115,10 +202,15 @@ export const TableDemo: React.FC = () => {
           columns={columns}
           data={data}
           variant={tableVariant}
+          density={tableDensity}
+          bordered={tableBordered}
           tone={tableTone}
-          striped={tableStriped}
-          hoverable={tableHoverable}
-          maxHeight={360}
+           striped={tableStriped}
+           hoverable={tableHoverable}
+           groupable={tableGroupable}
+           userStickyColumns={tableStickyColumns}
+           resizableColumns={tableResizable}
+           maxHeight={360}
           loading={loading}
           loadingMessage="Syncing users..."
           loaderProgress={loading ? 42 : undefined}
@@ -126,6 +218,9 @@ export const TableDemo: React.FC = () => {
           onSortChange={setSort}
           rowKey={(row) => row.id}
           onRowClick={(row) => console.log("row clicked", row)}
+          showColumnSelector
+          storageKey={persist ? "uxdemo-table" : undefined}
+          onTableSettingsChange={setStoredSettings}
           headerActions={
             <>
               <Button
@@ -155,7 +250,14 @@ export const TableDemo: React.FC = () => {
               />
             </>
           }
-          footer={<span>Showing {data.length} users</span>}
+          footer={
+            <span>
+              Showing {data.length} users
+              {persist && storedSettings
+                ? ` · saved ${JSON.stringify(storedSettings)}`
+                : ""}
+            </span>
+          }
           emptyState="No users found"
         />
       }

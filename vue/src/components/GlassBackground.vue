@@ -17,9 +17,10 @@ export type GlassBackgroundPosition = "fixed" | "absolute";
 
 export interface GlassBackgroundProps {
   /** Positioning mode.
-   *  `"fixed"` (default) — covers the full viewport, always visible.
-   *  `"absolute"` — fills a `position: relative` parent (e.g. a PlaygroundSection preview).
-   *  Parent must be `relative` when `"absolute"`.
+   *  `"absolute"` (default) — fills the nearest positioned ancestor, which must
+   *  be `relative`. Safe to drop anywhere.
+   *  `"fixed"` — covers the whole viewport. Only for a page-level backdrop:
+   *  inside a scrolled container it escapes its parent and covers the page.
    */
   position?: GlassBackgroundPosition;
   /** Primary theme color driving the gradient (default: "purple"). */
@@ -100,7 +101,7 @@ export function getFallbackDeep(color: TrueColor): TrueColor {
 import { computed } from "vue";
 
 const props = withDefaults(defineProps<GlassBackgroundProps>(), {
-  position: "fixed",
+  position: "absolute",
   color: "purple",
   direction: "br",
   shimmer: false,
@@ -171,25 +172,26 @@ const glowPositions = [
         <div
           v-for="(pos, idx) in glowPositions"
           :key="idx"
-          class="absolute rounded-full blur-3xl ambient-pulse"
+          class="absolute rounded-full blur-3xl ambient-pulse ambient-glow"
           :style="{
             ...pos,
-            backgroundColor: `var(--color-${c}-400, rgba(168,85,247,0.12))`,
-          }"
+            '--glow-color': `var(--color-${c}-400)`,
+            '--glow-color-dark': `var(--color-${c}-500)`,
+          } as CSSProperties"
         />
       </div>
     </template>
 
-    <!-- Shimmer overlay -->
+    <!-- Shimmer overlay. The streak's shape, skew and timing live in
+         `.shimmer-band` (styles.css); the wrapper only clips it so it never
+         paints outside the surface. -->
     <template v-if="shimmer">
       <div
-        class="pointer-events-none absolute inset-0 animate-shimmer"
-        :style="{
-          background:
-            'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)',
-        }"
+        class="pointer-events-none absolute inset-0 overflow-hidden"
         aria-hidden="true"
-      />
+      >
+        <div class="shimmer-band" />
+      </div>
     </template>
 
     <!-- Children on top -->

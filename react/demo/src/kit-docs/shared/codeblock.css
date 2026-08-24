@@ -1,0 +1,113 @@
+/* Token palette for the docs code blocks.
+   Plain CSS (not Tailwind utilities) so it works in both themes via the
+   `.dark` class on <html> — the same mechanism the demo's index.css wires up. */
+
+.kit-codeblock {
+  --cb-fg: #334155;
+  --cb-keyword: #7c3aed;
+  --cb-string: #15803d;
+  --cb-number: #b45309;
+  --cb-comment: #9ca3af;
+  --cb-function: #1d4ed8;
+  --cb-tag: #be185d;
+  --cb-attr: #0e7490;
+  --cb-operator: #64748b;
+  --cb-punctuation: #64748b;
+  --cb-class: #0f766e;
+  --cb-property: #1d4ed8;
+
+  margin: 0;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    "Liberation Mono",
+    monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--cb-fg);
+  tab-size: 2;
+}
+
+.dark .kit-codeblock {
+  --cb-fg: #cbd5e1;
+  --cb-keyword: #c4b5fd;
+  --cb-string: #86efac;
+  --cb-number: #fcd34d;
+  --cb-comment: #64748b;
+  --cb-function: #93c5fd;
+  --cb-tag: #f9a8d4;
+  --cb-attr: #67e8f9;
+  --cb-operator: #94a3b8;
+  --cb-punctuation: #94a3b8;
+  --cb-class: #5eead4;
+  --cb-property: #93c5fd;
+}
+
+.kit-codeblock .token.comment,
+.kit-codeblock .token.prolog,
+.kit-codeblock .token.doctype,
+.kit-codeblock .token.cdata {
+  color: var(--cb-comment);
+  font-style: italic;
+}
+
+.kit-codeblock .token.punctuation {
+  color: var(--cb-punctuation);
+}
+
+.kit-codeblock .token.keyword,
+.kit-codeblock .token.rule {
+  color: var(--cb-keyword);
+}
+
+.kit-codeblock .token.string,
+.kit-codeblock .token.char,
+.kit-codeblock .token.attr-value,
+.kit-codeblock .token.inserted {
+  color: var(--cb-string);
+}
+
+.kit-codeblock .token.number,
+.kit-codeblock .token.boolean,
+.kit-codeblock .token.constant,
+.kit-codeblock .token.deleted {
+  color: var(--cb-number);
+}
+
+.kit-codeblock .token.function {
+  color: var(--cb-function);
+}
+
+.kit-codeblock .token.tag,
+.kit-codeblock .token.selector {
+  color: var(--cb-tag);
+}
+
+.kit-codeblock .token.attr-name,
+.kit-codeblock .token.parameter,
+.kit-codeblock .token.builtin {
+  color: var(--cb-attr);
+}
+
+.kit-codeblock .token.operator,
+.kit-codeblock .token.entity,
+.kit-codeblock .token.url {
+  color: var(--cb-operator);
+}
+
+.kit-codeblock .token.class-name,
+.kit-codeblock .token.maybe-class-name {
+  color: var(--cb-class);
+}
+
+.kit-codeblock .token.property {
+  color: var(--cb-property);
+}
+
+.kit-codeblock .token.regex,
+.kit-codeblock .token.important,
+.kit-codeblock .token.variable {
+  color: var(--cb-string);
+}

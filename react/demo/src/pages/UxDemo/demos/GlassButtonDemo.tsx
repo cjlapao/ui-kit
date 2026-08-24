@@ -1,60 +1,97 @@
-// @ts-nocheck
 import React, { useState } from "react";
-import { Button, IconButton, Toggle, useTheme } from "@cjlapao/ui-kit";
-import { PlaygroundSection } from "../PlaygroundSection";
 import {
-  GlassVibrancy,
-  GlassOpacity,
-  SpecularMode,
+  BUTTON_SIZES,
+  Button,
+  IconButton,
+  MultiToggle,
+  Select,
 } from "@cjlapao/ui-kit";
-import backdropLight from "@assets/images/backdrop_demo_light.png";
-import backdropDark from "@assets/images/backdrop_demo_dark.png";
+import type {
+  ButtonSize,
+  GlassOpacity,
+  GlassVibrancy,
+  MultiToggleOption,
+  SpecularMode,
+  TrueColor,
+} from "@cjlapao/ui-kit";
+import { PlaygroundSection } from "../PlaygroundSection";
+import { trueColorOptions } from "../constants";
 
-const COLORS = ["blue", "brand", "red", "green", "purple"] as const;
-const SPECULAR_MODES: SpecularMode[] = ["classic", "halo", "none"];
-const OPACITY_PRESETS: GlassOpacity[] = ["frosted", "light", "clear"];
-const VIBRANCY_LEVELS: GlassVibrancy[] = ["low", "medium", "high"];
-const SIZES = ["sm", "md", "lg"] as const;
+// Both lists trace back to the kit — `trueColorOptions` is derived from
+// TRUE_COLORS, `BUTTON_SIZES` is what ButtonSize itself is built from — so a
+// new colour or size appears here without the demo being touched.
+const sizeOptions = BUTTON_SIZES;
 
-const opacityLabel = (o: GlassOpacity): string =>
-  typeof o === "number" ? `${Math.round(o * 100)}%` : o;
+const vibrancyOptions: MultiToggleOption[] = [
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" },
+];
 
-const specularLabel = (m: SpecularMode): string =>
-  m === "none" ? "No specular" : `Specular: ${m}`;
+const opacityOptions: MultiToggleOption[] = [
+  { label: "Clear", value: "clear" },
+  { label: "Frosted", value: "frosted" },
+  { label: "Light", value: "light" },
+];
 
-interface GlassButtonCardProps {
-  label: string;
-  children: React.ReactNode;
-}
+const specularOptions: MultiToggleOption[] = [
+  { label: "None", value: "none" },
+  { label: "Classic", value: "classic" },
+  { label: "Halo", value: "halo" },
+];
 
-const GlassButtonCard: React.FC<GlassButtonCardProps> = ({ label, children }) => (
-  <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-4 dark:border-slate-600 dark:bg-slate-800/50">
-    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+const SPECULAR_MODES: SpecularMode[] = ["none", "classic", "halo"];
+const OPACITY_PRESETS: GlassOpacity[] = ["clear", "frosted", "light"];
+
+/** Label chip that stays readable with the playground backdrop on or off. */
+const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span className="rounded bg-white/75 px-1.5 text-[10px] font-semibold uppercase tracking-widest text-neutral-600 dark:bg-black/45 dark:text-neutral-200">
+    {children}
+  </span>
+);
+
+const Group: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <div className="space-y-2">
+    <Caption>{label}</Caption>
+    <div className="flex flex-wrap items-center gap-3">{children}</div>
+  </div>
+);
+
+const Swatch: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <div className="flex flex-col items-center gap-1">
+    {children}
+    <span className="rounded bg-white/75 px-1.5 text-[10px] text-neutral-600 dark:bg-black/45 dark:text-neutral-200">
       {label}
     </span>
-    <div className="flex min-h-[48px] items-center justify-center gap-3">
-      {children}
-    </div>
   </div>
 );
 
 export const GlassButtonDemo: React.FC = () => {
-  const [glassColor, setGlassColor] = useState<typeof COLORS[number]>("blue");
-  const [glassVibrancy, setGlassVibrancy] = useState<GlassVibrancy>("medium");
+  const [color, setColor] = useState<TrueColor>("blue");
+  const [size, setSize] = useState<ButtonSize>("md");
+  const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
   const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("frosted");
-  const [glassSpecular, setGlassSpecular] = useState<SpecularMode>("none");
-  const [glassSize, setGlassSize] = useState<"xs" | "sm" | "md" | "lg" | "xl">(
-    "md",
-  );
-  const [showBg, setShowBg] = useState(false);
-  const { effectiveTheme } = useTheme();
+  const [specularMode, setSpecularMode] = useState<SpecularMode>("classic");
+
+  const glass = {
+    variant: "glass" as const,
+    color,
+    vibrancy,
+    glassOpacity,
+    specularMode,
+  };
 
   return (
-    <>
     <PlaygroundSection
       title="Glass Buttons"
-      label="[Glass]"
-      description="Showcase of glass Button and IconButton variants with color, vibrancy, opacity, specular, and size combinations."
+      label="[Button variant=glass]"
+      description="Glass Button and IconButton — fill opacity, backdrop vibrancy and specular highlight. Turn on the background image to judge them over a real backdrop."
       controls={
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -62,315 +99,152 @@ export const GlassButtonDemo: React.FC = () => {
               <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
                 Color
               </span>
-              <div className="flex flex-wrap gap-2">
-                {COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-medium capitalize transition ${
-                      glassColor === c
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                    }`}
-                    onClick={() => setGlassColor(c)}
-                  >
-                    {c}
-                  </button>
+              <Select
+                size="sm"
+                value={color}
+                onChange={(event) => setColor(event.target.value as TrueColor)}
+              >
+                {trueColorOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
                 ))}
-              </div>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                Size
+              </span>
+              <Select
+                size="sm"
+                value={size}
+                onChange={(event) => setSize(event.target.value as ButtonSize)}
+              >
+                {sizeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option.toUpperCase()}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+              Fill opacity
+            </span>
+            <MultiToggle
+              fullWidth
+              size="sm"
+              options={opacityOptions}
+              value={String(glassOpacity)}
+              onChange={(value) => setGlassOpacity(value as GlassOpacity)}
+            />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                Specular
+              </span>
+              <MultiToggle
+                fullWidth
+                size="sm"
+                options={specularOptions}
+                value={specularMode}
+                onChange={(value) => setSpecularMode(value as SpecularMode)}
+              />
             </div>
             <div className="space-y-2">
               <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
                 Vibrancy
               </span>
-              <div className="flex gap-2">
-                {VIBRANCY_LEVELS.map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-medium transition ${
-                      glassVibrancy === v
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                    }`}
-                    onClick={() => setGlassVibrancy(v)}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
+              <MultiToggle
+                fullWidth
+                size="sm"
+                options={vibrancyOptions}
+                value={String(vibrancy)}
+                onChange={(value) => setVibrancy(value as GlassVibrancy)}
+              />
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
-                Opacity Preset
-              </span>
-              <div className="flex gap-2">
-                {OPACITY_PRESETS.map((o) => (
-                  <button
-                    key={o}
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-medium transition ${
-                      glassOpacity === o
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                    }`}
-                    onClick={() => setGlassOpacity(o)}
-                  >
-                    {o}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
-                Specular Mode
-              </span>
-              <div className="flex gap-2">
-                {SPECULAR_MODES.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-medium capitalize transition ${
-                      glassSpecular === m
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                    }`}
-                    onClick={() => setGlassSpecular(m)}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
-                Size
-              </span>
-              <div className="flex gap-2">
-                {(["xs", "sm", "md", "lg", "xl"] as const).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-medium transition ${
-                      glassSize === s
-                        ? "bg-blue-500 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
-                    }`}
-                    onClick={() => setGlassSize(s)}
-                  >
-                    {s.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2">
-                <Toggle
-                  size="sm"
-                  checked={showBg}
-                  onChange={(e) => setShowBg(e.target.checked)}
-                />
-                <span className="text-xs font-medium text-neutral-600 dark:text-neutral-200">
-                  Background image
-                </span>
-              </label>
-            </div>
-          </div>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            Glass labels use the tone&apos;s darkest shade in light mode. Over a
+            dark or busy backdrop, raise the fill to{" "}
+            <code>glassOpacity=&quot;light&quot;</code> to keep them legible.
+          </p>
         </div>
       }
       preview={
-        showBg ? (
-          <div
-            className="relative min-h-[200px] overflow-hidden rounded-2xl bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url(${
-                effectiveTheme === "dark" ? backdropDark : backdropLight
-              })`,
-            }}
-          >
-            <GlassButtonCard
-              label={`${glassColor} · ${opacityLabel(glassOpacity)} · ${specularLabel(glassSpecular)} · ${glassVibrancy}`}
-            >
-              <Button
-                variant="glass"
-                color={glassColor}
-                vibrancy={glassVibrancy}
-                glassOpacity={glassOpacity}
-                specularMode={glassSpecular}
-                size={glassSize}
-              >
-                Glass Button
-              </Button>
-              <IconButton
-                icon="Search"
-                variant="glass"
-                color={glassColor}
-                vibrancy={glassVibrancy}
-                glassOpacity={glassOpacity}
-                specularMode={glassSpecular}
-                size={glassSize}
-              />
-            </GlassButtonCard>
-          </div>
-        ) : (
-          <GlassButtonCard
-            label={`${glassColor} · ${opacityLabel(glassOpacity)} · ${specularLabel(glassSpecular)} · ${glassVibrancy}`}
-          >
-            <Button
-              variant="glass"
-              color={glassColor}
-              vibrancy={glassVibrancy}
-              glassOpacity={glassOpacity}
-              specularMode={glassSpecular}
-              size={glassSize}
-            >
+        <div className="space-y-6">
+          <Group label={`${color} · ${glassOpacity} · ${specularMode} · ${vibrancy}`}>
+            <Button {...glass} size={size}>
               Glass Button
             </Button>
-            <IconButton
-              icon="Search"
-              variant="glass"
-              color={glassColor}
-              vibrancy={glassVibrancy}
-              glassOpacity={glassOpacity}
-              specularMode={glassSpecular}
-              size={glassSize}
-            />
-          </GlassButtonCard>
-        )
-      }
-    />
-    <GlassButtonCard label="States">
-      <div className="flex w-full flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Button
-          </span>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                variant="glass"
-                color={glassColor}
-                vibrancy={glassVibrancy}
-                glassOpacity={glassOpacity}
-                specularMode={glassSpecular}
-                size="sm"
-              >
+            <IconButton icon="Search" srLabel="Search" {...glass} size={size} />
+          </Group>
+
+          {/* States are live: hover and press them. Faking hover with a filter
+              would show a look the component never actually produces. */}
+          <Group label="States — hover and press these">
+            <Swatch label="Default">
+              <Button {...glass} size={size}>
                 Default
               </Button>
-              <span className="text-[10px] text-slate-400">Default</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <div className="scale-[1.02] brightness-105">
-                <Button
-                  variant="glass"
-                  color={glassColor}
-                  vibrancy={glassVibrancy}
-                  glassOpacity={glassOpacity}
-                  specularMode={glassSpecular}
-                  size="sm"
-                >
-                  Hover
-                </Button>
-              </div>
-              <span className="text-[10px] text-slate-400">Hover</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <div className="scale-[0.98] brightness-90">
-                <Button
-                  variant="glass"
-                  color={glassColor}
-                  vibrancy={glassVibrancy}
-                  glassOpacity={glassOpacity}
-                  specularMode={glassSpecular}
-                  size="sm"
-                >
-                  Active
-                </Button>
-              </div>
-              <span className="text-[10px] text-slate-400">Active</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                variant="glass"
-                color={glassColor}
-                vibrancy={glassVibrancy}
-                glassOpacity={glassOpacity}
-                specularMode={glassSpecular}
-                size="sm"
-                disabled
-              >
+            </Swatch>
+            <Swatch label="Disabled">
+              <Button {...glass} size={size} disabled>
                 Disabled
               </Button>
-              <span className="text-[10px] text-slate-400">Disabled</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            IconButton
-          </span>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-col items-center gap-1">
+            </Swatch>
+            <Swatch label="Loading">
+              <Button {...glass} size={size} loading>
+                Loading
+              </Button>
+            </Swatch>
+            <Swatch label="Icon">
+              <IconButton icon="Search" srLabel="Search" {...glass} size={size} />
+            </Swatch>
+            <Swatch label="Icon disabled">
               <IconButton
                 icon="Search"
-                variant="glass"
-                color={glassColor}
-                vibrancy={glassVibrancy}
-                glassOpacity={glassOpacity}
-                specularMode={glassSpecular}
-                size="sm"
-              />
-              <span className="text-[10px] text-slate-400">Default</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <div className="scale-[1.02] brightness-105">
-                <IconButton
-                  icon="Search"
-                  variant="glass"
-                  color={glassColor}
-                  vibrancy={glassVibrancy}
-                  glassOpacity={glassOpacity}
-                  specularMode={glassSpecular}
-                  size="sm"
-                />
-              </div>
-              <span className="text-[10px] text-slate-400">Hover</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <div className="scale-[0.98] brightness-90">
-                <IconButton
-                  icon="Search"
-                  variant="glass"
-                  color={glassColor}
-                  vibrancy={glassVibrancy}
-                  glassOpacity={glassOpacity}
-                  specularMode={glassSpecular}
-                  size="sm"
-                />
-              </div>
-              <span className="text-[10px] text-slate-400">Active</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <IconButton
-                icon="Search"
-                variant="glass"
-                color={glassColor}
-                vibrancy={glassVibrancy}
-                glassOpacity={glassOpacity}
-                specularMode={glassSpecular}
-                size="sm"
+                srLabel="Search"
+                {...glass}
+                size={size}
                 disabled
               />
-              <span className="text-[10px] text-slate-400">Disabled</span>
-            </div>
-          </div>
+            </Swatch>
+          </Group>
+
+          <Group label="Specular modes">
+            {SPECULAR_MODES.map((mode) => (
+              <Swatch key={mode} label={mode}>
+                <Button {...glass} specularMode={mode} size="lg">
+                  {mode}
+                </Button>
+              </Swatch>
+            ))}
+          </Group>
+
+          <Group label="Fill opacity">
+            {OPACITY_PRESETS.map((preset) => (
+              <Swatch key={String(preset)} label={String(preset)}>
+                <Button {...glass} glassOpacity={preset} size="lg">
+                  {String(preset)}
+                </Button>
+              </Swatch>
+            ))}
+          </Group>
+
+          <Group label="Sizes">
+            {sizeOptions.map((option) => (
+              <Swatch key={option} label={option}>
+                <Button {...glass} size={option}>
+                  {option.toUpperCase()}
+                </Button>
+              </Swatch>
+            ))}
+          </Group>
         </div>
-      </div>
-    </GlassButtonCard>
-    </>
+      }
+    />
   );
 };

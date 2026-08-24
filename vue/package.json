@@ -13,6 +13,9 @@
     "test:watch": "vitest",
     "generate:icons": "tsx scripts/generate-vue-icons.ts"
   },
+  "files": [
+    "dist"
+  ],
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/types/vue/src/index.d.ts",

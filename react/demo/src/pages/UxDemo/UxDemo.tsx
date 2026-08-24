@@ -19,14 +19,19 @@ import { PillDemo } from "./demos/PillDemo";
 import { TableDemo } from "./demos/TableDemo";
 import { AlertDemo } from "./demos/AlertDemo";
 import { ProgressDemo } from "./demos/ProgressDemo";
+import { LoaderDemo } from "./demos/LoaderDemo";
 import { SpinnerDemo } from "./demos/SpinnerDemo";
 import { ButtonDemo } from "./demos/ButtonDemo";
 
 import { TabsDemo } from "./demos/TabsDemo";
 import { DropdownButtonDemo } from "./demos/DropdownButtonDemo";
+import { DropdownMenuDemo } from "./demos/DropdownMenuDemo";
 import { IconButtonDemo } from "./demos/IconButtonDemo";
 import { ToggleDemo } from "./demos/ToggleDemo";
 import { StatusSpinnerDemo } from "./demos/StatusSpinnerDemo";
+import { EcgMonitorDemo } from "./demos/EcgMonitorDemo";
+import { StatCardDemo } from "./demos/StatCardDemo";
+import { SpeedDialDemo } from "./demos/SpeedDialDemo";
 import { PanelDemo } from "./demos/PanelDemo";
 import { AccordionDemo } from "./demos/AccordionDemo";
 import { StepperDemo } from "./demos/StepperDemo";
@@ -37,13 +42,16 @@ import { BottomSheetDemo } from "./demos/BottomSheetDemo";
 import { CollapsibleHelpDemo } from "./demos/CollapsibleHelpDemo";
 import { CollapsiblePanelDemo } from "./demos/CollapsiblePanelDemo";
 import { KeyValueFieldDemo } from "./demos/KeyValueFieldDemo";
+import { SmartInputDemo } from "./demos/SmartInputDemo";
 import { InfiniteScrollDemo } from "./demos/InfiniteScrollDemo";
 import { AppDividerDemo } from "./demos/AppDividerDemo";
 import { BadgeDemo } from "./demos/BadgeDemo";
 import { AccessMatrixDemo } from "./demos/AccessMatrixDemo";
 import { TimelinePanelDemo } from "./demos/TimelinePanelDemo";
+import { WorkflowTrackerDemo } from "./demos/WorkflowTrackerDemo";
 import { GlassBackgroundDemo } from "./demos/GlassBackgroundDemo";
 import { GlassButtonDemo } from "./demos/GlassButtonDemo";
+import { SideMenuDemo } from "./demos/SideMenuDemo";
 
 export const UxDemo: React.FC = () => {
   const [sectionSearch, setSectionSearch] = useState("");
@@ -52,6 +60,11 @@ export const UxDemo: React.FC = () => {
 
   const sectionList = useMemo(
     () => [
+      {
+        id: "sections-side-menu",
+        title: "Side Menu",
+        render: () => <SideMenuDemo />,
+      },
       {
         id: "sections-glass-background",
         title: "Glass Background",
@@ -68,14 +81,14 @@ export const UxDemo: React.FC = () => {
         render: () => <BadgeIconDemo />,
       },
       {
-        id: "sections-textarea",
-        title: "Textarea",
-        render: () => <TextareaDemo />,
-      },
-      {
         id: "sections-search-bar",
         title: "Search Bar",
         render: () => <SearchBarDemo />,
+      },
+      {
+        id: "sections-textarea",
+        title: "Textarea",
+        render: () => <TextareaDemo />,
       },
       {
         id: "sections-form",
@@ -91,6 +104,11 @@ export const UxDemo: React.FC = () => {
         id: "sections-timeline-panel",
         title: "Timeline Panel",
         render: () => <TimelinePanelDemo />,
+      },
+      {
+        id: "sections-workflow-tracker",
+        title: "Workflow Tracker",
+        render: () => <WorkflowTrackerDemo />,
       },
       {
         id: "sections-bottom-sheet",
@@ -111,6 +129,11 @@ export const UxDemo: React.FC = () => {
         id: "sections-key-value",
         title: "Key/Value Array",
         render: () => <KeyValueFieldDemo />,
+      },
+      {
+        id: "sections-smart-input",
+        title: "Smart Input",
+        render: () => <SmartInputDemo />,
       },
       {
         id: "sections-infinite-scroll",
@@ -144,6 +167,7 @@ export const UxDemo: React.FC = () => {
         render: () => <HeaderGroupDemo />,
       },
       { id: "sections-modal", title: "Modal", render: () => <ModalDemo /> },
+      { id: "sections-pills", title: "Pills", render: () => <PillDemo /> },
       {
         id: "sections-multi-select-pills",
         title: "Multi Select Pills",
@@ -155,7 +179,6 @@ export const UxDemo: React.FC = () => {
         title: "Empty States",
         render: () => <EmptyStateDemo />,
       },
-      { id: "sections-pills", title: "Pills", render: () => <PillDemo /> },
       {
         id: "sections-checkbox",
         title: "Checkbox",
@@ -179,14 +202,24 @@ export const UxDemo: React.FC = () => {
         render: () => <SpinnerDemo />,
       },
       {
+        id: "sections-loader",
+        title: "Loader",
+        render: () => <LoaderDemo />,
+      },
+      {
         id: "sections-buttons",
         title: "Buttons",
         render: () => <ButtonDemo />,
       },
       {
         id: "sections-dropdown",
-        title: "Dropdowns",
+        title: "Dropdown Button",
         render: () => <DropdownButtonDemo />,
+      },
+      {
+        id: "sections-dropdown-menu",
+        title: "Dropdown Menu",
+        render: () => <DropdownMenuDemo />,
       },
       {
         id: "sections-icon-button",
@@ -199,6 +232,21 @@ export const UxDemo: React.FC = () => {
         id: "sections-status-spinner",
         title: "Status Spinner",
         render: () => <StatusSpinnerDemo />,
+      },
+      {
+        id: "sections-ecg-monitor",
+        title: "ECG Monitor",
+        render: () => <EcgMonitorDemo />,
+      },
+      {
+        id: "sections-stat-card",
+        title: "Stat Card",
+        render: () => <StatCardDemo />,
+      },
+      {
+        id: "sections-speed-dial",
+        title: "Speed Dial",
+        render: () => <SpeedDialDemo />,
       },
       { id: "sections-table", title: "Tables", render: () => <TableDemo /> },
       {

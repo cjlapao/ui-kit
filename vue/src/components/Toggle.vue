@@ -201,9 +201,15 @@ const effectiveSpecularMode = computed(() =>
   props.glass ? props.specularMode : "none",
 );
 
-const specularOverlayClasses = computed(() =>
-  _getSpecularClasses(effectiveSpecularMode.value),
-);
+// getSpecularClasses returns paint only — the caller owns the geometry, and
+// the track is a pill. Every other glass control already wrapped it like this;
+// Toggle relied on the helper smuggling layout utilities in with the paint.
+const specularOverlayClasses = computed(() => {
+  const paint = _getSpecularClasses(effectiveSpecularMode.value);
+  return paint
+    ? classNames("pointer-events-none absolute inset-0 rounded-full", paint)
+    : null;
+});
 
 const iconOffClass = computed(() =>
   classNames(
@@ -257,13 +263,29 @@ const labelBlockClass = computed(() =>
   ),
 );
 
+/**
+ * Click handler on the root row, so clicking the padding around the control
+ * still toggles it.
+ *
+ * It must ignore clicks that the browser already handles: the input itself,
+ * and the `<label for>` that forwards to it. Both paths fire `change`, which
+ * emits the new value — this handler then fired again on the way up and
+ * emitted `!input.checked`, i.e. the *old* value, reverting the toggle. The
+ * net effect was a control that visibly refused to change.
+ */
 const handleLabelClick = (e: MouseEvent) => {
   if (props.readonly) {
     e.preventDefault();
+    return;
   }
-  if (!props.disabled && !props.readonly) {
-    emit("update:modelValue", !el.value?.checked);
-  }
+  if (props.disabled) return;
+
+  const input = el.value;
+  const target = e.target as HTMLElement | null;
+  if (!input || !target) return;
+  if (target === input || target.closest("label")) return;
+
+  input.click();
 };
 
 const handleInputClick = (e: MouseEvent) => {

@@ -76,6 +76,7 @@ L("");
 // border-{color}-{shade}
 src(`@source inline("border-{COLOR}-200");`);
 src(`@source inline("border-{COLOR}-300");`);
+src(`@source inline("border-{COLOR}-400");`);
 src(`@source inline("border-{COLOR}-500");`);
 L("");
 
@@ -90,6 +91,8 @@ L("");
 
 // hover:border-{color}-{shade}
 src(`@source inline("hover:border-{COLOR}-200");`);
+// Glass hover rim: the edge ignites in the control's own tone on hover.
+src(`@source inline("hover:border-{COLOR}-500");`);
 L("");
 
 // dark:bg-{color}-{shade}
@@ -113,8 +116,24 @@ src(`@source inline("dark:text-{COLOR}-700");`);
 src(`@source inline("dark:text-{COLOR}-900");`);
 L("");
 
+// Panel glass surfaces. These carry opacity modifiers, but they are ordinary
+// Tailwind candidates, so they belong here — emitting them as raw CSS in the
+// @layer utilities block below would drop the `dark:` variant selector and
+// leak dark styling into light mode.
+src(`@source inline("bg-{COLOR}-50/{20,30,45,50,70}");`);
+src(`@source inline("dark:bg-{COLOR}-500/{5,10,15,25}");`);
+src(`@source inline("border-{COLOR}-300/50");`);
+src(`@source inline("dark:border-{COLOR}-500/25");`);
+// The slider's `ghost` fill (and the MultiToggle indicator's `-500/15`), the
+// `soft` fill's dark step, and `ghost`'s dark step.
+src(`@source inline("bg-{COLOR}-500/{15,20}");`);
+src(`@source inline("dark:bg-{COLOR}-400/25");`);
+src(`@source inline("dark:bg-{COLOR}-500/40");`);
+L("");
+
 // dark:border-{color}-{shade}
 src(`@source inline("dark:border-{COLOR}-300");`);
+src(`@source inline("dark:border-{COLOR}-400");`);
 src(`@source inline("dark:border-{COLOR}-500");`);
 src(`@source inline("dark:border-{COLOR}-700");`);
 L("");
@@ -176,106 +195,196 @@ L("");
 src(`@source inline("dark:focus-visible:ring-{COLOR}-400");`);
 L("");
 
+// Toggle variants (getToggleVariantTokens). The off-state track is the
+// neutral base for every variant; these paint the on-state fill and the
+// focus ring. The solid pair (peer-checked:bg-{c}-500 /
+// dark:peer-checked:bg-{c}-400) is already emitted above.
+src(`@source inline("peer-checked:bg-{COLOR}-200");`);
+src(`@source inline("dark:peer-checked:bg-{COLOR}-500/40");`);
+src(`@source inline("peer-checked:bg-{COLOR}-50");`);
+src(`@source inline("dark:peer-checked:bg-{COLOR}-500/10");`);
+src(`@source inline("peer-checked:border-{COLOR}-400");`);
+src(`@source inline("dark:peer-checked:border-{COLOR}-400");`);
+src(`@source inline("peer-checked:bg-{COLOR}-500/20");`);
+src(`@source inline("dark:peer-checked:bg-{COLOR}-400/25");`);
+// The glass variant's on-state: the frosted fill (and its dark twin) only
+// while checked, plus the backdrop blur that composes it. Mirrors the plain
+// glass-fill steps above with a peer-checked prefix.
+src(`@source inline("peer-checked:backdrop-blur-sm");`);
+src(`@source inline("peer-checked:bg-{COLOR}-100/{30,55,65,75,85}");`);
+src(`@source inline("dark:peer-checked:bg-{COLOR}-600/{5,10,15,25,35}");`);
+src(`@source inline("peer-focus-visible:ring-{COLOR}-400");`);
+L("");
+
 // ═══════════════════════════════════════════════════════════════════
-// SECTION 2 — @layer utilities (non-standard opacity + complex)
+// SECTION 2 — the rest of the dynamic classes
 // ═══════════════════════════════════════════════════════════════════
-L(`/* ── Non-standard opacity / complex patterns via @layer utilities ─ */`);
-L("");
-L(`@layer utilities {`);
-L("");
+//
+// These all carry an opacity modifier, and most carry a variant
+// (`dark:`, `hover:`, `peer-focus:`). They are emitted with @source inline()
+// like everything else — NOT as hand-written CSS in an @layer utilities block.
+//
+// Writing them by hand is what the earlier version did, and it was silently
+// destructive: a rule written as `.dark\:hover\:bg-blue-600\/45 { ... !important }`
+// is a *plain class selector*. It has no `:where(.dark, .dark *)` ancestor and
+// no `:hover`, so it matched every glass control at rest in light mode, and the
+// `!important` beat the real fill. Glass surfaces had been painted with their
+// dark-mode hover colour since the block was written — which is why glass
+// buttons read as saturated navy in light mode and their labels were
+// unreadable. Let Tailwind compile the variants.
 
-// ── Glass fill classes (arbitrary opacity values) ─────────────────
-L(`  /* ── Light: bg-{color}-100/{opacity} ─────────────────────── */`);
-const glassOpsLight = [55, 65, 75, 85];
-for (const color of COLORS) {
-  for (const op of glassOpsLight) {
-    L(`  .bg-${color}-100\\/${op}  { background-color: color-mix(in srgb, var(--color-${color}-100) ${op}%, transparent) !important; }`);
-  }
-  L("");
-}
-
-L(`  /* ── Dark: dark:bg-{color}-600/{opacity} ─────────────────── */`);
-const glassOpsDark = [5, 10, 15, 25, 35];
-for (const color of COLORS) {
-  for (const op of glassOpsDark) {
-    L(`  .dark\\\:bg-${color}-600\\/${op}  { background-color: color-mix(in srgb, var(--color-${color}-600) ${op}%, transparent) !important; }`);
-  }
-  L("");
-}
-
-L(`  /* ── Hover: hover:bg-{color}-100/{opacity+10} ────────────── */`);
-for (const color of COLORS) {
-  for (const op of glassOpsLight) {
-    L(`  .hover\\\:bg-${color}-100\\/${op + 10}  { background-color: color-mix(in srgb, var(--color-${color}-100) ${op + 10}%, transparent) !important; }`);
-  }
-  L("");
-}
-
-L(`  /* ── Dark hover: dark:hover:bg-{color}-600/{opacity+10} ──── */`);
-for (const color of COLORS) {
-  for (const op of glassOpsDark) {
-    L(`  .dark\\\:hover\\\:bg-${color}-600\\/${op + 10}  { background-color: color-mix(in srgb, var(--color-${color}-600) ${op + 10}%, transparent) !important; }`);
-  }
-  L("");
-}
-
-// ── Focus ring with arbitrary opacity /50 ─────────────────────────
-L(`  /* ── Peer focus ring /50 ─────────────────────────────────── */`);
-for (const color of COLORS) {
-  L(`  .peer-focus\:ring-${color}-400\\/50  { --tw-ring-color: color-mix(in srgb, var(--color-${color}-400) 50%, transparent) !important; }`);
-}
+L(`/* ── Opacity-modified classes (variants compiled by Tailwind) ── */`);
 L("");
 
-// ── Spinner border utilities ──────────────────────────────────────
-L(`  /* ── Spinner: border-t-{color}-500 ───────────────────────── */`);
-for (const color of COLORS) {
-  L(`  .border-t-${color}-500  { border-top-color: var(--color-${color}-500); }`);
-}
+// Glass fills: bg-{color}-100/{opacity} and its hover step
+src(`@source inline("bg-{COLOR}-100/{30,55,65,75,85}");`);
+src(`@source inline("hover:bg-{COLOR}-100/{40,65,75,85,95}");`);
+src(`@source inline("dark:bg-{COLOR}-600/{5,10,15,25,35}");`);
+src(`@source inline("dark:hover:bg-{COLOR}-600/{15,20,25,35,45}");`);
 L("");
 
-L(`  /* ── Spinner: dark:border-t-{color}-300 ──────────────────── */`);
-for (const color of COLORS) {
-  L(`  .dark\\\:border-t-${color}-300  { border-top-color: var(--color-${color}-300); }`);
-}
+// Toggle focus ring
+src(`@source inline("peer-focus:ring-{COLOR}-400/50");`);
 L("");
 
-L(`  /* ── Spinner: border-r-{color}-300 ───────────────────────── */`);
-for (const color of COLORS) {
-  L(`  .border-r-${color}-300  { border-right-color: var(--color-${color}-300); }`);
-}
+// Focus indicator on the control itself (Input, Textarea, Select). These also
+// happen to appear as literal strings in Input.tsx, but relying on that means
+// the moment Input generates them instead, every control loses its focus ring.
+src(`@source inline("focus:border-{COLOR}-400");`);
+src(`@source inline("focus:ring-{COLOR}-400/60");`);
 L("");
 
-L(`  /* ── Spinner: dark:border-r-{color}-200 ──────────────────── */`);
-for (const color of COLORS) {
-  L(`  .dark\\\:border-r-${color}-200  { border-right-color: var(--color-${color}-200); }`);
-}
+// Form controls whose focus indicator lives on a wrapper (SearchBar) rather
+// than on the input itself, plus the accent hover on their inline buttons.
+src(`@source inline("focus-within:border-{COLOR}-400");`);
+src(`@source inline("focus-within:ring-{COLOR}-400/60");`);
+// SmartInput paints its focus ring from a state flag rather than a CSS
+// pseudo-class, so it needs the UNPREFIXED colour. Without it `ring-2` falls
+// back to `currentColor` and the ring renders black.
+src(`@source inline("ring-{COLOR}-400/60");`);
+src(`@source inline("focus-visible:ring-{COLOR}-400/60");`);
+src(`@source inline("group-focus-within:text-{COLOR}-500");`);
+// Rating's focus indicator: an inset ring on the star that owns the focused
+// radio, driven off the sr-only input's focus-within.
+src(`@source inline("group-focus-within:ring-{COLOR}-400");`);
+src(`@source inline("hover:text-{COLOR}-600");`);
+src(`@source inline("dark:hover:bg-{COLOR}-900/40");`);
+src(`@source inline("dark:hover:text-{COLOR}-400");`);
 L("");
 
-L(`  /* ── Spinner: border-b-{color}-200 ───────────────────────── */`);
-for (const color of COLORS) {
-  L(`  .border-b-${color}-200  { border-bottom-color: var(--color-${color}-200); }`);
-}
+// SideMenu row tokens. The icon's hover colour comes from the row's
+// `group` container, so it is a group-hover candidate and would never be
+// picked up by the source scanner (the tone is interpolated at runtime).
+src(`@source inline("group-hover:text-{COLOR}-700");`);
+src(`@source inline("dark:group-hover:text-{COLOR}-300");`);
 L("");
 
-L(`  /* ── Spinner: dark:border-b-{color}-100/60 ───────────────── */`);
-for (const color of COLORS) {
-  L(`  .dark\\\:border-b-${color}-100\\/60  { border-bottom-color: color-mix(in srgb, var(--color-${color}-100) 60%, transparent); }`);
-}
+// Alert. These were coming from the legacy hand-written safelist-classes.css,
+// which predates TRUE_COLORS and is missing `gray`, `zinc` and `stone` — so a
+// `subtle` alert in those three tones had no copy colour at all in light mode,
+// and `outline`'s dark fill existed for only 2 of the 21. Generate them.
+src(`@source inline("text-{COLOR}-800");`);
+src(`@source inline("dark:text-{COLOR}-50");`);
+src(`@source inline("hover:text-{COLOR}-800");`);
+src(`@source inline("dark:border-{COLOR}-500/{40,50,60}");`);
+src(`@source inline("dark:hover:bg-{COLOR}-500/20");`);
+// `subtle`'s dark fill. It was reaching the build only incidentally, through
+// the legacy hand-written safelist-classes.css, and for `red` it was not
+// reaching it at all — a `danger` alert in dark mode kept its light `bg-red-50`
+// under `dark:text-red-50` copy, i.e. white text on pink.
+src(`@source inline("dark:bg-{COLOR}-900/40");`);
+// Alert `solid`. The fill steps one shade further out than the other variants
+// (see getAlertVariantTokens) so white/`-950` copy reaches WCAG AA on it.
+src(`@source inline("dark:text-{COLOR}-950");`);
+src(`@source inline("dark:text-{COLOR}-950/{80,90}");`);
 L("");
 
-L(`  /* ── Spinner: border-l-{color}-100 ───────────────────────── */`);
-for (const color of COLORS) {
-  L(`  .border-l-${color}-100  { border-left-color: var(--color-${color}-100); }`);
-}
+// EmptyState's dashed rule. Drawn as an outline so it does not have to be
+// reconciled against the card's own border width.
+src(`@source inline("outline-{COLOR}-300");`);
+src(`@source inline("dark:outline-{COLOR}-500/40");`);
+// EmptyState's icon disc.
+src(`@source inline("bg-{COLOR}-100/70");`);
+src(`@source inline("dark:bg-{COLOR}-500/15");`);
 L("");
 
-L(`  /* ── Spinner: dark:border-l-{color}-100/40 ───────────────── */`);
-for (const color of COLORS) {
-  L(`  .dark\\\:border-l-${color}-100\\/40  { border-left-color: color-mix(in srgb, var(--color-${color}-100) 40%, transparent); }`);
-}
+// Checkbox. The box is a real element driven off the sibling input's state,
+// so every one of these carries a `peer-*` variant.
+src(`@source inline("peer-checked:{bg,border}-{COLOR}-700");`);
+src(`@source inline("peer-indeterminate:{bg,border}-{COLOR}-700");`);
+src(`@source inline("dark:peer-checked:{bg,border}-{COLOR}-400");`);
+src(`@source inline("dark:peer-indeterminate:{bg,border}-{COLOR}-400");`);
+src(`@source inline("peer-focus-visible:ring-{COLOR}-500");`);
+src(`@source inline("dark:peer-focus-visible:ring-{COLOR}-400");`);
+// The glyph colour `dark:text-{COLOR}-950` is already emitted above, for
+// Alert's solid variant.
 L("");
 
-L(`} /* end @layer utilities */`);
+// InputGroup. The group owns the box, so it carries its own ring and its
+// addons their own fill/border/copy. The map these replace covered 6 of the 21
+// tones and fell back to an entry that did not exist, so the other 15 crashed.
+src(`@source inline("outline-{COLOR}-200/70");`);
+src(`@source inline("dark:outline-{COLOR}-500/30");`);
+src(`@source inline("focus-within:outline-{COLOR}-400");`);
+src(`@source inline("dark:focus-within:outline-{COLOR}-400");`);
+src(`@source inline("bg-{COLOR}-50/80");`);
+src(`@source inline("dark:border-{COLOR}-500/40");`);
+L("");
+
+// Spinner segment borders
+src(`@source inline("border-t-{COLOR}-500");`);
+src(`@source inline("dark:border-t-{COLOR}-300");`);
+src(`@source inline("border-r-{COLOR}-300");`);
+src(`@source inline("dark:border-r-{COLOR}-200");`);
+src(`@source inline("border-b-{COLOR}-200");`);
+src(`@source inline("dark:border-b-{COLOR}-100/60");`);
+src(`@source inline("border-l-{COLOR}-100");`);
+src(`@source inline("dark:border-l-{COLOR}-100/40");`);
+L("");
+
+// Button (trigger family). The token table in common/theme/Theme.ts emits
+// these per tone; before this section, the soft variant's dark ring
+// (`dark:ring-{c}-500/40`) existed for 0 of the 21 tones, ghost/outline dark
+// hovers for 2, and the solid hover fill `hover:bg-{c}-800` for 2 — so those
+// states fell back to currentColor (black) or to the light-mode class.
+src(`@source inline("hover:bg-{COLOR}-200");`);
+src(`@source inline("hover:bg-{COLOR}-300");`);
+src(`@source inline("hover:bg-{COLOR}-800");`);
+src(`@source inline("hover:text-{COLOR}-900");`);
+src(`@source inline("ring-{COLOR}-200");`);
+src(`@source inline("ring-{COLOR}-300");`);
+src(`@source inline("dark:ring-{COLOR}-500/40");`);
+src(`@source inline("dark:ring-{COLOR}-400/50");`);
+src(`@source inline("dark:border-{COLOR}-400/60");`);
+src(`@source inline("dark:bg-{COLOR}-500/20");`);
+src(`@source inline("dark:hover:bg-{COLOR}-200");`);
+src(`@source inline("dark:hover:bg-{COLOR}-500/{5,10,25,30}");`);
+L("");
+
+// Table. The tone header band, the group/sticky indicator dots, the
+// selected & highlight row fills, the highlight left border and the
+// resize-handle hover are all generated from TRUE_COLORS inside the
+// component, so the source scanner can never see the interpolated
+// candidates. Before this section, `dark:border-{c}-500/30` (the tone
+// header's dark border) existed for 0 of the 21 tones and the rest
+// reached the build only by accident, through other components' literals.
+src(`@source inline("dark:border-{COLOR}-500/30");`);
+// Translucent (glass / liquid-glass / default / simple) tone header band:
+// the light-mode tint and its border are see-through versions of the solid
+// shapes above, so the backdrop still reads through the header row.
+src(`@source inline("bg-{COLOR}-50/50");`);
+src(`@source inline("border-{COLOR}-200/60");`);
+src(`@source inline("dark:border-{COLOR}-800");`);
+src(`@source inline("border-l-{COLOR}-500");`);
+src(`@source inline("dark:bg-{COLOR}-700/50");`);
+src(`@source inline("dark:bg-{COLOR}-800");`);
+src(`@source inline("group-hover/rh:bg-{COLOR}-500");`);
+src(`@source inline("dark:group-hover/rh:bg-{COLOR}-400");`);
+src(`@source inline("dark:accent-{COLOR}-400");`);
+// The neutral tone's accent steps are two shades off the pattern above.
+src(`@source inline("accent-neutral-700");`);
+src(`@source inline("dark:accent-neutral-300");`);
+L("");
 
 // ── Write output ──────────────────────────────────────────────────
 import { writeFileSync } from "node:fs";

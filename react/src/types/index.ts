@@ -4,3 +4,4 @@ export * from "./Variables";
 export * from "./CapsuleBlueprint";
 export * from "./Toast";
 export * from "../icons/registry";
+export * from "./TableSettings";

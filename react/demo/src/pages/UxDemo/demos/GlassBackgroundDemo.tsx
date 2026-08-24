@@ -7,38 +7,15 @@ import {
   Button,
   Toggle,
   Badge,
-  MultiToggle,
   Select,
-  type ThemeColor,
+  type TrueColor,
   type GradientDirection,
   type GlassBackgroundPosition,
 } from "@cjlapao/ui-kit";
-
+import { trueColorOptions } from "../constants";
 // ---------------------------------------------------------------------------
 // Options
 // ---------------------------------------------------------------------------
-
-const colorOptions: { label: string; value: ThemeColor }[] = [
-  { label: "Purple", value: "purple" },
-  { label: "Blue", value: "blue" },
-  { label: "Indigo", value: "indigo" },
-  { label: "Violet", value: "violet" },
-  { label: "Rose", value: "rose" },
-  { label: "Pink", value: "pink" },
-  { label: "Emerald", value: "emerald" },
-  { label: "Teal", value: "teal" },
-  { label: "Amber", value: "amber" },
-  { label: "Orange", value: "orange" },
-  { label: "Cyan", value: "cyan" },
-  { label: "Sky", value: "sky" },
-  { label: "Lime", value: "lime" },
-  { label: "Red", value: "red" },
-  { label: "Slate", value: "slate" },
-  { label: "Zinc", value: "zinc" },
-  { label: "Stone", value: "stone" },
-  { label: "Gray", value: "gray" },
-  { label: "Neutral", value: "neutral" },
-];
 
 const directionOptions: { label: string; value: GradientDirection }[] = [
   { label: "Top", value: "t" },
@@ -51,23 +28,19 @@ const directionOptions: { label: string; value: GradientDirection }[] = [
   { label: "Top-Left", value: "tl" },
 ];
 
-const positionOptions: { label: string; value: GlassBackgroundPosition }[] = [
-  { label: "Fixed", value: "fixed" },
-  { label: "Absolute", value: "absolute" },
-];
 
 // ---------------------------------------------------------------------------
 // Sign-in form preview
 // ---------------------------------------------------------------------------
 
 interface SignUpFormProps {
-  color: ThemeColor;
+  color: TrueColor;
   shimmer: boolean;
   ambient: boolean;
   direction: GradientDirection;
   position: GlassBackgroundPosition;
-  colorSecondary?: ThemeColor;
-  colorDeep?: ThemeColor;
+  colorSecondary?: TrueColor;
+  colorDeep?: TrueColor;
 }
 
 const SignInFormPreview: React.FC<SignUpFormProps> = ({
@@ -154,8 +127,8 @@ const SignInFormPreview: React.FC<SignUpFormProps> = ({
 
 const ColorSwatchPreview: React.FC<{
   label: string;
-  color: ThemeColor;
-  colorSecondary?: ThemeColor;
+  color: TrueColor;
+  colorSecondary?: TrueColor;
   direction?: GradientDirection;
 }> = ({ label, color, colorSecondary, direction: dir }) => (
   <GlassBackground
@@ -198,12 +171,12 @@ const DirectionCell: React.FC<{
 // Shimmer comparison
 // ---------------------------------------------------------------------------
 
-const ShimmerPreview: React.FC<{ shimmer: boolean; color: ThemeColor }> = ({
+const ShimmerPreview: React.FC<{ shimmer: boolean; color: TrueColor }> = ({
   shimmer,
   color,
 }) => (
   <GlassBackground position="absolute" color={color} shimmer={shimmer} ambient>
-    <div className="flex h-full items-center justify-center">
+    <div className="flex h-full items-center p-4 justify-center">
       <Panel variant="liquid-glass" corner="rounded-md" padding="sm">
         <p className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
           {shimmer ? "Shimmer on" : "Shimmer off"}
@@ -219,32 +192,29 @@ const ShimmerPreview: React.FC<{ shimmer: boolean; color: ThemeColor }> = ({
 
 export const GlassBackgroundDemo: React.FC = () => {
   // --- Sign-in form controls ---
-  const [formColor, setFormColor] = useState<ThemeColor>("purple");
-  const [formColorSecondary, setFormColorSecondary] = useState<ThemeColor>(
+  const [formColor, setFormColor] = useState<TrueColor>("purple");
+  const [formColorSecondary, setFormColorSecondary] = useState<TrueColor>(
     "blue",
   );
-  const [formColorDeep, setFormColorDeep] = useState<ThemeColor>("indigo");
+  const [formColorDeep, setFormColorDeep] = useState<TrueColor>("indigo");
   const [formDirection, setFormDirection] = useState<GradientDirection>("br");
-  const [formPosition, setFormPosition] = useState<GlassBackgroundPosition>(
-    "absolute",
-  );
   const [formShimmer, setFormShimmer] = useState(false);
   const [formAmbient, setFormAmbient] = useState(true);
 
   // --- Color presets controls ---
-  const [presetColor, setPresetColor] = useState<ThemeColor>("blue");
-  const [presetSecondary, setPresetSecondary] = useState<ThemeColor>("indigo");
+  const [presetColor, setPresetColor] = useState<TrueColor>("blue");
+  const [presetSecondary, setPresetSecondary] = useState<TrueColor>("indigo");
   const [presetDirection, setPresetDirection] =
     useState<GradientDirection>("br");
 
   // --- Direction grid controls ---
-  const [gridColor, setGridColor] = useState<ThemeColor>("rose");
-  const [gridSecondary, setGridSecondary] = useState<ThemeColor>("purple");
+  const [gridColor, setGridColor] = useState<TrueColor>("rose");
+  const [gridSecondary, setGridSecondary] = useState<TrueColor>("purple");
 
   // --- Shimmer comparison controls ---
   const [shimmerLeft, setShimmerLeft] = useState(false);
   const [shimmerRight, setShimmerRight] = useState(true);
-  const [shimmerColor, setShimmerColor] = useState<ThemeColor>("purple");
+  const [shimmerColor, setShimmerColor] = useState<TrueColor>("purple");
 
   // -----------------------------------------------------------------------
   // Preview container helper
@@ -262,6 +232,7 @@ export const GlassBackgroundDemo: React.FC = () => {
     <div className="space-y-8">
       {/* ───────── Sign-in form ───────── */}
       <PlaygroundSection
+        hideBackgroundToggle
         title="Sign-in form"
         label="[GlassBackground]"
         description="Interactive preview matching the Liquid Glass reference screenshot."
@@ -272,9 +243,9 @@ export const GlassBackgroundDemo: React.FC = () => {
                 <span>Primary color</span>
                 <Select
                   value={formColor}
-                  onChange={(e) => setFormColor(e.target.value as ThemeColor)}
+                  onChange={(e) => setFormColor(e.target.value as TrueColor)}
                 >
-                  {colorOptions.map((c) => (
+                  {trueColorOptions.map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
                     </option>
@@ -286,10 +257,10 @@ export const GlassBackgroundDemo: React.FC = () => {
                 <Select
                   value={formColorSecondary}
                   onChange={(e) =>
-                    setFormColorSecondary(e.target.value as ThemeColor)
+                    setFormColorSecondary(e.target.value as TrueColor)
                   }
                 >
-                  {colorOptions.map((c) => (
+                  {trueColorOptions.map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
                     </option>
@@ -301,10 +272,10 @@ export const GlassBackgroundDemo: React.FC = () => {
                 <Select
                   value={formColorDeep}
                   onChange={(e) =>
-                    setFormColorDeep(e.target.value as ThemeColor)
+                    setFormColorDeep(e.target.value as TrueColor)
                   }
                 >
-                  {colorOptions.map((c) => (
+                  {trueColorOptions.map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
                     </option>
@@ -324,21 +295,6 @@ export const GlassBackgroundDemo: React.FC = () => {
                   {directionOptions.map((d) => (
                     <option key={d.value} value={d.value}>
                       {d.label}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <label className="flex flex-col gap-2">
-                <span>Position</span>
-                <Select
-                  value={formPosition}
-                  onChange={(e) =>
-                    setFormPosition(e.target.value as GlassBackgroundPosition)
-                  }
-                >
-                  {positionOptions.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
                     </option>
                   ))}
                 </Select>
@@ -370,7 +326,7 @@ export const GlassBackgroundDemo: React.FC = () => {
             colorSecondary={formColorSecondary}
             colorDeep={formColorDeep}
             direction={formDirection}
-            position={formPosition}
+            position="absolute"
             shimmer={formShimmer}
             ambient={formAmbient}
           />,
@@ -379,6 +335,7 @@ export const GlassBackgroundDemo: React.FC = () => {
 
       {/* ───────── Color presets ───────── */}
       <PlaygroundSection
+        hideBackgroundToggle
         title="Color presets"
         label="[GlassBackground]"
         description="Explore different color combinations with a shared glass panel."
@@ -390,10 +347,10 @@ export const GlassBackgroundDemo: React.FC = () => {
                 <Select
                   value={presetColor}
                   onChange={(e) =>
-                    setPresetColor(e.target.value as ThemeColor)
+                    setPresetColor(e.target.value as TrueColor)
                   }
                 >
-                  {colorOptions.map((c) => (
+                  {trueColorOptions.map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
                     </option>
@@ -405,10 +362,10 @@ export const GlassBackgroundDemo: React.FC = () => {
                 <Select
                   value={presetSecondary}
                   onChange={(e) =>
-                    setPresetSecondary(e.target.value as ThemeColor)
+                    setPresetSecondary(e.target.value as TrueColor)
                   }
                 >
-                  {colorOptions.map((c) => (
+                  {trueColorOptions.map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
                     </option>
@@ -435,7 +392,7 @@ export const GlassBackgroundDemo: React.FC = () => {
         }
         preview={previewContainer(
           <div className="grid h-full grid-cols-2 gap-2 p-2">
-            {colorOptions.slice(0, 6).map((c) => (
+            {trueColorOptions.slice(0, 6).map((c) => (
               <div
                 key={c.value}
                 className="relative overflow-hidden rounded-lg"
@@ -454,6 +411,7 @@ export const GlassBackgroundDemo: React.FC = () => {
 
       {/* ───────── Direction grid ───────── */}
       <PlaygroundSection
+        hideBackgroundToggle
         title="Direction grid"
         label="[GlassBackground]"
         description="All eight gradient directions side by side."
@@ -464,9 +422,9 @@ export const GlassBackgroundDemo: React.FC = () => {
                 <span>Primary color</span>
                 <Select
                   value={gridColor}
-                  onChange={(e) => setGridColor(e.target.value as ThemeColor)}
+                  onChange={(e) => setGridColor(e.target.value as TrueColor)}
                 >
-                  {colorOptions.map((c) => (
+                  {trueColorOptions.map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
                     </option>
@@ -478,10 +436,10 @@ export const GlassBackgroundDemo: React.FC = () => {
                 <Select
                   value={gridSecondary}
                   onChange={(e) =>
-                    setGridSecondary(e.target.value as ThemeColor)
+                    setGridSecondary(e.target.value as TrueColor)
                   }
                 >
-                  {colorOptions.map((c) => (
+                  {trueColorOptions.map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
                     </option>
@@ -507,6 +465,7 @@ export const GlassBackgroundDemo: React.FC = () => {
 
       {/* ───────── Shimmer comparison ───────── */}
       <PlaygroundSection
+        hideBackgroundToggle
         title="Shimmer"
         label="[GlassBackground]"
         description="Toggle shimmer on and off to compare."
@@ -517,10 +476,10 @@ export const GlassBackgroundDemo: React.FC = () => {
               <Select
                 value={shimmerColor}
                 onChange={(e) =>
-                  setShimmerColor(e.target.value as ThemeColor)
+                  setShimmerColor(e.target.value as TrueColor)
                 }
               >
-                {colorOptions.map((c) => (
+                {trueColorOptions.map((c) => (
                   <option key={c.value} value={c.value}>
                     {c.label}
                   </option>
@@ -549,7 +508,7 @@ export const GlassBackgroundDemo: React.FC = () => {
         }
         preview={previewContainer(
           <div className="grid h-full grid-cols-2 gap-2 p-2">
-            <div className="relative overflow-hidden rounded-lg">
+            <div className="relative overflow-hidden rounded-lg p-2 bg-red-500">
               <ShimmerPreview shimmer={shimmerLeft} color={shimmerColor} />
             </div>
             <div className="relative overflow-hidden rounded-lg">

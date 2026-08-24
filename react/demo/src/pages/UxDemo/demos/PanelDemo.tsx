@@ -1,39 +1,49 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Panel, MultiToggle, Toggle, Badge } from "@cjlapao/ui-kit";
-import {
+import { Panel, MultiToggle, Toggle, Badge, Select } from "@cjlapao/ui-kit";
+import type {
+  ButtonVariant,
+  ButtonWeight,
+  ControlSize,
+  GlassOpacity,
+  GlassVibrancy,
+  PanelAction,
   PanelActionLayout,
   PanelCorner,
+  PanelDecoration,
   PanelLoaderType,
   PanelMediaPlacement,
   PanelPadding,
+  PanelSpecularMode,
   PanelTone,
   PanelVariant,
-  PanelAction,
-  type PanelSpecularMode,
+  TrueColor,
 } from "@cjlapao/ui-kit";
+import { DEFAULT_SURFACE_CORNER } from "@cjlapao/ui-kit";
 import {
-  panelVariantOptions,
-  panelToneOptions,
-  panelMediaPlacementOptions,
+  buttonVariantAllOptions,
+  buttonWeightOptions,
+  controlSizeOptions,
+  glassOpacityOptions,
+  glassVibrancyOptions,
   panelActionLayoutOptions,
-  panelPaddingOptions,
   panelCornerOptions,
+  panelDecorationOptions,
   panelLoadingTypeOptions,
+  panelMediaPlacementOptions,
+  panelPaddingOptions,
+  panelSpecularOptions,
+  panelVariantOptions,
+  trueColorOptions,
 } from "../constants";
 import notificationService from "../mocks/NotificationService";
 import { GLOBAL_NOTIFICATION_CHANNEL } from "../constants";
 import { v4 as uuidv4 } from "uuid";
-import parallels from "@assets/images/parallels.png";
-import backdropLight from "@assets/images/backdrop_demo_light.png";
-import backdropDark from "@assets/images/backdrop_demo_dark.png";
-import { useTheme } from "@cjlapao/ui-kit";
+import logo from "@assets/images/logo.png";
 
 const createUpdateToast = (message?: string) => {
-  const id = uuidv4();
   notificationService.createNotification({
-    id: id,
+    id: uuidv4(),
     message: `You clicked something!`,
     details:
       message ?? "This is a detailed message for the notification toast.",
@@ -44,120 +54,165 @@ const createUpdateToast = (message?: string) => {
   });
 };
 
+/** Variants whose surface is see-through, so the glass controls apply. */
+const GLASS_VARIANTS: PanelVariant[] = ["glass", "liquid-glass", "default"];
+
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <label className="flex flex-col gap-2">
+    <span className="text-xs font-medium uppercase tracking-wide opacity-70">
+      {label}
+    </span>
+    {children}
+  </label>
+);
+
 export const PanelDemo: React.FC = () => {
-  const [panelTone, setPanelTone] = useState<PanelTone>("neutral");
+  // Panel surface
   const [panelVariant, setPanelVariant] = useState<PanelVariant>("elevated");
-  const [panelLoading, setPanelLoading] = useState<boolean>(false);
-  const [panelCorner, setPanelCorner] = useState<PanelCorner>("rounded");
-  const [panelHasMedia, setPanelHasMedia] = useState<boolean>(true);
+  const [panelTone, setPanelTone] = useState<PanelTone>("neutral");
+  // Starts on the Panel's own default so the playground opens showing what a
+  // `<Panel>` with no `corner` actually looks like.
+  const [panelCorner, setPanelCorner] = useState<PanelCorner>(
+    DEFAULT_SURFACE_CORNER,
+  );
+  const [panelPadding, setPanelPadding] = useState<PanelPadding>("md");
+  const [panelDecoration, setPanelDecoration] =
+    useState<PanelDecoration>("none");
+
+  // Content
+  const [panelHasMedia, setPanelHasMedia] = useState(true);
   const [panelMediaPlacement, setPanelMediaPlacement] =
     useState<PanelMediaPlacement>("top");
-  const [panelHasActions, setPanelHasActions] = useState<boolean>(true);
-  const [panelHasBadge, setPanelHasBadge] = useState<boolean>(true);
-  const [panelLoadingType, setPanelLoadingType] =
-    useState<PanelLoaderType>("spinner");
+  const [panelHasBadge, setPanelHasBadge] = useState(true);
+  const [panelHasActions, setPanelHasActions] = useState(true);
   const [panelActionLayout, setPanelActionLayout] =
     useState<PanelActionLayout>("inline");
-  const [panelPadding, setPanelPadding] = useState<PanelPadding>("md");
-  const [panelFullWidth, setPanelFullWidth] = useState<boolean>(false);
-  const [panelHoverShadow, setPanelHoverShadow] = useState<boolean>(false);
-  const [panelDisabled, setPanelDisabled] = useState<boolean>(false);
-  const [glassVibrancy, setGlassVibrancy] = useState<
-    "low" | "medium" | "high"
-  >("medium");
-  const [glassOpacity, setGlassOpacity] = useState<
-    "frosted" | "light" | "clear"
-  >("frosted");
-  const [specularMode, setSpecularMode] = useState<PanelSpecularMode>("classic");
-  const [panelHasBackground, setPanelHasBackground] = useState<boolean>(false);
-  const { effectiveTheme } = useTheme();
+
+  // Action buttons — the Panel renders these through `Button`, so every
+  // Button knob is worth exposing here.
+  const [actionVariant, setActionVariant] = useState<ButtonVariant>("solid");
+  const [actionColor, setActionColor] = useState<TrueColor>("blue");
+  const [actionSize, setActionSize] = useState<ControlSize>("md");
+  const [actionWeight, setActionWeight] = useState<ButtonWeight>("medium");
+  const [actionIcons, setActionIcons] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionDisabled, setActionDisabled] = useState(false);
+
+  // State
+  const [panelLoading, setPanelLoading] = useState(false);
+  const [panelLoadingType, setPanelLoadingType] =
+    useState<PanelLoaderType>("spinner");
+  const [panelFullWidth, setPanelFullWidth] = useState(false);
+  const [panelHoverShadow, setPanelHoverShadow] = useState(false);
+  const [panelHoverable, setPanelHoverable] = useState(false);
+  const [panelDisabled, setPanelDisabled] = useState(false);
+
+  // Glass
+  const [glassVibrancy, setGlassVibrancy] = useState<GlassVibrancy>("medium");
+  const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("frosted");
+  const [specularMode, setSpecularMode] =
+    useState<PanelSpecularMode>("classic");
+
+  const isGlass = GLASS_VARIANTS.includes(panelVariant);
+
+  const actionDefaults = {
+    variant: actionVariant,
+    size: actionSize,
+    weight: actionWeight,
+    loading: actionLoading,
+    disabled: actionDisabled,
+  };
 
   const panelActions: PanelAction[] = panelHasActions
     ? [
         {
-          variant: "solid",
+          ...actionDefaults,
           label: "Open",
-          color: "blue",
+          color: actionColor,
+          leadingIcon: actionIcons ? "Check" : undefined,
           onClick: () => createUpdateToast(),
         },
         {
-          variant: "solid",
+          ...actionDefaults,
           label: "Close",
           color: "rose",
+          trailingIcon: actionIcons ? "Close" : undefined,
           onClick: () => createUpdateToast(),
         },
       ]
     : [];
 
-  const panelPreview = (
-    <Panel
-      title={`${panelVariant.charAt(0).toUpperCase() + panelVariant.slice(1)} Panel`}
-      subtitle="This is a subtitle"
-      tone={panelTone}
-      variant={panelVariant}
-      vibrancy={glassVibrancy}
-      glassOpacity={glassOpacity}
-      specularMode={specularMode}
-      media={panelHasMedia ? <img src={parallels} alt="Parallels" /> : null}
-      mediaPlacement={panelMediaPlacement}
-      badge={panelHasBadge ? <Badge count={10} tone="primary" /> : null}
-      corner={panelCorner}
-      loaderProgress={30}
-      loading={panelLoading}
-      disabled={panelDisabled}
-      loaderType={panelLoadingType}
-      loaderTitle="Loading..."
-      loaderMessage="Getting things ready..."
-      padding={panelPadding}
-      actionLayout={panelActionLayout}
-      fullWidth={panelFullWidth}
-      actions={panelActions}
-      hoverShadow={panelHoverShadow}
-    >
-      This Panel uses the {panelVariant} variant
-    </Panel>
-  );
+  const sharedPanelProps = {
+    tone: panelTone,
+    variant: panelVariant,
+    corner: panelCorner,
+    padding: panelPadding,
+    decoration: panelDecoration,
+    vibrancy: glassVibrancy,
+    glassOpacity: glassOpacity,
+    specularMode: specularMode,
+    actionLayout: panelActionLayout,
+    actions: panelActions,
+    hoverShadow: panelHoverShadow,
+    hoverable: panelHoverable,
+    loading: panelLoading,
+    loaderType: panelLoadingType,
+  };
 
-  const previewChildren = (
+  const preview = (
     <div className="space-y-4 p-6">
-      {panelPreview}
+      <Panel
+        {...sharedPanelProps}
+        title={`${panelVariant} panel`}
+        subtitle="This is a subtitle"
+        description="And a description, which uses the surface's muted tone."
+        media={
+          panelHasMedia ? (
+            <img src={logo} alt="logo" className="w-25" />
+          ) : null
+        }
+        mediaPlacement={panelMediaPlacement}
+        badge={panelHasBadge ? <Badge count={10} tone={panelTone} /> : null}
+        disabled={panelDisabled}
+        loaderProgress={30}
+        loaderTitle="Loading..."
+        loaderMessage="Getting things ready..."
+        fullWidth={panelFullWidth}
+      >
+        This Panel uses the {panelVariant} variant, {panelCorner} corners and{" "}
+        {panelPadding} padding.
+      </Panel>
+
       {!panelFullWidth && (
         <Panel
+          {...sharedPanelProps}
           title="Secondary Panel"
-          subtitle="Loading demo"
-          tone={panelTone}
-          variant={panelVariant}
-          vibrancy={glassVibrancy}
-          glassOpacity={glassOpacity}
-specularMode={specularMode}
+          subtitle="Same settings, no media"
           loaderProgress={45}
-          loading={panelLoading}
-          loaderType="progress"
-          padding={panelPadding}
-          actionLayout={panelActionLayout}
-          actions={panelActions}
-          hoverShadow={panelHoverShadow}
         >
-          Secondary panel preview
+          A second card, so corner and padding changes are easy to compare.
         </Panel>
       )}
     </div>
   );
 
-  const preview = panelHasBackground ? (
-    <div
-      className="relative overflow-hidden rounded-2xl bg-cover bg-center bg-no-repeat"
-      style={{
-        backgroundImage: `url(${
-          effectiveTheme === "dark" ? backdropDark : backdropLight
-        })`,
-      }}
-    >
-      {previewChildren}
-    </div>
-  ) : (
-    previewChildren
-  );
+  const toggles = [
+    { label: "Media", value: panelHasMedia, setter: setPanelHasMedia },
+    { label: "Badge", value: panelHasBadge, setter: setPanelHasBadge },
+    { label: "Actions", value: panelHasActions, setter: setPanelHasActions },
+    { label: "Loading", value: panelLoading, setter: setPanelLoading },
+    { label: "Full width", value: panelFullWidth, setter: setPanelFullWidth },
+    { label: "Disabled", value: panelDisabled, setter: setPanelDisabled },
+    {
+      label: "Hover shadow",
+      value: panelHoverShadow,
+      setter: setPanelHoverShadow,
+    },
+    { label: "Hoverable", value: panelHoverable, setter: setPanelHoverable },
+  ];
 
   return (
     <PlaygroundSection
@@ -165,187 +220,245 @@ specularMode={specularMode}
       label="[Panel]"
       description="Card layout with media, badges, actions, and loaders."
       controls={
-        <div className="space-y-4 text-sm">
+        <div className="space-y-5 text-sm">
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex flex-col gap-2">
-              <span>Variant</span>
-              <MultiToggle
-                fullWidth
-                options={panelVariantOptions}
+            {/* Eight variants is past what a MultiToggle can show legibly. */}
+            <Field label="Variant">
+              <Select
                 value={panelVariant}
-                size="sm"
-                onChange={(value) => setPanelVariant(value as PanelVariant)}
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span>Tone</span>
-              <MultiToggle
-                fullWidth
-                options={panelToneOptions}
+                onChange={(event) =>
+                  setPanelVariant(event.target.value as PanelVariant)
+                }
+              >
+                {panelVariantOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Tone">
+              <Select
                 value={panelTone}
-                size="sm"
-                onChange={(value) => setPanelTone(value as PanelTone)}
-              />
-            </label>
+                onChange={(event) =>
+                  setPanelTone(event.target.value as PanelTone)
+                }
+              >
+                {trueColorOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            <label className="flex flex-col gap-2">
-              <span>Media placement</span>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Corner">
+              <Select
+                value={panelCorner}
+                onChange={(event) =>
+                  setPanelCorner(event.target.value as PanelCorner)
+                }
+              >
+                {panelCornerOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Padding">
               <MultiToggle
                 fullWidth
+                size="sm"
+                options={panelPaddingOptions}
+                value={panelPadding}
+                onChange={(value) => setPanelPadding(value as PanelPadding)}
+              />
+            </Field>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <Field label="Media placement">
+              <MultiToggle
+                fullWidth
+                size="sm"
                 options={panelMediaPlacementOptions}
                 value={panelMediaPlacement}
-                size="sm"
                 onChange={(value) =>
                   setPanelMediaPlacement(value as PanelMediaPlacement)
                 }
               />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span>Action layout</span>
+            </Field>
+            <Field label="Decoration">
               <MultiToggle
                 fullWidth
-                options={panelActionLayoutOptions}
-                value={panelActionLayout}
                 size="sm"
+                options={panelDecorationOptions}
+                value={panelDecoration}
                 onChange={(value) =>
-                  setPanelActionLayout(value as PanelActionLayout)
+                  setPanelDecoration(value as PanelDecoration)
                 }
               />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span>Padding</span>
+            </Field>
+            <Field label="Loader type">
               <MultiToggle
                 fullWidth
-                options={panelPaddingOptions}
-                value={panelPadding}
                 size="sm"
-                onChange={(value) => setPanelPadding(value as PanelPadding)}
-              />
-            </label>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex flex-col gap-2">
-              <span>Corner</span>
-              <MultiToggle
-                fullWidth
-                options={panelCornerOptions}
-                value={panelCorner}
-                size="sm"
-                onChange={(value) => setPanelCorner(value as PanelCorner)}
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span>Loader type</span>
-              <MultiToggle
-                fullWidth
                 options={panelLoadingTypeOptions}
                 value={panelLoadingType}
-                size="sm"
                 onChange={(value) =>
                   setPanelLoadingType(value as PanelLoaderType)
                 }
               />
-            </label>
+            </Field>
           </div>
-          <div className="grid gap-2 md:grid-cols-3">
-            {[
-              {
-                label: "Media",
-                value: panelHasMedia,
-                setter: setPanelHasMedia,
-              },
-              {
-                label: "Badge",
-                value: panelHasBadge,
-                setter: setPanelHasBadge,
-              },
-              {
-                label: "Actions",
-                value: panelHasActions,
-                setter: setPanelHasActions,
-              },
-              {
-                label: "Loading",
-                value: panelLoading,
-                setter: setPanelLoading,
-              },
-              {
-                label: "Full width",
-                value: panelFullWidth,
-                setter: setPanelFullWidth,
-              },
-              {
-                label: "Disabled",
-                value: panelDisabled,
-                setter: setPanelDisabled,
-              },
-              {
-                label: "Hover shadow",
-                value: panelHoverShadow,
-                setter: setPanelHoverShadow,
-              },
-              {
-                label: "Background image",
-                value: panelHasBackground,
-                setter: setPanelHasBackground,
-              },
-            ].map((option) => (
 
-                <Toggle
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4">
+            {toggles.map((option) => (
+              <Toggle
+                key={option.label}
                 size="sm"
                 label={option.label}
-                  checked={option.value}
-                  onChange={(event) => option.setter(event.target.checked)}
-                />
+                checked={option.value}
+                onChange={(event) => option.setter(event.target.checked)}
+              />
             ))}
           </div>
-          {panelVariant === "liquid-glass" && (
+
+          {/* ── Action buttons ─────────────────────────────────────────── */}
+          <div className="space-y-3 rounded-xl border border-black/10 p-3 dark:border-white/10">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wide opacity-70">
+                Action buttons
+              </span>
+              <Toggle
+                size="sm"
+                label="Show"
+                checked={panelHasActions}
+                onChange={(event) => setPanelHasActions(event.target.checked)}
+              />
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="flex flex-col gap-2 dark:text-white">
-                <span>Glass vibrancy</span>
+              <Field label="Button variant">
+                <Select
+                  value={actionVariant}
+                  onChange={(event) =>
+                    setActionVariant(event.target.value as ButtonVariant)
+                  }
+                >
+                  {buttonVariantAllOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Button color">
+                <Select
+                  value={actionColor}
+                  onChange={(event) =>
+                    setActionColor(event.target.value as TrueColor)
+                  }
+                >
+                  {trueColorOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <Field label="Button size">
                 <MultiToggle
                   fullWidth
-                  options={[
-                    { label: "Low", value: "low" },
-                    { label: "Medium", value: "medium" },
-                    { label: "High", value: "high" },
-                  ]}
-                  value={glassVibrancy}
                   size="sm"
-                  onChange={(v) => setGlassVibrancy(v as "low" | "medium" | "high")}
+                  options={controlSizeOptions}
+                  value={actionSize}
+                  onChange={(value) => setActionSize(value as ControlSize)}
                 />
-              </label>
-              <label className="flex flex-col gap-2">
-                <span>Glass opacity</span>
+              </Field>
+              <Field label="Weight">
                 <MultiToggle
                   fullWidth
-                  options={[
-                    { label: "Frosted", value: "frosted" },
-                    { label: "Light", value: "light" },
-                    { label: "Clear", value: "clear" },
-                  ]}
-                  value={glassOpacity}
                   size="sm"
-                  onChange={(v) =>
-                    setGlassOpacity(v as "frosted" | "light" | "clear")
+                  options={buttonWeightOptions}
+                  value={actionWeight}
+                  onChange={(value) => setActionWeight(value as ButtonWeight)}
+                />
+              </Field>
+              <Field label="Layout">
+                <MultiToggle
+                  fullWidth
+                  size="sm"
+                  options={panelActionLayoutOptions}
+                  value={panelActionLayout}
+                  onChange={(value) =>
+                    setPanelActionLayout(value as PanelActionLayout)
                   }
                 />
-              </label>
-              <label className="flex items-center justify-between">
-                <span>Specular mode</span>
+              </Field>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Toggle
+                size="sm"
+                label="Icons"
+                checked={actionIcons}
+                onChange={(event) => setActionIcons(event.target.checked)}
+              />
+              <Toggle
+                size="sm"
+                label="Loading"
+                checked={actionLoading}
+                onChange={(event) => setActionLoading(event.target.checked)}
+              />
+              <Toggle
+                size="sm"
+                label="Disabled"
+                checked={actionDisabled}
+                onChange={(event) => setActionDisabled(event.target.checked)}
+              />
+            </div>
+          </div>
+
+          {/* ── Glass ──────────────────────────────────────────────────── */}
+          {/* Shown for every see-through variant, not just liquid-glass —
+              `default` and `glass` take a specular highlight too. */}
+          {isGlass && (
+            <div className="grid gap-3 rounded-xl border border-black/10 p-3 md:grid-cols-3 dark:border-white/10">
+              <Field label="Specular">
                 <MultiToggle
                   fullWidth
-                  options={[
-                    { label: "None", value: "none" },
-                    { label: "Classic", value: "classic" },
-                    { label: "Halo", value: "halo" },
-                  ]}
-                  value={specularMode}
                   size="sm"
-                  onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
+                  options={panelSpecularOptions}
+                  value={specularMode}
+                  onChange={(value) =>
+                    setSpecularMode(value as PanelSpecularMode)
+                  }
                 />
-              </label>
+              </Field>
+              <Field label="Vibrancy">
+                <MultiToggle
+                  fullWidth
+                  size="sm"
+                  options={glassVibrancyOptions}
+                  value={glassVibrancy as string}
+                  onChange={(value) =>
+                    setGlassVibrancy(value as GlassVibrancy)
+                  }
+                />
+              </Field>
+              <Field label="Glass opacity">
+                <MultiToggle
+                  fullWidth
+                  size="sm"
+                  options={glassOpacityOptions}
+                  value={glassOpacity as string}
+                  onChange={(value) => setGlassOpacity(value as GlassOpacity)}
+                />
+              </Field>
             </div>
           )}
         </div>

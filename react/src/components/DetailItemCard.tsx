@@ -1,103 +1,298 @@
-import React, { useState, type ReactNode } from "react";
-import Button from "./Button";
+import React, { useId, useState, type ReactNode } from "react";
+import classNames from "classnames";
+import IconButton from "./IconButton";
+import Panel from "./Panel";
+import { useIconRenderer } from "../contexts/IconContext";
+import { useSurfaceText } from "../contexts/SurfaceContext";
+import { DEFAULT_SURFACE_CORNER, getSurfaceTriggerTokens } from "../theme/Theme";
+import type { TrueColor } from "../theme/Theme";
+import type {
+  PanelCorner,
+  PanelPadding,
+  PanelSpecularMode,
+  PanelVariant,
+} from "./Panel";
+import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
 
-export interface DetailItemCardProps {
-  title: string;
-  subtitle?: string;
-  description?: string;
+/** Every container surface, plus `plain` for a bare row inside a list. */
+export type DetailItemCardVariant = PanelVariant | "plain";
+export type DetailItemCardBadgesAlignment = "right" | "bottom" | "bottom-end";
+
+export interface DetailItemCardProps
+  extends Omit<
+    React.HTMLAttributes<HTMLDivElement>,
+    // `onToggle` and `title` both exist on HTMLAttributes with different
+    // meanings, and `onClick` here takes no event.
+    "title" | "onClick" | "onToggle" | "color" | "children"
+  > {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  description?: ReactNode;
+  /** Icon shown before the title. */
+  icon?: string | React.ReactElement;
   badges?: ReactNode;
+  /** @default "right" */
+  badgesAlignment?: DetailItemCardBadgesAlignment;
+  /** Expandable detail. Without it no toggle is shown. */
   children?: ReactNode;
+
   defaultExpanded?: boolean;
+  /** Controlled expansion. Pair with `onToggle`. */
+  expanded?: boolean;
+  onToggle?: (expanded: boolean) => void;
+  /** Makes the whole row activatable, keyboard included. */
   onClick?: () => void;
-  className?: string;
-  badgesAlignment?: "bottom" | "right" | "bottom-end";
+  disabled?: boolean;
+
+  // ── Surface ───────────────────────────────────────────────────────────────
+  /** @default "plain" — this is normally a row inside a list. */
+  variant?: DetailItemCardVariant;
+  tone?: TrueColor;
+  corner?: PanelCorner;
+  padding?: PanelPadding;
+  glassOpacity?: GlassOpacity;
+  vibrancy?: GlassVibrancy;
+  specularMode?: PanelSpecularMode;
 }
 
-const DetailItemCard: React.FC<DetailItemCardProps> = ({
+interface DetailBodyProps
+  extends Omit<
+    DetailItemCardProps,
+    // Everything the wrapper consumes: what is left is spread onto the row.
+    | "variant"
+    | "corner"
+    | "padding"
+    | "glassOpacity"
+    | "vibrancy"
+    | "specularMode"
+    | "className"
+    | "defaultExpanded"
+    | "expanded"
+    | "onToggle"
+  > {
+  tone: TrueColor;
+  isExpanded: boolean;
+  onToggleExpanded: () => void;
+}
+
+/**
+ * Split out so it can read the surface context `Panel` publishes — a component
+ * cannot consume a provider it renders itself.
+ */
+const DetailBody: React.FC<DetailBodyProps> = ({
   title,
   subtitle,
   description,
+  icon,
   badges,
-  children,
-  defaultExpanded = false,
-  onClick,
-  className = "",
   badgesAlignment = "right",
+  children,
+  onClick,
+  disabled = false,
+  tone,
+  isExpanded,
+  onToggleExpanded,
+  ...rest
 }) => {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const renderIcon = useIconRenderer();
+  const surface = useSurfaceText();
+  const trigger = getSurfaceTriggerTokens(tone);
 
-  const hasDetails = !!children;
+  const baseId = useId();
+  const titleId = `${baseId}-title`;
+  const detailId = `${baseId}-detail`;
 
-  const handleToggleExpand = (e: React.MouseEvent) => {
-    if (hasDetails) {
-      e.stopPropagation();
-      setExpanded((prev) => !prev);
-    }
-  };
+  const hasDetails = Boolean(children);
+  const interactive = Boolean(onClick) && !disabled;
 
-  const handleClick = (e: React.MouseEvent) => {
-    if (onClick) {
-      e.stopPropagation();
-      onClick();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    // Only when the row itself has focus. Without this check, activating the
+    // expand toggle or a badge link with Enter would also fire the row's own
+    // handler.
+    if (event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onClick?.();
     }
   };
 
   return (
     <div
-      className={`flex w-full flex-col gap-2.5 ${expanded ? "expanded" : ""} ${className}`}
-      onClick={handleClick}
+      className={classNames(
+        "flex w-full flex-col gap-2.5 rounded-[inherit]",
+        // `onClick` used to sit on a plain div with no role, tabindex or key
+        // handler — a whole row that no keyboard user could activate.
+        interactive &&
+          classNames("cursor-pointer", trigger.hover, trigger.focusRing),
+        disabled && "cursor-not-allowed opacity-60",
+      )}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-labelledby={interactive ? titleId : undefined}
+      aria-disabled={disabled || undefined}
+      // No `stopPropagation`: a row has no business swallowing a click that an
+      // ancestor may also care about.
+      onClick={interactive ? onClick : undefined}
+      onKeyDown={interactive ? handleKeyDown : undefined}
+      {...rest}
     >
       <div className="flex flex-1 flex-row items-center justify-between gap-1.5">
         {hasDetails && (
-          <div className="flex-shrink-0">
-            <Button
-              variant="icon"
-              className="h-6 w-6"
-              onClick={handleToggleExpand}
-              aria-expanded={expanded}
-              aria-label={expanded ? "Collapse details" : "Expand details"}
-            >
-              <span
-                className={`flex items-center justify-center text-lg font-bold transition-transform duration-200 ${expanded ? "rotate-0" : "rotate-0"}`}
-              >
-                {expanded ? "−" : "+"}
-              </span>
-            </Button>
-          </div>
+          <IconButton
+            // Was a `+` / `−` text glyph with a `rotate-0 : rotate-0` ternary —
+            // a transition that could never move. This is the same rotating
+            // chevron every other disclosure in the kit uses.
+            icon="ArrowDown"
+            variant="ghost"
+            color={tone}
+            size="xs"
+            disabled={disabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleExpanded();
+            }}
+            aria-expanded={isExpanded}
+            aria-controls={detailId}
+            srLabel={isExpanded ? "Collapse details" : "Expand details"}
+            iconClassName={classNames(
+              "transition-transform duration-200",
+              isExpanded && "rotate-180",
+            )}
+            className="shrink-0"
+          />
         )}
-        <div className="flex flex-1 flex-col leading-normal">
-          <div className="text-base font-normal text-neutral-900 dark:text-neutral-100">
-            {title}
+
+        <div className="flex min-w-0 flex-1 flex-col leading-normal">
+          <div className="flex min-w-0 items-center gap-2">
+            {icon && (
+              <span className={classNames("shrink-0", surface.muted)}>
+                {renderIcon(icon, "sm")}
+              </span>
+            )}
+            <span
+              id={titleId}
+              className={classNames("truncate text-base", surface.heading)}
+            >
+              {title}
+            </span>
           </div>
           {subtitle && (
-            <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+            <span className={classNames("text-xs font-semibold", surface.muted)}>
               {subtitle}
-            </div>
+            </span>
           )}
           {description && (
-            <div className="text-xs text-neutral-500 dark:text-neutral-400">
+            <span className={classNames("text-xs", surface.muted)}>
               {description}
+            </span>
+          )}
+          {badgesAlignment !== "right" && badges && (
+            <div
+              className={classNames(
+                "mt-1 flex flex-row flex-wrap gap-1",
+                badgesAlignment === "bottom-end" ? "justify-end" : "justify-start",
+              )}
+            >
+              {badges}
             </div>
-          )}
-          {badgesAlignment == "bottom" && (
-            <div className="flex flex-row justify-start gap-px">{badges}</div>
-          )}
-          {badgesAlignment == "bottom-end" && (
-            <div className="flex flex-row justify-end gap-px">{badges}</div>
           )}
         </div>
 
-        {badgesAlignment == "right" && (
-          <div className="flex flex-col justify-end gap-px">{badges}</div>
+        {badgesAlignment === "right" && badges && (
+          <div className="flex shrink-0 flex-col items-end gap-1">{badges}</div>
         )}
       </div>
 
-      {hasDetails && expanded && (
-        <div className="flex flex-col gap-2.5 px-[30px] text-sm text-neutral-500 dark:text-neutral-400">
-          {children}
+      {hasDetails && (
+        // `grid-template-rows: 0fr → 1fr` animates to the content's natural
+        // height; the previous version simply unmounted the detail, so opening
+        // and closing snapped.
+        <div
+          className={classNames(
+            "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
+            isExpanded ? "opacity-100" : "opacity-0",
+          )}
+          style={{ gridTemplateRows: isExpanded ? "1fr" : "0fr" }}
+        >
+          <div
+            id={detailId}
+            role="region"
+            aria-labelledby={titleId}
+            aria-hidden={!isExpanded || undefined}
+            // Not `hidden`, which is `display: none` and would kill the
+            // transition — inert keeps collapsed content unreachable instead.
+            {...(isExpanded ? {} : ({ inert: true } as Record<string, unknown>))}
+            className="min-h-0 overflow-hidden"
+          >
+            <div
+              className={classNames(
+                "flex flex-col gap-2.5 pb-0.5 text-sm",
+                surface.body,
+                // Aligns with the text column rather than a magic `px-[30px]`
+                // that also indented the right edge.
+                "ps-7.5",
+              )}
+            >
+              {children}
+            </div>
+          </div>
         </div>
       )}
     </div>
+  );
+};
+
+const DetailItemCard: React.FC<DetailItemCardProps> = ({
+  defaultExpanded = false,
+  expanded,
+  onToggle,
+  variant = "plain",
+  tone = "blue",
+  corner = DEFAULT_SURFACE_CORNER,
+  padding = "sm",
+  glassOpacity,
+  vibrancy,
+  specularMode,
+  className,
+  ...rest
+}) => {
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const isControlled = typeof expanded === "boolean";
+  const isExpanded = isControlled ? expanded : internalExpanded;
+
+  const handleToggleExpanded = () => {
+    const next = !isExpanded;
+    if (!isControlled) setInternalExpanded(next);
+    onToggle?.(next);
+  };
+
+  const body = (
+    <DetailBody
+      tone={tone}
+      isExpanded={isExpanded}
+      onToggleExpanded={handleToggleExpanded}
+      {...rest}
+    />
+  );
+
+  if (variant === "plain") {
+    return <div className={classNames("w-full", className)}>{body}</div>;
+  }
+
+  return (
+    <Panel
+      variant={variant}
+      tone={tone}
+      corner={corner}
+      padding={padding}
+      glassOpacity={glassOpacity}
+      vibrancy={vibrancy}
+      specularMode={specularMode}
+      scrollable={false}
+      className={className}
+    >
+      {body}
+    </Panel>
   );
 };
 

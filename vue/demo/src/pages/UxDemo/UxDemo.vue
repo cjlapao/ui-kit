@@ -19,10 +19,12 @@ import PillDemo from "./demos/PillDemo.vue";
 import TableDemo from "./demos/TableDemo.vue";
 import AlertDemo from "./demos/AlertDemo.vue";
 import ProgressDemo from "./demos/ProgressDemo.vue";
+import LoaderDemo from "./demos/LoaderDemo.vue";
 import SpinnerDemo from "./demos/SpinnerDemo.vue";
 import ButtonDemo from "./demos/ButtonDemo.vue";
 import TabsDemo from "./demos/TabsDemo.vue";
 import DropdownButtonDemo from "./demos/DropdownButtonDemo.vue";
+import DropdownMenuDemo from "./demos/DropdownMenuDemo.vue";
 import IconButtonDemo from "./demos/IconButtonDemo.vue";
 import ToggleDemo from "./demos/ToggleDemo.vue";
 import StatusSpinnerDemo from "./demos/StatusSpinnerDemo.vue";
@@ -85,8 +87,10 @@ const sectionList: DemoSection[] = [
   { id: "sections-input-group", title: "Input Group", component: InputGroupDemo },
   { id: "sections-progress", title: "Progress", component: ProgressDemo },
   { id: "sections-spinner", title: "Spinner", component: SpinnerDemo },
+  { id: "sections-loader", title: "Loader", component: LoaderDemo },
   { id: "sections-buttons", title: "Buttons", component: ButtonDemo },
-  { id: "sections-dropdown", title: "Dropdowns", component: DropdownButtonDemo },
+  { id: "sections-dropdown", title: "Dropdown Button", component: DropdownButtonDemo },
+  { id: "sections-dropdown-menu", title: "Dropdown Menu", component: DropdownMenuDemo },
   { id: "sections-icon-button", title: "Icon Buttons", component: IconButtonDemo },
   { id: "sections-tabs", title: "Tabs", component: TabsDemo },
   { id: "sections-toggle", title: "Toggles", component: ToggleDemo },

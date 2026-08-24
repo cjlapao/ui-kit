@@ -76,6 +76,7 @@ export const DropdownButton: React.FC<DropdownButtonProps> = ({
   const menuOptions = useMemo(() => options ?? [], [options]);
   const hasOptions = menuOptions.length > 0;
   const showCaret = hasOptions || !hideDropdownTriggerWhenEmpty;
+  const menuOpen = open && hasOptions && showCaret;
 
   useEffect(() => {
     if (!hasOptions && open) {
@@ -108,6 +109,8 @@ export const DropdownButton: React.FC<DropdownButtonProps> = ({
       size={size}
       iconOnly
       aria-label="Toggle dropdown menu"
+      aria-haspopup="menu"
+      aria-expanded={menuOpen}
       leadingIcon={dropdownIcon}
       data-dropdown-caret
       className={classNames(
@@ -144,7 +147,7 @@ export const DropdownButton: React.FC<DropdownButtonProps> = ({
       {showCaret ? renderCaretButton() : null}
       <DropdownMenu
         anchorRef={anchorRef}
-        open={open && hasOptions && showCaret}
+        open={menuOpen}
         onClose={() => setOpen(false)}
         items={menuOptions}
         onSelect={handleSelect}

@@ -1,7 +1,8 @@
 <script lang="ts">
-import { h, type VNode } from "vue";
+import { h, type VNode, type VNodeChild } from "vue";
 import type { TableVariant } from "./Table.vue";
 import type { PanelTone } from "./Panel.vue";
+import type { TableDensity, SurfaceCorner } from "../theme";
 
 export interface AccessMatrixPermission {
   group: string;
@@ -16,12 +17,27 @@ export interface AccessMatrixProps {
   limit?: number;
   variant?: TableVariant;
   tone?: PanelTone;
+  /** Forwards to Table: row-height density scale. */
+  density?: TableDensity;
+  /** Forwards to Table: draw the vertical grid lines between columns. */
+  bordered?: boolean;
+  /** Forwards to Table: the panel corner radius. */
+  corner?: SurfaceCorner;
   striped?: boolean;
   /** Forwards to Table: remove inner row borders/dividers. */
   noBorders?: boolean;
   /** Forwards to Table: make the table fill parent height and scroll internally. */
   fullHeight?: boolean;
   hoverable?: boolean;
+  /** Forwards to Table: show a loading skeleton shaped like the matrix. */
+  loading?: boolean;
+  /** Forwards to Table: the message shown while `loading`. */
+  loadingMessage?: string;
+  /**
+   * Forwards to Table: the node shown when there are no permissions. Defaults to
+   * `"No permissions to display"` when omitted.
+   */
+  emptyState?: VNodeChild;
   /**
    * Background Tailwind class(es) applied to the sticky Resource column cells so they remain
    * opaque over scrolled action columns. Defaults to `'bg-white dark:bg-neutral-900'`.
@@ -133,12 +149,19 @@ defineOptions({ name: "AccessMatrix", inheritAttrs: false });
 
 const props = withDefaults(defineProps<AccessMatrixProps>(), {
   limit: 5,
-  variant: "default",
+  // Keep in step with React AccessMatrix and Table's own default ("outlined").
+  variant: "outlined",
   tone: "neutral",
+  bordered: false,
   striped: false,
   noBorders: false,
   fullHeight: false,
   hoverable: false,
+  loading: false,
+  // VNodeChild includes `boolean`, so an absent emptyState would otherwise be
+  // cast to `false` by withDefaults (which `??` would then keep) — force
+  // `undefined` so the fallback string below applies.
+  emptyState: undefined,
 });
 
 const { classAttr, restAttrs } = useClassAttrs();
@@ -246,16 +269,19 @@ const toggleGroup = (group: string) => {
 
 const columns = computed((): TableColumn<MatrixRow>[] => {
   // Resource column — sticky left, no expand-spacer sibling so it lands at left-0
-  const resourceCol: TableColumn<MatrixRow> = {
-    id: "_resource",
-    header: "Resource",
-    minWidth: 140,
-    sticky: "left",
-    sortable: false,
-    resizable: false,
-    hideable: false,
-    stickyBackgroundFn: (row) =>
-      row._isGroupHeader ? "bg-neutral-50 dark:bg-neutral-800/40" : undefined,
+    const resourceCol: TableColumn<MatrixRow> = {
+      id: "_resource",
+      header: "Resource",
+      minWidth: 140,
+      sticky: "left",
+      sortable: false,
+      resizable: false,
+      hideable: false,
+      // Normal rows use this (falls back to Table's opaque default when omitted);
+      // group-header rows override it via stickyBackgroundFn below.
+      stickyBackground: props.stickyBackground,
+      stickyBackgroundFn: (row) =>
+        row._isGroupHeader ? "bg-neutral-50 dark:bg-neutral-800/40" : undefined,
     render: (row) => {
       if (row._isGroupHeader) {
         return h("span", { class: "inline-flex items-center gap-2" }, [
@@ -321,6 +347,9 @@ const rowClassNameFn = (row: MatrixRow) => {
       :data="rows"
       :variant="variant"
       :tone="tone"
+      :density="density"
+      :bordered="bordered"
+      :corner="corner"
       :row-key="rowKeyFn"
       :striped="striped"
       :no-borders="noBorders"
@@ -328,6 +357,9 @@ const rowClassNameFn = (row: MatrixRow) => {
       :full-height="fullHeight"
       :class="fullHeight ? 'flex-1 min-h-0' : undefined"
       sticky-header
+      :loading="loading"
+      :loading-message="loadingMessage"
+      :empty-state="emptyState ?? 'No permissions to display'"
       :row-class-name="rowClassNameFn"
       @row-click="onRowClick"
     />

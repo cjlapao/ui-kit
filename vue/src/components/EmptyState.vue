@@ -1,223 +1,358 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type {
-  ButtonVariant,
-  ButtonSize,
-  ButtonColor,
-} from "./Button.vue";
-import type { IconSize } from "../types/Icon";
-import type { Size, TrueColor } from "../theme/Theme";
+import type { ButtonVariant, ButtonSize, ButtonColor } from "./Button.vue";
+import {
+  SURFACE_VARIANTS,
+  type ControlSize,
+  type SurfaceCorner,
+  type SurfacePadding,
+  type TrueColor,
+} from "../theme/Theme";
+import type { GlassOpacity, GlassVibrancy, SpecularMode } from "../theme/glass";
 
-export type TextSize = "xs" | "sm" | "md" | "lg" | "xl";
+/**
+ * Every container surface, plus `plain` for an empty state dropped inside a
+ * card the app already owns — the common case, and previously only reachable
+ * by setting `disableBorder` *and* `transparentBackground` together.
+ */
+export const EMPTY_STATE_VARIANTS = [...SURFACE_VARIANTS, "plain"] as const;
+export type EmptyStateVariant = (typeof EMPTY_STATE_VARIANTS)[number];
 
-const iconSizes: Record<IconSize, string> = {
-  xs: "h-6 w-6",
-  sm: "h-8 w-8",
-  md: "h-10 w-10",
-  lg: "h-12 w-12",
-  xl: "h-16 w-16",
-};
-
-const textSizes: Record<TextSize, string> = {
-  xs: "text-xs",
-  sm: "text-sm",
-  md: "text-lg",
-  lg: "text-xl",
-  xl: "text-2xl",
-};
-
-/** Accepts all theme colors. The original five semantic names (neutral/info/success/warning/danger) are preserved unchanged. */
 export type EmptyStateTone = TrueColor;
+export type EmptyStateSize = ControlSize;
+/** @deprecated Use `size`, which now drives the whole type scale. */
+export type TextSize = ControlSize;
 
-// ── Color resolution (mirrors Theme.ts) ────────────────────────────────────
+type EmptyStateSizeTokens = {
+  /** Explicit icon dimensions — an empty state's glyph is far larger than a
+   *  control's, so it does not sit on the shared icon scale. */
+  icon: string;
+  /** Padding of the tinted disc behind the icon. */
+  iconPad: string;
+  title: string;
+  subtitle: string;
+  gap: string;
+  /** Space between the copy and the action row. */
+  actionGap: string;
+  action: ButtonSize;
+};
 
-const resolveColor = (color: TrueColor): string => color;
-
-type ToneConfig = { border: string; text: string; bg: string; icon: string };
-
-// ── Preserved original semantic entries (static strings — Tailwind picks these up directly) ──
-
-const semanticTones: Partial<Record<TrueColor, ToneConfig>> = {
-  neutral: {
-    border: "border-slate-300/70 dark:border-slate-700/60",
-    text: "text-slate-600 dark:text-slate-300",
-    bg: "bg-white/80 dark:bg-slate-900/40",
-    icon: "text-slate-400 dark:text-slate-500",
+const SIZE_STYLES: Record<EmptyStateSize, EmptyStateSizeTokens> = {
+  xs: {
+    icon: "h-8 w-8",
+    iconPad: "p-2",
+    title: "text-sm",
+    subtitle: "text-xs",
+    gap: "gap-2",
+    actionGap: "mt-3",
+    action: "xs",
+  },
+  sm: {
+    icon: "h-10 w-10",
+    iconPad: "p-2.5",
+    title: "text-base",
+    subtitle: "text-xs",
+    gap: "gap-2.5",
+    actionGap: "mt-4",
+    action: "xs",
+  },
+  md: {
+    icon: "h-12 w-12",
+    iconPad: "p-3",
+    title: "text-lg",
+    subtitle: "text-sm",
+    gap: "gap-3",
+    actionGap: "mt-4",
+    action: "sm",
+  },
+  lg: {
+    icon: "h-14 w-14",
+    iconPad: "p-3.5",
+    title: "text-xl",
+    subtitle: "text-base",
+    gap: "gap-3.5",
+    actionGap: "mt-5",
+    action: "md",
+  },
+  xl: {
+    icon: "h-16 w-16",
+    iconPad: "p-4",
+    title: "text-2xl",
+    subtitle: "text-lg",
+    gap: "gap-4",
+    actionGap: "mt-6",
+    action: "md",
   },
 };
-
-const sizes: Record<Size, string> = {
-  xs: "h-[30%] w-[30%]",
-  sm: "h-[35%] w-[35%]",
-  md: "h-[40%] w-[40%]",
-  lg: "h-[45%] w-[45%]",
-  xl: "h-[50%] w-[50%]",
-  xxl: "h-[55%] w-[55%]",
-  xxxl: "h-[60%] w-[60%]",
-  full: "h-full w-full",
-  "2xl": "h-[65%] w-[65%]",
-  "3xl": "h-[70%] w-[70%]",
-};
-
-// ── Dynamic builder for all other TrueColor values ────────────────────────
-// Uses only class patterns already declared in tailwind-safelist.ts:
-//   border-{c}-200            (border200)
-//   dark:border-{c}-500/40    (darkBorder500_40)
-//   text-{c}-700              (text700)
-//   dark:text-{c}-200         (darkText200)
-//   bg-{c}-50/80              (bg50_80)
-//   dark:bg-{c}-500/10        (darkBg500_10)
-//   text-{c}-500              (text500)
-//   dark:text-{c}-300         (darkText300)
-
-function buildToneClasses(color: TrueColor): ToneConfig {
-  if (semanticTones[color]) return semanticTones[color]!;
-  if (color === "neutral") return semanticTones.neutral!;
-
-  const c = resolveColor(color);
-  return {
-    border: `border-${c}-200 dark:border-${c}-500/40`,
-    text: `text-${c}-700 dark:text-${c}-200`,
-    bg: `bg-${c}-50/80 dark:bg-${c}-500/10`,
-    icon: `text-${c}-500 dark:text-${c}-300`,
-  };
-}
-
-// ── Props ───────────────────────────────────────────────────────────────────
 
 export interface EmptyStateProps {
   title?: string;
   subtitle?: string;
+
+  /** @default "outlined" */
+  variant?: EmptyStateVariant;
+  /** @default "neutral" */
+  tone?: EmptyStateTone;
+  /** Alias for `tone`, matching `Panel`. */
+  color?: TrueColor;
+  /** Corner radius, on the shared container scale. */
+  corner?: SurfaceCorner;
+  /** Container padding, on the shared container scale. @default "lg" */
+  padding?: SurfacePadding;
+  /**
+   * Density — icon, type scale, gaps and the action button's default size.
+   * @default "md"
+   */
+  size?: EmptyStateSize;
+  /** @deprecated Use `size`. Ignored when `size` is set. */
+  textSize?: ControlSize;
+
+  /**
+   * The dashed rule that marks a drop zone or a slot waiting to be filled.
+   * Drawn as an `outline` rather than a border so it works on every variant,
+   * including the ring-based ones, without fighting the card's own border.
+   * @default true
+   */
+  dashed?: boolean;
+
+  /**
+   * A registry icon name or a node. The default used to be `"Plus"`, which is
+   * not in the registry — so every default empty state rendered CustomIcon's
+   * missing-icon placeholder rather than a glyph. The name is `"Add"`.
+   * @default "Add"
+   */
+  icon?: string | VNode;
+  /** @default true */
+  showIcon?: boolean;
+  /** Overrides the dimensions the `size` would have chosen. */
+  iconSize?: string;
+  /** Overrides the tone for the glyph only. */
+  iconColor?: TrueColor;
+  /**
+   * Tinted disc behind the glyph. It used to be a square `dark:bg-white/5`
+   * with no light-mode partner, so it appeared out of nowhere in dark mode.
+   * @default true
+   */
+  iconBackground?: boolean;
+
   actionLabel?: string;
   onAction?: () => void;
   actionVariant?: ButtonVariant;
   actionColor?: ButtonColor;
-  icon?: string | VNode;
-  iconSize?: IconSize;
-  iconColor?: TrueColor;
-  textSize?: TextSize;
-  showIcon?: boolean;
-  tone?: EmptyStateTone;
-  disableBorder?: boolean;
-  transparentBackground?: boolean;
-  fullWidth?: boolean;
-  fullHeight?: boolean;
   actionSize?: ButtonSize;
   actionLeadingIcon?: string | VNode;
-  size?: Size;
+
+  fullWidth?: boolean;
+  fullHeight?: boolean;
+
+  /** @deprecated Use `variant="plain"`. */
+  disableBorder?: boolean;
+  /** @deprecated Use `variant="plain"`. */
+  transparentBackground?: boolean;
+
+  /** Glass fill transparency, for the see-through variants. */
+  glassOpacity?: GlassOpacity;
+  /** Backdrop vibrancy, for the see-through variants. */
+  vibrancy?: GlassVibrancy;
+  /** Specular highlight, for the see-through variants. */
+  specularMode?: SpecularMode;
 }
+
+export { SIZE_STYLES as EMPTY_STATE_SIZE_STYLES };
 </script>
 
 <script setup lang="ts">
-import { computed, isVNode, useSlots } from "vue";
+import { computed, isVNode, useId, useSlots } from "vue";
 import classNames from "classnames";
-import { useIconRenderer } from "../contexts/IconContext";
-import { useClassAttrs } from "../utils/attrsUtils";
 import Button from "./Button.vue";
+import Panel from "./Panel.vue";
+import { DEFAULT_SURFACE_CORNER } from "../theme/Theme";
+import { useClassAttrs } from "../utils/attrsUtils";
+import { useIconRenderer } from "../contexts/IconContext";
 import VNodeRenderer from "./internal/VNodeRenderer";
 
 defineOptions({ name: "EmptyState", inheritAttrs: false });
 
 const props = withDefaults(defineProps<EmptyStateProps>(), {
-  actionVariant: "soft",
-  actionColor: "blue",
-  icon: "Plus",
-  iconSize: "xl",
-  textSize: "md",
+  variant: "outlined",
+  corner: DEFAULT_SURFACE_CORNER,
+  padding: "lg",
+  dashed: true,
+  icon: "Add",
   showIcon: true,
-  tone: "neutral",
+  iconBackground: true,
   fullWidth: false,
   fullHeight: false,
-  actionSize: "sm",
-  size: "md",
   disableBorder: false,
   transparentBackground: false,
 });
+
+const emit = defineEmits<{ (e: "action"): void }>();
 
 const slots = useSlots();
 const { classAttr, restAttrs } = useClassAttrs();
 const renderIcon = useIconRenderer();
 
-const palette = computed(() => buildToneClasses(props.tone));
+const titleId = useId();
 
-// lets make the subtitle text size smaller than the title text size
-const subtitleTextSize = computed<TextSize>(() =>
-  props.textSize === "xs"
-    ? "xs"
-    : props.textSize === "sm"
-      ? "xs"
-      : props.textSize === "md"
-        ? "sm"
-        : props.textSize === "lg"
-          ? "md"
-          : "lg",
+const effectiveTone = computed(() => props.tone ?? props.color ?? "neutral");
+const iconTone = computed(() => props.iconColor ?? effectiveTone.value);
+const effectiveSize = computed(() => props.size ?? props.textSize ?? "md");
+const sizeToken = computed(
+  () => SIZE_STYLES[effectiveSize.value] ?? SIZE_STYLES.md,
 );
 
-const iconPallete = computed(() =>
-  !props.iconColor ? palette.value : buildToneClasses(props.iconColor),
+// The two deprecated flags together meant "no card at all", which is what
+// `plain` is. Either one alone left a half-drawn surface.
+const effectiveVariant = computed<EmptyStateVariant>(() =>
+  props.disableBorder && props.transparentBackground ? "plain" : props.variant,
+);
+const isPlain = computed(() => effectiveVariant.value === "plain");
+
+// An `outline` rather than a `border`: it sits on top of whatever the variant
+// paints, needs no width to be reconciled against the card's own `border`, and
+// takes no space in the box model.
+const dashedClass = computed(() =>
+  props.dashed && !isPlain.value
+    ? classNames(
+        "outline-2 outline-dashed -outline-offset-2",
+        `outline-${effectiveTone.value}-300 dark:outline-${effectiveTone.value}-500/40`,
+      )
+    : undefined,
 );
 
-const rootClass = computed(() =>
+const panelClass = computed(() =>
   classNames(
-    "flex flex-col items-center justify-center gap-1 rounded-3xl px-6 py-10 text-center transition",
-    !props.disableBorder && "border-2 border-dashed shadow-sm",
-    palette.value.border,
-    !props.transparentBackground && palette.value.bg,
-    sizes[props.size],
-    props.fullWidth && "w-full",
+    "items-center justify-center",
     props.fullHeight && "h-full",
+    dashedClass.value,
     classAttr.value,
   ),
 );
 
-const iconWrapperClass = computed(() =>
-  classNames("p-2 dark:bg-white/5", iconPallete.value.icon),
+const plainClass = computed(() =>
+  classNames("flex w-full flex-col", props.fullHeight && "h-full", classAttr.value),
+);
+
+const hasTitle = computed(() => Boolean(props.title || slots.title));
+const hasSubtitle = computed(() => Boolean(props.subtitle || slots.subtitle));
+// The action used to require `actionLabel` *and* `onAction` together, so a
+// label with a handler resolved later rendered nothing at all.
+const hasActions = computed(() =>
+  Boolean(slots.actions || props.actionLabel),
 );
 
 const iconNodes = computed(() =>
   isVNode(props.icon)
     ? props.icon
-    : renderIcon(props.icon, props.iconSize, iconSizes[props.iconSize]),
+    : renderIcon(props.icon, undefined, props.iconSize ?? sizeToken.value.icon),
 );
 
+const iconWrapperClass = computed(() =>
+  classNames(
+    "flex items-center justify-center rounded-full",
+    sizeToken.value.iconPad,
+    `text-${iconTone.value}-500 dark:text-${iconTone.value}-300`,
+    props.iconBackground &&
+      `bg-${iconTone.value}-100/70 dark:bg-${iconTone.value}-500/15`,
+  ),
+);
+
+/**
+ * Vue has no `SurfaceProvider`, so these are the solid-surface tokens spelled
+ * out rather than read from the surface the way React's body does. Vue is a
+ * step behind here: copy on a glass empty state will not step up in contrast.
+ */
 const titleClass = computed(() =>
-  classNames(textSizes[props.textSize], "font-semibold", palette.value.text),
+  classNames(
+    "font-semibold",
+    sizeToken.value.title,
+    "text-neutral-900 dark:text-neutral-100",
+  ),
 );
 
 const subtitleClass = computed(() =>
   classNames(
-    textSizes[subtitleTextSize.value],
-    "leading-relaxed break-all",
-    palette.value.text,
+    // `break-all` split ordinary prose mid-word. Only a long unbroken token
+    // needs breaking, which is `break-words`.
+    "mx-auto max-w-prose leading-relaxed break-words",
+    sizeToken.value.subtitle,
+    "text-neutral-600 dark:text-neutral-300",
   ),
 );
 
-const hasSubtitle = computed(() => !!props.subtitle || !!slots.subtitle);
+// Only `emit`. Vue resolves an `action` emit to the parent's `onAction` prop,
+// so calling `props.onAction` here as well fired the handler twice.
+const handleAction = () => {
+  emit("action");
+};
 </script>
 
 <template>
-  <section :class="rootClass" v-bind="restAttrs">
-    <div v-if="showIcon" :class="iconWrapperClass">
-      <VNodeRenderer :nodes="iconNodes" />
-    </div>
-    <div class="space-y-1">
-      <p :class="titleClass">
-        <slot name="title">{{ title }}</slot>
-      </p>
-      <p v-if="hasSubtitle" :class="subtitleClass">
-        <slot name="subtitle">{{ subtitle }}</slot>
-      </p>
-    </div>
-    <div v-if="actionLabel && onAction" class="mt-4">
-      <Button
-        :size="actionSize"
-        :variant="actionVariant"
-        :color="actionColor"
-        :leading-icon="actionLeadingIcon"
-        @click="onAction?.()"
+  <component
+    :is="isPlain ? 'section' : Panel"
+    v-bind="{
+      ...restAttrs,
+      ...(isPlain
+        ? { class: plainClass }
+        : {
+            class: panelClass,
+            variant: effectiveVariant,
+            tone: effectiveTone,
+            corner,
+            padding,
+            fullWidth,
+            glassOpacity,
+            vibrancy,
+            specularMode,
+            scrollable: false,
+            flexBody: true,
+            bodyClassName: 'flex flex-1 flex-col items-center justify-center',
+          }),
+    }"
+    :aria-labelledby="hasTitle ? titleId : undefined"
+  >
+    <div
+      :class="
+        classNames(
+          'flex w-full flex-col items-center justify-center text-center',
+          sizeToken.gap,
+        )
+      "
+    >
+      <div v-if="showIcon && icon" :class="iconWrapperClass">
+        <!-- One sizing path. The old code passed the size class *and* the icon
+             scale, and its `isVNode` branch skipped both. -->
+        <VNodeRenderer :nodes="iconNodes" />
+      </div>
+
+      <div v-if="hasTitle || hasSubtitle" class="space-y-1">
+        <p v-if="hasTitle" :id="titleId" :class="titleClass">
+          <slot name="title">{{ title }}</slot>
+        </p>
+        <p v-if="hasSubtitle" :class="subtitleClass">
+          <slot name="subtitle">{{ subtitle }}</slot>
+        </p>
+      </div>
+
+      <div
+        v-if="hasActions"
+        :class="
+          classNames('flex flex-wrap justify-center gap-2', sizeToken.actionGap)
+        "
       >
-        {{ actionLabel }}
-      </Button>
+        <slot name="actions">
+          <Button
+            :size="actionSize ?? sizeToken.action"
+            :variant="actionVariant ?? 'soft'"
+            :color="actionColor ?? effectiveTone"
+            :leading-icon="actionLeadingIcon"
+            @click="handleAction"
+          >
+            {{ actionLabel }}
+          </Button>
+        </slot>
+      </div>
     </div>
-  </section>
+  </component>
 </template>

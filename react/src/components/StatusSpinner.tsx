@@ -1,67 +1,49 @@
 import classNames from "classnames";
 import React from "react";
+import {
+  getStatusSpinnerSizeTokens,
+  getStatusSpinnerToneTokens,
+  type ControlSize,
+  type TrueColor,
+} from "../theme/Theme";
+import { useSurfaceText } from "../contexts/SurfaceContext";
 
-export type StatusSpinnerIntent =
-  | "neutral"
-  | "info"
-  | "success"
-  | "warning"
-  | "danger";
-export type StatusSpinnerSize = "xs" | "sm" | "md" | "lg";
-
-const SIZE_TOKENS: Record<
-  StatusSpinnerSize,
-  { wrapper: string; dot: string; border: string }
-> = {
-  xs: { wrapper: "h-4 w-4", dot: "h-1.5 w-1.5", border: "border-[1.5px]" },
-  sm: { wrapper: "h-5 w-5", dot: "h-2 w-2", border: "border-[2px]" },
-  md: { wrapper: "h-6 w-6", dot: "h-2.5 w-2.5", border: "border-[2.5px]" },
-  lg: { wrapper: "h-8 w-8", dot: "h-3 w-3", border: "border-[3px]" },
-};
-
-const INTENT_TOKENS: Record<
-  StatusSpinnerIntent,
-  { dot: string; accent: string; track: string }
-> = {
-  neutral: {
-    dot: "bg-slate-400 shadow-[0_0_6px_rgba(148,163,184,0.55)] dark:bg-slate-300",
-    accent: "rgb(148,163,184)",
-    track: "rgba(148,163,184,0.25)",
-  },
-  info: {
-    dot: "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.65)]",
-    accent: "rgb(56,189,248)",
-    track: "rgba(56,189,248,0.25)",
-  },
-  success: {
-    dot: "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.65)]",
-    accent: "rgb(16,185,129)",
-    track: "rgba(16,185,129,0.23)",
-  },
-  warning: {
-    dot: "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.7)]",
-    accent: "rgb(251,191,36)",
-    track: "rgba(251,191,36,0.3)",
-  },
-  danger: {
-    dot: "bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.7)]",
-    accent: "rgb(251,113,133)",
-    track: "rgba(251,113,133,0.28)",
-  },
-};
+/**
+ * The shared control scale, so the status circle lines up with the `Spinner`
+ * and the Button beside it instead of speaking its own size language.
+ */
+export type StatusSpinnerSize = ControlSize;
+export type StatusSpinnerTone = TrueColor;
 
 export interface StatusSpinnerProps
   extends React.HTMLAttributes<HTMLSpanElement> {
-  intent?: StatusSpinnerIntent;
+  /** @default "blue" */
+  tone?: StatusSpinnerTone;
+  /** @default "md" */
   size?: StatusSpinnerSize;
+  /** @default true */
   animated?: boolean;
+  /** Visible text beside the circle. Also announced — the circle alone reads as "Loading". */
   label?: string;
 }
+
+/**
+ * Split out so it can read `useSurfaceText()`. A component cannot consume a
+ * provider it renders itself, so the label lives in a child.
+ */
+const StatusSpinnerLabel: React.FC<{ text: string }> = ({ text }) => {
+  const surface = useSurfaceText();
+  return (
+    <span className={classNames("text-sm font-medium", surface.body)}>
+      {text}
+    </span>
+  );
+};
 
 const StatusSpinner = React.forwardRef<HTMLSpanElement, StatusSpinnerProps>(
   (
     {
-      intent = "info",
+      tone = "blue",
       size = "md",
       animated = true,
       label,
@@ -70,56 +52,61 @@ const StatusSpinner = React.forwardRef<HTMLSpanElement, StatusSpinnerProps>(
     },
     ref,
   ) => {
-    const palette = INTENT_TOKENS[intent] ?? INTENT_TOKENS.info;
-    const sizeToken = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
+    const toneTokens = getStatusSpinnerToneTokens(tone);
+    const sizeTokens = getStatusSpinnerSizeTokens(size);
 
-    const spinnerStyle: React.CSSProperties = animated
+    // CSS colours, not classes: the four border sides carry four different
+    // values, and `dark:` cannot reach an inline style.
+    const ringStyle: React.CSSProperties = animated
       ? {
-          borderTopColor: palette.accent,
-          borderRightColor: palette.track,
-          borderBottomColor: palette.track,
-          borderLeftColor: palette.track,
+          borderTopColor: toneTokens.arc,
+          borderRightColor: toneTokens.track,
+          borderBottomColor: toneTokens.track,
+          borderLeftColor: toneTokens.track,
         }
       : {
-          borderColor: palette.track,
+          borderColor: toneTokens.track,
         };
 
     return (
       <span
         ref={ref}
         className={classNames("inline-flex items-center gap-2", className)}
+        role="status"
         {...rest}
       >
         <span
           className={classNames(
             "relative inline-flex shrink-0 items-center justify-center",
-            sizeToken.wrapper,
+            sizeTokens.wrapper,
           )}
-          role="status"
-          aria-live="polite"
         >
           <span
             className={classNames(
               "absolute inset-0 rounded-full border-solid border-transparent transition-all duration-200 ease-out",
-              sizeToken.border,
+              sizeTokens.border,
               animated && "animate-spin motion-reduce:animate-none",
             )}
-            style={spinnerStyle}
+            style={ringStyle}
           />
           <span
             className={classNames(
-              "relative rounded-full ring-1 ring-white/40 transition-shadow duration-200 dark:ring-black/40",
-              sizeToken.dot,
-              palette.dot,
+              "relative rounded-full ring-1 ring-white/40 dark:ring-black/40",
+              sizeTokens.dot,
+              toneTokens.dot,
             )}
+            style={{ boxShadow: `0 0 8px ${toneTokens.glow}` }}
           />
         </span>
-        {label && (
-          <span className="text-xs font-medium text-neutral-600 dark:text-neutral-300">
-            {label}
-          </span>
+        {/*
+          With a visible label the text is already inside the status region —
+          an sr-only copy beside it would be announced twice.
+        */}
+        {label ? (
+          <StatusSpinnerLabel text={label} />
+        ) : (
+          <span className="sr-only">Loading</span>
         )}
-        <span className="sr-only">{label ?? "Loading status"}</span>
       </span>
     );
   },

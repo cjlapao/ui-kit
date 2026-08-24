@@ -10,16 +10,17 @@ import Button from "../Button";
 import DropdownMenu from "../DropdownMenu";
 import type { DropdownMenuOption } from "../DropdownMenu";
 import { getPanelToneStyles, TrueColor } from "../../theme/Theme";
+import { useSurfaceText } from "../../contexts/SurfaceContext";
 import { getTreeColorTokens } from "../TreeView/toneColors";
-import { paddingStyles } from "../Panel";
+import Panel from "../Panel";
 import type {
   TimelinePanelProps,
   TimelinePanelItem,
   TimelinePanelAction,
   TimelinePanelHeaderAction,
 } from "./types";
-import type { PanelVariant, PanelCorner, PanelPadding } from "../Panel";
 import Loader from "../Loader";
+import type { LoaderProps } from "../Loader";
 
 // ── useIsDark — detects Tailwind dark class on <html> ────────────────────────
 
@@ -90,6 +91,10 @@ interface TimelineSvgProps {
   isDark: boolean;
   tone: TrueColor;
   showTrunkDots: boolean;
+  /** Caller override for the trunk and branch stroke. */
+  lineColor?: string;
+  /** Draw the rail on rather than having it appear fully formed. */
+  animate: boolean;
 }
 
 const TimelineSvg: React.FC<TimelineSvgProps> = ({
@@ -98,12 +103,16 @@ const TimelineSvg: React.FC<TimelineSvgProps> = ({
   isDark,
   tone,
   showTrunkDots,
+  lineColor,
+  animate,
 }) => {
   const ci = isDark ? 1 : 0;
   const tok = getTreeColorTokens(tone);
-  // Derived color shorthands — [light, dark] resolved to current mode
-  const trunkColor = tok.trunk[ci];
-  const branchColor = tok.trunk[ci];
+  // Derived color shorthands — [light, dark] resolved to current mode.
+  // `lineColor` was a declared prop that nothing read, so callers setting it
+  // saw no change at all.
+  const trunkColor = lineColor ?? tok.trunk[ci];
+  const branchColor = lineColor ?? tok.trunk[ci];
   const rootFill = tok.connDot[ci]; // tone accent fill for root circle
   const rootBorder = tok.trunk[ci]; // matches line color
   const rootDot = tok.connFill[ci]; // inner dot contrasts against filled circle
@@ -153,6 +162,7 @@ const TimelineSvg: React.FC<TimelineSvgProps> = ({
       viewBox={`0 0 ${SVG_W} ${totalSvgH}`}
       overflow="visible"
       aria-hidden="true"
+      className={animate ? "timeline-rail-draw" : undefined}
       style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none" }}
     >
       {/* ── Vertical trunk — depth-0 items only, gaps around anchors ────────── */}
@@ -256,6 +266,18 @@ const TimelineSvg: React.FC<TimelineSvgProps> = ({
           }
           return (
             <g key={item.id}>
+              {/* Halo behind the anchor — marks where the timeline has got to. */}
+              {animate && (
+                <circle
+                  className="timeline-current-pulse"
+                  cx={TRUNK_X}
+                  cy={my}
+                  r={ROOT_RING_R}
+                  fill="none"
+                  stroke={curBorder}
+                  strokeWidth={BW}
+                />
+              )}
               <circle cx={TRUNK_X} cy={my} r={ROOT_RING_R} fill={curFill} />
               <circle
                 cx={TRUNK_X}
@@ -332,37 +354,6 @@ const TimelineSvg: React.FC<TimelineSvgProps> = ({
   );
 };
 
-// ── Variant shell styles (mirrors Panel) ──────────────────────────────────────
-
-const variantShellStyles: Record<PanelVariant, string> = {
-  elevated:
-    "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10 text-neutral-900 dark:text-neutral-100",
-  outlined:
-    "bg-white/90 text-neutral-900 ring-1 dark:bg-neutral-900/80 dark:text-neutral-100 dark:ring-white/10",
-  subtle:
-    "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
-  tonal:
-    "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
-  default:
-    "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
-  glass:
-    "backdrop-blur-xl text-neutral-900 ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
-  "liquid-glass":
-    "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
-  simple:
-    "text-neutral-900 ring-transparent dark:text-neutral-100 dark:ring-white/5",
-};
-
-const cornerStyles: Record<PanelCorner, string> = {
-  rounded: "rounded-sm",
-  "rounded-sm": "rounded-lg",
-  "rounded-md": "rounded-2xl",
-  "rounded-lg": "rounded-3xl",
-  "rounded-full": "rounded-full",
-  pill: "rounded-3xl",
-  none: "rounded-none",
-};
-
 // ── Overflow (⋮) button ───────────────────────────────────────────────────────
 
 interface OverflowButtonProps {
@@ -421,6 +412,9 @@ interface TimelineItemRowProps {
   color: TrueColor;
   itemRef: (el: HTMLDivElement | null) => void;
   actionSize: TimelinePanelAction["size"];
+  /** Position in the list, used to stagger the entry animation. */
+  index: number;
+  animate: boolean;
 }
 
 const TimelineItemRow: React.FC<TimelineItemRowProps> = ({
@@ -428,7 +422,10 @@ const TimelineItemRow: React.FC<TimelineItemRowProps> = ({
   color,
   itemRef,
   actionSize,
+  index,
+  animate,
 }) => {
+  const surface = useSurfaceText();
   const depth = Math.min(item.depth ?? 0, 3);
   const depthPx = depth * ITEM_DEPTH_PX;
 
@@ -446,16 +443,23 @@ const TimelineItemRow: React.FC<TimelineItemRowProps> = ({
     item.overflowActions?.find((a) => a.value === option.value)?.onClick?.();
   };
 
-  const iconColorClasses = classNames(
-    item.iconBackground ? `rounded-full bg-${color}-100` : "",
-  );
+  // The chip used to be `bg-{color}-100` with no dark partner, next to a
+  // hardcoded `dark:bg-neutral-800` — so in dark mode every tone rendered the
+  // same grey box, and the glyph was `text-blue-500` whatever the tone was.
+  const palette = getPanelToneStyles(color);
 
   return (
     // paddingLeft = SVG_W + depthPx so the whole row is column-shifted (total inside parent)
     <div
       ref={itemRef}
-      className="flex items-center gap-2 py-2.5"
-      style={{ paddingLeft: SVG_W + depthPx }}
+      className={classNames(
+        "flex items-center gap-2 py-2.5",
+        animate && "timeline-row-enter",
+      )}
+      style={{
+        paddingLeft: SVG_W + depthPx,
+        ...(animate ? { animationDelay: `${Math.min(index, 12) * 45}ms` } : {}),
+      }}
     >
       {/* Icon + text */}
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -463,8 +467,9 @@ const TimelineItemRow: React.FC<TimelineItemRowProps> = ({
         {item.icon && (
           <div
             className={classNames(
-              "flex h-8 w-8 shrink-0 items-center justify-center text-blue-500 dark:bg-neutral-800 dark:text-neutral-400",
-              iconColorClasses,
+              "flex h-8 w-8 shrink-0 items-center justify-center",
+              palette.heading,
+              item.iconBackground && classNames("rounded-full", palette.badge),
             )}
           >
             {item.icon}
@@ -472,11 +477,18 @@ const TimelineItemRow: React.FC<TimelineItemRowProps> = ({
         )}
 
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+          {/* Copy colour comes from the surface the Panel published, so a row
+              on a glass card over a photo does not fade out. */}
+          <div
+            className={classNames(
+              "truncate text-sm font-medium",
+              surface.heading,
+            )}
+          >
             {item.title}
           </div>
           {item.subtitle && (
-            <div className="mt-0.5 truncate text-xs text-neutral-500 dark:text-neutral-400">
+            <div className={classNames("mt-0.5 truncate text-xs", surface.muted)}>
               {item.subtitle}
             </div>
           )}
@@ -515,6 +527,105 @@ const TimelineItemRow: React.FC<TimelineItemRowProps> = ({
   );
 };
 
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+/**
+ * Its own component so it can read the surface context the Panel publishes —
+ * a hook cannot be called from inside the parent that renders the provider.
+ */
+const TimelineEmptyState: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => {
+  const surface = useSurfaceText();
+  return (
+    <div
+      className={classNames(
+        "flex min-h-24 items-center justify-center py-6 text-sm",
+        surface.muted,
+      )}
+    >
+      {children ?? "Nothing to show yet."}
+    </div>
+  );
+};
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+/**
+ * Placeholder shaped like the timeline rather than like a generic card: the
+ * rail and its anchors are drawn at the real coordinates, so the layout does
+ * not jump when the items arrive. `bg-black/10 dark:bg-white/10` rather than a
+ * neutral shade, so the same bar reads on a solid card and on glass.
+ */
+const TimelineSkeleton: React.FC<{ rows: number; showIcons: boolean }> = ({
+  rows,
+  showIcons,
+}) => {
+  /**
+   * Distance from a row's centre at which the rail stops, so the anchor is not
+   * sitting on top of the line. `TimelineSvg` does the same with `ANCHOR_GAP`
+   * (`ROOT_RING_R + L_GAP`); a single continuous rail behind translucent dots
+   * showed straight through them, because two stacked low-alpha fills read as
+   * one darker fill rather than as a solid disc.
+   */
+  const railGap = ROOT_RING_R + L_GAP;
+  const railStyle: React.CSSProperties = {
+    left: TRUNK_X - 1,
+    height: `calc(50% - ${railGap}px)`,
+  };
+
+  return (
+    <div
+      className="relative animate-pulse motion-reduce:animate-none"
+      aria-hidden="true"
+    >
+      {Array.from({ length: rows }).map((_, index) => (
+        <div
+          key={index}
+          className="relative flex items-center gap-3 py-2.5"
+          style={{ paddingLeft: SVG_W }}
+        >
+          {/* Rail, as one segment per gap rather than a single strip behind
+              every anchor. The first row has nothing above it and the last
+              nothing below, so the rail starts and ends on an anchor. */}
+          {index > 0 && (
+            <span
+              className="absolute top-0 w-0.5 bg-black/10 dark:bg-white/10"
+              style={railStyle}
+            />
+          )}
+          {index < rows - 1 && (
+            <span
+              className="absolute bottom-0 w-0.5 bg-black/10 dark:bg-white/10"
+              style={railStyle}
+            />
+          )}
+          {/* Anchor. Positioned against this row rather than relying on an
+              absolute element's static position. */}
+          <span
+            className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-black/20 dark:bg-white/20"
+            style={{ left: TRUNK_X - 6 }}
+          />
+          {showIcons && (
+            <span className="h-8 w-8 shrink-0 rounded-full bg-black/10 dark:bg-white/10" />
+          )}
+          <div className="min-w-0 flex-1 space-y-2">
+            <span
+              className="block h-3 rounded-full bg-black/10 dark:bg-white/10"
+              style={{ width: `${58 - (index % 3) * 9}%` }}
+            />
+            <span
+              className="block h-2 rounded-full bg-black/10 dark:bg-white/10"
+              style={{ width: `${34 - (index % 2) * 7}%` }}
+            />
+          </div>
+          <span className="h-7 w-16 shrink-0 rounded-md bg-black/10 dark:bg-white/10" />
+        </div>
+      ))}
+    </div>
+  );
+};
+
 function isHeaderActionObject(v: unknown): v is TimelinePanelHeaderAction {
   return (
     typeof v === "object" &&
@@ -534,11 +645,21 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
   tone = "neutral",
   padding = "sm",
   corner = "none",
+  lineColor,
   loading = false,
+  loaderType = "spinner",
+  skeletonRows = 4,
   emptyState,
   className,
   loaderProps,
   showTrunkDots = false,
+  actionSize = "sm",
+  animate = true,
+  fullWidth,
+  hoverShadow,
+  vibrancy,
+  glassOpacity,
+  specularMode,
 }) => {
   const isDark = useIsDark();
   const palette = getPanelToneStyles(tone);
@@ -566,58 +687,149 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
     return () => ro.disconnect();
   }, [measureHeights, items]);
 
-  // ── Variant shell ─────────────────────────────────────────────────────────
-  const variantClass = (() => {
-    switch (variant) {
-      case "outlined":
-        return classNames(variantShellStyles.outlined, palette.border);
-      case "subtle":
-        return classNames(
-          variantShellStyles.subtle,
-          palette.border,
-          palette.subtleBg,
-        );
-      case "tonal":
-        return classNames(variantShellStyles.tonal, palette.tonalBg);
-      case "glass":
-        return classNames(
-          variantShellStyles.glass,
-          "border",
-          palette.glassBorder,
-          palette.glassBg,
-        );
-      case "simple":
-        return classNames(variantShellStyles.simple);
-      default:
-        return variantShellStyles[variant] ?? variantShellStyles.elevated;
+  const showSkeleton = loading && loaderType === "skeleton";
+  const hasItems = items.length > 0;
+
+  const loader = (
+    <Loader
+      spinnerThickness={loaderProps?.spinnerThickness}
+      color={tone}
+      glass={loaderProps?.glass}
+      glassBlurIntensity={loaderProps?.glassBlurIntensity}
+      label={loaderProps?.label}
+      size={loaderProps?.size}
+      spinnerVariant={loaderProps?.spinnerVariant}
+      title={loaderProps?.title}
+      // `loaderType` now drives the Loader, matching Panel. It used to be
+      // ignored here, so a caller asking for a progress bar got a spinner.
+      variant={loaderProps?.variant ?? (loaderType as LoaderProps["variant"])}
+    />
+  );
+
+  const body = (() => {
+    if (showSkeleton) {
+      return (
+        <TimelineSkeleton
+          rows={hasItems ? items.length : skeletonRows}
+          showIcons={!hasItems || items.some((item) => Boolean(item.icon))}
+        />
+      );
     }
+
+    if (loading && !hasItems) {
+      return (
+        <div className="flex h-full min-h-30 w-full items-center justify-center">
+          {loader}
+        </div>
+      );
+    }
+
+    if (!hasItems) {
+      // Previously an omitted `emptyState` rendered nothing at all — a panel
+      // with a header and a void under it.
+      return <TimelineEmptyState>{emptyState}</TimelineEmptyState>;
+    }
+
+    return (
+      <div className="relative">
+        {/* SVG overlay — drawn once heights are known */}
+        {itemHeights.length === items.length && (
+          <TimelineSvg
+            items={items}
+            itemHeights={itemHeights}
+            isDark={isDark}
+            tone={tone}
+            showTrunkDots={showTrunkDots}
+            lineColor={lineColor}
+            animate={animate}
+          />
+        )}
+
+        <div className={classNames(loading && "pointer-events-none")}>
+          {items.map((item, i) => (
+            <TimelineItemRow
+              key={item.id}
+              color={tone}
+              item={item}
+              index={i}
+              animate={animate}
+              itemRef={(el) => {
+                itemEls.current[i] = el;
+              }}
+              actionSize={actionSize}
+            />
+          ))}
+        </div>
+
+        {/* Glass overlay loader when refreshing over existing items */}
+        {loading && (
+          <Loader
+            overlay
+            glass
+            color={tone}
+            spinnerThickness={loaderProps?.spinnerThickness}
+            glassBlurIntensity={loaderProps?.glassBlurIntensity ?? "low"}
+            label={loaderProps?.label}
+            size={loaderProps?.size}
+            spinnerVariant={loaderProps?.spinnerVariant}
+            title={loaderProps?.title}
+            variant={
+              loaderProps?.variant ?? (loaderType as LoaderProps["variant"])
+            }
+            className="absolute inset-0 rounded-[inherit]"
+          />
+        )}
+      </div>
+    );
   })();
 
   return (
-    <section
-      className={classNames(
-        "relative flex w-full flex-col overflow-hidden",
-        paddingStyles[padding as PanelPadding],
-        variantClass,
-        cornerStyles[corner],
-        className,
-      )}
+    // Renders a Panel rather than re-implementing the card. The local copy of
+    // the variant chrome was a third one in the codebase and had already gone
+    // stale: `liquid-glass` fell through to a branch with no fill and no rim,
+    // so it rendered as an invisible box.
+    <Panel
+      variant={variant}
+      tone={tone}
+      padding={padding}
+      corner={corner}
+      className={className}
+      fullWidth={fullWidth}
+      hoverShadow={hoverShadow}
+      vibrancy={vibrancy}
+      glassOpacity={glassOpacity}
+      specularMode={specularMode}
+      scrollable={false}
+      bodyClassName="!space-y-0"
       aria-busy={loading}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       {(title || headerAction) && (
-        <div className={classNames("flex items-center justify-between gap-4")}>
+        <div className="mb-2 flex items-center justify-between gap-4">
           {title && (
             <h3
               className={classNames(
-                "text-lg font-semibold leading-2",
+                "text-lg font-semibold leading-6",
                 palette.heading,
               )}
             >
               {title}
             </h3>
           )}
+          {/* The header sits outside the body, so the overlay loader never
+              covered it and the action stayed live while the panel was
+              loading. In skeleton mode it becomes a placeholder chip so the
+              header keeps its height; otherwise it is simply withheld. */}
           {headerAction &&
+            loading &&
+            (showSkeleton ? (
+              <span
+                className="h-8 w-28 shrink-0 animate-pulse rounded-md bg-black/10 motion-reduce:animate-none dark:bg-white/10"
+                aria-hidden="true"
+              />
+            ) : null)}
+          {headerAction &&
+            !loading &&
             (() => {
               if (isHeaderActionObject(headerAction)) {
                 return (
@@ -644,72 +856,8 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
         </div>
       )}
 
-      {/* ── Body ───────────────────────────────────────────────────────────── */}
-      <div className="relative">
-        {loading && items.length === 0 ? (
-          /* No items yet — centred spinner */
-          <div className="flex items-center justify-center min-h-30 w-full h-full">
-            <Loader
-              spinnerThickness={loaderProps?.spinnerThickness}
-              color={tone}
-              glass={loaderProps?.glass}
-              glassBlurIntensity={loaderProps?.glassBlurIntensity}
-              label={loaderProps?.label}
-              size={loaderProps?.size}
-              spinnerVariant={loaderProps?.spinnerVariant}
-              title={loaderProps?.title}
-              variant={loaderProps?.variant}
-            />
-          </div>
-        ) : items.length === 0 && emptyState ? (
-          <div className="py-4">{emptyState}</div>
-        ) : (
-          <div className="relative">
-            {/* SVG overlay — drawn once heights are known */}
-            {itemHeights.length === items.length && items.length > 0 && (
-              <TimelineSvg
-                items={items}
-                itemHeights={itemHeights}
-                isDark={isDark}
-                tone={tone}
-                showTrunkDots={showTrunkDots}
-              />
-            )}
-
-            <div className={classNames(loading && "pointer-events-none")}>
-              {items.map((item, i) => (
-                <TimelineItemRow
-                  key={item.id}
-                  color={tone}
-                  item={item}
-                  itemRef={(el) => {
-                    itemEls.current[i] = el;
-                  }}
-                  actionSize="sm"
-                />
-              ))}
-            </div>
-
-            {/* Glass overlay loader when refreshing over existing items */}
-            {loading && (
-              <Loader
-                overlay
-                glass
-                color={tone}
-                spinnerThickness={loaderProps?.spinnerThickness}
-                glassBlurIntensity={loaderProps?.glassBlurIntensity ?? "low"}
-                label={loaderProps?.label}
-                size={loaderProps?.size}
-                spinnerVariant={loaderProps?.spinnerVariant}
-                title={loaderProps?.title}
-                variant={loaderProps?.variant}
-                className="absolute inset-0 rounded-[inherit]"
-              />
-            )}
-          </div>
-        )}
-      </div>
-    </section>
+      <div className="relative">{body}</div>
+    </Panel>
   );
 };
 

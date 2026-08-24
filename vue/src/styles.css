@@ -25,22 +25,73 @@
   .backdrop-saturate-\[1\.2\] { --tw-backdrop-saturate: saturate(1.2); }
   .backdrop-saturate-\[1\.4\] { --tw-backdrop-saturate: saturate(1.4); }
 
-  /* ---- GlassBackground shimmer animation ---- */
+  /* ---- GlassBackground shimmer ----
+     A specular streak, not a sliding rectangle: skewed so it reads as light
+     glancing across the surface, with a narrow bright core falling off to
+     nothing, softened further with a blur so it has no edges. It sweeps over
+     the first 40% of the cycle and rests for the remainder — a band that glides
+     continuously reads as a moving box.
+
+     Base opacity is 0, so `prefers-reduced-motion` (animation: none) leaves
+     nothing visible rather than parking a bright band on the left edge.
+
+     Vertical overshoot keeps the skewed ends covering the full height instead
+     of leaving triangular gaps at the corners. */
   @keyframes shimmer {
-    0%   { transform: translateX(-150%); }
-    100% { transform: translateX(150%); }
+    0%,
+    100% {
+      transform: translateX(-120%) skewX(-18deg);
+      opacity: 0;
+    }
+    6% {
+      opacity: 1;
+    }
+    34% {
+      opacity: 1;
+    }
+    40% {
+      transform: translateX(240%) skewX(-18deg);
+      opacity: 0;
+    }
   }
-  .animate-shimmer {
-    animation: shimmer 8s ease-in-out infinite;
+
+  .shimmer-band {
+    position: absolute;
+    top: -25%;
+    bottom: -25%;
+    left: 0;
+    width: 42%;
+    opacity: 0;
+    filter: blur(6px);
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.04) 28%,
+      rgba(255, 255, 255, 0.42) 50%,
+      rgba(255, 255, 255, 0.04) 72%,
+      transparent 100%
+    );
+    animation: shimmer 6s ease-in-out infinite;
+  }
+  :where(.dark) .shimmer-band {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.02) 28%,
+      rgba(255, 255, 255, 0.18) 50%,
+      rgba(255, 255, 255, 0.02) 72%,
+      transparent 100%
+    );
   }
 
   /* ---- GlassBackground ambient pulse (optional) ---- */
   @keyframes ambient-pulse {
-    0%, 100% { opacity: 0.12; }
-    50%      { opacity: 0.22; }
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.55; }
   }
   .ambient-pulse {
     animation: ambient-pulse 6s ease-in-out infinite;
+    opacity: 0.35;
   }
 }
 
@@ -57,9 +108,343 @@
   );
 }
 
+/* GlassBackground ambient glow — colour comes from inline custom properties,
+   so no dynamic bg-{color} class (and therefore no safelist entry) is needed. */
+.ambient-glow {
+  background-color: var(--glow-color, transparent);
+}
+:where(.dark) .ambient-glow {
+  background-color: var(--glow-color-dark, var(--glow-color, transparent));
+}
+
+/* Badge count — optically centre digits in the circle.
+   A line box spans ascender to descender, but digits only occupy cap-height to
+   baseline, so the unused descender space pushes them ~0.3px low in an 18px
+   badge — enough to round to a visible pixel. `text-box` trims the line box to
+   exactly cap-height/baseline, which is where digits live, so grid centring
+   becomes exact. The transform is the fallback for browsers without it. */
+.badge-count {
+  transform: translateY(-0.05em);
+}
+@supports (text-box: trim-both cap alphabetic) {
+  .badge-count {
+    text-box: trim-both cap alphabetic;
+    transform: none;
+  }
+}
+
+/* ---- TimelinePanel ----
+   Rows arrive with a short rise-and-fade, staggered by an inline
+   `animation-delay` so the list assembles top-down instead of snapping in as a
+   block. `backwards` fill matters: without it a row with a 300ms delay paints
+   at full opacity for those 300ms and then jumps to the start of the
+   animation, which reads as a flicker. */
+@keyframes timeline-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.timeline-row-enter {
+  animation: timeline-row-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* The rail is one SVG; fading the whole overlay in slightly behind the first
+   rows makes the connectors look drawn rather than stamped. */
+@keyframes timeline-rail-draw {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.timeline-rail-draw {
+  animation: timeline-rail-draw 420ms ease-out 60ms backwards;
+}
+
+/* The "current state" anchor breathes, so the eye lands on where the timeline
+   has reached. This is an SVG <circle>, so the ring is a scaling stroked
+   circle rather than a box-shadow — box-shadow does not apply to SVG shapes.
+   `transform-box: fill-box` makes `transform-origin: center` mean the circle's
+   own centre instead of the SVG viewport's. */
+@keyframes timeline-current-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.timeline-current-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: timeline-current-pulse 2.4s ease-out infinite;
+}
+
+/* ---- CustomIcon hover colour ----
+   An inline style cannot express `:hover`, so a caller-supplied hover colour
+   travels as a custom property and this rule consumes it. The class is only
+   applied when the property is set, so there is no fallback to fight with. */
+.custom-icon:hover {
+  color: var(--icon-hover-color);
+}
+
+/* ---- Select dropdown ----
+   A native `<select>`'s popup is drawn by the platform: `color` and
+   `background-color` on an `<option>` are respected (which is what the
+   `[&>option]:*` utilities on the control cover), and nothing else is —
+   no padding, no radius, no hover colour, no checkmark.
+
+   `appearance: base-select` (Chrome 135+) opts the control out of the
+   platform widget and into a real, stylable popup exposed as
+   `::picker(select)`. It is wrapped in `@supports` so every other browser
+   keeps the native popup with its correct fill; nothing here is required for
+   the control to work.
+
+   Both the select and its picker have to opt in, or the browser keeps the
+   platform widget for whichever half was left out.
+
+   The accent is a custom property set inline by the component from the tone,
+   so this block stays colour-agnostic and needs no safelist entry. */
+@supports (appearance: base-select) {
+  .ui-select,
+  .ui-select::picker(select) {
+    appearance: base-select;
+  }
+
+  /* The control keeps its own chrome — the wrapper draws the border, fill and
+     focus ring — so the base appearance must not reintroduce a border or a
+     second caret. */
+  .ui-select {
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  .ui-select::picker-icon {
+    display: none;
+  }
+
+  .ui-select::picker(select) {
+    /* Matches Panel's `rounded-md` (1rem) and the kit's elevated surface. */
+    border: 1px solid var(--color-neutral-200);
+    border-radius: 0.75rem;
+    background-color: var(--color-white);
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+    padding: 0.25rem;
+    max-height: 18rem;
+    overflow-y: auto;
+    /* The popup is in the top layer, so it does not inherit the control's
+       font sizing through the cascade the way a normal child would. */
+    font-size: 0.875rem;
+    /* Chrome animates the picker open by default; keep it, but let a
+       reduced-motion preference switch it off (see the media query below). */
+    transition: opacity 120ms ease-out, overlay 120ms allow-discrete,
+      display 120ms allow-discrete;
+    opacity: 1;
+  }
+
+  @starting-style {
+    .ui-select::picker(select):popover-open {
+      opacity: 0;
+    }
+  }
+
+  .ui-select option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4375rem 0.625rem;
+    border-radius: 0.5rem;
+    color: var(--color-neutral-800);
+    cursor: pointer;
+    transition: background-color 120ms ease-out, color 120ms ease-out;
+  }
+
+  .ui-select option:hover,
+  .ui-select option:focus {
+    /* `--ui-select-accent` is the tone's -500; mixing it into the surface
+       gives the same soft wash the kit's hover states use, at any tone. */
+    background-color: color-mix(
+      in srgb,
+      var(--ui-select-accent, var(--color-blue-500)) 12%,
+      transparent
+    );
+    color: var(--color-neutral-900);
+    outline: none;
+  }
+
+  .ui-select option:checked {
+    background-color: color-mix(
+      in srgb,
+      var(--ui-select-accent, var(--color-blue-500)) 16%,
+      transparent
+    );
+    color: var(--ui-select-accent-strong, var(--color-blue-700));
+    font-weight: 500;
+  }
+
+  .ui-select option:disabled {
+    color: var(--color-neutral-400);
+    cursor: not-allowed;
+    background-color: transparent;
+  }
+
+  /* The tick that marks the current choice. Sized so an unchecked row's
+     leading gap matches a checked one — otherwise the labels jog sideways as
+     the selection moves. */
+  .ui-select option::checkmark {
+    content: "";
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    background-color: currentColor;
+    opacity: 0;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+    mask-repeat: no-repeat;
+    mask-size: contain;
+  }
+
+  .ui-select option:checked::checkmark {
+    opacity: 1;
+  }
+
+  .ui-select optgroup {
+    padding: 0.375rem 0.625rem 0.125rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-neutral-500);
+  }
+
+  :where(.dark) .ui-select::picker(select) {
+    border-color: var(--color-neutral-700);
+    background-color: var(--color-neutral-900);
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.5),
+      0 4px 6px -4px rgb(0 0 0 / 0.5);
+  }
+
+  :where(.dark) .ui-select option {
+    color: var(--color-neutral-200);
+  }
+
+  :where(.dark) .ui-select option:hover,
+  :where(.dark) .ui-select option:focus {
+    background-color: color-mix(
+      in srgb,
+      var(--ui-select-accent, var(--color-blue-500)) 22%,
+      transparent
+    );
+    color: var(--color-white);
+  }
+
+  :where(.dark) .ui-select option:checked {
+    color: var(--ui-select-accent-soft, var(--color-blue-300));
+  }
+
+  :where(.dark) .ui-select option:disabled {
+    color: var(--color-neutral-600);
+  }
+
+  :where(.dark) .ui-select optgroup {
+    color: var(--color-neutral-400);
+  }
+}
+
+/* ---- Progress ----
+   These keyframes used to live in `components/progress-animations.css`, which
+   the component imported directly. tsup swept that import into
+   `dist/markdown.css` — an unrelated subpath export — so a consumer importing
+   `@cjlapao/ui-kit` loaded `dist/index.css` and got a bar referencing keyframes
+   that were not there. Shimmer and stripes animated nothing.
+
+   Duration and direction arrive as custom properties rather than an inline
+   `animation` shorthand, so the reduced-motion block at the end of this file
+   can switch them off — a media query cannot override an inline style. */
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* 34px = the 24px pattern period × √2, one full horizontal repeat of the 45°
+   stripe, so the scroll loops seamlessly. */
+@keyframes progress-stripes {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 34px 0;
+  }
+}
+
+/* The bar slides the full width of the track and back out. `inset-inline-start`
+   rather than `left` so it runs the other way in a RTL document. */
+@keyframes progress-indeterminate {
+  0% {
+    inset-inline-start: -40%;
+    width: 40%;
+  }
+  60% {
+    width: 55%;
+  }
+  100% {
+    inset-inline-start: 100%;
+    width: 40%;
+  }
+}
+
+.progress-shimmer,
+.progress-stripes,
+.progress-indeterminate {
+  animation-duration: var(--progress-duration, 1.8s);
+  animation-direction: var(--progress-direction, normal);
+  animation-iteration-count: infinite;
+}
+
+.progress-shimmer {
+  animation-name: progress-shimmer;
+  animation-timing-function: linear;
+}
+
+.progress-stripes {
+  animation-name: progress-stripes;
+  animation-timing-function: linear;
+}
+
+.progress-indeterminate {
+  animation-name: progress-indeterminate;
+  animation-timing-function: cubic-bezier(0.65, 0.05, 0.36, 1);
+}
+
 /* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
+  .timeline-row-enter,
+  .timeline-rail-draw,
+  .timeline-current-pulse,
+  .progress-shimmer,
+  .progress-stripes,
+  .progress-indeterminate,
   .animate-shimmer,
+  .shimmer-band,
   .ambient-pulse {
     animation: none !important;
   }

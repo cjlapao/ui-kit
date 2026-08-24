@@ -40,32 +40,15 @@ const viewportBounds = (): RectBounds => ({
   height: window.innerHeight,
 });
 
-const isClippingParent = (element: HTMLElement): boolean => {
-  const style = window.getComputedStyle(element);
-  const values = [style.overflow, style.overflowX, style.overflowY].join(" ");
-  return /(auto|scroll|hidden|clip)/.test(values);
-};
-
-const resolveBoundaryBounds = (anchor: HTMLElement): RectBounds => {
-  let node: HTMLElement | null = anchor.parentElement;
-
-  while (node && node !== document.body) {
-    if (isClippingParent(node)) {
-      const rect = node.getBoundingClientRect();
-      return {
-        top: rect.top,
-        left: rect.left,
-        right: rect.right,
-        bottom: rect.bottom,
-        width: rect.width,
-        height: rect.height,
-      };
-    }
-    node = node.parentElement;
-  }
-
-  return viewportBounds();
-};
+// The menu is `position: fixed` and teleported to `document.body`, so it is
+// positioned relative to the viewport. An ancestor's `overflow` does NOT clip a
+// `fixed` element (only a containing-block-establishing ancestor such as a
+// transform/filter would), so the viewport — not any clipping parent — is the
+// only correct collision boundary. Walking up for an `overflow` ancestor and
+// using its rect (which can extend far beyond the visible viewport, e.g. a tall
+// scrollable content container) made the menu believe there was room below and
+// drop off-screen instead of flipping up.
+const resolveBoundaryBounds = (): RectBounds => viewportBounds();
 
 const resolveAnchorLayerZIndex = (anchor: HTMLElement): number => {
   let node: HTMLElement | null = anchor;
@@ -133,6 +116,75 @@ const handleSelect = (item: DropdownMenuOption) => {
   emit("close");
 };
 
+const listEl = ref<HTMLOListElement | null>(null);
+// The element that was focused when the menu opened (the trigger); focus is
+// returned to it when the menu closes via Escape / item activation.
+const triggerEl = ref<HTMLElement | null>(null);
+const activeIndex = ref(0);
+// Set when the menu is closed by an outside pointerdown. Focus is NOT
+// restored to the trigger in that case — the user deliberately clicked
+// elsewhere (restoring would steal focus and scroll the page back).
+let closedByOutside = false;
+
+const getItemEls = () =>
+  listEl.value
+    ? [...listEl.value.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')]
+    : [];
+
+const enabledIndices = computed(() =>
+  props.items
+    .map((item, index) => (item.disabled ? -1 : index))
+    .filter((index) => index >= 0),
+);
+
+const focusItem = (index: number) => {
+  activeIndex.value = index;
+  getItemEls()[index]?.focus();
+};
+
+const moveActive = (delta: number) => {
+  const indices = enabledIndices.value;
+  if (indices.length === 0) {
+    return;
+  }
+  const position = indices.indexOf(activeIndex.value);
+  // If the active item is unknown/disabled, start just past the end (down) or
+  // before the start (up) so wrapping lands on a sensible item.
+  const base = position === -1 ? (delta > 0 ? -1 : 0) : position;
+  const next = (base + delta + indices.length) % indices.length;
+  focusItem(indices[next]);
+};
+
+const handleMenuKeyDown = (event: KeyboardEvent) => {
+  switch (event.key) {
+    case "ArrowDown":
+      event.preventDefault();
+      moveActive(1);
+      break;
+    case "ArrowUp":
+      event.preventDefault();
+      moveActive(-1);
+      break;
+    case "Home":
+      event.preventDefault();
+      if (enabledIndices.value.length > 0) focusItem(enabledIndices.value[0]);
+      break;
+    case "End":
+      event.preventDefault();
+      if (enabledIndices.value.length > 0)
+        focusItem(enabledIndices.value[enabledIndices.value.length - 1]);
+      break;
+    case "Tab":
+      // Closing on Tab (rather than trapping focus) matches the ARIA menu
+      // button pattern: the menu is not a modal dialog.
+      event.preventDefault();
+      emit("close");
+      break;
+    default:
+      break;
+  }
+};
+
 watch(
   () => props.open,
   (open, _prev, onCleanup) => {
@@ -146,6 +198,7 @@ watch(
       ) {
         return;
       }
+      closedByOutside = true;
       emit("close");
     };
 
@@ -170,8 +223,52 @@ watch([() => props.maxHeight, () => props.open], () => {
   if (!props.open) {
     styleState.value = undefined;
     computedMaxHeight.value = props.maxHeight;
+    activeIndex.value = 0;
   }
 });
+
+// On open: capture the trigger (currently focused element) and move focus to
+// the first enabled item. Runs post-flush (after render + positioning), and the
+// focus is deferred to the next frame so it wins the race against the browser
+// settling focus onto the trigger from the opening click.
+watch(
+  () => props.open,
+  (open, _prev, onCleanup) => {
+    if (!open) {
+      return;
+    }
+    closedByOutside = false;
+    triggerEl.value = (document.activeElement as HTMLElement) ?? null;
+    const first = enabledIndices.value[0] ?? 0;
+    activeIndex.value = first;
+    const frame = requestAnimationFrame(() => {
+      getItemEls()[first]?.focus();
+    });
+    onCleanup(() => cancelAnimationFrame(frame));
+  },
+  { immediate: true, flush: "post" },
+);
+
+// On close: if the close was NOT an outside click and focus was left on
+// <body> (the focused menu item unmounted — i.e. Escape or item activation),
+// return it to the trigger. An outside click is never restored (the user
+// deliberately clicked elsewhere; restoring would steal focus and scroll).
+watch(
+  () => props.open,
+  (open) => {
+    if (open) {
+      return;
+    }
+    if (closedByOutside) {
+      return;
+    }
+    const active = document.activeElement;
+    const trigger = triggerEl.value;
+    if (trigger?.isConnected && (active === document.body || active === null)) {
+      trigger.focus();
+    }
+  },
+);
 
 const updatePosition = () => {
   if (!props.open || !anchorEl.value || !menuEl.value) {
@@ -185,7 +282,7 @@ const updatePosition = () => {
   const alignReferenceRect =
     caretElement?.getBoundingClientRect() ?? anchorRect;
   const menuRect = menuEl.value.getBoundingClientRect();
-  const boundary = resolveBoundaryBounds(anchorEl.value);
+  const boundary = resolveBoundaryBounds();
   const zIndex = resolveAnchorLayerZIndex(anchorEl.value);
   const offset = 8;
   const minMargin = 8;
@@ -389,19 +486,23 @@ const itemClass = (item: DropdownMenuOption) =>
       ref="menuEl"
       :style="resolvedStyle"
       role="menu"
+      aria-orientation="vertical"
       :class="menuClass"
       v-bind="restAttrs"
+      @keydown="handleMenuKeyDown"
     >
       <ul
+        ref="listEl"
         class="overflow-auto"
         :style="{ maxHeight: `${computedMaxHeight}px` }"
         @click.stop
       >
-        <li v-for="item in items" :key="item.value">
+        <li v-for="(item, index) in items" :key="item.value">
           <button
             type="button"
             role="menuitem"
             :disabled="item.disabled"
+            :tabindex="index === activeIndex ? 0 : -1"
             :class="itemClass(item)"
             @click.stop="handleSelect(item)"
           >

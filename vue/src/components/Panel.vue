@@ -2,29 +2,24 @@
 import type { CSSProperties, VNode } from "vue";
 import type { ButtonProps } from "./Button.vue";
 import type { LoaderProps } from "./Loader.vue";
-import type { TrueColor } from "../theme/Theme";
+import type {
+  SurfaceCorner,
+  SurfacePadding,
+  SurfaceVariant,
+  TrueColor,
+} from "../theme/Theme";
 
-export type PanelVariant =
-  | "elevated"
-  | "outlined"
-  | "subtle"
-  | "tonal"
-  | "default"
-  | "glass"
-  | "simple"
-  | "liquid-glass";
+/**
+ * Aliased from the shared theme rather than redeclared, so the Vue and React
+ * kits cannot drift. These were three separate hand-written unions; the corner
+ * one had no `rounded-xl` and its `pill` duplicated `rounded-lg`.
+ */
+export type PanelVariant = SurfaceVariant;
 export type PanelTone = TrueColor;
 export type PanelDecoration = "none" | "gradient" | "shapes" | "both";
 export type PanelMediaPlacement = "top" | "start" | "end" | "overlay";
-export type PanelPadding = "none" | "xs" | "sm" | "md" | "lg";
-export type PanelCorner =
-  | "rounded"
-  | "rounded-sm"
-  | "rounded-md"
-  | "rounded-lg"
-  | "rounded-full"
-  | "pill"
-  | "none";
+export type PanelPadding = SurfacePadding;
+export type PanelCorner = SurfaceCorner;
 export type PanelActionLayout = "auto" | "stacked" | "inline";
 export type PanelLoaderType = Exclude<LoaderProps["variant"], undefined>;
 export type PanelSpecularMode = "none" | "classic" | "halo";
@@ -149,23 +144,14 @@ const variantBaseStyles: Record<PanelVariant, string> = {
     "text-neutral-900  ring-transparent dark:text-neutral-100 dark:ring-white/5",
 };
 
-export const paddingStyles: Record<PanelPadding, string> = {
-  none: "p-0",
-  xs: "p-2 sm:p-3",
-  sm: "p-4 sm:p-5",
-  md: "p-6 sm:p-8",
-  lg: "p-8 sm:p-10",
-};
+/**
+ * Re-exported from the theme for `CollapsiblePanel` and `TimelinePanel`, which
+ * import the map directly rather than taking a Panel.
+ */
+export const paddingStyles: Record<PanelPadding, string> =
+  getSurfacePaddingClasses();
 
-const cornerStyles: Record<PanelCorner, string> = {
-  rounded: "rounded-sm",
-  "rounded-sm": "rounded-lg",
-  "rounded-md": "rounded-2xl",
-  "rounded-lg": "rounded-3xl",
-  "rounded-full": "rounded-full",
-  pill: "rounded-3xl",
-  none: "rounded-none",
-};
+
 
 const actionButtonWidth: Record<PanelActionLayout, string> = {
   auto: "w-full sm:w-auto",
@@ -186,7 +172,12 @@ const defaultActionColor: TrueColor = "blue";
 import { computed, useSlots } from "vue";
 import classNames from "classnames";
 import Button from "./Button.vue";
-import { getPanelToneStyles } from "../theme/Theme";
+import {
+  getPanelToneStyles,
+  getSurfaceCornerClass,
+  getSurfacePaddingClass,
+  getSurfacePaddingClasses,
+} from "../theme/Theme";
 import Loader from "./Loader.vue";
 
 import { useClassAttrs } from "../utils/attrsUtils";
@@ -471,8 +462,8 @@ const sectionClass = computed(() =>
   classNames(
     "relative flex w-full min-h-0 flex-col overflow-hidden shrink-0",
     variantClasses.value,
-    paddingStyles[props.padding],
-    cornerStyles[props.corner],
+    getSurfacePaddingClass(props.padding),
+    getSurfaceCornerClass(props.corner),
     props.fullWidth ? "w-full" : undefined,
     isOverlay.value ? overlayClasses.value : undefined,
     props.hoverShadow &&

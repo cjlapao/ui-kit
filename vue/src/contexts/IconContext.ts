@@ -5,7 +5,8 @@ import {
   type InjectionKey,
   type PropType,
 } from "vue";
-import { defaultIconRenderer, type IconRenderer } from "../types/Icon";
+import type { IconRenderer } from "../types/Icon";
+import { renderIcon as registryIconRenderer } from "../utils/renderIcon";
 
 export const IconRendererKey: InjectionKey<IconRenderer> =
   Symbol("ui-kit-icon-renderer");
@@ -19,11 +20,16 @@ export function provideIconRenderer(renderIcon: IconRenderer): void {
 }
 
 /**
- * Access the icon renderer from the nearest provider. Falls back to the
- * default no-op renderer (mirrors the React kit's context default).
+ * Access the icon renderer from the nearest provider.
+ *
+ * Falls back to the kit's registry-backed renderer, so `icon="Search"` resolves
+ * against `src/icons` without an `IconProvider`. This used to fall back to
+ * `defaultIconRenderer`, which drops string icons — every component taking an
+ * icon *name* rendered nothing unless the app wired a provider itself.
+ * Mirrors the React kit.
  */
 export function useIconRenderer(): IconRenderer {
-  return inject(IconRendererKey, defaultIconRenderer);
+  return inject(IconRendererKey, registryIconRenderer);
 }
 
 export interface IconProviderProps {

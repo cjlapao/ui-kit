@@ -1,17 +1,35 @@
 import classNames from "classnames";
 import React from "react";
-import { getSpinnerColorTokens, type TrueColor } from "../theme/Theme";
+import {
+  getSpinnerColorTokens,
+  type ControlSize,
+  type TrueColor,
+} from "../theme/Theme";
+import { useSurfaceText } from "../contexts/SurfaceContext";
 
-export type SpinnerSize = "xs" | "sm" | "md" | "lg" | "xl";
+/**
+ * The shared control scale, so a spinner lines up with the Button next to it
+ * instead of speaking its own size language.
+ */
+export type SpinnerSize = ControlSize;
 export type SpinnerColor = TrueColor;
-export type SpinnerVariant = "solid" | "segments";
-export type SpinnerThickness = "thin" | "normal" | "thick";
+
+export const SPINNER_VARIANTS = ["solid", "segments"] as const;
+export type SpinnerVariant = (typeof SPINNER_VARIANTS)[number];
+
+export const SPINNER_THICKNESSES = ["thin", "normal", "thick"] as const;
+export type SpinnerThickness = (typeof SPINNER_THICKNESSES)[number];
 
 export interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
+  /** @default "md" */
   size?: SpinnerSize;
+  /** @default "blue" */
   color?: SpinnerColor;
+  /** @default "solid" */
   variant?: SpinnerVariant;
+  /** @default "normal" */
   thickness?: SpinnerThickness;
+  /** Visible text beside the ring. Also announced — the ring alone reads as "Loading". */
   label?: string;
 }
 
@@ -57,6 +75,19 @@ const sizeTokens: Record<
   },
 };
 
+/**
+ * Split out so it can read `useSurfaceText()`. A component cannot consume a
+ * provider it renders itself, so the label lives in a child.
+ */
+const SpinnerLabel: React.FC<{ text: string }> = ({ text }) => {
+  const surface = useSurfaceText();
+  return (
+    <span className={classNames("text-sm font-medium", surface.body)}>
+      {text}
+    </span>
+  );
+};
+
 const Spinner = React.forwardRef<HTMLSpanElement, SpinnerProps>(
   (
     {
@@ -82,27 +113,24 @@ const Spinner = React.forwardRef<HTMLSpanElement, SpinnerProps>(
       className,
     );
 
+    // `motion-reduce:animate-none` is a class, not an inline style, so the
+    // reduced-motion media query can reach it.
     const spinnerClass = classNames(
       spinnerBase,
-      "transition-all duration-150 ease-in-out",
+      "transition-all duration-150 ease-in-out motion-reduce:animate-none",
       variant === "segments"
         ? ["animate-[spin_1s_linear_infinite]", ...colorStyles]
         : ["animate-spin", colorStyles[0]],
     );
 
     return (
-      <span
-        className="inline-flex items-center gap-2"
-        role="status"
-        aria-live="polite"
-      >
+      <span className="inline-flex items-center gap-2" role="status">
         <span ref={ref} className={spinnerClass} {...rest} />
-        {label && (
-          <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
-            {label}
-          </span>
-        )}
-        <span className="sr-only">{label ?? "Loading"}</span>
+        {/*
+          With a visible label the text is already inside the status region —
+          an sr-only copy beside it would be announced twice.
+        */}
+        {label ? <SpinnerLabel text={label} /> : <span className="sr-only">Loading</span>}
       </span>
     );
   },

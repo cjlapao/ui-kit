@@ -1,6 +1,6 @@
 <script lang="ts">
 import { isVNode } from "vue";
-import type { PanelVariant, PanelCorner } from "../Panel.vue";
+import type { PanelVariant } from "../Panel.vue";
 import type {
   TimelinePanelAction,
   TimelinePanelItem,
@@ -63,15 +63,6 @@ const variantShellStyles: Record<PanelVariant, string> = {
     "text-neutral-900 ring-transparent dark:text-neutral-100 dark:ring-white/5",
 };
 
-const cornerStyles: Record<PanelCorner, string> = {
-  rounded: "rounded-sm",
-  "rounded-sm": "rounded-lg",
-  "rounded-md": "rounded-2xl",
-  "rounded-lg": "rounded-3xl",
-  "rounded-full": "rounded-full",
-  pill: "rounded-3xl",
-  none: "rounded-none",
-};
 
 function isHeaderActionObject(v: unknown): v is TimelinePanelHeaderAction {
   return (
@@ -122,7 +113,10 @@ import DropdownMenu from "../DropdownMenu.vue";
 import type { DropdownMenuOption } from "../DropdownMenu.vue";
 import Loader from "../Loader.vue";
 import VNodeRenderer from "../internal/VNodeRenderer";
-import { getPanelToneStyles } from "../../theme/Theme";
+import {
+  getPanelToneStyles,
+  getSurfaceCornerClass,
+} from "../../theme/Theme";
 import { getTreeColorTokens } from "../TreeView/toneColors";
 import { paddingStyles } from "../Panel.vue";
 import type { PanelPadding } from "../Panel.vue";
@@ -409,7 +403,7 @@ const sectionClass = computed(() =>
     "relative flex w-full flex-col overflow-hidden",
     paddingStyles[props.padding as PanelPadding],
     variantClass.value,
-    cornerStyles[props.corner],
+    getSurfaceCornerClass(props.corner),
     classAttr.value,
   ),
 );

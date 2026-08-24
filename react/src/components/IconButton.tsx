@@ -5,14 +5,15 @@ import {
   type ButtonSize,
   type ButtonVariant,
 } from "./Button";
-import Spinner, { type SpinnerColor, type SpinnerSize } from "./Spinner";
+import Spinner, { type SpinnerColor } from "./Spinner";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getButtonColorClasses } from "../theme/Theme";
+import { getButtonColorClasses, getControlSizeTokens } from "../theme/Theme";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import type { IconSize } from "../types/Icon";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
 import {
+  getGlassChromeClasses,
   getGlassFillClass,
   getGlassVibrancyClass,
   getSpecularClasses,
@@ -23,21 +24,6 @@ import {
 
 type IconButtonRounded = "md" | "lg" | "xl" | "full";
 
-const sizeTokens: Record<
-  ButtonSize,
-  {
-    button: string;
-    icon: string;
-    spinner: SpinnerSize;
-  }
-> = {
-  xs: { button: "h-7 w-7 leading-none", icon: "h-4 w-4", spinner: "xs" },
-  sm: { button: "h-8 w-8 leading-none", icon: "h-5 w-5", spinner: "xs" },
-  md: { button: "h-10 w-10 leading-none", icon: "h-6 w-6", spinner: "sm" },
-  lg: { button: "h-12 w-12 leading-none", icon: "h-7 w-7", spinner: "md" },
-  xl: { button: "h-14 w-14 leading-none", icon: "h-8 w-8", spinner: "lg" },
-};
-
 const roundedMap: Record<IconButtonRounded, string> = {
   md: "rounded-md",
   lg: "rounded-lg",
@@ -45,8 +31,12 @@ const roundedMap: Record<IconButtonRounded, string> = {
   full: "rounded-full",
 };
 
+// `disabled:opacity-50` is applied conditionally rather than living here:
+// `loading` also sets the disabled attribute (to block clicks), and dimming a
+// loading control to 50% fades the spinner along with it — the one element
+// that needs to stay visible.
 const baseClasses =
-  "inline-flex items-center justify-center select-none transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center select-none transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed";
 
 export interface IconButtonProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "color"> {
@@ -63,6 +53,12 @@ export interface IconButtonProps
   srLabel?: string;
   accent?: boolean;
   accentColor?: ButtonColor;
+  /**
+   * Raw CSS colour to tint the icon. Omit it and the icon inherits the
+   * button's text colour (icons paint with `currentColor`), so the glyph
+   * always matches; set it to override just the icon.
+   */
+  iconColor?: string;
   /** When set, a styled tooltip is shown on hover (replaces the native title attribute). */
   tooltip?: string;
   /** Position of the tooltip relative to the button. Defaults to 'top'. */
@@ -93,6 +89,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       srLabel,
       accent = false,
       accentColor,
+      iconColor,
       glass = false,
       vibrancy = "medium",
       glassOpacity = "clear",
@@ -106,7 +103,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     ref,
   ) => {
     const renderIcon = useIconRenderer();
-    const sizeConfig = sizeTokens[size] ?? sizeTokens.md;
+    const sizeConfig = getControlSizeTokens(size);
     const baseColorClasses = getButtonColorClasses(variant, color);
     const accentTone = accentColor ?? color;
     const accentRing = iconAccentRing[accentTone] ?? iconAccentRing.blue;
@@ -126,17 +123,21 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         ? (iconAccentHover[accentColor] ?? null)
         : null;
 
-    const dimensionClass = customSizeClass ?? sizeConfig.button;
+    const dimensionClass = customSizeClass ?? sizeConfig.box;
     const spinnerColorToken: SpinnerColor =
       spinnerColor ?? (color as SpinnerColor);
 
     // Glass styling — variant="glass" auto-enables glass; glass prop overrides
     const isGlass = variant === "glass" || glass;
+    // The variant's own colour classes are dropped for glass (they paint an
+    // opaque fill), so the chrome — text colour, rim, focus ring — has to come
+    // from here or the control ends up with none of it.
     const glassClasses = isGlass
       ? classNames(
           "backdrop-blur-sm",
           getGlassFillClass(color, glassOpacity),
           getGlassVibrancyClass(vibrancy),
+          getGlassChromeClasses(color),
         )
       : null;
 
@@ -159,6 +160,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
     const computedClassName = classNames(
       baseClasses,
+      !loading && "disabled:opacity-50",
       dimensionClass,
       roundedMap[rounded] ?? roundedMap.full,
       isGlass ? (accentClasses ?? "") : (accentClasses ?? baseColorClasses),
@@ -168,28 +170,44 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       className,
     );
 
-    const iconContent = renderIcon(
+    // The icon paints with `currentColor`, so by default it inherits the
+    // button's text colour and the glyph always matches. An `iconColor`
+    // tints only the glyph by wrapping it in a span that carries the colour.
+    const iconNode = renderIcon(
       icon,
       size as IconSize,
       classNames("flex-shrink-0", sizeConfig.icon, iconClassName),
+    );
+    const iconContent = iconColor ? (
+      <span
+        className="inline-flex shrink-0 items-center"
+        style={{ color: iconColor }}
+      >
+        {iconNode}
+      </span>
+    ) : (
+      iconNode
     );
 
     // Pull aria-label and title out of rest so we can set them explicitly.
     // title falls back to aria-label → srLabel so the native browser tooltip
     // always shows the accessible label rather than the icon's own SVG title.
     // When a styled tooltip is provided, omit the native title to avoid doubling.
-    const { "aria-label": ariaLabel, title, ...restProps } = rest;
+    const { "aria-label": ariaLabel, title, type = "button", ...restProps } = rest;
     const computedAriaLabel = ariaLabel ?? srLabel;
     const computedTitle = tooltip ? undefined : (title ?? computedAriaLabel);
 
     const button = (
       <button
         ref={ref}
+        // `type="button"` by default — see Button: the native default is
+        // "submit", which made an unspec'd icon button submit its form.
+        type={type}
         className={computedClassName}
         data-variant={variant}
         data-color={color}
         data-size={size}
-        data-glass={glass}
+        data-glass={isGlass}
         disabled={disabled || loading}
         aria-label={computedAriaLabel}
         title={computedTitle}
@@ -198,7 +216,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         {specularOverlay}
         {loading ? (
           <Spinner
-            size={sizeConfig.spinner}
+            size={sizeConfig.spinnerSize}
             color={spinnerColorToken}
             variant={spinnerVariant}
             aria-hidden="true"
@@ -207,7 +225,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
           iconContent
         )}
         <span className="sr-only">
-          {srLabel ?? rest["aria-label"] ?? "Icon button"}
+          {srLabel || rest["aria-label"] || "Icon button"}
         </span>
       </button>
     );

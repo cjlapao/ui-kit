@@ -41,7 +41,7 @@ function demoNodeModulesPlugin() {
           return resolved;
         }
       }
-      return null;
+        return null;
     },
   };
 }
@@ -79,9 +79,13 @@ function resolveFromModule(baseNodeModules: string, source: string): string | nu
           ? path.join(baseNodeModules, source, rootExport.default)
           : typeof rootExport.import === "string"
             ? path.join(baseNodeModules, source, rootExport.import)
-            : typeof rootExport.node?.default === "string"
-              ? path.join(baseNodeModules, source, rootExport.node.default)
-              : path.join(baseNodeModules, source);
+            : typeof rootExport.import?.default === "string"
+              ? path.join(baseNodeModules, source, rootExport.import.default)
+              : typeof rootExport.import?.import === "string"
+                ? path.join(baseNodeModules, source, rootExport.import.import)
+                : typeof rootExport.node?.default === "string"
+                  ? path.join(baseNodeModules, source, rootExport.node.default)
+                  : path.join(baseNodeModules, source);
     }
   }
   // 3) package.module
@@ -113,7 +117,12 @@ export default defineConfig({
   root: demoRoot,
   plugins: [demoNodeModulesPlugin(), react()],
   resolve: {
-    dedupe: ["react", "react-dom"],
+    // The kit sources (aliased from ../src) and the demo resolve bare
+    // specifiers from different node_modules trees. Dedupe anything with
+    // React context/instance identity to a single physical copy, or the
+    // prod bundle ends up with two instances (works in dev only because
+    // optimizeDeps pre-bundles once).
+    dedupe: ["react", "react-dom", "react-router", "react-router-dom"],
     alias: {
       "@cjlapao/ui-kit": path.resolve(demoRoot, "../src/index.ts"),
       "@assets": path.resolve(demoRoot, "../src/assets"),

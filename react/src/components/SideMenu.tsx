@@ -1,8 +1,26 @@
 import { Link, useLocation } from "react-router-dom";
-import React, { useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import CustomIcon from "./CustomIcon";
 import { type IconName } from "../icons/registry";
-import { TrueColor } from "../theme";
+import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
+import Input from "./Input";
+import {
+  SIDEBAR_IDLE_COPY,
+  SIDEBAR_MOBILE_QUERY,
+  getSideMenuItemTokens,
+  getSidebarSurfaceTokens,
+  type SidebarCollapsible,
+  type SidebarIdleCopyKind,
+  type SidebarSide,
+  type SidebarVariant,
+  TrueColor,
+} from "../theme";
 
 export type SideMenuItemType = "link" | "group" | "divider";
 
@@ -71,6 +89,16 @@ export interface SideMenuItemLink extends SideMenuItemBase {
   groupName?: string;
   /** Optional badge rendered to the right of the label (e.g. active job count). */
   badge?: React.ReactNode;
+  /** Short copy, matched alongside `label` by the menu search. */
+  description?: string;
+  /** Actions rendered at the end of the row (e.g. edit / delete buttons). */
+  actions?: React.ReactNode;
+  /** Show `actions` only while the row is hovered or focused. */
+  actionsOnHover?: boolean;
+  /** Nested sub-items. Presence makes the row collapsible. */
+  children?: SideMenuItemLink[];
+  /** Open the sub-tree initially. */
+  defaultOpen?: boolean;
 }
 
 export interface SideMenuItemGroup extends SideMenuItemBase {
@@ -89,6 +117,27 @@ export type SideMenuItem =
   | SideMenuItemLink
   | SideMenuItemGroup
   | SideMenuItemDivider;
+
+/**
+ * A full row above the navigation (top) or pinned above the collapse control
+ * (footer). Renders like a link row; when `menu` is present, clicking it opens
+ * the menu instead of navigating.
+ */
+export interface SideMenuDropdownItem {
+  label: string;
+  /** Registry icon name. Ignored when `media` is set. */
+  icon?: IconName;
+  /** Rendered instead of `icon` — e.g. an avatar. */
+  media?: React.ReactNode;
+  color?: TrueColor;
+  /** Route to navigate to when `menu` is absent. */
+  path?: string;
+  /** When present, clicking the row opens this menu instead of navigating. */
+  menu?: DropdownMenuOption[];
+  /** Called with the selected option. The menu also closes. */
+  onSelect?: (item: DropdownMenuOption) => void;
+  badge?: React.ReactNode;
+}
 
 export interface SideMenuProps {
   color?: TrueColor;
@@ -123,217 +172,215 @@ export interface SideMenuProps {
    * Defaults to [] (no view filtering on any module).
    */
   moduleViewOptions?: readonly string[];
+  /**
+   * Surface treatment of the panel. `sidebar` is the standing look; the rows
+   * inside take the matching treatment automatically.
+   * @default "sidebar"
+   */
+  variant?: SidebarVariant;
+  /** Which edge of the layout the panel sits on. @default "left" */
+  side?: SidebarSide;
+  /**
+   * How the desktop panel collapses: `icon` (rail), `offcanvas` (hidden, a
+   * handle at the edge opens it) or `none`. Ignored while `openOnHover` is on.
+   * @default "icon"
+   */
+  collapsible?: SidebarCollapsible;
+  /**
+   * The desktop panel stays a collapsed icon rail; hovering the rail opens the
+   * full menu as an overlay. The collapse control is hidden while this is on.
+   * @default false
+   */
+  openOnHover?: boolean;
+  /**
+   * Duration in ms of the hover-rail panel's grow/shrink (its width
+   * transition). Only meaningful while `openOnHover` is on. @default 250
+   */
+  hoverTransitionMs?: number;
+  /**
+   * Below 1024px the panel becomes an offcanvas overlay with a backdrop; at or
+   * above that, `collapsible` applies. @default true
+   */
+  responsive?: boolean;
+  /** A row above the navigation with its own dropdown menu (workspace, user…). */
+  topItem?: SideMenuDropdownItem;
+  /** A row pinned above the collapse control with its own dropdown menu. */
+  footerItem?: SideMenuDropdownItem;
+  /** Show the item search (matches `label` and `description`) below `topItem`. */
+  search?: boolean;
+  /** Controlled value for the menu search. */
+  searchValue?: string;
+  /** Called with the new search text as the user types. */
+  onSearchChange?: (value: string) => void;
+  /** Placeholder for the search input. @default "Search menu" */
+  searchPlaceholder?: string;
 }
 
-const getSideMenuColorTokens = (color: TrueColor) => {
-  switch (color) {
-    case "neutral":
-      return {
-        bg: "bg-neutral-100 dark:bg-neutral-800/60",
-        text: "text-neutral-900 dark:text-neutral-100",
-        hoverBg: "hover:bg-neutral-200 dark:hover:bg-neutral-700/50",
-        hoverText: "hover:text-neutral-900 dark:hover:text-neutral-100",
-        iconActive: "text-neutral-900 dark:text-neutral-100",
-        iconHover:
-          "group-hover:text-neutral-900 dark:group-hover:text-neutral-100",
-      };
-    case "blue":
-      return {
-        bg: "bg-blue-50 dark:bg-blue-500/10",
-        text: "text-blue-700 dark:text-blue-400",
-        hoverBg: "hover:bg-blue-100 dark:hover:bg-blue-500/20",
-        hoverText: "hover:text-blue-900 dark:hover:text-blue-300",
-        iconActive: "text-blue-600 dark:text-blue-400",
-        iconHover: "group-hover:text-blue-700 dark:group-hover:text-blue-300",
-      };
-    case "sky":
-      return {
-        bg: "bg-sky-50 dark:bg-sky-500/10",
-        text: "text-sky-700 dark:text-sky-400",
-        hoverBg: "hover:bg-sky-100 dark:hover:bg-sky-500/20",
-        hoverText: "hover:text-sky-900 dark:hover:text-sky-300",
-        iconActive: "text-sky-600 dark:text-sky-400",
-        iconHover: "group-hover:text-sky-700 dark:group-hover:text-sky-300",
-      };
-    case "emerald":
-      return {
-        bg: "bg-emerald-50 dark:bg-emerald-500/10",
-        text: "text-emerald-700 dark:text-emerald-400",
-        hoverBg: "hover:bg-emerald-100 dark:hover:bg-emerald-500/20",
-        hoverText: "hover:text-emerald-900 dark:hover:text-emerald-300",
-        iconActive: "text-emerald-600 dark:text-emerald-400",
-        iconHover:
-          "group-hover:text-emerald-700 dark:group-hover:text-emerald-300",
-      };
-    case "amber":
-      return {
-        bg: "bg-amber-50 dark:bg-amber-500/10",
-        text: "text-amber-700 dark:text-amber-400",
-        hoverBg: "hover:bg-amber-100 dark:hover:bg-amber-500/20",
-        hoverText: "hover:text-amber-900 dark:hover:text-amber-300",
-        iconActive: "text-amber-600 dark:text-amber-400",
-        iconHover: "group-hover:text-amber-700 dark:group-hover:text-amber-300",
-      };
-    case "rose":
-      return {
-        bg: "bg-rose-50 dark:bg-rose-500/10",
-        text: "text-rose-700 dark:text-rose-400",
-        hoverBg: "hover:bg-rose-100 dark:hover:bg-rose-500/20",
-        hoverText: "hover:text-rose-900 dark:hover:text-rose-300",
-        iconActive: "text-rose-600 dark:text-rose-400",
-        iconHover: "group-hover:text-rose-700 dark:group-hover:text-rose-300",
-      };
-    case "red":
-      return {
-        bg: "bg-red-50 dark:bg-red-500/10",
-        text: "text-red-700 dark:text-red-400",
-        hoverBg: "hover:bg-red-100 dark:hover:bg-red-500/20",
-        hoverText: "hover:text-red-900 dark:hover:text-red-300",
-        iconActive: "text-red-600 dark:text-red-400",
-        iconHover: "group-hover:text-red-700 dark:group-hover:text-red-300",
-      };
-    case "orange":
-      return {
-        bg: "bg-orange-50 dark:bg-orange-500/10",
-        text: "text-orange-700 dark:text-orange-400",
-        hoverBg: "hover:bg-orange-100 dark:hover:bg-orange-500/20",
-        hoverText: "hover:text-orange-900 dark:hover:text-orange-300",
-        iconActive: "text-orange-600 dark:text-orange-400",
-        iconHover:
-          "group-hover:text-orange-700 dark:group-hover:text-orange-300",
-      };
-    case "yellow":
-      return {
-        bg: "bg-yellow-50 dark:bg-yellow-500/10",
-        text: "text-yellow-700 dark:text-yellow-400",
-        hoverBg: "hover:bg-yellow-100 dark:hover:bg-yellow-500/20",
-        hoverText: "hover:text-yellow-900 dark:hover:text-yellow-300",
-        iconActive: "text-yellow-600 dark:text-yellow-400",
-        iconHover:
-          "group-hover:text-yellow-700 dark:group-hover:text-yellow-300",
-      };
-    case "lime":
-      return {
-        bg: "bg-lime-50 dark:bg-lime-500/10",
-        text: "text-lime-700 dark:text-lime-400",
-        hoverBg: "hover:bg-lime-100 dark:hover:bg-lime-500/20",
-        hoverText: "hover:text-lime-900 dark:hover:text-lime-300",
-        iconActive: "text-lime-600 dark:text-lime-400",
-        iconHover: "group-hover:text-lime-700 dark:group-hover:text-lime-300",
-      };
-    case "green":
-      return {
-        bg: "bg-green-50 dark:bg-green-500/10",
-        text: "text-green-700 dark:text-green-400",
-        hoverBg: "hover:bg-green-100 dark:hover:bg-green-500/20",
-        hoverText: "hover:text-green-900 dark:hover:text-green-300",
-        iconActive: "text-green-600 dark:text-green-400",
-        iconHover: "group-hover:text-green-700 dark:group-hover:text-green-300",
-      };
-    case "teal":
-      return {
-        bg: "bg-teal-50 dark:bg-teal-500/10",
-        text: "text-teal-700 dark:text-teal-400",
-        hoverBg: "hover:bg-teal-100 dark:hover:bg-teal-500/20",
-        hoverText: "hover:text-teal-900 dark:hover:text-teal-300",
-        iconActive: "text-teal-600 dark:text-teal-400",
-        iconHover: "group-hover:text-teal-700 dark:group-hover:text-teal-300",
-      };
-    case "cyan":
-      return {
-        bg: "bg-cyan-50 dark:bg-cyan-500/10",
-        text: "text-cyan-700 dark:text-cyan-400",
-        hoverBg: "hover:bg-cyan-100 dark:hover:bg-cyan-500/20",
-        hoverText: "hover:text-cyan-900 dark:hover:text-cyan-300",
-        iconActive: "text-cyan-600 dark:text-cyan-400",
-        iconHover: "group-hover:text-cyan-700 dark:group-hover:text-cyan-300",
-      };
-    case "indigo":
-      return {
-        bg: "bg-indigo-50 dark:bg-indigo-500/10",
-        text: "text-indigo-700 dark:text-indigo-400",
-        hoverBg: "hover:bg-indigo-100 dark:hover:bg-indigo-500/20",
-        hoverText: "hover:text-indigo-900 dark:hover:text-indigo-300",
-        iconActive: "text-indigo-600 dark:text-indigo-400",
-        iconHover:
-          "group-hover:text-indigo-700 dark:group-hover:text-indigo-300",
-      };
-    case "violet":
-      return {
-        bg: "bg-violet-50 dark:bg-violet-500/10",
-        text: "text-violet-700 dark:text-violet-400",
-        hoverBg: "hover:bg-violet-100 dark:hover:bg-violet-500/20",
-        hoverText: "hover:text-violet-900 dark:hover:text-violet-300",
-        iconActive: "text-violet-600 dark:text-violet-400",
-        iconHover:
-          "group-hover:text-violet-700 dark:group-hover:text-violet-300",
-      };
-    case "purple":
-      return {
-        bg: "bg-purple-50 dark:bg-purple-500/10",
-        text: "text-purple-700 dark:text-purple-400",
-        hoverBg: "hover:bg-purple-100 dark:hover:bg-purple-500/20",
-        hoverText: "hover:text-purple-900 dark:hover:text-purple-300",
-        iconActive: "text-purple-600 dark:text-purple-400",
-        iconHover:
-          "group-hover:text-purple-700 dark:group-hover:text-purple-300",
-      };
-    case "fuchsia":
-      return {
-        bg: "bg-fuchsia-50 dark:bg-fuchsia-500/10",
-        text: "text-fuchsia-700 dark:text-fuchsia-400",
-        hoverBg: "hover:bg-fuchsia-100 dark:hover:bg-fuchsia-500/20",
-        hoverText: "hover:text-fuchsia-900 dark:hover:text-fuchsia-300",
-        iconActive: "text-fuchsia-600 dark:text-fuchsia-400",
-        iconHover:
-          "group-hover:text-fuchsia-700 dark:group-hover:text-fuchsia-300",
-      };    case "slate":
-      return {
-        bg: "bg-slate-50 dark:bg-slate-500/10",
-        text: "text-slate-700 dark:text-slate-400",
-        hoverBg: "hover:bg-slate-100 dark:hover:bg-slate-500/20",
-        hoverText: "hover:text-slate-900 dark:hover:text-slate-300",
-        iconActive: "text-slate-600 dark:text-slate-400",
-        iconHover: "group-hover:text-slate-700 dark:group-hover:text-slate-300",
-      };
-    case "gray":
-      return {
-        bg: "bg-gray-50 dark:bg-gray-500/10",
-        text: "text-gray-700 dark:text-gray-400",
-        hoverBg: "hover:bg-gray-100 dark:hover:bg-gray-500/20",
-        hoverText: "hover:text-gray-900 dark:hover:text-gray-300",
-        iconActive: "text-gray-600 dark:text-gray-400",
-        iconHover: "group-hover:text-gray-700 dark:group-hover:text-gray-300",
-      };
-    case "zinc":
-      return {
-        bg: "bg-zinc-50 dark:bg-zinc-500/10",
-        text: "text-zinc-700 dark:text-zinc-400",
-        hoverBg: "hover:bg-zinc-100 dark:hover:bg-zinc-500/20",
-        hoverText: "hover:text-zinc-900 dark:hover:text-zinc-300",
-        iconActive: "text-zinc-600 dark:text-zinc-400",
-        iconHover: "group-hover:text-zinc-700 dark:group-hover:text-zinc-300",
-      };
-    case "stone":
-      return {
-        bg: "bg-stone-50 dark:bg-stone-500/10",
-        text: "text-stone-700 dark:text-stone-400",
-        hoverBg: "hover:bg-stone-100 dark:hover:bg-stone-500/20",
-        hoverText: "hover:text-stone-900 dark:hover:text-stone-300",
-        iconActive: "text-stone-600 dark:text-stone-400",
-        iconHover: "group-hover:text-stone-700 dark:group-hover:text-stone-300",
-      };
-    default:
-      return {
-        bg: "bg-blue-50 dark:bg-blue-500/10",
-        text: "text-blue-700 dark:text-blue-400",
-        hoverBg: "hover:bg-blue-100 dark:hover:bg-blue-500/20",
-        hoverText: "hover:text-blue-900 dark:hover:text-blue-300",
-        iconActive: "text-blue-600 dark:text-blue-400",
-        iconHover: "group-hover:text-blue-700 dark:group-hover:text-blue-300",
-      };
-  }
+const EMPTY_VIEW_OPTIONS: readonly string[] = [];
+
+const NOISE_STYLE: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
 };
+
+const PANEL_WIDTH = "w-64";
+const RAIL_WIDTH = "w-[68px]";
+
+/** Row indent per nesting depth. Capped so deeper trees do not run off-screen. */
+const ROW_INDENT = ["px-3", "pl-9 pr-3", "pl-14 pr-3", "pl-20 pr-3"];
+
+const indentClass = (depth: number): string =>
+  ROW_INDENT[Math.min(depth, ROW_INDENT.length - 1)];
+
+/**
+ * Whether the responsive `SideMenu` is in its offcanvas (mobile) mode.
+ * Shared with `SideMenuLayout`, so the layout's mobile toggle and the menu's
+ * own breakpoint can never disagree.
+ */
+export const useSidebarIsMobile = (enabled = true): boolean => {
+  const [isMobile, setIsMobile] = useState<boolean>(
+    () =>
+      enabled &&
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(SIDEBAR_MOBILE_QUERY).matches,
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+    const mql = window.matchMedia(SIDEBAR_MOBILE_QUERY);
+    const onChange = (event: MediaQueryListEvent) =>
+      setIsMobile(enabled && event.matches);
+    setIsMobile(enabled && mql.matches);
+    if (!enabled) {
+      return;
+    }
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [enabled]);
+
+  return isMobile;
+};
+
+// ---------------------------------------------------------------------------
+// Top / footer dropdown row
+// ---------------------------------------------------------------------------
+
+interface DropdownRowProps {
+  item: SideMenuDropdownItem;
+  placement: "top" | "footer";
+  collapsed: boolean;
+  side: SidebarSide;
+  idleCopy: SidebarIdleCopyKind;
+}
+
+const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
+  item,
+  placement,
+  collapsed,
+  side,
+  idleCopy,
+}) => {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const idle = SIDEBAR_IDLE_COPY[idleCopy];
+  const hasMenu = !!item.menu?.length;
+
+  // A left sidebar's menus grow to the right (into the content), a right
+  // sidebar's grow to the left — regardless of the collapsed state.
+  const align = side === "left" ? "start" : "end";
+
+  const media =
+    item.media ??
+    (item.icon ? (
+      <CustomIcon icon={item.icon} className={`h-5 w-5 shrink-0 ${idle.icon}`} />
+    ) : null);
+
+  const labelSpan = (
+    <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
+      {item.label}
+    </span>
+  );
+
+  const rowClasses = `relative group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+    collapsed ? "justify-center" : "gap-3"
+  } ${idle.text}`;
+
+  if (!hasMenu) {
+    const hoverClasses =
+      item.path &&
+      "hover:bg-neutral-200/50 dark:hover:bg-neutral-700/40";
+
+    const content = (
+      <>
+        {media}
+        {!collapsed && labelSpan}
+        {!collapsed && item.badge && (
+          <span className="ml-auto shrink-0 pl-2">{item.badge}</span>
+        )}
+      </>
+    );
+
+    if (item.path) {
+      return (
+        <Link
+          to={item.path}
+          title={collapsed ? item.label : undefined}
+          className={`${rowClasses} ${hoverClasses}`}
+        >
+          {content}
+        </Link>
+      );
+    }
+    return <div className={rowClasses}>{content}</div>;
+  }
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        title={collapsed ? item.label : undefined}
+        className={`${rowClasses} hover:bg-neutral-200/50 dark:hover:bg-neutral-700/40`}
+      >
+        {media}
+        {!collapsed && (
+          <>
+            {labelSpan}
+            {item.badge && (
+              <span className="ml-auto shrink-0 pl-2">{item.badge}</span>
+            )}
+            <CustomIcon
+              icon="ChevronRight"
+              className="h-4 w-4 shrink-0 rotate-90 text-neutral-400 dark:text-neutral-500"
+            />
+          </>
+        )}
+        {collapsed && item.badge && (
+          <span className="absolute -top-1 -right-1">{item.badge}</span>
+        )}
+      </button>
+      <DropdownMenu
+        anchorRef={triggerRef}
+        open={open}
+        onClose={() => setOpen(false)}
+        items={item.menu ?? []}
+        onSelect={item.onSelect}
+        align={align}
+        side={placement === "top" ? "bottom" : "top"}
+        width={240}
+      />
+    </>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// SideMenu
+// ---------------------------------------------------------------------------
 
 export const SideMenu = ({
   title,
@@ -348,20 +395,158 @@ export const SideMenu = ({
   fullHeight = false,
   guardEvaluator,
   activeModuleView,
-  moduleViewOptions = [],
+  moduleViewOptions = EMPTY_VIEW_OPTIONS,
   color = "blue",
+  variant = "sidebar",
+  side = "left",
+  collapsible = "icon",
+  openOnHover = false,
+  hoverTransitionMs = 250,
+  responsive = true,
+  topItem,
+  footerItem,
+  search = false,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = "Search menu",
 }: SideMenuProps) => {
   const location = useLocation();
+  const panelId = useId();
+  const isMobile = useSidebarIsMobile(responsive);
+
   const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const [internalSearch, setInternalSearch] = useState("");
+  const [hoverOpen, setHoverOpen] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isCollapsed = onToggleCollapse ? collapsed : internalCollapsed;
-  const toggleCollapse =
-    onToggleCollapse || (() => setInternalCollapsed(!internalCollapsed));
+  useEffect(() => {
+    return () => {
+      if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    };
+  }, []);
 
-  const isActive = (path: string) => {
-    if (path === "/") return location.pathname === "/";
-    return location.pathname.startsWith(path);
+  const searchQuery = searchValue ?? internalSearch;
+  const setSearchQuery = (value: string) => {
+    setInternalSearch(value);
+    onSearchChange?.(value);
   };
+
+  const searchActive = search && searchQuery.trim().length > 0;
+
+  // Collapse state: controlled via `onToggleCollapse`, internal otherwise.
+  const collapsedState = onToggleCollapse ? collapsed : internalCollapsed;
+  const toggleCollapse = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    } else {
+      setInternalCollapsed((value) => !value);
+    }
+  };
+
+  // `openOnHover` owns the desktop state: the rail is always collapsed and the
+  // full panel is a hover overlay, so `collapsible` no longer applies.
+  const effectiveMode: SidebarCollapsible = openOnHover ? "icon" : collapsible;
+  const expanded = isMobile
+    ? true
+    : openOnHover
+      ? false
+      : effectiveMode === "none"
+        ? true
+        : !collapsedState;
+
+  const showCollapseControl =
+    !isMobile && !openOnHover && effectiveMode !== "none";
+  const showOffcanvasHandle =
+    !isMobile && effectiveMode === "offcanvas" && !expanded;
+
+  const surface = getSidebarSurfaceTokens(variant, color);
+  const idle = SIDEBAR_IDLE_COPY[surface.idleCopy];
+
+  // ── Hover overlay (openOnHover) ─────────────────────────────────────────
+  const cancelHoverClose = () => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+  };
+  const scheduleHoverClose = () => {
+    cancelHoverClose();
+    hoverTimer.current = setTimeout(() => setHoverOpen(false), 150);
+  };
+  const closeHover = () => {
+    cancelHoverClose();
+    setHoverOpen(false);
+  };
+  const handleRailEnter = () => {
+    if (!openOnHover || isMobile) return;
+    cancelHoverClose();
+    setHoverOpen(true);
+  };
+  const handleRailLeave = () => {
+    if (!openOnHover || isMobile) return;
+    scheduleHoverClose();
+  };
+  useEffect(() => {
+    if (!openOnHover) setHoverOpen(false);
+  }, [openOnHover]);
+
+  // ── Active path ─────────────────────────────────────────────────────────
+  // Exact match or a descendant: "/dashboard" must not light up on
+  // "/dashboardx" the way a bare startsWith does.
+  const isActivePath = (path: string): boolean => {
+    if (path === "/") return location.pathname === "/";
+    return (
+      location.pathname === path || location.pathname.startsWith(`${path}/`)
+    );
+  };
+
+  const hasActiveDescendant = (link: SideMenuItemLink): boolean =>
+    !!link.children?.some(
+      (child) => isActivePath(child.path) || hasActiveDescendant(child),
+    );
+
+  // ── Nested submenus ─────────────────────────────────────────────────────
+  const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    const walk = (list: SideMenuItemLink[]) => {
+      for (const link of list) {
+        if (link.children?.length) {
+          if (link.defaultOpen) initial.add(link.slug);
+          walk(link.children);
+        }
+      }
+    };
+    walk(
+      items.filter(
+        (item): item is SideMenuItemLink =>
+          item.type !== "group" && item.type !== "divider",
+      ),
+    );
+    return initial;
+  });
+
+  const toggleSubmenu = (slug: string) => {
+    setOpenSubmenus((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) {
+        next.delete(slug);
+      } else {
+        next.add(slug);
+      }
+      return next;
+    });
+  };
+
+  // ── Visible items (guards + module view + search) ───────────────────────
+  const query = searchQuery.trim().toLowerCase();
+
+  const matchesItem = (item: SideMenuItemLink): boolean =>
+    !query ||
+    item.label.toLowerCase().includes(query) ||
+    (item.description ?? "").toLowerCase().includes(query);
+
+  const matchesSubtree = (item: SideMenuItemLink): boolean =>
+    matchesItem(item) || (item.children ?? []).some(matchesSubtree);
 
   const visibleItems = useMemo(() => {
     const isViewFiltered = !!activeModuleView && activeModuleView !== "all";
@@ -406,222 +591,496 @@ export const SideMenu = ({
       if (
         item.type !== "group" &&
         item.type !== "divider" &&
-        passesGuard(item)
+        passesGuard(item) &&
+        matchesSubtree(item)
       ) {
-        const link = item as SideMenuItemLink;
-        if (link.groupName) groupsWithVisibleLinks.add(link.groupName);
+        if (item.groupName) groupsWithVisibleLinks.add(item.groupName);
       }
     });
 
     return items.filter((item) => {
       if (!passesGuard(item)) return false;
+      if (item.type !== "group" && item.type !== "divider" && !matchesSubtree(item)) {
+        return false;
+      }
       if (item.type === "group") return groupsWithVisibleLinks.has(item.slug);
       // Standalone dividers: hide if groupName set but that group has no visible links
       if (item.type === "divider")
         return !item.groupName || groupsWithVisibleLinks.has(item.groupName);
       return true;
     });
-  }, [items, guardEvaluator, activeModuleView, moduleViewOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, guardEvaluator, activeModuleView, moduleViewOptions, query]);
 
-  // Mobile Overlay Classes
-  const mobileClasses = `
-    fixed inset-y-0 left-0 z-[60] w-64 bg-white/90 dark:bg-neutral-900/95 backdrop-blur-xl transition-transform duration-300 ease-in-out md:hidden
-    ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-  `;
-
-  // Desktop Classes
-  // NOTE: backdrop-blur is intentionally NOT on this element — it would create a CSS stacking
-  // context that scopes child z-indices, preventing the logo from escaping the overlay.
-  // The blur + background are applied via an inner absolute layer instead.
-  const desktopClasses = `
-    hidden md:flex flex-col flex-shrink-0 relative ${fullHeight ? "h-full" : "sticky top-16 h-[calc(100vh-64px)]"}
-    transition-all duration-300
-    shadow-[10px_0_30px_-10px_rgba(0,0,0,0.1)] dark:shadow-[10px_0_30px_-10px_rgba(0,0,0,0.4)] overflow-hidden
-    ${isCollapsed ? "w-[68px]" : "w-64"}
-  `;
-
-  const logoSection = (logoIcon || logoText) && (
-    <div
-      className={`relative z-50 flex h-15 items-center bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-700 px-4 py-4 ${isCollapsed ? "justify-center" : ""}`}
-    >
-      {logoIcon && <div className="shrink-0">{logoIcon}</div>}
-      {logoText && (
-        <div
-          className={`overflow-hidden transition-all duration-300 ${isCollapsed ? "w-0 opacity-0 ml-0" : "w-auto opacity-100 ml-3"}`}
-        >
-          <div className="whitespace-nowrap">{logoText}</div>
-        </div>
-      )}
-    </div>
+  const hasVisibleLink = visibleItems.some(
+    (item) => item.type !== "group" && item.type !== "divider",
   );
 
-  const renderContent = (isMobile: boolean) => (
-    <>
-      {/* Glass background — kept on a separate layer so the outer wrapper doesn't
-          create a stacking context. This lets child elements use root-level z-indices. */}
-      {!isMobile && (
-        <div className="absolute inset-0 backdrop-blur-2xl bg-white/70 dark:bg-neutral-900/90 pointer-events-none" />
-      )}
-      {/* Dither Noise Overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.4] pointer-events-none mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-        }}
-      />
-      <div className="relative h-full flex flex-col w-full">
-        {/* Logo Header */}
-        {logoSection}
+  // ── Shell classes ───────────────────────────────────────────────────────
+  const heightClass = fullHeight ? "h-full" : "sticky top-16 h-[calc(100vh-64px)]";
+  const isLeft = side === "left";
+  // The hover-rail grows the panel itself — one solid div whose width
+  // transitions 68px → 256px on hover (PrimeVue-style) — instead of a separate
+  // overlay fading in over the rail, which read as a second, see-through layer.
+  const isHoverMode = openOnHover && !isMobile;
 
-        {/* Title + Mobile Close */}
-        {(title || isMobile) && (
+  const borderClasses = surface.border
+    ? `${surface.border} ${
+        surface.borderSides === "all"
+          ? "border"
+          : isLeft
+            ? "border-r"
+            : "border-l"
+      }`
+    : "";
+
+  // The aside's own width is the collapse mechanism: 256px expanded, a 68px
+  // rail in icon mode, 0 in offcanvas. In hover mode the rail grows to 256px
+  // while hovered. Content reflows with it (icon mode, as in the standing
+  // menu) or stays a fixed 256px box that the aside clips (offcanvas).
+  const asideWidth =
+    effectiveMode === "offcanvas"
+      ? expanded
+        ? PANEL_WIDTH
+        : "w-0"
+      : isHoverMode
+        ? hoverOpen
+          ? PANEL_WIDTH
+          : RAIL_WIDTH
+        : expanded
+          ? PANEL_WIDTH
+          : RAIL_WIDTH;
+
+  const panelPosition = isLeft ? "left-0" : "right-0";
+  const offcanvasHidden = effectiveMode === "offcanvas" && !expanded;
+
+  // In hover mode the wrapper keeps a fixed 68px in-flow footprint so the main
+  // content does not shift; the aside grows over it (absolute) instead.
+  const desktopClasses = `
+    relative flex-shrink-0 ${heightClass} ${isHoverMode ? RAIL_WIDTH : ""} ${surface.offset}
+  `;
+
+  const asideClasses = isHoverMode
+    ? `
+      absolute inset-y-0 ${panelPosition} z-40 overflow-hidden transition-[width] ease-in-out ${asideWidth}
+      ${surface.radius} ${borderClasses} ${isLeft ? surface.shadow : surface.shadowRight}
+      ${className}
+    `
+    : `
+      relative h-full overflow-hidden transition-all duration-300 ${asideWidth}
+      ${surface.radius} ${borderClasses} ${isLeft ? surface.shadow : surface.shadowRight}
+      ${className}
+    `;
+
+  // The hover-rail panel is solid so the rail, sibling menus and page content
+  // it grows over do not show through a translucent fill.
+  const panelFill = isHoverMode ? surface.solidFill : surface.fill;
+
+  // The panel's own content is collapsed in the rail, expanded in the panel —
+  // in hover mode that is driven by the hover state, not the collapse state.
+  const contentCollapsed = isHoverMode ? !hoverOpen : !expanded;
+
+  const contentClasses =
+    effectiveMode === "offcanvas"
+      ? `absolute inset-y-0 ${panelPosition} ${PANEL_WIDTH} flex flex-col`
+      : "relative h-full w-full flex flex-col";
+
+  // Mobile drawer — always the standing translucent look.
+  const mobileClasses = `
+    fixed inset-y-0 ${panelPosition} z-[60] w-64 bg-white/90 dark:bg-neutral-900/95 backdrop-blur-xl transition-transform duration-300 ease-in-out
+    ${mobileOpen ? "translate-x-0" : isLeft ? "-translate-x-full" : "translate-x-full"}
+    ${className}
+  `;
+
+  // ── Content ─────────────────────────────────────────────────────────────
+  const logoSection =
+    logoIcon || logoText
+      ? (contentCollapsed: boolean) => (
           <div
-            className={`px-6 pt-4 pb-2 flex items-center ${isCollapsed && !isMobile ? "justify-center px-3" : "justify-between"}`}
+            className={`relative z-50 flex h-15 items-center border-b px-4 py-4 ${
+              variant === "glass"
+                ? "bg-white/20 border-white/30 dark:bg-white/5 dark:border-white/10"
+                : "bg-white border-gray-200 dark:bg-neutral-900 dark:border-neutral-700"
+            } ${contentCollapsed ? "justify-center" : ""}`}
           >
-            {title && !(isCollapsed && !isMobile) && (
-              <h2 className="text-xs font-semibold text-gray-400 dark:text-neutral-500 uppercase tracking-wider whitespace-nowrap">
-                {title}
-              </h2>
-            )}
-            {/* Mobile Close Button */}
-            {isMobile && (
-              <button
-                onClick={onCloseMobile}
-                className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-neutral-700/50 text-gray-400 dark:text-neutral-500 hover:text-gray-700 dark:hover:text-neutral-200 transition-colors ml-auto"
+            {logoIcon && <div className="shrink-0">{logoIcon}</div>}
+            {logoText && (
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  contentCollapsed ? "w-0 opacity-0 ml-0" : "w-auto opacity-100 ml-3"
+                }`}
               >
-                <CustomIcon icon="Close" className="w-5 h-5" />
-              </button>
+                <div className="whitespace-nowrap">{logoText}</div>
+              </div>
             )}
           </div>
-        )}
+        )
+      : null;
 
-        {/* Navigation Items */}
-        <div className="flex-1 px-3 py-1 overflow-y-auto w-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent">
-          <nav className="space-y-1 w-full">
-            {visibleItems.map((item, index) => {
-              // Divider
-              if (item.type === "divider") {
-                return (
-                  <div
-                    key={`divider-${index}`}
-                    className={`my-2 border-t border-gray-200/60 dark:border-neutral-700/60 ${isCollapsed && !isMobile ? "mx-1" : "mx-0"}`}
-                  />
-                );
-              }
+  const renderLinkRow = (
+    link: SideMenuItemLink,
+    depth: number,
+    key: string,
+    contentCollapsed: boolean,
+  ): React.ReactNode => {
+    const hasChildren = !!link.children?.length;
+    const selfActive = isActivePath(link.path);
+    const childActive = hasChildren ? hasActiveDescendant(link) : false;
+    // While searching, only matching branches stay visible under a parent.
+    const visibleChildren = searchActive
+      ? (link.children ?? []).filter(matchesSubtree)
+      : (link.children ?? []);
+    const showChildren =
+      hasChildren &&
+      (searchActive || openSubmenus.has(link.slug)) &&
+      visibleChildren.length > 0;
+    const tokens = getSideMenuItemTokens(link.color || color);
 
-              // Group Header
-              if (item.type === "group") {
-                if (isCollapsed && !isMobile) return null;
-                return (
-                  <React.Fragment key={`group-${index}-${item.label}`}>
-                    {item.hasDivider && (
-                      <div
-                        className={`my-2 border-t border-gray-200/60 ${isCollapsed && !isMobile ? "mx-1" : "mx-0"}`}
-                      />
-                    )}
-                    <div
-                      className={`px-3 py-1 mb-1 text-xs font-semibold text-gray-400 dark:text-neutral-500 uppercase tracking-wider ${index === 0 ? "mt-1" : "mt-4"}`}
-                    >
-                      {item.label}
-                    </div>
-                  </React.Fragment>
-                );
-              }
+    const rowClasses = `group relative flex items-center rounded-lg transition-all duration-150 ${indentClass(depth)} ${
+      selfActive
+        ? `${tokens.bg} ${tokens.text} shadow-sm`
+        : childActive
+          ? tokens.text
+          : `${idle.text} ${tokens.hoverBg} ${tokens.hoverText}`
+    }`;
 
-              // Link (Default)
-              const linkItem = item as SideMenuItemLink;
-              const active = isActive(linkItem.path);
-              const itemColor = linkItem.color || color;
-              const tokens = getSideMenuColorTokens(itemColor);
-
-              return (
-                <Link
-                  key={linkItem.path}
-                  to={linkItem.path}
-                  onClick={() => mobileOpen && onCloseMobile?.()}
-                  title={isCollapsed && !isMobile ? linkItem.label : undefined}
-                  className={`relative group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150 ${
-                    active
-                      ? `${tokens.bg} ${tokens.text} shadow-sm`
-                      : `text-gray-600 dark:text-neutral-400 ${tokens.hoverBg} ${tokens.hoverText}`
-                  } ${isCollapsed && !isMobile ? "justify-center" : ""}`}
-                >
-                  {linkItem.icon && (
-                    <div
-                      className={`flex items-center justify-center relative shrink-0 ${isCollapsed && !isMobile ? "" : "mr-3"}`}
-                    >
-                      <CustomIcon
-                        icon={linkItem.icon}
-                        className={`h-5 w-5 transition-colors duration-150 ${active ? tokens.iconActive : `text-gray-400 dark:text-neutral-500 ${tokens.iconHover}`}`}
-                      />
-                      {/* Badge in collapsed mode: small dot over the icon */}
-                      {isCollapsed && !isMobile && linkItem.badge && (
-                        <span className="absolute -top-1 -right-1">
-                          {linkItem.badge}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {!(isCollapsed && !isMobile) && (
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
-                      {linkItem.label}
-                    </span>
-                  )}
-                  {/* Badge in expanded mode: right-aligned next to label */}
-                  {!(isCollapsed && !isMobile) && linkItem.badge && (
-                    <span className="ml-auto shrink-0 pl-2">
-                      {linkItem.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Collapse Toggle (desktop only) */}
-        {!isMobile && (
-          <div className="shrink-0 border-t border-gray-200/60 dark:border-neutral-700/60 px-3 py-3">
-            <button
-              onClick={toggleCollapse}
-              className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg text-gray-500 dark:text-neutral-400 hover:bg-gray-100 dark:hover:bg-neutral-700/50 hover:text-gray-700 dark:hover:text-neutral-200 transition-colors ${
-                isCollapsed ? "justify-center" : ""
+    return (
+      <div key={key}>
+        <div className={rowClasses}>
+          <Link
+            to={link.path}
+            onClick={() => {
+              if (mobileOpen) onCloseMobile?.();
+              if (hoverOpen) closeHover();
+            }}
+            aria-current={selfActive ? "page" : undefined}
+            title={contentCollapsed ? link.label : undefined}
+            className={`flex min-w-0 flex-1 items-center gap-3 py-2.5 text-sm font-medium ${
+              contentCollapsed ? "justify-center" : ""
+            }`}
+          >
+            {link.icon && (
+              <div className="flex items-center justify-center relative shrink-0">
+                <CustomIcon
+                  icon={link.icon}
+                  className={`h-5 w-5 transition-colors duration-150 ${
+                    selfActive
+                      ? tokens.iconActive
+                      : `${idle.icon} ${tokens.iconHover}`
+                  }`}
+                />
+                {/* Badge in collapsed mode: small dot over the icon */}
+                {contentCollapsed && link.badge && (
+                  <span className="absolute -top-1 -right-1">{link.badge}</span>
+                )}
+              </div>
+            )}
+            {!contentCollapsed && (
+              <>
+                <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
+                  {link.label}
+                </span>
+                {/* Badge in expanded mode: right-aligned next to label */}
+                {link.badge && (
+                  <span className="ml-auto flex shrink-0 items-center pl-2">
+                    {link.badge}
+                  </span>
+                )}
+              </>
+            )}
+          </Link>
+          {/* Actions at the end of the row (hidden in the icon rail) */}
+          {!contentCollapsed && link.actions && (
+            <span
+              className={`flex shrink-0 items-center gap-1 ${
+                link.actionsOnHover
+                  ? "opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+                  : ""
               }`}
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {link.actions}
+            </span>
+          )}
+          {/* Submenu toggle (hidden in the icon rail) */}
+          {hasChildren && !contentCollapsed && (
+            <button
+              type="button"
+              aria-expanded={showChildren}
+              aria-label={`${showChildren ? "Collapse" : "Expand"} ${link.label} submenu`}
+                onClick={() => toggleSubmenu(link.slug)}
+                className="inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-200/60 hover:text-neutral-600 dark:text-neutral-500 dark:hover:bg-neutral-700/40 dark:hover:text-neutral-300"
             >
               <CustomIcon
-                icon={isCollapsed ? "ArrowChevronRight" : "ArrowChevronLeft"}
-                className="w-4 h-4 shrink-0"
+                icon="ChevronRight"
+                className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                  showChildren ? "rotate-90" : ""
+                }`}
               />
-              {!isCollapsed && (
-                <span className="ml-3 whitespace-nowrap">Collapse</span>
-              )}
             </button>
+          )}
+        </div>
+        {showChildren && (
+          <div
+            className="space-y-1"
+            role="group"
+            aria-label={`${link.label} submenu`}
+          >
+            {visibleChildren.map((child, index) =>
+              renderLinkRow(
+                child,
+                depth + 1,
+                `${key}-child-${index}`,
+                contentCollapsed,
+              ),
+            )}
           </div>
         )}
       </div>
+    );
+  };
+
+  const renderContent = (contentCollapsed: boolean, isMobileView: boolean) => (
+    <>
+      {/* Logo Header */}
+      {logoSection && logoSection(contentCollapsed)}
+
+      {/* Top item (above the navigation, with its own dropdown) */}
+      {topItem && (
+        <div className="shrink-0 px-3 pt-2">
+          <SideMenuDropdownRow
+            item={topItem}
+            placement="top"
+            collapsed={contentCollapsed}
+            side={side}
+            idleCopy={surface.idleCopy}
+          />
+        </div>
+      )}
+
+      {/* Search — below the top item, matches label + description */}
+      {search && !contentCollapsed && (
+        <div className="shrink-0 px-3 pb-1 pt-2">
+          <Input
+            size="sm"
+            variant="ghost"
+            tone={color}
+            leadingIcon="Search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            aria-label="Search menu items"
+            className="w-full"
+          />
+        </div>
+      )}
+
+      {/* Title + Mobile Close */}
+      {(title || isMobileView) && (
+        <div
+          className={`px-6 pt-4 pb-2 flex items-center ${
+            contentCollapsed && !isMobileView
+              ? "justify-center px-3"
+              : "justify-between"
+          }`}
+        >
+          {title && !(contentCollapsed && !isMobileView) && (
+            <h2 className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider whitespace-nowrap">
+              {title}
+            </h2>
+          )}
+          {/* Mobile Close Button */}
+          {isMobileView && (
+            <button
+              onClick={onCloseMobile}
+              className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-neutral-700/50 text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors ml-auto"
+              aria-label="Close menu"
+            >
+              <CustomIcon icon="Close" className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Navigation Items */}
+      <div className="flex-1 px-3 py-1 overflow-y-auto w-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent">
+        <nav aria-label={title || "Side menu"} className="space-y-1 w-full">
+          {visibleItems.map((item, index) => {
+            // Divider
+            if (item.type === "divider") {
+              return (
+                <div
+                  key={`divider-${index}-${item.slug}`}
+                  className={`my-2 border-t border-neutral-200/60 dark:border-neutral-700/60 ${
+                    contentCollapsed && !isMobileView ? "mx-1" : "mx-0"
+                  }`}
+                />
+              );
+            }
+
+            // Group Header
+            if (item.type === "group") {
+              if (contentCollapsed && !isMobileView) return null;
+              return (
+                <React.Fragment key={`group-${index}-${item.slug}`}>
+                  {item.hasDivider && (
+                    <div
+                      className={`my-2 border-t border-neutral-200/60 dark:border-neutral-700/60 ${
+                        contentCollapsed && !isMobileView ? "mx-1" : "mx-0"
+                      }`}
+                    />
+                  )}
+                  <div
+                    className={`px-3 py-1 mb-1 text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider ${
+                      index === 0 ? "mt-1" : "mt-4"
+                    }`}
+                  >
+                    {item.label}
+                  </div>
+                </React.Fragment>
+              );
+            }
+
+            // Link (Default)
+            return renderLinkRow(
+              item,
+              0,
+              `link-${index}-${item.slug}`,
+              contentCollapsed,
+            );
+          })}
+          {searchActive && !hasVisibleLink && (
+            <p className="px-3 py-6 text-center text-xs text-neutral-500 dark:text-neutral-400">
+              No results for "{searchQuery.trim()}"
+            </p>
+          )}
+        </nav>
+      </div>
+
+      {/* Footer item (pinned above the collapse control) */}
+      {footerItem && (
+        <div className="shrink-0 px-3 pb-1">
+          <SideMenuDropdownRow
+            item={footerItem}
+            placement="footer"
+            collapsed={contentCollapsed}
+            side={side}
+            idleCopy={surface.idleCopy}
+          />
+        </div>
+      )}
+
+      {/* Collapse Toggle (desktop only, hidden with openOnHover) */}
+      {!isMobileView && showCollapseControl && (
+        <div className="shrink-0 border-t border-neutral-200/60 dark:border-neutral-700/60 px-3 py-3">
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            aria-expanded={expanded}
+            aria-controls={panelId}
+            className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700/50 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors ${
+              !expanded ? "justify-center" : ""
+            }`}
+            title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <CustomIcon
+              icon={
+                expanded
+                  ? isLeft
+                    ? "ArrowChevronLeft"
+                    : "ArrowChevronRight"
+                  : isLeft
+                    ? "ArrowChevronRight"
+                    : "ArrowChevronLeft"
+              }
+              className="w-4 h-4 shrink-0"
+            />
+            {expanded && (
+              <span className="ml-3 whitespace-nowrap">Collapse</span>
+            )}
+          </button>
+        </div>
+      )}
     </>
   );
 
   return (
     <>
       {/* Mobile Backdrop */}
-      {mobileOpen && (
+      {isMobile && mobileOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
           onClick={onCloseMobile}
         />
       )}
 
-      {/* Mobile Sidebar */}
-      <aside className={`${mobileClasses} ${className}`}>
-        {renderContent(true)}
-      </aside>
-
-      {/* Desktop Sidebar */}
-      <aside className={`${desktopClasses} ${className}`}>
-        {renderContent(false)}
-      </aside>
+      {isMobile ? (
+        // Mobile Sidebar (offcanvas overlay)
+        <aside className={mobileClasses} inert={!mobileOpen}>
+          <div className="relative h-full flex flex-col w-full">
+            {renderContent(false, true)}
+          </div>
+        </aside>
+      ) : (
+        // Desktop Sidebar
+        <div
+          className={desktopClasses}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && hoverOpen) closeHover();
+          }}
+        >
+          {/* In hover mode this aside IS the panel: it grows 68 → 256px on
+              hover (duration via `hoverTransitionMs`) and is solid, so nothing
+              behind it shows through. The hover handlers live on the growing
+              box, not the 68px wrapper, so the pointer can travel from the
+              rail into the expanded part without leaving. */}
+          <aside
+            className={asideClasses}
+            style={
+              isHoverMode ? { transitionDuration: `${hoverTransitionMs}ms` } : undefined
+            }
+            onMouseEnter={handleRailEnter}
+            onMouseLeave={handleRailLeave}
+          >
+            {/* Fill / blur layer — kept on a separate absolute element so the
+                outer wrapper does not create a stacking context. */}
+            <div
+              className={`absolute inset-0 pointer-events-none ${panelFill} ${surface.radius}`}
+            />
+            {surface.noise && (
+              <div
+                className={`absolute inset-0 opacity-[0.4] pointer-events-none mix-blend-overlay ${surface.radius}`}
+                style={NOISE_STYLE}
+              />
+            )}
+            <div
+              id={panelId}
+              inert={offcanvasHidden || undefined}
+              className={contentClasses}
+            >
+              {renderContent(contentCollapsed, false)}
+            </div>
+          </aside>
+          {/* Offcanvas handle — the way back in once the panel is hidden.
+              Sibling of the (clipping) aside so it is not cut off at w-0. */}
+          {showOffcanvasHandle && (
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              aria-expanded={false}
+              aria-label="Open sidebar"
+              title="Open sidebar"
+              className={`absolute top-1/2 -translate-y-1/2 z-20 flex h-14 w-6 items-center justify-center border border-neutral-200 bg-white/95 text-neutral-500 shadow-md backdrop-blur transition-colors hover:text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900/95 dark:text-neutral-400 dark:hover:text-neutral-100 ${
+                isLeft ? "left-0 rounded-r-lg" : "right-0 rounded-l-lg"
+              }`}
+            >
+              <CustomIcon
+                icon={isLeft ? "ArrowChevronRight" : "ArrowChevronLeft"}
+                className="h-4 w-4"
+              />
+            </button>
+          )}
+        </div>
+      )}
     </>
   );
 };

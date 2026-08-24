@@ -1,25 +1,28 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
 import {
   DropdownButton,
-  DropdownMenu,
   MultiToggle,
   Toggle,
-  Button,
+  Select,
+  TRUE_COLORS,
+  BUTTON_VARIANTS,
+  CONTROL_SIZES,
 } from "@cjlapao/ui-kit";
-import { ButtonColor, ButtonSize, ButtonVariant } from "@cjlapao/ui-kit";
+import type {
+  ButtonColor,
+  ButtonSize,
+  ButtonVariant,
+} from "@cjlapao/ui-kit";
 import {
   dropdownButtonOptions,
-  dropdownMenuPreviewOptions,
-  buttonVariantOptions,
-  colorOptions,
-  buttonSizeOptions,
+  trueColorOptions,
+  buttonVariantAllOptions,
+  controlSizeOptions,
   dropdownWidthOptions,
-  dropdownAlignOptions,
-  dropdownSideOptions,
+  GLOBAL_NOTIFICATION_CHANNEL,
 } from "../constants";
 import notificationService from "../mocks/NotificationService";
-import { GLOBAL_NOTIFICATION_CHANNEL } from "../constants";
 import { v4 as uuidv4 } from "uuid";
 
 const createUpdateToast = (message?: string) => {
@@ -38,6 +41,12 @@ const createUpdateToast = (message?: string) => {
 
 const safeLabelText = (label: React.ReactNode, fallback: string) =>
   typeof label === "string" ? label : fallback;
+
+const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span className="text-[11px] font-semibold uppercase tracking-wide opacity-60">
+    {children}
+  </span>
+);
 
 export const DropdownButtonDemo: React.FC = () => {
   const [dropdownButtonVariant, setDropdownButtonVariant] =
@@ -58,90 +67,124 @@ export const DropdownButtonDemo: React.FC = () => {
       ? "trigger"
       : Number(dropdownMenuWidthChoice);
 
-  const [menuPreviewAlign, setMenuPreviewAlign] = useState<"start" | "end">(
-    "end",
+  // Fixed conditions for the reference specimens below. Those blocks never
+  // change with the controls above — each one varies exactly one named
+  // dimension (variant / size / tone) so it reads as a stable specimen, not a
+  // second live control.
+  const example: {
+    color: ButtonColor;
+    size: ButtonSize;
+    split: boolean;
+  } = {
+    color: "blue",
+    size: "md",
+    split: true,
+  };
+
+  const stateToggle = (
+    label: string,
+    value: boolean,
+    setter: (value: boolean) => void,
+  ) => (
+    <Toggle
+      size="sm"
+      label={label}
+      checked={value}
+      onChange={(event) => setter(event.target.checked)}
+    />
   );
-  const [menuPreviewSide, setMenuPreviewSide] = useState<
-    "auto" | "top" | "bottom"
-  >("auto");
-  const [menuPreviewOpen, setMenuPreviewOpen] = useState(false);
-  const menuPreviewAnchorRef = useRef<HTMLButtonElement>(null);
-  const [menuPreviewSelection, setMenuPreviewSelection] =
-    useState("Nothing selected");
 
   return (
     <PlaygroundSection
       title="Dropdown Button"
       label="[DropdownButton]"
-      description="Control the trigger button plus preview the dropdown menu positioning."
+      description="A split button whose caret opens a menu. Pick any of the full palette, then browse the fixed specimens."
       controls={
         <div className="space-y-4 text-sm">
-          <label className="flex flex-col gap-1">
-            <span>Variant</span>
-            <MultiToggle
-              options={buttonVariantOptions}
-              value={dropdownButtonVariant}
-              size="sm"
-              fullWidth
-              onChange={(value) =>
-                setDropdownButtonVariant(value as ButtonVariant)
-              }
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span>Color</span>
-            <MultiToggle
-              options={colorOptions}
-              value={dropdownButtonColor}
-              size="sm"
-              fullWidth
-              onChange={(value) => setDropdownButtonColor(value as ButtonColor)}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span>Size</span>
-            <MultiToggle
-              options={buttonSizeOptions}
-              value={dropdownButtonSize}
-              size="sm"
-              fullWidth
-              onChange={(value) => setDropdownButtonSize(value as ButtonSize)}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span>Menu Width</span>
-            <MultiToggle
-              options={dropdownWidthOptions}
-              value={dropdownMenuWidthChoice}
-              size="sm"
-              fullWidth
-              onChange={(value) =>
-                setDropdownMenuWidthChoice(value as "trigger" | "240" | "320")
-              }
-            />
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <Toggle
-              size="sm"
-              fullWidth
-              label="Split trigger"
-              checked={dropdownButtonSplit}
-              onChange={(e) => setDropdownButtonSplit(e.target.checked)}
-            />
-            <Toggle
-              size="sm"
-              fullWidth
-              label="Full width"
-              checked={dropdownButtonFullWidth}
-              onChange={(e) => setDropdownButtonFullWidth(e.target.checked)}
-            />
-            <Toggle
-              size="sm"
-              fullWidth
-              label="Disabled"
-              checked={dropdownButtonDisabled}
-              onChange={(e) => setDropdownButtonDisabled(e.target.checked)}
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                Color
+              </span>
+              <Select
+                size="sm"
+                value={dropdownButtonColor}
+                onChange={(event) =>
+                  setDropdownButtonColor(event.target.value as ButtonColor)
+                }
+                aria-label="Color"
+              >
+                {trueColorOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                Variant
+              </span>
+              <Select
+                size="sm"
+                value={dropdownButtonVariant}
+                onChange={(event) =>
+                  setDropdownButtonVariant(event.target.value as ButtonVariant)
+                }
+                aria-label="Variant"
+              >
+                {buttonVariantAllOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                Size
+              </span>
+              <MultiToggle
+                fullWidth
+                options={controlSizeOptions}
+                value={dropdownButtonSize}
+                size="sm"
+                onChange={(value) => setDropdownButtonSize(value as ButtonSize)}
+              />
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                Menu Width
+              </span>
+              <MultiToggle
+                fullWidth
+                options={dropdownWidthOptions}
+                value={dropdownMenuWidthChoice}
+                size="sm"
+                onChange={(value) =>
+                  setDropdownMenuWidthChoice(value as "trigger" | "240" | "320")
+                }
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+            {stateToggle(
+              "Split trigger",
+              dropdownButtonSplit,
+              setDropdownButtonSplit,
+            )}
+            {stateToggle(
+              "Full width",
+              dropdownButtonFullWidth,
+              setDropdownButtonFullWidth,
+            )}
+            {stateToggle(
+              "Disabled",
+              dropdownButtonDisabled,
+              setDropdownButtonDisabled,
+            )}
           </div>
           <div className="space-y-2 rounded-2xl border border-neutral-200/80 bg-white/80 p-4 text-sm text-neutral-600 dark:border-neutral-700/70 dark:bg-neutral-900/60 dark:text-neutral-200">
             <p className="text-xs uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
@@ -154,76 +197,83 @@ export const DropdownButtonDemo: React.FC = () => {
         </div>
       }
       preview={
-        <div className="space-y-4">
-          <DropdownButton
-            label="Something"
-            options={dropdownButtonOptions}
-            variant={dropdownButtonVariant}
-            color={dropdownButtonColor}
-            size={dropdownButtonSize}
-            disabled={dropdownButtonDisabled}
-            fullWidth={dropdownButtonFullWidth}
-            split={dropdownButtonSplit}
-            menuWidth={dropdownMenuWidthValue}
-            onPrimaryClick={() => createUpdateToast("Primary action clicked")}
-            onOptionSelect={(option) => {
-              setDropdownSelection(option.value);
-              const labelText = safeLabelText(option.label, option.value ?? "");
-              createUpdateToast(`Selected ${labelText}`);
-            }}
-          />
-          <div className="rounded-2xl border border-neutral-200 bg-white/70 p-4 text-sm text-neutral-700 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-100">
-            <div className="mb-2 flex flex-wrap gap-2">
-              <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Align
-                <MultiToggle
-                  options={dropdownAlignOptions}
-                  size="sm"
-                  value={menuPreviewAlign}
-                  onChange={(value) =>
-                    setMenuPreviewAlign(value as "start" | "end")
-                  }
-                />
-              </label>
-              <label className="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Side
-                <MultiToggle
-                  options={dropdownSideOptions}
-                  size="sm"
-                  value={menuPreviewSide}
-                  onChange={(value) =>
-                    setMenuPreviewSide(value as "auto" | "top" | "bottom")
-                  }
-                />
-              </label>
+        <div className="space-y-6 p-4">
+          {/* The only block the controls drive. The button sits in a plain
+              (block) surface so `inline-flex` sizes it to its content. */}
+          <div className="flex flex-col gap-2">
+            <Caption>Current settings</Caption>
+            <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900">
+              <DropdownButton
+                label="Something"
+                options={dropdownButtonOptions}
+                variant={dropdownButtonVariant}
+                color={dropdownButtonColor}
+                size={dropdownButtonSize}
+                disabled={dropdownButtonDisabled}
+                fullWidth={dropdownButtonFullWidth}
+                split={dropdownButtonSplit}
+                menuWidth={dropdownMenuWidthValue}
+                onPrimaryClick={() => createUpdateToast("Primary action clicked")}
+                onOptionSelect={(option) => {
+                  setDropdownSelection(option.value);
+                  const labelText = safeLabelText(
+                    option.label,
+                    option.value ?? "",
+                  );
+                  createUpdateToast(`Selected ${labelText}`);
+                }}
+              />
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                ref={menuPreviewAnchorRef}
-                variant="outline"
-                size="sm"
-                onClick={() => setMenuPreviewOpen((prev) => !prev)}
-              >
-                {menuPreviewOpen ? "Hide Menu" : "Show Menu"}
-              </Button>
-              <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                Selection: {menuPreviewSelection}
-              </span>
+          </div>
+
+          {/* Fixed reference specimens — none of these move with the controls. */}
+          <div className="space-y-6 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <div className="flex flex-col gap-2">
+              <Caption>Every variant — fixed tone and size</Caption>
+              <div className="grid gap-3 md:grid-cols-2">
+                {BUTTON_VARIANTS.map((each) => (
+                  <DropdownButton
+                    key={each}
+                    {...example}
+                    options={dropdownButtonOptions}
+                    variant={each}
+                    label={each}
+                  />
+                ))}
+              </div>
             </div>
-            <DropdownMenu
-              anchorRef={menuPreviewAnchorRef}
-              open={menuPreviewOpen}
-              onClose={() => setMenuPreviewOpen(false)}
-              items={dropdownMenuPreviewOptions}
-              align={menuPreviewAlign}
-              side={menuPreviewSide}
-              onSelect={(item) => {
-                setMenuPreviewSelection(
-                  safeLabelText(item.label, item.value ?? ""),
-                );
-                setMenuPreviewOpen(false);
-              }}
-            />
+
+            <div className="flex flex-col gap-2">
+              <Caption>Size ladder — solid, fixed tone</Caption>
+              <div className="flex flex-wrap items-center gap-3">
+                {CONTROL_SIZES.map((each) => (
+                  <DropdownButton
+                    key={each}
+                    {...example}
+                    options={dropdownButtonOptions}
+                    variant="solid"
+                    size={each}
+                    label={each}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Caption>All {TRUE_COLORS.length} tones — solid, fixed size</Caption>
+              <div className="grid gap-2 md:grid-cols-3">
+                {TRUE_COLORS.map((each) => (
+                  <DropdownButton
+                    key={each}
+                    {...example}
+                    options={dropdownButtonOptions}
+                    variant="solid"
+                    color={each}
+                    label={each}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       }

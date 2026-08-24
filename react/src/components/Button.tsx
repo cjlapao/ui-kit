@@ -12,10 +12,16 @@ import {
   getButtonHoverClasses,
   getButtonActiveClasses,
   getButtonActiveHoverClasses,
+  getControlSizeTokens,
+  DEFAULT_TRIGGER_CORNER,
+  CONTROL_SIZES,
+  type ControlSize,
   type TrueColor,
   type ButtonVariant,
+  type ButtonWeight,
 } from "../theme/Theme";
 import {
+  getGlassChromeClasses,
   getGlassFillClass,
   getGlassVibrancyClass,
   getSpecularClasses,
@@ -31,8 +37,15 @@ export type ButtonColor = TrueColor;
 export type { ButtonVariant };
 export type { GlassVibrancy, GlassOpacity, SpecularMode };
 
-export type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
-export type ButtonWeight = "normal" | "medium" | "semibold" | "bold";
+/**
+ * Buttons use the shared control scale. Aliased rather than redeclared so a
+ * change to `ControlSize` reaches Button without a second list to update.
+ */
+export const BUTTON_SIZES = CONTROL_SIZES;
+export type ButtonSize = ControlSize;
+/** Re-exported from the theme, where the runtime lists live. */
+export { BUTTON_VARIANTS, BUTTON_WEIGHTS } from "../theme/Theme";
+export type { ButtonWeight };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -46,6 +59,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   iconOnly?: boolean;
   accent?: boolean;
   accentColor?: TrueColor;
+  /**
+   * Raw CSS colour to tint the leading/trailing icon. Omit it and the icon
+   * inherits the button's text colour (icons paint with `currentColor`), so
+   * the glyph and the label always match; set it to override just the glyph.
+   */
+  iconColor?: string;
   /** When true, renders in a persistent lighter "on" state with hover suppressed. accentColor overrides the active color. */
   active?: boolean;
   /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
@@ -64,49 +83,13 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   tooltipPosition?: TooltipPosition;
 }
 
-const baseClasses =
-  "inline-flex items-center justify-center rounded-md transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 select-none";
-
-const sizeStyles: Record<
-  ButtonSize,
-  { base: string; iconOnly: string; gap: string; icon: string; spinner: string }
-> = {
-  xs: {
-    base: "px-2 py-1 text-xs",
-    iconOnly: "p-1.5 text-xs",
-    gap: "gap-1.5",
-    icon: "h-4 w-4",
-    spinner: "h-4 w-4",
-  },
-  sm: {
-    base: "px-3 py-2 text-xs",
-    iconOnly: "p-2 text-xs",
-    gap: "gap-1.5",
-    icon: "h-5 w-5",
-    spinner: "h-4 w-4",
-  },
-  md: {
-    base: "px-3.5 py-2.5 text-sm",
-    iconOnly: "p-2.5 text-sm",
-    gap: "gap-2",
-    icon: "h-6 w-6",
-    spinner: "h-6 w-6",
-  },
-  lg: {
-    base: "px-4 py-2.5 text-base",
-    iconOnly: "p-3 text-base",
-    gap: "gap-2.5",
-    icon: "h-7 w-7",
-    spinner: "h-7 w-7",
-  },
-  xl: {
-    base: "px-5 py-3 text-base",
-    iconOnly: "p-3.5 text-base",
-    gap: "gap-3",
-    icon: "h-8 w-8",
-    spinner: "h-8 w-8",
-  },
-};
+// `disabled:opacity-50` is applied conditionally rather than living here:
+// `loading` also sets the disabled attribute (to block clicks), and dimming a
+// loading control to 50% fades the spinner along with it — the one element
+// that needs to stay visible.
+// `DEFAULT_TRIGGER_CORNER` (not a local `rounded-md`) so a Button next to an
+// Input is the same box — Input already uses `rounded-lg`.
+const baseClasses = `inline-flex items-center justify-center ${DEFAULT_TRIGGER_CORNER} transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed select-none`;
 
 const weightClasses: Record<ButtonWeight, string> = {
   normal: "font-normal",
@@ -129,6 +112,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       iconOnly = false,
       accent = false,
       accentColor,
+      iconColor,
       active = false,
       glass = false,
       vibrancy = "medium",
@@ -140,26 +124,29 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       tooltip,
       tooltipPosition,
+      type = "button",
       ...props
     },
     ref,
   ) => {
     const renderIcon = useIconRenderer();
-    const sizeConfig = sizeStyles[size] ?? sizeStyles.md;
+    const sizeConfig = getControlSizeTokens(size);
     const baseColorClasses = getButtonColorClasses(variant, color);
     const isIconMode = iconOnly || variant === "icon";
     const accentTone = accentColor ?? color;
     const accentRingClass = iconAccentRing[accentTone] ?? iconAccentRing.blue;
     const accentHoverClass =
       iconAccentHover[accentTone] ?? iconAccentHover.blue;
-    const accentClasses =
-      isIconMode && accent
-        ? classNames(
-            "bg-transparent text-inherit hover:bg-transparent focus-visible:ring-2 focus-visible:ring-offset-2",
-            accentRingClass,
-            accentHoverClass,
-          )
-        : null;
+    // Accent means "the parent owns the fill": drop the variant's fill and
+    // draw only the accent ring + hover. True for icon mode and for a text
+    // Button alike (it used to be dead outside icon mode).
+    const accentClasses = accent
+      ? classNames(
+          "bg-transparent text-inherit hover:bg-transparent focus-visible:ring-2 focus-visible:ring-offset-2",
+          accentRingClass,
+          accentHoverClass,
+        )
+      : null;
 
     const isEffectivelyDisabled = (disabled ?? false) || loading;
     // active: persistent lighter "on" state, no hover; accentColor overrides the active color
@@ -185,11 +172,15 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     // Glass styling — variant="glass" auto-enables glass; glass prop overrides
     const isGlass = variant === "glass" || glass;
+    // The variant's own colour classes are dropped for glass (they paint an
+    // opaque fill), so the chrome — text colour, rim, focus ring — has to come
+    // from here or the button ends up with none of it.
     const glassClasses = isGlass
       ? classNames(
           "backdrop-blur-sm",
           getGlassFillClass(color, glassOpacity),
           getGlassVibrancyClass(vibrancy),
+          getGlassChromeClasses(color),
         )
       : null;
 
@@ -212,8 +203,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const computedClassName = classNames(
       baseClasses,
+      !loading && "disabled:opacity-50",
       sizeConfig.gap,
-      isIconMode ? sizeConfig.iconOnly : sizeConfig.base,
+      isIconMode ? sizeConfig.iconOnly : sizeConfig.text,
       isGlass ? accentClasses : (accentClasses ?? colorClasses),
       weightClasses[weight],
       fullWidth && "w-full",
@@ -225,7 +217,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const spinner = (
       <span
         className={classNames(
-          "inline-flex animate-spin rounded-full border-2 border-current border-t-transparent",
+          "inline-flex animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none",
           sizeConfig.spinner,
         )}
         aria-hidden="true"
@@ -241,42 +233,56 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           ? ariaLabel
           : undefined;
 
-    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-      onClick?.(event);
+    // Icons paint with `currentColor`, so by default they inherit the
+    // button's text colour and the glyph always matches the label. An
+    // `iconColor` tints only the glyph by wrapping it in a span that carries
+    // the colour (a raw value, so it needs an inline style, not a class).
+    const renderIconSlot = (icon?: string | React.ReactElement) => {
+      if (!icon) return null;
+      const node = renderIcon(
+        icon,
+        size as IconSize,
+        classNames("flex-shrink-0", sizeConfig.icon),
+      );
+      if (!iconColor) return node;
+      return (
+        <span
+          className="inline-flex shrink-0 items-center"
+          style={{ color: iconColor }}
+        >
+          {node}
+        </span>
+      );
     };
 
     const button = (
       <button
         ref={ref}
+        // A `<button>` inside a `<form>` is `type="submit"` by default, which
+        // made every unspec'd Button submit the form. Default to "button";
+        // an explicit `type` prop still wins.
+        type={type}
         className={computedClassName}
         disabled={isDisabled || loading}
         data-variant={variant}
         data-color={color}
         data-size={size}
-        data-glass={glass}
+        data-glass={isGlass}
         aria-busy={loading || undefined}
-        onClick={handleClick}
+        onClick={onClick}
         {...props}
       >
         {specularOverlay}
-        {loading
-          ? spinner
-          : renderIcon(
-              leadingIcon,
-              size as IconSize,
-              classNames(" flex-shrink-0", sizeConfig.icon),
-            )}
+        {loading ? spinner : renderIconSlot(leadingIcon)}
         {isIconMode ? (
-          <span className="sr-only">{srOnlyContent ?? "Button"}</span>
+          // `||`, not `??`: an empty-string `children` is a string, and
+          // `"" ?? "Button"` is `""` — an sr-only span with no name, i.e. a
+          // button a screen reader announces as just "button".
+          <span className="sr-only">{srOnlyContent || "Button"}</span>
         ) : (
           children
         )}
-        {!loading &&
-          renderIcon(
-            trailingIcon,
-            size as IconSize,
-            classNames("flex-shrink-0", sizeConfig.icon),
-          )}
+        {!loading && renderIconSlot(trailingIcon)}
       </button>
     );
 

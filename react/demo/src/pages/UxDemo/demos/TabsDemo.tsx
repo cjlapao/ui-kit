@@ -1,62 +1,149 @@
-// @ts-nocheck
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Tabs, MultiToggle, Toggle, Button } from "@cjlapao/ui-kit";
-import {
+import { Tabs, MultiToggle, Toggle, Select, TRUE_COLORS } from "@cjlapao/ui-kit";
+import type {
   TabsVariant,
   TabsSize,
   TabsOrientation,
   TabsJustify,
   TabItem,
+  TrueColor,
+  SpecularMode,
+  TabsRadius,
 } from "@cjlapao/ui-kit";
-import { ButtonColor } from "@cjlapao/ui-kit";
-import type { IconName } from "@cjlapao/ui-kit";
 import {
+  trueColorOptions,
   tabVariantOptions,
   tabSizeOptions,
-  tabColorOptions,
   tabOrientationOptions,
   tabJustifyOptions,
+  tabRadiusOptions,
+  glassVibrancyOptions,
+  glassOpacityOptions,
+  panelSpecularOptions,
+  GLOBAL_NOTIFICATION_CHANNEL,
 } from "../constants";
+import notificationService from "../mocks/NotificationService";
+import { v4 as uuidv4 } from "uuid";
+
+const TAB_VARIANTS: TabsVariant[] = [
+  "underline",
+  "soft",
+  "pill",
+  "segmented",
+  "minimal",
+  "glass",
+  "liquid-glass",
+];
+const TAB_SIZES: TabsSize[] = ["sm", "md", "lg"];
+
+// The demo's glass pickers only offer the string presets, so the state is typed
+// narrowly (a bare `GlassVibrancy`/`GlassOpacity` would carry `| number`, which
+// a `MultiToggle` value can't accept). Both are still assignable to the props.
+type VibrancyPreset = "low" | "medium" | "high";
+type OpacityPreset = "frosted" | "light" | "clear";
+
+// A soft, low-contrast backdrop so the glass variants have something to blur
+// even when the header's "Background image" toggle is off.
+const GLASS_BACKDROP =
+  "rounded-2xl bg-gradient-to-br from-sky-200/60 via-violet-200/50 to-amber-200/60 p-4 dark:from-sky-950/50 dark:via-violet-950/40 dark:to-amber-950/40";
+
+const createUpdateToast = (message?: string) => {
+  const id = uuidv4();
+  notificationService.createNotification({
+    id,
+    message: "You clicked something!",
+    details: message ?? "This is a detailed message for the notification toast.",
+    autoClose: true,
+    dismissible: true,
+    showAsToast: true,
+    channel: GLOBAL_NOTIFICATION_CHANNEL,
+  });
+};
+
+const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span className="text-[11px] font-semibold uppercase tracking-wide opacity-60">
+    {children}
+  </span>
+);
+
+// Reference items for the fixed specimens. None carry a `panel`, so each
+// renders only its tab bar.
+const MINI_ITEMS: TabItem[] = [
+  { id: "a", label: "Alpha" },
+  { id: "b", label: "Beta" },
+];
+
+const TRIO_ITEMS: TabItem[] = [
+  { id: "a", label: "Alpha", icon: "Run" },
+  { id: "b", label: "Beta", icon: "ViewGrid" },
+  { id: "c", label: "Gamma", icon: "Notification" },
+];
+
+// Shows every tab-bar feature at once: icon, description, badge, a disabled
+// tab, and contextual actions on the (default-active) first tab.
+const STATE_ITEMS: TabItem[] = [
+  {
+    id: "a",
+    label: "Deploy",
+    icon: "Run",
+    description: "Active rings",
+    badge: "Live",
+    actions: [
+      {
+        id: "create",
+        icon: "Add",
+        label: "Create release",
+        active: true,
+        onClick: () => createUpdateToast("Create release"),
+      },
+      {
+        id: "sync",
+        icon: "Reset",
+        label: "Sync status",
+        onClick: () => createUpdateToast("Sync status"),
+      },
+    ],
+  },
+  { id: "b", label: "Analytics", icon: "ViewGrid", description: "Usage" },
+  { id: "c", label: "Locked", icon: "Key", disabled: true, badge: "3" },
+];
 
 export const TabsDemo: React.FC = () => {
   const [tabsVariant, setTabsVariant] = useState<TabsVariant>("underline");
   const [tabsSize, setTabsSize] = useState<TabsSize>("md");
-  const [tabsColor, setTabsColor] = useState<ButtonColor>("indigo");
+  const [tabsColor, setTabsColor] = useState<TrueColor>("blue");
   const [tabsOrientation, setTabsOrientation] =
     useState<TabsOrientation>("horizontal");
   const [tabsJustify, setTabsJustify] = useState<TabsJustify>("start");
-  const [tabsFullWidth, setTabsFullWidth] = useState<boolean>(true);
-  const [tabsShowDividers, setTabsShowDividers] = useState<boolean>(false);
-  const [tabsShowActions, setTabsShowActions] = useState<boolean>(true);
-  const [tabsActiveAction, setTabsActiveAction] =
-    useState<string>("create-release");
-  const [tabsValue, setTabsValue] = useState<string>("deployments");
+  const [tabsFullWidth, setTabsFullWidth] = useState(false);
+  const [tabsShowDividers, setTabsShowDividers] = useState(false);
+  const [tabsShowActions, setTabsShowActions] = useState(true);
+  const [tabsScrollFade, setTabsScrollFade] = useState(true);
+  const [tabsVibrancy, setTabsVibrancy] = useState<VibrancyPreset>("medium");
+  const [tabsGlassOpacity, setTabsGlassOpacity] =
+    useState<OpacityPreset>("frosted");
+  const [tabsSpecular, setTabsSpecular] = useState<SpecularMode>("none");
+  const [tabsRadius, setTabsRadius] = useState<TabsRadius>("md");
+  const [tabsValue, setTabsValue] = useState("deployments");
 
-  const handleTabActionClick = (actionId: string | null) => {
-    if (actionId) {
-      setTabsActiveAction(actionId);
-    }
-  };
+  const isGlass = tabsVariant === "glass" || tabsVariant === "liquid-glass";
 
-  const tabsItems = useMemo<TabItem[]>(() => {
-    const createActionId = "create-release";
-    const syncActionId = "sync-status";
-    const activeActions = tabsShowActions
+  const liveItems = useMemo<TabItem[]>(() => {
+    const actions = tabsShowActions
       ? [
           {
-            id: createActionId,
-            icon: "Plus" as IconName,
+            id: "create-release",
+            icon: "Add",
             label: "Create release",
-            active: tabsActiveAction === createActionId,
-            onClick: () => handleTabActionClick(createActionId),
+            active: true,
+            onClick: () => createUpdateToast("Create release"),
           },
           {
-            id: syncActionId,
-            icon: "Reset" as IconName,
+            id: "sync-status",
+            icon: "Reset",
             label: "Sync status",
-            active: tabsActiveAction === syncActionId,
-            onClick: () => handleTabActionClick(syncActionId),
+            onClick: () => createUpdateToast("Sync status"),
           },
         ]
       : undefined;
@@ -68,19 +155,23 @@ export const TabsDemo: React.FC = () => {
         icon: "Run",
         description: "Active release rings",
         badge: "Live",
-        actions: activeActions,
+        actions,
         panel: (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-600">Production</p>
-              <p className="text-2xl font-bold text-slate-900">v2.18.4</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
+              <p className="text-xs font-semibold text-slate-500">Production</p>
+              <p className="text-xl font-bold text-slate-900 dark:text-white">
+                v2.18.4
+              </p>
               <p className="text-xs text-slate-500">
-                Healthy · last deploy 3 minutes ago
+                Healthy · deployed 3m ago
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-600">Staging</p>
-              <p className="text-2xl font-bold text-slate-900">v2.19.0-rc1</p>
+            <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
+              <p className="text-xs font-semibold text-slate-500">Staging</p>
+              <p className="text-xl font-bold text-slate-900 dark:text-white">
+                v2.19.0-rc1
+              </p>
               <p className="text-xs text-amber-600">2 checks queued</p>
             </div>
           </div>
@@ -90,22 +181,14 @@ export const TabsDemo: React.FC = () => {
         id: "analytics",
         label: "Analytics",
         icon: "ViewGrid",
-        description: "Usage and adoption metrics",
+        description: "Usage and adoption",
         panel: (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-semibold text-slate-600">Active seats</p>
-            <div className="mt-2 flex items-end gap-6">
-              <div>
-                <p className="text-3xl font-bold text-slate-900">247</p>
-                <p className="text-xs text-emerald-600">+12 new this week</p>
-              </div>
-              <div className="flex flex-1 items-center gap-2 text-xs text-slate-500">
-                <span className="h-2 flex-1 rounded-full bg-emerald-500/30" />
-                <span className="font-semibold text-emerald-700">
-                  74% utilization
-                </span>
-              </div>
-            </div>
+          <div className="mt-3 rounded-xl border border-slate-200 bg-white/80 p-4">
+            <p className="text-xs font-semibold text-slate-500">Active seats</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
+              247
+            </p>
+            <p className="text-xs text-emerald-600">+12 new this week</p>
           </div>
         ),
       },
@@ -114,67 +197,87 @@ export const TabsDemo: React.FC = () => {
         label: "Alerts",
         icon: "Notification",
         badge: "2",
-        description: "Incidents & change reviews",
+        description: "Incidents & reviews",
         panel: (
-          <div className="mt-4 space-y-3">
-            {[
-              {
-                title: "Database latency spike",
-                time: "10m ago",
-                severity: "High",
-              },
-              {
-                title: "API rate limit warning",
-                time: "1h ago",
-                severity: "Medium",
-              },
-            ].map((alert) => (
+          <div className="mt-3 space-y-2">
+            {["Database latency spike", "API rate limit warning"].map((title) => (
               <div
-                key={alert.title}
-                className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
+                key={title}
+                className="flex items-center justify-between rounded-lg border border-slate-100 bg-white/80 px-3 py-2 text-sm"
               >
-                <div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {alert.title}
-                  </p>
-                  <p className="text-xs text-slate-500">{alert.time}</p>
-                </div>
-                <Button
-                  size="xs"
-                  variant="soft"
-                  color="slate"
-                  onClick={() => handleTabActionClick(null)}
-                >
-                  Ack
-                </Button>
+                <span className="font-medium text-slate-900 dark:text-white">
+                  {title}
+                </span>
+                <span className="text-xs text-slate-500">just now</span>
               </div>
             ))}
           </div>
         ),
       },
     ];
-  }, [tabsShowActions, tabsActiveAction]);
+  }, [tabsShowActions]);
+
+  const stateToggle = (
+    label: string,
+    value: boolean,
+    setter: (value: boolean) => void,
+  ) => (
+    <Toggle
+      size="sm"
+      label={label}
+      checked={value}
+      onChange={(event) => setter(event.target.checked)}
+    />
+  );
 
   return (
     <PlaygroundSection
       title="Tabs"
       label="[Tabs]"
-      description="Switch between release dashboards with contextual actions."
+      description="Switch between panes with contextual actions. Pick any of the full palette, choose a variant (including glass), and browse the fixed specimens for variant, size, tone, orientation, states and glass."
       controls={
-        <div className="space-y-4">
+        <div className="space-y-4 text-sm">
           <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                Color
+              </span>
+              <Select
+                size="sm"
+                value={tabsColor}
+                onChange={(event) =>
+                  setTabsColor(event.target.value as TrueColor)
+                }
+                aria-label="Color"
+              >
+                {trueColorOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <div className="space-y-2">
               <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
                 Variant
               </span>
-              <MultiToggle
-                fullWidth
-                options={tabVariantOptions}
-                value={tabsVariant}
+              <Select
                 size="sm"
-                onChange={(value) => setTabsVariant(value as TabsVariant)}
-              />
+                value={tabsVariant}
+                onChange={(event) =>
+                  setTabsVariant(event.target.value as TabsVariant)
+                }
+                aria-label="Variant"
+              >
+                {tabVariantOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
                 Size
@@ -185,20 +288,6 @@ export const TabsDemo: React.FC = () => {
                 value={tabsSize}
                 size="sm"
                 onChange={(value) => setTabsSize(value as TabsSize)}
-              />
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
-                Color
-              </span>
-              <MultiToggle
-                fullWidth
-                options={tabColorOptions}
-                value={tabsColor}
-                size="sm"
-                onChange={(value) => setTabsColor(value as ButtonColor)}
               />
             </div>
             <div className="space-y-2">
@@ -228,53 +317,216 @@ export const TabsDemo: React.FC = () => {
               onChange={(value) => setTabsJustify(value as TabsJustify)}
             />
           </div>
-          <div className="grid gap-2 md:grid-cols-3">
-            {[
-              {
-                label: "Full width",
-                value: tabsFullWidth,
-                setter: setTabsFullWidth,
-              },
-              {
-                label: "Show dividers",
-                value: tabsShowDividers,
-                setter: setTabsShowDividers,
-              },
-              {
-                label: "Show actions",
-                value: tabsShowActions,
-                setter: setTabsShowActions,
-              },
-            ].map((item) => (
-              <label
-                key={item.label}
-                className="flex items-center justify-between"
-              >
-                <span className="text-sm">{item.label}</span>
-                <Toggle
+          {isGlass && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                    Vibrancy
+                  </span>
+                  <MultiToggle
+                    fullWidth
+                    options={glassVibrancyOptions}
+                    value={tabsVibrancy}
+                    size="sm"
+                    onChange={(value) =>
+                      setTabsVibrancy(value as VibrancyPreset)
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                    Fill opacity
+                  </span>
+                  <MultiToggle
+                    fullWidth
+                    options={glassOpacityOptions}
+                    value={tabsGlassOpacity}
+                    size="sm"
+                    onChange={(value) =>
+                      setTabsGlassOpacity(value as OpacityPreset)
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                  Specular
+                </span>
+                <MultiToggle
+                  fullWidth
+                  options={panelSpecularOptions}
+                  value={tabsSpecular}
                   size="sm"
-                  checked={item.value}
-                  onChange={(event) => item.setter(event.target.checked)}
+                  onChange={(value) => setTabsSpecular(value as SpecularMode)}
                 />
-              </label>
-            ))}
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+                  Radius
+                </span>
+                <Select
+                  size="sm"
+                  value={tabsRadius}
+                  onChange={(event) =>
+                    setTabsRadius(event.target.value as TabsRadius)
+                  }
+                  aria-label="Radius"
+                >
+                  {tabRadiusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </>
+          )}
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            {stateToggle("Full width", tabsFullWidth, setTabsFullWidth)}
+            {stateToggle(
+              "Dividers",
+              tabsShowDividers,
+              setTabsShowDividers,
+            )}
+            {stateToggle("Actions", tabsShowActions, setTabsShowActions)}
+            {stateToggle("Scroll fade", tabsScrollFade, setTabsScrollFade)}
           </div>
         </div>
       }
       preview={
-        <div className="space-y-4 rounded-2xl bg-slate-50 p-4">
-          <Tabs
-            items={tabsItems}
-            value={tabsValue}
-            onChange={(id) => setTabsValue(id)}
-            variant={tabsVariant}
-            size={tabsSize}
-            color={tabsColor}
-            orientation={tabsOrientation}
-            justify={tabsJustify}
-            fullWidth={tabsFullWidth}
-            showDividers={tabsShowDividers}
-          />
+        <div className="space-y-4 p-2">
+          {/* The only block the controls drive. It sits on a soft backdrop so the
+              glass variants have something to blur. */}
+          <div className="flex flex-col gap-2">
+            <Caption>Current settings</Caption>
+            <div className={GLASS_BACKDROP}>
+              <Tabs
+                items={liveItems}
+                value={tabsValue}
+                onChange={(id) => setTabsValue(id)}
+                variant={tabsVariant}
+                size={tabsSize}
+                color={tabsColor}
+                orientation={tabsOrientation}
+                justify={tabsJustify}
+                fullWidth={tabsFullWidth}
+                showDividers={tabsShowDividers}
+                scrollFade={tabsScrollFade}
+                vibrancy={tabsVibrancy}
+                glassOpacity={tabsGlassOpacity}
+                specularMode={tabsSpecular}
+                radius={tabsRadius}
+              />
+            </div>
+          </div>
+
+          {/* Fixed reference specimens — none of these move with the controls. */}
+          <div className="space-y-6 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <div className="flex flex-col gap-3">
+              <Caption>Every variant — fixed tone &amp; size</Caption>
+              <div className={GLASS_BACKDROP}>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {TAB_VARIANTS.map((each) => (
+                    <div key={each} className="space-y-1.5">
+                      <span className="text-xs opacity-60">{each}</span>
+                      <Tabs
+                        items={MINI_ITEMS}
+                        variant={each}
+                        color="blue"
+                        size="sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Caption>Size ladder — underline, fixed tone</Caption>
+              <div className="flex flex-wrap items-end gap-4">
+                {TAB_SIZES.map((each) => (
+                  <div key={each} className="space-y-1.5">
+                    <Tabs
+                      items={TRIO_ITEMS}
+                      variant="underline"
+                      color="blue"
+                      size={each}
+                    />
+                    <span className="text-[10px] uppercase tracking-wide opacity-60">
+                      {each}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Caption>
+                All {TRUE_COLORS.length} tones — underline, fixed size
+              </Caption>
+              <div className="flex flex-wrap items-end gap-3">
+                {TRUE_COLORS.map((each) => (
+                  <div key={each} className="space-y-1.5">
+                    <Tabs
+                      items={MINI_ITEMS}
+                      variant="underline"
+                      color={each}
+                      size="sm"
+                    />
+                    <span className="text-[10px] uppercase tracking-wide opacity-60">
+                      {each}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Caption>Vertical orientation — soft, fixed tone</Caption>
+              <div className="flex gap-4">
+                <Tabs
+                  items={TRIO_ITEMS}
+                  variant="soft"
+                  color="blue"
+                  size="sm"
+                  orientation="vertical"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Caption>States — icon, description, badge, disabled, actions</Caption>
+              <Tabs
+                items={STATE_ITEMS}
+                variant="soft"
+                color="blue"
+                size="md"
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Caption>Glass — active tab carries a tone ring + specular</Caption>
+              <div className={GLASS_BACKDROP}>
+                <div className="flex flex-col gap-4">
+                  <Tabs
+                    items={TRIO_ITEMS}
+                    variant="glass"
+                    color="blue"
+                    size="md"
+                    specularMode="classic"
+                  />
+                  <Tabs
+                    items={TRIO_ITEMS}
+                    variant="liquid-glass"
+                    color="indigo"
+                    size="md"
+                    specularMode="halo"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       }
     />

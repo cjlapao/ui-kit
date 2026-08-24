@@ -6,10 +6,10 @@ import IconButton, { type IconButtonProps } from "./IconButton";
 type BadgePosition = "top-start" | "top-end" | "bottom-start" | "bottom-end";
 
 const POSITION_CLASSES: Record<BadgePosition, string> = {
-  "top-start": "top-0 left-0 -translate-x-1/2 -translate-y-1/2",
-  "top-end": "top-0 right-0 translate-x-1/2 -translate-y-1/2",
-  "bottom-start": "bottom-0 left-0 -translate-x-1/2 translate-y-1/2",
-  "bottom-end": "bottom-0 right-0 translate-x-1/2 translate-y-1/2",
+  "top-start": "top-0 left-0 -translate-x-1/2 -translate-y-1/4",
+  "top-end": "top-0 right-0 translate-x-1/2 -translate-y-1/4",
+  "bottom-start": "bottom-0 left-0 -translate-x-1/2 translate-y-1/4",
+  "bottom-end": "bottom-0 right-0 translate-x-1/2 translate-y-1/4",
 };
 
 export interface BadgeIconProps extends IconButtonProps {

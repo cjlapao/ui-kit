@@ -1,166 +1,110 @@
 <script lang="ts">
-import type { CapsuleBlueprintParameter } from "../types/CapsuleBlueprint";
+import type {
+  SmartVariableGroup,
+  SmartVariableResolver,
+} from "../types/Variables";
+import type { TrueColor } from "../theme/Theme";
+import type { SmartViewMode } from "./SmartVariableBadge.vue";
 
 export interface SmartValueProps {
   value: string;
-  globalParameters?: CapsuleBlueprintParameter[];
-  serviceNames?: string[];
-  context?: {
-    slug?: string;
-    enable_https?: boolean;
-  };
+  /** The variable groups the tokens are resolved against. */
+  groups?: SmartVariableGroup[];
+  /** Turns a token into a display value. Defaults to a lookup over `groups`. */
+  resolve?: SmartVariableResolver;
+  /** Which view to open in. @default "token" */
+  defaultViewMode?: SmartViewMode;
+  /** Marks tokens that name no known variable. @default true */
+  flagMissing?: boolean;
+  /** Accent colour for the toggle. @default "blue" */
+  tone?: TrueColor;
+  /** Keeps the toggle visible instead of revealing it on hover. */
+  alwaysShowToggle?: boolean;
 }
-
-type SmartValuePart =
-  | { key: string; kind: "text"; text: string }
-  | { key: string; kind: "token"; text: string; class: string; title: string };
 </script>
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import classNames from "classnames";
 import IconButton from "./IconButton.vue";
-import { resolveVariable, SMART_VAR_REGEX } from "../utils/smartVariables";
+import SmartVariableBadge from "./SmartVariableBadge.vue";
+import {
+  createDefaultResolver,
+  hasSmartVariables,
+  splitSmartValue,
+} from "../utils/smartVariables";
 import { useClassAttrs } from "../utils/attrsUtils";
 
 defineOptions({ name: "SmartValue", inheritAttrs: false });
 
 const props = withDefaults(defineProps<SmartValueProps>(), {
   value: "",
-  globalParameters: () => [],
-  serviceNames: () => [],
-  context: () => ({}),
+  groups: () => [],
+  defaultViewMode: "token",
+  flagMissing: true,
+  tone: "blue",
+  alwaysShowToggle: false,
 });
 
 const { classAttr, restAttrs } = useClassAttrs();
 
-const viewMode = ref<"token" | "value">("token");
+const viewMode = ref<SmartViewMode>(props.defaultViewMode);
 
-// Case insensitive regex match
-const hasVariables = computed(() =>
-  new RegExp(SMART_VAR_REGEX, "gi").test(props.value),
+const hasVariables = computed(() => hasSmartVariables(props.value));
+
+const resolver = computed<SmartVariableResolver>(
+  () => props.resolve ?? createDefaultResolver(props.groups),
 );
 
-const parts = computed<SmartValuePart[]>(() => {
-  const value = props.value;
-  const result: SmartValuePart[] = [];
-  let lastIndex = 0;
-  let match;
+/** One split for the whole value — the loop used to be copied per component. */
+const parts = computed(() => splitSmartValue(props.value));
 
-  const regex = new RegExp(SMART_VAR_REGEX, "gi");
+const toggleLabel = computed(() =>
+  viewMode.value === "token" ? "Show values" : "Show tokens",
+);
 
-  while ((match = regex.exec(value)) !== null) {
-    // Text before match
-    if (match.index > lastIndex) {
-      result.push({
-        key: `text-${lastIndex}`,
-        kind: "text",
-        text: value.substring(lastIndex, match.index),
-      });
-    }
-
-    const fullToken = match[0];
-    const type = match[1]; // var | env
-    const source = match[2]; // global | system | service
-    const name = match[3];
-
-    if (viewMode.value === "value") {
-      const ctx = {
-        globalParameters: props.globalParameters,
-        serviceNames: props.serviceNames,
-        context: props.context,
-      };
-      // resolveVariable expects the full token usually, or we can adapt logic.
-      // The utils resolveVariable expects the full token string to match its regex.
-      const {
-        value: resolvedVal,
-        isResolved,
-        isRuntime,
-      } = resolveVariable(fullToken, ctx);
-      const isEmpty = !resolvedVal;
-
-      let badgeClass = "bg-green-50 text-green-700 border-green-200";
-      if (isEmpty) {
-        badgeClass = "bg-red-50 text-red-700 border-red-200";
-      }
-
-      if (isResolved && isRuntime) {
-        badgeClass = "bg-purple-50 text-purple-700 border-purple-200";
-      } else if (source === "system" && !isEmpty) {
-        badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-      }
-
-      result.push({
-        key: `token-${match.index}`,
-        kind: "token",
-        class: `mx-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono border ${badgeClass} select-none cursor-help align-middle`,
-        title: isResolved ? `Value: ${resolvedVal}` : "Variable not found",
-        text: isEmpty ? "empty" : resolvedVal,
-      });
-    } else {
-      let badgeClass = "bg-slate-100 text-slate-700 border-slate-200";
-      if (source === "global")
-        badgeClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
-      if (source === "system")
-        badgeClass = "bg-amber-50 text-amber-900 border-amber-200";
-      if (source === "service")
-        badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-
-      result.push({
-        key: `token-${match.index}`,
-        kind: "token",
-        class: `mx-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono border ${badgeClass} select-none cursor-help align-middle`,
-        title: `${type}::${source}`,
-        text: `${source === "global" ? "G" : source === "system" ? "S" : "SVC"}:${name}`,
-      });
-    }
-
-    lastIndex = regex.lastIndex;
-  }
-
-  // Remaining text
-  if (lastIndex < value.length) {
-    result.push({
-      key: `text-${lastIndex}`,
-      kind: "text",
-      text: value.substring(lastIndex),
-    });
-  }
-
-  return result;
-});
-
-const toggleViewMode = (e: MouseEvent) => {
-  e.stopPropagation();
+const toggle = () => {
   viewMode.value = viewMode.value === "token" ? "value" : "token";
 };
 </script>
 
 <template>
-  <span v-if="!hasVariables" :class="classAttr" v-bind="restAttrs">{{
-    value
-  }}</span>
-  <div
+  <span v-if="!hasVariables" :class="classAttr" v-bind="restAttrs">
+    {{ value }}
+  </span>
+  <span
     v-else
-    :class="`flex items-start gap-1 group ${classAttr ?? ''}`"
     v-bind="restAttrs"
+    :class="classNames('group inline-flex items-start gap-1', classAttr)"
   >
-    <div
-      class="flex-1 min-w-0 flex flex-wrap items-center gap-y-1 max-h-[80px] overflow-y-auto"
-    >
-      <template v-for="part in parts" :key="part.key">
+    <span class="flex min-w-0 flex-1 flex-wrap items-center gap-y-1">
+      <template v-for="part in parts" :key="part.index">
         <span v-if="part.kind === 'text'">{{ part.text }}</span>
-        <span v-else :class="part.class" :title="part.title">{{
-          part.text
-        }}</span>
+        <SmartVariableBadge
+          v-else
+          :variable="part.variable"
+          :groups="groups"
+          :resolve="resolver"
+          :mode="viewMode"
+          :flag-missing="flagMissing"
+        />
       </template>
-    </div>
+    </span>
     <IconButton
       :icon="viewMode === 'token' ? 'EyeOpen' : 'EyeClosed'"
       variant="ghost"
+      :color="tone"
       size="xs"
-      class="text-slate-400 hover:text-slate-600 hidden group-hover:inline-flex"
-      :title="viewMode === 'token' ? 'Show Values' : 'Show Tokens'"
-      @click="toggleViewMode"
+      :sr-label="toggleLabel"
+      :tooltip="toggleLabel"
+      :class="
+        classNames(
+          'shrink-0',
+          !alwaysShowToggle &&
+            'opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100',
+        )
+      "
+      @click.stop="toggle"
     />
-  </div>
+  </span>
 </template>

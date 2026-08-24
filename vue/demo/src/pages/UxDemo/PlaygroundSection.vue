@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Toggle, useTheme } from "@cjlapao/ui-kit-vue";
+import { Button, Toggle, useTheme } from "@cjlapao/ui-kit-vue";
 import backdropLight from "@assets/images/backdrop_demo_light.png";
 import backdropDark from "@assets/images/backdrop_demo_dark.png";
 
@@ -9,9 +9,15 @@ defineProps<{
   title: string;
   label: string;
   description?: string;
+  /**
+   * Hide the header's background-image toggle for demos that supply their own
+   * backdrop (GlassBackground draws one itself, so a second would fight it).
+   */
+  hideBackgroundToggle?: boolean;
 }>();
 
 const panelHasBackground = ref<boolean>(false);
+const showControls = ref<boolean>(true);
 const { effectiveTheme } = useTheme();
 const isDomAvailable = typeof window !== "undefined";
 const controlsRatio = ref(0.45);
@@ -84,11 +90,24 @@ onMounted(() => {
 
 onUnmounted(() => cleanup?.());
 
+const previewBackgroundStyle = computed(() =>
+  panelHasBackground.value
+    ? {
+        backgroundImage: `url(${
+          effectiveTheme.value === "dark" ? backdropDark : backdropLight
+        })`,
+      }
+    : undefined,
+);
+
 const gridStyle = computed(() => ({
-  gridTemplateColumns: isWide.value
-    ? `${controlsRatio.value * 100}% ${100 - controlsRatio.value * 100}%`
-    : "1fr",
+  gridTemplateColumns:
+    showControls.value && isWide.value
+      ? `${controlsRatio.value * 100}% ${100 - controlsRatio.value * 100}%`
+      : "1fr",
 }));
+
+const showSplit = computed(() => showControls.value && isWide.value);
 </script>
 
 <template>
@@ -107,22 +126,56 @@ const gridStyle = computed(() => ({
           {{ description }}
         </p>
       </div>
-      <div class="ml-auto flex items-center gap-2">
-        <Toggle v-model="panelHasBackground" size="sm" align-label="left" tone="blue" label="Show background image" />
+      <div class="ml-auto flex items-center gap-3">
+        <Toggle
+          v-if="!hideBackgroundToggle"
+          v-model="panelHasBackground"
+          size="sm"
+          align-label="left"
+          tone="blue"
+          label="Background image"
+        />
+        <Button
+          size="xs"
+          variant="ghost"
+          color="neutral"
+          :aria-expanded="showControls"
+          @click="showControls = !showControls"
+        >
+          {{ showControls ? "Hide options" : "Show options" }}
+        </Button>
       </div>
     </header>
     <div ref="gridRef" class="relative grid gap-4" :style="gridStyle">
-      <div class="space-y-4 rounded-2xl border border-slate-100/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+      <div
+        v-if="showControls"
+        class="space-y-4 rounded-2xl border border-slate-100/80 bg-white/80 p-4 dark:border-slate-800 dark:bg-slate-900/50"
+      >
         <slot name="controls" />
       </div>
-      <div class="rounded-2xl border border-dashed border-slate-200 
-        bg-white/60 p-4 dark:border-slate-800 dark:bg-slate-900/50"
-        :class="{ 'elative overflow-hidden rounded-2xl bg-cover bg-center bg-no-repeat bg-[url(@assets/images/backdrop_demo_light.png)] dark:bg-[url(@assets/images/backdrop_demo_dark.png)]': panelHasBackground }">
+      <div
+        class="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-4 dark:border-slate-800 dark:bg-slate-900/50"
+        :class="{
+          'relative overflow-hidden bg-cover bg-center bg-no-repeat': panelHasBackground,
+        }"
+        :style="previewBackgroundStyle"
+      >
         <slot name="preview" />
       </div>
-      <button type="button" aria-label="Resize playground columns"
-        class="pointer-events-auto absolute top-4 bottom-4 hidden w-3 -translate-x-1/2 cursor-col-resize rounded-full bg-slate-200 shadow-sm transition hover:bg-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 lg:block"
-        :style="{ left: `${controlsRatio * 100}%`, opacity: isWide ? 1 : 0 }" @mousedown="handleDragStart" @touchstart="handleDragStart" />
+      <!-- Wide invisible grab area, thin visible bar. -->
+      <button
+        v-if="showSplit"
+        type="button"
+        aria-label="Resize playground columns"
+        class="group pointer-events-auto absolute top-4 bottom-4 flex w-4 -translate-x-1/2 cursor-col-resize items-stretch justify-center bg-transparent focus-visible:outline-none"
+        :style="{ left: `${controlsRatio * 100}%` }"
+        @mousedown="handleDragStart"
+        @touchstart="handleDragStart"
+      >
+        <span
+          class="h-full w-1 rounded-full bg-slate-200 transition group-hover:bg-slate-300 group-focus-visible:bg-blue-400 dark:bg-slate-700 dark:group-hover:bg-slate-600"
+        />
+      </button>
     </div>
   </section>
 </template>

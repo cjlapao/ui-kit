@@ -1,12 +1,26 @@
 import React, { useState } from "react";
 import classNames from "classnames";
-import SideMenu, { type SideMenuProps } from "./SideMenu";
+import SideMenu, {
+  useSidebarIsMobile,
+  type SideMenuProps,
+} from "./SideMenu";
 import CustomIcon from "./CustomIcon";
 import { SideMenuActionsProvider } from "../contexts/SideMenuActionsContext";
 
 export interface SideMenuLayoutProps {
   /** Props passed to the SideMenu component (including color). */
   sideMenuProps: SideMenuProps;
+  /**
+   * A second SideMenu on the right edge (dual sidebars). Its collapse and
+   * mobile-drawer state are managed by the layout.
+   */
+  rightSideMenuProps?: SideMenuProps;
+  /**
+   * Multi sidebars: an extra menu rendered next to the primary. While this is
+   * set, the primary is pinned to the hover rail (always collapsed, expands on
+   * hover) so the pair reads as one multi-sidebar rail.
+   */
+  secondarySideMenuProps?: SideMenuProps;
   /** Content rendered in the fixed header bar at the top of the main area */
   header?: React.ReactNode;
   /** Main scrollable body content */
@@ -31,6 +45,8 @@ export interface SideMenuLayoutProps {
 
 export const SideMenuLayout = ({
   sideMenuProps,
+  rightSideMenuProps,
+  secondarySideMenuProps,
   header,
   children,
   className,
@@ -39,8 +55,18 @@ export const SideMenuLayout = ({
   sideItemActions,
   sidePanelActions,
 }: SideMenuLayoutProps) => {
+  const isMobile = useSidebarIsMobile(sideMenuProps.responsive ?? true);
+  const isMulti = !!secondarySideMenuProps;
+
   const [collapsed, setCollapsed] = useState(sideMenuProps.collapsed ?? false);
+  const [rightCollapsed, setRightCollapsed] = useState(
+    rightSideMenuProps?.collapsed ?? false,
+  );
+  const [secondaryCollapsed, setSecondaryCollapsed] = useState(
+    secondarySideMenuProps?.collapsed ?? false,
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [rightMobileOpen, setRightMobileOpen] = useState(false);
 
   const handleToggleCollapse = () => {
     if (sideMenuProps.onToggleCollapse) {
@@ -66,6 +92,79 @@ export const SideMenuLayout = ({
     ? (sideMenuProps.mobileOpen ?? false)
     : mobileOpen;
 
+  // Right menu — its own collapse / drawer state, mirrored from the primary.
+  const handleRightToggleCollapse = () => {
+    if (rightSideMenuProps?.onToggleCollapse) {
+      rightSideMenuProps.onToggleCollapse();
+    } else {
+      setRightCollapsed((prev) => !prev);
+    }
+  };
+
+  const isRightCollapsed = rightSideMenuProps?.onToggleCollapse
+    ? (rightSideMenuProps.collapsed ?? false)
+    : rightCollapsed;
+
+  const handleRightCloseMobile = () => {
+    if (rightSideMenuProps?.onCloseMobile) {
+      rightSideMenuProps.onCloseMobile();
+    } else {
+      setRightMobileOpen(false);
+    }
+  };
+
+  const isRightMobileOpen = rightSideMenuProps?.onCloseMobile
+    ? (rightSideMenuProps.mobileOpen ?? false)
+    : rightMobileOpen;
+
+  // Secondary (multi) menu — plain managed collapse.
+  const handleSecondaryToggleCollapse = () => {
+    if (secondarySideMenuProps?.onToggleCollapse) {
+      secondarySideMenuProps.onToggleCollapse();
+    } else {
+      setSecondaryCollapsed((prev) => !prev);
+    }
+  };
+
+  const isSecondaryCollapsed = secondarySideMenuProps?.onToggleCollapse
+    ? (secondarySideMenuProps.collapsed ?? false)
+    : secondaryCollapsed;
+
+  const primaryProps: SideMenuProps = {
+    ...sideMenuProps,
+    side: "left",
+    mobileOpen: isMobileOpen,
+    onCloseMobile: handleCloseMobile,
+    fullHeight: true,
+    // Multi mode pins the primary to the hover rail: always collapsed,
+    // expanding as an overlay on hover. `openOnHover` owns that state, so the
+    // collapse wiring is not passed through.
+    ...(isMulti
+      ? { openOnHover: true }
+      : {
+          collapsed: isCollapsed,
+          onToggleCollapse: handleToggleCollapse,
+        }),
+  };
+
+  const rightProps: SideMenuProps = {
+    ...rightSideMenuProps!,
+    side: "right",
+    collapsed: isRightCollapsed,
+    onToggleCollapse: handleRightToggleCollapse,
+    mobileOpen: isRightMobileOpen,
+    onCloseMobile: handleRightCloseMobile,
+    fullHeight: true,
+  };
+
+  const secondaryProps: SideMenuProps = {
+    ...secondarySideMenuProps!,
+    side: "left",
+    collapsed: isSecondaryCollapsed,
+    onToggleCollapse: handleSecondaryToggleCollapse,
+    fullHeight: true,
+  };
+
   return (
     <SideMenuActionsProvider
       initialSideItemActions={sideItemActions}
@@ -77,28 +176,35 @@ export const SideMenuLayout = ({
           className,
         )}
       >
-        {/* Side Menu */}
-        <SideMenu
-          {...sideMenuProps}
-          collapsed={isCollapsed}
-          onToggleCollapse={handleToggleCollapse}
-          mobileOpen={isMobileOpen}
-          onCloseMobile={handleCloseMobile}
-          fullHeight
-        />
+        {/* Side Menu (primary) */}
+        <SideMenu {...primaryProps} />
+
+        {/* Secondary menu (multi sidebars) */}
+        {secondarySideMenuProps && <SideMenu {...secondaryProps} />}
 
         {/* Main Content Area */}
         <div className="flex flex-1 flex-col min-w-0 h-full">
-          {/* Mobile menu toggle */}
-          <div className="md:hidden flex items-center px-4 py-2 border-b border-gray-200 bg-white">
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
-              aria-label="Open menu"
-            >
-              <CustomIcon icon="ViewRows" className="w-5 h-5" />
-            </button>
-          </div>
+          {/* Mobile menu toggle — same breakpoint as the menu's offcanvas mode */}
+          {isMobile && (
+            <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-200 bg-white">
+              <button
+                onClick={() => setMobileOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                aria-label="Open menu"
+              >
+                <CustomIcon icon="ViewRows" className="w-5 h-5" />
+              </button>
+              {rightSideMenuProps && (
+                <button
+                  onClick={() => setRightMobileOpen(true)}
+                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                  aria-label="Open right menu"
+                >
+                  <CustomIcon icon="ViewRows" className="w-5 h-5 rotate-180" />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Header */}
           {header && (
@@ -112,6 +218,9 @@ export const SideMenuLayout = ({
             {children}
           </main>
         </div>
+
+        {/* Side Menu (right) */}
+        {rightSideMenuProps && <SideMenu {...rightProps} />}
       </div>
     </SideMenuActionsProvider>
   );

@@ -53,32 +53,15 @@ const viewportBounds = (): RectBounds => ({
   height: window.innerHeight,
 });
 
-const isClippingParent = (element: HTMLElement): boolean => {
-  const style = window.getComputedStyle(element);
-  const values = [style.overflow, style.overflowX, style.overflowY].join(" ");
-  return /(auto|scroll|hidden|clip)/.test(values);
-};
-
-const resolveBoundaryBounds = (anchor: HTMLElement): RectBounds => {
-  let node: HTMLElement | null = anchor.parentElement;
-
-  while (node && node !== document.body) {
-    if (isClippingParent(node)) {
-      const rect = node.getBoundingClientRect();
-      return {
-        top: rect.top,
-        left: rect.left,
-        right: rect.right,
-        bottom: rect.bottom,
-        width: rect.width,
-        height: rect.height,
-      };
-    }
-    node = node.parentElement;
-  }
-
-  return viewportBounds();
-};
+// The menu is `position: fixed` and teleported to `document.body`, so it is
+// positioned relative to the viewport. An ancestor's `overflow` does NOT clip a
+// `fixed` element (only a containing-block-establishing ancestor such as a
+// transform/filter would), so the viewport — not any clipping parent — is the
+// only correct collision boundary. Walking up for an `overflow` ancestor and
+// using its rect (which can extend far beyond the visible viewport, e.g. a tall
+// scrollable content container) made the menu believe there was room below and
+// drop off-screen instead of flipping up.
+const resolveBoundaryBounds = (): RectBounds => viewportBounds();
 
 const resolveAnchorLayerZIndex = (anchor: HTMLElement): number => {
   let node: HTMLElement | null = anchor;
@@ -114,8 +97,21 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 }) => {
   const renderIcon = useIconRenderer();
   const menuRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  // The element that was focused when the menu opened (the trigger); focus is
+  // returned to it when the menu closes via Escape / item activation.
+  const triggerRef = useRef<HTMLElement | null>(null);
+  // Set when the menu is closed by an outside pointerdown. Focus is NOT
+  // restored to the trigger in that case — the user deliberately clicked
+  // elsewhere (restoring would steal focus and scroll the page back).
+  const closedByOutsideRef = useRef(false);
   const [style, setStyle] = useState<React.CSSProperties>();
   const [computedMaxHeight, setComputedMaxHeight] = useState<number>(maxHeight);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const enabledIndices = items
+    .map((item, index) => (item.disabled ? -1 : index))
+    .filter((index) => index >= 0);
 
   const handleSelect = useCallback(
     (item: DropdownMenuOption) => {
@@ -139,6 +135,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       ) {
         return;
       }
+      closedByOutsideRef.current = true;
       onClose();
     };
 
@@ -161,8 +158,97 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     if (!open) {
       setStyle(undefined);
       setComputedMaxHeight(maxHeight);
+      setActiveIndex(0);
     }
   }, [maxHeight, open]);
+
+  // On open: capture the trigger (currently focused element) and move focus to
+  // the first enabled item. Runs after the positioning layout-effect, so the
+  // menu is already visible and focusable.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    closedByOutsideRef.current = false;
+    triggerRef.current = (document.activeElement as HTMLElement) ?? null;
+    const first = enabledIndices[0] ?? 0;
+    setActiveIndex(first);
+    // Defer to the next frame: a synchronous focus() here loses a race against
+    // the browser settling focus onto the trigger from the opening click.
+    const frame = requestAnimationFrame(() => {
+      itemRefs.current[first]?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+    // `enabledIndices` derives from `items`, which is stable for the life of an
+    // open menu; re-running only on `open` is intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // On close: if the close was NOT an outside click and focus was left on
+  // <body> (the focused menu item unmounted — i.e. Escape or item activation),
+  // return it to the trigger. An outside click is never restored (the user
+  // deliberately clicked elsewhere; restoring would steal focus and scroll).
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+    if (closedByOutsideRef.current) {
+      return;
+    }
+    const active = document.activeElement;
+    const trigger = triggerRef.current;
+    if (trigger?.isConnected && (active === document.body || active === null)) {
+      trigger.focus();
+    }
+  }, [open]);
+
+  const focusItem = (index: number) => {
+    setActiveIndex(index);
+    itemRefs.current[index]?.focus();
+  };
+
+  const moveActive = (delta: number) => {
+    if (enabledIndices.length === 0) {
+      return;
+    }
+    const position = enabledIndices.indexOf(activeIndex);
+    // If the active item is unknown/disabled, start just past the end (down) or
+    // before the start (up) so wrapping lands on a sensible item.
+    const base = position === -1 ? (delta > 0 ? -1 : 0) : position;
+    const next =
+      (base + delta + enabledIndices.length) % enabledIndices.length;
+    focusItem(enabledIndices[next]);
+  };
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        moveActive(1);
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        moveActive(-1);
+        break;
+      case "Home":
+        event.preventDefault();
+        if (enabledIndices.length > 0) focusItem(enabledIndices[0]);
+        break;
+      case "End":
+        event.preventDefault();
+        if (enabledIndices.length > 0)
+          focusItem(enabledIndices[enabledIndices.length - 1]);
+        break;
+      case "Tab":
+        // Closing on Tab (rather than trapping focus) matches the ARIA menu
+        // button pattern: the menu is not a modal dialog.
+        event.preventDefault();
+        onClose();
+        break;
+      default:
+        break;
+    }
+  };
 
   const updatePosition = useCallback(() => {
     if (!open || !anchorRef.current || !menuRef.current) {
@@ -176,7 +262,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     const alignReferenceRect =
       caretElement?.getBoundingClientRect() ?? anchorRect;
     const menuRect = menuRef.current.getBoundingClientRect();
-    const boundary = resolveBoundaryBounds(anchorRef.current);
+    const boundary = resolveBoundaryBounds();
     const zIndex = resolveAnchorLayerZIndex(anchorRef.current);
     const offset = 8;
     const minMargin = 8;
@@ -357,6 +443,8 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       ref={menuRef}
       style={resolvedStyle}
       role="menu"
+      aria-orientation="vertical"
+      onKeyDown={handleMenuKeyDown}
       className={classNames(
         "fixed min-w-[10rem] overflow-hidden rounded-lg border border-neutral-200 bg-white/95 p-1 text-sm shadow-xl ring-1 ring-black/5 backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/95",
         !style && "invisible opacity-0",
@@ -368,12 +456,16 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         style={{ maxHeight: computedMaxHeight }}
         onClick={(event) => event.stopPropagation()}
       >
-        {items.map((item) => (
+        {items.map((item, index) => (
           <li key={item.value}>
             <button
+              ref={(el) => {
+                itemRefs.current[index] = el;
+              }}
               type="button"
               role="menuitem"
               disabled={item.disabled}
+              tabIndex={index === activeIndex ? 0 : -1}
               onClick={(event) => {
                 event.stopPropagation();
                 handleSelect(item);

@@ -8,3 +8,4 @@ export * from "./dependencyUtils";
 export * from "./gravatar";
 export * from "./toastUtils";
 export * from "./smartVariables";
+export * from "./tableStorage";

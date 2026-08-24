@@ -1,123 +1,277 @@
 import React, { useState } from "react";
-import { Select, Toggle, MultiToggle, ButtonColor } from "@cjlapao/ui-kit";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { colorOptions } from "../constants";
+import {
+  MultiToggle,
+  Panel,
+  Select,
+  Toggle,
+  CONTROL_SIZES,
+  INPUT_VARIANTS,
+  TRUE_COLORS,
+} from "@cjlapao/ui-kit";
+import type {
+  SelectSize,
+  SelectValidationStatus,
+  SelectVariant,
+  TrueColor,
+} from "@cjlapao/ui-kit";
+import {
+  controlSizeOptions,
+  inputValidationOptions,
+  inputVariantOptions,
+  trueColorOptions,
+} from "../constants";
+
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <label className="flex flex-col gap-2">
+    <span className="text-xs font-medium uppercase tracking-wide opacity-70">
+      {label}
+    </span>
+    {children}
+  </label>
+);
+
+const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span className="text-[11px] font-semibold uppercase tracking-wide opacity-60">
+    {children}
+  </span>
+);
+
+const REGIONS = ["eu-west-1", "us-east-1", "ap-south-1", "sa-east-1"];
 
 export const SelectDemo: React.FC = () => {
-  const [selectTone, setSelectTone] = useState<ButtonColor>("blue");
-  const [selectSize, setSelectSize] = useState<"sm" | "md" | "lg">("md");
-  const [selectValidation, setSelectValidation] = useState<
-    "none" | "error" | "success"
-  >("none");
-  const [selectLeadingIcon, setSelectLeadingIcon] = useState(false);
-  const [selectHideCaret, setSelectHideCaret] = useState(false);
-  const [selectDisabled, setSelectDisabled] = useState(false);
-  const [selectValue, setSelectValue] = useState("option-1");
+  const [variant, setVariant] = useState<SelectVariant>("flat");
+  const [size, setSize] = useState<SelectSize>("md");
+  const [tone, setTone] = useState<TrueColor>("blue");
+  const [validationStatus, setValidationStatus] =
+    useState<SelectValidationStatus>("none");
+
+  const [value, setValue] = useState("");
+  const [leadingIcon, setLeadingIcon] = useState(false);
+  const [placeholder, setPlaceholder] = useState(true);
+  const [hideCaret, setHideCaret] = useState(false);
+  const [multiple, setMultiple] = useState(false);
+  const [disabled, setDisabled] = useState(false);
+  const [onGlass, setOnGlass] = useState(false);
+
+  const shared = {
+    variant,
+    size,
+    tone,
+    validationStatus,
+    disabled,
+    leadingIcon: leadingIcon ? "Globe" : undefined,
+    hideCaret,
+  };
+
+  const regionOptions = REGIONS.map((region) => (
+    <option key={region} value={region}>
+      {region}
+    </option>
+  ));
+
+  const preview = (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2">
+        <Caption>Current settings</Caption>
+        <Select
+          {...shared}
+          multiple={multiple}
+          placeholder={placeholder ? "Choose a region" : undefined}
+          value={multiple ? undefined : value}
+          onChange={(event) => setValue(event.target.value)}
+          aria-label="Region"
+        >
+          {regionOptions}
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Caption>Every variant — at the same size, so they line up</Caption>
+        <div className="grid gap-3 md:grid-cols-2">
+          {INPUT_VARIANTS.map((each) => (
+            <Select
+              key={each}
+              {...shared}
+              variant={each}
+              placeholder={each}
+              aria-label={each}
+            >
+              {regionOptions}
+            </Select>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Caption>Size ladder</Caption>
+        <div className="space-y-3">
+          {CONTROL_SIZES.map((each) => (
+            <Select
+              key={each}
+              {...shared}
+              size={each}
+              placeholder={`Size ${each}`}
+              aria-label={`Size ${each}`}
+            >
+              {regionOptions}
+            </Select>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Caption>Validation</Caption>
+        <div className="grid gap-3 md:grid-cols-3">
+          {(["none", "error", "success"] as const).map((status) => (
+            <Select
+              key={status}
+              {...shared}
+              validationStatus={status}
+              placeholder={status}
+              aria-label={status}
+            >
+              {regionOptions}
+            </Select>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Caption>Every tone — focus one to see its border and ring</Caption>
+        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-4">
+          {TRUE_COLORS.map((each) => (
+            <Select
+              key={each}
+              variant={variant}
+              size="sm"
+              tone={each}
+              placeholder={each}
+              aria-label={each}
+            >
+              {regionOptions}
+            </Select>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <PlaygroundSection
       title="Select"
       label="[Select]"
-      description="Styled select dropdown with icon support."
+      description="The native dropdown, with the platform caret replaced by the kit's. Surface, size and tone come from the shared scales, so it lines up with the Input and SearchBar beside it."
       controls={
-        <div className="space-y-4 text-sm">
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex flex-col gap-2">
-              <span>Size</span>
-              <MultiToggle
-                fullWidth
-                options={[
-                  { label: "SM", value: "sm" },
-                  { label: "MD", value: "md" },
-                  { label: "LG", value: "lg" },
-                ]}
-                value={selectSize}
-                size="sm"
-                onChange={(value) => setSelectSize(value as "sm" | "md" | "lg")}
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span>Tone</span>
-              <MultiToggle
-                fullWidth
-                options={colorOptions}
-                value={selectTone}
-                size="sm"
-                onChange={(value) => setSelectTone(value as ButtonColor)}
-              />
-            </label>
-          </div>
-          <label className="flex flex-col gap-2">
-            <span>Validation</span>
+        <div className="space-y-5 text-sm">
+          <Field label="Variant">
             <MultiToggle
               fullWidth
-              options={[
-                { label: "None", value: "none" },
-                { label: "Error", value: "error" },
-                { label: "Success", value: "success" },
-              ]}
-              value={selectValidation}
               size="sm"
+              options={inputVariantOptions}
+              value={variant}
+              onChange={(value) => setVariant(value as SelectVariant)}
+            />
+          </Field>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Size">
+              <MultiToggle
+                fullWidth
+                size="sm"
+                options={controlSizeOptions}
+                value={size}
+                onChange={(value) => setSize(value as SelectSize)}
+              />
+            </Field>
+            <Field label="Tone">
+              <Select
+                value={tone}
+                onChange={(event) => setTone(event.target.value as TrueColor)}
+              >
+                {trueColorOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+
+          <Field label="Validation">
+            <MultiToggle
+              fullWidth
+              size="sm"
+              options={inputValidationOptions}
+              value={validationStatus}
               onChange={(value) =>
-                setSelectValidation(value as "none" | "error" | "success")
+                setValidationStatus(value as SelectValidationStatus)
               }
             />
-          </label>
-          <div className="grid gap-2 md:grid-cols-4">
-            {[
-              {
-                label: "Leading icon",
-                value: selectLeadingIcon,
-                setter: setSelectLeadingIcon,
-              },
-              {
-                label: "Hide caret",
-                value: selectHideCaret,
-                setter: setSelectHideCaret,
-              },
-              {
-                label: "Disabled",
-                value: selectDisabled,
-                setter: setSelectDisabled,
-              },
-            ].map((item) => (
-              <label
-                key={item.label}
-                className="flex items-center justify-between"
-              >
-                <span>{item.label}</span>
-                <Toggle
-                  size="sm"
-                  checked={item.value}
-                  onChange={(event) => item.setter(event.target.checked)}
-                />
-              </label>
-            ))}
+          </Field>
+
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+            <Toggle
+              size="sm"
+              label="Leading icon"
+              checked={leadingIcon}
+              onChange={(event) => setLeadingIcon(event.target.checked)}
+            />
+            <Toggle
+              size="sm"
+              label="Placeholder"
+              checked={placeholder}
+              onChange={(event) => setPlaceholder(event.target.checked)}
+            />
+            <Toggle
+              size="sm"
+              label="Hide caret"
+              checked={hideCaret}
+              onChange={(event) => setHideCaret(event.target.checked)}
+            />
+            <Toggle
+              size="sm"
+              label="Multiple"
+              checked={multiple}
+              onChange={(event) => setMultiple(event.target.checked)}
+            />
+            <Toggle
+              size="sm"
+              label="Disabled"
+              checked={disabled}
+              onChange={(event) => setDisabled(event.target.checked)}
+            />
+            <Toggle
+              size="sm"
+              label="On a glass panel"
+              checked={onGlass}
+              onChange={(event) => setOnGlass(event.target.checked)}
+            />
           </div>
+
+          <p className="text-xs opacity-70">
+            The surface sits on the field&apos;s wrapper, not the{" "}
+            <code>&lt;select&gt;</code> — same structure as{" "}
+            <strong>Input</strong>, so the caret and leading icon are flex
+            siblings rather than absolutely positioned things the select has to
+            leave padding for. The <code>&lt;option&gt;</code> elements carry
+            their own fill: the native dropdown is painted by the platform from
+            the select&apos;s background, which is now transparent.
+          </p>
         </div>
       }
       preview={
-        <div className="space-y-3">
-          <Select
-            size={selectSize}
-            tone={selectTone}
-            validationStatus={selectValidation}
-            leadingIcon={selectLeadingIcon ? "Globe" : undefined}
-            hideCaret={selectHideCaret}
-            disabled={selectDisabled}
-            placeholder="Pick a region"
-            value={selectValue}
-            onChange={(event) => setSelectValue(event.target.value)}
+        <div className="p-4">
+          <Panel
+            variant={onGlass ? "liquid-glass" : "outlined"}
+            tone={onGlass ? tone : "neutral"}
+            padding="md"
           >
-            <option value="us">United States</option>
-            <option value="eu">Europe</option>
-            <option value="apac">Asia Pacific</option>
-          </Select>
-          <Select multiple placeholder="Multi select" size="md">
-            <option value="one">One</option>
-            <option value="two">Two</option>
-            <option value="three">Three</option>
-          </Select>
+            {preview}
+          </Panel>
         </div>
       }
     />

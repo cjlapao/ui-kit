@@ -1,241 +1,152 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { ButtonColor } from "./Button.vue";
-import type { TrueColor } from "../theme/Theme";
+import {
+  TRUE_COLORS,
+  getGlowTokens,
+  getInputVariantTokens,
+  stripBorderColor,
+  resolveGlowGradient,
+} from "../theme/Theme";
+import type {
+  ControlSize,
+  GlowIntensity,
+  InputVariant,
+  TrueColor,
+} from "../theme/Theme";
 
-type InputValidationStatus = "none" | "error" | "success";
-type InputSize = "sm" | "md" | "lg";
-export type InputVariant = "flat" | "elevated" | "ghost" | "underline";
-
-const sizeStyles: Record<
-  InputSize,
-  {
-    input: string;
-    leadingPadding: string;
-    trailingPadding: string;
-    icon?: string;
-    iconLeft: string;
-    iconRight: string;
-    iconSize: string;
-  }
-> = {
-  sm: {
-    input: "px-3 py-1.5 text-sm",
-    leadingPadding: "pl-8",
-    trailingPadding: "pr-8",
-    iconSize: "h-3.5 w-3.5",
-    iconLeft: "left-2.5",
-    iconRight: "right-2.5",
-  },
-  md: {
-    input: "px-3.5 py-2.5 text-sm",
-    leadingPadding: "pl-10",
-    trailingPadding: "pr-10",
-    iconSize: "h-4 w-4",
-    iconLeft: "left-3.5",
-    iconRight: "right-3.5",
-  },
-  lg: {
-    input: "px-4 py-3 text-base",
-    leadingPadding: "pl-11",
-    trailingPadding: "pr-11",
-    iconSize: "h-5 w-5",
-    iconLeft: "left-4",
-    iconRight: "right-4",
-  },
-};
-
-type InputToneTokens = {
-  /** Full focus indicator: colored border + glow ring. Used by flat / elevated / ghost variants. */
-  focusRing: string;
-  /** Border-only focus indicator: no ring. Used by the underline variant. */
-  focusBorder: string;
-  icon: string;
-};
-
-const toneTokens: Partial<Record<TrueColor, InputToneTokens>> = {
-  red: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    focusBorder: "focus:border-rose-500",
-    icon: "text-rose-500 dark:text-rose-300",
-  },
-  orange: {
-    focusRing: "focus:border-orange-400 focus:ring-2 focus:ring-orange-400/60",
-    focusBorder: "focus:border-orange-500",
-    icon: "text-orange-500 dark:text-orange-300",
-  },
-  amber: {
-    focusRing: "focus:border-amber-400 focus:ring-2 focus:ring-amber-400/60",
-    focusBorder: "focus:border-amber-500",
-    icon: "text-amber-500 dark:text-amber-300",
-  },
-  yellow: {
-    focusRing: "focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/60",
-    focusBorder: "focus:border-yellow-500",
-    icon: "text-yellow-500 dark:text-yellow-300",
-  },
-  lime: {
-    focusRing: "focus:border-lime-400 focus:ring-2 focus:ring-lime-400/60",
-    focusBorder: "focus:border-lime-500",
-    icon: "text-lime-500 dark:text-lime-300",
-  },
-  green: {
-    focusRing:
-      "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/60",
-    focusBorder: "focus:border-emerald-500",
-    icon: "text-emerald-500 dark:text-emerald-300",
-  },
-  emerald: {
-    focusRing:
-      "focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/60",
-    focusBorder: "focus:border-emerald-500",
-    icon: "text-emerald-500 dark:text-emerald-300",
-  },
-  teal: {
-    focusRing: "focus:border-teal-400 focus:ring-2 focus:ring-teal-400/60",
-    focusBorder: "focus:border-teal-500",
-    icon: "text-teal-500 dark:text-teal-300",
-  },
-  cyan: {
-    focusRing: "focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/60",
-    focusBorder: "focus:border-cyan-500",
-    icon: "text-cyan-500 dark:text-cyan-300",
-  },
-  sky: {
-    focusRing: "focus:border-sky-400 focus:ring-2 focus:ring-sky-400/60",
-    focusBorder: "focus:border-sky-500",
-    icon: "text-sky-500 dark:text-sky-300",
-  },
-  blue: {
-    focusRing: "focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60",
-    focusBorder: "focus:border-blue-500",
-    icon: "text-blue-500 dark:text-blue-300",
-  },
-  indigo: {
-    focusRing: "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/60",
-    focusBorder: "focus:border-indigo-500",
-    icon: "text-indigo-500 dark:text-indigo-300",
-  },
-  violet: {
-    focusRing: "focus:border-violet-400 focus:ring-2 focus:ring-violet-400/60",
-    focusBorder: "focus:border-violet-500",
-    icon: "text-violet-500 dark:text-violet-300",
-  },
-  purple: {
-    focusRing: "focus:border-purple-400 focus:ring-2 focus:ring-purple-400/60",
-    focusBorder: "focus:border-purple-500",
-    icon: "text-purple-500 dark:text-purple-300",
-  },
-  fuchsia: {
-    focusRing:
-      "focus:border-fuchsia-400 focus:ring-2 focus:ring-fuchsia-400/60",
-    focusBorder: "focus:border-fuchsia-500",
-    icon: "text-fuchsia-500 dark:text-fuchsia-300",
-  },
-  rose: {
-    focusRing: "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/60",
-    focusBorder: "focus:border-rose-500",
-    icon: "text-rose-500 dark:text-rose-300",
-  },
-  slate: {
-    focusRing: "focus:border-slate-500 focus:ring-2 focus:ring-slate-500/60",
-    focusBorder: "focus:border-slate-600",
-    icon: "text-slate-500 dark:text-slate-200",
-  },
-  gray: {
-    focusRing: "focus:border-gray-400 focus:ring-2 focus:ring-gray-400/60",
-    focusBorder: "focus:border-gray-500",
-    icon: "text-gray-500 dark:text-gray-300",
-  },
-  zinc: {
-    focusRing: "focus:border-zinc-400 focus:ring-2 focus:ring-zinc-400/60",
-    focusBorder: "focus:border-zinc-500",
-    icon: "text-zinc-500 dark:text-zinc-300",
-  },
-  neutral: {
-    focusRing:
-      "focus:border-neutral-400 focus:ring-2 focus:ring-neutral-400/60 dark:focus:border-neutral-500 dark:focus:ring-neutral-500/60",
-    focusBorder: "focus:border-neutral-600 dark:focus:border-neutral-400",
-    icon: "text-neutral-500 dark:text-neutral-300",
-  },
-  stone: {
-    focusRing: "focus:border-stone-400 focus:ring-2 focus:ring-stone-400/60",
-    focusBorder: "focus:border-stone-500",
-    icon: "text-stone-500 dark:text-stone-300",
-  },
-};
-
-const statusClasses: Record<Exclude<InputValidationStatus, "none">, string> = {
-  error:
-    "border-rose-500 focus:border-rose-500 focus:ring-rose-500/60 text-neutral-900 placeholder:text-neutral-400 dark:border-rose-400 dark:focus:border-rose-400 dark:focus:ring-rose-400/60 dark:text-neutral-100",
-  success:
-    "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500/60 text-neutral-900 placeholder:text-neutral-400 dark:border-emerald-400 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/60 dark:text-neutral-100",
-};
-
-const unstyledStatusClasses: Record<
-  Exclude<InputValidationStatus, "none">,
-  string
-> = {
-  error: "text-neutral-900 dark:text-neutral-100",
-  success: "text-neutral-900 dark:text-neutral-100",
-};
-
-const disabledClasses =
-  "disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-400 dark:disabled:border-neutral-700 dark:disabled:bg-neutral-800 dark:disabled:text-neutral-500";
+export const INPUT_VALIDATION_STATUSES = ["none", "error", "success"] as const;
+export type InputValidationStatus =
+  (typeof INPUT_VALIDATION_STATUSES)[number];
+export type InputValidationStatusType = InputValidationStatus;
 
 /**
- * Visual surface variants:
- *
- * flat      — clean thin border, no shadow. Best for most form contexts. (default)
- * elevated  — adds a subtle drop shadow; stands out against low-contrast backgrounds.
- * ghost     — transparent border at rest; border and ring reveal on hover, focus, or validation.
- *             Great for inline editing or dense layouts.
- * underline — bottom border only; no background fill. Minimalist / inline editing style.
- *             Focus shows the accent border colour; no glow ring.
+ * The shared control scale, so an Input lines up with the Button, SearchBar and
+ * Select beside it. Was a local `"sm" | "md" | "lg"`, which left `xs` and `xl`
+ * unreachable even though every sibling control offered them.
  */
-const variantStyles: Record<InputVariant, string> = {
-  flat: "rounded-lg border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-900",
-  elevated:
-    "rounded-lg border border-neutral-300 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-900",
-  ghost:
-    "rounded-lg border border-transparent bg-neutral-100/80 hover:border-neutral-300 hover:bg-white dark:bg-neutral-800/60 dark:hover:border-neutral-600 dark:hover:bg-neutral-800",
-  underline:
-    "rounded-none border-0 border-b border-neutral-300 bg-transparent px-0 transition-colors dark:border-neutral-600",
+export type InputSize = ControlSize;
+
+/**
+ * Re-exported from the theme, where the surfaces live, so `Input`, `Textarea`
+ * and `SearchBar` cannot drift apart.
+ */
+export type { InputVariant };
+
+// ── Tone tokens ───────────────────────────────────────────────────────────────
+// Generated from the shared TrueColor list rather than hand-written. The map
+// this replaces had 21 entries typed out by hand and two of them were wrong:
+// `red` emitted `rose-400`/`rose-500` classes and `green` emitted `emerald-*`,
+// so those two tones silently rendered as a different colour.
+
+type InputToneTokens = {
+  /** Border colour while anything inside the field has focus. */
+  focusBorder: string;
+  /** Glow ring while anything inside the field has focus. */
+  focusRing: string;
+  /** Leading/trailing icon colour while the field has focus. */
+  icon: string;
+  /** Focus ring for the inline trailing button. */
+  buttonFocusRing: string;
 };
 
-type IconRenderer = string | VNode;
+const buildToneTokens = (color: TrueColor): InputToneTokens => ({
+  focusBorder: `focus-within:border-${color}-400`,
+  // Inset, matching SearchBar. An outer ring is painted outside the border box,
+  // so any ancestor with `overflow: auto|hidden` clips it — `Panel`'s body is
+  // `overflow-auto` by default, which shears the ring off and leaves hard
+  // square corners.
+  focusRing: `focus-within:ring-2 focus-within:ring-inset focus-within:ring-${color}-400/60`,
+  icon: `group-focus-within:text-${color}-500`,
+  buttonFocusRing: `focus-visible:ring-${color}-400/60`,
+});
+
+const TONE_TOKENS: Record<TrueColor, InputToneTokens> = Object.fromEntries(
+  TRUE_COLORS.map((color) => [color, buildToneTokens(color)]),
+) as Record<TrueColor, InputToneTokens>;
+
+const getToneTokens = (color: TrueColor): InputToneTokens =>
+  TONE_TOKENS[color] ?? TONE_TOKENS.blue;
+
+// ── Sizing ────────────────────────────────────────────────────────────────────
+
+/** Padding and type scale, mirroring `SearchBar` so the two line up stacked. */
+const SIZE_STYLES: Record<
+  ControlSize,
+  {
+    px: string;
+    py: string;
+    /** `underline` has no box to inset from, and needs room above the rule. */
+    underlinePy: string;
+    text: string;
+    icon: ControlSize;
+    /** Inline trailing button. */
+    button: string;
+  }
+> = {
+  xs: { px: "px-2", py: "py-1", underlinePy: "pt-1 pb-2", text: "text-xs", icon: "xs", button: "h-4 w-4" },
+  sm: { px: "px-2.5", py: "py-1.5", underlinePy: "pt-1.5 pb-2.5", text: "text-xs", icon: "xs", button: "h-5 w-5" },
+  md: { px: "px-3", py: "py-2", underlinePy: "pt-2 pb-3", text: "text-sm", icon: "sm", button: "h-5 w-5" },
+  lg: { px: "px-4", py: "py-2.5", underlinePy: "pt-2.5 pb-3.5", text: "text-base", icon: "sm", button: "h-6 w-6" },
+  xl: { px: "px-5", py: "py-3", underlinePy: "pt-3 pb-4", text: "text-base", icon: "sm", button: "h-6 w-6" },
+};
+
+/**
+ * Border only at rest; the ring is part of the focus state, exactly as it is
+ * for the tone tokens. A status used to add a bare `ring-2 ring-inset` at rest
+ * with no ring *colour* — an unset ring colour resolves to `currentColor`, so
+ * every errored or successful field carried a near-black 2px halo inside its
+ * coloured border.
+ *
+ * These also carry no copy colour. The old version forced
+ * `text-neutral-900 dark:text-neutral-100` alongside the border, so an errored
+ * `underline` or `glass` field lost the high-contrast pair it needs to stay
+ * legible over a backdrop.
+ */
+const STATUS_CLASSES: Record<Exclude<InputValidationStatus, "none">, string> = {
+  error:
+    "border-rose-500 dark:border-rose-400 focus-within:border-rose-500 dark:focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-rose-500/60 dark:focus-within:ring-rose-400/60",
+  success:
+    "border-emerald-500 dark:border-emerald-400 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-500/60 dark:focus-within:ring-emerald-400/60",
+};
 
 export interface InputProps {
   /** Current value of the input (v-model). */
   modelValue?: string;
+  /** @default "md" */
   size?: InputSize;
-  tone?: ButtonColor;
-  /** Visual surface style. Defaults to `flat`. */
+  /** Accent colour for the focus border, ring and icon highlight. */
+  tone?: TrueColor;
+  /** Alias for `tone`, matching `SearchBar`'s prop name. */
+  color?: TrueColor;
+  /** Visual surface style. @default "flat" */
   variant?: InputVariant;
+  /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
+  gradientFrom?: string;
+  /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
+  gradientTo?: string;
+  /** How prominent the gradient glow is. @default "soft" */
+  glowIntensity?: GlowIntensity;
+  /** @default "none" */
   validationStatus?: InputValidationStatus;
-  leadingIcon?: IconRenderer;
-  trailingIcon?: IconRenderer;
-  /** When provided, the trailing icon renders as an interactive button instead of a static decoration. */
+  leadingIcon?: string | VNode;
+  trailingIcon?: string | VNode;
+  /** Renders the trailing icon as a button rather than a static decoration. */
   onTrailingIconClick?: (event: MouseEvent) => void;
+  /** Accessible name for that button. @default "Input action" */
+  trailingIconLabel?: string;
+  /** @deprecated Use the `class` attribute, which is now the box. */
   wrapperClassName?: string;
+  /** Classes for the inner `<input>` element itself. */
+  inputClassName?: string;
+  /** Drops the surface entirely — used by `InputGroup`. */
   unstyled?: boolean;
   fullHeight?: boolean;
   disabled?: boolean;
 }
-
-export type InputValidationStatusType = InputValidationStatus;
 </script>
 
 <script setup lang="ts">
-import {
-  cloneVNode,
-  computed,
-  h,
-  isVNode,
-  normalizeClass,
-  ref,
-  type VNodeChild,
-} from "vue";
+import { computed, ref } from "vue";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useClassAttrs } from "../utils/attrsUtils";
@@ -245,11 +156,13 @@ defineOptions({ name: "Input", inheritAttrs: false, __UI_INPUT: true });
 
 const props = withDefaults(defineProps<InputProps>(), {
   size: "md",
-  tone: "blue",
   variant: "flat",
+  glowIntensity: "soft",
   validationStatus: "none",
+  trailingIconLabel: "Input action",
   unstyled: false,
   fullHeight: false,
+  disabled: false,
 });
 
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
@@ -260,136 +173,134 @@ const renderIcon = useIconRenderer();
 const el = ref<HTMLInputElement | null>(null);
 defineExpose({ el });
 
-const sizeToken = computed(() => sizeStyles[props.size] ?? sizeStyles.md);
-const tokens = computed(
-  () => (toneTokens[props.tone] ?? toneTokens.blue) as InputToneTokens,
+const focused = ref(false);
+
+const effectiveTone = computed(() => props.tone ?? props.color ?? "blue");
+const sizeToken = computed(() => SIZE_STYLES[props.size] ?? SIZE_STYLES.md);
+const tokens = computed(() => getToneTokens(effectiveTone.value));
+const variantTokens = computed(() => getInputVariantTokens(props.variant));
+const isUnderline = computed(() => props.variant === "underline");
+const hasStatus = computed(() => props.validationStatus !== "none");
+
+const glow = computed(() => getGlowTokens(props.glowIntensity));
+const glowGradient = computed(() =>
+  resolveGlowGradient(effectiveTone.value, props.gradientFrom, props.gradientTo),
 );
-const hasLeadingIcon = computed(() => Boolean(props.leadingIcon));
-const hasTrailingIcon = computed(() => Boolean(props.trailingIcon));
-const isUnstyled = computed(() => props.unstyled);
+const glowStyle = computed(() => ({
+  background: `linear-gradient(to right, ${glowGradient.value[0]}, ${glowGradient.value[1]})`,
+  opacity: focused.value
+    ? glow.value.focusOpacity
+    : glow.value.idleOpacity,
+}));
 
-const renderVisual = (
-  visual: IconRenderer | undefined,
-  iconClassName: string,
-): VNodeChild => {
-  if (!visual) {
-    return null;
-  }
-  if (typeof visual === "string") {
-    return renderIcon(visual, undefined, iconClassName);
-  }
-  if (isVNode(visual)) {
-    const clone = cloneVNode(visual);
-    clone.props = {
-      ...(clone.props ?? {}),
-      class: classNames(
-        iconClassName,
-        normalizeClass(visual.props?.class) || undefined,
-      ),
-    };
-    return clone;
-  }
-  return h("span", { class: iconClassName }, [visual]);
-};
+const isGradient = computed(() => props.variant === "gradient" && !props.unstyled);
 
-const baseInputClasses = computed(() =>
+const statusIconClass = computed(() =>
   classNames(
-    "block w-full text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none dark:text-neutral-100 dark:placeholder:text-neutral-500",
-    sizeToken.value.input,
-    !isUnstyled.value && variantStyles[props.variant],
-    disabledClasses,
-    hasLeadingIcon.value && sizeToken.value.leadingPadding,
-    hasTrailingIcon.value && sizeToken.value.trailingPadding,
-    classAttr.value,
+    props.validationStatus === "error" && "text-rose-500 dark:text-rose-400",
+    props.validationStatus === "success" &&
+      "text-emerald-500 dark:text-emerald-400",
   ),
 );
 
-const unstyledClasses = computed(() =>
-  isUnstyled.value
-    ? classNames(
-        "border-0 bg-transparent focus:border-transparent focus:ring-0 dark:bg-transparent",
-        sizeToken.value.input,
-        hasLeadingIcon.value && sizeToken.value.leadingPadding,
-        hasTrailingIcon.value && sizeToken.value.trailingPadding,
-      )
-    : "",
-);
-
-const statusClass = computed(() =>
-  props.validationStatus !== "none"
-    ? isUnstyled.value
-      ? unstyledStatusClasses[props.validationStatus]
-      : statusClasses[props.validationStatus]
-    : undefined,
-);
-
-const mergedInputClasses = computed(() =>
+const iconClass = computed(() =>
   classNames(
-    isUnstyled.value ? unstyledClasses.value : baseInputClasses.value,
-    !isUnstyled.value &&
-      (props.variant === "underline"
-        ? tokens.value.focusBorder
-        : tokens.value.focusRing),
+    // Resting colour from the variant, focus accent from the tone. These do not
+    // collide because the tone class is prefixed — the old code applied an
+    // unprefixed `text-{tone}-500` next to the variant's own `text-*`, and
+    // which one won was decided by emission order.
+    variantTokens.value.icon,
+    !hasStatus.value && tokens.value.icon,
+    statusIconClass.value,
+  ),
+);
+
+const leadingClass = computed(() =>
+  classNames(
+    "mr-2 inline-flex shrink-0 items-center transition-colors",
+    iconClass.value,
+  ),
+);
+
+const trailingClass = computed(() =>
+  classNames(
+    "pointer-events-none ml-2 inline-flex shrink-0 items-center transition-colors",
+    iconClass.value,
+  ),
+);
+
+const trailingButtonClass = computed(() =>
+  classNames(
+    "ml-2 inline-flex shrink-0 items-center justify-center rounded transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2",
+    sizeToken.value.button,
+    tokens.value.buttonFocusRing,
+    variantTokens.value.icon,
+    !hasStatus.value && "hover:text-neutral-700 dark:hover:text-neutral-200",
+    statusIconClass.value,
+    "disabled:cursor-not-allowed",
+  ),
+);
+
+const fieldClass = computed(() =>
+  classNames(
+    "group relative flex w-full items-center transition",
+    !props.unstyled &&
+      (hasStatus.value
+        ? stripBorderColor(variantTokens.value.surface)
+        : variantTokens.value.surface),
+    // Underline drops the horizontal padding — there is no box to inset from —
+    // and gains a little extra below, so the text is not sitting on the rule.
+    isUnderline.value
+      ? sizeToken.value.underlinePy
+      : classNames(sizeToken.value.px, sizeToken.value.py),
+    !props.unstyled && !hasStatus.value && tokens.value.focusBorder,
+    // A ring around a borderless underline reads as a stray box.
+    !props.unstyled &&
+      !isUnderline.value &&
+      !hasStatus.value &&
+      tokens.value.focusRing,
+    !props.unstyled &&
+      hasStatus.value &&
+      STATUS_CLASSES[props.validationStatus as Exclude<InputValidationStatus, "none">],
+    // Opacity, not a neutral fill: `disabled:bg-neutral-100` was a
+    // same-specificity fight with every variant's own fill, and it turned a
+    // glass or underline field into an opaque grey slab.
+    props.disabled && "cursor-not-allowed opacity-60",
     props.fullHeight && "h-full",
+    props.wrapperClassName,
+    // The surface moved from the `<input>` to its wrapper (matching SearchBar),
+    // so the caller's class lands on the element that carries the border, fill
+    // and radius — except under `gradient`, where the outer glow box takes it.
+    !isGradient.value && classAttr.value,
   ),
 );
 
 const inputClass = computed(() =>
-  classNames(mergedInputClasses.value, statusClass.value),
+  classNames(
+    "min-w-0 flex-1 border-none bg-transparent p-0 outline-none",
+    sizeToken.value.text,
+    variantTokens.value.text,
+    "disabled:cursor-not-allowed",
+    props.fullHeight && "h-full",
+    props.inputClassName,
+  ),
 );
 
-const renderIconWrapper = (
-  visual: IconRenderer | undefined,
-  position: "left" | "right",
-  onClick?: (event: MouseEvent) => void,
-): VNodeChild => {
-  if (!visual) {
-    return null;
-  }
-  const positionClass =
-    position === "left" ? sizeToken.value.iconLeft : sizeToken.value.iconRight;
-  if (onClick) {
-    return h(
-      "button",
-      {
-        type: "button",
-        tabindex: -1,
-        onClick,
-        class: classNames(
-          "absolute flex items-center justify-center rounded",
-          positionClass,
-          sizeToken.value.iconSize,
-          tokens.value.icon,
-          props.validationStatus === "error" &&
-            "text-rose-500 dark:text-rose-400",
-          props.validationStatus === "success" &&
-            "text-emerald-500 dark:text-emerald-400",
-          "cursor-pointer p-0.5 transition-colors duration-150 hover:text-neutral-700 dark:hover:text-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-current",
-        ),
-      },
-      [renderVisual(visual, sizeToken.value.iconSize)],
-    );
-  }
-  const iconClassName = classNames(
-    "pointer-events-none absolute flex items-center justify-center text-neutral-400 dark:text-neutral-500",
-    positionClass,
-    sizeToken.value.iconSize,
-    tokens.value.icon,
-    props.validationStatus === "error" && "text-rose-500 dark:text-rose-400",
-    props.validationStatus === "success" &&
-      "text-emerald-500 dark:text-emerald-400",
-  );
-  return h("span", { class: iconClassName }, [
-    renderVisual(visual, sizeToken.value.iconSize),
-  ]);
-};
-
-const wrapperClasses = computed(() =>
+const glowWrapperClass = computed(() =>
   classNames(
-    "relative flex w-full items-center",
-    props.disabled && "opacity-70",
+    "relative flex w-full",
+    glow.value.pad,
     props.fullHeight && "h-full",
-    props.wrapperClassName,
+    classAttr.value,
+  ),
+);
+
+const glowLayerClass = computed(() =>
+  classNames(
+    "absolute rounded-2xl leading-none transition-opacity duration-500",
+    glow.value.inset,
+    glow.value.blur,
   ),
 );
 
@@ -411,23 +322,69 @@ const onInput = (event: Event) => {
 </script>
 
 <template>
-  <span :class="wrapperClasses">
-    <VNodeRenderer
-      v-if="leadingIcon"
-      :nodes="renderIconWrapper(leadingIcon, 'left')"
+  <!-- The gradient variant is the same field with a coloured glow behind it,
+       matching Textarea and SearchBar. `glow.pad` keeps the halo inside the
+       component's own box, so a clipping ancestor cannot shear it off. Vue's
+       Input had the `gradient` surface but never painted the glow at all.
+
+       `display: contents` on the non-gradient branch keeps one element in the
+       template without adding a box to the layout — a dynamic `<component
+       :is="'template'">` is not a thing. -->
+  <span :class="isGradient ? glowWrapperClass : 'contents'">
+    <span
+      v-if="isGradient"
+      :class="glowLayerClass"
+      :style="glowStyle"
+      aria-hidden="true"
     />
-    <input
-      ref="el"
-      v-bind="restAttrs"
-      :class="inputClass"
-      :value="modelValue"
-      :disabled="disabled"
-      :aria-invalid="ariaInvalid"
-      @input="onInput"
-    />
-    <VNodeRenderer
-      v-if="trailingIcon"
-      :nodes="renderIconWrapper(trailingIcon, 'right', onTrailingIconClick)"
-    />
+    <span :class="fieldClass">
+      <span v-if="leadingIcon" :class="leadingClass">
+        <VNodeRenderer
+          :nodes="
+            typeof leadingIcon === 'string'
+              ? renderIcon(leadingIcon, sizeToken.icon)
+              : leadingIcon
+          "
+        />
+      </span>
+
+      <input
+        ref="el"
+        v-bind="restAttrs"
+        :class="inputClass"
+        :value="modelValue"
+        :disabled="disabled"
+        :aria-invalid="ariaInvalid"
+        @input="onInput"
+        @focus="focused = true"
+        @blur="focused = false"
+      />
+
+      <button
+        v-if="trailingIcon && onTrailingIconClick"
+        type="button"
+        :class="trailingButtonClass"
+        :disabled="disabled"
+        :aria-label="trailingIconLabel"
+        @click="onTrailingIconClick"
+      >
+        <VNodeRenderer
+          :nodes="
+            typeof trailingIcon === 'string'
+              ? renderIcon(trailingIcon, sizeToken.icon)
+              : trailingIcon
+          "
+        />
+      </button>
+      <span v-else-if="trailingIcon" :class="trailingClass">
+        <VNodeRenderer
+          :nodes="
+            typeof trailingIcon === 'string'
+              ? renderIcon(trailingIcon, sizeToken.icon)
+              : trailingIcon
+          "
+        />
+      </span>
+    </span>
   </span>
 </template>

@@ -1,6 +1,11 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import type { TrueColor, ButtonVariant } from "../theme/Theme";
+import type {
+  TrueColor,
+  ButtonVariant,
+  ButtonWeight,
+} from "../theme/Theme";
+import { CONTROL_SIZES } from "../theme/Theme";
 import type { TooltipPosition } from "./Tooltip.vue";
 import type {
   GlassVibrancy,
@@ -12,8 +17,18 @@ export type ButtonColor = TrueColor;
 export type { ButtonVariant };
 export type { GlassVibrancy, GlassOpacity, SpecularMode };
 
-export type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl";
-export type ButtonWeight = "normal" | "medium" | "semibold" | "bold";
+/**
+ * Buttons use the shared control scale. Aliased rather than redeclared so a
+ * change to `ControlSize` reaches Button without a second list to update —
+ * the same rule the React kit's Button follows.
+ */
+export {
+  BUTTON_VARIANTS,
+  BUTTON_WEIGHTS,
+} from "../theme/Theme";
+export const BUTTON_SIZES = CONTROL_SIZES;
+export type ButtonSize = (typeof BUTTON_SIZES)[number];
+export type { ButtonWeight };
 
 export interface ButtonProps {
   variant?: ButtonVariant;
@@ -27,6 +42,12 @@ export interface ButtonProps {
   iconOnly?: boolean;
   accent?: boolean;
   accentColor?: TrueColor;
+  /**
+   * Raw CSS colour to tint the leading/trailing icon. Omit it and the icon
+   * inherits the button's text colour (icons paint with `currentColor`), so
+   * the glyph always matches the label; set it to override just the glyph.
+   */
+  iconColor?: string;
   /** When true, renders in a persistent lighter "on" state with hover suppressed. accentColor overrides the active color. */
   active?: boolean;
   /** When true, applies glass styling (fill + vibrancy + optional specular overlay). */
@@ -44,49 +65,13 @@ export interface ButtonProps {
   tooltipPosition?: TooltipPosition;
 }
 
-const baseClasses =
-  "inline-flex items-center justify-center rounded-md transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 select-none";
-
-const sizeStyles: Record<
-  ButtonSize,
-  { base: string; iconOnly: string; gap: string; icon: string; spinner: string }
-> = {
-  xs: {
-    base: "px-2 py-1 text-xs",
-    iconOnly: "p-1.5 text-xs",
-    gap: "gap-1.5",
-    icon: "h-4 w-4",
-    spinner: "h-4 w-4",
-  },
-  sm: {
-    base: "px-3 py-2 text-xs",
-    iconOnly: "p-2 text-xs",
-    gap: "gap-1.5",
-    icon: "h-5 w-5",
-    spinner: "h-4 w-4",
-  },
-  md: {
-    base: "px-3.5 py-2.5 text-sm",
-    iconOnly: "p-2.5 text-sm",
-    gap: "gap-2",
-    icon: "h-6 w-6",
-    spinner: "h-6 w-6",
-  },
-  lg: {
-    base: "px-4 py-2.5 text-base",
-    iconOnly: "p-3 text-base",
-    gap: "gap-2.5",
-    icon: "h-7 w-7",
-    spinner: "h-7 w-7",
-  },
-  xl: {
-    base: "px-5 py-3 text-base",
-    iconOnly: "p-3.5 text-base",
-    gap: "gap-3",
-    icon: "h-8 w-8",
-    spinner: "h-8 w-8",
-  },
-};
+// `disabled:opacity-50` is applied conditionally rather than living here:
+// `loading` also sets the disabled attribute (to block clicks), and dimming a
+// loading control to 50% fades the spinner along with it — the one element
+// that needs to stay visible.
+// `DEFAULT_TRIGGER_CORNER` (not a local `rounded-md`) so a Button next to an
+// Input is the same box — Input already uses `rounded-lg`.
+const baseClasses = `inline-flex items-center justify-center ${DEFAULT_TRIGGER_CORNER} transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed select-none`;
 
 const weightClasses: Record<ButtonWeight, string> = {
   normal: "font-normal",
@@ -107,10 +92,13 @@ import {
   getButtonHoverClasses,
   getButtonActiveClasses,
   getButtonActiveHoverClasses,
+  getControlSizeTokens,
+  DEFAULT_TRIGGER_CORNER,
 } from "../theme/Theme";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import { useClassAttrs } from "../utils/attrsUtils";
 import {
+  getGlassChromeClasses,
   getGlassFillClass,
   getGlassVibrancyClass,
   getSpecularClasses,
@@ -143,7 +131,7 @@ const renderIconFn = useIconRenderer();
 const el = ref<HTMLButtonElement | null>(null);
 defineExpose({ el });
 
-const sizeConfig = computed(() => sizeStyles[props.size] ?? sizeStyles.md);
+const sizeConfig = computed(() => getControlSizeTokens(props.size));
 const baseColorClasses = computed(() =>
   getButtonColorClasses(props.variant, props.color),
 );
@@ -155,8 +143,11 @@ const accentRingClass = computed(
 const accentHoverClass = computed(
   () => iconAccentHover[accentTone.value] ?? iconAccentHover.blue,
 );
+// Accent means "the parent owns the fill": drop the variant's fill and draw
+// only the accent ring + hover. True for icon mode and for a text Button
+// alike (it used to be dead outside icon mode).
 const accentClasses = computed(() =>
-  isIconMode.value && props.accent
+  props.accent
     ? classNames(
         "bg-transparent text-inherit hover:bg-transparent focus-visible:ring-2 focus-visible:ring-offset-2",
         accentRingClass.value,
@@ -169,12 +160,16 @@ const accentClasses = computed(() =>
 const isGlass = computed(
   () => props.variant === "glass" || props.glass,
 );
+// The variant's own colour classes are dropped for glass (they paint an
+// opaque fill), so the chrome — text colour, rim, focus ring — has to come
+// from here or the control ends up with none of it.
 const glassClasses = computed(() =>
   isGlass.value
     ? classNames(
         "backdrop-blur-sm",
         getGlassFillClass(props.color, props.glassOpacity),
         getGlassVibrancyClass(props.vibrancy),
+        getGlassChromeClasses(props.color),
       )
     : null,
 );
@@ -219,8 +214,9 @@ const colorClasses = computed(() => {
 const computedClassName = computed(() =>
    classNames(
      baseClasses,
-     sizeConfig.value.gap,
-     isIconMode.value ? sizeConfig.value.iconOnly : sizeConfig.value.base,
+     !props.loading && "disabled:opacity-50",
+      sizeConfig.value.gap,
+      isIconMode.value ? sizeConfig.value.iconOnly : sizeConfig.value.text,
      isGlass.value ? (accentClasses.value ?? "") : (accentClasses.value ?? colorClasses.value),
      weightClasses[props.weight],
      props.fullWidth && "w-full",
@@ -232,7 +228,7 @@ const computedClassName = computed(() =>
 
 const spinnerClass = computed(() =>
   classNames(
-    "inline-flex animate-spin rounded-full border-2 border-current border-t-transparent",
+    "inline-flex animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none",
     sizeConfig.value.spinner,
   ),
 );
@@ -242,87 +238,85 @@ const srOnlyContent = computed(
   () => restAttrs.value["aria-label"] as string | undefined,
 );
 
-const buttonBindings = computed(() => ({
-  class: computedClassName.value,
-  disabled: isDisabled.value || props.loading,
-  "data-variant": props.variant,
-  "data-color": props.color,
-  "data-size": props.size,
-  "data-glass": props.glass,
-  "aria-busy": props.loading || undefined,
-  ...restAttrs.value,
-}));
+// Icons paint with `currentColor`, so by default they inherit the button's
+// text colour and the glyph always matches the label. An `iconColor` tints
+// only the glyph by wrapping it in a span that carries the colour.
+const iconWrapClass = "inline-flex shrink-0 items-center";
+const iconStyle = computed(() =>
+  props.iconColor ? { color: props.iconColor } : undefined,
+);
+const leadingIconNodes = computed(() =>
+  renderIconFn(
+    props.leadingIcon,
+    props.size as IconSize,
+    classNames("flex-shrink-0", sizeConfig.value.icon),
+  ),
+);
+const trailingIconNodes = computed(() =>
+  renderIconFn(
+    props.trailingIcon,
+    props.size as IconSize,
+    classNames("flex-shrink-0", sizeConfig.value.icon),
+  ),
+);
+
+const buttonBindings = computed(() => {
+  // A `<button>` inside a `<form>` is `type="submit"` by default, which made
+  // every unspec'd Button submit the form. Default to "button"; an explicit
+  // `type="submit"|"reset"` still wins, anything else falls back to "button".
+  const { type, ...rest } = restAttrs.value;
+  const resolvedType: "button" | "reset" | "submit" =
+    type === "submit" || type === "reset" ? type : "button";
+  return {
+    class: computedClassName.value,
+    type: resolvedType,
+    disabled: isDisabled.value || props.loading,
+    "data-variant": props.variant,
+    "data-color": props.color,
+    "data-size": props.size,
+    "data-glass": isGlass.value,
+    "aria-busy": props.loading || undefined,
+    ...rest,
+  };
+});
 </script>
 
 <template>
-  <TooltipWrapper v-if="tooltip" :text="tooltip" :position="tooltipPosition">
+  <!--
+    TooltipWrapper renders its child unchanged when `text` is absent, so the
+    button is written once instead of duplicated in tooltip/non-tooltip
+    branches (the duplication is how the two drift apart).
+  -->
+  <TooltipWrapper :text="tooltip" :position="tooltipPosition">
     <button ref="el" v-bind="buttonBindings">
       <div
         v-if="specularOverlayClasses"
         :class="specularOverlayClasses"
         aria-hidden="true"
       />
-      <template v-if="loading">
-        <span :class="spinnerClass" aria-hidden="true" />
-      </template>
+      <span v-if="loading" :class="spinnerClass" aria-hidden="true" />
       <template v-else>
-        <VNodeRenderer
-          :nodes="
-            renderIconFn(
-              leadingIcon,
-              size as IconSize,
-              classNames(' flex-shrink-0', sizeConfig.icon),
-            )
-          "
-        />
+        <span
+          v-if="leadingIcon && iconStyle"
+          :class="iconWrapClass"
+          :style="iconStyle"
+        >
+          <VNodeRenderer :nodes="leadingIconNodes" />
+        </span>
+        <VNodeRenderer v-else-if="leadingIcon" :nodes="leadingIconNodes" />
         <span v-if="isIconMode" class="sr-only">{{
-          srOnlyContent ?? "Button"
+          srOnlyContent || "Button"
         }}</span>
         <slot v-else />
-        <VNodeRenderer
-          :nodes="
-            renderIconFn(
-              trailingIcon,
-              size as IconSize,
-              classNames('flex-shrink-0', sizeConfig.icon),
-            )
-          "
-        />
+        <span
+          v-if="trailingIcon && iconStyle"
+          :class="iconWrapClass"
+          :style="iconStyle"
+        >
+          <VNodeRenderer :nodes="trailingIconNodes" />
+        </span>
+        <VNodeRenderer v-else-if="trailingIcon" :nodes="trailingIconNodes" />
       </template>
     </button>
   </TooltipWrapper>
-  <button v-else ref="el" v-bind="buttonBindings">
-    <div
-      v-if="specularOverlayClasses"
-      :class="specularOverlayClasses"
-      aria-hidden="true"
-    />
-    <template v-if="loading">
-      <span :class="spinnerClass" aria-hidden="true" />
-    </template>
-    <template v-else>
-      <VNodeRenderer
-        :nodes="
-          renderIconFn(
-            leadingIcon,
-            size as IconSize,
-            classNames(' flex-shrink-0', sizeConfig.icon),
-          )
-        "
-      />
-      <span v-if="isIconMode" class="sr-only">{{
-        srOnlyContent ?? "Button"
-      }}</span>
-      <slot v-else />
-      <VNodeRenderer
-        :nodes="
-          renderIconFn(
-            trailingIcon,
-            size as IconSize,
-            classNames('flex-shrink-0', sizeConfig.icon),
-          )
-        "
-      />
-    </template>
-  </button>
 </template>

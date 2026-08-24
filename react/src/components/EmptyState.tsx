@@ -1,235 +1,446 @@
+import React, { useId } from "react";
 import classNames from "classnames";
-import React from "react";
+
 import Button, {
   type ButtonVariant,
   type ButtonSize,
   type ButtonColor,
 } from "./Button";
-import { type IconSize } from "../types/Icon";
+import Panel from "./Panel";
+import { useSurfaceText } from "../contexts/SurfaceContext";
 import { useIconRenderer } from "../contexts/IconContext";
-import type { TrueColor, Size } from "../theme/Theme";
-export type TextSize = "xs" | "sm" | "md" | "lg" | "xl";
+import {
+  DEFAULT_SURFACE_CORNER,
+  SURFACE_VARIANTS,
+  type ControlSize,
+  type SurfaceCorner,
+  type SurfacePadding,
+  type SurfaceVariant,
+  type TrueColor,
+} from "../theme/Theme";
+import type {
+  GlassOpacity,
+  GlassVibrancy,
+  SpecularMode,
+} from "../theme/glass";
 
-const iconSizes: Record<IconSize, string> = {
-  xs: "h-6 w-6",
-  sm: "h-8 w-8",
-  md: "h-10 w-10",
-  lg: "h-12 w-12",
-  xl: "h-16 w-16",
-};
-
-const textSizes: Record<TextSize, string> = {
-  xs: "text-xs",
-  sm: "text-sm",
-  md: "text-lg",
-  lg: "text-xl",
-  xl: "text-2xl",
-};
+/**
+ * Every container surface, plus `plain` for an empty state dropped inside a
+ * card the app already owns — the common case, and previously only reachable
+ * by setting `disableBorder` *and* `transparentBackground` together.
+ */
+export const EMPTY_STATE_VARIANTS = [...SURFACE_VARIANTS, "plain"] as const;
+export type EmptyStateVariant = (typeof EMPTY_STATE_VARIANTS)[number];
 
 export type EmptyStateTone = TrueColor;
+export type EmptyStateSize = ControlSize;
+/** @deprecated Use `size`, which now drives the whole type scale. */
+export type TextSize = ControlSize;
 
-type ToneConfig = { border: string; text: string; bg: string; icon: string };
-
-// ── Neutral palette tones (static strings — Tailwind picks these up directly) ──
-
-const neutralTones: Record<Extract<TrueColor, "neutral" | "slate" | "gray" | "zinc" | "stone">, ToneConfig> = {
-  neutral: {
-    border: "border-neutral-300/70 dark:border-neutral-700/60",
-    text: "text-neutral-600 dark:text-neutral-300",
-    bg: "bg-white/80 dark:bg-neutral-900/40",
-    icon: "text-neutral-400 dark:text-neutral-500",
-  },
-  slate: {
-    border: "border-slate-300/70 dark:border-slate-700/60",
-    text: "text-slate-600 dark:text-slate-300",
-    bg: "bg-slate-50/80 dark:bg-slate-900/40",
-    icon: "text-slate-400 dark:text-slate-500",
-  },
-  gray: {
-    border: "border-gray-300/70 dark:border-gray-700/60",
-    text: "text-gray-600 dark:text-gray-300",
-    bg: "bg-gray-50/80 dark:bg-gray-900/40",
-    icon: "text-gray-400 dark:text-gray-500",
-  },
-  zinc: {
-    border: "border-zinc-300/70 dark:border-zinc-700/60",
-    text: "text-zinc-600 dark:text-zinc-300",
-    bg: "bg-zinc-50/80 dark:bg-zinc-900/40",
-    icon: "text-zinc-400 dark:text-zinc-500",
-  },
-  stone: {
-    border: "border-stone-300/70 dark:border-stone-700/60",
-    text: "text-stone-600 dark:text-stone-300",
-    bg: "bg-stone-50/80 dark:bg-stone-900/40",
-    icon: "text-stone-400 dark:text-stone-500",
-  },
+type EmptyStateSizeTokens = {
+  /** Explicit icon dimensions — an empty state's glyph is far larger than a
+   *  control's, so it does not sit on the shared icon scale. */
+  icon: string;
+  /** Padding of the tinted disc behind the icon. */
+  iconPad: string;
+  title: string;
+  subtitle: string;
+  gap: string;
+  /** Space between the copy and the action row. */
+  actionGap: string;
+  action: ButtonSize;
 };
 
-const sizes: Record<Size, string> = {
-  xs: "h-[30%] w-[30%]",
-  sm: "h-[35%] w-[35%]",
-  md: "h-[40%] w-[40%]",
-  lg: "h-[45%] w-[45%]",
-  xl: "h-[50%] w-[50%]",
-  xxl: "h-[55%] w-[55%]",
-  xxxl: "h-[60%] w-[60%]",
-  full: "h-full w-full",
-  "2xl": "h-[65%] w-[65%]",
-  "3xl": "h-[70%] w-[70%]",
+const SIZE_STYLES: Record<EmptyStateSize, EmptyStateSizeTokens> = {
+  xs: {
+    icon: "h-8 w-8",
+    iconPad: "p-2",
+    title: "text-sm",
+    subtitle: "text-xs",
+    gap: "gap-2",
+    actionGap: "mt-3",
+    action: "xs",
+  },
+  sm: {
+    icon: "h-10 w-10",
+    iconPad: "p-2.5",
+    title: "text-base",
+    subtitle: "text-xs",
+    gap: "gap-2.5",
+    actionGap: "mt-4",
+    action: "xs",
+  },
+  md: {
+    icon: "h-12 w-12",
+    iconPad: "p-3",
+    title: "text-lg",
+    subtitle: "text-sm",
+    gap: "gap-3",
+    actionGap: "mt-4",
+    action: "sm",
+  },
+  lg: {
+    icon: "h-14 w-14",
+    iconPad: "p-3.5",
+    title: "text-xl",
+    subtitle: "text-base",
+    gap: "gap-3.5",
+    actionGap: "mt-5",
+    action: "md",
+  },
+  xl: {
+    icon: "h-16 w-16",
+    iconPad: "p-4",
+    title: "text-2xl",
+    subtitle: "text-lg",
+    gap: "gap-4",
+    actionGap: "mt-6",
+    action: "md",
+  },
 };
-
-// ── Dynamic builder for all TrueColor values ────────────────────────────────
-// Uses only class patterns already declared in tailwind-safelist.ts:
-//   border-{c}-200            (border200)
-//   dark:border-{c}-500/40    (darkBorder500_40)
-//   text-{c}-700              (text700)
-//   dark:text-{c}-200         (darkText200)
-//   bg-{c}-50/80              (bg50_80)
-//   dark:bg-{c}-500/10        (darkBg500_10)
-//   text-{c}-500              (text500)
-//   dark:text-{c}-300         (darkText300)
-
-function buildToneClasses(color: TrueColor): ToneConfig {
-  // Static tones for neutral palettes
-  if (color === "neutral") return neutralTones.neutral;
-  if (color === "slate") return neutralTones.slate;
-  if (color === "gray") return neutralTones.gray;
-  if (color === "zinc") return neutralTones.zinc;
-  if (color === "stone") return neutralTones.stone;
-
-  // All other TrueColor values (red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose)
-  return {
-    border: `border-${color}-200 dark:border-${color}-500/40`,
-    text: `text-${color}-700 dark:text-${color}-200`,
-    bg: `bg-${color}-50/80 dark:bg-${color}-500/10`,
-    icon: `text-${color}-500 dark:text-${color}-300`,
-  };
-}
-
-// ── Props ───────────────────────────────────────────────────────────────────
 
 export interface EmptyStateProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
-  title: React.ReactNode;
+  extends Omit<
+    React.HTMLAttributes<HTMLElement>,
+    "title" | "color" | "children"
+  > {
+  title?: React.ReactNode;
   subtitle?: React.ReactNode;
+
+  /** @default "outlined" */
+  variant?: EmptyStateVariant;
+  /** @default "neutral" */
+  tone?: EmptyStateTone;
+  /** Alias for `tone`, matching `Panel`. */
+  color?: TrueColor;
+  /** Corner radius, on the shared container scale. */
+  corner?: SurfaceCorner;
+  /** Container padding, on the shared container scale. @default "lg" */
+  padding?: SurfacePadding;
+  /**
+   * Density — icon, type scale, gaps and the action button's default size.
+   * @default "md"
+   */
+  size?: EmptyStateSize;
+  /** @deprecated Use `size`. Ignored when `size` is set. */
+  textSize?: ControlSize;
+
+  /**
+   * The dashed rule that marks a drop zone or a slot waiting to be filled.
+   * Drawn as an `outline` rather than a border so it works on every variant,
+   * including the ring-based ones, without fighting the card's own border.
+   * @default true
+   */
+  dashed?: boolean;
+
+  /**
+   * A registry icon name or a node. The default used to be `"Plus"`, which is
+   * not in the registry — so every default empty state rendered CustomIcon's
+   * missing-icon placeholder rather than a glyph. The name is `"Add"`.
+   * @default "Add"
+   */
+  icon?: string | React.ReactElement;
+  /** @default true */
+  showIcon?: boolean;
+  /** Overrides the dimensions the `size` would have chosen. */
+  iconSize?: string;
+  /** Overrides the tone for the glyph only. */
+  iconColor?: TrueColor;
+  /**
+   * Tinted disc behind the glyph. It used to be a square `dark:bg-white/5`
+   * with no light-mode partner, so it appeared out of nowhere in dark mode.
+   * @default true
+   */
+  iconBackground?: boolean;
+
   actionLabel?: string;
   onAction?: () => void;
   actionVariant?: ButtonVariant;
   actionColor?: ButtonColor;
-  icon?: string | React.ReactElement;
-  iconSize?: IconSize;
-  iconColor?: TrueColor;
-  textSize?: TextSize;
-  showIcon?: boolean;
-  tone?: EmptyStateTone;
-  disableBorder?: boolean;
-  transparentBackground?: boolean;
-  fullWidth?: boolean;
-  fullHeight?: boolean;
   actionSize?: ButtonSize;
   actionLeadingIcon?: string | React.ReactElement;
-  size?: Size;
+  /** Arbitrary footer content, in place of the generated button. */
+  actions?: React.ReactNode;
+
+  fullWidth?: boolean;
+  fullHeight?: boolean;
+
+  /** @deprecated Use `variant="plain"`. */
+  disableBorder?: boolean;
+  /** @deprecated Use `variant="plain"`. */
+  transparentBackground?: boolean;
+
+  /** Glass fill transparency, for the see-through variants. */
+  glassOpacity?: GlassOpacity;
+  /** Backdrop vibrancy, for the see-through variants. */
+  vibrancy?: GlassVibrancy;
+  /** Specular highlight, for the see-through variants. */
+  specularMode?: SpecularMode;
 }
 
-// ── Component ───────────────────────────────────────────────────────────────
+interface EmptyStateBodyProps
+  extends Pick<
+    EmptyStateProps,
+    | "title"
+    | "subtitle"
+    | "icon"
+    | "showIcon"
+    | "iconBackground"
+    | "actionLabel"
+    | "onAction"
+    | "actionVariant"
+    | "actionColor"
+    | "actionSize"
+    | "actionLeadingIcon"
+    | "actions"
+  > {
+  titleId: string;
+  tone: TrueColor;
+  iconTone: TrueColor;
+  iconClass: string;
+  sizeToken: EmptyStateSizeTokens;
+}
 
-const EmptyState: React.FC<EmptyStateProps> = ({
+/**
+ * Split out so it can read `useSurfaceText()`. A component cannot consume a
+ * provider it renders itself, and the copy colour has to come from the surface
+ * — the old hardcoded `text-{tone}-700` vanished on glass over a photograph.
+ */
+const EmptyStateBody: React.FC<EmptyStateBodyProps> = ({
   title,
   subtitle,
+  icon,
+  showIcon,
+  iconBackground,
   actionLabel,
   onAction,
-  actionVariant = "soft",
-  actionColor = "blue",
-  icon = "Plus",
-  iconSize = "xl",
-  iconColor,
-  textSize = "md",
-  showIcon = true,
-  tone = "neutral",
-  fullWidth = false,
-  fullHeight = false,
-  actionSize = "sm",
-  size = "md",
+  actionVariant,
+  actionColor,
+  actionSize,
   actionLeadingIcon,
-  className,
-  disableBorder = false,
-  transparentBackground = false,
-  ...rest
+  actions,
+  titleId,
+  tone,
+  iconTone,
+  iconClass,
+  sizeToken,
 }) => {
   const renderIcon = useIconRenderer();
-  const palette = buildToneClasses(tone);
+  const surfaceText = useSurfaceText();
 
-  // lets make the subtitle text size smaller than the title text size
-  const subtitleTextSize =
-    textSize === "xs"
-      ? "xs"
-      : textSize === "sm"
-        ? "xs"
-        : textSize === "md"
-          ? "sm"
-          : textSize === "lg"
-            ? "md"
-            : "lg";
-  const iconPallete = !iconColor ? palette : buildToneClasses(iconColor);
+  const hasTitle = title !== undefined && title !== null && title !== "";
+  const hasSubtitle =
+    subtitle !== undefined && subtitle !== null && subtitle !== "";
+  // The action used to require `actionLabel` *and* `onAction` together, so a
+  // label with a handler resolved later rendered nothing at all.
+  const actionNode =
+    actions ??
+    (actionLabel ? (
+      <Button
+        size={actionSize ?? sizeToken.action}
+        variant={actionVariant ?? "soft"}
+        color={actionColor ?? tone}
+        onClick={onAction}
+        leadingIcon={actionLeadingIcon}
+      >
+        {actionLabel}
+      </Button>
+    ) : null);
 
   return (
-    <section
+    <div
       className={classNames(
-        "flex flex-col items-center justify-center gap-1 rounded-3xl px-6 py-10 text-center transition",
-        !disableBorder && "border-2 border-dashed shadow-sm",
-        palette.border,
-        !transparentBackground && palette.bg,
-        sizes[size],
-        fullWidth && "w-full",
-        fullHeight && "h-full",
-        className,
+        "flex w-full flex-col items-center justify-center text-center",
+        sizeToken.gap,
       )}
-      {...rest}
     >
-      {showIcon && (
-        <div className={classNames("p-2 dark:bg-white/5", iconPallete.icon)}>
-          {React.isValidElement(icon)
-            ? icon
-            : renderIcon(icon, iconSize, iconSizes[iconSize])}
-        </div>
-      )}
-      <div className="space-y-1">
-        <p
+      {showIcon && icon && (
+        <div
           className={classNames(
-            textSizes[textSize],
-            "font-semibold",
-            palette.text,
+            "flex items-center justify-center rounded-full",
+            sizeToken.iconPad,
+            `text-${iconTone}-500 dark:text-${iconTone}-300`,
+            iconBackground &&
+              `bg-${iconTone}-100/70 dark:bg-${iconTone}-500/15`,
           )}
         >
-          {title}
-        </p>
-        {subtitle && (
-          <p
-            className={classNames(
-              textSizes[subtitleTextSize],
-              "leading-relaxed break-all",
-              palette.text,
-            )}
-          >
-            {subtitle}
-          </p>
-        )}
-      </div>
-      {actionLabel && onAction && (
-        <div className="mt-4">
-          <Button
-            size={actionSize}
-            variant={actionVariant}
-            color={actionColor}
-            onClick={onAction}
-            leadingIcon={actionLeadingIcon}
-          >
-            {actionLabel}
-          </Button>
+          {/* One sizing path. The old code passed the size class *and* the icon
+              scale, and its `isValidElement` branch skipped both. */}
+          {renderIcon(icon, undefined, iconClass)}
         </div>
       )}
-    </section>
+
+      {(hasTitle || hasSubtitle) && (
+        <div className="space-y-1">
+          {hasTitle && (
+            <p
+              id={titleId}
+              className={classNames(
+                "font-semibold",
+                sizeToken.title,
+                surfaceText.heading,
+              )}
+            >
+              {title}
+            </p>
+          )}
+          {hasSubtitle && (
+            <p
+              className={classNames(
+                // `break-all` split ordinary prose mid-word. Only a long
+                // unbroken token needs breaking, which is `break-words`.
+                "mx-auto max-w-prose leading-relaxed break-words",
+                sizeToken.subtitle,
+                surfaceText.description,
+              )}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
+      )}
+
+      {actionNode && (
+        <div className={classNames("flex flex-wrap justify-center gap-2", sizeToken.actionGap)}>
+          {actionNode}
+        </div>
+      )}
+    </div>
   );
 };
+
+const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
+  (
+    {
+      title,
+      subtitle,
+      variant = "outlined",
+      tone,
+      color,
+      corner = DEFAULT_SURFACE_CORNER,
+      padding = "lg",
+      size,
+      textSize,
+      dashed = true,
+      icon = "Add",
+      showIcon = true,
+      iconSize,
+      iconColor,
+      iconBackground = true,
+      actionLabel,
+      onAction,
+      actionVariant,
+      actionColor,
+      actionSize,
+      actionLeadingIcon,
+      actions,
+      fullWidth = false,
+      fullHeight = false,
+      disableBorder = false,
+      transparentBackground = false,
+      glassOpacity,
+      vibrancy,
+      specularMode,
+      className,
+      ...rest
+    },
+    ref,
+  ) => {
+    const titleId = useId();
+
+    const effectiveTone = tone ?? color ?? "neutral";
+    const iconTone = iconColor ?? effectiveTone;
+    const effectiveSize = size ?? textSize ?? "md";
+    const sizeToken = SIZE_STYLES[effectiveSize] ?? SIZE_STYLES.md;
+
+    // The two deprecated flags together meant "no card at all", which is what
+    // `plain` is. Either one alone left a half-drawn surface.
+    const effectiveVariant: EmptyStateVariant =
+      disableBorder && transparentBackground ? "plain" : variant;
+    const isPlain = effectiveVariant === "plain";
+
+    const body = (
+      <EmptyStateBody
+        title={title}
+        subtitle={subtitle}
+        icon={icon}
+        showIcon={showIcon}
+        iconBackground={iconBackground}
+        actionLabel={actionLabel}
+        onAction={onAction}
+        actionVariant={actionVariant}
+        actionColor={actionColor}
+        actionSize={actionSize}
+        actionLeadingIcon={actionLeadingIcon}
+        actions={actions}
+        titleId={titleId}
+        tone={effectiveTone}
+        iconTone={iconTone}
+        iconClass={iconSize ?? sizeToken.icon}
+        sizeToken={sizeToken}
+      />
+    );
+
+    // An `outline` rather than a `border`: it sits on top of whatever the
+    // variant paints, needs no width to be reconciled against the card's own
+    // `border`, and takes no space in the box model.
+    const dashedClass =
+      dashed && !isPlain
+        ? classNames(
+            "outline-2 outline-dashed -outline-offset-2",
+            `outline-${effectiveTone}-300 dark:outline-${effectiveTone}-500/40`,
+          )
+        : undefined;
+
+    const shared = {
+      className: classNames(
+        "items-center justify-center",
+        fullHeight && "h-full",
+        dashedClass,
+        className,
+      ),
+      "aria-labelledby": title ? titleId : undefined,
+      ...rest,
+    };
+
+    if (isPlain) {
+      return (
+        <section
+          ref={ref}
+          {...shared}
+          className={classNames(
+            "flex w-full flex-col",
+            fullHeight && "h-full",
+            className,
+          )}
+        >
+          {body}
+        </section>
+      );
+    }
+
+    return (
+      <Panel
+        ref={ref}
+        variant={effectiveVariant as SurfaceVariant}
+        tone={effectiveTone}
+        corner={corner}
+        padding={padding}
+        fullWidth={fullWidth}
+        glassOpacity={glassOpacity}
+        vibrancy={vibrancy}
+        specularMode={specularMode}
+        scrollable={false}
+        bodyClassName="flex flex-1 flex-col items-center justify-center"
+        flexBody
+        {...shared}
+      >
+        {body}
+      </Panel>
+    );
+  },
+);
+
+EmptyState.displayName = "EmptyState";
 
 export default EmptyState;

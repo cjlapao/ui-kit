@@ -3,10 +3,12 @@ import { computed, ref } from "vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import {
   DropdownButton,
-  DropdownMenu,
   MultiToggle,
   Toggle,
-  Button,
+  Select,
+  TRUE_COLORS,
+  BUTTON_VARIANTS,
+  CONTROL_SIZES,
 } from "@cjlapao/ui-kit-vue";
 import type {
   ButtonColor,
@@ -15,13 +17,10 @@ import type {
 } from "@cjlapao/ui-kit-vue";
 import {
   dropdownButtonOptions,
-  dropdownMenuPreviewOptions,
-  buttonVariantOptions,
-  colorOptions,
-  buttonSizeOptions,
+  trueColorOptions,
+  buttonVariantAllOptions,
+  controlSizeOptions,
   dropdownWidthOptions,
-  dropdownAlignOptions,
-  dropdownSideOptions,
   GLOBAL_NOTIFICATION_CHANNEL,
 } from "../constants";
 import notificationService from "../mocks/NotificationService";
@@ -58,69 +57,96 @@ const dropdownMenuWidthValue = computed(() =>
     : Number(dropdownMenuWidthChoice.value),
 );
 
-const menuPreviewAlign = ref<"start" | "end">("end");
-const menuPreviewSide = ref<"auto" | "top" | "bottom">("auto");
-const menuPreviewOpen = ref(false);
-const menuPreviewAnchorRef = ref<InstanceType<typeof Button> | null>(null);
-const menuPreviewAnchorEl = computed(
-  () => menuPreviewAnchorRef.value?.el ?? null,
-);
-const menuPreviewSelection = ref("Nothing selected");
+// Fixed conditions for the reference specimens — each block varies exactly one
+// dimension and never moves with the controls above.
+const example = {
+  color: "blue" as ButtonColor,
+  size: "md" as ButtonSize,
+  split: true,
+};
 </script>
 
 <template>
   <PlaygroundSection
     title="Dropdown Button"
     label="[DropdownButton]"
-    description="Control the trigger button plus preview the dropdown menu positioning."
+    description="A split button whose caret opens a menu. Pick any of the full palette, then browse the fixed specimens."
   >
     <template #controls>
       <div class="space-y-4 text-sm">
-        <label class="flex flex-col gap-1">
-          <span>Variant</span>
-          <MultiToggle
-            :options="buttonVariantOptions"
-            :model-value="dropdownButtonVariant"
-            size="sm"
-            full-width
-            @update:model-value="
-              dropdownButtonVariant = $event as ButtonVariant
-            "
-          />
-        </label>
-        <label class="flex flex-col gap-1">
-          <span>Color</span>
-          <MultiToggle
-            :options="colorOptions"
-            :model-value="dropdownButtonColor"
-            size="sm"
-            full-width
-            @update:model-value="dropdownButtonColor = $event as ButtonColor"
-          />
-        </label>
-        <label class="flex flex-col gap-1">
-          <span>Size</span>
-          <MultiToggle
-            :options="buttonSizeOptions"
-            :model-value="dropdownButtonSize"
-            size="sm"
-            full-width
-            @update:model-value="dropdownButtonSize = $event as ButtonSize"
-          />
-        </label>
-        <label class="flex flex-col gap-1">
-          <span>Menu Width</span>
-          <MultiToggle
-            :options="dropdownWidthOptions"
-            :model-value="dropdownMenuWidthChoice"
-            size="sm"
-            full-width
-            @update:model-value="
-              dropdownMenuWidthChoice = $event as 'trigger' | '240' | '320'
-            "
-          />
-        </label>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="space-y-2">
+            <span class="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+              Color
+            </span>
+            <Select
+              :model-value="dropdownButtonColor"
+              size="sm"
+              aria-label="Color"
+              @update:model-value="
+                dropdownButtonColor = $event as ButtonColor
+              "
+            >
+              <option
+                v-for="option in trueColorOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </Select>
+          </div>
+          <div class="space-y-2">
+            <span class="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+              Variant
+            </span>
+            <Select
+              :model-value="dropdownButtonVariant"
+              size="sm"
+              aria-label="Variant"
+              @update:model-value="
+                dropdownButtonVariant = $event as ButtonVariant
+              "
+            >
+              <option
+                v-for="option in buttonVariantAllOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </Select>
+          </div>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="space-y-2">
+            <span class="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+              Size
+            </span>
+            <MultiToggle
+              full-width
+              :options="controlSizeOptions"
+              :model-value="dropdownButtonSize"
+              size="sm"
+              @update:model-value="dropdownButtonSize = $event as ButtonSize"
+            />
+          </div>
+          <div class="space-y-2">
+            <span class="text-sm font-semibold text-neutral-600 dark:text-neutral-200">
+              Menu Width
+            </span>
+            <MultiToggle
+              full-width
+              :options="dropdownWidthOptions"
+              :model-value="dropdownMenuWidthChoice"
+              size="sm"
+              @update:model-value="
+                dropdownMenuWidthChoice = $event as 'trigger' | '240' | '320'
+              "
+            />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 md:grid-cols-3">
           <Toggle
             size="sm"
             full-width
@@ -155,87 +181,92 @@ const menuPreviewSelection = ref("Nothing selected");
       </div>
     </template>
     <template #preview>
-      <div class="space-y-4">
-        <DropdownButton
-          label="Something"
-          :options="dropdownButtonOptions"
-          :variant="dropdownButtonVariant"
-          :color="dropdownButtonColor"
-          :size="dropdownButtonSize"
-          :disabled="dropdownButtonDisabled"
-          :full-width="dropdownButtonFullWidth"
-          :split="dropdownButtonSplit"
-          :menu-width="dropdownMenuWidthValue"
-          @primary-click="createUpdateToast('Primary action clicked')"
-          @option-select="
-            (option) => {
-              dropdownSelection = option.value;
-              const labelText = safeLabelText(option.label, option.value ?? '');
-              createUpdateToast(`Selected ${labelText}`);
-            }
-          "
-        />
-        <div
-          class="rounded-2xl border border-neutral-200 bg-white/70 p-4 text-sm text-neutral-700 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/60 dark:text-neutral-100"
-        >
-          <div class="mb-2 flex flex-wrap gap-2">
-            <label
-              class="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
-            >
-              Align
-              <MultiToggle
-                :options="dropdownAlignOptions"
-                size="sm"
-                :model-value="menuPreviewAlign"
-                @update:model-value="
-                  menuPreviewAlign = $event as 'start' | 'end'
-                "
-              />
-            </label>
-            <label
-              class="flex flex-col text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
-            >
-              Side
-              <MultiToggle
-                :options="dropdownSideOptions"
-                size="sm"
-                :model-value="menuPreviewSide"
-                @update:model-value="
-                  menuPreviewSide = $event as 'auto' | 'top' | 'bottom'
-                "
-              />
-            </label>
+      <div class="space-y-6 p-4">
+        <!-- The only block the controls drive. The button sits in a plain
+             (block) surface so `inline-flex` sizes it to its content. -->
+        <div class="flex flex-col gap-2">
+          <span class="text-[11px] font-semibold uppercase tracking-wide opacity-60">
+            Current settings
+          </span>
+          <div
+            class="rounded-2xl border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <DropdownButton
+              label="Something"
+              :options="dropdownButtonOptions"
+              :variant="dropdownButtonVariant"
+              :color="dropdownButtonColor"
+              :size="dropdownButtonSize"
+              :disabled="dropdownButtonDisabled"
+              :full-width="dropdownButtonFullWidth"
+              :split="dropdownButtonSplit"
+              :menu-width="dropdownMenuWidthValue"
+              @primary-click="createUpdateToast('Primary action clicked')"
+              @option-select="
+                (option) => {
+                  dropdownSelection = option.value;
+                  const labelText = safeLabelText(
+                    option.label,
+                    option.value ?? '',
+                  );
+                  createUpdateToast(`Selected ${labelText}`);
+                }
+              "
+            />
           </div>
-          <div class="flex flex-wrap items-center gap-3">
-            <Button
-              ref="menuPreviewAnchorRef"
-              variant="outline"
-              size="sm"
-              @click="menuPreviewOpen = !menuPreviewOpen"
-            >
-              {{ menuPreviewOpen ? "Hide Menu" : "Show Menu" }}
-            </Button>
-            <span class="text-xs text-neutral-500 dark:text-neutral-400">
-              Selection: {{ menuPreviewSelection }}
+        </div>
+
+        <!-- Fixed reference specimens — none of these move with the controls. -->
+        <div class="space-y-6 rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div class="flex flex-col gap-2">
+            <span class="text-[11px] font-semibold uppercase tracking-wide opacity-60">
+              Every variant — fixed tone and size
             </span>
+            <div class="grid gap-3 md:grid-cols-2">
+              <DropdownButton
+                v-for="each in BUTTON_VARIANTS"
+                :key="each"
+                v-bind="example"
+                :options="dropdownButtonOptions"
+                :variant="each"
+                :label="each"
+              />
+            </div>
           </div>
-          <DropdownMenu
-            :anchor-ref="menuPreviewAnchorEl"
-            :open="menuPreviewOpen"
-            :items="dropdownMenuPreviewOptions"
-            :align="menuPreviewAlign"
-            :side="menuPreviewSide"
-            @close="menuPreviewOpen = false"
-            @select="
-              (item) => {
-                menuPreviewSelection = safeLabelText(
-                  item.label,
-                  item.value ?? '',
-                );
-                menuPreviewOpen = false;
-              }
-            "
-          />
+
+          <div class="flex flex-col gap-2">
+            <span class="text-[11px] font-semibold uppercase tracking-wide opacity-60">
+              Size ladder — solid, fixed tone
+            </span>
+            <div class="flex flex-wrap items-center gap-3">
+              <DropdownButton
+                v-for="each in CONTROL_SIZES"
+                :key="each"
+                v-bind="example"
+                :options="dropdownButtonOptions"
+                variant="solid"
+                :size="each"
+                :label="each"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <span class="text-[11px] font-semibold uppercase tracking-wide opacity-60">
+              All {{ TRUE_COLORS.length }} tones — solid, fixed size
+            </span>
+            <div class="grid gap-2 md:grid-cols-3">
+              <DropdownButton
+                v-for="each in TRUE_COLORS"
+                :key="each"
+                v-bind="example"
+                :options="dropdownButtonOptions"
+                variant="solid"
+                :color="each"
+                :label="each"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </template>

@@ -1,167 +1,232 @@
-import React, { useMemo, useState } from "react";
-import { Tabs, type TabItem, Input, IconButton } from ".";
-import { type SmartVariable, SYSTEM_VARIABLES } from "../types/Variables";
-import { createSmartToken } from "../utils/smartVariables";
-import { type CapsuleBlueprintParameter } from "../types/CapsuleBlueprint";
+import React, { useEffect, useMemo, useState } from "react";
+import classNames from "classnames";
+import IconButton from "./IconButton";
+import Panel from "./Panel";
+import SearchBar from "./SearchBar";
+import Tabs, { type TabItem } from "./Tabs";
+import { SmartVariableBadge } from "./SmartVariableParts";
+import { useSurfaceText } from "../contexts/SurfaceContext";
+import { getSurfaceTriggerTokens } from "../theme/Theme";
+import { groupToVariables } from "../utils/smartVariables";
+import type { TrueColor } from "../theme/Theme";
+import type {
+  SmartVariable,
+  SmartVariableGroup,
+  SmartVariableResolver,
+} from "../types/Variables";
 
-interface VariablePickerProps {
+export interface VariablePickerProps {
+  /** The groups to offer, one tab each. */
+  groups: SmartVariableGroup[];
   onSelect: (variable: SmartVariable) => void;
   onClose?: () => void;
-  globalParameters: CapsuleBlueprintParameter[];
-  serviceNames: string[];
+  /** Shows each variable's resolved value beside it. */
+  resolve?: SmartVariableResolver;
+  /** Accent colour. @default "blue" */
+  tone?: TrueColor;
+  /**
+   * Scale of the search field, matched to the control that opened the picker
+   * so the two do not look like different widgets stacked on each other.
+   * @default "md"
+   */
+  size?: "sm" | "md" | "lg";
+  /** Pre-fills the search box — used when the picker is opened by typing. */
+  initialSearch?: string;
+  title?: string;
+  className?: string;
 }
 
-export const VariablePicker: React.FC<VariablePickerProps> = ({
-  onSelect,
-  onClose,
-  globalParameters,
-  serviceNames,
-}) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("global");
-
-  const globalVars: SmartVariable[] = useMemo(() => {
-    return globalParameters.map((p) => ({
-      fullToken: createSmartToken(
-        p.type === "env" ? "env" : "var",
-        "global",
-        p.key,
-      ),
-      type: p.type === "env" ? "env" : "var",
-      source: "global",
-      name: p.key,
-      description: p.name || p.help,
-      defaultValue: p.default_value,
-    }));
-  }, [globalParameters]);
-
-  const serviceVars: SmartVariable[] = useMemo(() => {
-    return serviceNames.map((name) => ({
-      fullToken: createSmartToken("var", "service", name),
-      type: "var",
-      source: "service",
-      name: name,
-      description: `Reference to service: ${name}`,
-    }));
-  }, [serviceNames]);
-
-  const filterVars = (vars: SmartVariable[]) => {
-    if (!searchTerm) return vars;
-    const lower = searchTerm.toLowerCase();
-    return vars.filter(
-      (v) =>
-        v.name.toLowerCase().includes(lower) ||
-        (v.description && v.description.toLowerCase().includes(lower)),
-    );
-  };
-
-  const renderList = (vars: SmartVariable[], emptyMsg: string) => {
-    const filtered = filterVars(vars);
-    if (filtered.length === 0) {
-      return (
-        <div className="p-4 text-center text-slate-500 italic">{emptyMsg}</div>
-      );
-    }
-    return (
-      <div className="flex flex-col gap-1 p-2">
-        {filtered.map((v) => (
-          <button
-            key={v.fullToken}
-            onClick={() => onSelect(v)}
-            className="flex flex-col items-start p-2 hover:bg-slate-100 rounded text-left group transition-colors"
-          >
-            <div className="flex items-center gap-2 w-full">
-              <span className="font-mono text-xs font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                {v.name}
-              </span>
-              {v.defaultValue && (
-                <span className="text-xs text-slate-400 ml-auto truncate max-w-[150px]">
-                  Def: {v.defaultValue}
-                </span>
-              )}
-            </div>
-            {v.description && (
-              <span className="text-xs text-slate-500 mt-1 line-clamp-1 group-hover:text-slate-700">
-                {v.description}
-              </span>
-            )}
-            <span className="text-[10px] text-slate-300 mt-0.5 font-mono hidden group-hover:block">
-              {v.fullToken}
-            </span>
-          </button>
-        ))}
-      </div>
-    );
-  };
-
-  const tabs: TabItem[] = [
-    {
-      id: "global",
-      label: "Global",
-      icon: "Globe" as any,
-      panel: (
-        <div className="h-64 overflow-y-auto">
-          {renderList(globalVars, "No global parameters found.")}
-        </div>
-      ),
-    },
-    {
-      id: "system",
-      label: "System",
-      icon: "Cog" as any,
-      panel: (
-        <div className="h-64 overflow-y-auto">
-          {renderList(SYSTEM_VARIABLES, "No system variables found.")}
-        </div>
-      ),
-    },
-    {
-      id: "services",
-      label: "Services",
-      icon: "Container" as any,
-      panel: (
-        <div className="h-64 overflow-y-auto">
-          {renderList(serviceVars, "No services found.")}
-        </div>
-      ),
-    },
-  ];
+const VariableRow: React.FC<{
+  variable: SmartVariable;
+  tone: TrueColor;
+  resolve?: SmartVariableResolver;
+  onSelect: (variable: SmartVariable) => void;
+}> = ({ variable, tone, resolve, onSelect }) => {
+  const surface = useSurfaceText();
+  const trigger = getSurfaceTriggerTokens(tone);
+  const resolution = resolve?.(variable);
 
   return (
-    <div className="w-[400px] bg-white rounded-lg shadow-xl border border-slate-200 flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between p-3 border-b border-slate-100 bg-slate-50">
-        <h3 className="text-sm font-semibold text-slate-900">
-          Insert Variable
-        </h3>
-        {onClose && (
-          <IconButton
-            icon="Close"
-            size="xs"
-            variant="ghost"
-            onClick={onClose}
-          />
+    <button
+      type="button"
+      onClick={() => onSelect(variable)}
+      className={classNames(
+        "flex w-full flex-col items-start gap-1 rounded-lg px-3 py-2.5 text-left transition",
+        trigger.hover,
+        trigger.focusRing,
+      )}
+    >
+      <span className="flex w-full items-center gap-2">
+        <span className={classNames("truncate text-sm font-medium", surface.heading)}>
+          {variable.label || variable.name}
+        </span>
+        {resolution && (
+          <span
+            className={classNames(
+              "ml-auto max-w-[45%] shrink-0 truncate font-mono text-xs",
+              resolution.state === "missing" ? "text-rose-500" : surface.muted,
+            )}
+          >
+            {variable.secret
+              ? "••••••"
+              : resolution.value || "—"}
+          </span>
         )}
-      </div>
+      </span>
+      {variable.description && (
+        <span className={classNames("line-clamp-2 text-xs", surface.muted)}>
+          {variable.description}
+        </span>
+      )}
+      <SmartVariableBadge variable={variable} mode="token" flagMissing={false} />
+    </button>
+  );
+};
 
-      <div className="p-2 border-b border-slate-100">
-        <Input
+export const VariablePicker: React.FC<VariablePickerProps> = ({
+  groups,
+  onSelect,
+  onClose,
+  resolve,
+  tone = "blue",
+  size = "md",
+  initialSearch = "",
+  title = "Insert variable",
+  className,
+}) => {
+  const [search, setSearch] = useState(initialSearch);
+  const [activeTab, setActiveTab] = useState(groups[0]?.id ?? "");
+
+  // Reopening with a typed filter has to replace the previous search, and the
+  // active tab has to survive the group list changing identity.
+  useEffect(() => setSearch(initialSearch), [initialSearch]);
+  useEffect(() => {
+    if (!groups.some((group) => group.id === activeTab)) {
+      setActiveTab(groups[0]?.id ?? "");
+    }
+  }, [groups, activeTab]);
+
+  const tabs = useMemo<TabItem[]>(() => {
+    const term = search.trim().toLowerCase();
+
+    return groups.map((group) => {
+      const variables = groupToVariables(group).filter((variable) => {
+        if (!term) return true;
+        return (
+          variable.name.toLowerCase().includes(term) ||
+          (variable.label ?? "").toLowerCase().includes(term) ||
+          (variable.description ?? "").toLowerCase().includes(term)
+        );
+      });
+
+      return {
+        id: group.id,
+        label: group.label,
+        icon: group.icon,
+        badge: variables.length ? String(variables.length) : undefined,
+        panel: (
+          <div className="max-h-64 overflow-y-auto p-2">
+            {variables.length === 0 ? (
+              <EmptyRow>
+                {group.emptyMessage ??
+                  (term
+                    ? `Nothing matches “${search}”.`
+                    : `No ${group.label.toLowerCase()} variables.`)}
+              </EmptyRow>
+            ) : (
+              <div className="flex flex-col gap-0.5">
+                {variables.map((variable) => (
+                  <VariableRow
+                    key={variable.fullToken}
+                    variable={variable}
+                    tone={group.tone ?? tone}
+                    resolve={resolve}
+                    onSelect={onSelect}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ),
+      };
+    });
+  }, [groups, search, resolve, tone, onSelect]);
+
+  return (
+    // A Panel, so the picker is a card from the kit rather than a hard-coded
+    // `bg-white border-slate-200` box with no dark mode.
+    <Panel
+      variant="elevated"
+      tone="neutral"
+      padding="none"
+      scrollable={false}
+      className={classNames("w-[26rem] max-w-[calc(100vw-2rem)]", className)}
+    >
+      <Header title={title} onClose={onClose} />
+
+      <div className="px-4 py-3">
+        <SearchBar
+          size={size}
+          color={tone}
+          autoSearch
+          debounceMs={0}
+          initialValue={initialSearch}
           placeholder="Search variables..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          autoFocus
-          className="text-sm"
+          onSearch={setSearch}
         />
       </div>
 
-      <div className="flex-1">
-        <Tabs
-          items={tabs}
-          value={activeTab}
-          onChange={setActiveTab}
-          variant="minimal"
-          className="h-full flex flex-col"
+      {groups.length === 0 ? (
+        <EmptyRow>No variables available.</EmptyRow>
+      ) : (
+        <div className="px-2 pb-2">
+          <Tabs
+            items={tabs}
+            value={activeTab}
+            onChange={setActiveTab}
+            variant="minimal"
+            color={tone}
+          />
+        </div>
+      )}
+    </Panel>
+  );
+};
+
+const Header: React.FC<{ title: string; onClose?: () => void }> = ({
+  title,
+  onClose,
+}) => {
+  const surface = useSurfaceText();
+  return (
+    <div
+      className={classNames(
+        "flex items-center justify-between gap-2 border-b px-4 py-3",
+        surface.divider,
+      )}
+    >
+      <h3 className={classNames("text-sm font-semibold", surface.heading)}>
+        {title}
+      </h3>
+      {onClose && (
+        <IconButton
+          icon="Close"
+          size="xs"
+          variant="ghost"
+          color="neutral"
+          onClick={onClose}
+          srLabel="Close"
         />
-      </div>
+      )}
+    </div>
+  );
+};
+
+const EmptyRow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const surface = useSurfaceText();
+  return (
+    <div className={classNames("p-6 text-center text-sm", surface.muted)}>
+      {children}
     </div>
   );
 };

@@ -39,5 +39,6 @@ const toggleShowPassword = () => {
     :type="showPassword ? 'text' : 'password'"
     :trailing-icon="trailingIcon"
     :on-trailing-icon-click="toggleShowPassword"
+    :trailing-icon-label="showPassword ? 'Hide password' : 'Show password'"
   />
 </template>

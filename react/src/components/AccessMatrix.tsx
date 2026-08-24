@@ -5,6 +5,7 @@ import Button from "./Button";
 import Badge from "./Badge";
 import type { TableVariant } from "./Table";
 import type { PanelTone } from "./Panel";
+import type { TableDensity, SurfaceCorner } from "../theme";
 
 export interface AccessMatrixPermission {
   group: string;
@@ -17,8 +18,15 @@ export interface AccessMatrixProps {
   permissions: AccessMatrixPermission[];
   /** Number of groups visible before the "Show more" button appears. Defaults to 5. */
   limit?: number;
+  /** Forwards to Table: the container surface (panel family). */
   variant?: TableVariant;
   tone?: PanelTone;
+  /** Forwards to Table: row-height density scale. */
+  density?: TableDensity;
+  /** Forwards to Table: draw the vertical grid lines between columns. */
+  bordered?: boolean;
+  /** Forwards to Table: the panel corner radius. */
+  corner?: SurfaceCorner;
   striped?: boolean;
   /** Forwards to Table: remove inner row borders/dividers. */
   noBorders?: boolean;
@@ -26,6 +34,15 @@ export interface AccessMatrixProps {
   fullHeight?: boolean;
   className?: string;
   hoverable?: boolean;
+  /** Forwards to Table: show a loading skeleton shaped like the matrix. */
+  loading?: boolean;
+  /** Forwards to Table: the message shown while `loading`. */
+  loadingMessage?: string;
+  /**
+   * Forwards to Table: the node shown when there are no permissions. Defaults to
+   * `"No permissions to display"` when omitted.
+   */
+  emptyState?: React.ReactNode;
   /**
    * Background Tailwind class(es) applied to the sticky Resource column cells so they remain
    * opaque over scrolled action columns. Defaults to `'bg-white dark:bg-neutral-900'`.
@@ -100,14 +117,20 @@ const DisabledCell: React.FC = () => (
 const AccessMatrix: React.FC<AccessMatrixProps> = ({
   permissions,
   limit = 5,
-  variant = "default",
+  variant = "outlined",
   tone = "neutral",
+  density,
+  bordered = false,
+  corner,
   striped = false,
   noBorders = false,
   fullHeight = false,
   className,
   stickyBackground,
   hoverable = false,
+  loading = false,
+  loadingMessage,
+  emptyState,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
@@ -223,6 +246,9 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
       sortable: false,
       resizable: false,
       hideable: false,
+      // Normal rows use this (falls back to Table's opaque default when omitted);
+      // group-header rows override it via stickyBackgroundFn below.
+      stickyBackground,
       stickyBackgroundFn: (row) =>
         row._isGroupHeader ? "bg-neutral-50 dark:bg-neutral-800/40" : undefined,
       render: (row) => {
@@ -272,6 +298,9 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
         data={rows}
         variant={variant}
         tone={tone}
+        density={density}
+        bordered={bordered}
+        corner={corner}
         rowKey={(row) => row._key}
         striped={striped}
         noBorders={noBorders}
@@ -279,6 +308,9 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
         fullHeight={fullHeight}
         className={fullHeight ? "flex-1 min-h-0" : undefined}
         stickyHeader
+        loading={loading}
+        loadingMessage={loadingMessage}
+        emptyState={emptyState ?? "No permissions to display"}
         onRowClick={(row) => {
           if (row._isGroupHeader) toggleGroup(row._group);
         }}

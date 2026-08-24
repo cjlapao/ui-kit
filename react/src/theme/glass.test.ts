@@ -11,6 +11,7 @@ import { describe, it, expect } from "vitest";
 import type { TrueColor } from "../../../common/theme/Theme";
 import type { GlassOpacity } from "../../../common/theme/glass";
 import {
+  getGlassChromeClasses,
   getGlassFillClass,
   getGlassVibrancyClass,
   getSpecularClasses,
@@ -24,14 +25,14 @@ describe("getGlassFillClass", () => {
   it("returns frosted fill for blue with frosted opacity", () => {
     const result = getGlassFillClass("blue", "frosted");
     expect(result).toBe(
-      "bg-blue-100/55 hover:bg-blue-100/65 dark:bg-blue-600/25 dark:hover:bg-blue-600/35",
+      "bg-blue-100/65 hover:bg-blue-100/75 dark:bg-blue-600/25 dark:hover:bg-blue-600/35",
     );
   });
 
   it("returns light fill for red with light opacity", () => {
     const result = getGlassFillClass("red", "light");
     expect(result).toBe(
-      "bg-red-100/75 hover:bg-red-100/85 dark:bg-red-600/35 dark:hover:bg-red-600/45",
+      "bg-red-100/85 hover:bg-red-100/95 dark:bg-red-600/35 dark:hover:bg-red-600/45",
     );
   });
 
@@ -68,7 +69,7 @@ describe("getGlassFillClass", () => {
     // and exercises the `return 55` / `return 25` fallback at the end.
     const result = getGlassFillClass("amber", "bogus" as GlassOpacity);
     expect(result).toBe(
-      "bg-amber-100/55 hover:bg-amber-100/65 dark:bg-amber-600/25 dark:hover:bg-amber-600/35",
+      "bg-amber-100/65 hover:bg-amber-100/75 dark:bg-amber-600/25 dark:hover:bg-amber-600/35",
     );
   });
 
@@ -99,8 +100,8 @@ describe("getGlassFillClass", () => {
 
     trueColors.forEach((color) => {
       const result = getGlassFillClass(color as TrueColor, "frosted");
-      expect(result).toMatch(`bg-${color}-100/55`);
-      expect(result).toMatch(`hover:bg-${color}-100/65`);
+      expect(result).toMatch(`bg-${color}-100/65`);
+      expect(result).toMatch(`hover:bg-${color}-100/75`);
       expect(result).toMatch(`dark:bg-${color}-600/25`);
       expect(result).toMatch(`dark:hover:bg-${color}-600/35`);
     });
@@ -114,7 +115,7 @@ describe("getGlassFillClass", () => {
       "frosted",
     );
     expect(result).toBe(
-      "bg-neutral-100/55 hover:bg-neutral-100/65 dark:bg-neutral-600/25 dark:hover:bg-neutral-600/35",
+      "bg-neutral-100/65 hover:bg-neutral-100/75 dark:bg-neutral-600/25 dark:hover:bg-neutral-600/35",
     );
   });
 });
@@ -164,24 +165,85 @@ describe("getSpecularClasses", () => {
     expect(getSpecularClasses("none")).toBeNull();
   });
 
-  it('returns classic specular classes for "classic"', () => {
+  it('returns a full-bleed sheen for "classic"', () => {
     const result = getSpecularClasses("classic");
-    expect(result).toContain("pointer-events-none absolute inset-x-0 top-0 h-[10px]");
-    expect(result).toContain("bg-gradient-to-b from-white/12 via-white/4 to-transparent");
-    expect(result).toContain("dark:from-white/5 dark:via-white/2");
+    expect(result).toContain("bg-gradient-to-b from-white/35");
+    expect(result).toContain("to-transparent");
+    expect(result).toContain("dark:from-white/12");
   });
 
-  it('returns halo specular classes for "halo"', () => {
+  it('returns stacked radial layers for "halo"', () => {
     const result = getSpecularClasses("halo");
-    expect(result).toContain("pointer-events-none absolute top-0 left-0 w-[40%] h-[35%]");
-    expect(result).toContain("rounded-tl-[inherit]");
-    expect(result).toContain("rounded-tr-[inherit]");
-    expect(result).toContain("pointer-events-none absolute top-0 right-0 w-[40%] h-[35%]");
-    expect(result).toContain("pointer-events-none absolute inset-x-0 top-0 h-[20%]");
-    expect(result).toContain("dark:from-white/3 dark:via-white/1");
+    expect(result).toContain("bg-[radial-gradient(");
+    expect(result).toContain("dark:bg-[radial-gradient(");
+    // Three layers per mode: the bloom plus two corner glints.
+    expect(result!.match(/radial-gradient\(/g)).toHaveLength(6);
+  });
+
+  it("returns paint only — callers own the overlay geometry", () => {
+    // Every caller already applies `absolute inset-0 rounded-[inherit]`;
+    // layout utilities here produced conflicting pairs that silently won.
+    for (const mode of ["classic", "halo"] as const) {
+      const result = getSpecularClasses(mode)!;
+      expect(result).not.toContain("absolute");
+      expect(result).not.toContain("inset-");
+      expect(result).not.toMatch(/(^|\s)top-0(\s|$)/);
+      expect(result).not.toContain("pointer-events-none");
+    }
+  });
+
+  it("keeps every halo gradient stop fading to zero alpha", () => {
+    // A layer that does not reach transparency inside its own box renders as
+    // a visible rectangle — the bug this replaced.
+    const result = getSpecularClasses("halo")!;
+    expect(result.match(/rgba\(255,255,255,0\)/g)).toHaveLength(6);
   });
 
   it("returns null for unrecognized mode", () => {
     expect(getSpecularClasses("none" as "none")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getGlassChromeClasses
+// ---------------------------------------------------------------------------
+
+describe("getGlassChromeClasses", () => {
+  it("supplies the text colour the variant classes no longer provide", () => {
+    const result = getGlassChromeClasses("blue");
+    expect(result).toContain("text-blue-900");
+    expect(result).toContain("dark:text-blue-50");
+  });
+
+  it("rests on a neutral white rim and reserves the tone edge for hover", () => {
+    const result = getGlassChromeClasses("rose");
+    expect(result).toContain("border-white/50");
+    expect(result).toContain("dark:border-white/10");
+    // The saturated tone is the hover state, never the resting edge.
+    expect(result).toContain("hover:border-rose-500");
+    expect(result).toContain("dark:hover:border-rose-300");
+  });
+
+  it("ignites the rim in the tone on hover — and keeps it shadow-free", () => {
+    const result = getGlassChromeClasses("blue");
+    // Hover is a colour response on the border, glass's defining feature: the
+    // rim steps from neutral white to the control's own tone. A drop shadow
+    // read as the surface lifting off the page and contradicted the flat,
+    // in-surface hover the solid/soft/ghost/icon variants already use, so the
+    // edge — not a shadow — carries the state.
+    expect(result).toContain("hover:border-blue-500");
+    expect(result).toContain("dark:hover:border-blue-300");
+    expect(result).not.toContain("hover:shadow");
+  });
+
+  it("restores a focus ring — glass controls previously had none", () => {
+    const result = getGlassChromeClasses("emerald");
+    expect(result).toContain("focus-visible:ring-2");
+    expect(result).toContain("focus-visible:ring-emerald-400");
+  });
+
+  it("falls back to neutral for a colour outside the palette", () => {
+    const result = getGlassChromeClasses("white" as TrueColor);
+    expect(result).toContain("text-neutral-900");
   });
 });

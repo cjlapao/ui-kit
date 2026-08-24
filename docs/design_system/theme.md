@@ -148,14 +148,14 @@ Not every component accepts every size value. Each component defines its own siz
 | **Button** | `ButtonSize` | `xs`, `sm`, `md`, `lg`, `xl` | Controls padding, text size, icon dimensions |
 | **IconButton** | `ButtonSize` | `xs`, `sm`, `md`, `lg`, `xl` | Reuses ButtonSize |
 | **Spinner** | `SpinnerSize` | `xs`, `sm`, `md`, `lg`, `xl` | Controls spinner diameter |
-| **Toggle** | `ToggleSize` | `sm`, `md`, `lg` | Smaller range — toggles are inherently compact |
+| **Toggle** | `ToggleSize` | `xs`, `sm`, `md`, `lg`, `xl` | The shared `ControlSize` scale, so a toggle lines up with the input, button and search bar beside it |
 | **Modal** | `Size` (direct) | All 10 values | Dialog width presets; `full` = full-screen |
 | **Hero** | `HeroTitleSize` / `HeroSubtitleSize` | Title: `xs`–`xl`; Subtitle: `xs`–`md` | Typography sizes |
 | **Pill** | `PillSize` | `xs`, `sm`, `md`, `lg` | Chip sizing |
 | **Badge** | — | (no size prop) | Always small |
 | **Section / SectionCard** | `SectionSize` | `xs`, `sm`, `md`, `lg` | Padding presets |
 | **InfoRow** | `InfoRowSize` | `xs`, `sm`, `md`, `lg` | Row height + text size |
-| **Input / Textarea / Select** | — | `sm`, `md`, `lg` | Form field heights |
+| **Input / Textarea / Select** | `InputSize` / `TextareaSize` / `SelectSize` | `xs`, `sm`, `md`, `lg`, `xl` | The shared `ControlSize` scale; form field heights |
 | **InputGroup** | — | `sm`, `md`, `lg` | Input group heights |
 | **MultiToggle** | — | `sm`, `md`, `lg` | Segmented control height |
 | **Accordion** | — | `sm`, `md`, `lg` | Header height + text size |

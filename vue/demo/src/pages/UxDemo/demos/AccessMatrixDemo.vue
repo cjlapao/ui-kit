@@ -5,9 +5,16 @@ import { AccessMatrix, MultiToggle, Toggle } from "@cjlapao/ui-kit-vue";
 import type {
   AccessMatrixPermission,
   TableVariant,
+  TableDensity,
+  SurfaceCorner,
   PanelTone,
 } from "@cjlapao/ui-kit-vue";
-import { tableVariantOptions, tableToneOptions } from "../constants";
+import {
+  tableVariantOptions,
+  tableDensityOptions,
+  surfaceCornerOptions,
+  tableToneOptions,
+} from "../constants";
 
 const SAMPLE_PERMISSIONS: AccessMatrixPermission[] = [
   // Administrators — full access
@@ -117,9 +124,13 @@ const limitOptions = [
 ];
 
 const variant = ref<TableVariant>("default");
+const density = ref<TableDensity>("default");
+const corner = ref<SurfaceCorner>("rounded-md");
 const tone = ref<PanelTone>("neutral");
 const limit = ref<number>(4);
 const striped = ref(true);
+const bordered = ref(false);
+const hoverable = ref(false);
 </script>
 
 <template>
@@ -140,6 +151,28 @@ const striped = ref(true);
             @update:model-value="variant = $event as TableVariant"
           />
         </label>
+        <div class="grid gap-2 md:grid-cols-2">
+          <label class="flex flex-col gap-2">
+            <span>Density</span>
+            <MultiToggle
+              full-width
+              :options="tableDensityOptions"
+              :model-value="density"
+              size="sm"
+              @update:model-value="density = $event as TableDensity"
+            />
+          </label>
+          <label class="flex flex-col gap-2">
+            <span>Corner</span>
+            <MultiToggle
+              full-width
+              :options="surfaceCornerOptions"
+              :model-value="corner"
+              size="sm"
+              @update:model-value="corner = $event as SurfaceCorner"
+            />
+          </label>
+        </div>
         <label class="flex flex-col gap-2">
           <span>Tone</span>
           <MultiToggle
@@ -160,10 +193,20 @@ const striped = ref(true);
             @update:model-value="limit = Number($event)"
           />
         </label>
-        <label class="flex items-center justify-between">
-          <span>Striped rows</span>
-          <Toggle size="sm" v-model="striped" />
-        </label>
+        <div class="grid gap-2 md:grid-cols-2">
+          <label class="flex items-center justify-between">
+            <span>Striped rows</span>
+            <Toggle size="sm" v-model="striped" />
+          </label>
+          <label class="flex items-center justify-between">
+            <span>Bordered grid</span>
+            <Toggle size="sm" v-model="bordered" />
+          </label>
+          <label class="flex items-center justify-between">
+            <span>Hover state</span>
+            <Toggle size="sm" v-model="hoverable" />
+          </label>
+        </div>
       </div>
     </template>
     <template #preview>
@@ -171,8 +214,12 @@ const striped = ref(true);
         :permissions="SAMPLE_PERMISSIONS"
         :limit="limit"
         :variant="variant"
+        :density="density"
+        :corner="corner"
         :tone="tone"
+        :bordered="bordered"
         :striped="striped"
+        :hoverable="hoverable"
       />
     </template>
   </PlaygroundSection>

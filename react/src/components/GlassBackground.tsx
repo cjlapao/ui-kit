@@ -17,9 +17,10 @@ export type GlassBackgroundPosition = "fixed" | "absolute";
 export interface GlassBackgroundProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "color"> {
   /** Positioning mode.
-   *  `"fixed"` (default) — covers the full viewport, always visible.
-   *  `"absolute"` — fills a `position: relative` parent (e.g. a PlaygroundSection preview).
-   *  Parent must be `relative` when `"absolute"`.
+   *  `"absolute"` (default) — fills the nearest positioned ancestor, which must
+   *  be `relative`. Safe to drop anywhere.
+   *  `"fixed"` — covers the whole viewport. Only for a page-level backdrop:
+   *  inside a scrolled container it escapes its parent and covers the page.
    */
   position?: GlassBackgroundPosition;
   /** Primary theme color driving the gradient (default: "purple"). */
@@ -42,7 +43,7 @@ export interface GlassBackgroundProps
  * so panels, modals, and other surfaces can sit on top.
  */
 const GlassBackground: React.FC<GlassBackgroundProps> = ({
-  position = "fixed",
+  position = "absolute",
   color = "purple",
   colorSecondary,
   colorDeep,
@@ -72,9 +73,9 @@ const GlassBackground: React.FC<GlassBackgroundProps> = ({
   };
 
   // Ambient glow positions
-  const glowPositions = [
-    { top: "-25%", left: "-25%", size: "w-2/3 h-2/3" },
-    { bottom: "-25%", right: "-25%", size: "w-2/3 h-2/3" },
+  const glowPositions: { size: string; style: React.CSSProperties }[] = [
+    { size: "w-2/3 h-2/3", style: { top: "-25%", left: "-25%" } },
+    { size: "w-2/3 h-2/3", style: { bottom: "-25%", right: "-25%" } },
   ];
 
   return (
@@ -109,32 +110,38 @@ const GlassBackground: React.FC<GlassBackgroundProps> = ({
       {/* Ambient glows */}
       {ambient && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          {glowPositions.map((pos, idx) => (
+          {glowPositions.map(({ size, style: glowStyle }, idx) => (
             <div
               key={idx}
+              // Colour comes from custom properties rather than a dynamic
+              // `bg-{color}-400/12` class: that opacity step is not safelisted,
+              // so the glows had no background at all in light mode.
               className={classNames(
-                "absolute rounded-full blur-3xl ambient-pulse",
-                pos.size,
-                `bg-${c}-400/12 dark:bg-${c}-500/15`,
+                "absolute rounded-full blur-3xl ambient-pulse ambient-glow",
+                size,
               )}
-              style={pos}
+              style={
+                {
+                  ...glowStyle,
+                  "--glow-color": `var(--color-${c}-400)`,
+                  "--glow-color-dark": `var(--color-${c}-500)`,
+                } as React.CSSProperties
+              }
             />
           ))}
         </div>
       )}
 
-      {/* Shimmer overlay */}
+      {/* Shimmer overlay. The streak's shape, skew and timing live in
+          `.shimmer-band` (styles.css); the wrapper only clips it so it never
+          paints outside the surface. */}
       {shimmer && (
         <div
-          className={classNames(
-            "pointer-events-none absolute inset-0 animate-shimmer",
-          )}
-          style={{
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)",
-          }}
+          className="pointer-events-none absolute inset-0 overflow-hidden"
           aria-hidden="true"
-        />
+        >
+          <div className="shimmer-band" />
+        </div>
       )}
 
       {/* Children on top */}

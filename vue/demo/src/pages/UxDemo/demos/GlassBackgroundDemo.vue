@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import {
   Button,
@@ -7,35 +7,36 @@ import {
   Panel,
   Toggle,
   Badge,
-  type ThemeColor,
+  type TrueColor,
   type GradientDirection,
-  type GlassBackgroundPosition,
 } from "@cjlapao/ui-kit-vue";
 
 // ---------------------------------------------------------------------------
 // Color options
 // ---------------------------------------------------------------------------
 
-const colorOptions: { label: string; value: ThemeColor }[] = [
-  { label: "Purple", value: "purple" },
+const colorOptions: { label: string; value: TrueColor }[] = [
+  { label: "Red", value: "red" },
+  { label: "Orange", value: "orange" },
+  { label: "Amber", value: "amber" },
+  { label: "Yellow", value: "yellow" },
+  { label: "Lime", value: "lime" },
+  { label: "Green", value: "green" },
+  { label: "Emerald", value: "emerald" },
+  { label: "Teal", value: "teal" },
+  { label: "Cyan", value: "cyan" },
+  { label: "Sky", value: "sky" },
   { label: "Blue", value: "blue" },
   { label: "Indigo", value: "indigo" },
   { label: "Violet", value: "violet" },
+  { label: "Purple", value: "purple" },
+  { label: "Fuchsia", value: "fuchsia" },
   { label: "Rose", value: "rose" },
-  { label: "Pink", value: "pink" },
-  { label: "Emerald", value: "emerald" },
-  { label: "Teal", value: "teal" },
-  { label: "Amber", value: "amber" },
-  { label: "Orange", value: "orange" },
-  { label: "Cyan", value: "cyan" },
-  { label: "Sky", value: "sky" },
-  { label: "Lime", value: "lime" },
-  { label: "Red", value: "red" },
   { label: "Slate", value: "slate" },
-  { label: "Zinc", value: "zinc" },
-  { label: "Stone", value: "stone" },
   { label: "Gray", value: "gray" },
+  { label: "Zinc", value: "zinc" },
   { label: "Neutral", value: "neutral" },
+  { label: "Stone", value: "stone" },
 ];
 
 const directionOptions: { label: string; value: GradientDirection }[] = [
@@ -49,20 +50,14 @@ const directionOptions: { label: string; value: GradientDirection }[] = [
   { label: "Top-Left", value: "tl" },
 ];
 
-const positionOptions: { label: string; value: GlassBackgroundPosition }[] = [
-  { label: "Fixed", value: "fixed" },
-  { label: "Absolute", value: "absolute" },
-];
-
 // ---------------------------------------------------------------------------
 // Sign-in form controls
 // ---------------------------------------------------------------------------
 
-const formColor = ref<ThemeColor>("purple");
-const formColorSecondary = ref<ThemeColor>("blue");
-const formColorDeep = ref<ThemeColor>("indigo");
+const formColor = ref<TrueColor>("purple");
+const formColorSecondary = ref<TrueColor>("blue");
+const formColorDeep = ref<TrueColor>("indigo");
 const formDirection = ref<GradientDirection>("br");
-const formPosition = ref<GlassBackgroundPosition>("absolute");
 const formShimmer = ref(false);
 const formAmbient = ref(true);
 
@@ -70,16 +65,16 @@ const formAmbient = ref(true);
 // Color presets controls
 // ---------------------------------------------------------------------------
 
-const presetColor = ref<ThemeColor>("blue");
-const presetSecondary = ref<ThemeColor>("indigo");
+const presetColor = ref<TrueColor>("blue");
+const presetSecondary = ref<TrueColor>("indigo");
 const presetDirection = ref<GradientDirection>("br");
 
 // ---------------------------------------------------------------------------
 // Direction grid controls
 // ---------------------------------------------------------------------------
 
-const gridColor = ref<ThemeColor>("rose");
-const gridSecondary = ref<ThemeColor>("purple");
+const gridColor = ref<TrueColor>("rose");
+const gridSecondary = ref<TrueColor>("purple");
 
 // ---------------------------------------------------------------------------
 // Shimmer comparison controls
@@ -87,13 +82,14 @@ const gridSecondary = ref<ThemeColor>("purple");
 
 const shimmerLeft = ref(false);
 const shimmerRight = ref(true);
-const shimmerColor = ref<ThemeColor>("purple");
+const shimmerColor = ref<TrueColor>("purple");
 </script>
 
 <template>
   <div class="space-y-8">
     <!-- ───────── Sign-in form ───────── -->
     <PlaygroundSection
+      hide-background-toggle
       title="Sign-in form"
       label="[GlassBackground]"
       description="Interactive preview matching the Liquid Glass reference screenshot."
@@ -106,7 +102,7 @@ const shimmerColor = ref<ThemeColor>("purple");
               <select
                 :value="formColor"
                 @change="
-                  (e) => (formColor = (e.target as HTMLSelectElement).value as ThemeColor)
+                  (e) => (formColor = (e.target as HTMLSelectElement).value as TrueColor)
                 "
                 class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
               >
@@ -126,7 +122,7 @@ const shimmerColor = ref<ThemeColor>("purple");
                 @change="
                   (e) =>
                     (formColorSecondary = (e.target as HTMLSelectElement)
-                      .value as ThemeColor)
+                      .value as TrueColor)
                 "
                 class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
               >
@@ -146,7 +142,7 @@ const shimmerColor = ref<ThemeColor>("purple");
                 @change="
                   (e) =>
                     (formColorDeep = (e.target as HTMLSelectElement)
-                      .value as ThemeColor)
+                      .value as TrueColor)
                 "
                 class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
               >
@@ -181,26 +177,6 @@ const shimmerColor = ref<ThemeColor>("purple");
                 </option>
               </select>
             </label>
-            <label class="flex flex-col gap-2">
-              <span>Position</span>
-              <select
-                :value="formPosition"
-                @change="
-                  (e) =>
-                    (formPosition = (e.target as HTMLSelectElement)
-                      .value as GlassBackgroundPosition)
-                "
-                class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
-              >
-                <option
-                  v-for="p in positionOptions"
-                  :key="p.value"
-                  :value="p.value"
-                >
-                  {{ p.label }}
-                </option>
-              </select>
-            </label>
           </div>
           <div class="grid gap-2 md:grid-cols-3">
             <label class="flex items-center justify-between">
@@ -225,7 +201,7 @@ const shimmerColor = ref<ThemeColor>("purple");
       <template #preview>
         <div class="relative h-96 w-full overflow-hidden rounded-xl">
           <GlassBackground
-            :position="formPosition"
+            position="absolute"
             :color="formColor"
             :color-secondary="formColorSecondary"
             :color-deep="formColorDeep"
@@ -312,6 +288,7 @@ const shimmerColor = ref<ThemeColor>("purple");
 
     <!-- ───────── Color presets ───────── -->
     <PlaygroundSection
+      hide-background-toggle
       title="Color presets"
       label="[GlassBackground]"
       description="Explore different color combinations with a shared glass panel."
@@ -326,7 +303,7 @@ const shimmerColor = ref<ThemeColor>("purple");
                 @change="
                   (e) =>
                     (presetColor = (e.target as HTMLSelectElement)
-                      .value as ThemeColor)
+                      .value as TrueColor)
                 "
                 class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
               >
@@ -346,7 +323,7 @@ const shimmerColor = ref<ThemeColor>("purple");
                 @change="
                   (e) =>
                     (presetSecondary = (e.target as HTMLSelectElement)
-                      .value as ThemeColor)
+                      .value as TrueColor)
                 "
                 class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
               >
@@ -421,6 +398,7 @@ const shimmerColor = ref<ThemeColor>("purple");
 
     <!-- ───────── Direction grid ───────── -->
     <PlaygroundSection
+      hide-background-toggle
       title="Direction grid"
       label="[GlassBackground]"
       description="All eight gradient directions side by side."
@@ -435,7 +413,7 @@ const shimmerColor = ref<ThemeColor>("purple");
                 @change="
                   (e) =>
                     (gridColor = (e.target as HTMLSelectElement)
-                      .value as ThemeColor)
+                      .value as TrueColor)
                 "
                 class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
               >
@@ -455,7 +433,7 @@ const shimmerColor = ref<ThemeColor>("purple");
                 @change="
                   (e) =>
                     (gridSecondary = (e.target as HTMLSelectElement)
-                      .value as ThemeColor)
+                      .value as TrueColor)
                 "
                 class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
               >
@@ -509,6 +487,7 @@ const shimmerColor = ref<ThemeColor>("purple");
 
     <!-- ───────── Shimmer comparison ───────── -->
     <PlaygroundSection
+      hide-background-toggle
       title="Shimmer"
       label="[GlassBackground]"
       description="Toggle shimmer on and off to compare."
@@ -522,7 +501,7 @@ const shimmerColor = ref<ThemeColor>("purple");
               @change="
                 (e) =>
                   (shimmerColor = (e.target as HTMLSelectElement)
-                    .value as ThemeColor)
+                    .value as TrueColor)
               "
               class="rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-800"
             >

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
-import { Panel, MultiToggle, Toggle, Badge, useTheme } from "@cjlapao/ui-kit-vue";
+import { Panel, MultiToggle, Toggle, Badge } from "@cjlapao/ui-kit-vue";
 import type { PanelProps, PanelTone, PanelSpecularMode } from "@cjlapao/ui-kit-vue";
-import parallels from "@assets/images/parallels.png";
-import backdropLight from "@assets/images/backdrop_demo_light.png";
-import backdropDark from "@assets/images/backdrop_demo_dark.png";
+import logo from "@assets/images/logo.png";
 import {
   panelVariantOptions,
   panelToneOptions,
@@ -58,8 +56,6 @@ const panelDisabled = ref<boolean>(false);
 const glassVibrancy = ref<"low" | "medium" | "high">("medium");
 const glassOpacity = ref<"frosted" | "light" | "clear">("frosted");
 const specularMode = ref<PanelSpecularMode>("classic");
-const panelHasBackground = ref<boolean>(false);
-const { effectiveTheme } = useTheme();
 
 const panelActions = computed<PanelAction[]>(() =>
   panelHasActions.value
@@ -93,7 +89,6 @@ const toggleOptions = [
   { label: "Full width", state: panelFullWidth },
   { label: "Disabled", state: panelDisabled },
   { label: "Hover shadow", state: panelHoverShadow },
-  { label: "Background image", state: panelHasBackground },
 ];
 
 const glassVibrancyOptions = [
@@ -254,22 +249,8 @@ const glassOpacityOptions = [
       </div>
     </template>
     <template #preview>
-      <div
-        :class="
-          panelHasBackground
-            ? 'relative overflow-hidden rounded-2xl bg-cover bg-center bg-no-repeat'
-            : undefined
-        "
-        :style="
-          panelHasBackground
-            ? {
-                backgroundImage: `url(${
-                  effectiveTheme === 'dark' ? backdropDark : backdropLight
-                })`,
-              }
-            : undefined
-        "
-      >
+      <!-- The backdrop lives in PlaygroundSection's header now. -->
+      <div>
         <div class="space-y-4 p-6">
           <Panel
             :title="panelTitle"
@@ -294,7 +275,7 @@ const glassOpacityOptions = [
             :hover-shadow="panelHoverShadow"
           >
             <template v-if="panelHasMedia" #media>
-              <img :src="parallels" alt="Parallels" />
+              <img :src="logo" alt="Logo" />
             </template>
             <template v-if="panelHasBadge" #badge>
               <Badge :count="10" tone="brand" />

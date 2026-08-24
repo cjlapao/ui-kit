@@ -1,8 +1,19 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
 import { AccessMatrix, MultiToggle, Toggle } from "@cjlapao/ui-kit";
-import type { AccessMatrixPermission, TableVariant, PanelTone } from "@cjlapao/ui-kit";
-import { tableVariantOptions, tableToneOptions } from "../constants";
+import type {
+  AccessMatrixPermission,
+  TableVariant,
+  TableDensity,
+  SurfaceCorner,
+  PanelTone,
+} from "@cjlapao/ui-kit";
+import {
+  tableVariantOptions,
+  tableDensityOptions,
+  surfaceCornerOptions,
+  tableToneOptions,
+} from "../constants";
 
 const SAMPLE_PERMISSIONS: AccessMatrixPermission[] = [
   // Administrators — full access
@@ -107,9 +118,13 @@ const SAMPLE_PERMISSIONS: AccessMatrixPermission[] = [
 
 export const AccessMatrixDemo: React.FC = () => {
   const [variant, setVariant] = useState<TableVariant>("default");
+  const [density, setDensity] = useState<TableDensity>("default");
+  const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [tone, setTone] = useState<PanelTone>("neutral");
   const [limit, setLimit] = useState<number>(4);
   const [striped, setStriped] = useState(true);
+  const [bordered, setBordered] = useState(false);
+  const [hoverable, setHoverable] = useState(false);
 
   return (
     <PlaygroundSection
@@ -128,6 +143,28 @@ export const AccessMatrixDemo: React.FC = () => {
               onChange={(value) => setVariant(value as TableVariant)}
             />
           </label>
+          <div className="grid gap-2 md:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span>Density</span>
+              <MultiToggle
+                fullWidth
+                options={tableDensityOptions}
+                value={density}
+                size="sm"
+                onChange={(value) => setDensity(value as TableDensity)}
+              />
+            </label>
+            <label className="flex flex-col gap-2">
+              <span>Corner</span>
+              <MultiToggle
+                fullWidth
+                options={surfaceCornerOptions}
+                value={corner}
+                size="sm"
+                onChange={(value) => setCorner(value as SurfaceCorner)}
+              />
+            </label>
+          </div>
           <label className="flex flex-col gap-2">
             <span>Tone</span>
             <MultiToggle
@@ -152,14 +189,32 @@ export const AccessMatrixDemo: React.FC = () => {
               onChange={(value) => setLimit(Number(value))}
             />
           </label>
-          <label className="flex items-center justify-between">
-            <span>Striped rows</span>
-            <Toggle
-              size="sm"
-              checked={striped}
-              onChange={(e) => setStriped(e.target.checked)}
-            />
-          </label>
+          <div className="grid gap-2 md:grid-cols-2">
+            <label className="flex items-center justify-between">
+              <span>Striped rows</span>
+              <Toggle
+                size="sm"
+                checked={striped}
+                onChange={(e) => setStriped(e.target.checked)}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span>Bordered grid</span>
+              <Toggle
+                size="sm"
+                checked={bordered}
+                onChange={(e) => setBordered(e.target.checked)}
+              />
+            </label>
+            <label className="flex items-center justify-between">
+              <span>Hover state</span>
+              <Toggle
+                size="sm"
+                checked={hoverable}
+                onChange={(e) => setHoverable(e.target.checked)}
+              />
+            </label>
+          </div>
         </div>
       }
       preview={
@@ -167,8 +222,12 @@ export const AccessMatrixDemo: React.FC = () => {
           permissions={SAMPLE_PERMISSIONS}
           limit={limit}
           variant={variant}
+          density={density}
+          corner={corner}
           tone={tone}
+          bordered={bordered}
           striped={striped}
+          hoverable={hoverable}
         />
       }
     />

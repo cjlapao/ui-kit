@@ -3,9 +3,15 @@ import MDEditor, { commands } from "@uiw/react-md-editor";
 import classNames from "classnames";
 import { VariablePicker } from "./VariablePicker";
 import { createPortal } from "react-dom";
-import { SMART_VAR_REGEX } from "../utils/smartVariables";
+import {
+  SMART_VAR_REGEX,
+  createLegacyGroups,
+} from "../utils/smartVariables";
 import { type CapsuleBlueprintParameter } from "../types/CapsuleBlueprint";
-import { type SmartVariable } from "../types/Variables";
+import {
+  SYSTEM_VARIABLES,
+  type SmartVariable,
+} from "../types/Variables";
 
 /**
  * MarkdownEditor Component
@@ -360,6 +366,18 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     [],
   );
 
+  // `VariablePicker` is group-driven now. This editor still takes the older
+  // `globalParameters` / `serviceNames` props, so they are adapted here.
+  const pickerGroups = useMemo(
+    () =>
+      createLegacyGroups({
+        globalParameters,
+        serviceNames,
+        systemVariables: SYSTEM_VARIABLES,
+      }),
+    [globalParameters, serviceNames],
+  );
+
   const handleSelectVariable = (variable: SmartVariable) => {
     const token = variable.fullToken;
     const start = selectionRef.current.start;
@@ -445,8 +463,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             <VariablePicker
               onSelect={handleSelectVariable}
               onClose={() => setShowPicker(false)}
-              globalParameters={globalParameters}
-              serviceNames={serviceNames}
+              groups={pickerGroups}
             />
           </div>,
           document.body,

@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { VNode } from "vue";
 import type { ButtonColor, ButtonSize, ButtonVariant } from "./Button.vue";
-import type { SpinnerColor, SpinnerSize } from "./Spinner.vue";
+import type { SpinnerColor } from "./Spinner.vue";
 import type { TooltipPosition } from "./Tooltip.vue";
 import type {
   GlassVibrancy,
@@ -11,21 +11,6 @@ import type {
 
 type IconButtonRounded = "md" | "lg" | "xl" | "full";
 
-const sizeTokens: Record<
-  ButtonSize,
-  {
-    button: string;
-    icon: string;
-    spinner: SpinnerSize;
-  }
-> = {
-  xs: { button: "h-7 w-7 leading-none", icon: "h-4 w-4", spinner: "xs" },
-  sm: { button: "h-8 w-8 leading-none", icon: "h-5 w-5", spinner: "xs" },
-  md: { button: "h-10 w-10 leading-none", icon: "h-6 w-6", spinner: "sm" },
-  lg: { button: "h-12 w-12 leading-none", icon: "h-7 w-7", spinner: "md" },
-  xl: { button: "h-14 w-14 leading-none", icon: "h-8 w-8", spinner: "lg" },
-};
-
 const roundedMap: Record<IconButtonRounded, string> = {
   md: "rounded-md",
   lg: "rounded-lg",
@@ -33,8 +18,12 @@ const roundedMap: Record<IconButtonRounded, string> = {
   full: "rounded-full",
 };
 
+// `disabled:opacity-50` is applied conditionally rather than living here:
+// `loading` also sets the disabled attribute (to block clicks), and dimming a
+// loading control to 50% fades the spinner along with it — the one element
+// that needs to stay visible.
 const baseClasses =
-  "inline-flex items-center justify-center select-none transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center select-none transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed";
 
 export interface IconButtonProps {
   icon: string | VNode;
@@ -50,6 +39,12 @@ export interface IconButtonProps {
   srLabel?: string;
   accent?: boolean;
   accentColor?: ButtonColor;
+  /**
+   * Raw CSS colour to tint the icon. Omit it and the icon inherits the
+   * button's text colour (icons paint with `currentColor`), so the glyph
+   * always matches; set it to override just the icon.
+   */
+  iconColor?: string;
   disabled?: boolean;
   /** When set, a styled tooltip is shown on hover (replaces the native title attribute). */
   tooltip?: string;
@@ -70,11 +65,15 @@ export interface IconButtonProps {
 import { computed, ref } from "vue";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getButtonColorClasses } from "../theme/Theme";
+import {
+  getButtonColorClasses,
+  getControlSizeTokens,
+} from "../theme/Theme";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import type { IconSize } from "../types/Icon";
 import { useClassAttrs } from "../utils/attrsUtils";
 import {
+  getGlassChromeClasses,
   getGlassFillClass,
   getGlassVibrancyClass,
   getSpecularClasses,
@@ -106,7 +105,7 @@ const renderIcon = useIconRenderer();
 const el = ref<HTMLButtonElement | null>(null);
 defineExpose({ el });
 
-const sizeConfig = computed(() => sizeTokens[props.size] ?? sizeTokens.md);
+const sizeConfig = computed(() => getControlSizeTokens(props.size));
 const baseColorClasses = computed(() =>
   getButtonColorClasses(props.variant, props.color),
 );
@@ -139,12 +138,16 @@ const nonAccentHover = computed(() =>
 const isGlass = computed(
   () => props.variant === "glass" || props.glass,
 );
+// The variant's own colour classes are dropped for glass (they paint an
+// opaque fill), so the chrome — text colour, rim, focus ring — has to come
+// from here or the control ends up with none of it.
 const glassClasses = computed(() =>
   isGlass.value
     ? classNames(
         "backdrop-blur-sm",
         getGlassFillClass(props.color, props.glassOpacity),
         getGlassVibrancyClass(props.vibrancy),
+        getGlassChromeClasses(props.color),
       )
     : null,
 );
@@ -163,7 +166,7 @@ const specularOverlayClasses = computed(() =>
 );
 
 const dimensionClass = computed(
-  () => props.customSizeClass ?? sizeConfig.value.button,
+  () => props.customSizeClass ?? sizeConfig.value.box,
 );
 const spinnerColorToken = computed<SpinnerColor>(
   () => props.spinnerColor ?? (props.color as SpinnerColor),
@@ -172,6 +175,7 @@ const spinnerColorToken = computed<SpinnerColor>(
 const computedClassName = computed(() =>
    classNames(
      baseClasses,
+     !props.loading && "disabled:opacity-50",
      dimensionClass.value,
      roundedMap[props.rounded] ?? roundedMap.full,
      isGlass.value ? (accentClasses.value ?? "") : (accentClasses.value ?? baseColorClasses.value),
@@ -188,6 +192,13 @@ const iconContent = computed(() =>
     props.size as IconSize,
     classNames("flex-shrink-0", sizeConfig.value.icon, props.iconClassName),
   ),
+);
+
+// The icon paints with `currentColor`, so by default it inherits the button's
+// text colour and the glyph always matches. An `iconColor` tints only the
+// glyph by wrapping it in a span that carries the colour.
+const iconStyle = computed(() =>
+  props.iconColor ? { color: props.iconColor } : undefined,
 );
 
 // Pull aria-label and title out of rest so we can set them explicitly.
@@ -207,21 +218,33 @@ const computedTitle = computed(() =>
   props.tooltip ? undefined : (titleAttr.value ?? computedAriaLabel.value),
 );
 
-const buttonBindings = computed(() => ({
-  class: computedClassName.value,
-  "data-variant": props.variant,
-  "data-color": props.color,
-  "data-size": props.size,
-  "data-glass": props.glass,
-  disabled: props.disabled || props.loading,
-  "aria-label": computedAriaLabel.value,
-  title: computedTitle.value,
-  ...otherAttrs.value,
-}));
+const buttonBindings = computed(() => {
+  // `type="button"` by default — see Button: the native default is "submit",
+  // which made an unspec'd icon button submit its form. An explicit
+  // `type="submit"|"reset"` still wins, anything else falls back to "button".
+  const { type, ...rest } = otherAttrs.value;
+  const resolvedType: "button" | "reset" | "submit" =
+    type === "submit" || type === "reset" ? type : "button";
+  return {
+    class: computedClassName.value,
+    type: resolvedType,
+    "data-variant": props.variant,
+    "data-color": props.color,
+    "data-size": props.size,
+    "data-glass": isGlass.value,
+    disabled: props.disabled || props.loading,
+    "aria-label": computedAriaLabel.value,
+    title: computedTitle.value,
+    ...rest,
+  };
+});
 </script>
 
 <template>
-  <TooltipWrapper v-if="tooltip" :text="tooltip" :position="tooltipPosition">
+  <!-- TooltipWrapper renders its child unchanged when `text` is absent, so the
+       button is written once instead of duplicated in tooltip/non-tooltip
+       branches. -->
+  <TooltipWrapper :text="tooltip" :position="tooltipPosition">
     <button ref="el" v-bind="buttonBindings">
       <div
         v-if="specularOverlayClasses"
@@ -230,33 +253,22 @@ const buttonBindings = computed(() => ({
       />
       <Spinner
         v-if="loading"
-        :size="sizeConfig.spinner"
+        :size="sizeConfig.spinnerSize"
         :color="spinnerColorToken"
         :variant="spinnerVariant"
         aria-hidden="true"
       />
+      <span
+        v-else-if="iconStyle"
+        class="inline-flex shrink-0 items-center"
+        :style="iconStyle"
+      >
+        <VNodeRenderer :nodes="iconContent" />
+      </span>
       <VNodeRenderer v-else :nodes="iconContent" />
       <span class="sr-only">
-        {{ srLabel ?? ariaLabelAttr ?? "Icon button" }}
+        {{ srLabel || ariaLabelAttr || "Icon button" }}
       </span>
     </button>
   </TooltipWrapper>
-  <button v-else ref="el" v-bind="buttonBindings">
-    <div
-      v-if="specularOverlayClasses"
-      :class="specularOverlayClasses"
-      aria-hidden="true"
-    />
-    <Spinner
-      v-if="loading"
-      :size="sizeConfig.spinner"
-      :color="spinnerColorToken"
-      :variant="spinnerVariant"
-      aria-hidden="true"
-    />
-    <VNodeRenderer v-else :nodes="iconContent" />
-    <span class="sr-only">
-      {{ srLabel ?? ariaLabelAttr ?? "Icon button" }}
-    </span>
-  </button>
 </template>

@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import Button from "./Button.vue";
+import {
+  TRUE_COLORS,
+  BUTTON_VARIANTS,
+  getControlSizeTokens,
+} from "../theme/Theme";
 
 // Mock TooltipWrapper — renders children directly (no teleport).
 vi.mock("./TooltipWrapper.vue", () => ({
@@ -25,7 +30,7 @@ describe("Button — glass variant", () => {
     const btn = wrapper.find("button");
     expect(btn.exists()).toBe(true);
     expect(btn.classes()).toContain("backdrop-blur-sm");
-    expect(btn.classes()).toContain("bg-blue-50/45");
+    expect(btn.classes()).toContain("bg-blue-100/65");
     expect(btn.classes()).toContain("backdrop-saturate-[1.2]");
   });
 
@@ -38,38 +43,38 @@ describe("Button — glass variant", () => {
     expect(btn.exists()).toBe(true);
     expect(btn.classes()).toContain("backdrop-blur-sm");
     // brand resolves to blue
-    expect(btn.classes()).toContain("bg-blue-50/45");
+    expect(btn.classes()).toContain("bg-blue-100/65");
     expect(btn.classes()).toContain("relative");
   });
 
-  it('glassOpacity="frosted" produces 45% light / 15% dark fill', () => {
+  it('glassOpacity="frosted" produces 65% light / 25% dark fill', () => {
     const wrapper = mount(Button, {
       props: { glass: true, glassOpacity: "frosted", color: "red" },
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-red-50/45");
-    expect(btn.classes()).toContain("dark:bg-red-500/15");
+    expect(btn.classes()).toContain("bg-red-100/65");
+    expect(btn.classes()).toContain("dark:bg-red-600/25");
   });
 
-  it('glassOpacity="light" produces 70% light / 25% dark fill', () => {
+  it('glassOpacity="light" produces 85% light / 35% dark fill', () => {
     const wrapper = mount(Button, {
       props: { glass: true, glassOpacity: "light", color: "green" },
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-green-50/70");
-    expect(btn.classes()).toContain("dark:bg-green-500/25");
+    expect(btn.classes()).toContain("bg-green-100/85");
+    expect(btn.classes()).toContain("dark:bg-green-600/35");
   });
 
-  it('glassOpacity="clear" produces 20% light / 5% dark fill', () => {
+  it('glassOpacity="clear" produces 30% light / 10% dark fill', () => {
     const wrapper = mount(Button, {
       props: { glass: true, glassOpacity: "clear", color: "purple" },
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-purple-50/20");
-    expect(btn.classes()).toContain("dark:bg-purple-500/5");
+    expect(btn.classes()).toContain("bg-purple-100/30");
+    expect(btn.classes()).toContain("dark:bg-purple-600/10");
   });
 
   it('vibrancy="high" produces backdrop-saturate-[1.4]', () => {
@@ -174,18 +179,18 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-blue-50/45");
-    expect(btn.classes()).toContain("dark:bg-blue-500/15");
+    expect(btn.classes()).toContain("bg-blue-100/65");
+    expect(btn.classes()).toContain("dark:bg-blue-600/25");
   });
 
-  it("renders glass fill with emerald color", () => {
+  it("builds the glass fill from the tone it is given", () => {
     const wrapper = mount(Button, {
-      props: { glass: true, color: "green" },
+      props: { glass: true, color: "emerald" },
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-emerald-50/45");
-    expect(btn.classes()).toContain("dark:bg-emerald-500/15");
+    expect(btn.classes()).toContain("bg-emerald-100/65");
+    expect(btn.classes()).toContain("dark:bg-emerald-600/25");
   });
 
   it("renders glass fill with rose color", () => {
@@ -194,8 +199,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-rose-50/45");
-    expect(btn.classes()).toContain("dark:bg-rose-500/15");
+    expect(btn.classes()).toContain("bg-rose-100/65");
+    expect(btn.classes()).toContain("dark:bg-rose-600/25");
   });
 
   it("renders children inside the button with glass", () => {
@@ -243,11 +248,13 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    // Should have both solid fill AND glass classes
-    expect(btn.classes()).toContain("bg-sky-50/45");
+    expect(btn.classes()).toContain("bg-sky-100/65");
     expect(btn.classes()).toContain("backdrop-blur-sm");
-    // Solid variant base classes should still be present
-    expect(btn.classes()).toContain("shadow-sm");
+    // Glass replaces the variant's own fill rather than layering over it —
+    // solid's opaque background and shadow would defeat the effect.
+    expect(btn.classes()).not.toContain("shadow-sm");
+    // …and supplies its own chrome in their place.
+    expect(btn.classes()).toContain("text-sky-900");
   });
 
   it("numeric glassOpacity works correctly", () => {
@@ -256,8 +263,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-indigo-50/60");
-    expect(btn.classes()).toContain("dark:bg-indigo-500/18");
+    expect(btn.classes()).toContain("bg-indigo-100/60");
+    expect(btn.classes()).toContain("dark:bg-indigo-600/18");
   });
 
   it("numeric vibrancy works correctly", () => {
@@ -267,5 +274,150 @@ describe("Button — glass variant", () => {
 
     const btn = wrapper.find("button");
     expect(btn.classes()).toContain("backdrop-saturate-[1.5]");
+  });
+});
+
+describe("Button — bug regressions", () => {
+  it('defaults to type="button" so it cannot submit a form', () => {
+    const wrapper = mount(Button, { props: { color: "blue" } });
+    expect(wrapper.find("button").attributes("type")).toBe("button");
+  });
+
+  it('honours an explicit type="submit" attribute', () => {
+    const wrapper = mount(Button, {
+      props: { color: "blue" },
+      attrs: { type: "submit" },
+    });
+    expect(wrapper.find("button").attributes("type")).toBe("submit");
+  });
+
+  it("sets data-glass from the RESOLVED glass state, not the prop", () => {
+    const wrapper = mount(Button, {
+      props: { variant: "glass", color: "blue" },
+    });
+    expect(wrapper.find("button").attributes("data-glass")).toBe("true");
+  });
+
+  it("applies accent (transparent fill + accent ring) to a text button, not just icon mode", () => {
+    const wrapper = mount(Button, {
+      props: { variant: "soft", color: "blue", accent: true, accentColor: "emerald" },
+      slots: { default: "Save" },
+    });
+    const cls = wrapper.find("button").classes();
+    expect(cls).toContain("bg-transparent");
+    expect(cls).toContain("text-inherit");
+    // The variant's own fill is gone, replaced by the accent ring.
+    expect(cls).not.toContain("bg-blue-50");
+    expect(cls).toContain("focus-visible:ring-emerald-500");
+  });
+
+  it("stops its spinner under prefers-reduced-motion", () => {
+    const wrapper = mount(Button, {
+      props: { loading: true, color: "blue" },
+      slots: { default: "Save" },
+    });
+    const spinner = wrapper.find("[aria-hidden='true'].animate-spin");
+    expect(spinner.exists()).toBe(true);
+    expect(spinner.classes()).toContain("motion-reduce:animate-none");
+  });
+
+  it("shares the trigger corner radius (rounded-lg, matching Input)", () => {
+    const wrapper = mount(Button, { props: { color: "blue" } });
+    const cls = wrapper.find("button").classes();
+    expect(cls).toContain("rounded-lg");
+    expect(cls).not.toContain("rounded-md");
+  });
+});
+
+describe("Button — variant/tone matrix (every variant × every tone)", () => {
+  const signatures: Record<string, (c: string) => string[]> = {
+    solid: (c) => [`bg-${c}-700`, "text-white"],
+    soft: (c) => [`bg-${c}-50`, `text-${c}-700`, `ring-${c}-200`],
+    outline: (c) => [`border-${c}-200`, `text-${c}-700`],
+    ghost: (c) => [`text-${c}-700`, `hover:bg-${c}-100`],
+    link: (c) => [`text-${c}-700`, "hover:underline"],
+    clear: (c) => [`text-${c}-700`, `hover:text-${c}-800`],
+    icon: (c) => [`bg-${c}-50`, `text-${c}-700`],
+    glass: (_c) => ["backdrop-blur-sm"],
+  };
+
+  it.each(BUTTON_VARIANTS)(
+    "variant=%s carries its signature classes for all 21 tones",
+    (variant) => {
+      for (const color of TRUE_COLORS) {
+        const wrapper = mount(Button, {
+          props: { variant: variant as any, color: color as any },
+          slots: { default: "Save" },
+        });
+        const cls = wrapper.find("button").classes();
+        for (const signature of signatures[variant](color)) {
+          expect(cls, `${variant}/${color} → ${signature}`).toContain(signature);
+        }
+        if (variant === "ghost" || variant === "clear" || variant === "link") {
+          const hasRestFill = cls.some((c: string) => /^(bg-|ring-)/.test(c));
+          expect(hasRestFill, `${variant}/${color} must have no rest fill`).toBe(false);
+        }
+        wrapper.unmount();
+      }
+    },
+  );
+
+  it("active solid/soft carry the pressed-state signature for all 21 tones", () => {
+    for (const color of TRUE_COLORS) {
+      let wrapper = mount(Button, {
+        props: { active: true, variant: "solid", color: color as any },
+      });
+      let cls = wrapper.find("button").classes();
+      expect(cls, `active solid/${color}`).toContain(`bg-${color}-200`);
+      expect(cls).toContain(`text-${color}-900`);
+      wrapper.unmount();
+
+      wrapper = mount(Button, {
+        props: { active: true, variant: "soft", color: color as any },
+      });
+      cls = wrapper.find("button").classes();
+      expect(cls, `active soft/${color}`).toContain(`bg-${color}-100`);
+      expect(cls).toContain(`ring-${color}-300`);
+      wrapper.unmount();
+    }
+  });
+});
+
+describe("Button — shared control-size tokens", () => {
+  it("renders the theme size table (not a component-local copy)", () => {
+    for (const size of ["xs", "sm", "md", "lg", "xl"]) {
+      const wrapper = mount(Button, {
+        props: { size: size as any, color: "blue" },
+      });
+      const cls = wrapper.find("button").classes();
+      for (const part of getControlSizeTokens(size as any).text.split(" ")) {
+        expect(cls, `${size} → ${part}`).toContain(part);
+      }
+      wrapper.unmount();
+    }
+  });
+});
+
+describe("Button — icon colour", () => {
+  it("does not wrap the icon in a colour span when iconColor is not set", () => {
+    const wrapper = mount(Button, {
+      props: { leadingIcon: "Search", color: "blue" },
+      slots: { default: "Label" },
+    });
+    // No inline colour override — the glyph paints with `currentColor` and
+    // matches the label.
+    expect(wrapper.find('span[style*="color"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("tints the leading icon with iconColor", () => {
+    const wrapper = mount(Button, {
+      props: { leadingIcon: "Search", iconColor: "red", color: "blue" },
+      slots: { default: "Label" },
+    });
+    const span = wrapper.find('span[style*="color"]');
+    expect(span.exists()).toBe(true);
+    expect(span.attributes("style")).toMatch(/color:\s*red/);
+    wrapper.unmount();
   });
 });

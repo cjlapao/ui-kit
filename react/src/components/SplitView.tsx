@@ -829,8 +829,7 @@ const SplitView: React.FC<SplitViewProps> = ({
               onAction={onRetry}
               actionVariant="solid"
               actionColor={color}
-              disableBorder
-              transparentBackground
+              variant="plain"
               iconColor="rose"
               size="lg"
             />
@@ -885,7 +884,7 @@ const SplitView: React.FC<SplitViewProps> = ({
                     title="No items"
                     subtitle="There are no items to display."
                     showIcon
-                    disableBorder
+                    variant="plain"
                     color={color}
                   />
                 )}
@@ -1224,7 +1223,7 @@ const SplitView: React.FC<SplitViewProps> = ({
                   title="No item selected"
                   subtitle="Select an item from the list to view its details."
                   showIcon
-                  disableBorder
+                  variant="plain"
                   color={color}
                 />
               )}

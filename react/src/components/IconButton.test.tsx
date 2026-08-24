@@ -26,8 +26,8 @@ describe("IconButton — glass variant", () => {
     const btn = container.querySelector("button");
     expect(btn).not.toBeNull();
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-50/20");
-    expect(btn!.className).toContain("dark:bg-blue-500/5");
+    expect(btn!.className).toContain("bg-blue-100/30");
+    expect(btn!.className).toContain("dark:bg-blue-600/10");
     expect(btn!.className).toContain("backdrop-saturate-[1.2]");
   });
 
@@ -35,8 +35,8 @@ describe("IconButton — glass variant", () => {
     const { container } = render(<IconButton icon="Search" glass color="red" />);
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-red-50/20");
-    expect(btn!.className).toContain("dark:bg-red-500/5");
+    expect(btn!.className).toContain("bg-red-100/30");
+    expect(btn!.className).toContain("dark:bg-red-600/10");
   });
 
   it('specularMode defaults to "none" for IconButton', () => {
@@ -50,24 +50,24 @@ describe("IconButton — glass variant", () => {
     expect(overlays.length).toBe(0);
   });
 
-  it('glassOpacity="frosted" overrides default to 45%/15%', () => {
+  it('glassOpacity="frosted" overrides default to 65%/25%', () => {
     const { container } = render(
       <IconButton icon="Search" glass color="green" glassOpacity="frosted" />,
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-green-50/45");
-    expect(btn!.className).toContain("dark:bg-green-500/15");
+    expect(btn!.className).toContain("bg-green-100/65");
+    expect(btn!.className).toContain("dark:bg-green-600/25");
   });
 
-  it('glassOpacity="light" produces 70%/25% fill', () => {
+  it('glassOpacity="light" produces 85%/35% fill', () => {
     const { container } = render(
       <IconButton icon="Search" glass color="purple" glassOpacity="light" />,
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-purple-50/70");
-    expect(btn!.className).toContain("dark:bg-purple-500/25");
+    expect(btn!.className).toContain("bg-purple-100/85");
+    expect(btn!.className).toContain("dark:bg-purple-600/35");
   });
 
   it('vibrancy="high" produces backdrop-saturate-[1.4]', () => {
@@ -167,28 +167,28 @@ describe("IconButton — glass variant", () => {
     ).toBe("false");
   });
 
-  it("resolves semantic color 'brand' to blue for glass fill", () => {
+  it("builds the glass fill from the blue tone", () => {
     const { container } = render(<IconButton icon="Search" glass color="blue" />);
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-blue-50/20");
-    expect(btn!.className).toContain("dark:bg-blue-500/5");
+    expect(btn!.className).toContain("bg-blue-100/30");
+    expect(btn!.className).toContain("dark:bg-blue-600/10");
   });
 
-  it("resolves semantic color 'success' to emerald for glass fill", () => {
+  it("builds the glass fill from the emerald tone", () => {
     const { container } = render(<IconButton icon="Search" glass color="emerald" />);
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-emerald-50/20");
-    expect(btn!.className).toContain("dark:bg-emerald-500/5");
+    expect(btn!.className).toContain("bg-emerald-100/30");
+    expect(btn!.className).toContain("dark:bg-emerald-600/10");
   });
 
-  it("resolves semantic color 'danger' to rose for glass fill", () => {
+  it("builds the glass fill from the rose tone", () => {
     const { container } = render(<IconButton icon="Search" glass color="rose" />);
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-rose-50/20");
-    expect(btn!.className).toContain("dark:bg-rose-500/5");
+    expect(btn!.className).toContain("bg-rose-100/30");
+    expect(btn!.className).toContain("dark:bg-rose-600/10");
   });
 
   it("renders the icon inside the button with glass", () => {
@@ -216,7 +216,7 @@ describe("IconButton — glass variant", () => {
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-50/20");
+    expect(btn!.className).toContain("bg-blue-100/30");
   });
 
   it("renders with variant='solid' glass color='brand'", () => {
@@ -226,8 +226,7 @@ describe("IconButton — glass variant", () => {
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("backdrop-blur-sm");
-    // brand resolves to blue
-    expect(btn!.className).toContain("bg-blue-50/20");
+    expect(btn!.className).toContain("bg-blue-100/30");
     expect(btn!.className).toContain("relative");
   });
 
@@ -257,8 +256,8 @@ describe("IconButton — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-blue-50/45");
-    expect(btn!.className).toContain("dark:bg-blue-500/15");
+    expect(btn!.className).toContain("bg-blue-100/65");
+    expect(btn!.className).toContain("dark:bg-blue-600/25");
 
     const overlays = container.querySelectorAll(
       'div[aria-hidden="true"].pointer-events-none.absolute',
@@ -273,7 +272,7 @@ describe("IconButton — glass variant", () => {
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-50/20");
+    expect(btn!.className).toContain("bg-blue-100/30");
   });
 
   it("glass composes with custom className", () => {
@@ -305,6 +304,23 @@ describe("IconButton — glass variant", () => {
     const btn = container.querySelector("button");
     expect(btn).not.toBeNull();
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-50/20");
+    expect(btn!.className).toContain("bg-blue-100/30");
+  });
+});
+
+describe("IconButton — icon colour", () => {
+  it("leaves the icon to inherit the text colour when iconColor is not set", () => {
+    const { container } = render(<IconButton icon="Search" color="blue" />);
+    expect(container.querySelector('span[style*="color"]')).toBeNull();
+  });
+
+  it("tints the icon with iconColor", () => {
+    const { container } = render(
+      <IconButton icon="Search" iconColor="red" color="blue" />,
+    );
+    const span = container.querySelector<HTMLElement>('span[style*="color"]');
+    expect(span).not.toBeNull();
+    expect(span!.style.color).toBe("red");
+    expect(span!.textContent).toBe("Search");
   });
 });

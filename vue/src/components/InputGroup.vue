@@ -1,146 +1,120 @@
 <script lang="ts">
-import type { ButtonColor } from "./Button.vue";
+import { TRUE_COLORS, getInputVariantTokens } from "../theme/Theme";
+import type { ControlSize, InputVariant, TrueColor } from "../theme/Theme";
 
-type InputGroupSize = "sm" | "md" | "lg";
-type InputGroupValidationStatus = "none" | "error" | "success";
+export const INPUT_GROUP_VALIDATION_STATUSES = [
+  "none",
+  "error",
+  "success",
+] as const;
+export type InputGroupValidationStatus =
+  (typeof INPUT_GROUP_VALIDATION_STATUSES)[number];
 
-const sizeTokens: Record<
-  InputGroupSize,
-  {
-    text: string;
-    padding: string;
-  }
-> = {
-  sm: {
-    text: "text-sm",
-    padding: "px-3",
-  },
-  md: {
-    text: "text-sm",
-    padding: "px-3.5",
-  },
-  lg: {
-    text: "text-base",
-    padding: "px-4",
-  },
-};
+/** The shared control scale, so a group lines up with the Button beside it. */
+export type InputGroupSize = ControlSize;
 
-type ToneTokens = {
-  focusRing: string;
+/**
+ * The same surfaces `Input`, `SearchBar` and `Checkbox` offer. The group owns
+ * the box now — its children render `unstyled` — so the variant has to live
+ * here or a group could never be anything but an opaque white card.
+ */
+export type InputGroupVariant = InputVariant;
+
+// ── Tone tokens ───────────────────────────────────────────────────────────────
+// Generated from the shared TrueColor list. The map this replaces had six
+// entries — indigo, blue, emerald, amber, rose, slate — and fell back to
+// `toneTokens.neutral`, which was not one of them. So for the other fifteen
+// tones the lookup produced `undefined` and the next line threw
+// `Cannot read properties of undefined (reading 'ring')`: a hard crash, not a
+// wrong colour.
+
+type InputGroupToneTokens = {
+  /**
+   * Resting edge around the whole group. An `outline`, not a `ring`: a ring is
+   * painted in the element's own background layer, so the addons — which sit
+   * flush against the group's edges with opaque fills of their own — paint
+   * straight over it. The focus indicator was only visible in the gap between
+   * them, reading as a bar across the middle rather than an edge around the
+   * control. Outlines are painted after all descendants, so they survive.
+   */
   ring: string;
-  background: string;
-  addonBackground: string;
-  addonBorder: string;
-  addonText: string;
-  darkBackground: string;
-  darkRing: string;
-  darkAddonBackground: string;
-  darkAddonBorder: string;
-  darkAddonText: string;
+  /** The same edge, thicker, while anything inside has focus. */
+  focusRing: string;
+  /**
+   * `underline` has no box, so it takes the focus on its bottom rule instead —
+   * a full rectangle around it would contradict the variant, and is what a
+   * standalone underline `Input` deliberately avoids.
+   */
+  focusBorder: string;
+  /** Addon fill, border and copy. */
+  addon: string;
 };
 
-const toneTokens: Partial<Record<ButtonColor, ToneTokens>> = {
-  indigo: {
-    focusRing: "focus-within:ring-indigo-400",
-    ring: "ring-indigo-200/70",
-    background: "bg-white",
-    addonBackground: "bg-indigo-50/80",
-    addonBorder: "border-indigo-200",
-    addonText: "text-indigo-600",
-    darkBackground: "dark:bg-neutral-900",
-    darkRing: "dark:ring-indigo-500/30",
-    darkAddonBackground: "dark:bg-indigo-500/15",
-    darkAddonBorder: "dark:border-indigo-500/40",
-    darkAddonText: "dark:text-indigo-200",
-  },
-  blue: {
-    focusRing: "focus-within:ring-blue-400",
-    ring: "ring-blue-200/70",
-    background: "bg-white",
-    addonBackground: "bg-blue-50/80",
-    addonBorder: "border-blue-200",
-    addonText: "text-blue-600",
-    darkBackground: "dark:bg-neutral-900",
-    darkRing: "dark:ring-blue-500/30",
-    darkAddonBackground: "dark:bg-blue-500/15",
-    darkAddonBorder: "dark:border-blue-500/40",
-    darkAddonText: "dark:text-blue-200",
-  },
-  emerald: {
-    focusRing: "focus-within:ring-emerald-400",
-    ring: "ring-emerald-200/70",
-    background: "bg-white",
-    addonBackground: "bg-emerald-50/80",
-    addonBorder: "border-emerald-200",
-    addonText: "text-emerald-600",
-    darkBackground: "dark:bg-neutral-900",
-    darkRing: "dark:ring-emerald-500/30",
-    darkAddonBackground: "dark:bg-emerald-500/15",
-    darkAddonBorder: "dark:border-emerald-500/40",
-    darkAddonText: "dark:text-emerald-200",
-  },
-  amber: {
-    focusRing: "focus-within:ring-amber-400",
-    ring: "ring-amber-200/70",
-    background: "bg-white",
-    addonBackground: "bg-amber-50/80",
-    addonBorder: "border-amber-200",
-    addonText: "text-amber-600",
-    darkBackground: "dark:bg-neutral-900",
-    darkRing: "dark:ring-amber-400/30",
-    darkAddonBackground: "dark:bg-amber-500/20",
-    darkAddonBorder: "dark:border-amber-500/40",
-    darkAddonText: "dark:text-amber-200",
-  },
-  rose: {
-    focusRing: "focus-within:ring-rose-400",
-    ring: "ring-rose-200/70",
-    background: "bg-white",
-    addonBackground: "bg-rose-50/80",
-    addonBorder: "border-rose-200",
-    addonText: "text-rose-600",
-    darkBackground: "dark:bg-neutral-900",
-    darkRing: "dark:ring-rose-500/30",
-    darkAddonBackground: "dark:bg-rose-500/15",
-    darkAddonBorder: "dark:border-rose-500/40",
-    darkAddonText: "dark:text-rose-200",
-  },
-  slate: {
-    focusRing: "focus-within:ring-slate-500",
-    ring: "ring-slate-200/70",
-    background: "bg-white",
-    addonBackground: "bg-slate-100",
-    addonBorder: "border-slate-200",
-    addonText: "text-slate-700",
-    darkBackground: "dark:bg-neutral-900",
-    darkRing: "dark:ring-slate-500/40",
-    darkAddonBackground: "dark:bg-slate-800/70",
-    darkAddonBorder: "dark:border-slate-700",
-    darkAddonText: "dark:text-slate-200",
-  },
+const buildToneTokens = (color: TrueColor): InputGroupToneTokens => ({
+  ring: `outline-${color}-200/70 dark:outline-${color}-500/30`,
+  focusRing: `focus-within:outline-${color}-400 dark:focus-within:outline-${color}-400`,
+  focusBorder: `focus-within:border-${color}-400`,
+  addon: [
+    `bg-${color}-50/80 border-${color}-200 text-${color}-700`,
+    `dark:bg-${color}-500/15 dark:border-${color}-500/40 dark:text-${color}-200`,
+  ].join(" "),
+});
+
+const TONE_TOKENS: Record<TrueColor, InputGroupToneTokens> = Object.fromEntries(
+  TRUE_COLORS.map((color) => [color, buildToneTokens(color)]),
+) as Record<TrueColor, InputGroupToneTokens>;
+
+const getToneTokens = (color: TrueColor): InputGroupToneTokens =>
+  TONE_TOKENS[color] ?? TONE_TOKENS.blue;
+
+// ── Sizing ────────────────────────────────────────────────────────────────────
+
+/** Addon padding and type, mirroring `Input`'s so the two halves line up. */
+const SIZE_STYLES: Record<ControlSize, { padding: string; text: string }> = {
+  xs: { padding: "px-2", text: "text-xs" },
+  sm: { padding: "px-2.5", text: "text-xs" },
+  md: { padding: "px-3", text: "text-sm" },
+  lg: { padding: "px-4", text: "text-base" },
+  xl: { padding: "px-5", text: "text-base" },
 };
 
-const statusRing: Record<
+const STATUS_RING: Record<
   Exclude<InputGroupValidationStatus, "none">,
   string
 > = {
   error:
-    "focus-within:ring-rose-500 ring-rose-400/70 dark:ring-rose-400/40 dark:focus-within:ring-rose-400",
+    "outline-rose-400/70 focus-within:outline-rose-500 dark:outline-rose-400/40 dark:focus-within:outline-rose-400",
   success:
-    "focus-within:ring-emerald-500 ring-emerald-400/70 dark:ring-emerald-400/40 dark:focus-within:ring-emerald-400",
+    "outline-emerald-400/70 focus-within:outline-emerald-500 dark:outline-emerald-400/40 dark:focus-within:outline-emerald-400",
+};
+
+/** The same states expressed on a bottom rule, for `underline`. */
+const STATUS_BORDER: Record<
+  Exclude<InputGroupValidationStatus, "none">,
+  string
+> = {
+  error: "border-rose-500 dark:border-rose-400",
+  success: "border-emerald-500 dark:border-emerald-400",
 };
 
 export interface InputGroupProps {
   leadingAddon?: string;
   trailingAddon?: string;
-  tone?: ButtonColor;
+  /** @default "blue" */
+  tone?: TrueColor;
+  /** Alias for `tone`, matching `Input` and `SearchBar`. */
+  color?: TrueColor;
+  /** Surface treatment of the group box. @default "elevated" */
+  variant?: InputGroupVariant;
+  /** @default "md" */
   size?: InputGroupSize;
+  /** @default "none" */
   validationStatus?: InputGroupValidationStatus;
   disabled?: boolean;
 }
 
-const addonBaseClasses =
-  "inline-flex min-w-0 items-center whitespace-nowrap border border-transparent text-sm font-medium";
+const ADDON_BASE =
+  "inline-flex min-w-0 shrink-0 items-center whitespace-nowrap border border-transparent font-medium";
 </script>
 
 <script setup lang="ts">
@@ -157,13 +131,20 @@ import VNodeRenderer from "./internal/VNodeRenderer";
 defineOptions({ name: "InputGroup" });
 
 const props = withDefaults(defineProps<InputGroupProps>(), {
-  tone: "blue",
+  variant: "elevated",
   size: "md",
   validationStatus: "none",
   disabled: false,
 });
 
 const slots = useSlots();
+
+const effectiveTone = computed(() => props.tone ?? props.color ?? "blue");
+const toneToken = computed(() => getToneTokens(effectiveTone.value));
+const sizeToken = computed(() => SIZE_STYLES[props.size] ?? SIZE_STYLES.md);
+const variantTokens = computed(() => getInputVariantTokens(props.variant));
+const hasStatus = computed(() => props.validationStatus !== "none");
+const isUnderline = computed(() => props.variant === "underline");
 
 const isAttachableChild = (child: VNodeChild) => {
   if (!isVNode(child)) {
@@ -179,68 +160,51 @@ const attachChildProps = (child: VNodeChild): VNodeChild => {
   }
 
   return cloneVNode(child, {
-    tone: props.tone,
+    tone: effectiveTone.value,
     size: props.size,
     unstyled: true,
+    // `disabled` used to stop at the group's `opacity-60`, which dims a field
+    // that is still perfectly editable. A child's own `disabled` still wins, so
+    // one field in an enabled group can be locked on its own.
+    disabled: props.disabled || child.props?.disabled === true,
   });
 };
 
 const enhancedChildren = (): VNodeChild[] =>
   (slots.default?.() ?? []).map(attachChildProps);
 
-const toneToken = computed(
-  () => (toneTokens[props.tone] ?? toneTokens.neutral) as ToneTokens,
-);
-const sizeToken = computed(() => sizeTokens[props.size] ?? sizeTokens.md);
-
-const ringClasses = computed(() =>
-  props.validationStatus === "none"
-    ? classNames(
-        "ring-1 ring-inset transition focus-within:ring-2",
-        toneToken.value.ring,
-        toneToken.value.darkRing,
-        toneToken.value.focusRing,
-      )
-    : statusRing[props.validationStatus],
-);
-
 const groupClasses = computed(() =>
   classNames(
-    "flex w-full items-stretch overflow-hidden rounded-lg shadow-sm",
-    ringClasses.value,
-    toneToken.value.background,
-    toneToken.value.darkBackground,
-    props.disabled && "opacity-60 cursor-not-allowed",
+    "flex w-full items-stretch overflow-hidden transition",
+    variantTokens.value.surface,
+    // `-outline-offset-*` keeps it inside the rounded corner rather than
+    // squaring off around it.
+    !isUnderline.value &&
+      "outline outline-1 -outline-offset-1 focus-within:outline-2 focus-within:-outline-offset-2",
+    !isUnderline.value &&
+      (hasStatus.value
+        ? STATUS_RING[
+            props.validationStatus as Exclude<InputGroupValidationStatus, "none">
+          ]
+        : classNames(toneToken.value.ring, toneToken.value.focusRing)),
+    isUnderline.value &&
+      (hasStatus.value
+        ? STATUS_BORDER[
+            props.validationStatus as Exclude<InputGroupValidationStatus, "none">
+          ]
+        : toneToken.value.focusBorder),
+    props.disabled && "cursor-not-allowed opacity-60",
   ),
 );
 
-const leadingAddonClasses = computed(() =>
+const addonClasses = computed(() =>
   classNames(
-    addonBaseClasses,
+    ADDON_BASE,
+    // The base used to carry a fixed `text-sm` next to the size token's own
+    // `text-*`, so which one applied at `lg` was decided by emission order.
     sizeToken.value.text,
     sizeToken.value.padding,
-    toneToken.value.addonBackground,
-    toneToken.value.addonBorder,
-    toneToken.value.addonText,
-    toneToken.value.darkAddonBackground,
-    toneToken.value.darkAddonBorder,
-    toneToken.value.darkAddonText,
-    "border-r sm:min-w-max",
-  ),
-);
-
-const trailingAddonClasses = computed(() =>
-  classNames(
-    addonBaseClasses,
-    sizeToken.value.text,
-    sizeToken.value.padding,
-    toneToken.value.addonBackground,
-    toneToken.value.addonBorder,
-    toneToken.value.addonText,
-    toneToken.value.darkAddonBackground,
-    toneToken.value.darkAddonBorder,
-    toneToken.value.darkAddonText,
-    "border-l sm:min-w-max",
+    toneToken.value.addon,
   ),
 );
 
@@ -258,13 +222,13 @@ const hasTrailing = computed(
     :data-disabled="String(disabled)"
     :data-status="validationStatus"
   >
-    <span v-if="hasLeading" :class="leadingAddonClasses">
+    <span v-if="hasLeading" :class="classNames(addonClasses, 'border-r')">
       <slot name="leadingAddon">{{ leadingAddon }}</slot>
     </span>
     <div class="flex min-w-0 flex-1 items-center">
       <VNodeRenderer :nodes="enhancedChildren()" />
     </div>
-    <span v-if="hasTrailing" :class="trailingAddonClasses">
+    <span v-if="hasTrailing" :class="classNames(addonClasses, 'border-l')">
       <slot name="trailingAddon">{{ trailingAddon }}</slot>
     </span>
   </div>

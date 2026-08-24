@@ -170,7 +170,7 @@ describe("Toggle — glass class composition", () => {
       props: { label: "Test", glass: true, color: "blue", glassOpacity: "frosted", vibrancy: "medium" },
     });
     const track = wrapper.find("span[aria-hidden='true']");
-    expect(track.classes()).toContain("bg-blue-100/55");
+    expect(track.classes()).toContain("bg-blue-100/65");
   });
 
   it("glass=true track includes glass fill class with hover and dark variants", () => {
@@ -178,7 +178,7 @@ describe("Toggle — glass class composition", () => {
       props: { label: "Test", glass: true, color: "blue", glassOpacity: "frosted", vibrancy: "medium" },
     });
     const track = wrapper.find("span[aria-hidden='true']");
-    expect(track.classes()).toContain("hover:bg-blue-100/65");
+    expect(track.classes()).toContain("hover:bg-blue-100/75");
     expect(track.classes()).toContain("dark:bg-blue-600/25");
     expect(track.classes()).toContain("dark:hover:bg-blue-600/35");
   });
@@ -205,7 +205,7 @@ describe("Toggle — glass class composition", () => {
       props: { label: "Test", glass: false, color: "rose", glassOpacity: "frosted", vibrancy: "high" },
     });
     const track = wrapper.find("span[aria-hidden='true']");
-    expect(track.classes()).not.toContain("bg-rose-100/55");
+    expect(track.classes()).not.toContain("bg-rose-100/65");
     expect(track.classes()).not.toContain("backdrop-saturate");
   });
 
@@ -238,7 +238,7 @@ describe("Toggle — specular overlay", () => {
     const overlays = wrapper.findAll("div[aria-hidden='true']");
     expect(overlays.length).toBeGreaterThan(0);
     expect(overlays[0].classes()).toContain("pointer-events-none");
-    expect(overlays[0].classes()).toContain("bg-gradient-to-r");
+    expect(overlays[0].classes()).toContain("bg-gradient-to-b");
   });
 
   it("specular overlay div renders when glass=true and specularMode='halo'", () => {
@@ -276,17 +276,18 @@ describe("Toggle — specular overlay", () => {
     expect(overlays[0].classes()).toContain("pointer-events-none");
   });
 
-  it("specular overlay has correct sizing classes for classic mode", () => {
+  it("specular overlay is full-bleed and takes the track's pill radius", () => {
     const wrapper = mount(Toggle, {
       props: { label: "Test", glass: true, specularMode: "classic", color: "indigo" },
     });
     const overlays = wrapper.findAll("div[aria-hidden='true']");
     expect(overlays.length).toBeGreaterThan(0);
     expect(overlays[0].classes()).toContain("absolute");
-    expect(overlays[0].classes()).toContain("inset-x-0");
-    expect(overlays[0].classes()).toContain("top-0");
-    expect(overlays[0].classes()).toContain("h-px");
-    expect(overlays[0].classes()).toContain("rounded-t-[inherit]");
+    expect(overlays[0].classes()).toContain("inset-0");
+    expect(overlays[0].classes()).toContain("rounded-full");
+    // Paint, not geometry: the helper no longer smuggles in its own sizing.
+    expect(overlays[0].classes()).toContain("bg-gradient-to-b");
+    expect(overlays[0].classes()).not.toContain("h-px");
   });
 });
 
@@ -321,5 +322,60 @@ describe("Toggle — data-glass attribute", () => {
     });
     const root = wrapper.find("[data-glass='false']");
     expect(root.exists()).toBe(true);
+  });
+});
+describe("Toggle — click emits exactly once", () => {
+  // jsdom flips `checked` on a synthetic click but does not fire `change`, so
+  // the change path is exercised via setValue and the click path is asserted
+  // on what it must NOT do.
+  it("emits a single correct value through the change path", async () => {
+    const wrapper = mount(Toggle, {
+      props: { modelValue: false, label: "Shimmer" },
+    });
+
+    await wrapper.find("input").setValue(true);
+
+    expect(wrapper.emitted("update:modelValue")).toEqual([[true]]);
+  });
+
+  it("never re-emits the stale value while bubbling to the row", async () => {
+    const wrapper = mount(Toggle, {
+      props: { modelValue: false, label: "Shimmer" },
+    });
+
+    await wrapper.find("label").trigger("click");
+    await wrapper.find("input").trigger("click");
+
+    // The row handler used to fire on the way up and emit `!input.checked` —
+    // the value the toggle had just moved away from — reverting every click.
+    const emitted = wrapper.emitted("update:modelValue") ?? [];
+    expect(emitted).not.toContainEqual([false]);
+  });
+
+  it("still toggles when the row padding is clicked", async () => {
+    const wrapper = mount(Toggle, {
+      props: { modelValue: false, label: "Shimmer", padding: "md" },
+    });
+    const input = wrapper.find("input").element as HTMLInputElement;
+    expect(input.checked).toBe(false);
+
+    // A target that is neither the input nor its label: the row forwards it.
+    await wrapper.find('[data-glass]').trigger("click");
+
+    expect(input.checked).toBe(true);
+  });
+
+  it("does not react when disabled or readonly", async () => {
+    const disabled = mount(Toggle, {
+      props: { modelValue: false, label: "X", disabled: true },
+    });
+    await disabled.find('[data-glass]').trigger("click");
+    expect(disabled.emitted("update:modelValue")).toBeUndefined();
+
+    const readonly = mount(Toggle, {
+      props: { modelValue: false, label: "X", readonly: true },
+    });
+    await readonly.find('[data-glass]').trigger("click");
+    expect(readonly.emitted("update:modelValue")).toBeUndefined();
   });
 });
