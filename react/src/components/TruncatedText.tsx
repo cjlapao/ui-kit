@@ -57,11 +57,9 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({
       position={tooltipPosition}
     >
       <Tag
-        ref={
-          ref as React.Ref<
-            HTMLDivElement & HTMLSpanElement & HTMLParagraphElement
-          >
-        }
+        ref={(node: HTMLElement | null) => {
+          ref.current = node;
+        }}
         className={["truncate", className].filter(Boolean).join(" ")}
       >
         {text}
