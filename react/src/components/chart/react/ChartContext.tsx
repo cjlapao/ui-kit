@@ -101,8 +101,16 @@ export interface ChartContextValue {
   /** Bumped by Chart.redraw() to force a canvas repaint. */
   redrawNonce: number;
   requestRedraw: () => void;
-  /** Canvas: register this id's draw function (replaces previous). */
-  registerDraw: (id: string, fn: ChartDrawFn) => void;
+  /**
+   * Canvas: register this id's draw function (replaces previous). `layer`
+   * "back" fns (axes, grid, reference bands) run before "front" fns so the
+   * grid never paints over the marks.
+   */
+  registerDraw: (
+    id: string,
+    fn: ChartDrawFn,
+    layer?: "back" | "front",
+  ) => void;
   unregisterDraw: (id: string) => void;
 
   /** Title text (for aria + tooltip fallbacks). */

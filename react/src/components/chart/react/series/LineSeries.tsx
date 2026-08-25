@@ -101,6 +101,8 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     animationsDisabled,
     registerDraw,
     unregisterDraw,
+    hover,
+    theme,
   } = ctx;
   const me = findSeries(ctx, "line", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const clipId = useId().replace(/:/g, "");
@@ -121,12 +123,14 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
   let markerSize = 3.5;
   let markerShape: MarkerShape = "circle";
   let seriesColor = "#8b5cf6";
+  let areaGradient = false;
 
   if (me && xScale) {
     const d = me.descriptor;
     hidden = me.hidden;
     curve = d.curve ?? "linear";
     fillOpacity = d.fillOpacity ?? 0;
+    areaGradient = d.areaGradient ?? false;
     seriesId = d.id;
     lineStrokeWidth = d.lineStrokeWidth ?? 2;
     lineDash = d.lineDash ?? null;
@@ -165,12 +169,16 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     }
   }
 
-  // Previous settled geometry (update-animation source).
-  if (lastRef.current !== final) {
+  // Previous settled geometry (update-animation source). Bookkeeping only
+  // happens on settled renders: while the animation runs, `prev` must stay
+  // the previous settled geometry (null during the entrance) — otherwise the
+  // first frame would switch to update interpolation and the entrance never
+  // becomes visible.
+  if (progress >= 1 && lastRef.current !== final) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
   }
-  const prev = prevRef.current;
+  const prev = progress < 1 ? prevRef.current : null;
   const entrance = prev === null;
   const baselineY = area.y + area.height;
 
@@ -189,8 +197,19 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
       }
       if (fillOpacity > 0 && g.areaPath) {
         c.globalAlpha = fillOpacity * p;
-        c.fillStyle =
-          colorObj !== null ? canvasGradient(c, area, colorObj) : seriesColor;
+        if (areaGradient) {
+          const base =
+            colorObj !== null
+              ? colorObj.stops[0]?.color ?? seriesColor
+              : seriesColor;
+          const ag = c.createLinearGradient(0, area.y, 0, area.y + area.height);
+          ag.addColorStop(0, hexWithAlpha(base, 1));
+          ag.addColorStop(1, hexWithAlpha(base, 0));
+          c.fillStyle = ag;
+        } else {
+          c.fillStyle =
+            colorObj !== null ? canvasGradient(c, area, colorObj) : seriesColor;
+        }
         c.fill(new Path2D(g.areaPath));
         c.globalAlpha = 1;
       }
@@ -224,6 +243,18 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
         }
         c.globalAlpha = 1;
       }
+      // Hover highlight: enlarged marker at the hovered point (reference
+      // behavior — every series pops its marker on the crosshair).
+      const hoverItem = hover?.items.find((it) => it.seriesId === seriesId);
+      if (hover && hoverItem && !hidden) {
+        c.beginPath();
+        c.arc(hover.x, hoverItem.y, markerSize + 2.5, 0, Math.PI * 2);
+        c.fillStyle = seriesColor;
+        c.fill();
+        c.lineWidth = 1.5;
+        c.strokeStyle = theme.crosshairColor;
+        c.stroke();
+      }
       c.restore();
     };
     registerDraw(id, fn);
@@ -238,6 +269,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     area,
     height,
     fillOpacity,
+    areaGradient,
     colorObj,
     seriesColor,
     lineStrokeWidth,
@@ -245,6 +277,8 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     showMarkers,
     markerSize,
     markerShape,
+    hover,
+    theme,
     registerDraw,
     unregisterDraw,
   ]);
@@ -256,6 +290,12 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
   const g = frameGeometry(final, prev, progress, curve, baselineY);
   const entranceP = entrance ? (animationsDisabled ? 1 : progress) : 1;
   const fill = colorObj !== null ? `url(#${gradId})` : seriesColor;
+  const areaBase =
+    colorObj !== null
+      ? colorObj.stops[0]?.color ?? seriesColor
+      : seriesColor;
+  const hoverItem = hover?.items.find((it) => it.seriesId === seriesId);
+  const hoverDot = hover && hoverItem && !hidden ? hoverItem : null;
 
   return (
     <g
@@ -294,10 +334,27 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
             ))}
           </linearGradient>
         )}
+        {areaGradient && fillOpacity > 0 && (
+          <linearGradient
+            id={gradId + "area"}
+            x1="0"
+            y1={area.y}
+            x2="0"
+            y2={area.y + area.height}
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0" stopColor={areaBase} stopOpacity={1} />
+            <stop offset="1" stopColor={areaBase} stopOpacity={0} />
+          </linearGradient>
+        )}
       </defs>
       <g clipPath={`url(#${clipId})`}>
         {fillOpacity > 0 && g.areaPath && (
-          <path d={g.areaPath} fill={fill} opacity={fillOpacity * entranceP} />
+          <path
+            d={g.areaPath}
+            fill={areaGradient ? `url(#${gradId}area)` : fill}
+            opacity={fillOpacity * entranceP}
+          />
         )}
         {g.linePath && (
           <path
@@ -322,6 +379,17 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
             />
           ))}
       </g>
+      {hoverDot && (
+        <circle
+          cx={hover!.x}
+          cy={hoverDot.y}
+          r={markerSize + 2.5}
+          fill={seriesColor}
+          stroke={theme.crosshairColor}
+          strokeWidth={1.5}
+          pointerEvents="none"
+        />
+      )}
     </g>
   );
 }
@@ -342,4 +410,12 @@ function canvasGradient(
     g.addColorStop(s.offset, s.color);
   }
   return g;
+}
+
+/** Hex color with an alpha channel (canvas gradient stops). */
+function hexWithAlpha(hex: string, alpha: number): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return hex;
+  const [r, g, b] = [1, 2, 3].map((i) => parseInt(m[i], 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

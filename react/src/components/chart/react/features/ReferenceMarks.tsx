@@ -192,7 +192,7 @@ export function ReferenceBand(props: ReferenceBandProps) {
       c.fillRect(rect!.x, rect!.y, rect!.w, rect!.h);
       c.restore();
     };
-    ctx.registerDraw(id, fn);
+    ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderer, rect, opacity, hex, ctx.registerDraw, ctx.unregisterDraw]);

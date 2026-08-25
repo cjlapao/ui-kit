@@ -97,7 +97,7 @@ export function XAxis(props: XAxisProps = {}) {
         );
       }
     };
-    ctx.registerDraw(id, fn);
+    ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderer, xScale, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.format, props.label]);

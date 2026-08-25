@@ -249,6 +249,7 @@ export function describeSeries(
     yAccessor: (item, i) => yAccessor(item, i),
     curve: lp.curve ?? "linear",
     fillOpacity: lp.fillOpacity ?? 0,
+    areaGradient: lp.areaGradient ?? false,
     lineStrokeWidth: lp.lineStrokeWidth ?? 2,
     lineDash,
     showMarkers: lp.showMarkers ?? false,

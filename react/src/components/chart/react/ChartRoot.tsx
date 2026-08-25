@@ -88,6 +88,7 @@ export interface ChildTypeRegistry {
   Annotation: ComponentType<any>;
   DataLabels: ComponentType<any>;
   PieCenter: ComponentType<any>;
+  AxisBadges: ComponentType<any>;
 }
 
 let registry: ChildTypeRegistry | null = null;
@@ -491,7 +492,9 @@ export function ChartRootImpl({
   const settled = progress >= 1;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drawFnsRef = useRef<Map<string, ChartDrawFn>>(new Map());
+  const drawFnsRef = useRef<
+    Map<string, { fn: ChartDrawFn; layer: "back" | "front" }>
+  >(new Map());
   const piePresentationsRef = useRef<
     Map<string, import("./ChartContext").PiePresentation>
   >(new Map());
@@ -516,7 +519,11 @@ export function ChartRootImpl({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
     const state = { progress: progressRef.current, width, height };
-    for (const fn of drawFnsRef.current.values()) fn(ctx, state);
+    const entries = [...drawFnsRef.current.entries()];
+    for (const e of entries.filter(([, d]) => d.layer === "back"))
+      e[1].fn(ctx, state);
+    for (const e of entries.filter(([, d]) => d.layer === "front"))
+      e[1].fn(ctx, state);
   };
 
   const scheduleCanvasDraw = useCallback(() => {
@@ -529,8 +536,8 @@ export function ChartRootImpl({
   }, [renderer]);
 
   const registerDraw = useCallback(
-    (id: string, fn: ChartDrawFn) => {
-      drawFnsRef.current.set(id, fn);
+    (id: string, fn: ChartDrawFn, layer: "back" | "front" = "front") => {
+      drawFnsRef.current.set(id, { fn, layer });
       scheduleCanvasDraw();
     },
     [scheduleCanvasDraw],
@@ -935,12 +942,17 @@ export function ChartRootImpl({
 
   // ── Split children: plot marks (svg/canvas) vs HTML overlays ──────────────
   const plotChildren: ReactNode[] = [];
+  // Back layer: axes + grid + reference bands render before the series so
+  // they never paint over the marks (SVG: document order; canvas: the draw
+  // loop runs "back" layer fns first).
+  const backChildren: ReactNode[] = [];
   const titleEl: ReactNode[] = [];
   const legendEl: ReactNode[] = [];
   const captionEl: ReactNode[] = [];
   const tooltipEl: ReactNode[] = [];
   const dataLabelsEl: ReactNode[] = [];
   const pieCenterEl: ReactNode[] = [];
+  const axisBadgesEl: ReactNode[] = [];
   for (const c of elements) {
     if (typeof c !== "object" || c === null || !("$typeof" in c || "$$typeof" in c)) {
       if (c !== undefined && c !== null) plotChildren.push(c);
@@ -953,6 +965,7 @@ export function ChartRootImpl({
     else if (el.type === reg?.Tooltip) tooltipEl.push(c);
     else if (el.type === reg?.DataLabels) dataLabelsEl.push(c);
     else if (el.type === reg?.PieCenter) pieCenterEl.push(c);
+    else if (el.type === reg?.AxisBadges) axisBadgesEl.push(c);
     else if (el.type === reg?.Hover) {
       // Hover renders null — kept out of the plot layer.
     } else if (
@@ -967,6 +980,12 @@ export function ChartRootImpl({
           __chartSeriesToken: c,
         }),
       );
+    } else if (
+      el.type === reg?.XAxis ||
+      el.type === reg?.YAxis ||
+      el.type === reg?.ReferenceBand
+    ) {
+      backChildren.push(c);
     } else {
       plotChildren.push(c);
     }
@@ -1010,6 +1029,7 @@ export function ChartRootImpl({
             aria-label={aria}
             style={{ display: "block" }}
           >
+            {backChildren}
             {plotChildren}
             {hover && (
               <line
@@ -1100,6 +1120,7 @@ export function ChartRootImpl({
           </div>
         )}
         {tooltipEl}
+        {axisBadgesEl}
         {dataLabelsEl}
         {pieCenterEl}
         {captionEl.length > 0 && (

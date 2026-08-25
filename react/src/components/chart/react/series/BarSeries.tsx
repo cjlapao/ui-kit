@@ -160,11 +160,13 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
     }
   }
 
-  if (lastRef.current !== final) {
+  // Bookkeeping on settled renders only — keeps `prev` the previous settled
+  // geometry (null during the entrance) so the entrance stays visible.
+  if (progress >= 1 && lastRef.current !== final) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
   }
-  const prev = prevRef.current;
+  const prev = progress < 1 ? prevRef.current : null;
 
   useEffect(() => {
     if (renderer !== "canvas" || !final || hidden) return;

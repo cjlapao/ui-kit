@@ -657,6 +657,27 @@ export const chartCandleVariantOptions: MultiToggleOption[] = [
   { label: "OHLC", value: "ohlc" },
 ];
 
+/** Horizontal gridline style for cartesian charts. */
+export const chartGridOptions: MultiToggleOption[] = [
+  { label: "Solid", value: "solid" },
+  { label: "Dashed", value: "dashed" },
+  { label: "Off", value: "off" },
+];
+
+/** Gridline intensity (gridOpacity). */
+export const chartGridFadeOptions: MultiToggleOption[] = [
+  { label: "Full", value: "1" },
+  { label: "Faint", value: "0.55" },
+  { label: "Very faint", value: "0.25" },
+];
+
+/** Where hovered values are shown on a line chart. */
+export const chartValuesOptions: MultiToggleOption[] = [
+  { label: "Popup", value: "popup" },
+  { label: "Y-axis", value: "y-axis" },
+  { label: "Both", value: "both" },
+];
+
 /** Legend placement inside the chart. */
 export const chartLegendPositionOptions: MultiToggleOption[] = [
   { label: "Top", value: "top" },

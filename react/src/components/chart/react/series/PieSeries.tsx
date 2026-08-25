@@ -151,11 +151,13 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, area]);
 
-  if (lastRef.current !== final) {
+  // Bookkeeping on settled renders only — keeps `prev` the previous settled
+  // geometry (null during the entrance) so the entrance stays visible.
+  if (progress >= 1 && lastRef.current !== final) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
   }
-  const prev = prevRef.current;
+  const prev = progress < 1 ? prevRef.current : null;
 
   // Publish per-slice presentation (name/value/color/angle + geometry) for
   // DataLabels and Legend. Registered post-render; the redrawNonce bump

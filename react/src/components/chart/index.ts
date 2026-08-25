@@ -36,6 +36,7 @@ import { ReferenceLine, ReferenceBand } from "./react/features/ReferenceMarks";
 import { Annotation } from "./react/features/Annotation";
 import { DataLabels } from "./react/features/DataLabels";
 import { PieCenter } from "./react/features/PieCenter";
+import { AxisBadges } from "./react/features/AxisBadges";
 
 // Register the concrete types so the root can split children without a
 // circular import.
@@ -56,6 +57,7 @@ setChartRegistry({
   Annotation,
   DataLabels,
   PieCenter,
+  AxisBadges,
 });
 
 export const Chart = {
@@ -77,6 +79,7 @@ export const Chart = {
   Annotation,
   DataLabels,
   PieCenter,
+  AxisBadges,
 };
 
 export default Chart;
@@ -100,6 +103,7 @@ export type {
   LegendProps,
   DataLabelsProps,
   DataLabelPosition,
+  AxisBadgesProps,
   PieCenterProps,
   TitleProps,
   CaptionProps,

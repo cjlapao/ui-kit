@@ -94,11 +94,13 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
     }
   }
 
-  if (lastRef.current !== final) {
+  // Bookkeeping on settled renders only — keeps `prev` the previous settled
+  // geometry (null during the entrance) so the entrance stays visible.
+  if (progress >= 1 && lastRef.current !== final) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
   }
-  const prev = prevRef.current;
+  const prev = progress < 1 ? prevRef.current : null;
   const baselineY = area.y + area.height;
 
   useEffect(() => {

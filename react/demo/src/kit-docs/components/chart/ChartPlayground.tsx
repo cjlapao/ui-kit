@@ -17,6 +17,8 @@ import {
   chartBarModeOptions,
   chartCandleVariantOptions,
   chartCurveOptions,
+  chartGridFadeOptions,
+  chartGridOptions,
   chartHeightOptions,
   chartKindOptions,
   chartLegendPositionOptions,
@@ -25,11 +27,14 @@ import {
   chartRendererOptions,
   chartSegmentGapOptions,
   chartSweepOptions,
+  chartValuesOptions,
 } from "../../shared/options";
 import { lineMetrics, piePlans, candleDays, barQuarterly } from "./data";
 
 type Kind = "line" | "bar" | "pie" | "candlestick";
 type Sweep = "full" | "270" | "180";
+type GridStyle = "solid" | "dashed" | "off";
+type ValuesMode = "popup" | "y-axis" | "both";
 
 const SWEEP_ANGLES: Record<Sweep, { start: number; sweep: number }> = {
   full: { start: 0, sweep: Math.PI * 2 },
@@ -46,6 +51,10 @@ export const ChartPlayground = () => {
   const [height, setHeight] = useState(380);
   const [showFill, setShowFill] = useState(true);
   const [showMarkers, setShowMarkers] = useState(false);
+  const [areaGradient, setAreaGradient] = useState(false);
+  const [valuesMode, setValuesMode] = useState<ValuesMode>("popup");
+  const [grid, setGrid] = useState<GridStyle>("solid");
+  const [gridFade, setGridFade] = useState("1");
   const [barMode, setBarMode] = useState<BarMode>("group");
   const [barCorner, setBarCorner] = useState(0);
   const [segmentGap, setSegmentGap] = useState(0);
@@ -71,6 +80,11 @@ export const ChartPlayground = () => {
 
   const stacked = barMode !== "group";
   const angles = SWEEP_ANGLES[sweep];
+  const yGridProps = {
+    grid: grid === "off" ? false : undefined,
+    gridDash: grid === "dashed" ? ("dashed" as const) : ("solid" as const),
+    gridOpacity: Number(gridFade),
+  };
 
   const preview = (
     <div className="w-full max-w-4xl">
@@ -101,6 +115,7 @@ export const ChartPlayground = () => {
               valueYField="arr"
               curve={curve}
               fillOpacity={showFill ? 0.35 : 0}
+              areaGradient={showFill && areaGradient}
               lineStrokeWidth={2.5}
               showMarkers={showMarkers}
             />
@@ -123,7 +138,7 @@ export const ChartPlayground = () => {
               showMarkers={showMarkers}
             />
             <Chart.XAxis />
-            <Chart.YAxis domain={[50, 350]} tickCount={6} />
+            <Chart.YAxis domain={[50, 350]} tickCount={6} {...yGridProps} />
           </>
         )}
         {kind === "bar" && (
@@ -149,7 +164,7 @@ export const ChartPlayground = () => {
               segmentGap={segmentGap}
             />
             <Chart.XAxis />
-            <Chart.YAxis tickCount={5} />
+            <Chart.YAxis tickCount={5} {...yGridProps} />
           </>
         )}
         {kind === "pie" && (
@@ -167,11 +182,16 @@ export const ChartPlayground = () => {
           <>
             <Chart.Candlestick data={candleDays} name="Index" variant={candleVariant} />
             <Chart.XAxis />
-            <Chart.YAxis tickCount={5} />
+            <Chart.YAxis tickCount={5} {...yGridProps} />
           </>
         )}
         <Chart.Legend position={legendPosition} />
-        <Chart.Tooltip mode="shared" />
+        {(valuesMode === "popup" || valuesMode === "both") && (
+          <Chart.Tooltip mode="shared" />
+        )}
+        {(valuesMode === "y-axis" || valuesMode === "both") && (
+          <Chart.AxisBadges mode="hover" />
+        )}
         <Chart.Hover />
       </Root>
     </div>
@@ -207,11 +227,27 @@ export const ChartPlayground = () => {
               onChange={(v) => setCurve(v as LineCurve)}
             />
             <ToggleRow label="Area fill" checked={showFill} onChange={setShowFill} />
+            {showFill && (
+              <ToggleRow
+                label="Area gradient"
+                checked={areaGradient}
+                onChange={setAreaGradient}
+              />
+            )}
             <ToggleRow
               label="Markers"
               checked={showMarkers}
               onChange={setShowMarkers}
             />
+            <Control label="Values">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartValuesOptions}
+                value={valuesMode}
+                onChange={(v) => setValuesMode(v as ValuesMode)}
+              />
+            </Control>
           </>
         )}
         {kind === "bar" && (
@@ -295,6 +331,28 @@ export const ChartPlayground = () => {
               onChange={(v) => setCandleVariant(v as CandlestickVariant)}
             />
           </Control>
+        )}
+        {kind !== "pie" && (
+          <>
+            <Control label="Grid">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartGridOptions}
+                value={grid}
+                onChange={(v) => setGrid(v as GridStyle)}
+              />
+            </Control>
+            <Control label="Grid fade">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartGridFadeOptions}
+                value={gridFade}
+                onChange={setGridFade}
+              />
+            </Control>
+          </>
         )}
         <Control label="Height">
           <MultiToggle

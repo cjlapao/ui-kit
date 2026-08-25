@@ -23,7 +23,9 @@ export function YAxis(props: YAxisProps = {}) {
       if (props.grid !== false && !onRight) {
         c.save();
         c.strokeStyle = theme.gridColor;
+        c.globalAlpha = props.gridOpacity ?? 1;
         c.lineWidth = 1;
+        if (props.gridDash === "dashed") c.setLineDash([4, 4]);
         for (const t of ticks) {
           const y = scale.map(t);
           c.beginPath();
@@ -50,10 +52,10 @@ export function YAxis(props: YAxisProps = {}) {
         }
       }
     };
-    ctx.registerDraw(id, fn);
+    ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderer, scale, onRight, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.labels, props.format]);
+  }, [renderer, scale, onRight, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridOpacity, props.labels, props.format]);
 
   if (renderer !== "svg" || !scale) return null;
   const ticks = scale.ticks(props.tickCount ?? 5);
@@ -71,6 +73,8 @@ export function YAxis(props: YAxisProps = {}) {
             x2={area.x + area.width}
             y2={scale.map(t)}
             stroke={theme.gridColor}
+            strokeOpacity={props.gridOpacity ?? 1}
+            strokeDasharray={props.gridDash === "dashed" ? "4 4" : undefined}
             strokeWidth={1}
           />
         ))}

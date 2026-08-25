@@ -34,6 +34,11 @@ export interface LineSeriesProps<T = unknown> {
   curve?: LineCurve;
   /** > 0 fills the area under the line (0.35 ≈ the reference demo). */
   fillOpacity?: number;
+  /**
+   * Fade the area fill from the series color (top) to transparent
+   * (baseline) instead of a flat fill. Requires `fillOpacity > 0`.
+   */
+  areaGradient?: boolean;
   /** Stroke width in px. Default 2. */
   lineStrokeWidth?: number;
   /** Named dash styles. lineDash overrides when set. */
@@ -162,6 +167,10 @@ export interface YAxisProps {
   label?: string;
   /** Horizontal gridlines. Default true. */
   grid?: boolean;
+  /** Gridline stroke style. Default "solid". */
+  gridDash?: "solid" | "dashed";
+  /** Gridline opacity 0–1 (intensity). Default 1. */
+  gridOpacity?: number;
   /** Tick labels + the domain line. Default true. */
   labels?: boolean;
   format?: (tick: number) => string;
@@ -185,6 +194,17 @@ export interface TooltipProps {
 export interface HoverProps {
   /** Callback with the hovered items. */
   onHover?: (state: unknown) => void;
+}
+
+export interface AxisBadgesProps {
+  /**
+   * "hover" — pills only while the pointer is over the plot, showing each
+   * series' value at the hovered crosshair position.
+   * "endpoints" — pills always visible at the last value of each series.
+   * "both" — endpoint pills when idle, swapping to the hovered values
+   * while hovering. Default "hover".
+   */
+  mode?: "hover" | "endpoints" | "both";
 }
 
 export interface LegendProps {
@@ -323,6 +343,7 @@ export interface SeriesDescriptor {
   // line
   curve?: LineCurve;
   fillOpacity?: number;
+  areaGradient?: boolean;
   lineStrokeWidth?: number;
   lineDash?: number[] | null;
   showMarkers?: boolean;

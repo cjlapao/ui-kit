@@ -509,6 +509,42 @@ describe("Chart.Svg", () => {
     expect(svg!.querySelector("path")).toBeTruthy();
     raf.mockRestore();
   });
+
+  it("keeps bars mid-growth during the entrance (prev stays null while animating)", () => {
+    vi.useFakeTimers();
+    const raf = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((cb) =>
+        setTimeout(() => cb(performance.now()), 16) as unknown as number,
+      );
+    const { unmount } = render(
+      <Chart.Svg height={300} animation={{ duration: 300 }}>
+        <Chart.Bar data={barData} name="B" />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const firstBarHeight = () => {
+      const r = document.querySelector(
+        "svg[role=img] [data-chart-series] rect",
+      ) as SVGRectElement | null;
+      return r ? Number(r.getAttribute("height") ?? 0) : 0;
+    };
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+    const mid = firstBarHeight();
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    const end = firstBarHeight();
+    // the entrance must be visible: strictly between collapsed and final
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).toBeLessThan(end);
+    expect(end).toBeGreaterThan(0);
+    raf.mockRestore();
+    unmount();
+  });
 });
 
 describe("Chart.Canvas", () => {
@@ -599,5 +635,107 @@ describe("hover + tooltip", () => {
     fireEvent.pointerMove(rect, { clientX: 62, clientY: 150 });
     // tooltip card renders the snapped x's full date header
     expect(screen.getByText(/Jan 1, 2024/)).toBeTruthy();
+  });
+
+  it("shows y-axis value pills while hovering (AxisBadges mode=hover)", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" />
+        <Chart.XAxis />
+        <Chart.YAxis />
+        <Chart.AxisBadges mode="hover" />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    // idle: no pills
+    expect(
+      document.querySelector('[data-chart-feature="axis-badges"]'),
+    ).toBeNull();
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 300,
+        width: 800,
+        height: 300,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return this;
+        },
+      }),
+      configurable: true,
+    });
+    const rect = svg.querySelectorAll("rect")[
+      svg.querySelectorAll("rect").length - 1
+    ] as SVGRectElement;
+    fireEvent.pointerMove(rect, { clientX: 62, clientY: 150 });
+    const badges = document.querySelector(
+      '[data-chart-feature="axis-badges"]',
+    );
+    expect(badges).toBeTruthy();
+    // the snapped category is the first datum (value 100)
+    expect(badges!.textContent).toContain("100");
+  });
+
+  it("shows endpoint pills when idle (AxisBadges mode=endpoints)", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" />
+        <Chart.AxisBadges mode="endpoints" />
+      </Chart.Svg>,
+    );
+    const badges = document.querySelector(
+      '[data-chart-feature="axis-badges"]',
+    );
+    expect(badges).toBeTruthy();
+    // last value of lineData is 180
+    expect(badges!.textContent).toContain("180");
+  });
+});
+
+describe("grid + area gradient options", () => {
+  it("YAxis honors gridDash and gridOpacity (and grid={false})", () => {
+    const { rerender } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Bar data={barData} name="B" />
+        <Chart.XAxis />
+        <Chart.YAxis gridDash="dashed" gridOpacity={0.3} />
+      </Chart.Svg>,
+    );
+    const grid = document.querySelector(
+      '[data-chart-feature="yaxis-left"] line',
+    ) as SVGLineElement;
+    expect(grid.getAttribute("stroke-dasharray")).toBe("4 4");
+    expect(grid.getAttribute("stroke-opacity")).toBe("0.3");
+    rerender(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Bar data={barData} name="B" />
+        <Chart.YAxis grid={false} />
+      </Chart.Svg>,
+    );
+    const lines = document.querySelectorAll(
+      '[data-chart-feature="yaxis-left"] line',
+    );
+    // only the domain line remains (no gridlines)
+    expect(lines.length).toBe(1);
+    expect(lines[0].getAttribute("stroke-dasharray")).toBeNull();
+  });
+
+  it("Line areaGradient renders a color-to-transparent gradient", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" fillOpacity={0.4} areaGradient />
+      </Chart.Svg>,
+    );
+    const area = [...document.querySelectorAll("linearGradient")].find(
+      (g) => (g.getAttribute("id") ?? "").endsWith("area"),
+    );
+    expect(area).toBeTruthy();
+    const stops = area!.querySelectorAll("stop");
+    expect(stops[0].getAttribute("stop-opacity")).toBe("1");
+    expect(stops[1].getAttribute("stop-opacity")).toBe("0");
   });
 });
