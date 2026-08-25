@@ -28,6 +28,7 @@ export type DocCategory =
   | "Basics"
   | "Forms"
   | "Data"
+  | "Charts"
   | "Feedback"
   | "Overlays";
 
@@ -36,6 +37,7 @@ export const DOC_CATEGORIES: DocCategory[] = [
   "Basics",
   "Forms",
   "Data",
+  "Charts",
   "Feedback",
   "Overlays",
 ];
@@ -312,6 +314,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/table/TablePage")),
   },
   {
+    slug: "access-matrix",
+    name: "Access Matrix",
+    description:
+      "A read-only RBAC grid on the shared table surface — a flat permission list becomes collapsible group rows, a sticky resource column and one column per action, with a show-more group limit.",
+    icon: "Role",
+    category: "Data",
+    Page: lazy(() => import("./components/access-matrix/AccessMatrixPage")),
+  },
+  {
     slug: "tree",
     name: "Tree",
     description:
@@ -348,13 +359,58 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/workflow-tracker/WorkflowTrackerPage")),
   },
   {
-    slug: "chart",
-    name: "Chart",
+    slug: "charts",
+    name: "Charts",
     description:
-      "PrimeUI-style compound charts — line, bar, pie/donut and candlestick — with animations, dual axes, reference bands and callouts on matching SVG and Canvas renderers.",
+      "PrimeUI-style charting system — one set of children on matching SVG and Canvas renderers, with entrance and update animations, dual axes and shared hover chrome. The playground covers every type.",
     icon: "ChartLine",
-    category: "Data",
-    Page: lazy(() => import("./components/chart/ChartPage")),
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/ChartsPage")),
+  },
+  {
+    slug: "charts-line",
+    name: "Line",
+    description:
+      "Line series: curves (linear/smooth/step), line styles and markers, area fills with gradient, dual y-axes and end-of-series badges.",
+    icon: "ChartLine",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/LineChartPage")),
+  },
+  {
+    slug: "charts-bar",
+    name: "Bar",
+    description:
+      "Bar/column series in grouped, stacked and percent modes, with panel-scale corner radii and segment gaps.",
+    icon: "Equal",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/BarChartPage")),
+  },
+  {
+    slug: "charts-pie",
+    name: "Pie & Donut",
+    description:
+      "Pie, donut and gauge sweeps with slice gaps, rounded segments and in-slice percent labels.",
+    icon: "Globe",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/PieChartPage")),
+  },
+  {
+    slug: "charts-candlestick",
+    name: "Candlestick",
+    description:
+      "OHLC candles, hollow candles and OHLC bars, with a highlighted selected candle and its close price.",
+    icon: "Pause",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/CandlestickChartPage")),
+  },
+  {
+    slug: "charts-annotations",
+    name: "Reference & Callouts",
+    description:
+      "Cross-cutting chart chrome: reference bands and lines, milestone labels and annotation callouts with leader lines.",
+    icon: "Chat",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/AnnotationsChartPage")),
   },
   {
     slug: "infinite-scroll-panel",
@@ -382,6 +438,24 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Image",
     category: "Data",
     Page: lazy(() => import("./components/carousel/CarouselPage")),
+  },
+  {
+    slug: "meter-group",
+    name: "Meter Group",
+    description:
+      "A group of process status indicators — labelled segments of a shared range, per-segment tones, horizontal or vertical, with a labelled breakdown list and full state treatment.",
+    icon: "Dashboard",
+    category: "Data",
+    Page: lazy(() => import("./components/meter-group/MeterGroupPage")),
+  },
+  {
+    slug: "stat-card",
+    name: "Stat Card",
+    description:
+      "A metric in a card — label, big value, trend pill, icon chip and a live health strip, on any Panel surface, tone or corner, with a gradient that paints the surface itself.",
+    icon: "Dashboard",
+    category: "Data",
+    Page: lazy(() => import("./components/stat-card/StatCardPage")),
   },
   {
     slug: "alert",
@@ -454,6 +528,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Live",
     category: "Feedback",
     Page: lazy(() => import("./components/status-spinner/StatusSpinnerPage")),
+  },
+  {
+    slug: "progress-spinner",
+    name: "Progress Spinner",
+    description:
+      "A circular process status indicator — an animated ring when the work has no measurable end, a filled arc with a centre readout when it does, on the shared control scale.",
+    icon: "Reset",
+    category: "Feedback",
+    Page: lazy(() => import("./components/progress-spinner/ProgressSpinnerPage")),
   },
   {
     slug: "loader",

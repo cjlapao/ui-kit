@@ -168,6 +168,8 @@ export const DocsApp: React.FC = () => {
         <Routes>
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<OverviewPage />} />
+          {/* The charts section replaced the old single chart page. */}
+          <Route path="chart" element={<Navigate to="/docs/charts" replace />} />
           <Route path=":slug" element={<ComponentRoute />} />
           <Route path="*" element={<ComponentRoute />} />
         </Routes>
