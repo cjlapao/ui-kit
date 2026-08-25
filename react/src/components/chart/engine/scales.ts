@@ -27,7 +27,7 @@ const MONTHS = [
   "Dec",
 ];
 
-const MS_DAY = 24 * 60 * 60 * 1000;
+export const MS_DAY = 24 * 60 * 60 * 1000;
 
 // ── Domain detection ─────────────────────────────────────────────────────────
 
@@ -99,6 +99,7 @@ function parseDateValue(value: string): Date | null {
 /**
  * Adaptive time tick label.
  *
+ * - sub-day spans: clock time ("9:30 AM")
  * - ticks on Jan 1 render as the year alone ("2024")
  * - otherwise "Mon yyyy" ("Mar 2024") when the visible span is ≥ 60 days
  * - otherwise "d Mon" ("5 Nov") for short spans
@@ -106,6 +107,13 @@ function parseDateValue(value: string): Date | null {
 export function formatTimeTick(date: Date, spanMs: number): string {
   const isJan1 = date.getMonth() === 0 && date.getDate() === 1;
   const year = date.getFullYear();
+  if (spanMs < 2 * MS_DAY) {
+    const h = date.getHours();
+    const m = date.getMinutes();
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+  }
   if (isJan1 && spanMs >= 60 * MS_DAY) return String(year);
   if (spanMs >= 60 * MS_DAY) {
     return `${MONTHS[date.getMonth()]} ${year}`;

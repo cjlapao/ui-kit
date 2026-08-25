@@ -599,6 +599,14 @@ export const chartKindOptions: MultiToggleOption[] = [
   { label: "Bar", value: "bar" },
   { label: "Pie", value: "pie" },
   { label: "Candlestick", value: "candlestick" },
+  { label: "Range", value: "range" },
+];
+
+/** Area fill style for the range playground. */
+export const chartFillOptions: MultiToggleOption[] = [
+  { label: "Gradient", value: "gradient" },
+  { label: "Flat", value: "flat" },
+  { label: "Off", value: "off" },
 ];
 
 /** A small fixed height scale for the playground preview. */

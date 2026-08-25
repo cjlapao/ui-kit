@@ -321,3 +321,68 @@ export const candleDays: CandlePoint[] = (() => {
   }
   return points;
 })();
+
+// ── Range-area demo: checkout response corridor (22 × 30 min) ──────────────
+
+export interface CorridorPoint {
+  time: Date;
+  /** Average response (ms). */
+  avg: number;
+  /** Operating band edges (ms). */
+  opMin: number;
+  opMax: number;
+  /** Full envelope edges (ms). */
+  envMin: number;
+  envMax: number;
+}
+
+/**
+ * 22 half-hour samples, 06:00 → 16:30 — shaped after the "checkout
+ * response corridor" reference: a morning release-train crest, a midday
+ * dip, and an afternoon forecast crest above the p95 SLO.
+ */
+export const corridorData: CorridorPoint[] = (() => {
+  const avg = [
+    118, 115, 116, 124, 133, 145, 158, 172, 208, 185, 168, 160, 158, 165,
+    172, 185, 205, 215, 195, 180, 172, 169,
+  ];
+  const start = Date.UTC(2025, 10, 3, 6, 0); // Mon Nov 3 2025, 06:00
+  const stepMs = 30 * 60 * 1000;
+  return avg.map((v, i) => ({
+    time: new Date(start + i * stepMs),
+    avg: v,
+    opMin: v - (18 + (i % 3) * 4),
+    opMax: v + (22 + (i % 4) * 4),
+    envMin: v - (38 + (i % 4) * 5),
+    // The (i*3)%5 spread keeps the two crests asymmetric: ~290 at the
+    // 10:00 release-train crest, ~273 at the afternoon forecast crest.
+    envMax: v + 50 + ((i * 3) % 5) * 8,
+  }));
+})();
+
+/** p95 SLO guardrail (ms). */
+export const corridorSlo = 260;
+
+/** The envelope crest (max envMax) with its time. */
+export const corridorCrest = (() => {
+  let best = corridorData[0];
+  for (const p of corridorData) if (p.envMax > best.envMax) best = p;
+  return { value: best.envMax, time: best.time, index: corridorData.indexOf(best) };
+})();
+
+/** "Release train" label anchor (morning crest, 10:00). */
+export const corridorRelease = corridorData[8];
+/** "Forecast" label anchor (afternoon crest). */
+export const corridorForecast = corridorData[17];
+/** SLO risk zone: 09:00 → 11:30. */
+export const corridorRiskZone = { from: corridorData[6].time, to: corridorData[11].time };
+/** Forecast drift zone: 13:00 → end. */
+export const corridorForecastZone = {
+  from: corridorData[14].time,
+  to: corridorData[corridorData.length - 1].time,
+};
+/** End-of-series value for the "now" badge. */
+export const corridorLast = corridorData[corridorData.length - 1].avg;
+/** Volatility at a point: envelope width as a share of the average. */
+export const corridorVolatility = (p: CorridorPoint) =>
+  Math.round(((p.envMax - p.envMin) / p.avg) * 100);

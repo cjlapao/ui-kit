@@ -13,6 +13,7 @@ import type {
   CandlestickSeriesProps,
   LineSeriesProps,
   PieSeriesProps,
+  RangeAreaSeriesProps,
   SeriesDescriptor,
 } from "./props";
 
@@ -103,7 +104,7 @@ export function describeSeries(
   el: ReactElement<Record<string, unknown>>,
   index: number,
   paletteIndex: number,
-  kind: "line" | "bar" | "pie" | "candlestick",
+  kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -227,6 +228,45 @@ export function describeSeries(
     };
   }
 
+  // Range area: a band between two fields.
+  if (kind === "rangeArea") {
+    const rp = p as unknown as RangeAreaSeriesProps<never>;
+    const minField = rp.minYField ?? "min";
+    const maxField = rp.maxYField ?? "max";
+    const categoryXField = rp.categoryXField ?? defaultXField(data);
+    return {
+      id,
+      type: "rangeArea",
+      name,
+      color: rp.color,
+      paletteIndex,
+      data,
+      xAccessor: fieldAccessor<never, number | Date | string>(
+        categoryXField as Accessor<never, number | Date | string> | string,
+        String(categoryXField),
+      ),
+      rangeMinAccessor: fieldAccessor<never, number | null | undefined>(
+        minField as Accessor<never, number | null | undefined> | string,
+        String(minField),
+      ),
+      rangeMaxAccessor: fieldAccessor<never, number | null | undefined>(
+        maxField as Accessor<never, number | null | undefined> | string,
+        String(maxField),
+      ),
+      curve: rp.curve ?? "linear",
+      rangeShowEdges: rp.showEdges ?? true,
+      rangeEdgeStrokeWidth: rp.edgeStrokeWidth ?? 2,
+      connectNulls: rp.connectNulls ?? "gap",
+      yFieldAxis: rp.yFieldAxis ?? "left",
+      maxDataPoints: rp.maxDataPoints,
+      fillStyle: rp.fillStyle ?? "gradient",
+      fillColor: rp.fillColor,
+      fillOpacity: rp.fillOpacity ?? 0.4,
+      fillDirection: rp.fillDirection ?? "vertical",
+      animation,
+    };
+  }
+
   // Line (default): cartesian x + y.
   const lp = p as unknown as LineSeriesProps<never>;
   const categoryXField = lp.categoryXField ?? defaultXField(data);
@@ -253,6 +293,23 @@ export function describeSeries(
     curve: lp.curve ?? "linear",
     fillOpacity: lp.fillOpacity ?? 0,
     areaGradient: lp.areaGradient ?? false,
+    // areaGradient is a deprecated alias: it wins over an explicit style.
+    fillStyle:
+      lp.areaGradient === true
+        ? "gradient"
+        : lp.fillStyle ?? "flat",
+    fillColor: lp.fillColor,
+    fillDirection: lp.fillDirection ?? "vertical",
+    fillBaseline: lp.fillBaseline ?? "zero",
+    fillBaselineAccessor:
+      lp.fillBaseline === "field"
+        ? fieldAccessor<never, number | null | undefined>(
+            (lp.fillBaselineField ?? "min") as
+              | Accessor<never, number | null | undefined>
+              | string,
+            String(lp.fillBaselineField ?? "min"),
+          )
+        : undefined,
     lineStrokeWidth: lp.lineStrokeWidth ?? 2,
     lineDash,
     showMarkers: lp.showMarkers ?? false,
@@ -300,6 +357,7 @@ export function summarizeChildren(
     Bar: React.ComponentType | (new () => unknown);
     Pie: React.ComponentType | (new () => unknown);
     Candlestick: React.ComponentType | (new () => unknown);
+    RangeArea: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -349,16 +407,19 @@ export function summarizeChildren(
       t === types.Line ||
       t === types.Bar ||
       t === types.Pie ||
-      t === types.Candlestick
+      t === types.Candlestick ||
+      t === types.RangeArea
     ) {
-      const kind: "line" | "bar" | "pie" | "candlestick" =
+      const kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" =
         t === types.Bar
           ? "bar"
           : t === types.Pie
             ? "pie"
             : t === types.Candlestick
               ? "candlestick"
-              : "line";
+              : t === types.RangeArea
+                ? "rangeArea"
+                : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,

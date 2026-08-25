@@ -98,6 +98,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/collapsible-panel/CollapsiblePanelPage")),
   },
   {
+    slug: "accordion",
+    name: "Accordion",
+    description:
+      "A stacked disclosure list built on Panel — every container surface, tone, corner and padding on the shared control size, with arrow-key navigation, inert collapsed rows and per-row loaders.",
+    icon: "ViewRows",
+    category: "Layout",
+    Page: lazy(() => import("./components/accordion/AccordionPage")),
+  },
+  {
     slug: "app-divider",
     name: "App Divider",
     description:
@@ -402,6 +411,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Pause",
     category: "Charts",
     Page: lazy(() => import("./components/charts/CandlestickChartPage")),
+  },
+  {
+    slug: "charts-range-area",
+    name: "Range Area",
+    description:
+      "A band between min and max curves with the shared fill system — flat color at an opacity or a gradient fading to transparent — plus fill-between-two-lines on any line series.",
+    icon: "Scale",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/RangeAreaChartPage")),
   },
   {
     slug: "charts-annotations",

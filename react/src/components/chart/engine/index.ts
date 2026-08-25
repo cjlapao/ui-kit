@@ -15,3 +15,4 @@ export * from "./series/line";
 export * from "./series/bar";
 export * from "./series/pie";
 export * from "./series/candlestick";
+export * from "./series/rangeArea";

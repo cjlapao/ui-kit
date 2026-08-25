@@ -17,6 +17,7 @@ import {
   chartBarModeOptions,
   chartCandleVariantOptions,
   chartCurveOptions,
+  chartFillOptions,
   chartGridFadeOptions,
   chartGridOptions,
   chartHeightOptions,
@@ -31,9 +32,17 @@ import {
   chartSweepOptions,
   chartValuesOptions,
 } from "../../shared/options";
-import { lineMetrics, piePlans, candleDays, barQuarterly } from "./data";
+import {
+  lineMetrics,
+  piePlans,
+  candleDays,
+  barQuarterly,
+  corridorData,
+  type CorridorPoint,
+} from "./data";
 
-type Kind = "line" | "bar" | "pie" | "candlestick";
+type Kind = "line" | "bar" | "pie" | "candlestick" | "range";
+type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
 type ValuesMode = "popup" | "y-axis" | "both";
@@ -69,6 +78,21 @@ function walk(
 const MAX_LINE = lineMetrics.length;
 const MAX_CANDLE = candleDays.length;
 const MAX_BAR = 12;
+const MAX_CORRIDOR = corridorData.length;
+
+/** Keep a corridor point inside a sane latency window (ms). */
+function corridorWalk(last: CorridorPoint): CorridorPoint {
+  const avg = walk(last.avg, 165, 22, 110, 245);
+  const t = last.time.getTime() + 30 * 60 * 1000;
+  return {
+    time: new Date(t),
+    avg,
+    opMin: Math.round(avg - (18 + Math.random() * 10)),
+    opMax: Math.round(avg + (22 + Math.random() * 10)),
+    envMin: Math.round(avg - (38 + Math.random() * 16)),
+    envMax: Math.round(avg + (50 + Math.random() * 30)),
+  };
+}
 
 interface ChartPlaygroundProps {
   /** Lock the playground to one chart kind (per-type docs pages). */
@@ -108,6 +132,8 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [metrics, setMetrics] = useState(lineMetrics);
   const [quarters, setQuarters] = useState(barQuarterly);
   const [candles, setCandles] = useState(candleDays);
+  const [corridor, setCorridor] = useState(corridorData);
+  const [fillMode, setFillMode] = useState<FillMode>("gradient");
 
   // Streaming: every 5 s inject a new point at the end of each streamable
   // series and drop the oldest once the window max is reached.
@@ -163,6 +189,12 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
           low: r1(Math.max(4, Math.min(open, close) - Math.random() * 1.6)),
         };
         return d.length >= MAX_CANDLE
+          ? [...d.slice(1), next]
+          : [...d, next];
+      });
+      setCorridor((d) => {
+        const next = corridorWalk(d[d.length - 1]);
+        return d.length >= MAX_CORRIDOR
           ? [...d.slice(1), next]
           : [...d, next];
       });
@@ -293,6 +325,49 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             />
             <Chart.XAxis {...gridProps} />
             <Chart.YAxis tickCount={5} {...gridProps} />
+          </>
+        )}
+        {kind === "range" && (
+          <>
+            <Chart.RangeArea
+              data={corridor}
+              name="Full envelope"
+              categoryXField="time"
+              minYField="envMin"
+              maxYField="envMax"
+              color="violet"
+              curve="smooth"
+              fillStyle={fillMode === "off" ? "flat" : fillMode}
+              fillOpacity={fillMode === "off" ? 0 : 0.45}
+            />
+            <Chart.RangeArea
+              data={corridor}
+              name="Operating band"
+              categoryXField="time"
+              minYField="opMin"
+              maxYField="opMax"
+              color="blue"
+              curve="smooth"
+              fillStyle={fillMode === "off" ? "flat" : fillMode}
+              fillOpacity={fillMode === "off" ? 0 : 0.55}
+            />
+            <Chart.Line
+              data={corridor}
+              name="Average response"
+              categoryXField="time"
+              valueYField="avg"
+              color="emerald"
+              curve="smooth"
+              lineStrokeWidth={2.5}
+              showMarkers
+              markerSize={2.5}
+            />
+            <Chart.XAxis {...gridProps} tickCount={12} />
+            <Chart.YAxis
+              tickCount={6}
+              format={(t) => `${t} ms`}
+              {...gridProps}
+            />
           </>
         )}
         <Chart.Legend position={legendPosition} />
@@ -461,6 +536,17 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               options={chartSelectedOptions}
               value={candleSelected ? "1" : "0"}
               onChange={(v) => setCandleSelected(v === "1")}
+            />
+          </Control>
+        )}
+        {kind === "range" && (
+          <Control label="Fill">
+            <MultiToggle
+              size="sm"
+              fullWidth
+              options={chartFillOptions}
+              value={fillMode}
+              onChange={(v) => setFillMode(v as FillMode)}
             />
           </Control>
         )}

@@ -8,6 +8,7 @@ import {
   formatSI,
   formatTimeTick,
   isTimeDomain,
+  MS_DAY,
   timeTickFormat,
   timeTicks,
   toDate,
@@ -206,5 +207,23 @@ describe("timeTicks", () => {
 describe("formatFullDate", () => {
   it("matches the reference tooltip header", () => {
     expect(formatFullDate(new Date(2024, 10, 1))).toBe("Friday, Nov 1, 2024");
+  });
+});
+
+describe("formatTimeTick intraday", () => {
+  it("uses clock labels for sub-day spans", () => {
+    const start = new Date(2025, 10, 3, 6, 0);
+    const end = new Date(2025, 10, 3, 16, 30);
+    const s = createTimeScale({ domain: [start, end], range: [0, 1000] });
+    const labels = s.ticks().map(timeTickFormat(s));
+    // every label is a clock time, no repeated day labels
+    expect(labels.every((l) => /\d{1,2}:\d{2} (AM|PM)/.test(l))).toBe(true);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it("keeps day labels for multi-day spans", () => {
+    expect(formatTimeTick(new Date(2025, 10, 3, 6, 0), 5 * MS_DAY)).toBe(
+      "3 Nov",
+    );
   });
 });

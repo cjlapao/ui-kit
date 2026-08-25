@@ -18,6 +18,29 @@ import type { BarMode, BarOrientation } from "../engine/series/bar";
 
 // ── Series ───────────────────────────────────────────────────────────────────
 
+// ── Shared area fill ─────────────────────────────────────────────────────────
+
+/**
+ * Shared fill props for area-capable series (line with fill, range area).
+ * Either a flat color at an opacity or a gradient fading to transparent.
+ */
+export interface AreaFillProps {
+  /**
+   * Fill style: flat solid color, or a gradient fading to transparent.
+   * Default "flat".
+   */
+  fillStyle?: "flat" | "gradient";
+  /** Fill color; defaults to the series color. */
+  fillColor?: string;
+  /**
+   * 0–1. Flat mode: solid opacity. Gradient mode: starting opacity (the
+   * end of the gradient is always fully transparent).
+   */
+  fillOpacity?: number;
+  /** Gradient direction. Default "vertical". */
+  fillDirection?: "vertical" | "horizontal";
+}
+
 export interface LineSeriesProps<T = unknown> {
   data: T[];
   /** x-axis field (Date / number / string). Defaults to "category". */
@@ -35,10 +58,25 @@ export interface LineSeriesProps<T = unknown> {
   /** > 0 fills the area under the line (0.35 ≈ the reference demo). */
   fillOpacity?: number;
   /**
+   * @deprecated Use `fillStyle="gradient"` (requires `fillOpacity > 0`).
    * Fade the area fill from the series color (top) to transparent
-   * (baseline) instead of a flat fill. Requires `fillOpacity > 0`.
+   * (baseline) instead of a flat fill.
    */
   areaGradient?: boolean;
+  /** Fill style (flat / gradient). Default "flat". */
+  fillStyle?: "flat" | "gradient";
+  /** Fill color; defaults to the series color. */
+  fillColor?: string;
+  /** Gradient direction. Default "vertical". */
+  fillDirection?: "vertical" | "horizontal";
+  /**
+   * Where the area fill closes. "zero" (default) closes to the axis
+   * baseline; "field" closes to another field's curve (fill between two
+   * lines, via `fillBaselineField`). Requires `fillOpacity > 0`.
+   */
+  fillBaseline?: "zero" | "field";
+  /** The second line's field for `fillBaseline="field"`. */
+  fillBaselineField?: Accessor<T, number | null | undefined>;
   /** Stroke width in px. Default 2. */
   lineStrokeWidth?: number;
   /** Named dash styles. lineDash overrides when set. */
@@ -133,6 +171,44 @@ export interface PieCenterProps {
 }
 
 export type CandlestickVariant = "candle" | "hollow" | "ohlc";
+
+export interface RangeAreaSeriesProps<T = unknown> {
+  data: T[];
+  /** x-axis field (Date / number / string). Defaults to "category". */
+  categoryXField?: Accessor<T, number | Date | string>;
+  /** Lower (min) edge field. Defaults to "min". */
+  minYField?: Accessor<T, number | null | undefined>;
+  /** Upper (max) edge field. Defaults to "max". */
+  maxYField?: Accessor<T, number | null | undefined>;
+  /** Series name (legend, tooltip). */
+  name?: string;
+  /** Stable series id — defaults to an auto index. */
+  id?: string;
+  /** Tone name, hex, or gradient. */
+  color?: ChartColor;
+  /** Edge interpolation. Defaults to "linear". */
+  curve?: LineCurve;
+  /** Stroke the band edges in the series color. Default true. */
+  showEdges?: boolean;
+  /** Edge stroke width in px. Default 2. */
+  edgeStrokeWidth?: number;
+  /** How to treat missing edges (gaps). Default "gap". */
+  connectNulls?: ConnectNulls;
+  /** "right" draws the series on the second y-axis. */
+  yFieldAxis?: "left" | "right";
+  /** Cap on plotted points (stride-decimated). */
+  maxDataPoints?: number;
+  /** Fill style (flat / gradient). Default "gradient". */
+  fillStyle?: "flat" | "gradient";
+  /** Fill color; defaults to the series color. */
+  fillColor?: string;
+  /** 0–1. Flat: solid opacity. Gradient: starting opacity. Default 0.4. */
+  fillOpacity?: number;
+  /** Gradient direction. Default "vertical". */
+  fillDirection?: "vertical" | "horizontal";
+  /** Per-series entrance/update animation override. */
+  animation?: ChartAnimation;
+}
 
 export interface CandlestickSeriesProps<T = unknown> {
   data: T[];
@@ -349,7 +425,7 @@ export interface ChartHandle {
 
 export interface SeriesDescriptor {
   id: string;
-  type: "line" | "bar" | "pie" | "candlestick";
+  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -360,6 +436,12 @@ export interface SeriesDescriptor {
   curve?: LineCurve;
   fillOpacity?: number;
   areaGradient?: boolean;
+  /** Resolved fill style (areaGradient aliases fold into this). */
+  fillStyle?: "flat" | "gradient";
+  fillColor?: string;
+  fillDirection?: "vertical" | "horizontal";
+  fillBaseline?: "zero" | "field";
+  fillBaselineAccessor?: (item: unknown, index: number) => number | null | undefined;
   lineStrokeWidth?: number;
   lineDash?: number[] | null;
   showMarkers?: boolean;
@@ -368,6 +450,11 @@ export interface SeriesDescriptor {
   connectNulls?: ConnectNulls;
   yFieldAxis?: "left" | "right";
   maxDataPoints?: number;
+  // rangeArea
+  rangeMinAccessor?: (item: unknown, index: number) => number | null | undefined;
+  rangeMaxAccessor?: (item: unknown, index: number) => number | null | undefined;
+  rangeShowEdges?: boolean;
+  rangeEdgeStrokeWidth?: number;
   // bar
   barMode?: BarMode;
   stackId?: string;

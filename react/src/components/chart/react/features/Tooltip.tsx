@@ -116,7 +116,9 @@ export function Tooltip(props: TooltipProps = {}) {
               >
                 {props.itemFormat
                   ? props.itemFormat(it.value, it.name ?? "")
-                  : formatSI(it.value)}
+                  : it.valueMax !== undefined
+                    ? `${formatSI(it.value)}–${formatSI(it.valueMax)}`
+                    : formatSI(it.value)}
               </span>
             </div>
           ))}

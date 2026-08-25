@@ -26,6 +26,7 @@ import {
 import { BarSeries } from "./react/series/BarSeries";
 import { PieSeries } from "./react/series/PieSeries";
 import { CandlestickSeries } from "./react/series/CandlestickSeries";
+import { RangeAreaSeries } from "./react/series/RangeAreaSeries";
 import { XAxis } from "./react/features/XAxis";
 import { YAxis } from "./react/features/YAxis";
 import { Legend } from "./react/features/Legend";
@@ -45,6 +46,7 @@ setChartRegistry({
   Bar: BarSeries,
   Pie: PieSeries,
   Candlestick: CandlestickSeries,
+  RangeArea: RangeAreaSeries,
   XAxis,
   YAxis,
   Legend,
@@ -67,6 +69,7 @@ export const Chart = {
   Bar: BarSeries,
   Pie: PieSeries,
   Candlestick: CandlestickSeries,
+  RangeArea: RangeAreaSeries,
   XAxis,
   YAxis,
   Legend,

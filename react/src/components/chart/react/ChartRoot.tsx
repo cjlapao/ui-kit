@@ -76,6 +76,7 @@ export interface ChildTypeRegistry {
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
+  RangeArea: ComponentType<any>;
   XAxis: ComponentType<any>;
   YAxis: ComponentType<any>;
   Legend: ComponentType<any>;
@@ -164,7 +165,8 @@ function computeYDomain(
       d.type !== "pie" &&
       !hidden.has(d.id) &&
       (d.yAccessor !== undefined ||
-        (d.type === "candlestick" && d.lowAccessor !== undefined)),
+        (d.type === "candlestick" && d.lowAccessor !== undefined) ||
+        (d.type === "rangeArea" && d.rangeMinAccessor !== undefined)),
   );
   if (visible.length === 0) return [0, 1];
   let min = Infinity;
@@ -219,6 +221,18 @@ function computeYDomain(
       continue;
     }
     for (let i = 0; i < d.data.length; i++) {
+      if (d.type === "rangeArea" && d.rangeMinAccessor && d.rangeMaxAccessor) {
+        // Bands span min→max per point (like candles span low→high).
+        const lo = d.rangeMinAccessor(d.data[i], i);
+        const hi = d.rangeMaxAccessor(d.data[i], i);
+        for (const v of [lo, hi]) {
+          if (v === null || v === undefined || !Number.isFinite(v as number))
+            continue;
+          min = Math.min(min, v as number);
+          max = Math.max(max, v as number);
+        }
+        continue;
+      }
       const v = d.yAccessor!(d.data[i], i);
       if (v === null || v === undefined || !Number.isFinite(v as number)) continue;
       min = Math.min(min, v as number);
@@ -477,7 +491,8 @@ export function ChartRootImpl({
         (t === reg.Line ||
           t === reg.Bar ||
           t === reg.Pie ||
-          t === reg.Candlestick)
+          t === reg.Candlestick ||
+          t === reg.RangeArea)
       ) {
         const state = series[k];
         if (state) map.set(c, state);
@@ -703,6 +718,38 @@ export function ChartRootImpl({
           const d = s.descriptor;
           for (let i = 0; i < d.data.length; i++) {
             if (String(d.xAccessor(d.data[i], i)) !== bestCat) continue;
+            if (
+              d.type === "rangeArea" &&
+              d.rangeMinAccessor &&
+              d.rangeMaxAccessor
+            ) {
+              const lo = d.rangeMinAccessor(d.data[i], i);
+              const hi = d.rangeMaxAccessor(d.data[i], i);
+              if (
+                lo === null ||
+                lo === undefined ||
+                hi === null ||
+                hi === undefined ||
+                !Number.isFinite(lo as number) ||
+                !Number.isFinite(hi as number)
+              )
+                continue;
+              const val = lo as number;
+              const valMax = hi as number;
+              const vs =
+                d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
+              return [
+                {
+                  seriesId: d.id,
+                  name: d.name,
+                  color: s.color,
+                  value: val,
+                  valueMax: valMax,
+                  y: vs.map((val + valMax) / 2),
+                  item: d.data[i],
+                },
+              ];
+            }
             const v = d.yAccessor?.(d.data[i], i);
             if (v === null || v === undefined || !Number.isFinite(v as number))
               continue;
@@ -764,6 +811,38 @@ export function ChartRootImpl({
           const raw = d.xAccessor(d.data[i], i);
           if (raw === null || raw === undefined) continue;
           if (Math.abs(toNum(raw) - snapped) > 1e-6) continue;
+          if (
+            d.type === "rangeArea" &&
+            d.rangeMinAccessor &&
+            d.rangeMaxAccessor
+          ) {
+            const lo = d.rangeMinAccessor(d.data[i], i);
+            const hi = d.rangeMaxAccessor(d.data[i], i);
+            if (
+              lo === null ||
+              lo === undefined ||
+              hi === null ||
+              hi === undefined ||
+              !Number.isFinite(lo as number) ||
+              !Number.isFinite(hi as number)
+            )
+              continue;
+            const val = lo as number;
+            const valMax = hi as number;
+            const vs =
+              d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
+            return [
+              {
+                seriesId: d.id,
+                name: d.name,
+                color: s.color,
+                value: val,
+                valueMax: valMax,
+                y: vs.map((val + valMax) / 2),
+                item: d.data[i],
+              },
+            ];
+          }
           const v =
             d.type === "candlestick"
               ? d.closeAccessor?.(d.data[i], i)
@@ -850,7 +929,9 @@ export function ChartRootImpl({
         const v =
           d.type === "candlestick"
             ? d.closeAccessor?.(d.data[i], i)
-            : d.yAccessor?.(d.data[i], i);
+            : d.type === "rangeArea"
+              ? d.rangeMaxAccessor?.(d.data[i], i)
+              : d.yAccessor?.(d.data[i], i);
         const raw = d.xAccessor(d.data[i], i);
         if (
           raw === null ||
@@ -975,7 +1056,8 @@ export function ChartRootImpl({
       el.type === reg?.Line ||
       el.type === reg?.Bar ||
       el.type === reg?.Pie ||
-      el.type === reg?.Candlestick
+      el.type === reg?.Candlestick ||
+      el.type === reg?.RangeArea
     ) {
       // Stamp the series with its element identity (see seriesTokens).
       plotChildren.push(

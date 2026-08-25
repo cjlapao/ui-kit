@@ -7,13 +7,14 @@
  */
 import { useEffect, useId, useRef } from "react";
 import {
-  areaPathFromPoints,
+  bandAreaPath,
   computeLineGeometry,
   decimate,
   interpolateArrays,
   linePathFromPoints,
 } from "../../engine/index";
 import type {
+  ChartAreaFill,
   GradientColor,
   LineCurve,
   LineGeometry,
@@ -22,14 +23,31 @@ import type {
 import { useChart } from "../ChartContext";
 import { findSeries, valueScaleFor } from "../series-common";
 import type { LineSeriesProps } from "../props";
+import {
+  AreaFillGradientDef,
+  canvasAreaFill,
+  resolveAreaFill,
+} from "./AreaFill";
 
-/** Interpolate a line geometry toward its previous one (update frames). */
+interface FrameBaseline {
+  x: number;
+  y: number;
+}
+
+/**
+ * Interpolate a line geometry toward its previous one (update frames).
+ * `baselinePoints` (final pixel baseline) re-closes the area when the fill
+ * follows a second field; it is interpolated against `prevBaseline` the
+ * same way the main curve is.
+ */
 function frameGeometry(
   cur: LineGeometry,
   prev: LineGeometry | null,
   p: number,
   curve: LineCurve,
   baselineY: number,
+  baselinePoints?: FrameBaseline[] | null,
+  prevBaseline?: FrameBaseline[] | null,
 ): LineGeometry {
   if (!prev || p >= 1) return cur;
   if (cur.points.length === 0) return cur;
@@ -48,11 +66,25 @@ function frameGeometry(
     x: xs[i] ?? pt.x,
     y: ys[i] ?? pt.y,
   }));
+  let areaPath = cur.areaPath;
+  if (baselinePoints) {
+    const frameBase: FrameBaseline[] = points.map((pt, i) => {
+      const b = baselinePoints[i] ?? null;
+      const pb = prevBaseline?.[pt.index] ?? null;
+      if (!b) return { x: pt.x, y: baselineY };
+      if (!pb) return { x: pt.x, y: b.y };
+      return { x: pb.x + (b.x - pb.x) * p, y: pb.y + (b.y - pb.y) * p };
+    });
+    areaPath = bandAreaPath(
+      points.map((pt, i) => ({ x: pt.x, y0: frameBase[i].y, y1: pt.y })),
+      curve,
+    );
+  }
   return {
     ...cur,
     points,
     linePath: linePathFromPoints(points, curve),
-    areaPath: areaPathFromPoints(points, baselineY, curve),
+    areaPath,
     first: points[0] ?? null,
     last: points[points.length - 1] ?? null,
   };
@@ -109,9 +141,12 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
   const gradId = useId().replace(/:/g, "");
   const lastRef = useRef<LineGeometry | null>(null);
   const prevRef = useRef<LineGeometry | null>(null);
+  const lastBaseRef = useRef<{ x: number; y: number }[] | null>(null);
+  const prevBaseRef = useRef<{ x: number; y: number }[] | null>(null);
 
   // ── Final (settled) geometry — recomputed fresh each render (cheap) ──────
   let final: LineGeometry | null = null;
+  let finalBaseline: { x: number; y: number }[] | null = null;
   let curve: LineCurve = "linear";
   let fillOpacity = 0;
   let colorObj: GradientColor | null = null;
@@ -123,14 +158,13 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
   let markerSize = 3.5;
   let markerShape: MarkerShape = "circle";
   let seriesColor = "#8b5cf6";
-  let areaGradient = false;
+  let fillSpec: ChartAreaFill | null = null;
 
   if (me && xScale) {
     const d = me.descriptor;
     hidden = me.hidden;
     curve = d.curve ?? "linear";
     fillOpacity = d.fillOpacity ?? 0;
-    areaGradient = d.areaGradient ?? false;
     seriesId = d.id;
     lineStrokeWidth = d.lineStrokeWidth ?? 2;
     lineDash = d.lineDash ?? null;
@@ -156,6 +190,22 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
           index: i,
         };
       });
+      let baselinePoints: { x: number; y: number | null }[] | undefined;
+      if (d.fillBaseline === "field" && d.fillBaselineAccessor) {
+        baselinePoints = d.data.map((item, i) => {
+          const rawX = d.xAccessor(item, i);
+          const rawB = d.fillBaselineAccessor!(item, i);
+          const missing =
+            rawB == null || !Number.isFinite(rawB as number);
+          return {
+            x: xScale.map(rawX as never),
+            y: missing ? null : vs.map(rawB as number),
+          };
+        });
+        if (d.maxDataPoints && baselinePoints.length > d.maxDataPoints) {
+          baselinePoints = decimate(baselinePoints, d.maxDataPoints);
+        }
+      }
       if (d.maxDataPoints && points.length > d.maxDataPoints) {
         points = decimate(points, d.maxDataPoints);
       }
@@ -165,7 +215,24 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
         connectNulls: d.connectNulls ?? "gap",
         baselineY: area.y + area.height,
         zeroY: vs.map(0),
+        baselinePoints,
       });
+      if (fillOpacity > 0) {
+        fillSpec = resolveAreaFill(
+          {
+            fillStyle: d.fillStyle,
+            fillColor: d.fillColor,
+            fillOpacity: d.fillOpacity,
+            fillDirection: d.fillDirection,
+          },
+          seriesColor,
+        );
+        finalBaseline = baselinePoints
+          ? baselinePoints
+              .filter((b) => b.y !== null)
+              .map((b) => ({ x: b.x, y: b.y as number }))
+          : null;
+      }
     }
   }
 
@@ -176,9 +243,12 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
   // becomes visible.
   if (progress >= 1 && lastRef.current !== final) {
     prevRef.current = lastRef.current;
+    prevBaseRef.current = lastBaseRef.current;
     lastRef.current = final;
+    lastBaseRef.current = finalBaseline;
   }
   const prev = progress < 1 ? prevRef.current : null;
+  const prevBase = progress < 1 ? prevBaseRef.current : null;
   const entrance = prev === null;
   const baselineY = area.y + area.height;
 
@@ -187,7 +257,15 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     if (renderer !== "canvas" || !final || hidden) return;
     const id = `series:${seriesId}`;
     const fn = (c: CanvasRenderingContext2D, st: { progress: number }) => {
-      const g = frameGeometry(final!, prevRef.current, st.progress, curve, baselineY);
+      const g = frameGeometry(
+        final!,
+        prevRef.current,
+        st.progress,
+        curve,
+        baselineY,
+        lastBaseRef.current,
+        prevBaseRef.current,
+      );
       const p = prevRef.current === null ? st.progress : 1;
       c.save();
       if (prevRef.current === null) {
@@ -195,20 +273,24 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
         c.rect(area.x, 0, area.width * Math.max(0.001, st.progress), height);
         c.clip();
       }
-      if (fillOpacity > 0 && g.areaPath) {
-        c.globalAlpha = fillOpacity * p;
-        if (areaGradient) {
-          const base =
-            colorObj !== null
-              ? colorObj.stops[0]?.color ?? seriesColor
-              : seriesColor;
-          const ag = c.createLinearGradient(0, area.y, 0, area.y + area.height);
-          ag.addColorStop(0, hexWithAlpha(base, 1));
-          ag.addColorStop(1, hexWithAlpha(base, 0));
-          c.fillStyle = ag;
+      if (fillSpec && fillSpec.opacity > 0 && g.areaPath) {
+        const fillBase =
+          colorObj !== null
+            ? colorObj.stops[0]?.color ?? seriesColor
+            : seriesColor;
+        c.globalAlpha = (fillSpec.style === "flat" ? fillSpec.opacity : 1) * p;
+        if (fillSpec.color) {
+          c.fillStyle = canvasAreaFill(c, fillSpec, { area });
+        } else if (fillSpec.style === "flat" && colorObj !== null) {
+          // A gradient series color still paints the flat fill as a
+          // gradient (legacy behavior).
+          c.fillStyle = canvasGradient(c, area, colorObj);
+        } else if (fillSpec.style === "flat") {
+          c.fillStyle = fillBase;
         } else {
-          c.fillStyle =
-            colorObj !== null ? canvasGradient(c, area, colorObj) : seriesColor;
+          c.fillStyle = canvasAreaFill(c, { ...fillSpec, color: fillBase }, {
+            area,
+          });
         }
         c.fill(new Path2D(g.areaPath));
         c.globalAlpha = 1;
@@ -269,7 +351,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     area,
     height,
     fillOpacity,
-    areaGradient,
+    fillSpec,
     colorObj,
     seriesColor,
     lineStrokeWidth,
@@ -287,7 +369,15 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
 
   // ── SVG render ────────────────────────────────────────────────────────────
   if (renderer !== "svg") return null;
-  const g = frameGeometry(final, prev, progress, curve, baselineY);
+  const g = frameGeometry(
+    final,
+    prev,
+    progress,
+    curve,
+    baselineY,
+    finalBaseline,
+    prevBase,
+  );
   const entranceP = entrance ? (animationsDisabled ? 1 : progress) : 1;
   const fill = colorObj !== null ? `url(#${gradId})` : seriesColor;
   const areaBase =
@@ -334,26 +424,29 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
             ))}
           </linearGradient>
         )}
-        {areaGradient && fillOpacity > 0 && (
-          <linearGradient
+        {fillSpec && fillSpec.style === "gradient" && (
+          <AreaFillGradientDef
             id={gradId + "area"}
-            x1="0"
-            y1={area.y}
-            x2="0"
-            y2={area.y + area.height}
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop offset="0" stopColor={areaBase} stopOpacity={1} />
-            <stop offset="1" stopColor={areaBase} stopOpacity={0} />
-          </linearGradient>
+            spec={{
+              ...fillSpec,
+              color: fillSpec.color ?? areaBase,
+            }}
+            ctx={{ area }}
+          />
         )}
       </defs>
       <g clipPath={`url(#${clipId})`}>
-        {fillOpacity > 0 && g.areaPath && (
+        {fillSpec && fillSpec.opacity > 0 && g.areaPath && (
           <path
             d={g.areaPath}
-            fill={areaGradient ? `url(#${gradId}area)` : fill}
-            opacity={fillOpacity * entranceP}
+            fill={
+              fillSpec.style === "gradient"
+                ? `url(#${gradId}area)`
+                : fillSpec.color ?? fill
+            }
+            opacity={
+              (fillSpec.style === "flat" ? fillSpec.opacity : 1) * entranceP
+            }
           />
         )}
         {g.linePath && (
@@ -412,10 +505,3 @@ function canvasGradient(
   return g;
 }
 
-/** Hex color with an alpha channel (canvas gradient stops). */
-function hexWithAlpha(hex: string, alpha: number): string {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!m) return hex;
-  const [r, g, b] = [1, 2, 3].map((i) => parseInt(m[i], 16));
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}

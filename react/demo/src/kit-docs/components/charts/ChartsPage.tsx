@@ -25,6 +25,11 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "OHLC, hollow and bar variants, selected highlight",
   },
   {
+    slug: "charts-range-area",
+    label: "Range Area",
+    blurb: "min–max corridors, gradient or flat band fills",
+  },
+  {
     slug: "charts-annotations",
     label: "Reference & Callouts",
     blurb: "bands, rules, annotation callouts",

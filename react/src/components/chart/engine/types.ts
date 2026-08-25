@@ -50,6 +50,29 @@ export interface ResolvedColor {
   base: string;
 }
 
+// ── Area fill ────────────────────────────────────────────────────────────────
+
+/**
+ * A shared area-fill spec usable by any area-capable series (line with
+ * fill, range area, …).
+ */
+export interface ChartAreaFill {
+  /**
+   * Flat (solid color at an opacity) or a gradient fading to transparent.
+   * Default "flat".
+   */
+  style: "flat" | "gradient";
+  /** Fill color (defaults to the series color when unset). */
+  color?: string;
+  /**
+   * 0–1. Flat mode: solid opacity. Gradient mode: opacity at the start of
+   * the gradient (the end is always fully transparent).
+   */
+  opacity: number;
+  /** Gradient direction. Default "vertical" (top → bottom). */
+  direction: "vertical" | "horizontal";
+}
+
 // ── Data access ──────────────────────────────────────────────────────────────
 
 /**
@@ -230,10 +253,41 @@ export interface LineGeometry {
   points: LinePoint[];
   /** SVG path for the line (sub-paths separated on gaps). */
   linePath: string;
-  /** SVG path for the area under the line (down to the y-domain floor). */
+  /**
+   * SVG path for the area under the line — closed to `baselineY` by
+   * default, or to a second (baseline-field) curve when one was supplied.
+   */
   areaPath: string;
   first: LinePoint | null;
   last: LinePoint | null;
+}
+
+export interface RangeAreaPoint {
+  /** Pixel x. */
+  x: number;
+  /** Pixel y of the lower (min) edge. */
+  yMin: number;
+  /** Pixel y of the upper (max) edge. */
+  yMax: number;
+  /** Source min value. */
+  min: number;
+  /** Source max value. */
+  max: number;
+  item: unknown;
+  index: number;
+}
+
+export interface RangeAreaGeometry {
+  /** SVG path for the closed band between the two edges. */
+  bandPath: string;
+  /** SVG path of the upper (max) edge. */
+  upperPath: string;
+  /** SVG path of the lower (min) edge. */
+  lowerPath: string;
+  /** Solid (non-gap) points, in data order. */
+  points: RangeAreaPoint[];
+  first: RangeAreaPoint | null;
+  last: RangeAreaPoint | null;
 }
 
 export interface BarGeometry {
@@ -299,6 +353,11 @@ export interface HoverItem {
   name?: string;
   color: string;
   value: number;
+  /**
+   * Upper end of a ranged value (range-area series: the max edge). When
+   * present, tooltips render `value–valueMax`.
+   */
+  valueMax?: number;
   /** Pixel y of this item's mark. */
   y: number;
   item: unknown;

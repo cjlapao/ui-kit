@@ -735,8 +735,34 @@ describe("grid + area gradient options", () => {
     );
     expect(area).toBeTruthy();
     const stops = area!.querySelectorAll("stop");
-    expect(stops[0].getAttribute("stop-opacity")).toBe("1");
+    // Shared fill contract: the gradient itself carries the fill opacity
+    // (start = fillOpacity → 0); the path stays fully opaque.
+    expect(stops[0].getAttribute("stop-opacity")).toBe("0.4");
     expect(stops[1].getAttribute("stop-opacity")).toBe("0");
+    const path = document.querySelector(
+      '[data-chart-series="series-0"] path[fill^="url"]',
+    );
+    expect(path?.getAttribute("opacity")).toBe("1");
+  });
+
+  it("Line fillStyle=flat renders a solid fill at fillOpacity", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line
+          data={lineData}
+          name="S"
+          fillOpacity={0.35}
+          fillStyle="flat"
+          fillColor="#ff0000"
+        />
+      </Chart.Svg>,
+    );
+    const path = document.querySelector(
+      '[data-chart-series="series-0"] path[fill^="#"]',
+    );
+    expect(path).toBeTruthy();
+    expect(path!.getAttribute("fill")).toBe("#ff0000");
+    expect(path!.getAttribute("opacity")).toBe("0.35");
   });
 });
 
@@ -1027,5 +1053,131 @@ describe("candlestick selected-candle highlight", () => {
     fireEvent.pointerMove(hoverRect, { clientX: cx, clientY: 150 });
     expect(Number(bodyRects()[0]!.getAttribute("width"))).toBe(beforeW);
     expect(document.querySelector('[data-chart-series] text')).toBeNull();
+  });
+});
+
+// ── Range area (band between two lines) ──────────────────────────────────────
+
+const rangeData = [
+  { date: new Date(2024, 0, 1), min: 80, max: 120 },
+  { date: new Date(2024, 2, 1), min: 95, max: 150 },
+  { date: new Date(2024, 4, 1), min: 85, max: 130 },
+  { date: new Date(2024, 6, 1), min: 110, max: 170 },
+];
+
+describe("range area series", () => {
+  it("renders the band + both edge paths on SVG", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.RangeArea data={rangeData} name="Band" />
+      </Chart.Svg>,
+    );
+    const g = document.querySelector('[data-chart-series="series-0"]');
+    expect(g).toBeTruthy();
+    const paths = g!.querySelectorAll("path");
+    expect(paths.length).toBe(3);
+    const band = paths[0];
+    expect(band.getAttribute("d")).toBeTruthy();
+    // band is a closed area (ends with Z), edges are open strokes
+    expect(band.getAttribute("d")!.endsWith("Z")).toBe(true);
+    expect(band.getAttribute("fill")).toBeTruthy();
+    expect(paths[1].getAttribute("fill")).toBe("none");
+    expect(paths[2].getAttribute("fill")).toBe("none");
+    // gradient fill by default → fill references the gradient def
+    expect(paths[0].getAttribute("fill")!.startsWith("url(#")).toBe(true);
+  });
+
+  it("renders on canvas without crashing", () => {
+    render(
+      <Chart.Canvas height={300} {...noAnim}>
+        <Chart.RangeArea data={rangeData} name="Band" />
+      </Chart.Canvas>,
+    );
+    // Canvas renderer paints via the draw registry — no SVG series group.
+    expect(document.querySelector("canvas")).toBeTruthy();
+    expect(
+      document.querySelector('[data-chart-series="series-0"]'),
+    ).toBeNull();
+  });
+
+  it("tooltip shows min–max for the hovered band", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.RangeArea data={rangeData} name="Band" />
+        <Chart.Tooltip />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    const rects = svg!.querySelectorAll("rect");
+    const hoverRect = rects[rects.length - 1] as SVGRectElement;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 300,
+        width: 800,
+        height: 300,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return this;
+        },
+      }),
+      configurable: true,
+    });
+    // near the second data point (x ≈ 297 of a 60→740 plot)
+    fireEvent.pointerMove(hoverRect, { clientX: 350, clientY: 150 });
+    const tip = document.querySelector('[data-chart-feature="tooltip"]');
+    expect(tip).toBeTruthy();
+    expect(tip!.textContent).toContain("95–150");
+  });
+});
+
+// ── Line fill between two lines ──────────────────────────────────────────────
+
+describe("line fill between two lines", () => {
+  const renderLine = (
+    data: { date: Date; value: number; baseline?: number }[],
+    withField: boolean,
+  ) =>
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line
+          data={data}
+          name="S"
+          valueYField="value"
+          fillOpacity={0.3}
+          fillBaseline={withField ? "field" : undefined}
+          fillBaselineField={withField ? "baseline" : undefined}
+        />
+      </Chart.Svg>,
+    );
+  const areaPath = () =>
+    document
+      .querySelector('[data-chart-series="series-0"] path[fill^="#"]')!
+      .getAttribute("d")!;
+  const linePath = () =>
+    [...document.querySelectorAll('[data-chart-series="series-0"] path')]
+      .find((p) => p.getAttribute("fill") === "none")!
+      .getAttribute("d")!;
+
+  it("a varying baseline curve produces a different (band-shaped) area", () => {
+    const data = lineData.map((d, i) => ({
+      ...d,
+      baseline: d.value - 20 - i * 5,
+    }));
+    renderLine(data, true);
+    const a = areaPath();
+    const l = linePath();
+    cleanup();
+    renderLine(data, false);
+    const b = areaPath();
+    const l2 = linePath();
+    // the fill closes to the baseline field's curve, not the axis floor
+    expect(a).not.toBe(b);
+    // the visible line is untouched by the fill baseline
+    expect(l).toBe(l2);
   });
 });

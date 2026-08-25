@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { computeLineGeometry, linePathFromPoints } from "./line";
+import {
+  bandAreaPath,
+  computeLineGeometry,
+  linePathFromPoints,
+} from "./line";
 
 const pt = (x: number, y: number | null, i: number) => ({
   x,
@@ -141,5 +145,88 @@ describe("computeLineGeometry", () => {
     expect(g.first).toBeNull();
     expect(g.last).toBeNull();
     expect(g.areaPath).toBe("");
+  });
+});
+
+describe("bandAreaPath + fill between two lines", () => {
+  it("closes between two edges (y0 lower, y1 upper)", () => {
+    const path = bandAreaPath(
+      [
+        { x: 0, y0: 90, y1: 10 },
+        { x: 100, y0: 80, y1: 0 },
+      ],
+      "linear",
+    );
+    expect(path.endsWith("Z")).toBe(true);
+    // both edges are present in the path
+    expect(path).toContain("M0,10");
+    expect(path).toContain("0,90");
+  });
+
+  it("a constant baseline field equals the classic baseline-closed area", () => {
+    const base = {
+      curve: "linear" as const,
+      connectNulls: "gap" as const,
+      baselineY: 100,
+      zeroY: 70,
+    };
+    const points = [pt(0, 10, 0), pt(100, 20, 1)];
+    const classic = computeLineGeometry({ points, ...base });
+    const field = computeLineGeometry({
+      points,
+      ...base,
+      baselinePoints: [
+        { x: 0, y: 100 },
+        { x: 100, y: 100 },
+      ],
+    });
+    expect(field.areaPath).toBe(classic.areaPath);
+  });
+
+  it("a varying baseline field produces a band-shaped area", () => {
+    const base = {
+      curve: "linear" as const,
+      connectNulls: "gap" as const,
+      baselineY: 100,
+      zeroY: 70,
+    };
+    const points = [pt(0, 10, 0), pt(100, 20, 1)];
+    const classic = computeLineGeometry({ points, ...base });
+    const field = computeLineGeometry({
+      points,
+      ...base,
+      baselinePoints: [
+        { x: 0, y: 90 },
+        { x: 100, y: 40 },
+      ],
+    });
+    expect(field.areaPath).not.toBe(classic.areaPath);
+    // the band's lower edge follows the baseline curve (both y values)
+    expect(field.areaPath).toContain("90");
+    expect(field.areaPath).toContain("40");
+    // the line itself is untouched
+    expect(field.linePath).toBe(classic.linePath);
+  });
+
+  it("a missing baseline value turns the point into a gap", () => {
+    const base = {
+      curve: "linear" as const,
+      connectNulls: "gap" as const,
+      baselineY: 100,
+      zeroY: 70,
+    };
+    const points = [pt(0, 10, 0), pt(50, 15, 1), pt(100, 20, 2)];
+    const g = computeLineGeometry({
+      points,
+      ...base,
+      baselinePoints: [
+        { x: 0, y: 90 },
+        { x: 50, y: null },
+        { x: 100, y: 40 },
+      ],
+    });
+    // the line keeps all three points; the area breaks into two sub-paths
+    expect(g.points).toHaveLength(3);
+    expect(g.areaPath.match(/M/g)?.length).toBe(2);
   });
 });
