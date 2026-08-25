@@ -615,11 +615,17 @@ export const chartBarModeOptions: MultiToggleOption[] = [
   { label: "Percent", value: "percent" },
 ];
 
-/** Bar corner radii in px (999 = full pill, clamped to half the bar). */
+/**
+ * Bar corner radii in px — the shared surface scale from common/theme
+ * (Panel corner values: none 0, rounded 0.125rem, rounded-sm 0.5rem,
+ * rounded-md 1rem). No "pill": a capsule on a narrow bar clamps to a
+ * half-circle, which reads wrong on small bars.
+ */
 export const chartBarCornerOptions: MultiToggleOption[] = [
   { label: "Square", value: "0" },
-  { label: "Rounded", value: "6" },
-  { label: "Pill", value: "999" },
+  { label: "Subtle", value: "2" },
+  { label: "Rounded", value: "8" },
+  { label: "Heavy", value: "16" },
 ];
 
 /** Pixel gap between stacked bar segments. */

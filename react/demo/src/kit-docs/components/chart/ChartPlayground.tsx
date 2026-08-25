@@ -89,7 +89,11 @@ export const ChartPlayground = () => {
   const preview = (
     <div className="w-full max-w-4xl">
       <Root
-        key={`${renderer}-${kind}-${height}`}
+        // The key includes the animation state so changing the easing (or
+        // toggling Animate) remounts the chart and replays the entrance —
+        // otherwise the new easing only applies to an animation that never
+        // runs, and the change would be invisible.
+        key={`${renderer}-${kind}-${height}-${easing}-${animated ? 1 : 0}`}
         height={height}
         animation={animation}
         ariaLabel="Playground chart"

@@ -11,7 +11,7 @@ type Mode = "stack" | "group" | "percent";
 
 /**
  * Daily support load stacked by work type (the PrimeUI stacked-bar
- * reference): rounded segment pills, the dashed escalation-desk level and
+ * reference): rounded segment corners (the surface scale, no pills), the dashed escalation-desk level and
  * the "Peak 24" callout.
  */
 export default function BarModes() {
@@ -42,7 +42,7 @@ export default function BarModes() {
           mode={mode}
           stackId="load"
           color="#f87171"
-          cornerRadius={999}
+          cornerRadius={16}
           segmentGap={3}
         />
         <Chart.Bar
@@ -53,7 +53,7 @@ export default function BarModes() {
           mode={mode}
           stackId="load"
           color="#8b5cf6"
-          cornerRadius={999}
+          cornerRadius={16}
           segmentGap={3}
         />
         <Chart.Bar
@@ -64,7 +64,7 @@ export default function BarModes() {
           mode={mode}
           stackId="load"
           color="#38bdf8"
-          cornerRadius={999}
+          cornerRadius={16}
           segmentGap={3}
         />
         <Chart.Bar
@@ -75,7 +75,7 @@ export default function BarModes() {
           mode={mode}
           stackId="load"
           color="#fbbf24"
-          cornerRadius={999}
+          cornerRadius={16}
           segmentGap={3}
         />
         <Chart.Bar
@@ -86,7 +86,7 @@ export default function BarModes() {
           mode={mode}
           stackId="load"
           color="#34d399"
-          cornerRadius={999}
+          cornerRadius={16}
           segmentGap={3}
         />
         <Chart.XAxis tickCount={24} />
