@@ -585,3 +585,6 @@ export {
 
 // WorkflowTracker
 export * from "./WorkflowTracker";
+
+// Chart (PrimeUI-style compound charts — SVG + Canvas)
+export * from "./chart";

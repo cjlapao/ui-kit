@@ -304,8 +304,8 @@ export interface HoverState {
   /** Pixel x of the snapped category. */
   x: number;
   items: HoverItem[];
-  /** The raw x value (Date for time axes) at this position. */
-  rawX?: number | Date;
+  /** The raw x value (Date for time axes, string for categories) at this position. */
+  rawX?: number | Date | string;
   /** Pixel y of the primary (first) item — for the horizontal crosshair. */
   y?: number;
 }

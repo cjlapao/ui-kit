@@ -28,7 +28,7 @@ export interface BarGeometryInput {
   /** Category (band/point) scale. Vertical mode: x-axis; horizontal: y-axis. */
   categoryScale: { map(c: string): number; center(c: string): number; bandWidth: number };
   /** Value (linear) scale. Vertical mode: y-axis; horizontal: x-axis. */
-  valueScale: { map(v: number): number; domain: [number, number] };
+  valueScale: { map(v: number | Date): number; domain: [number | Date, number | Date] };
   mode: BarMode;
   orientation: BarOrientation;
   /** 0-based position of this series within its group/stack (grouped mode). */
@@ -96,10 +96,14 @@ export function computeBarGeometry(input: BarGeometryInput): BarGeometry {
   } = input;
 
   const zeroInDomain =
-    valueScale.domain[0] <= 0 && 0 <= valueScale.domain[1];
+    Number(valueScale.domain[0]) <= 0 && 0 <= Number(valueScale.domain[1]);
   const baseline =
     input.baselinePixel ??
-    (zeroInDomain ? valueScale.map(0) : valueScale.domain[0] < 0 ? valueScale.map(valueScale.domain[1]) : valueScale.map(valueScale.domain[0]));
+    (zeroInDomain
+      ? valueScale.map(0)
+      : Number(valueScale.domain[0]) < 0
+        ? valueScale.map(valueScale.domain[1])
+        : valueScale.map(valueScale.domain[0]));
 
   const grouped = input.mode === "group";
   const slot = categoryScale.bandWidth / Math.max(1, groupCount);

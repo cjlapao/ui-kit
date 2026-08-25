@@ -1,0 +1,111 @@
+/**
+ * <Chart.YAxis> — value axis (left by default, right for a second scale).
+ * Horizontal gridlines, tick labels, the domain line, an optional title.
+ */
+import { useEffect } from "react";
+import { formatSI } from "../../engine/index";
+import { useChart } from "../ChartContext";
+import type { YAxisProps } from "../props";
+
+export function YAxis(props: YAxisProps = {}) {
+  const ctx = useChart();
+  const { renderer, yScale, rightYScale, area, theme } = ctx;
+  const onRight = props.axis === "right";
+  const scale = onRight ? rightYScale : yScale;
+
+  useEffect(() => {
+    if (renderer !== "canvas" || !scale) return;
+    const id = `feature:yaxis:${onRight ? "right" : "left"}`;
+    const fn = (c: CanvasRenderingContext2D) => {
+      const ticks = scale.ticks(props.tickCount ?? 5);
+      const format = props.format ?? ((t: number) => formatSI(t));
+      const left = onRight ? area.x + area.width : area.x;
+      if (props.grid !== false && !onRight) {
+        c.save();
+        c.strokeStyle = theme.gridColor;
+        c.lineWidth = 1;
+        for (const t of ticks) {
+          const y = scale.map(t);
+          c.beginPath();
+          c.moveTo(area.x, y);
+          c.lineTo(area.x + area.width, y);
+          c.stroke();
+        }
+        c.restore();
+      }
+      c.strokeStyle = theme.axisColor;
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(left, area.y);
+      c.lineTo(left, area.y + area.height);
+      c.stroke();
+      c.fillStyle = theme.textColor;
+      c.font = "11px sans-serif";
+      c.textBaseline = "middle";
+      for (const t of ticks) {
+        const y = scale.map(t);
+        c.textAlign = onRight ? "left" : "right";
+        c.fillText(format(Number(t)), onRight ? left + 8 : left - 8, y);
+      }
+    };
+    ctx.registerDraw(id, fn);
+    return () => ctx.unregisterDraw(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renderer, scale, onRight, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.format]);
+
+  if (renderer !== "svg" || !scale) return null;
+  const ticks = scale.ticks(props.tickCount ?? 5);
+  const format = props.format ?? ((t: number) => formatSI(t));
+  const left = onRight ? area.x + area.width : area.x;
+
+  return (
+    <g data-chart-feature={`yaxis-${onRight ? "right" : "left"}`}>
+      {props.grid !== false && !onRight &&
+        ticks.map((t, i) => (
+          <line
+            key={i}
+            x1={area.x}
+            y1={scale.map(t)}
+            x2={area.x + area.width}
+            y2={scale.map(t)}
+            stroke={theme.gridColor}
+            strokeWidth={1}
+          />
+        ))}
+      <line
+        x1={left}
+        y1={area.y}
+        x2={left}
+        y2={area.y + area.height}
+        stroke={theme.axisColor}
+        strokeWidth={1}
+      />
+      {ticks.map((t, i) => (
+        <text
+          key={i}
+          x={onRight ? left + 8 : left - 8}
+          y={scale.map(t)}
+          textAnchor={onRight ? "start" : "end"}
+          dominantBaseline="middle"
+          fontSize={11}
+          fill={theme.textColor}
+        >
+          {format(Number(t))}
+        </text>
+      ))}
+      {props.label && (
+        <text
+          x={onRight ? left + 38 : left - 38}
+          y={area.y + area.height / 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={11}
+          fill={theme.subtleText}
+          transform={`rotate(${onRight ? 90 : -90} ${onRight ? left + 38 : left - 38} ${area.y + area.height / 2})`}
+        >
+          {props.label}
+        </text>
+      )}
+    </g>
+  );
+}

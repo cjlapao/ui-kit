@@ -74,6 +74,22 @@ export function linePathFromPoints(
   );
 }
 
+/** Build the area-under-line path down to `baselineY` — animation-safe. */
+export function areaPathFromPoints(
+  points: { x: number; y: number }[],
+  baselineY: number,
+  curve: LineCurve,
+): string {
+  if (points.length === 0) return "";
+  return (
+    area<{ x: number; y: number }>()
+      .x((d) => d.x)
+      .y0(baselineY)
+      .y1((d) => d.y)
+      .curve(curveFactory(curve))(points) ?? ""
+  );
+}
+
 export interface LineGeometryInput {
   /** Pixel-space points, in data order. Null y = missing value. */
   points: PlottedPoint[];

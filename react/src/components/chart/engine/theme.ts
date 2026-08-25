@@ -110,7 +110,11 @@ export function getChartTheme(mode: ChartThemeMode): ChartThemeTokens {
 // ── Color resolution ─────────────────────────────────────────────────────────
 
 function isGradientColor(input: ChartColor): input is GradientColor {
-  return typeof input === "object" && input !== null;
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    Array.isArray((input as GradientColor).stops)
+  );
 }
 
 /**
