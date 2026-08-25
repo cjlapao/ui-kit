@@ -1030,7 +1030,10 @@ export function ChartRootImpl({
             style={{ display: "block" }}
           >
             {backChildren}
-            {plotChildren}
+            {/*
+              Crosshair sits in the back layer: above the grid but below the
+              series marks, so the hover dots always paint over it.
+            */}
             {hover && (
               <line
                 x1={hover.x}
@@ -1043,6 +1046,7 @@ export function ChartRootImpl({
                 pointerEvents="none"
               />
             )}
+            {plotChildren}
             {hoverEnabled && (
               <rect
                 x={area.x}
