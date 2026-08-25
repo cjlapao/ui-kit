@@ -9,6 +9,7 @@ import {
   computeCandlestickGeometry,
   lerp,
   resolveColor,
+  shadeColor,
 } from "../../engine/index";
 import type { CandleGeometry } from "../../engine/types";
 import { useChart } from "../ChartContext";
@@ -17,6 +18,19 @@ import type { CandlestickSeriesProps } from "../props";
 
 const UP_DEFAULT = "emerald";
 const DOWN_DEFAULT = "red";
+/** Hover highlight: how much the up/down color blends toward white. */
+const LIGHTEN_FACTOR = 0.35;
+/** Hover highlight: body-width multiplier, clamped to 90% of the step. */
+const GROW_FACTOR = 1.4;
+
+/** Blend a hex color toward white by f (mirror of shadeColor, which darkens). */
+function lighten(color: string, f: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  if (!m) return color;
+  const n = parseInt(m[1], 16);
+  const mix = (ch: number) => Math.round(ch + (255 - ch) * f);
+  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+}
 
 function frameCandles(
   cur: CandleGeometry[],
@@ -49,8 +63,15 @@ function frameCandles(
 
 export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
   const ctx = useChart();
-  const { renderer, xScale, area, progress, registerDraw, unregisterDraw } =
-    ctx;
+  const {
+    renderer,
+    xScale,
+    area,
+    progress,
+    hover,
+    registerDraw,
+    unregisterDraw,
+  } = ctx;
   const me = findSeries(ctx, "candlestick", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<CandleGeometry[] | null>(null);
   const prevRef = useRef<CandleGeometry[] | null>(null);
@@ -61,6 +82,8 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
   let variant: "candle" | "hollow" | "ohlc" = "candle";
   let upColor = "#34d399";
   let downColor = "#f87171";
+  let step = 0;
+  let highlightOn = true;
 
   if (me && xScale) {
     const d = me.descriptor;
@@ -68,12 +91,13 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
     hidden = me.hidden;
     seriesId = d.id;
     variant = d.candleVariant ?? "candle";
+    highlightOn = d.candleHighlightSelected ?? true;
     upColor = resolveColor(props.color?.up ?? UP_DEFAULT, 0).base;
     downColor = resolveColor(props.color?.down ?? DOWN_DEFAULT, 0).base;
     if (vs) {
       // Body width: explicit > 60% of the available step.
       const n = d.data.length;
-      const step = n > 1 ? area.width / n : area.width / 10;
+      step = n > 1 ? area.width / n : area.width / 10;
       const bodyWidth = d.candleBodyWidth ?? Math.min(step * 0.6, 14);
       final = computeCandlestickGeometry({
         data: d.data.map((item, i) => {
@@ -103,6 +127,16 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
   const prev = progress < 1 ? prevRef.current : null;
   const baselineY = area.y + area.height;
 
+  // ── Selected-candle highlight (hover only) ────────────────────────────────
+  // The root hover already snaps to the nearest candle and carries its close
+  // price; match it to a candle by datum identity.
+  const hoverItem =
+    hover?.items.find((it) => it.seriesId === seriesId) ?? null;
+  const hoveredIndex =
+    highlightOn && hoverItem && final
+      ? final.findIndex((k) => k.item === hoverItem.item)
+      : -1;
+
   useEffect(() => {
     if (renderer !== "canvas" || !final || hidden) return;
     const id = `series:${seriesId}`;
@@ -114,19 +148,25 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
         baselineY,
       );
       c.save();
-      for (const k of candles) {
+      let hovered: CandleGeometry | null = null;
+      for (let i = 0; i < candles.length; i++) {
+        const k = candles[i];
+        const isHover = highlightOn && i === hoveredIndex;
         const up = k.direction !== "down";
-        const color = up ? upColor : downColor;
+        const base = up ? upColor : downColor;
+        const color = isHover ? lighten(base, LIGHTEN_FACTOR) : base;
+        const bw = isHover ? Math.min(k.bodyWidth * GROW_FACTOR, step * 0.9) : k.bodyWidth;
+        if (isHover) hovered = k;
         if (variant === "ohlc") {
           c.strokeStyle = color;
           c.lineWidth = 1.5;
           c.beginPath();
           c.moveTo(k.x, k.highY);
           c.lineTo(k.x, k.lowY);
-          c.moveTo(k.x - k.bodyWidth / 2, k.openY);
+          c.moveTo(k.x - bw / 2, k.openY);
           c.lineTo(k.x, k.openY);
           c.moveTo(k.x, k.closeY);
-          c.lineTo(k.x + k.bodyWidth / 2, k.closeY);
+          c.lineTo(k.x + bw / 2, k.closeY);
           c.stroke();
           continue;
         }
@@ -138,7 +178,6 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
         c.lineTo(k.x, k.lowY);
         c.stroke();
         // body
-        const bw = k.bodyWidth;
         if (variant === "hollow" && k.direction === "up") {
           c.fillStyle = "#ffffff10";
           c.strokeStyle = color;
@@ -149,6 +188,21 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
           c.fillStyle = color;
           c.fillRect(k.x - bw / 2, k.bodyTop, bw, Math.max(k.bodyHeight, 1));
         }
+      }
+      // Close-price pill above the hovered candle's high wick.
+      if (hovered && hoverItem) {
+        const up = hovered.direction !== "down";
+        const text = String(Math.round(hoverItem.value * 10) / 10);
+        const w = text.length * 6.4 + 12;
+        const h = 17;
+        const top = hovered.highY - 8 - h;
+        c.fillStyle = shadeColor(up ? upColor : downColor, 0.45);
+        c.fillRect(hovered.x - w / 2, top, w, h);
+        c.fillStyle = "#fff";
+        c.font = "600 11px sans-serif";
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        c.fillText(text, hovered.x, top + h / 2);
       }
       c.restore();
     };
@@ -163,6 +217,10 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
     upColor,
     downColor,
     baselineY,
+    highlightOn,
+    hoveredIndex,
+    hoverItem,
+    step,
     registerDraw,
     unregisterDraw,
   ]);
@@ -179,15 +237,18 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
         pointerEvents: hidden ? "none" : undefined,
       }}
     >
-      {candles.map((k) => {
+      {candles.map((k, i) => {
+        const isHover = highlightOn && i === hoveredIndex;
         const up = k.direction !== "down";
-        const color = up ? upColor : downColor;
+        const base = up ? upColor : downColor;
+        const color = isHover ? lighten(base, LIGHTEN_FACTOR) : base;
+        const bw = isHover ? Math.min(k.bodyWidth * GROW_FACTOR, step * 0.9) : k.bodyWidth;
         if (variant === "ohlc") {
           return (
             <g key={k.index}>
               <line x1={k.x} y1={k.highY} x2={k.x} y2={k.lowY} stroke={color} strokeWidth={1.5} />
-              <line x1={k.x - k.bodyWidth / 2} y1={k.openY} x2={k.x} y2={k.openY} stroke={color} strokeWidth={1.5} />
-              <line x1={k.x} y1={k.closeY} x2={k.x + k.bodyWidth / 2} y2={k.closeY} stroke={color} strokeWidth={1.5} />
+              <line x1={k.x - bw / 2} y1={k.openY} x2={k.x} y2={k.openY} stroke={color} strokeWidth={1.5} />
+              <line x1={k.x} y1={k.closeY} x2={k.x + bw / 2} y2={k.closeY} stroke={color} strokeWidth={1.5} />
             </g>
           );
         }
@@ -203,26 +264,59 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
             />
             {variant === "hollow" && k.direction === "up" ? (
               <rect
-                x={k.x - k.bodyWidth / 2}
+                x={k.x - bw / 2}
                 y={k.bodyTop}
-                width={k.bodyWidth}
+                width={bw}
                 height={Math.max(k.bodyHeight, 1)}
                 fill="none"
                 stroke={color}
                 strokeWidth={1.5}
+                style={{ transition: "x 150ms ease, width 150ms ease, stroke 150ms ease" }}
               />
             ) : (
               <rect
-                x={k.x - k.bodyWidth / 2}
+                x={k.x - bw / 2}
                 y={k.bodyTop}
-                width={k.bodyWidth}
+                width={bw}
                 height={Math.max(k.bodyHeight, 1)}
                 fill={color}
+                style={{ transition: "x 150ms ease, width 150ms ease, fill 150ms ease" }}
               />
             )}
           </g>
         );
       })}
+      {highlightOn && hoveredIndex >= 0 && hoverItem && (() => {
+        const k = candles[hoveredIndex];
+        const up = k.direction !== "down";
+        const text = String(Math.round(hoverItem.value * 10) / 10);
+        const w = text.length * 6.4 + 12;
+        const h = 17;
+        const top = k.highY - 8 - h;
+        return (
+          <g pointerEvents="none">
+            <rect
+              x={k.x - w / 2}
+              y={top}
+              width={w}
+              height={h}
+              rx={8.5}
+              fill={shadeColor(up ? upColor : downColor, 0.45)}
+            />
+            <text
+              x={k.x}
+              y={top + h / 2}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={11}
+              fontWeight={600}
+              fill="#fff"
+            >
+              {text}
+            </text>
+          </g>
+        );
+      })()}
     </g>
   );
 }

@@ -663,6 +663,12 @@ export const chartPieLabelOptions: MultiToggleOption[] = [
   { label: "≥10%", value: "10" },
 ];
 
+/** Candlestick selected-candle highlight (lighter + bigger + close pill). */
+export const chartSelectedOptions: MultiToggleOption[] = [
+  { label: "On", value: "1" },
+  { label: "Off", value: "0" },
+];
+
 /** Candlestick rendering variants (the kit's `CandlestickVariant` union). */
 export const chartCandleVariantOptions: MultiToggleOption[] = [
   { label: "Candles", value: "candle" },

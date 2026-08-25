@@ -149,6 +149,11 @@ export interface CandlestickSeriesProps<T = unknown> {
   variant?: CandlestickVariant;
   /** Body width in px. Default: 60% of the step. */
   bodyWidth?: number;
+  /**
+   * Highlight the hovered candle (lighter color, wider body) with a
+   * close-price pill above its wick. Default true.
+   */
+  highlightSelected?: boolean;
   animation?: ChartAnimation;
 }
 
@@ -387,6 +392,7 @@ export interface SeriesDescriptor {
   closeAccessor?: (item: unknown, index: number) => number;
   candleVariant?: CandlestickVariant;
   candleBodyWidth?: number;
+  candleHighlightSelected?: boolean;
   // animation
   animation?: ChartAnimation;
 }

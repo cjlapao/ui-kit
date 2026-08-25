@@ -150,6 +150,7 @@ export function describeSeries(
       ),
       candleVariant: cp.variant,
       candleBodyWidth: cp.bodyWidth,
+      candleHighlightSelected: cp.highlightSelected ?? true,
       animation,
     };
   }

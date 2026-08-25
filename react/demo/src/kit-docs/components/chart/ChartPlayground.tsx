@@ -25,6 +25,7 @@ import {
   chartPieCornerOptions,
   chartPieGapOptions,
   chartPieLabelOptions,
+  chartSelectedOptions,
   chartRendererOptions,
   chartSegmentGapOptions,
   chartSweepOptions,
@@ -67,6 +68,7 @@ export const ChartPlayground = () => {
   const [candleVariant, setCandleVariant] = useState<CandlestickVariant>(
     "candle",
   );
+  const [candleSelected, setCandleSelected] = useState(true);
   const [legendPosition, setLegendPosition] = useState<"top" | "bottom">(
     "top",
   );
@@ -188,7 +190,12 @@ export const ChartPlayground = () => {
         )}
         {kind === "candlestick" && (
           <>
-            <Chart.Candlestick data={candleDays} name="Index" variant={candleVariant} />
+            <Chart.Candlestick
+              data={candleDays}
+              name="Index"
+              variant={candleVariant}
+              highlightSelected={candleSelected}
+            />
             <Chart.XAxis {...gridProps} />
             <Chart.YAxis tickCount={5} {...gridProps} />
           </>
@@ -346,6 +353,17 @@ export const ChartPlayground = () => {
               options={chartCandleVariantOptions}
               value={candleVariant}
               onChange={(v) => setCandleVariant(v as CandlestickVariant)}
+            />
+          </Control>
+        )}
+        {kind === "candlestick" && (
+          <Control label="Selected">
+            <MultiToggle
+              size="sm"
+              fullWidth
+              options={chartSelectedOptions}
+              value={candleSelected ? "1" : "0"}
+              onChange={(v) => setCandleSelected(v === "1")}
             />
           </Control>
         )}

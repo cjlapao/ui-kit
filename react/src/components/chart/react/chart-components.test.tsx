@@ -839,3 +839,91 @@ describe("XAxis vertical grid controls", () => {
     expect(verticalGridLines()).toHaveLength(0);
   });
 });
+
+describe("candlestick selected-candle highlight", () => {
+  const setupHover = () => {
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 300,
+        width: 800,
+        height: 300,
+      }),
+    });
+    const rects = svg.querySelectorAll("rect");
+    const hoverRect = rects[rects.length - 1] as SVGRectElement;
+    const bodyRects = () =>
+      [...document.querySelectorAll('[data-chart-series] rect')];
+    return { svg, hoverRect, bodyRects };
+  };
+
+  it("highlights the hovered candle: wider body, lighter fill, close pill", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Candlestick data={candleData} name="BTC" />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const { hoverRect, bodyRects } = setupHover();
+    const first = bodyRects()[0]!;
+    const beforeW = Number(first.getAttribute("width"));
+    const beforeFill = first.getAttribute("fill")!;
+    // hover exactly on the first candle's center
+    const cx =
+      Number(first.getAttribute("x")) + beforeW / 2;
+    fireEvent.pointerMove(hoverRect, { clientX: cx, clientY: 150 });
+    const afterW = Number(bodyRects()[0]!.getAttribute("width"));
+    expect(afterW).toBeGreaterThan(beforeW);
+    // lightened toward white (rgb) vs the base hex color
+    expect(bodyRects()[0]!.getAttribute("fill")!.startsWith("rgb(")).toBe(
+      true,
+    );
+    expect(beforeFill.startsWith("rgb(")).toBe(false);
+    // close-price pill (candle 1 close = 105)
+    const pill = document.querySelector('[data-chart-series] text');
+    expect(pill?.textContent).toBe("105");
+  });
+
+  it("clears the highlight when the pointer leaves", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Candlestick data={candleData} name="BTC" />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const { hoverRect, bodyRects } = setupHover();
+    const first = bodyRects()[0]!;
+    const beforeW = Number(first.getAttribute("width"));
+    const cx = Number(first.getAttribute("x")) + beforeW / 2;
+    fireEvent.pointerMove(hoverRect, { clientX: cx, clientY: 150 });
+    expect(document.querySelector('[data-chart-series] text')).toBeTruthy();
+    fireEvent.pointerLeave(hoverRect);
+    expect(
+      Number(bodyRects()[0]!.getAttribute("width")),
+    ).toBe(beforeW);
+    expect(document.querySelector('[data-chart-series] text')).toBeNull();
+  });
+
+  it("highlightSelected={false} disables the highlight and pill", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Candlestick
+          data={candleData}
+          name="BTC"
+          highlightSelected={false}
+        />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const { hoverRect, bodyRects } = setupHover();
+    const first = bodyRects()[0]!;
+    const beforeW = Number(first.getAttribute("width"));
+    const cx = Number(first.getAttribute("x")) + beforeW / 2;
+    fireEvent.pointerMove(hoverRect, { clientX: cx, clientY: 150 });
+    expect(Number(bodyRects()[0]!.getAttribute("width"))).toBe(beforeW);
+    expect(document.querySelector('[data-chart-series] text')).toBeNull();
+  });
+});
