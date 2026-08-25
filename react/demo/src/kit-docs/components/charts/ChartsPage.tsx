@@ -2,7 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Panel } from "@cjlapao/ui-kit";
 import { PageHeader } from "../../shared/PageHeader";
-import { ChartPlayground } from "./ChartPlayground";
 
 const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
   {
@@ -90,13 +89,6 @@ export const ChartsPage: React.FC = () => (
           </Link>
         ))}
       </div>
-    </section>
-
-    <section className="flex flex-col gap-3">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
-        Playground
-      </h2>
-      <ChartPlayground />
     </section>
   </div>
 );

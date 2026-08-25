@@ -1,6 +1,7 @@
 import React from "react";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
+import { ChartPlayground } from "./ChartPlayground";
 import LineReference from "./examples/LineReference";
 import lineReferenceCode from "./examples/LineReference.tsx?raw";
 import LineCurves from "./examples/LineCurves";
@@ -14,6 +15,12 @@ export const LineChartPage: React.FC = () => (
       name="Line"
       description="Line series: linear, smooth and step interpolation, dashed/dotted styles, square markers, area fills with gradient and dual y-axes — all with entrance and update animations."
     />
+    <section className="flex flex-col gap-3">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+        Playground
+      </h2>
+      <ChartPlayground fixedKind="line" />
+    </section>
     <ExampleCard
       title="Growth metrics"
       description="The reference chart: four indexed series, three phase windows, an indexed baseline, the pricing-lift crosshair, two callouts and end-of-series badges."

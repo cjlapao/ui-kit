@@ -70,9 +70,15 @@ const MAX_LINE = lineMetrics.length;
 const MAX_CANDLE = candleDays.length;
 const MAX_BAR = 12;
 
-export const ChartPlayground = () => {
+interface ChartPlaygroundProps {
+  /** Lock the playground to one chart kind (per-type docs pages). */
+  fixedKind?: Kind;
+}
+
+export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [renderer, setRenderer] = useState<"svg" | "canvas">("svg");
-  const [kind, setKind] = useState<Kind>("line");
+  const [kindState, setKind] = useState<Kind>(fixedKind ?? "line");
+  const kind = fixedKind ?? kindState;
   const [curve, setCurve] = useState<LineCurve>("smooth");
   const [height, setHeight] = useState(380);
   const [showFill, setShowFill] = useState(true);
@@ -313,15 +319,17 @@ export const ChartPlayground = () => {
             onChange={(v) => setRenderer(v as "svg" | "canvas")}
           />
         </Control>
-        <Control label="Chart">
-          <MultiToggle
-            size="sm"
-            fullWidth
-            options={chartKindOptions}
-            value={kind}
-            onChange={(v) => setKind(v as Kind)}
-          />
-        </Control>
+        {!fixedKind && (
+          <Control label="Chart">
+            <MultiToggle
+              size="sm"
+              fullWidth
+              options={chartKindOptions}
+              value={kind}
+              onChange={(v) => setKind(v as Kind)}
+            />
+          </Control>
+        )}
         {kind === "line" && (
           <>
             <SelectControl
