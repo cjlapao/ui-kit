@@ -16,6 +16,7 @@ import {
   GLOW_INTENSITIES,
   INPUT_VALIDATION_STATUSES,
   INPUT_VARIANTS,
+  METERGROUP_ORIENTATIONS,
   LOADER_GLASS_BLURS,
   LOADER_VARIANTS,
   PROGRESS_CORNERS,
@@ -73,6 +74,7 @@ export const inputVariantOptions = toOptions(INPUT_VARIANTS);
 export const glowIntensityOptions = toOptions(GLOW_INTENSITIES);
 export const otpVariantOptions = toOptions(OTP_VARIANTS);
 export const carouselOrientationOptions = toOptions(CAROUSEL_ORIENTATIONS);
+export const meterGroupOrientationOptions = toOptions(METERGROUP_ORIENTATIONS);
 export const ratingOrientationOptions = toOptions(RATING_ORIENTATIONS);
 export const sliderOrientationOptions = toOptions(SLIDER_ORIENTATIONS);
 export const sliderVariantOptions = toOptions(SLIDER_VARIANTS);
@@ -604,6 +606,61 @@ export const chartHeightOptions: MultiToggleOption[] = [
   { label: "280", value: "280" },
   { label: "380", value: "380" },
   { label: "460", value: "460" },
+];
+
+/** Bar layout modes (the kit's `BarMode` union). */
+export const chartBarModeOptions: MultiToggleOption[] = [
+  { label: "Grouped", value: "group" },
+  { label: "Stacked", value: "stack" },
+  { label: "Percent", value: "percent" },
+];
+
+/** Bar corner radii in px (999 = full pill, clamped to half the bar). */
+export const chartBarCornerOptions: MultiToggleOption[] = [
+  { label: "Square", value: "0" },
+  { label: "Rounded", value: "6" },
+  { label: "Pill", value: "999" },
+];
+
+/** Pixel gap between stacked bar segments. */
+export const chartSegmentGapOptions: MultiToggleOption[] = [
+  { label: "None", value: "0" },
+  { label: "Small", value: "3" },
+  { label: "Large", value: "8" },
+];
+
+/** Angular gap between pie slices in radians (d3 padAngle). */
+export const chartPieGapOptions: MultiToggleOption[] = [
+  { label: "None", value: "0" },
+  { label: "Subtle", value: "0.008" },
+  { label: "Gapped", value: "0.02" },
+];
+
+/** Pie slice corner radii in px (clamped to ring width / 2). */
+export const chartPieCornerOptions: MultiToggleOption[] = [
+  { label: "None", value: "0" },
+  { label: "Rounded", value: "6" },
+  { label: "Heavy", value: "10" },
+];
+
+/** Gauge sweep for donut pies (d3 radians, 0 = 12 o'clock). */
+export const chartSweepOptions: MultiToggleOption[] = [
+  { label: "Full", value: "full" },
+  { label: "270°", value: "270" },
+  { label: "180°", value: "180" },
+];
+
+/** Candlestick rendering variants (the kit's `CandlestickVariant` union). */
+export const chartCandleVariantOptions: MultiToggleOption[] = [
+  { label: "Candles", value: "candle" },
+  { label: "Hollow", value: "hollow" },
+  { label: "OHLC", value: "ohlc" },
+];
+
+/** Legend placement inside the chart. */
+export const chartLegendPositionOptions: MultiToggleOption[] = [
+  { label: "Top", value: "top" },
+  { label: "Bottom", value: "bottom" },
 ];
 
 // ── Icon Button ──────────────────────────────────────────────────────────────

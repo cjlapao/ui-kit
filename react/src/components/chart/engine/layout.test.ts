@@ -73,6 +73,26 @@ describe("computeLayout", () => {
     );
   });
 
+  it("reserves the legend strip at the bottom for bottom legends", () => {
+    const top = computeLayout({ ...FULL, hasRightYAxis: false });
+    const bottom = computeLayout({
+      ...FULL,
+      hasRightYAxis: false,
+      legendPosition: "bottom",
+    });
+    // bottom legend: plot keeps the top edge (no strip under the title)…
+    expect(bottom.chartArea.y).toBe(
+      top.chartArea.y - LAYOUT_SIZES.legend,
+    );
+    // …but still loses the legend height (now from the bottom, above the
+    // x-axis label row) — same plot height, sitting one legend strip
+    // higher than the top-legend layout.
+    expect(bottom.chartArea.height).toBe(top.chartArea.height);
+    expect(bottom.chartArea.y + bottom.chartArea.height).toBe(
+      top.chartArea.y + top.chartArea.height - LAYOUT_SIZES.legend,
+    );
+  });
+
   it("never produces negative areas", () => {
     const l = computeLayout({
       width: 50,

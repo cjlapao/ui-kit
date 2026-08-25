@@ -35,6 +35,9 @@ export interface LayoutRequest {
   hasYAxis?: boolean;
   /** A second y-axis on the right edge. */
   hasRightYAxis?: boolean;
+  /** Where a horizontal legend sits. "bottom" reserves the legend strip
+   * under the x-axis instead of under the title block. */
+  legendPosition?: "top" | "bottom";
 }
 
 export function resolveMargins(margin: ChartMargins | undefined): ResolvedMargins {
@@ -68,10 +71,15 @@ export function computeLayout(req: LayoutRequest): ChartLayout {
   const rightYAxisWidth = req.hasRightYAxis ? LAYOUT_SIZES.rightYAxis : 0;
   const xAxisHeight = req.hasXAxis ? LAYOUT_SIZES.xAxis : 0;
 
+  // A bottom legend reserves its strip under the x-axis, so the plot keeps
+  // the top edge (no strip under the title) but still loses the legend
+  // height from the bottom.
+  const topLegendHeight =
+    req.hasLegend && req.legendPosition === "bottom" ? 0 : legendHeight;
+
   const chartArea: ChartArea = {
     x: margin.left + yAxisWidth,
-    y:
-      margin.top + titleHeight + subtitleHeight + legendHeight,
+    y: margin.top + titleHeight + subtitleHeight + topLegendHeight,
     width: Math.max(
       0,
       width - margin.left - margin.right - yAxisWidth - rightYAxisWidth,

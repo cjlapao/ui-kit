@@ -335,6 +335,31 @@ describe("Chart.Svg", () => {
     expect(feature.querySelectorAll("line").length).toBeGreaterThan(0);
   });
 
+  it("Legend position=bottom moves the legend slot out of the title strip", () => {
+    const { container, rerender } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" />
+        <Chart.Legend />
+      </Chart.Svg>,
+    );
+    const slotStyle = () =>
+      [...container.querySelectorAll("div")].find(
+        (d) =>
+          (d.getAttribute("style") ?? "").includes("height: 30px") &&
+          (d.getAttribute("style") ?? "").includes("position: absolute"),
+      )?.getAttribute("style") ?? "";
+    expect(slotStyle()).toContain("top:");
+    rerender(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" />
+        <Chart.Legend position="bottom" />
+      </Chart.Svg>,
+    );
+    const bottomStyle = slotStyle();
+    expect(bottomStyle).toContain("bottom:");
+    expect(bottomStyle).not.toContain("top:");
+  });
+
   it("renders donut inner cutout", () => {
     render(
       <Chart.Svg height={300} {...noAnim}>
