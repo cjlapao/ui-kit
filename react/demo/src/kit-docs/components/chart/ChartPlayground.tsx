@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Chart, EASING_PRESETS, MultiToggle } from "@cjlapao/ui-kit";
 import type {
   BarMode,
@@ -46,6 +46,30 @@ const SWEEP_ANGLES: Record<Sweep, { start: number; sweep: number }> = {
   "180": { start: (Math.PI * 3) / 2, sweep: Math.PI },
 };
 
+// ── Streaming (playground) ───────────────────────────────────────────────────
+// Injects a new data point every 5 s and slides the window once the max is
+// reached, so the update animation keeps running. Values are a
+// mean-reverting random walk (drift back toward the middle of the range with
+// jitter) so the series moves up and down instead of drifting off.
+
+const r1 = (v: number) => Math.round(v * 10) / 10;
+const DAY_MS = 86_400_000;
+
+function walk(
+  last: number,
+  mid: number,
+  vol: number,
+  min: number,
+  max: number,
+): number {
+  const next = last + (mid - last) * 0.08 + (Math.random() - 0.5) * vol * 2;
+  return r1(Math.min(max, Math.max(min, next)));
+}
+
+const MAX_LINE = lineMetrics.length;
+const MAX_CANDLE = candleDays.length;
+const MAX_BAR = 12;
+
 export const ChartPlayground = () => {
   const [renderer, setRenderer] = useState<"svg" | "canvas">("svg");
   const [kind, setKind] = useState<Kind>("line");
@@ -74,6 +98,71 @@ export const ChartPlayground = () => {
   );
   const [animated, setAnimated] = useState(true);
   const [easing, setEasing] = useState<string>("easeOutQuart");
+  const [streaming, setStreaming] = useState(false);
+  const [metrics, setMetrics] = useState(lineMetrics);
+  const [quarters, setQuarters] = useState(barQuarterly);
+  const [candles, setCandles] = useState(candleDays);
+
+  // Streaming: every 5 s inject a new point at the end of each streamable
+  // series and drop the oldest once the window max is reached.
+  useEffect(() => {
+    if (!streaming) return;
+    const id = setInterval(() => {
+      setMetrics((d) => {
+        const last = d[d.length - 1];
+        const prev = d[d.length - 2] ?? last;
+        const step = last.date.getTime() - prev.date.getTime() || 7 * DAY_MS;
+        const next = {
+          date: new Date(last.date.getTime() + step),
+          arr: walk(last.arr, 200, 22, 60, 330),
+          activation: walk(last.activation, 55, 8, 30, 85),
+          retention: walk(last.retention, 75, 5, 55, 92),
+          risk: walk(last.risk, 95, 12, 55, 140),
+        };
+        return d.length >= MAX_LINE ? [...d.slice(1), next] : [...d, next];
+      });
+      setQuarters((d) => {
+        const last = d[d.length - 1];
+        const num = last ? Number(last.category.slice(1)) : 4;
+        const revenue = Math.round(walk(last?.revenue ?? 520, 520, 90, 300, 800));
+        const profit = Math.round(revenue * (0.26 + Math.random() * 0.16));
+        const next = {
+          category: `Q${num + 1}`,
+          revenue,
+          profit,
+          cost: Math.max(0, revenue - profit),
+        };
+        return d.length >= MAX_BAR ? [...d.slice(1), next] : [...d, next];
+      });
+      setCandles((d) => {
+        const last = d[d.length - 1];
+        let t = last.date.getTime() + DAY_MS;
+        // next trading day (skip weekends)
+        while (
+          (new Date(t).getUTCDay() === 0 || new Date(t).getUTCDay() === 6) &&
+          t - last.date.getTime() < 8 * DAY_MS
+        ) {
+          t += DAY_MS;
+        }
+        const open = last.close;
+        const close =
+          open +
+          (Math.random() < 0.5 ? -1 : 1) * (0.4 + Math.random() * 1.8) +
+          (Math.random() - 0.5) * 2.4;
+        const next = {
+          date: new Date(t),
+          open: r1(open),
+          close: r1(Math.max(5, close)),
+          high: r1(Math.max(open, close) + Math.random() * 1.6),
+          low: r1(Math.max(4, Math.min(open, close) - Math.random() * 1.6)),
+        };
+        return d.length >= MAX_CANDLE
+          ? [...d.slice(1), next]
+          : [...d, next];
+      });
+    }, 5000);
+    return () => clearInterval(id);
+  }, [streaming]);
 
   const animation: ChartAnimation = useMemo(
     () => (animated ? { duration: 900, easing } : false),
@@ -117,7 +206,7 @@ export const ChartPlayground = () => {
         {kind === "line" && (
           <>
             <Chart.Line
-              data={lineMetrics}
+              data={metrics}
               name="Expansion ARR"
               color="violet"
               valueYField="arr"
@@ -128,7 +217,7 @@ export const ChartPlayground = () => {
               showMarkers={showMarkers}
             />
             <Chart.Line
-              data={lineMetrics}
+              data={metrics}
               name="Week 8 retention"
               color="emerald"
               valueYField="retention"
@@ -137,7 +226,7 @@ export const ChartPlayground = () => {
               showMarkers={showMarkers}
             />
             <Chart.Line
-              data={lineMetrics}
+              data={metrics}
               name="Support risk"
               color="red"
               valueYField="risk"
@@ -152,7 +241,7 @@ export const ChartPlayground = () => {
         {kind === "bar" && (
           <>
             <Chart.Bar
-              data={barQuarterly}
+              data={quarters}
               name="Revenue"
               valueYField="revenue"
               color="violet"
@@ -162,7 +251,7 @@ export const ChartPlayground = () => {
               segmentGap={segmentGap}
             />
             <Chart.Bar
-              data={barQuarterly}
+              data={quarters}
               name="Profit"
               valueYField="profit"
               color="emerald"
@@ -191,7 +280,7 @@ export const ChartPlayground = () => {
         {kind === "candlestick" && (
           <>
             <Chart.Candlestick
-              data={candleDays}
+              data={candles}
               name="Index"
               variant={candleVariant}
               highlightSelected={candleSelected}
@@ -413,6 +502,13 @@ export const ChartPlayground = () => {
             options={EASING_PRESETS.map((e) => ({ label: e, value: e }))}
             value={easing}
             onChange={setEasing}
+          />
+        )}
+        {kind !== "pie" && (
+          <ToggleRow
+            label="Streaming (5 s)"
+            checked={streaming}
+            onChange={setStreaming}
           />
         )}
       </>
