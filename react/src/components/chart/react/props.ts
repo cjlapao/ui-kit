@@ -159,8 +159,12 @@ export interface XAxisProps {
   tickCount?: number;
   /** Axis title. */
   label?: string;
-  /** Horizontal gridlines. Default true (cartesian charts). */
+  /** Vertical gridlines. Default true (cartesian, non-categorical). */
   grid?: boolean;
+  /** Gridline stroke style. Default "solid". */
+  gridDash?: "solid" | "dashed";
+  /** Gridline opacity 0–1 (intensity). Default 1. */
+  gridOpacity?: number;
   /** Custom tick formatter (linear: number → string; time: Date → string). */
   format?: (tick: number | Date) => string;
 }

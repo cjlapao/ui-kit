@@ -82,7 +82,7 @@ export const ChartPlayground = () => {
 
   const stacked = barMode !== "group";
   const angles = SWEEP_ANGLES[sweep];
-  const yGridProps = {
+  const gridProps = {
     grid: grid === "off" ? false : undefined,
     gridDash: grid === "dashed" ? ("dashed" as const) : ("solid" as const),
     gridOpacity: Number(gridFade),
@@ -143,8 +143,8 @@ export const ChartPlayground = () => {
               lineStyle="dotted"
               showMarkers={showMarkers}
             />
-            <Chart.XAxis />
-            <Chart.YAxis domain={[50, 350]} tickCount={6} {...yGridProps} />
+            <Chart.XAxis {...gridProps} />
+            <Chart.YAxis domain={[50, 350]} tickCount={6} {...gridProps} />
           </>
         )}
         {kind === "bar" && (
@@ -169,8 +169,8 @@ export const ChartPlayground = () => {
               cornerRadius={barCorner}
               segmentGap={segmentGap}
             />
-            <Chart.XAxis />
-            <Chart.YAxis tickCount={5} {...yGridProps} />
+            <Chart.XAxis {...gridProps} />
+            <Chart.YAxis tickCount={5} {...gridProps} />
           </>
         )}
         {kind === "pie" && (
@@ -189,8 +189,8 @@ export const ChartPlayground = () => {
         {kind === "candlestick" && (
           <>
             <Chart.Candlestick data={candleDays} name="Index" variant={candleVariant} />
-            <Chart.XAxis />
-            <Chart.YAxis tickCount={5} {...yGridProps} />
+            <Chart.XAxis {...gridProps} />
+            <Chart.YAxis tickCount={5} {...gridProps} />
           </>
         )}
         <Chart.Legend position={legendPosition} />

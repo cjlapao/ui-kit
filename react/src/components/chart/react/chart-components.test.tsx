@@ -809,3 +809,33 @@ describe("pie padAngle/cornerRadius + percent labels", () => {
     unmount();
   });
 });
+
+describe("XAxis vertical grid controls", () => {
+  const verticalGridLines = () =>
+    [...document.querySelectorAll('[data-chart-feature="xaxis"] line')].filter(
+      (l) => l.getAttribute("y1") !== l.getAttribute("y2"),
+    );
+
+  it("XAxis vertical grid is dashed when gridDash=dashed", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" />
+        <Chart.XAxis gridDash="dashed" />
+      </Chart.Svg>,
+    );
+    const vg = verticalGridLines();
+    expect(vg.length).toBeGreaterThan(0);
+    expect(vg[0].getAttribute("stroke-dasharray")).toBe("4 4");
+  });
+
+  it("XAxis vertical grid can be disabled", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" />
+        <Chart.XAxis grid={false} />
+      </Chart.Svg>,
+    );
+    // only the horizontal domain line remains
+    expect(verticalGridLines()).toHaveLength(0);
+  });
+});
