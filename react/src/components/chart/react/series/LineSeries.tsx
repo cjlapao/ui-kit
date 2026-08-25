@@ -102,7 +102,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     registerDraw,
     unregisterDraw,
   } = ctx;
-  const me = findSeries(ctx, "line", props.id, props.data);
+  const me = findSeries(ctx, "line", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const clipId = useId().replace(/:/g, "");
   const gradId = useId().replace(/:/g, "");
   const lastRef = useRef<LineGeometry | null>(null);

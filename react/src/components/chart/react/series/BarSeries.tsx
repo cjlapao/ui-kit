@@ -52,7 +52,7 @@ function frameBars(
 export function BarSeries(props: BarSeriesProps<unknown>) {
   const ctx = useChart();
   const { renderer, xScale, progress, registerDraw, unregisterDraw } = ctx;
-  const me = findSeries(ctx, "bar", props.id, props.data);
+  const me = findSeries(ctx, "bar", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<BarGeometry | null>(null);
   const prevRef = useRef<BarGeometry | null>(null);
 

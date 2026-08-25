@@ -102,6 +102,44 @@ describe("Chart.Svg", () => {
     expect(series!.querySelectorAll("path").length).toBe(5);
   });
 
+  it("resolves distinct states for series sharing one data array", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="First" color="violet" />
+        <Chart.Line data={lineData} name="Second" color="emerald" />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    const strokes = Array.from(
+      svg!.querySelectorAll("[data-chart-series] path[stroke]"),
+    )
+      .map((p) => p.getAttribute("stroke"))
+      .filter(Boolean);
+    // Both lines visible with their own resolved colors (no descriptor collision).
+    expect(strokes.some((s) => s === "#8b5cf6")).toBe(true);
+    expect(strokes.some((s) => s === "#10b981")).toBe(true);
+  });
+
+  it("unwraps fragment-wrapped children (playground pattern)", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Title title="Wrapped" />
+        {true && (
+          <>
+            <Chart.Line data={lineData} name="Frag" />
+            <Chart.XAxis />
+          </>
+        )}
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    expect(svg!.querySelector("[data-chart-series]")).toBeTruthy();
+    expect(screen.getByText("Wrapped")).toBeTruthy();
+  });
+
   it("renders an area when fillOpacity > 0", () => {
     render(
       <Chart.Svg height={300} {...noAnim}>

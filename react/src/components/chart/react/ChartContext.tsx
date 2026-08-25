@@ -6,6 +6,24 @@
  * functions that the root's rAF loop calls.
  */
 import { createContext, useContext } from "react";
+
+/** One pie slice with everything labels/legend need. */
+export interface PieSliceLabel {
+  name: string;
+  value: number;
+  color: string;
+  /** Mid-angle (radians, y-down, 0 = 12 o'clock, clockwise). */
+  labelAngle: number;
+}
+
+/** Pie geometry published by <Chart.Pie> for DataLabels and Legend. */
+export interface PiePresentation {
+  cx: number;
+  cy: number;
+  innerRadius: number;
+  outerRadius: number;
+  slices: PieSliceLabel[];
+}
 import type {
   CategoricalScale,
   ChartArea,
@@ -96,6 +114,18 @@ export interface ChartContextValue {
     x: number;
     y: number;
   }[];
+  /**
+   * Element-identity → SeriesState. The root stamps every series element
+   * with `__chartSeriesToken` (its own element object) so several series
+   * sharing one data array or type each resolve their own state.
+   */
+  seriesTokens: Map<object, SeriesState>;
+  /**
+   * seriesId → pie geometry (registered by <Chart.Pie> after mount so
+   * DataLabels/Legend can position per-slice marks). Consumers re-render
+   * via the redrawNonce bump that registration triggers.
+   */
+  piePresentations: Map<string, PiePresentation>;
 }
 
 const ChartContext = createContext<ChartContextValue | null>(null);

@@ -68,7 +68,7 @@ export function Legend(props: LegendProps = {}) {
   const { series, hiddenIds, toggleSeries, theme } = ctx;
   const vertical = props.orientation === "vertical";
 
-  const entries: Entry[] = series.map((s) => {
+  const entries: Entry[] = series.flatMap((s) => {
     const d = s.descriptor;
     let swatch: Entry["swatch"] = "line";
     let dash: number[] | null | undefined;
@@ -78,14 +78,30 @@ export function Legend(props: LegendProps = {}) {
     else if (d.fillOpacity) swatch = "area";
     else swatch = "line";
     dash = d.lineDash ?? null;
-    return {
-      id: d.id,
-      name: d.name ?? d.id,
-      color: s.color,
-      hidden: hiddenIds.has(d.id),
-      swatch,
-      dash,
-    };
+    // Pies list one entry per slice (name + slice color).
+    if (d.type === "pie") {
+      const pres = ctx.piePresentations.get(d.id);
+      if (pres) {
+        return pres.slices.map((slice) => ({
+          id: d.id,
+          name: slice.name,
+          color: slice.color,
+          hidden: hiddenIds.has(d.id),
+          swatch: "circle" as const,
+          dash: null,
+        }));
+      }
+    }
+    return [
+      {
+        id: d.id,
+        name: d.name ?? d.id,
+        color: s.color,
+        hidden: hiddenIds.has(d.id),
+        swatch,
+        dash,
+      },
+    ];
   });
 
   const rowStyle: CSSProperties = vertical

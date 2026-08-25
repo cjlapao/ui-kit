@@ -348,6 +348,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/workflow-tracker/WorkflowTrackerPage")),
   },
   {
+    slug: "chart",
+    name: "Chart",
+    description:
+      "PrimeUI-style compound charts — line, bar, pie/donut and candlestick — with animations, dual axes, reference bands and callouts on matching SVG and Canvas renderers.",
+    icon: "ChartLine",
+    category: "Data",
+    Page: lazy(() => import("./components/chart/ChartPage")),
+  },
+  {
     slug: "infinite-scroll-panel",
     name: "Infinite Scroll Panel",
     description:

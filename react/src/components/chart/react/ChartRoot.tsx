@@ -15,6 +15,7 @@
  * ref and repaints through registered draw functions (no React churn).
  */
 import {
+  cloneElement,
   forwardRef,
   useCallback,
   useEffect,
@@ -28,6 +29,7 @@ import type {
   CSSProperties,
   Key,
   PointerEvent as ReactPointerEvent,
+  ReactElement,
   ReactNode,
   Ref,
 } from "react";
@@ -59,6 +61,7 @@ import {
   type SeriesState,
 } from "./ChartContext";
 import {
+  flattenChartChildren,
   summarizeChildren,
   resolveSeriesColors,
   type ChartChildrenSummary,
@@ -154,7 +157,11 @@ function computeYDomain(
 ): [number, number] {
   if (override) return override;
   const visible = descriptors.filter(
-    (d) => d.type !== "pie" && !hidden.has(d.id) && d.yAccessor,
+    (d) =>
+      d.type !== "pie" &&
+      !hidden.has(d.id) &&
+      (d.yAccessor !== undefined ||
+        (d.type === "candlestick" && d.lowAccessor !== undefined)),
   );
   if (visible.length === 0) return [0, 1];
   let min = Infinity;
@@ -162,6 +169,20 @@ function computeYDomain(
   let hasBar = false;
   for (const d of visible) {
     if (d.type === "bar") hasBar = true;
+    if (d.type === "candlestick" && d.lowAccessor && d.highAccessor) {
+      // Candles span low→high per point.
+      for (let i = 0; i < d.data.length; i++) {
+        const lo = d.lowAccessor(d.data[i], i);
+        const hi = d.highAccessor(d.data[i], i);
+        for (const v of [lo, hi]) {
+          if (v === null || v === undefined || !Number.isFinite(v as number))
+            continue;
+          min = Math.min(min, v as number);
+          max = Math.max(max, v as number);
+        }
+      }
+      continue;
+    }
     for (let i = 0; i < d.data.length; i++) {
       const v = d.yAccessor!(d.data[i], i);
       if (v === null || v === undefined || !Number.isFinite(v as number)) continue;
@@ -401,12 +422,43 @@ export function ChartRootImpl({
   const duration = animation ? (animation.duration ?? 1000) : 1000;
   const easingName = animation ? (animation.easing ?? "easeOutQuart") : "linear";
 
+  // ── Series element tokens ─────────────────────────────────────────────────
+  // Several series may share one data array (or a type), which makes
+  // descriptor matching by id/data ambiguous. The root resolves this
+  // authoritatively: it stamps each series element (via cloneElement) with
+  // its own element object as `__chartSeriesToken`, and the series
+  // components look their state up through this map.
+  const elements = flattenChartChildren(children);
+  const seriesTokens = useMemo(() => {
+    const map = new Map<object, SeriesState>();
+    let k = 0;
+    for (const c of elements) {
+      if (typeof c !== "object" || c === null) continue;
+      const t = (c as { type?: unknown }).type;
+      if (
+        reg &&
+        (t === reg.Line ||
+          t === reg.Bar ||
+          t === reg.Pie ||
+          t === reg.Candlestick)
+      ) {
+        const state = series[k];
+        if (state) map.set(c, state);
+        k += 1;
+      }
+    }
+    return map;
+  }, [elements, series, reg]);
+
   const [progress, setProgress] = useState(animationsDisabled ? 1 : 0);
   const progressRef = useRef(progress);
   const settled = progress >= 1;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawFnsRef = useRef<Map<string, ChartDrawFn>>(new Map());
+  const piePresentationsRef = useRef<
+    Map<string, import("./ChartContext").PiePresentation>
+  >(new Map());
   const drawOnceRef = useRef<() => void>(() => {});
   const rafRef = useRef<number | null>(null);
   const [redrawNonce, setRedrawNonce] = useState(0);
@@ -802,6 +854,8 @@ export function ChartRootImpl({
       unregisterDraw,
       title: summary.title,
       seriesEndpoints,
+      seriesTokens,
+      piePresentations: piePresentationsRef.current,
     }),
     [
       renderer,
@@ -830,13 +884,11 @@ export function ChartRootImpl({
       unregisterDraw,
       summary.title,
       seriesEndpoints,
+      seriesTokens,
     ],
   );
 
   // ── Split children: plot marks (svg/canvas) vs HTML overlays ──────────────
-  const elements = (
-    Array.isArray(children) ? children : [children]
-  ).flat(Infinity) as ReactNode[];
   const plotChildren: ReactNode[] = [];
   const titleEl: ReactNode[] = [];
   const legendEl: ReactNode[] = [];
@@ -856,6 +908,18 @@ export function ChartRootImpl({
     else if (el.type === reg?.DataLabels) dataLabelsEl.push(c);
     else if (el.type === reg?.Hover) {
       // Hover renders null — kept out of the plot layer.
+    } else if (
+      el.type === reg?.Line ||
+      el.type === reg?.Bar ||
+      el.type === reg?.Pie ||
+      el.type === reg?.Candlestick
+    ) {
+      // Stamp the series with its element identity (see seriesTokens).
+      plotChildren.push(
+        cloneElement(c as ReactElement<Record<string, unknown>>, {
+          __chartSeriesToken: c,
+        }),
+      );
     } else {
       plotChildren.push(c);
     }
@@ -926,17 +990,24 @@ export function ChartRootImpl({
             )}
           </svg>
         ) : (
-          <canvas
-            ref={canvasRef}
-            role="img"
-            aria-label={aria}
-            style={{
-              display: "block",
-              cursor: hoverEnabled ? "crosshair" : "default",
-            }}
-            onPointerMove={handlePointerMove}
-            onPointerLeave={handlePointerLeave}
-          />
+          <>
+            <canvas
+              ref={canvasRef}
+              role="img"
+              aria-label={aria}
+              style={{
+                display: "block",
+                cursor: hoverEnabled ? "crosshair" : "default",
+              }}
+              onPointerMove={handlePointerMove}
+              onPointerLeave={handlePointerLeave}
+            />
+            {/*
+              Plot children mount here too: every mark renders null in canvas
+              mode, but their effects register the canvas draw functions.
+            */}
+            {plotChildren}
+          </>
         )}
 
         {/* HTML overlays — positioned from the layout, both renderers */}

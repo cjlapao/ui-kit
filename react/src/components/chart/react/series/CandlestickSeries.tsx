@@ -51,7 +51,7 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
   const ctx = useChart();
   const { renderer, xScale, area, progress, registerDraw, unregisterDraw } =
     ctx;
-  const me = findSeries(ctx, "candlestick", props.id, props.data);
+  const me = findSeries(ctx, "candlestick", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<CandleGeometry[] | null>(null);
   const prevRef = useRef<CandleGeometry[] | null>(null);
 

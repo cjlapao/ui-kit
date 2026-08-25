@@ -35,6 +35,22 @@ function ticksFor(
   return ticks.map((t) => ({ x: cont.map(t), label: format(t) }));
 }
 
+/**
+ * Pick a label anchor so edge ticks never clip: start at the left edge,
+ * end at the right edge, middle elsewhere (label width ≈ 6.1px/char @11px).
+ */
+function edgeAnchor(
+  label: string,
+  x: number,
+  left: number,
+  right: number,
+): "start" | "middle" | "end" {
+  const half = (label.length * 6.1) / 2;
+  if (x - half < left - 2) return "start";
+  if (x + half > right + 2) return "end";
+  return "middle";
+}
+
 export function XAxis(props: XAxisProps = {}) {
   const ctx = useChart();
   const { renderer, xScale, area, theme } = ctx;
@@ -65,9 +81,13 @@ export function XAxis(props: XAxisProps = {}) {
       c.stroke();
       c.fillStyle = theme.textColor;
       c.font = "11px sans-serif";
-      c.textAlign = "center";
       c.textBaseline = "top";
-      for (const t of ticks) c.fillText(t.label, t.x, bottom + 8);
+      const rightEdge = area.x + area.width;
+      for (const t of ticks) {
+        const a = edgeAnchor(t.label, t.x, area.x, rightEdge);
+        c.textAlign = a === "middle" ? "center" : a;
+        c.fillText(t.label, t.x, bottom + 8);
+      }
       if (props.label) {
         c.textAlign = "center";
         c.fillText(
@@ -86,6 +106,7 @@ export function XAxis(props: XAxisProps = {}) {
   const ticks = ticksFor(xScale, props);
   const bottom = area.y + area.height;
   const categorical = "bandWidth" in xScale;
+  const rightEdge = area.x + area.width;
 
   return (
     <g data-chart-feature="xaxis">
@@ -114,7 +135,7 @@ export function XAxis(props: XAxisProps = {}) {
           key={i}
           x={t.x}
           y={bottom + 8}
-          textAnchor="middle"
+          textAnchor={edgeAnchor(t.label, t.x, area.x, rightEdge)}
           dominantBaseline="hanging"
           fontSize={11}
           fill={theme.textColor}

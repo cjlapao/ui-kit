@@ -576,6 +576,36 @@ export const dropdownMaxHeightOptions: MultiToggleOption[] = [
   { label: "Tall", value: "420" },
 ];
 
+// ── Chart ────────────────────────────────────────────────────────────────────
+
+/** Line interpolation styles (the kit's `LineCurve` union, in display order). */
+export const chartCurveOptions: MultiToggleOption[] = [
+  { label: "Linear", value: "linear" },
+  { label: "Smooth", value: "smooth" },
+  { label: "Step", value: "step" },
+];
+
+/** The two renderers, both backed by the same layout + draw core. */
+export const chartRendererOptions: MultiToggleOption[] = [
+  { label: "SVG", value: "svg" },
+  { label: "Canvas", value: "canvas" },
+];
+
+/** Chart kinds offered by the playground. */
+export const chartKindOptions: MultiToggleOption[] = [
+  { label: "Line", value: "line" },
+  { label: "Bar", value: "bar" },
+  { label: "Pie", value: "pie" },
+  { label: "Candlestick", value: "candlestick" },
+];
+
+/** A small fixed height scale for the playground preview. */
+export const chartHeightOptions: MultiToggleOption[] = [
+  { label: "280", value: "280" },
+  { label: "380", value: "380" },
+  { label: "460", value: "460" },
+];
+
 // ── Icon Button ──────────────────────────────────────────────────────────────
 
 export const iconButtonRoundedOptions: MultiToggleOption[] = [

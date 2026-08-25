@@ -10,14 +10,23 @@ type Ctx = ReturnType<typeof useChart>;
 
 /**
  * Find this component's SeriesState in the root's series list.
- * Matches by explicit id first, then by data-array identity (auto ids).
+ * Resolution order:
+ *  1. the root's element-identity token (authoritative — multiple series
+ *     may share one data array or type),
+ *  2. explicit id,
+ *  3. data-array identity (auto ids).
  */
 export function findSeries(
   ctx: Ctx,
   type: "line" | "bar" | "pie" | "candlestick",
   myId: string | undefined,
   data: unknown[],
+  token?: object,
 ): SeriesState | null {
+  if (token) {
+    const byToken = ctx.seriesTokens.get(token);
+    if (byToken) return byToken;
+  }
   if (myId) {
     const byId = ctx.series.find((s) => s.descriptor.id === myId);
     if (byId) return byId;

@@ -3,6 +3,7 @@
  * left-edge pills in the reference demo). HTML pills, positioned from
  * the root's seriesEndpoints (works for both renderers).
  */
+import type { CSSProperties } from "react";
 import { formatSI } from "../../engine/index";
 import { useChart } from "../ChartContext";
 import type { DataLabelsProps } from "../props";
@@ -11,12 +12,49 @@ const PILL_H = 18;
 
 export function DataLabels(props: DataLabelsProps = {}) {
   const ctx = useChart();
-  const { seriesEndpoints, area, width } = ctx;
+  const { seriesEndpoints, series, area, width, piePresentations, height } = ctx;
   const position = props.position ?? "none";
-  if (position === "none" || seriesEndpoints.length === 0) return null;
+  if (position === "none") return null;
 
+  // Cartesian: endpoint badges. Pie/donut: one label per slice.
   const endpoints =
     position === "all" ? seriesEndpoints : seriesEndpoints; // v1: endpoints
+  const pieSlices =
+    position === "all"
+      ? series.flatMap((s) => {
+          if (s.descriptor.type !== "pie") return [];
+          const pres = piePresentations.get(s.descriptor.id);
+          if (!pres || s.hidden) return [];
+          const labelR =
+            pres.innerRadius > 0
+              ? (pres.innerRadius + pres.outerRadius) / 2
+              : pres.outerRadius * 0.62;
+          return pres.slices.map((sl) => ({
+            key: `${s.descriptor.id}-${sl.name}-${sl.value}`,
+            name: sl.name,
+            color: sl.color,
+            value: sl.value,
+            x: pres.cx + labelR * Math.sin(sl.labelAngle),
+            y: pres.cy - labelR * Math.cos(sl.labelAngle),
+          }));
+        })
+      : [];
+
+  if (endpoints.length === 0 && pieSlices.length === 0) return null;
+
+  const labelStyle: CSSProperties = {
+    position: "absolute",
+    height: PILL_H,
+    borderRadius: 999,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    fontWeight: 600,
+    fontVariantNumeric: "tabular-nums",
+    whiteSpace: "nowrap",
+    padding: "0 7px",
+  };
 
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
@@ -38,7 +76,7 @@ export function DataLabels(props: DataLabelsProps = {}) {
           props.anchor === "margin-left"
             ? Math.max(2, area.x - w - 6)
             : Math.min(width - w - 2, ep.x + 10);
-        const by = Math.max(2, Math.min(ep.y - PILL_H / 2, ctx.height - PILL_H - 2));
+        const by = Math.max(2, Math.min(ep.y - PILL_H / 2, height - PILL_H - 2));
 
         if (props.render) {
           return (
@@ -54,21 +92,50 @@ export function DataLabels(props: DataLabelsProps = {}) {
           <div
             key={ep.id}
             style={{
-              position: "absolute",
+              ...labelStyle,
               left: bx,
               top: by,
               width: w,
-              height: PILL_H,
-              borderRadius: 999,
               background: ep.color,
               color: "#ffffff",
-              fontSize: 11,
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontVariantNumeric: "tabular-nums",
-              whiteSpace: "nowrap",
+            }}
+          >
+            {text}
+          </div>
+        );
+      })}
+      {pieSlices.map((sl) => {
+        const text = props.formatter
+          ? props.formatter(sl.value, sl.name)
+          : formatSI(sl.value);
+        const w = text.length * 7 + 14;
+        const bx = Math.max(2, Math.min(width - w - 2, sl.x - w / 2));
+        const by = Math.max(2, Math.min(height - PILL_H - 2, sl.y - PILL_H / 2));
+        if (props.render) {
+          return (
+            <div key={sl.key} style={{ position: "absolute", left: bx, top: by }}>
+              {props.render({
+                seriesId: sl.name,
+                seriesName: sl.name,
+                color: sl.color,
+                value: sl.value,
+                x: sl.x,
+                y: sl.y,
+                isLast: false,
+              })}
+            </div>
+          );
+        }
+        return (
+          <div
+            key={sl.key}
+            style={{
+              ...labelStyle,
+              left: bx,
+              top: by,
+              width: w,
+              background: sl.color,
+              color: "#ffffff",
             }}
           >
             {text}

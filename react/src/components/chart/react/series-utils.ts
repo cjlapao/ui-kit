@@ -4,7 +4,7 @@
  * components consume the same shape via the context, so prop → accessor
  * mapping lives in exactly one place.
  */
-import type { ReactElement, ReactNode } from "react";
+import { Fragment, type ReactElement, type ReactNode } from "react";
 import { readAccessor, type Accessor } from "../engine/types";
 import { resolveColor } from "../engine/theme";
 import { DASH_PATTERNS, getDashPattern } from "./dash";
@@ -52,6 +52,32 @@ export function xKey(
   }
   if (typeof x === "string") return x;
   return typeof x === "number" ? x : String(x);
+}
+
+/**
+ * Recursively flatten children, unwrapping fragments and arrays. React 19
+ * keeps fragments as opaque elements — `Array#flat` and `Children.toArray`
+ * do not descend into them — so consumers wrapping series in `<>…</>` or
+ * conditional groups would otherwise be invisible to the root.
+ */
+export function flattenChartChildren(children: ReactNode): ReactNode[] {
+  const out: ReactNode[] = [];
+  const visit = (node: ReactNode): void => {
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child);
+      return;
+    }
+    if (node !== null && typeof node === "object") {
+      const el = node as { type?: unknown; props?: { children?: ReactNode } };
+      if (el.type === Fragment && el.props?.children != null) {
+        visit(el.props.children);
+        return;
+      }
+    }
+    if (node !== null && node !== undefined) out.push(node);
+  };
+  visit(children);
+  return out;
 }
 
 /**
@@ -278,9 +304,9 @@ export function summarizeChildren(
     DataLabels: React.ComponentType | (new () => unknown);
   },
 ): ChartChildrenSummary {
-  const elements = (
-    Array.isArray(children) ? children : [children]
-  ).flat(Infinity) as ReactNode[];
+  // flattenChartChildren unwraps fragments, arrays and conditional groups —
+  // the root's split loop uses the same helper, so both see an identical list.
+  const elements = flattenChartChildren(children);
 
   const summary: ChartChildrenSummary = {
     series: [],
