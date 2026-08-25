@@ -113,8 +113,8 @@ export default function LineReference() {
           anchor="margin-left"
           render={({ color, value }) => (
             <span
-              className="rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums"
-              style={{ color, background: "var(--chart-badge-bg, transparent)" }}
+              className="rounded-full bg-neutral-500/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums dark:bg-neutral-400/15"
+              style={{ color }}
             >
               {Math.round(value)}
             </span>
