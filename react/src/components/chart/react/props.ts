@@ -102,6 +102,13 @@ export interface PieSeriesProps<T = unknown> {
   padAngle?: number;
   /** Slice corner radius in px (clamped to the ring width / 2). Default 0. */
   cornerRadius?: number;
+  /** Show percentage labels inside the slices. Default false. */
+  showPercentLabels?: boolean;
+  /**
+   * Only label slices whose share of the total is at least this percent
+   * (e.g. 5 = ≥5%). Default 5.
+   */
+  minPercentLabel?: number;
   animation?: ChartAnimation;
   /** Center content (donut). Rendered above the chart. */
   children?: ReactNode;
@@ -367,6 +374,8 @@ export interface SeriesDescriptor {
   piePadAngle?: number;
   pieCornerRadius?: number;
   pieColors?: ChartColor[];
+  piePercentLabels?: boolean;
+  pieMinPercentLabel?: number;
   // candlestick
   openAccessor?: (item: unknown, index: number) => number;
   highAccessor?: (item: unknown, index: number) => number;

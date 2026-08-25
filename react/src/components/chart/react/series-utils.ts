@@ -184,6 +184,8 @@ export function describeSeries(
       piePadAngle: pp.padAngle,
       pieCornerRadius: pp.cornerRadius,
       pieColors: pp.colors,
+      piePercentLabels: pp.showPercentLabels ?? false,
+      pieMinPercentLabel: pp.minPercentLabel ?? 5,
       animation,
     };
   }

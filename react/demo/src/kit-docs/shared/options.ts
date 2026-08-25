@@ -656,6 +656,13 @@ export const chartSweepOptions: MultiToggleOption[] = [
   { label: "180°", value: "180" },
 ];
 
+/** In-slice percent labels: 0 = off, otherwise slices ≥ that share. */
+export const chartPieLabelOptions: MultiToggleOption[] = [
+  { label: "Off", value: "0" },
+  { label: "≥5%", value: "5" },
+  { label: "≥10%", value: "10" },
+];
+
 /** Candlestick rendering variants (the kit's `CandlestickVariant` union). */
 export const chartCandleVariantOptions: MultiToggleOption[] = [
   { label: "Candles", value: "candle" },

@@ -41,7 +41,16 @@ export function computePieGeometry(input: PieSeriesInput): PieGeometry {
   const total = items.reduce((acc, d) => acc + (Number.isFinite(d.value) ? d.value : 0), 0);
 
   if (total <= 0) {
-    return { slices: [], total: 0, cx, cy, outerRadius, innerRadius };
+    return {
+      slices: [],
+      total: 0,
+      cx,
+      cy,
+      outerRadius,
+      innerRadius,
+      padAngle,
+      cornerRadius: sliceCorner,
+    };
   }
 
   // d3 pie with sort disabled — data order is the slice order.
@@ -76,7 +85,16 @@ export function computePieGeometry(input: PieSeriesInput): PieGeometry {
     };
   });
 
-  return { slices, total, cx, cy, outerRadius, innerRadius };
+  return {
+    slices,
+    total,
+    cx,
+    cy,
+    outerRadius,
+    innerRadius,
+    padAngle,
+    cornerRadius: sliceCorner,
+  };
 }
 
 /**

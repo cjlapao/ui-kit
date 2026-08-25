@@ -10,6 +10,7 @@ import {
   computePieGeometry,
   lerp,
   resolveColor,
+  shadeColor,
   DEFAULT_SERIES_PALETTE,
 } from "../../engine/index";
 import type { PieGeometry } from "../../engine/types";
@@ -31,7 +32,13 @@ function sweepPaths(
   if (geometry.slices.length === 0) return [];
   const innerR = geometry.innerRadius;
   const outerR = geometry.outerRadius;
-  const gen = arc().innerRadius(innerR).outerRadius(outerR);
+  // padAngle/cornerRadius must match the settled (engine) paths — otherwise
+  // the reveal ends on a different shape than the engine's final slices.
+  const gen = arc()
+    .innerRadius(innerR)
+    .outerRadius(outerR)
+    .padAngle(geometry.padAngle ?? 0)
+    .cornerRadius(geometry.cornerRadius ?? 0);
   const totalSweep = geometry.slices.reduce(
     (acc, s) => acc + (s.endAngle - s.startAngle),
     0,
@@ -49,6 +56,26 @@ function sweepPaths(
   });
 }
 
+/**
+ * Per-slice reveal fraction at a given sweep progress (0 = not started,
+ * 1 = fully revealed) — drives the per-slice label count-up.
+ */
+function sliceRevealFractions(geometry: PieGeometry, progress: number): number[] {
+  if (geometry.slices.length === 0) return [];
+  const totalSweep = geometry.slices.reduce(
+    (acc, s) => acc + (s.endAngle - s.startAngle),
+    0,
+  );
+  const reveal = totalSweep * progress;
+  let cursor = 0;
+  return geometry.slices.map((s) => {
+    const span = Math.max(s.endAngle - s.startAngle, 1e-6);
+    const frac = Math.max(0, Math.min(1, (reveal - cursor) / span));
+    cursor += s.endAngle - s.startAngle;
+    return frac;
+  });
+}
+
 function interpolatedPaths(
   cur: PieGeometry,
   prev: PieGeometry | null,
@@ -59,12 +86,18 @@ function interpolatedPaths(
   }
   const gen = arc()
     .innerRadius(cur.innerRadius)
-    .outerRadius(cur.outerRadius);
+    .outerRadius(cur.outerRadius)
+    .padAngle(cur.padAngle ?? 0)
+    .cornerRadius(cur.cornerRadius ?? 0);
   const n = Math.min(cur.slices.length, prev.slices.length);
   return cur.slices.map((s, i) => {
     if (i >= n) {
       // entering slice: sweep in from its own start
-      const gen2 = arc().innerRadius(cur.innerRadius).outerRadius(cur.outerRadius);
+      const gen2 = arc()
+        .innerRadius(cur.innerRadius)
+        .outerRadius(cur.outerRadius)
+        .padAngle(cur.padAngle ?? 0)
+        .cornerRadius(cur.cornerRadius ?? 0);
       return {
         index: i,
         path:
@@ -94,7 +127,13 @@ function interpolatedPaths(
 
 export function PieSeries(props: PieSeriesProps<unknown>) {
   const ctx = useChart();
-  const { renderer, area, progress, registerDraw, unregisterDraw } = ctx;
+  const {
+    renderer,
+    area,
+    progress,
+    registerDraw,
+    unregisterDraw,
+  } = ctx;
   const me = findSeries(ctx, "pie", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<PieGeometry | null>(null);
   const prevRef = useRef<PieGeometry | null>(null);
@@ -159,6 +198,39 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
   }
   const prev = progress < 1 ? prevRef.current : null;
 
+  // ── Percentage labels (inside slices, count-up + grow on entrance) ───────
+  const pctLabel = (v: number) =>
+    (v >= 10 ? String(Math.round(v)) : String(Math.round(v * 10) / 10)) + "%";
+
+  const percentLabels = useMemo(() => {
+    if (!final || final.total <= 0 || !me) return [];
+    const d = me.descriptor;
+    if (!d.piePercentLabels) return [];
+    const minPct = d.pieMinPercentLabel ?? 5;
+    const rLabel = (final.innerRadius + final.outerRadius) / 2;
+    const out: {
+      index: number;
+      x: number;
+      y: number;
+      pct: number;
+      color: string;
+    }[] = [];
+    final.slices.forEach((s, i) => {
+      const pct = (s.value / final.total) * 100;
+      if (pct < minPct) return;
+      out.push({
+        index: i,
+        x: final.cx + Math.sin(s.labelAngle) * rLabel,
+        y: final.cy - Math.cos(s.labelAngle) * rLabel,
+        pct,
+        color: sliceColors[i] ?? baseColor,
+      });
+    });
+    return out;
+    // me + final + colors are stable across re-renders (see the final memo).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [final, me, sliceColors, baseColor]);
+
   // Publish per-slice presentation (name/value/color/angle + geometry) for
   // DataLabels and Legend. Registered post-render; the redrawNonce bump
   // re-renders the consumers once the entry exists.
@@ -212,6 +284,38 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
         c.fill(new Path2D(path));
       });
       c.restore();
+      // Percentage labels: count up + grow in step with each slice's reveal.
+      if (percentLabels.length > 0) {
+        const entrance = prevRef.current === null;
+        const fracs = entrance
+          ? sliceRevealFractions(final!, st.progress)
+          : percentLabels.map(() => 1);
+        c.save();
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        percentLabels.forEach((lb) => {
+          const lp = Math.max(0.001, fracs[lb.index] ?? 0);
+          const size = 11 * lp;
+          if (size < 2) return;
+          const text = pctLabel(lb.pct * lp);
+          c.globalAlpha = lp;
+          c.font = `600 ${size}px sans-serif`;
+          const w = text.length * size * 0.58 + 12 * lp;
+          const h = 17 * lp;
+          c.fillStyle = shadeColor(lb.color, 0.45);
+          if (typeof (c as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect === "function") {
+            c.beginPath();
+            (c as CanvasRenderingContext2D & { roundRect: (x: number, y: number, w: number, h: number, r: number) => void }).roundRect(lb.x - w / 2, lb.y - h / 2, w, h, h / 2);
+            c.fill();
+          } else {
+            c.fillRect(lb.x - w / 2, lb.y - h / 2, w, h);
+          }
+          c.fillStyle = "#fff";
+          c.fillText(text, lb.x, lb.y + 0.5);
+          c.globalAlpha = 1;
+        });
+        c.restore();
+      }
     };
     registerDraw(id, fn);
     return () => unregisterDraw(id);
@@ -223,6 +327,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     seriesId,
     baseColor,
     sliceColors,
+    percentLabels,
     registerDraw,
     unregisterDraw,
   ]);
@@ -266,6 +371,44 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
           </g>
         );
       })}
+      {percentLabels.length > 0 &&
+        (() => {
+          const entrance = prev === null;
+          const fracs = entrance
+            ? sliceRevealFractions(final, progress)
+            : percentLabels.map(() => 1);
+          return percentLabels.map((lb) => {
+            const lp = Math.max(0.001, fracs[lb.index] ?? 0);
+            const size = 11 * lp;
+            if (size < 2) return null;
+            const text = pctLabel(lb.pct * lp);
+            const w = text.length * size * 0.58 + 12 * lp;
+            const h = 17 * lp;
+            return (
+              <g key={lb.index} opacity={lp} pointerEvents="none">
+                <rect
+                  x={lb.x - w / 2}
+                  y={lb.y - h / 2}
+                  width={w}
+                  height={h}
+                  rx={h / 2}
+                  fill={shadeColor(lb.color, 0.45)}
+                />
+                <text
+                  x={lb.x}
+                  y={lb.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={size}
+                  fontWeight={600}
+                  fill="#fff"
+                >
+                  {text}
+                </text>
+              </g>
+            );
+          });
+        })()}
       {typeof props.children === "string" && (
         <text
           x={final.cx}

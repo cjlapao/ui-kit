@@ -739,3 +739,73 @@ describe("grid + area gradient options", () => {
     expect(stops[1].getAttribute("stop-opacity")).toBe("0");
   });
 });
+
+describe("pie padAngle/cornerRadius + percent labels", () => {
+  it("settled SVG pie paths honor padAngle and cornerRadius", () => {
+    const { rerender } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Pie data={pieData} name="Mix" innerRadius={0.6} />
+      </Chart.Svg>,
+    );
+    const plain = document.querySelector("svg[role=img] path")!.getAttribute(
+      "d",
+    );
+    rerender(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Pie
+          data={pieData}
+          name="Mix"
+          innerRadius={0.6}
+          padAngle={0.05}
+          cornerRadius={8}
+        />
+      </Chart.Svg>,
+    );
+    const gapped = document.querySelector("svg[role=img] path")!.getAttribute(
+      "d",
+    );
+    expect(gapped).not.toBe(plain);
+  });
+
+  it("pie percent labels respect the min-share threshold", () => {
+    const { rerender } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Pie data={pieData} name="Mix" showPercentLabels />
+      </Chart.Svg>,
+    );
+    expect(screen.getByText("40%")).toBeTruthy();
+    expect(screen.getByText("60%")).toBeTruthy();
+    rerender(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Pie data={pieData} name="Mix" showPercentLabels minPercentLabel={50} />
+      </Chart.Svg>,
+    );
+    expect(screen.queryByText("40%")).toBeNull();
+    expect(screen.getByText("60%")).toBeTruthy();
+  });
+
+  it("pie percent labels count up during the entrance", () => {
+    vi.useFakeTimers();
+    const raf = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((cb) =>
+        setTimeout(() => cb(performance.now()), 16) as unknown as number,
+      );
+    const { unmount } = render(
+      <Chart.Svg height={300} animation={{ duration: 300 }}>
+        <Chart.Pie data={pieData} name="Mix" showPercentLabels />
+      </Chart.Svg>,
+    );
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+    // mid-entrance: the 60% slice has not counted up to its final value yet
+    expect(document.body.textContent).not.toContain("60%");
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(document.body.textContent).toContain("60%");
+    raf.mockRestore();
+    unmount();
+  });
+});

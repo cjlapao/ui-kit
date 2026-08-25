@@ -24,6 +24,7 @@ import {
   chartLegendPositionOptions,
   chartPieCornerOptions,
   chartPieGapOptions,
+  chartPieLabelOptions,
   chartRendererOptions,
   chartSegmentGapOptions,
   chartSweepOptions,
@@ -61,6 +62,7 @@ export const ChartPlayground = () => {
   const [donut, setDonut] = useState(true);
   const [pieGap, setPieGap] = useState(0);
   const [pieCorner, setPieCorner] = useState(0);
+  const [pieLabelMin, setPieLabelMin] = useState(5);
   const [sweep, setSweep] = useState<Sweep>("full");
   const [candleVariant, setCandleVariant] = useState<CandlestickVariant>(
     "candle",
@@ -180,6 +182,8 @@ export const ChartPlayground = () => {
             sweepAngle={angles.sweep}
             padAngle={pieGap}
             cornerRadius={pieCorner}
+            showPercentLabels={pieLabelMin > 0}
+            minPercentLabel={pieLabelMin}
           />
         )}
         {kind === "candlestick" && (
@@ -306,6 +310,15 @@ export const ChartPlayground = () => {
                 options={chartPieCornerOptions}
                 value={String(pieCorner)}
                 onChange={(v) => setPieCorner(Number(v))}
+              />
+            </Control>
+            <Control label="Slice %">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartPieLabelOptions}
+                value={String(pieLabelMin)}
+                onChange={(v) => setPieLabelMin(Number(v))}
               />
             </Control>
             {donut && (

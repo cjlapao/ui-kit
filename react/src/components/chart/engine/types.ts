@@ -271,6 +271,10 @@ export interface PieGeometry {
   cy: number;
   outerRadius: number;
   innerRadius: number;
+  /** Pad applied to the slice paths (radians) — for animated generators. */
+  padAngle: number;
+  /** Clamped slice corner radius (px) — for animated generators. */
+  cornerRadius: number;
 }
 
 export interface CandleGeometry {
