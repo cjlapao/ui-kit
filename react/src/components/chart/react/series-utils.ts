@@ -14,6 +14,7 @@ import type {
   LineSeriesProps,
   PieSeriesProps,
   RangeAreaSeriesProps,
+  RadarSeriesProps,
   SeriesDescriptor,
 } from "./props";
 
@@ -104,7 +105,7 @@ export function describeSeries(
   el: ReactElement<Record<string, unknown>>,
   index: number,
   paletteIndex: number,
-  kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea",
+  kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -267,6 +268,41 @@ export function describeSeries(
     };
   }
 
+  // Radar: one polygon per series on a shared axis set.
+  if (kind === "radar") {
+    const rp = p as unknown as RadarSeriesProps<never>;
+    const axisField = rp.axisField ?? "axis";
+    const valueField = rp.valueYField ?? "value";
+    return {
+      id,
+      type: "radar",
+      name,
+      color: rp.color,
+      paletteIndex,
+      data,
+      // Radar is not cartesian — xAccessor is unused, keep it inert.
+      xAccessor: () => 0,
+      radarAccessor: fieldAccessor<never, number | null | undefined>(
+        valueField as Accessor<never, number | null | undefined> | string,
+        String(valueField),
+      ),
+      radarAxisAccessor: fieldAccessor<never, string>(
+        axisField as Accessor<never, string> | string,
+        String(axisField),
+      ),
+      lineDash: rp.lineDash ?? null,
+      lineStrokeWidth: rp.lineStrokeWidth ?? 2,
+      radarShowMarkers: rp.showMarkers ?? true,
+      markerSize: rp.markerSize ?? 3,
+      radarGoal: rp.goal,
+      radarGoalLabel: rp.goalLabel,
+      fillStyle: rp.fillStyle ?? "flat",
+      fillColor: rp.fillColor,
+      fillOpacity: rp.fillOpacity ?? 0.18,
+      animation,
+    };
+  }
+
   // Line (default): cartesian x + y.
   const lp = p as unknown as LineSeriesProps<never>;
   const categoryXField = lp.categoryXField ?? defaultXField(data);
@@ -346,6 +382,13 @@ export interface ChartChildrenSummary {
   hasReferenceBand: boolean;
   hasAnnotation: boolean;
   hasDataLabels: boolean;
+  /** Radar grid config (from <Chart.RadarAxis>). */
+  radarAxis?: {
+    rings?: number;
+    domainMax?: number;
+    tickFormat?: (value: number) => string;
+    showAxisLabels?: boolean;
+  };
   seriesCount: number;
 }
 
@@ -358,6 +401,8 @@ export function summarizeChildren(
     Pie: React.ComponentType | (new () => unknown);
     Candlestick: React.ComponentType | (new () => unknown);
     RangeArea: React.ComponentType | (new () => unknown);
+    Radar: React.ComponentType | (new () => unknown);
+    RadarAxis: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -408,9 +453,10 @@ export function summarizeChildren(
       t === types.Bar ||
       t === types.Pie ||
       t === types.Candlestick ||
-      t === types.RangeArea
+      t === types.RangeArea ||
+      t === types.Radar
     ) {
-      const kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" =
+      const kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" =
         t === types.Bar
           ? "bar"
           : t === types.Pie
@@ -419,7 +465,9 @@ export function summarizeChildren(
               ? "candlestick"
               : t === types.RangeArea
                 ? "rangeArea"
-                : "line";
+                : t === types.Radar
+                  ? "radar"
+                  : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,
@@ -434,6 +482,17 @@ export function summarizeChildren(
     if (t === types.XAxis) {
       summary.hasXAxis = true;
       summary.xAxisTickCount = props.tickCount as number | undefined;
+      continue;
+    }
+    if (t === types.RadarAxis) {
+      summary.radarAxis = {
+        rings: props.rings as number | undefined,
+        domainMax: props.domainMax as number | undefined,
+        tickFormat: props.tickFormat as
+          | ((value: number) => string)
+          | undefined,
+        showAxisLabels: props.showAxisLabels as boolean | undefined,
+      };
       continue;
     }
     if (t === types.YAxis) {

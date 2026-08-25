@@ -1181,3 +1181,189 @@ describe("line fill between two lines", () => {
     expect(l).toBe(l2);
   });
 });
+
+// ── Radar (spider) chart ─────────────────────────────────────────────────────
+
+const radarData = [
+  { axis: "SSO", launch: 88, target: 97, benchmark: 95 },
+  { axis: "Data residency", launch: 78, target: 93, benchmark: 88 },
+  { axis: "Audit exports", launch: 82, target: 95, benchmark: 97 },
+  { axis: "Key rotation", launch: 55, target: 88, benchmark: 75 },
+  { axis: "RPO drills", launch: 48, target: 90, benchmark: 62 },
+  { axis: "Admin guardrails", launch: 58, target: 85, benchmark: 78 },
+  { axis: "Procurement", launch: 72, target: 88, benchmark: 92 },
+  { axis: "Support SLA", launch: 76, target: 90, benchmark: 85 },
+];
+
+function renderRadar(
+  extra: Record<string, unknown> = {},
+  targetProps: Record<string, unknown> = {},
+) {
+  return render(
+    <Chart.Svg height={300} {...noAnim}>
+      <Chart.Radar
+        data={radarData}
+        name="Launch build"
+        valueYField="launch"
+        color="violet"
+        {...extra}
+      />
+      <Chart.Radar
+        data={radarData}
+        name="Target bar"
+        valueYField="target"
+        color="teal"
+        lineDash={[6, 4]}
+        {...targetProps}
+      />
+      <Chart.Radar
+        data={radarData}
+        name="Buyer benchmark"
+        valueYField="benchmark"
+        color="amber"
+      />
+      <Chart.RadarAxis rings={4} tickFormat={(t) => `${t} pts`} />
+      <Chart.Legend />
+      <Chart.Tooltip />
+      <Chart.Hover />
+    </Chart.Svg>,
+  );
+}
+
+/** Read the radar center + outer radius from the rendered grid. */
+function radarCenter() {
+  const spoke = document.querySelector(
+    '[data-chart-layer="radar-grid"] line',
+  ) as SVGLineElement;
+  const cx = Number(spoke.getAttribute("x1"));
+  const cy = Number(spoke.getAttribute("y1"));
+  const R = Math.hypot(
+    Number(spoke.getAttribute("x2")) - cx,
+    Number(spoke.getAttribute("y2")) - cy,
+  );
+  return { cx, cy, R };
+}
+
+describe("radar series", () => {
+  it("renders the shared grid (rings, spokes, axis + tick labels)", () => {
+    renderRadar();
+    const grid = document.querySelector('[data-chart-layer="radar-grid"]');
+    expect(grid).toBeTruthy();
+    expect(grid!.querySelectorAll("path").length).toBe(4); // rings
+    expect(grid!.querySelectorAll("line").length).toBe(8); // spokes
+    const labels = grid!.querySelectorAll("text");
+    expect(labels.length).toBe(12); // 8 axis + 4 ticks
+    expect([...labels].some((t) => t.textContent === "SSO")).toBe(true);
+    expect(
+      [...labels].some((t) => t.textContent === "100 pts"),
+    ).toBe(true);
+  });
+
+  it("renders one polygon + markers per series, dashed where set", () => {
+    renderRadar();
+    const groups = document.querySelectorAll("[data-chart-series]");
+    expect(groups.length).toBe(3);
+    for (const g of groups) {
+      const paths = g.querySelectorAll("path");
+      expect(paths.length).toBe(2); // fill + outline
+      expect(g.querySelectorAll("circle").length).toBeGreaterThanOrEqual(8);
+    }
+    const target = document.querySelectorAll(
+      '[data-chart-series] path[stroke-dasharray="6 4"]',
+    );
+    expect(target.length).toBe(1);
+    // legend lists all three series
+    expect(document.body.textContent).toContain("Launch build");
+    expect(document.body.textContent).toContain("Target bar");
+    expect(document.body.textContent).toContain("Buyer benchmark");
+  });
+
+  it("flat fill renders the polygon at fillOpacity", () => {
+    renderRadar();
+    const fill = document.querySelector(
+      '[data-chart-series="series-0"] path[fill]:not([fill="none"])',
+    );
+    expect(fill).toBeTruthy();
+    expect(fill!.getAttribute("opacity")).toBe("0.18");
+  });
+
+  it("fillStyle=gradient renders a radial gradient def", () => {
+    renderRadar({ fillStyle: "gradient" }, { fillStyle: "gradient" });
+    const grad = document.querySelector('[data-chart-series] radialGradient');
+    expect(grad).toBeTruthy();
+    const stops = grad!.querySelectorAll("stop");
+    expect(stops[0].getAttribute("stop-opacity")).toBe("0");
+    expect(stops[1].getAttribute("stop-opacity")).toBe("0.18");
+    const filled = document.querySelector(
+      '[data-chart-series] path[fill^="url"]',
+    );
+    expect(filled).toBeTruthy();
+  });
+
+  it("goal renders a dot + label on the first axis", () => {
+    renderRadar({}, { goal: 80, goalLabel: "Launch-ready ≥ 80 pts" });
+    const texts = document.body.textContent ?? "";
+    expect(texts).toContain("Launch-ready ≥ 80 pts");
+    // the goal dot: a circle with r=4 inside the target group
+    const group = document.querySelectorAll("[data-chart-series]")[1];
+    const dot = group.querySelector("circle[r='4']");
+    expect(dot).toBeTruthy();
+  });
+
+  it("tooltip snaps to the nearest axis with one row per series", () => {
+    renderRadar();
+    const svg = document.querySelector("svg[role=img]")!;
+    const rects = svg.querySelectorAll("rect");
+    const hoverRect = rects[rects.length - 1] as SVGRectElement;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 300,
+        width: 800,
+        height: 300,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return this;
+        },
+      }),
+      configurable: true,
+    });
+    // straight above the center → nearest axis is 0 ("SSO")
+    const { cx, cy, R } = radarCenter();
+    fireEvent.pointerMove(hoverRect, { clientX: cx, clientY: cy - R / 2 });
+    const tip = document.querySelector('[data-chart-feature="tooltip"]');
+    expect(tip).toBeTruthy();
+    const text = tip!.textContent ?? "";
+    expect(text).toContain("SSO");
+    expect(text).toContain("88");
+    expect(text).toContain("97");
+    expect(text).toContain("95");
+  });
+
+  it("renders on canvas without crashing", () => {
+    render(
+      <Chart.Canvas height={300} {...noAnim}>
+        <Chart.Radar
+          data={radarData}
+          name="Launch build"
+          valueYField="launch"
+          color="violet"
+        />
+        <Chart.Radar
+          data={radarData}
+          name="Target bar"
+          valueYField="target"
+          color="teal"
+          lineDash={[6, 4]}
+          goal={80}
+          goalLabel="Launch-ready"
+        />
+        <Chart.RadarAxis rings={4} />
+      </Chart.Canvas>,
+    );
+    expect(document.querySelector("canvas")).toBeTruthy();
+  });
+});

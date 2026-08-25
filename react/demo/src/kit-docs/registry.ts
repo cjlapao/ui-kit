@@ -422,6 +422,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/RangeAreaChartPage")),
   },
   {
+    slug: "charts-radar",
+    name: "Radar",
+    description:
+      "A spider chart: one polygon per series on shared axes, with polygon rings, dashed outlines, and a goal marker on the first axis.",
+    icon: "Star",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/RadarChartPage")),
+  },
+  {
     slug: "charts-annotations",
     name: "Reference & Callouts",
     description:
@@ -474,6 +483,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Dashboard",
     category: "Data",
     Page: lazy(() => import("./components/stat-card/StatCardPage")),
+  },
+  {
+    slug: "connection-flow",
+    name: "Connection Flow",
+    description:
+      "Pipeline graphs — parallel lanes, child branches, skipped-step arcs, zoom, fit and path highlighting, on canvas or in the DOM.",
+    icon: "Blueprint",
+    category: "Data",
+    Page: lazy(() => import("./components/connection-flow/ConnectionFlowPage")),
   },
   {
     slug: "alert",

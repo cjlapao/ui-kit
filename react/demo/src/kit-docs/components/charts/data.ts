@@ -386,3 +386,34 @@ export const corridorLast = corridorData[corridorData.length - 1].avg;
 /** Volatility at a point: envelope width as a share of the average. */
 export const corridorVolatility = (p: CorridorPoint) =>
   Math.round(((p.envMax - p.envMin) / p.avg) * 100);
+
+// ── Radar demo: enterprise readiness gaps (8 axes × 3 series, 0–100 pts) ──
+
+export interface ReadinessPoint {
+  axis: string;
+  /** Launch build score. */
+  launch: number;
+  /** Target bar score (the dashed gate). */
+  target: number;
+  /** Buyer benchmark score. */
+  benchmark: number;
+}
+
+/**
+ * Eight axes, 0–100 pts, shaped after the "enterprise readiness gaps"
+ * reference: the launch build is weakest on RPO drills and key rotation,
+ * the target bar hugs the outer ring, the benchmark sits in between.
+ */
+export const readinessData: ReadinessPoint[] = [
+  { axis: "SSO", launch: 88, target: 97, benchmark: 95 },
+  { axis: "Data residency", launch: 78, target: 93, benchmark: 88 },
+  { axis: "Audit exports", launch: 82, target: 95, benchmark: 97 },
+  { axis: "Key rotation", launch: 55, target: 88, benchmark: 75 },
+  { axis: "RPO drills", launch: 48, target: 90, benchmark: 62 },
+  { axis: "Admin guardrails", launch: 58, target: 85, benchmark: 78 },
+  { axis: "Procurement", launch: 72, target: 88, benchmark: 92 },
+  { axis: "Support SLA", launch: 76, target: 90, benchmark: 85 },
+];
+
+/** The launch-ready gate on the target bar (pts). */
+export const readinessGoal = 80;

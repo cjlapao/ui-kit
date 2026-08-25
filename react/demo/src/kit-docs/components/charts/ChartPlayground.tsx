@@ -39,9 +39,11 @@ import {
   barQuarterly,
   corridorData,
   type CorridorPoint,
+  readinessData,
+  type ReadinessPoint,
 } from "./data";
 
-type Kind = "line" | "bar" | "pie" | "candlestick" | "range";
+type Kind = "line" | "bar" | "pie" | "candlestick" | "range" | "radar";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -79,6 +81,16 @@ const MAX_LINE = lineMetrics.length;
 const MAX_CANDLE = candleDays.length;
 const MAX_BAR = 12;
 const MAX_CORRIDOR = corridorData.length;
+
+/** Keep a readiness score inside a sane gate window (pts). */
+function readinessWalk(p: ReadinessPoint): ReadinessPoint {
+  return {
+    axis: p.axis,
+    launch: Math.round(walk(p.launch, 70, 14, 35, 99)),
+    target: Math.round(walk(p.target, 90, 8, 70, 100)),
+    benchmark: Math.round(walk(p.benchmark, 80, 10, 45, 100)),
+  };
+}
 
 /** Keep a corridor point inside a sane latency window (ms). */
 function corridorWalk(last: CorridorPoint): CorridorPoint {
@@ -133,6 +145,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [quarters, setQuarters] = useState(barQuarterly);
   const [candles, setCandles] = useState(candleDays);
   const [corridor, setCorridor] = useState(corridorData);
+  const [readiness, setReadiness] = useState(readinessData);
   const [fillMode, setFillMode] = useState<FillMode>("gradient");
 
   // Streaming: every 5 s inject a new point at the end of each streamable
@@ -198,6 +211,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
           ? [...d.slice(1), next]
           : [...d, next];
       });
+      setReadiness((d) => d.map(readinessWalk));
     }, 5000);
     return () => clearInterval(id);
   }, [streaming]);
@@ -370,6 +384,42 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             />
           </>
         )}
+        {kind === "radar" && (
+          <>
+            <Chart.Radar
+              data={readiness}
+              name="Launch build"
+              valueYField="launch"
+              color="violet"
+              fillStyle={fillMode === "off" ? "flat" : fillMode}
+              fillOpacity={fillMode === "off" ? 0 : 0.22}
+            />
+            <Chart.Radar
+              data={readiness}
+              name="Target bar"
+              valueYField="target"
+              color="teal"
+              lineDash={[6, 4]}
+              fillStyle={fillMode === "off" ? "flat" : fillMode}
+              fillOpacity={fillMode === "off" ? 0 : 0.1}
+              goal={80}
+              goalLabel="Launch-ready ≥ 80 pts"
+            />
+            <Chart.Radar
+              data={readiness}
+              name="Buyer benchmark"
+              valueYField="benchmark"
+              color="amber"
+              fillStyle={fillMode === "off" ? "flat" : fillMode}
+              fillOpacity={fillMode === "off" ? 0 : 0.14}
+            />
+            <Chart.RadarAxis
+              rings={4}
+              domainMax={100}
+              tickFormat={(t) => `${t} pts`}
+            />
+          </>
+        )}
         <Chart.Legend position={legendPosition} />
         {(valuesMode === "popup" || valuesMode === "both") && (
           <Chart.Tooltip mode="shared" />
@@ -539,7 +589,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             />
           </Control>
         )}
-        {kind === "range" && (
+        {(kind === "range" || kind === "radar") && (
           <Control label="Fill">
             <MultiToggle
               size="sm"

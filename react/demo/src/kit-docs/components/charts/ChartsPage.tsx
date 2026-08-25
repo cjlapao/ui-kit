@@ -30,6 +30,11 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "min–max corridors, gradient or flat band fills",
   },
   {
+    slug: "charts-radar",
+    label: "Radar",
+    blurb: "spider polygons, dashed gates, goal markers",
+  },
+  {
     slug: "charts-annotations",
     label: "Reference & Callouts",
     blurb: "bands, rules, annotation callouts",

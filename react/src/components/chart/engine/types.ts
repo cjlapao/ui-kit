@@ -376,3 +376,54 @@ export interface HoverState {
   /** Pixel y of the pointer itself — for cursor-following chrome. */
   pointerY?: number;
 }
+
+// ── Radar ────────────────────────────────────────────────────────────────────
+
+/** One plotted radar point (a series value on one axis). */
+export interface RadarPoint {
+  x: number;
+  y: number;
+  value: number;
+  /** Axis index (0 = 12 o'clock, clockwise). */
+  axis: number;
+  item: unknown;
+  index: number;
+}
+
+/** A radar series' plotted shape. */
+export interface RadarGeometry {
+  points: RadarPoint[];
+  /** Closed polygon (`M…Z`), or open sub-paths when the series has gaps. */
+  linePath: string;
+  /** Path used for the polygon fill (same as linePath). */
+  fillPath: string;
+  hasGaps: boolean;
+  first: RadarPoint | null;
+  last: RadarPoint | null;
+}
+
+/** Shared radar grid (rings, spokes, labels). */
+export interface RadarGrid {
+  cx: number;
+  cy: number;
+  /** Outer radius in px. */
+  R: number;
+  /** Ring boundary values (inner → outer). */
+  ringValues: number[];
+  /** Closed polygon path per ring (inner → outer). */
+  ringPaths: string[];
+  spokes: { x1: number; y1: number; x2: number; y2: number; label: string; angle: number }[];
+  /** Tick labels along the first (top) axis. */
+  tickLabels: { x: number; y: number; text: string }[];
+}
+
+/** Radar layout shared with the series (published by the root). */
+export interface RadarLayout {
+  cx: number;
+  cy: number;
+  R: number;
+  domainMax: number;
+  axisCount: number;
+  /** Axis labels in order (0 = 12 o'clock). */
+  axes: string[];
+}

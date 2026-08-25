@@ -210,6 +210,61 @@ export interface RangeAreaSeriesProps<T = unknown> {
   animation?: ChartAnimation;
 }
 
+/**
+ * Radar (spider) chart series — one polygon per series on a shared axis
+ * set (derived from all radar children's data).
+ */
+export interface RadarSeriesProps<T = unknown> {
+  data: T[];
+  /** Axis (category) field — one row per axis. Defaults to "axis". */
+  axisField?: Accessor<T, string>;
+  /** Value field for this series. Required. */
+  valueYField?: Accessor<T, number | null | undefined>;
+  /** Series name (legend, tooltip). */
+  name?: string;
+  /** Stable series id — defaults to an auto index. */
+  id?: string;
+  /** Tone name, hex, or gradient. */
+  color?: ChartColor;
+  /** Dash pattern for the polygon outline, e.g. [6, 4]. */
+  lineDash?: number[];
+  /** Outline stroke width in px. Default 2. */
+  lineStrokeWidth?: number;
+  /** Point markers on the vertices. Default true. */
+  showMarkers?: boolean;
+  /** Marker radius in px. Default 3. */
+  markerSize?: number;
+  /**
+   * A goal value: a dot on the first axis at `goal` with `goalLabel`
+   * beside it (series-colored) — e.g. "Launch-ready ≥ 80 pts".
+   */
+  goal?: number;
+  goalLabel?: string;
+  /**
+   * Fill style: flat solid color, or a radial gradient (edge opacity →
+   * transparent at the center). Default "flat".
+   */
+  fillStyle?: "flat" | "gradient";
+  /** Fill color; defaults to the series color. */
+  fillColor?: string;
+  /** 0–1 polygon fill opacity. Default 0.18. */
+  fillOpacity?: number;
+  /** Per-series entrance/update animation override. */
+  animation?: ChartAnimation;
+}
+
+/** Shared radar grid configuration. */
+export interface RadarAxisProps {
+  /** Number of concentric rings. Default 4. */
+  rings?: number;
+  /** Outer ring value; defaults to a nice max of the radar values. */
+  domainMax?: number;
+  /** Ring tick label format, e.g. (t) => `${t} pts`. */
+  tickFormat?: (value: number) => string;
+  /** Draw the axis name labels around the perimeter. Default true. */
+  showAxisLabels?: boolean;
+}
+
 export interface CandlestickSeriesProps<T = unknown> {
   data: T[];
   /** Time field. Defaults to "date". */
@@ -425,7 +480,7 @@ export interface ChartHandle {
 
 export interface SeriesDescriptor {
   id: string;
-  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea";
+  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -455,6 +510,15 @@ export interface SeriesDescriptor {
   rangeMaxAccessor?: (item: unknown, index: number) => number | null | undefined;
   rangeShowEdges?: boolean;
   rangeEdgeStrokeWidth?: number;
+  // radar
+  /** Value accessor for a radar series (one value per axis). */
+  radarAccessor?: (item: unknown, index: number) => number | null | undefined;
+  /** Axis (category) accessor for a radar series. */
+  radarAxisAccessor?: (item: unknown, index: number) => string;
+  /** Goal marker value (dot on the first axis). */
+  radarGoal?: number;
+  radarGoalLabel?: string;
+  radarShowMarkers?: boolean;
   // bar
   barMode?: BarMode;
   stackId?: string;

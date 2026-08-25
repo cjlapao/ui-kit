@@ -27,6 +27,8 @@ import { BarSeries } from "./react/series/BarSeries";
 import { PieSeries } from "./react/series/PieSeries";
 import { CandlestickSeries } from "./react/series/CandlestickSeries";
 import { RangeAreaSeries } from "./react/series/RangeAreaSeries";
+import { RadarSeries } from "./react/series/RadarSeries";
+import { RadarAxis } from "./react/features/RadarAxis";
 import { XAxis } from "./react/features/XAxis";
 import { YAxis } from "./react/features/YAxis";
 import { Legend } from "./react/features/Legend";
@@ -47,6 +49,8 @@ setChartRegistry({
   Pie: PieSeries,
   Candlestick: CandlestickSeries,
   RangeArea: RangeAreaSeries,
+  Radar: RadarSeries,
+  RadarAxis,
   XAxis,
   YAxis,
   Legend,
@@ -70,6 +74,8 @@ export const Chart = {
   Pie: PieSeries,
   Candlestick: CandlestickSeries,
   RangeArea: RangeAreaSeries,
+  Radar: RadarSeries,
+  RadarAxis,
   XAxis,
   YAxis,
   Legend,
@@ -98,6 +104,9 @@ export type {
   PieSeriesProps,
   CandlestickSeriesProps,
   CandlestickVariant,
+  RangeAreaSeriesProps,
+  RadarSeriesProps,
+  RadarAxisProps,
   XAxisProps,
   YAxisProps,
   TooltipProps,

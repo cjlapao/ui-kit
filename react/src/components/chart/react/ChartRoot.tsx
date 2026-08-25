@@ -40,8 +40,10 @@ import {
   createBandScale,
   createLinearScale,
   createTimeScale,
+  computeRadarGrid,
   DEFAULT_SERIES_PALETTE,
   isTimeDomain,
+  niceRadarMax,
   prefersReducedMotion,
   resolveColor,
   toDate,
@@ -51,6 +53,7 @@ import type {
   ChartLayout,
   ContinuousScale,
   HoverState,
+  RadarLayout,
 } from "../engine/types";
 import { useTheme } from "../../../hooks/useTheme";
 import {
@@ -73,6 +76,8 @@ import type { ChartHandle, ChartRootProps } from "./props";
 // useChart from this file's context module).
 export interface ChildTypeRegistry {
   Line: ComponentType<any>;
+  Radar: ComponentType<any>;
+  RadarAxis: ComponentType<any>;
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
@@ -130,7 +135,7 @@ function collectXValues(descriptors: ChartChildrenSummary["series"]): (
 )[] {
   const out: (number | Date | string)[] = [];
   for (const d of descriptors) {
-    if (d.type === "pie") continue;
+    if (d.type === "pie" || d.type === "radar") continue;
     for (let i = 0; i < d.data.length; i++) {
       const v = d.xAccessor(d.data[i], i);
       if (v !== null && v !== undefined && v !== "") out.push(v);
@@ -163,6 +168,7 @@ function computeYDomain(
   const visible = descriptors.filter(
     (d) =>
       d.type !== "pie" &&
+      d.type !== "radar" &&
       !hidden.has(d.id) &&
       (d.yAccessor !== undefined ||
         (d.type === "candlestick" && d.lowAccessor !== undefined) ||
@@ -322,8 +328,10 @@ export function ChartRootImpl({
   );
 
   const cartesianSeries = summary.series.filter(
-    (d) => d.type !== "pie",
+    (d) => d.type !== "pie" && d.type !== "radar",
   );
+  const radarSeries = summary.series.filter((d) => d.type === "radar");
+  const hasRadar = radarSeries.length > 0;
   const hasCartesian = cartesianSeries.length > 0;
   const showXAxis = hasCartesian || summary.hasXAxis;
   const showYAxis = hasCartesian;
@@ -380,6 +388,62 @@ export function ChartRootImpl({
     ],
   );
   const area = layout.chartArea;
+
+  // ── Radar layout (shared polar space) ─────────────────────────────────────
+  // The radar center/radius live in the plot area; rings and spokes are
+  // computed once and shared by the grid layer and every radar series.
+  const radarLayout = useMemo<RadarLayout | null>(() => {
+    if (!hasRadar || area.width <= 0 || area.height <= 0) return null;
+    const first = radarSeries[0];
+    const axes: string[] = [];
+    const seen = new Set<string>();
+    for (let i = 0; i < first.data.length; i++) {
+      const a = String(first.radarAxisAccessor?.(first.data[i], i) ?? i);
+      if (!seen.has(a)) {
+        seen.add(a);
+        axes.push(a);
+      }
+    }
+    if (axes.length < 3) return null; // need ≥3 axes for a polygon
+    const cx = area.x + area.width / 2;
+    const cy = area.y + area.height / 2;
+    const R = Math.max(10, Math.min(area.width, area.height) / 2 - 48);
+    const cfg = summary.radarAxis;
+    const rings = cfg?.rings ?? 4;
+    let domainMax = cfg?.domainMax;
+    if (!Number.isFinite(domainMax) || (domainMax as number) <= 0) {
+      let max = 0;
+      for (const d of radarSeries) {
+        for (let i = 0; i < d.data.length; i++) {
+          const v = d.radarAccessor?.(d.data[i], i);
+          if (v !== null && v !== undefined && Number.isFinite(v as number))
+            max = Math.max(max, v as number);
+        }
+      }
+      domainMax = niceRadarMax(max, rings);
+    }
+    return {
+      cx,
+      cy,
+      R,
+      domainMax: domainMax as number,
+      axisCount: axes.length,
+      axes,
+    };
+  }, [hasRadar, area, radarSeries, summary.radarAxis]);
+
+  const radarGrid = useMemo(() => {
+    if (!radarLayout) return null;
+    return computeRadarGrid({
+      axes: radarLayout.axes,
+      cx: radarLayout.cx,
+      cy: radarLayout.cy,
+      R: radarLayout.R,
+      rings: summary.radarAxis?.rings ?? 4,
+      domainMax: radarLayout.domainMax,
+      format: summary.radarAxis?.tickFormat,
+    });
+  }, [radarLayout, summary.radarAxis]);
 
   // ── Scales ─────────────────────────────────────────────────────────────────
   const xDomainValues = useMemo(
@@ -492,7 +556,8 @@ export function ChartRootImpl({
           t === reg.Bar ||
           t === reg.Pie ||
           t === reg.Candlestick ||
-          t === reg.RangeArea)
+          t === reg.RangeArea ||
+          t === reg.Radar)
       ) {
         const state = series[k];
         if (state) map.set(c, state);
@@ -564,6 +629,54 @@ export function ChartRootImpl({
     },
     [scheduleCanvasDraw],
   );
+
+  // Canvas: paint the shared radar grid (rings, spokes, labels) in the back
+  // layer, ahead of the series polygons.
+  useEffect(() => {
+    if (!radarGrid || renderer !== "canvas") return;
+    const g = radarGrid;
+    const showLabels = summary.radarAxis?.showAxisLabels !== false;
+    registerDraw(
+      "radar-grid",
+      (c) => {
+        c.save();
+        c.lineWidth = 1;
+        c.strokeStyle = tokens.gridColor;
+        for (const d of g.ringPaths) {
+          c.stroke(new Path2D(d));
+        }
+        c.globalAlpha = 0.55;
+        c.beginPath();
+        for (const sp of g.spokes) {
+          c.moveTo(sp.x1, sp.y1);
+          c.lineTo(sp.x2, sp.y2);
+        }
+        c.stroke();
+        c.globalAlpha = 1;
+        c.font = "10px sans-serif";
+        c.fillStyle = tokens.subtleText;
+        c.textAlign = "right";
+        c.textBaseline = "middle";
+        for (const t of g.tickLabels) c.fillText(t.text, t.x, t.y);
+        if (showLabels) {
+          c.font = "11px sans-serif";
+          c.fillStyle = tokens.textColor;
+          for (const sp of g.spokes) {
+            const cos = Math.cos(sp.angle);
+            const sin = Math.sin(sp.angle);
+            const lx = g.cx + (g.R + 14) * cos;
+            const ly = g.cy + (g.R + 14) * sin;
+            c.textAlign = Math.abs(cos) < 0.3 ? "center" : cos > 0 ? "left" : "right";
+            c.textBaseline = Math.abs(sin) < 0.3 ? "middle" : sin > 0 ? "top" : "bottom";
+            c.fillText(sp.label, lx, ly);
+          }
+        }
+        c.restore();
+      },
+      "back",
+    );
+    return () => unregisterDraw("radar-grid");
+  }, [radarGrid, renderer, registerDraw, unregisterDraw, tokens, summary.radarAxis]);
   const requestRedraw = useCallback(() => setRedrawNonce((n) => n + 1), []);
 
   useImperativeHandle(
@@ -644,7 +757,57 @@ export function ChartRootImpl({
       if (visible.length === 0) return null;
 
       const pieVisible = visible.filter((s) => s.descriptor.type === "pie");
-      const cartVisible = visible.filter((s) => s.descriptor.type !== "pie");
+      const radarVisible = visible.filter(
+        (s) => s.descriptor.type === "radar",
+      );
+      const cartVisible = visible.filter(
+        (s) => s.descriptor.type !== "pie" && s.descriptor.type !== "radar",
+      );
+
+      // Radar charts: snap to the nearest axis, one row per series.
+      if (
+        radarVisible.length > 0 &&
+        cartVisible.length === 0 &&
+        radarLayout
+      ) {
+        const { cx, cy, R, domainMax, axisCount, axes } = radarLayout;
+        const dx = px - cx;
+        const dy = py - cy;
+        if (Math.hypot(dx, dy) > R * 1.15) return null;
+        const step = (Math.PI * 2) / axisCount;
+        let rel = Math.atan2(dy, dx) + Math.PI / 2;
+        while (rel < 0) rel += Math.PI * 2;
+        while (rel >= Math.PI * 2) rel -= Math.PI * 2;
+        const idx =
+          ((Math.round(rel / step) % axisCount) + axisCount) % axisCount;
+        const a = -Math.PI / 2 + idx * step;
+        const items: HoverState["items"] = [];
+        for (const s of radarVisible) {
+          const d = s.descriptor;
+          const row = d.data[idx];
+          const v = d.radarAccessor?.(row, idx);
+          if (v === null || v === undefined || !Number.isFinite(v as number))
+            continue;
+          const r = Math.max(0, Math.min(1, (v as number) / domainMax)) * R;
+          items.push({
+            seriesId: d.id,
+            name: d.name,
+            color: s.color,
+            value: v as number,
+            y: cy + r * Math.sin(a),
+            item: row,
+            index: idx,
+          });
+        }
+        if (items.length === 0) return null;
+        return {
+          x: cx + R * Math.cos(a),
+          y: cy + R * Math.sin(a),
+          pointerY: py,
+          rawX: axes[idx],
+          items,
+        };
+      }
 
       // Radial charts: angle-based slice hit test.
       if (pieVisible.length > 0 && cartVisible.length === 0) {
@@ -992,6 +1155,7 @@ export function ChartRootImpl({
       seriesEndpoints,
       seriesTokens,
       piePresentations: piePresentationsRef.current,
+      radar: radarLayout,
     }),
     [
       renderer,
@@ -1057,7 +1221,8 @@ export function ChartRootImpl({
       el.type === reg?.Bar ||
       el.type === reg?.Pie ||
       el.type === reg?.Candlestick ||
-      el.type === reg?.RangeArea
+      el.type === reg?.RangeArea ||
+      el.type === reg?.Radar
     ) {
       // Stamp the series with its element identity (see seriesTokens).
       plotChildren.push(
@@ -1065,6 +1230,8 @@ export function ChartRootImpl({
           __chartSeriesToken: c,
         }),
       );
+    } else if (el.type === reg?.RadarAxis) {
+      // Consumed by the root's radar grid — never rendered as a child.
     } else if (
       el.type === reg?.XAxis ||
       el.type === reg?.YAxis ||
@@ -1115,11 +1282,81 @@ export function ChartRootImpl({
             style={{ display: "block" }}
           >
             {backChildren}
+            {/* Radar grid: rings, spokes, axis + tick labels. */}
+            {radarGrid && (
+              <g data-chart-layer="radar-grid" pointerEvents="none">
+                {radarGrid.ringPaths.map((d, i) => (
+                  <path
+                    key={`ring-${i}`}
+                    d={d}
+                    fill="none"
+                    stroke={tokens.gridColor}
+                    strokeWidth={1}
+                  />
+                ))}
+                {radarGrid.spokes.map((sp, i) => (
+                  <line
+                    key={`spoke-${i}`}
+                    x1={sp.x1}
+                    y1={sp.y1}
+                    x2={sp.x2}
+                    y2={sp.y2}
+                    stroke={tokens.gridColor}
+                    strokeWidth={1}
+                    opacity={0.55}
+                  />
+                ))}
+                {summary.radarAxis?.showAxisLabels !== false &&
+                  radarGrid.spokes.map((sp, i) => {
+                    const cos = Math.cos(sp.angle);
+                    const sin = Math.sin(sp.angle);
+                    const lx = radarGrid.cx + (radarGrid.R + 14) * cos;
+                    const ly = radarGrid.cy + (radarGrid.R + 14) * sin;
+                    return (
+                      <text
+                        key={`axis-${i}`}
+                        x={lx}
+                        y={ly}
+                        textAnchor={
+                          Math.abs(cos) < 0.3
+                            ? "middle"
+                            : cos > 0
+                              ? "start"
+                              : "end"
+                        }
+                        dominantBaseline={
+                          Math.abs(sin) < 0.3
+                            ? "middle"
+                            : sin > 0
+                              ? "hanging"
+                              : "auto"
+                        }
+                        fontSize={11}
+                        fill={tokens.textColor}
+                      >
+                        {sp.label}
+                      </text>
+                    );
+                  })}
+                {radarGrid.tickLabels.map((t, i) => (
+                  <text
+                    key={`tick-${i}`}
+                    x={t.x}
+                    y={t.y}
+                    fontSize={10}
+                    fill={tokens.subtleText}
+                    textAnchor="end"
+                  >
+                    {t.text}
+                  </text>
+                ))}
+              </g>
+            )}
             {/*
               Crosshair sits in the back layer: above the grid but below the
               series marks, so the hover dots always paint over it.
             */}
-            {hover && (
+            {hover && !radarLayout && (
               <line
                 x1={hover.x}
                 x2={hover.x}

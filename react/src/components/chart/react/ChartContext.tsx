@@ -33,6 +33,7 @@ import type {
   ChartThemeTokens,
   ContinuousScale,
   HoverState,
+  RadarLayout,
 } from "../engine/types";
 import type { SeriesDescriptor } from "./props";
 
@@ -124,6 +125,12 @@ export interface ChartContextValue {
     x: number;
     y: number;
   }[];
+  /**
+   * Shared polar layout for radar charts (center, radius, domain, axis
+   * labels). Null when the chart has no radar series.
+   */
+  radar: RadarLayout | null;
+
   /**
    * Element-identity → SeriesState. The root stamps every series element
    * with `__chartSeriesToken` (its own element object) so several series

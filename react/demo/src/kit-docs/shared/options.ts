@@ -39,6 +39,10 @@ import {
   SURFACE_VARIANTS,
   TABLE_DENSITIES,
   TOGGLE_VARIANTS,
+  CONNECTION_FLOW_EDGE_STYLES,
+  CONNECTION_FLOW_PROGRESS_TYPES,
+  CONNECTION_FLOW_RENDERERS,
+  CONNECTION_STATES,
   TRUE_COLORS,
   TREE_SIZES,
   type GradientDirection,
@@ -185,6 +189,18 @@ export const glassOpacityOptions: { label: string; value: string }[] = [
 
 /** Every palette tone, for the tone selects (a MultiToggle row would overflow). */
 export const trueColorOptions = toOptions(TRUE_COLORS);
+
+// ConnectionFlow — all from the kit's own runtime lists.
+export const connectionFlowRendererOptions = toOptions(
+  CONNECTION_FLOW_RENDERERS,
+);
+export const connectionFlowEdgeStyleOptions = toOptions(
+  CONNECTION_FLOW_EDGE_STYLES,
+);
+export const connectionFlowProgressOptions = toOptions(
+  CONNECTION_FLOW_PROGRESS_TYPES,
+);
+export const connectionStateOptions = toOptions(CONNECTION_STATES);
 
 // ── GlassBackground ─────────────────────────────────────────────────────────
 
@@ -600,6 +616,7 @@ export const chartKindOptions: MultiToggleOption[] = [
   { label: "Pie", value: "pie" },
   { label: "Candlestick", value: "candlestick" },
   { label: "Range", value: "range" },
+  { label: "Radar", value: "radar" },
 ];
 
 /** Area fill style for the range playground. */
