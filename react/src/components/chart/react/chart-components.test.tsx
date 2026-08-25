@@ -840,6 +840,108 @@ describe("XAxis vertical grid controls", () => {
   });
 });
 
+describe("chart chrome collision fixes", () => {
+  it("YAxis rotated title clears the tick labels (50px from the axis line)", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" />
+        <Chart.Line
+          data={lineData.map((d) => ({ ...d, value: d.value * 1000 }))}
+          name="R"
+          yFieldAxis="right"
+        />
+        <Chart.YAxis label="Index" />
+        <Chart.YAxis axis="right" label="ARR ($)" />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    for (const side of ["left", "right"] as const) {
+      const g = svg.querySelector(
+        `[data-chart-feature="yaxis-${side}"]`,
+      )!;
+      const title = [...g.querySelectorAll("text")].find(
+        (t) => (t.getAttribute("transform") ?? "").includes("rotate"),
+      )!;
+      const axisLine = [...g.querySelectorAll("line")][0]!;
+      const axisX = Number(axisLine.getAttribute("x1"));
+      const titleX = Number(title.getAttribute("x"));
+      // past the tick-label zone: 8px gap + ~37px for "$1000k"-class labels
+      expect(titleX).toBe(side === "right" ? axisX + 50 : axisX - 50);
+    }
+  });
+
+  it("tooltip follows the cursor Y and flips above it near the bottom", () => {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={data} name="S" />
+        <Chart.Tooltip />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 300,
+        width: 800,
+        height: 300,
+      }),
+    });
+    const rects = svg.querySelectorAll("rect");
+    const rect = rects[rects.length - 1] as SVGRectElement;
+
+    // cursor near the top → card sits just below the cursor
+    fireEvent.pointerMove(rect, { clientX: 400, clientY: 60 });
+    const tip = document.querySelector(
+      '[data-chart-feature="tooltip"]',
+    ) as HTMLElement;
+    expect(parseFloat(tip.style.top)).toBe(72); // 60 + 12
+
+    // cursor near the bottom (still inside the plot) → card flips above it
+    fireEvent.pointerMove(rect, { clientX: 400, clientY: 240 });
+    expect(parseFloat(tip.style.top)).toBe(160); // 240 - 68 - 12
+  });
+
+  it("annotation flips below the point when it would overlap the top chrome", () => {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Title title="Growth" subtitle="indexed" />
+        <Chart.Line data={data} name="S" />
+        <Chart.Annotation
+          x={data[data.length - 1].date}
+          y={data[data.length - 1].value}
+          placement="top"
+          title="Pricing lift"
+          value="+105 pts"
+        />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    const card = svg.querySelector(
+      '[data-chart-feature="annotation"] rect',
+    )!;
+    const dot = svg.querySelector(
+      '[data-chart-feature="annotation"] circle',
+    )!;
+    const cardY = Number(card.getAttribute("y"));
+    const dotY = Number(dot.getAttribute("cy"));
+    // the card must not overlap the title/subtitle strip (plot top = 48)
+    expect(cardY).toBeGreaterThanOrEqual(48);
+    // ...and the flip landed it below the point
+    expect(cardY).toBeGreaterThan(dotY);
+  });
+});
+
 describe("candlestick selected-candle highlight", () => {
   const setupHover = () => {
     const svg = document.querySelector("svg[role=img]")!;

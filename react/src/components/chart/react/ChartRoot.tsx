@@ -666,6 +666,7 @@ export function ChartRootImpl({
             return {
               x: px,
               y: py,
+              pointerY: py,
               items: [
                 {
                   seriesId: s.descriptor.id,
@@ -727,6 +728,7 @@ export function ChartRootImpl({
           items,
           rawX: bestCat,
           y: items[0].y,
+          pointerY: py,
         };
       }
 
@@ -790,6 +792,7 @@ export function ChartRootImpl({
         items,
         rawX: cont.type === "time" ? new Date(snapped) : snapped,
         y: items[0].y,
+        pointerY: py,
       };
     },
     [series, xScale, yScale, rightYScale, xIsCategorical, area],

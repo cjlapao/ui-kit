@@ -314,4 +314,6 @@ export interface HoverState {
   rawX?: number | Date | string;
   /** Pixel y of the primary (first) item — for the horizontal crosshair. */
   y?: number;
+  /** Pixel y of the pointer itself — for cursor-following chrome. */
+  pointerY?: number;
 }

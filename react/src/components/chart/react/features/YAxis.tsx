@@ -104,14 +104,17 @@ export function YAxis(props: YAxisProps = {}) {
         </>
       )}
       {props.label && (
+        // 50px from the axis line: past the tick-label zone (8 + ~37px for
+        // the widest "$1000k"-class labels) so the rotated title never
+        // underlaps the tick values.
         <text
-          x={onRight ? left + 38 : left - 38}
+          x={onRight ? left + 50 : left - 50}
           y={area.y + area.height / 2}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={11}
           fill={theme.subtleText}
-          transform={`rotate(${onRight ? 90 : -90} ${onRight ? left + 38 : left - 38} ${area.y + area.height / 2})`}
+          transform={`rotate(${onRight ? 90 : -90} ${onRight ? left + 50 : left - 50} ${area.y + area.height / 2})`}
         >
           {props.label}
         </text>

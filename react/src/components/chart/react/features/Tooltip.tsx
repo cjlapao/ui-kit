@@ -43,10 +43,13 @@ export function Tooltip(props: TooltipProps = {}) {
   let left = hover.x + 14;
   if (left + CARD_W > width - 8) left = hover.x - CARD_W - 14;
   if (left < 8) left = 8;
-  const top = Math.max(
-    8,
-    Math.min((hover.y ?? 40) - 24, height - 90),
-  );
+  // Vertical: follow the cursor's Y. If the card would run past the bottom
+  // edge, flip above the cursor; clamp into the chart either way.
+  const estH = 46 + items.length * 22;
+  const py = hover.pointerY ?? hover.y ?? 40;
+  let top = py + 12;
+  if (top + estH > height - 8) top = py - estH - 12;
+  top = Math.max(8, Math.min(top, height - estH - 8));
 
   const cardStyle: CSSProperties = {
     position: "absolute",
@@ -64,7 +67,7 @@ export function Tooltip(props: TooltipProps = {}) {
   };
 
   return (
-    <div style={cardStyle}>
+    <div style={cardStyle} data-chart-feature="tooltip">
       {props.children ? (
         props.children
       ) : (

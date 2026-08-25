@@ -27,6 +27,57 @@ const TITLE_H = 14;
 const VALUE_H = 20;
 const CARD_H = PAD_Y * 2 + TITLE_H + VALUE_H;
 
+/**
+ * Card placement: the requested side first, then collision fixes —
+ * a card that would overlap the title/subtitle/legend strip (above the
+ * plot area) flips to the bottom side, and the result is clamped into
+ * the chart box.
+ */
+function resolveCard(
+  px: number,
+  py: number,
+  cardW: number,
+  placement: AnnotationProps["placement"],
+  area: { x: number; y: number; width: number; height: number },
+  width: number,
+  height: number,
+): { cardX: number; cardY: number } {
+  const place = placement ?? "auto";
+  let cardX = 0;
+  let cardY = 0;
+  if (place === "top") {
+    cardX = px - cardW / 2;
+    cardY = py - CARD_H - 14;
+  } else if (place === "bottom") {
+    cardX = px - cardW / 2;
+    cardY = py + 14;
+  } else if (place === "left") {
+    cardX = px - cardW - 14;
+    cardY = py - CARD_H / 2;
+  } else if (place === "right") {
+    cardX = px + 14;
+    cardY = py - CARD_H / 2;
+  } else {
+    // auto: top-left, flip per edge
+    cardX = px - cardW - 14;
+    cardY = py - CARD_H - 12;
+    if (cardX < area.x - 40) cardX = px + 14;
+    if (cardY < 4) cardY = py + 14;
+  }
+  // Top collision: flip below the point if it fits the plot, else pin the
+  // card to the plot's top edge — never into the chrome above it.
+  const plotBottom = area.y + area.height;
+  if (cardY < area.y) {
+    const flipped = py + 14;
+    cardY = flipped + CARD_H <= plotBottom ? flipped : area.y;
+  } else if (cardY + CARD_H > plotBottom) {
+    cardY = Math.max(area.y, plotBottom - CARD_H);
+  }
+  cardX = Math.max(2, Math.min(cardX, width - cardW - 2));
+  cardY = Math.max(2, Math.min(cardY, height - CARD_H - 2));
+  return { cardX, cardY };
+}
+
 export function Annotation(props: AnnotationProps) {
   const ctx = useChart();
   const { renderer, area, theme, yScale } = ctx;
@@ -40,56 +91,32 @@ export function Annotation(props: AnnotationProps) {
     PAD_X * 2 +
     Math.max(props.title?.length ?? 0, props.value?.length ?? 0) * 7.2;
 
-  // Placement: default top-left of the dot, flipping near the edges.
-  let cardX = 0;
-  let cardY = 0;
-  if (px !== null && py !== null) {
-    const place = props.placement ?? "auto";
-    if (place === "top") {
-      cardX = px - cardW / 2;
-      cardY = py - CARD_H - 14;
-    } else if (place === "bottom") {
-      cardX = px - cardW / 2;
-      cardY = py + 14;
-    } else if (place === "left") {
-      cardX = px - cardW - 14;
-      cardY = py - CARD_H / 2;
-    } else if (place === "right") {
-      cardX = px + 14;
-      cardY = py - CARD_H / 2;
-    } else {
-      // auto: top-left, flip per edge
-      cardX = px - cardW - 14;
-      cardY = py - CARD_H - 12;
-      if (cardX < area.x - 40) cardX = px + 14;
-      if (cardY < 4) cardY = py + 14;
-    }
-    cardX = Math.max(2, Math.min(cardX, ctx.width - cardW - 2));
-    cardY = Math.max(2, Math.min(cardY, ctx.height - CARD_H - 2));
-  }
+  const { cardX, cardY } =
+    px !== null && py !== null
+      ? resolveCard(
+          px,
+          py,
+          cardW,
+          props.placement,
+          area,
+          ctx.width,
+          ctx.height,
+        )
+      : { cardX: 0, cardY: 0 };
 
   useEffect(() => {
     if (renderer !== "canvas" || px === null || py === null) return;
     const id = `feature:annotation-${props.x ?? ""}-${props.y ?? ""}`;
     const fn = (c: CanvasRenderingContext2D) => {
-      const place = props.placement ?? "auto";
-      let cx = px - cardW - 14;
-      let cy = py - CARD_H - 12;
-      if (place === "top") {
-        cx = px - cardW / 2;
-        cy = py - CARD_H - 14;
-      } else if (place === "bottom") {
-        cx = px - cardW / 2;
-        cy = py + 14;
-      } else if (place === "left") {
-        cx = px - cardW - 14;
-        cy = py - CARD_H / 2;
-      } else if (place === "right") {
-        cx = px + 14;
-        cy = py - CARD_H / 2;
-      }
-      cx = Math.max(2, Math.min(cx, ctx.width - cardW - 2));
-      cy = Math.max(2, Math.min(cy, ctx.height - CARD_H - 2));
+      const { cardX: cx, cardY: cy } = resolveCard(
+        px,
+        py,
+        cardW,
+        props.placement,
+        area,
+        ctx.width,
+        ctx.height,
+      );
 
       c.save();
       if (props.leaderLine !== false) {
@@ -142,6 +169,7 @@ export function Annotation(props: AnnotationProps) {
     props,
     tone,
     theme,
+    area,
     ctx.width,
     ctx.height,
     ctx.registerDraw,
