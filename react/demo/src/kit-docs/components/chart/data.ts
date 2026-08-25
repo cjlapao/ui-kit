@@ -38,6 +38,22 @@ export interface CandlePoint {
   close: number;
 }
 
+/** One day of stacked support load (5 work types). */
+export interface SupportDay {
+  day: string;
+  critical: number;
+  migration: number;
+  product: number;
+  onboarding: number;
+  deflected: number;
+}
+
+/** One plan of the ARR mix (value in $k). */
+export interface ArrPlan {
+  name: string;
+  value: number;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const DAY_MS = 86_400_000;
@@ -159,6 +175,79 @@ export const barQuarterly: BarCategory[] = [
   { category: "Q4", revenue: 604, profit: 196, cost: 408 },
 ];
 
+// ── Bar demo: daily support load (stacked, 24 days, peak 253) ────────────────
+
+/**
+ * The stacked-bar reference: daily support cases by work type. Deterministic
+ * growth curve (95 → 253) with deflection share rising over the month so the
+ * green top segment grows — matching the reference narrative.
+ */
+export const supportDays: SupportDay[] = (() => {
+  const N_DAYS = 24;
+  const totals: number[] = [];
+  for (let i = 0; i < N_DAYS; i++) {
+    const t = i / (N_DAYS - 1);
+    // Ease-in growth with a mid-month plateau dip.
+    const base = 95 + (253 - 95) * (t * t * (3 - 2 * t));
+    const dip = i >= 9 && i <= 14 ? -14 * Math.sin(((i - 9) / 5) * Math.PI) : 0;
+    const wobble = 6 * Math.sin(i * 1.9 + 0.6);
+    totals.push(Math.max(60, Math.round(base + dip + wobble)));
+  }
+  totals[N_DAYS - 1] = 253; // the "Peak 24: 253 cases" annotation
+
+  const types = [
+    "critical",
+    "migration",
+    "product",
+    "onboarding",
+    "deflected",
+  ] as const;
+  const out: SupportDay[] = [];
+  for (let i = 0; i < N_DAYS; i++) {
+    const t = i / (N_DAYS - 1);
+    const target = totals[i];
+    const row: SupportDay = {
+      day: String(i + 1).padStart(2, "0"),
+      critical: 0,
+      migration: 0,
+      product: 0,
+      onboarding: 0,
+      deflected: 0,
+    };
+    // Base shares; deflection (self-serve) grows through the month.
+    const weightOf: { [K in "critical" | "migration" | "product" | "onboarding" | "deflected"]: number } = {
+      critical: 0.2 + 0.02 * Math.sin(i * 1.7),
+      migration: 0.19 + 0.015 * Math.sin(i * 1.3 + 2),
+      product: 0.26 + 0.02 * Math.sin(i * 1.1 + 4),
+      onboarding: 0.19 - 0.04 * t,
+      deflected: 0.16 + 0.16 * t,
+    };
+    let sum = 0;
+    for (const k of types) sum += weightOf[k];
+    let allocated = 0;
+    types.forEach((k, idx) => {
+      const v =
+        idx === types.length - 1
+          ? target - allocated // last type absorbs the rounding remainder
+          : Math.round((target * weightOf[k]) / sum);
+      row[k] = Math.max(4, v);
+      allocated += row[k];
+    });
+    out.push(row);
+  }
+  // Enforce the exact peak on day 24.
+  const last = out[N_DAYS - 1];
+  const lastTotal =
+    last.critical + last.migration + last.product + last.onboarding + last.deflected;
+  last.deflected += 253 - lastTotal;
+  return out;
+})();
+
+export const supportPeakDay = "24";
+export const supportPeakTotal = 253;
+/** The dashed "Escalation desk" reference level. */
+export const escalationDeskLevel = 230;
+
 // ── Pie demo: plan mix ───────────────────────────────────────────────────────
 
 export const piePlans: PieSlice[] = [
@@ -168,6 +257,28 @@ export const piePlans: PieSlice[] = [
   { name: "Enterprise", value: 12 },
   { name: "Agency", value: 5 },
 ];
+
+// ── Pie demo: plan mix by ARR (donut reference, 6 plans, $1.25M total) ──────
+
+export const arrPlans: ArrPlan[] = [
+  { name: "Enterprise", value: 438 },
+  { name: "Scale", value: 325 },
+  { name: "Growth", value: 213 },
+  { name: "Partner", value: 125 },
+  { name: "Starter", value: 88 },
+  { name: "Legacy", value: 63 },
+];
+
+export const arrPlanColors: string[] = [
+  "#60a5fa", // Enterprise
+  "#fb923c", // Scale
+  "#fbbf24", // Growth
+  "#2dd4bf", // Partner
+  "#818cf8", // Starter
+  "#f472b6", // Legacy
+];
+
+export const arrTotal = arrPlans.reduce((acc, p) => acc + p.value, 0);
 
 // ── Candlestick demo: 60 synthesized trading days ───────────────────────────
 

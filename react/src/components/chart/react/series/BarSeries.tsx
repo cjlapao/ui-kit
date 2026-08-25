@@ -136,6 +136,27 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
         groupIndex: Math.max(0, groupIndex),
         groupCount: Math.max(1, groupSiblings.length),
       });
+
+      // Stacked/percent: shrink each segment by the pixel gap so the stack
+      // reads as separate rounded pills (gap clamped to keep ≥2px bars).
+      const gap = mode === "group" ? 0 : d.segmentGap ?? 0;
+      if (gap > 0 && final && orientation === "vertical") {
+        final = {
+          ...final,
+          bars: final.bars.map((b) => {
+            if (b.height <= gap + 2) return b;
+            return { ...b, y: b.y + gap / 2, height: b.height - gap };
+          }),
+        };
+      } else if (gap > 0 && final && orientation === "horizontal") {
+        final = {
+          ...final,
+          bars: final.bars.map((b) => {
+            if (b.width <= gap + 2) return b;
+            return { ...b, x: b.x + gap / 2, width: b.width - gap };
+          }),
+        };
+      }
     }
   }
 
@@ -150,11 +171,22 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
     const id = `series:${seriesId}`;
     const fn = (c: CanvasRenderingContext2D, st: { progress: number }) => {
       const bars = frameBars(final!, prevRef.current, st.progress, orientation);
+      const corner = me?.descriptor.cornerRadius ?? 0;
       c.save();
       c.fillStyle = seriesColor;
       for (const b of bars) {
         if (b.width <= 0 || b.height <= 0) continue;
-        c.fillRect(b.x, b.y, b.width, b.height);
+        const r = corner > 0 ? Math.min(corner, b.width / 2, b.height / 2) : 0;
+        const rr = c as CanvasRenderingContext2D & {
+          roundRect?: (x: number, y: number, w: number, h: number, r: number) => void;
+        };
+        if (r > 0 && typeof rr.roundRect === "function") {
+          c.beginPath();
+          rr.roundRect(b.x, b.y, b.width, b.height, r);
+          c.fill();
+        } else {
+          c.fillRect(b.x, b.y, b.width, b.height);
+        }
       }
       c.restore();
     };
@@ -174,6 +206,7 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
   if (final === null || renderer !== "svg") return null;
   const bars = frameBars(final, prev, progress, orientation);
   const p = prev === null ? progress : 1;
+  const corner = me?.descriptor.cornerRadius ?? 0;
 
   return (
     <g
@@ -184,17 +217,25 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
         pointerEvents: hidden ? "none" : undefined,
       }}
     >
-      {bars.map((b, i) => (
-        <rect
-          key={i}
-          x={b.x}
-          y={b.y}
-          width={Math.max(0, b.width)}
-          height={Math.max(0, b.height)}
-          fill={seriesColor}
-          opacity={prev === null ? Math.max(p, 0.001) : 1}
-        />
-      ))}
+      {bars.map((b, i) => {
+        const r =
+          corner > 0
+            ? Math.min(corner, b.width / 2, b.height / 2)
+            : 0;
+        return (
+          <rect
+            key={i}
+            x={b.x}
+            y={b.y}
+            width={Math.max(0, b.width)}
+            height={Math.max(0, b.height)}
+            rx={r}
+            ry={r}
+            fill={seriesColor}
+            opacity={prev === null ? Math.max(p, 0.001) : 1}
+          />
+        );
+      })}
     </g>
   );
 }

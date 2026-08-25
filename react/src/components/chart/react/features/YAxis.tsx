@@ -33,25 +33,27 @@ export function YAxis(props: YAxisProps = {}) {
         }
         c.restore();
       }
-      c.strokeStyle = theme.axisColor;
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(left, area.y);
-      c.lineTo(left, area.y + area.height);
-      c.stroke();
-      c.fillStyle = theme.textColor;
-      c.font = "11px sans-serif";
-      c.textBaseline = "middle";
-      for (const t of ticks) {
-        const y = scale.map(t);
-        c.textAlign = onRight ? "left" : "right";
-        c.fillText(format(Number(t)), onRight ? left + 8 : left - 8, y);
+      if (props.labels !== false) {
+        c.strokeStyle = theme.axisColor;
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(left, area.y);
+        c.lineTo(left, area.y + area.height);
+        c.stroke();
+        c.fillStyle = theme.textColor;
+        c.font = "11px sans-serif";
+        c.textBaseline = "middle";
+        for (const t of ticks) {
+          const y = scale.map(t);
+          c.textAlign = onRight ? "left" : "right";
+          c.fillText(format(Number(t)), onRight ? left + 8 : left - 8, y);
+        }
       }
     };
     ctx.registerDraw(id, fn);
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderer, scale, onRight, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.format]);
+  }, [renderer, scale, onRight, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.labels, props.format]);
 
   if (renderer !== "svg" || !scale) return null;
   const ticks = scale.ticks(props.tickCount ?? 5);
@@ -72,27 +74,31 @@ export function YAxis(props: YAxisProps = {}) {
             strokeWidth={1}
           />
         ))}
-      <line
-        x1={left}
-        y1={area.y}
-        x2={left}
-        y2={area.y + area.height}
-        stroke={theme.axisColor}
-        strokeWidth={1}
-      />
-      {ticks.map((t, i) => (
-        <text
-          key={i}
-          x={onRight ? left + 8 : left - 8}
-          y={scale.map(t)}
-          textAnchor={onRight ? "start" : "end"}
-          dominantBaseline="middle"
-          fontSize={11}
-          fill={theme.textColor}
-        >
-          {format(Number(t))}
-        </text>
-      ))}
+      {props.labels !== false && (
+        <>
+          <line
+            x1={left}
+            y1={area.y}
+            x2={left}
+            y2={area.y + area.height}
+            stroke={theme.axisColor}
+            strokeWidth={1}
+          />
+          {ticks.map((t, i) => (
+            <text
+              key={i}
+              x={onRight ? left + 8 : left - 8}
+              y={scale.map(t)}
+              textAnchor={onRight ? "start" : "end"}
+              dominantBaseline="middle"
+              fontSize={11}
+              fill={theme.textColor}
+            >
+              {format(Number(t))}
+            </text>
+          ))}
+        </>
+      )}
       {props.label && (
         <text
           x={onRight ? left + 38 : left - 38}

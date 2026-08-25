@@ -16,6 +16,10 @@ export interface PieSeriesInput {
   startAngle?: number;
   /** Sweep in radians. Default 2π (full circle). */
   sweepAngle?: number;
+  /** Angular gap between slices in radians (d3 wedge padding). Default 0. */
+  padAngle?: number;
+  /** Slice corner radius in px (clamped to the ring width / 2). Default 0. */
+  cornerRadius?: number;
   cx: number;
   cy: number;
   outerRadius: number;
@@ -27,6 +31,11 @@ export function computePieGeometry(input: PieSeriesInput): PieGeometry {
   const { items, innerRadiusRatio, cx, cy, outerRadius } = input;
   const startAngle = input.startAngle ?? 0;
   const sweepAngle = input.sweepAngle ?? Math.PI * 2;
+  const padAngle = input.padAngle ?? 0;
+  const sliceCorner = Math.max(
+    0,
+    Math.min(input.cornerRadius ?? 0, outerRadius / 2),
+  );
   const innerRadius = Math.max(0, outerRadius * Math.min(1, innerRadiusRatio));
 
   const total = items.reduce((acc, d) => acc + (Number.isFinite(d.value) ? d.value : 0), 0);
@@ -40,14 +49,15 @@ export function computePieGeometry(input: PieSeriesInput): PieGeometry {
     .value((d) => d.value)
     .sort(null)
     .startAngle(startAngle)
-    .endAngle(startAngle + sweepAngle)(
+    .endAngle(startAngle + sweepAngle)
+    .padAngle(padAngle)(
     items.map((d) => ({ value: d.value })),
   );
 
   const arcGen = arc<{ value: number }>()
     .innerRadius(innerRadius)
     .outerRadius(outerRadius)
-    .cornerRadius(0);
+    .cornerRadius(sliceCorner);
 
   const slices: PieSlice[] = arcs.map((a, index) => {
     const mid = (a.startAngle + a.endAngle) / 2;

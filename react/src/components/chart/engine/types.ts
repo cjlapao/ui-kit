@@ -298,6 +298,8 @@ export interface HoverItem {
   /** Pixel y of this item's mark. */
   y: number;
   item: unknown;
+  /** Index of the datum within the series' data array (slice for pies). */
+  index?: number;
 }
 
 export interface HoverState {

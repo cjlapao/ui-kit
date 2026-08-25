@@ -68,6 +68,10 @@ export interface BarSeriesProps<T = unknown> {
   /** Series sharing a stackId stack together (stack/percent). Default "default". */
   stackId?: string;
   orientation?: BarOrientation;
+  /** Rounded bar corners in px (clamped to half the bar's width/height). */
+  cornerRadius?: number;
+  /** Pixel gap between stacked segments (stack/percent modes). */
+  segmentGap?: number;
   animation?: ChartAnimation;
 }
 
@@ -89,9 +93,31 @@ export interface PieSeriesProps<T = unknown> {
   startAngle?: number;
   /** Sweep in radians. Default 2π. */
   sweepAngle?: number;
+  /** Angular gap between slices in radians. Default 0. */
+  padAngle?: number;
+  /** Slice corner radius in px (clamped to the ring width / 2). Default 0. */
+  cornerRadius?: number;
   animation?: ChartAnimation;
   /** Center content (donut). Rendered above the chart. */
   children?: ReactNode;
+}
+
+export interface PieCenterProps {
+  /** Small caps label above the value (e.g. "ARR MIX"). */
+  title?: string;
+  /** Value shown when no slice is hovered. Default: formatted total. */
+  value?: string | number;
+  /** Small line under the value (e.g. "6 plans tracked"). */
+  subtitle?: string;
+  /** Formats the default (total) and hovered slice values. */
+  valueFormatter?: (value: number) => string;
+  /** Percent line under the hovered slice value. Defaults to "xx% of total". */
+  hoverSubtitle?: (slice: { name: string; value: number; percent: number }) => string;
+  /** Full custom body (replaces the default layout). */
+  render?: (state: {
+    hovered: { name: string; value: number; color: string; percent: number } | null;
+    total: number;
+  }) => ReactNode;
 }
 
 export type CandlestickVariant = "candle" | "hollow" | "ohlc";
@@ -136,6 +162,8 @@ export interface YAxisProps {
   label?: string;
   /** Horizontal gridlines. Default true. */
   grid?: boolean;
+  /** Tick labels + the domain line. Default true. */
+  labels?: boolean;
   format?: (tick: number) => string;
 }
 
@@ -162,6 +190,8 @@ export interface HoverProps {
 export interface LegendProps {
   /** Horizontal (default, top) or vertical (right). */
   orientation?: "horizontal" | "vertical";
+  /** Where the legend sits. Default "top". */
+  position?: "top" | "bottom";
   /** Custom entry content (swatch + label). */
   renderEntry?: (entry: {
     id: string;
@@ -305,12 +335,16 @@ export interface SeriesDescriptor {
   barMode?: BarMode;
   stackId?: string;
   orientation?: BarOrientation;
+  cornerRadius?: number;
+  segmentGap?: number;
   // pie
   valueField?: (item: unknown, index: number) => number;
   categoryField?: (item: unknown, index: number) => string;
   innerRadius?: number;
   pieStartAngle?: number;
   pieSweepAngle?: number;
+  piePadAngle?: number;
+  pieCornerRadius?: number;
   pieColors?: ChartColor[];
   // candlestick
   openAccessor?: (item: unknown, index: number) => number;

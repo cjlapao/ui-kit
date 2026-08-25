@@ -205,6 +205,76 @@ describe("Chart.Svg", () => {
     expect(bY1).toBeLessThan(aY1); // B sits above A (stacked upward)
   });
 
+  it("y-domain spans stacked totals (not per-series values)", () => {
+    // 2 series × 50 per category → the stack tops reach 100; the y-axis
+    // must tick up to at least 100, otherwise the stacks overflow the plot.
+    const a = [
+      { category: "A", value: 50 },
+      { category: "B", value: 50 },
+    ];
+    const b = [
+      { category: "A", value: 50 },
+      { category: "B", value: 50 },
+    ];
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Bar data={a} name="A" mode="stack" />
+        <Chart.Bar data={b} name="B" mode="stack" />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    // "100" appears as a y tick label (with the old per-series domain the
+    // axis topped out at 50 and never rendered a 100 tick).
+    expect(svg!.textContent).toContain("100");
+  });
+
+  it("stacked segmentGap shrinks each segment by the gap", () => {
+    const a = [{ category: "A", value: 50 }];
+    const b = [{ category: "A", value: 50 }];
+    const { rerender } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Bar data={a} name="A" mode="stack" />
+        <Chart.Bar data={b} name="B" mode="stack" />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    const plain = () => {
+      const rects = svg!.querySelectorAll("[data-chart-series] rect");
+      return {
+        h0: Number(rects[0].getAttribute("height")),
+        h1: Number(rects[1].getAttribute("height")),
+      };
+    };
+    const before = plain();
+    rerender(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Bar data={a} name="A" mode="stack" segmentGap={8} />
+        <Chart.Bar data={b} name="B" mode="stack" segmentGap={8} />
+      </Chart.Svg>,
+    );
+    const after = plain();
+    expect(after.h0).toBeCloseTo(before.h0 - 8, 5);
+    expect(after.h1).toBeCloseTo(before.h1 - 8, 5);
+  });
+
+  it("bar cornerRadius rounds the rects", () => {
+    const a = [
+      { category: "A", value: 10 },
+      { category: "B", value: 20 },
+    ];
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Bar data={a} name="A" cornerRadius={6} />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    const rect = svg!.querySelector("[data-chart-series] rect")!;
+    // clamped to min(6, width/2, height/2) — a positive radius
+    expect(Number(rect.getAttribute("rx"))).toBeGreaterThan(0);
+    expect(Number(rect.getAttribute("rx"))).toBeLessThanOrEqual(6);
+  });
+
   it("renders pie slices", () => {
     render(
       <Chart.Svg height={300} {...noAnim}>
@@ -214,6 +284,55 @@ describe("Chart.Svg", () => {
     const svg = document.querySelector("svg[role=img]")!;
     const series = svg!.querySelector("[data-chart-series]")!;
     expect(series!.querySelectorAll("path").length).toBe(2);
+  });
+
+  it("PieCenter renders the default donut readout", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Pie data={pieData} name="Mix" innerRadius={0.6} />
+        <Chart.PieCenter title="ARR MIX" value={100} subtitle="2 plans" />
+      </Chart.Svg>,
+    );
+    expect(screen.getByText("ARR MIX")).toBeTruthy();
+    expect(screen.getByText("2 plans")).toBeTruthy();
+    // default value formatted via formatSI
+    expect(screen.getByText("100")).toBeTruthy();
+  });
+
+  it("PieCenter updates on slice hover", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Pie data={pieData} name="Mix" innerRadius={0.6} />
+        <Chart.PieCenter title="ARR MIX" value={100} />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    const rect = svg!.querySelectorAll("rect")[
+      svg!.querySelectorAll("rect").length - 1
+    ] as SVGRectElement;
+    // jsdom: the svg box is at the origin, width defaults to 800 — the
+    // donut center is (8 + 780/2, 48 + 244/2) = (398, 170). Probe 60px to
+    // the right of center → 90° → slice 0 ("X", 40%, spans 0..144°).
+    fireEvent.pointerMove(rect, { clientX: 398 + 60, clientY: 170 });
+    // hovered slice name replaces the default title
+    expect(screen.getByText("X")).toBeTruthy();
+    // slice value replaces the default total
+    expect(screen.getByText("40")).toBeTruthy();
+  });
+
+  it("YAxis labels={false} hides tick labels and the domain line", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={lineData} name="S" />
+        <Chart.YAxis labels={false} />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    const feature = svg!.querySelector("[data-chart-feature='yaxis-left']")!;
+    // gridlines remain, but no <text> tick labels
+    expect(feature.querySelectorAll("text").length).toBe(0);
+    expect(feature.querySelectorAll("line").length).toBeGreaterThan(0);
   });
 
   it("renders donut inner cutout", () => {
@@ -430,12 +549,12 @@ describe("hover + tooltip", () => {
       </Chart.Svg>,
     );
     // the transparent hover rect is the last rect in the svg (the first is
-    // the line-entrance clip)
+    // the line-entrance clip). The handler converts coordinates relative to
+    // the SVG box, so mock the svg's box.
     const svg = document.querySelector("svg[role=img]")!;
     const rects = svg!.querySelectorAll("rect");
     const rect = rects[rects.length - 1] as SVGRectElement;
-    // fake a pointer at the plot center
-    Object.defineProperty(rect, "getBoundingClientRect", {
+    Object.defineProperty(svg, "getBoundingClientRect", {
       value: () => ({
         left: 0,
         top: 0,
@@ -451,6 +570,7 @@ describe("hover + tooltip", () => {
       }),
       configurable: true,
     });
+    // fake a pointer at the plot center (area starts at x=60 for the y-axis)
     fireEvent.pointerMove(rect, { clientX: 62, clientY: 150 });
     // tooltip card renders the snapped x's full date header
     expect(screen.getByText(/Jan 1, 2024/)).toBeTruthy();

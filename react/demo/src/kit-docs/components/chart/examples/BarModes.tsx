@@ -1,35 +1,109 @@
 import { useState } from "react";
 import { Chart, MultiToggle } from "@cjlapao/ui-kit";
-import { barQuarterly } from "../data";
+import {
+  escalationDeskLevel,
+  supportDays,
+  supportPeakDay,
+  supportPeakTotal,
+} from "../data";
 
-type Mode = "group" | "stack" | "percent";
+type Mode = "stack" | "group" | "percent";
 
-/** Grouped / stacked / percent modes over the same quarterly P&L. */
+/**
+ * Daily support load stacked by work type (the PrimeUI stacked-bar
+ * reference): rounded segment pills, the dashed escalation-desk level and
+ * the "Peak 24" callout.
+ */
 export default function BarModes() {
-  const [mode, setMode] = useState<Mode>("group");
+  const [mode, setMode] = useState<Mode>("stack");
   return (
-    <div className="flex w-full max-w-4xl flex-col items-center gap-4">
+    <div className="flex w-full max-w-5xl flex-col items-center gap-4">
       <MultiToggle
         size="sm"
         options={[
-          { label: "Grouped", value: "group" },
           { label: "Stacked", value: "stack" },
+          { label: "Grouped", value: "group" },
           { label: "Percent", value: "percent" },
         ]}
         value={mode}
         onChange={(v) => setMode(v as Mode)}
       />
-      <Chart.Svg height={340}>
+      <Chart.Svg height={380}>
         <Chart.Title
-          title="Quarterly P&L"
-          subtitle={mode === "percent" ? "Share of revenue" : "In $k"}
+          title="Daily support load"
+          subtitle="Stacked by work type, with self-serve deflection visible beside critical and migration pressure"
         />
-        <Chart.Bar data={barQuarterly} name="Revenue" valueYField="revenue" mode={mode} color="violet" />
-        <Chart.Bar data={barQuarterly} name="Profit" valueYField="profit" mode={mode} color="emerald" />
-        <Chart.Bar data={barQuarterly} name="Cost" valueYField="cost" mode={mode} color="amber" />
-        <Chart.XAxis />
-        <Chart.YAxis tickCount={5} />
         <Chart.Legend />
+        <Chart.Bar
+          data={supportDays}
+          categoryXField="day"
+          valueYField="critical"
+          name="Critical"
+          mode={mode}
+          stackId="load"
+          color="#f87171"
+          cornerRadius={999}
+          segmentGap={3}
+        />
+        <Chart.Bar
+          data={supportDays}
+          categoryXField="day"
+          valueYField="migration"
+          name="Migration"
+          mode={mode}
+          stackId="load"
+          color="#8b5cf6"
+          cornerRadius={999}
+          segmentGap={3}
+        />
+        <Chart.Bar
+          data={supportDays}
+          categoryXField="day"
+          valueYField="product"
+          name="Product"
+          mode={mode}
+          stackId="load"
+          color="#38bdf8"
+          cornerRadius={999}
+          segmentGap={3}
+        />
+        <Chart.Bar
+          data={supportDays}
+          categoryXField="day"
+          valueYField="onboarding"
+          name="Onboarding"
+          mode={mode}
+          stackId="load"
+          color="#fbbf24"
+          cornerRadius={999}
+          segmentGap={3}
+        />
+        <Chart.Bar
+          data={supportDays}
+          categoryXField="day"
+          valueYField="deflected"
+          name="Deflected"
+          mode={mode}
+          stackId="load"
+          color="#34d399"
+          cornerRadius={999}
+          segmentGap={3}
+        />
+        <Chart.XAxis tickCount={24} />
+        <Chart.YAxis labels={false} />
+        <Chart.ReferenceLine
+          y={escalationDeskLevel}
+          label="Escalation desk"
+          labelPosition="start"
+        />
+        <Chart.Annotation
+          x={supportPeakDay}
+          y={supportPeakTotal}
+          tone="#34d399"
+          title="Peak 24"
+          value={`${supportPeakTotal} cases`}
+          placement="top"
+        />
         <Chart.Tooltip mode="shared" />
         <Chart.Hover />
       </Chart.Svg>

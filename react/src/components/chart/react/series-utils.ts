@@ -181,6 +181,8 @@ export function describeSeries(
       innerRadius: pp.innerRadius ?? 0,
       pieStartAngle: pp.startAngle,
       pieSweepAngle: pp.sweepAngle,
+      piePadAngle: pp.padAngle,
+      pieCornerRadius: pp.cornerRadius,
       pieColors: pp.colors,
       animation,
     };
@@ -216,6 +218,8 @@ export function describeSeries(
       barMode: mode ?? "group",
       stackId: bp.stackId ?? "default",
       orientation: bp.orientation ?? "vertical",
+      cornerRadius: bp.cornerRadius,
+      segmentGap: bp.segmentGap,
       animation,
     };
   }
@@ -269,6 +273,7 @@ export interface ChartChildrenSummary {
   yAxisRight: boolean;
   hasLegend: boolean;
   legendOrientation: "horizontal" | "vertical";
+  legendPosition: "top" | "bottom";
   tooltipMode: "shared" | "follow" | "crosshair";
   hoverEnabled: boolean;
   hasHover: boolean;
@@ -315,6 +320,7 @@ export function summarizeChildren(
     yAxisRight: false,
     hasLegend: false,
     legendOrientation: "horizontal",
+    legendPosition: "top",
     tooltipMode: "shared",
     hoverEnabled: false,
     hasHover: false,
@@ -385,6 +391,8 @@ export function summarizeChildren(
       summary.legendOrientation = (props.orientation as
         | "horizontal"
         | "vertical") ?? "horizontal";
+      summary.legendPosition =
+        props.position === "bottom" ? "bottom" : "top";
       continue;
     }
     if (t === types.Tooltip) {

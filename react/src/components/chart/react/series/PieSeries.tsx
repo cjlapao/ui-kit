@@ -140,6 +140,8 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
       innerRadiusRatio: d.innerRadius ?? 0,
       startAngle: d.pieStartAngle ?? 0,
       sweepAngle: d.pieSweepAngle ?? TWO_PI,
+      padAngle: d.piePadAngle ?? 0,
+      cornerRadius: d.pieCornerRadius ?? 0,
       cx,
       cy,
       outerRadius: Math.max(10, outerRadius),
@@ -166,6 +168,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
       cy: final.cy,
       innerRadius: final.innerRadius,
       outerRadius: final.outerRadius,
+      total: final.total,
       slices: final.slices.map((s, i) => ({
         name: String(
           (d.categoryField && d.categoryField(d.data[s.index], s.index)) ??

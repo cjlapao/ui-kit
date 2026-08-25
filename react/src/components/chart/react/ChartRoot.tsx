@@ -87,6 +87,7 @@ export interface ChildTypeRegistry {
   ReferenceBand: ComponentType<any>;
   Annotation: ComponentType<any>;
   DataLabels: ComponentType<any>;
+  PieCenter: ComponentType<any>;
 }
 
 let registry: ChildTypeRegistry | null = null;
@@ -105,6 +106,7 @@ const EMPTY_SUMMARY: ChartChildrenSummary = {
   yAxisRight: false,
   hasLegend: false,
   legendOrientation: "horizontal",
+  legendPosition: "top",
   tooltipMode: "shared",
   hoverEnabled: false,
   hasHover: false,
@@ -167,6 +169,18 @@ function computeYDomain(
   let min = Infinity;
   let max = -Infinity;
   let hasBar = false;
+  // Stacked bar groups contribute their per-category TOTALS to the domain —
+  // individual series values only reach ~1/5 of the stacked height, so
+  // using them clips the stack tops.
+  const stackGroups = new Map<string, ChartChildrenSummary["series"]>();
+  for (const d of visible) {
+    if (d.type === "bar" && d.barMode && d.barMode !== "group") {
+      const key = d.stackId ?? "default";
+      const list = stackGroups.get(key) ?? [];
+      list.push(d);
+      stackGroups.set(key, list);
+    }
+  }
   for (const d of visible) {
     if (d.type === "bar") hasBar = true;
     if (d.type === "candlestick" && d.lowAccessor && d.highAccessor) {
@@ -180,6 +194,26 @@ function computeYDomain(
           min = Math.min(min, v as number);
           max = Math.max(max, v as number);
         }
+      }
+      continue;
+    }
+    const stackGroup =
+      d.type === "bar" && d.barMode && d.barMode !== "group"
+        ? stackGroups.get(d.stackId ?? "default")
+        : undefined;
+    if (stackGroup && stackGroup.length > 0) {
+      // First series of the group feeds the totals; the rest are skipped.
+      if (d !== stackGroup[0]) continue;
+      const percent = d.barMode === "percent";
+      const n = Math.max(...stackGroup.map((s) => s.data.length));
+      for (let i = 0; i < n; i++) {
+        let total = 0;
+        for (const s of stackGroup) {
+          const v = s.data[i] != null && s.yAccessor ? s.yAccessor(s.data[i], i) : 0;
+          total += Number.isFinite(v as number) ? (v as number) : 0;
+        }
+        min = Math.min(min, percent ? 0 : total);
+        max = Math.max(max, percent ? 100 : total);
       }
       continue;
     }
@@ -631,6 +665,7 @@ export function ChartRootImpl({
                   value: values[i] ?? 0,
                   y: py,
                   item: s.descriptor.data[i],
+                  index: i,
                 },
               ],
             };
@@ -755,7 +790,15 @@ export function ChartRootImpl({
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<SVGRectElement | HTMLCanvasElement>) => {
       if (!hoverEnabled) return;
-      const rect = (e.currentTarget as Element).getBoundingClientRect();
+      // Coordinates must be relative to the SVG/CANVAS ORIGIN (the whole
+      // chart box), not the hover layer's own box — the rect sits at the
+      // plot area's origin inside the svg.
+      const target = e.currentTarget as Element;
+      const root =
+        target instanceof SVGSVGElement
+          ? target
+          : ((target as SVGElement).ownerSVGElement ?? target);
+      const rect = root.getBoundingClientRect();
       const px = e.clientX - rect.left;
       const py = e.clientY - rect.top;
       if (
@@ -895,6 +938,7 @@ export function ChartRootImpl({
   const captionEl: ReactNode[] = [];
   const tooltipEl: ReactNode[] = [];
   const dataLabelsEl: ReactNode[] = [];
+  const pieCenterEl: ReactNode[] = [];
   for (const c of elements) {
     if (typeof c !== "object" || c === null || !("$typeof" in c || "$$typeof" in c)) {
       if (c !== undefined && c !== null) plotChildren.push(c);
@@ -906,6 +950,7 @@ export function ChartRootImpl({
     else if (el.type === reg?.Caption) captionEl.push(c);
     else if (el.type === reg?.Tooltip) tooltipEl.push(c);
     else if (el.type === reg?.DataLabels) dataLabelsEl.push(c);
+    else if (el.type === reg?.PieCenter) pieCenterEl.push(c);
     else if (el.type === reg?.Hover) {
       // Hover renders null — kept out of the plot layer.
     } else if (
@@ -1027,18 +1072,34 @@ export function ChartRootImpl({
         )}
         {legendEl.length > 0 && (
           <div
-            style={{
-              position: "absolute",
-              top: legendTop,
-              right: m.right,
-              maxHeight: Math.max(layout.legendHeight, 1),
-            }}
+            style={
+              summary.legendOrientation === "vertical"
+                ? {
+                    position: "absolute",
+                    top: legendTop,
+                    right: m.right,
+                    maxHeight: Math.max(layout.legendHeight, 1),
+                  }
+                : {
+                    position: "absolute",
+                    left: m.left,
+                    right: m.right,
+                    height: Math.max(layout.legendHeight, 1),
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    ...(summary.legendPosition === "bottom"
+                      ? { bottom: m.bottom + layout.captionHeight }
+                      : { top: legendTop }),
+                  }
+            }
           >
             {legendEl}
           </div>
         )}
         {tooltipEl}
         {dataLabelsEl}
+        {pieCenterEl}
         {captionEl.length > 0 && (
           <div
             style={{

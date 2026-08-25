@@ -35,6 +35,7 @@ import { Hover } from "./react/features/Hover";
 import { ReferenceLine, ReferenceBand } from "./react/features/ReferenceMarks";
 import { Annotation } from "./react/features/Annotation";
 import { DataLabels } from "./react/features/DataLabels";
+import { PieCenter } from "./react/features/PieCenter";
 
 // Register the concrete types so the root can split children without a
 // circular import.
@@ -54,6 +55,7 @@ setChartRegistry({
   ReferenceBand,
   Annotation,
   DataLabels,
+  PieCenter,
 });
 
 export const Chart = {
@@ -74,6 +76,7 @@ export const Chart = {
   ReferenceBand,
   Annotation,
   DataLabels,
+  PieCenter,
 };
 
 export default Chart;
@@ -97,6 +100,7 @@ export type {
   LegendProps,
   DataLabelsProps,
   DataLabelPosition,
+  PieCenterProps,
   TitleProps,
   CaptionProps,
   ReferenceLineProps,

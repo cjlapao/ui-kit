@@ -22,6 +22,8 @@ export interface PiePresentation {
   cy: number;
   innerRadius: number;
   outerRadius: number;
+  /** Sum of slice values. */
+  total: number;
   slices: PieSliceLabel[];
 }
 import type {

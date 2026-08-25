@@ -64,13 +64,14 @@ export function ReferenceLine(props: ReferenceLineProps) {
       c.stroke();
       if (props.y !== undefined && yScale) {
         const py = yScale.map(props.y);
+        const atStart = props.labelPosition === "start";
         c.fillStyle = theme.subtleText;
         c.font = "10.5px sans-serif";
-        c.textAlign = "right";
+        c.textAlign = atStart ? "left" : "right";
         c.textBaseline = "bottom";
         c.fillText(
           props.label ?? "",
-          area.x + area.width - 4,
+          atStart ? area.x + 4 : area.x + area.width - 4,
           py - 3,
         );
       }
@@ -79,7 +80,7 @@ export function ReferenceLine(props: ReferenceLineProps) {
     ctx.registerDraw(id, fn);
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderer, area, color, dash, props.x, props.y, props.label, ctx.registerDraw, ctx.unregisterDraw]);
+  }, [renderer, area, color, dash, props.x, props.y, props.label, props.labelPosition, ctx.registerDraw, ctx.unregisterDraw]);
 
   if (renderer !== "svg") return null;
   const px = xPixel(ctx, props.x);
@@ -132,12 +133,16 @@ export function ReferenceLine(props: ReferenceLineProps) {
           </text>
         </g>
       )}
-      {/* Horizontal line: plain label at the right end, above the rule. */}
+      {/* Horizontal line: plain label at the chosen end, above the rule. */}
       {label && py !== null && (
         <text
-          x={area.x + area.width - 4}
+          x={
+            props.labelPosition === "start"
+              ? area.x + 4
+              : area.x + area.width - 4
+          }
           y={py - 5}
-          textAnchor="end"
+          textAnchor={props.labelPosition === "start" ? "start" : "end"}
           dominantBaseline="auto"
           fontSize={10.5}
           fill={theme.subtleText}

@@ -4,7 +4,7 @@
  * the root's seriesEndpoints (works for both renderers).
  */
 import type { CSSProperties } from "react";
-import { formatSI } from "../../engine/index";
+import { formatSI, shadeColor } from "../../engine/index";
 import { useChart } from "../ChartContext";
 import type { DataLabelsProps } from "../props";
 
@@ -16,7 +16,9 @@ export function DataLabels(props: DataLabelsProps = {}) {
   const position = props.position ?? "none";
   if (position === "none") return null;
 
-  // Cartesian: endpoint badges. Pie/donut: one label per slice.
+  // Cartesian: endpoint badges. Pie/donut: one label per slice (slices
+  // under 5% of the total are skipped — the reference leaves the smallest
+  // slice unlabeled).
   const endpoints =
     position === "all" ? seriesEndpoints : seriesEndpoints; // v1: endpoints
   const pieSlices =
@@ -24,19 +26,21 @@ export function DataLabels(props: DataLabelsProps = {}) {
       ? series.flatMap((s) => {
           if (s.descriptor.type !== "pie") return [];
           const pres = piePresentations.get(s.descriptor.id);
-          if (!pres || s.hidden) return [];
+          if (!pres || s.hidden || pres.total <= 0) return [];
           const labelR =
             pres.innerRadius > 0
               ? (pres.innerRadius + pres.outerRadius) / 2
               : pres.outerRadius * 0.62;
-          return pres.slices.map((sl) => ({
-            key: `${s.descriptor.id}-${sl.name}-${sl.value}`,
-            name: sl.name,
-            color: sl.color,
-            value: sl.value,
-            x: pres.cx + labelR * Math.sin(sl.labelAngle),
-            y: pres.cy - labelR * Math.cos(sl.labelAngle),
-          }));
+          return pres.slices
+            .filter((sl) => sl.value / pres.total >= 0.06)
+            .map((sl) => ({
+              key: `${s.descriptor.id}-${sl.name}-${sl.value}`,
+              name: sl.name,
+              color: sl.color,
+              value: sl.value,
+              x: pres.cx + labelR * Math.sin(sl.labelAngle),
+              y: pres.cy - labelR * Math.cos(sl.labelAngle),
+            }));
         })
       : [];
 
@@ -134,7 +138,7 @@ export function DataLabels(props: DataLabelsProps = {}) {
               left: bx,
               top: by,
               width: w,
-              background: sl.color,
+              background: shadeColor(sl.color, 0.45),
               color: "#ffffff",
             }}
           >

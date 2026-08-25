@@ -32,6 +32,68 @@ describe("computePieGeometry", () => {
     expect(g.slices[0].path.length).toBeGreaterThan(10);
   });
 
+  it("padAngle opens gaps between slices (visual narrowing, full angles)", () => {
+    const items = [
+      { value: 35, item: "a" },
+      { value: 25, item: "b" },
+      { value: 20, item: "c" },
+      { value: 20, item: "d" },
+    ];
+    const plain = computePieGeometry({
+      items,
+      innerRadiusRatio: 0.6,
+      ...base,
+    });
+    const padded = computePieGeometry({
+      items,
+      innerRadiusRatio: 0.6,
+      padAngle: 0.02,
+      ...base,
+    });
+    // d3 pads the arc PATH (radial narrowing), not the angular ranges —
+    // slice angles/labels/hit-testing stay exact.
+    const plainSweep = plain.slices.reduce(
+      (acc, s) => acc + (s.endAngle - s.startAngle),
+      0,
+    );
+    const paddedSweep = padded.slices.reduce(
+      (acc, s) => acc + (s.endAngle - s.startAngle),
+      0,
+    );
+    expect(plainSweep).toBeCloseTo(Math.PI * 2);
+    expect(paddedSweep).toBeCloseTo(Math.PI * 2);
+    expect(padded.slices[0].startAngle).toBeCloseTo(
+      plain.slices[0].startAngle,
+    );
+    // the padded path is visibly different (extra edge cuts)
+    expect(padded.slices[0].path).not.toBe(plain.slices[0].path);
+  });
+
+  it("cornerRadius rounds slice corners without changing angles", () => {
+    const plain = computePieGeometry({
+      items: [
+        { value: 40, item: "a" },
+        { value: 60, item: "b" },
+      ],
+      innerRadiusRatio: 0.5,
+      ...base,
+    });
+    const rounded = computePieGeometry({
+      items: [
+        { value: 40, item: "a" },
+        { value: 60, item: "b" },
+      ],
+      innerRadiusRatio: 0.5,
+      cornerRadius: 6,
+      ...base,
+    });
+    expect(rounded.slices[0].startAngle).toBeCloseTo(plain.slices[0].startAngle);
+    expect(rounded.slices[0].endAngle).toBeCloseTo(plain.slices[0].endAngle);
+    // the arc carries corner arcs (A commands with the corner radius)
+    expect(rounded.slices[0].path).toContain("A6,6");
+    expect(plain.slices[0].path).not.toContain("A6,6");
+  });
+
   it("respects sweepAngle for gauges", () => {
     const g = computePieGeometry({
       items: [{ value: 100, item: "all" }],

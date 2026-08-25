@@ -109,6 +109,22 @@ export function getChartTheme(mode: ChartThemeMode): ChartThemeTokens {
 
 // ── Color resolution ─────────────────────────────────────────────────────────
 
+/**
+ * Blend a hex color toward black (factor 0 = original, 1 = black).
+ * Non-hex inputs fall back to a neutral dark pill so labels always keep
+ * contrast on top of their slice.
+ */
+export function shadeColor(color: string, factor: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(color.trim());
+  if (!m) return "rgba(15, 23, 42, 0.55)";
+  const n = parseInt(m[1], 16);
+  const f = Math.max(0, Math.min(1, factor));
+  const r = Math.round(((n >> 16) & 255) * (1 - f));
+  const g = Math.round(((n >> 8) & 255) * (1 - f));
+  const b = Math.round((n & 255) * (1 - f));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 function isGradientColor(input: ChartColor): input is GradientColor {
   return (
     typeof input === "object" &&

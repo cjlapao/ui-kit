@@ -1,21 +1,45 @@
 import { Chart } from "@cjlapao/ui-kit";
-import { piePlans } from "../data";
+import { arrPlans, arrPlanColors, arrTotal } from "../data";
 
-/** Donut with a centre total, percent labels and a side legend. */
+/**
+ * Plan mix by ARR (the PrimeUI donut reference): six plan slices with
+ * percent labels, a center readout that tracks slice hover, and a bottom
+ * legend whose toggles isolate slices.
+ */
 export default function PieDonut() {
-  const total = piePlans.reduce((sum, p) => sum + p.value, 0);
   return (
-    <div className="flex w-full max-w-4xl items-center justify-center gap-10">
-      <Chart.Svg height={320}>
-        <Chart.Pie data={piePlans} name="Plan mix" innerRadius={0.6} />
+    <div className="flex w-full max-w-3xl flex-col items-center gap-4">
+      <Chart.Svg height={440}>
+        <Chart.Title
+          title="Plan mix by ARR"
+          subtitle="Annual recurring revenue is split by plan, with slice hover updating the center readout and legend toggles for isolation"
+        />
+        <Chart.Pie
+          data={arrPlans}
+          name="Plan mix"
+          valueField="value"
+          categoryField="name"
+          colors={arrPlanColors}
+          innerRadius={0.62}
+          padAngle={0.02}
+          cornerRadius={6}
+        />
+        <Chart.PieCenter
+          title="ARR MIX"
+          value={arrTotal}
+          subtitle={`${arrPlans.length} plans tracked`}
+          valueFormatter={(v) => `$${(v / 1000).toFixed(2)}M`}
+          hoverSubtitle={(s) =>
+            `$${(s.value / 1000).toFixed(2)}M · ${Math.round(s.percent)}%`
+          }
+        />
         <Chart.DataLabels
           position="all"
-          formatter={(v) => `${Math.round((v / total) * 100)}%`}
+          formatter={(v) => `${Math.round((v / arrTotal) * 100)}%`}
         />
-      </Chart.Svg>
-      <Chart.Svg height={320}>
-        <Chart.Pie data={piePlans} name="Plan mix" />
-        <Chart.Legend orientation="vertical" />
+        <Chart.Legend position="bottom" />
+        <Chart.Tooltip mode="shared" />
+        <Chart.Hover />
       </Chart.Svg>
     </div>
   );
