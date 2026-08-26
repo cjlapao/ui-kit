@@ -62,6 +62,7 @@ import {
 } from "../engine/index";
 import type {
   AnyScale,
+  CategoricalScale,
   ChartAnimationType,
   ChartLayout,
   ContinuousScale,
@@ -96,6 +97,7 @@ export interface ChildTypeRegistry {
   PolarAxis: ComponentType<any>;
   Scatter: ComponentType<any>;
   Gauge: ComponentType<any>;
+  Waterfall: ComponentType<any>;
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
@@ -218,7 +220,7 @@ function computeYDomain(
     }
   }
   for (const d of visible) {
-    if (d.type === "bar") hasBar = true;
+    if (d.type === "bar" || d.type === "waterfall") hasBar = true;
     if (d.type === "candlestick" && d.lowAccessor && d.highAccessor) {
       // Candles span low→high per point.
       for (let i = 0; i < d.data.length; i++) {
@@ -230,6 +232,15 @@ function computeYDomain(
           min = Math.min(min, v as number);
           max = Math.max(max, v as number);
         }
+      }
+      continue;
+    }
+    if (d.type === "waterfall" && d.waterfallSpans) {
+      // Waterfall bars span the running-total range, not the deltas —
+      // feed the spans (and the zero baseline) into the domain.
+      for (const [lo, hi] of d.waterfallSpans) {
+        min = Math.min(min, lo);
+        max = Math.max(max, hi);
       }
       continue;
     }
@@ -363,6 +374,14 @@ export function ChartRootImpl({
       d.type !== "polar" &&
       d.type !== "gauge",
   );
+  /**
+   * Transposed cartesian: a horizontal waterfall carries its values on the
+   * x axis and its categories on a band y axis.
+   */
+  const transposed =
+    cartesianSeries.some(
+      (d) => d.type === "waterfall" && d.waterfallOrientation === "horizontal",
+    );
   const radarSeries = summary.series.filter((d) => d.type === "radar");
   const hasRadar = radarSeries.length > 0;
   const polarSeries = summary.series.filter((d) => d.type === "polar");
@@ -619,8 +638,21 @@ export function ChartRootImpl({
 
   // ── Scales ─────────────────────────────────────────────────────────────────
   const xDomainValues = useMemo(
-    () => collectXValues(cartesianSeries),
-    [cartesianSeries],
+    () => {
+      if (transposed) {
+        // Values live on the x axis: feed the waterfall spans (running
+        // totals) into the numeric domain.
+        const vals: number[] = [];
+        for (const d of cartesianSeries) {
+          if (d.type !== "waterfall" || d.waterfallOrientation !== "horizontal")
+            continue;
+          for (const [lo, hi] of d.waterfallSpans ?? []) vals.push(lo, hi);
+        }
+        return vals;
+      }
+      return collectXValues(cartesianSeries);
+    },
+    [cartesianSeries, transposed],
   );
   const xIsTime = isTimeDomain(xDomainValues);
 
@@ -661,6 +693,7 @@ export function ChartRootImpl({
     return createLinearScale({
       domain: [Math.min(...nums), Math.max(...nums)],
       range,
+      nice: transposed,
     });
   }, [
     hasCartesian,
@@ -669,6 +702,7 @@ export function ChartRootImpl({
     area,
     summary.xAxisTickCount,
     summary.xAxisLog,
+    transposed,
   ]);
 
   const xIsCategorical = xScale !== null && "bandWidth" in xScale;
@@ -682,8 +716,24 @@ export function ChartRootImpl({
       ),
     [cartesianSeries, hiddenIds, summary.yAxisLeft.domain],
   );
-  const yScale: ContinuousScale | null = useMemo(() => {
+  const yScale: ContinuousScale | CategoricalScale | null = useMemo(() => {
     if (!showYAxis) return null;
+    if (transposed) {
+      // Categories ride the y axis, in data order.
+      const cats: string[] = [];
+      for (const d of cartesianSeries) {
+        if (d.type !== "waterfall" || d.waterfallOrientation !== "horizontal")
+          continue;
+        for (let i = 0; i < d.data.length; i++) {
+          const c = String(d.xAccessor(d.data[i], i));
+          if (!cats.includes(c)) cats.push(c);
+        }
+      }
+      return createBandScale({
+        categories: cats,
+        range: [area.y, area.y + area.height],
+      });
+    }
     const range: [number, number] = [area.y + area.height, area.y];
     // Log-10 y: the domain must be strictly positive — clamp a zero/negative
     // lower bound (bars pin min to 0) to 10% of the top of the domain.
@@ -709,7 +759,15 @@ export function ChartRootImpl({
     summary.yAxisLeft.domain,
     summary.yAxisLeft.log,
     summary.yAxisLeft.tickCount,
+    transposed,
+    cartesianSeries,
   ]);
+  /** Continuous view of the y scale (null when a band scale is present). */
+  const yCont: ContinuousScale | null =
+    yScale !== null && !("bandWidth" in yScale)
+      ? (yScale as ContinuousScale)
+      : null;
+
   const rightSeries = useMemo(
     () => cartesianSeries.filter((d) => d.yFieldAxis === "right"),
     [cartesianSeries],
@@ -747,7 +805,7 @@ export function ChartRootImpl({
         yAccessor: d.yAccessor ?? (() => null),
         sizeAccessor: d.scatterSizeAccessor,
         xScale,
-        yScale: vs,
+        yScale: vs as ContinuousScale,
         minSize: d.scatterMinSize,
         maxSize: d.scatterMaxSize,
       });
@@ -837,13 +895,25 @@ export function ChartRootImpl({
       const x = p.x as number | Date | string | undefined;
       const y = p.y as number | undefined;
       let px: number | null = null;
-      if (x !== undefined && xScale) {
-        px = "bandWidth" in xScale
-          ? xScale.center(String(x))
-          : (xScale as ContinuousScale).map(x as never);
+      let py: number | null = null;
+      if (transposed) {
+        // Transposed: x prop = category (band y axis), y prop = value (x axis).
+        if (x !== undefined && yScale && "bandWidth" in yScale) {
+          py = yScale.center(String(x));
+        }
+        if (y !== undefined && xScale && !("bandWidth" in xScale)) {
+          px = (xScale as ContinuousScale).map(y);
+        }
+      } else {
+        if (x !== undefined && xScale) {
+          px = "bandWidth" in xScale
+            ? xScale.center(String(x))
+            : (xScale as ContinuousScale).map(x as never);
+        }
+        if (y !== undefined && yScale && !("bandWidth" in yScale)) {
+          py = (yScale as ContinuousScale).map(y);
+        }
       }
-      const py =
-        y !== undefined && yScale ? yScale.map(y) : null;
       if (px === null || !Number.isFinite(px) || py === null || !Number.isFinite(py)) {
         map.set(c, null);
         continue;
@@ -870,7 +940,7 @@ export function ChartRootImpl({
       map.set(inp.el, rects[i] ?? null);
     });
     return map;
-  }, [elements, reg, xScale, yScale, area, width, height]);
+  }, [elements, reg, xScale, yScale, area, width, height, transposed]);
 
   const [progress, setProgress] = useState(animationsDisabled ? 1 : 0);
   const progressRef = useRef(progress);
@@ -1449,6 +1519,51 @@ export function ChartRootImpl({
 
       if (cartVisible.length === 0 || !xScale || !yScale) return null;
 
+      // Transposed: snap the pointer's y to the nearest band category.
+      if (transposed && "bandWidth" in yScale) {
+        const bandY = yScale;
+        let bestCat: string | null = null;
+        let bestDist = Infinity;
+        for (const cat of bandY.domain) {
+          const dd = Math.abs(bandY.center(cat) - py);
+          if (dd < bestDist) {
+            bestDist = dd;
+            bestCat = cat;
+          }
+        }
+        if (bestCat === null || bestDist > bandY.bandWidth) return null;
+        const items = cartVisible.flatMap((s) => {
+          const d = s.descriptor;
+          if (d.type !== "waterfall") return [];
+          for (let i = 0; i < d.data.length; i++) {
+            if (String(d.xAccessor(d.data[i], i)) !== bestCat) continue;
+            const v = d.yAccessor?.(d.data[i], i);
+            if (v === null || v === undefined || !Number.isFinite(v as number))
+              continue;
+            return [
+              {
+                seriesId: d.id,
+                name: d.name,
+                color: s.color,
+                value: v as number,
+                y: bandY.center(bestCat),
+                item: d.data[i],
+                index: i,
+              },
+            ];
+          }
+          return [];
+        });
+        if (items.length === 0) return null;
+        return {
+          x: px,
+          items,
+          rawX: bestCat,
+          y: bandY.center(bestCat),
+          pointerY: py,
+        };
+      }
+
       // Categorical: snap to the nearest band center.
       if (xIsCategorical) {
         const band = xScale;
@@ -1485,7 +1600,8 @@ export function ChartRootImpl({
               const val = lo as number;
               const valMax = hi as number;
               const vs =
-                d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
+                (d.yFieldAxis === "right" && rightYScale ? rightYScale : yCont) as
+                  ContinuousScale;
               return [
                 {
                   seriesId: d.id,
@@ -1495,6 +1611,7 @@ export function ChartRootImpl({
                   valueMax: valMax,
                   y: vs.map((val + valMax) / 2),
                   item: d.data[i],
+                  index: i,
                 },
               ];
             }
@@ -1503,7 +1620,9 @@ export function ChartRootImpl({
               continue;
             const val = v as number;
             const vs =
-              d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
+              (d.yFieldAxis === "right" && rightYScale
+                ? rightYScale
+                : yCont) as ContinuousScale;
             return [
               {
                 seriesId: d.id,
@@ -1512,6 +1631,7 @@ export function ChartRootImpl({
                 value: val,
                 y: vs.map(val),
                 item: d.data[i],
+                index: i,
               },
             ];
           }
@@ -1578,7 +1698,9 @@ export function ChartRootImpl({
             const val = lo as number;
             const valMax = hi as number;
             const vs =
-              d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
+              (d.yFieldAxis === "right" && rightYScale
+                ? rightYScale
+                : yCont) as ContinuousScale;
             return [
               {
                 seriesId: d.id,
@@ -1599,7 +1721,9 @@ export function ChartRootImpl({
             continue;
           const val = v as number;
           const vs =
-            d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
+            (d.yFieldAxis === "right" && rightYScale
+              ? rightYScale
+              : yCont) as ContinuousScale;
           return [
             {
               seriesId: d.id,
@@ -1622,7 +1746,7 @@ export function ChartRootImpl({
         pointerY: py,
       };
     },
-    [series, xScale, yScale, rightYScale, xIsCategorical, area],
+    [series, xScale, yScale, rightYScale, xIsCategorical, area, transposed],
   );
 
   const hoverEnabled = summary.hoverEnabled;
@@ -1670,8 +1794,10 @@ export function ChartRootImpl({
       if (s.hidden) continue;
       const d = s.descriptor;
       if (d.type === "pie" || d.type === "gauge") continue;
+      if (transposed && d.type === "waterfall") continue;
       const vs =
-        d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
+        (d.yFieldAxis === "right" && rightYScale ? rightYScale : yCont) as
+          ContinuousScale;
       if (!vs) continue;
       for (let i = d.data.length - 1; i >= 0; i--) {
         const v =
@@ -1701,7 +1827,7 @@ export function ChartRootImpl({
       }
     }
     return out;
-  }, [series, xScale, yScale, rightYScale]);
+  }, [series, xScale, yScale, rightYScale, transposed]);
 
   const isEmpty =
     summary.series.length === 0 ||
@@ -1719,6 +1845,7 @@ export function ChartRootImpl({
       layout,
       xScale,
       xIsTime,
+      transposed,
       yScale,
       rightYScale,
       theme: tokens,
@@ -1757,6 +1884,7 @@ export function ChartRootImpl({
       layout,
       xScale,
       xIsTime,
+      transposed,
       yScale,
       rightYScale,
       tokens,
@@ -1823,7 +1951,8 @@ export function ChartRootImpl({
       el.type === reg?.RangeArea ||
       el.type === reg?.Radar ||
       el.type === reg?.Polar ||
-      el.type === reg?.Gauge
+      el.type === reg?.Gauge ||
+      el.type === reg?.Waterfall
     ) {
       // Stamp the series with its element identity (see seriesTokens).
       plotChildren.push(

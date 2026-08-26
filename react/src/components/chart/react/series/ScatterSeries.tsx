@@ -99,7 +99,11 @@ export function ScatterSeries(props: ScatterSeriesProps<unknown>) {
   let hoverBorderColor: string | undefined;
 
   const vs: ContinuousScale | null =
-    props.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
+    props.yFieldAxis === "right" && rightYScale
+      ? rightYScale
+      : yScale && !("bandWidth" in yScale)
+        ? (yScale as ContinuousScale)
+        : null;
 
   if (me && xScale && vs) {
     const d = me.descriptor;

@@ -51,8 +51,13 @@ function twoPoint(
     return null;
   const px1 = xPixel(ctx, props.x);
   const px2 = xPixel(ctx, props.x2);
-  const py1 = ctx.yScale.map(props.y);
-  const py2 = ctx.yScale.map(props.y2);
+  const yCont =
+    ctx.yScale && !("bandWidth" in ctx.yScale)
+      ? (ctx.yScale as ContinuousScale)
+      : null;
+  if (!yCont) return null;
+  const py1 = yCont.map(props.y);
+  const py2 = yCont.map(props.y2);
   if (px1 === null || px2 === null) return null;
   return { x1: px1, y1: py1, x2: px2, y2: py2 };
 }
@@ -87,8 +92,8 @@ export function ReferenceLine(props: ReferenceLineProps) {
           c.moveTo(px, area.y);
           c.lineTo(px, area.y + area.height);
         }
-      } else if (props.y !== undefined && yScale) {
-        const py = yScale.map(props.y);
+      } else if (props.y !== undefined && yScale && !("bandWidth" in yScale)) {
+        const py = (yScale as ContinuousScale).map(props.y);
         c.moveTo(area.x, py);
         c.lineTo(area.x + area.width, py);
       }
@@ -100,8 +105,8 @@ export function ReferenceLine(props: ReferenceLineProps) {
         c.textAlign = "end";
         c.textBaseline = "bottom";
         c.fillText(props.label, seg.x2 - 4, seg.y2 - 3);
-      } else if (!sloped && props.y !== undefined && yScale) {
-        const py = yScale.map(props.y);
+      } else if (!sloped && props.y !== undefined && yScale && !("bandWidth" in yScale)) {
+        const py = (yScale as ContinuousScale).map(props.y);
         const atStart = props.labelPosition === "start";
         c.fillStyle = theme.subtleText;
         c.font = "10.5px sans-serif";
@@ -123,7 +128,10 @@ export function ReferenceLine(props: ReferenceLineProps) {
   if (renderer !== "svg") return null;
   const seg = twoPoint(props, ctx);
   const px = xPixel(ctx, props.x);
-  const py = props.y !== undefined && yScale ? yScale.map(props.y) : null;
+  const py =
+    props.y !== undefined && yScale && !("bandWidth" in yScale)
+      ? (yScale as ContinuousScale).map(props.y)
+      : null;
   const label = props.label ?? (props.x !== undefined ? formatXLabel(ctx, props.x) : undefined);
 
   return (
@@ -224,8 +232,12 @@ export function ReferenceBand(props: ReferenceBandProps) {
 
   const px1 = props.x1 !== undefined ? xPixel(ctx, props.x1) : null;
   const px2 = props.x2 !== undefined ? xPixel(ctx, props.x2) : null;
-  const py1 = props.y1 !== undefined && yScale ? yScale.map(props.y1) : null;
-  const py2 = props.y2 !== undefined && yScale ? yScale.map(props.y2) : null;
+  const yCont =
+    yScale && !("bandWidth" in yScale) ? (yScale as ContinuousScale) : null;
+  const py1 =
+    props.y1 !== undefined && yCont ? yCont.map(props.y1) : null;
+  const py2 =
+    props.y2 !== undefined && yCont ? yCont.map(props.y2) : null;
 
   let rect: { x: number; y: number; w: number; h: number } | null = null;
   if (px1 !== null && px2 !== null) {

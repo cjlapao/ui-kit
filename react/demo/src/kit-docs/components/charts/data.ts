@@ -734,3 +734,60 @@ export const nightingalePrecip: NightingalePoint[] = [
   { name: "Nov", value: 2.07 },
   { name: "Dec", value: 2.48 },
 ];
+
+// ── Waterfall ──────────────────────────────────────────────────────────────
+/** EU-27 government revenue vs spending, 2022 (% of GDP). The "Total
+ *  revenue" step is a total marker; colors route by the `kind` field. */
+export const waterfallEu = [
+  { name: "Income & wealth tax", value: 13.2, kind: "revenue" },
+  { name: "Social contributions", value: 12.9, kind: "revenue" },
+  { name: "Other revenue", value: 13.0, kind: "revenue" },
+  { name: "Other", value: 0.0, kind: "revenue" },
+  { name: "Total revenue", value: 40.3, kind: "total", isTotal: true },
+  { name: "Health", value: -19.1, kind: "spending" },
+  { name: "Education", value: -7.6, kind: "spending" },
+  { name: "Economic affairs", value: -5.5, kind: "spending" },
+  { name: "Social protection", value: -6.0, kind: "spending" },
+  { name: "Other functions", value: -4.8, kind: "spending" },
+  { name: "Net deficit", value: -3.4, kind: "total", isTotal: true },
+];
+
+/** Global Carbon Budget 2022 (GtCO₂/yr). Fossil sources float from zero;
+ *  "Gross emissions" is a total, the sinks float down, and the
+ *  atmospheric growth closes the bridge. */
+export const waterfallCarbon = [
+  { name: "Coal", value: 15.5, color: "#fb7185" },
+  { name: "Oil", value: 11.8, color: "#fb7185" },
+  { name: "Natural gas", value: 7.9, color: "#fb7185" },
+  { name: "Cement & flaring", value: 2.1, color: "#fb7185" },
+  { name: "Land-use change", value: 3.9, color: "#fb923c" },
+  { name: "Gross emissions", value: 41.2, color: "#94a3b8", isTotal: true },
+  { name: "Ocean sink", value: -10.6, color: "#34d399" },
+  { name: "Land sink", value: -12.8, color: "#34d399" },
+  { name: "Atmospheric growth", value: 17.8, color: "#94a3b8", isTotal: true },
+];
+
+/** FY 2023 EBITDA bridge (in $M): core (darker) + incremental (lighter)
+ *  layers per step; the bridge closes at the EBITDA total. */
+export const waterfallEbitda = [
+  { name: "ARR Revenue", core: 130, incr: 70 },
+  { name: "Services Revenue", core: 150, incr: 100 },
+  { name: "Infrastructure", core: -120, incr: -40 },
+  { name: "R&D", core: -65, incr: -45 },
+  { name: "Sales & Marketing", core: -50, incr: -10 },
+  { name: "G&A", core: -25, incr: -10 },
+  { name: "EBITDA", core: 30, incr: 10, isTotal: true },
+];
+
+/** Quarterly ARR bridge ($M): Open ARR total, then floating driver
+ *  steps, then the Closing ARR total. */
+export const waterfallArr = [
+  { name: "Open ARR", value: 420, isTotal: true },
+  { name: "Expansion", value: 62 },
+  { name: "Pricing", value: 34 },
+  { name: "Usage", value: 28 },
+  { name: "Churn", value: -44 },
+  { name: "Credits", value: -22 },
+  { name: "Reserve", value: -30 },
+  { name: "Closing ARR", value: 448, isTotal: true },
+];

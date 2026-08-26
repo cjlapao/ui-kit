@@ -2326,3 +2326,105 @@ describe("pie outerRadius ratio", () => {
     expect(a).toBeGreaterThan(100);
   });
 });
+
+describe("waterfall series", () => {
+  const data = [
+    { name: "Open", value: 420, isTotal: true },
+    { name: "Expansion", value: 62 },
+    { name: "Pricing", value: 34 },
+    { name: "Churn", value: -44 },
+    { name: "Close", value: 472, isTotal: true },
+  ];
+
+  const wf = (extra: Record<string, unknown> = {}) => (
+    <Chart.Svg height={320} animation={false}>
+      <Chart.Waterfall
+        data={data}
+        categoryXField="name"
+        valueYField="value"
+        totalField="isTotal"
+        {...extra}
+      />
+      <Chart.XAxis />
+      <Chart.YAxis />
+    </Chart.Svg>
+  );
+
+  it("renders one rect per step plus connectors and labels", () => {
+    const { container } = render(wf({ connectors: true }));
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    expect(g.querySelectorAll("rect").length).toBe(5);
+    expect(g.querySelectorAll("line").length).toBe(4);
+    const texts = Array.from(g.querySelectorAll("text")).map((t) =>
+      t.textContent,
+    );
+    expect(texts).toContain("+62");
+    expect(texts).toContain("-44");
+  });
+
+  it("routes total bars to the total color and deltas to up/down", () => {
+    const { container } = render(
+      wf({ colors: { up: "#111111", down: "#222222", total: "#333333" } }),
+    );
+    const rects = Array.from(
+      container.querySelectorAll("[data-chart-series] rect"),
+    );
+    expect(rects[0].getAttribute("fill")).toBe("#333333"); // Open total
+    expect(rects[1].getAttribute("fill")).toBe("#111111"); // Expansion
+    expect(rects[3].getAttribute("fill")).toBe("#222222"); // Churn
+    expect(rects[4].getAttribute("fill")).toBe("#333333"); // Close total
+  });
+
+  it("stacks layers per step", () => {
+    const layered = [
+      { name: "A", layers: [{ name: "core", value: 100 }, { name: "incr", value: 50 }] },
+      { name: "B", layers: [{ name: "core", value: -40 }, { name: "incr", value: -20 }] },
+    ];
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Waterfall
+          data={layered}
+          categoryXField="name"
+          valueYField="value"
+          layersField={(r) => (r as { layers: { name: string; value: number }[] }).layers}
+        />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    // two stacked rects per step (no single rects)
+    expect(g.querySelectorAll("rect").length).toBe(4);
+  });
+
+  it("reports the step delta on hover", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Waterfall
+          data={data}
+          categoryXField="name"
+          valueYField="value"
+          totalField="isTotal"
+        />
+        <Chart.XAxis />
+        <Chart.YAxis />
+        <Chart.Tooltip />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    const rects = svg.querySelectorAll("rect");
+    const rect = rects[rects.length - 1] as SVGRectElement;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0, top: 0, right: 800, bottom: 320,
+        width: 800, height: 320, x: 0, y: 0,
+        toJSON() { return this; },
+      }),
+      configurable: true,
+    });
+    fireEvent.pointerMove(rect, { clientX: 400, clientY: 160 });
+    const tip = container.querySelector('[data-chart-feature="tooltip"]');
+    expect(tip).toBeTruthy();
+  });
+});

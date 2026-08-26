@@ -20,6 +20,7 @@ const types = {
   PolarAxis: noop,
   Scatter: noop,
   Gauge: noop,
+  Waterfall: noop,
   XAxis: noop,
   YAxis: noop,
   Legend: noop,

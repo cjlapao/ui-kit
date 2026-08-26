@@ -76,6 +76,7 @@ import {
   scatterBeta,
   scatterGamma,
   nightingaleTornado,
+  waterfallArr,
 } from "./data";
 
 type Kind =
@@ -88,7 +89,8 @@ type Kind =
   | "polar"
   | "scatter"
   | "gauge"
-  | "nightingale";
+  | "nightingale"
+  | "waterfall";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -249,6 +251,9 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [nightTicks, setNightTicks] = useState(false);
   const [nightBands, setNightBands] = useState(false);
   const [nightPeak, setNightPeak] = useState(false);
+  const [wfOrientation, setWfOrientation] = useState("vertical");
+  const [wfConnectors, setWfConnectors] = useState(true);
+  const [wfLabels, setWfLabels] = useState(true);
   const [workflow, setWorkflow] = useState(workflowData);
   const [monaco, setMonaco] = useState(monacoData);
 
@@ -369,7 +374,9 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                         ? "Fleet utilization"
                         : kind === "nightingale"
                           ? "Tornadoes by month"
-                          : "Trading days"
+                          : kind === "waterfall"
+                            ? "ARR bridge by driver"
+                            : "Trading days"
           }
           subtitle={renderer === "canvas" ? "Canvas renderer" : "SVG renderer"}
         />
@@ -768,6 +775,37 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             />
           </>
         )}
+        {kind === "waterfall" && (
+          <>
+            <Chart.Waterfall
+              data={waterfallArr}
+              name="ARR bridge"
+              categoryXField="name"
+              valueYField="value"
+              totalField="isTotal"
+              orientation={wfOrientation as "vertical" | "horizontal"}
+              connectors={wfConnectors}
+              valueLabels={wfLabels}
+              cornerRadius={4}
+            />
+            <Chart.Tooltip
+              rows={(item) => {
+                const row = (waterfallArr[item.index ?? 0] ?? {}) as {
+                  name?: string;
+                  value?: number;
+                };
+                return [
+                  {
+                    label: "Step",
+                    value: `${(row.value ?? 0) >= 0 ? "+" : ""}$${row.value ?? 0}M`,
+                    color: (row.value ?? 0) >= 0 ? "#10b981" : "#f43f5e",
+                  },
+                ];
+              }}
+            />
+            <Chart.Hover />
+          </>
+        )}
         <Chart.Legend position={kind === "nightingale" ? "bottom" : legendPosition} />
         {(valuesMode === "popup" || valuesMode === "both") && (
           <Chart.Tooltip mode="shared" />
@@ -1054,6 +1092,32 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               label="Peak label"
               checked={nightPeak}
               onChange={setNightPeak}
+            />
+          </>
+        )}
+        {kind === "waterfall" && (
+          <>
+            <Control label="Orientation">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={[
+                  { label: "Vertical", value: "vertical" },
+                  { label: "Horizontal", value: "horizontal" },
+                ]}
+                value={wfOrientation}
+                onChange={(v) => setWfOrientation(v)}
+              />
+            </Control>
+            <ToggleRow
+              label="Connectors"
+              checked={wfConnectors}
+              onChange={setWfConnectors}
+            />
+            <ToggleRow
+              label="Value labels"
+              checked={wfLabels}
+              onChange={setWfLabels}
             />
           </>
         )}

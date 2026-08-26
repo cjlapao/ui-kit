@@ -71,8 +71,13 @@ export interface ChartContextValue {
   /** x scale (cartesian charts; null for pie-only). */
   xScale: ContinuousScale | CategoricalScale | null;
   xIsTime: boolean;
-  /** left y scale */
-  yScale: ContinuousScale | null;
+  /**
+   * True when the cartesian plot is transposed (horizontal waterfall):
+   * the value axis is the x scale and the category axis is a band y scale.
+   */
+  transposed: boolean;
+  /** left y scale (band when transposed) */
+  yScale: ContinuousScale | CategoricalScale | null;
   /** right y scale (when a series opts in) */
   rightYScale: ContinuousScale | null;
 

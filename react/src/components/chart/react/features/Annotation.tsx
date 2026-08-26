@@ -97,9 +97,20 @@ export function Annotation(props: AnnotationProps) {
   const { renderer, area, theme, yScale } = ctx;
   const tone = resolveToneHex(props.tone ?? "purple", 0);
 
-  const px = xPixelOf(props.x, ctx.xScale);
-  const py =
-    props.y !== undefined && yScale ? yScale.map(props.y) : null;
+  // Transposed (horizontal waterfall): x prop = category (band y axis),
+  // y prop = value (x axis).
+  const px = ctx.transposed
+    ? props.y !== undefined && ctx.xScale && !("bandWidth" in ctx.xScale)
+      ? (ctx.xScale as ContinuousScale).map(props.y)
+      : null
+    : xPixelOf(props.x, ctx.xScale);
+  const py = ctx.transposed
+    ? props.x !== undefined && yScale && "bandWidth" in yScale
+      ? yScale.center(String(props.x))
+      : null
+    : props.y !== undefined && yScale && !("bandWidth" in yScale)
+      ? (yScale as ContinuousScale).map(props.y)
+      : null;
 
   const cardW =
     PAD_X * 2 +

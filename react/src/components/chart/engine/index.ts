@@ -13,6 +13,7 @@ export * from "./theme";
 export * from "./decimation";
 export * from "./series/line";
 export * from "./series/bar";
+export * from "./series/waterfall";
 export * from "./series/pie";
 export * from "./series/gauge";
 export * from "./series/candlestick";

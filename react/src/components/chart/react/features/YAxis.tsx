@@ -18,6 +18,23 @@ export function YAxis(props: YAxisProps = {}) {
     if (renderer !== "canvas" || !scale) return;
     const id = `feature:yaxis:${onRight ? "right" : "left"}`;
     const fn = (c: CanvasRenderingContext2D) => {
+      if ("bandWidth" in scale) {
+        // Transposed cartesian (horizontal waterfall): category labels,
+        // no grid (gridlines come from the numeric x axis).
+        const leftB = onRight ? area.x + area.width : area.x;
+        c.fillStyle = theme.textColor;
+        c.font = "11px sans-serif";
+        c.textBaseline = "middle";
+        c.textAlign = onRight ? "left" : "right";
+        for (const cat of scale.domain) {
+          c.fillText(
+            cat,
+            onRight ? leftB + 8 : leftB - 8,
+            scale.center(cat),
+          );
+        }
+        return;
+      }
       const ticks = scale.ticks(props.tickCount ?? 5);
       const format = props.format ?? ((t: number) => formatSI(t));
       const left = onRight ? area.x + area.width : area.x;
@@ -60,9 +77,39 @@ export function YAxis(props: YAxisProps = {}) {
   }, [renderer, scale, onRight, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridOpacity, props.labels, props.format]);
 
   if (renderer !== "svg" || !scale) return null;
+  const left = onRight ? area.x + area.width : area.x;
+
+  // Transposed cartesian (horizontal waterfall): category labels on the y axis.
+  if ("bandWidth" in scale) {
+    return (
+      <g data-chart-feature={`yaxis-${onRight ? "right" : "left"}`}>
+        <line
+          x1={left}
+          y1={area.y}
+          x2={left}
+          y2={area.y + area.height}
+          stroke={theme.axisColor}
+          strokeWidth={1}
+        />
+        {scale.domain.map((cat, i) => (
+          <text
+            key={i}
+            x={onRight ? left + 8 : left - 8}
+            y={scale.center(cat)}
+            textAnchor={onRight ? "start" : "end"}
+            dominantBaseline="middle"
+            fontSize={11}
+            fill={theme.textColor}
+          >
+            {cat}
+          </text>
+        ))}
+      </g>
+    );
+  }
+
   const ticks = scale.ticks(props.tickCount ?? 5);
   const format = props.format ?? ((t: number) => formatSI(t));
-  const left = onRight ? area.x + area.width : area.x;
 
   return (
     <g data-chart-feature={`yaxis-${onRight ? "right" : "left"}`}>

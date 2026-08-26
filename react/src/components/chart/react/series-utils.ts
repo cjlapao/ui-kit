@@ -6,6 +6,7 @@
  */
 import { Fragment, type ReactElement, type ReactNode } from "react";
 import { readAccessor, type Accessor } from "../engine/types";
+import { computeWaterfallSteps, type WaterfallLayer } from "../engine/series/waterfall";
 import { resolveColor } from "../engine/theme";
 import { DASH_PATTERNS, getDashPattern } from "./dash";
 import type {
@@ -120,7 +121,8 @@ export function describeSeries(
     | "radar"
     | "polar"
     | "scatter"
-    | "gauge",
+    | "gauge"
+    | "waterfall",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -236,6 +238,79 @@ export function describeSeries(
       gaugeTicks: gp.ticks,
       gaugeTarget: gp.target,
       gaugeTargetLabel: gp.targetLabel,
+      animation,
+    };
+  }
+
+  // Waterfall: categorical x, running-total spans.
+  if (kind === "waterfall") {
+    const wp = p as unknown as import("./props").WaterfallSeriesProps<never>;
+    const categoryXField = wp.categoryXField ?? "category";
+    const valueYField = wp.valueYField ?? "value";
+    const xAccessor = fieldAccessor<never, string | number>(
+      categoryXField as Accessor<never, string | number> | string,
+      String(categoryXField),
+    );
+    const totalPred:
+      | ((item: unknown, index: number) => boolean)
+      | undefined =
+      typeof wp.totalField === "function"
+        ? (wp.totalField as (item: unknown, index: number) => boolean)
+        : typeof wp.totalField === "string"
+          ? (item: unknown) =>
+              Boolean(
+                (item as Record<string, unknown>)?.[wp.totalField as string],
+              )
+          : undefined;
+    const { steps, spans } = computeWaterfallSteps<unknown>({
+      data,
+      categoryField: (item, i) => xAccessor(item, i),
+      valueField: (item, i) => {
+        const v = fieldAccessor<never, number | null | undefined>(
+          valueYField as Accessor<never, number | null | undefined> | string,
+          String(valueYField),
+        )(item, i);
+        return v ?? 0;
+      },
+      totalField: totalPred,
+      layersField: wp.layersField as
+        | ((item: unknown, index: number) => WaterfallLayer[])
+        | undefined,
+    });
+    return {
+      id,
+      type: "waterfall",
+      name,
+      color: typeof wp.color === "function" ? undefined : wp.color,
+      paletteIndex,
+      data,
+      xAccessor: (item, i) => xAccessor(item, i),
+      yAccessor: (_item, i) => steps[i]?.delta ?? 0,
+      waterfallOrientation: wp.orientation ?? "vertical",
+      waterfallColors: wp.colors,
+      waterfallColorAccessor:
+        typeof wp.color === "function"
+          ? (item, i) => (wp.color as (i: unknown, n: number) => string)(item, i)
+          : undefined,
+      waterfallValueLabels: wp.valueLabels ?? true,
+      waterfallValueLabelFormat: wp.valueLabelFormat as
+        | ((delta: number, item: unknown, index: number) => string)
+        | undefined,
+      waterfallConnectors: wp.connectors ?? false,
+      waterfallCornerRadius: wp.cornerRadius,
+      waterfallSpans: spans,
+      waterfallLayers: steps.map((st) =>
+        st.layers
+          ? st.layers.map((l) => ({
+              name: l.name,
+              value: l.value,
+              color: l.color,
+            }))
+          : [],
+      ),
+      waterfallKinds: steps.map((st) =>
+        st.total ? "total" : st.delta < 0 ? "down" : "up",
+      ),
       animation,
     };
   }
@@ -554,6 +629,7 @@ export function summarizeChildren(
     PolarAxis: React.ComponentType | (new () => unknown);
     Scatter: React.ComponentType | (new () => unknown);
     Gauge: React.ComponentType | (new () => unknown);
+    Waterfall: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -608,7 +684,8 @@ export function summarizeChildren(
       t === types.Radar ||
       t === types.Polar ||
       t === types.Scatter ||
-      t === types.Gauge
+      t === types.Gauge ||
+      t === types.Waterfall
     ) {
       const kind:
         | "line"
@@ -619,8 +696,11 @@ export function summarizeChildren(
         | "radar"
         | "polar"
         | "scatter"
-        | "gauge" =
-        t === types.Bar
+        | "gauge"
+        | "waterfall" =
+        t === types.Waterfall
+          ? "waterfall"
+          : t === types.Bar
           ? "bar"
           : t === types.Pie
             ? "pie"
@@ -636,7 +716,9 @@ export function summarizeChildren(
                       ? "scatter"
                       : t === types.Gauge
                         ? "gauge"
-                        : "line";
+                        : t === types.Waterfall
+                          ? "waterfall"
+                          : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,

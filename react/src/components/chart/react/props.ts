@@ -119,6 +119,57 @@ export interface BarSeriesProps<T = unknown> {
   animation?: ChartAnimation;
 }
 
+export interface WaterfallColors {
+  /** Positive deltas. Default: green. */
+  up?: string;
+  /** Negative deltas. Default: rose. */
+  down?: string;
+  /** Total bars. Default: indigo. */
+  total?: string;
+}
+
+export interface WaterfallLayer {
+  name: string;
+  value: number;
+  color?: string;
+}
+
+export interface WaterfallSeriesProps<T = unknown> {
+  data: T[];
+  /** Category field. Default "category". */
+  categoryXField?: Accessor<T, string | number>;
+  /** Step value field. Default "value". */
+  valueYField?: Accessor<T, number>;
+  /**
+   * Marks total steps (bars anchored at zero that reset the running
+   * total to their value). Accepts a field name (truthy test) or a
+   * predicate.
+   */
+  totalField?: string | ((item: T, index: number) => boolean);
+  /**
+   * Stacked layers per step; the step value is their sum and the
+   * running total accumulates the combined value.
+   */
+  layersField?: Accessor<T, WaterfallLayer[]>;
+  /** Layout. Default "vertical". */
+  orientation?: "vertical" | "horizontal";
+  /** Color routing by contribution type (per-datum `color` wins). */
+  colors?: WaterfallColors;
+  /** Per-datum explicit color. */
+  color?: Accessor<T, string> | ChartColor;
+  /** Signed value labels. Default true. */
+  valueLabels?: boolean;
+  /** Label formatter. Default: signed value. */
+  valueLabelFormat?: (delta: number, item: T, index: number) => string;
+  /** Dashed running-total connectors between bars. */
+  connectors?: boolean;
+  /** Rounded bar corners in px. */
+  cornerRadius?: number;
+  name?: string;
+  id?: string;
+  animation?: ChartAnimation;
+}
+
 export interface PieSeriesProps<T = unknown> {
   data: T[];
   /** Value field. Default "value". */
@@ -731,7 +782,8 @@ export interface SeriesDescriptor {
     | "radar"
     | "polar"
     | "scatter"
-    | "gauge";
+    | "gauge"
+    | "waterfall";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -807,6 +859,29 @@ export interface SeriesDescriptor {
   pieNightingaleBands?: { from: number; to: number; color: string }[];
   piePeakLabel?: string;
   pieOuterRadius?: number;
+
+  // waterfall
+  waterfallOrientation?: "vertical" | "horizontal";
+  waterfallColors?: { up?: string; down?: string; total?: string };
+  waterfallColorAccessor?: (item: unknown, index: number) => string | undefined;
+  waterfallValueLabels?: boolean;
+  waterfallValueLabelFormat?: (
+    delta: number,
+    item: unknown,
+    index: number,
+  ) => string;
+  waterfallConnectors?: boolean;
+  waterfallCornerRadius?: number;
+  /** Per-step [lo, hi] spans in value space (y-domain). */
+  waterfallSpans?: [number, number][];
+  /** Per-step layers (name/value/color) for stacked waterfalls. */
+  waterfallLayers?: {
+    name: string;
+    value: number;
+    color?: string;
+  }[][];
+  /** Per-step flags: total / delta sign, for color routing + labels. */
+  waterfallKinds?: ("total" | "up" | "down")[];
   // gauge
   gaugeValue?: number;
   gaugeMin?: number;

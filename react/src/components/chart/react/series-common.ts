@@ -47,9 +47,14 @@ export function findSeries(
 
 /** The value scale a series plots on (left vs right y-axis). */
 export function valueScaleFor(ctx: Ctx, d: { yFieldAxis?: "left" | "right" }): ContinuousScale | null {
+  // Transposed cartesian (horizontal waterfall): values ride the x scale.
+  if (ctx.transposed) {
+    const xs = ctx.xScale;
+    return xs && !("bandWidth" in xs) ? (xs as ContinuousScale) : null;
+  }
   return d.yFieldAxis === "right" && ctx.rightYScale
     ? ctx.rightYScale
-    : ctx.yScale;
+    : (ctx.yScale as ContinuousScale | null);
 }
 
 /**

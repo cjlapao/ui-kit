@@ -458,6 +458,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/NightingaleChartPage")),
   },
   {
+    slug: "charts-waterfall",
+    name: "Waterfall",
+    description:
+      "Bridge analysis on the bar engine: delta steps accumulate a running total, total markers anchor at the baseline — signed labels, connectors, stacked layers and reference lines.",
+    icon: "ChartLine",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/WaterfallChartPage")),
+  },
+  {
     slug: "charts-scatter",
     name: "Scatter & Bubble",
     description:
@@ -564,6 +573,24 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "HealthCheck",
     category: "Feedback",
     Page: lazy(() => import("./components/ecg-monitor/EcgMonitorPage")),
+  },
+  {
+    slug: "hero",
+    name: "Hero",
+    description:
+      "A banner — icon, heading and supporting line — on a saturated tone gradient or on any Panel surface.",
+    icon: "Rocket",
+    category: "Layout",
+    Page: lazy(() => import("./components/hero/HeroPage")),
+  },
+  {
+    slug: "info-row",
+    name: "Info Row",
+    description:
+      "One label/value line in a details panel — copy to clipboard, a tooltip when truncated, and loading, empty and error states.",
+    icon: "ViewRows",
+    category: "Layout",
+    Page: lazy(() => import("./components/info-row/InfoRowPage")),
   },
   {
     slug: "dynamic-form-field",
@@ -683,6 +710,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Dots",
     category: "Overlays",
     Page: lazy(() => import("./components/dropdown-menu/DropdownMenuPage")),
+  },
+  {
+    slug: "help-button",
+    name: "Help Button",
+    description:
+      "An icon trigger that opens a floating panel of Markdown or node content — the full 21-colour tone set, every container surface, the shared size scale, auto-aware placement and a loading skeleton.",
+    icon: "Help",
+    category: "Overlays",
+    Page: lazy(() => import("./components/help-button/HelpButtonPage")),
   },
 ];
 
