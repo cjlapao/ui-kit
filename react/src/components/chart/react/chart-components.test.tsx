@@ -2058,3 +2058,99 @@ describe("annotation collision", () => {
     );
   });
 });
+
+// ── Gauge + Nightingale ─────────────────────────────────────────────────────
+
+describe("gauge", () => {
+  it("renders the value arc, track, ticks and target", () => {
+    const { container } = render(
+      <Chart.Svg height={300} animation={false}>
+        <Chart.Gauge
+          value={65}
+          min={0}
+          max={100}
+          zones={[
+            { from: 0, to: 50, color: "#22c55e" },
+            { from: 50, to: 100, color: "#ef4444" },
+          ]}
+          ticks={{ count: 10, majorEvery: 5 }}
+          target={80}
+        />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    expect(g).toBeTruthy();
+    const paths = g.querySelectorAll("path");
+    // 2 zones × 16 subdivisions + 1 track
+    expect(paths.length).toBe(33);
+    const ticks = g.querySelectorAll("line");
+    expect(ticks.length).toBe(11);
+    // target dot: two circles (fill + white ring)
+    const circles = g.querySelectorAll("circle");
+    expect(circles.length).toBe(1);
+  });
+
+  it("renders a semicircle gauge without ticks", () => {
+    const { container } = render(
+      <Chart.Svg height={300} animation={false}>
+        <Chart.Gauge
+          value={40}
+          min={0}
+          max={100}
+          arcSpan={Math.PI}
+          startAngle={Math.PI}
+        />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    expect(g).toBeTruthy();
+    expect(g.querySelectorAll("line").length).toBe(0);
+    // value arc (1 fallback zone × 16) + track
+    expect(g.querySelectorAll("path").length).toBe(17);
+  });
+});
+
+describe("nightingale", () => {
+  const data = [
+    { name: "Jan", value: 10 },
+    { name: "Feb", value: 40 },
+    { name: "Mar", value: 20 },
+    { name: "Apr", value: 5 },
+  ];
+
+  it("renders equal-angle petals with value-scaled radii and labels", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Pie
+          data={data}
+          name="M"
+          innerRadius={0.3}
+          nightingale
+          colors={["#f43f5e", "#f59e0b", "#38bdf8", "#38bdf8"]}
+        />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    expect(g).toBeTruthy();
+    const petals = g.querySelectorAll("path");
+    expect(petals.length).toBe(4);
+    // Labels: name + value texts (8) and leader spokes (4)
+    const texts = [...g.querySelectorAll("text")].map(
+      (t) => t.textContent,
+    );
+    expect(texts).toContain("Feb");
+    expect(texts).toContain("40");
+    const spokes = g.querySelectorAll("line");
+    expect(spokes.length).toBe(4);
+  });
+
+  it("keeps regular pies without outside labels", () => {
+    const { container } = render(
+      <Chart.Svg height={300} animation={false}>
+        <Chart.Pie data={data} name="M" innerRadius={0.5} />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    expect(g.querySelectorAll("line").length).toBe(0);
+  });
+});

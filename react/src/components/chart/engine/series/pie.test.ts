@@ -155,3 +155,59 @@ describe("pieLabelPoint", () => {
     );
   });
 });
+
+describe("nightingale (rose) mode", () => {
+  const input = {
+    items: [
+      { value: 10, item: "a" },
+      { value: 40, item: "b" },
+      { value: 20, item: "c" },
+      { value: 0, item: "d" },
+    ],
+    innerRadiusRatio: 0.3,
+    nightingale: true,
+    cx: 0,
+    cy: 0,
+    outerRadius: 100,
+  };
+
+  it("uses equal slice angles", () => {
+    const g = computePieGeometry(input);
+    for (const s of g.slices) {
+      expect(s.endAngle - s.startAngle).toBeCloseTo((Math.PI * 2) / 4, 10);
+    }
+  });
+
+  it("scales radii: max → outer, min → hub, mid → lerp", () => {
+    const g = computePieGeometry(input);
+    const hub = 100 * 0.3;
+    expect(g.slices[1].sliceRadius).toBeCloseTo(100, 6); // value 40 = max
+    expect(g.slices[0].sliceRadius).toBeCloseTo(hub + (100 - hub) * 0.25, 6); // 10/40
+    expect(g.slices[2].sliceRadius).toBeCloseTo(hub + (100 - hub) * 0.5, 6); // 20/40
+    expect(g.slices[3].sliceRadius).toBeCloseTo(hub, 6); // 0 → hub
+  });
+
+  it("keeps the real total for the center readout", () => {
+    const g = computePieGeometry(input);
+    expect(g.total).toBe(70);
+  });
+
+  it("is safe with all-zero values", () => {
+    const g = computePieGeometry({
+      ...input,
+      items: [
+        { value: 0, item: "a" },
+        { value: 0, item: "b" },
+      ],
+    });
+    expect(g.slices.length).toBe(0);
+    expect(g.total).toBe(0);
+  });
+
+  it("does not affect regular pie radii", () => {
+    const g = computePieGeometry({ ...input, nightingale: false });
+    for (const s of g.slices) {
+      expect(s.sliceRadius).toBeCloseTo(100, 6);
+    }
+  });
+});

@@ -341,6 +341,11 @@ export interface PieSlice {
   path: string;
   /** Mid-angle, for label placement. */
   labelAngle: number;
+  /**
+   * Per-slice outer radius. Equals the geometry's outerRadius except for
+   * nightingale (rose) slices, whose radius encodes the value.
+   */
+  sliceRadius: number;
   /** Unit-ish offset (4px) for the hover pop-out. */
   popOffset: { dx: number; dy: number };
 }

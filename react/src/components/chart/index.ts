@@ -44,6 +44,7 @@ import { Annotation } from "./react/features/Annotation";
 import { DataLabels } from "./react/features/DataLabels";
 import { PieCenter } from "./react/features/PieCenter";
 import { AxisBadges } from "./react/features/AxisBadges";
+import { GaugeSeries } from "./react/series/GaugeSeries";
 
 // Register the concrete types so the root can split children without a
 // circular import.
@@ -59,6 +60,7 @@ setChartRegistry({
   PolarAxis,
   PolarCenter,
   Scatter: ScatterSeries,
+  Gauge: GaugeSeries,
   XAxis,
   YAxis,
   Legend,
@@ -88,6 +90,7 @@ export const Chart = {
   PolarAxis,
   PolarCenter,
   Scatter: ScatterSeries,
+  Gauge: GaugeSeries,
   XAxis,
   YAxis,
   Legend,
@@ -123,6 +126,7 @@ export type {
   PolarAxisProps,
   PolarCenterProps,
   ScatterSeriesProps,
+  GaugeSeriesProps,
   XAxisProps,
   YAxisProps,
   TooltipProps,

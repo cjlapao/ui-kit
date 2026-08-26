@@ -95,6 +95,7 @@ export interface ChildTypeRegistry {
   Polar: ComponentType<any>;
   PolarAxis: ComponentType<any>;
   Scatter: ComponentType<any>;
+  Gauge: ComponentType<any>;
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
@@ -153,7 +154,13 @@ function collectXValues(descriptors: ChartChildrenSummary["series"]): (
 )[] {
   const out: (number | Date | string)[] = [];
   for (const d of descriptors) {
-    if (d.type === "pie" || d.type === "radar" || d.type === "polar") continue;
+    if (
+      d.type === "pie" ||
+      d.type === "radar" ||
+      d.type === "polar" ||
+      d.type === "gauge"
+    )
+      continue;
     for (let i = 0; i < d.data.length; i++) {
       const v = d.xAccessor(d.data[i], i);
       if (v !== null && v !== undefined && v !== "") out.push(v);
@@ -188,6 +195,7 @@ function computeYDomain(
       d.type !== "pie" &&
       d.type !== "radar" &&
       d.type !== "polar" &&
+      d.type !== "gauge" &&
       !hidden.has(d.id) &&
       (d.yAccessor !== undefined ||
         (d.type === "candlestick" && d.lowAccessor !== undefined) ||
@@ -349,7 +357,11 @@ export function ChartRootImpl({
   );
 
   const cartesianSeries = summary.series.filter(
-    (d) => d.type !== "pie" && d.type !== "radar" && d.type !== "polar",
+    (d) =>
+      d.type !== "pie" &&
+      d.type !== "radar" &&
+      d.type !== "polar" &&
+      d.type !== "gauge",
   );
   const radarSeries = summary.series.filter((d) => d.type === "radar");
   const hasRadar = radarSeries.length > 0;
@@ -1112,6 +1124,7 @@ export function ChartRootImpl({
       if (visible.length === 0) return null;
 
       const pieVisible = visible.filter((s) => s.descriptor.type === "pie");
+      const gaugeVisible = visible.filter((s) => s.descriptor.type === "gauge");
       const radarVisible = visible.filter(
         (s) => s.descriptor.type === "radar",
       );
@@ -1121,6 +1134,7 @@ export function ChartRootImpl({
       const cartVisible = visible.filter(
         (s) =>
           s.descriptor.type !== "pie" &&
+          s.descriptor.type !== "gauge" &&
           s.descriptor.type !== "radar" &&
           s.descriptor.type !== "polar",
       );
@@ -1340,6 +1354,43 @@ export function ChartRootImpl({
               )
             : undefined,
           items,
+        };
+      }
+
+      // Gauge: ring-band hit test (one row — the value).
+      if (gaugeVisible.length > 0 && cartVisible.length === 0) {
+        const s = gaugeVisible[0];
+        const d = s.descriptor;
+        const cx = area.x + area.width / 2;
+        const cy = area.y + area.height / 2;
+        const outer = Math.min(area.width, area.height) / 2 - 8;
+        const inner = outer * (d.gaugeInnerRadius ?? 0.78);
+        const dist = Math.hypot(px - cx, py - cy);
+        if (dist < inner * 0.9 || dist > outer * 1.1) return null;
+        let angle = Math.atan2(px - cx, -(py - cy));
+        if (angle < 0) angle += Math.PI * 2;
+        const start = d.gaugeStartAngle ?? Math.PI + (Math.PI * 2 - (d.gaugeArcSpan ?? 1.5 * Math.PI)) / 2;
+        const sweep = d.gaugeArcSpan ?? 1.5 * Math.PI;
+        let a = angle - start;
+        while (a < 0) a += Math.PI * 2;
+        while (a >= Math.PI * 2) a -= Math.PI * 2;
+        if (a > sweep) return null;
+        return {
+          x: px,
+          y: py,
+          pointerY: py,
+          items: [
+            {
+              seriesId: d.id,
+              name: d.name,
+              color: s.color,
+              value: d.gaugeValue ?? 0,
+              y: py,
+              item: null,
+              index: 0,
+            },
+          ],
+          rawX: undefined,
         };
       }
 
@@ -1618,7 +1669,7 @@ export function ChartRootImpl({
     for (const s of series) {
       if (s.hidden) continue;
       const d = s.descriptor;
-      if (d.type === "pie") continue;
+      if (d.type === "pie" || d.type === "gauge") continue;
       const vs =
         d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale;
       if (!vs) continue;
@@ -1654,7 +1705,9 @@ export function ChartRootImpl({
 
   const isEmpty =
     summary.series.length === 0 ||
-    summary.series.every((d) => d.data.length === 0);
+    summary.series.every(
+      (d) => (d.type === "gauge" ? false : d.data.length === 0),
+    );
 
   // ── Context value ──────────────────────────────────────────────────────────
   const ctxValue = useMemo(
@@ -1769,7 +1822,8 @@ export function ChartRootImpl({
       el.type === reg?.Candlestick ||
       el.type === reg?.RangeArea ||
       el.type === reg?.Radar ||
-      el.type === reg?.Polar
+      el.type === reg?.Polar ||
+      el.type === reg?.Gauge
     ) {
       // Stamp the series with its element identity (see seriesTokens).
       plotChildren.push(

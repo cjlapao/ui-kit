@@ -41,7 +41,11 @@ import {
   TOGGLE_VARIANTS,
   CONNECTION_FLOW_EDGE_STYLES,
   CONNECTION_FLOW_PROGRESS_TYPES,
+  API_ERROR_KINDS,
+  DYNAMIC_FORM_FIELD_VARIANTS,
+  VALIDATION_STATUSES,
   CONNECTION_FLOW_ITEM_PROGRESS,
+  CONNECTION_FLOW_LOADERS,
   CONNECTION_FLOW_RING_SIZES,
   CONNECTION_STATES,
   TRUE_COLORS,
@@ -205,6 +209,12 @@ export const connectionFlowRingSizeOptions = toOptions(
 export const connectionFlowItemProgressOptions = toOptions(
   CONNECTION_FLOW_ITEM_PROGRESS,
 );
+export const connectionFlowLoaderOptions = toOptions(CONNECTION_FLOW_LOADERS);
+/** The shared surfaces, plus the frameless option the flow adds. */
+export const connectionFlowVariantOptions: MultiToggleOption[] = [
+  ...toOptions(SURFACE_VARIANTS),
+  { label: "Plain", value: "plain" },
+];
 /** How many rows a card shows before the rest fold behind "show more". */
 export const connectionFlowItemCapOptions: MultiToggleOption[] = [
   { label: "0 (all)", value: "0" },
@@ -546,6 +556,15 @@ export const detailItemCardVariantOptions: MultiToggleOption[] = [
 // ── Empty State ──────────────────────────────────────────────────────────────
 
 /** EmptyState surfaces: every Panel variant plus `plain` (no card at all). */
+/** Every kind of API failure, from the kit's own runtime list. */
+export const apiErrorKindOptions = toOptions(API_ERROR_KINDS);
+
+/** The one shared field-status list, no longer six copies of it. */
+export const validationStatusOptions = toOptions(VALIDATION_STATUSES);
+export const dynamicFormFieldVariantOptions = toOptions(
+  DYNAMIC_FORM_FIELD_VARIANTS,
+);
+
 export const emptyStateVariantOptions: MultiToggleOption[] = [
   { label: "Plain (no card)", value: "plain" },
   ...surfaceVariantOptions,
@@ -672,6 +691,65 @@ export const chartKindOptions: MultiToggleOption[] = [
   { label: "Radar", value: "radar" },
   { label: "Polar", value: "polar" },
   { label: "Scatter", value: "scatter" },
+  { label: "Gauge", value: "gauge" },
+  { label: "Nightingale", value: "nightingale" },
+];
+
+/** Gauge arc spans (radians). */
+export const chartGaugeSpanOptions: MultiToggleOption[] = [
+  { label: "270°", value: "270" },
+  { label: "180°", value: "180" },
+  { label: "Full", value: "360" },
+];
+
+/** Gauge value presets. */
+export const chartGaugeValueOptions: MultiToggleOption[] = [
+  { label: "25", value: "25" },
+  { label: "50", value: "50" },
+  { label: "75", value: "75" },
+  { label: "98", value: "98" },
+];
+
+/** Gauge ring thickness (innerRadius ratio). */
+export const chartGaugeInnerOptions: MultiToggleOption[] = [
+  { label: "Thin", value: "0.85" },
+  { label: "Medium", value: "0.78" },
+  { label: "Thick", value: "0.62" },
+];
+
+/** Gauge zone styles. */
+export const chartGaugeZoneOptions: MultiToggleOption[] = [
+  { label: "Ramp", value: "ramp" },
+  { label: "3 bands", value: "bands" },
+  { label: "Single", value: "single" },
+];
+
+/** Gauge tick presets. */
+export const chartGaugeTickOptions: MultiToggleOption[] = [
+  { label: "Off", value: "0" },
+  { label: "20", value: "20" },
+  { label: "40", value: "40" },
+];
+
+/** Gauge target presets. */
+export const chartGaugeTargetOptions: MultiToggleOption[] = [
+  { label: "Off", value: "off" },
+  { label: "80", value: "80" },
+  { label: "90", value: "90" },
+];
+
+/** Nightingale start-angle presets (degrees, d3 convention). */
+export const chartNightStartOptions: MultiToggleOption[] = [
+  { label: "12:00", value: "0" },
+  { label: "Jan centered", value: "-15" },
+  { label: "9:00", value: "-90" },
+];
+
+/** Nightingale hub sizes. */
+export const chartNightInnerOptions: MultiToggleOption[] = [
+  { label: "Small", value: "0.15" },
+  { label: "Medium", value: "0.3" },
+  { label: "Large", value: "0.5" },
 ];
 
 /** Scatter marker shapes (the kit's `markerShape` prop). */

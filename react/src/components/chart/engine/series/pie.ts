@@ -20,6 +20,11 @@ export interface PieSeriesInput {
   padAngle?: number;
   /** Slice corner radius in px (clamped to the ring width / 2). Default 0. */
   cornerRadius?: number;
+  /**
+   * Nightingale (rose): equal slice angles, per-slice outer radius =
+   * inner + (outer − inner) · (v / maxV).
+   */
+  nightingale?: boolean;
   cx: number;
   cy: number;
   outerRadius: number;
@@ -53,23 +58,43 @@ export function computePieGeometry(input: PieSeriesInput): PieGeometry {
     };
   }
 
-  // d3 pie with sort disabled — data order is the slice order.
-  const arcs = pie<{ value: number }>()
-    .value((d) => d.value)
+  // d3 pie with sort disabled — data order is the slice order. Nightingale
+  // charts carry EQUAL angles: every datum maps to a unit value.
+  const nightingale = input.nightingale === true;
+  const maxV = Math.max(0, ...items.map((d) => (Number.isFinite(d.value) ? d.value : 0)));
+  const arcs = pie<{ value: number; radiusT: number }>()
+    .value((d) => (nightingale ? 1 : d.value))
     .sort(null)
     .startAngle(startAngle)
     .endAngle(startAngle + sweepAngle)
     .padAngle(padAngle)(
-    items.map((d) => ({ value: d.value })),
+    items.map((d) => ({
+      value: nightingale ? 1 : d.value,
+      radiusT:
+        nightingale && maxV > 0
+          ? Math.max(0, Math.min(1, (Number.isFinite(d.value) ? d.value : 0) / maxV))
+          : 1,
+    })),
   );
 
-  const arcGen = arc<{ value: number }>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const arcGen = arc<any>()
     .innerRadius(innerRadius)
-    .outerRadius(outerRadius)
+    .outerRadius((a) => {
+      if (!nightingale) return outerRadius;
+      const t =
+        ((a as unknown as { data?: { radiusT?: number } }).data?.radiusT ?? 1);
+      return innerRadius + (outerRadius - innerRadius) * t;
+    })
     .cornerRadius(sliceCorner);
 
   const slices: PieSlice[] = arcs.map((a, index) => {
     const mid = (a.startAngle + a.endAngle) / 2;
+    const t =
+      nightingale
+        ? ((a as unknown as { data?: { radiusT?: number } }).data?.radiusT ?? 1)
+        : 1;
+    const sliceRadius = nightingale ? innerRadius + (outerRadius - innerRadius) * t : outerRadius;
     return {
       index,
       item: items[index]?.item ?? null,
@@ -78,6 +103,7 @@ export function computePieGeometry(input: PieSeriesInput): PieGeometry {
       endAngle: a.endAngle,
       path: arcGen(a) ?? "",
       labelAngle: mid,
+      sliceRadius,
       popOffset: {
         dx: Math.sin(mid) * POP_OUT_PX,
         dy: -Math.cos(mid) * POP_OUT_PX,

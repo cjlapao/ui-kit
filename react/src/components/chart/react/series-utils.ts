@@ -119,7 +119,8 @@ export function describeSeries(
     | "rangeArea"
     | "radar"
     | "polar"
-    | "scatter",
+    | "scatter"
+    | "gauge",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -203,6 +204,34 @@ export function describeSeries(
       pieColors: pp.colors,
       piePercentLabels: pp.showPercentLabels ?? false,
       pieMinPercentLabel: pp.minPercentLabel ?? 5,
+      pieNightingale: pp.nightingale ?? false,
+      pieShowLabels: pp.showLabels ?? pp.nightingale ?? false,
+      animation,
+    };
+  }
+
+  // Gauge: a single value on an arc track (pie-family, no data array).
+  if (kind === "gauge") {
+    const gp = p as unknown as import("./props").GaugeSeriesProps;
+    return {
+      id,
+      type: "gauge",
+      name,
+      color: gp.color,
+      paletteIndex,
+      data: [],
+      xAccessor: (_item: unknown, _i: number) => "",
+      yAccessor: () => gp.value ?? 0,
+      gaugeValue: gp.value,
+      gaugeMin: gp.min ?? 0,
+      gaugeMax: gp.max ?? 100,
+      gaugeArcSpan: gp.arcSpan,
+      gaugeStartAngle: gp.startAngle,
+      gaugeInnerRadius: gp.innerRadius ?? 0.78,
+      gaugeZones: gp.zones,
+      gaugeTicks: gp.ticks,
+      gaugeTarget: gp.target,
+      gaugeTargetLabel: gp.targetLabel,
       animation,
     };
   }
@@ -520,6 +549,7 @@ export function summarizeChildren(
     Polar: React.ComponentType | (new () => unknown);
     PolarAxis: React.ComponentType | (new () => unknown);
     Scatter: React.ComponentType | (new () => unknown);
+    Gauge: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -573,7 +603,8 @@ export function summarizeChildren(
       t === types.RangeArea ||
       t === types.Radar ||
       t === types.Polar ||
-      t === types.Scatter
+      t === types.Scatter ||
+      t === types.Gauge
     ) {
       const kind:
         | "line"
@@ -583,7 +614,8 @@ export function summarizeChildren(
         | "rangeArea"
         | "radar"
         | "polar"
-        | "scatter" =
+        | "scatter"
+        | "gauge" =
         t === types.Bar
           ? "bar"
           : t === types.Pie
@@ -598,7 +630,9 @@ export function summarizeChildren(
                     ? "polar"
                     : t === types.Scatter
                       ? "scatter"
-                      : "line";
+                      : t === types.Gauge
+                        ? "gauge"
+                        : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,

@@ -31,6 +31,14 @@ import {
   chartPolarSortOptions,
   chartPolarBorderOptions,
   chartKindOptions,
+  chartGaugeSpanOptions,
+  chartGaugeValueOptions,
+  chartGaugeInnerOptions,
+  chartGaugeZoneOptions,
+  chartGaugeTickOptions,
+  chartGaugeTargetOptions,
+  chartNightStartOptions,
+  chartNightInnerOptions,
   chartScatterShapeOptions,
   chartScatterHitRadiusOptions,
   chartScatterOpacityOptions,
@@ -67,9 +75,20 @@ import {
   scatterAlpha,
   scatterBeta,
   scatterGamma,
+  nightingaleTornado,
 } from "./data";
 
-type Kind = "line" | "bar" | "pie" | "candlestick" | "range" | "radar" | "polar" | "scatter";
+type Kind =
+  | "line"
+  | "bar"
+  | "pie"
+  | "candlestick"
+  | "range"
+  | "radar"
+  | "polar"
+  | "scatter"
+  | "gauge"
+  | "nightingale";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -217,6 +236,16 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [scatterBrightness, setScatterBrightness] = useState("1.1");
   const [scatterDim, setScatterDim] = useState("0.35");
   const [scatterHoverRadius, setScatterHoverRadius] = useState("1.3");
+  const [gaugeValue, setGaugeValue] = useState("75");
+  const [gaugeSpan, setGaugeSpan] = useState("270");
+  const [gaugeInner, setGaugeInner] = useState("0.78");
+  const [gaugeZones, setGaugeZones] = useState("ramp");
+  const [gaugeTicks, setGaugeTicks] = useState("40");
+  const [gaugeTarget, setGaugeTarget] = useState("90");
+  const [nightStart, setNightStart] = useState("0");
+  const [nightInner, setNightInner] = useState("0.3");
+  const [nightGap, setNightGap] = useState("1");
+  const [nightLabels, setNightLabels] = useState(true);
   const [workflow, setWorkflow] = useState(workflowData);
   const [monaco, setMonaco] = useState(monacoData);
 
@@ -333,7 +362,11 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                     ? "Workflow adoption"
                     : kind === "scatter"
                       ? "Signal clusters"
-                      : "Trading days"
+                      : kind === "gauge"
+                        ? "Fleet utilization"
+                        : kind === "nightingale"
+                          ? "Tornadoes by month"
+                          : "Trading days"
           }
           subtitle={renderer === "canvas" ? "Canvas renderer" : "SVG renderer"}
         />
@@ -648,7 +681,72 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             <Chart.YAxis label="Y" tickCount={6} {...gridProps} />
           </>
         )}
-        <Chart.Legend position={legendPosition} />
+        {kind === "gauge" && (
+          <>
+            <Chart.Gauge
+              name="Fleet utilization"
+              value={Number(gaugeValue)}
+              min={0}
+              max={100}
+              arcSpan={
+                gaugeSpan === "180"
+                  ? Math.PI
+                  : gaugeSpan === "360"
+                    ? Math.PI * 2
+                    : 1.5 * Math.PI
+              }
+              startAngle={gaugeSpan === "180" ? Math.PI : undefined}
+              innerRadius={Number(gaugeInner)}
+              zones={
+                gaugeZones === "single"
+                  ? undefined
+                  : gaugeZones === "bands"
+                    ? [
+                        { from: 0, to: 50, color: "#10b981" },
+                        { from: 50, to: 80, color: "#fbbf24" },
+                        { from: 80, to: 100, color: "#ef4444" },
+                      ]
+                    : [
+                        { from: 0, to: 45, color: "#10b981" },
+                        { from: 45, to: 70, color: "#fbbf24" },
+                        { from: 70, to: 100, color: "#ef4444" },
+                      ]
+              }
+              ticks={
+                gaugeTicks === "0"
+                  ? undefined
+                  : {
+                      count: Number(gaugeTicks),
+                      majorEvery: 5,
+                      length: 9,
+                    }
+              }
+              target={gaugeTarget === "off" ? undefined : Number(gaugeTarget)}
+              targetLabel={
+                gaugeTarget === "off" ? undefined : `Target ${gaugeTarget}%`
+              }
+            />
+            <Chart.PieCenter
+              title="Utilization"
+              value={`${gaugeValue}%`}
+              subtitle="of capacity"
+            />
+          </>
+        )}
+        {kind === "nightingale" && (
+          <Chart.Pie
+            data={nightingaleTornado}
+            name="Tornadoes"
+            categoryField="name"
+            valueField="value"
+            nightingale
+            innerRadius={Number(nightInner)}
+            startAngle={Number(nightStart) * (Math.PI / 180)}
+            padAngle={nightGap === "0" ? 0 : Number(nightGap) / 100}
+            showLabels={nightLabels}
+          />
+        )}
+        <Chart.Legend position={kind === "nightingale" ? "bottom" : legendPosition} />
         {(valuesMode === "popup" || valuesMode === "both") && (
           <Chart.Tooltip mode="shared" />
         )}
@@ -827,6 +925,100 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               onChange={(v) => setFillMode(v as FillMode)}
             />
           </Control>
+        )}
+        {kind === "gauge" && (
+          <>
+            <Control label="Value">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartGaugeValueOptions}
+                value={gaugeValue}
+                onChange={(v) => setGaugeValue(v)}
+              />
+            </Control>
+            <Control label="Arc span">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartGaugeSpanOptions}
+                value={gaugeSpan}
+                onChange={(v) => setGaugeSpan(v)}
+              />
+            </Control>
+            <Control label="Thickness">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartGaugeInnerOptions}
+                value={gaugeInner}
+                onChange={(v) => setGaugeInner(v)}
+              />
+            </Control>
+            <Control label="Zones">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartGaugeZoneOptions}
+                value={gaugeZones}
+                onChange={(v) => setGaugeZones(v)}
+              />
+            </Control>
+            <Control label="Ticks">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartGaugeTickOptions}
+                value={gaugeTicks}
+                onChange={(v) => setGaugeTicks(v)}
+              />
+            </Control>
+            <Control label="Target">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartGaugeTargetOptions}
+                value={gaugeTarget}
+                onChange={(v) => setGaugeTarget(v)}
+              />
+            </Control>
+          </>
+        )}
+        {kind === "nightingale" && (
+          <>
+            <Control label="Start angle">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartNightStartOptions}
+                value={nightStart}
+                onChange={(v) => setNightStart(v)}
+              />
+            </Control>
+            <Control label="Hub">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartNightInnerOptions}
+                value={nightInner}
+                onChange={(v) => setNightInner(v)}
+              />
+            </Control>
+            <Control label="Slice gap">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartPieGapOptions}
+                value={String(nightGap)}
+                onChange={(v) => setNightGap(v)}
+              />
+            </Control>
+            <ToggleRow
+              label="Month labels"
+              checked={nightLabels}
+              onChange={setNightLabels}
+            />
+          </>
         )}
         {kind === "scatter" && (
           <>

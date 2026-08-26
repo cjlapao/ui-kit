@@ -8,6 +8,7 @@ import { arc } from "d3-shape";
 import { useEffect, useMemo, useRef } from "react";
 import {
   computePieGeometry,
+  pieLabelPoint,
   lerp,
   resolveColor,
   shadeColor,
@@ -171,6 +172,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     hover,
     animType,
     animationsDisabled,
+    theme,
   } = ctx;
   const me = findSeries(ctx, "pie", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<PieGeometry | null>(null);
@@ -220,6 +222,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
       sweepAngle: d.pieSweepAngle ?? TWO_PI,
       padAngle: d.piePadAngle ?? 0,
       cornerRadius: d.pieCornerRadius ?? 0,
+      nightingale: d.pieNightingale ?? false,
       cx,
       cy,
       outerRadius: Math.max(10, outerRadius),
@@ -228,6 +231,53 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     // root's layout memo), so the geometry identity is stable too.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, area]);
+
+  // ── Nightingale outside labels (name + value + leader spoke) ────────────
+  const nightingaleLabels = useMemo(() => {
+    if (!final || !me) return [];
+    const d = me.descriptor;
+    if (!d.pieShowLabels) return [];
+    const out: {
+      index: number;
+      x: number;
+      y: number;
+      name: string;
+      value: number;
+      color: string;
+      spokeFrom: { x: number; y: number };
+      spokeTo: { x: number; y: number };
+      anchor: "start" | "end";
+    }[] = [];
+    final.slices.forEach((s, i) => {
+      const item = d.data[s.index];
+      const name = String(
+        (d.categoryField && d.categoryField(item, s.index)) ?? i,
+      );
+      const value = d.valueField ? d.valueField(item, s.index) : 0;
+      const tip = pieLabelPoint(final.cx, final.cy, s.sliceRadius, s.labelAngle);
+      const label = pieLabelPoint(
+        final.cx,
+        final.cy,
+        final.outerRadius + 14,
+        s.labelAngle,
+      );
+      const anchor: "start" | "end" =
+        Math.sin(s.labelAngle) >= 0 ? "start" : "end";
+      out.push({
+        index: i,
+        x: label.x,
+        y: label.y,
+        name,
+        value,
+        color: sliceColors[i] ?? baseColor,
+        spokeFrom: tip,
+        spokeTo: { x: label.x, y: label.y },
+        anchor,
+      });
+    });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [final, me, sliceColors, baseColor]);
 
   // Bookkeeping on settled renders only — keeps `prev` the previous settled
   // geometry (null during the entrance) so the entrance stays visible.
@@ -331,6 +381,28 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
         c.fill(new Path2D(path));
       });
       c.restore();
+      // Nightingale outside labels.
+      if (nightingaleLabels.length > 0) {
+        c.save();
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        nightingaleLabels.forEach((lb) => {
+          c.strokeStyle = lb.color;
+          c.lineWidth = 1;
+          c.globalAlpha = isEntrance ? Math.max(0.001, p) : 1;
+          c.beginPath();
+          c.moveTo(lb.spokeFrom.x, lb.spokeFrom.y);
+          c.lineTo(lb.spokeTo.x, lb.spokeTo.y);
+          c.stroke();
+          c.fillStyle = theme.subtleText;
+          c.font = "600 11px sans-serif";
+          c.fillText(lb.name, lb.x, lb.y - 7);
+          c.fillStyle = lb.color;
+          c.font = "500 10px sans-serif";
+          c.fillText(String(lb.value), lb.x, lb.y + 5);
+        });
+        c.restore();
+      }
       // Percentage labels: count up + grow in step with each slice's reveal.
       if (percentLabels.length > 0) {
         const entrance = isEntrance;
@@ -377,6 +449,8 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     baseColor,
     sliceColors,
     percentLabels,
+    nightingaleLabels,
+    theme,
     registerDraw,
     unregisterDraw,
   ]);
@@ -469,6 +543,43 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
             );
           });
         })()}
+      {nightingaleLabels.map((lb) => {
+        const lp = entrance && p < 1 ? Math.max(0.001, p) : 1;
+        return (
+          <g key={lb.index} opacity={lp} pointerEvents="none">
+            <line
+              x1={lb.spokeFrom.x}
+              y1={lb.spokeFrom.y}
+              x2={lb.spokeTo.x}
+              y2={lb.spokeTo.y}
+              stroke={lb.color}
+              strokeWidth={1}
+            />
+            <text
+              x={lb.x}
+              y={lb.y - 7}
+              textAnchor={lb.anchor}
+              dominantBaseline="central"
+              fontSize={11}
+              fontWeight={600}
+              fill={ctx.theme.subtleText}
+            >
+              {lb.name}
+            </text>
+            <text
+              x={lb.x}
+              y={lb.y + 5}
+              textAnchor={lb.anchor}
+              dominantBaseline="central"
+              fontSize={10}
+              fontWeight={500}
+              fill={lb.color}
+            >
+              {lb.value}
+            </text>
+          </g>
+        );
+      })}
       {typeof props.children === "string" && (
         <text
           x={final.cx}

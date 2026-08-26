@@ -40,6 +40,16 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "rose segments, stacked radially or grouped per slot",
   },
   {
+    slug: "charts-gauge",
+    label: "Gauge",
+    blurb: "arc reads, zone ramps, ticks, target markers",
+  },
+  {
+    slug: "charts-nightingale",
+    label: "Nightingale",
+    blurb: "rose petals, equal angles, value radii",
+  },
+  {
     slug: "charts-scatter",
     label: "Scatter & Bubble",
     blurb: "bubbles, log axes, sloped reference lines, grow-on-hover",

@@ -14,6 +14,7 @@ export * from "./decimation";
 export * from "./series/line";
 export * from "./series/bar";
 export * from "./series/pie";
+export * from "./series/gauge";
 export * from "./series/candlestick";
 export * from "./series/rangeArea";
 export * from "./series/scatter";

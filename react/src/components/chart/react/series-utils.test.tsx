@@ -19,6 +19,7 @@ const types = {
   Polar: noop,
   PolarAxis: noop,
   Scatter: noop,
+  Gauge: noop,
   XAxis: noop,
   YAxis: noop,
   Legend: noop,

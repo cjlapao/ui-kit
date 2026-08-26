@@ -141,6 +141,14 @@ export interface PieSeriesProps<T = unknown> {
   padAngle?: number;
   /** Slice corner radius in px (clamped to the ring width / 2). Default 0. */
   cornerRadius?: number;
+  /**
+   * Nightingale (rose) mode: equal slice angles, each slice's radius
+   * encodes its value (smallest at the hub, largest at the outer ring).
+   * Implies outside category labels.
+   */
+  nightingale?: boolean;
+  /** Show outside category labels (name + value with a leader spoke). Default: on for nightingale. */
+  showLabels?: boolean;
   /** Show percentage labels inside the slices. Default false. */
   showPercentLabels?: boolean;
   /**
@@ -169,6 +177,50 @@ export interface PieCenterProps {
     hovered: { name: string; value: number; color: string; percent: number } | null;
     total: number;
   }) => ReactNode;
+}
+
+export interface GaugeTicksOptions {
+  /** Number of tick intervals across the span. Default 20. */
+  count?: number;
+  /** Every Nth tick is a major (longer) tick. Default 5. */
+  majorEvery?: number;
+  /** Tick length in px outside the arc. Default 8. */
+  length?: number;
+}
+
+export interface GaugeSeriesProps {
+  /** The current reading. */
+  value: number;
+  /** Minimum value of the span. Default 0. */
+  min?: number;
+  /** Maximum value of the span. Default 100. */
+  max?: number;
+  name?: string;
+  id?: string;
+  /** Fallback color when no zones cover a span. */
+  color?: ChartColor;
+  /**
+   * Sweep in radians. Default 270° (1.5π); the gap is centered at 6 o'clock
+   * unless `startAngle` is given.
+   */
+  arcSpan?: number;
+  /** Start angle in radians (d3 convention: 0 = 12 o'clock). */
+  startAngle?: number;
+  /** Donut cutout as a 0–1 ratio of the outer radius. Default 0.78. */
+  innerRadius?: number;
+  /**
+   * Color stops in value space. Rendered as subdivided segments with color
+   * interpolation at zone boundaries — narrow zones read as a smooth ramp,
+   * wide single-color zones stay flat.
+   */
+  zones?: Array<{ from: number; to: number; color: string }>;
+  /** Tick marks outside the arc. Absent = no ticks. */
+  ticks?: GaugeTicksOptions;
+  /** Marker dot on the arc at this value. */
+  target?: number;
+  /** Label rendered outside the target marker. */
+  targetLabel?: string;
+  animation?: ChartAnimation;
 }
 
 export type CandlestickVariant = "candle" | "hollow" | "ohlc";
@@ -650,7 +702,8 @@ export interface SeriesDescriptor {
     | "rangeArea"
     | "radar"
     | "polar"
-    | "scatter";
+    | "scatter"
+    | "gauge";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -719,6 +772,20 @@ export interface SeriesDescriptor {
   pieColors?: ChartColor[];
   piePercentLabels?: boolean;
   pieMinPercentLabel?: number;
+  // nightingale (rose pie)
+  pieNightingale?: boolean;
+  pieShowLabels?: boolean;
+  // gauge
+  gaugeValue?: number;
+  gaugeMin?: number;
+  gaugeMax?: number;
+  gaugeArcSpan?: number;
+  gaugeStartAngle?: number;
+  gaugeInnerRadius?: number;
+  gaugeZones?: { from: number; to: number; color: string }[];
+  gaugeTicks?: { count?: number; majorEvery?: number; length?: number };
+  gaugeTarget?: number;
+  gaugeTargetLabel?: string;
   // candlestick
   openAccessor?: (item: unknown, index: number) => number;
   highAccessor?: (item: unknown, index: number) => number;

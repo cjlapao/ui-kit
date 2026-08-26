@@ -666,3 +666,71 @@ export const techSemis: TechPoint[] = [
   { name: "AMD", x: 58, y: -12.5, size: 17_000 },
   { name: "Intel", x: 53, y: -2.8, size: 120_000 },
 ];
+
+// ── Gauge ───────────────────────────────────────────────────────────────────
+
+/** Edge SLO burn — a live-updating percentage. */
+export const gaugeSloBurn = {
+  label: "98%",
+  sub: "Freeze deploys",
+  target: 90,
+};
+
+/** Atmospheric CO₂ (Mauna Loa annual mean, ppm). */
+export const gaugeCo2 = {
+  value: 422.8,
+  min: 280,
+  max: 450,
+  sub: "ppm CO₂ · 2024",
+  delta: "↑ +1.4 from 2023",
+  baseline: "Pre-industrial: 280 ppm",
+};
+
+/** Global temperature anomaly vs the 1951–1980 baseline (°C). */
+export const gaugeTemp = {
+  value: 1.47,
+  min: 0,
+  max: 2,
+  target: 1.5,
+  targetLabel: "Paris 1.5°C",
+  sub: "above 1951–1980 baseline",
+};
+
+// ── Nightingale ──────────────────────────────────────────────────────────────
+
+export interface NightingalePoint {
+  name: string;
+  value: number;
+}
+
+/** US tornado climatology — average monthly tornado counts (1991–2020). */
+export const nightingaleTornado: NightingalePoint[] = [
+  { name: "Jan", value: 14.9 },
+  { name: "Feb", value: 19.5 },
+  { name: "Mar", value: 46.3 },
+  { name: "Apr", value: 97.3 },
+  { name: "May", value: 144.4 },
+  { name: "Jun", value: 110.9 },
+  { name: "Jul", value: 45.9 },
+  { name: "Aug", value: 32.9 },
+  { name: "Sep", value: 23.5 },
+  { name: "Oct", value: 26.2 },
+  { name: "Nov", value: 14.6 },
+  { name: "Dec", value: 8.5 },
+];
+
+/** US average monthly precipitation 2024 (inches). */
+export const nightingalePrecip: NightingalePoint[] = [
+  { name: "Jan", value: 2.31 },
+  { name: "Feb", value: 2.18 },
+  { name: "Mar", value: 2.89 },
+  { name: "Apr", value: 3.02 },
+  { name: "May", value: 3.44 },
+  { name: "Jun", value: 3.21 },
+  { name: "Jul", value: 3.09 },
+  { name: "Aug", value: 3.19 },
+  { name: "Sep", value: 2.76 },
+  { name: "Oct", value: 2.54 },
+  { name: "Nov", value: 2.07 },
+  { name: "Dec", value: 2.48 },
+];

@@ -440,6 +440,24 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/PolarChartPage")),
   },
   {
+    slug: "charts-gauge",
+    name: "Gauge",
+    description:
+      "A single reading on an arc track: value-space color zones, outside ticks, a target marker and 270°/180° sweeps — live updates morph the arc in place.",
+    icon: "Dashboard",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/GaugeChartPage")),
+  },
+  {
+    slug: "charts-nightingale",
+    name: "Nightingale",
+    description:
+      "A rose where angles are equal and radii carry the value — a mode of the pie (nightingale on Chart.Pie) with outside month labels and leader spokes.",
+    icon: "Cog",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/NightingaleChartPage")),
+  },
+  {
     slug: "charts-scatter",
     name: "Scatter & Bubble",
     description:
@@ -546,6 +564,35 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "HealthCheck",
     category: "Feedback",
     Page: lazy(() => import("./components/ecg-monitor/EcgMonitorPage")),
+  },
+  {
+    slug: "dynamic-form-field",
+    name: "Dynamic Form Field",
+    description:
+      "One blueprint parameter as the control its value type calls for — text, secret, number, checkbox, select, list or key/value map.",
+    icon: "Script",
+    category: "Forms",
+    Page: lazy(
+      () => import("./components/dynamic-form-field/DynamicFormFieldPage"),
+    ),
+  },
+  {
+    slug: "combobox",
+    name: "Combobox",
+    description:
+      "A text field that suggests without preventing — filtered options, full keyboard navigation, and the same box, sizes and entry variants as Input.",
+    icon: "Search",
+    category: "Forms",
+    Page: lazy(() => import("./components/combobox/ComboboxPage")),
+  },
+  {
+    slug: "api-error-state",
+    name: "API Error State",
+    description:
+      "The failure twin of Empty State — the kind of error picks the tone, the glyph and the copy, with a retry that spins while it runs.",
+    icon: "CloudOff",
+    category: "Feedback",
+    Page: lazy(() => import("./components/api-error-state/ApiErrorStatePage")),
   },
   {
     slug: "empty-state",
