@@ -163,6 +163,11 @@ export interface PieSeriesProps<T = unknown> {
    * (default "PEAK"). Omit to disable.
    */
   peakLabel?: string;
+  /**
+   * Ring size as a 0–1 ratio of the available plot radius (default 1).
+   * Lower it to give outside labels / captions headroom.
+   */
+  outerRadius?: number;
   /** Show percentage labels inside the slices. Default false. */
   showPercentLabels?: boolean;
   /**
@@ -801,6 +806,7 @@ export interface SeriesDescriptor {
   pieNightingaleTicks?: boolean;
   pieNightingaleBands?: { from: number; to: number; color: string }[];
   piePeakLabel?: string;
+  pieOuterRadius?: number;
   // gauge
   gaugeValue?: number;
   gaugeMin?: number;

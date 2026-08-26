@@ -209,6 +209,7 @@ export function describeSeries(
       pieNightingaleTicks: pp.nightingaleTicks,
       pieNightingaleBands: pp.nightingaleBands,
       piePeakLabel: pp.peakLabel,
+      pieOuterRadius: pp.outerRadius,
       animation,
     };
   }

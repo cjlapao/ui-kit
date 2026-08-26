@@ -36,6 +36,7 @@ export function NightingaleTornado() {
         valueField="value"
         nightingale
         innerRadius={0.18}
+        outerRadius={0.8}
         startAngle={-Math.PI / 12}
         padAngle={0.02}
         colors={SEASON_COLORS}

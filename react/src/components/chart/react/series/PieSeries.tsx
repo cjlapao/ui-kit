@@ -211,7 +211,10 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     const d = me.descriptor;
     const cx = area.x + area.width / 2;
     const cy = area.y + area.height / 2;
-    const outerRadius = Math.min(area.width, area.height) / 2 - 8;
+    // outerRadius is a 0–1 ratio of the available plot radius.
+    const outerRadius =
+      (Math.min(area.width, area.height) / 2 - 8) *
+      (me.descriptor.pieOuterRadius ?? 1);
     return computePieGeometry({
       items: d.data.map((item, i) => ({
         value: d.valueField ? d.valueField(item, i) : 0,

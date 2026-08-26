@@ -2258,3 +2258,71 @@ describe("nightingale decor", () => {
     expect(tip?.textContent).toContain("Value");
   });
 });
+
+describe("pie outerRadius ratio", () => {
+  const data = [
+    { name: "A", value: 10 },
+    { name: "B", value: 30 },
+  ];
+  // jsdom has no getBBox — measure the max radial extent from the arc
+  // path data (the farthest sampled point from the pie center).
+  const pathPoints = (d: string): [number, number][] => {
+    const pts: [number, number][] = [];
+    const re = /([MLAZ])([^MLAZ]*)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(d))) {
+      const cmd = m[1];
+      const n = m[2]
+        .trim()
+        .split(/[-,\s]+/)
+        .filter(Boolean)
+        .map(Number);
+      if (cmd === "M" || cmd === "L") {
+        for (let i = 0; i + 1 < n.length; i += 2)
+          pts.push([n[i], n[i + 1]]);
+      } else if (cmd === "A") {
+        for (let i = 0; i + 7 <= n.length; i += 7)
+          pts.push([n[i + 5], n[i + 6]]);
+      }
+    }
+    return pts;
+  };
+  const ringExtent = (container: Element) => {
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const pts: [number, number][] = [];
+    g.querySelectorAll("path").forEach((p) =>
+      pts.push(...pathPoints(p.getAttribute("d") ?? "")),
+    );
+    if (pts.length === 0) return 0;
+    const cx = pts.reduce((a, q) => a + q[0], 0) / pts.length;
+    const cy = pts.reduce((a, q) => a + q[1], 0) / pts.length;
+    let maxR = 0;
+    pts.forEach(([x, y]) => {
+      maxR = Math.max(maxR, Math.hypot(x - cx, y - cy));
+    });
+    return maxR;
+  };
+  it("scales the ring down", () => {
+    const full = render(
+      <Chart.Svg height={400} animation={false}>
+        <Chart.Pie data={data} name="A" innerRadius={0.3} />
+      </Chart.Svg>,
+    );
+    const scaled = render(
+      <Chart.Svg height={400} animation={false}>
+        <Chart.Pie
+          data={data}
+          name="A"
+          innerRadius={0.3}
+          outerRadius={0.5}
+        />
+      </Chart.Svg>,
+    );
+    const a = ringExtent(full.container);
+    const b = ringExtent(scaled.container);
+    // outerRadius scales the available radius, so the sampled max
+    // extent halves exactly (sampling is geometry-linear).
+    expect(b).toBeCloseTo(a / 2, 1);
+    expect(a).toBeGreaterThan(100);
+  });
+});

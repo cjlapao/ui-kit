@@ -48,6 +48,7 @@ export function NightingalePrecipitation() {
         valueField="value"
         nightingale
         innerRadius={0.32}
+        outerRadius={0.78}
         cornerRadius={5}
         startAngle={-Math.PI / 12}
         padAngle={0.026}
