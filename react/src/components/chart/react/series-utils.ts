@@ -94,6 +94,10 @@ function defaultXField(data: unknown[]): string {
     const obj = first as Record<string, unknown>;
     if ("category" in obj) return "category";
     if ("date" in obj) return "date";
+    // Numeric (or ISO/time) x data: a first-class "x" field. Without this
+    // the accessor fell back to `category`, was undefined for every row,
+    // and cartesian series silently rendered nothing.
+    if ("x" in obj) return "x";
   }
   return "category";
 }

@@ -2005,13 +2005,7 @@ describe("annotation collision", () => {
   it("keeps two same-point annotation cards apart", () => {
     const { container } = render(
       <Chart.Svg height={300} animation={false}>
-        <Chart.Line
-          data={data}
-          name="S"
-          color="blue"
-          categoryXField="x"
-          valueYField="y"
-        />
+        <Chart.Line data={data} name="S" color="blue" valueYField="y" />
         <Chart.Annotation x={30} y={70} title="First callout" value="A" />
         <Chart.Annotation
           x={30}
@@ -2035,13 +2029,7 @@ describe("annotation collision", () => {
   it("keeps a single annotation at its legacy position", () => {
     const { container } = render(
       <Chart.Svg height={300} animation={false}>
-        <Chart.Line
-          data={data}
-          name="S"
-          color="blue"
-          categoryXField="x"
-          valueYField="y"
-        />
+        <Chart.Line data={data} name="S" color="blue" valueYField="y" />
         <Chart.Annotation
           x={30}
           y={70}
