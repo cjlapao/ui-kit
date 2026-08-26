@@ -134,6 +134,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     area,
     height,
     progress,
+    dataSig,
     animationsDisabled,
     registerDraw,
     unregisterDraw,
@@ -143,6 +144,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
   const me = findSeries(ctx, "line", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const clipId = useId().replace(/:/g, "");
   const gradId = useId().replace(/:/g, "");
+  const lastSigRef = useRef<string | null>(null);
   const lastRef = useRef<LineGeometry | null>(null);
   const prevRef = useRef<LineGeometry | null>(null);
   const lastBaseRef = useRef<{ x: number; y: number }[] | null>(null);
@@ -245,11 +247,12 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
   // the previous settled geometry (null during the entrance) — otherwise the
   // first frame would switch to update interpolation and the entrance never
   // becomes visible.
-  if (progress >= 1 && lastRef.current !== final) {
+  if (progress >= 1 && final !== null && lastSigRef.current !== dataSig) {
     prevRef.current = lastRef.current;
     prevBaseRef.current = lastBaseRef.current;
     lastRef.current = final;
     lastBaseRef.current = finalBaseline;
+    lastSigRef.current = dataSig;
   }
   const prev = progress < 1 ? prevRef.current : null;
   const prevBase = progress < 1 ? prevBaseRef.current : null;

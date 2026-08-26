@@ -15,6 +15,7 @@ export default function PolarStacked() {
         valueYField="autonomous"
         color="cyan"
         mode="stack"
+        innerRadius={0.45}
       />
       <Chart.Polar
         data={workflowData}
@@ -23,6 +24,7 @@ export default function PolarStacked() {
         valueYField="assisted"
         color="purple"
         mode="stack"
+        innerRadius={0.45}
       />
       <Chart.Polar
         data={workflowData}
@@ -31,6 +33,7 @@ export default function PolarStacked() {
         valueYField="manual"
         color="amber"
         mode="stack"
+        innerRadius={0.45}
       />
       <Chart.PolarAxis gridShape="circle" gridLines={5} showTickLabels />
       <Chart.PolarCenter

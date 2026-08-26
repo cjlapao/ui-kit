@@ -573,6 +573,42 @@ export const ecgMonitorStateOptions: MultiToggleOption[] = toOptions(
 export const loaderVariantOptions = toOptions(LOADER_VARIANTS);
 export const loaderGlassBlurOptions = toOptions(LOADER_GLASS_BLURS);
 
+// ── Stepper ──────────────────────────────────────────────────────────────────
+// Segmented MultiToggles are reserved for short lists (≤3); anything longer is
+// a SelectControl dropdown (see StepperPlayground).
+
+/** Step order. Two — a small MultiToggle, not a dropdown. */
+export const stepperOrientationOptions: MultiToggleOption[] = toOptions([
+  "horizontal",
+  "vertical",
+]);
+/** The connector between nodes. Three — a MultiToggle. */
+export const stepperConnectorOptions: MultiToggleOption[] = toOptions([
+  "line",
+  "progress",
+  "none",
+]);
+/** Where the connector sits across the gap. Three — a MultiToggle. */
+export const stepperConnectorAlignOptions: MultiToggleOption[] = toOptions([
+  "left",
+  "center",
+  "right",
+]);
+/** Node shape: the Panel corner scale plus the classic circle. Seven — dropdown. */
+export const stepperNodeCornerOptions: MultiToggleOption[] = [
+  ...toOptions(SURFACE_CORNERS),
+  { label: "Full (circle)", value: "full" },
+];
+/** How the stepper shows loading. Three — a MultiToggle. */
+export const stepperLoaderTypeOptions: MultiToggleOption[] = toOptions([
+  "spinner",
+  "progress",
+  "skeleton",
+]);
+/** Where the progress bar sits. Two — a MultiToggle. */
+export const stepperProgressBarPositionOptions: MultiToggleOption[] =
+  toOptions(["top", "bottom"]);
+
 // ── Dropdown Button ──────────────────────────────────────────────────────────
 
 /** Menu width: match the trigger, or a fixed pixel width. */
@@ -636,6 +672,14 @@ export const chartPolarSortOptions: MultiToggleOption[] = [
   { label: "Data order", value: "none" },
   { label: "High → low", value: "desc" },
   { label: "Low → high", value: "asc" },
+];
+
+/** Polar hole radius as a fraction of the outer radius (center readout space). */
+export const chartPolarInnerRadiusOptions: MultiToggleOption[] = [
+  { label: "None", value: "0" },
+  { label: "Small", value: "0.25" },
+  { label: "Wide", value: "0.45" },
+  { label: "Deep", value: "0.6" },
 ];
 
 /** Polar segment corner radii in px. */

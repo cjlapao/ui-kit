@@ -82,6 +82,14 @@ export interface ChartContextValue {
 
   /** Global animation progress 0..1 (entrance/update). 1 = settled. */
   progress: number;
+
+  /**
+   * Cheap data signature gating the update animation. Stable while the
+   * data is unchanged (even across StrictMode's double render) — series
+   * use it to capture their previous settled geometry exactly once per
+   * data change.
+   */
+  dataSig: string;
   /** Whether animations are disabled entirely. */
   animationsDisabled: boolean;
 

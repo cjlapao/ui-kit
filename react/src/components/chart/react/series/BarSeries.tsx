@@ -55,12 +55,14 @@ function frameBars(
 
 export function BarSeries(props: BarSeriesProps<unknown>) {
   const ctx = useChart();
-  const { renderer, xScale, progress, registerDraw, unregisterDraw,hover,
+  const { renderer, xScale, progress,
+    dataSig, registerDraw, unregisterDraw,hover,
     hoverDim,
   } = ctx;
   const me = findSeries(ctx, "bar", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<BarGeometry | null>(null);
   const prevRef = useRef<BarGeometry | null>(null);
+  const lastSigRef = useRef<string | null>(null);
 
   let final: BarGeometry | null = null;
   let hidden = false;
@@ -168,9 +170,13 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
 
   // Bookkeeping on settled renders only — keeps `prev` the previous settled
   // geometry (null during the entrance) so the entrance stays visible.
-  if (progress >= 1 && lastRef.current !== final) {
+  // Bookkeeping on settled renders only — guarded by the root's data
+  // signature (stable across StrictMode's double render) so the previous
+  // settled geometry is captured exactly once per data change.
+  if (progress >= 1 && final !== null && lastSigRef.current !== dataSig) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
+    lastSigRef.current = dataSig;
   }
   const prev = progress < 1 ? prevRef.current : null;
 

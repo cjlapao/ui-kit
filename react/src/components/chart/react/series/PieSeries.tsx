@@ -134,6 +134,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     renderer,
     area,
     progress,
+    dataSig,
     registerDraw,
     unregisterDraw,
     hoverDim,
@@ -142,6 +143,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
   const me = findSeries(ctx, "pie", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<PieGeometry | null>(null);
   const prevRef = useRef<PieGeometry | null>(null);
+  const lastSigRef = useRef<string | null>(null);
 
   // Per-slice colors: colors[] > single color (uniform) > palette (one hue
   // per slice — the pie default).
@@ -197,9 +199,13 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
 
   // Bookkeeping on settled renders only — keeps `prev` the previous settled
   // geometry (null during the entrance) so the entrance stays visible.
-  if (progress >= 1 && lastRef.current !== final) {
+  // Bookkeeping on settled renders only — guarded by the root's data
+  // signature (stable across StrictMode's double render) so the previous
+  // settled geometry is captured exactly once per data change.
+  if (progress >= 1 && final !== null && lastSigRef.current !== dataSig) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
+    lastSigRef.current = dataSig;
   }
   const prev = progress < 1 ? prevRef.current : null;
 

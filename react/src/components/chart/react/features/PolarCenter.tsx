@@ -67,7 +67,7 @@ export function PolarCenter(props: PolarCenterProps = {}) {
     });
 
   const hole = Math.max(polar.innerR, 0);
-  const boxW = Math.max(80, (hole > 4 ? hole : polar.R * 0.55) * 1.7);
+  const boxW = Math.max(160, (hole > 4 ? hole : polar.R * 0.55) * 1.9);
 
   return (
     <div

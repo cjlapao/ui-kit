@@ -72,6 +72,7 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
     xScale,
     area,
     progress,
+    dataSig,
     hover,
     registerDraw,
     unregisterDraw,hoverDim,
@@ -79,6 +80,7 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
   const me = findSeries(ctx, "candlestick", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<CandleGeometry[] | null>(null);
   const prevRef = useRef<CandleGeometry[] | null>(null);
+  const lastSigRef = useRef<string | null>(null);
 
   let final: CandleGeometry[] | null = null;
   let hidden = false;
@@ -124,9 +126,13 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
 
   // Bookkeeping on settled renders only — keeps `prev` the previous settled
   // geometry (null during the entrance) so the entrance stays visible.
-  if (progress >= 1 && lastRef.current !== final) {
+  // Bookkeeping on settled renders only — guarded by the root's data
+  // signature (stable across StrictMode's double render) so the previous
+  // settled geometry is captured exactly once per data change.
+  if (progress >= 1 && final !== null && lastSigRef.current !== dataSig) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
+    lastSigRef.current = dataSig;
   }
   const prev = progress < 1 ? prevRef.current : null;
   const baselineY = area.y + area.height;

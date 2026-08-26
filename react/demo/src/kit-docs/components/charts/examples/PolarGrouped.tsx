@@ -15,6 +15,7 @@ export default function PolarGrouped() {
         valueYField="redBull"
         color="blue"
         mode="group"
+        innerRadius={0.35}
         segmentRadius={4}
         borderWidth={1}
       />
@@ -25,6 +26,7 @@ export default function PolarGrouped() {
         valueYField="ferrari"
         color="red"
         mode="group"
+        innerRadius={0.35}
         segmentRadius={4}
         borderWidth={1}
       />
@@ -35,6 +37,7 @@ export default function PolarGrouped() {
         valueYField="mercedes"
         color="emerald"
         mode="group"
+        innerRadius={0.35}
         segmentRadius={4}
         borderWidth={1}
       />

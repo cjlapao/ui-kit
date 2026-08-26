@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act, cleanup } from "@testing-library/react";
 import { Chart, useChart } from "../index";
@@ -1593,5 +1594,67 @@ describe("polar series", () => {
       </Chart.Canvas>,
     );
     expect(document.querySelector("canvas")).toBeTruthy();
+  });
+});
+
+// ── Update-animation bookkeeping (StrictMode double-render safe) ───────────
+
+describe("update animation bookkeeping", () => {
+  const polarA = [
+    { category: "a", value: 20 },
+    { category: "b", value: 40 },
+    { category: "c", value: 60 },
+    { category: "d", value: 30 },
+  ];
+  const polarB = [
+    { category: "a", value: 60 },
+    { category: "b", value: 20 },
+    { category: "c", value: 30 },
+    { category: "d", value: 55 },
+  ];
+  const renderPolarData = (data: typeof polarA) => (
+    <StrictMode>
+      <Chart.Svg
+        height={300}
+        animation={{ duration: 900, easing: "easeOutQuart" }}
+      >
+        <Chart.Polar data={data} name="S" color="blue" />
+        <Chart.PolarAxis />
+      </Chart.Svg>
+    </StrictMode>
+  );
+
+  it("morphs from the previous settled geometry after a data change", async () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(renderPolarData(polarA));
+      // Settle the entrance.
+      await vi.advanceTimersByTimeAsync(1500);
+      const d1 =
+        document.querySelector(
+          "[data-chart-series] path[fill]",
+        )?.getAttribute("d") ?? null;
+      expect(d1).toBeTruthy();
+
+      // Data change: the update animation should interpolate d1 → d2.
+      rerender(renderPolarData(polarB));
+      await vi.advanceTimersByTimeAsync(450); // mid-animation
+      const dMid =
+        document.querySelector(
+          "[data-chart-series] path[fill]",
+        )?.getAttribute("d") ?? null;
+      await vi.advanceTimersByTimeAsync(1500);
+      const d2 =
+        document.querySelector(
+          "[data-chart-series] path[fill]",
+        )?.getAttribute("d") ?? null;
+
+      expect(dMid).toBeTruthy();
+      expect(dMid).not.toBe(d1); // not still the old shape
+      expect(dMid).not.toBe(d2); // not already the new shape
+      expect(d2).not.toBe(d1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

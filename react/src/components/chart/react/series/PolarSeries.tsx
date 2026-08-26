@@ -20,18 +20,34 @@ import { useChart } from "../ChartContext";
 import { findSeries, polarSeriesDimStyle } from "../series-common";
 import type { PolarSeriesProps } from "../props";
 
-/** Scale segment radii toward the hole (entrance frames). */
+/** Scale segment radii toward the hole (entrance frames), rebuilding
+ * each path so the growth is actually visible. */
 function entranceFrame(
   g: PolarGeometry,
   p: number,
   layout: PolarLayout,
+  radius = 0,
 ): PolarGeometry {
   if (p >= 1) return g;
-  const segments = g.segments.map((seg) => ({
-    ...seg,
-    rInner: layout.innerR,
-    rOuter: layout.innerR + (seg.rOuter - layout.innerR) * p,
-  }));
+  const segments = g.segments.map((seg) => {
+    const r0 = layout.innerR;
+    const r1 = layout.innerR + (seg.rOuter - layout.innerR) * p;
+    return {
+      ...seg,
+      rInner: r0,
+      rOuter: r1,
+      path:
+        roundedAnnularSector(
+          layout.cx,
+          layout.cy,
+          r0,
+          Math.max(r0 + 0.5, r1),
+          seg.a0,
+          seg.a1,
+          radius,
+        ) || seg.path,
+    };
+  });
   return { ...g, segments };
 }
 
@@ -40,6 +56,7 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
   const {
     renderer,
     progress,
+    dataSig,
     animationsDisabled,
     registerDraw,
     unregisterDraw,
@@ -55,6 +72,7 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
     props.data,
     (props as { __chartSeriesToken?: object }).__chartSeriesToken,
   );
+  const lastSigRef = useRef<string | null>(null);
   const lastRef = useRef<PolarGeometry | null>(null);
   const prevRef = useRef<PolarGeometry | null>(null);
 
@@ -112,10 +130,16 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
     }
   }
 
-  // Update-animation bookkeeping (same contract as the other series).
-  if (progress >= 1 && lastRef.current !== final) {
+  // Bookkeeping on settled renders only — guarded by the root's data
+  // signature (stable across StrictMode's double render) so the previous
+  // settled geometry is captured exactly once per data change.
+  // Bookkeeping on settled renders only — guarded by the root's data
+  // signature (stable across StrictMode's double render) so the previous
+  // settled geometry is captured exactly once per data change.
+  if (progress >= 1 && final !== null && lastSigRef.current !== dataSig) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
+    lastSigRef.current = dataSig;
   }
   const prev = progress < 1 ? prevRef.current : null;
   const entrance = prev === null;
@@ -157,9 +181,12 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
     if (!g || !hover || !polar) return null;
     const hit = hover.items.find((i) => i.seriesId === seriesId);
     if (!hit) return null;
-    // The hover index is the (sorted) category index.
+    // The hover index is the hovered row's DATA index; segments carry the
+    // display slot index — map through the layout's categoryOrder.
     const seg = g.segments.find(
-      (s) => s.seriesId === seriesId && s.categoryIndex === hit.index,
+      (s) =>
+        s.seriesId === seriesId &&
+        polar!.categoryOrder[s.categoryIndex] === hit.index,
     );
     return seg ?? null;
   }
@@ -173,7 +200,7 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
       const p = animationsDisabled ? 1 : st.progress;
       let g: PolarGeometry;
       if (isEntrance) {
-        g = entranceFrame(final!, p, polar);
+        g = entranceFrame(final!, p, polar, segmentRadius);
       } else {
         g = framePolarGeometry(
           final!,
@@ -197,7 +224,9 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
             (s) =>
               s.seriesId === seriesId &&
               hover.items.some(
-                (i) => i.seriesId === seriesId && i.index === s.categoryIndex,
+                (i) =>
+                  i.seriesId === seriesId &&
+                  i.index === polar.categoryOrder[s.categoryIndex],
               ),
           )
         : undefined;
@@ -246,11 +275,13 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
 
   if (final === null) return null;
 
+  // ── SVG render (temp log moved below g computation)
+
   // ── SVG render ────────────────────────────────────────────────────────────
   if (renderer !== "svg") return null;
   const p = animationsDisabled ? 1 : progress;
   const g = entrance
-    ? entranceFrame(final, p, polar!)
+    ? entranceFrame(final, p, polar!, segmentRadius)
     : framePolarGeometry(final, prev, p, {
         cx: polar!.cx,
         cy: polar!.cy,
@@ -261,7 +292,6 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
         innerR: polar!.innerR,
       });
   const hovered = hoveredCategory;
-
   return (
     <g
       data-chart-series={seriesId}

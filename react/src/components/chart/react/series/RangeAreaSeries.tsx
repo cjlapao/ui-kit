@@ -57,6 +57,7 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
     area,
     height,
     progress,
+    dataSig,
     animationsDisabled,
     registerDraw,
     unregisterDraw,
@@ -74,6 +75,7 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
   const fillGradId = useId().replace(/:/g, "");
   const lastRef = useRef<RangeAreaGeometry | null>(null);
   const prevRef = useRef<RangeAreaGeometry | null>(null);
+  const lastSigRef = useRef<string | null>(null);
 
   // ── Final (settled) geometry — recomputed fresh each render (cheap) ──────
   let final: RangeAreaGeometry | null = null;
@@ -151,9 +153,13 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
 
   // Previous settled geometry (update-animation source). Bookkeeping only
   // happens on settled renders (same contract as LineSeries).
-  if (progress >= 1 && lastRef.current !== final) {
+  // Bookkeeping on settled renders only — guarded by the root's data
+  // signature (stable across StrictMode's double render) so the previous
+  // settled geometry is captured exactly once per data change.
+  if (progress >= 1 && final !== null && lastSigRef.current !== dataSig) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
+    lastSigRef.current = dataSig;
   }
   const prev = progress < 1 ? prevRef.current : null;
   const entrance = prev === null;

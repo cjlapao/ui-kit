@@ -46,6 +46,7 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
   const {
     renderer,
     progress,
+    dataSig,
     animationsDisabled,
     registerDraw,
     unregisterDraw,
@@ -63,6 +64,7 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
   const gradId = useId().replace(/:/g, "");
   const lastRef = useRef<RadarGeometry | null>(null);
   const prevRef = useRef<RadarGeometry | null>(null);
+  const lastSigRef = useRef<string | null>(null);
 
   // ── Final (settled) geometry ──────────────────────────────────────────────
   let final: RadarGeometry | null = null;
@@ -108,9 +110,13 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
   }
 
   // Update-animation bookkeeping (same contract as the other series).
-  if (progress >= 1 && lastRef.current !== final) {
+  // Bookkeeping on settled renders only — guarded by the root's data
+  // signature (stable across StrictMode's double render) so the previous
+  // settled geometry is captured exactly once per data change.
+  if (progress >= 1 && final !== null && lastSigRef.current !== dataSig) {
     prevRef.current = lastRef.current;
     lastRef.current = final;
+    lastSigRef.current = dataSig;
   }
   const prev = progress < 1 ? prevRef.current : null;
   const entrance = prev === null;

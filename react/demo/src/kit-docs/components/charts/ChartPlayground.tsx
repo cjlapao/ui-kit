@@ -22,6 +22,7 @@ import {
   chartGridOptions,
   chartHeightOptions,
   chartPolarGridStyleOptions,
+  chartPolarInnerRadiusOptions,
   chartPolarModeOptions,
   chartPolarRadiusOptions,
   chartPolarShapeOptions,
@@ -178,6 +179,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [readiness, setReadiness] = useState(readinessData);
   const [fillMode, setFillMode] = useState<FillMode>("gradient");
   const [polarMode, setPolarMode] = useState<"group" | "stack">("group");
+  const [polarInner, setPolarInner] = useState(0);
   const [polarSort, setPolarSort] = useState<"none" | "asc" | "desc">("none");
   const [polarRadius, setPolarRadius] = useState(0);
   const [polarBorder, setPolarBorder] = useState(0);
@@ -475,6 +477,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                   valueYField="redBull"
                   color="blue"
                   mode="group"
+                  innerRadius={polarInner}
                   segmentRadius={polarRadius}
                   borderWidth={polarBorder}
                 />
@@ -485,6 +488,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                   valueYField="ferrari"
                   color="red"
                   mode="group"
+                  innerRadius={polarInner}
                   segmentRadius={polarRadius}
                   borderWidth={polarBorder}
                 />
@@ -495,6 +499,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                   valueYField="mercedes"
                   color="emerald"
                   mode="group"
+                  innerRadius={polarInner}
                   segmentRadius={polarRadius}
                   borderWidth={polarBorder}
                 />
@@ -508,6 +513,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                   valueYField="autonomous"
                   color="cyan"
                   mode="stack"
+                  innerRadius={polarInner}
                   segmentRadius={polarRadius}
                   borderWidth={polarBorder}
                 />
@@ -518,6 +524,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                   valueYField="assisted"
                   color="purple"
                   mode="stack"
+                  innerRadius={polarInner}
                   segmentRadius={polarRadius}
                   borderWidth={polarBorder}
                 />
@@ -528,6 +535,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                   valueYField="manual"
                   color="amber"
                   mode="stack"
+                  innerRadius={polarInner}
                   segmentRadius={polarRadius}
                   borderWidth={polarBorder}
                 />
@@ -730,6 +738,15 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                 options={chartPolarModeOptions}
                 value={polarMode}
                 onChange={(v) => setPolarMode(v as "group" | "stack")}
+              />
+            </Control>
+            <Control label="Inner radius">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartPolarInnerRadiusOptions}
+                value={String(polarInner)}
+                onChange={(v) => setPolarInner(Number(v))}
               />
             </Control>
             <SelectControl
