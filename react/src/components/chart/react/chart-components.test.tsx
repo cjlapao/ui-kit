@@ -1781,3 +1781,203 @@ describe("animation types", () => {
     }
   });
 });
+
+// ── Scatter / bubble ────────────────────────────────────────────────────────
+
+describe("scatter", () => {
+  const alpha = [
+    { x: 10, y: 20, size: 50 },
+    { x: 30, y: 60, size: 150 },
+    { x: 50, y: 40, size: 100 },
+  ];
+  const beta = [
+    { x: 20, y: 80, size: 50 },
+    { x: 40, y: 30, size: 150 },
+    { x: 60, y: 70, size: 100 },
+  ];
+
+  it("renders one marker per datum with bubble radii", () => {
+    const { container } = render(
+      <Chart.Svg height={300} animation={false}>
+        <Chart.Scatter data={alpha} name="A" color="blue" sizeField="size" />
+        <Chart.Scatter data={beta} name="B" color="green" sizeField="size" />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const groups = container.querySelectorAll("[data-chart-series]");
+    expect(groups.length).toBe(2);
+    const pathsA = container.querySelectorAll(
+      "[data-chart-series] path.chart-scatter-point",
+    );
+    expect(pathsA.length).toBe(6);
+    // Bubble: the max-size datum (150) renders a larger radius than the
+    // min-size datum (50) — compare arc radii in the path data.
+    const radii = (d: string | null) => {
+      const m = d?.match(/a([\d.]+),[\d.]+ 0 1,0/);
+      return m ? Number(m[1]) : 0;
+    };
+    const groupA = groups[0] as SVGElement;
+    const ds = Array.from(
+      groupA.querySelectorAll("path.chart-scatter-point"),
+    ).map((p) => radii(p.getAttribute("d")));
+    expect(Math.max(...ds)).toBeGreaterThan(Math.min(...ds));
+  });
+
+  it("uniform dots when no size field", () => {
+    const { container } = render(
+      <Chart.Svg height={300} animation={false}>
+        <Chart.Scatter data={alpha} name="A" color="blue" />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const ds = Array.from(
+      container.querySelectorAll("path.chart-scatter-point"),
+    ).map((p) => p.getAttribute("d") ?? "");
+    const radii = (d: string) => {
+      const m = d.match(/a([\d.]+),[\d.]+ 0 1,0/);
+      return m ? Number(m[1]) : 0;
+    };
+    expect(new Set(ds.map(radii)).size).toBe(1);
+  });
+
+  it("renders a slanted two-point reference line", () => {
+    const { container } = render(
+      <Chart.Svg height={300}>
+        <Chart.Scatter data={alpha} name="A" color="blue" />
+        <Chart.ReferenceLine x={10} y={10} x2={50} y2={70} label="trend" />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const line = container.querySelector(
+      "[data-chart-feature='refline'] line",
+    ) as SVGLineElement | null;
+    expect(line).toBeTruthy();
+    // Slanted: distinct endpoints on both axes.
+    expect(Number(line!.getAttribute("x1"))).not.toBe(
+      Number(line!.getAttribute("x2")),
+    );
+    expect(Number(line!.getAttribute("y1"))).not.toBe(
+      Number(line!.getAttribute("y2")),
+    );
+  });
+
+  it("grows markers in on entrance", async () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(
+        <Chart.Svg
+          height={300}
+          animation={{ duration: 900, type: "grow" }}
+        >
+          <Chart.Scatter
+            data={alpha}
+            name="A"
+            color="blue"
+            sizeField="size"
+          />
+          <Chart.XAxis />
+          <Chart.YAxis />
+        </Chart.Svg>,
+      );
+      await vi.advanceTimersByTimeAsync(200);
+      const mid = Array.from(
+        container.querySelectorAll("path.chart-scatter-point"),
+      ).map((p) => p.getAttribute("d") ?? "");
+      expect(mid.some((d) => d.length > 0)).toBe(true);
+      await vi.advanceTimersByTimeAsync(1200);
+      const settled = Array.from(
+        container.querySelectorAll("path.chart-scatter-point"),
+      ).map((p) => p.getAttribute("d") ?? "");
+      expect(
+        mid.filter((d, i) => d !== settled[i]).length,
+      ).toBeGreaterThan(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("logs y-axis ticks with a log scale", () => {
+    const moore = [
+      { x: 1, y: 2_300 },
+      { x: 2, y: 3_300_000 },
+      { x: 3, y: 2_080_000_000 },
+    ];
+    const { container } = render(
+      <Chart.Svg height={300} animation={false}>
+        <Chart.Scatter data={moore} name="Transistors" color="blue" />
+        <Chart.XAxis />
+        <Chart.YAxis log />
+      </Chart.Svg>,
+    );
+    const text = container.textContent ?? "";
+    // SI-formatted log ticks (M/B magnitudes).
+    expect(text).toMatch(/500M|1B|2B/);
+  });
+
+  it("hover: the hit point grows and other series dim", async () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(
+        <Chart.Svg height={300} hoverDim={0.3}>
+          <Chart.Scatter data={alpha} name="A" color="blue" sizeField="size" />
+          <Chart.Scatter data={beta} name="B" color="green" sizeField="size" />
+          <Chart.XAxis />
+          <Chart.YAxis />
+          <Chart.Hover />
+        </Chart.Svg>,
+      );
+      await vi.advanceTimersByTimeAsync(1500);
+      const svg = container.querySelector("svg");
+      expect(svg).toBeTruthy();
+      if (!svg) throw new Error("missing svg");
+      const groups = container.querySelectorAll("[data-chart-series]");
+      const gA = groups[0] as SVGElement;
+      const gB = groups[1] as SVGElement;
+      expect(gA).toBeTruthy();
+      expect(gB).toBeTruthy();
+      // Mock the svg's box 1:1 so clientX/Y == viewBox coordinates.
+      Object.defineProperty(svg, "getBoundingClientRect", {
+        value: () => ({
+          left: 0,
+          top: 0,
+          right: 800,
+          bottom: 300,
+          width: 800,
+          height: 300,
+          x: 0,
+          y: 0,
+          toJSON() {
+            return this;
+          },
+        }),
+        configurable: true,
+      });
+      // Center of the first marker, read from its path data.
+      const d = gA.querySelector("path")!.getAttribute("d")!;
+      const m = d.match(/^M([\d.]+),([\d.]+)a([\d.]+),/);
+      expect(m).toBeTruthy();
+      const cx = Number(m![1]) + Number(m![3]);
+      const cy = Number(m![2]);
+      const rOf = (dd: string) => {
+        const mm = dd.match(/a([\d.]+),[\d.]+ 0 1,0/);
+        return mm ? Number(mm[1]) : 0;
+      };
+      const preHoverR = rOf(d);
+      const rects = svg.querySelectorAll("rect");
+      const hoverRect = rects[rects.length - 1] as SVGRectElement;
+      fireEvent.pointerMove(hoverRect, { clientX: cx, clientY: cy });
+      await vi.advanceTimersByTimeAsync(50);
+      // Series B dims to hoverDim; series A stays full.
+      expect((gB!.style.opacity ?? "1")).toBe("0.3");
+      expect((gA!.style.opacity ?? "1")).toBe("1");
+      // The hit marker grew past its own pre-hover radius.
+      const hitNow = rOf(gA.querySelector("path")!.getAttribute("d")!);
+      expect(hitNow).toBeGreaterThan(preHoverR * 1.2);
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 15000);
+});

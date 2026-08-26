@@ -40,6 +40,11 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "rose segments, stacked radially or grouped per slot",
   },
   {
+    slug: "charts-scatter",
+    label: "Scatter & Bubble",
+    blurb: "bubbles, log axes, sloped reference lines, grow-on-hover",
+  },
+  {
     slug: "charts-annotations",
     label: "Reference & Callouts",
     blurb: "bands, rules, annotation callouts",

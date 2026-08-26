@@ -41,6 +41,7 @@ import {
   TOGGLE_VARIANTS,
   CONNECTION_FLOW_EDGE_STYLES,
   CONNECTION_FLOW_PROGRESS_TYPES,
+  CONNECTION_FLOW_ITEM_PROGRESS,
   CONNECTION_FLOW_RING_SIZES,
   CONNECTION_STATES,
   TRUE_COLORS,
@@ -201,6 +202,17 @@ export const connectionStateOptions = toOptions(CONNECTION_STATES);
 export const connectionFlowRingSizeOptions = toOptions(
   CONNECTION_FLOW_RING_SIZES,
 );
+export const connectionFlowItemProgressOptions = toOptions(
+  CONNECTION_FLOW_ITEM_PROGRESS,
+);
+/** How many rows a card shows before the rest fold behind "show more". */
+export const connectionFlowItemCapOptions: MultiToggleOption[] = [
+  { label: "0 (all)", value: "0" },
+  { label: "1", value: "1" },
+  { label: "2", value: "2" },
+  { label: "3", value: "3" },
+  { label: "5", value: "5" },
+];
 
 // ── GlassBackground ─────────────────────────────────────────────────────────
 
@@ -659,6 +671,87 @@ export const chartKindOptions: MultiToggleOption[] = [
   { label: "Range", value: "range" },
   { label: "Radar", value: "radar" },
   { label: "Polar", value: "polar" },
+  { label: "Scatter", value: "scatter" },
+];
+
+/** Scatter marker shapes (the kit's `markerShape` prop). */
+export const chartScatterShapeOptions: MultiToggleOption[] = [
+  { label: "Circle", value: "circle" },
+  { label: "Square", value: "square" },
+  { label: "Triangle", value: "triangle" },
+  { label: "Diamond", value: "diamond" },
+  { label: "Cross", value: "cross" },
+  { label: "Star", value: "star" },
+];
+
+/** Scatter point hit radius (px). */
+export const chartScatterHitRadiusOptions: MultiToggleOption[] = [
+  { label: "0", value: "0" },
+  { label: "2", value: "2" },
+  { label: "4", value: "4" },
+  { label: "8", value: "8" },
+];
+
+/** Scatter point opacity. */
+export const chartScatterOpacityOptions: MultiToggleOption[] = [
+  { label: "1.0", value: "1" },
+  { label: "0.8", value: "0.8" },
+  { label: "0.6", value: "0.6" },
+  { label: "0.4", value: "0.4" },
+];
+
+/** Scatter point fill opacity. */
+export const chartScatterFillOptions: MultiToggleOption[] = [
+  { label: "1.0", value: "1" },
+  { label: "0.7", value: "0.7" },
+  { label: "0.5", value: "0.5" },
+  { label: "0.3", value: "0.3" },
+];
+
+/** Scatter bubble size bounds (px radius). */
+export const chartScatterMinSizeOptions: MultiToggleOption[] = [
+  { label: "4", value: "4" },
+  { label: "6", value: "6" },
+  { label: "8", value: "8" },
+  { label: "10", value: "10" },
+];
+
+export const chartScatterMaxSizeOptions: MultiToggleOption[] = [
+  { label: "16", value: "16" },
+  { label: "24", value: "24" },
+  { label: "30", value: "30" },
+  { label: "40", value: "40" },
+];
+
+/** Scatter hover brightness. */
+export const chartScatterBrightnessOptions: MultiToggleOption[] = [
+  { label: "1.0", value: "1" },
+  { label: "1.1", value: "1.1" },
+  { label: "1.3", value: "1.3" },
+  { label: "1.5", value: "1.5" },
+];
+
+/** Scatter hover dim (root hoverDim). */
+export const chartScatterDimOptions: MultiToggleOption[] = [
+  { label: "off", value: "1" },
+  { label: "0.5", value: "0.5" },
+  { label: "0.35", value: "0.35" },
+  { label: "0.2", value: "0.2" },
+];
+
+/** Scatter hover radius multiplier. */
+export const chartScatterRadiusOptions: MultiToggleOption[] = [
+  { label: "1.0", value: "1" },
+  { label: "1.3", value: "1.3" },
+  { label: "1.6", value: "1.6" },
+  { label: "2.0", value: "2" },
+];
+
+/** Scatter border width (px). */
+export const chartScatterBorderOptions: MultiToggleOption[] = [
+  { label: "0", value: "0" },
+  { label: "1", value: "1" },
+  { label: "2", value: "2" },
 ];
 
 /** Polar layout modes (the kit's polar `mode` prop). */

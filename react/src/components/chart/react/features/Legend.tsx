@@ -74,7 +74,7 @@ export function Legend(props: LegendProps = {}) {
     let dash: number[] | null | undefined;
     if (d.type === "bar") swatch = "bar";
     else if (d.type === "polar") swatch = "bar";
-    else if (d.type === "pie") swatch = "circle";
+    else if (d.type === "pie" || d.type === "scatter") swatch = "circle";
     else if (d.type === "candlestick") swatch = "candle";
     else if (d.fillOpacity) swatch = "area";
     else swatch = "line";

@@ -440,6 +440,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/PolarChartPage")),
   },
   {
+    slug: "charts-scatter",
+    name: "Scatter & Bubble",
+    description:
+      "One marker per datum on shared x/y scales — linear, log or time — with area-proportional bubbles, shaped markers, grow-on-hover points and two-point (sloped) reference lines.",
+    icon: "Globe",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/ScatterChartPage")),
+  },
+  {
     slug: "charts-annotations",
     name: "Reference & Callouts",
     description:
@@ -591,6 +600,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Pause",
     category: "Feedback",
     Page: lazy(() => import("./components/loader/LoaderPage")),
+  },
+  {
+    slug: "stepper",
+    name: "Stepper",
+    description:
+      "A multi-step workflow on the shared panel surface — clickable steps with a line or progress connector, the full 21-colour tone set, per-step and whole-stepper loaders (including a skeleton), an optional progress bar, and both orientations.",
+    icon: "CheckCircle",
+    category: "Feedback",
+    Page: lazy(() => import("./components/stepper/StepperPage")),
   },
   {
     slug: "modal",

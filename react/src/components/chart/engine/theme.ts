@@ -125,6 +125,21 @@ export function shadeColor(color: string, factor: number): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+/**
+ * Blend a hex color toward white (factor 0 = original, 1 = white) — the
+ * inverse of {@link shadeColor}, used for auto hover borders.
+ */
+export function tintColor(color: string, factor: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(color.trim());
+  if (!m) return "rgba(255, 255, 255, 0.6)";
+  const n = parseInt(m[1], 16);
+  const f = Math.max(0, Math.min(1, factor));
+  const r = Math.round(((n >> 16) & 255) + (255 - ((n >> 16) & 255)) * f);
+  const g = Math.round(((n >> 8) & 255) + (255 - ((n >> 8) & 255)) * f);
+  const b = Math.round((n & 255) + (255 - (n & 255)) * f);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 function isGradientColor(input: ChartColor): input is GradientColor {
   return (
     typeof input === "object" &&

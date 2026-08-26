@@ -12,6 +12,7 @@ import {
   timeTickFormat,
   timeTicks,
   toDate,
+  createLogScale,
 } from "./scales";
 
 describe("createLinearScale", () => {
@@ -225,5 +226,35 @@ describe("formatTimeTick intraday", () => {
     expect(formatTimeTick(new Date(2025, 10, 3, 6, 0), 5 * MS_DAY)).toBe(
       "3 Nov",
     );
+  });
+});
+
+// ── Log scale ───────────────────────────────────────────────────────────────
+
+describe("createLogScale", () => {
+  it("maps values on a log-10 axis", () => {
+    const s = createLogScale({ domain: [1, 1000], range: [0, 300] });
+    expect(s.map(1)).toBeCloseTo(0);
+    expect(s.map(1000)).toBeCloseTo(300);
+    // 10 sits a third of the way; 100 two thirds.
+    expect(s.map(10)).toBeCloseTo(100);
+    expect(s.map(100)).toBeCloseTo(200);
+  });
+
+  it("inverts pixels back to values", () => {
+    const s = createLogScale({ domain: [1, 100], range: [0, 200] });
+    expect(s.invert(100)).toBeCloseTo(10, 6);
+  });
+
+  it("returns power-of-ten ticks inside the domain", () => {
+    const s = createLogScale({ domain: [1, 10_000], range: [0, 400] });
+    const ticks = s.ticks();
+    expect(ticks).toContain(10);
+    expect(ticks).toContain(100);
+    expect(ticks).toContain(1000);
+    for (const t of ticks) {
+      expect(t).toBeGreaterThan(1);
+      expect(t).toBeLessThan(10_000);
+    }
   });
 });

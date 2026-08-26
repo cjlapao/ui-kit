@@ -39,6 +39,7 @@ import {
   computeLayout,
   createBandScale,
   createLinearScale,
+  createLogScale,
   createTimeScale,
   computeRadarGrid,
   DEFAULT_SERIES_PALETTE,
@@ -52,6 +53,8 @@ import {
   gridDashArray,
   gridLineDash,
   hitTestPolar,
+  computeScatterGeometry,
+  hitTestScatter,
   nicePolarMax,
   resolveGrid,
 } from "../engine/index";
@@ -89,6 +92,7 @@ export interface ChildTypeRegistry {
   RadarAxis: ComponentType<any>;
   Polar: ComponentType<any>;
   PolarAxis: ComponentType<any>;
+  Scatter: ComponentType<any>;
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
@@ -629,6 +633,17 @@ export function ChartRootImpl({
       });
     }
     const nums = xDomainValues.map((v) => Number(v));
+    // Log-10 x (numeric domains only; time/categorical fall through).
+    if (summary.xAxisLog) {
+      const pos = nums.filter((v) => Number.isFinite(v) && v > 0);
+      if (pos.length > 0) {
+        return createLogScale({
+          domain: [Math.min(...pos), Math.max(...pos)],
+          range,
+          tickCount: summary.xAxisTickCount,
+        });
+      }
+    }
     return createLinearScale({
       domain: [Math.min(...nums), Math.max(...nums)],
       range,
@@ -639,6 +654,7 @@ export function ChartRootImpl({
     xIsTime,
     area,
     summary.xAxisTickCount,
+    summary.xAxisLog,
   ]);
 
   const xIsCategorical = xScale !== null && "bandWidth" in xScale;
@@ -652,29 +668,89 @@ export function ChartRootImpl({
       ),
     [cartesianSeries, hiddenIds, summary.yAxisLeft.domain],
   );
-  const yScale: ContinuousScale | null = useMemo(
-    () =>
-      showYAxis
-        ? createLinearScale({
-            domain: leftYDomain,
-            range: [area.y + area.height, area.y],
-            nice: !summary.yAxisLeft.domain,
-          })
-        : null,
-    [showYAxis, leftYDomain, area, summary.yAxisLeft.domain],
-  );
+  const yScale: ContinuousScale | null = useMemo(() => {
+    if (!showYAxis) return null;
+    const range: [number, number] = [area.y + area.height, area.y];
+    // Log-10 y: the domain must be strictly positive — clamp a zero/negative
+    // lower bound (bars pin min to 0) to 10% of the top of the domain.
+    if (summary.yAxisLeft.log) {
+      const [lo0, hi] = leftYDomain;
+      if (hi > 0) {
+        return createLogScale({
+          domain: [lo0 > 0 ? lo0 : hi * 0.1, hi],
+          range,
+          tickCount: summary.yAxisLeft.tickCount,
+        });
+      }
+    }
+    return createLinearScale({
+      domain: leftYDomain,
+      range,
+      nice: !summary.yAxisLeft.domain,
+    });
+  }, [
+    showYAxis,
+    leftYDomain,
+    area,
+    summary.yAxisLeft.domain,
+    summary.yAxisLeft.log,
+    summary.yAxisLeft.tickCount,
+  ]);
   const rightSeries = useMemo(
     () => cartesianSeries.filter((d) => d.yFieldAxis === "right"),
     [cartesianSeries],
   );
   const rightYScale: ContinuousScale | null = useMemo(() => {
     if (!needsRightYAxis || rightSeries.length === 0) return null;
+    const range: [number, number] = [area.y + area.height, area.y];
+    if (summary.yAxisRightLog) {
+      const [lo0, hi] = computeYDomain(rightSeries, hiddenIds);
+      if (hi > 0) {
+        return createLogScale({ domain: [lo0 > 0 ? lo0 : hi * 0.1, hi], range });
+      }
+    }
     const [lo, hi] = computeYDomain(rightSeries, hiddenIds);
     return createLinearScale({
       domain: [lo, hi],
-      range: [area.y + area.height, area.y],
+      range,
     });
-  }, [needsRightYAxis, rightSeries, hiddenIds, area]);
+  }, [needsRightYAxis, rightSeries, hiddenIds, area, summary.yAxisRightLog]);
+
+  // ── Scatter layout (settled point geometry per series, for hit tests) ─────
+  const scatterSeries = useMemo(
+    () => summary.series.filter((d) => d.type === "scatter"),
+    [summary.series],
+  );
+  const hasScatter = scatterSeries.length > 0;
+  const scatterLayout = useMemo(() => {
+    if (!hasScatter || !xScale || !yScale) return null;
+    return scatterSeries.map((d) => {
+      const vs =
+        d.yFieldAxis === "right" && rightYScale ? rightYScale : yScale!;
+      const geometry = computeScatterGeometry({
+        data: d.data,
+        xAccessor: d.xAccessor,
+        yAccessor: d.yAccessor ?? (() => null),
+        sizeAccessor: d.scatterSizeAccessor,
+        xScale,
+        yScale: vs,
+        minSize: d.scatterMinSize,
+        maxSize: d.scatterMaxSize,
+      });
+      return {
+        id: d.id,
+        geometry,
+        hitRadius: d.scatterHitRadius ?? 2,
+      };
+    });
+  }, [
+    hasScatter,
+    scatterSeries,
+    xScale,
+    yScale,
+    rightYScale,
+  ]);
+
 
   // ── Series state ───────────────────────────────────────────────────────────
   const series: SeriesState[] = useMemo(
@@ -1098,6 +1174,113 @@ export function ChartRootImpl({
           y: yMid,
           pointerY: py,
           rawX: categories[hit.categoryIndex],
+          items,
+        };
+      }
+
+      // Scatter charts: nearest-point hit test (scatter-only charts;
+      // mixed charts keep the line/bar snapping behaviour below).
+      const scatterVisible = visible.filter(
+        (s) => s.descriptor.type === "scatter",
+      );
+      if (
+        scatterVisible.length > 0 &&
+        cartVisible.length === scatterVisible.length &&
+        xScale &&
+        yScale &&
+        scatterLayout
+      ) {
+        let best: {
+          seriesId: string;
+          name?: string;
+          color: string;
+          point: { x: number; y: number; r: number };
+          value: number;
+          item: unknown;
+          index: number;
+          dataIdx: number;
+        } | null = null;
+        let bestDist = Infinity;
+        for (const s of scatterVisible) {
+          const entry = scatterLayout.find((e) => e.id === s.descriptor.id);
+          if (!entry || s.hidden) continue;
+          const idx = hitTestScatter(
+            entry.geometry.points,
+            px,
+            py,
+            entry.hitRadius,
+          );
+          if (idx === null) continue;
+          const d = s.descriptor;
+          // entry.geometry skips rows with a missing y — map the plotted
+          // index back to the data row via the y accessor.
+          let dataIdx = -1;
+          let plotted = 0;
+          for (let i = 0; i < d.data.length && dataIdx < 0; i++) {
+            const v = d.yAccessor?.(d.data[i], i);
+            if (v === null || v === undefined || !Number.isFinite(v as number))
+              continue;
+            if (plotted === idx) dataIdx = i;
+            plotted++;
+          }
+          if (dataIdx < 0) continue;
+          const pt = entry.geometry.points[idx];
+          const dist = Math.hypot(px - pt.x, py - pt.y);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = {
+              seriesId: s.descriptor.id,
+              name: s.descriptor.name,
+              color: s.color,
+              point: pt,
+              value: d.yAccessor?.(d.data[dataIdx], dataIdx) as number ?? 0,
+              item: d.data[dataIdx],
+              index: idx,
+              dataIdx,
+            };
+          }
+        }
+        if (!best) return null;
+        const items: HoverState["items"] = [];
+        // The hit row is the only tooltip row; the other series get
+        // bookkeeping-only dim tags (hidden rows) so the hoverDim pattern
+        // fades exactly the non-hit series.
+        for (const s of scatterVisible) {
+          const isHit = s.descriptor.id === best.seriesId;
+          if (isHit) {
+            items.push({
+              seriesId: best.seriesId,
+              name: best.name,
+              color: best.color,
+              value: best.value,
+              y: best.point.y,
+              item: best.item,
+              index: best.index,
+            });
+          } else {
+            items.push({
+              seriesId: `scatter-dim:${s.descriptor.id}`,
+              color: s.color,
+              value: 0,
+              y: best.point.y,
+              item: null,
+              hidden: true,
+            });
+          }
+        }
+        const hitSeries = visible.find(
+          (v) => v.descriptor.id === best.seriesId,
+        );
+        return {
+          x: best.point.x,
+          y: best.point.y,
+          pointerY: py,
+          rawX: hitSeries
+            ? hitSeries.descriptor.xAccessor(
+                hitSeries.descriptor.data[best.dataIdx],
+                best.dataIdx,
+              )
+            : undefined,
           items,
         };
       }

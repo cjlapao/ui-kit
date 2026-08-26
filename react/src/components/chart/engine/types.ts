@@ -219,9 +219,9 @@ export type ChartThemeMode = "light" | "dark";
 
 // ── Scales ───────────────────────────────────────────────────────────────────
 
-/** A continuous (linear or time) scale. */
+/** A continuous (linear, log or time) scale. */
 export interface ContinuousScale {
-  type: "linear" | "time";
+  type: "linear" | "log" | "time";
   /** Map a data value to a pixel. */
   map(value: number | Date): number;
   /** Map a pixel back to a data value (used by hover snapping). */
@@ -259,7 +259,7 @@ export type LineCurve =
 
 export type ConnectNulls = "gap" | "connect" | "zero";
 
-export type MarkerShape = "circle" | "square" | "triangle" | "cross" | "star";
+export type MarkerShape = "circle" | "square" | "triangle" | "diamond" | "cross" | "star";
 
 /** A single plotted point of a line/area series. */
 export interface LinePoint {
@@ -390,6 +390,11 @@ export interface HoverItem {
   item: unknown;
   /** Index of the datum within the series' data array (slice for pies). */
   index?: number;
+  /**
+   * Bookkeeping-only entry (e.g. a scatter dim tag): components use it to
+   * apply hoverDim, but tooltips and other chrome skip it.
+   */
+  hidden?: boolean;
 }
 
 export interface HoverState {

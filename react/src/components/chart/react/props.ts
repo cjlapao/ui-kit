@@ -366,6 +366,62 @@ export interface CandlestickSeriesProps<T = unknown> {
   animation?: ChartAnimation;
 }
 
+// ── Scatter / Bubble ─────────────────────────────────────────────────────────
+
+export interface ScatterSeriesProps<T = unknown> {
+  data: T[];
+  /** x field (number | Date). Defaults to "x". */
+  xField?: Accessor<T, number | Date | string>;
+  /** y field (number). Defaults to "y". */
+  yField?: Accessor<T, number>;
+  /**
+   * Size field (bubble mode). When set, radii scale area-proportionally
+   * between `minSize` and `maxSize`; when omitted all dots render at
+   * `minSize`.
+   */
+  sizeField?: Accessor<T, number>;
+  /** Smallest marker radius in px. Default 6. */
+  minSize?: number;
+  /** Largest marker radius in px (bubble mode). Default 30. */
+  maxSize?: number;
+  name?: string;
+  id?: string;
+  color?: ChartColor;
+  /** Plot on the right y-axis instead of the left. */
+  yFieldAxis?: "left" | "right";
+  /** Marker shape. Default "circle". */
+  markerShape?: MarkerShape;
+  /** Point opacity 0–1. Default 1. */
+  opacity?: number;
+  /** Point fill opacity 0–1. Default 1. */
+  fillOpacity?: number;
+  /** Point border width in px. Default 0. */
+  borderWidth?: number;
+  /** Point border color. Default: a darker shade of the series color. */
+  borderColor?: string;
+  /** Extra hit radius in px around each point. Default 2. */
+  pointHitRadius?: number;
+  /** Hovered-point growth factor. Default 1.3. */
+  hoverRadiusMultiplier?: number;
+  /**
+   * Explicit hovered-point radius in px — overrides
+   * `hoverRadiusMultiplier` when set.
+   */
+  hoverSize?: number;
+  /** Hovered-point brightness (1 = off). Default 1.1. */
+  hoverBrightness?: number;
+  /**
+   * Hovered-point fill: "auto" keeps the series color, or a hex/`hsl()`
+   * override. Default "auto".
+   */
+  hoverBackgroundColor?: "auto" | string;
+  /** Hovered-point border width in px. Default 0. */
+  hoverBorderWidth?: number;
+  /** Hovered-point border color. Default: a lighter shade of the fill. */
+  hoverBorderColor?: string;
+  animation?: ChartAnimation;
+}
+
 // ── Axes ─────────────────────────────────────────────────────────────────────
 
 export interface XAxisProps {
@@ -385,6 +441,8 @@ export interface XAxisProps {
   gridColor?: string;
   /** Gridline opacity 0–1 (intensity). Default 1. */
   gridOpacity?: number;
+  /** Log-10 scale (numeric domains only). Default false. */
+  log?: boolean;
   /** Custom tick formatter (linear: number → string; time: Date → string). */
   format?: (tick: number | Date) => string;
 }
@@ -408,6 +466,8 @@ export interface YAxisProps {
   gridColor?: string;
   /** Gridline opacity 0–1 (intensity). Default 1. */
   gridOpacity?: number;
+  /** Log-10 scale (positive domains only). Default false. */
+  log?: boolean;
   /** Tick labels + the domain line. Default true. */
   labels?: boolean;
   format?: (tick: number) => string;
@@ -503,6 +563,13 @@ export interface ReferenceLineProps {
   x?: number | Date | string;
   /** y value. */
   y?: number;
+  /**
+   * Second endpoint. When BOTH `x2` and `y2` are given the line is drawn
+   * as a two-point (sloped) segment from (x, y) to (x2, y2) in data
+   * values — e.g. ROI diagonals on log-log axes.
+   */
+  x2?: number | Date | string;
+  y2?: number;
   color?: string;
   /** Dash pattern. Default [4, 4]. */
   dash?: number[];
@@ -575,7 +642,15 @@ export interface ChartHandle {
 
 export interface SeriesDescriptor {
   id: string;
-  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" | "polar";
+  type:
+    | "line"
+    | "bar"
+    | "pie"
+    | "candlestick"
+    | "rangeArea"
+    | "radar"
+    | "polar"
+    | "scatter";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -652,6 +727,22 @@ export interface SeriesDescriptor {
   candleVariant?: CandlestickVariant;
   candleBodyWidth?: number;
   candleHighlightSelected?: boolean;
+  // scatter
+  /** Size accessor (bubble mode); undefined = uniform dots. */
+  scatterSizeAccessor?: (item: unknown, index: number) => number | null | undefined;
+  scatterMinSize?: number;
+  scatterMaxSize?: number;
+  scatterOpacity?: number;
+  scatterBorderWidth?: number;
+  scatterBorderColor?: string;
+  scatterHitRadius?: number;
+  scatterHoverRadiusMultiplier?: number;
+  scatterHoverSize?: number;
+  scatterHoverBrightness?: number;
+  /** "auto" | hex override for the hovered point fill. */
+  scatterHoverBackground?: "auto" | string;
+  scatterHoverBorderWidth?: number;
+  scatterHoverBorderColor?: string;
   // animation
   animation?: ChartAnimation;
 }

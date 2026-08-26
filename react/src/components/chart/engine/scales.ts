@@ -5,7 +5,7 @@
  * the narrow {@link ContinuousScale} / {@link CategoricalScale} interfaces,
  * so d3 stays an implementation detail.
  */
-import { scaleBand, scaleLinear, scalePoint, scaleTime } from "d3-scale";
+import { scaleBand, scaleLinear, scaleLog, scalePoint, scaleTime } from "d3-scale";
 import type {
   AnyScale,
   CategoricalScale,
@@ -177,6 +177,59 @@ export function createLinearScale(options: LinearScaleOptions): ContinuousScale 
       inner(typeof value === "number" ? value : new Date(value).getTime()),
     invert: (pixel: number) => inner.invert(pixel),
     ticks: (count = 6) => inner.ticks(count),
+  };
+}
+
+export interface LogScaleOptions {
+  /** Positive domain (both ends > 0). */
+  domain: [number, number];
+  range: [number, number];
+  /** Approximate number of ticks. Defaults to 5. */
+  tickCount?: number;
+}
+
+/**
+ * A log-10 scale for positive domains (scatter/bubble axes, Moore's-law
+ * style plots). Ticks fall on powers of ten (and d3's 2/5 multiples) so
+ * `formatSI` labels read 10K / 1M / 1B.
+ */
+export function createLogScale(options: LogScaleOptions): ContinuousScale {
+  const [d0, d1] = options.domain;
+  const tickCount = options.tickCount ?? 5;
+  const inner = scaleLog().domain([d0, d1]).range(options.range);
+  const domain = inner.domain() as [number, number];
+  return {
+    type: "log",
+    domain,
+    range: inner.range() as [number, number],
+    map: (value: number | Date) => inner(Number(value)),
+    invert: (pixel: number) => inner.invert(pixel),
+    ticks: () => {
+      // Powers of ten are the primary ticks (always kept); the 2 and 5
+      // multiples fill in when the domain is narrow enough. Ticks on the
+      // exact domain bounds are dropped (clipped labels).
+      const [lo, hi] = domain;
+      const expLo = Math.floor(Math.log10(lo));
+      const expHi = Math.ceil(Math.log10(hi));
+      const primary: number[] = [];
+      const secondary: number[] = [];
+      for (let e = expLo; e <= expHi; e++) {
+        const p = 10 ** e;
+        if (p >= lo && p <= hi) primary.push(p);
+        for (const m of [2, 5]) {
+          const v = m * p;
+          if (v >= lo && v <= hi) secondary.push(v);
+        }
+      }
+      const out = [...primary];
+      // Add the secondary ladder only while it stays near the target count.
+      if (out.length + secondary.length <= Math.max(6, tickCount + 2)) {
+        for (const v of secondary) out.push(v);
+      }
+      return out
+        .sort((a, b) => a - b)
+        .filter((t) => t > lo * 1.0001 && t < hi * 0.9999);
+    },
   };
 }
 

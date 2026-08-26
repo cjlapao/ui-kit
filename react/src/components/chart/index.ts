@@ -32,6 +32,7 @@ import { RadarAxis } from "./react/features/RadarAxis";
 import { PolarSeries } from "./react/series/PolarSeries";
 import { PolarAxis } from "./react/features/PolarAxis";
 import { PolarCenter } from "./react/features/PolarCenter";
+import { ScatterSeries } from "./react/series/ScatterSeries";
 import { XAxis } from "./react/features/XAxis";
 import { YAxis } from "./react/features/YAxis";
 import { Legend } from "./react/features/Legend";
@@ -57,6 +58,7 @@ setChartRegistry({
   Polar: PolarSeries,
   PolarAxis,
   PolarCenter,
+  Scatter: ScatterSeries,
   XAxis,
   YAxis,
   Legend,
@@ -85,6 +87,7 @@ export const Chart = {
   Polar: PolarSeries,
   PolarAxis,
   PolarCenter,
+  Scatter: ScatterSeries,
   XAxis,
   YAxis,
   Legend,
@@ -119,6 +122,7 @@ export type {
   PolarSeriesProps,
   PolarAxisProps,
   PolarCenterProps,
+  ScatterSeriesProps,
   XAxisProps,
   YAxisProps,
   TooltipProps,

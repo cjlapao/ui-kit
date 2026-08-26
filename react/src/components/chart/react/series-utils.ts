@@ -16,6 +16,7 @@ import type {
   PolarSeriesProps,
   RangeAreaSeriesProps,
   RadarSeriesProps,
+  ScatterSeriesProps,
   SeriesDescriptor,
 } from "./props";
 
@@ -106,7 +107,15 @@ export function describeSeries(
   el: ReactElement<Record<string, unknown>>,
   index: number,
   paletteIndex: number,
-  kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" | "polar",
+  kind:
+    | "line"
+    | "bar"
+    | "pie"
+    | "candlestick"
+    | "rangeArea"
+    | "radar"
+    | "polar"
+    | "scatter",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -338,6 +347,51 @@ export function describeSeries(
     };
   }
 
+  // Scatter / bubble: two numeric (or time) fields + an optional size field.
+  if (kind === "scatter") {
+    const sp = p as unknown as ScatterSeriesProps<never>;
+    const xField = sp.xField ?? "x";
+    const yField = sp.yField ?? "y";
+    return {
+      id,
+      type: "scatter",
+      name,
+      color: sp.color,
+      paletteIndex,
+      data,
+      xAccessor: fieldAccessor<never, number | Date | string>(
+        xField as Accessor<never, number | Date | string> | string,
+        String(xField),
+      ),
+      yAccessor: fieldAccessor<never, number | null | undefined>(
+        yField as Accessor<never, number | null | undefined> | string,
+        String(yField),
+      ),
+      scatterSizeAccessor: sp.sizeField
+        ? fieldAccessor<never, number | null | undefined>(
+            sp.sizeField as Accessor<never, number | null | undefined> | string,
+            String(sp.sizeField),
+          )
+        : undefined,
+      scatterMinSize: sp.minSize,
+      scatterMaxSize: sp.maxSize,
+      scatterOpacity: sp.opacity,
+      scatterBorderWidth: sp.borderWidth ?? 0,
+      scatterBorderColor: sp.borderColor,
+      scatterHitRadius: sp.pointHitRadius ?? 2,
+      scatterHoverRadiusMultiplier: sp.hoverRadiusMultiplier,
+      scatterHoverSize: sp.hoverSize,
+      scatterHoverBrightness: sp.hoverBrightness,
+      scatterHoverBackground: sp.hoverBackgroundColor ?? "auto",
+      scatterHoverBorderWidth: sp.hoverBorderWidth ?? 0,
+      scatterHoverBorderColor: sp.hoverBorderColor,
+      fillOpacity: sp.fillOpacity,
+      markerShape: sp.markerShape,
+      yFieldAxis: sp.yFieldAxis,
+      animation,
+    };
+  }
+
   // Line (default): cartesian x + y.
   const lp = p as unknown as LineSeriesProps<never>;
   const categoryXField = lp.categoryXField ?? defaultXField(data);
@@ -401,8 +455,12 @@ export interface ChartChildrenSummary {
   series: SeriesDescriptor[];
   hasXAxis: boolean;
   xAxisTickCount?: number;
-  yAxisLeft: { tickCount?: number; domain?: [number, number]; label?: string; grid: boolean; format?: (t: number) => string };
+  yAxisLeft: { tickCount?: number; domain?: [number, number]; label?: string; grid: boolean; format?: (t: number) => string; log?: boolean };
   yAxisRight: boolean;
+  /** Log-10 right y scale (from <Chart.YAxis axis="right" log>). */
+  yAxisRightLog?: boolean;
+  /** Log-10 x scale (from <Chart.XAxis log>). */
+  xAxisLog?: boolean;
   hasLegend: boolean;
   legendOrientation: "horizontal" | "vertical";
   legendPosition: "top" | "bottom";
@@ -457,6 +515,7 @@ export function summarizeChildren(
     RadarAxis: React.ComponentType | (new () => unknown);
     Polar: React.ComponentType | (new () => unknown);
     PolarAxis: React.ComponentType | (new () => unknown);
+    Scatter: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -509,9 +568,18 @@ export function summarizeChildren(
       t === types.Candlestick ||
       t === types.RangeArea ||
       t === types.Radar ||
-      t === types.Polar
+      t === types.Polar ||
+      t === types.Scatter
     ) {
-      const kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" | "polar" =
+      const kind:
+        | "line"
+        | "bar"
+        | "pie"
+        | "candlestick"
+        | "rangeArea"
+        | "radar"
+        | "polar"
+        | "scatter" =
         t === types.Bar
           ? "bar"
           : t === types.Pie
@@ -524,7 +592,9 @@ export function summarizeChildren(
                   ? "radar"
                   : t === types.Polar
                     ? "polar"
-                    : "line";
+                    : t === types.Scatter
+                      ? "scatter"
+                      : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,
@@ -539,6 +609,7 @@ export function summarizeChildren(
     if (t === types.XAxis) {
       summary.hasXAxis = true;
       summary.xAxisTickCount = props.tickCount as number | undefined;
+      summary.xAxisLog = props.log as boolean | undefined;
       continue;
     }
     if (t === types.RadarAxis) {
@@ -575,6 +646,7 @@ export function summarizeChildren(
       const axis = (props.axis as "left" | "right") ?? "left";
       if (axis === "right") {
         summary.yAxisRight = true;
+        summary.yAxisRightLog = props.log as boolean | undefined;
       } else {
         summary.yAxisLeft = {
           tickCount: props.tickCount as number | undefined,
@@ -582,6 +654,7 @@ export function summarizeChildren(
           label: props.label as string | undefined,
           grid: props.grid !== false,
           format: props.format as ((t: number) => string) | undefined,
+          log: props.log as boolean | undefined,
         };
       }
       continue;

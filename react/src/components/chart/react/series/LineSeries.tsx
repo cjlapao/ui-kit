@@ -105,6 +105,8 @@ function markerPath(
       return `M${x - r},${y - r}h${r * 2}v${r * 2}h${-r * 2}Z`;
     case "triangle":
       return `M${x},${y - r}L${x + r},${y + r}L${x - r},${y + r}Z`;
+    case "diamond":
+      return `M${x},${y - r}L${x + r},${y}L${x},${y + r}L${x - r},${y}Z`;
     case "cross":
       return `M${x - r},${y - r}L${x + r},${y + r}M${x + r},${y - r}L${x - r},${y + r}`;
     case "star": {

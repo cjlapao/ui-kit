@@ -35,22 +35,53 @@ function formatXLabel(
   return String(x);
 }
 
+/** A two-point (sloped) line when both endpoints are given. */
+function twoPoint(
+  props: ReferenceLineProps,
+  ctx: ReturnType<typeof useChart>,
+): { x1: number; y1: number; x2: number; y2: number } | null {
+  if (
+    props.x === undefined ||
+    props.y === undefined ||
+    props.x2 === undefined ||
+    props.y2 === undefined ||
+    !ctx.xScale ||
+    !ctx.yScale
+  )
+    return null;
+  const px1 = xPixel(ctx, props.x);
+  const px2 = xPixel(ctx, props.x2);
+  const py1 = ctx.yScale.map(props.y);
+  const py2 = ctx.yScale.map(props.y2);
+  if (px1 === null || px2 === null) return null;
+  return { x1: px1, y1: py1, x2: px2, y2: py2 };
+}
+
 export function ReferenceLine(props: ReferenceLineProps) {
   const ctx = useChart();
   const { renderer, area, theme, yScale } = ctx;
   const color = props.color ?? theme.crosshairColor;
   const dash = props.dash ?? [4, 4];
+  const sloped =
+    props.x !== undefined &&
+    props.y !== undefined &&
+    props.x2 !== undefined &&
+    props.y2 !== undefined;
 
   useEffect(() => {
     if (renderer !== "canvas") return;
-    const id = `feature:refline-${props.x ?? ""}-${props.y ?? ""}`;
+    const id = `feature:refline-${props.x ?? ""}-${props.y ?? ""}-${props.x2 ?? ""}-${props.y2 ?? ""}`;
     const fn = (c: CanvasRenderingContext2D) => {
       c.save();
       c.strokeStyle = color;
       c.lineWidth = 1;
       c.setLineDash(dash);
       c.beginPath();
-      if (props.x !== undefined) {
+      const seg = twoPoint(props, ctx);
+      if (seg) {
+        c.moveTo(seg.x1, seg.y1);
+        c.lineTo(seg.x2, seg.y2);
+      } else if (props.x !== undefined) {
         const px = xPixel(ctx, props.x);
         if (px !== null) {
           c.moveTo(px, area.y);
@@ -62,7 +93,14 @@ export function ReferenceLine(props: ReferenceLineProps) {
         c.lineTo(area.x + area.width, py);
       }
       c.stroke();
-      if (props.y !== undefined && yScale) {
+      if (sloped && props.label) {
+        const seg = twoPoint(props, ctx)!;
+        c.fillStyle = theme.subtleText;
+        c.font = "10.5px sans-serif";
+        c.textAlign = "end";
+        c.textBaseline = "bottom";
+        c.fillText(props.label, seg.x2 - 4, seg.y2 - 3);
+      } else if (!sloped && props.y !== undefined && yScale) {
         const py = yScale.map(props.y);
         const atStart = props.labelPosition === "start";
         c.fillStyle = theme.subtleText;
@@ -80,16 +118,40 @@ export function ReferenceLine(props: ReferenceLineProps) {
     ctx.registerDraw(id, fn);
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderer, area, color, dash, props.x, props.y, props.label, props.labelPosition, ctx.registerDraw, ctx.unregisterDraw]);
+  }, [renderer, area, color, dash, props.x, props.y, props.x2, props.y2, props.label, props.labelPosition, ctx.registerDraw, ctx.unregisterDraw]);
 
   if (renderer !== "svg") return null;
+  const seg = twoPoint(props, ctx);
   const px = xPixel(ctx, props.x);
   const py = props.y !== undefined && yScale ? yScale.map(props.y) : null;
   const label = props.label ?? (props.x !== undefined ? formatXLabel(ctx, props.x) : undefined);
 
   return (
     <g data-chart-feature="refline" pointerEvents="none">
-      {px !== null && (
+      {seg && (
+        <line
+          x1={seg.x1}
+          y1={seg.y1}
+          x2={seg.x2}
+          y2={seg.y2}
+          stroke={color}
+          strokeWidth={1}
+          strokeDasharray={dash.join(" ")}
+        />
+      )}
+      {seg && props.label && (
+        <text
+          x={seg.x2 - 4}
+          y={seg.y2 - 5}
+          textAnchor="end"
+          dominantBaseline="auto"
+          fontSize={10.5}
+          fill={theme.subtleText}
+        >
+          {props.label}
+        </text>
+      )}
+      {!seg && px !== null && (
         <line
           x1={px}
           y1={area.y}
@@ -100,7 +162,7 @@ export function ReferenceLine(props: ReferenceLineProps) {
           strokeDasharray={dash.join(" ")}
         />
       )}
-      {py !== null && (
+      {!seg && py !== null && (
         <line
           x1={area.x}
           y1={py}
@@ -111,7 +173,7 @@ export function ReferenceLine(props: ReferenceLineProps) {
           strokeDasharray={dash.join(" ")}
         />
       )}
-      {label && px !== null && (
+      {!seg && label && px !== null && (
         <g>
           <rect
             x={px - (label.length * 6.6 + 16) / 2}
@@ -134,7 +196,7 @@ export function ReferenceLine(props: ReferenceLineProps) {
         </g>
       )}
       {/* Horizontal line: plain label at the chosen end, above the rule. */}
-      {label && py !== null && (
+      {!seg && label && py !== null && (
         <text
           x={
             props.labelPosition === "start"

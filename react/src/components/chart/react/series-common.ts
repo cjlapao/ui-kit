@@ -18,7 +18,15 @@ type Ctx = ReturnType<typeof useChart>;
  */
 export function findSeries(
   ctx: Ctx,
-  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" | "polar",
+  type:
+    | "line"
+    | "bar"
+    | "pie"
+    | "candlestick"
+    | "rangeArea"
+    | "radar"
+    | "polar"
+    | "scatter",
   myId: string | undefined,
   data: unknown[],
   token?: object,

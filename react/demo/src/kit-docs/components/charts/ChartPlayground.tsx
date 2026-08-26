@@ -6,6 +6,7 @@ import type {
   CandlestickVariant,
   ChartAnimation,
   LineCurve,
+  MarkerShape,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -30,6 +31,16 @@ import {
   chartPolarSortOptions,
   chartPolarBorderOptions,
   chartKindOptions,
+  chartScatterShapeOptions,
+  chartScatterHitRadiusOptions,
+  chartScatterOpacityOptions,
+  chartScatterFillOptions,
+  chartScatterMinSizeOptions,
+  chartScatterMaxSizeOptions,
+  chartScatterBrightnessOptions,
+  chartScatterDimOptions,
+  chartScatterRadiusOptions,
+  chartScatterBorderOptions,
   chartLegendPositionOptions,
   chartPieCornerOptions,
   chartPieGapOptions,
@@ -53,9 +64,12 @@ import {
   type WorkflowPoint,
   monacoData,
   type MonacoPoint,
+  scatterAlpha,
+  scatterBeta,
+  scatterGamma,
 } from "./data";
 
-type Kind = "line" | "bar" | "pie" | "candlestick" | "range" | "radar" | "polar";
+type Kind = "line" | "bar" | "pie" | "candlestick" | "range" | "radar" | "polar" | "scatter";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -189,6 +203,20 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [polarGridStyle, setPolarGridStyle] = useState<
     "solid" | "dashed" | "dotted"
   >("solid");
+  const [scatterShapes, setScatterShapes] = useState<Record<string, boolean>>(
+    { "1": true, "2": true, "3": true },
+  );
+  const [scatterMarker, setScatterMarker] = useState<MarkerShape>("circle");
+  const [scatterHitRadius, setScatterHitRadius] = useState("2");
+  const [scatterOpacity, setScatterOpacity] = useState("1");
+  const [scatterFill, setScatterFill] = useState("0.7");
+  const [scatterBubble, setScatterBubble] = useState(true);
+  const [scatterMin, setScatterMin] = useState("6");
+  const [scatterMax, setScatterMax] = useState("30");
+  const [scatterBorder, setScatterBorder] = useState("0");
+  const [scatterBrightness, setScatterBrightness] = useState("1.1");
+  const [scatterDim, setScatterDim] = useState("0.35");
+  const [scatterHoverRadius, setScatterHoverRadius] = useState("1.3");
   const [workflow, setWorkflow] = useState(workflowData);
   const [monaco, setMonaco] = useState(monacoData);
 
@@ -290,6 +318,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
         key={`${renderer}-${kind}-${height}-${easing}-${animType}-${animated ? 1 : 0}`}
         height={height}
         animation={animation}
+        hoverDim={kind === "scatter" ? Number(scatterDim) : undefined}
         ariaLabel="Playground chart"
       >
         <Chart.Title
@@ -302,7 +331,9 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                   ? "Plan mix"
                   : kind === "polar"
                     ? "Workflow adoption"
-                    : "Trading days"
+                    : kind === "scatter"
+                      ? "Signal clusters"
+                      : "Trading days"
           }
           subtitle={renderer === "canvas" ? "Canvas renderer" : "SVG renderer"}
         />
@@ -554,6 +585,69 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             />
           </>
         )}
+        {kind === "scatter" && (
+          <>
+            {scatterShapes["1"] && (
+              <Chart.Scatter
+                data={scatterAlpha}
+                name="Alpha"
+                xField="x"
+                yField="y"
+                sizeField={scatterBubble ? "size" : undefined}
+                minSize={Number(scatterMin)}
+                maxSize={Number(scatterMax)}
+                color="#8b5cf6"
+                markerShape={scatterMarker}
+                opacity={Number(scatterOpacity)}
+                fillOpacity={Number(scatterFill)}
+                borderWidth={Number(scatterBorder)}
+                pointHitRadius={Number(scatterHitRadius)}
+                hoverRadiusMultiplier={Number(scatterHoverRadius)}
+                hoverBrightness={Number(scatterBrightness)}
+              />
+            )}
+            {scatterShapes["2"] && (
+              <Chart.Scatter
+                data={scatterBeta}
+                name="Beta"
+                xField="x"
+                yField="y"
+                sizeField={scatterBubble ? "size" : undefined}
+                minSize={Number(scatterMin)}
+                maxSize={Number(scatterMax)}
+                color="#34d399"
+                markerShape={scatterMarker}
+                opacity={Number(scatterOpacity)}
+                fillOpacity={Number(scatterFill)}
+                borderWidth={Number(scatterBorder)}
+                pointHitRadius={Number(scatterHitRadius)}
+                hoverRadiusMultiplier={Number(scatterHoverRadius)}
+                hoverBrightness={Number(scatterBrightness)}
+              />
+            )}
+            {scatterShapes["3"] && (
+              <Chart.Scatter
+                data={scatterGamma}
+                name="Gamma"
+                xField="x"
+                yField="y"
+                sizeField={scatterBubble ? "size" : undefined}
+                minSize={Number(scatterMin)}
+                maxSize={Number(scatterMax)}
+                color="#60a5fa"
+                markerShape={scatterMarker}
+                opacity={Number(scatterOpacity)}
+                fillOpacity={Number(scatterFill)}
+                borderWidth={Number(scatterBorder)}
+                pointHitRadius={Number(scatterHitRadius)}
+                hoverRadiusMultiplier={Number(scatterHoverRadius)}
+                hoverBrightness={Number(scatterBrightness)}
+              />
+            )}
+            <Chart.XAxis label="X" tickCount={8} {...gridProps} />
+            <Chart.YAxis label="Y" tickCount={6} {...gridProps} />
+          </>
+        )}
         <Chart.Legend position={legendPosition} />
         {(valuesMode === "popup" || valuesMode === "both") && (
           <Chart.Tooltip mode="shared" />
@@ -733,6 +827,121 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               onChange={(v) => setFillMode(v as FillMode)}
             />
           </Control>
+        )}
+        {kind === "scatter" && (
+          <>
+            <ToggleRow
+              label="Series 1 · Alpha"
+              checked={scatterShapes["1"]}
+              onChange={(v) => setScatterShapes((s) => ({ ...s, "1": v }))}
+            />
+            <ToggleRow
+              label="Series 2 · Beta"
+              checked={scatterShapes["2"]}
+              onChange={(v) => setScatterShapes((s) => ({ ...s, "2": v }))}
+            />
+            <ToggleRow
+              label="Series 3 · Gamma"
+              checked={scatterShapes["3"]}
+              onChange={(v) => setScatterShapes((s) => ({ ...s, "3": v }))}
+            />
+            <SelectControl
+              label="Marker shape"
+              options={chartScatterShapeOptions}
+              value={scatterMarker}
+              onChange={(v) => setScatterMarker(v as MarkerShape)}
+            />
+            <ToggleRow
+              label="Bubble (size field)"
+              checked={scatterBubble}
+              onChange={setScatterBubble}
+            />
+            {scatterBubble && (
+              <>
+                <Control label="Min size">
+                  <MultiToggle
+                    size="sm"
+                    fullWidth
+                    options={chartScatterMinSizeOptions}
+                    value={scatterMin}
+                    onChange={(v) => setScatterMin(v)}
+                  />
+                </Control>
+                <Control label="Max size">
+                  <MultiToggle
+                    size="sm"
+                    fullWidth
+                    options={chartScatterMaxSizeOptions}
+                    value={scatterMax}
+                    onChange={(v) => setScatterMax(v)}
+                  />
+                </Control>
+              </>
+            )}
+            <Control label="Hit radius">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartScatterHitRadiusOptions}
+                value={scatterHitRadius}
+                onChange={(v) => setScatterHitRadius(v)}
+              />
+            </Control>
+            <Control label="Point opacity">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartScatterOpacityOptions}
+                value={scatterOpacity}
+                onChange={(v) => setScatterOpacity(v)}
+              />
+            </Control>
+            <Control label="Fill opacity">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartScatterFillOptions}
+                value={scatterFill}
+                onChange={(v) => setScatterFill(v)}
+              />
+            </Control>
+            <Control label="Border width">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartScatterBorderOptions}
+                value={scatterBorder}
+                onChange={(v) => setScatterBorder(v)}
+              />
+            </Control>
+            <Control label="Hover brightness">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartScatterBrightnessOptions}
+                value={scatterBrightness}
+                onChange={(v) => setScatterBrightness(v)}
+              />
+            </Control>
+            <Control label="Hover dim">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartScatterDimOptions}
+                value={scatterDim}
+                onChange={(v) => setScatterDim(v)}
+              />
+            </Control>
+            <Control label="Hover radius ×">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartScatterRadiusOptions}
+                value={scatterHoverRadius}
+                onChange={(v) => setScatterHoverRadius(v)}
+              />
+            </Control>
+          </>
         )}
         {kind === "polar" && (
           <>

@@ -12,20 +12,21 @@ export function Tooltip(props: TooltipProps = {}) {
   const ctx = useChart();
   const { hover, width, height, theme, tooltipMode, xIsTime } = ctx;
 
-  if (!hover || hover.items.length === 0) return null;
+  const visibleItems = hover?.items.filter((i) => !i.hidden) ?? [];
+  if (!hover || visibleItems.length === 0) return null;
 
   // "follow" mode: a single item — the one closest to the hover anchor.
   const items: HoverItem[] =
     tooltipMode === "follow"
       ? [
-          hover.items.reduce((best, it) =>
+          visibleItems.reduce((best, it) =>
             Math.abs((it.y ?? 0) - (hover.y ?? 0)) <
             Math.abs((best.y ?? 0) - (hover.y ?? 0))
               ? it
               : best,
           ),
         ]
-      : hover.items;
+      : visibleItems;
 
   const rawX = hover.rawX;
   const header =
@@ -36,7 +37,11 @@ export function Tooltip(props: TooltipProps = {}) {
           ? formatFullDate(
               typeof rawX === "string" ? new Date(rawX).getTime() : rawX,
             )
-          : String(rawX)
+          : typeof rawX === "number"
+            ? Number.isInteger(rawX)
+              ? String(rawX)
+              : String(Math.round(rawX * 100) / 100)
+            : String(rawX)
       : ctx.title;
 
   const CARD_W = 190;

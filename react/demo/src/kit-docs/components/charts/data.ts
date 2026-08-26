@@ -465,3 +465,204 @@ export const monacoData: MonacoPoint[] = [
   { sector: "S7", redBull: 83.6, ferrari: 82.9, mercedes: 84.2 },
   { sector: "S8", redBull: 88.1, ferrari: 87.4, mercedes: 88.9 },
 ];
+
+// ── Scatter / bubble demo ───────────────────────────────────────────────────
+
+export interface ScatterPoint {
+  x: number;
+  y: number;
+  size: number;
+}
+
+/** Playground scatter: three loose clusters (Alpha / Beta / Gamma). */
+export const scatterAlpha: ScatterPoint[] = (() => {
+  const r = mulberry32(0x5c41);
+  const pts: ScatterPoint[] = [];
+  for (let i = 0; i < 14; i++)
+    pts.push({ x: 8 + r() * 16, y: 62 + r() * 24, size: 20 + r() * 60 });
+  for (let i = 0; i < 10; i++)
+    pts.push({ x: 40 + r() * 20, y: 44 + r() * 18, size: 15 + r() * 55 });
+  return pts;
+})();
+
+export const scatterBeta: ScatterPoint[] = (() => {
+  const r = mulberry32(0x5c42);
+  const pts: ScatterPoint[] = [];
+  for (let i = 0; i < 14; i++)
+    pts.push({ x: 30 + r() * 14, y: 48 + r() * 22, size: 20 + r() * 70 });
+  for (let i = 0; i < 9; i++)
+    pts.push({ x: 62 + r() * 22, y: 60 + r() * 30, size: 18 + r() * 60 });
+  return pts;
+})();
+
+export const scatterGamma: ScatterPoint[] = (() => {
+  const r = mulberry32(0x5c43);
+  const pts: ScatterPoint[] = [];
+  for (let i = 0; i < 12; i++)
+    pts.push({ x: 50 + r() * 38, y: 30 + r() * 20, size: 25 + r() * 65 });
+  for (let i = 0; i < 6; i++)
+    pts.push({ x: 10 + r() * 78, y: 78 + r() * 16, size: 12 + r() * 40 });
+  return pts;
+})();
+
+// ── Example 1: revenue risk portfolio ───────────────────────────────────────
+
+export interface RiskPoint {
+  name: string;
+  /** Adoption depth (%). */
+  x: number;
+  /** Renewal pressure (%). */
+  y: number;
+  /** ARR ($K) — bubble size. */
+  size: number;
+}
+
+export const riskRecovery: RiskPoint[] = [
+  { name: "Northwind", x: 44, y: 74, size: 620 },
+  { name: "Contoso", x: 47, y: 81, size: 940 },
+  { name: "Fabrikam", x: 52, y: 63, size: 510 },
+  { name: "Adventure", x: 55, y: 68, size: 780 },
+  { name: "Trey", x: 61, y: 58, size: 430 },
+  { name: "Woodgrove", x: 34, y: 60, size: 180 },
+];
+
+export const riskMonitor: RiskPoint[] = [
+  { name: "Proseware", x: 62, y: 50, size: 300 },
+  { name: "Blue Yonder", x: 70, y: 55, size: 760 },
+  { name: "Southridge", x: 74, y: 48, size: 520 },
+  { name: "Cohwin", x: 78, y: 42, size: 640 },
+  { name: "First Travel", x: 71, y: 38, size: 140 },
+];
+
+export const riskExpansion: RiskPoint[] = [
+  { name: "Wingtip", x: 76, y: 24, size: 460 },
+  { name: "Tailspin", x: 81, y: 30, size: 700 },
+  { name: "Lucerne", x: 86, y: 36, size: 540 },
+  { name: "Alpine", x: 92, y: 40, size: 980 },
+  { name: "Graphic Design", x: 95, y: 28, size: 320 },
+];
+
+// ── Example 2: Moore's Law (log y) ──────────────────────────────────────────
+
+export interface MoorePoint {
+  year: number;
+  count: number;
+}
+
+export const mooreData: MoorePoint[] = [
+  { year: 1971, count: 2_300 },
+  { year: 1974, count: 7_000 },
+  { year: 1978, count: 29_000 },
+  { year: 1982, count: 134_000 },
+  { year: 1985, count: 275_000 },
+  { year: 1989, count: 1_200_000 },
+  { year: 1993, count: 3_100_000 },
+  { year: 1997, count: 7_500_000 },
+  { year: 2000, count: 22_000_000 },
+  { year: 2003, count: 55_000_000 },
+  { year: 2006, count: 291_000_000 },
+  { year: 2008, count: 731_000_000 },
+  { year: 2011, count: 1_400_000_000 },
+  { year: 2014, count: 1_500_000_000 },
+  { year: 2017, count: 4_100_000_000 },
+  { year: 2020, count: 16_000_000_000 },
+  { year: 2021, count: 114_000_000_000 },
+  { year: 2024, count: 208_000_000_000 },
+];
+
+// ── Example 3: blockbuster ROI (log-log) ────────────────────────────────────
+
+export interface FilmPoint {
+  name: string;
+  /** Production budget ($M). */
+  x: number;
+  /** Worldwide gross ($M). */
+  y: number;
+  /** Franchise size (bubble). */
+  size: number;
+}
+
+export const filmsDisney: FilmPoint[] = [
+  { name: "Iron Man", x: 140, y: 585, size: 60 },
+  { name: "Infinity War", x: 300, y: 2_052, size: 100 },
+  { name: "Endgame", x: 320, y: 2_071, size: 110 },
+  { name: "Moana", x: 150, y: 644, size: 55 },
+  { name: "Frozen", x: 150, y: 1_281, size: 70 },
+  { name: "Coco", x: 153, y: 809, size: 50 },
+];
+
+export const filmsUniversal: FilmPoint[] = [
+  { name: "Jurassic World", x: 150, y: 1_535, size: 90 },
+  { name: "Fast & Furious 9", x: 180, y: 715, size: 75 },
+  { name: "The Rock (2001)", x: 100, y: 207, size: 40 },
+  { name: "King Kong", x: 180, y: 218, size: 45 },
+  { name: "Glass", x: 47, y: 165, size: 30 },
+];
+
+export const filmsWarner: FilmPoint[] = [
+  { name: "Joker", x: 150, y: 1_074, size: 65 },
+  { name: "Dune", x: 165, y: 405, size: 55 },
+  { name: "Dune: Part Two", x: 200, y: 712, size: 70 },
+  { name: "Oppenheimer", x: 225, y: 953, size: 80 },
+  { name: "The Dark Knight", x: 185, y: 1_005, size: 85 },
+];
+
+export const filmsParamount: FilmPoint[] = [
+  { name: "Top Gun: Maverick", x: 150, y: 1_494, size: 75 },
+  { name: "Transformers", x: 150, y: 709, size: 60 },
+  { name: "Mission: Impossible 7", x: 200, y: 887, size: 65 },
+  { name: "Star Trek", x: 150, y: 330, size: 45 },
+  { name: "M3GAN", x: 37, y: 150, size: 35 },
+];
+
+export const filmsSony: FilmPoint[] = [
+  { name: "Spider-Man: Homecoming", x: 200, y: 880, size: 70 },
+  { name: "Spider-Man: No Way Home", x: 200, y: 1_921, size: 95 },
+  { name: "Venom", x: 110, y: 863, size: 55 },
+  { name: "Madagascar", x: 145, y: 604, size: 40 },
+  { name: "Bad Boys 2", x: 100, y: 276, size: 35 },
+];
+
+// ── Example 4: US tech profitability ────────────────────────────────────────
+
+export interface TechPoint {
+  name: string;
+  /** Revenue ($B). */
+  x: number;
+  /** Net margin (%). */
+  y: number;
+  /** Employees (bubble). */
+  size: number;
+}
+
+export const techSoftware: TechPoint[] = [
+  { name: "Microsoft", x: 180, y: 36.4, size: 181_000 },
+  { name: "Salesforce", x: 77, y: 23.9, size: 14_000 },
+  { name: "Adobe", x: 25, y: 31.5, size: 3_100 },
+  { name: "Intuit", x: 19, y: 34.6, size: 13_000 },
+  { name: "ServiceNow", x: 62, y: 25.5, size: 17_000 },
+  { name: "Palantir", x: 3.3, y: 28.8, size: 4_200 },
+];
+
+export const techHardware: TechPoint[] = [
+  { name: "Apple", x: 350, y: 25.3, size: 161_000 },
+  { name: "Dell", x: 60, y: 4.2, size: 110_000 },
+  { name: "HP", x: 52, y: 9.8, size: 34_000 },
+  { name: "Broadcom", x: 56, y: 22.0, size: 30_000 },
+  { name: "Qualcomm", x: 38, y: 24.5, size: 50_000 },
+];
+
+export const techServices: TechPoint[] = [
+  { name: "Meta", x: 110, y: 29.0, size: 72_000 },
+  { name: "Google", x: 230, y: 25.6, size: 183_000 },
+  { name: "Amazon", x: 460, y: 8.1, size: 1_550_000 },
+  { name: "Netflix", x: 32, y: 28.9, size: 14_000 },
+  { name: "Oracle", x: 39, y: 17.2, size: 163_000 },
+];
+
+export const techSemis: TechPoint[] = [
+  { name: "Nvidia", x: 96, y: 48.9, size: 32_000 },
+  { name: "TSMC", x: 64, y: 26.8, size: 60_000 },
+  { name: "AMD", x: 58, y: -12.5, size: 17_000 },
+  { name: "Intel", x: 53, y: -2.8, size: 120_000 },
+];
