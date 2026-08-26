@@ -2428,3 +2428,153 @@ describe("waterfall series", () => {
     expect(tip).toBeTruthy();
   });
 });
+describe("combo coexistence", () => {
+  const months = [
+    { month: "Jan", revenue: 100, budget: 90, temperature: 4 },
+    { month: "Feb", revenue: 120, budget: 110, temperature: 7 },
+    { month: "Mar", revenue: 90, budget: 105, temperature: 12 },
+    { month: "Apr", revenue: 140, budget: 130, temperature: 18 },
+  ];
+
+  it("renders bars and a line together in one chart", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Bar
+          data={months}
+          name="Revenue"
+          categoryXField="month"
+          valueYField="revenue"
+        />
+        <Chart.Line
+          data={months}
+          name="Budget"
+          categoryXField="month"
+          valueYField="budget"
+          lineStyle="dashed"
+        />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    const series = Array.from(svg.querySelectorAll("[data-chart-series]"));
+    expect(series.length).toBe(2);
+    const barRects = series[0].querySelectorAll("rect");
+    expect(barRects.length).toBe(4);
+    // the line vertices sit on the bar slot centers
+    const path = svg.querySelector("path[stroke-dasharray]")!;
+    const d = path.getAttribute("d") ?? "";
+    const m = d.match(/M(-?\d+(?:\.\d+)?)/);
+    expect(m).toBeTruthy();
+    const barCx =
+      Number(barRects[0].getAttribute("x")) +
+      Number(barRects[0].getAttribute("width")) / 2;
+    expect(Number(m![1])).toBeCloseTo(barCx, 0);
+  });
+
+  it("stacks three bars per category with a total line overlay", () => {
+    const rows = [
+      { q: "Q1", a: 40, b: 30, c: 20, total: 90 },
+      { q: "Q2", a: 50, b: 35, c: 25, total: 110 },
+      { q: "Q3", a: 55, b: 40, c: 30, total: 125 },
+      { q: "Q4", a: 60, b: 45, c: 35, total: 140 },
+    ];
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Bar data={rows} name="A" categoryXField="q" valueYField="a" mode="stack" stackId="s" />
+        <Chart.Bar data={rows} name="B" categoryXField="q" valueYField="b" mode="stack" stackId="s" />
+        <Chart.Bar data={rows} name="C" categoryXField="q" valueYField="c" mode="stack" stackId="s" />
+        <Chart.Line data={rows} name="Total" categoryXField="q" valueYField="total" showMarkers />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    // 4 categories x 3 stacked segments (the total line's area base rect is
+    // the only extra rect in the chart)
+    const groups = Array.from(svg.querySelectorAll("[data-chart-series]"));
+    const barRects = groups.flatMap((g) =>
+      Array.from(g.querySelectorAll("rect")).filter(
+        (r) => Number(r.getAttribute("width")) < 400,
+      ),
+    );
+    expect(barRects.length).toBe(12);
+    const path = svg.querySelector("path");
+    expect(path).toBeTruthy();
+    // every bar shares the same x per category: all 12 rects use the band slots
+    const xs = barRects.map((r) => r.getAttribute("x"));
+    expect(new Set(xs).size).toBe(4);
+  });
+
+  it("plots a right-axis series on its own y scale", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Bar
+          data={months}
+          name="Revenue"
+          categoryXField="month"
+          valueYField="revenue"
+        />
+        <Chart.Line
+          data={months}
+          name="Temperature"
+          categoryXField="month"
+          valueYField="temperature"
+          yFieldAxis="right"
+        />
+        <Chart.XAxis />
+        <Chart.YAxis label="Revenue" />
+        <Chart.YAxis axis="right" label="Temp" />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    const left = svg.querySelector('[data-chart-feature^="yaxis-left"]');
+    const right = svg.querySelector('[data-chart-feature^="yaxis-right"]');
+    expect(left).toBeTruthy();
+    expect(right).toBeTruthy();
+  });
+
+  it("centers scatter markers on the same band as the line vertices", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Line
+          data={months}
+          name="Target"
+          categoryXField="month"
+          valueYField="revenue"
+          showMarkers={false}
+        />
+        <Chart.Scatter
+          data={months}
+          name="Actual"
+          xField="month"
+          yField="budget"
+        />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    const points = Array.from(svg.querySelectorAll("path.chart-scatter-point"));
+    expect(points.length).toBe(4);
+    // circle marker path: M{x-r},{y}a{r},{r} ... → center = (m1 + r, m2)
+    const cxs = points
+      .map((p) => {
+        const m = (p.getAttribute("d") ?? "").match(
+          /M(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)a(-?\d+(?:\.\d+)?),/,
+        );
+        expect(m).toBeTruthy();
+        return Number(m![1]) + Number(m![3]);
+      })
+      .sort((a, b) => a - b);
+    const path = svg.querySelector("path")!;
+    const d = (path.getAttribute("d") ?? "").replace(/\s+/g, " ");
+    const xs: number[] = [];
+    for (const m of d.matchAll(/[ML](-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)) {
+      xs.push(Number(m[1]));
+    }
+    expect(xs.length).toBe(4);
+    const pathXs = [...xs].sort((a, b) => a - b);
+    cxs.forEach((cx, i) => expect(cx).toBeCloseTo(pathXs[i], 0));
+  });
+});

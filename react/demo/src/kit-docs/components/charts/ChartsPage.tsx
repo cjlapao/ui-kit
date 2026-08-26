@@ -50,6 +50,11 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "rose petals, equal angles, value radii",
   },
   {
+    slug: "charts-combo",
+    label: "Combo",
+    blurb: "bars + lines + points in one plot, dual axes, stacked overlays",
+  },
+  {
     slug: "charts-waterfall",
     label: "Waterfall",
     blurb: "bridges: deltas, totals, connectors, stacked layers",

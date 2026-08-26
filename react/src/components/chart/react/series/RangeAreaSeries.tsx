@@ -112,7 +112,7 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
         const rawX = d.xAccessor(item, i);
         const rawMin = d.rangeMinAccessor!(item, i);
         const rawMax = d.rangeMaxAccessor!(item, i);
-        const x = xScale.map(rawX as never);
+        const x = "bandWidth" in xScale ? xScale.center(String(rawX)) : xScale.map(rawX as never);
         const missingMin =
           rawMin == null || !Number.isFinite(rawMin as number);
         const missingMax =

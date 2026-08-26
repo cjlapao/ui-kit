@@ -77,6 +77,7 @@ import {
   scatterGamma,
   nightingaleTornado,
   waterfallArr,
+  comboMonthly,
 } from "./data";
 
 type Kind =
@@ -90,7 +91,8 @@ type Kind =
   | "scatter"
   | "gauge"
   | "nightingale"
-  | "waterfall";
+  | "waterfall"
+  | "combo";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -178,6 +180,18 @@ interface ChartPlaygroundProps {
   fixedKind?: Kind;
 }
 
+/** Split revenue into three stackable layers for the combo playground. */
+const comboStackRows = comboMonthly.map((r) => {
+  const base = Math.round(r.revenue * 0.55);
+  const growth = Math.round(r.revenue * 0.3);
+  return {
+    month: r.month,
+    base,
+    growth,
+    renewal: r.revenue - base - growth,
+  };
+});
+
 export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [renderer, setRenderer] = useState<"svg" | "canvas">("svg");
   const [kindState, setKind] = useState<Kind>(fixedKind ?? "line");
@@ -254,6 +268,11 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [wfOrientation, setWfOrientation] = useState("vertical");
   const [wfConnectors, setWfConnectors] = useState(true);
   const [wfLabels, setWfLabels] = useState(true);
+  const [comboSecondary, setComboSecondary] = useState<"line" | "scatter" | "off">("line");
+  const [comboRightAxis, setComboRightAxis] = useState(false);
+  const [comboStack, setComboStack] = useState(false);
+  const [comboDashed, setComboDashed] = useState(false);
+  const [comboArea, setComboArea] = useState(false);
   const [workflow, setWorkflow] = useState(workflowData);
   const [monaco, setMonaco] = useState(monacoData);
 
@@ -375,7 +394,9 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                         : kind === "nightingale"
                           ? "Tornadoes by month"
                           : kind === "waterfall"
-                            ? "ARR bridge by driver"
+                          ? "ARR bridge by driver"
+                          : kind === "combo"
+                            ? "Revenue combo"
                             : "Trading days"
           }
           subtitle={renderer === "canvas" ? "Canvas renderer" : "SVG renderer"}
@@ -806,7 +827,86 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             <Chart.Hover />
           </>
         )}
-        <Chart.Legend position={kind === "nightingale" ? "bottom" : legendPosition} />
+        {kind === "combo" && (
+          <>
+            <Chart.Bar
+              data={comboStack ? comboStackRows : comboMonthly}
+              name={comboStack ? "Base" : "Revenue"}
+              categoryXField="month"
+              valueYField={comboStack ? "base" : "revenue"}
+              mode={comboStack ? "stack" : "group"}
+              stackId={comboStack ? "comboPg" : undefined}
+              cornerRadius={3}
+            />
+            {comboStack && (
+              <>
+                <Chart.Bar
+                  data={comboStackRows}
+                  name="Growth"
+                  categoryXField="month"
+                  valueYField="growth"
+                  mode="stack"
+                  stackId="comboPg"
+                />
+                <Chart.Bar
+                  data={comboStackRows}
+                  name="Renewal"
+                  categoryXField="month"
+                  valueYField="renewal"
+                  mode="stack"
+                  stackId="comboPg"
+                  color="emerald"
+                />
+                <Chart.Line
+                  data={comboMonthly}
+                  name="Total"
+                  categoryXField="month"
+                  valueYField="revenue"
+                  color="orange"
+                  showMarkers
+                  lineStrokeWidth={2.5}
+                />
+              </>
+            )}
+            {!comboStack && comboSecondary === "line" && (
+              <Chart.Line
+                data={comboMonthly}
+                name={comboRightAxis ? "Mean temperature" : "Budget"}
+                categoryXField="month"
+                valueYField={comboRightAxis ? "temperature" : "budget"}
+                yFieldAxis={comboRightAxis ? "right" : "left"}
+                color={comboRightAxis ? "orange" : "violet"}
+                lineStyle={comboDashed ? "dashed" : "solid"}
+                fillOpacity={comboArea ? 0.18 : 0}
+                showMarkers={comboRightAxis}
+              />
+            )}
+            {!comboStack && comboSecondary === "scatter" && (
+              <Chart.Scatter
+                data={comboMonthly}
+                name="Budget"
+                xField="month"
+                yField={comboRightAxis ? "temperature" : "budget"}
+                yFieldAxis={comboRightAxis ? "right" : "left"}
+                minSize={5}
+              />
+            )}
+            <Chart.Tooltip
+              itemFormat={(v, name) =>
+                name === "Mean temperature" ? `${v}°C` : `$${(v / 1000).toFixed(0)}K`
+              }
+            />
+            <Chart.Hover />
+          </>
+        )}
+        <Chart.Legend
+          position={
+            kind === "nightingale" ||
+            (kind === "combo" && (comboStack || comboSecondary !== "off"))
+              ? "bottom"
+              : legendPosition
+          }
+        />
         {(valuesMode === "popup" || valuesMode === "both") && (
           <Chart.Tooltip mode="shared" />
         )}
@@ -1118,6 +1218,43 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               label="Value labels"
               checked={wfLabels}
               onChange={setWfLabels}
+            />
+          </>
+        )}
+        {kind === "combo" && (
+          <>
+            <Control label="Secondary series">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={[
+                  { label: "Line", value: "line" },
+                  { label: "Scatter", value: "scatter" },
+                  { label: "Off", value: "off" },
+                ]}
+                value={comboSecondary}
+                onChange={(v) => setComboSecondary(v as "line" | "scatter" | "off")}
+              />
+            </Control>
+            <ToggleRow
+              label="Right axis (°C)"
+              checked={comboRightAxis}
+              onChange={setComboRightAxis}
+            />
+            <ToggleRow
+              label="Stack bars + total"
+              checked={comboStack}
+              onChange={setComboStack}
+            />
+            <ToggleRow
+              label="Dashed line"
+              checked={comboDashed}
+              onChange={setComboDashed}
+            />
+            <ToggleRow
+              label="Line area"
+              checked={comboArea}
+              onChange={setComboArea}
             />
           </>
         )}

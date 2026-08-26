@@ -458,6 +458,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/NightingaleChartPage")),
   },
   {
+    slug: "charts-combo",
+    name: "Combo",
+    description:
+      "Mix bar, line and scatter in one plot — shared or dual y-axes, stacked bars with a total line, moving averages, regression lines.",
+    icon: "ChartLine",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/ComboChartPage")),
+  },
+  {
     slug: "charts-waterfall",
     name: "Waterfall",
     description:

@@ -188,7 +188,9 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
       let points = d.data.map((item, i) => {
         const rawX = d.xAccessor(item, i);
         const rawY = d.yAccessor ? d.yAccessor(item, i) : null;
-        const x = xScale.map(rawX as never);
+        // Band categories center the vertex on the category slot (bars,
+        // scatter markers, and tick labels all sit on the slot center).
+        const x = "bandWidth" in xScale ? xScale.center(String(rawX)) : xScale.map(rawX as never);
         const missing = rawY == null || !Number.isFinite(rawY as number);
         return {
           x,
@@ -206,7 +208,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
           const missing =
             rawB == null || !Number.isFinite(rawB as number);
           return {
-            x: xScale.map(rawX as never),
+            x: "bandWidth" in xScale ? xScale.center(String(rawX)) : xScale.map(rawX as never),
             y: missing ? null : vs.map(rawB as number),
           };
         });

@@ -791,3 +791,95 @@ export const waterfallArr = [
   { name: "Reserve", value: -30 },
   { name: "Closing ARR", value: 448, isTotal: true },
 ];
+
+// ── Combo ────────────────────────────────────────────────────────────────────
+/** Monthly revenue/budget/orders/temperature for the bar + line + scatter
+ *  combo examples and the combo playground. */
+export const comboMonthly = [
+  { month: "Jan", revenue: 282000, budget: 310000, orders: 112000, temperature: 5.1 },
+  { month: "Feb", revenue: 309000, budget: 312000, orders: 94000, temperature: 6.4 },
+  { month: "Mar", revenue: 301000, budget: 318000, orders: 138000, temperature: 10.9 },
+  { month: "Apr", revenue: 345000, budget: 330000, orders: 101000, temperature: 15.6 },
+  { month: "May", revenue: 378000, budget: 342000, orders: 90000, temperature: 20.4 },
+  { month: "Jun", revenue: 371000, budget: 355000, orders: 89000, temperature: 24.8 },
+  { month: "Jul", revenue: 407000, budget: 370000, orders: 96000, temperature: 28.6 },
+  { month: "Aug", revenue: 441000, budget: 385000, orders: 99000, temperature: 27.4 },
+  { month: "Sep", revenue: 426000, budget: 400000, orders: 96000, temperature: 22.6 },
+  { month: "Oct", revenue: 466000, budget: 420000, orders: 127000, temperature: 16.8 },
+  { month: "Nov", revenue: 515000, budget: 445000, orders: 143000, temperature: 11.2 },
+  { month: "Dec", revenue: 554000, budget: 475000, orders: 88600, temperature: 5.6 },
+];
+
+/** 3-month rolling average of comboMonthly orders (trailing window). */
+export const comboOrdersAvg = comboMonthly.map((row, i, all) => {
+  const win = all.slice(Math.max(0, i - 2), i + 1);
+  const avg = win.reduce((a, r) => a + r.orders, 0) / win.length;
+  return { month: row.month, value: Math.round(avg) };
+});
+
+/** Electricity demand (TWh) with the monthly mean temperature overlaid on a
+ *  second axis. */
+export const comboDemand = [
+  { month: "Jan", demand: 29.1, temperature: 5.1 },
+  { month: "Feb", demand: 26.8, temperature: 6.4 },
+  { month: "Mar", demand: 24.0, temperature: 10.9 },
+  { month: "Apr", demand: 20.6, temperature: 15.6 },
+  { month: "May", demand: 18.2, temperature: 20.4 },
+  { month: "Jun", demand: 16.9, temperature: 24.8 },
+  { month: "Jul", demand: 16.3, temperature: 28.6 },
+  { month: "Aug", demand: 16.7, temperature: 27.4 },
+  { month: "Sep", demand: 18.7, temperature: 22.6 },
+  { month: "Oct", demand: 22.3, temperature: 16.8 },
+  { month: "Nov", demand: 25.9, temperature: 11.2 },
+  { month: "Dec", demand: 28.6, temperature: 5.6 },
+];
+
+/** Quarterly cloud spend by service (stacked) plus the quarterly total. */
+export const comboCloud = [
+  { quarter: "Q1 23", compute: 41000, storage: 15000, network: 12000 },
+  { quarter: "Q2 23", compute: 51000, storage: 18000, network: 15000 },
+  { quarter: "Q3 23", compute: 57000, storage: 21000, network: 17000 },
+  { quarter: "Q4 23", compute: 63000, storage: 25000, network: 19000 },
+  { quarter: "Q1 24", compute: 69000, storage: 29000, network: 21000 },
+  { quarter: "Q2 24", compute: 75000, storage: 33000, network: 24000 },
+  { quarter: "Q3 24", compute: 82000, storage: 38000, network: 27000 },
+  { quarter: "Q4 24", compute: 92000, storage: 44000, network: 31000 },
+];
+
+/** Monthly ad spend vs new customers (numeric axes) for the scatter +
+ *  regression example. */
+export const comboAds = [
+  { spend: 9200, customers: 142 },
+  { spend: 10400, customers: 164 },
+  { spend: 11800, customers: 196 },
+  { spend: 13100, customers: 219 },
+  { spend: 15300, customers: 247 },
+  { spend: 17200, customers: 274 },
+  { spend: 19500, customers: 301 },
+  { spend: 21400, customers: 328 },
+  { spend: 23600, customers: 352 },
+  { spend: 25800, customers: 384 },
+  { spend: 28100, customers: 415 },
+  { spend: 30300, customers: 438 },
+  { spend: 32600, customers: 483 },
+  { spend: 35100, customers: 511 },
+  { spend: 37800, customers: 542 },
+  { spend: 40600, customers: 576 },
+  { spend: 41800, customers: 618 },
+];
+
+/** Monthly target vs actual units (band x) for the line + markers example. */
+export const comboTarget = [
+  { month: "Jan", target: 118, actual: 110 },
+  { month: "Feb", target: 132, actual: 140 },
+  { month: "Mar", target: 147, actual: 136 },
+  { month: "Apr", target: 161, actual: 168 },
+  { month: "May", target: 175, actual: 166 },
+  { month: "Jun", target: 189, actual: 198 },
+  { month: "Jul", target: 204, actual: 195 },
+  { month: "Aug", target: 218, actual: 227 },
+  { month: "Sep", target: 232, actual: 221 },
+  { month: "Oct", target: 246, actual: 251 },
+  { month: "Nov", target: 261, actual: 246 },
+  { month: "Dec", target: 275, actual: 283 },
+];
