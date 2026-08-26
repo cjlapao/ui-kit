@@ -348,46 +348,60 @@ export interface PolarGridInput {
   domainMax: number;
   shape: "circle" | "polygon";
   format?: (v: number) => string;
+  /**
+   * Hole radius (px). Rings and tick labels whose radius falls inside the
+   * hole are omitted and spokes start at the hole's edge, so a center
+   * readout stays clean. Default 0.
+   */
+  innerR?: number;
 }
 
 /** Shared polar grid: rings, spokes (carry category labels), tick labels. */
 export function computePolarGrid(input: PolarGridInput): PolarGrid {
-  const { categories, cx, cy, R, rings, domainMax, shape, format } = input;
+  const { categories, cx, cy, R, rings, domainMax, shape, format, innerR = 0 } =
+    input;
   const n = categories.length;
-  const ringValues = Array.from({ length: rings }, (_, k) =>
-    domainMax * ((k + 1) / rings),
-  );
-  const ringPaths = ringValues.map((_, k) => {
+  const ringValues: number[] = [];
+  const ringPaths: string[] = [];
+  const tickLabels: { x: number; y: number; text: string }[] = [];
+  for (let k = 0; k < rings; k++) {
     const r = (R * (k + 1)) / rings;
+    // Rings (and their tick labels) inside the hole are omitted.
+    if (r <= innerR + 0.5) continue;
+    const v = domainMax * ((k + 1) / rings);
+    ringValues.push(v);
+    tickLabels.push({
+      x: cx - 7,
+      y: cy - r + 4,
+      text: format ? format(v) : String(Math.round(v * 10) / 10),
+    });
     if (shape === "circle") {
-      return (
+      ringPaths.push(
         `M${r2(cx - r)},${r2(cy)}` +
-        `A${r2(r)} ${r2(r)} 0 1 1 ${r2(cx + r)},${r2(cy)}` +
-        `A${r2(r)} ${r2(r)} 0 1 1 ${r2(cx - r)},${r2(cy)}Z`
+          `A${r2(r)} ${r2(r)} 0 1 1 ${r2(cx + r)},${r2(cy)}` +
+          `A${r2(r)} ${r2(r)} 0 1 1 ${r2(cx - r)},${r2(cy)}Z`,
       );
+    } else {
+      let d = "";
+      for (let i = 0; i < n; i++) {
+        const a = polarAngle(i, n);
+        d += `${i === 0 ? "M" : "L"}${r2(cx + r * Math.cos(a))},${r2(cy + r * Math.sin(a))}`;
+      }
+      ringPaths.push(d + "Z");
     }
-    let d = "";
-    for (let i = 0; i < n; i++) {
-      const a = polarAngle(i, n);
-      d += `${i === 0 ? "M" : "L"}${r2(cx + r * Math.cos(a))},${r2(cy + r * Math.sin(a))}`;
-    }
-    return d + "Z";
-  });
+  }
+  // Spokes run from the hole's edge (not the center) so the readout stays
+  // clean.
   const spokes = categories.map((label, i) => {
     const a = polarAngle(i, Math.max(1, n));
     return {
-      x1: cx,
-      y1: cy,
+      x1: cx + innerR * Math.cos(a),
+      y1: cy + innerR * Math.sin(a),
       x2: cx + R * Math.cos(a),
       y2: cy + R * Math.sin(a),
       label,
       angle: a,
     };
   });
-  const tickLabels = ringValues.map((v, k) => ({
-    x: cx - 7,
-    y: cy - (R * (k + 1)) / rings + 4,
-    text: format ? format(v) : String(Math.round(v * 10) / 10),
-  }));
   return { cx, cy, R, ringValues, ringPaths, spokes, tickLabels };
 }

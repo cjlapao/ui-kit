@@ -566,6 +566,7 @@ export function ChartRootImpl({
       domainMax: polarLayout.domainMax,
       shape: summary.polarAxis?.gridShape ?? "circle",
       format: summary.polarAxis?.tickFormat,
+      innerR: polarLayout.innerR,
     });
   }, [polarLayout, summary.polarAxis]);
 

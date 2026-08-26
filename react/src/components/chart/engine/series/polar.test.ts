@@ -312,6 +312,29 @@ describe("computePolarGrid", () => {
     expect(g.tickLabels[0].x).toBeCloseTo(93);
     expect(g.tickLabels[3].y).toBeCloseTo(100 - 100 + 4);
   });
+
+  it("clips rings, ticks and spokes to the inner hole", () => {
+    const g = computePolarGrid({
+      categories: ["A", "B", "C"],
+      cx: 100,
+      cy: 100,
+      R: 100,
+      rings: 4,
+      domainMax: 100,
+      shape: "circle",
+      innerR: 45,
+    });
+    // Ring at r = 25 falls inside the 45px hole and is omitted; rings at
+    // 50, 75, 100 are kept (with their tick labels).
+    expect(g.ringPaths.length).toBe(3);
+    expect(g.tickLabels.length).toBe(3);
+    expect(g.tickLabels.map((t) => t.text)).toEqual(["50", "75", "100"]);
+    // Spokes start at the hole's edge, not the center (spoke 0 points up,
+    // 12 o'clock).
+    expect(g.spokes[0].x1).toBeCloseTo(100);
+    expect(g.spokes[0].y1).toBeCloseTo(100 - 45);
+    expect(g.spokes[0].y2).toBeCloseTo(0);
+  });
 });
 
 describe("resolveGrid", () => {
