@@ -246,6 +246,9 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [nightInner, setNightInner] = useState("0.3");
   const [nightGap, setNightGap] = useState("1");
   const [nightLabels, setNightLabels] = useState(true);
+  const [nightTicks, setNightTicks] = useState(false);
+  const [nightBands, setNightBands] = useState(false);
+  const [nightPeak, setNightPeak] = useState(false);
   const [workflow, setWorkflow] = useState(workflowData);
   const [monaco, setMonaco] = useState(monacoData);
 
@@ -734,17 +737,36 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
           </>
         )}
         {kind === "nightingale" && (
-          <Chart.Pie
-            data={nightingaleTornado}
-            name="Tornadoes"
-            categoryField="name"
-            valueField="value"
-            nightingale
-            innerRadius={Number(nightInner)}
-            startAngle={Number(nightStart) * (Math.PI / 180)}
-            padAngle={nightGap === "0" ? 0 : Number(nightGap) / 100}
-            showLabels={nightLabels}
-          />
+          <>
+            <Chart.Pie
+              data={nightingaleTornado}
+              name="Tornadoes"
+              categoryField="name"
+              valueField="value"
+              nightingale
+              innerRadius={Number(nightInner)}
+              startAngle={Number(nightStart) * (Math.PI / 180)}
+              padAngle={nightGap === "0" ? 0 : Number(nightGap) / 100}
+              showLabels={nightLabels}
+              nightingaleTicks={nightTicks}
+              nightingaleBands={
+                nightBands
+                  ? [
+                      { from: 9, to: 0, color: "#60a5fa" },
+                      { from: 1, to: 2, color: "#f59e0b" },
+                      { from: 3, to: 5, color: "#f43f5e" },
+                      { from: 6, to: 8, color: "#f59e0b" },
+                    ]
+                  : undefined
+              }
+              peakLabel={nightPeak ? "PEAK" : undefined}
+            />
+            <Chart.PieCenter
+              title="Annual average"
+              value="498"
+              subtitle="tornadoes / month"
+            />
+          </>
         )}
         <Chart.Legend position={kind === "nightingale" ? "bottom" : legendPosition} />
         {(valuesMode === "popup" || valuesMode === "both") && (
@@ -1017,6 +1039,21 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               label="Month labels"
               checked={nightLabels}
               onChange={setNightLabels}
+            />
+            <ToggleRow
+              label="Slice ticks"
+              checked={nightTicks}
+              onChange={setNightTicks}
+            />
+            <ToggleRow
+              label="Season bands"
+              checked={nightBands}
+              onChange={setNightBands}
+            />
+            <ToggleRow
+              label="Peak label"
+              checked={nightPeak}
+              onChange={setNightPeak}
             />
           </>
         )}

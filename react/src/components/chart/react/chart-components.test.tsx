@@ -2154,3 +2154,107 @@ describe("nightingale", () => {
     expect(g.querySelectorAll("line").length).toBe(0);
   });
 });
+
+describe("nightingale decor", () => {
+  const data = [
+    { name: "W1", value: 10 },
+    { name: "W2", value: 20 },
+    { name: "W3", value: 40 },
+    { name: "W4", value: 15 },
+  ];
+
+  it("renders per-slice ticks and group bands", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Pie
+          data={data}
+          name="M"
+          nightingale
+          innerRadius={0.3}
+          nightingaleTicks
+          nightingaleBands={[
+            { from: 0, to: 1, color: "#5daeea" },
+            { from: 2, to: 3, color: "#ffad5a" },
+          ]}
+        />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const lines = g.querySelectorAll("line");
+    // 4 leader spokes + 4 ticks
+    expect(lines.length).toBe(8);
+    const paths = g.querySelectorAll("path");
+    // 4 petals + 2 band arcs
+    expect(paths.length).toBe(6);
+  });
+
+  it("renders the peak label inside the max slice", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Pie
+          data={data}
+          name="M"
+          nightingale
+          innerRadius={0.3}
+          peakLabel="MAX"
+        />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const text = Array.from(g.querySelectorAll("text")).find(
+      (t) => t.textContent === "MAX",
+    );
+    expect(text).toBeTruthy();
+  });
+
+  it("tooltip rows render custom rows for a hovered slice", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Pie
+          data={data}
+          name="M"
+          nightingale
+          innerRadius={0.3}
+        />
+        <Chart.Tooltip
+          rows={(item) => [
+            { label: "Value", value: String(item.value) },
+            {
+              label: "vs avg",
+              value: `${item.value - 21.25 >= 0 ? "+" : ""}${(item.value - 21.25).toFixed(2)}`,
+              color: item.value - 21.25 >= 0 ? "#10a981" : "#e5484d",
+            },
+          ]}
+        />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    const rects = svg.querySelectorAll("rect");
+    const rect = rects[rects.length - 1] as SVGRectElement;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 320,
+        width: 800,
+        height: 320,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return this;
+        },
+      }),
+      configurable: true,
+    });
+    // The pie center is the plot center: area x=0 (no axes) → cx=400, cy=160.
+    // Point slightly right of center (angle ~0.1 rad) falls in slice 1 (W2,
+    // which spans ~1.57–3.14 rad after the first 1.57 rad slice).
+    fireEvent.pointerMove(rect, { clientX: 410, clientY: 150 });
+    const tip = container.querySelector('[data-chart-feature="tooltip"]');
+    expect(tip).toBeTruthy();
+    expect(tip?.textContent).toContain("vs avg");
+    expect(tip?.textContent).toContain("Value");
+  });
+});

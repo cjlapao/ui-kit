@@ -149,6 +149,20 @@ export interface PieSeriesProps<T = unknown> {
   nightingale?: boolean;
   /** Show outside category labels (name + value with a leader spoke). Default: on for nightingale. */
   showLabels?: boolean;
+  /**
+   * Nightingale only: per-slice colored radial ticks just outside the ring.
+   */
+  nightingaleTicks?: boolean;
+  /**
+   * Nightingale only: rounded group arcs outside the ring. `from`/`to` are
+   * inclusive slice indices; the arc spans that slice range.
+   */
+  nightingaleBands?: { from: number; to: number; color: string }[];
+  /**
+   * Nightingale only: bold label centered in the max-value slice
+   * (default "PEAK"). Omit to disable.
+   */
+  peakLabel?: string;
   /** Show percentage labels inside the slices. Default false. */
   showPercentLabels?: boolean;
   /**
@@ -536,6 +550,15 @@ export interface TooltipProps {
   itemFormat?: (value: number, name: string) => string;
   /** Time header formatter. Defaults to the full date. */
   headerFormat?: (rawX: number | Date | string) => string;
+  /**
+   * Custom per-item rows (replaces the single formatted-value row).
+   * `item.item` is the raw data row; use it to compute deltas/context.
+   */
+  rows?: (item: import("../engine/types").HoverItem) => {
+    label: string;
+    value: string;
+    color?: string;
+  }[];
   /** Custom card body (overrides the default list). */
   children?: ReactNode;
 }
@@ -775,6 +798,9 @@ export interface SeriesDescriptor {
   // nightingale (rose pie)
   pieNightingale?: boolean;
   pieShowLabels?: boolean;
+  pieNightingaleTicks?: boolean;
+  pieNightingaleBands?: { from: number; to: number; color: string }[];
+  piePeakLabel?: string;
   // gauge
   gaugeValue?: number;
   gaugeMin?: number;

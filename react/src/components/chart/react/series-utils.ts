@@ -206,6 +206,9 @@ export function describeSeries(
       pieMinPercentLabel: pp.minPercentLabel ?? 5,
       pieNightingale: pp.nightingale ?? false,
       pieShowLabels: pp.showLabels ?? pp.nightingale ?? false,
+      pieNightingaleTicks: pp.nightingaleTicks,
+      pieNightingaleBands: pp.nightingaleBands,
+      piePeakLabel: pp.peakLabel,
       animation,
     };
   }

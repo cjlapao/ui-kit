@@ -247,6 +247,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
       spokeFrom: { x: number; y: number };
       spokeTo: { x: number; y: number };
       anchor: "start" | "end";
+      isNight: boolean;
     }[] = [];
     final.slices.forEach((s, i) => {
       const item = d.data[s.index];
@@ -273,6 +274,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
         spokeFrom: tip,
         spokeTo: { x: label.x, y: label.y },
         anchor,
+        isNight: d.pieNightingale === true,
       });
     });
     return out;
@@ -362,6 +364,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
   useEffect(() => {
     if (renderer !== "canvas" || !final || hidden) return;
     const id = `series:${seriesId}`;
+    const d = me?.descriptor;
     const fn = (c: CanvasRenderingContext2D, st: { progress: number }) => {
       const isEntrance = prevRef.current === null;
       const p = st.progress;
@@ -394,13 +397,65 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
           c.moveTo(lb.spokeFrom.x, lb.spokeFrom.y);
           c.lineTo(lb.spokeTo.x, lb.spokeTo.y);
           c.stroke();
-          c.fillStyle = theme.subtleText;
+          c.fillStyle = lb.isNight ? lb.color : theme.subtleText;
           c.font = "600 11px sans-serif";
           c.fillText(lb.name, lb.x, lb.y - 7);
-          c.fillStyle = lb.color;
-          c.font = "500 10px sans-serif";
+          c.fillStyle = lb.isNight ? theme.subtleText : lb.color;
+          c.globalAlpha = (lb.isNight ? Math.max(0.001, p) : 1) * (lb.isNight ? 0.55 : 1);
+          c.font = lb.isNight ? "500 9px sans-serif" : "500 10px sans-serif";
           c.fillText(String(lb.value), lb.x, lb.y + 5);
+          c.globalAlpha = 1;
         });
+        c.restore();
+      }
+      // Nightingale decor: ticks, group bands, peak label.
+      if (final.slices.length > 0 && d?.pieNightingale) {
+        c.save();
+        c.translate(final.cx, final.cy);
+        if (d.pieNightingaleTicks) {
+          c.globalAlpha = (isEntrance ? Math.max(0.001, p) : 1) * 0.45;
+          c.lineWidth = 1;
+          final.slices.forEach((sl, i) => {
+            const r0 = sl.sliceRadius + 2;
+            const r1 = final.outerRadius * 1.1;
+            const a0 = pieLabelPoint(0, 0, r0, sl.labelAngle);
+            const a1 = pieLabelPoint(0, 0, r1, sl.labelAngle);
+            c.strokeStyle = sliceColors[i] ?? baseColor;
+            c.beginPath();
+            c.moveTo(a0.x, a0.y);
+            c.lineTo(a1.x, a1.y);
+            c.stroke();
+          });
+        }
+        (d.pieNightingaleBands ?? []).forEach((b) => {
+          if (b.from < 0 || b.to >= final.slices.length) return;
+          const first = final.slices[b.from];
+          const last = final.slices[b.to];
+          const R = final.outerRadius * 1.22;
+          c.globalAlpha = (isEntrance ? Math.max(0.001, p) : 1) * 0.45;
+          c.strokeStyle = b.color;
+          c.lineWidth = 2;
+          c.lineCap = "round";
+          c.beginPath();
+          c.arc(0, 0, R, first.startAngle - Math.PI / 2, last.endAngle - Math.PI / 2);
+          c.stroke();
+        });
+        if (d.piePeakLabel !== undefined) {
+          const maxI = final.slices.reduce(
+            (best, sl, i, arr) => (sl.value > arr[best].value ? i : best),
+            0,
+          );
+          const sl = final.slices[maxI];
+          if (sl) {
+            const pt = pieLabelPoint(0, 0, (final.innerRadius + sl.sliceRadius) / 2, sl.labelAngle);
+            c.globalAlpha = isEntrance ? Math.max(0.001, p) : 1;
+            c.fillStyle = "#fff";
+            c.font = "700 9px sans-serif";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(d.piePeakLabel, pt.x, pt.y);
+          }
+        }
         c.restore();
       }
       // Percentage labels: count up + grow in step with each slice's reveal.
@@ -451,6 +506,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     percentLabels,
     nightingaleLabels,
     theme,
+    me,
     registerDraw,
     unregisterDraw,
   ]);
@@ -476,6 +532,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
           (s) => s.item === ctx.hover!.items[0].item,
         )
       : -1;
+  const d = me?.descriptor;
 
   return (
     <g
@@ -562,7 +619,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
               dominantBaseline="central"
               fontSize={11}
               fontWeight={600}
-              fill={ctx.theme.subtleText}
+              fill={lb.isNight ? lb.color : ctx.theme.subtleText}
             >
               {lb.name}
             </text>
@@ -571,15 +628,101 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
               y={lb.y + 5}
               textAnchor={lb.anchor}
               dominantBaseline="central"
-              fontSize={10}
+              fontSize={lb.isNight ? 9 : 10}
               fontWeight={500}
-              fill={lb.color}
+              fill={lb.isNight ? ctx.theme.subtleText : lb.color}
+              opacity={lb.isNight ? 0.55 : 1}
             >
               {lb.value}
             </text>
           </g>
         );
       })}
+      {d?.pieNightingale && d?.pieNightingaleTicks && (
+        <g opacity={entrance ? Math.max(0.001, p) : 1} pointerEvents="none">
+          {final.slices.map((sl, i) => {
+            const r0 = sl.sliceRadius + 2;
+            const r1 = final.outerRadius * 1.1;
+            const a0 = pieLabelPoint(final.cx, final.cy, r0, sl.labelAngle);
+            const a1 = pieLabelPoint(final.cx, final.cy, r1, sl.labelAngle);
+            return (
+              <line
+                key={i}
+                x1={a0.x}
+                y1={a0.y}
+                x2={a1.x}
+                y2={a1.y}
+                stroke={sliceColors[i] ?? baseColor}
+                strokeWidth={1}
+                opacity={0.45}
+              />
+            );
+          })}
+        </g>
+      )}
+      {d?.pieNightingale &&
+        (d?.pieNightingaleBands ?? [])
+          .filter(
+            (b) =>
+              b.from >= 0 &&
+              b.to >= 0 &&
+              b.from < final.slices.length &&
+              b.to < final.slices.length,
+          )
+          .map((b, bi) => {
+            const first = final.slices[b.from];
+            const last = final.slices[b.to];
+            const R = final.outerRadius * 1.22;
+            const x1 = final.cx + R * Math.sin(first.startAngle);
+            const y1 = final.cy - R * Math.cos(first.startAngle);
+            const x2 = final.cx + R * Math.sin(last.endAngle);
+            const y2 = final.cy - R * Math.cos(last.endAngle);
+            // Clockwise sweep (d3 convention) — wraps through 2π for
+            // ranges that cross the 12 o'clock boundary.
+            const TWO_PI = Math.PI * 2;
+            const sweep =
+              ((last.endAngle - first.startAngle) % TWO_PI + TWO_PI) %
+              TWO_PI;
+            const large = sweep > Math.PI ? 1 : 0;
+            return (
+              <path
+                key={bi}
+                d={`M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2}`}
+                fill="none"
+                stroke={b.color}
+                strokeWidth={2}
+                strokeLinecap="round"
+                opacity={0.45 * (entrance ? Math.max(0.001, p) : 1)}
+              />
+            );
+          })}
+      {d?.pieNightingale &&
+        d?.piePeakLabel !== undefined &&
+        (() => {
+          const maxI = final.slices.reduce(
+            (best, sl, i, arr) => (sl.value > arr[best].value ? i : best),
+            0,
+          );
+          const sl = final.slices[maxI];
+          if (!sl) return null;
+          const rMid = (final.innerRadius + sl.sliceRadius) / 2;
+          const pt = pieLabelPoint(final.cx, final.cy, rMid, sl.labelAngle);
+          return (
+            <text
+              x={pt.x}
+              y={pt.y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={9}
+              fontWeight={700}
+              fill="#fff"
+              opacity={entrance ? Math.max(0.001, p) : 1}
+              pointerEvents="none"
+            >
+              {d?.piePeakLabel}
+            </text>
+          );
+        })()}
       {typeof props.children === "string" && (
         <text
           x={final.cx}

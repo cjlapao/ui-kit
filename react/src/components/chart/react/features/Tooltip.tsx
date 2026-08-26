@@ -89,44 +89,94 @@ export function Tooltip(props: TooltipProps = {}) {
               {header}
             </div>
           )}
-          {items.map((it, i) => (
-            <div
-              key={`${it.seriesId}-${i}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "2px 0",
-                fontSize: 12,
-              }}
-            >
-              <span
+          {items.map((it, i) =>
+            props.rows ? (
+              <div key={`${it.seriesId}-${i}`} style={{ padding: "2px 0", fontSize: 12 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 2,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 999,
+                      background: it.color,
+                      flex: "0 0 auto",
+                    }}
+                  />
+                  <span style={{ color: theme.tooltipText, fontWeight: 600 }}>
+                    {it.name ?? ""}
+                  </span>
+                </div>
+                {props.rows(it).map((row, ri) => (
+                  <div
+                    key={ri}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      padding: "1px 0 1px 14px",
+                    }}
+                  >
+                    <span style={{ color: theme.tooltipSubtleText }}>
+                      {row.label}
+                    </span>
+                    <span
+                      style={{
+                        color: row.color ?? theme.tooltipText,
+                        fontWeight: 600,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                key={`${it.seriesId}-${i}`}
                 style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 999,
-                  background: it.color,
-                  flex: "0 0 auto",
-                }}
-              />
-              <span style={{ color: theme.tooltipSubtleText, flex: "1 1 auto" }}>
-                {it.name ?? ""}
-              </span>
-              <span
-                style={{
-                  color: theme.tooltipText,
-                  fontWeight: 600,
-                  fontVariantNumeric: "tabular-nums",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "2px 0",
+                  fontSize: 12,
                 }}
               >
-                {props.itemFormat
-                  ? props.itemFormat(it.value, it.name ?? "")
-                  : it.valueMax !== undefined
-                    ? `${formatSI(it.value)}–${formatSI(it.valueMax)}`
-                    : formatSI(it.value)}
-              </span>
-            </div>
-          ))}
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 999,
+                    background: it.color,
+                    flex: "0 0 auto",
+                  }}
+                />
+                <span style={{ color: theme.tooltipSubtleText, flex: "1 1 auto" }}>
+                  {it.name ?? ""}
+                </span>
+                <span
+                  style={{
+                    color: theme.tooltipText,
+                    fontWeight: 600,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {props.itemFormat
+                    ? props.itemFormat(it.value, it.name ?? "")
+                    : it.valueMax !== undefined
+                      ? `${formatSI(it.value)}–${formatSI(it.valueMax)}`
+                      : formatSI(it.value)}
+                </span>
+              </div>
+            ),
+          )}
         </>
       )}
     </div>
