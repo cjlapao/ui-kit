@@ -339,6 +339,39 @@ export function framePolarGeometry(
   return { ...current, segments };
 }
 
+/**
+ * Entrance frame for the "sweep" animation type: an angular reveal
+ * clockwise from 12 o'clock. Segments past the sweep front are hidden;
+ * the boundary segment is clipped to the front and its path rebuilt.
+ */
+export function framePolarSweep(
+  geometry: PolarGeometry,
+  progress: number,
+  input: { cx: number; cy: number; segmentRadius?: number },
+): PolarGeometry {
+  const p = Math.max(0, Math.min(1, progress));
+  if (p >= 1) return geometry;
+  const A0 = -Math.PI / 2;
+  const front = A0 + 2 * Math.PI * p;
+  const segments = geometry.segments.map((s) => {
+    if (s.a0 >= front || s.a1 <= A0) {
+      return { ...s, path: "" };
+    }
+    const a1 = Math.min(s.a1, front);
+    const path = roundedAnnularSector(
+      input.cx,
+      input.cy,
+      s.rInner,
+      s.rOuter,
+      s.a0,
+      a1,
+      input.segmentRadius ?? 0,
+    );
+    return path ? { ...s, a1, path } : { ...s, path: "" };
+  });
+  return { ...geometry, segments };
+}
+
 export interface PolarGridInput {
   categories: string[];
   cx: number;

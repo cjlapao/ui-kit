@@ -1658,3 +1658,126 @@ describe("update animation bookkeeping", () => {
     }
   });
 });
+
+// ── Animation types (radial / sweep / fade entrances) ──────────────────────
+
+describe("animation types", () => {
+  const polarData = [
+    { category: "a", value: 30 },
+    { category: "b", value: 60 },
+    { category: "c", value: 45 },
+    { category: "d", value: 20 },
+  ];
+
+  it("fade: polar series fades in at full geometry", async () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <Chart.Svg
+          height={300}
+          animation={{ duration: 900, type: "fade" }}
+        >
+          <Chart.Polar data={polarData} name="S" color="blue" />
+          <Chart.PolarAxis />
+        </Chart.Svg>,
+      );
+      await vi.advanceTimersByTimeAsync(450);
+      const g =
+        document.querySelector(
+          "[data-chart-series]",
+        ) as HTMLElement | null;
+      expect(g).toBeTruthy();
+      const opacity = parseFloat(
+        g!.style.opacity ?? getComputedStyle(g!).opacity ?? "1",
+      );
+      expect(opacity).toBeGreaterThan(0.01);
+      expect(opacity).toBeLessThan(0.99);
+      await vi.advanceTimersByTimeAsync(1500);
+      const gEnd = document.querySelector(
+        "[data-chart-series]",
+      ) as HTMLElement | null;
+      expect(gEnd).toBeTruthy();
+      expect(parseFloat(gEnd!.style.opacity ?? "1")).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sweep: polar segments reveal clockwise from 12 o'clock", async () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <Chart.Svg
+          height={300}
+          animation={{ duration: 900, type: "sweep" }}
+        >
+          <Chart.Polar data={polarData} name="S" color="blue" />
+          <Chart.PolarAxis />
+        </Chart.Svg>,
+      );
+      // Mid-sweep (easeOutQuart ≈ 0.65 at 230ms of 900ms): the first two
+      // segments (starting at 12 o'clock) are shown, the last is still
+      // hidden (empty path).
+      await vi.advanceTimersByTimeAsync(230);
+      const paths = Array.from(
+        document.querySelectorAll("[data-chart-series] path[fill]"),
+      ).map((p) => p.getAttribute("d"));
+      expect(paths.length).toBe(4);
+      expect(paths[0]).toBeTruthy();
+      expect(paths[1]).toBeTruthy();
+      // The third segment straddles the sweep front: clipped (differs from
+      // its settled path).
+      await vi.advanceTimersByTimeAsync(1000);
+      const settledNow = Array.from(
+        document.querySelectorAll("[data-chart-series] path[fill]"),
+      ).map((p2) => p2.getAttribute("d"));
+      expect(settledNow[2]).toBeTruthy();
+      expect(paths[2]).toBeTruthy();
+      expect(paths[2]).not.toBe(settledNow[2]);
+      await vi.advanceTimersByTimeAsync(1200);
+      const settled = Array.from(
+        document.querySelectorAll("[data-chart-series] path[fill]"),
+      ).map((p) => p.getAttribute("d"));
+      expect(settled.every((d) => d && d.length > 0)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("radial: pie slices grow from the inner radius at once", async () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <Chart.Svg
+          height={300}
+          animation={{ duration: 900, type: "radial" }}
+        >
+          <Chart.Pie
+            data={[
+              { name: "a", value: 30 },
+              { name: "b", value: 40 },
+              { name: "c", value: 30 },
+            ]}
+            innerRadius={0.5}
+            cornerRadius={4}
+          />
+        </Chart.Svg>,
+      );
+      await vi.advanceTimersByTimeAsync(450);
+      const mid = Array.from(
+        document.querySelectorAll("[data-chart-series] path[fill]"),
+      ).map((p) => p.getAttribute("d") ?? "");
+      expect(mid.filter((d) => d.length > 0).length).toBe(3);
+      await vi.advanceTimersByTimeAsync(1200);
+      const settled = Array.from(
+        document.querySelectorAll("[data-chart-series] path[fill]"),
+      ).map((p) => p.getAttribute("d") ?? "");
+      // Every slice grew: mid-entrance paths differ from the settled ones.
+      expect(
+        mid.filter((d, i) => d !== settled[i]).length,
+      ).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

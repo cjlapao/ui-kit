@@ -4,7 +4,7 @@
  * Stacks are coordinated here via {@link computeStacks} over the sibling
  * series that share this series' stackId (render order = stack order).
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import {
   computeBarGeometry,
   computeStacks,
@@ -30,13 +30,15 @@ function frameBars(
   prev: BarGeometry | null,
   p: number,
   orientation: "vertical" | "horizontal",
+  full = false,
 ): FrameBar[] {
   const baseline = cur.baseline;
   return cur.bars.map((b, i) => {
     const old = prev?.bars[i];
     if (!old || p >= 1) {
-      // entrance: grow from the baseline
-      if (prev === null) {
+      // entrance: grow from the baseline (full when the entrance reveal is
+      // handled by a fade or a wipe instead of a geometry grow)
+      if (prev === null && !full) {
         return orientation === "vertical"
           ? { x: b.x, y: baseline + (b.y - baseline) * p, width: b.width, height: b.height * p }
           : { x: baseline + (b.x - baseline) * p, y: b.y, width: b.width * p, height: b.height };
@@ -58,6 +60,9 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
   const { renderer, xScale, progress,
     dataSig, registerDraw, unregisterDraw,hover,
     hoverDim,
+    animType,
+    area,
+    animationsDisabled,
   } = ctx;
   const me = findSeries(ctx, "bar", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<BarGeometry | null>(null);
@@ -184,9 +189,19 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
     if (renderer !== "canvas" || !final || hidden) return;
     const id = `series:${seriesId}`;
     const fn = (c: CanvasRenderingContext2D, st: { progress: number }) => {
-      const bars = frameBars(final!, prevRef.current, st.progress, orientation);
+      const isEntrance = prevRef.current === null;
+      const full = isEntrance && (animType === "fade" || animType === "sweep");
+      const bars = frameBars(final!, prevRef.current, st.progress, orientation, full);
       const corner = me?.descriptor.cornerRadius ?? 0;
       c.save();
+      if (isEntrance && animType === "sweep") {
+        c.beginPath();
+        c.rect(area.x, 0, area.width * Math.max(0.001, st.progress), area.y + area.height);
+        c.clip();
+      }
+      if (isEntrance && animType === "fade") {
+        c.globalAlpha = Math.max(0.001, st.progress);
+      }
       c.fillStyle = seriesColor;
       for (const b of bars) {
         if (b.width <= 0 || b.height <= 0) continue;
@@ -218,19 +233,40 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
   ]);
 
   if (final === null || renderer !== "svg") return null;
-  const bars = frameBars(final, prev, progress, orientation);
+  const entrance = prev === null;
+  const full = entrance && (animType === "fade" || animType === "sweep");
+  const bars = frameBars(final, prev, progress, orientation, full);
   const p = prev === null ? progress : 1;
+  const entranceP = entrance ? (animationsDisabled ? 1 : progress) : 1;
   const corner = me?.descriptor.cornerRadius ?? 0;
+  const clipId = useId().replace(/:/g, "");
 
   return (
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
+        opacity:
+          hidden
+            ? 0
+            : seriesDimStyle(hover, seriesId, hoverDim) *
+              (entrance && animType === "fade" ? Math.max(0.001, entranceP) : 1),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}
     >
+      {entrance && animType === "sweep" ? (
+        <>
+          <defs>
+            <clipPath id={clipId}>
+              <rect
+                x={area.x}
+                y={0}
+                width={area.width * Math.max(0.001, entranceP)}
+                height={area.y + area.height}
+              />
+            </clipPath>
+          </defs>
+          <g clipPath={`url(#${clipId})`}>
       {bars.map((b, i) => {
         const r =
           corner > 0
@@ -246,10 +282,33 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
             rx={r}
             ry={r}
             fill={seriesColor}
-            opacity={prev === null ? Math.max(p, 0.001) : 1}
+            opacity={prev === null && !full ? Math.max(p, 0.001) : 1}
           />
         );
       })}
+          </g>
+        </>
+      ) : (
+        bars.map((b, i) => {
+          const r =
+            corner > 0
+              ? Math.min(corner, b.width / 2, b.height / 2)
+              : 0;
+          return (
+            <rect
+              key={i}
+              x={b.x}
+              y={b.y}
+              width={Math.max(0, b.width)}
+              height={Math.max(0, b.height)}
+              rx={r}
+              ry={r}
+              fill={seriesColor}
+              opacity={prev === null && !full ? Math.max(p, 0.001) : 1}
+            />
+          );
+        })
+      )}
     </g>
   );
 }

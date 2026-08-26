@@ -53,7 +53,7 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
     hover,
     theme,
     radar,hoverDim,
-  } = ctx;
+    animType,} = ctx;
   const me = findSeries(
     ctx,
     "radar",
@@ -135,6 +135,9 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
         ? entranceFrame(final, p, cx, cy, n)
         : frameRadarGeometry(final, prevRef.current, p);
       c.save();
+      if (isEntrance && animType === "fade") {
+        c.globalAlpha = Math.max(0.001, p);
+      }
       if (fillOpacity > 0 && g.fillPath) {
         if (fillStyle === "gradient") {
           const grad = c.createRadialGradient(cx, cy, 0, cx, cy, R);
@@ -239,7 +242,13 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
+        opacity:
+          hidden
+            ? 0
+            : seriesDimStyle(hover, seriesId, hoverDim) *
+              (entrance && animType === "fade"
+                ? Math.max(0.001, p)
+                : 1),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}
@@ -270,7 +279,11 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
         <path
           d={g.fillPath}
           fill={fillStyle === "gradient" ? `url(#${gradId})` : fillColor}
-          opacity={fillStyle === "flat" ? fillOpacity * entranceP : 1}
+          opacity={
+            fillStyle === "flat"
+              ? fillOpacity * (entrance && animType === "fade" ? 1 : entranceP)
+              : 1
+          }
         />
       )}
       <path

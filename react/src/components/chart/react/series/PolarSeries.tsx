@@ -12,6 +12,7 @@ import { useEffect, useRef } from "react";
 import {
   computePolarGeometry,
   framePolarGeometry,
+  framePolarSweep,
   roundedAnnularSector,
   type PolarSegment,
 } from "../../engine/index";
@@ -62,6 +63,7 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
     unregisterDraw,
     hover,
     hoverDim,
+    animType,
     theme,
     polar,
   } = ctx;
@@ -200,7 +202,14 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
       const p = animationsDisabled ? 1 : st.progress;
       let g: PolarGeometry;
       if (isEntrance) {
-        g = entranceFrame(final!, p, polar, segmentRadius);
+        g =
+          animType === "sweep"
+            ? framePolarSweep(final!, p, {
+                cx: polar.cx,
+                cy: polar.cy,
+                segmentRadius,
+              })
+            : entranceFrame(final!, p, polar, segmentRadius);
       } else {
         g = framePolarGeometry(
           final!,
@@ -218,7 +227,11 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
         );
       }
       c.save();
-      c.globalAlpha = isEntrance ? Math.max(0.001, p) : 1;
+      c.globalAlpha = isEntrance
+        ? animType === "fade"
+          ? Math.max(0.001, p)
+          : 1
+        : 1;
       const hoveredCat = hover
         ? g.segments.find(
             (s) =>
@@ -281,7 +294,13 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
   if (renderer !== "svg") return null;
   const p = animationsDisabled ? 1 : progress;
   const g = entrance
-    ? entranceFrame(final, p, polar!, segmentRadius)
+    ? animType === "sweep"
+      ? framePolarSweep(final, p, {
+          cx: polar!.cx,
+          cy: polar!.cy,
+          segmentRadius,
+        })
+      : entranceFrame(final, p, polar!, segmentRadius)
     : framePolarGeometry(final, prev, p, {
         cx: polar!.cx,
         cy: polar!.cy,
@@ -296,7 +315,10 @@ export function PolarSeries(props: PolarSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : polarSeriesDimStyle(hover, seriesId, hoverDim),
+        opacity: hidden
+          ? 0
+          : polarSeriesDimStyle(hover, seriesId, hoverDim) *
+            (entrance && animType === "fade" ? Math.max(0.001, p) : 1),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}

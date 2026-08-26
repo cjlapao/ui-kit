@@ -63,6 +63,7 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
     unregisterDraw,
     hover,
     theme,hoverDim,
+    animType,
   } = ctx;
   const me = findSeries(
     ctx,
@@ -171,14 +172,18 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
     const id = `series:${seriesId}`;
     const fn = (c: CanvasRenderingContext2D, st: { progress: number }) => {
       const isEntrance = prevRef.current === null;
+      const full =
+        isEntrance && (animType === "fade" || animType === "sweep");
       let g: RangeAreaGeometry;
       if (isEntrance) {
-        g = entranceFrame(
-          final!,
-          animationsDisabled ? 1 : st.progress,
-          baselineY,
-          curve,
-        );
+        g = full
+          ? final!
+          : entranceFrame(
+              final!,
+              animationsDisabled ? 1 : st.progress,
+              baselineY,
+              curve,
+            );
       } else {
         g = frameRangeAreaGeometry(
           final!,
@@ -189,17 +194,43 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
       }
       c.save();
       if (isEntrance) {
-        c.beginPath();
-        c.rect(
-          area.x,
-          0,
-          area.width * Math.max(0.001, st.progress),
-          height,
-        );
-        c.clip();
+        if (animType === "sweep") {
+          c.beginPath();
+          c.rect(
+            area.x,
+            0,
+            area.width * Math.max(0.001, st.progress),
+            area.y + area.height,
+          );
+          c.clip();
+        } else if (!full) {
+          c.beginPath();
+          c.rect(
+            area.x,
+            0,
+            area.width * Math.max(0.001, st.progress),
+            height,
+          );
+          c.clip();
+        }
       }
       if (fillSpec && fillSpec.opacity > 0 && g.bandPath) {
-        const entranceAlpha = isEntrance ? st.progress : 1;
+        const entranceAlpha = isEntrance && animType !== "fade" ? st.progress : 1;
+        if (isEntrance) {
+          if (animType === "sweep") {
+            c.beginPath();
+            c.rect(
+              area.x,
+              0,
+              area.width * Math.max(0.001, st.progress),
+              area.y + area.height,
+            );
+            c.clip();
+          }
+          if (animType === "fade") {
+            c.globalAlpha = Math.max(0.001, st.progress);
+          }
+        }
         c.globalAlpha =
           fillSpec.style === "flat" ? fillSpec.opacity * entranceAlpha : entranceAlpha;
         c.fillStyle = canvasAreaFill(c, fillSpec, { area });
@@ -266,13 +297,11 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
 
   // ── SVG render ────────────────────────────────────────────────────────────
   if (renderer !== "svg") return null;
+  const full = entrance && (animType === "fade" || animType === "sweep");
   const g = entrance
-    ? entranceFrame(
-        final,
-        animationsDisabled ? 1 : progress,
-        baselineY,
-        curve,
-      )
+    ? full
+      ? final
+      : entranceFrame(final, animationsDisabled ? 1 : progress, baselineY, curve)
     : frameRangeAreaGeometry(final, prev, progress, curve);
   const entranceP = entrance ? (animationsDisabled ? 1 : progress) : 1;
   const spec =
@@ -294,7 +323,13 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
+        opacity:
+          hidden
+            ? 0
+            : seriesDimStyle(hover, seriesId, hoverDim) *
+              (entrance && animType === "fade"
+                ? Math.max(0.001, entranceP)
+                : 1),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}
@@ -304,7 +339,7 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
           <rect
             x={area.x}
             y={0}
-            width={area.width * (entrance ? entranceP : 1)}
+            width={area.width * (entrance && !full ? entranceP : 1)}
             height={height}
           />
         </clipPath>
@@ -322,7 +357,8 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
             d={g.bandPath}
             fill={spec.style === "gradient" ? `url(#${fillGradId})` : spec.color}
             opacity={
-              spec.style === "flat" ? spec.opacity * entranceP : entranceP
+              (spec.style === "flat" ? spec.opacity : 1) *
+                (full ? 1 : entranceP)
             }
           />
         )}

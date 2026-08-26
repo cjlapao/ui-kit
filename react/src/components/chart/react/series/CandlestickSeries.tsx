@@ -4,7 +4,7 @@
  * Entrance: candles grow from the value-axis baseline; update: per-candle
  * y interpolation.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import {
   computeCandlestickGeometry,
   lerp,
@@ -41,11 +41,12 @@ function frameCandles(
   prev: CandleGeometry[] | null,
   p: number,
   baselineY: number,
+  full = false,
 ): CandleGeometry[] {
   return cur.map((c, i) => {
     const old = prev?.[i];
     if (!old || p >= 1) {
-      if (prev === null) {
+      if (prev === null && !full) {
         const y = (v: number) => baselineY + (v - baselineY) * p;
         return { ...c, openY: y(c.openY), highY: y(c.highY), lowY: y(c.lowY), closeY: y(c.closeY), bodyTop: y(c.bodyTop), bodyHeight: c.bodyHeight * p };
       }
@@ -76,6 +77,8 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
     hover,
     registerDraw,
     unregisterDraw,hoverDim,
+    animType,
+    animationsDisabled,
   } = ctx;
   const me = findSeries(ctx, "candlestick", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<CandleGeometry[] | null>(null);
@@ -151,13 +154,32 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
     if (renderer !== "canvas" || !final || hidden) return;
     const id = `series:${seriesId}`;
     const fn = (c: CanvasRenderingContext2D, st: { progress: number }) => {
+      const isEntrance = prevRef.current === null;
+      const full =
+        isEntrance && (animType === "fade" || animType === "sweep");
       const candles = frameCandles(
         final!,
         prevRef.current,
         st.progress,
         baselineY,
+        full,
       );
       c.save();
+      if (isEntrance) {
+        if (animType === "sweep") {
+          c.beginPath();
+          c.rect(
+            area.x,
+            0,
+            area.width * Math.max(0.001, st.progress),
+            area.y + area.height,
+          );
+          c.clip();
+        }
+        if (animType === "fade") {
+          c.globalAlpha = Math.max(0.001, st.progress);
+        }
+      }
       let hovered: CandleGeometry | null = null;
       for (let i = 0; i < candles.length; i++) {
         const k = candles[i];
@@ -236,18 +258,41 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
   ]);
 
   if (final === null || renderer !== "svg") return null;
-  const candles = frameCandles(final, prev, progress, baselineY);
+  const entrance = prev === null;
+  const full = entrance && (animType === "fade" || animType === "sweep");
+  const candles = frameCandles(final, prev, progress, baselineY, full);
+  const entranceP = entrance ? (animationsDisabled ? 1 : progress) : 1;
+  const clipId = useId().replace(/:/g, "");
 
   return (
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
+        opacity:
+          hidden
+            ? 0
+            : seriesDimStyle(hover, seriesId, hoverDim) *
+              (entrance && animType === "fade"
+                ? Math.max(0.001, entranceP)
+                : 1),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}
     >
-      {candles.map((k, i) => {
+      {entrance && animType === "sweep" ? (
+        <>
+          <defs>
+            <clipPath id={clipId}>
+              <rect
+                x={area.x}
+                y={0}
+                width={area.width * Math.max(0.001, entranceP)}
+                height={area.y + area.height}
+              />
+            </clipPath>
+          </defs>
+          <g clipPath={`url(#${clipId})`}>
+          {candles.map((k, i) => {
         const isHover = highlightOn && i === hoveredIndex;
         const up = k.direction !== "down";
         const base = up ? upColor : downColor;
@@ -296,6 +341,50 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
           </g>
         );
       })}
+          </g>
+        </>
+      ) : (
+        candles.map((k, i) => {
+          const isHover = highlightOn && i === hoveredIndex;
+          const up = k.direction !== "down";
+          const base = up ? upColor : downColor;
+          const color = isHover ? lighten(base, LIGHTEN_FACTOR) : base;
+          const bw = isHover ? Math.min(k.bodyWidth * GROW_FACTOR, step * 0.9) : k.bodyWidth;
+          if (variant === "ohlc") {
+            return (
+              <g key={k.index}>
+                <line x1={k.x} y1={k.highY} x2={k.x} y2={k.lowY} stroke={color} strokeWidth={1.5} />
+                <line x1={k.x - bw / 2} y1={k.openY} x2={k.x} y2={k.openY} stroke={color} strokeWidth={1.5} />
+                <line x1={k.x} y1={k.closeY} x2={k.x + bw / 2} y2={k.closeY} stroke={color} strokeWidth={1.5} />
+              </g>
+            );
+          }
+          return (
+            <g key={k.index}>
+              <line x1={k.x} y1={k.highY} x2={k.x} y2={k.lowY} stroke={color} strokeWidth={1} />
+              {variant === "hollow" && k.direction === "up" ? (
+                <rect
+                  x={k.x - bw / 2}
+                  y={k.bodyTop}
+                  width={bw}
+                  height={Math.max(k.bodyHeight, 1)}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={1.5}
+                />
+              ) : (
+                <rect
+                  x={k.x - bw / 2}
+                  y={k.bodyTop}
+                  width={bw}
+                  height={Math.max(k.bodyHeight, 1)}
+                  fill={color}
+                />
+              )}
+            </g>
+          );
+        })
+      )}
       {highlightOn && hoveredIndex >= 0 && hoverItem && (() => {
         const k = candles[hoveredIndex];
         const up = k.direction !== "down";

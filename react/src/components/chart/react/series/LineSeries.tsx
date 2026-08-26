@@ -140,7 +140,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     unregisterDraw,
     hover,
     theme,hoverDim,
-  } = ctx;
+    animType,} = ctx;
   const me = findSeries(ctx, "line", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const clipId = useId().replace(/:/g, "");
   const gradId = useId().replace(/:/g, "");
@@ -276,9 +276,14 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
       const p = prevRef.current === null ? st.progress : 1;
       c.save();
       if (prevRef.current === null) {
-        c.beginPath();
-        c.rect(area.x, 0, area.width * Math.max(0.001, st.progress), height);
-        c.clip();
+        if (animType !== "fade") {
+          c.beginPath();
+          c.rect(area.x, 0, area.width * Math.max(0.001, st.progress), height);
+          c.clip();
+        }
+        if (animType === "fade") {
+          c.globalAlpha = Math.max(0.001, st.progress);
+        }
       }
       if (fillSpec && fillSpec.opacity > 0 && g.areaPath) {
         const fillBase =
@@ -398,7 +403,13 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
+        opacity:
+          hidden
+            ? 0
+            : seriesDimStyle(hover, seriesId, hoverDim) *
+              (entrance && animType === "fade"
+                ? Math.max(0.001, entranceP)
+                : 1),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}
@@ -408,7 +419,10 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
           <rect
             x={area.x}
             y={0}
-            width={area.width * (entrance ? entranceP : 1)}
+            width={
+              area.width *
+              (entrance && animType !== "fade" ? entranceP : 1)
+            }
             height={height}
           />
         </clipPath>
@@ -452,7 +466,8 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
                 : fillSpec.color ?? fill
             }
             opacity={
-              (fillSpec.style === "flat" ? fillSpec.opacity : 1) * entranceP
+              (fillSpec.style === "flat" ? fillSpec.opacity : 1) *
+                (entrance && animType === "fade" ? 1 : entranceP)
             }
           />
         )}
@@ -475,7 +490,9 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
               fill={markerShape === "cross" ? "none" : seriesColor}
               stroke={markerShape === "cross" ? seriesColor : undefined}
               strokeWidth={markerShape === "cross" ? 1.5 : undefined}
-              opacity={entrance ? entranceP : 1}
+              opacity={
+                entrance ? (animType === "fade" ? 1 : entranceP) : 1
+              }
             />
           ))}
       </g>

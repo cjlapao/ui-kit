@@ -57,6 +57,7 @@ import {
 } from "../engine/index";
 import type {
   AnyScale,
+  ChartAnimationType,
   ChartLayout,
   ContinuousScale,
   HoverState,
@@ -689,6 +690,10 @@ export function ChartRootImpl({
   const animationsDisabled = animation === false || prefersReducedMotion();
   const duration = animation ? (animation.duration ?? 1000) : 1000;
   const easingName = animation ? (animation.easing ?? "easeOutQuart") : "linear";
+  const animType: ChartAnimationType =
+    typeof animation === "object" && animation !== null
+      ? animation.type ?? "grow"
+      : "grow";
 
   // ── Series element tokens ─────────────────────────────────────────────────
   // Several series may share one data array (or a type), which makes
@@ -1447,6 +1452,7 @@ export function ChartRootImpl({
       radar: radarLayout,
       polar: polarLayout,
       hoverDim: hoverDimValue,
+      animType,
     }),
     [
       renderer,
@@ -1470,6 +1476,8 @@ export function ChartRootImpl({
       hover,
       hoverEnabled,
       summary.tooltipMode,
+      animType,
+
       redrawNonce,
       requestRedraw,
       registerDraw,

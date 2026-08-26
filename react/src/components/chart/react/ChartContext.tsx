@@ -28,6 +28,7 @@ export interface PiePresentation {
 }
 import type {
   CategoricalScale,
+  ChartAnimationType,
   ChartArea,
   ChartLayout,
   ChartThemeTokens,
@@ -107,6 +108,12 @@ export interface ChartContextValue {
   setHover: (state: HoverState | null) => void;
   /** Dim opacity for non-hovered series (1 = off). */
   hoverDim: number;
+
+  /**
+   * Entrance animation type (from `animation.type`), default "grow".
+   * Only affects the entrance; data updates always morph.
+   */
+  animType: ChartAnimationType;
   hoverEnabled: boolean;
   tooltipMode: "shared" | "follow" | "crosshair";
 

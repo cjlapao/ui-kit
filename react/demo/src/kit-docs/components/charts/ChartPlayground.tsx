@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Chart, EASING_PRESETS, MultiToggle } from "@cjlapao/ui-kit";
+import type { ChartAnimationType } from "@cjlapao/ui-kit";
 import type {
   BarMode,
   CandlestickVariant,
@@ -171,6 +172,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   );
   const [animated, setAnimated] = useState(true);
   const [easing, setEasing] = useState<string>("easeOutQuart");
+  const [animType, setAnimType] = useState<string>("grow");
   const [streaming, setStreaming] = useState(false);
   const [metrics, setMetrics] = useState(lineMetrics);
   const [quarters, setQuarters] = useState(barQuarterly);
@@ -261,8 +263,11 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   }, [streaming]);
 
   const animation: ChartAnimation = useMemo(
-    () => (animated ? { duration: 900, easing } : false),
-    [animated, easing],
+    () =>
+      animated
+        ? { duration: 900, easing, type: animType as ChartAnimationType }
+        : false,
+    [animated, easing, animType],
   );
 
   const Root = renderer === "svg" ? Chart.Svg : Chart.Canvas;
@@ -282,7 +287,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
         // toggling Animate) remounts the chart and replays the entrance —
         // otherwise the new easing only applies to an animation that never
         // runs, and the change would be invisible.
-        key={`${renderer}-${kind}-${height}-${easing}-${animated ? 1 : 0}`}
+        key={`${renderer}-${kind}-${height}-${easing}-${animType}-${animated ? 1 : 0}`}
         height={height}
         animation={animation}
         ariaLabel="Playground chart"
@@ -836,12 +841,25 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
         </Control>
         <ToggleRow label="Animate" checked={animated} onChange={setAnimated} />
         {animated && (
-          <SelectControl
-            label="Easing"
-            options={EASING_PRESETS.map((e) => ({ label: e, value: e }))}
-            value={easing}
-            onChange={setEasing}
-          />
+          <>
+            <SelectControl
+              label="Animation"
+              options={[
+                { label: "Grow (default)", value: "grow" },
+                { label: "Radial", value: "radial" },
+                { label: "Sweep", value: "sweep" },
+                { label: "Fade", value: "fade" },
+              ]}
+              value={animType}
+              onChange={setAnimType}
+            />
+            <SelectControl
+              label="Easing"
+              options={EASING_PRESETS.map((e) => ({ label: e, value: e }))}
+              value={easing}
+              onChange={setEasing}
+            />
+          </>
         )}
         {kind !== "pie" && (
           <ToggleRow

@@ -74,11 +74,14 @@ export const ChartsPage: React.FC = () => (
             Real-time by design
           </h3>
           <p className="mt-1 text-sm leading-5 text-neutral-500 dark:text-neutral-400">
-            Entrance animations grow every mark in; changing data plays an
-            update animation that interpolates from the previous settled
-            geometry. Stream new points (playground toggle below) to watch it
-            live. Hover snaps to data and drives the tooltip, axis badges and
-            crosshair.
+            Entrance animations grow every mark in — or pick a style per
+            chart: <code className="font-mono">{"animation={{ type: \"grow\" | \"radial\" | \"sweep\" | \"fade\" }}"}</code>{" "}
+            (radial grows every section from the inner radius at once, sweep
+            reveals clockwise from 12 o'clock, fade is a plain opacity
+            in). Changing data plays an update animation that interpolates
+            from the previous settled geometry. Stream new points (playground
+            toggle below) to watch it live. Hover snaps to data and drives the
+            tooltip, axis badges and crosshair.
           </p>
         </Panel>
       </div>

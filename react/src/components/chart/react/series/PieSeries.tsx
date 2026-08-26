@@ -60,6 +60,36 @@ function sweepPaths(
 }
 
 /**
+ * Entrance paths for the "radial" animation type: every slice at the same
+ * time, outer radius growing from the inner radius (or the center for a
+ * full pie) out to the settled radius.
+ */
+function radialPaths(geometry: PieGeometry, progress: number): string[] {
+  const p = Math.max(0, Math.min(1, progress));
+  if (p >= 1) return geometry.slices.map((sl) => sl.path);
+  const innerR = geometry.innerRadius;
+  const outerR = geometry.outerRadius;
+  const r1 = innerR + (outerR - innerR) * p;
+  const gen = arc()
+    .innerRadius(innerR)
+    .outerRadius(r1)
+    .padAngle(geometry.padAngle ?? 0)
+    .cornerRadius(geometry.cornerRadius ?? 0);
+  const base = geometry.slices[0]?.startAngle ?? 0;
+  let cursor = 0;
+  return geometry.slices.map((sl) => {
+    const sliceStart = base + cursor;
+    cursor += sl.endAngle - sl.startAngle;
+    return (
+      gen({
+        startAngle: sliceStart,
+        endAngle: sliceStart + (sl.endAngle - sl.startAngle),
+      } as never) ?? ""
+    );
+  });
+}
+
+/**
  * Per-slice reveal fraction at a given sweep progress (0 = not started,
  * 1 = fully revealed) — drives the per-slice label count-up.
  */
@@ -139,6 +169,8 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     unregisterDraw,
     hoverDim,
     hover,
+    animType,
+    animationsDisabled,
   } = ctx;
   const me = findSeries(ctx, "pie", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<PieGeometry | null>(null);
@@ -281,13 +313,17 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     if (renderer !== "canvas" || !final || hidden) return;
     const id = `series:${seriesId}`;
     const fn = (c: CanvasRenderingContext2D, st: { progress: number }) => {
-      const paths =
-        prevRef.current === null
-          ? sweepPaths(final!, st.progress)
-          : interpolatedPaths(final!, prevRef.current, st.progress).map(
-              (x) => x.path,
-            );
+      const isEntrance = prevRef.current === null;
+      const p = st.progress;
+      const paths = isEntrance
+        ? animType === "radial"
+          ? radialPaths(final!, p)
+          : animType === "fade"
+            ? final!.slices.map((sl) => sl.path)
+            : sweepPaths(final!, p)
+        : interpolatedPaths(final!, prevRef.current, p).map((x) => x.path);
       c.save();
+      c.globalAlpha = isEntrance && animType === "fade" ? Math.max(0.001, p) : 1;
       c.translate(final.cx, final.cy);
       paths.forEach((path, i) => {
         if (!path) return;
@@ -297,9 +333,11 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
       c.restore();
       // Percentage labels: count up + grow in step with each slice's reveal.
       if (percentLabels.length > 0) {
-        const entrance = prevRef.current === null;
+        const entrance = isEntrance;
         const fracs = entrance
-          ? sliceRevealFractions(final!, st.progress)
+          ? animType === "sweep" || animType === "grow"
+            ? sliceRevealFractions(final!, p)
+            : percentLabels.map(() => p)
           : percentLabels.map(() => 1);
         c.save();
         c.textAlign = "center";
@@ -346,10 +384,16 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
   if (final === null) return null;
 
   if (renderer !== "svg") return null;
-  const paths: { path: string }[] =
-    prev === null
-      ? sweepPaths(final, progress).map((p) => ({ path: p }))
-      : interpolatedPaths(final, prev, progress);
+  const entrance = prev === null;
+  const p = animationsDisabled ? 1 : progress;
+  const paths: { path: string }[] = entrance
+    ? (animType === "radial"
+        ? radialPaths(final, p)
+        : animType === "fade"
+          ? final.slices.map((sl) => sl.path)
+          : sweepPaths(final, p))
+        .map((path) => ({ path }))
+    : interpolatedPaths(final, prev, p);
   const hoveredIndex =
     ctx.hover &&
     ctx.hover.items[0]?.seriesId === seriesId &&
@@ -363,7 +407,11 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
+        opacity:
+          hidden
+            ? 0
+            : seriesDimStyle(hover, seriesId, hoverDim) *
+              (entrance && animType === "fade" ? Math.max(0.001, p) : 1),
         transition: "opacity 250ms ease",
       }}
     >
@@ -384,9 +432,10 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
       })}
       {percentLabels.length > 0 &&
         (() => {
-          const entrance = prev === null;
           const fracs = entrance
-            ? sliceRevealFractions(final, progress)
+            ? animType === "sweep" || animType === "grow"
+              ? sliceRevealFractions(final, p)
+              : percentLabels.map(() => p)
             : percentLabels.map(() => 1);
           return percentLabels.map((lb) => {
             const lp = Math.max(0.001, fracs[lb.index] ?? 0);

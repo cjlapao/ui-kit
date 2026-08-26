@@ -105,6 +105,27 @@ export type EasingName = string;
  * Animation config for a chart root or a single series. `false` disables
  * every animation (entrance, update, exit) — for high-frequency updates.
  */
+export type ChartAnimationType =
+  /**
+   * Default entrance per series type: bars grow from the baseline, lines
+   * draw in, pie slices sweep, polar/radar grow radially.
+   */
+  | "grow"
+  /**
+   * Radial growth from the inner radius / center, every section at the
+   * same time (the polar default; applied to polar, pie and radar).
+   * Cartesian series fall back to {@link grow}.
+   */
+  | "radial"
+  /**
+   * Angular sweep reveal for polar and pie (clockwise from 12 o'clock);
+   * a left-to-right wipe for cartesian series; radar falls back to
+   * {@link radial}.
+   */
+  | "sweep"
+  /** Plain opacity fade-in at full geometry, every series type. */
+  | "fade";
+
 export type ChartAnimation =
   | false
   | {
@@ -112,6 +133,12 @@ export type ChartAnimation =
       duration?: number;
       /** Preset name (see {@link EASING_PRESETS}) or a custom registered name. */
       easing?: string;
+      /**
+       * Entrance style. Only affects the entrance (and re-mounts) — data
+       * updates always morph between the previous and the new geometry.
+       * Defaults to "grow".
+       */
+      type?: ChartAnimationType;
     };
 
 // ── Layout ───────────────────────────────────────────────────────────────────

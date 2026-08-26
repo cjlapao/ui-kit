@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computePolarGeometry,
   computePolarGrid,
+  framePolarSweep,
   framePolarGeometry,
   hitTestPolar,
   nicePolarMax,
@@ -261,6 +262,51 @@ describe("framePolarGeometry", () => {
   it("returns the current geometry when settled or without a previous", () => {
     expect(framePolarGeometry(cur, null, 0.4, base)).toBe(cur);
     expect(framePolarGeometry(cur, prev, 1, base)).toBe(cur);
+  });
+});
+
+describe("framePolarSweep", () => {
+  const geo = computePolarGeometry({
+    categories: ["A", "B", "C", "D"],
+    series: [{ id: "s1", values: [10, 20, 30, 40] }],
+    mode: "group",
+    cx: 0,
+    cy: 0,
+    R: 100,
+    innerR: 0,
+    valueMax: 100,
+    gapAngle: 0.01,
+  });
+
+  it("hides everything before the sweep starts", () => {
+    const framed = framePolarSweep(geo, 0, { cx: 0, cy: 0 });
+    expect(framed.segments.every((s) => s.path === "")).toBe(true);
+  });
+
+  it("reveals clockwise from 12 o'clock, clipping the boundary segment", () => {
+    // Just past the quarter mark: A is fully shown, B (which straddles the
+    // quarter boundary) is partially revealed.
+    const framed = framePolarSweep(geo, 0.3, { cx: 0, cy: 0 });
+    const [a, b, c, d] = framed.segments;
+    expect(a.path).not.toBe("");
+    expect(b.path).not.toBe("");
+    // The boundary segment is clipped: its path differs from the settled
+    // one and the later segments are still hidden.
+    expect(b.path).not.toBe(geo.segments[1].path);
+    expect(c.path).toBe("");
+    expect(d.path).toBe("");
+  });
+
+  it("hides segments past the sweep front", () => {
+    const framed = framePolarSweep(geo, 0.15, { cx: 0, cy: 0 });
+    const [a, , c, d] = framed.segments;
+    expect(a.path).not.toBe("");
+    expect(c.path).toBe("");
+    expect(d.path).toBe("");
+  });
+
+  it("returns the settled geometry at progress 1", () => {
+    expect(framePolarSweep(geo, 1, { cx: 0, cy: 0 })).toBe(geo);
   });
 });
 
