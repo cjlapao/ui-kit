@@ -708,7 +708,7 @@ describe("grid + area gradient options", () => {
     const grid = document.querySelector(
       '[data-chart-feature="yaxis-left"] line',
     ) as SVGLineElement;
-    expect(grid.getAttribute("stroke-dasharray")).toBe("4 4");
+    expect(grid.getAttribute("stroke-dasharray")).toBe("4 3");
     expect(grid.getAttribute("stroke-opacity")).toBe("0.3");
     rerender(
       <Chart.Svg height={300} {...noAnim}>
@@ -851,7 +851,7 @@ describe("XAxis vertical grid controls", () => {
     );
     const vg = verticalGridLines();
     expect(vg.length).toBeGreaterThan(0);
-    expect(vg[0].getAttribute("stroke-dasharray")).toBe("4 4");
+    expect(vg[0].getAttribute("stroke-dasharray")).toBe("4 3");
   });
 
   it("XAxis vertical grid can be disabled", () => {
@@ -1362,6 +1362,234 @@ describe("radar series", () => {
           goalLabel="Launch-ready"
         />
         <Chart.RadarAxis rings={4} />
+      </Chart.Canvas>,
+    );
+    expect(document.querySelector("canvas")).toBeTruthy();
+  });
+});
+
+// ── Polar (rose / nightingale) series ───────────────────────────────────────
+
+const polarData = [
+  { category: "N", value: 42, alt: 12 },
+  { category: "NE", value: 18, alt: 6 },
+  { category: "E", value: 30, alt: 9 },
+  { category: "SE", value: 12, alt: 4 },
+  { category: "S", value: 26, alt: 8 },
+  { category: "SW", value: 55, alt: 20 },
+  { category: "W", value: 48, alt: 16 },
+  { category: "NW", value: 20, alt: 7 },
+];
+
+function renderPolar(
+  seriesProps: Record<string, unknown> = {},
+  secondProps: Record<string, unknown> = {},
+  rootProps: Record<string, unknown> = {},
+  axisProps: Record<string, unknown> = {},
+) {
+  return render(
+    <Chart.Svg height={420} {...noAnim} {...rootProps}>
+      <Chart.Polar
+        data={polarData}
+        name="Morning"
+        valueYField="value"
+        color="blue"
+        {...seriesProps}
+      />
+      <Chart.Polar
+        data={polarData}
+        name="Afternoon"
+        valueYField="alt"
+        color="orange"
+        {...secondProps}
+      />
+      <Chart.PolarAxis {...axisProps} />
+      <Chart.Legend />
+      <Chart.Tooltip />
+      <Chart.Hover />
+    </Chart.Svg>,
+  );
+}
+
+describe("polar series", () => {
+  it("renders one segment per category per series (group mode)", () => {
+    renderPolar();
+    const groups = document.querySelectorAll("[data-chart-series]");
+    expect(groups.length).toBe(2);
+    expect(
+      groups[0].querySelectorAll("path[fill]").length,
+    ).toBe(8);
+    expect(
+      groups[1].querySelectorAll("path[fill]").length,
+    ).toBe(8);
+  });
+
+  it("stack mode keeps the same segment count with banded radii", () => {
+    renderPolar({ mode: "stack" }, { mode: "stack" });
+    const groups = document.querySelectorAll("[data-chart-series]");
+    expect(groups[0].querySelectorAll("path[fill]").length).toBe(8);
+    // Outer segment of category N for the second series must start where the
+    // first ends (plus the band gap) — verify distinct d per series.
+    const first = groups[0].querySelector("path[fill]")!.getAttribute("d")!;
+    const second = groups[1].querySelector("path[fill]")!.getAttribute("d")!;
+    expect(first).not.toBe(second);
+  });
+
+  it("renders the shared circular grid, category labels and legend", () => {
+    renderPolar();
+    const grid = document.querySelector(
+      '[data-chart-layer="polar-grid"]',
+    );
+    expect(grid).toBeTruthy();
+    expect(grid!.querySelectorAll("path").length).toBe(4); // rings
+    expect(grid!.querySelectorAll("line").length).toBe(8); // spokes
+    const labels = grid!.querySelectorAll("text");
+    expect([...labels].some((t) => t.textContent === "N")).toBe(true);
+    expect([...labels].some((t) => t.textContent === "SW")).toBe(true);
+    // legend lists both series
+    expect(document.body.textContent).toContain("Morning");
+    expect(document.body.textContent).toContain("Afternoon");
+  });
+
+  it("gridShape=polygon renders polygon rings and tick labels when enabled", () => {
+    renderPolar({}, {}, {}, { gridShape: "polygon", showTickLabels: true });
+    const grid = document.querySelector(
+      '[data-chart-layer="polar-grid"]',
+    )!;
+    const ring = grid.querySelectorAll("path")[1];
+    expect(ring.getAttribute("d")).toMatch(/^M.*L.*Z$/); // polygon, not arcs
+    const ticks = [...grid.querySelectorAll("text")].filter(
+      (t) => /^\d+$/.test(t.textContent ?? ""),
+    );
+    expect(ticks.length).toBe(4);
+  });
+
+  it("polar tick labels are off by default", () => {
+    renderPolar();
+    const grid = document.querySelector(
+      '[data-chart-layer="polar-grid"]',
+    )!;
+    const ticks = [...grid.querySelectorAll("text")].filter(
+      (t) => /^\d+$/.test(t.textContent ?? ""),
+    );
+    expect(ticks.length).toBe(0);
+  });
+
+  it("dashed grid style applies the dasharray to rings and spokes", () => {
+    renderPolar({}, {}, {}, { gridStyle: "dashed" });
+    const grid = document.querySelector(
+      '[data-chart-layer="polar-grid"]',
+    )!;
+    const ring = grid.querySelector("path")!;
+    expect(ring.getAttribute("stroke-dasharray")).toBe("4 3");
+    const spoke = grid.querySelector("line")!;
+    expect(spoke.getAttribute("stroke-dasharray")).toBe("4 3");
+  });
+
+  it("borderWidth renders a segment outline", () => {
+    renderPolar({ borderWidth: 2 });
+    const outlined = document.querySelectorAll(
+      "[data-chart-series] path[stroke-width='2']",
+    );
+    expect(outlined.length).toBe(8);
+  });
+
+  it("tooltip hit-tests the hovered segment (category header + rows)", () => {
+    renderPolar();
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0, top: 0, right: 800, bottom: 420,
+        width: 800, height: 420, x: 0, y: 0,
+        toJSON() { return this; },
+      }),
+      configurable: true,
+    });
+    const grid = document.querySelector(
+      '[data-chart-layer="polar-grid"] line',
+    ) as SVGLineElement;
+    const cx = Number(grid.getAttribute("x1"));
+    const cy = Number(grid.getAttribute("y1"));
+    const R = Math.hypot(
+      Number(grid.getAttribute("x2")) - cx,
+      Number(grid.getAttribute("y2")) - cy,
+    );
+    // Category N is at the top: aim mid-sub-arc (11.25° right of 12
+    // o'clock for the first series' slot), mid-radius.
+    const a = -Math.PI / 2 + Math.PI / 16;
+    const rect = svg.querySelector("rect[fill='transparent']") as SVGRectElement;
+    fireEvent.pointerMove(rect, {
+      clientX: cx + Math.cos(a) * (R / 3),
+      clientY: cy + Math.sin(a) * (R / 3),
+    });
+    const tip = document.querySelector('[data-chart-feature="tooltip"]');
+    expect(tip).toBeTruthy();
+    const text = tip!.textContent ?? "";
+    expect(text).toContain("N");
+    expect(text).toContain("42");
+    expect(text).toContain("12");
+  });
+
+  it("hoverDim fades non-hovered series only when configured", () => {
+    renderPolar({}, {}, { hoverDim: 0.4 });
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0, top: 0, right: 800, bottom: 420,
+        width: 800, height: 420, x: 0, y: 0,
+        toJSON() { return this; },
+      }),
+      configurable: true,
+    });
+    const grid = document.querySelector(
+      '[data-chart-layer="polar-grid"] line',
+    ) as SVGLineElement;
+    const cx = Number(grid.getAttribute("x1"));
+    const cy = Number(grid.getAttribute("y1"));
+    const R = Math.hypot(
+      Number(grid.getAttribute("x2")) - cx,
+      Number(grid.getAttribute("y2")) - cy,
+    );
+    const a = -Math.PI / 2 + Math.PI / 16;
+    const rect = svg.querySelector("rect[fill='transparent']") as SVGRectElement;
+    fireEvent.pointerMove(rect, {
+      clientX: cx + Math.cos(a) * (R / 3),
+      clientY: cy + Math.sin(a) * (R / 3),
+    });
+    // eslint-disable-next-line no-console
+    console.log(
+      "HOVERDIM-TIP",
+      document.querySelector('[data-chart-feature="tooltip"]')?.textContent,
+    );
+    const groups = document.querySelectorAll("[data-chart-series]");
+    const opacities = [...groups].map((g) =>
+      (g as HTMLElement).style.opacity,
+    );
+    expect(opacities).toContain("0.4");
+    expect(opacities).toContain("1");
+  });
+
+  it("renders on canvas without crashing", () => {
+    render(
+      <Chart.Canvas height={420} {...noAnim}>
+        <Chart.Polar
+          data={polarData}
+          name="Morning"
+          valueYField="value"
+          color="blue"
+          mode="stack"
+          innerRadius={0.3}
+          segmentRadius={6}
+        />
+        <Chart.Polar
+          data={polarData}
+          name="Afternoon"
+          valueYField="alt"
+          color="orange"
+          mode="stack"
+          innerRadius={0.3}
+        />
+        <Chart.PolarAxis gridLines={3} sort="desc" />
       </Chart.Canvas>,
     );
     expect(document.querySelector("canvas")).toBeTruthy();

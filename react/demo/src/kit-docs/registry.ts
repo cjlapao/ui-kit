@@ -47,7 +47,7 @@ export const DOC_COMPONENTS: DocComponent[] = [
     slug: "side-menu",
     name: "Side Menu",
     description:
-      "App navigation in four surface treatments, with icon/offcanvas collapse, hover rails, nested items, search and top/footer menus — plus dual and multi-sidebar layouts.",
+      "App navigation in five surface treatments, with icon/offcanvas collapse, hover rails, nested items, search and top/footer menus — plus dual and multi-sidebar layouts.",
     icon: "ViewRows",
     category: "Layout",
     Page: lazy(() => import("./components/side-menu/SideMenuPage")),
@@ -102,7 +102,7 @@ export const DOC_COMPONENTS: DocComponent[] = [
     name: "Accordion",
     description:
       "A stacked disclosure list built on Panel — every container surface, tone, corner and padding on the shared control size, with arrow-key navigation, inert collapsed rows and per-row loaders.",
-    icon: "ViewRows",
+    icon: "Accordion",
     category: "Layout",
     Page: lazy(() => import("./components/accordion/AccordionPage")),
   },
@@ -429,6 +429,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Star",
     category: "Charts",
     Page: lazy(() => import("./components/charts/RadarChartPage")),
+  },
+  {
+    slug: "charts-polar",
+    name: "Polar",
+    description:
+      "A rose / nightingale chart: segments fanned out from the center, grouped side-by-side or stacked radially, with circular or polygonal grid rings.",
+    icon: "Globe",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/PolarChartPage")),
   },
   {
     slug: "charts-annotations",

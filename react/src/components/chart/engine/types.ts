@@ -427,3 +427,66 @@ export interface RadarLayout {
   /** Axis labels in order (0 = 12 o'clock). */
   axes: string[];
 }
+
+
+/** One annular sector of a polar (rose) chart. */
+export interface PolarSegment {
+  /** Sector path (rounded annular wedge). */
+  path: string;
+  /** Sector angle span (radians). */
+  a0: number;
+  a1: number;
+  midAngle: number;
+  rInner: number;
+  rOuter: number;
+  value: number;
+  categoryIndex: number;
+  seriesId: string;
+  seriesIndex: number;
+}
+
+/** Computed polar geometry for one series. */
+export interface PolarGeometry {
+  segments: PolarSegment[];
+  mode: "group" | "stack";
+  /** Category count. */
+  n: number;
+}
+
+/** Shared polar grid (rings, spokes, tick labels). */
+export interface PolarGrid {
+  cx: number;
+  cy: number;
+  R: number;
+  ringValues: number[];
+  ringPaths: string[];
+  spokes: { x1: number; y1: number; x2: number; y2: number; label: string; angle: number }[];
+  /** Tick labels along the first (top) axis. */
+  tickLabels: { x: number; y: number; text: string }[];
+}
+
+/** Polar layout shared with the series (published by the root). */
+export interface PolarLayout {
+  cx: number;
+  cy: number;
+  R: number;
+  innerR: number;
+  domainMax: number;
+  valueMax: number;
+  /** Category labels in order (0 = 12 o'clock). */
+  categories: string[];
+  /** Display order → data row index (all series share row order). */
+  categoryOrder: number[];
+  /** Sort order applied to categories. */
+  sort: "none" | "desc" | "asc";
+  /** Mode of the FIRST polar series (drives valueMax derivation). */
+  mode: "group" | "stack";
+  /** Segment corner radius (px). */
+  segmentRadius: number;
+  /** Band gap (px) for stack mode. */
+  bandGap: number;
+  /** Angular gap (radians) between slots. */
+  gapAngle: number;
+  /** Per-category totals across all polar series (drives the shared stack scale). */
+  categoryTotals: number[];
+}

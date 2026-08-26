@@ -417,3 +417,51 @@ export const readinessData: ReadinessPoint[] = [
 
 /** The launch-ready gate on the target bar (pts). */
 export const readinessGoal = 80;
+
+// ── Polar (rose / nightingale) ───────────────────────────────────────────────
+
+/** One workflow sector: weekly runs split by how much of the work a person
+ *  had to do. Stacked radially in the polar scenarios. */
+export interface WorkflowPoint {
+  sector: string;
+  autonomous: number;
+  assisted: number;
+  manual: number;
+}
+
+/** 12 product-workflow sectors (weekly runs). The autonomous share lands
+ *  at ≈ 59 % of all runs — the figure in the stacked example's center. */
+export const workflowData: WorkflowPoint[] = [
+  { sector: "Sketch import", autonomous: 42, assisted: 14, manual: 6 },
+  { sector: "Layout refine", autonomous: 36, assisted: 12, manual: 6 },
+  { sector: "Prompt kit", autonomous: 48, assisted: 12, manual: 6 },
+  { sector: "Search assist", autonomous: 30, assisted: 18, manual: 8 },
+  { sector: "Anomaly scan", autonomous: 38, assisted: 13, manual: 5 },
+  { sector: "Group finder", autonomous: 24, assisted: 18, manual: 10 },
+  { sector: "Priority sort", autonomous: 33, assisted: 13, manual: 7 },
+  { sector: "Diagram map", autonomous: 18, assisted: 20, manual: 12 },
+  { sector: "Link review", autonomous: 22, assisted: 16, manual: 10 },
+  { sector: "Release notes", autonomous: 40, assisted: 9, manual: 4 },
+  { sector: "Code snippet", autonomous: 31, assisted: 12, manual: 5 },
+  { sector: "QA sweep", autonomous: 14, assisted: 15, manual: 12 },
+];
+
+/** One GP sector: lap time (s) per team. Grouped side-by-side in the
+ *  polar scenarios. */
+export interface MonacoPoint {
+  sector: string;
+  redBull: number;
+  ferrari: number;
+  mercedes: number;
+}
+
+export const monacoData: MonacoPoint[] = [
+  { sector: "S1", redBull: 81.2, ferrari: 82.6, mercedes: 83.4 },
+  { sector: "S2", redBull: 74.8, ferrari: 75.9, mercedes: 75.1 },
+  { sector: "S3", redBull: 68.4, ferrari: 69.2, mercedes: 67.9 },
+  { sector: "S4", redBull: 77.5, ferrari: 76.8, mercedes: 78.1 },
+  { sector: "S5", redBull: 71.9, ferrari: 72.4, mercedes: 71.2 },
+  { sector: "S6", redBull: 79.3, ferrari: 80.1, mercedes: 79.8 },
+  { sector: "S7", redBull: 83.6, ferrari: 82.9, mercedes: 84.2 },
+  { sector: "S8", redBull: 88.1, ferrari: 87.4, mercedes: 88.9 },
+];

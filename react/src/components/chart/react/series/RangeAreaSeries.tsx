@@ -21,7 +21,11 @@ import type {
   RangeAreaGeometry,
 } from "../../engine/types";
 import { useChart } from "../ChartContext";
-import { findSeries, valueScaleFor } from "../series-common";
+import {
+  findSeries,
+  valueScaleFor,
+  seriesDimStyle
+} from "../series-common";
 import type { RangeAreaSeriesProps } from "../props";
 import { AreaFillGradientDef, canvasAreaFill } from "./AreaFill";
 
@@ -57,7 +61,7 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
     registerDraw,
     unregisterDraw,
     hover,
-    theme,
+    theme,hoverDim,
   } = ctx;
   const me = findSeries(
     ctx,
@@ -284,7 +288,7 @@ export function RangeAreaSeries(props: RangeAreaSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : 1,
+        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}

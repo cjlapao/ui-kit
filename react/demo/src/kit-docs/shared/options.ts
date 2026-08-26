@@ -41,7 +41,7 @@ import {
   TOGGLE_VARIANTS,
   CONNECTION_FLOW_EDGE_STYLES,
   CONNECTION_FLOW_PROGRESS_TYPES,
-  CONNECTION_FLOW_RENDERERS,
+  CONNECTION_FLOW_RING_SIZES,
   CONNECTION_STATES,
   TRUE_COLORS,
   TREE_SIZES,
@@ -191,9 +191,6 @@ export const glassOpacityOptions: { label: string; value: string }[] = [
 export const trueColorOptions = toOptions(TRUE_COLORS);
 
 // ConnectionFlow — all from the kit's own runtime lists.
-export const connectionFlowRendererOptions = toOptions(
-  CONNECTION_FLOW_RENDERERS,
-);
 export const connectionFlowEdgeStyleOptions = toOptions(
   CONNECTION_FLOW_EDGE_STYLES,
 );
@@ -201,6 +198,9 @@ export const connectionFlowProgressOptions = toOptions(
   CONNECTION_FLOW_PROGRESS_TYPES,
 );
 export const connectionStateOptions = toOptions(CONNECTION_STATES);
+export const connectionFlowRingSizeOptions = toOptions(
+  CONNECTION_FLOW_RING_SIZES,
+);
 
 // ── GlassBackground ─────────────────────────────────────────────────────────
 
@@ -224,6 +224,11 @@ export const gradientDirectionOptions: {
 export const sidebarVariantOptions = toOptions(SIDEBAR_VARIANTS);
 export const sidebarCollapsibleOptions = toOptions(SIDEBAR_COLLAPSIBLE_MODES);
 export const sidebarSideOptions = toOptions(SIDEBAR_SIDES);
+export const sidebarLoaderTypeOptions: MultiToggleOption[] = [
+  { label: "Skeleton", value: "skeleton" },
+  { label: "Spinner", value: "spinner" },
+  { label: "Progress", value: "progress" },
+];
 
 // ── Tree ───────────────────────────────────────────────────────────────────
 
@@ -617,6 +622,48 @@ export const chartKindOptions: MultiToggleOption[] = [
   { label: "Candlestick", value: "candlestick" },
   { label: "Range", value: "range" },
   { label: "Radar", value: "radar" },
+  { label: "Polar", value: "polar" },
+];
+
+/** Polar layout modes (the kit's polar `mode` prop). */
+export const chartPolarModeOptions: MultiToggleOption[] = [
+  { label: "Grouped", value: "group" },
+  { label: "Stacked", value: "stack" },
+];
+
+/** Polar category ordering (totals per category). */
+export const chartPolarSortOptions: MultiToggleOption[] = [
+  { label: "Data order", value: "none" },
+  { label: "High → low", value: "desc" },
+  { label: "Low → high", value: "asc" },
+];
+
+/** Polar segment corner radii in px. */
+export const chartPolarRadiusOptions: MultiToggleOption[] = [
+  { label: "Sharp", value: "0" },
+  { label: "Subtle", value: "2" },
+  { label: "Rounded", value: "6" },
+  { label: "Heavy", value: "10" },
+];
+
+/** Polar segment outline width in px. */
+export const chartPolarBorderOptions: MultiToggleOption[] = [
+  { label: "None", value: "0" },
+  { label: "Hairline", value: "1" },
+  { label: "Bold", value: "2" },
+];
+
+/** Polar grid ring shape. */
+export const chartPolarShapeOptions: MultiToggleOption[] = [
+  { label: "Circle", value: "circle" },
+  { label: "Polygon", value: "polygon" },
+];
+
+/** Polar grid ring style. */
+export const chartPolarGridStyleOptions: MultiToggleOption[] = [
+  { label: "Solid", value: "solid" },
+  { label: "Dashed", value: "dashed" },
+  { label: "Dotted", value: "dotted" },
 ];
 
 /** Area fill style for the range playground. */

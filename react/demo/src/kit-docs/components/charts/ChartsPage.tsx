@@ -35,6 +35,11 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "spider polygons, dashed gates, goal markers",
   },
   {
+    slug: "charts-polar",
+    label: "Polar",
+    blurb: "rose segments, stacked radially or grouped per slot",
+  },
+  {
     slug: "charts-annotations",
     label: "Reference & Callouts",
     blurb: "bands, rules, annotation callouts",

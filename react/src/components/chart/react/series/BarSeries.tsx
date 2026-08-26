@@ -11,7 +11,11 @@ import {
 } from "../../engine/index";
 import type { BarGeometry, CategoricalScale } from "../../engine/types";
 import { useChart } from "../ChartContext";
-import { findSeries, valueScaleFor } from "../series-common";
+import {
+  findSeries,
+  valueScaleFor,
+  seriesDimStyle
+} from "../series-common";
 import type { BarSeriesProps } from "../props";
 
 interface FrameBar {
@@ -51,7 +55,9 @@ function frameBars(
 
 export function BarSeries(props: BarSeriesProps<unknown>) {
   const ctx = useChart();
-  const { renderer, xScale, progress, registerDraw, unregisterDraw } = ctx;
+  const { renderer, xScale, progress, registerDraw, unregisterDraw,hover,
+    hoverDim,
+  } = ctx;
   const me = findSeries(ctx, "bar", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<BarGeometry | null>(null);
   const prevRef = useRef<BarGeometry | null>(null);
@@ -214,7 +220,7 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : 1,
+        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}

@@ -15,7 +15,10 @@ import {
 } from "../../engine/index";
 import type { PieGeometry } from "../../engine/types";
 import { useChart } from "../ChartContext";
-import { findSeries } from "../series-common";
+import {
+  findSeries,
+  seriesDimStyle
+} from "../series-common";
 import type { PieSeriesProps } from "../props";
 
 const TWO_PI = Math.PI * 2;
@@ -133,6 +136,8 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     progress,
     registerDraw,
     unregisterDraw,
+    hoverDim,
+    hover,
   } = ctx;
   const me = findSeries(ctx, "pie", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<PieGeometry | null>(null);
@@ -352,7 +357,7 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : 1,
+        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
         transition: "opacity 250ms ease",
       }}
     >

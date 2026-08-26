@@ -18,7 +18,7 @@ type Ctx = ReturnType<typeof useChart>;
  */
 export function findSeries(
   ctx: Ctx,
-  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar",
+  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" | "polar",
   myId: string | undefined,
   data: unknown[],
   token?: object,
@@ -64,4 +64,44 @@ export function lerpArray(a: number[], b: number[], t: number): number[] {
 /** True when the global animation has settled (or is disabled). */
 export function isSettled(ctx: Ctx): boolean {
   return ctx.progress >= 1 || ctx.animationsDisabled;
+}
+
+
+/**
+ * Dim opacity for a series group while another series is hovered (the
+ * root's `hoverDim` prop; 1 = off). A series whose own mark is under the
+ * pointer keeps full opacity; the others fade to hoverDim.
+ */
+/**
+ * Dim opacity for a series group while another series is hovered (the
+ * root's `hoverDim` prop; 1 = off). A series whose own mark is under the
+ * pointer keeps full opacity; the others fade to hoverDim.
+ */
+export function seriesDimStyle(
+  hover: { items: { seriesId: string }[] } | null,
+  seriesId: string,
+  hoverDim: number,
+): number {
+  if (!hover || hoverDim >= 1) return 1;
+  if (hover.items.some((i) => i.seriesId === seriesId)) return 1;
+  return hoverDim;
+}
+
+/**
+ * Dim opacity for polar (rose) series: the hover state carries one row per
+ * series of the hovered category (index = that category's data row). A
+ * series whose own segment at that row was hit (its row is present) keeps
+ * full opacity; the others fade to hoverDim.
+ */
+export function polarSeriesDimStyle(
+  hover: { items: { seriesId: string; index?: number }[] } | null,
+  seriesId: string,
+  hoverDim: number,
+): number {
+  if (!hover || hoverDim >= 1) return 1;
+  // The root tags the pointer-hit series with its real id and prefixes the
+  // others ("polar-dim:…") — so an un-prefixed row for this series means
+  // the pointer is on this series' segment.
+  if (hover.items.some((i) => i.seriesId === seriesId)) return 1;
+  return hoverDim;
 }

@@ -33,6 +33,7 @@ import type {
   ChartThemeTokens,
   ContinuousScale,
   HoverState,
+  PolarLayout,
   RadarLayout,
 } from "../engine/types";
 import type { SeriesDescriptor } from "./props";
@@ -96,6 +97,8 @@ export interface ChartContextValue {
   /** Current hover state (null when nothing is hovered). */
   hover: HoverState | null;
   setHover: (state: HoverState | null) => void;
+  /** Dim opacity for non-hovered series (1 = off). */
+  hoverDim: number;
   hoverEnabled: boolean;
   tooltipMode: "shared" | "follow" | "crosshair";
 
@@ -130,6 +133,12 @@ export interface ChartContextValue {
    * labels). Null when the chart has no radar series.
    */
   radar: RadarLayout | null;
+
+  /**
+   * Shared polar (rose) layout (center, radius, hole, domain, categories).
+   * Null when the chart has no polar series.
+   */
+  polar: PolarLayout | null;
 
   /**
    * Element-identity → SeriesState. The root stamps every series element

@@ -21,7 +21,11 @@ import type {
   MarkerShape,
 } from "../../engine/types";
 import { useChart } from "../ChartContext";
-import { findSeries, valueScaleFor } from "../series-common";
+import {
+  findSeries,
+  valueScaleFor,
+  seriesDimStyle
+} from "../series-common";
 import type { LineSeriesProps } from "../props";
 import {
   AreaFillGradientDef,
@@ -134,7 +138,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     registerDraw,
     unregisterDraw,
     hover,
-    theme,
+    theme,hoverDim,
   } = ctx;
   const me = findSeries(ctx, "line", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const clipId = useId().replace(/:/g, "");
@@ -391,7 +395,7 @@ export function LineSeries(props: LineSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : 1,
+        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}

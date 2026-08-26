@@ -47,12 +47,20 @@ import {
   prefersReducedMotion,
   resolveColor,
   toDate,
+  computePolarGeometry,
+  computePolarGrid,
+  gridDashArray,
+  gridLineDash,
+  hitTestPolar,
+  nicePolarMax,
+  resolveGrid,
 } from "../engine/index";
 import type {
   AnyScale,
   ChartLayout,
   ContinuousScale,
   HoverState,
+  PolarLayout,
   RadarLayout,
 } from "../engine/types";
 import { useTheme } from "../../../hooks/useTheme";
@@ -78,6 +86,8 @@ export interface ChildTypeRegistry {
   Line: ComponentType<any>;
   Radar: ComponentType<any>;
   RadarAxis: ComponentType<any>;
+  Polar: ComponentType<any>;
+  PolarAxis: ComponentType<any>;
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
@@ -94,6 +104,7 @@ export interface ChildTypeRegistry {
   Annotation: ComponentType<any>;
   DataLabels: ComponentType<any>;
   PieCenter: ComponentType<any>;
+  PolarCenter: ComponentType<any>;
   AxisBadges: ComponentType<any>;
 }
 
@@ -135,7 +146,7 @@ function collectXValues(descriptors: ChartChildrenSummary["series"]): (
 )[] {
   const out: (number | Date | string)[] = [];
   for (const d of descriptors) {
-    if (d.type === "pie" || d.type === "radar") continue;
+    if (d.type === "pie" || d.type === "radar" || d.type === "polar") continue;
     for (let i = 0; i < d.data.length; i++) {
       const v = d.xAccessor(d.data[i], i);
       if (v !== null && v !== undefined && v !== "") out.push(v);
@@ -169,6 +180,7 @@ function computeYDomain(
     (d) =>
       d.type !== "pie" &&
       d.type !== "radar" &&
+      d.type !== "polar" &&
       !hidden.has(d.id) &&
       (d.yAccessor !== undefined ||
         (d.type === "candlestick" && d.lowAccessor !== undefined) ||
@@ -293,10 +305,12 @@ export function ChartRootImpl({
   loading,
   error,
   ariaLabel,
+  hoverDim,
   children,
   hostRef,
   renderer,
 }: ChartRootProps & { renderer: ChartRenderer; hostRef: Ref<ChartHandle> }) {
+  const hoverDimValue = Math.max(0, Math.min(1, hoverDim ?? 1));
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(800);
   const height = heightProp ?? 400;
@@ -328,10 +342,12 @@ export function ChartRootImpl({
   );
 
   const cartesianSeries = summary.series.filter(
-    (d) => d.type !== "pie" && d.type !== "radar",
+    (d) => d.type !== "pie" && d.type !== "radar" && d.type !== "polar",
   );
   const radarSeries = summary.series.filter((d) => d.type === "radar");
   const hasRadar = radarSeries.length > 0;
+  const polarSeries = summary.series.filter((d) => d.type === "polar");
+  const hasPolar = polarSeries.length > 0;
   const hasCartesian = cartesianSeries.length > 0;
   const showXAxis = hasCartesian || summary.hasXAxis;
   const showYAxis = hasCartesian;
@@ -445,6 +461,142 @@ export function ChartRootImpl({
     });
   }, [radarLayout, summary.radarAxis]);
 
+  // The polar center/radius/labels live in the plot area; rings and spokes
+  // are computed once and shared by the grid layer and every polar series.
+  const polarLayout = useMemo<PolarLayout | null>(() => {
+    if (!hasPolar || area.width <= 0 || area.height <= 0) return null;
+    const first = polarSeries[0];
+    const cats: { label: string; index: number }[] = [];
+    const seen = new Set<string>();
+    for (let i = 0; i < first.data.length; i++) {
+      const label = String(
+        first.polarCategoryAccessor?.(first.data[i], i) ?? i,
+      );
+      if (!seen.has(label)) {
+        seen.add(label);
+        cats.push({ label, index: i });
+      }
+    }
+    if (cats.length < 2) return null; // need ≥2 categories
+    const cx = area.x + area.width / 2;
+    const cy = area.y + area.height / 2;
+    const R = Math.max(10, Math.min(area.width, area.height) / 2 - 56);
+    const cfg = summary.polarAxis;
+    const mode = first.polarMode ?? "group";
+    const rings = cfg?.gridLines ?? 4;
+    // Category totals (all polar series) drive sort + the stack scale.
+    const totals = cats.map((c) => {
+      let t = 0;
+      for (const d of polarSeries) {
+        const v = d.polarAccessor?.(d.data[c.index], c.index);
+        if (v !== null && v !== undefined && Number.isFinite(v as number))
+          t += v as number;
+      }
+      return t;
+    });
+    let order = cats.map((_, i) => i);
+    const sort = cfg?.sort ?? "none";
+    if (sort === "desc")
+      order = order.slice().sort((a, b) => totals[b] - totals[a]);
+    else if (sort === "asc")
+      order = order.slice().sort((a, b) => totals[a] - totals[b]);
+    const categories = order.map((i) => cats[i].label);
+    const categoryOrder = order.map((i) => cats[i].index);
+    // Cross-series totals per DISPLAYED category (shared stack scale).
+    const categoryTotals = order.map((_, j) => {
+      const dataIdx = categoryOrder[j];
+      let t = 0;
+      for (const d of polarSeries) {
+        const v = d.polarAccessor?.(d.data[dataIdx], dataIdx);
+        if (v !== null && v !== undefined && Number.isFinite(v as number))
+          t += v as number;
+      }
+      return t;
+    });
+    let domainMax = cfg?.domainMax;
+    if (!Number.isFinite(domainMax) || (domainMax as number) <= 0) {
+      let max = 0;
+      for (const d of polarSeries) {
+        for (let i = 0; i < d.data.length; i++) {
+          const v = d.polarAccessor?.(d.data[i], i);
+          if (v !== null && v !== undefined && Number.isFinite(v as number))
+            max = Math.max(max, v as number);
+        }
+      }
+      if (mode === "stack") {
+        // Stack mode scales on the max category total.
+        max = Math.max(max, ...totals);
+      }
+      domainMax = nicePolarMax(max, rings);
+    }
+    const innerR =
+      Math.max(
+        ...polarSeries.map(
+          (d) => Math.max(0, Math.min(0.95, d.polarInnerRadius ?? 0)),
+        ),
+        0,
+      ) * R;
+    const gapPx = first.polarSegmentGap ?? 3;
+    return {
+      cx,
+      cy,
+      R,
+      innerR,
+      domainMax: domainMax as number,
+      valueMax: domainMax as number,
+      categories,
+      categoryOrder,
+      sort,
+      mode,
+      segmentRadius: first.polarSegmentRadius ?? 0,
+      bandGap: 3,
+      gapAngle: Math.max(0.008, gapPx / R),
+      categoryTotals,
+    };
+  }, [hasPolar, area, polarSeries, summary.polarAxis]);
+
+  const polarGrid = useMemo(() => {
+    if (!polarLayout) return null;
+    return computePolarGrid({
+      categories: polarLayout.categories,
+      cx: polarLayout.cx,
+      cy: polarLayout.cy,
+      R: polarLayout.R,
+      rings: summary.polarAxis?.gridLines ?? 4,
+      domainMax: polarLayout.domainMax,
+      shape: summary.polarAxis?.gridShape ?? "circle",
+      format: summary.polarAxis?.tickFormat,
+    });
+  }, [polarLayout, summary.polarAxis]);
+
+  // Resolved grid styles (shared GridSpec) for the radial grids.
+  const radarGridSpec = useMemo(
+    () =>
+      resolveGrid(
+        {
+          gridStyle: summary.radarAxis?.gridStyle,
+          gridWidth: summary.radarAxis?.gridWidth,
+          gridOpacity: summary.radarAxis?.gridOpacity,
+          gridColor: summary.radarAxis?.gridColor,
+        },
+        tokens.gridColor,
+      ),
+    [summary.radarAxis, tokens.gridColor],
+  );
+  const polarGridSpec = useMemo(
+    () =>
+      resolveGrid(
+        {
+          gridStyle: summary.polarAxis?.gridStyle,
+          gridWidth: summary.polarAxis?.gridWidth,
+          gridOpacity: summary.polarAxis?.gridOpacity,
+          gridColor: summary.polarAxis?.gridColor,
+        },
+        tokens.gridColor,
+      ),
+    [summary.polarAxis, tokens.gridColor],
+  );
+
   // ── Scales ─────────────────────────────────────────────────────────────────
   const xDomainValues = useMemo(
     () => collectXValues(cartesianSeries),
@@ -557,7 +709,8 @@ export function ChartRootImpl({
           t === reg.Pie ||
           t === reg.Candlestick ||
           t === reg.RangeArea ||
-          t === reg.Radar)
+          t === reg.Radar ||
+          t === reg.Polar)
       ) {
         const state = series[k];
         if (state) map.set(c, state);
@@ -636,23 +789,27 @@ export function ChartRootImpl({
     if (!radarGrid || renderer !== "canvas") return;
     const g = radarGrid;
     const showLabels = summary.radarAxis?.showAxisLabels !== false;
+    const spec = radarGridSpec;
     registerDraw(
       "radar-grid",
       (c) => {
         c.save();
-        c.lineWidth = 1;
-        c.strokeStyle = tokens.gridColor;
+        c.lineWidth = spec.width;
+        c.strokeStyle = spec.color;
+        c.globalAlpha = spec.opacity;
+        c.setLineDash(gridLineDash(spec.style));
         for (const d of g.ringPaths) {
           c.stroke(new Path2D(d));
         }
-        c.globalAlpha = 0.55;
+        c.setLineDash([]);
+        c.globalAlpha = 0.55 * spec.opacity;
         c.beginPath();
         for (const sp of g.spokes) {
           c.moveTo(sp.x1, sp.y1);
           c.lineTo(sp.x2, sp.y2);
         }
         c.stroke();
-        c.globalAlpha = 1;
+        c.globalAlpha = spec.opacity;
         c.font = "10px sans-serif";
         c.fillStyle = tokens.subtleText;
         c.textAlign = "right";
@@ -671,12 +828,70 @@ export function ChartRootImpl({
             c.fillText(sp.label, lx, ly);
           }
         }
+        c.globalAlpha = 1;
         c.restore();
       },
       "back",
     );
     return () => unregisterDraw("radar-grid");
-  }, [radarGrid, renderer, registerDraw, unregisterDraw, tokens, summary.radarAxis]);
+  }, [radarGrid, renderer, registerDraw, unregisterDraw, tokens, summary.radarAxis, radarGridSpec]);
+
+  // Canvas: paint the shared polar grid (rings, spokes, labels) in the back
+  // layer, ahead of the segment marks.
+  useEffect(() => {
+    if (!polarGrid || !polarLayout || renderer !== "canvas") return;
+    const g = polarGrid;
+    const showTickLabels = summary.polarAxis?.showTickLabels === true;
+    const showLabels =
+      polarSeries[0]?.polarShowLabels !== false && polarSeries.length > 0;
+    const spec = polarGridSpec;
+    registerDraw(
+      "polar-grid",
+      (c) => {
+        c.save();
+        c.lineWidth = spec.width;
+        c.strokeStyle = spec.color;
+        c.globalAlpha = spec.opacity;
+        c.setLineDash(gridLineDash(spec.style));
+        for (const d of g.ringPaths) {
+          c.stroke(new Path2D(d));
+        }
+        c.setLineDash([]);
+        c.globalAlpha = 0.55 * spec.opacity;
+        c.beginPath();
+        for (const sp of g.spokes) {
+          c.moveTo(sp.x1, sp.y1);
+          c.lineTo(sp.x2, sp.y2);
+        }
+        c.stroke();
+        if (showTickLabels) {
+          c.globalAlpha = spec.opacity;
+          c.font = "10px sans-serif";
+          c.fillStyle = tokens.subtleText;
+          c.textAlign = "right";
+          c.textBaseline = "middle";
+          for (const t of g.tickLabels) c.fillText(t.text, t.x, t.y);
+        }
+        if (showLabels) {
+          c.globalAlpha = 1;
+          c.font = "11px sans-serif";
+          c.fillStyle = tokens.textColor;
+          for (const sp of g.spokes) {
+            const cos = Math.cos(sp.angle);
+            const sin = Math.sin(sp.angle);
+            const lx = g.cx + (g.R + 14) * cos;
+            const ly = g.cy + (g.R + 14) * sin;
+            c.textAlign = Math.abs(cos) < 0.3 ? "center" : cos > 0 ? "left" : "right";
+            c.textBaseline = Math.abs(sin) < 0.3 ? "middle" : sin > 0 ? "top" : "bottom";
+            c.fillText(sp.label, lx, ly);
+          }
+        }
+        c.restore();
+      },
+      "back",
+    );
+    return () => unregisterDraw("polar-grid");
+  }, [polarGrid, polarLayout, renderer, registerDraw, unregisterDraw, tokens, summary.polarAxis, polarGridSpec, polarSeries]);
   const requestRedraw = useCallback(() => setRedrawNonce((n) => n + 1), []);
 
   useImperativeHandle(
@@ -760,8 +975,14 @@ export function ChartRootImpl({
       const radarVisible = visible.filter(
         (s) => s.descriptor.type === "radar",
       );
+      const polarVisible = visible.filter(
+        (s) => s.descriptor.type === "polar",
+      );
       const cartVisible = visible.filter(
-        (s) => s.descriptor.type !== "pie" && s.descriptor.type !== "radar",
+        (s) =>
+          s.descriptor.type !== "pie" &&
+          s.descriptor.type !== "radar" &&
+          s.descriptor.type !== "polar",
       );
 
       // Radar charts: snap to the nearest axis, one row per series.
@@ -805,6 +1026,72 @@ export function ChartRootImpl({
           y: cy + R * Math.sin(a),
           pointerY: py,
           rawX: axes[idx],
+          items,
+        };
+      }
+
+      // Polar charts: exact segment hit test, one row per series.
+      if (polarVisible.length > 0 && cartVisible.length === 0 && polarLayout) {
+        const { cx, cy, R, categories, categoryOrder, valueMax, innerR, mode } =
+          polarLayout;
+        if (Math.hypot(px - cx, py - cy) > R * 1.15) return null;
+        const geometry = computePolarGeometry({
+          categories,
+          series: polarVisible.map((s) => ({
+            id: s.descriptor.id,
+            values: s.descriptor.data.map((item, i) => {
+              const v = s.descriptor.polarAccessor?.(item, i);
+              return v === undefined ? null : v;
+            }),
+          })),
+          mode,
+          cx,
+          cy,
+          R,
+          innerR,
+          valueMax,
+          maxTotal: Math.max(
+            ...polarLayout.categoryTotals,
+            0,
+          ),
+          gapAngle: polarLayout.gapAngle,
+          bandGap: polarLayout.bandGap,
+          segmentRadius: 0,
+        });
+        const hit = hitTestPolar(geometry.segments, px, py, cx, cy);
+        if (!hit) return null;
+        const dataIdx = categoryOrder[hit.categoryIndex];
+        const yMid =
+          cy + ((hit.rInner + hit.rOuter) / 2) * Math.sin(hit.midAngle);
+        const items: HoverState["items"] = [];
+        // Every series of the hovered category gets a row (tooltip lists
+        // them all); the pointer-hit series is tagged as the "hovered"
+        // one (seriesId = its id) and the others are prefixed so hoverDim
+        // fades exactly the non-hit series while the Tooltip keeps the
+        // clean series names via `name`.
+        for (const s of polarVisible) {
+          const d = s.descriptor;
+          const row = d.data[dataIdx];
+          const v = d.polarAccessor?.(row, dataIdx);
+          if (v === null || v === undefined || !Number.isFinite(v as number))
+            continue;
+          const isHit = d.id === hit.seriesId;
+          items.push({
+            seriesId: isHit ? d.id : `polar-dim:${d.id}`,
+            name: d.name,
+            color: s.color,
+            value: v as number,
+            y: yMid,
+            item: row,
+            index: dataIdx,
+          });
+        }
+        if (items.length === 0) return null;
+        return {
+          x: cx + ((hit.rInner + hit.rOuter) / 2) * Math.cos(hit.midAngle),
+          y: yMid,
+          pointerY: py,
+          rawX: categories[hit.categoryIndex],
           items,
         };
       }
@@ -1156,6 +1443,8 @@ export function ChartRootImpl({
       seriesTokens,
       piePresentations: piePresentationsRef.current,
       radar: radarLayout,
+      polar: polarLayout,
+      hoverDim: hoverDimValue,
     }),
     [
       renderer,
@@ -1200,6 +1489,7 @@ export function ChartRootImpl({
   const tooltipEl: ReactNode[] = [];
   const dataLabelsEl: ReactNode[] = [];
   const pieCenterEl: ReactNode[] = [];
+  const polarCenterEl: ReactNode[] = [];
   const axisBadgesEl: ReactNode[] = [];
   for (const c of elements) {
     if (typeof c !== "object" || c === null || !("$typeof" in c || "$$typeof" in c)) {
@@ -1213,6 +1503,7 @@ export function ChartRootImpl({
     else if (el.type === reg?.Tooltip) tooltipEl.push(c);
     else if (el.type === reg?.DataLabels) dataLabelsEl.push(c);
     else if (el.type === reg?.PieCenter) pieCenterEl.push(c);
+    else if (el.type === reg?.PolarCenter) polarCenterEl.push(c);
     else if (el.type === reg?.AxisBadges) axisBadgesEl.push(c);
     else if (el.type === reg?.Hover) {
       // Hover renders null — kept out of the plot layer.
@@ -1222,7 +1513,8 @@ export function ChartRootImpl({
       el.type === reg?.Pie ||
       el.type === reg?.Candlestick ||
       el.type === reg?.RangeArea ||
-      el.type === reg?.Radar
+      el.type === reg?.Radar ||
+      el.type === reg?.Polar
     ) {
       // Stamp the series with its element identity (see seriesTokens).
       plotChildren.push(
@@ -1230,8 +1522,8 @@ export function ChartRootImpl({
           __chartSeriesToken: c,
         }),
       );
-    } else if (el.type === reg?.RadarAxis) {
-      // Consumed by the root's radar grid — never rendered as a child.
+    } else if (el.type === reg?.RadarAxis || el.type === reg?.PolarAxis) {
+      // Consumed by the root's shared grid — never rendered as a child.
     } else if (
       el.type === reg?.XAxis ||
       el.type === reg?.YAxis ||
@@ -1290,8 +1582,10 @@ export function ChartRootImpl({
                     key={`ring-${i}`}
                     d={d}
                     fill="none"
-                    stroke={tokens.gridColor}
-                    strokeWidth={1}
+                    stroke={radarGridSpec.color}
+                    strokeWidth={radarGridSpec.width}
+                    strokeDasharray={gridDashArray(radarGridSpec.style)}
+                    opacity={radarGridSpec.opacity}
                   />
                 ))}
                 {radarGrid.spokes.map((sp, i) => (
@@ -1301,9 +1595,10 @@ export function ChartRootImpl({
                     y1={sp.y1}
                     x2={sp.x2}
                     y2={sp.y2}
-                    stroke={tokens.gridColor}
-                    strokeWidth={1}
-                    opacity={0.55}
+                    stroke={radarGridSpec.color}
+                    strokeWidth={radarGridSpec.width}
+                    strokeDasharray={gridDashArray(radarGridSpec.style)}
+                    opacity={0.55 * radarGridSpec.opacity}
                   />
                 ))}
                 {summary.radarAxis?.showAxisLabels !== false &&
@@ -1352,11 +1647,85 @@ export function ChartRootImpl({
                 ))}
               </g>
             )}
+            {/* Polar grid: rings, spokes, category + tick labels. */}
+            {polarGrid && (
+              <g data-chart-layer="polar-grid" pointerEvents="none">
+                {polarGrid.ringPaths.map((d, i) => (
+                  <path
+                    key={`ring-${i}`}
+                    d={d}
+                    fill="none"
+                    stroke={polarGridSpec.color}
+                    strokeWidth={polarGridSpec.width}
+                    strokeDasharray={gridDashArray(polarGridSpec.style)}
+                    opacity={polarGridSpec.opacity}
+                  />
+                ))}
+                {polarGrid.spokes.map((sp, i) => (
+                  <line
+                    key={`spoke-${i}`}
+                    x1={sp.x1}
+                    y1={sp.y1}
+                    x2={sp.x2}
+                    y2={sp.y2}
+                    stroke={polarGridSpec.color}
+                    strokeWidth={polarGridSpec.width}
+                    strokeDasharray={gridDashArray(polarGridSpec.style)}
+                    opacity={0.55 * polarGridSpec.opacity}
+                  />
+                ))}
+                {summary.polarAxis?.showTickLabels === true &&
+                  polarGrid.tickLabels.map((t, i) => (
+                    <text
+                      key={`tick-${i}`}
+                      x={t.x}
+                      y={t.y}
+                      fontSize={10}
+                      fill={tokens.subtleText}
+                      textAnchor="end"
+                    >
+                      {t.text}
+                    </text>
+                  ))}
+                {polarSeries[0]?.polarShowLabels !== false &&
+                  polarGrid.spokes.map((sp, i) => {
+                    const cos = Math.cos(sp.angle);
+                    const sin = Math.sin(sp.angle);
+                    const lx = polarGrid.cx + (polarGrid.R + 14) * cos;
+                    const ly = polarGrid.cy + (polarGrid.R + 14) * sin;
+                    return (
+                      <text
+                        key={`cat-${i}`}
+                        x={lx}
+                        y={ly}
+                        textAnchor={
+                          Math.abs(cos) < 0.3
+                            ? "middle"
+                            : cos > 0
+                              ? "start"
+                              : "end"
+                        }
+                        dominantBaseline={
+                          Math.abs(sin) < 0.3
+                            ? "middle"
+                            : sin > 0
+                              ? "hanging"
+                              : "auto"
+                        }
+                        fontSize={11}
+                        fill={tokens.textColor}
+                      >
+                        {sp.label}
+                      </text>
+                    );
+                  })}
+              </g>
+            )}
             {/*
               Crosshair sits in the back layer: above the grid but below the
               series marks, so the hover dots always paint over it.
             */}
-            {hover && !radarLayout && (
+            {hover && !radarLayout && !polarLayout && (
               <line
                 x1={hover.x}
                 x2={hover.x}
@@ -1449,6 +1818,7 @@ export function ChartRootImpl({
         {axisBadgesEl}
         {dataLabelsEl}
         {pieCenterEl}
+        {polarCenterEl}
         {captionEl.length > 0 && (
           <div
             style={{

@@ -4,6 +4,7 @@
  */
 import { useEffect } from "react";
 import { formatSI } from "../../engine/index";
+import { gridDashArray, gridLineDash, resolveGrid } from "../../engine/grid";
 import { useChart } from "../ChartContext";
 import type { YAxisProps } from "../props";
 
@@ -21,11 +22,12 @@ export function YAxis(props: YAxisProps = {}) {
       const format = props.format ?? ((t: number) => formatSI(t));
       const left = onRight ? area.x + area.width : area.x;
       if (props.grid !== false && !onRight) {
+        const spec = resolveGrid(props, theme.gridColor);
         c.save();
-        c.strokeStyle = theme.gridColor;
-        c.globalAlpha = props.gridOpacity ?? 1;
-        c.lineWidth = 1;
-        if (props.gridDash === "dashed") c.setLineDash([4, 4]);
+        c.strokeStyle = spec.color;
+        c.globalAlpha = spec.opacity;
+        c.lineWidth = spec.width;
+        c.setLineDash(gridLineDash(spec.style));
         for (const t of ticks) {
           const y = scale.map(t);
           c.beginPath();
@@ -64,6 +66,10 @@ export function YAxis(props: YAxisProps = {}) {
 
   return (
     <g data-chart-feature={`yaxis-${onRight ? "right" : "left"}`}>
+      {(() => {
+        const spec = resolveGrid(props, theme.gridColor);
+        return (
+          <>
       {props.grid !== false && !onRight &&
         ticks.map((t, i) => (
           <line
@@ -72,12 +78,15 @@ export function YAxis(props: YAxisProps = {}) {
             y1={scale.map(t)}
             x2={area.x + area.width}
             y2={scale.map(t)}
-            stroke={theme.gridColor}
-            strokeOpacity={props.gridOpacity ?? 1}
-            strokeDasharray={props.gridDash === "dashed" ? "4 4" : undefined}
-            strokeWidth={1}
+            stroke={spec.color}
+            strokeOpacity={spec.opacity}
+            strokeDasharray={gridDashArray(spec.style)}
+            strokeWidth={spec.width}
           />
         ))}
+          </>
+        );
+      })()}
       {props.labels !== false && (
         <>
           <line

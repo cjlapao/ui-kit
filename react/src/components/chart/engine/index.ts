@@ -17,3 +17,5 @@ export * from "./series/pie";
 export * from "./series/candlestick";
 export * from "./series/rangeArea";
 export * from "./series/radar";
+export * from "./series/polar";
+export * from "./grid";

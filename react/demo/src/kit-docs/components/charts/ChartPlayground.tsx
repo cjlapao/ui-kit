@@ -21,6 +21,12 @@ import {
   chartGridFadeOptions,
   chartGridOptions,
   chartHeightOptions,
+  chartPolarGridStyleOptions,
+  chartPolarModeOptions,
+  chartPolarRadiusOptions,
+  chartPolarShapeOptions,
+  chartPolarSortOptions,
+  chartPolarBorderOptions,
   chartKindOptions,
   chartLegendPositionOptions,
   chartPieCornerOptions,
@@ -41,9 +47,13 @@ import {
   type CorridorPoint,
   readinessData,
   type ReadinessPoint,
+  workflowData,
+  type WorkflowPoint,
+  monacoData,
+  type MonacoPoint,
 } from "./data";
 
-type Kind = "line" | "bar" | "pie" | "candlestick" | "range" | "radar";
+type Kind = "line" | "bar" | "pie" | "candlestick" | "range" | "radar" | "polar";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -81,6 +91,26 @@ const MAX_LINE = lineMetrics.length;
 const MAX_CANDLE = candleDays.length;
 const MAX_BAR = 12;
 const MAX_CORRIDOR = corridorData.length;
+
+/** Keep a workflow sector's counts inside a sane weekly-run window. */
+function workflowWalk(p: WorkflowPoint): WorkflowPoint {
+  return {
+    sector: p.sector,
+    autonomous: Math.round(walk(p.autonomous, 30, 10, 8, 52)),
+    assisted: Math.round(walk(p.assisted, 15, 6, 4, 26)),
+    manual: Math.round(walk(p.manual, 8, 4, 2, 16)),
+  };
+}
+
+/** Keep a GP sector's lap times inside a sane window (s). */
+function monacoWalk(p: MonacoPoint): MonacoPoint {
+  return {
+    sector: p.sector,
+    redBull: r1(walk(p.redBull, 79, 3, 66, 92)),
+    ferrari: r1(walk(p.ferrari, 79, 3, 66, 92)),
+    mercedes: r1(walk(p.mercedes, 79, 3, 66, 92)),
+  };
+}
 
 /** Keep a readiness score inside a sane gate window (pts). */
 function readinessWalk(p: ReadinessPoint): ReadinessPoint {
@@ -147,6 +177,16 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [corridor, setCorridor] = useState(corridorData);
   const [readiness, setReadiness] = useState(readinessData);
   const [fillMode, setFillMode] = useState<FillMode>("gradient");
+  const [polarMode, setPolarMode] = useState<"group" | "stack">("group");
+  const [polarSort, setPolarSort] = useState<"none" | "asc" | "desc">("none");
+  const [polarRadius, setPolarRadius] = useState(0);
+  const [polarBorder, setPolarBorder] = useState(0);
+  const [polarShape, setPolarShape] = useState<"circle" | "polygon">("circle");
+  const [polarGridStyle, setPolarGridStyle] = useState<
+    "solid" | "dashed" | "dotted"
+  >("solid");
+  const [workflow, setWorkflow] = useState(workflowData);
+  const [monaco, setMonaco] = useState(monacoData);
 
   // Streaming: every 5 s inject a new point at the end of each streamable
   // series and drop the oldest once the window max is reached.
@@ -212,6 +252,8 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
           : [...d, next];
       });
       setReadiness((d) => d.map(readinessWalk));
+      setWorkflow((d) => d.map(workflowWalk));
+      setMonaco((d) => d.map(monacoWalk));
     }, 5000);
     return () => clearInterval(id);
   }, [streaming]);
@@ -251,7 +293,9 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                 ? "Quarterly P&L"
                 : kind === "pie"
                   ? "Plan mix"
-                  : "Trading days"
+                  : kind === "polar"
+                    ? "Workflow adoption"
+                    : "Trading days"
           }
           subtitle={renderer === "canvas" ? "Canvas renderer" : "SVG renderer"}
         />
@@ -417,6 +461,83 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               rings={4}
               domainMax={100}
               tickFormat={(t) => `${t} pts`}
+            />
+          </>
+        )}
+        {kind === "polar" && (
+          <>
+            {polarMode === "group" ? (
+              <>
+                <Chart.Polar
+                  data={monaco}
+                  name="Red Bull"
+                  categoryField="sector"
+                  valueYField="redBull"
+                  color="blue"
+                  mode="group"
+                  segmentRadius={polarRadius}
+                  borderWidth={polarBorder}
+                />
+                <Chart.Polar
+                  data={monaco}
+                  name="Ferrari"
+                  categoryField="sector"
+                  valueYField="ferrari"
+                  color="red"
+                  mode="group"
+                  segmentRadius={polarRadius}
+                  borderWidth={polarBorder}
+                />
+                <Chart.Polar
+                  data={monaco}
+                  name="Mercedes"
+                  categoryField="sector"
+                  valueYField="mercedes"
+                  color="emerald"
+                  mode="group"
+                  segmentRadius={polarRadius}
+                  borderWidth={polarBorder}
+                />
+              </>
+            ) : (
+              <>
+                <Chart.Polar
+                  data={workflow}
+                  name="Autonomous"
+                  categoryField="sector"
+                  valueYField="autonomous"
+                  color="cyan"
+                  mode="stack"
+                  segmentRadius={polarRadius}
+                  borderWidth={polarBorder}
+                />
+                <Chart.Polar
+                  data={workflow}
+                  name="Assisted"
+                  categoryField="sector"
+                  valueYField="assisted"
+                  color="purple"
+                  mode="stack"
+                  segmentRadius={polarRadius}
+                  borderWidth={polarBorder}
+                />
+                <Chart.Polar
+                  data={workflow}
+                  name="Manual"
+                  categoryField="sector"
+                  valueYField="manual"
+                  color="amber"
+                  mode="stack"
+                  segmentRadius={polarRadius}
+                  borderWidth={polarBorder}
+                />
+              </>
+            )}
+            <Chart.PolarAxis
+              gridShape={polarShape}
+              gridStyle={polarGridStyle}
+              gridOpacity={Number(gridFade)}
+              sort={polarSort}
             />
           </>
         )}
@@ -599,6 +720,63 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               onChange={(v) => setFillMode(v as FillMode)}
             />
           </Control>
+        )}
+        {kind === "polar" && (
+          <>
+            <Control label="Mode">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartPolarModeOptions}
+                value={polarMode}
+                onChange={(v) => setPolarMode(v as "group" | "stack")}
+              />
+            </Control>
+            <SelectControl
+              label="Sort"
+              options={chartPolarSortOptions}
+              value={polarSort}
+              onChange={(v) => setPolarSort(v as "none" | "asc" | "desc")}
+            />
+            <Control label="Segment radius">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartPolarRadiusOptions}
+                value={String(polarRadius)}
+                onChange={(v) => setPolarRadius(Number(v))}
+              />
+            </Control>
+            <Control label="Border">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartPolarBorderOptions}
+                value={String(polarBorder)}
+                onChange={(v) => setPolarBorder(Number(v))}
+              />
+            </Control>
+            <Control label="Grid shape">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartPolarShapeOptions}
+                value={polarShape}
+                onChange={(v) => setPolarShape(v as "circle" | "polygon")}
+              />
+            </Control>
+            <Control label="Grid style">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={chartPolarGridStyleOptions}
+                value={polarGridStyle}
+                onChange={(v) =>
+                  setPolarGridStyle(v as "solid" | "dashed" | "dotted")
+                }
+              />
+            </Control>
+          </>
         )}
         {kind !== "pie" && (
           <>

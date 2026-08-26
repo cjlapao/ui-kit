@@ -13,6 +13,7 @@ import type {
   CandlestickSeriesProps,
   LineSeriesProps,
   PieSeriesProps,
+  PolarSeriesProps,
   RangeAreaSeriesProps,
   RadarSeriesProps,
   SeriesDescriptor,
@@ -105,7 +106,7 @@ export function describeSeries(
   el: ReactElement<Record<string, unknown>>,
   index: number,
   paletteIndex: number,
-  kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar",
+  kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" | "polar",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -303,6 +304,40 @@ export function describeSeries(
     };
   }
 
+  // Polar (rose): one annular-segment ring per series on a shared category set.
+  if (kind === "polar") {
+    const pp = p as unknown as PolarSeriesProps<never>;
+    const catField = pp.categoryField ?? "category";
+    const valField = pp.valueYField ?? "value";
+    return {
+      id,
+      type: "polar",
+      name,
+      color: pp.color,
+      paletteIndex,
+      data,
+      // Polar is not cartesian — xAccessor is unused, keep it inert.
+      xAccessor: () => 0,
+      polarAccessor: fieldAccessor<never, number | null | undefined>(
+        valField as Accessor<never, number | null | undefined> | string,
+        String(valField),
+      ),
+      polarCategoryAccessor: fieldAccessor<never, string>(
+        catField as Accessor<never, string> | string,
+        String(catField),
+      ),
+      polarMode: pp.mode ?? "group",
+      polarInnerRadius: pp.innerRadius ?? 0,
+      polarSegmentGap: pp.segmentGap,
+      polarSegmentRadius: pp.segmentRadius ?? 0,
+      polarBorderWidth: pp.borderWidth ?? 0,
+      polarShowLabels: pp.showLabels ?? true,
+      polarHoverBrightness: pp.hoverBrightness ?? 1.1,
+      polarHoverOffset: pp.hoverOffset ?? 4,
+      animation,
+    };
+  }
+
   // Line (default): cartesian x + y.
   const lp = p as unknown as LineSeriesProps<never>;
   const categoryXField = lp.categoryXField ?? defaultXField(data);
@@ -388,6 +423,23 @@ export interface ChartChildrenSummary {
     domainMax?: number;
     tickFormat?: (value: number) => string;
     showAxisLabels?: boolean;
+    gridStyle?: "solid" | "dashed" | "dotted";
+    gridWidth?: number;
+    gridColor?: string;
+    gridOpacity?: number;
+  };
+  /** Polar grid config (from <Chart.PolarAxis>). */
+  polarAxis?: {
+    gridShape?: "circle" | "polygon";
+    gridLines?: number;
+    gridStyle?: "solid" | "dashed" | "dotted";
+    gridWidth?: number;
+    gridColor?: string;
+    gridOpacity?: number;
+    showTickLabels?: boolean;
+    tickFormat?: (value: number) => string;
+    domainMax?: number;
+    sort?: "none" | "desc" | "asc";
   };
   seriesCount: number;
 }
@@ -403,6 +455,8 @@ export function summarizeChildren(
     RangeArea: React.ComponentType | (new () => unknown);
     Radar: React.ComponentType | (new () => unknown);
     RadarAxis: React.ComponentType | (new () => unknown);
+    Polar: React.ComponentType | (new () => unknown);
+    PolarAxis: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -454,9 +508,10 @@ export function summarizeChildren(
       t === types.Pie ||
       t === types.Candlestick ||
       t === types.RangeArea ||
-      t === types.Radar
+      t === types.Radar ||
+      t === types.Polar
     ) {
-      const kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" =
+      const kind: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" | "polar" =
         t === types.Bar
           ? "bar"
           : t === types.Pie
@@ -467,7 +522,9 @@ export function summarizeChildren(
                 ? "rangeArea"
                 : t === types.Radar
                   ? "radar"
-                  : "line";
+                  : t === types.Polar
+                    ? "polar"
+                    : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,
@@ -492,6 +549,25 @@ export function summarizeChildren(
           | ((value: number) => string)
           | undefined,
         showAxisLabels: props.showAxisLabels as boolean | undefined,
+        gridStyle: props.gridStyle as "solid" | "dashed" | "dotted" | undefined,
+        gridWidth: props.gridWidth as number | undefined,
+        gridColor: props.gridColor as string | undefined,
+        gridOpacity: props.gridOpacity as number | undefined,
+      };
+      continue;
+    }
+    if (t === types.PolarAxis) {
+      summary.polarAxis = {
+        gridShape: props.gridShape as "circle" | "polygon" | undefined,
+        gridLines: props.gridLines as number | undefined,
+        gridStyle: props.gridStyle as "solid" | "dashed" | "dotted" | undefined,
+        gridWidth: props.gridWidth as number | undefined,
+        gridColor: props.gridColor as string | undefined,
+        gridOpacity: props.gridOpacity as number | undefined,
+        showTickLabels: props.showTickLabels as boolean | undefined,
+        tickFormat: props.tickFormat as ((value: number) => string) | undefined,
+        domainMax: props.domainMax as number | undefined,
+        sort: props.sort as "none" | "desc" | "asc" | undefined,
       };
       continue;
     }

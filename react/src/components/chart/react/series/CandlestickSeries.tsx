@@ -13,7 +13,11 @@ import {
 } from "../../engine/index";
 import type { CandleGeometry } from "../../engine/types";
 import { useChart } from "../ChartContext";
-import { findSeries, valueScaleFor } from "../series-common";
+import {
+  findSeries,
+  valueScaleFor,
+  seriesDimStyle
+} from "../series-common";
 import type { CandlestickSeriesProps } from "../props";
 
 const UP_DEFAULT = "emerald";
@@ -70,7 +74,7 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
     progress,
     hover,
     registerDraw,
-    unregisterDraw,
+    unregisterDraw,hoverDim,
   } = ctx;
   const me = findSeries(ctx, "candlestick", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<CandleGeometry[] | null>(null);
@@ -232,7 +236,7 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : 1,
+        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}

@@ -14,6 +14,7 @@ import type {
   LineCurve,
   MarkerShape,
 } from "../engine/types";
+import type { GridStyle } from "../engine/grid";
 import type { BarMode, BarOrientation } from "../engine/series/bar";
 
 // ── Series ───────────────────────────────────────────────────────────────────
@@ -263,6 +264,83 @@ export interface RadarAxisProps {
   tickFormat?: (value: number) => string;
   /** Draw the axis name labels around the perimeter. Default true. */
   showAxisLabels?: boolean;
+  /** Ring stroke style. Default "solid". */
+  gridStyle?: GridStyle;
+  /** Ring stroke width in px. Default 1. */
+  gridWidth?: number;
+  /** Ring stroke color. Default: theme grid color. */
+  gridColor?: string;
+  /** Ring opacity 0–1. Default 1. */
+  gridOpacity?: number;
+}
+
+/** Shared polar grid configuration (root-consumed, renders null). */
+export interface PolarAxisProps {
+  /** Ring shape. Default "circle". */
+  gridShape?: "circle" | "polygon";
+  /** Number of concentric rings. Default 4. */
+  gridLines?: number;
+  /** Ring stroke style. Default "solid". */
+  gridStyle?: GridStyle;
+  /** Ring stroke width in px. Default 1. */
+  gridWidth?: number;
+  /** Ring stroke color. Default: theme grid color. */
+  gridColor?: string;
+  /** Ring opacity 0–1. Default 1. */
+  gridOpacity?: number;
+  /** Value labels on the rings (top axis). Default false. */
+  showTickLabels?: boolean;
+  /** Ring tick label format. */
+  tickFormat?: (value: number) => string;
+  /** Outer ring value; defaults to a nice max of the polar values. */
+  domainMax?: number;
+  /** Sort categories by value. Default "none". */
+  sort?: "none" | "desc" | "asc";
+}
+
+/** One polar (rose) series. */
+export interface PolarSeriesProps<T = unknown> {
+  data: T[];
+  /** Category field. Default "category". */
+  categoryField?: Accessor<T, string | number>;
+  /** Value field. Default "value". */
+  valueYField?: Accessor<T, number>;
+  name?: string;
+  id?: string;
+  color?: ChartColor;
+  /** "group" = side-by-side sub-arcs; "stack" = radial stack. Default "group". */
+  mode?: "group" | "stack";
+  /** Hole radius as a fraction of the outer radius (0–1). Default 0. */
+  innerRadius?: number;
+  /** Angular gap between segments (px at the outer radius). Default auto (3). */
+  segmentGap?: number;
+  /** Segment corner radius (px). Default 0. */
+  segmentRadius?: number;
+  /** Segment outline width (px), series color. Default 0. */
+  borderWidth?: number;
+  /** Perimeter category labels. Default true. */
+  showLabels?: boolean;
+  /** Hovered segment brightness. Default 1.1. */
+  hoverBrightness?: number;
+  /** Hovered segment radial pop (px). Default 4. */
+  hoverOffset?: number;
+  /** Per-series entrance/update animation override. */
+  animation?: ChartAnimation;
+}
+
+export interface PolarCenterProps {
+  /** Small caps label above the value (e.g. "AUTONOMOUS SHARE"). */
+  title?: string;
+  /** Value shown when no segment is hovered. */
+  value?: string | number;
+  /** Small line under the value. */
+  subtitle?: string;
+  /** Formats the default (numeric) value. */
+  valueFormatter?: (value: number) => string;
+  /** Full custom body. */
+  render?: (state: {
+      hovered: { name: string; value: number; color: string } | null
+    }) => ReactNode;
 }
 
 export interface CandlestickSeriesProps<T = unknown> {
@@ -299,6 +377,12 @@ export interface XAxisProps {
   grid?: boolean;
   /** Gridline stroke style. Default "solid". */
   gridDash?: "solid" | "dashed";
+  /** Gridline stroke style (solid | dashed | dotted). Absorbs gridDash. */
+  gridStyle?: GridStyle;
+  /** Gridline stroke width in px. Default 1. */
+  gridWidth?: number;
+  /** Gridline color. Default: theme grid color. */
+  gridColor?: string;
   /** Gridline opacity 0–1 (intensity). Default 1. */
   gridOpacity?: number;
   /** Custom tick formatter (linear: number → string; time: Date → string). */
@@ -316,6 +400,12 @@ export interface YAxisProps {
   grid?: boolean;
   /** Gridline stroke style. Default "solid". */
   gridDash?: "solid" | "dashed";
+  /** Gridline stroke style (solid | dashed | dotted). Absorbs gridDash. */
+  gridStyle?: GridStyle;
+  /** Gridline stroke width in px. Default 1. */
+  gridWidth?: number;
+  /** Gridline color. Default: theme grid color. */
+  gridColor?: string;
   /** Gridline opacity 0–1 (intensity). Default 1. */
   gridOpacity?: number;
   /** Tick labels + the domain line. Default true. */
@@ -466,6 +556,11 @@ export interface ChartRootProps {
   error?: boolean | ReactNode;
   /** aria-label when no Chart.Title is present. */
   ariaLabel?: string;
+  /**
+   * Opacity (0–1) for non-hovered series while a tooltip is active.
+   * Default 1 (off). Applies to every chart type.
+   */
+  hoverDim?: number;
   children: ReactNode;
 }
 
@@ -480,7 +575,7 @@ export interface ChartHandle {
 
 export interface SeriesDescriptor {
   id: string;
-  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar";
+  type: "line" | "bar" | "pie" | "candlestick" | "rangeArea" | "radar" | "polar";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -519,6 +614,19 @@ export interface SeriesDescriptor {
   radarGoal?: number;
   radarGoalLabel?: string;
   radarShowMarkers?: boolean;
+  // polar
+  /** Value accessor for a polar series (one value per category). */
+  polarAccessor?: (item: unknown, index: number) => number | null | undefined;
+  /** Category accessor for a polar series. */
+  polarCategoryAccessor?: (item: unknown, index: number) => string;
+  polarMode?: "group" | "stack";
+  polarInnerRadius?: number;
+  polarSegmentGap?: number;
+  polarSegmentRadius?: number;
+  polarBorderWidth?: number;
+  polarShowLabels?: boolean;
+  polarHoverBrightness?: number;
+  polarHoverOffset?: number;
   // bar
   barMode?: BarMode;
   stackId?: string;

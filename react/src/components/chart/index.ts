@@ -29,6 +29,9 @@ import { CandlestickSeries } from "./react/series/CandlestickSeries";
 import { RangeAreaSeries } from "./react/series/RangeAreaSeries";
 import { RadarSeries } from "./react/series/RadarSeries";
 import { RadarAxis } from "./react/features/RadarAxis";
+import { PolarSeries } from "./react/series/PolarSeries";
+import { PolarAxis } from "./react/features/PolarAxis";
+import { PolarCenter } from "./react/features/PolarCenter";
 import { XAxis } from "./react/features/XAxis";
 import { YAxis } from "./react/features/YAxis";
 import { Legend } from "./react/features/Legend";
@@ -51,6 +54,9 @@ setChartRegistry({
   RangeArea: RangeAreaSeries,
   Radar: RadarSeries,
   RadarAxis,
+  Polar: PolarSeries,
+  PolarAxis,
+  PolarCenter,
   XAxis,
   YAxis,
   Legend,
@@ -76,6 +82,9 @@ export const Chart = {
   RangeArea: RangeAreaSeries,
   Radar: RadarSeries,
   RadarAxis,
+  Polar: PolarSeries,
+  PolarAxis,
+  PolarCenter,
   XAxis,
   YAxis,
   Legend,
@@ -107,6 +116,9 @@ export type {
   RangeAreaSeriesProps,
   RadarSeriesProps,
   RadarAxisProps,
+  PolarSeriesProps,
+  PolarAxisProps,
+  PolarCenterProps,
   XAxisProps,
   YAxisProps,
   TooltipProps,

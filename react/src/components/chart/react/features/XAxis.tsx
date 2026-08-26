@@ -7,6 +7,7 @@
  */
 import { useEffect } from "react";
 import { formatSI, timeTickFormat } from "../../engine/index";
+import { gridDashArray, gridLineDash, resolveGrid } from "../../engine/grid";
 import type { CategoricalScale, ContinuousScale } from "../../engine/types";
 import { useChart } from "../ChartContext";
 import type { XAxisProps } from "../props";
@@ -63,10 +64,11 @@ export function XAxis(props: XAxisProps = {}) {
       const bottom = area.y + area.height;
       if (props.grid !== false && !("bandWidth" in xScale)) {
         c.save();
-        c.globalAlpha = props.gridOpacity ?? 1;
-        c.strokeStyle = theme.gridColor;
-        c.lineWidth = 1;
-        if (props.gridDash === "dashed") c.setLineDash([4, 4]);
+        const spec = resolveGrid(props, theme.gridColor);
+        c.globalAlpha = spec.opacity;
+        c.strokeStyle = spec.color;
+        c.lineWidth = spec.width;
+        c.setLineDash(gridLineDash(spec.style));
         for (const t of ticks) {
           c.beginPath();
           c.moveTo(t.x, area.y);
@@ -102,13 +104,14 @@ export function XAxis(props: XAxisProps = {}) {
     ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderer, xScale, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridOpacity, props.format, props.label]);
+  }, [renderer, xScale, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridStyle, props.gridWidth, props.gridColor, props.gridOpacity, props.format, props.label]);
 
   if (renderer !== "svg" || !xScale) return null;
   const ticks = ticksFor(xScale, props);
   const bottom = area.y + area.height;
   const categorical = "bandWidth" in xScale;
   const rightEdge = area.x + area.width;
+  const spec = resolveGrid(props, theme.gridColor);
 
   return (
     <g data-chart-feature="xaxis">
@@ -120,10 +123,10 @@ export function XAxis(props: XAxisProps = {}) {
             y1={area.y}
             x2={t.x}
             y2={bottom}
-            stroke={theme.gridColor}
-            strokeWidth={1}
-            strokeOpacity={props.gridOpacity ?? 1}
-            strokeDasharray={props.gridDash === "dashed" ? "4 4" : undefined}
+            stroke={spec.color}
+            strokeWidth={spec.width}
+            strokeOpacity={spec.opacity}
+            strokeDasharray={gridDashArray(spec.style)}
           />
         ))}
       <line

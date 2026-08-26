@@ -16,7 +16,10 @@ import {
 } from "../../engine/index";
 import type { RadarGeometry } from "../../engine/types";
 import { useChart } from "../ChartContext";
-import { findSeries } from "../series-common";
+import {
+  findSeries,
+  seriesDimStyle
+} from "../series-common";
 import type { RadarSeriesProps } from "../props";
 import { hexWithAlpha } from "./AreaFill";
 
@@ -48,7 +51,7 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
     unregisterDraw,
     hover,
     theme,
-    radar,
+    radar,hoverDim,
   } = ctx;
   const me = findSeries(
     ctx,
@@ -230,7 +233,7 @@ export function RadarSeries(props: RadarSeriesProps<unknown>) {
     <g
       data-chart-series={seriesId}
       style={{
-        opacity: hidden ? 0 : 1,
+        opacity: hidden ? 0 : seriesDimStyle(hover, seriesId, hoverDim),
         transition: "opacity 250ms ease",
         pointerEvents: hidden ? "none" : undefined,
       }}
