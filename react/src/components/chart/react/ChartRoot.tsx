@@ -40,6 +40,8 @@ import {
   createBandScale,
   createLinearScale,
   createLogScale,
+  layoutAnnotationCards,
+  type AnnotationCardRect,
   createTimeScale,
   computeRadarGrid,
   DEFAULT_SERIES_PALETTE,
@@ -801,6 +803,62 @@ export function ChartRootImpl({
     }
     return map;
   }, [elements, series, reg]);
+
+  // ── Annotation layout ────────────────────────────────────────────────────
+  // Resolves every callout card position in one pass so cards never
+  // overlap; the Annotation components look their own rect up by the
+  // element identity the root stamped below.
+  const annotationLayout = useMemo(() => {
+    const map = new Map<object, AnnotationCardRect | null>();
+    if (!reg || !reg.Annotation) return map;
+    const inputs: Array<{
+      el: object;
+      px: number;
+      py: number;
+      placement: "auto" | "top" | "bottom" | "left" | "right";
+      cardW: number;
+    }> = [];
+    for (const c of elements) {
+      if (typeof c !== "object" || c === null) continue;
+      if ((c as { type?: unknown }).type !== reg.Annotation) continue;
+      const p = (c as ReactElement<Record<string, unknown>>).props;
+      const x = p.x as number | Date | string | undefined;
+      const y = p.y as number | undefined;
+      let px: number | null = null;
+      if (x !== undefined && xScale) {
+        px = "bandWidth" in xScale
+          ? xScale.center(String(x))
+          : (xScale as ContinuousScale).map(x as never);
+      }
+      const py =
+        y !== undefined && yScale ? yScale.map(y) : null;
+      if (px === null || !Number.isFinite(px) || py === null || !Number.isFinite(py)) {
+        map.set(c, null);
+        continue;
+      }
+      inputs.push({
+        el: c,
+        px,
+        py,
+        placement: (p.placement as "auto" | "top" | "bottom" | "left" | "right") ?? "auto",
+        cardW:
+          20 +
+          Math.max(
+            String(p.title ?? "").length,
+            String(p.value ?? "").length,
+          ) * 7.2,
+      });
+    }
+    const rects = layoutAnnotationCards(inputs, {
+      area,
+      width,
+      height,
+    });
+    inputs.forEach((inp, i) => {
+      map.set(inp.el, rects[i] ?? null);
+    });
+    return map;
+  }, [elements, reg, xScale, yScale, area, width, height]);
 
   const [progress, setProgress] = useState(animationsDisabled ? 1 : 0);
   const progressRef = useRef(progress);
@@ -1631,6 +1689,7 @@ export function ChartRootImpl({
       title: summary.title,
       seriesEndpoints,
       seriesTokens,
+      annotationLayout,
       piePresentations: piePresentationsRef.current,
       radar: radarLayout,
       polar: polarLayout,
@@ -1668,6 +1727,7 @@ export function ChartRootImpl({
       summary.title,
       seriesEndpoints,
       seriesTokens,
+      annotationLayout,
     ],
   );
 
@@ -1684,6 +1744,7 @@ export function ChartRootImpl({
   const dataLabelsEl: ReactNode[] = [];
   const pieCenterEl: ReactNode[] = [];
   const polarCenterEl: ReactNode[] = [];
+  let annotationIndex = 0;
   const axisBadgesEl: ReactNode[] = [];
   for (const c of elements) {
     if (typeof c !== "object" || c === null || !("$typeof" in c || "$$typeof" in c)) {
@@ -1724,6 +1785,16 @@ export function ChartRootImpl({
       el.type === reg?.ReferenceBand
     ) {
       backChildren.push(c);
+    } else if (el.type === reg?.Annotation) {
+      // Stamp element identity (resolved-position lookup) and a stable
+      // index (stable canvas draw ids).
+      annotationIndex += 1;
+      plotChildren.push(
+        cloneElement(c as ReactElement<Record<string, unknown>>, {
+          __chartAnnotationToken: c,
+          __chartAnnotationIndex: annotationIndex,
+        }),
+      );
     } else {
       plotChildren.push(c);
     }

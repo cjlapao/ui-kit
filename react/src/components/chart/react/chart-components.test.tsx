@@ -1981,3 +1981,92 @@ describe("scatter", () => {
     }
   }, 15000);
 });
+
+// ── Annotation collision ────────────────────────────────────────────────────
+
+describe("annotation collision", () => {
+  const data = [
+    { x: 10, y: 50 },
+    { x: 30, y: 70 },
+    { x: 50, y: 40 },
+  ];
+
+  function annotationRects(container: HTMLElement) {
+    return Array.from(
+      container.querySelectorAll("[data-chart-feature='annotation'] rect"),
+    ).map((r) => ({
+      x: Number(r.getAttribute("x")),
+      y: Number(r.getAttribute("y")),
+      w: Number(r.getAttribute("width")),
+      h: Number(r.getAttribute("height")),
+    }));
+  }
+
+  it("keeps two same-point annotation cards apart", () => {
+    const { container } = render(
+      <Chart.Svg height={300} animation={false}>
+        <Chart.Line
+          data={data}
+          name="S"
+          color="blue"
+          categoryXField="x"
+          valueYField="y"
+        />
+        <Chart.Annotation x={30} y={70} title="First callout" value="A" />
+        <Chart.Annotation
+          x={30}
+          y={70}
+          title="Second callout"
+          value="B"
+        />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const rects = annotationRects(container);
+    expect(rects.length).toBe(2);
+    const [a, b] = rects;
+    // No overlap with a 6px gap.
+    const overlapX = a.x < b.x + b.w + 6 && a.x + a.w + 6 > b.x;
+    const overlapY = a.y < b.y + b.h + 6 && a.y + a.h + 6 > b.y;
+    expect(overlapX && overlapY).toBe(false);
+  });
+
+  it("keeps a single annotation at its legacy position", () => {
+    const { container } = render(
+      <Chart.Svg height={300} animation={false}>
+        <Chart.Line
+          data={data}
+          name="S"
+          color="blue"
+          categoryXField="x"
+          valueYField="y"
+        />
+        <Chart.Annotation
+          x={30}
+          y={70}
+          placement="right"
+          title="Only one"
+          value="V"
+        />
+        <Chart.XAxis />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const groups = container.querySelectorAll(
+      "[data-chart-feature='annotation']",
+    );
+    expect(groups.length).toBe(1);
+    const g = groups[0] as SVGElement;
+    // Leader line + dot + card all present.
+    expect(g.querySelector("line")).toBeTruthy();
+    expect(g.querySelector("circle")).toBeTruthy();
+    const rect = g.querySelector("rect")!;
+    // right side: card starts 14px right of the marker.
+    const dot = g.querySelector("circle") as SVGCircleElement;
+    expect(Number(rect.getAttribute("x"))).toBeCloseTo(
+      Number(dot.getAttribute("cx")) + 14,
+      1,
+    );
+  });
+});

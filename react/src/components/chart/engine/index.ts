@@ -20,3 +20,4 @@ export * from "./series/scatter";
 export * from "./series/radar";
 export * from "./series/polar";
 export * from "./grid";
+export * from "./annotation-layout";

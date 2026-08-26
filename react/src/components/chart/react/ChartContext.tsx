@@ -37,6 +37,7 @@ import type {
   PolarLayout,
   RadarLayout,
 } from "../engine/types";
+import type { AnnotationCardRect } from "../engine/annotation-layout";
 import type { SeriesDescriptor } from "./props";
 
 export type ChartRenderer = "svg" | "canvas";
@@ -108,6 +109,13 @@ export interface ChartContextValue {
   setHover: (state: HoverState | null) => void;
   /** Dim opacity for non-hovered series (1 = off). */
   hoverDim: number;
+
+  /**
+   * Resolved annotation card rects, keyed by the annotation element the
+   * root stamped with `__chartAnnotationToken` (null when the point could
+   * not be mapped). Empty map = no annotations.
+   */
+  annotationLayout: Map<object, AnnotationCardRect | null>;
 
   /**
    * Entrance animation type (from `animation.type`), default "grow".

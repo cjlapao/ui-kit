@@ -78,6 +78,20 @@ function resolveCard(
   return { cardX, cardY };
 }
 
+
+/** Leader-line target on the card edge facing the marker (by resolved side). */
+function leaderAnchor(
+  rect: { cardX: number; cardY: number; cardW: number; cardH: number; side: string },
+  px: number,
+): { x: number; y: number } {
+  const { cardX: cx, cardY: cy, cardW: w, cardH: h, side } = rect;
+  if (side === "left") return { x: cx + w, y: cy + h / 2 };
+  if (side === "right") return { x: cx, y: cy + h / 2 };
+  // top/bottom: anchor the horizontal edge at the marker's x (clamped).
+  const ax = Math.max(cx + 8, Math.min(px, cx + w - 8));
+  return side === "top" ? { x: ax, y: cy + h } : { x: ax, y: cy };
+}
+
 export function Annotation(props: AnnotationProps) {
   const ctx = useChart();
   const { renderer, area, theme, yScale } = ctx;
@@ -91,32 +105,50 @@ export function Annotation(props: AnnotationProps) {
     PAD_X * 2 +
     Math.max(props.title?.length ?? 0, props.value?.length ?? 0) * 7.2;
 
-  const { cardX, cardY } =
-    px !== null && py !== null
-      ? resolveCard(
-          px,
-          py,
+  // The root resolves all annotation cards together (collision-free);
+  // fall back to the single-card resolver when no token was stamped.
+  const resolved = (
+    props as { __chartAnnotationToken?: object }
+  ).__chartAnnotationToken
+    ? ctx.annotationLayout.get(
+        (props as { __chartAnnotationToken: object })
+          .__chartAnnotationToken,
+      )
+    : undefined;
+  const cardRect: {
+    cardX: number;
+    cardY: number;
+    cardW: number;
+    cardH: number;
+    side: string;
+  } =
+    resolved ??
+    (px !== null && py !== null
+      ? {
+          ...resolveCard(
+            px,
+            py,
+            cardW,
+            props.placement,
+            area,
+            ctx.width,
+            ctx.height,
+          ),
           cardW,
-          props.placement,
-          area,
-          ctx.width,
-          ctx.height,
-        )
-      : { cardX: 0, cardY: 0 };
+          cardH: CARD_H,
+          side: "auto",
+        }
+      : { cardX: 0, cardY: 0, cardW, cardH: CARD_H, side: "auto" });
+  const { cardX, cardY } = cardRect;
 
+  const annotationIndex = (props as { __chartAnnotationIndex?: number }).__chartAnnotationIndex ?? 0;
   useEffect(() => {
     if (renderer !== "canvas" || px === null || py === null) return;
-    const id = `feature:annotation-${props.x ?? ""}-${props.y ?? ""}`;
+    const id = `feature:annotation:${annotationIndex}`;
     const fn = (c: CanvasRenderingContext2D) => {
-      const { cardX: cx, cardY: cy } = resolveCard(
-        px,
-        py,
-        cardW,
-        props.placement,
-        area,
-        ctx.width,
-        ctx.height,
-      );
+      const cx = cardRect.cardX;
+      const cy = cardRect.cardY;
+      const cardH = cardRect.cardH;
 
       c.save();
       if (props.leaderLine !== false) {
@@ -124,11 +156,10 @@ export function Annotation(props: AnnotationProps) {
         c.lineWidth = 1;
         c.setLineDash([3, 3]);
         c.beginPath();
-        // leader from the dot to the card's nearest corner
-        const lx = cx > px ? cx : cx + cardW;
-        const ly = cy + (py < cy + CARD_H / 2 ? CARD_H : 0);
+        // leader from the dot to the resolved card's facing edge
+        const anchor = leaderAnchor(cardRect, px);
         c.moveTo(px, py);
-        c.lineTo(lx, ly);
+        c.lineTo(anchor.x, anchor.y);
         c.stroke();
         c.setLineDash([]);
       }
@@ -141,7 +172,7 @@ export function Annotation(props: AnnotationProps) {
       c.fillStyle = theme.annotationBg;
       c.strokeStyle = theme.annotationBorder;
       c.lineWidth = 1;
-      roundRect(c, cx, cy, cardW, CARD_H, 8);
+      roundRect(c, cx, cy, cardRect.cardW, cardH, 8);
       c.fill();
       c.stroke();
       if (props.title) {
@@ -174,6 +205,8 @@ export function Annotation(props: AnnotationProps) {
     ctx.height,
     ctx.registerDraw,
     ctx.unregisterDraw,
+    annotationIndex,
+    cardRect,
   ]);
 
   if (renderer !== "svg" || px === null || py === null) return null;
@@ -184,8 +217,8 @@ export function Annotation(props: AnnotationProps) {
         <line
           x1={px}
           y1={py}
-          x2={cardX + (px < cardX ? 0 : cardW)}
-          y2={cardY + (py < cardY ? CARD_H : 0)}
+          x2={leaderAnchor(cardRect, px).x}
+          y2={leaderAnchor(cardRect, px).y}
           stroke={tone}
           strokeWidth={1}
           strokeDasharray="3 3"
