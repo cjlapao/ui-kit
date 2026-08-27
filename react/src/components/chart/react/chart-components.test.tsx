@@ -3122,3 +3122,66 @@ describe("loading state", () => {
     expect(style?.textContent).toContain("dsh-chart-pulse");
   });
 });
+
+describe("nightingale equal-angle hover", () => {
+  // Nightingale petals are EQUAL angles (value → radius). The hover
+  // resolution must follow the equal slots, not value-proportional
+  // angles — otherwise a petal highlights the wrong neighbour.
+  const months = [
+    { name: "Jan", value: 14.9 },
+    { name: "Feb", value: 19.5 },
+    { name: "Mar", value: 46.3 },
+    { name: "Apr", value: 97.3 },
+    { name: "May", value: 144.4 },
+    { name: "Jun", value: 110.9 },
+    { name: "Jul", value: 45.9 },
+    { name: "Aug", value: 32.9 },
+    { name: "Sep", value: 23.5 },
+    { name: "Oct", value: 26.2 },
+    { name: "Nov", value: 14.6 },
+    { name: "Dec", value: 8.5 },
+  ];
+
+  function renderNightingale() {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Pie data={months} name="Tornadoes" nightingale />
+        <Chart.Tooltip />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0, top: 0, right: 800, bottom: 300,
+        width: 800, height: 300,
+      }),
+    });
+    const rects = svg.querySelectorAll("rect");
+    return rects[rects.length - 1] as SVGRectElement;
+  }
+
+  // 12 equal slots, Jan first at 12 o'clock (d3: 0 up, clockwise).
+  // mid of slot i = (i + 0.5) * 30°.
+  function hoverSlot(i: number, rect: SVGRectElement) {
+    const a = ((i + 0.5) * (Math.PI * 2)) / 12;
+    const cx = 400, cy = 150, r = 86 * 0.6;
+    const clientX = cx + r * Math.sin(a);
+    const clientY = cy - r * Math.cos(a);
+    fireEvent.pointerMove(rect, { clientX, clientY });
+  }
+
+  it("resolves each petal by its equal-angle slot, not by value", () => {
+    const rect = renderNightingale();
+    // May is the largest value: value-proportional angles would make the
+    // May petal (slot 4, 120–150°) absorb the Jun petal's region.
+    hoverSlot(4, rect); // May
+    expect(document.querySelector('[data-chart-feature="tooltip"]')?.textContent).toContain("May");
+    hoverSlot(5, rect); // Jun — the old value-proportional math returned May here
+    expect(document.querySelector('[data-chart-feature="tooltip"]')?.textContent).toContain("Jun");
+    hoverSlot(0, rect); // Jan
+    expect(document.querySelector('[data-chart-feature="tooltip"]')?.textContent).toContain("Jan");
+    hoverSlot(11, rect); // Dec
+    expect(document.querySelector('[data-chart-feature="tooltip"]')?.textContent).toContain("Dec");
+  });
+});

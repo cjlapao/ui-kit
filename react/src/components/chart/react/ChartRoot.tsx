@@ -1634,14 +1634,20 @@ export function ChartRootImpl({
         const values = s.descriptor.data.map((item, i) =>
           s.descriptor.valueField ? s.descriptor.valueField(item, i) : 0,
         );
-        const total = values.reduce(
-          (acc, v) => acc + (Number.isFinite(v) ? v : 0),
-          0,
-        );
+        // Nightingale slices are EQUAL angles (the value drives the
+        // RADIUS, see computePieModel); a plain pie is value-proportional.
+        // Resolving both by value/total makes a nightingale petal hit the
+        // wrong slice.
+        const nightingale = s.descriptor.pieNightingale === true;
+        const total = nightingale
+          ? values.length
+          : values.reduce((acc, v) => acc + (Number.isFinite(v) ? v : 0), 0);
         if (total <= 0) return null;
         let acc = 0;
         for (let i = 0; i < values.length; i++) {
-          const frac = (Number.isFinite(values[i]) ? values[i] : 0) / total;
+          const frac = nightingale
+            ? 1 / values.length
+            : (Number.isFinite(values[i]) ? values[i] : 0) / total;
           acc += frac;
           // Slice i spans the cumulative fraction of the sweep.
           if (a <= acc * sweep + 1e-9) {

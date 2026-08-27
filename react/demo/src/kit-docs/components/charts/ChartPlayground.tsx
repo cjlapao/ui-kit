@@ -840,22 +840,6 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               valueLabels={wfLabels}
               cornerRadius={4}
             />
-            <Chart.Tooltip
-              rows={(item) => {
-                const row = (waterfallArr[item.index ?? 0] ?? {}) as {
-                  name?: string;
-                  value?: number;
-                };
-                return [
-                  {
-                    label: "Step",
-                    value: `${(row.value ?? 0) >= 0 ? "+" : ""}$${row.value ?? 0}M`,
-                    color: (row.value ?? 0) >= 0 ? "#10b981" : "#f43f5e",
-                  },
-                ];
-              }}
-            />
-            <Chart.Hover />
           </>
         )}
         {kind === "combo" && (
@@ -922,12 +906,6 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                 minSize={5}
               />
             )}
-            <Chart.Tooltip
-              itemFormat={(v, name) =>
-                name === "Mean temperature" ? `${v}°C` : `$${(v / 1000).toFixed(0)}K`
-              }
-            />
-            <Chart.Hover />
           </>
         )}
         {kind === "heatmap" && (
@@ -996,7 +974,35 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
           }
         />
         {(valuesMode === "popup" || valuesMode === "both") && (
-          <Chart.Tooltip mode="shared" />
+          <Chart.Tooltip
+            mode="shared"
+            rows={
+              kind === "waterfall"
+                ? (item) => {
+                    const row = (waterfallArr[item.index ?? 0] ?? {}) as {
+                      name?: string;
+                      value?: number;
+                    };
+                    const v = row.value ?? 0;
+                    return [
+                      {
+                        label: "Step",
+                        value: `${v >= 0 ? "+" : ""}$${v}M`,
+                        color: v >= 0 ? "#10b981" : "#f43f5e",
+                      },
+                    ];
+                  }
+                : undefined
+            }
+            itemFormat={
+              kind === "combo"
+                ? (v, name) =>
+                    name === "Mean temperature"
+                      ? `${v}°C`
+                      : `$${(v / 1000).toFixed(0)}K`
+                : undefined
+            }
+          />
         )}
         {(valuesMode === "y-axis" || valuesMode === "both") && (
           <Chart.AxisBadges mode="hover" />
