@@ -68,6 +68,7 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
   const lastRef = useRef<BarGeometry | null>(null);
   const prevRef = useRef<BarGeometry | null>(null);
   const lastSigRef = useRef<string | null>(null);
+  const clipId = useId().replace(/:/g, "");
 
   let final: BarGeometry | null = null;
   let hidden = false;
@@ -239,7 +240,6 @@ export function BarSeries(props: BarSeriesProps<unknown>) {
   const p = prev === null ? progress : 1;
   const entranceP = entrance ? (animationsDisabled ? 1 : progress) : 1;
   const corner = me?.descriptor.cornerRadius ?? 0;
-  const clipId = useId().replace(/:/g, "");
 
   return (
     <g

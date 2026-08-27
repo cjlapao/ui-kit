@@ -673,6 +673,10 @@ export interface XAxisProps {
   log?: boolean;
   /** Custom tick formatter (linear: number → string; time: Date → string). */
   format?: (tick: number | Date) => string;
+  /** The solid domain line under the ticks. Default true. */
+  axisLine?: boolean;
+  /** Tick labels. Default true. */
+  labels?: boolean;
 }
 
 export interface YAxisProps {
@@ -696,8 +700,10 @@ export interface YAxisProps {
   gridOpacity?: number;
   /** Log-10 scale (positive domains only). Default false. */
   log?: boolean;
-  /** Tick labels + the domain line. Default true. */
+  /** Tick labels (text only). Default true. */
   labels?: boolean;
+  /** The solid domain line. Default true. */
+  axisLine?: boolean;
   format?: (tick: number) => string;
 }
 
@@ -865,6 +871,13 @@ export interface ChartRootProps {
    * Default 1 (off). Applies to every chart type.
    */
   hoverDim?: number;
+  /**
+   * Cartesian axis chrome master switch ("tile mode"). When false:
+   * axis children render nothing and the plot area reclaims the
+   * reserved axis margins (full-area plot). Scales, hover and
+   * tooltips are unaffected. Default true.
+   */
+  axes?: boolean;
   /**
    * Built-in loader kind, used when `loading` is `true`.
    * - "skeleton" — a chart-shaped pulsing placeholder replaces the

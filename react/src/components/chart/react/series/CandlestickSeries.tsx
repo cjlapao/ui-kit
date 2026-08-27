@@ -83,6 +83,7 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
   const me = findSeries(ctx, "candlestick", props.id, props.data, (props as { __chartSeriesToken?: object }).__chartSeriesToken);
   const lastRef = useRef<CandleGeometry[] | null>(null);
   const prevRef = useRef<CandleGeometry[] | null>(null);
+  const clipId = useId().replace(/:/g, "");
   const lastSigRef = useRef<string | null>(null);
 
   let final: CandleGeometry[] | null = null;
@@ -262,7 +263,6 @@ export function CandlestickSeries(props: CandlestickSeriesProps<unknown>) {
   const full = entrance && (animType === "fade" || animType === "sweep");
   const candles = frameCandles(final, prev, progress, baselineY, full);
   const entranceP = entrance ? (animationsDisabled ? 1 : progress) : 1;
-  const clipId = useId().replace(/:/g, "");
 
   return (
     <g

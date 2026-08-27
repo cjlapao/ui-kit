@@ -14,24 +14,35 @@ export function YAxis(props: YAxisProps = {}) {
   const onRight = props.axis === "right";
   const scale = onRight ? rightYScale : yScale;
 
+  const axesEnabled = ctx.axesEnabled;
   useEffect(() => {
-    if (renderer !== "canvas" || !scale) return;
+    if (renderer !== "canvas" || !scale || !axesEnabled) return;
     const id = `feature:yaxis:${onRight ? "right" : "left"}`;
     const fn = (c: CanvasRenderingContext2D) => {
       if ("bandWidth" in scale) {
         // Transposed cartesian (horizontal waterfall): category labels,
         // no grid (gridlines come from the numeric x axis).
         const leftB = onRight ? area.x + area.width : area.x;
-        c.fillStyle = theme.textColor;
-        c.font = "11px sans-serif";
-        c.textBaseline = "middle";
-        c.textAlign = onRight ? "left" : "right";
-        for (const cat of scale.domain) {
-          c.fillText(
-            cat,
-            onRight ? leftB + 8 : leftB - 8,
-            scale.center(cat),
-          );
+        if (props.axisLine !== false) {
+          c.strokeStyle = theme.axisColor;
+          c.lineWidth = 1;
+          c.beginPath();
+          c.moveTo(leftB, area.y);
+          c.lineTo(leftB, area.y + area.height);
+          c.stroke();
+        }
+        if (props.labels !== false) {
+          c.fillStyle = theme.textColor;
+          c.font = "11px sans-serif";
+          c.textBaseline = "middle";
+          c.textAlign = onRight ? "left" : "right";
+          for (const cat of scale.domain) {
+            c.fillText(
+              cat,
+              onRight ? leftB + 8 : leftB - 8,
+              scale.center(cat),
+            );
+          }
         }
         return;
       }
@@ -54,13 +65,15 @@ export function YAxis(props: YAxisProps = {}) {
         }
         c.restore();
       }
-      if (props.labels !== false) {
+      if (props.axisLine !== false) {
         c.strokeStyle = theme.axisColor;
         c.lineWidth = 1;
         c.beginPath();
         c.moveTo(left, area.y);
         c.lineTo(left, area.y + area.height);
         c.stroke();
+      }
+      if (props.labels !== false) {
         c.fillStyle = theme.textColor;
         c.font = "11px sans-serif";
         c.textBaseline = "middle";
@@ -74,36 +87,39 @@ export function YAxis(props: YAxisProps = {}) {
     ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderer, scale, onRight, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridOpacity, props.labels, props.format]);
+  }, [renderer, scale, onRight, area, theme, axesEnabled, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridOpacity, props.labels, props.axisLine, props.format]);
 
-  if (renderer !== "svg" || !scale) return null;
+  if (renderer !== "svg" || !scale || !axesEnabled) return null;
   const left = onRight ? area.x + area.width : area.x;
 
   // Transposed cartesian (horizontal waterfall): category labels on the y axis.
   if ("bandWidth" in scale) {
     return (
       <g data-chart-feature={`yaxis-${onRight ? "right" : "left"}`}>
-        <line
-          x1={left}
-          y1={area.y}
-          x2={left}
-          y2={area.y + area.height}
-          stroke={theme.axisColor}
-          strokeWidth={1}
-        />
-        {scale.domain.map((cat, i) => (
-          <text
-            key={i}
-            x={onRight ? left + 8 : left - 8}
-            y={scale.center(cat)}
-            textAnchor={onRight ? "start" : "end"}
-            dominantBaseline="middle"
-            fontSize={11}
-            fill={theme.textColor}
-          >
-            {cat}
-          </text>
-        ))}
+        {props.axisLine !== false && (
+          <line
+            x1={left}
+            y1={area.y}
+            x2={left}
+            y2={area.y + area.height}
+            stroke={theme.axisColor}
+            strokeWidth={1}
+          />
+        )}
+        {props.labels !== false &&
+          scale.domain.map((cat, i) => (
+            <text
+              key={i}
+              x={onRight ? left + 8 : left - 8}
+              y={scale.center(cat)}
+              textAnchor={onRight ? "start" : "end"}
+              dominantBaseline="middle"
+              fontSize={11}
+              fill={theme.textColor}
+            >
+              {cat}
+            </text>
+          ))}
       </g>
     );
   }
@@ -134,31 +150,30 @@ export function YAxis(props: YAxisProps = {}) {
           </>
         );
       })()}
-      {props.labels !== false && (
-        <>
-          <line
-            x1={left}
-            y1={area.y}
-            x2={left}
-            y2={area.y + area.height}
-            stroke={theme.axisColor}
-            strokeWidth={1}
-          />
-          {ticks.map((t, i) => (
-            <text
-              key={i}
-              x={onRight ? left + 8 : left - 8}
-              y={scale.map(t)}
-              textAnchor={onRight ? "start" : "end"}
-              dominantBaseline="middle"
-              fontSize={11}
-              fill={theme.textColor}
-            >
-              {format(Number(t))}
-            </text>
-          ))}
-        </>
+      {props.axisLine !== false && (
+        <line
+          x1={left}
+          y1={area.y}
+          x2={left}
+          y2={area.y + area.height}
+          stroke={theme.axisColor}
+          strokeWidth={1}
+        />
       )}
+      {props.labels !== false &&
+        ticks.map((t, i) => (
+          <text
+            key={i}
+            x={onRight ? left + 8 : left - 8}
+            y={scale.map(t)}
+            textAnchor={onRight ? "start" : "end"}
+            dominantBaseline="middle"
+            fontSize={11}
+            fill={theme.textColor}
+          >
+            {format(Number(t))}
+          </text>
+        ))}
       {props.label && (
         // 50px from the axis line: past the tick-label zone (8 + ~37px for
         // the widest "$1000k"-class labels) so the rotated title never

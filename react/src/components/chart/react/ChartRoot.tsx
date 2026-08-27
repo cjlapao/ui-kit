@@ -350,6 +350,7 @@ export function ChartRootImpl({
   ariaLabel,
   hoverDim,
   sync,
+  axes,
   children,
   hostRef,
   renderer,
@@ -407,11 +408,16 @@ export function ChartRootImpl({
   const polarSeries = summary.series.filter((d) => d.type === "polar");
   const hasPolar = polarSeries.length > 0;
   const hasCartesian = cartesianSeries.length > 0;
-  const showXAxis = hasCartesian || summary.hasXAxis;
-  const showYAxis = hasCartesian;
+  // Tile mode: axes={false} strips cartesian axis chrome and reclaims
+  // the reserved axis margins (scales/hover/tooltips are unaffected).
+  const axesEnabled = axes !== false;
+  const showXAxis = axesEnabled && (hasCartesian || summary.hasXAxis);
+  const showYAxis = axesEnabled && hasCartesian;
+  // Presence of right-axis data (drives scale construction and series
+  // routing); axis *display* (margins/chrome) additionally needs
+  // axesEnabled.
   const needsRightYAxis =
-    summary.yAxisRight ||
-    cartesianSeries.some((d) => d.yFieldAxis === "right");
+    summary.yAxisRight || cartesianSeries.some((d) => d.yFieldAxis === "right");
 
   // ── Legend visibility state ────────────────────────────────────────────────
   const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(
@@ -445,7 +451,7 @@ export function ChartRootImpl({
         hasCaption: summary.hasCaption,
         hasXAxis: showXAxis,
         hasYAxis: showYAxis,
-        hasRightYAxis: needsRightYAxis,
+        hasRightYAxis: axesEnabled && needsRightYAxis,
       }),
     [
       width,
@@ -798,8 +804,10 @@ export function ChartRootImpl({
       ),
     [cartesianSeries, hiddenIds, summary.yAxisLeft.domain],
   );
+  // Scales follow the SERIES (hasCartesian), not axis display —
+  // tile mode (axes={false}) must keep full-precision geometry.
   const yScale: ContinuousScale | CategoricalScale | null = useMemo(() => {
-    if (!showYAxis) return null;
+    if (!hasCartesian) return null;
     if (transposed) {
       // Categories ride the y axis, in data order.
       const cats: string[] = [];
@@ -835,7 +843,7 @@ export function ChartRootImpl({
       nice: !summary.yAxisLeft.domain,
     });
   }, [
-    showYAxis,
+    hasCartesian,
     leftYDomain,
     area,
     summary.yAxisLeft.domain,
@@ -2149,6 +2157,7 @@ export function ChartRootImpl({
       radar: radarLayout,
       polar: polarLayout,
       hoverDim: hoverDimValue,
+      axesEnabled,
       animType,
     }),
     [
@@ -2173,6 +2182,7 @@ export function ChartRootImpl({
       summary.hasLegend,
       hover,
       hoverEnabled,
+      axesEnabled,
       summary.tooltipMode,
       animType,
 

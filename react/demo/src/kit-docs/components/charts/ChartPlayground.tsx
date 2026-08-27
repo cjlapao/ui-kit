@@ -207,6 +207,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [curve, setCurve] = useState<LineCurve>("smooth");
   const [height, setHeight] = useState(380);
   const [showFill, setShowFill] = useState(true);
+  const [axesMode, setAxesMode] = useState<"all" | "labels" | "none">("all");
   const [lgLoading, setLgLoading] = useState(false);
   const [lgType, setLgType] = useState<"skeleton" | "spinner" | "progress">(
     "skeleton",
@@ -383,6 +384,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
     grid: grid === "off" ? false : undefined,
     gridDash: grid === "dashed" ? ("dashed" as const) : ("solid" as const),
     gridOpacity: Number(gridFade),
+    axisLine: axesMode === "labels" ? (false as const) : undefined,
   };
 
   const preview = (
@@ -397,6 +399,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
         animation={animation}
         loading={lgLoading || undefined}
         loaderType={lgType}
+        axes={axesMode === "none" ? false : undefined}
         hoverDim={kind === "scatter" ? Number(scatterDim) : undefined}
         ariaLabel="Playground chart"
       >
@@ -1629,6 +1632,21 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                 options={chartGridOptions}
                 value={grid}
                 onChange={(v) => setGrid(v as GridStyle)}
+              />
+            </Control>
+            <Control label="Axes">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={[
+                  { label: "All", value: "all" },
+                  { label: "Labels", value: "labels" },
+                  { label: "None", value: "none" },
+                ]}
+                value={axesMode}
+                onChange={(v) =>
+                  setAxesMode(v as "all" | "labels" | "none")
+                }
               />
             </Control>
             <Control label="Grid fade">

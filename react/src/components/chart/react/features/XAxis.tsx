@@ -56,8 +56,9 @@ export function XAxis(props: XAxisProps = {}) {
   const ctx = useChart();
   const { renderer, xScale, area, theme } = ctx;
 
+  const axesEnabled = ctx.axesEnabled;
   useEffect(() => {
-    if (renderer !== "canvas" || !xScale) return;
+    if (renderer !== "canvas" || !xScale || !axesEnabled) return;
     const id = "feature:xaxis";
     const fn = (c: CanvasRenderingContext2D) => {
       const ticks = ticksFor(xScale, props);
@@ -77,20 +78,24 @@ export function XAxis(props: XAxisProps = {}) {
         }
         c.restore();
       }
-      c.strokeStyle = theme.axisColor;
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(area.x, bottom);
-      c.lineTo(area.x + area.width, bottom);
-      c.stroke();
-      c.fillStyle = theme.textColor;
-      c.font = "11px sans-serif";
-      c.textBaseline = "top";
-      const rightEdge = area.x + area.width;
-      for (const t of ticks) {
-        const a = edgeAnchor(t.label, t.x, area.x, rightEdge);
-        c.textAlign = a === "middle" ? "center" : a;
-        c.fillText(t.label, t.x, bottom + 8);
+      if (props.axisLine !== false) {
+        c.strokeStyle = theme.axisColor;
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(area.x, bottom);
+        c.lineTo(area.x + area.width, bottom);
+        c.stroke();
+      }
+      if (props.labels !== false) {
+        c.fillStyle = theme.textColor;
+        c.font = "11px sans-serif";
+        c.textBaseline = "top";
+        const rightEdge = area.x + area.width;
+        for (const t of ticks) {
+          const a = edgeAnchor(t.label, t.x, area.x, rightEdge);
+          c.textAlign = a === "middle" ? "center" : a;
+          c.fillText(t.label, t.x, bottom + 8);
+        }
       }
       if (props.label) {
         c.textAlign = "center";
@@ -104,9 +109,9 @@ export function XAxis(props: XAxisProps = {}) {
     ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderer, xScale, area, theme, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridStyle, props.gridWidth, props.gridColor, props.gridOpacity, props.format, props.label]);
+  }, [renderer, xScale, area, theme, axesEnabled, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridStyle, props.gridWidth, props.gridColor, props.gridOpacity, props.format, props.label, props.axisLine, props.labels]);
 
-  if (renderer !== "svg" || !xScale) return null;
+  if (renderer !== "svg" || !xScale || !axesEnabled) return null;
   const ticks = ticksFor(xScale, props);
   const bottom = area.y + area.height;
   const categorical = "bandWidth" in xScale;
@@ -129,27 +134,30 @@ export function XAxis(props: XAxisProps = {}) {
             strokeDasharray={gridDashArray(spec.style)}
           />
         ))}
-      <line
-        x1={area.x}
-        y1={bottom}
-        x2={area.x + area.width}
-        y2={bottom}
-        stroke={theme.axisColor}
-        strokeWidth={1}
-      />
-      {ticks.map((t, i) => (
-        <text
-          key={i}
-          x={t.x}
-          y={bottom + 8}
-          textAnchor={edgeAnchor(t.label, t.x, area.x, rightEdge)}
-          dominantBaseline="hanging"
-          fontSize={11}
-          fill={theme.textColor}
-        >
-          {t.label}
-        </text>
-      ))}
+      {props.axisLine !== false && (
+        <line
+          x1={area.x}
+          y1={bottom}
+          x2={area.x + area.width}
+          y2={bottom}
+          stroke={theme.axisColor}
+          strokeWidth={1}
+        />
+      )}
+      {props.labels !== false &&
+        ticks.map((t, i) => (
+          <text
+            key={i}
+            x={t.x}
+            y={bottom + 8}
+            textAnchor={edgeAnchor(t.label, t.x, area.x, rightEdge)}
+            dominantBaseline="hanging"
+            fontSize={11}
+            fill={theme.textColor}
+          >
+            {t.label}
+          </text>
+        ))}
       {props.label && (
         <text
           x={area.x + area.width / 2}

@@ -3185,3 +3185,137 @@ describe("nightingale equal-angle hover", () => {
     expect(document.querySelector('[data-chart-feature="tooltip"]')?.textContent).toContain("Dec");
   });
 });
+
+describe("tile-mode axes", () => {
+  function renderAxesChart(extra: Record<string, unknown> = {}) {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    const { container } = render(
+      <Chart.Svg height={300} {...noAnim} {...extra}>
+        <Chart.Line data={data} name="S" />
+        <Chart.XAxis />
+        <Chart.YAxis tickCount={4} />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    return container;
+  }
+
+  function hoverRectSize(container: HTMLElement) {
+    const svg = container.querySelector("svg")!;
+    const rects = svg.querySelectorAll("rect");
+    const r = rects[rects.length - 1] as SVGRectElement;
+    return {
+      w: Number(r.getAttribute("width")),
+      h: Number(r.getAttribute("height")),
+    };
+  }
+
+  it("axes={false} strips axis chrome and reclaims the margins", () => {
+    const base = hoverRectSize(renderAxesChart());
+    renderAxesChart({ axes: false });
+    const svg = document.querySelectorAll("svg[role=img]");
+    const last = svg[svg.length - 1] as unknown as HTMLElement;
+    const container = last.parentElement!.parentElement!;
+    const big = hoverRectSize(container as HTMLElement);
+    // no axis chrome at all
+    expect(
+      container.querySelector('[data-chart-feature="xaxis"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-chart-feature="yaxis-left"]'),
+    ).toBeNull();
+    // plot area reclaims the axis margins
+    expect(big.w).toBeGreaterThan(base.w);
+    expect(big.h).toBeGreaterThan(base.h);
+  });
+
+  it("XAxis axisLine={false} drops the domain line, keeps labels", () => {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    const { container } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={data} name="S" />
+        <Chart.XAxis axisLine={false} />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const x = container.querySelector('[data-chart-feature="xaxis"]')!;
+    expect(x.querySelectorAll("text").length).toBeGreaterThan(0);
+    // The domain line is the only horizontal line in the X group
+    // (gridlines are vertical); none may remain.
+    const horiz = Array.from(x.querySelectorAll("line")).filter((l) =>
+      l.getAttribute("y1") === l.getAttribute("y2"),
+    );
+    expect(horiz.length).toBe(0);
+  });
+
+  it("XAxis labels={false} drops tick text, keeps the domain line", () => {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    const { container } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={data} name="S" />
+        <Chart.XAxis labels={false} grid={false} />
+        <Chart.YAxis />
+      </Chart.Svg>,
+    );
+    const x = container.querySelector('[data-chart-feature="xaxis"]')!;
+    expect(x.querySelectorAll("text").length).toBe(0);
+    // grid off → the only line left is the domain line (horizontal).
+    const horiz = Array.from(x.querySelectorAll("line")).filter((l) =>
+      l.getAttribute("y1") === l.getAttribute("y2"),
+    );
+    expect(horiz.length).toBe(1);
+  });
+
+  it("YAxis axisLine={false} drops the line, keeps tick text", () => {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    const { container } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={data} name="S" />
+        <Chart.XAxis />
+        <Chart.YAxis tickCount={4} axisLine={false} />
+      </Chart.Svg>,
+    );
+    const y = container.querySelector('[data-chart-feature="yaxis-left"]')!;
+    expect(y.querySelectorAll("text").length).toBeGreaterThan(0);
+    // The domain line is the only vertical line in the Y group
+    // (gridlines are horizontal); none may remain.
+    const vert = Array.from(y.querySelectorAll("line")).filter((l) =>
+      l.getAttribute("x1") === l.getAttribute("x2"),
+    );
+    expect(vert.length).toBe(0);
+  });
+
+  it("YAxis labels={false} now keeps the domain line", () => {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    const { container } = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={data} name="S" />
+        <Chart.XAxis />
+        <Chart.YAxis tickCount={4} labels={false} grid={false} />
+      </Chart.Svg>,
+    );
+    const y = container.querySelector('[data-chart-feature="yaxis-left"]')!;
+    expect(y.querySelectorAll("text").length).toBe(0);
+    // grid off → the only line left is the domain line (vertical) —
+    // kept by the new labels/axisLine split.
+    const vert = Array.from(y.querySelectorAll("line")).filter((l) =>
+      l.getAttribute("x1") === l.getAttribute("x2"),
+    );
+    expect(vert.length).toBe(1);
+  });
+});

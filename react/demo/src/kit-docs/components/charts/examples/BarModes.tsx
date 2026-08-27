@@ -90,7 +90,7 @@ export default function BarModes() {
           segmentGap={3}
         />
         <Chart.XAxis tickCount={24} />
-        <Chart.YAxis labels={false} />
+        <Chart.YAxis labels={false} axisLine={false} />
         <Chart.ReferenceLine
           y={escalationDeskLevel}
           label="Escalation desk"

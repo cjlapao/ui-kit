@@ -114,6 +114,8 @@ export interface ChartContextValue {
   setHover: (state: HoverState | null) => void;
   /** Dim opacity for non-hovered series (1 = off). */
   hoverDim: number;
+  /** Cartesian axis chrome enabled (root `axes` prop, default true). */
+  axesEnabled: boolean;
 
   /**
    * Resolved annotation card rects, keyed by the annotation element the
