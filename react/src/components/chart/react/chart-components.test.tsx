@@ -429,11 +429,12 @@ describe("Chart.Svg", () => {
 
   it("shows loading and error states", () => {
     const { rerender } = render(
-      <Chart.Svg height={300} loading {...noAnim}>
+      <Chart.Svg height={300} loading loaderType="spinner" {...noAnim}>
         <Chart.Line data={lineData} />
       </Chart.Svg>,
     );
-    expect(document.querySelector("[style*='dsh-chart-spin']")).toBeTruthy();
+    // built-in spinner loader: a kit Loader overlay over the chart
+    expect(document.querySelector('[role="status"]')).toBeTruthy();
     rerender(
       <Chart.Svg height={300} error="Boom" {...noAnim}>
         <Chart.Line data={lineData} />
@@ -2892,5 +2893,85 @@ describe("synced charts", () => {
     fireEvent.pointerLeave(hoverRectA);
     expect(tipFor(svgs[0])).toBeNull();
     expect(tipFor(svgs[1])).toBeNull();
+  });
+});
+describe("loading state", () => {
+  it("renders a skeleton in place of the chart by default", () => {
+    const { container } = render(
+      <Chart.Svg height={300} animation={false} loading>
+        <Chart.Title title="Loading title" subtitle="sub" />
+        <Chart.Line data={[]} />
+      </Chart.Svg>,
+    );
+    expect(container.querySelector("[data-chart-series]")).toBeNull();
+    const sk = container.querySelector('[data-chart-loading="skeleton"]');
+    expect(sk).toBeTruthy();
+    expect(
+      container.querySelector('[aria-busy="true"]'),
+    ).toBeTruthy();
+    // title bar present because a Title child was given
+    expect(
+      Array.from(sk!.querySelectorAll("span")).length,
+    ).toBeGreaterThan(3);
+  });
+
+  it("renders the chart beneath a spinner overlay for loaderType=spinner", () => {
+    const data = [
+      { x: "a", y: 1 },
+      { x: "b", y: 2 },
+    ];
+    const { container } = render(
+      <Chart.Svg height={300} animation={false} loading loaderType="spinner">
+        <Chart.Line data={data} categoryXField="x" valueYField="y" name="s" />
+      </Chart.Svg>,
+    );
+    expect(container.querySelector("[data-chart-series]")).toBeTruthy();
+    const overlay = container.querySelector('[role="status"]');
+    expect(overlay).toBeTruthy();
+  });
+
+  it("renders a progress overlay for loaderType=progress", () => {
+    const data = [
+      { x: "a", y: 1 },
+      { x: "b", y: 2 },
+    ];
+    const { container } = render(
+      <Chart.Svg
+        height={300}
+        animation={false}
+        loading
+        loaderType="progress"
+        loaderProgress={40}
+      >
+        <Chart.Line data={data} categoryXField="x" valueYField="y" name="s" />
+      </Chart.Svg>,
+    );
+    expect(container.querySelector("[data-chart-series]")).toBeTruthy();
+    expect(container.querySelector('[role="status"]')).toBeTruthy();
+  });
+
+  it("still renders a custom node when loading is a node", () => {
+    const { container } = render(
+      <Chart.Svg
+        height={300}
+        animation={false}
+        loading={<div data-custom-loading={true} />}
+      >
+        <Chart.Line data={[]} />
+      </Chart.Svg>,
+    );
+    expect(container.querySelector("[data-custom-loading]")).toBeTruthy();
+  });
+
+  it("injects the chart keyframes once when loading", () => {
+    render(
+      <Chart.Svg height={300} loading>
+        <Chart.Line data={[]} />
+      </Chart.Svg>,
+    );
+    const style = document.getElementById("dsh-chart-keyframes");
+    expect(style).toBeTruthy();
+    expect(style?.textContent).toContain("dsh-chart-spin");
+    expect(style?.textContent).toContain("dsh-chart-pulse");
   });
 });

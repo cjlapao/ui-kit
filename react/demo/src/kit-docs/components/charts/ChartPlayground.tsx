@@ -207,6 +207,10 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [curve, setCurve] = useState<LineCurve>("smooth");
   const [height, setHeight] = useState(380);
   const [showFill, setShowFill] = useState(true);
+  const [lgLoading, setLgLoading] = useState(false);
+  const [lgType, setLgType] = useState<"skeleton" | "spinner" | "progress">(
+    "skeleton",
+  );
   const [showMarkers, setShowMarkers] = useState(false);
   const [areaGradient, setAreaGradient] = useState(false);
   const [valuesMode, setValuesMode] = useState<ValuesMode>("popup");
@@ -391,6 +395,8 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
         key={`${renderer}-${kind}-${height}-${easing}-${animType}-${animated ? 1 : 0}`}
         height={height}
         animation={animation}
+        loading={lgLoading || undefined}
+        loaderType={lgType}
         hoverDim={kind === "scatter" ? Number(scatterDim) : undefined}
         ariaLabel="Playground chart"
       >
@@ -1010,6 +1016,26 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             options={chartRendererOptions}
             value={renderer}
             onChange={(v) => setRenderer(v as "svg" | "canvas")}
+          />
+        </Control>
+        <ToggleRow
+          label="Loading"
+          checked={lgLoading}
+          onChange={setLgLoading}
+        />
+        <Control label="Loader type">
+          <MultiToggle
+            size="sm"
+            fullWidth
+            options={[
+              { label: "Skeleton", value: "skeleton" },
+              { label: "Spinner", value: "spinner" },
+              { label: "Progress", value: "progress" },
+            ]}
+            value={lgType}
+            onChange={(v) =>
+              setLgType(v as "skeleton" | "spinner" | "progress")
+            }
           />
         </Control>
         {!fixedKind && (

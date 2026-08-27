@@ -76,6 +76,8 @@ import type {
 } from "../engine/types";
 import { useTheme } from "../../../hooks/useTheme";
 import { useChartGroup } from "./ChartGroup";
+import Loader from "../../Loader";
+import { ChartSkeleton } from "./series/ChartSkeleton";
 
 import {
   ChartContextProvider,
@@ -339,6 +341,11 @@ export function ChartRootImpl({
   theme: themeMode,
   animation,
   loading,
+  loaderType = "skeleton",
+  loaderTitle,
+  loaderMessage,
+  loaderProgress,
+  loaderColor,
   error,
   ariaLabel,
   hoverDim,
@@ -2234,12 +2241,35 @@ export function ChartRootImpl({
   }
 
   const aria = summary.title ?? ariaLabel ?? "Chart";
+
+  // ── Loading / skeleton states ────────────────────────────────────────────
+  const isDark = themeName === "dark";
+  const boolLoading = loading === true;
+  const showSkeleton = boolLoading && loaderType === "skeleton";
+  if (boolLoading) ensureChartKeyframes();
+  const skeletonBarColor = isDark
+    ? "rgba(203,213,225,0.14)"
+    : "rgba(100,116,139,0.18)";
+  const skeletonPlotColor = isDark
+    ? "rgba(203,213,225,0.05)"
+    : "rgba(100,116,139,0.06)";
+
+  // A boolean `loading` is handled by `loaderType` (skeleton/spinner/
+  // progress); only a custom node reaches the legacy state overlay.
   const loadingNode =
-    typeof loading === "object" && loading !== null
-      ? loading
-      : loading
-        ? defaultLoadingNode
-        : null;
+    typeof loading === "object" && loading !== null ? loading : null;
+  const loaderOverlay =
+    boolLoading && loaderType !== "skeleton" ? (
+      <Loader
+        overlay
+        variant={loaderType}
+        title={loaderTitle}
+        label={loaderMessage}
+        progress={loaderProgress}
+        color={loaderColor ?? "blue"}
+      />
+    ) : null;
+
   const errorNode =
     typeof error === "object" && error !== null
       ? error
@@ -2259,10 +2289,20 @@ export function ChartRootImpl({
   return (
     <div
       ref={containerRef}
+      aria-busy={boolLoading || undefined}
       style={{ position: "relative", width: "100%", height, overflow: "hidden" }}
     >
       <ChartContextProvider value={ctxValue}>
-        {renderer === "svg" ? (
+        {showSkeleton ? (
+          <ChartSkeleton
+            hasTitle={summary.hasTitle}
+            hasSubtitle={summary.hasTitle && !!summary.subtitle}
+            hasLegend={summary.hasLegend}
+            legendPosition={summary.legendPosition}
+            barColor={skeletonBarColor}
+            plotColor={skeletonPlotColor}
+          />
+        ) : renderer === "svg" ? (
           <svg
             width={width}
             height={height}
@@ -2471,7 +2511,7 @@ export function ChartRootImpl({
         )}
 
         {/* HTML overlays — positioned from the layout, both renderers */}
-        {titleEl.length > 0 && (
+        {!showSkeleton && titleEl.length > 0 && (
           <div
             style={{
               position: "absolute",
@@ -2485,7 +2525,7 @@ export function ChartRootImpl({
             {titleEl}
           </div>
         )}
-        {legendEl.length > 0 && (
+        {!showSkeleton && legendEl.length > 0 && (
           <div
             style={
               summary.legendOrientation === "vertical"
@@ -2532,12 +2572,13 @@ export function ChartRootImpl({
           </div>
         )}
 
+        {loaderOverlay}
         {/* States */}
         {loadingNode !== null && (
           <div style={stateOverlayStyle}>{loadingNode}</div>
         )}
         {errorNode !== null && <div style={stateOverlayStyle}>{errorNode}</div>}
-        {!loadingNode && !errorNode && isEmpty && (
+        {!loadingNode && !errorNode && !showSkeleton && isEmpty && (
           <div style={{ ...stateOverlayStyle, color: tokens.emptyText, fontSize: 13 }}>
             No data
           </div>
@@ -2556,19 +2597,30 @@ const stateOverlayStyle: CSSProperties = {
   fontSize: 13,
 };
 
-const defaultLoadingNode = (
-  <span
-    style={{
-      width: 22,
-      height: 22,
-      border: "2px solid rgba(148,163,184,.3)",
-      borderTopColor: "rgba(148,163,184,.9)",
-      borderRadius: "50%",
-      display: "inline-block",
-      animation: "dsh-chart-spin 0.8s linear infinite",
-    }}
-  />
-);
+let keyframesInjected = false;
+/**
+ * Inject the chart keyframes once. `dsh-chart-spin` was historically
+ * referenced by the default spinner but never defined anywhere, so the
+ * boolean loading state rendered a static ring.
+ */
+function ensureChartKeyframes() {
+  if (keyframesInjected || typeof document === "undefined") return;
+  const el = document.getElementById("dsh-chart-keyframes");
+  if (el) {
+    keyframesInjected = true;
+    return;
+  }
+  const style = document.createElement("style");
+  style.id = "dsh-chart-keyframes";
+  style.textContent =
+    "@keyframes dsh-chart-spin { to { transform: rotate(360deg); } }" +
+    "@keyframes dsh-chart-pulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }" +
+    "@media (prefers-reduced-motion: reduce) { .dsh-chart-anim, [data-chart-loading] { animation: none !important; } }";
+  document.head.appendChild(style);
+  keyframesInjected = true;
+}
+
+
 
 const defaultErrorNode = (
   <span style={{ color: "#f87171", fontSize: 13 }}>Chart failed to render</span>

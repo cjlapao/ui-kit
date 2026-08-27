@@ -866,6 +866,23 @@ export interface ChartRootProps {
    */
   hoverDim?: number;
   /**
+   * Built-in loader kind, used when `loading` is `true`.
+   * - "skeleton" — a chart-shaped pulsing placeholder replaces the
+   *   chart (default; the data is unknown, so there is nothing to
+   *   render beneath)
+   * - "spinner" / "progress" — the chart renders beneath a kit
+   *   <Loader> overlay (title/message/progress/color props apply)
+   */
+  loaderType?: "skeleton" | "spinner" | "progress";
+  /** Overlay title line (spinner/progress loader kinds). */
+  loaderTitle?: ReactNode;
+  /** Overlay label line (spinner/progress loader kinds). */
+  loaderMessage?: ReactNode;
+  /** Progress value for the progress loader kind. Default 0. */
+  loaderProgress?: number;
+  /** Spinner/progress tone. Default "blue". */
+  loaderColor?: import("../../Spinner").SpinnerColor;
+  /**
    * Opt in to hover sync with sibling `sync` charts inside a
    * `Chart.Group`: hovering this chart drives crosshair + tooltip on
    * the others at the same category, and vice versa. Sync is keyed on
