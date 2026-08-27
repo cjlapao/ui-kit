@@ -424,25 +424,14 @@ export const tableDensityOptions: MultiToggleOption[] = TABLE_DENSITIES.map(
   (density) => ({ label: titleCase(density), value: density }),
 );
 
-// Table corners: drop the fully-rounded shapes (pill / rounded-full) — a grid
-// reads wrong with a pill end-cap; those belong to pills, badges and panels.
-export const surfaceCornerOptions: MultiToggleOption[] = SURFACE_CORNERS.filter(
-  (corner) => corner !== "rounded-full" && corner !== "pill",
-).map((corner) => ({
-  label: titleCase(corner.replace(/-/g, " ")),
-  value: corner,
-}));
-
-// Semantic role labels mapped to real palette tones — the table's tone is a
-// TrueColor, so the values must stay inside the kit's actual palette.
-export const tableToneOptions: MultiToggleOption[] = [
-  { label: "Neutral", value: "neutral" },
-  { label: "Info", value: "blue" },
-  { label: "Success", value: "emerald" },
-  { label: "Danger", value: "rose" },
-  { label: "Warning", value: "amber" },
-  { label: "Accent", value: "violet" },
-];
+// The container corner scale as-is — capsules left the scale (a grid reads
+// wrong with a pill end-cap; those belong to pills, badges and panels).
+export const surfaceCornerOptions: MultiToggleOption[] = SURFACE_CORNERS.map(
+  (corner) => ({
+    label: titleCase(corner.replace(/-/g, " ")),
+    value: corner,
+  }),
+);
 
 export const dropdownButtonOptions = [
   {
@@ -522,28 +511,19 @@ export const dropdownMaxHeightOptions: MultiToggleOption[] = [
   { label: "Tall", value: "420" },
 ];
 
-export const accordionVariantOptions: MultiToggleOption[] = [
-  { label: "Default", value: "default" },
-  { label: "Bordered", value: "bordered" },
-  { label: "Minimal", value: "minimal" },
-  { label: "Tonal", value: "tonal" },
-  { label: "Ghost", value: "ghost" },
-];
-
-export const accordionSizeOptions: MultiToggleOption[] = [
-  { label: "Small", value: "sm" },
-  { label: "Medium", value: "md" },
-  { label: "Large", value: "lg" },
-];
-
+/**
+ * The accordion rides the shared container surface and control scale, so its
+ * variant/size pickers reuse the panel lists rather than keeping private
+ * copies (the old ones were `default/bordered/minimal/tonal/ghost` and
+ * `sm/md/lg` — two scales that matched nothing in the kit).
+ */
 export const accordionIndicatorOptions: MultiToggleOption[] = [
   { label: "Chevron", value: "chevron" },
   { label: "Plus/Minus", value: "plus-minus" },
-  { label: "Caret", value: "caret" },
   { label: "None", value: "none" },
 ];
 
-export const accordionChevronPlacementOptions: MultiToggleOption[] = [
+export const accordionIndicatorPlacementOptions: MultiToggleOption[] = [
   { label: "Left", value: "left" },
   { label: "Right", value: "right" },
 ];
@@ -551,17 +531,6 @@ export const accordionChevronPlacementOptions: MultiToggleOption[] = [
 export const stepperOrientationOptions: MultiToggleOption[] = [
   { label: "Horizontal", value: "horizontal" },
   { label: "Vertical", value: "vertical" },
-];
-
-export const stepperVariantOptions: MultiToggleOption[] = [
-  { label: "Card", value: "card" },
-  { label: "Minimal", value: "minimal" },
-];
-
-export const stepperSizeOptions: MultiToggleOption[] = [
-  { label: "Small", value: "sm" },
-  { label: "Medium", value: "md" },
-  { label: "Large", value: "lg" },
 ];
 
 export const stepperConnectorOptions: MultiToggleOption[] = [
@@ -574,4 +543,23 @@ export const stepperConnectorAlignOptions: MultiToggleOption[] = [
   { label: "Left", value: "left" },
   { label: "Center", value: "center" },
   { label: "Right", value: "right" },
+];
+
+/** The Panel corner scale for the step node, plus "full" (the classic circle). */
+export const stepperNodeCornerOptions: MultiToggleOption[] = [
+  ...SURFACE_CORNERS.map((value) => ({
+    label: `${titleCase(value)} (${getSurfaceCornerRem(value)})`,
+    value,
+  })),
+  { label: "Full (circle)", value: "full" },
+];
+
+/**
+ * The Stepper's own loading types. Unlike the Panel's scale, the Stepper draws
+ * its own skeleton, so "skeleton" is always available.
+ */
+export const stepperLoaderTypeOptions: MultiToggleOption[] = [
+  { label: "Progress", value: "progress" },
+  { label: "Spinner", value: "spinner" },
+  { label: "Skeleton", value: "skeleton" },
 ];

@@ -13,6 +13,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glowIntensityOptions,
@@ -39,82 +40,110 @@ export const InputPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={inputVariantOptions}
-            value={variant}
-            onChange={(value) => setVariant(value as InputVariant)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Variant"
+                      options={inputVariantOptions}
+                      value={variant}
+                      onChange={(value) => setVariant(value as InputVariant)}
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Control label="Size">
+                        <MultiToggle
+                          fullWidth
+                          size="sm"
+                          options={controlSizeOptions}
+                          value={size}
+                          onChange={(value) => setSize(value as InputSize)}
+                        />
+                      </Control>
+                      <Control label="Validation">
+                        <MultiToggle
+                          fullWidth
+                          size="sm"
+                          options={inputValidationOptions}
+                          value={validationStatus}
+                          onChange={(value) =>
+                            setValidationStatus(value as InputValidationStatus)
+                          }
+                        />
+                      </Control>
+                    </div>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(value) => setTone(value as TrueColor)}
+                    />
+                    <Control label="Placeholder">
+                      <Input
+                        size="sm"
+                        value={placeholder}
+                        onChange={(event) => setPlaceholder(event.target.value)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              ...(variant === "gradient"
+                ? [
+                    {
+                      id: "glow",
+                      title: "Glow",
+                      controls: (
+                        <Control label="Glow intensity">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glowIntensityOptions}
+                            value={glowIntensity}
+                            onChange={(value) =>
+                              setGlowIntensity(value as GlowIntensity)
+                            }
+                          />
+                        </Control>
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                id: "options",
+                title: "Options",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow
+                      label="Leading icon"
+                      checked={leading}
+                      onChange={setLeading}
+                    />
+                    <ToggleRow
+                      label="Trailing icon"
+                      checked={trailing}
+                      onChange={setTrailing}
+                    />
+                    <ToggleRow
+                      label="Trailing is a button"
+                      checked={clickableTrailing}
+                      onChange={setClickableTrailing}
+                    />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                    <ToggleRow
+                      label="On a glass panel"
+                      checked={onGlass}
+                      onChange={setOnGlass}
+                    />
+                  </div>
+                ),
+              },
+            ]}
           />
-          <div className="grid grid-cols-2 gap-3">
-            <Control label="Size">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={controlSizeOptions}
-                value={size}
-                onChange={(value) => setSize(value as InputSize)}
-              />
-            </Control>
-            <Control label="Validation">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={inputValidationOptions}
-                value={validationStatus}
-                onChange={(value) =>
-                  setValidationStatus(value as InputValidationStatus)
-                }
-              />
-            </Control>
-          </div>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(value) => setTone(value as TrueColor)}
-          />
-          <Control label="Placeholder">
-            <Input
-              size="sm"
-              value={placeholder}
-              onChange={(event) => setPlaceholder(event.target.value)}
-            />
-          </Control>
-          {variant === "gradient" && (
-            <Control label="Glow intensity">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={glowIntensityOptions}
-                value={glowIntensity}
-                onChange={(value) => setGlowIntensity(value as GlowIntensity)}
-              />
-            </Control>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow
-              label="Leading icon"
-              checked={leading}
-              onChange={setLeading}
-            />
-            <ToggleRow
-              label="Trailing icon"
-              checked={trailing}
-              onChange={setTrailing}
-            />
-            <ToggleRow
-              label="Trailing is a button"
-              checked={clickableTrailing}
-              onChange={setClickableTrailing}
-            />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-            <ToggleRow
-              label="On a glass panel"
-              checked={onGlass}
-              onChange={setOnGlass}
-            />
-          </div>
           <p className="text-xs opacity-70">
             The surface sits on the field&apos;s wrapper, not the{" "}
             <code>&lt;input&gt;</code> — same structure as{" "}
@@ -122,7 +151,7 @@ export const InputPlayground: React.FC = () => {
             ring is <code>ring-inset</code>: an outer ring is painted outside
             the border box and any scrolling ancestor clips it.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

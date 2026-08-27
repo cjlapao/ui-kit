@@ -11,6 +11,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   ratingOrientationOptions,
   trueColorOptions,
@@ -44,46 +45,62 @@ export const RatingPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Stars">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={starCountOptions}
-              value={String(starCount)}
-              onChange={(v) => setStarCount(Number(v))}
-            />
-          </Control>
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={sizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as RatingSize)}
-            />
-          </Control>
-          <Control label="Orientation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={ratingOrientationOptions}
-              value={orientation}
-              onChange={(v) => setOrientation(v as RatingOrientation)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Half stars" checked={allowHalf} onChange={setAllowHalf} />
-            <ToggleRow label="Read only" checked={readOnly} onChange={setReadOnly} />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <Control label="Stars">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={starCountOptions}
+                      value={String(starCount)}
+                      onChange={(v) => setStarCount(Number(v))}
+                    />
+                  </Control>
+                  <Control label="Size">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={sizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as RatingSize)}
+                    />
+                  </Control>
+                  <Control label="Orientation">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={ratingOrientationOptions}
+                      value={orientation}
+                      onChange={(v) => setOrientation(v as RatingOrientation)}
+                    />
+                  </Control>
+                  <SelectControl
+                    label="Tone"
+                    options={trueColorOptions}
+                    value={tone}
+                    onChange={(v) => setTone(v as TrueColor)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "states",
+              title: "States",
+              controls: (
+                <div className="grid grid-cols-1 gap-2">
+                  <ToggleRow label="Half stars" checked={allowHalf} onChange={setAllowHalf} />
+                  <ToggleRow label="Read only" checked={readOnly} onChange={setReadOnly} />
+                  <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                </div>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="flex w-full max-w-md flex-col items-center gap-3">

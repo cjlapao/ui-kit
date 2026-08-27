@@ -19,7 +19,7 @@ const CONVERSATIONS: SideMenuItem[] = [
 
 export default function Chat() {
   return (
-    <div className="h-[26rem] w-full max-w-3xl overflow-hidden rounded-xl bg-white dark:bg-slate-950">
+    <div className="h-[26rem] w-full max-w-3xl overflow-hidden bg-white dark:bg-slate-950">
       <SideMenuLayout
         sideMenuProps={{
           title: "Chats",

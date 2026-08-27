@@ -9,9 +9,40 @@ import React, {
 import { createPortal } from "react-dom";
 import classNames from "classnames";
 import Pill from "./Pill";
-import { type TrueColor } from "../theme/Theme";
+import Spinner from "./Spinner";
+import {
+  FIELD_STATUS_CLASSES,
+  TRUE_COLORS,
+  VALIDATION_STATUSES,
+  getFieldSizeTokens,
+  getFieldToneTokens,
+  getGlowTokens,
+  getInputVariantTokens,
+  resolveGlowGradient,
+  stripBorderColor,
+  type ControlSize,
+  type GlowIntensity,
+  type InputVariant,
+  type TrueColor,
+  type ValidationStatus,
+} from "../theme/Theme";
 import type { TreeTone } from "./TreeView/types";
 
+/** The shared control scale. Was a local `"sm" | "md"`, which left three sizes unreachable. */
+export type PickerSize = ControlSize;
+export type PickerValidationStatus = ValidationStatus;
+export { VALIDATION_STATUSES as PICKER_VALIDATION_STATUSES };
+
+/**
+ * Generated from `TRUE_COLORS`, not hand-written.
+ *
+ * The 21-entry literal this replaces had drifted: `red` spelled every class
+ * with **rose** and `green` spelled every class with **emerald**, so those two
+ * tones rendered as their neighbours. Worse, the literal strings were also
+ * what Tailwind scanned — so the *correct* `ring-red-500/20` and
+ * `bg-green-900/20` had never been emitted at all. The shapes below are
+ * declared in `scripts/generate-safelist.mjs`.
+ */
 const toneTokens: Record<
   TrueColor,
   {
@@ -21,186 +52,31 @@ const toneTokens: Record<
     optionSelectedText: string;
     optionSelectedIcon: string;
   }
-> = {
-  red: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    filterActive:
-      "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-  },
-  orange: {
-    triggerOpen:
-      "border-orange-500 ring-2 ring-orange-500/20 dark:border-orange-400",
-    filterActive:
-      "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400",
-    optionSelectedBg: "bg-orange-50 dark:bg-orange-900/20",
-    optionSelectedText: "text-orange-700 dark:text-orange-300",
-    optionSelectedIcon: "text-orange-500 dark:text-orange-400",
-  },
-  amber: {
-    triggerOpen:
-      "border-amber-500 ring-2 ring-amber-500/20 dark:border-amber-400",
-    filterActive:
-      "bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400",
-    optionSelectedBg: "bg-amber-50 dark:bg-amber-900/20",
-    optionSelectedText: "text-amber-700 dark:text-amber-300",
-    optionSelectedIcon: "text-amber-500 dark:text-amber-400",
-  },
-  yellow: {
-    triggerOpen:
-      "border-yellow-500 ring-2 ring-yellow-500/20 dark:border-yellow-400",
-    filterActive:
-      "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400",
-    optionSelectedBg: "bg-yellow-50 dark:bg-yellow-900/20",
-    optionSelectedText: "text-yellow-700 dark:text-yellow-300",
-    optionSelectedIcon: "text-yellow-500 dark:text-yellow-400",
-  },
-  lime: {
-    triggerOpen: "border-lime-500 ring-2 ring-lime-500/20 dark:border-lime-400",
-    filterActive:
-      "bg-lime-100 text-lime-600 dark:bg-lime-900/40 dark:text-lime-400",
-    optionSelectedBg: "bg-lime-50 dark:bg-lime-900/20",
-    optionSelectedText: "text-lime-700 dark:text-lime-300",
-    optionSelectedIcon: "text-lime-500 dark:text-lime-400",
-  },
-  green: {
-    triggerOpen:
-      "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400",
-    filterActive:
-      "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",
-    optionSelectedBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    optionSelectedText: "text-emerald-700 dark:text-emerald-300",
-    optionSelectedIcon: "text-emerald-500 dark:text-emerald-400",
-  },
-  emerald: {
-    triggerOpen:
-      "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400",
-    filterActive:
-      "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400",
-    optionSelectedBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    optionSelectedText: "text-emerald-700 dark:text-emerald-300",
-    optionSelectedIcon: "text-emerald-500 dark:text-emerald-400",
-  },
-  teal: {
-    triggerOpen: "border-teal-500 ring-2 ring-teal-500/20 dark:border-teal-400",
-    filterActive:
-      "bg-teal-100 text-teal-600 dark:bg-teal-900/40 dark:text-teal-400",
-    optionSelectedBg: "bg-teal-50 dark:bg-teal-900/20",
-    optionSelectedText: "text-teal-700 dark:text-teal-300",
-    optionSelectedIcon: "text-teal-500 dark:text-teal-400",
-  },
-  cyan: {
-    triggerOpen: "border-cyan-500 ring-2 ring-cyan-500/20 dark:border-cyan-400",
-    filterActive:
-      "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-400",
-    optionSelectedBg: "bg-cyan-50 dark:bg-cyan-900/20",
-    optionSelectedText: "text-cyan-700 dark:text-cyan-300",
-    optionSelectedIcon: "text-cyan-500 dark:text-cyan-400",
-  },
-  sky: {
-    triggerOpen: "border-sky-500 ring-2 ring-sky-500/20 dark:border-sky-400",
-    filterActive:
-      "bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400",
-    optionSelectedBg: "bg-sky-50 dark:bg-sky-900/20",
-    optionSelectedText: "text-sky-700 dark:text-sky-300",
-    optionSelectedIcon: "text-sky-500 dark:text-sky-400",
-  },
-  blue: {
-    triggerOpen: "border-blue-500 ring-2 ring-blue-500/20 dark:border-blue-400",
-    filterActive:
-      "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",
-    optionSelectedBg: "bg-blue-50 dark:bg-blue-900/20",
-    optionSelectedText: "text-blue-700 dark:text-blue-300",
-    optionSelectedIcon: "text-blue-500 dark:text-blue-400",
-  },
-  indigo: {
-    triggerOpen:
-      "border-indigo-500 ring-2 ring-indigo-500/20 dark:border-indigo-400",
-    filterActive:
-      "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400",
-    optionSelectedBg: "bg-indigo-50 dark:bg-indigo-900/20",
-    optionSelectedText: "text-indigo-700 dark:text-indigo-300",
-    optionSelectedIcon: "text-indigo-500 dark:text-indigo-400",
-  },
-  violet: {
-    triggerOpen:
-      "border-violet-500 ring-2 ring-violet-500/20 dark:border-violet-400",
-    filterActive:
-      "bg-violet-100 text-violet-600 dark:bg-violet-900/40 dark:text-violet-400",
-    optionSelectedBg: "bg-violet-50 dark:bg-violet-900/20",
-    optionSelectedText: "text-violet-700 dark:text-violet-300",
-    optionSelectedIcon: "text-violet-500 dark:text-violet-400",
-  },
-  purple: {
-    triggerOpen:
-      "border-purple-500 ring-2 ring-purple-500/20 dark:border-purple-400",
-    filterActive:
-      "bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400",
-    optionSelectedBg: "bg-purple-50 dark:bg-purple-900/20",
-    optionSelectedText: "text-purple-700 dark:text-purple-300",
-    optionSelectedIcon: "text-purple-500 dark:text-purple-400",
-  },
-  fuchsia: {
-    triggerOpen:
-      "border-fuchsia-500 ring-2 ring-fuchsia-500/20 dark:border-fuchsia-400",
-    filterActive:
-      "bg-fuchsia-100 text-fuchsia-600 dark:bg-fuchsia-900/40 dark:text-fuchsia-400",
-    optionSelectedBg: "bg-fuchsia-50 dark:bg-fuchsia-900/20",
-    optionSelectedText: "text-fuchsia-700 dark:text-fuchsia-300",
-    optionSelectedIcon: "text-fuchsia-500 dark:text-fuchsia-400",
-  },  rose: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    filterActive:
-      "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-  },
-  slate: {
-    triggerOpen:
-      "border-slate-500 ring-2 ring-slate-500/20 dark:border-slate-400",
-    filterActive:
-      "bg-slate-100 text-slate-600 dark:bg-slate-900/40 dark:text-slate-400",
-    optionSelectedBg: "bg-slate-50 dark:bg-slate-900/20",
-    optionSelectedText: "text-slate-700 dark:text-slate-300",
-    optionSelectedIcon: "text-slate-500 dark:text-slate-400",
-  },
-  gray: {
-    triggerOpen: "border-gray-500 ring-2 ring-gray-500/20 dark:border-gray-400",
-    filterActive:
-      "bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400",
-    optionSelectedBg: "bg-gray-50 dark:bg-gray-900/20",
-    optionSelectedText: "text-gray-700 dark:text-gray-300",
-    optionSelectedIcon: "text-gray-500 dark:text-gray-400",
-  },
-  zinc: {
-    triggerOpen: "border-zinc-500 ring-2 ring-zinc-500/20 dark:border-zinc-400",
-    filterActive:
-      "bg-zinc-100 text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-400",
-    optionSelectedBg: "bg-zinc-50 dark:bg-zinc-900/20",
-    optionSelectedText: "text-zinc-700 dark:text-zinc-300",
-    optionSelectedIcon: "text-zinc-500 dark:text-zinc-400",
-  },
-  neutral: {
-    triggerOpen:
-      "border-neutral-500 ring-2 ring-neutral-500/20 dark:border-neutral-400",
-    filterActive:
-      "bg-neutral-100 text-neutral-600 dark:bg-neutral-900/40 dark:text-neutral-400",
-    optionSelectedBg: "bg-neutral-50 dark:bg-neutral-900/20",
-    optionSelectedText: "text-neutral-700 dark:text-neutral-300",
-    optionSelectedIcon: "text-neutral-500 dark:text-neutral-400",
-  },
-  stone: {
-    triggerOpen:
-      "border-stone-500 ring-2 ring-stone-500/20 dark:border-stone-400",
-    filterActive:
-      "bg-stone-100 text-stone-600 dark:bg-stone-900/40 dark:text-stone-400",
-    optionSelectedBg: "bg-stone-50 dark:bg-stone-900/20",
-    optionSelectedText: "text-stone-700 dark:text-stone-300",
-    optionSelectedIcon: "text-stone-500 dark:text-stone-400",
-  },};
+> = Object.fromEntries(
+  TRUE_COLORS.map((c) => [
+    c,
+    {
+      // Open reads exactly like focus does on Input/Select/SearchBar: the
+      // tone's -400 border with an *inset* ring. It was `-500` with a
+      // non-inset `ring-{c}-500/20`, which was both a different colour from
+      // its siblings and clipped by any `overflow` ancestor.
+      triggerOpen: `border-${c}-400 ring-2 ring-inset ring-${c}-400/60 dark:border-${c}-400`,
+      filterActive: `bg-${c}-100 text-${c}-600 dark:bg-${c}-900/40 dark:text-${c}-400`,
+      optionSelectedBg: `bg-${c}-50 dark:bg-${c}-900/20`,
+      optionSelectedText: `text-${c}-700 dark:text-${c}-300`,
+      optionSelectedIcon: `text-${c}-500 dark:text-${c}-400`,
+    },
+  ]),
+) as Record<
+  TrueColor,
+  {
+    triggerOpen: string;
+    filterActive: string;
+    optionSelectedBg: string;
+    optionSelectedText: string;
+    optionSelectedIcon: string;
+  }
+>;
 
 // ── Shared positioning helpers (mirrors DropdownMenu) ─────────────────────────
 
@@ -318,8 +194,24 @@ export interface PickerProps {
    * Default: false
    */
   escapeBoundary?: boolean;
+  /** Classes for the trigger box, which carries the border, fill and radius. */
   className?: string;
+  /** Accent for the focus border, ring and the selected rows. */
+  tone?: TrueColor;
+  /** Alias for `tone`, matching `Input`, `Select` and `SearchBar`. */
   color?: TrueColor;
+  /** Visual surface style, from the shared field system. @default "flat" */
+  variant?: InputVariant;
+  /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
+  gradientFrom?: string;
+  /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
+  gradientTo?: string;
+  /** How prominent the gradient glow is. @default "soft" */
+  glowIntensity?: GlowIntensity;
+  /** @default "none" */
+  validationStatus?: PickerValidationStatus;
+  /** Disables the trigger. */
+  disabled?: boolean;
 
   // ── Multi-select ────────────────────────────────────────────────────────
   /** Enable multi-select mode. Use selectedIds + onMultiChange instead of selectedId + onSelect. */
@@ -332,8 +224,8 @@ export interface PickerProps {
   maxPillsShown?: number;
 
   // ── Size ────────────────────────────────────────────────────────────────
-  /** 'sm' renders a compact trigger suitable for toolbars. Default: 'md' */
-  size?: "sm" | "md";
+  /** The shared control scale, `xs` through `xl`. @default "md" */
+  size?: PickerSize;
 
   /** When true, the picker fills all available horizontal space. Default: true */
   fullWidth?: boolean;
@@ -355,7 +247,14 @@ const Picker: React.FC<PickerProps> = ({
   defaultFilter,
   escapeBoundary = false,
   className,
-  color = "blue",
+  tone,
+  color,
+  variant = "flat",
+  gradientFrom,
+  gradientTo,
+  glowIntensity = "soft",
+  validationStatus = "none",
+  disabled = false,
   multi = false,
   selectedIds: selectedIdsProp,
   onMultiChange,
@@ -374,7 +273,20 @@ const Picker: React.FC<PickerProps> = ({
   const [style, setStyle] = useState<React.CSSProperties>();
   const [computedMaxHeight, setComputedMaxHeight] =
     useState(MAX_DROPDOWN_HEIGHT);
-  const colorTokens = toneTokens[color] ?? toneTokens.neutral;
+  const effectiveTone = tone ?? color ?? "blue";
+  const colorTokens = toneTokens[effectiveTone] ?? toneTokens.blue;
+  // The field system, shared with Input, Select and SearchBar — so a Picker
+  // stacked beside any of them lines up and focuses identically.
+  const sizeToken = getFieldSizeTokens(size);
+  const fieldTokens = getFieldToneTokens(effectiveTone);
+  const variantTokens = getInputVariantTokens(variant);
+  const hasStatus = validationStatus !== "none";
+  const glow = getGlowTokens(glowIntensity);
+  const [glowFrom, glowTo] = resolveGlowGradient(
+    effectiveTone,
+    gradientFrom,
+    gradientTo,
+  );
 
   // Normalised selection for both modes
   const effectiveSelectedIds = useMemo<string[]>(
@@ -796,12 +708,11 @@ const Picker: React.FC<PickerProps> = ({
 
   // ── Size tokens ───────────────────────────────────────────────────────────
 
-  const sm = size === "sm";
-  const triggerPadding = sm ? "px-2 py-1" : "px-3 py-2.5";
-  const triggerText = sm ? "text-xs" : "text-sm";
-  const triggerGap = sm ? "gap-1.5" : "gap-3";
-  const triggerRadius = "rounded-lg";
-  const chevronSize = sm ? "h-3 w-3" : "h-4 w-4";
+  const triggerText = sizeToken.text;
+  const triggerGap = size === "xs" || size === "sm" ? "gap-1.5" : "gap-2";
+  const chevronSize = size === "xs" || size === "sm" ? "h-3 w-3" : "h-4 w-4";
+  /** Pills inside the trigger track the field's own type scale. */
+  const pillText = size === "xs" || size === "sm" ? "text-[10px]" : "text-xs";
 
   // ── Multi trigger content ─────────────────────────────────────────────────
 
@@ -832,7 +743,7 @@ const Picker: React.FC<PickerProps> = ({
                   key={id}
                   className={classNames(
                     "inline-flex items-center rounded px-1.5 py-0.5 font-medium leading-none",
-                    sm ? "text-[10px]" : "text-xs",
+                    pillText,
                     colorTokens.filterActive,
                   )}
                 >
@@ -844,7 +755,7 @@ const Picker: React.FC<PickerProps> = ({
               <span
                 className={classNames(
                   "inline-flex items-center rounded px-1.5 py-0.5 font-medium leading-none",
-                  sm ? "text-[10px]" : "text-xs",
+                  pillText,
                   "bg-neutral-100 text-neutral-500 dark:bg-neutral-700/50 dark:text-neutral-400",
                 )}
               >
@@ -858,75 +769,89 @@ const Picker: React.FC<PickerProps> = ({
 
   // ── Trigger button ────────────────────────────────────────────────────────
 
-  return (
-    <div
+  const trigger = (
+    <button
+      ref={triggerRef}
+      type="button"
+      // Loading disables the trigger too: there is nothing to pick yet, and
+      // opening onto an empty list reads as "no results" rather than "not
+      // ready". The dim is kept for a genuine `disabled` — while loading the
+      // spinner already says why the control is inert, and fading it would
+      // only make that harder to read.
+      disabled={disabled || loading}
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      aria-invalid={validationStatus === "error" ? true : undefined}
+      aria-busy={loading || undefined}
+      onClick={() => setOpen((prev) => !prev)}
       className={classNames(
-        fullWidth ? "w-full" : "w-fit",
+        // `group`, so the tone's `group-focus-within:` icon accent reaches the
+        // chevron the same way it reaches an Input's leading icon.
+        "group relative flex w-full items-center text-left transition",
         fullHeight && "h-full",
+        sizeToken.px,
+        sizeToken.py,
+        triggerText,
+        triggerGap,
+        // The surface comes from the variant now. It was a hardcoded
+        // `bg-white dark:bg-neutral-900` with a `border-neutral-300`, so a
+        // Picker could not be glass, underlined, elevated or gradient — every
+        // other field could.
+        hasStatus
+          ? stripBorderColor(variantTokens.surface)
+          : variantTokens.surface,
+        !hasStatus && fieldTokens.focusBorder,
+        !hasStatus && fieldTokens.focusRing,
+        hasStatus && FIELD_STATUS_CLASSES[validationStatus],
+        // Open reads like focus, because it is: the same border and inset
+        // ring the field system uses everywhere else. This used to be a
+        // non-inset `ring-2 ring-{tone}-500/20`, which any `overflow` ancestor
+        // clipped into square corners.
+        open && !hasStatus && colorTokens.triggerOpen,
+        // Opacity, not a neutral fill: a `bg-neutral-100` here would be a
+        // same-specificity fight with the variant's own surface and would turn
+        // a glass or underline trigger into an opaque grey slab.
+        disabled && "cursor-not-allowed opacity-60",
+        loading && !disabled && "cursor-wait",
+        className,
       )}
     >
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className={classNames(
-          "flex w-full items-center border text-left transition-colors bg-white dark:bg-neutral-900",
-          fullHeight && "h-full",
-          triggerPadding,
-          triggerText,
-          triggerGap,
-          triggerRadius,
-          open
-            ? colorTokens.triggerOpen
-            : "border-neutral-300 hover:border-neutral-400 dark:border-neutral-600 dark:hover:border-neutral-500",
-          className,
-        )}
-      >
-        {loading ? (
-          <>
-            <svg
-              className="h-4 w-4 animate-spin shrink-0 text-neutral-400"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            <span className={classNames(triggerText, "text-neutral-400")}>
-              {loadingMessage}
-            </span>
-          </>
+      {loading ? (
+        // `flex-1` on the copy. Without it neither the spinner nor the text
+        // grew, so the chevron sat immediately after "Loading…" instead of at
+        // the trailing edge where it sits in every other state.
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <Spinner
+            size={sizeToken.icon}
+            color={effectiveTone}
+            thickness="thin"
+            aria-hidden="true"
+          />
+          <span className={classNames("truncate", triggerText, variantTokens.text, "opacity-60")}>
+            {loadingMessage}
+          </span>
+        </span>
         ) : multi ? (
           multiTriggerContent
         ) : selectedItem ? (
           <>
             {selectedItem.icon && (
-              <span className="shrink-0 text-neutral-500 dark:text-neutral-400">
+              <span className={classNames("shrink-0 transition-colors", variantTokens.icon, fieldTokens.icon)}>
                 {selectedItem.icon}
               </span>
             )}
             <div className="min-w-0 flex-1">
               <span
                 className={classNames(
-                  "block truncate font-medium text-neutral-800 dark:text-neutral-100",
+                  "block truncate font-medium",
+                  variantTokens.text,
                   triggerText,
                 )}
               >
                 {selectedItem.title}
               </span>
               {selectedItem.subtitle && (
-                <span className="block truncate text-xs text-neutral-400 dark:text-neutral-500">
+                <span className={classNames("block truncate text-xs", variantTokens.icon)}>
                   {selectedItem.subtitle}
                 </span>
               )}
@@ -947,13 +872,7 @@ const Picker: React.FC<PickerProps> = ({
             )}
           </>
         ) : (
-          <span
-            className={classNames(
-              "flex-1",
-              triggerText,
-              "text-neutral-400 dark:text-neutral-500",
-            )}
-          >
+          <span className={classNames("flex-1 truncate", triggerText, variantTokens.icon)}>
             {placeholder}
           </span>
         )}
@@ -962,7 +881,9 @@ const Picker: React.FC<PickerProps> = ({
         <svg
           className={classNames(
             chevronSize,
-            "shrink-0 text-neutral-400 transition-transform",
+            "shrink-0 transition-transform",
+            variantTokens.icon,
+            !hasStatus && fieldTokens.icon,
             open && "rotate-180",
           )}
           viewBox="0 0 24 24"
@@ -972,8 +893,41 @@ const Picker: React.FC<PickerProps> = ({
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
         </svg>
-      </button>
+    </button>
+  );
 
+  // The gradient variant is the same trigger with a coloured glow behind it,
+  // matching Input, Textarea and SearchBar. `glow.pad` keeps the halo inside
+  // the component's own box, so a clipping ancestor cannot shear it off.
+  const framed =
+    variant === "gradient" ? (
+      <span className={classNames("relative flex w-full", glow.pad, fullHeight && "h-full")}>
+        <span
+          className={classNames(
+            "absolute rounded-2xl leading-none transition-opacity duration-500",
+            glow.inset,
+            glow.blur,
+          )}
+          style={{
+            background: `linear-gradient(to right, ${glowFrom}, ${glowTo})`,
+            opacity: open ? glow.focusOpacity : glow.idleOpacity,
+          }}
+          aria-hidden
+        />
+        {trigger}
+      </span>
+    ) : (
+      trigger
+    );
+
+  return (
+    <div
+      className={classNames(
+        fullWidth ? "w-full" : "w-fit",
+        fullHeight && "h-full",
+      )}
+    >
+      {framed}
       {dropdown}
     </div>
   );

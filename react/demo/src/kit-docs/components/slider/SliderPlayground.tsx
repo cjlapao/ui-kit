@@ -12,6 +12,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   sliderOrientationOptions,
   sliderVariantOptions,
@@ -56,58 +57,76 @@ export const SliderPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Orientation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={sliderOrientationOptions}
-              value={orientation}
-              onChange={(v) => setOrientation(v as SliderOrientation)}
-            />
-          </Control>
-          <Control label="Step">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={stepOptions}
-              value={String(step)}
-              onChange={(v) => setStep(Number(v))}
-            />
-          </Control>
-          <SelectControl
-            label="Variant"
-            options={sliderVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as SliderVariant)}
-          />
-          <SelectControl
-            label="Color"
-            options={trueColorOptions}
-            value={color}
-            onChange={(v) => setColor(v as TrueColor)}
-          />
-          {rangeMode && (
-            <Control label="Min. steps apart">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={minStepsOptions}
-                value={String(minSteps)}
-                onChange={(v) => setMinSteps(Number(v))}
-              />
-            </Control>
-          )}
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow
-              label="Range mode"
-              checked={rangeMode}
-              onChange={setRangeMode}
-            />
-            <ToggleRow label="Read only" checked={readOnly} onChange={setReadOnly} />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <Control label="Orientation">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={sliderOrientationOptions}
+                      value={orientation}
+                      onChange={(v) => setOrientation(v as SliderOrientation)}
+                    />
+                  </Control>
+                  <Control label="Step">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={stepOptions}
+                      value={String(step)}
+                      onChange={(v) => setStep(Number(v))}
+                    />
+                  </Control>
+                  <SelectControl
+                    label="Variant"
+                    options={sliderVariantOptions}
+                    value={variant}
+                    onChange={(v) => setVariant(v as SliderVariant)}
+                  />
+                  <SelectControl
+                    label="Color"
+                    options={trueColorOptions}
+                    value={color}
+                    onChange={(v) => setColor(v as TrueColor)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "states",
+              title: "States",
+              controls: (
+                <>
+                  {rangeMode && (
+                    <Control label="Min. steps apart">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={minStepsOptions}
+                        value={String(minSteps)}
+                        onChange={(v) => setMinSteps(Number(v))}
+                      />
+                    </Control>
+                  )}
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow
+                      label="Range mode"
+                      checked={rangeMode}
+                      onChange={setRangeMode}
+                    />
+                    <ToggleRow label="Read only" checked={readOnly} onChange={setReadOnly} />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="flex w-full max-w-md flex-col items-center gap-3">

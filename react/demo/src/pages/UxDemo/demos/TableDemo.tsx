@@ -1,18 +1,20 @@
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
-import { Table, Button, IconButton, MultiToggle, Toggle } from "@cjlapao/ui-kit";
+import { Table, Button, IconButton, MultiToggle, Toggle, Select } from "@cjlapao/ui-kit";
 import {
   type TableVariant,
   type TableDensity,
   type TableSortState,
   type TableColumn,
   type TableSettings,
+  type SurfaceCorner,
 } from "@cjlapao/ui-kit";
 import { type PanelTone } from "@cjlapao/ui-kit";
 import {
   tableVariantOptions,
   tableDensityOptions,
-  tableToneOptions,
+  surfaceCornerOptions,
+  trueColorOptions,
 } from "../constants";
 
 type UserRow = {
@@ -71,10 +73,10 @@ const filledData: UserRow[] = [
 const emptyData: UserRow[] = [];
 
 const columns: TableColumn<UserRow>[] = [
-  { id: "name", header: "User", accessor: "name", sortable: true, minWidth: 240 },
-  { id: "email", header: "Email", accessor: "email", sortable: true, minWidth: 240 },
-  { id: "role", header: "Role", accessor: "role", sortable: true, minWidth: 240 },
-  { id: "lastSeen", header: "Last Seen", accessor: "lastSeen", sortable: true, minWidth: 240 },
+  { id: "name", header: "User", accessor: "name", sortable: true, minWidth: 160 },
+  { id: "email", header: "Email", accessor: "email", sortable: true, minWidth: 190 },
+  { id: "role", header: "Role", accessor: "role", sortable: true, minWidth: 120 },
+  { id: "lastSeen", header: "Last Seen", accessor: "lastSeen", sortable: true, minWidth: 140 },
 ];
 
 export const TableDemo: React.FC = () => {
@@ -86,6 +88,7 @@ export const TableDemo: React.FC = () => {
   const [data, setData] = useState<UserRow[]>(filledData);
   const [tableVariant, setTableVariant] = useState<TableVariant>("outlined");
   const [tableDensity, setTableDensity] = useState<TableDensity>("default");
+  const [tableCorner, setTableCorner] = useState<SurfaceCorner>("rounded-md");
   const [tableBordered, setTableBordered] = useState(false);
   const [tableTone, setTableTone] = useState<PanelTone>("neutral");
   const [tableStriped, setTableStriped] = useState(true);
@@ -115,28 +118,39 @@ export const TableDemo: React.FC = () => {
               onChange={(value) => setTableVariant(value as TableVariant)}
             />
           </label>
-          <div className="grid gap-2 md:grid-cols-2">
-            <label className="flex flex-col gap-2">
-              <span>Density</span>
-              <MultiToggle
-                fullWidth
-                options={tableDensityOptions}
-                value={tableDensity}
-                size="sm"
-                onChange={(value) => setTableDensity(value as TableDensity)}
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span>Tone</span>
-              <MultiToggle
-                fullWidth
-                options={tableToneOptions}
-                value={tableTone}
-                size="sm"
-                onChange={(value) => setTableTone(value as PanelTone)}
-              />
-            </label>
-          </div>
+          <label className="flex flex-col gap-2">
+            <span>Density</span>
+            <MultiToggle
+              fullWidth
+              options={tableDensityOptions}
+              value={tableDensity}
+              size="sm"
+              onChange={(value) => setTableDensity(value as TableDensity)}
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span>Corner</span>
+            <MultiToggle
+              fullWidth
+              options={surfaceCornerOptions}
+              value={tableCorner}
+              size="sm"
+              onChange={(value) => setTableCorner(value as SurfaceCorner)}
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span>Tone</span>
+            <Select
+              value={tableTone}
+              onChange={(event) => setTableTone(event.target.value as PanelTone)}
+            >
+              {trueColorOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </label>
           <div className="grid gap-2 md:grid-cols-2">
             <label className="flex items-center justify-between">
               <span>Bordered grid</span>
@@ -203,6 +217,7 @@ export const TableDemo: React.FC = () => {
           data={data}
           variant={tableVariant}
           density={tableDensity}
+          corner={tableCorner}
           bordered={tableBordered}
           tone={tableTone}
            striped={tableStriped}

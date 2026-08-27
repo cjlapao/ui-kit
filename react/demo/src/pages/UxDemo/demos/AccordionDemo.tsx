@@ -1,31 +1,30 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
 import { Accordion, MultiToggle, Toggle, Button, useAccordion } from "@cjlapao/ui-kit";
-import {
-  AccordionVariant,
-  AccordionSize,
+import type {
   AccordionIndicator,
-  AccordionChevronPlacement,
+  AccordionIndicatorPlacement,
+  PanelVariant,
+  PanelTone,
+  ControlSize,
 } from "@cjlapao/ui-kit";
-import { PanelTone } from "@cjlapao/ui-kit";
 import {
-  accordionVariantOptions,
-  accordionSizeOptions,
-  accordionIndicatorOptions,
-  accordionChevronPlacementOptions,
+  panelVariantOptions,
   panelToneOptions,
+  controlSizeOptions,
+  accordionIndicatorOptions,
+  accordionIndicatorPlacementOptions,
 } from "../constants";
 
 export const AccordionDemo: React.FC = () => {
   const [accordionVariant, setAccordionVariant] =
-    useState<AccordionVariant>("default");
+    useState<PanelVariant>("elevated");
   const [accordionTone, setAccordionTone] = useState<PanelTone>("neutral");
-  const [accordionSize, setAccordionSize] = useState<AccordionSize>("md");
+  const [accordionSize, setAccordionSize] = useState<ControlSize>("md");
   const [accordionIndicator, setAccordionIndicator] =
     useState<AccordionIndicator>("chevron");
-  const [accordionChevronPlacement, setAccordionChevronPlacement] =
-    useState<AccordionChevronPlacement>("left");
+  const [accordionIndicatorPlacement, setAccordionIndicatorPlacement] =
+    useState<AccordionIndicatorPlacement>("right");
   const [accordionAllowMultipleOpen, setAccordionAllowMultipleOpen] =
     useState<boolean>(false);
   const [loadingAccordionIds, setLoadingAccordionIds] = useState<string[]>([]);
@@ -48,6 +47,7 @@ export const AccordionDemo: React.FC = () => {
       title: "United States",
       subtitle: "us-east-1 · N. Virginia",
       description: "Low latency for east coast workloads.",
+      icon: "Globe",
       badge: "Primary",
       content: (
         <div className="space-y-2">
@@ -78,6 +78,7 @@ export const AccordionDemo: React.FC = () => {
       title: "Europe",
       subtitle: "eu-central-1 · Frankfurt",
       description: "Ideal for GDPR-compliant workloads.",
+      icon: "Globe",
       badge: "High demand",
       content: (
         <div className="space-y-2">
@@ -97,6 +98,7 @@ export const AccordionDemo: React.FC = () => {
       title: "Asia Pacific",
       subtitle: "ap-southeast-1 · Singapore",
       description: "Great for APAC users and low-latency APIs.",
+      icon: "Globe",
       content: (
         <div className="space-y-2">
           <p>Availability zones: 3</p>
@@ -111,7 +113,7 @@ export const AccordionDemo: React.FC = () => {
     <PlaygroundSection
       title="Accordion"
       label="[Accordion]"
-      description="Stacked disclosure list with multiple variants."
+      description="Stacked disclosure list on the shared panel surface."
       controls={
         <div className="space-y-4 text-sm">
           <div className="grid gap-3 md:grid-cols-2">
@@ -119,11 +121,11 @@ export const AccordionDemo: React.FC = () => {
               <span>Variant</span>
               <MultiToggle
                 fullWidth
-                options={accordionVariantOptions}
+                options={panelVariantOptions}
                 value={accordionVariant}
                 size="sm"
                 onChange={(value) =>
-                  setAccordionVariant(value as AccordionVariant)
+                  setAccordionVariant(value as PanelVariant)
                 }
               />
             </label>
@@ -143,10 +145,12 @@ export const AccordionDemo: React.FC = () => {
               <span>Size</span>
               <MultiToggle
                 fullWidth
-                options={accordionSizeOptions}
+                options={controlSizeOptions}
                 value={accordionSize}
                 size="sm"
-                onChange={(value) => setAccordionSize(value as AccordionSize)}
+                onChange={(value) =>
+                  setAccordionSize(value as ControlSize)
+                }
               />
             </label>
             <label className="flex flex-col gap-2">
@@ -164,15 +168,15 @@ export const AccordionDemo: React.FC = () => {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="flex flex-col gap-2">
-              <span>Caret placement</span>
+              <span>Indicator placement</span>
               <MultiToggle
                 fullWidth
-                options={accordionChevronPlacementOptions}
-                value={accordionChevronPlacement}
+                options={accordionIndicatorPlacementOptions}
+                value={accordionIndicatorPlacement}
                 size="sm"
                 onChange={(value) =>
-                  setAccordionChevronPlacement(
-                    value as AccordionChevronPlacement,
+                  setAccordionIndicatorPlacement(
+                    value as AccordionIndicatorPlacement,
                   )
                 }
               />
@@ -197,7 +201,7 @@ export const AccordionDemo: React.FC = () => {
           tone={accordionTone}
           size={accordionSize}
           indicator={accordionIndicator}
-          chevronPlacement={accordionChevronPlacement}
+          indicatorPlacement={accordionIndicatorPlacement}
           multiple={accordionAllowMultipleOpen}
           openIds={accordion.openIds}
           onChange={accordion.setOpenIds}

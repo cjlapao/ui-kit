@@ -10,6 +10,8 @@ import CustomIcon from "./CustomIcon";
 import { type IconName } from "../icons/registry";
 import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
 import Input from "./Input";
+import Loader, { type LoaderColor, type LoaderProps } from "./Loader";
+import { SkeletonBar } from "./Panel";
 import {
   SIDEBAR_IDLE_COPY,
   SIDEBAR_MOBILE_QUERY,
@@ -23,6 +25,15 @@ import {
 } from "../theme";
 
 export type SideMenuItemType = "link" | "group" | "divider";
+
+/**
+ * The loading treatments a `SideMenu` can show. The same set as `Panel`
+ * (`spinner` / `progress` from the shared `Loader`, plus a skeleton): a
+ * skeleton replaces the rows with a pulsing placeholder shaped like the menu,
+ * while spinner / progress overlay the loader on top of the (dimmed) content.
+ */
+export type SideMenuLoaderType = Exclude<LoaderProps["variant"], undefined> |
+  "skeleton";
 
 export interface SideMenuGuardClaim {
   type: "claim";
@@ -206,6 +217,37 @@ export interface SideMenuProps {
   topItem?: SideMenuDropdownItem;
   /** A row pinned above the collapse control with its own dropdown menu. */
   footerItem?: SideMenuDropdownItem;
+  /**
+   * Paint a subtle dither-noise (film-grain) texture over the panel
+   * background, behind the content. Reads best on dark surfaces.
+   * @default false
+   */
+  noise?: boolean;
+  /**
+   * Show a loading state in place of (or over) the content.
+   * @default false
+   */
+  loading?: boolean;
+  /**
+   * Which loader to show while `loading`. `skeleton` replaces the rows with a
+   * pulsing placeholder shaped like the menu; `spinner` and `progress` overlay
+   * the shared `Loader` on top of the content. The same set `Panel` offers.
+   * @default "skeleton"
+   */
+  loaderType?: SideMenuLoaderType;
+  /** Title line above the spinner / progress loader. */
+  loaderTitle?: React.ReactNode;
+  /** Message line under the spinner / progress loader. */
+  loaderMessage?: React.ReactNode;
+  /** Filled extent (0–100) for the progress loader. @default 0 */
+  loaderProgress?: number;
+  /** Tone of the spinner / progress loader. Defaults to the menu's `color`. */
+  loaderColor?: LoaderColor;
+  /**
+   * Navigation placeholder rows rendered by `loaderType="skeleton"`.
+   * @default 4
+   */
+  skeletonLines?: number;
   /** Show the item search (matches `label` and `description`) below `topItem`. */
   search?: boolean;
   /** Controlled value for the menu search. */
@@ -230,6 +272,116 @@ const ROW_INDENT = ["px-3", "pl-9 pr-3", "pl-14 pr-3", "pl-20 pr-3"];
 
 const indentClass = (depth: number): string =>
   ROW_INDENT[Math.min(depth, ROW_INDENT.length - 1)];
+
+interface SideMenuSkeletonProps {
+  /** Icon-rail state: only the icon placeholders show. */
+  collapsed: boolean;
+  hasLogo: boolean;
+  hasTopItem: boolean;
+  hasSearch: boolean;
+  hasTitle: boolean;
+  hasFooterItem: boolean;
+  showCollapse: boolean;
+  /** Number of navigation placeholder rows. */
+  lines: number;
+}
+
+/**
+ * Placeholder shaped like the menu's own chrome: only the slots the caller
+ * actually passed get a bar, so the skeleton keeps the panel's real height
+ * instead of collapsing or over-reserving. Mirrors `PanelSkeleton`.
+ */
+const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
+  collapsed,
+  hasLogo,
+  hasTopItem,
+  hasSearch,
+  hasTitle,
+  hasFooterItem,
+  showCollapse,
+  lines,
+}) => (
+  <div
+    className="flex h-full w-full animate-pulse flex-col motion-reduce:animate-none"
+    aria-hidden="true"
+  >
+    {/* Logo header */}
+    {hasLogo && (
+      <div
+        className={`flex items-center gap-3 border-b border-neutral-200/60 px-4 py-4 dark:border-neutral-700/60 ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
+        <SkeletonBar className="h-6 w-6 rounded-md" />
+        {!collapsed && <SkeletonBar width="8rem" className="h-3" />}
+      </div>
+    )}
+
+    {/* Top item */}
+    {hasTopItem && (
+      <div
+        className={`flex items-center gap-3 px-3 pt-2 ${collapsed ? "justify-center" : ""}`}
+      >
+        <SkeletonBar className="h-5 w-5 rounded-md" />
+        {!collapsed && <SkeletonBar width="9rem" className="h-3" />}
+      </div>
+    )}
+
+    {/* Search */}
+    {hasSearch && !collapsed && (
+      <div className="px-3 pb-1 pt-2">
+        <SkeletonBar width="100%" className="h-8 rounded-lg" />
+      </div>
+    )}
+
+    {/* Title */}
+    {hasTitle && !collapsed && (
+      <div className="px-6 pb-2 pt-4">
+        <SkeletonBar width="7rem" className="h-3" />
+      </div>
+    )}
+
+    {/* Navigation rows */}
+    <div className="flex-1 space-y-1 overflow-hidden px-3 py-1">
+      {Array.from({ length: lines }).map((_, index) => (
+        <div
+          key={index}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <SkeletonBar className="h-5 w-5 rounded-md" />
+          {!collapsed && (
+            <SkeletonBar
+              width={index === lines - 1 ? "55%" : index % 2 ? "72%" : "85%"}
+              className="h-3"
+            />
+          )}
+        </div>
+      ))}
+    </div>
+
+    {/* Footer item */}
+    {hasFooterItem && (
+      <div
+        className={`flex items-center gap-3 px-3 pb-1 ${collapsed ? "justify-center" : ""}`}
+      >
+        <SkeletonBar className="h-5 w-5 rounded-md" />
+        {!collapsed && <SkeletonBar width="8rem" className="h-3" />}
+      </div>
+    )}
+
+    {/* Collapse control */}
+    {showCollapse && !collapsed && (
+      <div className="border-t border-neutral-200/60 px-3 py-3 dark:border-neutral-700/60">
+        <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+          <SkeletonBar className="h-4 w-4" />
+          <SkeletonBar width="6rem" className="h-3" />
+        </div>
+      </div>
+    )}
+  </div>
+);
 
 /**
  * Whether the responsive `SideMenu` is in its offcanvas (mobile) mode.
@@ -405,6 +557,14 @@ export const SideMenu = ({
   responsive = true,
   topItem,
   footerItem,
+  noise = false,
+  loading = false,
+  loaderType = "skeleton",
+  loaderTitle,
+  loaderMessage,
+  loaderProgress,
+  loaderColor,
+  skeletonLines = 4,
   search = false,
   searchValue,
   onSearchChange,
@@ -461,6 +621,30 @@ export const SideMenu = ({
 
   const surface = getSidebarSurfaceTokens(variant, color);
   const idle = SIDEBAR_IDLE_COPY[surface.idleCopy];
+
+  const showSkeleton = loading && loaderType === "skeleton";
+  const skeletonSlots = {
+    hasLogo: Boolean(logoIcon || logoText),
+    hasTopItem: Boolean(topItem),
+    hasSearch: search,
+    hasTitle: Boolean(title),
+    hasFooterItem: Boolean(footerItem),
+    showCollapse: showCollapseControl,
+    lines: skeletonLines,
+  };
+  // Written as one expression so `loaderType` narrows to the Loader's own
+  // variants for the overlay (skeleton replaces the content instead).
+  const loaderOverlay =
+    loading && loaderType !== "skeleton" ? (
+      <Loader
+        overlay
+        variant={loaderType}
+        title={loaderTitle}
+        label={loaderMessage}
+        progress={loaderProgress}
+        color={loaderColor ?? color}
+      />
+    ) : null;
 
   // ── Hover overlay (openOnHover) ─────────────────────────────────────────
   const cancelHoverClose = () => {
@@ -698,7 +882,7 @@ export const SideMenu = ({
       ? (contentCollapsed: boolean) => (
           <div
             className={`relative z-50 flex h-15 items-center border-b px-4 py-4 ${
-              variant === "glass"
+              variant === "glass" || variant === "floating-glass"
                 ? "bg-white/20 border-white/30 dark:bg-white/5 dark:border-white/10"
                 : "bg-white border-gray-200 dark:bg-neutral-900 dark:border-neutral-700"
             } ${contentCollapsed ? "justify-center" : ""}`}
@@ -1015,9 +1199,14 @@ export const SideMenu = ({
 
       {isMobile ? (
         // Mobile Sidebar (offcanvas overlay)
-        <aside className={mobileClasses} inert={!mobileOpen}>
+        <aside className={mobileClasses} inert={!mobileOpen} aria-busy={loading}>
           <div className="relative h-full flex flex-col w-full">
-            {renderContent(false, true)}
+            {showSkeleton ? (
+              <SideMenuSkeleton collapsed={false} {...skeletonSlots} />
+            ) : (
+              renderContent(false, true)
+            )}
+            {loaderOverlay}
           </div>
         </aside>
       ) : (
@@ -1035,6 +1224,7 @@ export const SideMenu = ({
               rail into the expanded part without leaving. */}
           <aside
             className={asideClasses}
+            aria-busy={loading}
             style={
               isHoverMode ? { transitionDuration: `${hoverTransitionMs}ms` } : undefined
             }
@@ -1046,7 +1236,7 @@ export const SideMenu = ({
             <div
               className={`absolute inset-0 pointer-events-none ${panelFill} ${surface.radius}`}
             />
-            {surface.noise && (
+            {noise && (
               <div
                 className={`absolute inset-0 opacity-[0.4] pointer-events-none mix-blend-overlay ${surface.radius}`}
                 style={NOISE_STYLE}
@@ -1057,8 +1247,13 @@ export const SideMenu = ({
               inert={offcanvasHidden || undefined}
               className={contentClasses}
             >
-              {renderContent(contentCollapsed, false)}
+              {showSkeleton ? (
+                <SideMenuSkeleton collapsed={contentCollapsed} {...skeletonSlots} />
+              ) : (
+                renderContent(contentCollapsed, false)
+              )}
             </div>
+            {loaderOverlay}
           </aside>
           {/* Offcanvas handle — the way back in once the panel is hidden.
               Sibling of the (clipping) aside so it is not cut off at w-0. */}

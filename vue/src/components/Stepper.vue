@@ -1,8 +1,8 @@
 <script lang="ts">
-import type { VNode, VNodeChild } from "vue";
-import type { PanelTone } from "./Panel.vue";
-import type { LoaderProps } from "./Loader.vue";
+import type { CSSProperties, VNode, VNodeChild } from "vue";
+import type { PanelLoaderType, PanelProps } from "./Panel.vue";
 import type { IconName } from "../icons/registry";
+import type { ControlSize, Orientation, SurfaceCorner } from "../theme/Theme";
 
 export type StepStatus = "pending" | "active" | "completed" | "error";
 
@@ -20,163 +20,189 @@ export interface StepperStep {
 
 export type Step = StepperStep;
 
-export type StepperOrientation = "horizontal" | "vertical";
-export type StepperVariant = "card" | "minimal";
-export type StepperSize = "sm" | "md" | "lg";
+export type StepperOrientation = Orientation;
 export type StepperConnector = "line" | "progress" | "none";
 export type StepperProgressBarPosition = "top" | "bottom";
 export type StepperConnectorAlign = "left" | "center" | "right";
 
-export interface StepperProps {
+/**
+ * Shape of the step node. The Panel corner scale (`none` → `rounded-xl`) gives
+ * the usual card corners; `"full"` is the classic circle. @default "full"
+ */
+export type StepperNodeCorner = SurfaceCorner | "full";
+
+/**
+ * A multi-step workflow on the shared container surface.
+ *
+ * It renders `Panel` (like `Accordion`), so `variant`, `tone`, `corner`,
+ * `padding` and every glass prop come from the same scales as every other
+ * card. The Vue kit has no surface-text provider, so the copy, hover wash and
+ * recessed fill are read straight from the shared theme with this component's
+ * own `variant`/`tone` — the same call `Panel` makes internally.
+ *
+ * `size` is the shared `ControlSize` scale and `variant` the shared surface
+ * family; the old local `"card" | "minimal"` and `"sm" | "md" | "lg"` unions
+ * are gone.
+ */
+/**
+ * How the Stepper shows loading. "spinner"/"progress" overlay the node (and the
+ * Panel when the whole stepper loads); "skeleton" replaces the content with
+ * pulsing lines instead of a spinning overlay.
+ */
+export type StepperLoaderType = PanelLoaderType | "skeleton";
+
+export interface StepperProps
+  extends Omit<
+    PanelProps,
+    "title" | "subtitle" | "actions" | "loaderType"
+  > {
+  /** @default "spinner" */
+  loaderType?: StepperLoaderType;
   steps: StepperStep[];
   currentIndex?: number;
   currentStepId?: string;
   defaultCurrentIndex?: number;
   defaultCurrentStepId?: string;
   completedStepIds?: string[];
+  /** @default "horizontal" */
   orientation?: StepperOrientation;
-  variant?: StepperVariant;
-  size?: StepperSize;
-  tone?: PanelTone;
+  /** Density of the node, its type, icons and the connector. @default "md" */
+  size?: ControlSize;
+  /** Shape of the step node: a Panel corner scale or the classic circle. @default "full" */
+  nodeCorner?: StepperNodeCorner;
+  /**
+   * "progress" runs edge-to-edge between the node circles and fills up to
+   * the active step; "line" draws a static track with a breathing gap
+   * around every circle. Both in every orientation. @default "progress"
+   */
   connector?: StepperConnector;
+  /** @default true */
   interactive?: boolean;
-  readOnly?: boolean;
+  /** @default true */
   animated?: boolean;
-  transitionMs?: number;
   showProgressSummary?: boolean;
   showProgressBar?: boolean;
-  progressBarPosition?: "top" | "bottom";
+  /** Where the progress bar/summary sits relative to the steps. @default "bottom" */
+  progressBarPosition?: StepperProgressBarPosition;
   progressPrecision?: number;
   progressLabel?: string | VNode;
+  /** Per-step actions rendered under the step's copy. */
   renderActions?: (step: StepperStep, index: number) => VNodeChild;
+  /** Step ids whose node shows a loader overlay (and whose content shows a skeleton). */
   loaderStepIds?: string[];
-  loading?: boolean;
-  loaderTitle?: string | VNode;
-  loaderMessage?: string | VNode;
-  loaderType?: LoaderProps["variant"];
-  loaderProgress?: number;
-  loaderColor?: LoaderProps["color"];
-  wrapperClassName?: string;
   headerClassName?: string;
   stepClassName?: string;
   contentClassName?: string;
   stepMaxHeight?: number | string;
+  /** @default false */
   connectNodes?: boolean;
+  /** @default "center" */
   connectorAlign?: StepperConnectorAlign;
-  /** Override whether the underline bar is shown beneath each step's title/subtitle. When omitted the variant default is used (`card` → true, `minimal` → false). */
+  /** The underline bar beneath each step's title. @default false */
   showStepUnderline?: boolean;
 }
 
-const sizeTokens: Record<
-  StepperSize,
+/**
+ * Type/icon/connector density only. Every class is a complete literal — the
+ * previous version built `h-${n}` from a number and used `h-32` where it meant
+ * 32px, which Tailwind reads as 8rem.
+ */
+const SIZE_TOKENS: Record<
+  ControlSize,
   {
     node: string;
+    nodeRadius: number;
     nodeText: string;
     title: string;
     subtitle: string;
     description: string;
     optional: string;
-    gap: string;
-    underlineHeight: string;
+    icon: ControlSize;
+    connector: string;
+    connectorVertical: string;
+    underline: string;
   }
 > = {
+  xs: {
+    node: "h-8 w-8",
+    nodeRadius: 16,
+    nodeText: "text-xs",
+    title: "text-xs font-semibold",
+    subtitle: "text-[11px] font-medium",
+    description: "text-[11px]",
+    optional: "text-[11px] italic",
+    icon: "xs",
+    connector: "h-0.5",
+    connectorVertical: "w-0.5",
+    underline: "h-0.5",
+  },
   sm: {
-    node: "h-9 w-9 text-xs",
+    node: "h-9 w-9",
+    nodeRadius: 18,
     nodeText: "text-xs",
     title: "text-sm font-semibold",
-    subtitle: "text-xs font-medium text-neutral-500 dark:text-neutral-400",
-    description: "text-xs text-neutral-500 dark:text-neutral-400",
-    optional: "text-[11px] italic text-neutral-400 dark:text-neutral-500",
-    gap: "gap-2.5",
-    underlineHeight: "h-0.5",
+    subtitle: "text-xs font-medium",
+    description: "text-xs",
+    optional: "text-[11px] italic",
+    icon: "sm",
+    connector: "h-[3px]",
+    connectorVertical: "w-[3px]",
+    underline: "h-0.5",
   },
   md: {
-    node: "h-10 w-10 text-sm",
+    node: "h-10 w-10",
+    nodeRadius: 20,
     nodeText: "text-sm",
     title: "text-base font-semibold",
-    subtitle: "text-sm font-medium text-neutral-500 dark:text-neutral-400",
-    description: "text-sm text-neutral-500 dark:text-neutral-400",
-    optional: "text-xs italic text-neutral-400 dark:text-neutral-500",
-    gap: "gap-3",
-    underlineHeight: "h-[3px]",
+    subtitle: "text-sm font-medium",
+    description: "text-sm",
+    optional: "text-xs italic",
+    icon: "md",
+    connector: "h-1",
+    connectorVertical: "w-1",
+    underline: "h-[3px]",
   },
   lg: {
-    node: "h-12 w-12 text-base",
+    node: "h-12 w-12",
+    nodeRadius: 24,
     nodeText: "text-base",
     title: "text-lg font-semibold",
-    subtitle: "text-sm font-medium text-neutral-500 dark:text-neutral-400",
-    description: "text-sm text-neutral-500 dark:text-neutral-400",
-    optional: "text-sm italic text-neutral-400 dark:text-neutral-500",
-    gap: "gap-4",
-    underlineHeight: "h-1",
+    subtitle: "text-sm font-medium",
+    description: "text-sm",
+    optional: "text-sm italic",
+    icon: "lg",
+    connector: "h-[5px]",
+    connectorVertical: "w-[5px]",
+    underline: "h-1",
+  },
+  xl: {
+    node: "h-14 w-14",
+    nodeRadius: 28,
+    nodeText: "text-lg",
+    title: "text-xl font-semibold",
+    subtitle: "text-sm font-medium",
+    description: "text-base",
+    optional: "text-sm italic",
+    icon: "xl",
+    connector: "h-1.5",
+    connectorVertical: "w-1.5",
+    underline: "h-1",
   },
 };
 
-const variantConfig: Record<
-  StepperVariant,
-  {
-    headerPadding: string;
-    showDescription: boolean;
-    emphasizeActiveTitle: boolean;
-    showUnderline: boolean;
-  }
-> = {
-  card: {
-    headerPadding: "px-2 py-1.5",
-    showDescription: true,
-    emphasizeActiveTitle: true,
-    showUnderline: false,
-  },
-  minimal: {
-    headerPadding: "px-1 py-1",
-    showDescription: false,
-    emphasizeActiveTitle: true,
-    showUnderline: false,
-  },
-};
-
-const statusIcon: Record<StepStatus, IconName | undefined> = {
+const STATUS_ICON: Record<StepStatus, IconName | undefined> = {
   pending: undefined,
   active: undefined,
   completed: "CheckCircle",
   error: "Error",
 };
 
-const convertToBg = (value: string): string =>
-  value
-    .split(" ")
-    .map((token) => {
-      if (token.startsWith("bg-") || token.startsWith("dark:bg-")) {
-        return token;
-      }
-      if (token.startsWith("border-")) {
-        return token.replace("border-", "bg-");
-      }
-      if (token.startsWith("dark:border-")) {
-        return token.replace("dark:border-", "dark:bg-");
-      }
-      return "";
-    })
-    .filter(Boolean)
-    .join(" ");
-
-const nodeRadii: Record<StepperSize, number> = {
-  sm: 18,
-  md: 20,
-  lg: 24,
-};
-
-const connectorThickness: Record<StepperSize, string> = {
-  sm: "h-[3px]",
-  md: "h-1",
-  lg: "h-[5px]",
-};
-
-const verticalConnectorThickness: Record<StepperSize, string> = {
-  sm: "w-[3px]",
-  md: "w-1",
-  lg: "w-[5px]",
-};
+/**
+ * Semantic, not tone-driven: an error step is always rose. Same `-700` light /
+ * `-400` dark rule as every other fill that carries a glyph — the old
+ * `bg-rose-500` under white measured ~3.9:1.
+ */
+const ERROR_NODE = "bg-rose-700 dark:bg-rose-400 text-white dark:text-rose-950";
 </script>
 
 <script setup lang="ts">
@@ -185,15 +211,25 @@ import {
   onMounted,
   onUnmounted,
   ref,
+  useId,
   watch,
-  type CSSProperties,
   type ComponentPublicInstance,
 } from "vue";
 import classNames from "classnames";
+import EmptyState from "./EmptyState.vue";
 import Loader from "./Loader.vue";
+import Panel from "./Panel.vue";
 import { useStepper } from "../composables/useStepper";
-import { getStepperTonePalette } from "../theme";
-import { renderIcon } from "../utils/renderIcon";
+import {
+  DEFAULT_SURFACE_CORNER,
+  getLoaderProgressColors,
+  getPanelToneStyles,
+  getStepperTonePalette,
+  getSurfaceCornerClass,
+  getSurfaceTextTokens,
+  getSurfaceTriggerTokens,
+} from "../theme/Theme";
+import { useIconRenderer } from "../contexts/IconContext";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
 
@@ -201,18 +237,26 @@ defineOptions({ name: "Stepper", inheritAttrs: false });
 
 const props = withDefaults(defineProps<StepperProps>(), {
   orientation: "horizontal",
-  variant: "card",
+  variant: "elevated",
+  tone: "neutral",
   size: "md",
-  tone: "blue",
+  nodeCorner: "full",
+  padding: "md",
+  corner: DEFAULT_SURFACE_CORNER,
   connector: "progress",
   interactive: true,
+  animated: true,
   showProgressSummary: false,
   showProgressBar: false,
+  progressBarPosition: "bottom",
   progressPrecision: 0,
-  loading: false,
-  loaderType: "spinner",
   connectNodes: false,
   connectorAlign: "center",
+  showStepUnderline: false,
+  disabled: false,
+  loading: false,
+  loaderType: "spinner",
+  scrollable: undefined,
 });
 
 const emit = defineEmits<{
@@ -221,6 +265,8 @@ const emit = defineEmits<{
 }>();
 
 const { classAttr, restAttrs } = useClassAttrs();
+const renderIcon = useIconRenderer();
+const progressLabelId = useId();
 
 const state = useStepper<StepperStep>(() => props.steps, {
   defaultCurrentIndex: props.defaultCurrentIndex,
@@ -231,24 +277,42 @@ const state = useStepper<StepperStep>(() => props.steps, {
   onChange: (index, stepId) => emit("change", index, stepId),
 });
 
-const nodeRefs: (HTMLElement | null)[] = [];
-const verticalContainerRef = ref<HTMLDivElement | null>(null);
-const verticalSegments = ref<number[]>([]);
-
-const palette = computed(() => getStepperTonePalette(props.tone));
-const sizeToken = computed(() => sizeTokens[props.size]);
-const connectorThicknessClass = computed(() => connectorThickness[props.size]);
-const verticalConnectorThicknessClass = computed(
-  () => verticalConnectorThickness[props.size],
+const surface = computed(() => getSurfaceTextTokens(props.variant ?? "elevated"));
+const trigger = computed(() => getSurfaceTriggerTokens(props.tone ?? "neutral"));
+const palette = computed(() => getStepperTonePalette(props.tone ?? "neutral"));
+const panelTone = computed(() => getPanelToneStyles(props.tone ?? "neutral"));
+const progressColors = computed(() =>
+  getLoaderProgressColors(props.tone ?? "neutral"),
 );
-const variantToken = computed(() => variantConfig[props.variant]);
-const isInteractive = computed(() => props.interactive && !props.readOnly);
+const tokens = computed(
+  () => SIZE_TOKENS[props.size ?? "md"] ?? SIZE_TOKENS.md,
+);
+const nodeCornerClass = computed(() =>
+  props.nodeCorner === "full"
+    ? "rounded-full"
+    : getSurfaceCornerClass(props.nodeCorner),
+);
+const clickable = computed(() => props.interactive && !props.disabled);
 const loaderSet = computed(() => new Set(props.loaderStepIds ?? []));
-const connectorBaseClasses = computed(() =>
-  convertToBg(palette.value.underlineBase),
+const horizontal = computed(() => props.orientation === "horizontal");
+
+const nodeTransition = computed(
+  () =>
+    props.animated
+      ? "transition-all duration-200 motion-reduce:transition-none"
+      : "",
 );
-const connectorActiveClasses = computed(() =>
-  convertToBg(palette.value.activeBg),
+const lineTransition = computed(
+  () =>
+    props.animated
+      ? "transition-colors duration-200 motion-reduce:transition-none"
+      : "",
+);
+const fillTransition = computed(
+  () =>
+    props.animated
+      ? "transition-all duration-300 ease-out motion-reduce:transition-none"
+      : "",
 );
 
 const progressPercent = computed(() =>
@@ -262,18 +326,36 @@ const formattedProgress = computed(
 );
 
 const activeStep = computed(() => props.steps[state.currentIndex.value]);
+const activeStepLoading = computed(() => {
+  const step = activeStep.value;
+  return (
+    step !== undefined &&
+    loaderSet.value.has(step.id ?? String(state.currentIndex.value))
+  );
+});
+
+// The recessed detail region. On a solid surface it takes the tone's subtle
+// fill and hairline; on a translucent one an opaque fill would punch a slab
+// through the glass, so it takes the surface's own divider plus a faint wash.
+const contentRegionClass = computed(() =>
+  surface.value.translucent
+    ? classNames("border", surface.value.divider, "bg-white/40 dark:bg-black/20")
+    : classNames("border", panelTone.value.outlineBorder, panelTone.value.subtleBg),
+);
 
 interface StepMeta {
   step: StepperStep;
   index: number;
   resolvedId: string;
   status: StepStatus;
-  nodeClasses: string;
+  isCompleted: boolean;
+  statusClasses: string[];
+  hoverClass: string;
   underlineClasses: string;
   textStyle: CSSProperties | undefined;
   nodeIcon: IconName | VNode | undefined;
   isLoadingStep: boolean;
-  isCompleted: boolean;
+  actions: VNodeChild | undefined;
 }
 
 const stepMeta = computed<StepMeta[]>(() =>
@@ -285,51 +367,47 @@ const stepMeta = computed<StepMeta[]>(() =>
       step.status ??
       (derivedActive ? "active" : derivedCompleted ? "completed" : "pending");
 
-    // A step that is active is never "completed" for connector-fill purposes,
-    // even if its id appears in completedStepIds or its explicit status is "completed".
+    // A step that is active never fills the connector, even if completed.
     const isCompleted =
       (step.status ? step.status === "completed" : derivedCompleted) &&
       !derivedActive;
 
-    const nodeBaseClass =
-      props.variant === "minimal"
-        ? "rounded-md border flex items-center justify-center font-semibold transition-all duration-200"
-        : "rounded-full border flex items-center justify-center font-semibold transition-all duration-200";
+    const statusClasses: string[] =
+      status === "active"
+        ? [
+            palette.value.activeBg,
+            palette.value.activeText,
+            "border-transparent shadow-sm",
+          ]
+        : status === "completed"
+          ? [
+              palette.value.completedBg,
+              palette.value.completedText,
+              "border-transparent shadow-sm",
+            ]
+          : status === "error"
+            ? [ERROR_NODE, "border-transparent shadow-sm"]
+            : // No fill: a pending node is just its tone border and number, so
+              // it stays see-through on a glass surface instead of painting an
+              // opaque slab.
+              ["bg-transparent", palette.value.pendingBorder, palette.value.pendingText];
 
-    const nodeClasses = classNames(
-      nodeBaseClass,
-      sizeToken.value.node,
-      sizeToken.value.nodeText,
-      step.disabled && "opacity-60",
-      status === "active" && [
-        palette.value.activeBg,
-        palette.value.activeText,
-        "border-transparent shadow-sm",
-      ],
-      status === "completed" && [
-        palette.value.completedBg,
-        palette.value.completedText,
-        "border-transparent shadow-sm",
-      ],
-      status === "pending" && [
-        "bg-white dark:bg-neutral-900",
-        palette.value.pendingBorder,
-        palette.value.pendingText,
-      ],
-      status === "error" &&
-        "bg-rose-500 text-white border-transparent shadow-sm",
-    );
+    // Filled nodes darken on hover; a transparent pending node takes the
+    // surface's tone wash instead (brightness-95 on nothing paints nothing).
+    const hoverClass =
+      status === "pending" ? trigger.value.hover : "hover:brightness-95";
 
     const underlineClasses =
       props.connector !== "none"
         ? classNames(
-            "w-full transition-all duration-200 ease-out rounded-full",
-            sizeToken.value.underlineHeight,
+            "w-full rounded-full",
+            lineTransition.value,
+            tokens.value.underline,
             palette.value.underlineBase,
           )
         : "";
 
-    const textStyle =
+    const textStyle: CSSProperties | undefined =
       props.stepMaxHeight !== undefined
         ? {
             maxHeight:
@@ -339,33 +417,39 @@ const stepMeta = computed<StepMeta[]>(() =>
           }
         : undefined;
 
-    const nodeIcon = step.icon ?? statusIcon[status];
+    const nodeIcon = step.icon ?? STATUS_ICON[status];
     const isLoadingStep = loaderSet.value.has(resolvedId);
+    const actions = props.renderActions?.(step, index);
 
     return {
       step,
       index,
       resolvedId,
       status,
-      nodeClasses,
+      isCompleted,
+      statusClasses,
+      hoverClass,
       underlineClasses,
       textStyle,
       nodeIcon,
       isLoadingStep,
-      isCompleted,
+      actions,
     };
   }),
 );
 
 // ── Vertical connector measurement ──────────────────────────────────────────
 
+const nodeRefs: (HTMLElement | null)[] = [];
+const verticalContainerRef = ref<HTMLDivElement | null>(null);
+const verticalSegments = ref<number[]>([]);
+let resizeObserver: ResizeObserver | undefined;
+
 const setNodeRef = (
   el: Element | ComponentPublicInstance | null,
   index: number,
 ) => {
-  if (props.orientation === "vertical") {
-    nodeRefs[index] = el as HTMLElement | null;
-  }
+  nodeRefs[index] = el as HTMLElement | null;
 };
 
 const measure = () => {
@@ -380,9 +464,7 @@ const measure = () => {
   const containerRect = container.getBoundingClientRect();
   const centers: number[] = [];
   for (const node of nodes) {
-    if (!node) {
-      return;
-    }
+    if (!node) return;
     const rect = node.getBoundingClientRect();
     centers.push(rect.top + rect.height / 2 - containerRect.top);
   }
@@ -399,126 +481,147 @@ const measure = () => {
   verticalSegments.value = segments;
 };
 
-const handleResize = () => {
-  if (props.orientation === "vertical") measure();
+// Observe the container, not just the window: a stepper in a resizable split
+// resizes while the window does not. Re-created on every orientation change so
+// the (conditionally rendered) container element is always the one watched.
+const syncVertical = () => {
+  resizeObserver?.disconnect();
+  resizeObserver = undefined;
+  if (props.orientation !== "vertical") {
+    if (verticalSegments.value.length !== 0) {
+      verticalSegments.value = [];
+    }
+    return;
+  }
+  const container = verticalContainerRef.value;
+  if (container && typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(measure);
+    resizeObserver.observe(container);
+  }
+  measure();
 };
 
 watch(
   [
     () => props.orientation,
     () => props.steps,
-    () => props.completedStepIds,
-    () => props.loaderStepIds,
     () => state.currentIndex.value,
+    () => props.loaderStepIds,
   ],
-  () => {
-    if (props.orientation !== "vertical") {
-      if (verticalSegments.value.length !== 0) {
-        verticalSegments.value = [];
-      }
-      return;
-    }
-    measure();
-  },
+  () => syncVertical(),
   { flush: "post" },
 );
 
-onMounted(() => {
+const handleResize = () => {
   if (props.orientation === "vertical") measure();
+};
+
+onMounted(() => {
+  syncVertical();
   window.addEventListener("resize", handleResize);
 });
-onUnmounted(() => window.removeEventListener("resize", handleResize));
+onUnmounted(() => {
+  resizeObserver?.disconnect();
+  window.removeEventListener("resize", handleResize);
+});
 
 // ── Node row layout (horizontal) ────────────────────────────────────────────
 
-const rowGapClass = computed(() => (props.connectNodes ? "gap-0" : "gap-2"));
-const gridColumns = computed(() => Math.max(1, props.steps.length));
+type ConnectorStyle = Record<string, string>;
 
 interface NodeRowItem {
   meta: StepMeta;
-  showLeft: boolean;
-  showRight: boolean;
-  segmentSize: string;
-  detachedSegment: boolean;
+  leftStyle: ConnectorStyle | null;
+  rightStyle: ConnectorStyle | null;
   previousCompleted: boolean;
   currentCompleted: boolean;
-  segmentIsCompleted: boolean;
-  leftNodeStyle: string;
-  rightNodeStyle: string;
-  connectorWidth: string;
 }
 
 const nodeRowItems = computed<NodeRowItem[]>(() => {
-  const nodeRadius = nodeRadii[props.size];
-
+  const nodeRadius = tokens.value.nodeRadius;
+  // The node row uses gap-2 (8px) while the nodes are detached; a negative
+  // offset of the same size lets a span bridge the gap and reach the
+  // previous cell's edge. Keep in sync with the gap-2 class below.
+  const nodeGap = props.connectNodes ? 0 : 8;
+  // "progress" runs edge-to-edge (node edge to node edge); "line" keeps a
+  // breathing gap around every circle, in every orientation.
+  const lineInset = props.connector === "line" ? 8 : 0;
+  // The px offsets are folded in JS (one term per calc): jsdom's CSSOM
+  // mis-signs 3+-term calcs, and pre-folded calcs render identically in real
+  // browsers.
+  const bothEndsPx = nodeGap - nodeRadius * 2 - lineInset * 2;
+  const bothEnds = `calc(100% ${bothEndsPx < 0 ? "-" : "+"} ${Math.abs(bothEndsPx)}px)`;
+  const centerLeftPx = nodeGap - nodeRadius - lineInset;
+  const centerLeft = `calc(50% ${centerLeftPx < 0 ? "-" : "+"} ${Math.abs(centerLeftPx)}px)`;
+  const centerRightPx = -(nodeRadius + lineInset);
+  const centerRight = `calc(50% ${centerRightPx < 0 ? "-" : "+"} ${Math.abs(centerRightPx)}px)`;
   return stepMeta.value.map((meta, idx) => {
-    let connectorWidth = `calc(50% + ${nodeRadius}px)`;
-    let leftNodeStyle =
-      props.connectorAlign === "left"
-        ? "calc(50% * -1)"
-        : props.connectorAlign === "right"
-          ? `${nodeRadius * 4}px`
-          : `-${nodeRadius}px`;
-    let rightNodeStyle =
-      props.connectorAlign === "left"
-        ? "unset"
-        : props.connectorAlign === "right"
-          ? "calc(50% * -1)"
-          : `-${nodeRadius}px`;
-
-    let showLeft =
-      props.connectNodes && props.connector !== "none" && idx > 0;
-    let showRight =
-      props.connectNodes &&
-      props.connector !== "none" &&
-      idx < stepMeta.value.length - 1;
-    let segmentSize = "pl-4 pr-2";
-    if (!props.connectNodes) {
+    // Connector geometry. Each gap between two nodes is drawn so the line
+    // runs from one node's far edge to the other node's near edge
+    // (edge-to-edge for "progress"), or stops `lineInset` short of each
+    // circle ("line") — never entering a circle, solid or transparent. A
+    // single-span gap (left/right align) insets BOTH ends; the split-span
+    // gap (center) insets one end per span. The left span (this cell) joins
+    // THIS step to the previous one; the right span (this cell) joins it to
+    // the next.
+    let leftStyle: ConnectorStyle | null = null;
+    let rightStyle: ConnectorStyle | null = null;
+    if (props.connector !== "none") {
       if (props.connectorAlign === "left") {
-        showRight = false;
-        showLeft = false;
-        segmentSize = "pl-4 pr-2 flex-1";
-        leftNodeStyle = "0px";
-      }
-      if (props.connectorAlign === "center") {
-        showLeft = props.connector !== "none" && idx > 0;
-        showRight =
-          props.connector !== "none" && idx < stepMeta.value.length - 1;
-        connectorWidth = `calc(50% - ${nodeRadius}px)`;
-        rightNodeStyle = `0px`;
-      }
-      if (props.connectorAlign === "right") {
-        showLeft = props.connector !== "none" && idx > 0;
-        showRight = false;
-        // Connector spans from the previous cell's right edge (= left: 0)
-        // to just before the current node (= calc(100% - 2r)).
-        leftNodeStyle = "0px";
-        connectorWidth = `calc(100% - ${nodeRadius * 2}px)`;
+        // Node at the cell's left edge: one right span per cell runs from
+        // this node's right edge across the gap to the next node's left edge.
+        if (idx < stepMeta.value.length - 1) {
+          rightStyle = {
+            right: `${lineInset - nodeGap}px`,
+            width: bothEnds,
+          };
+        }
+      } else if (props.connectorAlign === "right") {
+        // Node at the cell's right edge: one left span per cell starts one
+        // gap before the cell (= previous node's right edge) and runs to
+        // this node's left edge.
+        if (idx > 0) {
+          leftStyle = {
+            left: `${lineInset - nodeGap}px`,
+            width: bothEnds,
+          };
+        }
+      } else {
+        // Centered node: the gap splits at the cell boundary — this cell's
+        // right span covers node→cell edge (inset on the node side), the
+        // next cell's left span covers cell edge→node (inset on its node
+        // side). The two spans meet at a point, so their junction-side
+        // corners are squared — a rounded-full cap on each would pinch the
+        // line into a visible notch. The node-side corners stay rounded.
+        // Both spans are always the same color (both key off the left
+        // step's completion), so the square-to-square meeting reads as one
+        // continuous line.
+        if (idx > 0) {
+          leftStyle = {
+            left: `-${nodeGap}px`,
+            width: centerLeft,
+            borderTopLeftRadius: "0",
+            borderBottomLeftRadius: "0",
+          };
+        }
+        if (idx < stepMeta.value.length - 1) {
+          rightStyle = {
+            right: "0px",
+            width: centerRight,
+            borderTopRightRadius: "0",
+            borderBottomRightRadius: "0",
+          };
+        }
       }
     }
     const previousStep = stepMeta.value[idx - 1];
-    const previousCompleted = previousStep?.isCompleted ?? false;
-    const currentCompleted = meta.isCompleted;
-    // For right-align the absolute left-connector handles the line; the flex segment would push the node off the right edge.
-    const detachedSegment =
-      !props.connectNodes &&
-      props.connector !== "none" &&
-      props.connectorAlign !== "right" &&
-      idx < stepMeta.value.length - 1;
-    const segmentIsCompleted = meta.isCompleted;
 
     return {
       meta,
-      showLeft,
-      showRight,
-      segmentSize,
-      detachedSegment,
-      previousCompleted,
-      currentCompleted,
-      segmentIsCompleted,
-      leftNodeStyle,
-      rightNodeStyle,
-      connectorWidth,
+      leftStyle,
+      rightStyle,
+      previousCompleted: previousStep?.isCompleted ?? false,
+      currentCompleted: meta.isCompleted,
     };
   });
 });
@@ -526,370 +629,626 @@ const nodeRowItems = computed<NodeRowItem[]>(() => {
 // ── Handlers ────────────────────────────────────────────────────────────────
 
 const handleStepClick = (step: StepperStep, index: number) => {
-  if (!isInteractive.value || step.disabled) return;
+  if (!clickable.value || step.disabled) return;
   state.goToIndex(index);
   emit("stepClick", step, index);
 };
 
-const isActive = (id: string, index: number) => state.isActive(id, index);
+const handleNodeKeyDown = (event: KeyboardEvent, index: number) => {
+  // Only when the node itself has focus.
+  if (event.target !== event.currentTarget) {
+    return;
+  }
+  if (
+    ![
+      "ArrowDown",
+      "ArrowUp",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End",
+    ].includes(event.key)
+  ) {
+    return;
+  }
+  event.preventDefault();
 
-const horizontal = computed(() => props.orientation === "horizontal");
+  // Arrow keys move focus between steps without activating them (APG
+  // disclosure pattern); Enter/Space activate via the native button.
+  const enabled = props.steps
+    .map((_, i) => i)
+    .filter((i) => !props.steps[i].disabled);
+  if (enabled.length === 0) return;
+  const current = enabled.indexOf(index);
+  if (current === -1) return;
 
-const alignmentMarginClass = computed(() =>
-  props.connectorAlign === "left"
-    ? "mr-auto"
-    : props.connectorAlign === "right"
-      ? "ml-auto"
-      : "mx-auto",
+  let next: number;
+  switch (event.key) {
+    case "ArrowDown":
+    case "ArrowRight":
+      next = (current + 1) % enabled.length;
+      break;
+    case "ArrowUp":
+    case "ArrowLeft":
+      next = (current - 1 + enabled.length) % enabled.length;
+      break;
+    case "Home":
+      next = 0;
+      break;
+    default:
+      next = enabled.length - 1;
+  }
+  nodeRefs[enabled[next]]?.focus();
+};
+
+const nodeAttrs = (meta: StepMeta) => {
+  const isDisabled = Boolean(meta.step.disabled);
+  const isButton = clickable.value && !isDisabled;
+  return {
+    isButton,
+    classes: classNames(
+      "relative z-10 flex items-center justify-center border font-semibold",
+      nodeCornerClass.value,
+      tokens.value.node,
+      tokens.value.nodeText,
+      nodeTransition.value,
+      isDisabled && "opacity-60",
+      meta.statusClasses,
+      isButton && meta.hoverClass,
+      isButton && trigger.value.focusRing,
+    ),
+  };
+};
+
+// Typed so the template's dynamic `<component :is>` (button | div) does not
+// widen the ref/event parameters to implicit `any`.
+const nodeRefFor = (index: number) => {
+  return (el: Element | ComponentPublicInstance | null) =>
+    setNodeRef(el, index);
+};
+// Direct function reference (not a per-item closure factory): the template
+// compiler wraps `@keydown="onNodeKeydown(meta, idx)"` as a fire-and-forget
+// statement and silently drops the returned handler, so the index is read
+// from a data attribute on the focused node instead.
+const onNodeKeydown = (event: KeyboardEvent) => {
+  const raw = (event.currentTarget as HTMLElement | null)?.dataset.stepIndex;
+  const index = raw === undefined ? -1 : Number(raw);
+  if (!Number.isInteger(index) || index < 0 || index >= props.steps.length) {
+    return;
+  }
+  if (!clickable.value || props.steps[index].disabled) return;
+  handleNodeKeyDown(event, index);
+};
+
+const gridColumns = computed(() => Math.max(1, props.steps.length));
+
+// ── Panel bindings ──────────────────────────────────────────────────────────
+
+const isSkeletonLoading = computed(
+  () => props.loading && props.loaderType === "skeleton",
 );
 
-const rootClass = computed(() =>
+// The per-step node overlay variant. "skeleton" loads the content, not the
+// node, so it shows no overlay. Kept in the script (not the template) so the
+// `StepperLoaderType` → `LoaderVariant` narrowing stays type-safe.
+const nodeOverlayVariant = computed(() =>
+  props.loaderType === "skeleton" ? undefined : props.loaderType,
+);
+
+// Whole-stepper skeleton: pulsing discs + ONE connector segment per gap that
+// stops 8px short of each disc (like the "line" connector), so the line never
+// runs into the translucent discs. Thickness matches the live connector.
+const skeletonDiscClass = computed(() =>
   classNames(
-    "relative flex w-full flex-col",
-    horizontal.value ? "gap-6" : "gap-4",
-    alignmentMarginClass.value,
-    props.wrapperClassName,
-    classAttr.value,
+    "relative z-10 shrink-0 rounded-full bg-black/10 dark:bg-white/10 animate-pulse motion-reduce:animate-none",
+    tokens.value.node,
   ),
 );
+const skeletonBarHorizontalClass = computed(() =>
+  classNames(
+    "mx-2 flex-1 rounded-full bg-black/10 dark:bg-white/10 animate-pulse motion-reduce:animate-none",
+    tokens.value.connector,
+  ),
+);
+const skeletonBarVerticalClass = computed(() =>
+  classNames(
+    "my-2 min-h-6 flex-1 rounded-full bg-black/10 dark:bg-white/10 animate-pulse motion-reduce:animate-none",
+    tokens.value.connectorVertical,
+  ),
+);
+
+const panelBindings = computed(() => {
+  const {
+    steps: _steps,
+    currentIndex: _ci,
+    currentStepId: _csid,
+    defaultCurrentIndex: _dci,
+    defaultCurrentStepId: _dcsid,
+    completedStepIds: _completed,
+    orientation: _orientation,
+    size: _size,
+    connector: _connector,
+    interactive: _interactive,
+    animated: _animated,
+    showProgressSummary: _sps,
+    showProgressBar: _spb,
+    progressBarPosition: _pbp,
+    progressPrecision: _pp,
+    progressLabel: _pl,
+    renderActions: _ra,
+    loaderStepIds: _lsi,
+    headerClassName: _hc,
+    stepClassName: _sc,
+    contentClassName: _cc,
+    stepMaxHeight: _smh,
+    connectNodes: _cn,
+    connectorAlign: _ca,
+    showStepUnderline: _ssu,
+    variant,
+    tone,
+    padding,
+    corner,
+    disabled,
+    // "skeleton" is the Stepper's own placeholder, not a Panel loader — coerce
+    // it before the Panel sees it (its `loaderType` scale stops at "progress").
+    loading: _loading,
+    loaderType: _loaderType,
+    ...panelProps
+  } = props;
+  const definedPanelProps = Object.fromEntries(
+    Object.entries(panelProps).filter(([, value]) => value !== undefined),
+  );
+  return {
+    class: classNames("w-full", classAttr.value),
+    variant,
+    tone,
+    padding,
+    corner,
+    disabled,
+    scrollable: false,
+    ...definedPanelProps,
+    loaderType: _loaderType === "skeleton" ? "spinner" : _loaderType,
+    loading: _loading && !isSkeletonLoading.value,
+    ...restAttrs.value,
+  };
+});
 </script>
 
 <template>
-  <div :class="rootClass" :aria-busy="loading" v-bind="restAttrs">
-    <!-- ── Horizontal ────────────────────────────────────────────────────── -->
+  <Panel v-bind="panelBindings">
+    <!-- Empty state: the workflow has nothing to show yet. -->
+    <div v-if="steps.length === 0" class="flex flex-col">
+      <EmptyState
+        variant="plain"
+        :dashed="false"
+        icon="ViewRows"
+        title="No steps"
+        subtitle="Add steps to show the workflow."
+        :tone="tone"
+        :size="size"
+      />
+    </div>
+    <!-- Skeleton: the whole stepper is loading with `loaderType="skeleton"`. -->
     <div
-      v-if="horizontal"
-      :class="classNames('relative flex flex-col', headerClassName)"
+      v-else-if="isSkeletonLoading"
+      class="flex w-full"
+      :class="horizontal ? 'flex-col gap-6' : 'gap-4'"
+      aria-hidden="true"
     >
-      <!-- Node row -->
-      <div :class="classNames('flex items-center', rowGapClass)">
-        <div
-          v-for="(item, idx) in nodeRowItems"
-          :key="`${item.meta.resolvedId}-node`"
-          :class="`relative flex flex-1  ${connectorAlign === 'left' ? 'items-center' : connectorAlign === 'right' ? 'items-center justify-end' : 'items-center justify-center'}`"
-        >
-          <span
-            v-if="item.showLeft"
-            :class="
-              classNames(
-                'pointer-events-none  absolute top-1/2 -translate-y-1/2 rounded-full transition-colors duration-200',
-                connectorThicknessClass,
-                connector === 'progress' && item.previousCompleted
-                  ? connectorActiveClasses
-                  : connectorBaseClasses,
-              )
-            "
-            :style="{ left: `${item.leftNodeStyle}`, width: item.connectorWidth }"
-          />
-          <component
-            :is="isInteractive && !item.meta.step.disabled ? 'button' : 'div'"
-            :type="
-              isInteractive && !item.meta.step.disabled ? 'button' : undefined
-            "
-            :class="
-              classNames(
-                'relative z-10 flex items-center justify-center focus-visible:outline-none',
-                item.meta.nodeClasses,
-                isInteractive &&
-                  !item.meta.step.disabled &&
-                  'hover:brightness-95',
-                isInteractive &&
-                  !item.meta.step.disabled &&
-                  item.meta.step.disabled &&
-                  'cursor-not-allowed opacity-60',
-              )
-            "
-            :aria-current="isActive(item.meta.resolvedId, idx) ? 'step' : undefined"
-            :disabled="item.meta.step.disabled"
-            @click="handleStepClick(item.meta.step, idx)"
-          >
-            <VNodeRenderer
-              v-if="item.meta.nodeIcon"
-              :nodes="renderIcon(item.meta.nodeIcon, 'sm')"
-            />
-            <template v-else>{{ idx + 1 }}</template>
-            <Loader
-              v-if="item.meta.isLoadingStep"
-              overlay
-              variant="spinner"
-              size="sm"
-              class="rounded-full"
-              :title="null"
-              :label="null"
-            />
-          </component>
-          <span
-            v-if="item.showRight"
-            :class="
-              classNames(
-                'pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full transition-colors duration-200',
-                connectorThicknessClass,
-                connector === 'progress' && item.currentCompleted
-                  ? connectorActiveClasses
-                  : connectorBaseClasses,
-              )
-            "
-            :style="{ right: `${item.rightNodeStyle}`, width: item.connectorWidth }"
-          />
-          <div
-            v-if="item.detachedSegment"
-            :class="`flex items-center  ${item.segmentSize}`"
-          >
+      <template v-if="horizontal">
+        <div class="flex w-full items-center">
+          <template v-for="i in steps.length" :key="i">
+            <div :class="skeletonDiscClass"></div>
             <div
-              :class="
-                classNames(
-                  'relative w-full overflow-hidden rounded-full transition-colors duration-200',
-                  connectorThicknessClass,
-                  connectorBaseClasses,
-                )
-              "
-            >
-              <div
-                v-if="connector === 'progress'"
-                :class="
-                  classNames(
-                    'absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out',
-                    connectorActiveClasses,
-                  )
-                "
-                :style="{ width: item.segmentIsCompleted ? '100%' : '0%' }"
-              />
-            </div>
+              v-if="i < steps.length"
+              :class="skeletonBarHorizontalClass"
+            ></div>
+          </template>
+        </div>
+        <div
+          class="rounded-xl border border-black/10 bg-black/[0.03] p-4 dark:border-white/10 dark:bg-white/5 sm:p-5"
+        >
+          <div
+            class="flex animate-pulse flex-col gap-2 motion-reduce:animate-none"
+          >
+            <span class="h-3 w-2/3 rounded-full bg-black/10 dark:bg-white/10"></span>
+            <span class="h-2.5 w-full rounded-full bg-black/10 dark:bg-white/10"></span>
+            <span class="h-2.5 w-5/6 rounded-full bg-black/10 dark:bg-white/10"></span>
           </div>
+        </div>
+      </template>
+      <template v-else>
+        <div class="flex flex-col items-center py-1">
+          <template v-for="i in steps.length" :key="i">
+            <div :class="skeletonDiscClass"></div>
+            <div
+              v-if="i < steps.length"
+              :class="skeletonBarVerticalClass"
+            ></div>
+          </template>
+        </div>
+        <div
+          class="flex-1 rounded-xl border border-black/10 bg-black/[0.03] p-4 dark:border-white/10 dark:bg-white/5 sm:p-5"
+        >
+          <div
+            class="flex animate-pulse flex-col gap-2 motion-reduce:animate-none"
+          >
+            <span class="h-3 w-2/3 rounded-full bg-black/10 dark:bg-white/10"></span>
+            <span class="h-2.5 w-full rounded-full bg-black/10 dark:bg-white/10"></span>
+            <span class="h-2.5 w-5/6 rounded-full bg-black/10 dark:bg-white/10"></span>
+          </div>
+        </div>
+      </template>
+    </div>
+    <div
+      v-else
+      class="flex w-full flex-col"
+      :class="horizontal ? 'gap-6' : 'gap-4'"
+    >
+      <!-- Progress block. Positioned above or below the steps with `order` so
+           the markup is written once. -->
+      <div
+        v-if="showProgressBar || showProgressSummary"
+        class="flex w-full flex-col gap-2"
+        :class="progressBarPosition === 'bottom' && 'mt-6'"
+        :style="{ order: progressBarPosition === 'top' ? 0 : 1 }"
+      >
+        <div
+          v-if="showProgressSummary"
+          :class="classNames('flex items-center justify-between text-sm font-medium', surface.muted)"
+        >
+          <span :id="progressLabelId">
+            <VNodeRenderer :nodes="progressLabel ?? 'Progress'" />
+          </span>
+          <span>{{ formattedProgress }}%</span>
+        </div>
+        <div
+          v-if="showProgressBar"
+          role="progressbar"
+          :aria-valuemin="0"
+          :aria-valuemax="100"
+          :aria-valuenow="formattedProgress"
+          :aria-labelledby="showProgressSummary ? progressLabelId : undefined"
+          :aria-label="showProgressSummary ? undefined : 'Progress'"
+          :class="
+            classNames('relative h-1 w-full overflow-hidden rounded-full', progressColors.track)
+          "
+        >
+          <div
+            :class="
+              classNames('absolute inset-y-0 left-0 rounded-full', fillTransition, progressColors.bar)
+            "
+            :style="{ width: `${progressPercent}%` }"
+          />
         </div>
       </div>
 
-      <!-- Body grid -->
+      <!-- ── Horizontal ──────────────────────────────────────────────────── -->
       <div
-        class="mt-4 grid items-stretch gap-2"
-        :style="{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }"
+        v-if="horizontal"
+        :class="classNames('relative flex flex-col', headerClassName)"
+        :style="{ order: progressBarPosition === 'top' ? 1 : 0 }"
       >
-        <component
-          :is="isInteractive && !meta.step.disabled ? 'button' : 'div'"
-          v-for="meta in stepMeta"
-          :key="`${meta.resolvedId}-body`"
-          :type="isInteractive && !meta.step.disabled ? 'button' : undefined"
+        <!-- Node row -->
+        <div
           :class="
-            classNames(
-              'flex h-full flex-col justify-between rounded-xl px-2 text-left transition-colors duration-150 focus-visible:outline-none',
-              meta.step.disabled && 'cursor-not-allowed opacity-60',
-              isInteractive &&
-                !meta.step.disabled &&
-                'hover:bg-neutral-50 dark:hover:bg-neutral-800/30',
-            )
+            classNames('flex items-center', connectNodes ? 'gap-0' : 'gap-2')
           "
-          :aria-current="isActive(meta.resolvedId, meta.index) ? 'step' : undefined"
-          :disabled="meta.step.disabled"
-          @click="handleStepClick(meta.step, meta.index)"
         >
           <div
-            class="flex min-w-0 flex-col gap-1 overflow-hidden break-words"
-            :style="meta.textStyle"
+            v-for="(item, idx) in nodeRowItems"
+            :key="`${item.meta.resolvedId}-node`"
+            :class="
+              classNames(
+                'relative flex flex-1',
+                connectorAlign === 'left'
+                  ? 'items-center'
+                  : connectorAlign === 'right'
+                    ? 'items-center justify-end'
+                    : 'items-center justify-center',
+              )
+            "
           >
-            <div
+            <span
+              v-if="item.leftStyle"
               :class="
                 classNames(
-                  sizeToken.title,
-                  variantToken.emphasizeActiveTitle &&
-                    meta.status === 'active' &&
-                    'text-neutral-900 dark:text-neutral-100',
+                  'pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full',
+                  tokens.connector,
+                  lineTransition,
+                  connector === 'progress' && item.previousCompleted
+                    ? palette.activeBg
+                    : palette.underlineBase,
                 )
               "
-            >
-              <VNodeRenderer :nodes="meta.step.title" />
-            </div>
-            <div v-if="meta.step.subtitle" :class="sizeToken.subtitle">
-              <VNodeRenderer :nodes="meta.step.subtitle" />
-            </div>
-            <div
-              v-if="variantToken.showDescription && meta.step.description"
-              :class="sizeToken.description"
-            >
-              <VNodeRenderer :nodes="meta.step.description" />
-            </div>
-          </div>
-          <div class="mt-3 flex flex-col gap-1">
-            <div v-if="meta.step.optionalLabel" :class="sizeToken.optional">
-              <VNodeRenderer :nodes="meta.step.optionalLabel" />
-            </div>
-            <div
-              v-if="
-                connector !== 'none' &&
-                (showStepUnderline ?? variantToken.showUnderline)
-              "
-              :class="meta.underlineClasses"
+              :style="item.leftStyle"
+              aria-hidden="true"
             />
-          </div>
-        </component>
-      </div>
-    </div>
-
-    <!-- ── Vertical ──────────────────────────────────────────────────────── -->
-    <div
-      v-else
-      ref="verticalContainerRef"
-      :class="classNames('relative flex flex-col gap-0', headerClassName)"
-    >
-      <div
-        v-for="(meta, index) in stepMeta"
-        :key="meta.resolvedId"
-        :class="
-          classNames(
-            'relative flex items-start gap-4 py-4',
-            index === 0 && 'pt-0',
-            index === stepMeta.length - 1 && 'pb-0',
-            stepClassName,
-          )
-        "
-      >
-        <div class="relative flex flex-col items-center">
-          <div
-            :ref="(el) => setNodeRef(el, index)"
-            class="relative flex items-center justify-center"
-          >
             <component
-              :is="isInteractive && !meta.step.disabled ? 'button' : 'div'"
-              :type="isInteractive && !meta.step.disabled ? 'button' : undefined"
-              :class="
-                classNames(
-                  'relative z-10 flex items-center justify-center focus-visible:outline-none',
-                  meta.nodeClasses,
-                  isInteractive &&
-                    !meta.step.disabled &&
-                    'hover:brightness-95',
-                  isInteractive &&
-                    !meta.step.disabled &&
-                    meta.step.disabled &&
-                    'cursor-not-allowed opacity-60',
-                )
+              :is="nodeAttrs(item.meta).isButton ? 'button' : 'div'"
+              :type="nodeAttrs(item.meta).isButton ? 'button' : undefined"
+              :class="nodeAttrs(item.meta).classes"
+              :ref="nodeRefFor(idx)"
+              :data-step-index="idx"
+              :aria-current="
+                state.isActive(item.meta.resolvedId, idx) ? 'step' : undefined
               "
-              :aria-current="isActive(meta.resolvedId, index) ? 'step' : undefined"
-              :disabled="meta.step.disabled"
-              @click="handleStepClick(meta.step, index)"
+              :aria-label="
+                typeof item.meta.step.title === 'string'
+                  ? item.meta.step.title
+                  : undefined
+              "
+              @click="handleStepClick(item.meta.step, idx)"
+              @keydown="onNodeKeydown"
             >
               <VNodeRenderer
-                v-if="meta.nodeIcon"
-                :nodes="renderIcon(meta.nodeIcon, 'sm')"
+                v-if="item.meta.nodeIcon"
+                :nodes="renderIcon(item.meta.nodeIcon, tokens.icon)"
               />
-              <template v-else>{{ index + 1 }}</template>
+              <template v-else>{{ idx + 1 }}</template>
               <Loader
-                v-if="meta.isLoadingStep"
+                v-if="item.meta.isLoadingStep && nodeOverlayVariant"
                 overlay
-                variant="spinner"
+                :variant="nodeOverlayVariant"
                 size="sm"
                 class="rounded-full"
                 :title="null"
                 :label="null"
               />
             </component>
+            <span
+              v-if="item.rightStyle"
+              :class="
+                classNames(
+                  'pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full',
+                  tokens.connector,
+                  lineTransition,
+                  connector === 'progress' && item.currentCompleted
+                    ? palette.activeBg
+                    : palette.underlineBase,
+                )
+              "
+              :style="item.rightStyle"
+              aria-hidden="true"
+            />
           </div>
-          <span
-            v-if="
-              connector !== 'none' &&
-              index < stepMeta.length - 1 &&
-              (verticalSegments[index] ?? 0) > 0
-            "
+        </div>
+
+        <!-- Body grid -->
+        <div
+          class="mt-4 grid items-stretch gap-2"
+          :style="{
+            gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+          }"
+        >
+          <div
+            v-for="meta in stepMeta"
+            :key="`${meta.resolvedId}-body`"
             :class="
               classNames(
-                'pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full transition-colors duration-200',
-                verticalConnectorThicknessClass,
-                connectorBaseClasses,
+                'flex h-full flex-col justify-between rounded-xl px-2 text-left',
+                clickable &&
+                  !meta.step.disabled &&
+                  classNames(
+                    'cursor-pointer',
+                    animated &&
+                      'transition-colors duration-150 motion-reduce:transition-none',
+                    trigger.hover,
+                  ),
+                meta.step.disabled && 'opacity-60',
+                stepClassName,
               )
             "
-            :style="{
-              top: `${nodeRadii[size]}px`,
-              height: `${verticalSegments[index] ?? 0}px`,
-            }"
+            @click="handleStepClick(meta.step, meta.index)"
+            :aria-current="
+              state.isActive(meta.resolvedId, meta.index) ? 'step' : undefined
+            "
           >
-            <span
-              v-if="connector === 'progress' && meta.isCompleted"
-              :class="
-                classNames('absolute inset-0 rounded-full', connectorActiveClasses)
-              "
-            />
-          </span>
+            <div
+              class="flex min-w-0 flex-col gap-1 overflow-hidden break-words"
+              :style="meta.textStyle"
+            >
+              <div :class="classNames(tokens.title, surface.heading)">
+                <VNodeRenderer :nodes="meta.step.title" />
+              </div>
+              <div
+                v-if="meta.step.subtitle"
+                :class="classNames(tokens.subtitle, surface.muted)"
+              >
+                <VNodeRenderer :nodes="meta.step.subtitle" />
+              </div>
+              <div
+                v-if="meta.step.description"
+                :class="classNames(tokens.description, surface.description)"
+              >
+                <VNodeRenderer :nodes="meta.step.description" />
+              </div>
+            </div>
+            <div class="mt-3 flex flex-col gap-1">
+              <div
+                v-if="meta.step.optionalLabel"
+                :class="classNames(tokens.optional, surface.muted)"
+              >
+                <VNodeRenderer :nodes="meta.step.optionalLabel" />
+              </div>
+              <div
+                v-if="meta.actions"
+                class="flex flex-wrap items-center gap-1.5"
+                @click.stop
+                @keydown.stop
+              >
+                <VNodeRenderer :nodes="meta.actions" />
+              </div>
+              <div
+                v-if="connector !== 'none' && showStepUnderline"
+                :class="meta.underlineClasses"
+              />
+            </div>
+          </div>
         </div>
-        <component
-          :is="isInteractive && !meta.step.disabled ? 'button' : 'div'"
-          :type="isInteractive && !meta.step.disabled ? 'button' : undefined"
-          class="flex flex-1 flex-col text-left"
-          :aria-current="isActive(meta.resolvedId, index) ? 'step' : undefined"
-          :disabled="meta.step.disabled"
-          @click="handleStepClick(meta.step, index)"
-        >
-          <div :class="sizeToken.title" :style="meta.textStyle">
-            <VNodeRenderer :nodes="meta.step.title" />
-          </div>
-          <div v-if="meta.step.subtitle" :class="sizeToken.subtitle">
-            <VNodeRenderer :nodes="meta.step.subtitle" />
-          </div>
-          <div v-if="meta.step.description" :class="sizeToken.description">
-            <VNodeRenderer :nodes="meta.step.description" />
-          </div>
-          <div v-if="meta.step.optionalLabel" :class="sizeToken.optional">
-            <VNodeRenderer :nodes="meta.step.optionalLabel" />
-          </div>
-        </component>
       </div>
-    </div>
 
-    <!-- ── Progress block ────────────────────────────────────────────────── -->
-    <div
-      v-if="showProgressBar || showProgressSummary"
-      class="mt-6 flex w-full flex-col gap-2"
-    >
-      <div
-        v-if="showProgressSummary"
-        class="flex items-center justify-between text-sm font-medium text-neutral-500 dark:text-neutral-400"
-      >
-        <span><VNodeRenderer :nodes="progressLabel ?? 'Progress'" /></span>
-        <span>{{ formattedProgress }}%</span>
-      </div>
-      <div
-        v-if="showProgressBar"
-        class="relative h-1 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800"
-      >
-        <div
-          :class="
-            classNames(
-              'absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out',
-              palette.completedBg,
-            )
-          "
-          :style="{ width: `${progressPercent}%` }"
-        />
-      </div>
-    </div>
-
-    <!-- ── Content ───────────────────────────────────────────────────────── -->
-    <div
-      :class="
-        classNames(
-          'rounded-2xl border border-neutral-200 bg-white/95 p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/80',
-          contentClassName,
-        )
-      "
-    >
-      <VNodeRenderer
-        v-if="activeStep?.content != null"
-        :nodes="activeStep.content"
-      />
+      <!-- ── Vertical ────────────────────────────────────────────────────── -->
       <div
         v-else
-        class="space-y-2 text-sm text-neutral-600 dark:text-neutral-300"
+        ref="verticalContainerRef"
+        :class="classNames('relative flex flex-col', headerClassName)"
+        :style="{ order: progressBarPosition === 'top' ? 1 : 0 }"
       >
-        <VNodeRenderer :nodes="activeStep?.description" />
+        <div
+          v-for="(meta, index) in stepMeta"
+          :key="meta.resolvedId"
+          :class="
+            classNames(
+              'relative flex items-start gap-4 py-4',
+              index === 0 && 'pt-0',
+              index === stepMeta.length - 1 && 'pb-0',
+              stepClassName,
+            )
+          "
+        >
+          <div class="relative flex flex-col items-center">
+            <component
+              :is="nodeAttrs(meta).isButton ? 'button' : 'div'"
+              :type="nodeAttrs(meta).isButton ? 'button' : undefined"
+              :class="nodeAttrs(meta).classes"
+              :ref="nodeRefFor(index)"
+              :data-step-index="index"
+              :aria-current="
+                state.isActive(meta.resolvedId, index) ? 'step' : undefined
+              "
+              :aria-label="
+                typeof meta.step.title === 'string'
+                  ? meta.step.title
+                  : undefined
+              "
+              @click="handleStepClick(meta.step, index)"
+              @keydown="onNodeKeydown"
+            >
+              <VNodeRenderer
+                v-if="meta.nodeIcon"
+                :nodes="renderIcon(meta.nodeIcon, tokens.icon)"
+              />
+              <template v-else>{{ index + 1 }}</template>
+              <!-- "skeleton" loads the content, not the node — the node stays put. -->
+              <Loader
+                v-if="meta.isLoadingStep && nodeOverlayVariant"
+                overlay
+                :variant="nodeOverlayVariant"
+                size="sm"
+                class="rounded-full"
+                :title="null"
+                :label="null"
+              />
+            </component>
+            <span
+              v-if="
+                connector !== 'none' &&
+                index < stepMeta.length - 1 &&
+                (verticalSegments[index] ?? 0) > 0
+              "
+              :class="
+                classNames(
+                  'pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full',
+                  tokens.connectorVertical,
+                  lineTransition,
+                  connector === 'progress' && meta.isCompleted
+                    ? palette.activeBg
+                    : palette.underlineBase,
+                )
+              "
+              :style="{
+                // The measured segment is center-to-center; the line runs
+                // from this node's bottom edge to the next node's top edge
+                // (edge-to-edge for progress), or 8px short of each circle
+                // (line) — never entering a circle.
+                top: `${tokens.nodeRadius * 2 + (connector === 'line' ? 8 : 0)}px`,
+                height: `${Math.max(
+                  0,
+                  (verticalSegments[index] ?? 0) - tokens.nodeRadius * 2 -
+                    (connector === 'line' ? 16 : 0),
+                )}px`,
+              }"
+              aria-hidden="true"
+            />
+          </div>
+          <div
+            :class="
+              classNames(
+                'flex min-w-0 flex-1 flex-col gap-0.5 text-left',
+                clickable && !meta.step.disabled && 'cursor-pointer',
+                meta.step.disabled && 'opacity-60',
+              )
+            "
+            @click="handleStepClick(meta.step, index)"
+          >
+            <div
+              :class="classNames(tokens.title, surface.heading)"
+              :style="meta.textStyle"
+            >
+              <VNodeRenderer :nodes="meta.step.title" />
+            </div>
+            <div
+              v-if="meta.step.subtitle"
+              :class="classNames(tokens.subtitle, surface.muted)"
+            >
+              <VNodeRenderer :nodes="meta.step.subtitle" />
+            </div>
+            <div
+              v-if="meta.step.description"
+              :class="classNames(tokens.description, surface.description)"
+            >
+              <VNodeRenderer :nodes="meta.step.description" />
+            </div>
+            <div
+              v-if="meta.step.optionalLabel"
+              :class="classNames(tokens.optional, surface.muted)"
+            >
+              <VNodeRenderer :nodes="meta.step.optionalLabel" />
+            </div>
+            <div
+              v-if="connector !== 'none' && showStepUnderline"
+              :class="meta.underlineClasses"
+            />
+            <div
+              v-if="meta.actions"
+              class="mt-2 flex flex-wrap items-center gap-1.5"
+              @click.stop
+              @keydown.stop
+            >
+              <VNodeRenderer :nodes="meta.actions" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Content ─────────────────────────────────────────────────────── -->
+      <div
+        :class="
+          classNames('rounded-xl p-4 sm:p-5', contentRegionClass, contentClassName)
+        "
+        style="order: 2"
+      >
+        <div
+          v-if="activeStepLoading"
+          class="flex animate-pulse flex-col gap-2 motion-reduce:animate-none"
+          aria-hidden="true"
+        >
+          <span class="h-3 w-2/3 rounded-full bg-black/10 dark:bg-white/10" />
+          <span class="h-2.5 w-full rounded-full bg-black/10 dark:bg-white/10" />
+          <span class="h-2.5 w-5/6 rounded-full bg-black/10 dark:bg-white/10" />
+        </div>
+        <VNodeRenderer
+          v-else-if="activeStep?.content != null"
+          :nodes="activeStep.content"
+        />
+        <div
+          v-else
+          :class="classNames('space-y-2 text-sm', surface.body)"
+        >
+          <VNodeRenderer :nodes="activeStep?.description" />
+        </div>
       </div>
     </div>
-
-    <Loader
-      v-if="loading"
-      overlay
-      :title="loaderTitle"
-      :label="loaderMessage"
-      :variant="loaderType"
-      :progress="loaderProgress"
-      :color="loaderColor"
-    />
-  </div>
+  </Panel>
 </template>

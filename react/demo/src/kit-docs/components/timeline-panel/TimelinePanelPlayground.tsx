@@ -18,6 +18,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glassOpacityOptions,
@@ -91,101 +92,133 @@ export const TimelinePanelPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={surfaceVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as TimelinePanelVariant)}
-          />
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <SelectControl
-            label="Corner"
-            options={panelCornerOptions}
-            value={corner}
-            onChange={(v) => setCorner(v as TimelinePanelCorner)}
-          />
-          <SelectControl
-            label="Padding"
-            options={panelPaddingOptions}
-            value={padding}
-            onChange={(v) => setPadding(v as TimelinePanelPadding)}
-          />
-          <Control label="Loader type">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={panelLoaderTypeOptions}
-              value={loaderType}
-              onChange={(v) => setLoaderType(v as TimelinePanelLoaderType)}
-            />
-          </Control>
-          <Control label="Action size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={actionSize}
-              onChange={(v) => setActionSize(v as ControlSize)}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
-            <ToggleRow label="Empty" checked={empty} onChange={setEmpty} />
-            <ToggleRow label="Animate" checked={animate} onChange={setAnimate} />
-            <ToggleRow
-              label="Trunk dots"
-              checked={trunkDots}
-              onChange={setTrunkDots}
-            />
-            <ToggleRow
-              label="Custom line color"
-              checked={customLine}
-              onChange={setCustomLine}
-            />
-            <ToggleRow
-              label="Hover shadow"
-              checked={hoverShadow}
-              onChange={setHoverShadow}
-            />
-          </div>
-          {isGlass && (
-            <>
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy as string}
-                  onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity as string}
-                  onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                />
-              </Control>
-            </>
-          )}
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Variant"
+                    options={surfaceVariantOptions}
+                    value={variant}
+                    onChange={(v) => setVariant(v as TimelinePanelVariant)}
+                  />
+                  <SelectControl
+                    label="Tone"
+                    options={trueColorOptions}
+                    value={tone}
+                    onChange={(v) => setTone(v as TrueColor)}
+                  />
+                  <SelectControl
+                    label="Corner"
+                    options={panelCornerOptions}
+                    value={corner}
+                    onChange={(v) => setCorner(v as TimelinePanelCorner)}
+                  />
+                  <SelectControl
+                    label="Padding"
+                    options={panelPaddingOptions}
+                    value={padding}
+                    onChange={(v) => setPadding(v as TimelinePanelPadding)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "content",
+              title: "Content",
+              controls: (
+                <>
+                  <Control label="Loader type">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={panelLoaderTypeOptions}
+                      value={loaderType}
+                      onChange={(v) => setLoaderType(v as TimelinePanelLoaderType)}
+                    />
+                  </Control>
+                  <Control label="Action size">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={controlSizeOptions}
+                      value={actionSize}
+                      onChange={(v) => setActionSize(v as ControlSize)}
+                    />
+                  </Control>
+                </>
+              ),
+            },
+            {
+              id: "states",
+              title: "States",
+              controls: (
+                <div className="grid grid-cols-1 gap-2">
+                  <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
+                  <ToggleRow label="Empty" checked={empty} onChange={setEmpty} />
+                  <ToggleRow label="Animate" checked={animate} onChange={setAnimate} />
+                  <ToggleRow
+                    label="Trunk dots"
+                    checked={trunkDots}
+                    onChange={setTrunkDots}
+                  />
+                  <ToggleRow
+                    label="Custom line color"
+                    checked={customLine}
+                    onChange={setCustomLine}
+                  />
+                  <ToggleRow
+                    label="Hover shadow"
+                    checked={hoverShadow}
+                    onChange={setHoverShadow}
+                  />
+                </div>
+              ),
+            },
+            ...(isGlass
+              ? [
+                  {
+                    id: "glass",
+                    title: "Glass",
+                    controls: (
+                      <>
+                        <Control label="Specular">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={panelSpecularOptions}
+                            value={specularMode}
+                            onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
+                          />
+                        </Control>
+                        <Control label="Vibrancy">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glassVibrancyOptions}
+                            value={vibrancy as string}
+                            onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                          />
+                        </Control>
+                        <Control label="Glass opacity">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glassOpacityOptions}
+                            value={glassOpacity as string}
+                            onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                          />
+                        </Control>
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+        />
       }
       preview={
         <div className="w-full">

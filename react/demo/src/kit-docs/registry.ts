@@ -719,6 +719,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/tag-picker/TagPickerPage")),
   },
   {
+    slug: "smart-grid-layout",
+    name: "Smart Grid Layout",
+    description:
+      "A drag-and-drop dashboard builder — sections, rows, resizable tiles, and a layout that saves itself.",
+    icon: "Dashboard",
+    category: "Layout",
+    Page: lazy(() => import("./components/smart-grid-layout/SmartGridLayoutPage")),
+  },
+  {
     slug: "split-view",
     name: "Split View",
     description:

@@ -28,8 +28,6 @@ import { IconButtonDemo } from "./demos/IconButtonDemo";
 import { ToggleDemo } from "./demos/ToggleDemo";
 import { StatusSpinnerDemo } from "./demos/StatusSpinnerDemo";
 import { PanelDemo } from "./demos/PanelDemo";
-import { AccordionDemo } from "./demos/AccordionDemo";
-import { StepperDemo } from "./demos/StepperDemo";
 import { TextareaDemo } from "./demos/TextareaDemo";
 import { SearchBarDemo } from "./demos/SearchBarDemo";
 import { FormDemo } from "./demos/FormDemo";
@@ -193,17 +191,6 @@ export const UxDemo: React.FC = () => {
         id: "sections-access-matrix",
         title: "Access Matrix",
         render: () => <AccessMatrixDemo />,
-      },
-
-      {
-        id: "sections-accordion",
-        title: "Accordions",
-        render: () => <AccordionDemo />,
-      },
-      {
-        id: "sections-stepper",
-        title: "Steppers",
-        render: () => <StepperDemo />,
       },
     ],
     [],

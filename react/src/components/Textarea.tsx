@@ -13,6 +13,8 @@ import {
   getGlowTokens,
   getInputVariantTokens,
   resolveGlowGradient,
+  VALIDATION_STATUSES,
+  type ValidationStatus,
 } from "../theme/Theme";
 import type {
   ControlSize,
@@ -24,7 +26,10 @@ import type {
 export type TextareaSize = ControlSize;
 /** The shared input variant set, including `glass` and `gradient`. */
 export type TextareaVariant = InputVariant;
-export type TextareaValidationStatus = "none" | "error" | "success";
+/** The shared field-status scale. Was a bare union with no runtime list, so
+ *  a demo could not enumerate it. */
+export const TEXTAREA_VALIDATION_STATUSES = VALIDATION_STATUSES;
+export type TextareaValidationStatus = ValidationStatus;
 export type TextareaResize = "none" | "vertical" | "horizontal" | "both";
 
 /** Padding, type scale and starting height, on the shared control scale. */

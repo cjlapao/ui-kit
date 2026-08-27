@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
+import Spinner from "./Spinner";
 import {
+  TRUE_COLORS,
+  getFieldSizeTokens,
+  getFieldToneTokens,
   getGlowTokens,
   getInputVariantTokens,
   resolveGlowGradient,
@@ -24,38 +28,20 @@ import type {
 // `tokens.ring.replace("focus-within:", "focus-visible:")`, producing a class
 // Tailwind had never seen, so that ring simply did not exist.
 
-import { TRUE_COLORS } from "../theme/Theme";
+/**
+ * Only what is genuinely SearchBar's own. The focus border, focus ring, icon
+ * accent and clear-button focus ring are the shared field tokens now — they
+ * were a byte-for-byte copy of `Input`'s, which is how fields drift apart.
+ */
+const CLEAR_HOVER: Record<TrueColor, string> = Object.fromEntries(
+  TRUE_COLORS.map((color) => [
+    color,
+    `hover:bg-${color}-100 hover:text-${color}-600 dark:hover:bg-${color}-900/40 dark:hover:text-${color}-400`,
+  ]),
+) as Record<TrueColor, string>;
 
-type SearchBarToneTokens = {
-  /** Border colour while anything inside the bar has focus. */
-  focusBorder: string;
-  /** Glow ring while anything inside the bar has focus. */
-  focusRing: string;
-  /** Focus ring for the inline clear button. */
-  clearFocusRing: string;
-  /** Leading icon colour while the bar has focus. */
-  icon: string;
-  /** Clear button hover treatment. */
-  clearHover: string;
-};
-
-const buildToneTokens = (color: TrueColor): SearchBarToneTokens => ({
-  focusBorder: `focus-within:border-${color}-400`,
-  // Inset. An outer ring is painted outside the border box, so any ancestor
-  // with `overflow: auto|hidden` clips it — `Panel`'s body is `overflow-auto`
-  // by default, which sheared the ring off and left hard square corners.
-  focusRing: `focus-within:ring-2 focus-within:ring-inset focus-within:ring-${color}-400/60`,
-  clearFocusRing: `focus-visible:ring-${color}-400/60`,
-  icon: `group-focus-within:text-${color}-500`,
-  clearHover: `hover:bg-${color}-100 hover:text-${color}-600 dark:hover:bg-${color}-900/40 dark:hover:text-${color}-400`,
-});
-
-const TONE_TOKENS: Record<TrueColor, SearchBarToneTokens> = Object.fromEntries(
-  TRUE_COLORS.map((color) => [color, buildToneTokens(color)]),
-) as Record<TrueColor, SearchBarToneTokens>;
-
-const getTokens = (color: TrueColor): SearchBarToneTokens =>
-  TONE_TOKENS[color] ?? TONE_TOKENS.blue;
+const getClearHover = (color: TrueColor): string =>
+  CLEAR_HOVER[color] ?? CLEAR_HOVER.blue;
 
 // ── Variants and sizing ───────────────────────────────────────────────────────
 
@@ -72,18 +58,6 @@ export type SearchBarVariant = InputVariant;
  * Select beside it.
  */
 export type SearchBarSize = ControlSize;
-
-/** Padding and type scale, mirroring `Input` so the two line up when stacked. */
-const SIZE_STYLES: Record<
-  ControlSize,
-  { px: string; py: string; underlinePy: string; text: string; icon: "xs" | "sm" }
-> = {
-  xs: { px: "px-2", py: "py-1", underlinePy: "pt-1 pb-2", text: "text-xs", icon: "xs" },
-  sm: { px: "px-2.5", py: "py-1.5", underlinePy: "pt-1.5 pb-2.5", text: "text-xs", icon: "xs" },
-  md: { px: "px-3", py: "py-2", underlinePy: "pt-2 pb-3", text: "text-sm", icon: "sm" },
-  lg: { px: "px-4", py: "py-2.5", underlinePy: "pt-2.5 pb-3.5", text: "text-base", icon: "sm" },
-  xl: { px: "px-5", py: "py-3", underlinePy: "pt-3 pb-4", text: "text-base", icon: "sm" },
-};
 
 // ── Props ──────────────────────────────────────────────────────────────────────
 
@@ -125,6 +99,16 @@ export interface SearchBarProps {
    * - `strong`  – bold, wide glow
    */
   glowIntensity?: GlowIntensity;
+  /**
+   * A search is in flight: the leading glyph becomes a spinner and the bar
+   * reports `aria-busy`.
+   *
+   * The input stays enabled on purpose. A `Picker` disables its trigger while
+   * loading because there is nothing to pick yet, but the whole point of a
+   * search bar is that you keep typing while the previous query resolves —
+   * disabling it would swallow keystrokes and fight the debounce.
+   */
+  loading?: boolean;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -146,6 +130,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   gradientFrom,
   gradientTo,
   glowIntensity = "soft",
+  loading = false,
 }) => {
   const [resolvedFrom, resolvedTo] = resolveGlowGradient(
     color,
@@ -153,7 +138,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     gradientTo,
   );
   const glow = getGlowTokens(glowIntensity);
-  const tokens = getTokens(color);
+  const tokens = getFieldToneTokens(color);
+  const clearHover = getClearHover(color);
 
   const renderIcon = useIconRenderer();
   const [query, setQuery] = useState(initialValue);
@@ -262,9 +248,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       className={classNames(
         "ml-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition",
         "focus-visible:outline-none focus-visible:ring-2",
-        tokens.clearFocusRing,
+        tokens.buttonFocusRing,
         "bg-neutral-200/80 text-neutral-500 dark:bg-neutral-700/80 dark:text-neutral-300",
-        tokens.clearHover,
+        clearHover,
       )}
       aria-label="Clear search"
     >
@@ -272,7 +258,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     </button>
   ) : null;
 
-  const sizeToken = SIZE_STYLES[size] ?? SIZE_STYLES.md;
+  const sizeToken = getFieldSizeTokens(size);
   const variantTokens = getInputVariantTokens(variant);
 
   const bar = (
@@ -292,15 +278,28 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         disabled && "opacity-60",
         variant === "gradient" ? undefined : className,
       )}
+      aria-busy={loading || undefined}
     >
       <span
         className={classNames(
           "mr-2 inline-flex shrink-0 items-center transition-colors",
           variantTokens.icon,
-          tokens.icon,
+          !loading && tokens.icon,
         )}
       >
-        {renderIcon(leadingIcon, sizeToken.icon)}
+        {loading ? (
+          // In the leading slot rather than beside the clear button: it is the
+          // glyph that means "search", so replacing it is what says the search
+          // is happening, and nothing shifts position when it resolves.
+          <Spinner
+            size={sizeToken.icon}
+            color={color}
+            thickness="thin"
+            aria-hidden="true"
+          />
+        ) : (
+          renderIcon(leadingIcon, sizeToken.icon)
+        )}
       </span>
       <input
         ref={inputRef}

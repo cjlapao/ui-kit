@@ -168,3 +168,37 @@ describe("SearchBar — behaviour", () => {
     expect(calls[calls.length - 1][0]).toBe("widgets");
   });
 });
+
+
+describe("SearchBar — loading", () => {
+  it("swaps the leading glyph for a spinner and reports busy", () => {
+    const { container, rerender } = render(
+      <SearchBar onSearch={() => {}} leadingIcon="Search" />,
+    );
+    const bar = () => container.querySelector("[aria-busy]");
+    expect(bar()).toBeNull();
+
+    rerender(<SearchBar onSearch={() => {}} leadingIcon="Search" loading />);
+    expect(bar()!.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector("span[class*='rounded-full']")).not.toBeNull();
+  });
+
+  it("keeps the input typable while a search is in flight", () => {
+    // Unlike a Picker, which has nothing to offer until its list lands, the
+    // whole point of a search bar is that you keep typing — disabling it would
+    // swallow keystrokes and fight the debounce.
+    const onSearch = vi.fn();
+    render(<SearchBar onSearch={onSearch} loading autoSearch={false} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input).not.toBeDisabled();
+    fireEvent.change(input, { target: { value: "abc" } });
+    expect(input.value).toBe("abc");
+  });
+
+  it("still lets the query be cleared while loading", () => {
+    render(<SearchBar onSearch={() => {}} initialValue="abc" loading />);
+    const clear = screen.getByRole("button", { name: "Clear search" });
+    fireEvent.click(clear);
+    expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("");
+  });
+});

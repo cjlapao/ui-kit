@@ -2,744 +2,656 @@ import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from "react";
 import classNames from "classnames";
-import ConnectionFlowConnector from "./ConnectionFlowConnector";
-import ConnectionFlowColumn, {
-  type ColumnGeometry,
-} from "./ConnectionFlowColumn";
-import ConnectionFlowParallelGroup from "./ConnectionFlowParallelGroup";
-import type {
-  ConnectionFlowItem,
-  ConnectionFlowProps,
-  ConnectionState,
-} from "./types";
-import type { TreeTone } from "../TreeView/types";
-import { getTreeColorTokens } from "../TreeView/toneColors";
 
-// ── useIsDark (local copy — mirrors ConnectionFlowConnector's) ─────────────────
+import Panel from "../Panel";
+import type { PillVariant } from "../Pill";
+import ConnectionFlowHeader from "./ConnectionFlowHeader";
+import ConnectionFlowSkeleton from "./ConnectionFlowSkeleton";
+import IconButton from "../IconButton";
+import EmptyState from "../EmptyState";
+import Progress from "../Progress";
+import ProgressSpinner from "../ProgressSpinner";
+import ConnectionFlowSvg from "./ConnectionFlowSvg";
+import {
+  DEFAULT_LAYOUT_OPTIONS,
+  NODE_CORNER_RADIUS,
+  NODE_METRICS,
+  fitToViewport,
+  flowProgress,
+  getHeaderSurface,
+  layoutConnectionFlow,
+  tracePathTo,
+  type ConnectionFlowEdgeStyle,
+  type ConnectionFlowItemProgress,
+  type ConnectionFlowLoader,
+  type ConnectionFlowNode,
+  type ConnectionFlowProgressType,
+  type ConnectionFlowRingSize,
+  type ConnectionState,
+  type LaidOutNode,
+} from "../../connectionFlow";
+import {
+  DEFAULT_SURFACE_CORNER,
+  type ControlSize,
+  type PlainSurfaceVariant,
+  type SurfaceCorner,
+  type SurfaceVariant,
+  type TrueColor,
+} from "../../theme/Theme";
 
-function useIsDark(): boolean {
-  const detect = (): boolean => {
-    if (typeof document === "undefined") return false;
-    const probe = document.createElement("div");
-    probe.className = "hidden dark:block";
-    document.body.appendChild(probe);
-    const dark = window.getComputedStyle(probe).display === "block";
-    probe.remove();
-    return dark;
-  };
-  const [isDark, setIsDark] = useState<boolean>(() => detect());
-  useEffect(() => {
-    const update = () => setIsDark(detect());
-    const obs = new MutationObserver(update);
-    obs.observe(document.documentElement, { attributeFilter: ["class"] });
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    media.addEventListener("change", update);
-    update();
-    return () => {
-      media.removeEventListener("change", update);
-      obs.disconnect();
-    };
-  }, []);
-  return isDark;
+export interface ConnectionFlowProps {
+  nodes: ConnectionFlowNode[];
+  variant?: PlainSurfaceVariant;
+  tone?: TrueColor;
+  size?: ControlSize;
+  corner?: SurfaceCorner;
+  edgeStyle?: ConnectionFlowEdgeStyle;
+  /**
+   * Surface treatment for the node cards, on the same container scale `Panel`
+   * takes. A node's own `variant` overrides it. @default "subtle"
+   */
+  /**
+   * Rows a card shows before the rest collapse behind a "show more" row.
+   * A node's own `maxItems` overrides it. @default 2
+   */
+  maxVisibleItems?: number;
+  /**
+   * Where an item draws its progress: a bar under its text, or a spinner in
+   * place of its glyph. A node's `itemProgress`, then an item's
+   * `progressType`, override it. @default "bar"
+   */
+  itemProgress?: ConnectionFlowItemProgress;
+  /**
+   * Size of the ring drawn where an edge meets a node. `fit` collapses the
+   * ring onto its core dot. @default "md"
+   */
+  ringSize?: ConnectionFlowRingSize;
+  flowState?: ConnectionState;
+  autoState?: boolean;
+  animated?: boolean;
+  /**
+   * How fast a travelling dot moves, in px per second.
+   *
+   * One speed for the whole graph: a dot's flight time comes from its route's
+   * own length, so a short hop and a long bypass arc move at the same pace
+   * instead of each taking a fixed 2.4s. @default 120
+   */
+  dotSpeed?: number;
+  /**
+   * Milliseconds between one dot leaving a source and the next.
+   *
+   * A source releases one dot at a time, taking its outgoing edges in turn —
+   * first target, second, third, then round again — so a fan reads as one
+   * source feeding its targets rather than as a swarm. @default 700
+   */
+  dotInterval?: number;
+  progressType?: ConnectionFlowProgressType;
+  highlightPath?: boolean;
+  showControls?: boolean;
+  /**
+   * Scale the graph to fit on first paint instead of opening at 100%.
+   *
+   * The viewport scrolls, so a graph larger than its frame is reachable
+   * without shrinking it to illegibility — which is what fitting a tall flow
+   * into a short frame does. @default false
+   */
+  fitOnLoad?: boolean;
+  interactive?: boolean;
+  minZoom?: number;
+  maxZoom?: number;
+  height?: number | string;
+  /** Header title. Rendered by the flow, not by the wrapping Panel. */
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  /** Small uppercase line above the title. */
+  eyebrow?: React.ReactNode;
+  /** Icon chip beside the title. A registry name, or any node. */
+  icon?: React.ReactNode;
+  /** Corner of that chip, on the shared container scale. */
+  iconCorner?: SurfaceCorner;
+  /** Pill at the right of the header. A string, or any node. */
+  tag?: React.ReactNode;
+  tagTone?: TrueColor;
+  tagVariant?: PillVariant;
+  /** Draw the header at all. @default true */
+  showHeader?: boolean;
+  /**
+   * The flow's completion, 0–1. Defaults to the mean of whatever the nodes
+   * report — which a pipeline usually knows better than the average of its
+   * cards does.
+   */
+  progress?: number;
+  loading?: boolean;
+  /**
+   * How `loading` is shown. `skeleton` is the default because it is the only
+   * one that holds the card's shape: a spinner or a bar collapses the frame
+   * and the layout jumps when the real graph arrives. @default "skeleton"
+   */
+  loaderType?: ConnectionFlowLoader;
+  emptyMessage?: string;
+  className?: string;
+  onNodeClick?: (node: ConnectionFlowNode) => void;
+  onNodeHover?: (node: ConnectionFlowNode | null) => void;
+  onZoomChange?: (scale: number) => void;
+  /** Custom card body. `renderer="svg"` only — a canvas has no elements. */
+  renderNode?: (node: LaidOutNode) => React.ReactNode;
 }
 
-// ── Bypass path data ──────────────────────────────────────────────────────────
-// The bypass travels from the top-right connection point of the source card
-// to the top-left connection point of the destination card using an orthogonal
-// stepped path with rounded corners, staying just above the card tops.
-
-interface BypassArcData {
-  /** top-right connection point of source card — inset from corner */
-  sx: number;
-  /** top edge of source card */
-  sy: number;
-  /** top-left connection point of destination card — inset from corner */
-  dx: number;
-  /** top edge of destination card */
-  dy: number;
-  sourceTone: TreeTone;
-  destTone: TreeTone;
-  /** True when at least one item in the destination group is currently active (running). */
-  destActive: boolean;
+export interface ConnectionFlowHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  fit: () => void;
+  setZoom: (value: number) => void;
 }
 
-/** How many px above the card tops the bypass path travels. */
-const BYPASS_LIFT = 10;
-/** Radius of the rounded corners on the bypass path. */
-const BYPASS_CORNER_R = 6;
-/** Inset from card corners for the top-edge connection points (matches card border-radius). */
-const CARD_CORNER_INSET = 19;
-/** How many px the ring base overlaps into the card so the card border is fully covered. */
-const RING_OVERLAP = 1;
+/**
+ * The registry has no "fit to view" or "minus" glyph. Rather than press a
+ * wrong-but-present icon into service, these two are inline. `IconButton`
+ * takes a node as readily as a name, so they keep the kit's sizing and focus
+ * treatment.
+ */
+const FIT_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 9V5a1 1 0 0 1 1-1h4" />
+    <path d="M15 4h4a1 1 0 0 1 1 1v4" />
+    <path d="M20 15v4a1 1 0 0 1-1 1h-4" />
+    <path d="M9 20H5a1 1 0 0 1-1-1v-4" />
+  </svg>
+);
 
-export type {
-  ConnectionState,
-  ConnectionFlowConnectorConfig,
-  ConnectionFlowItem,
-  ConnectionFlowProps,
-} from "./types";
+const MINUS_ICON = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+  >
+    <path d="M6 12h12" />
+  </svg>
+);
 
-// ── Column group — single item or parallel cluster ────────────────────────────
-
-type ColumnGroup =
-  | { kind: "single"; item: ConnectionFlowItem }
-  | { kind: "parallel"; items: ConnectionFlowItem[] };
-
-function buildGroups(items: ConnectionFlowItem[]): ColumnGroup[] {
-  const groups: ColumnGroup[] = [];
-  let i = 0;
-  while (i < items.length) {
-    if (items[i].parallel) {
-      const batch: ConnectionFlowItem[] = [];
-      while (i < items.length && items[i].parallel) {
-        batch.push(items[i]);
-        i++;
-      }
-      groups.push({ kind: "parallel", items: batch });
-    } else {
-      groups.push({ kind: "single", item: items[i] });
-      i++;
-    }
-  }
-  return groups;
-}
-
-/** Returns a stable key for a group */
-function groupKey(g: ColumnGroup): string {
-  return g.kind === "single" ? g.item.id : g.items.map((it) => it.id).join("|");
-}
-
-/** True when a group does NOT emit a right-side connector */
-function isTerminal(g: ColumnGroup): boolean {
-  return g.kind === "single"
-    ? (g.item.terminal ?? false)
-    : (g.items[g.items.length - 1]?.terminal ?? false);
-}
-
-/** True when every item in the group is flagged as skipped */
-function isGroupSkipped(g: ColumnGroup): boolean {
-  return g.kind === "single"
-    ? (g.item.skipped ?? false)
-    : g.items.every((it) => it.skipped ?? false);
-}
-
-/** Returns the effective tone of the first item in a group (neutral when unset). */
-function effectiveTone(g: ColumnGroup): TreeTone {
-  return (g.kind === "single" ? g.item.tone : g.items[0]?.tone) ?? "neutral";
-}
-
-// ── ConnectionFlow ────────────────────────────────────────────────────────────
-
-const ConnectionFlow: React.FC<ConnectionFlowProps> = ({
-  items,
-  flowState = "flowing",
-  flowIcon,
-  connectorWidth = 56,
-  animated = true,
-  dotSpacing = 60,
-  connectorBorderSize = "xs",
-  connectorHalf = true,
-  showLine = true,
-  childIndent = "xs",
-  childRowGap = 8,
-  allowScroll = false,
-  itemWidth,
-  autoScale = false,
-  minScale = 0.55,
-  className,
-  rightAction,
-  hoverable = false,
-  autoConnectorState = false,
-  animateCompleted = false,
-  fullWidthConnectors = false,
-}) => {
-  const isDark = useIsDark();
-
-  // Track geometry per column group
-  const [colGeo, setColGeo] = useState<Record<number, ColumnGeometry>>({});
-
-  const handleGeo = useCallback((idx: number, geo: ColumnGeometry) => {
-    setColGeo((prev) => {
-      const cur = prev[idx];
-      if (
-        cur &&
-        cur.totalHeight === geo.totalHeight &&
-        cur.isParallelGroup === geo.isParallelGroup &&
-        cur.anchors.length === geo.anchors.length &&
-        cur.anchors.every((a, i) => a === geo.anchors[i])
-      )
-        return prev;
-      return { ...prev, [idx]: geo };
-    });
-  }, []);
-
-  // ── Auto-scale ────────────────────────────────────────────────────────────
-  const containerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  const [scaledHeight, setScaledHeight] = useState<number | undefined>(
-    undefined,
-  );
-
-  useLayoutEffect(() => {
-    if (!autoScale) {
-      setScale(1);
-      setScaledHeight(undefined);
-      return;
-    }
-
-    const container = containerRef.current;
-    const content = contentRef.current;
-    if (!container || !content) return;
-
-    const measure = () => {
-      // Temporarily reset transform so we read the natural (scale=1) dimensions
-      content.style.transform = "";
-      const containerW = container.offsetWidth;
-      const naturalW = content.scrollWidth;
-      const naturalH = content.scrollHeight;
-      if (!containerW || !naturalW) return;
-
-      const raw = containerW / naturalW;
-      const s = Math.min(1, Math.max(minScale, raw));
-      setScale(s);
-      setScaledHeight(s < 1 ? Math.ceil(naturalH * s) : undefined);
-    };
-
-    measure();
-
-    const ro = new ResizeObserver(measure);
-    ro.observe(container);
-    return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoScale, minScale, items]);
-
-  // ── Bypass arc state ──────────────────────────────────────────────────────
-  // One ref per group (index = group index); tracks only the card div, not the connector.
-  const groupDivRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [bypassArcs, setBypassArcs] = useState<BypassArcData[]>([]);
-
-  // ── Pre-process items into groups ─────────────────────────────────────────
-  const groups = buildGroups(items);
-
-  // ── Auto-skipped set ──────────────────────────────────────────────────────
-  // When autoConnectorState is on, derive which groups are "skipped" from their
-  // tone alone (neutral tone with at least one non-neutral successor).
-  // The result is stable across renders where items haven't changed.
-  // Explicit skipped:false always takes precedence — an item that was executed
-  // but happens to have a neutral tone must not be auto-treated as bypassed.
-  const autoSkippedSet = useMemo(() => {
-    const set = new Set<number>();
-    if (!autoConnectorState) return set;
-    const grps = buildGroups(items);
-    grps.forEach((g, gi) => {
-      if (effectiveTone(g) !== "neutral") return;
-      // If any item in the group explicitly declares skipped:false it ran —
-      // honour that and skip the auto-detection for this group.
-      const explicitlyNotSkipped =
-        g.kind === "single"
-          ? g.item.skipped === false
-          : g.items.some((it) => it.skipped === false);
-      if (explicitlyNotSkipped) return;
-      const hasNonNeutralAfter = grps
-        .slice(gi + 1)
-        .some((sg) => effectiveTone(sg) !== "neutral");
-      if (hasNonNeutralAfter) set.add(gi);
-    });
-    return set;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, autoConnectorState]);
-
-  // Compute bypass arc positions from DOM measurements.
-  // Uses `items` (not derived `groups`) in deps so the callback is only recreated
-  // when the actual items or scale change, not on every render.
-  const computeBypassArcs = useCallback(() => {
-    if (!contentRef.current) return;
-    const contentEl = contentRef.current;
-    const contentRect = contentEl.getBoundingClientRect();
-    if (!contentRect.width) return;
-
-    const grps = buildGroups(items);
-    const arcs: BypassArcData[] = [];
-    let skipStart = -1;
-
-    for (let gi = 0; gi <= grps.length; gi++) {
-      const skipped =
-        gi < grps.length &&
-        (isGroupSkipped(grps[gi]) || autoSkippedSet.has(gi));
-
-      if (skipped && skipStart === -1) {
-        skipStart = gi;
-      } else if (!skipped && skipStart !== -1) {
-        // Arc from group[skipStart-1] to group[gi]
-        const prevEl = groupDivRefs.current[skipStart - 1];
-        const nextEl = groupDivRefs.current[gi];
-
-        if (prevEl && nextEl) {
-          const prevRect = prevEl.getBoundingClientRect();
-          const nextRect = nextEl.getBoundingClientRect();
-          // Convert screen coords → content's natural (pre-scale) coordinate space.
-          // Connection points are on the TOP edge of each card, inset from the corners
-          // so they sit inside the rounded-corner border (not at the very tip).
-          const sx =
-            (prevRect.right - CARD_CORNER_INSET - contentRect.left) / scale;
-          const sy = (prevRect.top - contentRect.top) / scale;
-          const dx =
-            (nextRect.left + CARD_CORNER_INSET - contentRect.left) / scale;
-          const dy = (nextRect.top - contentRect.top) / scale;
-
-          const prevGroup = grps[skipStart - 1];
-          const srcTone: TreeTone = prevGroup
-            ? ((prevGroup.kind === "single"
-                ? prevGroup.item.tone
-                : prevGroup.items[0]?.tone) ?? "neutral")
-            : "neutral";
-          const dstGroup = grps[gi];
-          const dstTone: TreeTone = dstGroup
-            ? ((dstGroup.kind === "single"
-                ? dstGroup.item.tone
-                : dstGroup.items[0]?.tone) ?? "neutral")
-            : "neutral";
-          const destActive = dstGroup
-            ? dstGroup.kind === "single"
-              ? (dstGroup.item.active ?? false)
-              : dstGroup.items.some((it) => it.active ?? false)
-            : false;
-
-          arcs.push({
-            sx,
-            sy,
-            dx,
-            dy,
-            sourceTone: srcTone,
-            destTone: dstTone,
-            destActive,
-          });
-        }
-        skipStart = -1;
-      }
-    }
-
-    setBypassArcs(arcs);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, scale, autoSkippedSet]);
-
-  useLayoutEffect(() => {
-    computeBypassArcs();
-    const ro = new ResizeObserver(computeBypassArcs);
-    if (contentRef.current) ro.observe(contentRef.current);
-    return () => ro.disconnect();
-  }, [computeBypassArcs]);
-
-  if (groups.length === 0) return null;
-
-  // Which groups emit a right-side connector
-  const emitsConnector = groups.map(
-    (g, gi) => !isTerminal(g) && gi < groups.length - 1,
-  );
-
-  // When autoScale is active and scale < 1 the content must overflow the clipped
-  // outer div — we allow horizontal scroll only if scale is pinned at minScale.
-  const needsScroll = autoScale && scale <= minScale;
-
-  const outerClass = classNames(
-    autoScale ? "relative w-full" : "flex items-start",
-    !autoScale && fullWidthConnectors && "w-full",
-    !autoScale && allowScroll && "overflow-auto max-w-full",
-    needsScroll && "overflow-x-auto",
-    !autoScale && !allowScroll && !needsScroll && "overflow-hidden",
+const ConnectionFlow = React.forwardRef<
+  ConnectionFlowHandle,
+  ConnectionFlowProps
+>(function ConnectionFlow(
+  {
+    nodes,
+    variant = "outlined",
+    tone = "neutral",
+    size = "md",
+    corner = DEFAULT_SURFACE_CORNER,
+    edgeStyle = "orthogonal",
+    maxVisibleItems = 2,
+    itemProgress = "bar",
+    ringSize = "md",
+    flowState = "flowing",
+    autoState = false,
+    animated = true,
+    dotSpeed = 120,
+    dotInterval = 700,
+    progressType = "bar",
+    highlightPath = true,
+    showControls = true,
+    fitOnLoad = false,
+    interactive = true,
+    minZoom = 0.25,
+    maxZoom = 2,
+    height = 320,
+    title,
+    subtitle,
+    eyebrow,
+    icon,
+    iconCorner = "rounded-md",
+    tag,
+    tagTone,
+    tagVariant = "soft",
+    showHeader = true,
+    progress,
+    loading = false,
+    loaderType = "skeleton",
+    emptyMessage,
     className,
+    onNodeClick,
+    onNodeHover,
+    onZoomChange,
+    renderNode,
+  },
+  ref,
+) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [scale, setScale] = useState(1);
+  const [panning, setPanning] = useState(false);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(
+    () => new Set<string>(),
+  );
+  const panStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+
+  const metrics = NODE_METRICS[size] ?? NODE_METRICS.md;
+  const radius = NODE_CORNER_RADIUS[corner] ?? NODE_CORNER_RADIUS["rounded-md"];
+
+  const layoutOptions = useMemo(
+    () => ({
+      ...DEFAULT_LAYOUT_OPTIONS,
+      metrics,
+      edgeStyle,
+      ringSize,
+      maxVisibleItems,
+      itemProgress,
+      // The card silhouette is geometry, so the corner radius belongs to
+      // the layout rather than to the renderer that draws it.
+      nodeCornerRadius: radius,
+    }),
+    [metrics, edgeStyle, ringSize, maxVisibleItems, itemProgress, radius],
   );
 
-  const contentStyle: React.CSSProperties | undefined =
-    autoScale && scale < 1
-      ? { transform: `scale(${scale})`, transformOrigin: "left top" }
-      : undefined;
+  const layout = useMemo(
+    () =>
+      layoutConnectionFlow({
+        nodes,
+        flowState,
+        autoState,
+        animated,
+        expanded,
+        options: layoutOptions,
+      }),
+    [nodes, flowState, autoState, animated, expanded, layoutOptions],
+  );
 
-  const content = (
-    <div
-      ref={contentRef}
-      className={classNames(
-        "relative flex items-start",
-        fullWidthConnectors && "w-full",
-      )}
-      style={contentStyle}
-    >
-      {groups.map((group, gi) => {
-        const prevGroup = groups[gi - 1];
-        const isFirst = gi === 0;
-        const renderConnector =
-          !isFirst && (prevGroup ? emitsConnector[gi - 1] : false);
+  const onToggleExpanded = useCallback((id: string) => {
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }, []);
 
-        // Resolve connector config — from the group's "first receiver" item
-        const receiverItem =
-          group.kind === "single" ? group.item : group.items[0];
-        const connCfg = receiverItem.connector;
+  // The lit set is the ancestry of whatever the pointer is on. Empty means
+  // "no highlight", which the renderers read as "draw everything lit" — so the
+  // default state costs nothing.
+  const highlight = useMemo(() => {
+    const focus = hoveredId ?? selectedId;
+    if (!highlightPath || !focus) {
+      return { nodes: new Set<string>(), edges: new Set<string>() };
+    }
+    return tracePathTo(layout, focus);
+  }, [layout, hoveredId, selectedId, highlightPath]);
 
-        // Connector state: explicit override → auto-derived (if autoConnectorState) → global flowState
-        const state: ConnectionState =
-          connCfg?.state ??
-          (autoConnectorState && prevGroup
-            ? effectiveTone(prevGroup) !== "neutral"
-              ? "stopped"
-              : "disabled"
-            : flowState);
-        const icon = connCfg?.icon ?? flowIcon;
-        const cWidth = connCfg?.width ?? connectorWidth;
-        const cAnimated = connCfg?.animated ?? animated;
-        const cDotSpace = connCfg?.dotSpacing ?? dotSpacing;
-        const cBorder = connCfg?.borderSize ?? connectorBorderSize;
-        const cHalf = connCfg?.halfRing ?? connectorHalf;
-        const cShowLine = connCfg?.showLine ?? showLine;
+  const clampZoom = useCallback(
+    (value: number) => Math.min(maxZoom, Math.max(minZoom, value)),
+    [minZoom, maxZoom],
+  );
 
-        // Suppress animateCompleted on connectors adjacent to skipped groups —
-        // the bypass arc already carries the animated flow over those steps.
-        const thisGroupSkipped =
-          isGroupSkipped(group) || autoSkippedSet.has(gi);
-        const prevGroupSkipped =
-          gi > 0 &&
-          (isGroupSkipped(groups[gi - 1]) || autoSkippedSet.has(gi - 1));
-        const cAnimateCompleted =
-          thisGroupSkipped || prevGroupSkipped
-            ? false
-            : (connCfg?.animateCompleted ?? animateCompleted);
+  /**
+   * A scroll position to apply once the canvas has been re-sized for the new
+   * scale. Setting `scrollLeft` before the content grows just clamps against
+   * the old extent, so the adjustment waits for the layout effect below.
+   */
+  const pendingScroll = useRef<((el: HTMLDivElement) => void) | null>(null);
 
-        // Source tone (from the outgoing / previous group)
-        const prevFirstItem = prevGroup
-          ? prevGroup.kind === "single"
-            ? prevGroup.item
-            : prevGroup.items[0]
-          : undefined;
-        const srcTone: TreeTone =
-          connCfg?.sourceTone ?? prevFirstItem?.tone ?? "neutral";
+  useLayoutEffect(() => {
+    const element = viewportRef.current;
+    const apply = pendingScroll.current;
+    if (!element || !apply) return;
+    pendingScroll.current = null;
+    apply(element);
+  }, [scale]);
 
-        // Target tone (from this group's first item)
-        const dstTone: TreeTone =
-          connCfg?.targetTone ?? receiverItem.tone ?? "neutral";
+  const setZoom = useCallback(
+    (value: number, anchor?: { x: number; y: number }) => {
+      const next = clampZoom(value);
+      if (next === scale) return;
+      const element = viewportRef.current;
+      if (element) {
+        // Zoom about a point, so the graph does not slide away from the
+        // cursor. The canvas grows by `ratio`, so the distance from the
+        // scroll origin to that point grows by the same factor.
+        const point = anchor ?? {
+          x: element.clientWidth / 2,
+          y: element.clientHeight / 2,
+        };
+        const ratio = next / scale;
+        const { scrollLeft, scrollTop } = element;
+        pendingScroll.current = (el) => {
+          el.scrollLeft = (scrollLeft + point.x) * ratio - point.x;
+          el.scrollTop = (scrollTop + point.y) * ratio - point.y;
+        };
+      }
+      setScale(next);
+      onZoomChange?.(next);
+    },
+    [clampZoom, scale, onZoomChange],
+  );
 
-        const prevGeo = colGeo[gi - 1];
-        const curGeo = colGeo[gi];
+  const fit = useCallback(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+    const { clientWidth, clientHeight } = element;
+    if (!clientWidth || !clientHeight) return;
+    const next = clampZoom(
+      fitToViewport(layout, clientWidth, clientHeight, maxZoom).scale,
+    );
+    // Everything is visible at this scale, so the origin is the right place
+    // to be looking.
+    pendingScroll.current = (el) => {
+      el.scrollLeft = 0;
+      el.scrollTop = 0;
+    };
+    setScale(next);
+    onZoomChange?.(next);
+  }, [layout, maxZoom, clampZoom, onZoomChange]);
 
-        // Left anchors — all prev anchors (handles both single and parallel source)
-        const leftAnchors = prevGeo?.anchors;
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => setZoom(scale * 1.2),
+    zoomOut: () => setZoom(scale / 1.2),
+    fit,
+    setZoom: (value: number) => setZoom(value),
+  }));
 
-        // Right anchors — for fan-out into a parallel group
-        const rightAnchors =
-          curGeo?.isParallelGroup && curGeo.anchors.length > 1
-            ? curGeo.anchors
-            : undefined;
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver((entries) => {
+      const box = entries[0]?.contentRect;
+      if (box) setViewport({ width: box.width, height: box.height });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
-        // Right anchor Y for single target (not fan-out)
-        const rightAnchorY = rightAnchors ? undefined : curGeo?.anchors[0];
+  useEffect(() => {
+    if (fitOnLoad && viewport.width) fit();
+    // Keyed on the graph and the viewport, deliberately *not* on `layout`:
+    // expanding a card's item list changes the layout, and refitting on that
+    // would slide the whole graph out from under the pointer that opened it.
+  }, [fitOnLoad, nodes, viewport.width, viewport.height]); // eslint-disable-line react-hooks/exhaustive-deps
 
-        // Connector height: span the taller of the two adjacent groups
-        const connectorHeight =
-          prevGeo && curGeo
-            ? Math.max(prevGeo.totalHeight, curGeo.totalHeight)
-            : (prevGeo?.totalHeight ?? curGeo?.totalHeight);
+  const onHover = (node: LaidOutNode | null) => {
+    setHoveredId(node?.id ?? null);
+    onNodeHover?.(node?.node ?? null);
+  };
 
-        // Extra source tones for multi-source rings (fan-in from prev parallel group, or children)
-        const extraSourceTones: TreeTone[] =
-          prevGroup?.kind === "parallel"
-            ? prevGroup.items.slice(1).map((it) => it.tone ?? "neutral")
-            : prevGroup?.kind === "single"
-              ? (prevGroup.item.children?.map(
-                  (c) => c.connector?.sourceTone ?? c.tone ?? "neutral",
-                ) ?? [])
-              : [];
+  const onSelect = (node: LaidOutNode) => {
+    setSelectedId((current) => (current === node.id ? null : node.id));
+    onNodeClick?.(node.node);
+  };
 
-        // Right anchor tones for fan-out rings
-        const rightAnchorTones: TreeTone[] = rightAnchors
-          ? (
-              group as { kind: "parallel"; items: ConnectionFlowItem[] }
-            ).items.map((it) => it.tone ?? "neutral")
-          : [];
+  // Stated outright if the caller says so, else the mean of what the nodes
+  // report — including cards built from items, which have no `progress` of
+  // their own and used not to count at all.
+  const overallProgress = useMemo(
+    () => flowProgress(nodes, progress),
+    [nodes, progress],
+  );
 
-        // Right anchor states for per-lane animation in fan-out
-        const rightAnchorStates = rightAnchors
-          ? (
-              group as { kind: "parallel"; items: ConnectionFlowItem[] }
-            ).items.map((it): ConnectionState => {
-              if (it.connector?.state !== undefined) return it.connector.state;
-              if (autoConnectorState) {
-                if (it.active) return "flowing";
-                const tone = it.tone ?? "neutral";
-                return tone !== "neutral" ? "stopped" : "disabled";
-              }
-              return state;
-            })
-          : [];
+  // `plain` draws no Panel, so the cards and the header take the nearest
+  // real surface rather than inventing a second scale of their own.
+  const surfaceVariant: SurfaceVariant =
+    variant === "plain" ? "simple" : variant;
+  const headerSurface = getHeaderSurface(surfaceVariant);
 
-        return (
-          <React.Fragment key={groupKey(group)}>
-            {/* Connector leading INTO this group */}
-            {renderConnector && (
-              <ConnectionFlowConnector
-                state={state}
-                sourceTone={srcTone}
-                targetTone={dstTone}
-                middleIcon={icon}
-                width={cWidth}
-                halfRing={cHalf}
-                showLine={cShowLine}
-                animated={cAnimated}
-                dotSpacing={cDotSpace}
-                borderSize={cBorder}
-                sourceFill={connCfg?.sourceFill}
-                sourceBorder={connCfg?.sourceBorder}
-                sourceDot={connCfg?.sourceDot}
-                targetFill={connCfg?.targetFill}
-                targetBorder={connCfg?.targetBorder}
-                targetDot={connCfg?.targetDot}
-                dotColor={connCfg?.dotColor}
-                leftAnchors={leftAnchors}
-                connectorHeight={connectorHeight}
-                rightAnchorY={rightAnchorY}
-                extraSourceTones={extraSourceTones}
-                rightAnchors={rightAnchors}
-                rightAnchorTones={rightAnchorTones}
-                rightAnchorStates={rightAnchorStates}
-                animateCompleted={cAnimateCompleted}
-                fullWidth={fullWidthConnectors}
+  const rendererProps = {
+    layout,
+    dotSpeed,
+    dotInterval,
+    metrics,
+    options: layoutOptions,
+    expanded,
+    onToggleExpanded,
+    variant: surfaceVariant,
+    showProgress: progressType !== "none",
+    animated,
+    highlightNodes: highlight.nodes,
+    highlightEdges: highlight.edges,
+    hoveredId,
+    selectedId,
+    scale,
+    // The canvas is sized to the content and scrolled natively, so the only
+    // offset the renderers need is the overhang: a bypass arc lifts above the
+    // origin, and its share of the canvas sits before the first card.
+    offsetX: -layout.offsetX * scale,
+    offsetY: -layout.offsetY * scale,
+    onHover,
+    onSelect,
+  };
+
+  // What the scroll area contains, including anything overhanging the origin.
+  const canvas = {
+    width: (layout.width - layout.offsetX) * scale,
+    height: (layout.height - layout.offsetY) * scale,
+  };
+
+  const body = (
+    <div className="relative w-full">
+      {showHeader &&
+        (eyebrow || title || subtitle || icon || tag || progressType !== "none") && (
+          <>
+            <div className="px-4 pt-4 pb-3">
+              <ConnectionFlowHeader
+                variant={surfaceVariant}
+                tone={tone}
+                eyebrow={eyebrow}
+                title={title}
+                subtitle={subtitle}
+                icon={icon}
+                iconCorner={iconCorner}
+                tag={tag}
+                tagTone={tagTone}
+                tagVariant={tagVariant}
+                progress={overallProgress}
+                progressType={progressType}
+                animated={animated}
+                loading={loading}
               />
-            )}
-
-            {/* Column or parallel group — wrapped in a ref div for bypass arc measurement */}
-            <div
-              ref={(el) => {
-                groupDivRefs.current[gi] = el;
-              }}
-              className={
-                itemWidth || fullWidthConnectors ? "shrink-0" : "flex-1 min-w-0"
-              }
-              style={
-                itemWidth
-                  ? {
-                      width:
-                        typeof itemWidth === "number"
-                          ? `${itemWidth}px`
-                          : itemWidth,
-                    }
-                  : undefined
-              }
-            >
-              {group.kind === "single" ? (
-                <ConnectionFlowColumn
-                  item={group.item}
-                  childIndent={childIndent}
-                  childRowGap={childRowGap}
-                  animated={animated}
-                  showLine={showLine}
-                  connectorHalf={connectorHalf}
-                  connectorBorderSize={connectorBorderSize}
-                  dotSpacing={dotSpacing}
-                  flowActive={state === "flowing"}
-                  onGeometryChange={(geo) => handleGeo(gi, geo)}
-                  itemWidth={itemWidth}
-                  hoverable={hoverable}
-                />
-              ) : (
-                <ConnectionFlowParallelGroup
-                  items={group.items}
-                  itemWidth={itemWidth}
-                  hoverable={hoverable}
-                  onGeometryChange={(geo) => handleGeo(gi, geo)}
-                />
-              )}
             </div>
-          </React.Fragment>
-        );
-      })}
+            <div className={classNames("border-b", headerSurface.divider)} />
+          </>
+        )}
 
-      {rightAction && (
-        <div className="flex items-center shrink-0 ml-3 self-start">
-          {rightAction}
-        </div>
-      )}
-
-      {/* ── Bypass arc overlay ──────────────────────────────────────────── */}
-      {bypassArcs.length > 0 && (
-        <svg
-          className="absolute inset-0 pointer-events-none z-20"
-          style={{ width: "100%", height: "100%", overflow: "visible" }}
+      {loading && loaderType !== "skeleton" ? (
+        <div
+          className="flex w-full items-center justify-center"
+          style={{ height: typeof height === "number" ? `${height}px` : height }}
         >
-          {bypassArcs.map((arc, i) => {
-            const ci = isDark ? 1 : 0;
-            const srcTokens = getTreeColorTokens(arc.sourceTone);
-            const dstTokens = getTreeColorTokens(arc.destTone);
-            const lineColor = srcTokens.connBorder[ci];
-            const dotFill = srcTokens.connDot[ci];
+          {loaderType === "spinner" ? (
+            <ProgressSpinner
+              size="xl"
+              color={tone === "neutral" ? "blue" : tone}
+              ariaLabel="Loading flow"
+            />
+          ) : (
+            <div className="w-1/2 max-w-sm">
+              <Progress
+                size="sm"
+                color={tone === "neutral" ? "blue" : tone}
+                indeterminate
+                label="Loading flow"
+              />
+            </div>
+          )}
+        </div>
+      ) : loading ? (
+        <div
+          className="w-full overflow-hidden"
+          style={{ height: typeof height === "number" ? `${height}px` : height }}
+        >
+          <ConnectionFlowSkeleton variant={surfaceVariant} metrics={metrics} />
+        </div>
+      ) : nodes.length === 0 ? (
+        <EmptyState
+          variant="plain"
+          size="sm"
+          icon="ViewGrid"
+          title={emptyMessage ?? "Nothing to show"}
+          subtitle="No steps have been reported for this flow."
+        />
+      ) : (
+        <div
+          className="relative w-full"
+          style={{ height: typeof height === "number" ? `${height}px` : height }}
+        >
+        <div
+          ref={viewportRef}
+          className="h-full w-full select-none overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent"
+          style={{ cursor: panning ? "grabbing" : undefined }}
+          onWheel={(event) => {
+            if (!interactive) return;
+            // A card that scrolls its own body keeps its wheel: without this
+            // the canvas zooms and the card can never be scrolled.
+            if ((event.target as HTMLElement).closest("[data-scrolls]")) return;
+            const rect = viewportRef.current?.getBoundingClientRect();
+            const anchor = rect
+              ? { x: event.clientX - rect.left, y: event.clientY - rect.top }
+              : undefined;
+            setZoom(scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1), anchor);
+          }}
+          onPointerDown={(event) => {
+            if (!interactive || event.button !== 0) return;
+            // A press that starts on a control belongs to the control.
+            // Capturing the pointer here redirects its `pointerup` to the
+            // viewport, so the control never sees a click at all — which is
+            // why the zoom buttons and "show more" did nothing.
+            if (
+              (event.target as HTMLElement).closest(
+                "button, a, input, select, textarea, [data-no-pan]",
+              )
+            ) {
+              return;
+            }
+            const element = viewportRef.current;
+            if (!element) return;
+            setPanning(true);
+            panStart.current = {
+              x: event.clientX,
+              y: event.clientY,
+              scrollLeft: element.scrollLeft,
+              scrollTop: element.scrollTop,
+            };
+            element.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            if (!panning) return;
+            const element = viewportRef.current;
+            if (!element) return;
+            element.scrollLeft =
+              panStart.current.scrollLeft - (event.clientX - panStart.current.x);
+            element.scrollTop =
+              panStart.current.scrollTop - (event.clientY - panStart.current.y);
+          }}
+          onPointerUp={(event) => {
+            if (!panning) return;
+            setPanning(false);
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }}
+        >
+          {/* Sized to the content so the viewport can scroll to it natively.
+              The renderers draw into this, not into the viewport. */}
+          <div
+            className="relative"
+            style={{ width: canvas.width, height: canvas.height }}
+          >
+            <ConnectionFlowSvg {...rendererProps} renderNode={renderNode} />
+          </div>
+        </div>
 
-            // Path starts/ends RING_OVERLAP px inside the card top edge so the
-            // ring fill covers the card border (same technique as left/right rings).
-            const sBase = arc.sy + RING_OVERLAP;
-            const dBase = arc.dy + RING_OVERLAP;
-
-            // Orthogonal stepped path with rounded corners:
-            //  (sx, sBase) → up → rounded bend → right → rounded bend → down to (dx, dBase)
-            const aboveY = Math.min(arc.sy, arc.dy) - BYPASS_LIFT;
-            const CR = BYPASS_CORNER_R;
-            const d = [
-              `M ${arc.sx} ${sBase}`,
-              `V ${aboveY + CR}`,
-              `Q ${arc.sx} ${aboveY} ${arc.sx + CR} ${aboveY}`,
-              `H ${arc.dx - CR}`,
-              `Q ${arc.dx} ${aboveY} ${arc.dx} ${aboveY + CR}`,
-              `V ${dBase}`,
-            ].join(" ");
-
-            // Approximate path length for dot timing
-            const legV1 = Math.abs(sBase - aboveY - CR);
-            const legH = Math.max(0, arc.dx - arc.sx - 2 * CR);
-            const legV2 = Math.abs(dBase - aboveY - CR);
-            const corners = Math.PI * 0.5 * CR * 2; // two quarter-circle corners
-            const pathLen = legV1 + legH + legV2 + corners;
-
-            const DOT_VELOCITY = 35;
-            const DOT_GAP = dotSpacing / DOT_VELOCITY;
-            const numDots = Math.max(1, Math.ceil(pathLen / dotSpacing));
-            const virtualLen = numDots * dotSpacing;
-            const dur = numDots * DOT_GAP;
-
-            // Add overflow extension AFTER the destination so dots follow the correct
-            // arc shape (including the destination corner and descent) before the
-            // invisible loop-back segment begins. Extending the H segment rightward
-            // (old approach) caused dots to travel past the destination horizontally
-            // and miss the descent curve entirely.
-            const overflow = Math.max(0, virtualLen - pathLen);
-            const dMotion =
-              overflow > 0
-                ? [
-                    `M ${arc.sx} ${sBase}`,
-                    `V ${aboveY + CR}`,
-                    `Q ${arc.sx} ${aboveY} ${arc.sx + CR} ${aboveY}`,
-                    `H ${arc.dx - CR}`,
-                    `Q ${arc.dx} ${aboveY} ${arc.dx} ${aboveY + CR}`,
-                    `V ${dBase}`,
-                    `v ${overflow}`,
-                  ].join(" ")
-                : d;
-
-            const fadeOutEnd = pathLen / virtualLen;
-            const fadeOutStart = Math.max(0, fadeOutEnd - 10 / virtualLen);
-            const fadeInEnd = Math.min(fadeOutStart, 4 / virtualLen);
-            const opTimes = `0;${fadeInEnd.toFixed(4)};${fadeOutStart.toFixed(4)};${fadeOutEnd.toFixed(4)};1`;
-
-            // Ring visual constants (match ConnectionFlowConnector)
-            const ringR = 5.5;
-            const bw = 1.5;
-
-            // Source ring — half-circle bumping upward, base sits RING_OVERLAP px
-            // inside the card so the fill covers the card's top border.
-            const srcFill = srcTokens.connFill[ci];
-            const srcBorder = srcTokens.connBorder[ci];
-            const srcDot = srcTokens.connDot[ci];
-            const srcArcD = `M ${arc.sx - ringR} ${sBase} A ${ringR} ${ringR} 0 0 1 ${arc.sx + ringR} ${sBase}`;
-
-            // Destination ring — same treatment.
-            const dstFill = dstTokens.connFill[ci];
-            const dstBorder = dstTokens.connBorder[ci];
-            const dstDot = dstTokens.connDot[ci];
-            const dstArcD = `M ${arc.dx - ringR} ${dBase} A ${ringR} ${ringR} 0 0 1 ${arc.dx + ringR} ${dBase}`;
-
-            return (
-              <g key={i}>
-                {/* Bypass path */}
-                <path
-                  d={d}
-                  fill="none"
-                  stroke={lineColor}
-                  strokeWidth={1.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-
-                {/* Source ring endpoint */}
-                <path d={srcArcD} fill={srcFill} />
-                <path
-                  d={srcArcD}
-                  stroke={srcBorder}
-                  strokeWidth={bw}
-                  fill="none"
-                  strokeLinecap="round"
-                />
-                <circle cx={arc.sx} cy={sBase} r="2" fill={srcDot} />
-
-                {/* Destination ring endpoint */}
-                <path d={dstArcD} fill={dstFill} />
-                <path
-                  d={dstArcD}
-                  stroke={dstBorder}
-                  strokeWidth={bw}
-                  fill="none"
-                  strokeLinecap="round"
-                />
-                <circle cx={arc.dx} cy={dBase} r="2" fill={dstDot} />
-
-                {/* Animated dots — only when bypass is actively being traversed
-                                    (source done, destination not yet reached), or when
-                                    animateCompleted is on (completed arcs also animate). */}
-                {(() => {
-                  // Animate when source is done AND destination is either
-                  // not yet reached (neutral) or currently running (destActive).
-                  const arcActive =
-                    arc.sourceTone !== "neutral" &&
-                    (arc.destTone === "neutral" || arc.destActive);
-                  const arcCompleted =
-                    arc.sourceTone !== "neutral" &&
-                    arc.destTone !== "neutral" &&
-                    !arc.destActive;
-                  return (
-                    animated &&
-                    (arcActive || (animateCompleted && arcCompleted))
-                  );
-                })() &&
-                  Array.from({ length: numDots }, (_, di) => (
-                    <circle key={di} r="3" fill={dotFill} opacity="0">
-                      <animateMotion
-                        path={dMotion}
-                        dur={`${dur}s`}
-                        begin={`${(-di * DOT_GAP).toFixed(3)}s`}
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="opacity"
-                        values="0;0.9;0.9;0;0"
-                        keyTimes={opTimes}
-                        dur={`${dur}s`}
-                        begin={`${(-di * DOT_GAP).toFixed(3)}s`}
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                  ))}
-              </g>
-            );
-          })}
-        </svg>
+          {/* Zoom controls, bottom-right, matching the placement GitHub
+              Actions uses for the same job. */}
+          {showControls && (
+            <div
+              data-no-pan
+              className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90">
+              <IconButton
+                icon={FIT_ICON}
+                size="xs"
+                variant="ghost"
+                color="slate"
+                srLabel="Fit to view"
+                tooltip="Fit to view"
+                onClick={fit}
+              />
+              <IconButton
+                icon={MINUS_ICON}
+                size="xs"
+                variant="ghost"
+                color="slate"
+                srLabel="Zoom out"
+                tooltip="Zoom out"
+                disabled={scale <= minZoom}
+                onClick={() => setZoom(scale / 1.2)}
+              />
+              {/* A readout, not a control. The reset it used to carry was
+                  invisible — nothing about a percentage says "click me" — so
+                  it is a button of its own now. */}
+              <span
+                className="min-w-[3.5ch] px-1 text-center text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400"
+                title="Zoom level"
+              >
+                {Math.round(scale * 100)}%
+              </span>
+              <IconButton
+                icon="Add"
+                size="xs"
+                variant="ghost"
+                color="slate"
+                srLabel="Zoom in"
+                tooltip="Zoom in"
+                disabled={scale >= maxZoom}
+                onClick={() => setZoom(scale * 1.2)}
+              />
+              <IconButton
+                icon="Reset"
+                size="xs"
+                variant="ghost"
+                color="slate"
+                srLabel="Reset zoom to 100%"
+                tooltip="Reset zoom"
+                disabled={scale === 1}
+                onClick={() => setZoom(1)}
+              />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 
-  if (autoScale) {
-    return (
-      <div
-        ref={containerRef}
-        className={outerClass}
-        style={
-          scaledHeight !== undefined ? { height: scaledHeight } : undefined
-        }
-      >
-        {content}
-      </div>
-    );
+  if (variant === "plain") {
+    return <div className={classNames("w-full", className)}>{body}</div>;
   }
 
-  return <div className={outerClass}>{content}</div>;
-};
+  return (
+    <Panel
+      className={classNames("w-full", className)}
+      variant={variant}
+      tone={tone}
+      corner={corner}
+      padding="none"
+      // Title, subtitle and loading are drawn by the flow's own header:
+      // Panel's carries no icon chip and no progress, and `variant="plain"`
+      // renders no Panel at all, so the header has to belong here either way.
+      scrollable={false}
+    >
+      {body}
+    </Panel>
+  );
+});
+
+ConnectionFlow.displayName = "ConnectionFlow";
 
 export default ConnectionFlow;

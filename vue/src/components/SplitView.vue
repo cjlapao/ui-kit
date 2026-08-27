@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { VNodeChild } from "vue";
-import type { TrueColor } from "../theme/Theme";
+import { TRUE_COLORS, type TrueColor } from "../theme/Theme";
 import type { IconName } from "../icons/registry";
 import type { HelpButtonProps } from "./HelpButton.vue";
 import type { PanelDecoration, PanelVariant } from "./Panel.vue";
@@ -222,190 +222,38 @@ type ActiveColorTokens = {
   resizer: string;
 };
 
-// All class names must be written out as full strings so Tailwind's JIT scanner can detect them.
-const neutralActive: ActiveColorTokens = {
-  bg: "bg-neutral-100 dark:bg-neutral-800/40",
-  border: "border-l-neutral-500",
-  text: "text-neutral-900 dark:text-neutral-100",
-  subtitle: "text-neutral-600 dark:text-neutral-400",
-  resizer: "bg-neutral-400/40",
-};
-
-const activeColors: Record<TrueColor, ActiveColorTokens> = {
-  red: {
-    bg: "bg-red-50 dark:bg-red-900/30",
-    border: "border-l-red-600",
-    text: "text-red-900 dark:text-red-100",
-    subtitle: "text-red-600 dark:text-red-400",
-    resizer: "bg-red-400",
-  },
-  orange: {
-    bg: "bg-orange-50 dark:bg-orange-900/30",
-    border: "border-l-orange-600",
-    text: "text-orange-900 dark:text-orange-100",
-    subtitle: "text-orange-600 dark:text-orange-400",
-    resizer: "bg-orange-400",
-  },
-  amber: {
-    bg: "bg-amber-50 dark:bg-amber-900/30",
-    border: "border-l-amber-600",
-    text: "text-amber-900 dark:text-amber-100",
-    subtitle: "text-amber-600 dark:text-amber-400",
-    resizer: "bg-amber-400",
-  },
-  yellow: {
-    bg: "bg-yellow-50 dark:bg-yellow-900/30",
-    border: "border-l-yellow-600",
-    text: "text-yellow-900 dark:text-yellow-100",
-    subtitle: "text-yellow-600 dark:text-yellow-400",
-    resizer: "bg-yellow-400",
-  },
-  lime: {
-    bg: "bg-lime-50 dark:bg-lime-900/30",
-    border: "border-l-lime-600",
-    text: "text-lime-900 dark:text-lime-100",
-    subtitle: "text-lime-600 dark:text-lime-400",
-    resizer: "bg-lime-400",
-  },
-  green: {
-    bg: "bg-green-50 dark:bg-green-900/30",
-    border: "border-l-green-600",
-    text: "text-green-900 dark:text-green-100",
-    subtitle: "text-green-600 dark:text-green-400",
-    resizer: "bg-green-400",
-  },
-  emerald: {
-    bg: "bg-emerald-50 dark:bg-emerald-900/30",
-    border: "border-l-emerald-600",
-    text: "text-emerald-900 dark:text-emerald-100",
-    subtitle: "text-emerald-600 dark:text-emerald-400",
-    resizer: "bg-emerald-400",
-  },
-  teal: {
-    bg: "bg-teal-50 dark:bg-teal-900/30",
-    border: "border-l-teal-600",
-    text: "text-teal-900 dark:text-teal-100",
-    subtitle: "text-teal-600 dark:text-teal-400",
-    resizer: "bg-teal-400",
-  },
-  cyan: {
-    bg: "bg-cyan-50 dark:bg-cyan-900/30",
-    border: "border-l-cyan-600",
-    text: "text-cyan-900 dark:text-cyan-100",
-    subtitle: "text-cyan-600 dark:text-cyan-400",
-    resizer: "bg-cyan-400",
-  },
-  sky: {
-    bg: "bg-sky-50 dark:bg-sky-900/30",
-    border: "border-l-sky-600",
-    text: "text-sky-900 dark:text-sky-100",
-    subtitle: "text-sky-600 dark:text-sky-400",
-    resizer: "bg-sky-400",
-  },
-  blue: {
-    bg: "bg-blue-50 dark:bg-blue-900/30",
-    border: "border-l-blue-600",
-    text: "text-blue-900 dark:text-blue-100",
-    subtitle: "text-blue-600 dark:text-blue-400",
-    resizer: "bg-blue-400",
-  },
-  indigo: {
-    bg: "bg-indigo-50 dark:bg-indigo-900/30",
-    border: "border-l-indigo-600",
-    text: "text-indigo-900 dark:text-indigo-100",
-    subtitle: "text-indigo-600 dark:text-indigo-400",
-    resizer: "bg-indigo-400",
-  },
-  violet: {
-    bg: "bg-violet-50 dark:bg-violet-900/30",
-    border: "border-l-violet-600",
-    text: "text-violet-900 dark:text-violet-100",
-    subtitle: "text-violet-600 dark:text-violet-400",
-    resizer: "bg-violet-400",
-  },
-  purple: {
-    bg: "bg-purple-50 dark:bg-purple-900/30",
-    border: "border-l-purple-600",
-    text: "text-purple-900 dark:text-purple-100",
-    subtitle: "text-purple-600 dark:text-purple-400",
-    resizer: "bg-purple-400",
-  },
-  fuchsia: {
-    bg: "bg-fuchsia-50 dark:bg-fuchsia-900/30",
-    border: "border-l-fuchsia-600",
-    text: "text-fuchsia-900 dark:text-fuchsia-100",
-    subtitle: "text-fuchsia-600 dark:text-fuchsia-400",
-    resizer: "bg-fuchsia-400",
-  },
-  rose: {
-    bg: "bg-rose-50 dark:bg-rose-900/30",
-    border: "border-l-rose-600",
-    text: "text-rose-900 dark:text-rose-100",
-    subtitle: "text-rose-600 dark:text-rose-400",
-    resizer: "bg-rose-400",
-  },
-  slate: {
-    bg: "bg-slate-50 dark:bg-slate-900/30",
-    border: "border-l-slate-600",
-    text: "text-slate-900 dark:text-slate-100",
-    subtitle: "text-slate-600 dark:text-slate-400",
-    resizer: "bg-slate-400",
-  },
-  gray: {
-    bg: "bg-gray-50 dark:bg-gray-900/30",
-    border: "border-l-gray-600",
-    text: "text-gray-900 dark:text-gray-100",
-    subtitle: "text-gray-600 dark:text-gray-400",
-    resizer: "bg-gray-400",
-  },
-  zinc: {
-    bg: "bg-zinc-50 dark:bg-zinc-900/30",
-    border: "border-l-zinc-600",
-    text: "text-zinc-900 dark:text-zinc-100",
-    subtitle: "text-zinc-600 dark:text-zinc-400",
-    resizer: "bg-zinc-400",
-  },
-  neutral: neutralActive,
-  stone: neutralActive,
-};
+/**
+ * Generated from `TRUE_COLORS`, not hand-written.
+ *
+ * The literal maps this replaces aliased **both `neutral` and `stone`** to one
+ * shared `neutralActive` / `neutralHighlight` object — so a `stone` SplitView
+ * silently rendered neutral, and `neutral` itself used `border-l-neutral-500`
+ * where every other tone used `-600`. Because the literals were also what
+ * Tailwind scanned, `border-l-stone-600` had never been emitted at all. The
+ * shapes are declared in `scripts/generate-safelist.mjs`.
+ */
+const activeColors: Record<TrueColor, ActiveColorTokens> = Object.fromEntries(
+  TRUE_COLORS.map((c) => [
+    c,
+    {
+      bg: `bg-${c}-50 dark:bg-${c}-900/30`,
+      border: `border-l-${c}-600`,
+      text: `text-${c}-900 dark:text-${c}-100`,
+      subtitle: `text-${c}-600 dark:text-${c}-400`,
+      resizer: `bg-${c}-400`,
+    },
+  ]),
+) as Record<TrueColor, ActiveColorTokens>;
 
 type HighlightTokens = { bg: string; dot: string };
 
-const neutralHighlight: HighlightTokens = {
-  bg: "bg-neutral-100 dark:bg-neutral-700/50",
-  dot: "bg-neutral-500",
-};
+const highlightColors: Record<TrueColor, HighlightTokens> = Object.fromEntries(
+  TRUE_COLORS.map((c) => [
+    c,
+    { bg: `bg-${c}-100 dark:bg-${c}-900/50`, dot: `bg-${c}-500` },
+  ]),
+) as Record<TrueColor, HighlightTokens>;
 
-// All class names are written as full strings so Tailwind's JIT scanner can detect them.
-const highlightColors: Record<TrueColor, HighlightTokens> = {
-  red: { bg: "bg-red-100 dark:bg-red-900/50", dot: "bg-red-500" },
-  orange: { bg: "bg-orange-100 dark:bg-orange-900/50", dot: "bg-orange-500" },
-  amber: { bg: "bg-amber-100 dark:bg-amber-900/50", dot: "bg-amber-500" },
-  yellow: { bg: "bg-yellow-100 dark:bg-yellow-900/50", dot: "bg-yellow-500" },
-  lime: { bg: "bg-lime-100 dark:bg-lime-900/50", dot: "bg-lime-500" },
-  green: { bg: "bg-green-100 dark:bg-green-900/50", dot: "bg-green-500" },
-  emerald: {
-    bg: "bg-emerald-100 dark:bg-emerald-900/50",
-    dot: "bg-emerald-500",
-  },
-  teal: { bg: "bg-teal-100 dark:bg-teal-900/50", dot: "bg-teal-500" },
-  cyan: { bg: "bg-cyan-100 dark:bg-cyan-900/50", dot: "bg-cyan-500" },
-  sky: { bg: "bg-sky-100 dark:bg-sky-900/50", dot: "bg-sky-500" },
-  blue: { bg: "bg-blue-100 dark:bg-blue-900/50", dot: "bg-blue-500" },
-  indigo: { bg: "bg-indigo-100 dark:bg-indigo-900/50", dot: "bg-indigo-500" },
-  violet: { bg: "bg-violet-100 dark:bg-violet-900/50", dot: "bg-violet-500" },
-  purple: { bg: "bg-purple-100 dark:bg-purple-900/50", dot: "bg-purple-500" },
-  fuchsia: {
-    bg: "bg-fuchsia-100 dark:bg-fuchsia-900/50",
-    dot: "bg-fuchsia-500",
-  },
-  rose: { bg: "bg-rose-100 dark:bg-rose-900/50", dot: "bg-rose-500" },
-  slate: { bg: "bg-slate-100 dark:bg-slate-800/50", dot: "bg-slate-500" },
-  gray: { bg: "bg-gray-100 dark:bg-gray-800/50", dot: "bg-gray-500" },
-  zinc: { bg: "bg-zinc-100 dark:bg-zinc-800/50", dot: "bg-zinc-500" },
-  neutral: neutralHighlight,
-  stone: neutralHighlight,
-};
 </script>
 
 <script setup lang="ts">

@@ -1,10 +1,14 @@
 import classNames from "classnames";
 import React, { type ReactNode, useId } from "react";
+import { VALIDATION_STATUSES, type ValidationStatus } from "../theme/Theme";
 import type { ControlSize } from "../theme/Theme";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 
 export type FormFieldLayout = "stacked" | "inline";
-export type FormFieldValidationStatus = "none" | "error" | "success";
+/** The shared field-status scale. Was a bare union with no runtime list, so
+ *  a demo could not enumerate it. */
+export const FORM_FIELD_VALIDATION_STATUSES = VALIDATION_STATUSES;
+export type FormFieldValidationStatus = ValidationStatus;
 export type FormFieldWidth = "auto" | "full";
 
 export interface FormFieldProps {

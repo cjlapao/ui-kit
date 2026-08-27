@@ -1,4 +1,4 @@
-import { BadgeIcon, CustomIcon, Panel } from "@cjlapao/ui-kit";
+import { BadgeIcon, CustomIcon, Pill } from "@cjlapao/ui-kit";
 
 export default function CustomBadge() {
   return (
@@ -26,11 +26,7 @@ export default function CustomBadge() {
         icon="Settings"
         srLabel="Settings"
         color="blue"
-        badgeContent={
-          <Panel variant="tonal" tone="amber" padding="none" corner="rounded-full">
-            <span className="px-1.5 text-[9px] font-bold leading-4">3</span>
-          </Panel>
-        }
+        badgeContent={<Pill tone="amber" variant="soft" size="xs">3</Pill>}
       />
     </div>
   );

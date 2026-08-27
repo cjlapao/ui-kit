@@ -12,6 +12,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   buttonVariantOptions,
   controlSizeOptions,
@@ -69,53 +70,81 @@ export const DropdownButtonPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={buttonVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as ButtonVariant)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Variant"
+                      options={buttonVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as ButtonVariant)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as ButtonSize)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={color}
+                      onChange={(v) => setColor(v as TrueColor)}
+                    />
+                  </>
+                ),
+              },
+              {
+                id: "layout",
+                title: "Layout",
+                controls: (
+                  <>
+                    <Control label="Menu width">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={dropdownMenuWidthOptions}
+                        value={menuWidth}
+                        onChange={(v) => setMenuWidth(v as MenuWidthChoice)}
+                      />
+                    </Control>
+                    <div className="grid grid-cols-2 gap-2">
+                      <ToggleRow
+                        label="Split trigger"
+                        checked={split}
+                        onChange={setSplit}
+                      />
+                      <ToggleRow
+                        label="Full width"
+                        checked={fullWidth}
+                        onChange={setFullWidth}
+                      />
+                      <ToggleRow
+                        label="Disabled"
+                        checked={disabled}
+                        onChange={setDisabled}
+                      />
+                    </div>
+                  </>
+                ),
+              },
+            ]}
           />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as ButtonSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={color}
-            onChange={(v) => setColor(v as TrueColor)}
-          />
-          <Control label="Menu width">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={dropdownMenuWidthOptions}
-              value={menuWidth}
-              onChange={(v) => setMenuWidth(v as MenuWidthChoice)}
-            />
-          </Control>
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow
-              label="Split trigger"
-              checked={split}
-              onChange={setSplit}
-            />
-            <ToggleRow label="Full width" checked={fullWidth} onChange={setFullWidth} />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-          </div>
           <p className="text-xs opacity-70">
             <strong>Split trigger</strong> gives the caret its own button
             width; without it the caret collapses into a compact trigger. An
             empty menu hides the caret entirely, so the control renders as a
             plain button.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="flex w-full flex-col gap-3">

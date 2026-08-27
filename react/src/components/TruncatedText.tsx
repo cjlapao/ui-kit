@@ -60,7 +60,19 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({
         ref={(node: HTMLElement | null) => {
           ref.current = node;
         }}
-        className={["truncate", className].filter(Boolean).join(" ")}
+        // Focusable only while the text is actually cut off, so the tooltip is
+        // reachable from the keyboard without adding a dead tab stop to every
+        // label on the page. `TooltipWrapper` answers to focus as well as
+        // hover; this is the half that was missing.
+        tabIndex={truncated ? 0 : undefined}
+        className={[
+          "truncate",
+          truncated &&
+            "rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         {text}
       </Tag>

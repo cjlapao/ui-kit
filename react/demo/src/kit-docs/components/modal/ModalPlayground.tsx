@@ -14,6 +14,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glassOpacityOptions,
@@ -72,115 +73,147 @@ export const ModalPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Surface"
-            options={surfaceVariantOptions}
-            value={variant}
-            onChange={(value) => setVariant(value as PanelVariant)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Surface"
+                      options={surfaceVariantOptions}
+                      value={variant}
+                      onChange={(value) => setVariant(value as PanelVariant)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(value) => setSize(value as Size)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Position"
+                      options={positionOptions}
+                      value={position}
+                      onChange={(value) => setPosition(value as ModalPosition)}
+                    />
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(value) => setTone(value as TrueColor)}
+                    />
+                    <SelectControl
+                      label="Corner"
+                      options={panelCornerOptions}
+                      value={corner}
+                      onChange={(value) => setCorner(value as PanelCorner)}
+                    />
+                  </>
+                ),
+              },
+              {
+                id: "options",
+                title: "Options",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow label="Draggable" checked={draggable} onChange={setDraggable} />
+                    <ToggleRow
+                      label="Maximize button"
+                      checked={showMaximizeButton}
+                      onChange={setShowMaximizeButton}
+                    />
+                    <ToggleRow
+                      label="Open maximized"
+                      checked={showMaximized}
+                      onChange={setShowMaximized}
+                    />
+                    <ToggleRow label="Headless" checked={headless} onChange={setHeadless} />
+                    <ToggleRow label="Responsive" checked={responsive} onChange={setResponsive} />
+                    <ToggleRow
+                      label="Dark overlay"
+                      checked={darkOverlay}
+                      onChange={setDarkOverlay}
+                    />
+                    <ToggleRow label="Footer" checked={withFooter} onChange={setWithFooter} />
+                  </div>
+                ),
+              },
+              ...(isGlass
+                ? [
+                    {
+                      id: "glass",
+                      title: "Glass",
+                      controls: (
+                        <div className="flex flex-col gap-3">
+                          <Control label="Specular">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={panelSpecularOptions}
+                              value={specularMode}
+                              onChange={(value) => setSpecularMode(value as PanelSpecularMode)}
+                            />
+                          </Control>
+                          <Control label="Vibrancy">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassVibrancyOptions}
+                              value={vibrancy}
+                              onChange={(value) => setVibrancy(value as VibrancyPreset)}
+                            />
+                          </Control>
+                          <Control label="Glass opacity">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassOpacityOptions}
+                              value={glassOpacity}
+                              onChange={(value) => setGlassOpacity(value as OpacityPreset)}
+                            />
+                          </Control>
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <div className="grid grid-cols-1 gap-3">
+                    <Control label="Title">
+                      <Input
+                        size="sm"
+                        value={title}
+                        onChange={(event) => setTitle(event.target.value)}
+                      />
+                    </Control>
+                    <Control label="Description">
+                      <Input
+                        size="sm"
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
+                      />
+                    </Control>
+                  </div>
+                ),
+              },
+            ]}
           />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(value) => setSize(value as Size)}
-            />
-          </Control>
-          <SelectControl
-            label="Position"
-            options={positionOptions}
-            value={position}
-            onChange={(value) => setPosition(value as ModalPosition)}
-          />
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(value) => setTone(value as TrueColor)}
-          />
-          <SelectControl
-            label="Corner"
-            options={panelCornerOptions}
-            value={corner}
-            onChange={(value) => setCorner(value as PanelCorner)}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow label="Draggable" checked={draggable} onChange={setDraggable} />
-            <ToggleRow
-              label="Maximize button"
-              checked={showMaximizeButton}
-              onChange={setShowMaximizeButton}
-            />
-            <ToggleRow
-              label="Open maximized"
-              checked={showMaximized}
-              onChange={setShowMaximized}
-            />
-            <ToggleRow label="Headless" checked={headless} onChange={setHeadless} />
-            <ToggleRow label="Responsive" checked={responsive} onChange={setResponsive} />
-            <ToggleRow
-              label="Dark overlay"
-              checked={darkOverlay}
-              onChange={setDarkOverlay}
-            />
-            <ToggleRow label="Footer" checked={withFooter} onChange={setWithFooter} />
-          </div>
-          {isGlass && (
-            <div className="flex flex-col gap-3">
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(value) => setSpecularMode(value as PanelSpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy}
-                  onChange={(value) => setVibrancy(value as VibrancyPreset)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity}
-                  onChange={(value) => setGlassOpacity(value as OpacityPreset)}
-                />
-              </Control>
-            </div>
-          )}
-          <div className="grid grid-cols-1 gap-3">
-            <Control label="Title">
-              <Input
-                size="sm"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </Control>
-            <Control label="Description">
-              <Input
-                size="sm"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </Control>
-          </div>
           <p className="text-xs opacity-70">
             Drag the dialog by its header. <strong>Responsive</strong> makes it
             fill the screen below 640px and disables dragging — a window dragged
             half off a phone cannot be recovered. Tab is trapped inside, and
             Escape closes only the innermost dialog.
           </p>
-        </>
+        </div>
       }
       preview={
         <>

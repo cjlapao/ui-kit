@@ -8,7 +8,7 @@ import { SmartVariableBadge } from "./SmartVariableParts";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import { getSurfaceTriggerTokens } from "../theme/Theme";
 import { groupToVariables } from "../utils/smartVariables";
-import type { TrueColor } from "../theme/Theme";
+import type { ControlSize, TrueColor } from "../theme/Theme";
 import type {
   SmartVariable,
   SmartVariableGroup,
@@ -27,9 +27,9 @@ export interface VariablePickerProps {
   /**
    * Scale of the search field, matched to the control that opened the picker
    * so the two do not look like different widgets stacked on each other.
-   * @default "md"
+   * Was a component-local `sm | md | lg`. @default "md"
    */
-  size?: "sm" | "md" | "lg";
+  size?: ControlSize;
   /** Pre-fills the search box — used when the picker is opened by typing. */
   initialSearch?: string;
   title?: string;

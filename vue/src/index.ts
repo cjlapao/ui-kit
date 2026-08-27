@@ -16,18 +16,17 @@ export * from "./utils";
 
 // Types
 export * from "./types";
-export * from "./components/MetricBar.vue";
 
 // Controls — types from internal components not yet in the main barrel
 export type { KeyValuePair } from "./components/KeyValueArrayField.vue";
 export type {
   StepStatus,
-  StepperVariant,
   StepperOrientation,
-  StepperSize,
   StepperConnector,
   StepperConnectorAlign,
   StepperProgressBarPosition,
+  StepperNodeCorner,
+  StepperLoaderType,
 } from "./components/Stepper.vue";
 
 // Icons — explicit re-exports of IconName type + iconRegistry (SVG components are re-exported via "./icons" above)

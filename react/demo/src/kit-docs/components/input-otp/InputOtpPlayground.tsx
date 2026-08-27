@@ -11,6 +11,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import { otpVariantOptions, trueColorOptions } from "../../shared/options";
 
 const lengthOptions = [
@@ -38,50 +39,66 @@ export const InputOtpPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Length">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={lengthOptions}
-              value={String(length)}
-              onChange={(v) => setLength(Number(v))}
-            />
-          </Control>
-          <Control label="Variant">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={otpVariantOptions}
-              value={variant}
-              onChange={(v) => setVariant(v as InputOtpVariant)}
-            />
-          </Control>
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={sizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as InputOtpSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Mask" checked={mask} onChange={setMask} />
-            <ToggleRow
-              label="Integer only"
-              checked={integerOnly}
-              onChange={setIntegerOnly}
-            />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <Control label="Length">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={lengthOptions}
+                      value={String(length)}
+                      onChange={(v) => setLength(Number(v))}
+                    />
+                  </Control>
+                  <Control label="Variant">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={otpVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as InputOtpVariant)}
+                    />
+                  </Control>
+                  <Control label="Size">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={sizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as InputOtpSize)}
+                    />
+                  </Control>
+                  <SelectControl
+                    label="Tone"
+                    options={trueColorOptions}
+                    value={tone}
+                    onChange={(v) => setTone(v as TrueColor)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "options",
+              title: "Options",
+              controls: (
+                <div className="grid grid-cols-1 gap-2">
+                  <ToggleRow label="Mask" checked={mask} onChange={setMask} />
+                  <ToggleRow
+                    label="Integer only"
+                    checked={integerOnly}
+                    onChange={setIntegerOnly}
+                  />
+                  <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                </div>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="flex w-full max-w-sm flex-col items-center gap-3">

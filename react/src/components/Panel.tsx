@@ -215,16 +215,26 @@ const defaultActionColor: TrueColor = "neutral";
 /**
  * One placeholder bar. `bg-black/10 dark:bg-white/10` rather than a neutral
  * shade so the same bar reads correctly on a solid card and on glass.
+ * Exported so other components' skeletons (SideMenu) pulse in the same ink.
  */
-const SkeletonBar: React.FC<{
+export const SkeletonBar: React.FC<{
   width?: string;
+  /**
+   * Height utility, replacing the default rather than sitting beside it —
+   * `h-3` and a caller's `h-2` are the same specificity, so both present means
+   * emission order picks the winner (§5.1).
+   */
+  height?: string;
+  /**
+   * Background utilities, replacing the neutral ink for the same reason: a
+   * tone-tinted `bg-{c}-500/20` passed through `className` would sit beside
+   * `bg-black/10` and the winner would be emission order, not the caller.
+   */
+  ink?: string;
   className?: string;
-}> = ({ width, className }) => (
+}> = ({ width, height = "h-3", ink = "bg-black/10 dark:bg-white/10", className }) => (
   <span
-    className={classNames(
-      "block h-3 rounded-full bg-black/10 dark:bg-white/10",
-      className,
-    )}
+    className={classNames("block rounded-full", ink, height, className)}
     style={width ? { width } : undefined}
   />
 );
@@ -582,7 +592,10 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     <div
       className={classNames(
         padding === "none" ? "" : "space-y-3 leading-6",
-        flexBody ? "flex-1 flex flex-col w-full" : "",
+        // min-h-0 lets this flex item shrink below its content height, so
+        // height-constrained parents (e.g. a fullHeight Table) actually clip
+        // and scroll instead of stretching the panel.
+        flexBody ? "flex-1 flex flex-col w-full min-h-0" : "",
         isOverlay ? "text-white/80" : surfaceText.body,
         bodyClassName,
       )}

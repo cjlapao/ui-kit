@@ -18,6 +18,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glassOpacityOptions,
@@ -69,92 +70,118 @@ export const PillPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as PillTone)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(v) => setTone(v as PillTone)}
+                    />
+                    <Control label="Variant">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={pillVariantOptions}
+                        value={variant}
+                        onChange={(v) => setVariant(v as PillVariant)}
+                      />
+                    </Control>
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as PillSize)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow label="Uppercase" checked={uppercase} onChange={setUppercase} />
+                    <ToggleRow
+                      label="Leading icon"
+                      checked={withIcon}
+                      onChange={setWithIcon}
+                    />
+                    <ToggleRow
+                      label="Trailing icon"
+                      checked={withTrailingIcon}
+                      onChange={setWithTrailingIcon}
+                    />
+                    <ToggleRow label="Clickable" checked={clickable} onChange={setClickable} />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                    <ToggleRow
+                      label="Truncate label"
+                      checked={truncate}
+                      onChange={setTruncate}
+                    />
+                  </div>
+                ),
+              },
+              ...(isGlass
+                ? [
+                    {
+                      id: "glass",
+                      title: "Glass",
+                      controls: (
+                        <div className="flex flex-col gap-3">
+                          <Control label="Specular">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={panelSpecularOptions}
+                              value={
+                                specularMode ??
+                                (variant === "liquid-glass" ? "classic" : "none")
+                              }
+                              onChange={(v) => setSpecularMode(v as SpecularMode)}
+                            />
+                          </Control>
+                          <Control label="Vibrancy">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassVibrancyOptions}
+                              value={vibrancy as string}
+                              onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                            />
+                          </Control>
+                          <Control label="Glass opacity">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassOpacityOptions}
+                              value={glassOpacity as string}
+                              onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                            />
+                          </Control>
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           />
-          <Control label="Variant">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={pillVariantOptions}
-              value={variant}
-              onChange={(v) => setVariant(v as PillVariant)}
-            />
-          </Control>
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as PillSize)}
-            />
-          </Control>
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow label="Uppercase" checked={uppercase} onChange={setUppercase} />
-            <ToggleRow
-              label="Leading icon"
-              checked={withIcon}
-              onChange={setWithIcon}
-            />
-            <ToggleRow
-              label="Trailing icon"
-              checked={withTrailingIcon}
-              onChange={setWithTrailingIcon}
-            />
-            <ToggleRow label="Clickable" checked={clickable} onChange={setClickable} />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-            <ToggleRow
-              label="Truncate label"
-              checked={truncate}
-              onChange={setTruncate}
-            />
-          </div>
-          {isGlass && (
-            <div className="flex flex-col gap-3">
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={
-                    specularMode ??
-                    (variant === "liquid-glass" ? "classic" : "none")
-                  }
-                  onChange={(v) => setSpecularMode(v as SpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy as string}
-                  onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity as string}
-                  onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                />
-              </Control>
-            </div>
-          )}
           <p className="text-xs opacity-70">
             The <strong>glass</strong> variants drop the tone fill for a
             translucent one. <strong>Clickable</strong> renders a real{" "}
             <code>&lt;button&gt;</code>
             {clicked && ` Last clicked: ${clicked}.`}
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

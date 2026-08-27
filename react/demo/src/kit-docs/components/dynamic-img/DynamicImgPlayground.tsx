@@ -12,6 +12,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import { controlSizeOptions, trueColorOptions } from "../../shared/options";
 
 const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -87,63 +88,95 @@ export const DynamicImgPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Sample"
-            options={SAMPLE_OPTIONS}
-            value={sample}
-            onChange={(v) => {
-              const next = v as keyof typeof SAMPLES;
-              setSample(next);
-              setSource(SAMPLES[next].value);
-            }}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <Control label="Size">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={controlSizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as DynamicImgSize)}
+                    />
+                  </Control>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow
+                      label="Use tone"
+                      checked={useTone}
+                      onChange={setUseTone}
+                    />
+                    <ToggleRow
+                      label="Keep own colours"
+                      checked={colored}
+                      onChange={setColored}
+                    />
+                    <ToggleRow
+                      label="Accessible name"
+                      checked={withAlt}
+                      onChange={setWithAlt}
+                    />
+                  </div>
+                ),
+              },
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Sample"
+                      options={SAMPLE_OPTIONS}
+                      value={sample}
+                      onChange={(v) => {
+                        const next = v as keyof typeof SAMPLES;
+                        setSample(next);
+                        setSource(SAMPLES[next].value);
+                      }}
+                    />
+                    <Control label="Source — edit it freely">
+                      <Textarea
+                        rows={6}
+                        value={source}
+                        onChange={(event) => setSource(event.target.value)}
+                        className="font-mono text-xs"
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              ...(!colored
+                ? [
+                    {
+                      id: "tone",
+                      title: "Tone",
+                      controls: (
+                        <SelectControl
+                          label="Tone"
+                          options={trueColorOptions}
+                          value={tone}
+                          onChange={(v) => setTone(v as TrueColor)}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           />
-          <Control label="Source — edit it freely">
-            <Textarea
-              rows={6}
-              value={source}
-              onChange={(event) => setSource(event.target.value)}
-              className="font-mono text-xs"
-            />
-          </Control>
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as DynamicImgSize)}
-            />
-          </Control>
-          {!colored && (
-            <SelectControl
-              label="Tone"
-              options={trueColorOptions}
-              value={tone}
-              onChange={(v) => setTone(v as TrueColor)}
-            />
-          )}
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow
-              label="Use tone"
-              checked={useTone}
-              onChange={setUseTone}
-            />
-            <ToggleRow
-              label="Keep own colours"
-              checked={colored}
-              onChange={setColored}
-            />
-            <ToggleRow
-              label="Accessible name"
-              checked={withAlt}
-              onChange={setWithAlt}
-            />
-          </div>
           {SAMPLES[sample].note && (
             <p className="text-xs opacity-70">{SAMPLES[sample].note}</p>
           )}
-        </>
+        </div>
       }
       preview={
         <div className="flex w-full flex-col gap-4">

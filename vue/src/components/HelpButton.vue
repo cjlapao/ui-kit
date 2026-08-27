@@ -1,6 +1,11 @@
 <script lang="ts">
 import { h, type CSSProperties, type VNode, type VNodeChild } from "vue";
-import type { TrueColor } from "../theme/Theme";
+import {
+  type ControlSize,
+  type SurfaceCorner,
+  type SurfaceVariant,
+  type TrueColor,
+} from "../theme/Theme";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -22,91 +27,32 @@ export interface HelpButtonProps {
    * "auto" (default) picks the side with the most available space.
    */
   placement?: HelpButtonPlacement;
-  /** Accent color for the trigger button and the panel header stripe. */
+  /** Accent color for the trigger button and the panel header band. @default "blue" */
   color?: TrueColor;
-  /** Size of the trigger icon button. */
-  size?: "xs" | "sm" | "md" | "lg";
+  /** Surface treatment of the panel — the shared container family. @default "elevated" */
+  variant?: SurfaceVariant;
+  /** Corner radius of the panel, on the shared container scale. @default "rounded-md" */
+  corner?: SurfaceCorner;
+  /** Size of the trigger icon button, on the shared control scale. @default "xs" */
+  size?: ControlSize;
   /** Icon for the trigger button. Defaults to "Help". */
   icon?: IconName;
   /** Maximum width of the floating panel in px. Defaults to 360. */
   maxWidth?: number;
+  /** When true the panel body is a pulsing skeleton shaped like the help copy. @default false */
+  loading?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tone tokens (header stripe + accent text + icon bg)                 */
+/*  Header-band tone — generated from the shared panel palette          */
 /* ------------------------------------------------------------------ */
-
-type ToneTokens = { strip: string; accent: string; iconBg: string };
-
-const toneMap: Partial<Record<TrueColor, ToneTokens>> = {
-  blue: {
-    strip: "border-t-blue-500    bg-blue-50/70    dark:bg-blue-950/40",
-    accent: "text-blue-700    dark:text-blue-300",
-    iconBg: "bg-blue-100/80    dark:bg-blue-900/40",
-  },
-  indigo: {
-    strip: "border-t-indigo-500  bg-indigo-50/70  dark:bg-indigo-950/40",
-    accent: "text-indigo-700  dark:text-indigo-300",
-    iconBg: "bg-indigo-100/80  dark:bg-indigo-900/40",
-  },
-  violet: {
-    strip: "border-t-violet-500  bg-violet-50/70  dark:bg-violet-950/40",
-    accent: "text-violet-700  dark:text-violet-300",
-    iconBg: "bg-violet-100/80  dark:bg-violet-900/40",
-  },
-  sky: {
-    strip: "border-t-sky-500     bg-sky-50/70     dark:bg-sky-950/40",
-    accent: "text-sky-700     dark:text-sky-300",
-    iconBg: "bg-sky-100/80     dark:bg-sky-900/40",
-  },
-  cyan: {
-    strip: "border-t-cyan-500    bg-cyan-50/70    dark:bg-cyan-950/40",
-    accent: "text-cyan-700    dark:text-cyan-300",
-    iconBg: "bg-cyan-100/80    dark:bg-cyan-900/40",
-  },
-  teal: {
-    strip: "border-t-teal-500    bg-teal-50/70    dark:bg-teal-950/40",
-    accent: "text-teal-700    dark:text-teal-300",
-    iconBg: "bg-teal-100/80    dark:bg-teal-900/40",
-  },
-  emerald: {
-    strip: "border-t-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40",
-    accent: "text-emerald-700 dark:text-emerald-300",
-    iconBg: "bg-emerald-100/80 dark:bg-emerald-900/40",
-  },
-  green: {
-    strip: "border-t-green-500   bg-green-50/70   dark:bg-green-950/40",
-    accent: "text-green-700   dark:text-green-300",
-    iconBg: "bg-green-100/80   dark:bg-green-900/40",
-  },
-  amber: {
-    strip: "border-t-amber-500   bg-amber-50/70   dark:bg-amber-950/40",
-    accent: "text-amber-700   dark:text-amber-300",
-    iconBg: "bg-amber-100/80   dark:bg-amber-900/40",
-  },
-  orange: {
-    strip: "border-t-orange-500  bg-orange-50/70  dark:bg-orange-950/40",
-    accent: "text-orange-700  dark:text-orange-300",
-    iconBg: "bg-orange-100/80  dark:bg-orange-900/40",
-  },
-  rose: {
-    strip: "border-t-rose-500    bg-rose-50/70    dark:bg-rose-950/40",
-    accent: "text-rose-700    dark:text-rose-300",
-    iconBg: "bg-rose-100/80    dark:bg-rose-900/40",
-  },
-  slate: {
-    strip: "border-t-slate-400   bg-slate-50/80   dark:bg-slate-800/50",
-    accent: "text-slate-700   dark:text-slate-300",
-    iconBg: "bg-slate-100/80   dark:bg-slate-800",
-  },
-  // Semantic aliases
-};
-
-const fallbackTone: ToneTokens = {
-  strip: "border-t-neutral-400 bg-neutral-50/80 dark:bg-neutral-800/50",
-  accent: "text-neutral-700 dark:text-neutral-300",
-  iconBg: "bg-neutral-100 dark:bg-neutral-800",
-};
+/*
+ * The header band's tint, top accent and copy colour all come from
+ * `getPanelToneStyles(color)` (below), so every one of the 21 TrueColors is
+ * present and a new tone in the theme reaches this component automatically.
+ * The previous 12-entry table fell through to a neutral fallback for nine of
+ * the 21 tones — half the tone set rendered with no accent at all (§5.2).
+ */
 
 /* ------------------------------------------------------------------ */
 /*  Markdown component map                                              */
@@ -490,6 +436,12 @@ import {
 import classNames from "classnames";
 import IconButton from "./IconButton.vue";
 import CustomIcon from "./CustomIcon.vue";
+import Panel from "./Panel.vue";
+import {
+  DEFAULT_SURFACE_CORNER,
+  getPanelToneStyles,
+  getSurfaceTextTokens,
+} from "../theme/Theme";
 import type { IconName } from "../icons/registry";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
@@ -499,9 +451,12 @@ defineOptions({ name: "HelpButton", inheritAttrs: false });
 const props = withDefaults(defineProps<HelpButtonProps>(), {
   placement: "auto",
   color: "blue",
+  variant: "elevated",
+  corner: DEFAULT_SURFACE_CORNER,
   size: "xs",
   icon: "Help",
   maxWidth: 360,
+  loading: false,
 });
 
 const { classAttr, restAttrs } = useClassAttrs();
@@ -579,7 +534,10 @@ watch(open, (isOpen) => {
 
 onUnmounted(removeListeners);
 
-const tone = computed(() => toneMap[props.color] ?? fallbackTone);
+// Generated from the theme — all 21 tones, no local map to drift (§5.2).
+const palette = computed(() => getPanelToneStyles(props.color));
+// Copy colour follows the surface so a glass panel gets the higher-contrast ink (§4).
+const surfaceText = computed(() => getSurfaceTextTokens(props.variant));
 const isMarkdown = computed(() => typeof props.content === "string");
 const markdownNodes = computed(() =>
   typeof props.content === "string" ? renderMarkdown(props.content) : null,
@@ -594,11 +552,11 @@ const panelStyle = computed<CSSProperties>(() => ({
   position: "fixed",
 }));
 
+// The surface (fill, border, shadow, blur) now comes from the inner `Panel`;
+// this wrapper only owns the fixed positioning, the animation and z-order.
 const panelClass = computed(() =>
   classNames(
-    "z-[2000] rounded-2xl border shadow-xl dark:shadow-neutral-950/60",
-    "bg-white dark:bg-neutral-900",
-    "border-neutral-200/70 dark:border-neutral-700/60",
+    "z-[2000]",
     // Animation — opacity + scale, origin tracks resolved placement
     "transition-[opacity,transform] duration-200 ease-out",
     originClass[resolvedPlacement.value],
@@ -631,55 +589,77 @@ const panelClass = computed(() =>
         role="dialog"
         aria-modal="false"
         :aria-label="title ?? 'Help'"
+        :aria-busy="loading"
         :style="panelStyle"
         :class="panelClass"
       >
-        <!-- ---- Accent header strip ---- -->
-        <div
-          :class="
-            classNames(
-              'flex items-center justify-between gap-2 px-3 py-2 rounded-t-2xl border-t-[3px]',
-              tone.strip,
-            )
-          "
+        <!-- The surface is a real `Panel`, so the eight container variants,
+             tone, corner and glass props read like a card. Padding is "none"
+             so the accent band and body supply their own inset, and the
+             panel's overflow-hidden clips the band's top corners. -->
+        <Panel
+          :variant="variant"
+          :tone="color"
+          :corner="corner"
+          padding="none"
+          :scrollable="false"
         >
-          <div :class="classNames('flex items-center gap-2 min-w-0', tone.accent)">
-            <span
+          <div class="flex flex-col">
+            <!-- ---- Accent header band (tone generated, never hand-mapped) ---- -->
+            <div
               :class="
-                classNames(
-                  'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full',
-                  tone.iconBg,
-                )
+                 classNames(
+                   'flex items-center justify-between gap-2 px-3 py-2',
+                   palette.subtleBg,
+                 )
               "
             >
-              <CustomIcon icon="Info" class="h-3 w-3" />
-            </span>
-            <span class="text-xs font-semibold truncate">
-              <slot name="title">{{ title ?? "Help" }}</slot>
-            </span>
-          </div>
-          <IconButton
-            icon="Close"
-            size="xs"
-            variant="ghost"
-            color="slate"
-            aria-label="Close help"
-            @click="close"
-          />
-        </div>
+              <div :class="classNames('flex items-center gap-2 min-w-0', palette.heading)">
+                <span
+                  :class="
+                    classNames(
+                      'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full',
+                      palette.subtleBg,
+                    )
+                  "
+                >
+                  <CustomIcon icon="Info" class="h-3 w-3" />
+                </span>
+                <span class="text-xs font-semibold truncate">
+                  <slot name="title">{{ title ?? "Help" }}</slot>
+                </span>
+              </div>
+              <IconButton
+                icon="Close"
+                size="xs"
+                variant="ghost"
+                color="slate"
+                aria-label="Close help"
+                @click="close"
+              />
+            </div>
 
-        <!-- ---- Content body ---- -->
-        <div
-          class="px-4 py-3 overflow-y-auto max-h-[55vh] scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700"
-        >
-          <VNodeRenderer v-if="isMarkdown" :nodes="markdownNodes" />
-          <div
-            v-else
-            class="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed"
-          >
-            <slot><VNodeRenderer :nodes="content" /></slot>
+            <!-- ---- Content body ---- -->
+            <div
+              class="px-4 py-3 overflow-y-auto max-h-[55vh] scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700"
+            >
+              <div v-if="loading" class="space-y-3" aria-hidden="true">
+                <span class="block h-3 w-24 animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                <span class="block h-2.5 w-full animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                <span class="block h-2.5 w-full animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                <span class="block h-2.5 w-4/5 animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                <span class="block h-2.5 w-2/3 animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+              </div>
+              <VNodeRenderer v-else-if="isMarkdown" :nodes="markdownNodes" />
+              <div
+                v-else
+                :class="classNames('text-sm leading-relaxed', surfaceText.body)"
+              >
+                <slot><VNodeRenderer :nodes="content" /></slot>
+              </div>
+            </div>
           </div>
-        </div>
+        </Panel>
       </div>
     </Teleport>
   </span>

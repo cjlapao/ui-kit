@@ -7,6 +7,11 @@ export interface StatChartItem {
   value: number;
   /** Omit to auto-assign from the theme palette. */
   color?: TrueColor;
+  /**
+   * @deprecated Never safelisted. The class was built from two interpolations
+   * (`text-${color}-${intensity}`), and only the `-500` step is emitted for
+   * every tone — any other value silently rendered no colour at all.
+   */
   intensity?: string;
   onClick?: () => void;
 }
@@ -79,7 +84,6 @@ const segments = computed(() => {
           label: "",
           value: 0,
           color: "neutral",
-          intensity: "200",
           dashArray: `${circumference} ${circumference}`,
           dashOffset: 0,
           onClick: undefined as (() => void) | undefined,
@@ -168,6 +172,8 @@ const statTileProps = computed(() => {
           class="relative flex-1 flex items-center justify-center min-h-55"
         >
           <svg
+            role="img"
+            :aria-label="`${currentDataset.label}: ${resolvedItems.map((i) => `${i.label} ${i.value}`).join(', ')}`"
             class="transform -rotate-90 w-48 h-48 overflow-visible"
             :viewBox="`0 0 ${size} ${size}`"
           >
@@ -188,7 +194,10 @@ const statTileProps = computed(() => {
                 v-if="!(idx === hoveredIndex && total > 0)"
                 :class="
                   classNames(
-                    `text-${segment.color}-${segment.intensity || '500'} transition-all duration-300 ease-out origin-center`,
+                    total === 0
+                      ? 'text-neutral-200 dark:text-neutral-700'
+                      : `text-${segment.color}-500`,
+                    'transition-all duration-300 ease-out origin-center',
                     total > 0 &&
                       'hover:scale-110 hover:drop-shadow-lg cursor-pointer hover:opacity-90',
                   )
@@ -217,7 +226,7 @@ const statTileProps = computed(() => {
               v-if="hoveredSegment"
               :class="
                 classNames(
-                  `text-${hoveredSegment.color}-${hoveredSegment.intensity || '500'} transition-all duration-300 ease-out origin-center scale-110 drop-shadow-lg cursor-pointer opacity-90`,
+                  `text-${hoveredSegment.color}-500 transition-all duration-300 ease-out origin-center scale-110 drop-shadow-lg cursor-pointer opacity-90`,
                 )
               "
               :stroke-width="strokeWidth"

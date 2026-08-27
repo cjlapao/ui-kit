@@ -304,10 +304,115 @@ export const stripBorderColor = (surface: string): string =>
     .filter((token) => token !== "" && !BORDER_COLOR_CLASS.test(token))
     .join(" ");
 
+/**
+ * Matches a text *colour* utility and deliberately not a text *size* one:
+ * `text-sky-500`, `dark:text-white`, `text-black/40` yes; `text-sm`,
+ * `text-base`, `text-[10px]` no. The digit run is what separates them.
+ */
+const TEXT_COLOR_CLASS =
+  /^(?:dark:)?text-(?:[a-z]+-\d{2,3}(?:\/\d+)?|white(?:\/\d+)?|black(?:\/\d+)?|transparent|current|inherit)$/;
+
+/** True when a caller-supplied class string sets a text colour of its own. */
+export const hasTextColor = (className?: string): boolean =>
+  Boolean(className) &&
+  className!.split(/\s+/).some((token) => TEXT_COLOR_CLASS.test(token));
+
+/**
+ * A class string with its text colour removed.
+ *
+ * Same trap as `stripBorderColor`: a component's own `text-neutral-500` and a
+ * caller's `text-emerald-600` are the same specificity, so the winner is
+ * emission order in the built stylesheet — which means a documented override
+ * works for some colours and silently does nothing for others.
+ */
+export const stripTextColor = (className: string): string =>
+  className
+    .split(/\s+/)
+    .filter((token) => token !== "" && !TEXT_COLOR_CLASS.test(token))
+    .join(" ");
+
 export const getInputVariantTokens = (
   variant: InputVariant,
 ): InputVariantTokens =>
   inputVariantTokens[variant] ?? inputVariantTokens.elevated;
+
+// ── The shared field system ───────────────────────────────────────────────────
+//
+// Tone tokens, padding scale and validation surfaces for every control that
+// draws itself as a *field*: `Input`, `Select`, `SearchBar`, `Picker`. Each of
+// those had grown its own byte-for-byte copy of all three, which is how a
+// control ends up looking almost-but-not-quite like the one beside it — and
+// how `Picker` came to paint a non-inset focus ring and a hardcoded
+// `bg-white` while its siblings used the variant surfaces.
+
+export type FieldToneTokens = {
+  /** Border colour while anything inside the field has focus. */
+  focusBorder: string;
+  /** Glow ring while anything inside the field has focus. */
+  focusRing: string;
+  /** Leading/trailing icon colour while the field has focus. */
+  icon: string;
+  /** Focus ring for an inline trailing button. */
+  buttonFocusRing: string;
+};
+
+const buildFieldToneTokens = (color: TrueColor): FieldToneTokens => ({
+  focusBorder: `focus-within:border-${color}-400`,
+  // Inset. An outer ring is painted outside the border box, so any ancestor
+  // with `overflow: auto|hidden` clips it — `Panel`'s body is `overflow-auto`
+  // by default, which shears the ring off and leaves hard square corners.
+  focusRing: `focus-within:ring-2 focus-within:ring-inset focus-within:ring-${color}-400/60`,
+  icon: `group-focus-within:text-${color}-500`,
+  buttonFocusRing: `focus-visible:ring-${color}-400/60`,
+});
+
+const fieldToneTokens: Record<TrueColor, FieldToneTokens> = Object.fromEntries(
+  TRUE_COLORS.map((color) => [color, buildFieldToneTokens(color)]),
+) as Record<TrueColor, FieldToneTokens>;
+
+export const getFieldToneTokens = (color: TrueColor): FieldToneTokens =>
+  fieldToneTokens[color] ?? fieldToneTokens.blue;
+
+export type FieldSizeTokens = {
+  px: string;
+  py: string;
+  /** `underline` has no box to inset from, and needs room above the rule. */
+  underlinePy: string;
+  text: string;
+  icon: ControlSize;
+  /** Inline trailing button. */
+  button: string;
+};
+
+/** Padding and type scale, so any two fields line up when stacked. */
+export const FIELD_SIZE_STYLES: Record<ControlSize, FieldSizeTokens> = {
+  xs: { px: "px-2", py: "py-1", underlinePy: "pt-1 pb-2", text: "text-xs", icon: "xs", button: "h-4 w-4" },
+  sm: { px: "px-2.5", py: "py-1.5", underlinePy: "pt-1.5 pb-2.5", text: "text-xs", icon: "xs", button: "h-5 w-5" },
+  md: { px: "px-3", py: "py-2", underlinePy: "pt-2 pb-3", text: "text-sm", icon: "sm", button: "h-5 w-5" },
+  lg: { px: "px-4", py: "py-2.5", underlinePy: "pt-2.5 pb-3.5", text: "text-base", icon: "sm", button: "h-6 w-6" },
+  xl: { px: "px-5", py: "py-3", underlinePy: "pt-3 pb-4", text: "text-base", icon: "sm", button: "h-6 w-6" },
+};
+
+export const getFieldSizeTokens = (size: ControlSize): FieldSizeTokens =>
+  FIELD_SIZE_STYLES[size] ?? FIELD_SIZE_STYLES.md;
+
+/**
+ * Border only at rest; the ring is part of the focus state, exactly as it is
+ * for the tone tokens. A status used to add a bare `ring-2 ring-inset` at rest
+ * with no ring *colour* — an unset ring colour resolves to `currentColor`, so
+ * every errored or successful field carried a near-black 2px halo inside its
+ * coloured border.
+ *
+ * These also carry no copy colour. Forcing `text-neutral-900 dark:text-neutral-100`
+ * alongside the border costs an errored `underline` or `glass` field the
+ * high-contrast pair it needs to stay legible over a backdrop.
+ */
+export const FIELD_STATUS_CLASSES: Record<"error" | "success", string> = {
+  error:
+    "border-rose-500 dark:border-rose-400 focus-within:border-rose-500 dark:focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-rose-500/60 dark:focus-within:ring-rose-400/60",
+  success:
+    "border-emerald-500 dark:border-emerald-400 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-500/60 dark:focus-within:ring-emerald-400/60",
+};
 
 /**
  * Surface treatments for containers — `Panel` and anything built on it
@@ -325,6 +430,22 @@ export const SURFACE_VARIANTS = [
   "liquid-glass",
 ] as const;
 export type SurfaceVariant = (typeof SURFACE_VARIANTS)[number];
+
+/**
+ * The surface family plus `plain` — "draw a card, or draw nothing at all".
+ *
+ * A control that may already sit inside a card the app owns needs a way to say
+ * "no surface of my own"; nine components had each spelled that out for
+ * themselves (`PanelVariant | "plain"` seven times, `[...SURFACE_VARIANTS,
+ * "plain"]` twice) and only one of them exported a runtime list, so demos could
+ * not enumerate the others. Same list, nine names: the day `SURFACE_VARIANTS`
+ * gains a member, eight of them keep working only by luck.
+ */
+export const PLAIN_SURFACE_VARIANTS = [
+  ...SURFACE_VARIANTS,
+  "plain",
+] as const;
+export type PlainSurfaceVariant = (typeof PLAIN_SURFACE_VARIANTS)[number];
 
 /**
  * Surfaces you can see through, so content on them needs more contrast.
@@ -429,8 +550,9 @@ export const getSurfaceTriggerTokens = (
  * existing card. `getSurfaceCornerRem` exposes the real radius so a demo can
  * label them honestly.
  *
- * `pill` used to be a duplicate of `rounded-lg` (both `rounded-3xl`), which is
- * not what a pill is; it is now a true capsule.
+ * Capsule radii (`rounded-full` / `pill`) are not part of the container scale:
+ * a capsule is a shape, and the `Pill` component owns it. Containers that need
+ * one take a `rounded-full` class directly.
  */
 export const SURFACE_CORNERS = [
   "none",
@@ -439,8 +561,6 @@ export const SURFACE_CORNERS = [
   "rounded-md",
   "rounded-lg",
   "rounded-xl",
-  "rounded-full",
-  "pill",
 ] as const;
 export type SurfaceCorner = (typeof SURFACE_CORNERS)[number];
 
@@ -451,8 +571,6 @@ const surfaceCornerClasses: Record<SurfaceCorner, string> = {
   "rounded-md": "rounded-2xl",
   "rounded-lg": "rounded-3xl",
   "rounded-xl": "rounded-4xl",
-  "rounded-full": "rounded-full",
-  pill: "rounded-full",
 };
 
 /** The radius each token actually produces, for labelling and docs. */
@@ -463,8 +581,6 @@ const surfaceCornerRem: Record<SurfaceCorner, string> = {
   "rounded-md": "1rem",
   "rounded-lg": "1.5rem",
   "rounded-xl": "2rem",
-  "rounded-full": "9999px",
-  pill: "9999px",
 };
 
 /** The radius a container uses when the caller does not pick one. */
@@ -612,14 +728,16 @@ export const resolveGlowGradient = (
  *
  * `sidebar` is the kit's standing look (a translucent blur pushed into the
  * layout), `inset` is a flat panel with a hairline on the content edge,
- * `floating` is a detached rounded card, and `glass` is the kit's liquid-glass
- * language tinted with the menu's tone. The rows inside a menu take the
- * matching treatment automatically.
+ * `floating` is a detached rounded card, `floating-glass` is that card in the
+ * kit's liquid-glass language, and `glass` is the liquid-glass language flush
+ * in the layout — both glass treatments are tinted with the menu's tone. The
+ * rows inside a menu take the matching treatment automatically.
  */
 export const SIDEBAR_VARIANTS = [
   "sidebar",
   "inset",
   "floating",
+  "floating-glass",
   "glass",
 ] as const;
 export type SidebarVariant = (typeof SIDEBAR_VARIANTS)[number];
@@ -738,14 +856,12 @@ export interface SidebarSurfaceTokens {
   radius: string;
   /** Offset from the layout edges ("" = flush, a margin when detached). */
   offset: string;
-  /** Whether to paint the dither-noise layer. */
-  noise: boolean;
   /** Whether the row copy needs the see-through contrast step. */
   idleCopy: SidebarIdleCopyKind;
 }
 
 const sidebarSurfaceTokens: Record<
-  Exclude<SidebarVariant, "glass">,
+  Exclude<SidebarVariant, "glass" | "floating-glass">,
   SidebarSurfaceTokens
 > = {
   sidebar: {
@@ -759,7 +875,6 @@ const sidebarSurfaceTokens: Record<
       "shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.1)] dark:shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.4)]",
     radius: "",
     offset: "",
-    noise: true,
     idleCopy: "solid",
   },
   inset: {
@@ -771,7 +886,6 @@ const sidebarSurfaceTokens: Record<
     shadowRight: "",
     radius: "",
     offset: "",
-    noise: false,
     idleCopy: "solid",
   },
   floating: {
@@ -783,22 +897,23 @@ const sidebarSurfaceTokens: Record<
     shadowRight: "shadow-xl",
     radius: "rounded-2xl",
     offset: "m-2",
-    noise: false,
     idleCopy: "solid",
   },
 };
 
 /**
- * The container treatment for a `SideMenu` variant. `glass` is resolved from
- * the shared glass module at the call site, so its fill is tinted with the
- * menu's tone and cannot drift from `Panel`'s glass.
+ * The container treatment for a `SideMenu` variant. The glass treatments are
+ * resolved from the shared glass module at the call site, so their fill is
+ * tinted with the menu's tone and cannot drift from `Panel`'s glass.
+ * `floating-glass` is the glass treatment with the floating card's geometry
+ * (offset, radius) layered on top.
  */
 export const getSidebarSurfaceTokens = (
   variant: SidebarVariant,
   color: TrueColor,
 ): SidebarSurfaceTokens => {
-  if (variant === "glass") {
-    return {
+  if (variant === "glass" || variant === "floating-glass") {
+    const glassSurface: SidebarSurfaceTokens = {
       fill: `backdrop-blur-2xl ${getSurfaceGlassFillClass(color, "frosted")}`,
       // Near-opaque so the hover-rail expansion does not show the rail or a
       // sibling menu through the panel.
@@ -809,9 +924,11 @@ export const getSidebarSurfaceTokens = (
       shadowRight: "shadow-xl",
       radius: "",
       offset: "",
-      noise: true,
       idleCopy: "glass",
     };
+    return variant === "floating-glass"
+      ? { ...glassSurface, radius: "rounded-2xl", offset: "m-2" }
+      : glassSurface;
   }
   return sidebarSurfaceTokens[variant] ?? sidebarSurfaceTokens.sidebar;
 };
@@ -1168,14 +1285,19 @@ const createTheme = (): ThemeDefinition => {
       decorationGradient: `from-${color}-100/60 to-transparent dark:from-${color}-500/10 dark:to-transparent`,
     };
 
-    // Stepper
+    // Stepper. Fills that carry a glyph step to `-700` light / `-400` dark
+    // with a matched glyph (white / `-950`), the kit-wide rule for saturated
+    // fills: the old `bg-{c}-600` under white measured 2.94:1 on yellow, and
+    // white on the dark `{c}-400` step measured 1.53:1 on lime. The pending
+    // number is text, so it takes the `-700` / `-300` copy pair (the old
+    // `-500` was ~2.1:1 on yellow).
     theme.stepper[color] = {
-      activeBg: `bg-${color}-600 dark:bg-${color}-400`,
-      activeText: "text-white",
+      activeBg: `bg-${color}-700 dark:bg-${color}-400`,
+      activeText: `text-white dark:text-${color}-950`,
       completedBg: `bg-${color}-100 dark:bg-${color}-600/60`,
       completedText: `text-${color}-700 dark:text-${color}-100`,
       pendingBorder: `border-${color}-200 dark:border-${color}-700/60`,
-      pendingText: `text-${color}-500 dark:text-${color}-200`,
+      pendingText: `text-${color}-700 dark:text-${color}-300`,
       underlineBase: `bg-${color}-100 dark:bg-${color}-700/40`,
     };
 
@@ -1725,6 +1847,38 @@ export const getStatusSpinnerToneTokens = (
 ): StatusSpinnerToneTokens =>
   statusSpinnerToneTokens[tone] ?? statusSpinnerToneTokens.blue;
 
+/**
+ * The paint of a `ProgressSpinner` in one tone.
+ *
+ * The same generated-from-`TRUE_COLORS` approach as `StatusSpinner`: the arc
+ * reads the tone's own Tailwind variable and `color-mix` derives the idle
+ * track from it, so a tone can never render as another colour. The inline
+ * SVG cannot use `dark:` variants, which is why these are CSS colours rather
+ * than classes.
+ */
+export interface ProgressSpinnerToneTokens {
+  /** The moving arc (or the determinate range), as a CSS colour. */
+  arc: string;
+  /** The idle ring (30% of the tone), as a CSS colour. */
+  track: string;
+}
+
+const progressSpinnerToneTokens: Record<TrueColor, ProgressSpinnerToneTokens> =
+  Object.fromEntries(
+    TRUE_COLORS.map((color) => [
+      color,
+      {
+        arc: `var(--color-${color}-400)`,
+        track: `color-mix(in srgb, var(--color-${color}-400) 30%, transparent)`,
+      },
+    ]),
+  ) as Record<TrueColor, ProgressSpinnerToneTokens>;
+
+export const getProgressSpinnerToneTokens = (
+  tone: TrueColor,
+): ProgressSpinnerToneTokens =>
+  progressSpinnerToneTokens[tone] ?? progressSpinnerToneTokens.blue;
+
 export const getLoaderProgressColors = (
   color: TrueColor,
 ): { track: string; bar: string } =>
@@ -1743,6 +1897,100 @@ export const getMultiToggleVariantTokens = (
 
 export const getTabsColorTokens = (color: TrueColor): TabsColorTokens =>
   currentTheme.tabs[color] ?? currentTheme.tabs.blue;
+
+/**
+ * Base treatment per surface variant — the shadow, ring, blur and fill that do
+ * not depend on tone.
+ *
+ * Lifted out of `Panel` so any control that draws a *surface* can mirror it
+ * exactly rather than copying the switch. `MultiToggle`'s track is the first
+ * other consumer: a segmented control is a container holding segments, so it
+ * belongs to the same family and has to read identically beside a `Panel`.
+ */
+export const SURFACE_VARIANT_BASE: Record<SurfaceVariant, string> = {
+  elevated:
+    "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10",
+  // A real 1px border, not a ring. `ring-1` with no ring colour resolves to
+  // currentColor, which painted a near-black rule in light mode.
+  outlined: "border bg-white/90 dark:bg-neutral-900/80",
+  subtle: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
+  tonal: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
+  default:
+    "border bg-white/80 backdrop-blur-xl shadow-2xl dark:bg-neutral-900/70",
+  glass: "border backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20",
+  "liquid-glass": "border backdrop-blur-2xl",
+  simple: "ring-transparent dark:ring-white/5",
+};
+
+/**
+ * Rim for the translucent variants. Deliberately tone-independent: a saturated
+ * `{tone}-500` edge fights the backdrop it is meant to sit over, so glass gets
+ * a light rim that reads as a bevel instead of an outline.
+ */
+export const SURFACE_GLASS_RIM = "border-white/50 dark:border-white/10";
+
+/** Variants whose surface is see-through. */
+export const TRANSLUCENT_SURFACE_VARIANTS: readonly SurfaceVariant[] = [
+  "glass",
+  "liquid-glass",
+  "default",
+];
+
+export interface SurfaceVariantOverrides {
+  /** Replaces the variant's own fill, keeping its shadow and ring. */
+  bgClass?: string;
+  /** Replaces the variant's own rim colour. */
+  borderClass?: string;
+  /** Extra classes folded in for `liquid-glass` (vibrancy, glass fill). */
+  liquidExtras?: string;
+}
+
+/**
+ * The full class set for a surface variant at a tone — the same combination
+ * `Panel` renders, so a control using this sits flush beside one.
+ */
+export const getSurfaceVariantClasses = (
+  variant: SurfaceVariant,
+  tone: TrueColor,
+  overrides: SurfaceVariantOverrides = {},
+): string => {
+  const palette = currentTheme.panel[tone] ?? currentTheme.panel.neutral;
+  const { bgClass, borderClass, liquidExtras } = overrides;
+  const base = SURFACE_VARIANT_BASE[variant] ?? SURFACE_VARIANT_BASE.elevated;
+
+  switch (variant) {
+    case "outlined":
+      return [base, borderClass ?? palette.outlineBorder].join(" ");
+    case "subtle":
+      return [
+        base,
+        borderClass ?? palette.border,
+        bgClass ?? palette.subtleBg,
+      ].join(" ");
+    case "tonal":
+      return [base, bgClass ?? palette.tonalBg, borderClass ?? ""].join(" ");
+    case "default":
+      return [base, borderClass ?? SURFACE_GLASS_RIM].join(" ");
+    case "glass":
+      return [
+        base,
+        borderClass ?? SURFACE_GLASS_RIM,
+        bgClass ?? palette.glassBg,
+      ].join(" ");
+    case "liquid-glass":
+      return [
+        base,
+        liquidExtras ?? "",
+        borderClass ?? palette.liquidBorder,
+        palette.liquidShadow,
+      ].join(" ");
+    case "simple":
+      return [base, bgClass ?? palette.tonalBg, borderClass ?? ""].join(" ");
+    case "elevated":
+    default:
+      return [bgClass ?? "", base].join(" ");
+  }
+};
 
 export const getPanelToneStyles = (tone: TrueColor): PanelToneConfig =>
   currentTheme.panel[tone] ?? currentTheme.panel.neutral;
@@ -1833,6 +2081,100 @@ export const ALERT_INTENT_CONFIG: Record<AlertIntent, AlertIntentConfig> = {
   warning: { tone: "amber", icon: "Warning", live: "assertive" },
   danger: { tone: "red", icon: "Error", live: "assertive" },
   neutral: { tone: "neutral", icon: "Info", live: "polite" },
+};
+
+/**
+ * Whether a field is reporting a problem.
+ *
+ * One list, because it was six: `INPUT_`, `SELECT_`, `CHECKBOX_` and
+ * `INPUT_GROUP_VALIDATION_STATUSES` each declared it, and `Textarea` and
+ * `FormField` had bare unions exporting no runtime list at all — so their
+ * demos could not enumerate the states they support. Same three strings, six
+ * names: the day one changes, the other five will not.
+ */
+export const VALIDATION_STATUSES = ["none", "error", "success"] as const;
+export type ValidationStatus = (typeof VALIDATION_STATUSES)[number];
+
+/**
+ * What went wrong with a request, as opposed to what colour to paint it.
+ *
+ * The same reasoning as `ALERT_INTENTS`: a failing call already knows whether
+ * it was refused, throttled, or simply could not be reached, and every caller
+ * translating that into a tone *and* a glyph *and* two strings is how one
+ * screen ends up saying "Connection Error" for a 403. The kind resolves all
+ * four; anything the caller states explicitly still wins.
+ */
+export const API_ERROR_KINDS = [
+  "unknown",
+  "offline",
+  "server",
+  "forbidden",
+  "notFound",
+  "rateLimited",
+] as const;
+export type ApiErrorKind = (typeof API_ERROR_KINDS)[number];
+
+export interface ApiErrorKindConfig {
+  tone: TrueColor;
+  /** Registry icon name used when the caller does not supply one. */
+  icon: string;
+  title: string;
+  subtitle: string;
+  /**
+   * Whether retrying it stands a chance. A 403 does not get a "Try again"
+   * button by default — offering one for a failure the user cannot clear is
+   * how a dead end starts looking like a bug.
+   */
+  retryable: boolean;
+}
+
+export const API_ERROR_KIND_CONFIG: Record<ApiErrorKind, ApiErrorKindConfig> = {
+  unknown: {
+    tone: "rose",
+    icon: "CloudOff",
+    title: "Connection Error",
+    subtitle:
+      "We couldn't connect to the server. Please check your internet connection and try again.",
+    retryable: true,
+  },
+  offline: {
+    tone: "amber",
+    icon: "Offline",
+    title: "You're offline",
+    subtitle:
+      "Check your network connection — we'll pick up where you left off once you're back.",
+    retryable: true,
+  },
+  server: {
+    tone: "rose",
+    icon: "Error",
+    title: "Something went wrong",
+    subtitle:
+      "The server couldn't complete the request. This is usually temporary, so it is worth trying again.",
+    retryable: true,
+  },
+  forbidden: {
+    tone: "amber",
+    icon: "Revoke",
+    title: "You don't have access",
+    subtitle:
+      "Your session may have expired, or this account may not have permission to view it.",
+    retryable: false,
+  },
+  notFound: {
+    tone: "neutral",
+    icon: "Search",
+    title: "Nothing found",
+    subtitle: "We couldn't find what you were looking for.",
+    retryable: false,
+  },
+  rateLimited: {
+    tone: "amber",
+    icon: "Warning",
+    title: "Too many requests",
+    subtitle: "You've hit the rate limit. Wait a moment before trying again.",
+    retryable: true,
+  },
 };
 
 export interface AlertVariantTokens {

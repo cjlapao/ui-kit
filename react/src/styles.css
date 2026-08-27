@@ -435,15 +435,62 @@
   animation-timing-function: cubic-bezier(0.65, 0.05, 0.36, 1);
 }
 
+/* ---- Progress spinner ----
+   The rotate and the dash ride the same custom property, so a single
+   `animationDuration` scales both — the dash runs at 3/4 of the rotate
+   period, as in PrimeVue's 2s/1.5s pairing. As with the bar above, the
+   duration is a custom property so the reduced-motion block below can switch
+   both off; with the animation gone the arc settles into a static ring. */
+@keyframes progress-spinner-rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 2πr at the nominal r=20 is 125.66; the 200-unit gap stays longer than the
+   circumference so the arc chases itself around the ring instead of
+   wrapping. */
+@keyframes progress-spinner-dash {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 100, 200;
+    stroke-dashoffset: -15;
+  }
+  100% {
+    stroke-dasharray: 100, 200;
+    stroke-dashoffset: -125;
+  }
+}
+
+.progress-spinner-rotate {
+  animation-name: progress-spinner-rotate;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--progress-spinner-duration, 2s);
+  transform-origin: center center;
+}
+
+.progress-spinner-dash {
+  animation-name: progress-spinner-dash;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: calc(var(--progress-spinner-duration, 2s) * 0.75);
+}
+
 /* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   .timeline-row-enter,
   .timeline-rail-draw,
   .timeline-current-pulse,
-  .progress-shimmer,
-  .progress-stripes,
-  .progress-indeterminate,
-  .animate-shimmer,
+    .progress-shimmer,
+    .progress-stripes,
+    .progress-indeterminate,
+    .progress-spinner-rotate,
+    .progress-spinner-dash,
+    .animate-shimmer,
   .shimmer-band,
   .ambient-pulse {
     animation: none !important;

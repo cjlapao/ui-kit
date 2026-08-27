@@ -12,6 +12,10 @@ export interface StatTileTrend {
 export interface StatTileMeta {
   text: string | number | VNode;
   icon?: IconName;
+  /**
+   * @deprecated Never read. The item renders as plain icon + text, so
+   * this was declared and ignored (§5.3).
+   */
   variant?: "text" | "badge";
   color?: TrueColor;
 }
@@ -57,6 +61,8 @@ import classNames from "classnames";
 import Panel from "./Panel.vue";
 import Loader from "./Loader.vue";
 import CustomIcon from "./CustomIcon.vue";
+import Button from "./Button.vue";
+import Progress from "./Progress.vue";
 import { getStatTileColorClasses } from "../theme";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
@@ -167,17 +173,6 @@ const trendBadgeClass = computed(() =>
   ),
 );
 
-const progressBarClass = computed(() =>
-  classNames(
-    "h-full rounded-full transition-all duration-500",
-    // Let's use simpler map:
-    props.progress?.color === "blue"
-      ? "bg-blue-500"
-      : props.progress?.color
-        ? `bg-${props.progress.color}-500`
-        : `bg-${props.color}-500`,
-  ),
-);
 
 const metaSectionClass = computed(() =>
   classNames("mt-4 pt-4 border-t", styles.value.divider),
@@ -243,13 +238,17 @@ const metaSectionClass = computed(() =>
         >
           {{ error.message || "Failed to load data" }}
         </p>
-        <button
+        <!-- Was a bare `<button class="text-blue-600 …">`: a hardcoded blue
+             with no dark-mode partner and no focus ring. -->
+        <Button
           v-if="error.onRetry"
-          class="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline focus:outline-none"
+          variant="link"
+          size="xs"
+          :color="color"
           @click.stop="error.onRetry?.()"
         >
           Try Again
-        </button>
+        </Button>
       </div>
       <slot v-else-if="hasBody" name="body" />
       <template v-else>
@@ -285,23 +284,18 @@ const metaSectionClass = computed(() =>
         </div>
 
         <!-- Progress Bar -->
+        <!-- A real `Progress`, so the bar is a labelled `role="progressbar"`
+             with an accessible name. This was two nested divs with the
+             percentage in a sibling span and no role at all, so a screen
+             reader saw a bare number with nothing attached to it. -->
         <div v-if="progress !== undefined" class="mt-auto pt-2">
-          <div class="flex justify-between text-xs mb-1.5">
-            <span class="font-medium text-neutral-600 dark:text-neutral-300">
-              {{ progress.label || "Progress" }}
-            </span>
-            <span class="text-neutral-500">{{ progress.value }}%</span>
-          </div>
-          <div
-            class="h-1.5 w-full bg-neutral-100 dark:bg-neutral-700 rounded-full overflow-hidden"
-          >
-            <div
-              :class="progressBarClass"
-              :style="{
-                width: `${Math.min(100, Math.max(0, progress.value))}%`,
-              }"
-            />
-          </div>
+          <Progress
+            :value="progress.value"
+            :label="progress.label || 'Progress'"
+            show-value
+            size="sm"
+            :color="progress.color ?? color"
+          />
         </div>
 
         <!-- Meta Items or Footer -->

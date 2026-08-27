@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
 import {
   StatCard,
+  StatHealthCard,
   Input,
   MultiToggle,
   Toggle,
@@ -143,24 +144,31 @@ export const StatCardDemo: React.FC = () => {
       }
       preview={
         <div className="flex flex-col gap-6">
-          <StatCard
-            label={statLabel}
-            value={statValue}
-            icon={statIcon === "none" ? undefined : (statIcon as IconName)}
-            trend={
-              statTrendOn
+          {(() => {
+            // The ECG strip is no longer a StatCard prop, so the health switch
+            // now chooses between the plain card and StatHealthCard — which is
+            // the same card with the monitor as its body, and takes every prop
+            // below unchanged.
+            const shared = {
+              label: statLabel,
+              icon: statIcon === "none" ? undefined : (statIcon as IconName),
+              trend: statTrendOn
                 ? { value: trendValues[statTrendDir], direction: statTrendDir }
-                : undefined
-            }
-            health={
-              statHealth === "off"
-                ? undefined
-                : (statHealth as EcgMonitorState)
-            }
-            size={statSize}
-            variant={statVariant}
-            corner={statCorner}
-          />
+                : undefined,
+              size: statSize,
+              variant: statVariant,
+              corner: statCorner,
+            };
+            return statHealth === "off" ? (
+              <StatCard {...shared} value={statValue} />
+            ) : (
+              <StatHealthCard
+                {...shared}
+                value={statValue}
+                state={statHealth as EcgMonitorState}
+              />
+            );
+          })()}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Total balance"
@@ -174,11 +182,10 @@ export const StatCardDemo: React.FC = () => {
               icon="Database"
               trend={{ value: "-3.1%", direction: "down" }}
             />
-            <StatCard
+            <StatHealthCard
               label="Service health"
-              value="99.98%"
               icon="HealthCheck"
-              health="healthy"
+              state="healthy"
             />
             <StatCard label="Deployments" value="42" />
           </div>

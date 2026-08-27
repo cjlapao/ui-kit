@@ -14,6 +14,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   checkboxAlignOptions,
   checkboxDescriptionPlacementOptions,
@@ -51,117 +52,149 @@ export const CheckboxPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={color}
-            onChange={(value) => setColor(value as TrueColor)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={color}
+                      onChange={(value) => setColor(value as TrueColor)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(value) => setSize(value as CheckboxSize)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Variant"
+                      options={inputVariantOptions}
+                      value={variant}
+                      onChange={(value) => setVariant(value as CheckboxVariant)}
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Control label="Control side">
+                        <MultiToggle
+                          fullWidth
+                          size="sm"
+                          options={checkboxAlignOptions}
+                          value={controlAlign}
+                          onChange={(value) => setControlAlign(value as CheckboxAlign)}
+                        />
+                      </Control>
+                      <Control label="Description">
+                        <MultiToggle
+                          fullWidth
+                          size="sm"
+                          options={checkboxDescriptionPlacementOptions}
+                          value={descriptionPlacement}
+                          onChange={(value) =>
+                            setDescriptionPlacement(
+                              value as CheckboxDescriptionPlacement,
+                            )
+                          }
+                        />
+                      </Control>
+                    </div>
+                  </>
+                ),
+              },
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <>
+                    <Control label="Label">
+                      <Input
+                        size="sm"
+                        value={label}
+                        onChange={(event) => setLabel(event.target.value)}
+                      />
+                    </Control>
+                    <Control label="Description text">
+                      <Input
+                        size="sm"
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "validation",
+                title: "Validation",
+                controls: (
+                  <div className="grid grid-cols-2 gap-3">
+                    <SelectControl
+                      label="Validation"
+                      options={checkboxValidationOptions}
+                      value={validationStatus}
+                      onChange={(value) =>
+                        setValidationStatus(value as CheckboxValidationStatus)
+                      }
+                    />
+                    <Control label="Validation message">
+                      <Input
+                        size="sm"
+                        value={validationMessage}
+                        disabled={validationStatus === "none"}
+                        onChange={(event) => setValidationMessage(event.target.value)}
+                      />
+                    </Control>
+                  </div>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow
+                      label="Checked"
+                      checked={checked}
+                      onChange={(value) => {
+                        setChecked(value);
+                        setIndeterminate(false);
+                      }}
+                    />
+                    <ToggleRow
+                      label="Indeterminate"
+                      checked={indeterminate}
+                      onChange={setIndeterminate}
+                    />
+                    <ToggleRow label="Label" checked={showLabel} onChange={setShowLabel} />
+                    <ToggleRow
+                      label="Description"
+                      checked={showDescription}
+                      onChange={setShowDescription}
+                    />
+                    <ToggleRow label="Required" checked={required} onChange={setRequired} />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                    <ToggleRow
+                      label="Full width"
+                      checked={fullWidth}
+                      onChange={setFullWidth}
+                    />
+                    <ToggleRow
+                      label="On a glass panel"
+                      checked={onGlass}
+                      onChange={setOnGlass}
+                    />
+                  </div>
+                ),
+              },
+            ]}
           />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(value) => setSize(value as CheckboxSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Variant"
-            options={inputVariantOptions}
-            value={variant}
-            onChange={(value) => setVariant(value as CheckboxVariant)}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Control label="Control side">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={checkboxAlignOptions}
-                value={controlAlign}
-                onChange={(value) => setControlAlign(value as CheckboxAlign)}
-              />
-            </Control>
-            <Control label="Description">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={checkboxDescriptionPlacementOptions}
-                value={descriptionPlacement}
-                onChange={(value) =>
-                  setDescriptionPlacement(
-                    value as CheckboxDescriptionPlacement,
-                  )
-                }
-              />
-            </Control>
-          </div>
-          <Control label="Label">
-            <Input
-              size="sm"
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-            />
-          </Control>
-          <Control label="Description text">
-            <Input
-              size="sm"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </Control>
-          <div className="grid grid-cols-2 gap-3">
-            <SelectControl
-              label="Validation"
-              options={checkboxValidationOptions}
-              value={validationStatus}
-              onChange={(value) =>
-                setValidationStatus(value as CheckboxValidationStatus)
-              }
-            />
-            <Control label="Validation message">
-              <Input
-                size="sm"
-                value={validationMessage}
-                disabled={validationStatus === "none"}
-                onChange={(event) => setValidationMessage(event.target.value)}
-              />
-            </Control>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow
-              label="Checked"
-              checked={checked}
-              onChange={(value) => {
-                setChecked(value);
-                setIndeterminate(false);
-              }}
-            />
-            <ToggleRow
-              label="Indeterminate"
-              checked={indeterminate}
-              onChange={setIndeterminate}
-            />
-            <ToggleRow label="Label" checked={showLabel} onChange={setShowLabel} />
-            <ToggleRow
-              label="Description"
-              checked={showDescription}
-              onChange={setShowDescription}
-            />
-            <ToggleRow label="Required" checked={required} onChange={setRequired} />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-            <ToggleRow
-              label="Full width"
-              checked={fullWidth}
-              onChange={setFullWidth}
-            />
-            <ToggleRow
-              label="On a glass panel"
-              checked={onGlass}
-              onChange={setOnGlass}
-            />
-          </div>
           <p className="text-xs opacity-70">
             <strong>Indeterminate</strong> wins over checked, as it does on the
             native control, and is announced as{" "}
@@ -169,7 +202,7 @@ export const CheckboxPlayground: React.FC = () => {
             <code>-700</code> in light and <code>-400</code> in dark so the tick
             clears WCAG contrast on every tone.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

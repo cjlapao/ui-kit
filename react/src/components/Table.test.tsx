@@ -208,11 +208,12 @@ describe("Table — bordered", () => {
     expect(ths[0].className).toContain("border-neutral-200");
     expect(ths[0].className).toContain("dark:border-neutral-700");
     expect(tds[0].className).toContain("border-neutral-200");
-    // and a little extra room so cell text never sits on the line
-    expect(ths[0].className).toContain("pr-2");
-    expect(tds[0].className).toContain("pr-2");
-    expect(ths[2].className).not.toContain("pr-2");
-    expect(tds[2].className).not.toContain("pr-2");
+    // and enough room that cell text never sits on the line — header and body
+    // share the same density cell padding (px-6 at default density), so every
+    // column's text lines up under its header, bordered or not.
+    expect(ths[0].className).toContain("px-6");
+    expect(tds[0].className).toContain("pl-6");
+    expect(tds[0].className).toContain("pr-6");
   });
 
   it("lets noBorders win over bordered", () => {
@@ -358,6 +359,111 @@ describe("Table — tone treatment", () => {
     )!;
     expect(tr.className).toContain("bg-rose-50");
     expect(tr.className).toContain("dark:bg-rose-500/10");
+  });
+});
+
+// ── Tone-tinted rows (zebra / hover / group header follow the table tone) ─────
+
+describe("Table — tone-tinted rows", () => {
+  const rowBy = (container: HTMLElement, name: string) =>
+    Array.from(container.querySelectorAll("tbody tr")).find((t) =>
+      t.textContent?.includes(name),
+    )!;
+
+  it("washes zebra stripes in the table tone for a tinted table", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} tone="indigo" striped />,
+    );
+    const stripedTr = rowBy(container, "Ava");
+    expect(stripedTr.className).toContain("bg-indigo-50/55");
+    expect(stripedTr.className).toContain("dark:bg-indigo-500/8");
+  });
+
+  it("keeps the grey zebra across the neutral tones", () => {
+    for (const tone of ["neutral", "slate", "gray", "zinc", "stone"] as const) {
+      const { container, unmount } = render(
+        <Table columns={baseColumns} data={rows} tone={tone} striped />,
+      );
+      expect(rowBy(container, "Ava").className).toContain("bg-neutral-50/55");
+      unmount();
+    }
+  });
+
+  it("gives a light row the lighter hover step in the table tone", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} tone="emerald" hoverable />,
+    );
+    const lightTd = rowBy(container, "Zoe").querySelector("td")!;
+    expect(lightTd.className).toContain("group-hover:bg-emerald-100/55");
+    expect(lightTd.className).toContain("dark:group-hover:bg-emerald-500/13");
+  });
+
+  it("gives a striped row the deeper hover step in the table tone", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} tone="emerald" striped hoverable />,
+    );
+    const stripedTd = rowBy(container, "Ava").querySelector("td")!;
+    expect(stripedTd.className).toContain("group-hover:bg-emerald-100/80");
+    expect(stripedTd.className).toContain("dark:group-hover:bg-emerald-500/17");
+  });
+
+  it("keeps the grey hover for the neutral tone", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} tone="neutral" hoverable />,
+    );
+    const td = container.querySelector("tbody td")!;
+    expect(td.className).toContain("group-hover:bg-neutral-100/55");
+    expect(td.className).toContain("dark:group-hover:bg-neutral-800/25");
+  });
+
+  it("lets a per-row hover class override replace the default data-row hover", () => {
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        tone="rose"
+        hoverable
+        rowHoverClassName={(row) =>
+          row.name === "Ava" ? "group-hover:bg-rose-300" : undefined
+        }
+      />,
+    );
+    const overriddenTd = rowBy(container, "Ava").querySelector("td")!;
+    expect(overriddenTd.className).toContain("group-hover:bg-rose-300");
+    const defaultTd = rowBy(container, "Zoe").querySelector("td")!;
+    expect(defaultTd.className).toContain("group-hover:bg-rose-100/55");
+  });
+
+  it("tints the group-header row in the table tone", () => {
+    const grouped: Row[] = [
+      { id: 1, name: "Zoe", role: "Admin", age: 34 },
+      { id: 2, name: "Ava", role: "Admin", age: 29 },
+      { id: 3, name: "Leo", role: "Editor", age: 41 },
+    ];
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={grouped}
+        tone="rose"
+        groupBy="role"
+        showGroupHeader
+      />,
+    );
+    const groupHeaderTr = Array.from(
+      container.querySelectorAll("tbody tr"),
+    ).find((t) => t.querySelector("td[colspan]"))!;
+    // group header sits darker than the zebra wash (bg-*-50/55), and its
+    // hover step sits darkest — the contrast hierarchy.
+    expect(groupHeaderTr.className).toContain("bg-rose-100");
+    expect(groupHeaderTr.className).toContain("hover:bg-rose-300");
+    expect(groupHeaderTr.className).toContain("border-rose-100");
+    expect(groupHeaderTr.className).toContain("dark:border-rose-500/20");
+    // the spanning cell and the row must share the same transition so the
+    // hover fill paints as one layer instead of tearing mid-animation
+    const groupHeaderTd = groupHeaderTr.querySelector("td[colspan]")!;
+    expect(groupHeaderTr.className).toContain("ease-out");
+    expect(groupHeaderTd.className).toContain("transition-colors");
+    expect(groupHeaderTd.className).toContain("ease-out");
   });
 });
 
@@ -627,5 +733,63 @@ describe("Table — grouping", () => {
     expect(onSettings).toHaveBeenCalledWith(
       expect.objectContaining({ showGroupHeader: false }),
     );
+  });
+});
+
+// The overlay Loader is itself `role="status"`, and the Spinner inside it
+// publishes one too — so pick the outer, absolutely-positioned one.
+const findOverlay = () =>
+  screen
+    .getAllByRole("status")
+    .find((el) => el.classList.contains("absolute"))!;
+
+describe("Table — loading", () => {
+  it("shows a Loader overlay (spinner by default) with the content still mounted", () => {
+    render(<Table columns={baseColumns} data={rows} loading />);
+    expect(findOverlay()).toBeTruthy();
+    expect(screen.getAllByText("Zoe")).toHaveLength(1);
+  });
+
+  it("pins the overlay to the card, not the scroll container", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} loading maxHeight={200} />,
+    );
+    const overlay = findOverlay();
+    const scrollContainer = container.querySelector(".overflow-x-auto");
+    expect(scrollContainer).toBeTruthy();
+    expect(scrollContainer!.contains(overlay)).toBe(false);
+  });
+
+  it("replaces the table with a pulsing skeleton when loaderType=skeleton", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} loading loaderType="skeleton" />,
+    );
+    expect(container.querySelector("table")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+    const skeleton = container.querySelector(".animate-pulse");
+    expect(skeleton).toBeTruthy();
+    // header row + one placeholder row per `skeletonRows` (default 6)
+    expect(skeleton!.children.length).toBe(1 + 6);
+  });
+
+  it("honours skeletonRows for the placeholder row count", () => {
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        loading
+        loaderType="skeleton"
+        skeletonRows={3}
+      />,
+    );
+    const skeleton = container.querySelector(".animate-pulse")!;
+    expect(skeleton.children.length).toBe(1 + 3);
+  });
+
+  it("marks the table wrapper aria-busy while loading", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} loading />,
+    );
+    expect(container.querySelector("[aria-busy='true']")).toBeTruthy();
   });
 });

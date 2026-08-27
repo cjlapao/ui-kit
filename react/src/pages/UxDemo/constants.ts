@@ -258,17 +258,6 @@ export const stepperOrientationOptions: MultiToggleOption[] = [
   { label: "Vertical", value: "vertical" },
 ];
 
-export const stepperVariantOptions: MultiToggleOption[] = [
-  { label: "Card", value: "card" },
-  { label: "Minimal", value: "minimal" },
-];
-
-export const stepperSizeOptions: MultiToggleOption[] = [
-  { label: "Small", value: "sm" },
-  { label: "Medium", value: "md" },
-  { label: "Large", value: "lg" },
-];
-
 export const stepperConnectorOptions: MultiToggleOption[] = [
   { label: "Line", value: "line" },
   { label: "Progress", value: "progress" },

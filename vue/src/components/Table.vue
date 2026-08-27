@@ -399,6 +399,27 @@ const getResizeHandleHoverClass = (color: TrueColor): string =>
   resizeHandleHoverClasses[color] ?? resizeHandleHoverClasses.blue;
 
 /**
+ * Full-height guide line shown while a resize handle is hovered/dragged.
+ * When the grid is drawn the guide takes the control color (matching the
+ * column-selector hover); otherwise it stays a faded neutral hairline.
+ */
+const resizeGuideColorClasses: Record<TrueColor, string> = Object.fromEntries(
+  TRUE_COLORS.map((tone) => [
+    tone,
+    `bg-${tone}-500 dark:bg-${tone}-400`,
+  ]),
+) as Record<TrueColor, string>;
+
+const getResizeGuideColorClass = (color: TrueColor): string =>
+  resizeGuideColorClasses[color] ?? resizeGuideColorClasses.blue;
+
+// The resize handle is an 8px (`w-2`) hit area whose 1px line is centered, so
+// the visible line sits 4px inside the column edge. Center the 2px (`w-0.5`)
+// full-height guide there too so it lines up with the handle line — not the
+// raw column edge (4px handle inset + 1px half of the guide width).
+const RESIZE_GUIDE_EDGE_INSET = 5;
+
+/**
  * Row rules. The container chrome (fill, shadow, ring, glass) now comes from
  * the `Panel` rendered below — only the table's own internal rules live here.
  * Translucent surfaces (glass / liquid-glass / default / simple) use light
@@ -748,12 +769,39 @@ watch(
 
 // refs: one per <th> for DOM measurement, plus transient resize state
 const thRefs: Record<string, HTMLTableCellElement | null> = {};
+const scrollContainerRef = ref<HTMLDivElement | null>(null);
 let resizing: { colId: string; startX: number; startWidth: number } | null =
   null;
 let widthsDuringResize: Record<string, number> = {};
 
+// Full-height guide line position while a resize handle is hovered/dragged.
+// `left` is the column's right edge in scroll-content coordinates.
+const resizeGuide = ref<{ colId: string; left: number } | null>(null);
+
 const setThRef = (colId: string, el: unknown) => {
   thRefs[colId] = (el as HTMLTableCellElement | null) ?? null;
+};
+
+// Column's right edge in scroll-content coordinates. Uses the visual
+// (getBoundingClientRect) position + scrollLeft so a sticky (pinned) column
+// lines up with its handle even when the table is horizontally scrolled.
+const computeGuideLeft = (colId: string): number | null => {
+  const th = thRefs[colId];
+  const container = scrollContainerRef.value;
+  if (!th || !container) return null;
+  const thRect = th.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  return (
+    Math.round(thRect.right - containerRect.left + container.scrollLeft) -
+    RESIZE_GUIDE_EDGE_INSET
+  );
+};
+
+// Keep the guide glued to a (sticky) column while the user scrolls.
+const handleGuideScroll = () => {
+  if (!resizeGuide.value) return;
+  const left = computeGuideLeft(resizeGuide.value.colId);
+  if (left != null) resizeGuide.value = { ...resizeGuide.value, left };
 };
 
 const handleResizeStart = (
@@ -777,8 +825,10 @@ const handleResizeStart = (
 
   const startWidth =
     currentWidths[colId] ?? thRefs[colId]?.offsetWidth ?? 100;
+  const startLeft = computeGuideLeft(colId) ?? 0;
   resizing = { colId, startX: e.clientX, startWidth };
   widthsDuringResize = { ...currentWidths };
+  resizeGuide.value = { colId, left: startLeft };
 
   const onMouseMove = (moveEvt: MouseEvent) => {
     if (!resizing) return;
@@ -791,6 +841,9 @@ const handleResizeStart = (
       [resizing.colId]: newWidth,
     };
     internalColWidths.value = { ...widthsDuringResize };
+    // The column's right edge moves by the width delta, so the guide does too.
+    const delta = newWidth - resizing.startWidth;
+    resizeGuide.value = { colId, left: startLeft + delta };
   };
 
   const onMouseUp = () => {
@@ -804,6 +857,7 @@ const handleResizeStart = (
       columnWidths: widthsDuringResize,
     });
     resizing = null;
+    resizeGuide.value = null;
   };
 
   document.body.style.cursor = "col-resize";
@@ -820,6 +874,15 @@ const onResizeHandleMouseDown = (e: MouseEvent, column: TableColumn<T>) => {
         : parseInt(column.minWidth, 10)
       : 48;
   handleResizeStart(e, column.id, Math.max(48, isNaN(minW) ? 48 : minW));
+};
+
+const onResizeHandleEnter = (column: TableColumn<T>) => {
+  const left = computeGuideLeft(column.id);
+  if (left != null) resizeGuide.value = { colId: column.id, left };
+};
+
+const onResizeHandleLeave = () => {
+  if (!resizing) resizeGuide.value = null;
 };
 
 // When resizable and any width is stored, switch the table to fixed layout
@@ -1260,7 +1323,7 @@ const headerToneClasses = computed(() =>
     : getToneHeaderClasses(props.tone),
 );
 const headerBaseClasses =
-  "text-xs font-semibold uppercase tracking-wide text-left text-neutral-600 dark:text-neutral-200";
+  "text-xs font-semibold uppercase tracking-wide text-left";
 
 const tbodyClasses = computed(() =>
   classNames(
@@ -1463,9 +1526,12 @@ const headerCells = computed((): HeaderCellEntry[] =>
         thEffectiveSticky === "right" &&
         !props.noBorders &&
         "border-l border-neutral-200 dark:border-neutral-700",
+      // The resize handle already marks each column edge, so the grid rule is
+      // skipped while resizing.
       gridLinesOn.value &&
+        !isResizable &&
         colIndex < orderedVisibleColumns.value.length - 1 &&
-        `${gridLineClass} border-r pr-2`,
+        `${gridLineClass} border-r`,
       column.headerClassName,
     );
 
@@ -1689,12 +1755,14 @@ const buildRowEntry = (
           props.hoverable &&
           "group-hover:brightness-95",
         getCellAlignment(column.align),
-        colIndex === 0 && sidePaddingTokens.value.sideLeft,
-        colIndex === orderedVisibleColumns.value.length - 1 &&
-          sidePaddingTokens.value.sideRight,
+        // Horizontal padding. Every cell keeps a symmetric gap so adjacent
+        // columns never sit flush (bordered or not) and the body text lines up
+        // under the header, which uses the same density cell padding.
+        `${sidePaddingTokens.value.sideLeft} ${sidePaddingTokens.value.sideRight}`,
+        // Vertical rule on the leading edge of the next column.
         gridLinesOn.value &&
           colIndex < orderedVisibleColumns.value.length - 1 &&
-          `${gridLineClass} border-r pr-2`,
+          `${gridLineClass} border-r`,
         // Pulsing left border indicator on the first visible cell for highlighted rows
         colIndex === 0 &&
           isHighlighted &&
@@ -2199,9 +2267,12 @@ const handleNextPage = () => {
         :class="tableViewOuterClass"
       >
         <div
+          ref="scrollContainerRef"
           :class="scrollContainerClass"
           :style="!fullHeight ? scrollContainerStyle : undefined"
+          @scroll="handleGuideScroll"
         >
+          <div class="relative">
           <table
             :class="tableClasses"
             :style="
@@ -2270,6 +2341,8 @@ const handleNextPage = () => {
                     role="separator"
                     aria-hidden="true"
                     class="group/rh absolute inset-y-0 right-0 z-10 flex w-2 cursor-col-resize select-none items-center justify-center"
+                    @mouseenter="onResizeHandleEnter(hc.column)"
+                    @mouseleave="onResizeHandleLeave()"
                     @mousedown="(e) => onResizeHandleMouseDown(e, hc.column)"
                   >
                     <div :class="resizeHandleTrackClass" />
@@ -2396,6 +2469,19 @@ const handleNextPage = () => {
               </tr>
             </tbody>
           </table>
+          <!-- Full-height column-resize guide, spanning the whole table. -->
+          <div
+            v-if="resizeGuide"
+            aria-hidden="true"
+            :class="[
+              'pointer-events-none absolute inset-y-0 z-30 w-0.5',
+              gridLinesOn
+                ? getResizeGuideColorClass(controlColor)
+                : 'bg-neutral-300 dark:bg-neutral-600',
+            ]"
+            :style="{ left: resizeGuide.left + 'px' }"
+          />
+          </div>
           <Loader
             v-if="loading"
             overlay

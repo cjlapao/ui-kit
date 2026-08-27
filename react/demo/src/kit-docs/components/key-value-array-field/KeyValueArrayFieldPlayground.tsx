@@ -23,6 +23,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   glassOpacityOptions,
   glassVibrancyOptions,
@@ -76,119 +77,145 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={keyValueVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as KeyValueArrayFieldVariant)}
-          />
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <SelectControl
-            label="Corner"
-            options={panelCornerOptions}
-            value={corner}
-            onChange={(v) => setCorner(v as PanelCorner)}
-          />
-          <Control label="Padding">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={panelPaddingOptions}
-              value={padding}
-              onChange={(v) => setPadding(v as PanelPadding)}
-            />
-          </Control>
-          <Control label="Input surface">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={inputVariantOptions}
-              value={inputVariant}
-              onChange={(v) => setInputVariant(v as InputVariant)}
-            />
-          </Control>
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={keyValueSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as KeyValueArrayFieldSize)}
-            />
-          </Control>
-          <Control label="Add button label">
-            <Input
-              size="sm"
-              value={addLabel}
-              onChange={(event) => setAddLabel(event.target.value)}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Hint" checked={withHint} onChange={setWithHint} />
-            <ToggleRow
-              label="Help text"
-              checked={withHelp}
-              onChange={setWithHelp}
-            />
-            <ToggleRow
-              label="Error"
-              checked={withError}
-              onChange={setWithError}
-            />
-            <ToggleRow
-              label="Disabled"
-              checked={disabled}
-              onChange={setDisabled}
-            />
-            <ToggleRow
-              label="Flag duplicate keys"
-              checked={flagDuplicates}
-              onChange={setFlagDuplicates}
-            />
-            <ToggleRow
-              label="Cap at 5 rows"
-              checked={capped}
-              onChange={setCapped}
-            />
-          </div>
-          {isGlass && (
-            <>
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy as string}
-                  onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity as string}
-                  onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                />
-              </Control>
-            </>
-          )}
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Variant"
+                    options={keyValueVariantOptions}
+                    value={variant}
+                    onChange={(v) => setVariant(v as KeyValueArrayFieldVariant)}
+                  />
+                  <SelectControl
+                    label="Tone"
+                    options={trueColorOptions}
+                    value={tone}
+                    onChange={(v) => setTone(v as TrueColor)}
+                  />
+                  <SelectControl
+                    label="Corner"
+                    options={panelCornerOptions}
+                    value={corner}
+                    onChange={(v) => setCorner(v as PanelCorner)}
+                  />
+                  <Control label="Padding">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={panelPaddingOptions}
+                      value={padding}
+                      onChange={(v) => setPadding(v as PanelPadding)}
+                    />
+                  </Control>
+                  <Control label="Input surface">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={inputVariantOptions}
+                      value={inputVariant}
+                      onChange={(v) => setInputVariant(v as InputVariant)}
+                    />
+                  </Control>
+                  <Control label="Size">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={keyValueSizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as KeyValueArrayFieldSize)}
+                    />
+                  </Control>
+                </>
+              ),
+            },
+            {
+              id: "content",
+              title: "Content",
+              controls: (
+                <>
+                  <Control label="Add button label">
+                    <Input
+                      size="sm"
+                      value={addLabel}
+                      onChange={(event) => setAddLabel(event.target.value)}
+                    />
+                  </Control>
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow label="Hint" checked={withHint} onChange={setWithHint} />
+                    <ToggleRow
+                      label="Help text"
+                      checked={withHelp}
+                      onChange={setWithHelp}
+                    />
+                    <ToggleRow
+                      label="Error"
+                      checked={withError}
+                      onChange={setWithError}
+                    />
+                    <ToggleRow
+                      label="Disabled"
+                      checked={disabled}
+                      onChange={setDisabled}
+                    />
+                    <ToggleRow
+                      label="Flag duplicate keys"
+                      checked={flagDuplicates}
+                      onChange={setFlagDuplicates}
+                    />
+                    <ToggleRow
+                      label="Cap at 5 rows"
+                      checked={capped}
+                      onChange={setCapped}
+                    />
+                  </div>
+                </>
+              ),
+            },
+            ...(isGlass
+              ? [
+                  {
+                    id: "glass",
+                    title: "Glass",
+                    controls: (
+                      <>
+                        <Control label="Specular">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={panelSpecularOptions}
+                            value={specularMode}
+                            onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
+                          />
+                        </Control>
+                        <Control label="Vibrancy">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glassVibrancyOptions}
+                            value={vibrancy as string}
+                            onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                          />
+                        </Control>
+                        <Control label="Glass opacity">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glassOpacityOptions}
+                            value={glassOpacity as string}
+                            onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                          />
+                        </Control>
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+        />
       }
       preview={
         <div className="w-full">

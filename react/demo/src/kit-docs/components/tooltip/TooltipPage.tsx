@@ -6,6 +6,10 @@ import Basic from "./examples/Basic";
 import basicCode from "./examples/Basic.tsx?raw";
 import Position from "./examples/Position";
 import positionCode from "./examples/Position.tsx?raw";
+import Variants from "./examples/Variants";
+import variantsCode from "./examples/Variants.tsx?raw";
+import Collision from "./examples/Collision";
+import collisionCode from "./examples/Collision.tsx?raw";
 import Delay from "./examples/Delay";
 import delayCode from "./examples/Delay.tsx?raw";
 import IconButtons from "./examples/IconButtons";
@@ -15,7 +19,7 @@ export const TooltipPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Tooltip"
-      description="A lightweight hover hint rendered in a portal — zero impact on layout, with viewport edge detection so it never overflows the screen. Wrap any trigger: buttons, icon buttons, fields."
+      description="A hover-and-focus hint rendered in a portal — zero impact on layout. It takes a preferred side and flips when there is no room, clamps inside the viewport, and slides its caret to keep pointing at the trigger. The geometry is shared with the Vue kit and tested as pure math."
     />
     <TooltipPlayground />
     <section className="flex flex-col gap-5">
@@ -37,6 +41,22 @@ export const TooltipPage: React.FC = () => (
         filename="Position.tsx"
       >
         <Position />
+      </ExampleCard>
+      <ExampleCard
+        title="Both looks"
+        description="`surface` follows the theme; `inverted` contrasts against the page. It used to be dark in both themes, with no light appearance at all — toggle the page theme to compare."
+        code={variantsCode}
+        filename="Variants.tsx"
+      >
+        <Variants />
+      </ExampleCard>
+      <ExampleCard
+        title="Collision handling"
+        description="All four ask for `top`; only the ones with room get it. Collision is measured against the viewport by default — tick the box to constrain it to the dashed area instead, which is what makes the flipping visible here and what you want inside a scroll container or modal."
+        code={collisionCode}
+        filename="Collision.tsx"
+      >
+        <Collision />
       </ExampleCard>
       <ExampleCard
         title="Delay"

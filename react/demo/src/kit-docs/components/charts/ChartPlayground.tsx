@@ -14,6 +14,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   chartBarCornerOptions,
   chartBarModeOptions,
@@ -1016,697 +1017,751 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   );
 
   return (
-    <PlaygroundPanel controls={
-      <>
-        <Control label="Renderer">
-          <MultiToggle
-            size="sm"
-            fullWidth
-            options={chartRendererOptions}
-            value={renderer}
-            onChange={(v) => setRenderer(v as "svg" | "canvas")}
-          />
-        </Control>
-        <ToggleRow
-          label="Loading"
-          checked={lgLoading}
-          onChange={setLgLoading}
+    <PlaygroundPanel
+      controls={
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <Control label="Renderer">
+                    <MultiToggle
+                      size="sm"
+                      fullWidth
+                      options={chartRendererOptions}
+                      value={renderer}
+                      onChange={(v) => setRenderer(v as "svg" | "canvas")}
+                    />
+                  </Control>
+                  <ToggleRow
+                    label="Loading"
+                    checked={lgLoading}
+                    onChange={setLgLoading}
+                  />
+                  <Control label="Loader type">
+                    <MultiToggle
+                      size="sm"
+                      fullWidth
+                      options={[
+                        { label: "Skeleton", value: "skeleton" },
+                        { label: "Spinner", value: "spinner" },
+                        { label: "Progress", value: "progress" },
+                      ]}
+                      value={lgType}
+                      onChange={(v) =>
+                        setLgType(v as "skeleton" | "spinner" | "progress")
+                      }
+                    />
+                  </Control>
+                </>
+              ),
+            },
+            ...(!fixedKind
+              ? [
+                  {
+                    id: "chart-type",
+                    title: "Chart type",
+                    controls: (
+                      <Control label="Chart">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartKindOptions}
+                          value={kind}
+                          onChange={(v) => setKind(v as Kind)}
+                        />
+                      </Control>
+                    ),
+                  },
+                ]
+              : []),
+            {
+              id: "series",
+              title: "Series",
+              controls: (
+                <>
+                  {kind === "line" && (
+                    <>
+                      <SelectControl
+                        label="Curve"
+                        options={chartCurveOptions}
+                        value={curve}
+                        onChange={(v) => setCurve(v as LineCurve)}
+                      />
+                      <ToggleRow label="Area fill" checked={showFill} onChange={setShowFill} />
+                      {showFill && (
+                        <ToggleRow
+                          label="Area gradient"
+                          checked={areaGradient}
+                          onChange={setAreaGradient}
+                        />
+                      )}
+                      <ToggleRow
+                        label="Markers"
+                        checked={showMarkers}
+                        onChange={setShowMarkers}
+                      />
+                      <Control label="Values">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartValuesOptions}
+                          value={valuesMode}
+                          onChange={(v) => setValuesMode(v as ValuesMode)}
+                        />
+                      </Control>
+                    </>
+                  )}
+                  {kind === "bar" && (
+                    <>
+                      <Control label="Mode">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartBarModeOptions}
+                          value={barMode}
+                          onChange={(v) => setBarMode(v as BarMode)}
+                        />
+                      </Control>
+                      <Control label="Corner">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartBarCornerOptions}
+                          value={String(barCorner)}
+                          onChange={(v) => setBarCorner(Number(v))}
+                        />
+                      </Control>
+                      {stacked && (
+                        <Control label="Segment gap">
+                          <MultiToggle
+                            size="sm"
+                            fullWidth
+                            options={chartSegmentGapOptions}
+                            value={String(segmentGap)}
+                            onChange={(v) => setSegmentGap(Number(v))}
+                          />
+                        </Control>
+                      )}
+                    </>
+                  )}
+                  {kind === "pie" && (
+                    <>
+                      <ToggleRow label="Donut" checked={donut} onChange={setDonut} />
+                      <Control label="Slice gap">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPieGapOptions}
+                          value={String(pieGap)}
+                          onChange={(v) => setPieGap(Number(v))}
+                        />
+                      </Control>
+                      <Control label="Corner">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPieCornerOptions}
+                          value={String(pieCorner)}
+                          onChange={(v) => setPieCorner(Number(v))}
+                        />
+                      </Control>
+                      <Control label="Slice %">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPieLabelOptions}
+                          value={String(pieLabelMin)}
+                          onChange={(v) => setPieLabelMin(Number(v))}
+                        />
+                      </Control>
+                      {donut && (
+                        <Control label="Sweep">
+                          <MultiToggle
+                            size="sm"
+                            fullWidth
+                            options={chartSweepOptions}
+                            value={sweep}
+                            onChange={(v) => {
+                              const next = v as Sweep;
+                              setSweep(next);
+                              if (next !== "full") setDonut(true);
+                            }}
+                          />
+                        </Control>
+                      )}
+                    </>
+                  )}
+                  {kind === "candlestick" && (
+                    <Control label="Variant">
+                      <MultiToggle
+                        size="sm"
+                        fullWidth
+                        options={chartCandleVariantOptions}
+                        value={candleVariant}
+                        onChange={(v) => setCandleVariant(v as CandlestickVariant)}
+                      />
+                    </Control>
+                  )}
+                  {kind === "candlestick" && (
+                    <Control label="Selected">
+                      <MultiToggle
+                        size="sm"
+                        fullWidth
+                        options={chartSelectedOptions}
+                        value={candleSelected ? "1" : "0"}
+                        onChange={(v) => setCandleSelected(v === "1")}
+                      />
+                    </Control>
+                  )}
+                  {(kind === "range" || kind === "radar") && (
+                    <Control label="Fill">
+                      <MultiToggle
+                        size="sm"
+                        fullWidth
+                        options={chartFillOptions}
+                        value={fillMode}
+                        onChange={(v) => setFillMode(v as FillMode)}
+                      />
+                    </Control>
+                  )}
+                  {kind === "gauge" && (
+                    <>
+                      <Control label="Value">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartGaugeValueOptions}
+                          value={gaugeValue}
+                          onChange={(v) => setGaugeValue(v)}
+                        />
+                      </Control>
+                      <Control label="Arc span">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartGaugeSpanOptions}
+                          value={gaugeSpan}
+                          onChange={(v) => setGaugeSpan(v)}
+                        />
+                      </Control>
+                      <Control label="Thickness">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartGaugeInnerOptions}
+                          value={gaugeInner}
+                          onChange={(v) => setGaugeInner(v)}
+                        />
+                      </Control>
+                      <Control label="Zones">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartGaugeZoneOptions}
+                          value={gaugeZones}
+                          onChange={(v) => setGaugeZones(v)}
+                        />
+                      </Control>
+                      <Control label="Ticks">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartGaugeTickOptions}
+                          value={gaugeTicks}
+                          onChange={(v) => setGaugeTicks(v)}
+                        />
+                      </Control>
+                      <Control label="Target">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartGaugeTargetOptions}
+                          value={gaugeTarget}
+                          onChange={(v) => setGaugeTarget(v)}
+                        />
+                      </Control>
+                    </>
+                  )}
+                  {kind === "nightingale" && (
+                    <>
+                      <Control label="Start angle">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartNightStartOptions}
+                          value={nightStart}
+                          onChange={(v) => setNightStart(v)}
+                        />
+                      </Control>
+                      <Control label="Hub">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartNightInnerOptions}
+                          value={nightInner}
+                          onChange={(v) => setNightInner(v)}
+                        />
+                      </Control>
+                      <Control label="Slice gap">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPieGapOptions}
+                          value={String(nightGap)}
+                          onChange={(v) => setNightGap(v)}
+                        />
+                      </Control>
+                      <ToggleRow
+                        label="Month labels"
+                        checked={nightLabels}
+                        onChange={setNightLabels}
+                      />
+                      <ToggleRow
+                        label="Slice ticks"
+                        checked={nightTicks}
+                        onChange={setNightTicks}
+                      />
+                      <ToggleRow
+                        label="Season bands"
+                        checked={nightBands}
+                        onChange={setNightBands}
+                      />
+                      <ToggleRow
+                        label="Peak label"
+                        checked={nightPeak}
+                        onChange={setNightPeak}
+                      />
+                    </>
+                  )}
+                  {kind === "waterfall" && (
+                    <>
+                      <Control label="Orientation">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={[
+                            { label: "Vertical", value: "vertical" },
+                            { label: "Horizontal", value: "horizontal" },
+                          ]}
+                          value={wfOrientation}
+                          onChange={(v) => setWfOrientation(v)}
+                        />
+                      </Control>
+                      <ToggleRow
+                        label="Connectors"
+                        checked={wfConnectors}
+                        onChange={setWfConnectors}
+                      />
+                      <ToggleRow
+                        label="Value labels"
+                        checked={wfLabels}
+                        onChange={setWfLabels}
+                      />
+                    </>
+                  )}
+                  {kind === "combo" && (
+                    <>
+                      <Control label="Secondary series">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={[
+                            { label: "Line", value: "line" },
+                            { label: "Scatter", value: "scatter" },
+                            { label: "Off", value: "off" },
+                          ]}
+                          value={comboSecondary}
+                          onChange={(v) => setComboSecondary(v as "line" | "scatter" | "off")}
+                        />
+                      </Control>
+                      <ToggleRow
+                        label="Right axis (°C)"
+                        checked={comboRightAxis}
+                        onChange={setComboRightAxis}
+                      />
+                      <ToggleRow
+                        label="Stack bars + total"
+                        checked={comboStack}
+                        onChange={setComboStack}
+                      />
+                      <ToggleRow
+                        label="Dashed line"
+                        checked={comboDashed}
+                        onChange={setComboDashed}
+                      />
+                      <ToggleRow
+                        label="Line area"
+                        checked={comboArea}
+                        onChange={setComboArea}
+                      />
+                    </>
+                  )}
+                  {kind === "heatmap" && (
+                    <>
+                      <Control label="Palette">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={[
+                            { label: "Warm", value: "warm" },
+                            { label: "Ocean", value: "ocean" },
+                            { label: "Gold", value: "gold" },
+                            { label: "Diverging", value: "diverging" },
+                          ]}
+                          value={hmPalette}
+                          onChange={(v) =>
+                            setHmPalette(v as "ocean" | "warm" | "gold" | "diverging")
+                          }
+                        />
+                      </Control>
+                      <ToggleRow
+                        label="Value labels"
+                        checked={hmLabels}
+                        onChange={setHmLabels}
+                      />
+                      <ToggleRow label="Legend" checked={hmLegend} onChange={setHmLegend} />
+                      <Control label="Cell radius">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={[
+                            { label: "0", value: "0" },
+                            { label: "3", value: "3" },
+                            { label: "6", value: "6" },
+                            { label: "10", value: "10" },
+                          ]}
+                          value={String(hmRadius)}
+                          onChange={(v) => setHmRadius(Number(v))}
+                        />
+                      </Control>
+                    </>
+                  )}
+                  {kind === "treemap" && (
+                    <>
+                      <Control label="Colors">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={[
+                            { label: "Flat", value: "flat" },
+                            { label: "Palette", value: "palette" },
+                            { label: "Stocks", value: "stocks" },
+                          ]}
+                          value={tmPalette}
+                          onChange={(v) => setTmPalette(v as "flat" | "palette" | "stocks")}
+                        />
+                      </Control>
+                      <ToggleRow
+                        label="Grouped (by department)"
+                        checked={tmGrouped}
+                        onChange={setTmGrouped}
+                      />
+                      <ToggleRow
+                        label="Corner values"
+                        checked={tmCorner}
+                        onChange={setTmCorner}
+                      />
+                    </>
+                  )}
+                  {kind === "scatter" && (
+                    <>
+                      <ToggleRow
+                        label="Series 1 · Alpha"
+                        checked={scatterShapes["1"]}
+                        onChange={(v) => setScatterShapes((s) => ({ ...s, "1": v }))}
+                      />
+                      <ToggleRow
+                        label="Series 2 · Beta"
+                        checked={scatterShapes["2"]}
+                        onChange={(v) => setScatterShapes((s) => ({ ...s, "2": v }))}
+                      />
+                      <ToggleRow
+                        label="Series 3 · Gamma"
+                        checked={scatterShapes["3"]}
+                        onChange={(v) => setScatterShapes((s) => ({ ...s, "3": v }))}
+                      />
+                      <SelectControl
+                        label="Marker shape"
+                        options={chartScatterShapeOptions}
+                        value={scatterMarker}
+                        onChange={(v) => setScatterMarker(v as MarkerShape)}
+                      />
+                      <ToggleRow
+                        label="Bubble (size field)"
+                        checked={scatterBubble}
+                        onChange={setScatterBubble}
+                      />
+                      {scatterBubble && (
+                        <>
+                          <Control label="Min size">
+                            <MultiToggle
+                              size="sm"
+                              fullWidth
+                              options={chartScatterMinSizeOptions}
+                              value={scatterMin}
+                              onChange={(v) => setScatterMin(v)}
+                            />
+                          </Control>
+                          <Control label="Max size">
+                            <MultiToggle
+                              size="sm"
+                              fullWidth
+                              options={chartScatterMaxSizeOptions}
+                              value={scatterMax}
+                              onChange={(v) => setScatterMax(v)}
+                            />
+                          </Control>
+                        </>
+                      )}
+                      <Control label="Hit radius">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartScatterHitRadiusOptions}
+                          value={scatterHitRadius}
+                          onChange={(v) => setScatterHitRadius(v)}
+                        />
+                      </Control>
+                      <Control label="Point opacity">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartScatterOpacityOptions}
+                          value={scatterOpacity}
+                          onChange={(v) => setScatterOpacity(v)}
+                        />
+                      </Control>
+                      <Control label="Fill opacity">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartScatterFillOptions}
+                          value={scatterFill}
+                          onChange={(v) => setScatterFill(v)}
+                        />
+                      </Control>
+                      <Control label="Border width">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartScatterBorderOptions}
+                          value={scatterBorder}
+                          onChange={(v) => setScatterBorder(v)}
+                        />
+                      </Control>
+                      <Control label="Hover brightness">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartScatterBrightnessOptions}
+                          value={scatterBrightness}
+                          onChange={(v) => setScatterBrightness(v)}
+                        />
+                      </Control>
+                      <Control label="Hover dim">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartScatterDimOptions}
+                          value={scatterDim}
+                          onChange={(v) => setScatterDim(v)}
+                        />
+                      </Control>
+                      <Control label="Hover radius ×">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartScatterRadiusOptions}
+                          value={scatterHoverRadius}
+                          onChange={(v) => setScatterHoverRadius(v)}
+                        />
+                      </Control>
+                    </>
+                  )}
+                  {kind === "polar" && (
+                    <>
+                      <Control label="Mode">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPolarModeOptions}
+                          value={polarMode}
+                          onChange={(v) => setPolarMode(v as "group" | "stack")}
+                        />
+                      </Control>
+                      <Control label="Inner radius">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPolarInnerRadiusOptions}
+                          value={String(polarInner)}
+                          onChange={(v) => setPolarInner(Number(v))}
+                        />
+                      </Control>
+                      <SelectControl
+                        label="Sort"
+                        options={chartPolarSortOptions}
+                        value={polarSort}
+                        onChange={(v) => setPolarSort(v as "none" | "asc" | "desc")}
+                      />
+                      <Control label="Segment radius">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPolarRadiusOptions}
+                          value={String(polarRadius)}
+                          onChange={(v) => setPolarRadius(Number(v))}
+                        />
+                      </Control>
+                      <Control label="Border">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPolarBorderOptions}
+                          value={String(polarBorder)}
+                          onChange={(v) => setPolarBorder(Number(v))}
+                        />
+                      </Control>
+                      <Control label="Grid shape">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPolarShapeOptions}
+                          value={polarShape}
+                          onChange={(v) => setPolarShape(v as "circle" | "polygon")}
+                        />
+                      </Control>
+                      <Control label="Grid style">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={chartPolarGridStyleOptions}
+                          value={polarGridStyle}
+                          onChange={(v) =>
+                            setPolarGridStyle(v as "solid" | "dashed" | "dotted")
+                          }
+                        />
+                      </Control>
+                    </>
+                  )}
+                </>
+              ),
+            },
+            ...(kind !== "pie"
+              ? [
+                  {
+                    id: "grid-axes",
+                    title: "Grid & axes",
+                    controls: (
+                      <>
+                        <Control label="Grid">
+                          <MultiToggle
+                            size="sm"
+                            fullWidth
+                            options={chartGridOptions}
+                            value={grid}
+                            onChange={(v) => setGrid(v as GridStyle)}
+                          />
+                        </Control>
+                        <Control label="Axes">
+                          <MultiToggle
+                            size="sm"
+                            fullWidth
+                            options={[
+                              { label: "All", value: "all" },
+                              { label: "Labels", value: "labels" },
+                              { label: "None", value: "none" },
+                            ]}
+                            value={axesMode}
+                            onChange={(v) =>
+                              setAxesMode(v as "all" | "labels" | "none")
+                            }
+                          />
+                        </Control>
+                        <Control label="Grid fade">
+                          <MultiToggle
+                            size="sm"
+                            fullWidth
+                            options={chartGridFadeOptions}
+                            value={gridFade}
+                            onChange={setGridFade}
+                          />
+                        </Control>
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+            {
+              id: "layout",
+              title: "Layout",
+              controls: (
+                <>
+                  <Control label="Height">
+                    <MultiToggle
+                      size="sm"
+                      options={chartHeightOptions}
+                      value={String(height)}
+                      onChange={(v) => setHeight(Number(v))}
+                    />
+                  </Control>
+                  <Control label="Legend">
+                    <MultiToggle
+                      size="sm"
+                      fullWidth
+                      options={chartLegendPositionOptions}
+                      value={legendPosition}
+                      onChange={(v) => setLegendPosition(v as "top" | "bottom")}
+                    />
+                  </Control>
+                </>
+              ),
+            },
+            {
+              id: "animation",
+              title: "Animation & interactivity",
+              controls: (
+                <>
+                  <ToggleRow label="Animate" checked={animated} onChange={setAnimated} />
+                  {animated && (
+                    <>
+                      <SelectControl
+                        label="Animation"
+                        options={[
+                          { label: "Grow (default)", value: "grow" },
+                          { label: "Radial", value: "radial" },
+                          { label: "Sweep", value: "sweep" },
+                          { label: "Fade", value: "fade" },
+                        ]}
+                        value={animType}
+                        onChange={setAnimType}
+                      />
+                      <SelectControl
+                        label="Easing"
+                        options={EASING_PRESETS.map((e) => ({ label: e, value: e }))}
+                        value={easing}
+                        onChange={setEasing}
+                      />
+                    </>
+                  )}
+                  {kind !== "pie" && (
+                    <ToggleRow
+                      label="Streaming (5 s)"
+                      checked={streaming}
+                      onChange={setStreaming}
+                    />
+                  )}
+                </>
+              ),
+            },
+          ]}
         />
-        <Control label="Loader type">
-          <MultiToggle
-            size="sm"
-            fullWidth
-            options={[
-              { label: "Skeleton", value: "skeleton" },
-              { label: "Spinner", value: "spinner" },
-              { label: "Progress", value: "progress" },
-            ]}
-            value={lgType}
-            onChange={(v) =>
-              setLgType(v as "skeleton" | "spinner" | "progress")
-            }
-          />
-        </Control>
-        {!fixedKind && (
-          <Control label="Chart">
-            <MultiToggle
-              size="sm"
-              fullWidth
-              options={chartKindOptions}
-              value={kind}
-              onChange={(v) => setKind(v as Kind)}
-            />
-          </Control>
-        )}
-        {kind === "line" && (
-          <>
-            <SelectControl
-              label="Curve"
-              options={chartCurveOptions}
-              value={curve}
-              onChange={(v) => setCurve(v as LineCurve)}
-            />
-            <ToggleRow label="Area fill" checked={showFill} onChange={setShowFill} />
-            {showFill && (
-              <ToggleRow
-                label="Area gradient"
-                checked={areaGradient}
-                onChange={setAreaGradient}
-              />
-            )}
-            <ToggleRow
-              label="Markers"
-              checked={showMarkers}
-              onChange={setShowMarkers}
-            />
-            <Control label="Values">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartValuesOptions}
-                value={valuesMode}
-                onChange={(v) => setValuesMode(v as ValuesMode)}
-              />
-            </Control>
-          </>
-        )}
-        {kind === "bar" && (
-          <>
-            <Control label="Mode">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartBarModeOptions}
-                value={barMode}
-                onChange={(v) => setBarMode(v as BarMode)}
-              />
-            </Control>
-            <Control label="Corner">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartBarCornerOptions}
-                value={String(barCorner)}
-                onChange={(v) => setBarCorner(Number(v))}
-              />
-            </Control>
-            {stacked && (
-              <Control label="Segment gap">
-                <MultiToggle
-                  size="sm"
-                  fullWidth
-                  options={chartSegmentGapOptions}
-                  value={String(segmentGap)}
-                  onChange={(v) => setSegmentGap(Number(v))}
-                />
-              </Control>
-            )}
-          </>
-        )}
-        {kind === "pie" && (
-          <>
-            <ToggleRow label="Donut" checked={donut} onChange={setDonut} />
-            <Control label="Slice gap">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPieGapOptions}
-                value={String(pieGap)}
-                onChange={(v) => setPieGap(Number(v))}
-              />
-            </Control>
-            <Control label="Corner">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPieCornerOptions}
-                value={String(pieCorner)}
-                onChange={(v) => setPieCorner(Number(v))}
-              />
-            </Control>
-            <Control label="Slice %">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPieLabelOptions}
-                value={String(pieLabelMin)}
-                onChange={(v) => setPieLabelMin(Number(v))}
-              />
-            </Control>
-            {donut && (
-              <Control label="Sweep">
-                <MultiToggle
-                  size="sm"
-                  fullWidth
-                  options={chartSweepOptions}
-                  value={sweep}
-                  onChange={(v) => {
-                    const next = v as Sweep;
-                    setSweep(next);
-                    if (next !== "full") setDonut(true);
-                  }}
-                />
-              </Control>
-            )}
-          </>
-        )}
-        {kind === "candlestick" && (
-          <Control label="Variant">
-            <MultiToggle
-              size="sm"
-              fullWidth
-              options={chartCandleVariantOptions}
-              value={candleVariant}
-              onChange={(v) => setCandleVariant(v as CandlestickVariant)}
-            />
-          </Control>
-        )}
-        {kind === "candlestick" && (
-          <Control label="Selected">
-            <MultiToggle
-              size="sm"
-              fullWidth
-              options={chartSelectedOptions}
-              value={candleSelected ? "1" : "0"}
-              onChange={(v) => setCandleSelected(v === "1")}
-            />
-          </Control>
-        )}
-        {(kind === "range" || kind === "radar") && (
-          <Control label="Fill">
-            <MultiToggle
-              size="sm"
-              fullWidth
-              options={chartFillOptions}
-              value={fillMode}
-              onChange={(v) => setFillMode(v as FillMode)}
-            />
-          </Control>
-        )}
-        {kind === "gauge" && (
-          <>
-            <Control label="Value">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartGaugeValueOptions}
-                value={gaugeValue}
-                onChange={(v) => setGaugeValue(v)}
-              />
-            </Control>
-            <Control label="Arc span">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartGaugeSpanOptions}
-                value={gaugeSpan}
-                onChange={(v) => setGaugeSpan(v)}
-              />
-            </Control>
-            <Control label="Thickness">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartGaugeInnerOptions}
-                value={gaugeInner}
-                onChange={(v) => setGaugeInner(v)}
-              />
-            </Control>
-            <Control label="Zones">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartGaugeZoneOptions}
-                value={gaugeZones}
-                onChange={(v) => setGaugeZones(v)}
-              />
-            </Control>
-            <Control label="Ticks">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartGaugeTickOptions}
-                value={gaugeTicks}
-                onChange={(v) => setGaugeTicks(v)}
-              />
-            </Control>
-            <Control label="Target">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartGaugeTargetOptions}
-                value={gaugeTarget}
-                onChange={(v) => setGaugeTarget(v)}
-              />
-            </Control>
-          </>
-        )}
-        {kind === "nightingale" && (
-          <>
-            <Control label="Start angle">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartNightStartOptions}
-                value={nightStart}
-                onChange={(v) => setNightStart(v)}
-              />
-            </Control>
-            <Control label="Hub">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartNightInnerOptions}
-                value={nightInner}
-                onChange={(v) => setNightInner(v)}
-              />
-            </Control>
-            <Control label="Slice gap">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPieGapOptions}
-                value={String(nightGap)}
-                onChange={(v) => setNightGap(v)}
-              />
-            </Control>
-            <ToggleRow
-              label="Month labels"
-              checked={nightLabels}
-              onChange={setNightLabels}
-            />
-            <ToggleRow
-              label="Slice ticks"
-              checked={nightTicks}
-              onChange={setNightTicks}
-            />
-            <ToggleRow
-              label="Season bands"
-              checked={nightBands}
-              onChange={setNightBands}
-            />
-            <ToggleRow
-              label="Peak label"
-              checked={nightPeak}
-              onChange={setNightPeak}
-            />
-          </>
-        )}
-        {kind === "waterfall" && (
-          <>
-            <Control label="Orientation">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={[
-                  { label: "Vertical", value: "vertical" },
-                  { label: "Horizontal", value: "horizontal" },
-                ]}
-                value={wfOrientation}
-                onChange={(v) => setWfOrientation(v)}
-              />
-            </Control>
-            <ToggleRow
-              label="Connectors"
-              checked={wfConnectors}
-              onChange={setWfConnectors}
-            />
-            <ToggleRow
-              label="Value labels"
-              checked={wfLabels}
-              onChange={setWfLabels}
-            />
-          </>
-        )}
-        {kind === "combo" && (
-          <>
-            <Control label="Secondary series">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={[
-                  { label: "Line", value: "line" },
-                  { label: "Scatter", value: "scatter" },
-                  { label: "Off", value: "off" },
-                ]}
-                value={comboSecondary}
-                onChange={(v) => setComboSecondary(v as "line" | "scatter" | "off")}
-              />
-            </Control>
-            <ToggleRow
-              label="Right axis (°C)"
-              checked={comboRightAxis}
-              onChange={setComboRightAxis}
-            />
-            <ToggleRow
-              label="Stack bars + total"
-              checked={comboStack}
-              onChange={setComboStack}
-            />
-            <ToggleRow
-              label="Dashed line"
-              checked={comboDashed}
-              onChange={setComboDashed}
-            />
-            <ToggleRow
-              label="Line area"
-              checked={comboArea}
-              onChange={setComboArea}
-            />
-          </>
-        )}
-        {kind === "heatmap" && (
-          <>
-            <Control label="Palette">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={[
-                  { label: "Warm", value: "warm" },
-                  { label: "Ocean", value: "ocean" },
-                  { label: "Gold", value: "gold" },
-                  { label: "Diverging", value: "diverging" },
-                ]}
-                value={hmPalette}
-                onChange={(v) =>
-                  setHmPalette(v as "ocean" | "warm" | "gold" | "diverging")
-                }
-              />
-            </Control>
-            <ToggleRow
-              label="Value labels"
-              checked={hmLabels}
-              onChange={setHmLabels}
-            />
-            <ToggleRow label="Legend" checked={hmLegend} onChange={setHmLegend} />
-            <Control label="Cell radius">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={[
-                  { label: "0", value: "0" },
-                  { label: "3", value: "3" },
-                  { label: "6", value: "6" },
-                  { label: "10", value: "10" },
-                ]}
-                value={String(hmRadius)}
-                onChange={(v) => setHmRadius(Number(v))}
-              />
-            </Control>
-          </>
-        )}
-        {kind === "treemap" && (
-          <>
-            <Control label="Colors">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={[
-                  { label: "Flat", value: "flat" },
-                  { label: "Palette", value: "palette" },
-                  { label: "Stocks", value: "stocks" },
-                ]}
-                value={tmPalette}
-                onChange={(v) => setTmPalette(v as "flat" | "palette" | "stocks")}
-              />
-            </Control>
-            <ToggleRow
-              label="Grouped (by department)"
-              checked={tmGrouped}
-              onChange={setTmGrouped}
-            />
-            <ToggleRow
-              label="Corner values"
-              checked={tmCorner}
-              onChange={setTmCorner}
-            />
-          </>
-        )}
-        {kind === "scatter" && (
-          <>
-            <ToggleRow
-              label="Series 1 · Alpha"
-              checked={scatterShapes["1"]}
-              onChange={(v) => setScatterShapes((s) => ({ ...s, "1": v }))}
-            />
-            <ToggleRow
-              label="Series 2 · Beta"
-              checked={scatterShapes["2"]}
-              onChange={(v) => setScatterShapes((s) => ({ ...s, "2": v }))}
-            />
-            <ToggleRow
-              label="Series 3 · Gamma"
-              checked={scatterShapes["3"]}
-              onChange={(v) => setScatterShapes((s) => ({ ...s, "3": v }))}
-            />
-            <SelectControl
-              label="Marker shape"
-              options={chartScatterShapeOptions}
-              value={scatterMarker}
-              onChange={(v) => setScatterMarker(v as MarkerShape)}
-            />
-            <ToggleRow
-              label="Bubble (size field)"
-              checked={scatterBubble}
-              onChange={setScatterBubble}
-            />
-            {scatterBubble && (
-              <>
-                <Control label="Min size">
-                  <MultiToggle
-                    size="sm"
-                    fullWidth
-                    options={chartScatterMinSizeOptions}
-                    value={scatterMin}
-                    onChange={(v) => setScatterMin(v)}
-                  />
-                </Control>
-                <Control label="Max size">
-                  <MultiToggle
-                    size="sm"
-                    fullWidth
-                    options={chartScatterMaxSizeOptions}
-                    value={scatterMax}
-                    onChange={(v) => setScatterMax(v)}
-                  />
-                </Control>
-              </>
-            )}
-            <Control label="Hit radius">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartScatterHitRadiusOptions}
-                value={scatterHitRadius}
-                onChange={(v) => setScatterHitRadius(v)}
-              />
-            </Control>
-            <Control label="Point opacity">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartScatterOpacityOptions}
-                value={scatterOpacity}
-                onChange={(v) => setScatterOpacity(v)}
-              />
-            </Control>
-            <Control label="Fill opacity">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartScatterFillOptions}
-                value={scatterFill}
-                onChange={(v) => setScatterFill(v)}
-              />
-            </Control>
-            <Control label="Border width">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartScatterBorderOptions}
-                value={scatterBorder}
-                onChange={(v) => setScatterBorder(v)}
-              />
-            </Control>
-            <Control label="Hover brightness">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartScatterBrightnessOptions}
-                value={scatterBrightness}
-                onChange={(v) => setScatterBrightness(v)}
-              />
-            </Control>
-            <Control label="Hover dim">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartScatterDimOptions}
-                value={scatterDim}
-                onChange={(v) => setScatterDim(v)}
-              />
-            </Control>
-            <Control label="Hover radius ×">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartScatterRadiusOptions}
-                value={scatterHoverRadius}
-                onChange={(v) => setScatterHoverRadius(v)}
-              />
-            </Control>
-          </>
-        )}
-        {kind === "polar" && (
-          <>
-            <Control label="Mode">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPolarModeOptions}
-                value={polarMode}
-                onChange={(v) => setPolarMode(v as "group" | "stack")}
-              />
-            </Control>
-            <Control label="Inner radius">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPolarInnerRadiusOptions}
-                value={String(polarInner)}
-                onChange={(v) => setPolarInner(Number(v))}
-              />
-            </Control>
-            <SelectControl
-              label="Sort"
-              options={chartPolarSortOptions}
-              value={polarSort}
-              onChange={(v) => setPolarSort(v as "none" | "asc" | "desc")}
-            />
-            <Control label="Segment radius">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPolarRadiusOptions}
-                value={String(polarRadius)}
-                onChange={(v) => setPolarRadius(Number(v))}
-              />
-            </Control>
-            <Control label="Border">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPolarBorderOptions}
-                value={String(polarBorder)}
-                onChange={(v) => setPolarBorder(Number(v))}
-              />
-            </Control>
-            <Control label="Grid shape">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPolarShapeOptions}
-                value={polarShape}
-                onChange={(v) => setPolarShape(v as "circle" | "polygon")}
-              />
-            </Control>
-            <Control label="Grid style">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartPolarGridStyleOptions}
-                value={polarGridStyle}
-                onChange={(v) =>
-                  setPolarGridStyle(v as "solid" | "dashed" | "dotted")
-                }
-              />
-            </Control>
-          </>
-        )}
-        {kind !== "pie" && (
-          <>
-            <Control label="Grid">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartGridOptions}
-                value={grid}
-                onChange={(v) => setGrid(v as GridStyle)}
-              />
-            </Control>
-            <Control label="Axes">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={[
-                  { label: "All", value: "all" },
-                  { label: "Labels", value: "labels" },
-                  { label: "None", value: "none" },
-                ]}
-                value={axesMode}
-                onChange={(v) =>
-                  setAxesMode(v as "all" | "labels" | "none")
-                }
-              />
-            </Control>
-            <Control label="Grid fade">
-              <MultiToggle
-                size="sm"
-                fullWidth
-                options={chartGridFadeOptions}
-                value={gridFade}
-                onChange={setGridFade}
-              />
-            </Control>
-          </>
-        )}
-        <Control label="Height">
-          <MultiToggle
-            size="sm"
-            options={chartHeightOptions}
-            value={String(height)}
-            onChange={(v) => setHeight(Number(v))}
-          />
-        </Control>
-        <Control label="Legend">
-          <MultiToggle
-            size="sm"
-            fullWidth
-            options={chartLegendPositionOptions}
-            value={legendPosition}
-            onChange={(v) => setLegendPosition(v as "top" | "bottom")}
-          />
-        </Control>
-        <ToggleRow label="Animate" checked={animated} onChange={setAnimated} />
-        {animated && (
-          <>
-            <SelectControl
-              label="Animation"
-              options={[
-                { label: "Grow (default)", value: "grow" },
-                { label: "Radial", value: "radial" },
-                { label: "Sweep", value: "sweep" },
-                { label: "Fade", value: "fade" },
-              ]}
-              value={animType}
-              onChange={setAnimType}
-            />
-            <SelectControl
-              label="Easing"
-              options={EASING_PRESETS.map((e) => ({ label: e, value: e }))}
-              value={easing}
-              onChange={setEasing}
-            />
-          </>
-        )}
-        {kind !== "pie" && (
-          <ToggleRow
-            label="Streaming (5 s)"
-            checked={streaming}
-            onChange={setStreaming}
-          />
-        )}
-      </>
-    } preview={preview} previewClassName="bg-neutral-50/60 dark:bg-neutral-950/40" />
+      }
+      preview={preview}
+      previewClassName="bg-neutral-50/60 dark:bg-neutral-950/40"
+    />
   );
 };

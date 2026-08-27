@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import {
   TRUE_COLORS,
+  getFieldSizeTokens,
   getInputVariantTokens,
 } from "../theme/Theme";
 import type { ControlSize, InputVariant, TrueColor } from "../theme/Theme";
@@ -58,6 +59,12 @@ type InputGroupToneTokens = {
   addon: string;
 };
 
+/**
+ * These are *not* the shared field tone tokens, and deliberately so: the group
+ * draws its edge with an `outline` rather than a `ring` (see the type above),
+ * and it owns addon fills that no other field has. Only `focusBorder` is the
+ * same idea, and it is spelled the same way.
+ */
 const buildToneTokens = (color: TrueColor): InputGroupToneTokens => ({
   ring: `outline-${color}-200/70 dark:outline-${color}-500/30`,
   focusRing: `focus-within:outline-${color}-400 dark:focus-within:outline-${color}-400`,
@@ -77,14 +84,9 @@ const getToneTokens = (color: TrueColor): InputGroupToneTokens =>
 
 // ── Sizing ────────────────────────────────────────────────────────────────────
 
-/** Addon padding and type, mirroring `Input`'s so the two halves line up. */
-const SIZE_STYLES: Record<ControlSize, { padding: string; text: string }> = {
-  xs: { padding: "px-2", text: "text-xs" },
-  sm: { padding: "px-2.5", text: "text-xs" },
-  md: { padding: "px-3", text: "text-sm" },
-  lg: { padding: "px-4", text: "text-base" },
-  xl: { padding: "px-5", text: "text-base" },
-};
+// The addon padding and type scale come from the theme's field table, so the
+// two halves of the group line up with the `Input` between them by
+// construction rather than by a copy that has to be kept in step.
 
 const STATUS_RING: Record<
   Exclude<InputGroupValidationStatus, "none">,
@@ -173,7 +175,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
 }) => {
   const effectiveTone = tone ?? color ?? "blue";
   const toneToken = getToneTokens(effectiveTone);
-  const sizeToken = SIZE_STYLES[size] ?? SIZE_STYLES.md;
+  const sizeToken = getFieldSizeTokens(size);
   const variantTokens = getInputVariantTokens(variant);
   const hasStatus = validationStatus !== "none";
   const isUnderline = variant === "underline";
@@ -183,7 +185,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
     // The base used to carry a fixed `text-sm` next to the size token's own
     // `text-*`, so which one applied at `lg` was decided by emission order.
     sizeToken.text,
-    sizeToken.padding,
+    sizeToken.px,
     toneToken.addon,
   );
 

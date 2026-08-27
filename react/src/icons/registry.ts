@@ -140,6 +140,7 @@ import { ArrowChevronLeft } from "./components/ArrowChevronLeft";
 import { ArrowChevronRight } from "./components/ArrowChevronRight";
 import { Drag } from "./components/Drag";
 import { ChartLine } from "./components/ChartLine";
+import { Accordion } from "./components/Accordion";
 
 export type IconName =
   | "Add"
@@ -282,7 +283,8 @@ export type IconName =
   | "ArrowChevronLeft"
   | "ArrowChevronRight"
   | "Drag"
-  | "ChartLine";
+  | "ChartLine"
+  | "Accordion";
 
 export const iconRegistry: Record<
   IconName,
@@ -429,4 +431,5 @@ export const iconRegistry: Record<
   ArrowChevronRight: ArrowChevronRight,
   Drag: Drag,
   ChartLine: ChartLine,
+  Accordion: Accordion,
 };

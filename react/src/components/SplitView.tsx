@@ -6,7 +6,16 @@ import React, {
   useState,
 } from "react";
 import classNames from "classnames";
-import { type TrueColor, getPillColorClasses } from "../theme/Theme";
+import {
+  SURFACE_VARIANTS,
+  TRUE_COLORS,
+  getPanelToneStyles,
+  getPillColorClasses,
+  getSurfaceTextTokens,
+  getSurfaceVariantClasses,
+  type SurfaceVariant,
+  type TrueColor,
+} from "../theme/Theme";
 import CustomIcon from "./CustomIcon";
 import EmptyState from "./EmptyState";
 import { type IconName } from "../icons/registry";
@@ -16,12 +25,46 @@ import IconButton from "./IconButton";
 import SearchBar from "./SearchBar";
 import HelpButton, { type HelpButtonProps } from "./HelpButton";
 import Panel, { type PanelDecoration, type PanelVariant } from "./Panel";
+import type { InputVariant } from "../theme/Theme";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
 export type SplitViewSize = "sm" | "md" | "lg";
+
+/**
+ * The shared surface family, same as `Panel`. The component used to paint a
+ * hardcoded `bg-gray-50/80 dark:bg-gray-900/80` list beside a `bg-white`
+ * detail pane — the latter with no dark-mode partner at all, so the whole
+ * right-hand side stayed a white slab in dark mode.
+ */
+export { SURFACE_VARIANTS as SPLIT_VIEW_VARIANTS };
+export type SplitViewVariant = SurfaceVariant;
+
+/**
+ * The kit's three loader treatments, `skeleton` by default — a placeholder
+ * shaped like the two panes keeps the layout, where an overlay spinner hides
+ * it and the content jumps when the data lands.
+ */
+export const SPLIT_VIEW_LOADERS = ["skeleton", "spinner", "progress"] as const;
+export type SplitViewLoader = (typeof SPLIT_VIEW_LOADERS)[number];
+
+/**
+ * Which `InputVariant` the built-in search takes for a given surface, so the
+ * field reads as part of the pane it sits on rather than a stray control. It
+ * was pinned to `gradient` with a `subtle` glow on every surface.
+ */
+const SEARCH_VARIANT_FOR_SURFACE: Record<SurfaceVariant, InputVariant> = {
+  elevated: "elevated",
+  outlined: "flat",
+  subtle: "ghost",
+  tonal: "ghost",
+  default: "flat",
+  simple: "ghost",
+  glass: "glass",
+  "liquid-glass": "glass",
+};
 
 export interface SplitViewItemBadge {
   label: React.ReactNode;
@@ -117,9 +160,33 @@ export interface SplitViewProps {
   searchPlaceholder?: string;
   /** Width of the list panel – Tailwind class (when not resizable) or initial px value for resizable */
   listWidth?: string;
-  /** Accent color used for active item highlight */
+  /** Accent for the active row, the resizer and the search field. */
+  tone?: TrueColor;
+  /** @deprecated Use `tone`, which is what every other component calls it. */
   color?: TrueColor;
+  /** The surface family, shared with `Panel`. @default "subtle" */
+  variant?: SplitViewVariant;
+  /**
+   * Tone of the *surface* — kept separate from `tone`, which is the accent.
+   * A full-height two-pane layout tinted in the accent colour is a lot of
+   * colour, and the accent's whole job is to stand out against the surface
+   * rather than match it. Set this to tint the panes deliberately.
+   * @default "neutral"
+   */
+  surfaceTone?: TrueColor;
+  /**
+   * Surface for the built-in search field. Defaults to whichever `InputVariant`
+   * suits `variant`, so the field belongs to the pane it sits on.
+   */
+  searchVariant?: InputVariant;
   size?: SplitViewSize;
+  /**
+   * Draws the pulsing dot on rows with `highlight`. Turn it off to keep the
+   * accent tint but drop the notification cue — useful once the user has been
+   * told, or on a list where most rows are new and the dots become noise.
+   * @default true
+   */
+  showHighlightIndicator?: boolean;
 
   /** Deprecated: one visible item is now always shown as detail-only (list hidden). */
   autoHideList?: boolean;
@@ -168,7 +235,11 @@ export interface SplitViewProps {
 
   /** When true, shows a loading state instead of the normal content */
   loading?: boolean;
-  /** Custom loading content. Defaults to a centered Spinner with "Loading..." label. */
+  /** How `loading` is drawn. @default "skeleton" */
+  loaderType?: SplitViewLoader;
+  /** Determinate value for `loaderType="progress"`, 0–100. */
+  loadingProgress?: number;
+  /** Custom loading content, replacing whichever `loaderType` would draw. */
   loadingState?: React.ReactNode;
 
   /** When truthy, shows an error state instead of the normal content. Pass a string to use as the error subtitle. */
@@ -237,6 +308,16 @@ const iconSizeClasses: Record<SplitViewSize, string> = {
   lg: "h-6 w-6",
 };
 
+/**
+ * Generated from `TRUE_COLORS`, not hand-written.
+ *
+ * The literal maps this replaces aliased **both `neutral` and `stone`** to one
+ * shared `neutralActive` / `neutralHighlight` object — so a `stone` SplitView
+ * silently rendered neutral, and `neutral` itself used `border-l-neutral-500`
+ * where every other tone used `-600`. Because the literals were also what
+ * Tailwind scanned, `border-l-stone-600` had never been emitted at all. The
+ * shapes are declared in `scripts/generate-safelist.mjs`.
+ */
 type ActiveColorTokens = {
   bg: string;
   border: string;
@@ -245,189 +326,27 @@ type ActiveColorTokens = {
   resizer: string;
 };
 
-// All class names must be written out as full strings so Tailwind's JIT scanner can detect them.
-const neutralActive: ActiveColorTokens = {
-  bg: "bg-neutral-100 dark:bg-neutral-800/40",
-  border: "border-l-neutral-500",
-  text: "text-neutral-900 dark:text-neutral-100",
-  subtitle: "text-neutral-600 dark:text-neutral-400",
-  resizer: "bg-neutral-400/40",
-};
-
-const activeColors: Record<TrueColor, ActiveColorTokens> = {
-  red: {
-    bg: "bg-red-50 dark:bg-red-900/30",
-    border: "border-l-red-600",
-    text: "text-red-900 dark:text-red-100",
-    subtitle: "text-red-600 dark:text-red-400",
-    resizer: "bg-red-400",
-  },
-  orange: {
-    bg: "bg-orange-50 dark:bg-orange-900/30",
-    border: "border-l-orange-600",
-    text: "text-orange-900 dark:text-orange-100",
-    subtitle: "text-orange-600 dark:text-orange-400",
-    resizer: "bg-orange-400",
-  },
-  amber: {
-    bg: "bg-amber-50 dark:bg-amber-900/30",
-    border: "border-l-amber-600",
-    text: "text-amber-900 dark:text-amber-100",
-    subtitle: "text-amber-600 dark:text-amber-400",
-    resizer: "bg-amber-400",
-  },
-  yellow: {
-    bg: "bg-yellow-50 dark:bg-yellow-900/30",
-    border: "border-l-yellow-600",
-    text: "text-yellow-900 dark:text-yellow-100",
-    subtitle: "text-yellow-600 dark:text-yellow-400",
-    resizer: "bg-yellow-400",
-  },
-  lime: {
-    bg: "bg-lime-50 dark:bg-lime-900/30",
-    border: "border-l-lime-600",
-    text: "text-lime-900 dark:text-lime-100",
-    subtitle: "text-lime-600 dark:text-lime-400",
-    resizer: "bg-lime-400",
-  },
-  green: {
-    bg: "bg-green-50 dark:bg-green-900/30",
-    border: "border-l-green-600",
-    text: "text-green-900 dark:text-green-100",
-    subtitle: "text-green-600 dark:text-green-400",
-    resizer: "bg-green-400",
-  },
-  emerald: {
-    bg: "bg-emerald-50 dark:bg-emerald-900/30",
-    border: "border-l-emerald-600",
-    text: "text-emerald-900 dark:text-emerald-100",
-    subtitle: "text-emerald-600 dark:text-emerald-400",
-    resizer: "bg-emerald-400",
-  },
-  teal: {
-    bg: "bg-teal-50 dark:bg-teal-900/30",
-    border: "border-l-teal-600",
-    text: "text-teal-900 dark:text-teal-100",
-    subtitle: "text-teal-600 dark:text-teal-400",
-    resizer: "bg-teal-400",
-  },
-  cyan: {
-    bg: "bg-cyan-50 dark:bg-cyan-900/30",
-    border: "border-l-cyan-600",
-    text: "text-cyan-900 dark:text-cyan-100",
-    subtitle: "text-cyan-600 dark:text-cyan-400",
-    resizer: "bg-cyan-400",
-  },
-  sky: {
-    bg: "bg-sky-50 dark:bg-sky-900/30",
-    border: "border-l-sky-600",
-    text: "text-sky-900 dark:text-sky-100",
-    subtitle: "text-sky-600 dark:text-sky-400",
-    resizer: "bg-sky-400",
-  },
-  blue: {
-    bg: "bg-blue-50 dark:bg-blue-900/30",
-    border: "border-l-blue-600",
-    text: "text-blue-900 dark:text-blue-100",
-    subtitle: "text-blue-600 dark:text-blue-400",
-    resizer: "bg-blue-400",
-  },
-  indigo: {
-    bg: "bg-indigo-50 dark:bg-indigo-900/30",
-    border: "border-l-indigo-600",
-    text: "text-indigo-900 dark:text-indigo-100",
-    subtitle: "text-indigo-600 dark:text-indigo-400",
-    resizer: "bg-indigo-400",
-  },
-  violet: {
-    bg: "bg-violet-50 dark:bg-violet-900/30",
-    border: "border-l-violet-600",
-    text: "text-violet-900 dark:text-violet-100",
-    subtitle: "text-violet-600 dark:text-violet-400",
-    resizer: "bg-violet-400",
-  },
-  purple: {
-    bg: "bg-purple-50 dark:bg-purple-900/30",
-    border: "border-l-purple-600",
-    text: "text-purple-900 dark:text-purple-100",
-    subtitle: "text-purple-600 dark:text-purple-400",
-    resizer: "bg-purple-400",
-  },
-  fuchsia: {
-    bg: "bg-fuchsia-50 dark:bg-fuchsia-900/30",
-    border: "border-l-fuchsia-600",
-    text: "text-fuchsia-900 dark:text-fuchsia-100",
-    subtitle: "text-fuchsia-600 dark:text-fuchsia-400",
-    resizer: "bg-fuchsia-400",
-  },  rose: {
-    bg: "bg-rose-50 dark:bg-rose-900/30",
-    border: "border-l-rose-600",
-    text: "text-rose-900 dark:text-rose-100",
-    subtitle: "text-rose-600 dark:text-rose-400",
-    resizer: "bg-rose-400",
-  },
-  slate: {
-    bg: "bg-slate-50 dark:bg-slate-900/30",
-    border: "border-l-slate-600",
-    text: "text-slate-900 dark:text-slate-100",
-    subtitle: "text-slate-600 dark:text-slate-400",
-    resizer: "bg-slate-400",
-  },
-  gray: {
-    bg: "bg-gray-50 dark:bg-gray-900/30",
-    border: "border-l-gray-600",
-    text: "text-gray-900 dark:text-gray-100",
-    subtitle: "text-gray-600 dark:text-gray-400",
-    resizer: "bg-gray-400",
-  },
-  zinc: {
-    bg: "bg-zinc-50 dark:bg-zinc-900/30",
-    border: "border-l-zinc-600",
-    text: "text-zinc-900 dark:text-zinc-100",
-    subtitle: "text-zinc-600 dark:text-zinc-400",
-    resizer: "bg-zinc-400",
-  },
-  neutral: neutralActive,
-  stone: neutralActive,
-};
+const activeColors: Record<TrueColor, ActiveColorTokens> = Object.fromEntries(
+  TRUE_COLORS.map((c) => [
+    c,
+    {
+      bg: `bg-${c}-50 dark:bg-${c}-900/30`,
+      border: `border-l-${c}-600`,
+      text: `text-${c}-900 dark:text-${c}-100`,
+      subtitle: `text-${c}-600 dark:text-${c}-400`,
+      resizer: `bg-${c}-400`,
+    },
+  ]),
+) as Record<TrueColor, ActiveColorTokens>;
 
 type HighlightTokens = { bg: string; dot: string };
 
-const neutralHighlight: HighlightTokens = {
-  bg: "bg-neutral-100 dark:bg-neutral-700/50",
-  dot: "bg-neutral-500",
-};
-
-// All class names are written as full strings so Tailwind's JIT scanner can detect them.
-const highlightColors: Record<TrueColor, HighlightTokens> = {
-  red: { bg: "bg-red-100 dark:bg-red-900/50", dot: "bg-red-500" },
-  orange: { bg: "bg-orange-100 dark:bg-orange-900/50", dot: "bg-orange-500" },
-  amber: { bg: "bg-amber-100 dark:bg-amber-900/50", dot: "bg-amber-500" },
-  yellow: { bg: "bg-yellow-100 dark:bg-yellow-900/50", dot: "bg-yellow-500" },
-  lime: { bg: "bg-lime-100 dark:bg-lime-900/50", dot: "bg-lime-500" },
-  green: { bg: "bg-green-100 dark:bg-green-900/50", dot: "bg-green-500" },
-  emerald: {
-    bg: "bg-emerald-100 dark:bg-emerald-900/50",
-    dot: "bg-emerald-500",
-  },
-  teal: { bg: "bg-teal-100 dark:bg-teal-900/50", dot: "bg-teal-500" },
-  cyan: { bg: "bg-cyan-100 dark:bg-cyan-900/50", dot: "bg-cyan-500" },
-  sky: { bg: "bg-sky-100 dark:bg-sky-900/50", dot: "bg-sky-500" },
-  blue: { bg: "bg-blue-100 dark:bg-blue-900/50", dot: "bg-blue-500" },
-  indigo: { bg: "bg-indigo-100 dark:bg-indigo-900/50", dot: "bg-indigo-500" },
-  violet: { bg: "bg-violet-100 dark:bg-violet-900/50", dot: "bg-violet-500" },
-  purple: { bg: "bg-purple-100 dark:bg-purple-900/50", dot: "bg-purple-500" },
-  fuchsia: {
-    bg: "bg-fuchsia-100 dark:bg-fuchsia-900/50",
-    dot: "bg-fuchsia-500",
-  },
-  rose: { bg: "bg-rose-100 dark:bg-rose-900/50", dot: "bg-rose-500" },
-  slate: { bg: "bg-slate-100 dark:bg-slate-800/50", dot: "bg-slate-500" },
-  gray: { bg: "bg-gray-100 dark:bg-gray-800/50", dot: "bg-gray-500" },
-  zinc: { bg: "bg-zinc-100 dark:bg-zinc-800/50", dot: "bg-zinc-500" },
-  neutral: neutralHighlight,
-  stone: neutralHighlight,
-};
+const highlightColors: Record<TrueColor, HighlightTokens> = Object.fromEntries(
+  TRUE_COLORS.map((c) => [
+    c,
+    { bg: `bg-${c}-100 dark:bg-${c}-900/50`, dot: `bg-${c}-500` },
+  ]),
+) as Record<TrueColor, HighlightTokens>;
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -441,8 +360,13 @@ const SplitView: React.FC<SplitViewProps> = ({
   listTitle,
   searchPlaceholder = "Search...",
   listWidth,
-  color = "blue",
+  tone,
+  color,
+  variant = "subtle",
+  surfaceTone = "neutral",
+  searchVariant,
   size = "md",
+  showHighlightIndicator = true,
   autoHideList = true,
   collapsible = false,
   collapsed: controlledCollapsed,
@@ -460,6 +384,8 @@ const SplitView: React.FC<SplitViewProps> = ({
   listActions,
   panelEmptyState,
   loading = false,
+  loaderType = "skeleton",
+  loadingProgress,
   loadingState,
   error,
   errorState,
@@ -470,6 +396,17 @@ const SplitView: React.FC<SplitViewProps> = ({
   onExpand,
   panelScrollable = true,
 }) => {
+  const effectiveTone = tone ?? color ?? "blue";
+  // The container owns the surface; the two panes are differentiated by a
+  // *tint that composites over it* rather than a fill that replaces it — so a
+  // glass or liquid-glass SplitView keeps its backdrop instead of being
+  // painted over with an opaque slab.
+  const surfaceClasses = getSurfaceVariantClasses(variant, surfaceTone);
+  const surfaceText = getSurfaceTextTokens(variant);
+  const tonePalette = getPanelToneStyles(surfaceTone);
+  const resolvedSearchVariant =
+    searchVariant ?? SEARCH_VARIANT_FOR_SURFACE[variant] ?? "flat";
+
   const visibleItems = useMemo(() => items.filter((i) => !i.hidden), [items]);
   const isSingleVisibleItem = visibleItems.length === 1;
   const isNoVisibleItems = visibleItems.length === 0;
@@ -567,8 +504,8 @@ const SplitView: React.FC<SplitViewProps> = ({
   const activeItem = visibleItems.find((i) => i.id === activeId);
 
   const tokens = sizeTokens[size];
-  const accent = activeColors[color];
-  const highlightAccent = highlightColors[color];
+  const accent = activeColors[effectiveTone] ?? activeColors.blue;
+  const highlightAccent = highlightColors[effectiveTone] ?? highlightColors.blue;
   const resizerColor = accent.resizer;
 
   const handleSelect = (item: SplitViewItem) => {
@@ -793,17 +730,60 @@ const SplitView: React.FC<SplitViewProps> = ({
   const listPanelWidthClass =
     isCollapsed || resizable ? undefined : listWidthClass;
 
-  /* ---- Overlay helper ---- */
+  /* ---- Loading and error treatments ---- */
+
+  /**
+   * A placeholder shaped like the two panes. The overlay treatments cover the
+   * layout, so the content jumps when the data lands and the list width is
+   * anybody's guess until it does; the skeleton holds both.
+   */
+  const SKELETON =
+    "animate-pulse bg-black/10 motion-reduce:animate-none dark:bg-white/10";
+
+  const renderSkeleton = (withList: boolean) => (
+    <div className="flex h-full min-h-0 w-full" aria-hidden="true">
+      {withList && (
+        <div
+          className={classNames(
+            // Capped: the list width is a fixed `w-72` by default, which in a
+            // container narrower than that eats the whole view and leaves the
+            // detail half of the skeleton with nowhere to draw.
+            "flex shrink-0 flex-col gap-3 border-r p-4 max-w-[45%]",
+            listPanelWidthClass ?? "w-72",
+            tonePalette.border,
+          )}
+        >
+          <div className={classNames(SKELETON, "h-3 w-24 rounded")} />
+          <div className={classNames(SKELETON, "h-8 w-full rounded-lg")} />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-1.5 py-1">
+              <div className={classNames(SKELETON, "h-3 w-2/3 rounded")} />
+              <div className={classNames(SKELETON, "h-2.5 w-1/2 rounded")} />
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col gap-3 p-6">
+        <div className={classNames(SKELETON, "h-4 w-40 rounded")} />
+        <div className={classNames(SKELETON, "h-3 w-64 rounded")} />
+        <div className={classNames(SKELETON, "mt-4 h-32 w-full rounded-lg")} />
+      </div>
+    </div>
+  );
+
   const renderOverlay = () => {
-    if (loading) {
+    // `skeleton` replaces the content rather than covering it, so it is handled
+    // where the panes are rendered, not here.
+    if (loading && loaderType !== "skeleton") {
       return (
         <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[inherit] bg-white/60 backdrop-blur-md dark:bg-neutral-900/50">
           {loadingState ?? (
             <Loader
               size="lg"
               label="Please wait..."
-              color={color}
-              variant="spinner"
+              color={effectiveTone}
+              variant={loaderType === "progress" ? "progress" : "spinner"}
+              progress={loadingProgress}
               title="Loading..."
               spinnerThickness="thick"
               spinnerVariant="segments"
@@ -828,7 +808,7 @@ const SplitView: React.FC<SplitViewProps> = ({
               actionLabel={onRetry ? "Retry" : undefined}
               onAction={onRetry}
               actionVariant="solid"
-              actionColor={color}
+              actionColor={effectiveTone}
               variant="plain"
               iconColor="rose"
               size="lg"
@@ -840,17 +820,23 @@ const SplitView: React.FC<SplitViewProps> = ({
     return null;
   };
 
+  const showSkeleton = loading && loaderType === "skeleton" && !loadingState;
+  const skeletonOverride = loading && loaderType === "skeleton" && loadingState;
+
   /* ---- Auto-hide: just render the detail panel ---- */
   if (shouldHideList) {
     return (
       <div
         className={classNames(
           "relative flex h-full min-h-0 overflow-hidden",
-          borderLeft && "border-l border-gray-200 dark:border-gray-700",
+          surfaceClasses,
+          borderLeft && classNames("border-l", tonePalette.border),
           className,
         )}
       >
         {renderOverlay()}
+        {showSkeleton && renderSkeleton(false)}
+        {skeletonOverride && loadingState}
         <div
           className={classNames(
             "flex flex-1 flex-col min-w-0 h-full overflow-hidden",
@@ -862,7 +848,7 @@ const SplitView: React.FC<SplitViewProps> = ({
               {singleHeader ? (
                 <div className="shrink-0">{singleHeader}</div>
               ) : listActions ? (
-                <div className="shrink-0 flex items-center justify-end gap-1 px-4 py-2 border-b border-neutral-200 dark:border-neutral-700">
+                <div className={classNames("shrink-0 flex items-center justify-end gap-1 px-4 py-2 border-b", tonePalette.border)}>
                   {listActions}
                 </div>
               ) : null}
@@ -885,7 +871,7 @@ const SplitView: React.FC<SplitViewProps> = ({
                     subtitle="There are no items to display."
                     showIcon
                     variant="plain"
-                    color={color}
+                    color={effectiveTone}
                   />
                 )}
               </div>
@@ -901,16 +887,26 @@ const SplitView: React.FC<SplitViewProps> = ({
       ref={containerRef}
       className={classNames(
         "relative flex h-full min-h-0 overflow-hidden",
-        borderLeft && "border-l border-gray-200 dark:border-gray-700",
+        surfaceClasses,
+        borderLeft && classNames("border-l", tonePalette.border),
         className,
       )}
     >
       {renderOverlay()}
+      {skeletonOverride && loadingState}
+      {showSkeleton ? (
+        renderSkeleton(true)
+      ) : (
+        <>
       {/* ---- List Panel ---- */}
       <div
         style={listPanelStyle}
         className={classNames(
-          "flex flex-col shrink-0 border-r border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/80 h-full overflow-hidden",
+          // A translucent tint rather than `bg-gray-50/80 dark:bg-gray-900/80`:
+          // an opaque fill replaces the container's surface, so a glass or
+          // liquid-glass SplitView lost its backdrop entirely on this half.
+          "flex h-full shrink-0 flex-col overflow-hidden border-r bg-black/[0.025] dark:bg-white/[0.025]",
+          tonePalette.border,
           isCollapsed && "transition-[width] duration-300 ease-in-out",
           listPanelWidthClass,
           listClassName,
@@ -923,7 +919,7 @@ const SplitView: React.FC<SplitViewProps> = ({
               tooltip="Expand View"
               icon="ArrowChevronRight"
               variant="ghost"
-              color={color}
+              color={effectiveTone}
               size="xs"
               onClick={toggleCollapsed}
               aria-label="Expand list"
@@ -935,7 +931,7 @@ const SplitView: React.FC<SplitViewProps> = ({
             {(listTitle || listActions || collapsible) && (
               <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between gap-2">
                 {listTitle && (
-                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <h3 className={classNames("text-xs font-semibold uppercase tracking-wider", surfaceText.muted)}>
                     {listTitle}
                   </h3>
                 )}
@@ -946,7 +942,7 @@ const SplitView: React.FC<SplitViewProps> = ({
                       tooltip="Collapse View"
                       icon="ArrowChevronLeft"
                       variant="ghost"
-                      color={color}
+                      color={effectiveTone}
                       size="xs"
                       onClick={toggleCollapsed}
                       aria-label="Collapse list"
@@ -961,9 +957,10 @@ const SplitView: React.FC<SplitViewProps> = ({
               <div className="shrink-0 px-3 pb-2 pt-1">
                 <SearchBar
                   placeholder={searchPlaceholder}
-                  variant="gradient"
+                  variant={resolvedSearchVariant}
                   glowIntensity="subtle"
-                  color={color}
+                  color={effectiveTone}
+                  size={size === "lg" ? "md" : "sm"}
                   onSearch={setFilter}
                 />
               </div>
@@ -972,7 +969,7 @@ const SplitView: React.FC<SplitViewProps> = ({
             {/* Item list */}
             <div className="flex-1 overflow-y-auto">
               {filteredItems.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+                <div className={classNames("px-4 py-6 text-center text-sm", surfaceText.muted)}>
                   {emptyState ?? "No items found"}
                 </div>
               ) : (
@@ -1017,7 +1014,9 @@ const SplitView: React.FC<SplitViewProps> = ({
                                   accent.border,
                                   "border-l-[3px]",
                                 )
-                              : "border-l-[3px] border-l-transparent hover:bg-gray-100/80 dark:hover:bg-gray-800/60",
+                              // Composites over whatever surface is beneath, so hover
+                              // still reads on glass.
+                              : "border-l-[3px] border-l-transparent hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
                         )}
                       >
                         <div className="flex items-start gap-2 min-w-0">
@@ -1042,7 +1041,7 @@ const SplitView: React.FC<SplitViewProps> = ({
                                     tokens.label,
                                     isActive || item.highlight
                                       ? accent.text
-                                      : "text-gray-900 dark:text-gray-100",
+                                      : surfaceText.heading,
                                   )}
                                 >
                                   {item.label}
@@ -1054,7 +1053,7 @@ const SplitView: React.FC<SplitViewProps> = ({
                                       tokens.subtitle,
                                       isActive
                                         ? accent.subtitle
-                                        : "text-gray-500 dark:text-gray-400",
+                                        : surfaceText.muted,
                                     )}
                                   >
                                     {item.subtitle}
@@ -1073,7 +1072,7 @@ const SplitView: React.FC<SplitViewProps> = ({
                           {/* Right rail order: actions, highlight dot, expand/collapse */}
                           {(item.actions ||
                             hasExpandControl ||
-                            item.highlight) && (
+                            (item.highlight && showHighlightIndicator)) && (
                             <div className="shrink-0 flex items-center gap-0.5">
                               {item.actions && (
                                 <div
@@ -1084,7 +1083,7 @@ const SplitView: React.FC<SplitViewProps> = ({
                                   {item.actions}
                                 </div>
                               )}
-                              {item.highlight && (
+                              {item.highlight && showHighlightIndicator && (
                                 <span
                                   className={classNames(
                                     "h-2 w-2 shrink-0 rounded-full",
@@ -1119,7 +1118,15 @@ const SplitView: React.FC<SplitViewProps> = ({
                                       "rounded p-1 transition-colors duration-150",
                                       isExpanded
                                         ? classNames(accent.text, "opacity-100")
-                                        : "text-gray-400 opacity-0 group-hover/item:opacity-100 hover:text-gray-700 dark:hover:text-gray-200",
+                                        : classNames(
+                                            surfaceText.muted,
+                                            // Dimmed, not hidden. At `opacity-0`
+                                            // the only cue that a row *has*
+                                            // sub-items was hovering it, so the
+                                            // feature was undiscoverable on a
+                                            // list where only some rows expand.
+                                            "opacity-60 group-hover/item:opacity-100",
+                                          ),
                                     )}
                                   >
                                     <svg
@@ -1196,7 +1203,10 @@ const SplitView: React.FC<SplitViewProps> = ({
       {/* ---- Detail Panel ---- */}
       <div
         className={classNames(
-          "flex flex-1 flex-col min-w-0 h-full bg-white overflow-hidden",
+          // No fill of its own: it inherits the container's surface. It was a
+          // bare `bg-white` with no `dark:` partner, so the whole detail half
+          // stayed a white slab in dark mode.
+          "flex h-full min-w-0 flex-1 flex-col overflow-hidden",
           panelClassName,
         )}
       >
@@ -1224,13 +1234,15 @@ const SplitView: React.FC<SplitViewProps> = ({
                   subtitle="Select an item from the list to view its details."
                   showIcon
                   variant="plain"
-                  color={color}
+                  color={effectiveTone}
                 />
               )}
             </div>
           )
         )}
       </div>
+        </>
+      )}
     </div>
   );
 };

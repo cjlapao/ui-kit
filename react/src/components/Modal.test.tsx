@@ -48,8 +48,8 @@ describe("Modal — surface", () => {
   });
 
   it("accepts a different corner", () => {
-    const { panel } = open({ corner: "rounded-full" });
-    expect(panel()!.className).toContain(getSurfaceCornerClass("rounded-full"));
+    const { panel } = open({ corner: "rounded-xl" });
+    expect(panel()!.className).toContain(getSurfaceCornerClass("rounded-xl"));
   });
 });
 

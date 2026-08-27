@@ -6,6 +6,10 @@ import Basic from "./examples/Basic";
 import basicCode from "./examples/Basic.tsx?raw";
 import Variants from "./examples/Variants";
 import variantsCode from "./examples/Variants.tsx?raw";
+import Noise from "./examples/Noise";
+import noiseCode from "./examples/Noise.tsx?raw";
+import Loading from "./examples/Loading";
+import loadingCode from "./examples/Loading.tsx?raw";
 import Collapse from "./examples/Collapse";
 import collapseCode from "./examples/Collapse.tsx?raw";
 import Nested from "./examples/Nested";
@@ -27,7 +31,7 @@ export const SideMenuPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Side Menu"
-      description="App navigation with four surface treatments (sidebar, inset, floating, glass), icon-rail and offcanvas collapse, hover-to-expand rails, nested items, item search and top/footer dropdown menus. SideMenuLayout composes it into dual and multi-sidebar app shells, and both stay responsive — below 1024px the panel becomes an offcanvas drawer."
+      description="App navigation with five surface treatments (sidebar, inset, floating, floating-glass, glass), icon-rail and offcanvas collapse, hover-to-expand rails, nested items, item search and top/footer dropdown menus. SideMenuLayout composes it into dual and multi-sidebar app shells, and both stay responsive — below 1024px the panel becomes an offcanvas drawer."
     />
     <SideMenuPlayground />
     <section className="flex flex-col gap-5">
@@ -44,11 +48,27 @@ export const SideMenuPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Surface variants"
-        description="sidebar is the standing look; inset is a flat panel with a hairline, floating a detached rounded card, and glass the kit's liquid-glass language tinted with the menu's tone. Rows inside take the matching treatment automatically."
+        description="sidebar is the standing look; inset is a flat panel with a hairline, floating a detached rounded card, floating-glass that card in the kit's liquid-glass language, and glass the liquid-glass look flush in the layout — both glass treatments tinted with the menu's tone. Rows inside take the matching treatment automatically."
         code={variantsCode}
         filename="Variants.tsx"
       >
         <Variants />
+      </ExampleCard>
+      <ExampleCard
+        title="Dither noise"
+        description="An opt-in film-grain texture over the panel background (off by default). It blends with the surface and reads most clearly on dark fills — the right panel has noise enabled."
+        code={noiseCode}
+        filename="Noise.tsx"
+      >
+        <Noise />
+      </ExampleCard>
+      <ExampleCard
+        title="Loading states"
+        description="The same loader set as Panel: skeleton (the default) replaces the rows with a pulsing placeholder shaped like the menu's own chrome, while spinner and progress overlay the shared loader on top of the content."
+        code={loadingCode}
+        filename="Loading.tsx"
+      >
+        <Loading />
       </ExampleCard>
       <ExampleCard
         title="Collapse modes"

@@ -15,6 +15,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   trueColorOptions,
@@ -31,54 +32,74 @@ export const StatusSpinnerPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(value) => setSize(value as StatusSpinnerSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(value) => setTone(value as StatusSpinnerTone)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(value) => setSize(value as StatusSpinnerSize)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(value) => setTone(value as StatusSpinnerTone)}
+                    />
+                  </>
+                ),
+              },
+              {
+                id: "options",
+                title: "Options",
+                controls: (
+                  <>
+                    <div className="grid grid-cols-1 gap-2">
+                      <ToggleRow
+                        label="Animate"
+                        checked={animated}
+                        onChange={setAnimated}
+                      />
+                      <ToggleRow
+                        label="Label"
+                        checked={showLabel}
+                        onChange={setShowLabel}
+                      />
+                      <ToggleRow
+                        label="On a glass panel"
+                        checked={onGlass}
+                        onChange={setOnGlass}
+                      />
+                    </div>
+                    {showLabel && (
+                      <Control label="Label text">
+                        <Input
+                          size="sm"
+                          value={label}
+                          onChange={(event) => setLabel(event.target.value)}
+                        />
+                      </Control>
+                    )}
+                  </>
+                ),
+              },
+            ]}
           />
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow
-              label="Animate"
-              checked={animated}
-              onChange={setAnimated}
-            />
-            <ToggleRow
-              label="Label"
-              checked={showLabel}
-              onChange={setShowLabel}
-            />
-            <ToggleRow
-              label="On a glass panel"
-              checked={onGlass}
-              onChange={setOnGlass}
-            />
-          </div>
-          {showLabel && (
-            <Control label="Label text">
-              <Input
-                size="sm"
-                value={label}
-                onChange={(event) => setLabel(event.target.value)}
-              />
-            </Control>
-          )}
           <p className="text-xs opacity-70">
             Without a label the circle announces “Loading”; with one, the
             visible text is the announcement. The ring stops spinning under{" "}
             <code>prefers-reduced-motion</code>.
           </p>
-        </>
+        </div>
       }
       preview={
         <Panel

@@ -482,7 +482,7 @@ export function Carousel<T = ReactNode>({
           animated &&
             "transition-transform duration-500 ease-in-out motion-reduce:transition-none",
         )}
-        style={{ transform }}
+        style={{ transform, ...(isVertical ? { height: "100%" } : {}) }}
         aria-live={autoplayInterval > 0 ? "polite" : "off"}
       >
         {isCircular &&
@@ -596,7 +596,7 @@ export function Carousel<T = ReactNode>({
                 {skeletonChip}
               </div>
             )}
-            <div className="flex">
+            <div className="flex w-full">
               {Array.from({ length: nv }, (_, i) => (
                 <div
                   key={i}

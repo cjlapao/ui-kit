@@ -14,6 +14,8 @@ import ManualSearch from "./examples/ManualSearch";
 import manualSearchCode from "./examples/ManualSearch.tsx?raw";
 import InGlassPanel from "./examples/InGlassPanel";
 import inGlassPanelCode from "./examples/InGlassPanel.tsx?raw";
+import Loading from "./examples/Loading";
+import loadingCode from "./examples/Loading.tsx?raw";
 
 export const SearchBarPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -26,6 +28,7 @@ export const SearchBarPage: React.FC = () => (
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
         Examples
       </h2>
+      <ExampleCard title="Loading" description="The leading glyph becomes a spinner and the bar reports aria-busy. The input stays enabled — unlike a Picker, whose trigger is disabled while loading because there is nothing to pick yet." code={loadingCode} filename="Loading.tsx"><Loading /></ExampleCard>
       <ExampleCard
         title="In a toolbar"
         description="The everyday case: a bar in a header, with a live readout of the last query so you can see the debounce working."

@@ -104,6 +104,13 @@ export type Column<T> = TableColumn<T>;
  */
 export type TableVariant = SurfaceVariant;
 
+/**
+ * The three loading styles a Table/AccessMatrix can show, matching Panel.
+ * `"spinner"` and `"progress"` draw a Loader overlay pinned to the card;
+ * `"skeleton"` replaces the content with pulsing placeholders.
+ */
+export type TableLoaderType = "spinner" | "progress" | "skeleton";
+
 /** Internal type for a single group entry when grouping is active. */
 type GroupEntry<T> = {
   key: string;
@@ -161,8 +168,21 @@ export interface TableProps<T> {
   stickyActions?: boolean;
   loading?: boolean;
   loadingMessage?: string;
-  loaderType?: "spinner" | "progress";
+  /**
+   * Style of the loading indicator, matching Panel:
+   * - `"spinner"` / `"progress"` — a Loader overlay pinned to the card (it
+   *   stays in place while the content scrolls beneath it).
+   * - `"skeleton"` — the content is replaced by pulsing placeholders shaped
+   *   like the table.
+   * @default "spinner"
+   */
+  loaderType?: TableLoaderType;
   loaderProgress?: number;
+  /**
+   * Placeholder rows drawn by `loaderType="skeleton"`.
+   * @default 6
+   */
+  skeletonRows?: number;
    emptyState?: React.ReactNode;
   /**
    * Controlled sort state. Pass `null` to clear the sort — like every other
@@ -178,6 +198,14 @@ export interface TableProps<T> {
   maxHeight?: string | number;
   onRowClick?: (row: T, index: number) => void;
   rowClassName?: (row: T, index: number) => string;
+  /**
+   * Per-row override for the data-row hover fill. When it returns a class for
+   * a row, that class replaces the default zebra-parity hover for the row's
+   * cells (still only while `hoverable`). Used by AccessMatrix so its
+   * group-header rows paint the group hover — uniform across cells — instead
+   * of a data-row hover.
+   */
+  rowHoverClassName?: (row: T, index: number) => string | undefined;
   /** When provided and returns true for a row, that row is rendered with an intense accent background and a pulsing left-border indicator to signal new/updated content. */
   rowHighlight?: (row: T, index: number) => boolean;
   className?: string;
@@ -321,9 +349,9 @@ export interface TableProps<T> {
 }
 const NEUTRAL_HEADER_CLASSES =
   "bg-neutral-50 text-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700";
-// Zebra stripe — kept close to the white base so rows read as one surface with
-// a faint alternation rather than two distinct bands.
-const STRIPED_ROW_BG = "bg-neutral-50 dark:bg-neutral-800/20";
+// Zebra stripe — fainted so a hovered row has room to sit between the stripe
+// and the group-header band while still reading as a faint alternation.
+const STRIPED_ROW_BG = "bg-neutral-50/55 dark:bg-neutral-800/15";
 
 /**
  * Tinted header band per tone. Generated from TRUE_COLORS — every class
@@ -411,6 +439,160 @@ const highlightBorderClasses: Record<TrueColor, string> = Object.fromEntries(
 
 const getHighlightBorderClass = (color: TrueColor): string =>
   highlightBorderClasses[color] ?? highlightBorderClasses.blue;
+
+/**
+ * Zebra-stripe fill per tone, fainted to open the band a hovered row shifts
+ * into (see the data-row hover maps below). The neutral family keeps the grey
+ * zebra; a tinted table washes the stripes in its tone so they read as part of
+ * the surface rather than a grey overlay. Generated from TRUE_COLORS — every
+ * class below is in the safelist because the scanner cannot see interpolated
+ * candidates.
+ */
+const stripedRowClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map(
+      (tone) => [tone, `bg-${tone}-50/55 dark:bg-${tone}-500/8`],
+    ),
+  ),
+  ...Object.fromEntries(NEUTRAL_TONES.map((tone) => [tone, STRIPED_ROW_BG])),
+} as Record<TrueColor, string>;
+
+const getStripedRowClass = (tone: TrueColor): string =>
+  stripedRowClasses[tone] ?? STRIPED_ROW_BG;
+
+const LIGHT_ROW_HOVER_NEUTRAL =
+  "group-hover:bg-neutral-100/55 dark:group-hover:bg-neutral-800/25";
+const STRIPED_ROW_HOVER_NEUTRAL =
+  "group-hover:bg-neutral-100/80 dark:group-hover:bg-neutral-800/30";
+
+/**
+ * Data-row hover fill per tone, split by zebra parity. The zebra is fainted so
+ * a hovered row can sit in a band between the stripe and the group header: a
+ * light (non-striped) row gets the lighter step, a striped row the deeper
+ * step. Both stay lighter than the group-header band, so a hovered data row
+ * never reads as a header. The neutral family keeps the grey wash. The
+ * `group-hover:` variant out-specifies the base `bg-*` utility, so it wins on
+ * sticky cells without `!important`.
+ */
+const lightRowHoverClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map(
+      (tone) => [
+        tone,
+        `group-hover:bg-${tone}-100/55 dark:group-hover:bg-${tone}-500/13`,
+      ],
+    ),
+  ),
+  ...Object.fromEntries(
+    NEUTRAL_TONES.map((tone) => [tone, LIGHT_ROW_HOVER_NEUTRAL]),
+  ),
+} as Record<TrueColor, string>;
+
+const stripedRowHoverClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map(
+      (tone) => [
+        tone,
+        `group-hover:bg-${tone}-100/80 dark:group-hover:bg-${tone}-500/17`,
+      ],
+    ),
+  ),
+  ...Object.fromEntries(
+    NEUTRAL_TONES.map((tone) => [tone, STRIPED_ROW_HOVER_NEUTRAL]),
+  ),
+} as Record<TrueColor, string>;
+
+const getLightRowHoverClass = (tone: TrueColor): string =>
+  lightRowHoverClasses[tone] ?? LIGHT_ROW_HOVER_NEUTRAL;
+
+const getStripedRowHoverClass = (tone: TrueColor): string =>
+  stripedRowHoverClasses[tone] ?? STRIPED_ROW_HOVER_NEUTRAL;
+
+const GROUP_HEADER_NEUTRAL =
+  "bg-neutral-100 hover:bg-neutral-300 dark:bg-neutral-800/40 dark:hover:bg-neutral-700/60";
+const GROUP_HEADER_BORDER_NEUTRAL = "border-neutral-100 dark:border-neutral-800";
+const GROUP_HEADER_BASE_NEUTRAL = "bg-neutral-100 dark:bg-neutral-800/40";
+
+/**
+ * Group-header (collapsible) row fill + rule per tone. A clear three-step
+ * hierarchy keeps the header readable against striped data rows: the zebra
+ * wash is the faintest, the group-header band sits one step darker, and its
+ * hover step sits darkest. The neutral family keeps the grey band.
+ * `getGroupHeaderBaseBg` is the hover-free base used by a sticky cell that must
+ * stay opaque while content scrolls under it.
+ */
+const groupHeaderClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map(
+      (tone) => [
+        tone,
+        `bg-${tone}-100 hover:bg-${tone}-300 dark:bg-${tone}-500/20 dark:hover:bg-${tone}-500/35`,
+      ],
+    ),
+  ),
+  ...Object.fromEntries(
+    NEUTRAL_TONES.map((tone) => [tone, GROUP_HEADER_NEUTRAL]),
+  ),
+} as Record<TrueColor, string>;
+
+const groupHeaderBorderClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map(
+      (tone) => [tone, `border-${tone}-100 dark:border-${tone}-500/20`],
+    ),
+  ),
+  ...Object.fromEntries(
+    NEUTRAL_TONES.map((tone) => [tone, GROUP_HEADER_BORDER_NEUTRAL]),
+  ),
+} as Record<TrueColor, string>;
+
+const groupHeaderBaseBgClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map(
+      (tone) => [tone, `bg-${tone}-100 dark:bg-${tone}-500/20`],
+    ),
+  ),
+  ...Object.fromEntries(
+    NEUTRAL_TONES.map((tone) => [tone, GROUP_HEADER_BASE_NEUTRAL]),
+  ),
+} as Record<TrueColor, string>;
+
+export const getGroupHeaderClass = (tone: TrueColor): string =>
+  groupHeaderClasses[tone] ?? GROUP_HEADER_NEUTRAL;
+
+export const getGroupHeaderBorderClass = (tone: TrueColor): string =>
+  groupHeaderBorderClasses[tone] ?? GROUP_HEADER_BORDER_NEUTRAL;
+
+export const getGroupHeaderBaseBg = (tone: TrueColor): string =>
+  groupHeaderBaseBgClasses[tone] ?? GROUP_HEADER_BASE_NEUTRAL;
+
+const GROUP_ROW_HOVER_NEUTRAL =
+  "group-hover:bg-neutral-300 dark:group-hover:bg-neutral-700/60";
+
+/**
+ * Cell-level hover fill for a group-header row. A pseudo group row (as
+ * AccessMatrix renders one) is a data row, so its cells would otherwise paint
+ * a data-row hover over the tr's group hover — leaving the sticky cell out of
+ * step. This class makes every cell paint the same bold group hover the tr
+ * uses, so the whole row shifts as one.
+ */
+const groupRowHoverClasses: Record<TrueColor, string> = {
+  ...Object.fromEntries(
+    TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map(
+      (tone) => [
+        tone,
+        `group-hover:bg-${tone}-300 dark:group-hover:bg-${tone}-500/35`,
+      ],
+    ),
+  ),
+  ...Object.fromEntries(
+    NEUTRAL_TONES.map((tone) => [tone, GROUP_ROW_HOVER_NEUTRAL]),
+  ),
+} as Record<TrueColor, string>;
+
+export const getGroupRowHoverClass = (tone: TrueColor): string =>
+  groupRowHoverClasses[tone] ?? GROUP_ROW_HOVER_NEUTRAL;
+
 /**
  * Hover fill for the column resize handle track, driven off the header
  * cell's `group/rh`. Generated from TRUE_COLORS (the `group-hover/rh:`
@@ -425,6 +607,27 @@ const resizeHandleHoverClasses: Record<TrueColor, string> = Object.fromEntries(
 
 const getResizeHandleHoverClass = (color: TrueColor): string =>
   resizeHandleHoverClasses[color] ?? resizeHandleHoverClasses.blue;
+
+/**
+ * Full-height guide line shown while a resize handle is hovered/dragged.
+ * When the grid is drawn the guide takes the control color (matching the
+ * column-selector hover); otherwise it stays a faded neutral hairline.
+ */
+const resizeGuideColorClasses: Record<TrueColor, string> = Object.fromEntries(
+  TRUE_COLORS.map((tone) => [
+    tone,
+    `bg-${tone}-500 dark:bg-${tone}-400`,
+  ]),
+) as Record<TrueColor, string>;
+
+const getResizeGuideColorClass = (color: TrueColor): string =>
+  resizeGuideColorClasses[color] ?? resizeGuideColorClasses.blue;
+
+// The resize handle is an 8px (`w-2`) hit area whose 1px line is centered, so
+// the visible line sits 4px inside the column edge. Center the 2px (`w-0.5`)
+// full-height guide there too so it lines up with the handle line — not the
+// raw column edge (4px handle inset + 1px half of the guide width).
+const RESIZE_GUIDE_EDGE_INSET = 5;
 
 /**
  * Row rules. The container chrome (fill, shadow, ring, glass) now comes from
@@ -560,6 +763,73 @@ function ChevronSvg({ expanded }: { expanded: boolean }) {
   );
 }
 
+/** Shared pulsing-bar style, matching Panel's `SkeletonBar`. */
+const SKELETON_BAR = "h-3 rounded-full bg-black/10 dark:bg-white/10";
+
+/**
+ * Placeholder drawn by `loaderType="skeleton"`: the same column count as the
+ * real table, so the card keeps its shape while data loads.
+ */
+const TableSkeleton: React.FC<{ columns: number; rows: number }> = ({
+  columns,
+  rows,
+}) => {
+  const colCount = Math.max(1, columns);
+  const rowBar = (i: number) => (
+    <div key={i} className="min-w-0 flex-1">
+      <div
+        className={classNames(
+          SKELETON_BAR,
+          // Vary the widths so the placeholder reads as content, not columns.
+          i % 4 === 0
+            ? "w-full"
+            : i % 4 === 1
+              ? "w-5/6"
+              : i % 4 === 2
+                ? "w-4/5"
+                : "w-3/4",
+        )}
+      />
+    </div>
+  );
+  return (
+    <div
+      aria-hidden="true"
+      className="w-full animate-pulse motion-reduce:animate-none"
+    >
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
+        {Array.from({ length: colCount }).map((_, i) => (
+          <div key={i} className="min-w-0 flex-1">
+            <div className={SKELETON_BAR} />
+          </div>
+        ))}
+      </div>
+      {Array.from({ length: Math.max(1, rows) }).map((_, r) => (
+        <div
+          key={r}
+          className="flex items-center gap-3 border-b border-neutral-100 px-4 py-3 dark:border-neutral-800"
+        >
+          {Array.from({ length: colCount }).map((_, c) => rowBar(c))}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/** Placeholder for the panel (card-grid) view under `loaderType="skeleton"`. */
+const PanelCardSkeleton: React.FC<{ rows: number }> = ({ rows }) => (
+  <div
+    aria-hidden="true"
+    className="w-full animate-pulse p-4 motion-reduce:animate-none"
+  >
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: Math.max(1, rows) }).map((_, i) => (
+        <div key={i} className="h-24 rounded-lg bg-black/10 dark:bg-white/10" />
+      ))}
+    </div>
+  </div>
+);
+
 function TableComponent<T>({
   columns,
   data,
@@ -579,6 +849,7 @@ function TableComponent<T>({
   loadingMessage,
   loaderType = "spinner",
   loaderProgress,
+  skeletonRows = 6,
   emptyState,
   sortState,
   defaultSort,
@@ -588,6 +859,7 @@ function TableComponent<T>({
   maxHeight,
   onRowClick,
   rowClassName,
+  rowHoverClassName,
   rowHighlight,
   className,
   tableClassName,
@@ -757,12 +1029,44 @@ function TableComponent<T>({
 
   // refs: one per <th> for DOM measurement, plus transient resize state
   const thRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const resizingRef = useRef<{
     colId: string;
     startX: number;
     startWidth: number;
   } | null>(null);
   const widthsDuringResizeRef = useRef<Record<string, number>>({});
+
+  // Full-height guide line position while a resize handle is hovered/dragged.
+  // `left` is the column's right edge in scroll-content coordinates.
+  const [resizeGuide, setResizeGuide] = useState<{
+    colId: string;
+    left: number;
+  } | null>(null);
+
+  // Column's right edge in scroll-content coordinates. Uses the visual
+  // (getBoundingClientRect) position + scrollLeft so a sticky (pinned) column
+  // lines up with its handle even when the table is horizontally scrolled.
+  const computeGuideLeft = (colId: string): number | null => {
+    const th = thRefs.current[colId];
+    const container = scrollContainerRef.current;
+    if (!th || !container) return null;
+    const thRect = th.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    return (
+      Math.round(thRect.right - containerRect.left + container.scrollLeft) -
+      RESIZE_GUIDE_EDGE_INSET
+    );
+  };
+
+  // Keep the guide glued to a (sticky) column while the user scrolls.
+  const handleGuideScroll = () => {
+    setResizeGuide((prev) => {
+      if (!prev) return prev;
+      const left = computeGuideLeft(prev.colId);
+      return left == null ? prev : { ...prev, left };
+    });
+  };
 
   // Clean up any lingering body styles if the component unmounts mid-drag
   useEffect(() => {
@@ -793,8 +1097,10 @@ function TableComponent<T>({
 
     const startWidth =
       currentWidths[colId] ?? thRefs.current[colId]?.offsetWidth ?? 100;
+    const startLeft = computeGuideLeft(colId) ?? 0;
     resizingRef.current = { colId, startX: e.clientX, startWidth };
     widthsDuringResizeRef.current = { ...currentWidths };
+    setResizeGuide({ colId, left: startLeft });
 
     const onMouseMove = (moveEvt: MouseEvent) => {
       if (!resizingRef.current) return;
@@ -808,6 +1114,9 @@ function TableComponent<T>({
         [resizingRef.current.colId]: newWidth,
       };
       setInternalColWidths({ ...widthsDuringResizeRef.current });
+      // The column's right edge moves by the width delta, so the guide does too.
+      const delta = newWidth - resizingRef.current.startWidth;
+      setResizeGuide({ colId, left: startLeft + delta });
     };
 
     const onMouseUp = () => {
@@ -821,6 +1130,7 @@ function TableComponent<T>({
         columnWidths: widthsDuringResizeRef.current,
       });
       resizingRef.current = null;
+      setResizeGuide(null);
     };
 
     document.body.style.cursor = "col-resize";
@@ -1254,7 +1564,7 @@ function TableComponent<T>({
       : `bg-${tone}-50/50 text-${tone}-700 border-${tone}-200/60 dark:bg-${tone}-500/15 dark:text-${tone}-100 dark:border-${tone}-500/30`
     : getToneHeaderClasses(tone);
   const headerBaseClasses =
-    "text-xs font-semibold uppercase tracking-wide text-left text-neutral-600 dark:text-neutral-200";
+    "text-xs font-semibold uppercase tracking-wide text-left";
 
   const tbodyClasses = classNames(
     "divide-y",
@@ -1270,6 +1580,10 @@ function TableComponent<T>({
     : undefined;
 
   const hasRows = sortedData.length > 0;
+
+  // Skeleton mode replaces the content with placeholders instead of
+  // overlaying a Loader, mirroring Panel's `showSkeleton`.
+  const showSkeleton = loading && loaderType === "skeleton";
 
   // ── Empty state renderers ────────────────────────────────────────────────────
   const emptyColSpan =
@@ -1310,23 +1624,20 @@ function TableComponent<T>({
 
     const selectedClass = isSelected ? getSelectedRowClass(controlColor) : "";
     const highlightRowClass = isHighlighted ? getHighlightRowClass(controlColor) : "";
-    const baseRowBgClass =
-      striped && originalIndex % 2 === 1
-        ? STRIPED_ROW_BG
-        : "bg-white dark:bg-neutral-900";
-    // Use fully-opaque hover for all cells so the whole row shifts uniformly.
-    // Sticky cells need !important to override their explicit base background class.
-    const rowCellHoverClass =
+    const isStripedRow = striped && originalIndex % 2 === 1;
+    const baseRowBgClass = isStripedRow
+      ? getStripedRowClass(tone)
+      : "bg-white dark:bg-neutral-900";
+    // The `group-hover:` variant out-specifies the base `bg-*` utility in the
+    // cascade, so the whole row shifts uniformly on hover — sticky cells
+    // included — without needing `!important`. Striped rows get the deeper
+    // step so the hover change stays visible against the zebra wash.
+    const rowHoverClass =
       !isSelected && !isHighlighted && hoverable
-        ? striped && originalIndex % 2 === 1
-          ? "group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
-          : "group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700"
-        : undefined;
-    const stickyCellHoverClass =
-      !isSelected && !isHighlighted && hoverable
-        ? striped && originalIndex % 2 === 1
-          ? "group-hover:!bg-neutral-200 dark:group-hover:!bg-neutral-700"
-          : "group-hover:!bg-neutral-200 dark:group-hover:!bg-neutral-700"
+        ? (rowHoverClassName?.(row, originalIndex) ??
+          (isStripedRow
+            ? getStripedRowHoverClass(tone)
+            : getLightRowHoverClass(tone)))
         : undefined;
     const rowClasses = classNames(
       cellPadding,
@@ -1335,7 +1646,7 @@ function TableComponent<T>({
         ? selectedClass
         : isHighlighted
           ? highlightRowClass
-          : striped && originalIndex % 2 === 1 && STRIPED_ROW_BG,
+          : isStripedRow && getStripedRowClass(tone),
       isHighlighted && hoverable && "hover:brightness-95",
       "transition-colors duration-150 ease-out",
       onRowClick ? "cursor-pointer" : "cursor-default",
@@ -1352,7 +1663,7 @@ function TableComponent<T>({
         {showGroupExpandCol && (
           <td
             className={classNames(
-              "w-10 sticky left-0 z-20",
+              "w-10 sticky left-0 z-20 transition-colors duration-150 ease-out",
               // Only apply an opaque background when there is a left-sticky data column;
               // otherwise the spacer can remain transparent.
               hasLeftStickyColumn &&
@@ -1361,8 +1672,7 @@ function TableComponent<T>({
                   : isHighlighted
                     ? getHighlightRowClass(controlColor)
                     : baseRowBgClass),
-              // When there are sticky columns use the opaque hover; otherwise use the normal semi-transparent hover.
-              hasLeftStickyColumn ? stickyCellHoverClass : rowCellHoverClass,
+              rowHoverClass,
             )}
             aria-hidden="true"
           >
@@ -1394,6 +1704,12 @@ function TableComponent<T>({
               key={column.id}
               className={classNames(
                 "whitespace-nowrap align-middle text-sm text-neutral-700 dark:text-neutral-200",
+                // Same transition as the row itself: cells paint their own
+                // background (sticky columns, group rows) while the tr paints
+                // through the transparent ones, so without this the two layers
+                // animate at different speeds and the row visibly tears during
+                // the 150ms hover fill.
+                "transition-colors duration-150 ease-out",
                 (isStickyLeft || isStickyRight) && "sticky",
                 isStickyLeft && (showGroupExpandCol ? "left-10" : "left-0"),
                 // right position is set via inline style when offset > 0
@@ -1404,30 +1720,30 @@ function TableComponent<T>({
                     ? getSelectedRowClass(controlColor)
                     : isHighlighted
                       ? getHighlightRowClass(controlColor)
-                      : striped && originalIndex % 2 === 1
-                        ? STRIPED_ROW_BG
+                      : isStripedRow
+                        ? getStripedRowClass(tone)
                         : (column.stickyBackgroundFn?.(row, originalIndex) ??
                           column.stickyBackground ??
                           "bg-white dark:bg-neutral-900")),
-                // Sticky cells must keep an opaque background on hover to avoid scrolled content
-                // bleeding through — use the fully-opaque sticky hover class instead of the semi-transparent hover.
-                isStickyLeft || isStickyRight
-                  ? stickyCellHoverClass
-                  : rowCellHoverClass,
+                // Same hover fill for every cell (sticky included) — the
+                // `group-hover:` variant beats the cell's base background, so
+                // the whole row shifts uniformly without scrolled content
+                // bleeding through a sticky column.
+                rowHoverClass,
                 (isStickyLeft || isStickyRight) &&
                   isHighlighted &&
                   hoverable &&
                   "group-hover:brightness-95",
                 getCellAlignment(column.align),
-                colIndex === 0 && sidePaddingTokens.sideLeft,
-                colIndex === orderedVisibleColumns.length - 1 &&
-                  sidePaddingTokens.sideRight,
-                // `pr-2` keeps cell text off the vertical grid line — with the
-                // rule painted at the cell edge, the stock horizontal padding
-                // leaves short values sitting almost on top of it.
+                // Horizontal padding. Every cell keeps a symmetric gap so
+                // adjacent columns never sit flush (bordered or not) and the
+                // body text lines up under the header, which uses the same
+                // density cell padding.
+                `${sidePaddingTokens.sideLeft} ${sidePaddingTokens.sideRight}`,
+                // Vertical rule on the leading edge of the next column.
                 gridLinesOn &&
                   colIndex < orderedVisibleColumns.length - 1 &&
-                  `${gridLineClass} border-r pr-2`,
+                  `${gridLineClass} border-r`,
                 // Pulsing left border indicator on the first visible cell for highlighted rows
                 colIndex === 0 &&
                   isHighlighted &&
@@ -1900,8 +2216,25 @@ function TableComponent<T>({
         {activeView === "table" && visibleColumns.length > 0 && (
           <div
             className={classNames("relative", fullHeight && "flex-1 min-h-0")}
+            aria-busy={loading || undefined}
           >
+            {/*
+              The Loader is pinned to this wrapper, not the scroll container
+              below — inside a scroll container an `absolute inset-0` overlay
+              scrolls away with the content and stops covering the viewport.
+            */}
+            {loading && loaderType !== "skeleton" && (
+              <Loader
+                overlay
+                variant={loaderType}
+                label={loadingMessage}
+                progress={loaderProgress}
+                className="rounded-none"
+              />
+            )}
             <div
+              ref={scrollContainerRef}
+              onScroll={handleGuideScroll}
               className={classNames(
                 "overflow-x-auto relative",
                 fullHeight ? "h-full overflow-y-auto" : "",
@@ -1909,6 +2242,14 @@ function TableComponent<T>({
               )}
               style={!fullHeight ? scrollContainerStyle : undefined}
             >
+              <div className="relative">
+              {showSkeleton ? (
+                <TableSkeleton
+                  columns={orderedVisibleColumns.length}
+                  rows={skeletonRows}
+                />
+              ) : (
+              <>
               <table
                 className={tableClasses}
                 style={
@@ -2049,10 +2390,13 @@ function TableComponent<T>({
                                thEffectiveSticky === "right" &&
                                !noBorders &&
                                "border-l border-neutral-200 dark:border-neutral-700",
+                              // The resize handle already marks each column
+                              // edge, so the grid rule is skipped while resizing.
                               gridLinesOn &&
+                                !isResizable &&
                                 colIndex < orderedVisibleColumns.length - 1 &&
-                                `${gridLineClass} border-r pr-2`,
-                             column.headerClassName,
+                                `${gridLineClass} border-r`,
+                              column.headerClassName,
                            )}
                           style={{
                             ...(resizeWidth
@@ -2133,6 +2477,14 @@ function TableComponent<T>({
                               role="separator"
                               aria-hidden="true"
                               className="group/rh absolute inset-y-0 right-0 z-10 flex w-2 cursor-col-resize select-none items-center justify-center"
+                              onMouseEnter={() => {
+                                const left = computeGuideLeft(column.id);
+                                if (left != null)
+                                  setResizeGuide({ colId: column.id, left });
+                              }}
+                              onMouseLeave={() => {
+                                if (!resizingRef.current) setResizeGuide(null);
+                              }}
                               onMouseDown={(e) => {
                                 const minW =
                                   column.minWidth !== undefined
@@ -2172,13 +2524,20 @@ function TableComponent<T>({
                               {/* Group header row */}
                               {resolvedShowGroupHeader && (
                                 <tr
-                                  className="cursor-pointer select-none border-b border-neutral-100 bg-neutral-50 transition-colors duration-150 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-800/40 dark:hover:bg-neutral-700/50"
+                                   className={classNames(
+                                     "cursor-pointer select-none border-b transition-colors duration-150 ease-out",
+                                     getGroupHeaderBorderClass(tone),
+                                     getGroupHeaderClass(tone),
+                                   )}
                                   onClick={() => toggleGroup(group.key)}
                                 >
-                                  <td
-                                    colSpan={visibleColumns.length + 1}
-                                    className="py-2 bg-neutral-50 hover:bg-neutral-100 dark:bg-neutral-800/40 dark:hover:bg-neutral-700/50"
-                                  >
+                                   <td
+                                     colSpan={visibleColumns.length + 1}
+                                     className={classNames(
+                                       "py-2 transition-colors duration-150 ease-out",
+                                       getGroupHeaderClass(tone),
+                                     )}
+                                   >
                                     <div
                                       className={classNames(
                                         "sticky left-0 flex w-fit items-center gap-2 bg-inherit rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
@@ -2243,15 +2602,22 @@ function TableComponent<T>({
                       : renderEmptyState()}
                 </tbody>
               </table>
-              {loading && (
-                <Loader
-                  overlay
-                  variant={loaderType}
-                  label={loadingMessage}
-                  progress={loaderProgress}
-                  className="rounded-none"
+              {/* Full-height column-resize guide, spanning the whole table. */}
+              {resizeGuide && (
+                <div
+                  aria-hidden="true"
+                  className={classNames(
+                    "pointer-events-none absolute inset-y-0 z-30 w-0.5",
+                    gridLinesOn
+                      ? getResizeGuideColorClass(controlColor)
+                      : "bg-neutral-300 dark:bg-neutral-600",
+                  )}
+                  style={{ left: resizeGuide.left }}
                 />
               )}
+              </>
+              )}
+              </div>
             </div>
           </div>
         )}
@@ -2259,13 +2625,10 @@ function TableComponent<T>({
         {/* ── Panel view ────────────────────────────────────────────────────── */}
         {activeView === "panel" && panelItem && (
           <div
-            className={classNames(
-              "relative",
-              fullHeight ? "flex-1 min-h-0 overflow-auto" : undefined,
-            )}
-            style={!fullHeight ? scrollContainerStyle : undefined}
+            className={classNames("relative", fullHeight && "flex-1 min-h-0")}
+            aria-busy={loading || undefined}
           >
-            {loading && (
+            {loading && loaderType !== "skeleton" && (
               <Loader
                 overlay
                 variant={loaderType}
@@ -2274,7 +2637,17 @@ function TableComponent<T>({
                 className="rounded-none"
               />
             )}
-            {hasRows ? (
+            <div
+              className={classNames(
+                "overflow-x-auto",
+                fullHeight ? "h-full overflow-y-auto" : "",
+                !fullHeight && maxHeight && "overflow-y-auto",
+              )}
+              style={!fullHeight ? scrollContainerStyle : undefined}
+            >
+            {showSkeleton ? (
+              <PanelCardSkeleton rows={skeletonRows} />
+            ) : hasRows ? (
               <div
                 className={classNames(
                   "p-4",
@@ -2319,6 +2692,7 @@ function TableComponent<T>({
             ) : (
               renderPanelEmptyState()
             )}
+            </div>
           </div>
         )}
 

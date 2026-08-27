@@ -7,6 +7,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import { trueColorOptions } from "../../shared/options";
 
 const sizeOptions = [
@@ -37,73 +38,97 @@ export const BadgePlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(value) => setTone(value as TrueColor)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(value) => setTone(value as TrueColor)}
+                    />
+                    <Control label="Variant">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={variantOptions}
+                        value={variant}
+                        onChange={(value) => setVariant(value as BadgeVariant)}
+                      />
+                    </Control>
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={sizeOptions}
+                        value={size}
+                        onChange={(value) => setSize(value as ControlSize)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Control label={`Count — ${count}`}>
+                      <input
+                        type="range"
+                        min={0}
+                        max={250}
+                        value={count}
+                        onChange={(event) => setCount(Number(event.target.value))}
+                        className="w-full accent-blue-500"
+                        aria-label="Badge count"
+                      />
+                    </Control>
+                    <Control label={`Max count — ${maxCount}`}>
+                      <input
+                        type="range"
+                        min={5}
+                        max={999}
+                        value={maxCount}
+                        onChange={(event) => setMaxCount(Number(event.target.value))}
+                        className="w-full accent-blue-500"
+                        aria-label="Badge max count"
+                      />
+                    </Control>
+                  </div>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow label="Dot only" checked={dot} onChange={setDot} />
+                    <ToggleRow label="Show zero" checked={showZero} onChange={setShowZero} />
+                    <ToggleRow label="Ring" checked={ring} onChange={setRing} />
+                    <ToggleRow label="Pulse" checked={pulse} onChange={setPulse} />
+                    <ToggleRow
+                      label="On a glass panel"
+                      checked={onGlass}
+                      onChange={setOnGlass}
+                    />
+                  </div>
+                ),
+              },
+            ]}
           />
-          <Control label="Variant">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={variantOptions}
-              value={variant}
-              onChange={(value) => setVariant(value as BadgeVariant)}
-            />
-          </Control>
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={sizeOptions}
-              value={size}
-              onChange={(value) => setSize(value as ControlSize)}
-            />
-          </Control>
-          <div className="grid grid-cols-2 gap-3">
-            <Control label={`Count — ${count}`}>
-              <input
-                type="range"
-                min={0}
-                max={250}
-                value={count}
-                onChange={(event) => setCount(Number(event.target.value))}
-                className="w-full accent-blue-500"
-                aria-label="Badge count"
-              />
-            </Control>
-            <Control label={`Max count — ${maxCount}`}>
-              <input
-                type="range"
-                min={5}
-                max={999}
-                value={maxCount}
-                onChange={(event) => setMaxCount(Number(event.target.value))}
-                className="w-full accent-blue-500"
-                aria-label="Badge max count"
-              />
-            </Control>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow label="Dot only" checked={dot} onChange={setDot} />
-            <ToggleRow label="Show zero" checked={showZero} onChange={setShowZero} />
-            <ToggleRow label="Ring" checked={ring} onChange={setRing} />
-            <ToggleRow label="Pulse" checked={pulse} onChange={setPulse} />
-            <ToggleRow
-              label="On a glass panel"
-              checked={onGlass}
-              onChange={setOnGlass}
-            />
-          </div>
           <p className="text-xs opacity-70">
             Drop the count to <strong>0</strong> — the badge disappears unless{" "}
             <strong>Show zero</strong> is on. A count badge is announced by
             screen readers; a bare dot is treated as decoration unless you give
             it a <code>label</code>.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

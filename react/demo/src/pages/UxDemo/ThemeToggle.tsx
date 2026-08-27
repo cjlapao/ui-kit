@@ -29,8 +29,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
     value={theme}
     onChange={(value) => onChange(value as ThemeMode)}
     size="sm"
-    color="blue"
-    variant="theme"
+    tone="blue"
+    indicator="tonal"
     aria-label="Theme"
   />
 );

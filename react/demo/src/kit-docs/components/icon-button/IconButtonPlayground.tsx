@@ -12,6 +12,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   buttonVariantOptions,
   controlSizeOptions,
@@ -44,61 +45,87 @@ export const IconButtonPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={buttonVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as ButtonVariant)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Variant"
+                      options={buttonVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as ButtonVariant)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as ButtonSize)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={color}
+                      onChange={(v) => setColor(v as TrueColor)}
+                    />
+                    <Control label="Rounded">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={iconButtonRoundedOptions}
+                        value={rounded}
+                        onChange={(v) => setRounded(v as IconRounded)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                    <ToggleRow label="Accent" checked={accent} onChange={setAccent} />
+                    <ToggleRow label="Glass" checked={glass} onChange={setGlass} />
+                    <ToggleRow label="Tooltip" checked={tooltip} onChange={setTooltip} />
+                  </div>
+                ),
+              },
+              ...(glass
+                ? [
+                    {
+                      id: "glass",
+                      title: "Glass",
+                      controls: (
+                        <Control label="Specular">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={panelSpecularOptions}
+                            value={specularMode}
+                            onChange={(v) => setSpecularMode(v as SpecularMode)}
+                          />
+                        </Control>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as ButtonSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={color}
-            onChange={(v) => setColor(v as TrueColor)}
-          />
-          <Control label="Rounded">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={iconButtonRoundedOptions}
-              value={rounded}
-              onChange={(v) => setRounded(v as IconRounded)}
-            />
-          </Control>
-          {glass && (
-            <Control label="Specular">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={panelSpecularOptions}
-                value={specularMode}
-                onChange={(v) => setSpecularMode(v as SpecularMode)}
-              />
-            </Control>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-            <ToggleRow label="Accent" checked={accent} onChange={setAccent} />
-            <ToggleRow label="Glass" checked={glass} onChange={setGlass} />
-            <ToggleRow label="Tooltip" checked={tooltip} onChange={setTooltip} />
-          </div>
           <p className="text-xs opacity-70">
             Icon buttons carry no text — the <strong>srLabel</strong> is what
             gets announced and doubles as the native title. Loading swaps the
             glyph for a spinner and blocks clicks.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="flex w-full flex-col gap-3">

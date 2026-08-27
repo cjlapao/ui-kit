@@ -16,6 +16,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   glassOpacityOptions,
   glassVibrancyOptions,
@@ -149,104 +150,130 @@ export const TabsPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={tabsVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as TabsVariant)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Variant"
+                      options={tabsVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as TabsVariant)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={tabsSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as TabsSize)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={color}
+                      onChange={(v) => setColor(v as TrueColor)}
+                    />
+                    <Control label="Orientation">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={tabsOrientationOptions}
+                        value={orientation}
+                        onChange={(v) => setOrientation(v as TabsOrientation)}
+                      />
+                    </Control>
+                    <Control label="Justify">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={tabsJustifyOptions}
+                        value={justify}
+                        onChange={(v) => setJustify(v as TabsJustify)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              ...(isGlass
+                ? [
+                    {
+                      id: "glass",
+                      title: "Glass",
+                      controls: (
+                        <div className="flex flex-col gap-3">
+                          <Control label="Vibrancy">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassVibrancyOptions}
+                              value={vibrancy}
+                              onChange={(v) => setVibrancy(v as VibrancyPreset)}
+                            />
+                          </Control>
+                          <Control label="Fill opacity">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassOpacityOptions}
+                              value={glassOpacity}
+                              onChange={(v) => setGlassOpacity(v as OpacityPreset)}
+                            />
+                          </Control>
+                          <Control label="Specular">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={panelSpecularOptions}
+                              value={specularMode}
+                              onChange={(v) => setSpecularMode(v as SpecularMode)}
+                            />
+                          </Control>
+                          <SelectControl
+                            label="Radius"
+                            options={tabsRadiusOptions}
+                            value={radius}
+                            onChange={(v) => setRadius(v as TabsRadius)}
+                          />
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                id: "layout",
+                title: "Layout",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow
+                      label="Full width"
+                      checked={fullWidth}
+                      onChange={setFullWidth}
+                    />
+                    <ToggleRow
+                      label="Dividers"
+                      checked={showDividers}
+                      onChange={setShowDividers}
+                    />
+                    <ToggleRow label="Actions" checked={showActions} onChange={setShowActions} />
+                    <ToggleRow label="Scroll fade" checked={scrollFade} onChange={setScrollFade} />
+                  </div>
+                ),
+              },
+            ]}
           />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={tabsSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as TabsSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={color}
-            onChange={(v) => setColor(v as TrueColor)}
-          />
-          <Control label="Orientation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={tabsOrientationOptions}
-              value={orientation}
-              onChange={(v) => setOrientation(v as TabsOrientation)}
-            />
-          </Control>
-          <Control label="Justify">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={tabsJustifyOptions}
-              value={justify}
-              onChange={(v) => setJustify(v as TabsJustify)}
-            />
-          </Control>
-          {isGlass && (
-            <div className="flex flex-col gap-3">
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy}
-                  onChange={(v) => setVibrancy(v as VibrancyPreset)}
-                />
-              </Control>
-              <Control label="Fill opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity}
-                  onChange={(v) => setGlassOpacity(v as OpacityPreset)}
-                />
-              </Control>
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(v) => setSpecularMode(v as SpecularMode)}
-                />
-              </Control>
-              <SelectControl
-                label="Radius"
-                options={tabsRadiusOptions}
-                value={radius}
-                onChange={(v) => setRadius(v as TabsRadius)}
-              />
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow
-              label="Full width"
-              checked={fullWidth}
-              onChange={setFullWidth}
-            />
-            <ToggleRow
-              label="Dividers"
-              checked={showDividers}
-              onChange={setShowDividers}
-            />
-            <ToggleRow label="Actions" checked={showActions} onChange={setShowActions} />
-            <ToggleRow label="Scroll fade" checked={scrollFade} onChange={setScrollFade} />
-          </div>
           <p className="text-xs opacity-70">
             Contextual <strong>actions</strong> pin to whichever tab is active.
             <strong> Dividers</strong> only apply to underline and minimal.
             The <strong>scroll fade</strong> softens panel content against the
             bar when it scrolls.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="flex w-full flex-col gap-3">

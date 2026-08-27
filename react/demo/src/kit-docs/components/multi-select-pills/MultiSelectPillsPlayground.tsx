@@ -20,6 +20,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glassOpacityOptions,
@@ -109,112 +110,138 @@ export const MultiSelectPillsPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Selection mode">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={selectionModeOptions}
-              value={selectionMode}
-              onChange={(v) => setSelectionMode(v as "multiple" | "single")}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={color}
-            onChange={(v) => setColor(v as TrueColor)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <Control label="Selection mode">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={selectionModeOptions}
+                        value={selectionMode}
+                        onChange={(v) => setSelectionMode(v as "multiple" | "single")}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={color}
+                      onChange={(v) => setColor(v as TrueColor)}
+                    />
+                    <SelectControl
+                      label="Selected variant"
+                      options={pillVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as PillVariant)}
+                    />
+                    <SelectControl
+                      label="Unselected variant"
+                      options={pillVariantOptions}
+                      value={unselectedVariant}
+                      onChange={(v) => setUnselectedVariant(v as PillVariant)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as ControlSize)}
+                      />
+                    </Control>
+                    <Control label="Corner">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={pillCornerOptions}
+                        value={rounded}
+                        onChange={(v) => setRounded(v as PillCorner)}
+                      />
+                    </Control>
+                    <Control label="Gap">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={gap}
+                        onChange={(v) => setGap(v as ControlSize)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow label="Icons" checked={withIcons} onChange={setWithIcons} />
+                    <ToggleRow label="Counts" checked={withCounts} onChange={setWithCounts} />
+                    <ToggleRow label="Check mark" checked={checkmark} onChange={setCheckmark} />
+                    <ToggleRow label="Legend" checked={withLegend} onChange={setWithLegend} />
+                    <ToggleRow
+                      label="Allow deselect"
+                      checked={allowDeselect}
+                      onChange={setAllowDeselect}
+                    />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                    <ToggleRow label="On a glass panel" checked={onGlass} onChange={setOnGlass} />
+                  </div>
+                ),
+              },
+              ...(isGlass
+                ? [
+                    {
+                      id: "glass",
+                      title: "Glass",
+                      controls: (
+                        <div className="flex flex-col gap-3">
+                          <Control label="Specular">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={panelSpecularOptions}
+                              value={specularMode}
+                              onChange={(v) => setSpecularMode(v as SpecularMode)}
+                            />
+                          </Control>
+                          <Control label="Vibrancy">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassVibrancyOptions}
+                              value={vibrancy as string}
+                              onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                            />
+                          </Control>
+                          <Control label="Glass opacity">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassOpacityOptions}
+                              value={glassOpacity as string}
+                              onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                            />
+                          </Control>
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           />
-          <SelectControl
-            label="Selected variant"
-            options={pillVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as PillVariant)}
-          />
-          <SelectControl
-            label="Unselected variant"
-            options={pillVariantOptions}
-            value={unselectedVariant}
-            onChange={(v) => setUnselectedVariant(v as PillVariant)}
-          />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as ControlSize)}
-            />
-          </Control>
-          <Control label="Corner">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={pillCornerOptions}
-              value={rounded}
-              onChange={(v) => setRounded(v as PillCorner)}
-            />
-          </Control>
-          <Control label="Gap">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={gap}
-              onChange={(v) => setGap(v as ControlSize)}
-            />
-          </Control>
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow label="Icons" checked={withIcons} onChange={setWithIcons} />
-            <ToggleRow label="Counts" checked={withCounts} onChange={setWithCounts} />
-            <ToggleRow label="Check mark" checked={checkmark} onChange={setCheckmark} />
-            <ToggleRow label="Legend" checked={withLegend} onChange={setWithLegend} />
-            <ToggleRow
-              label="Allow deselect"
-              checked={allowDeselect}
-              onChange={setAllowDeselect}
-            />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-            <ToggleRow label="On a glass panel" checked={onGlass} onChange={setOnGlass} />
-          </div>
-          {isGlass && (
-            <div className="flex flex-col gap-3">
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(v) => setSpecularMode(v as SpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy as string}
-                  onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity as string}
-                  onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                />
-              </Control>
-            </div>
-          )}
           <p className="text-xs opacity-70">
             <strong>Single</strong> mode behaves like a radio group; turn{" "}
             <strong>Allow deselect</strong> off to make the choice required.{" "}
             <strong>Registry</strong> is a per-option disabled pill. Each pill
             carries <code>aria-pressed</code>.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

@@ -11,7 +11,7 @@ import { useSurfaceText } from "../contexts/SurfaceContext";
 import { useIconRenderer } from "../contexts/IconContext";
 import {
   DEFAULT_SURFACE_CORNER,
-  SURFACE_VARIANTS,
+  PLAIN_SURFACE_VARIANTS,
   type ControlSize,
   type SurfaceCorner,
   type SurfacePadding,
@@ -29,7 +29,7 @@ import type {
  * card the app already owns — the common case, and previously only reachable
  * by setting `disableBorder` *and* `transparentBackground` together.
  */
-export const EMPTY_STATE_VARIANTS = [...SURFACE_VARIANTS, "plain"] as const;
+export const EMPTY_STATE_VARIANTS = PLAIN_SURFACE_VARIANTS;
 export type EmptyStateVariant = (typeof EMPTY_STATE_VARIANTS)[number];
 
 export type EmptyStateTone = TrueColor;
@@ -159,6 +159,13 @@ export interface EmptyStateProps
   actionColor?: ButtonColor;
   actionSize?: ButtonSize;
   actionLeadingIcon?: string | React.ReactElement;
+  /**
+   * The action is in flight. `Button` swaps its leading icon for a spinner and
+   * blocks the press, so a retry cannot be fired twice while the first one is
+   * still running.
+   */
+  actionLoading?: boolean;
+  actionDisabled?: boolean;
   /** Arbitrary footer content, in place of the generated button. */
   actions?: React.ReactNode;
 
@@ -192,6 +199,8 @@ interface EmptyStateBodyProps
     | "actionColor"
     | "actionSize"
     | "actionLeadingIcon"
+    | "actionLoading"
+    | "actionDisabled"
     | "actions"
   > {
   titleId: string;
@@ -218,6 +227,8 @@ const EmptyStateBody: React.FC<EmptyStateBodyProps> = ({
   actionColor,
   actionSize,
   actionLeadingIcon,
+  actionLoading,
+  actionDisabled,
   actions,
   titleId,
   tone,
@@ -242,6 +253,8 @@ const EmptyStateBody: React.FC<EmptyStateBodyProps> = ({
         color={actionColor ?? tone}
         onClick={onAction}
         leadingIcon={actionLeadingIcon}
+        loading={actionLoading}
+        disabled={actionDisabled}
       >
         {actionLabel}
       </Button>
@@ -333,6 +346,8 @@ const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
       actionColor,
       actionSize,
       actionLeadingIcon,
+      actionLoading,
+      actionDisabled,
       actions,
       fullWidth = false,
       fullHeight = false,
@@ -372,6 +387,8 @@ const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
         actionColor={actionColor}
         actionSize={actionSize}
         actionLeadingIcon={actionLeadingIcon}
+        actionLoading={actionLoading}
+        actionDisabled={actionDisabled}
         actions={actions}
         titleId={titleId}
         tone={effectiveTone}

@@ -1,8 +1,17 @@
 <script lang="ts">
 import type { CSSProperties, VNode } from "vue";
-import type { TrueColor } from "../theme/Theme";
+import {
+  SURFACE_VARIANTS,
+  type ControlSize,
+  type SurfaceVariant,
+  type TrueColor,
+} from "../theme/Theme";
 
-export type MultiToggleSize = "sm" | "md" | "lg";
+/**
+ * The shared control scale. Was a component-local `sm | md | lg`, so a toggle
+ * could not line up with the `xs` or `xl` Button beside it.
+ */
+export type MultiToggleSize = ControlSize;
 export type MultiToggleShape =
   | "none"
   | "xs"
@@ -11,7 +20,23 @@ export type MultiToggleShape =
   | "lg"
   | "xl"
   | "full";
-export type MultiToggleVariant = "theme" | "solid" | "soft";
+/**
+ * The track is a surface, so it takes the **Panel family** — the same eight
+ * variants, reading identically beside a `Panel` at the same tone.
+ *
+ * This replaces a component-local `theme | solid | soft`, which described the
+ * *indicator* rather than the track and had no relationship to anything else
+ * in the kit.
+ */
+export const MULTI_TOGGLE_VARIANTS = SURFACE_VARIANTS;
+export type MultiToggleVariant = SurfaceVariant;
+
+/**
+ * How the active segment is drawn. This is what the old `variant` union was
+ * actually describing, now separated from the track's surface.
+ */
+export const MULTI_TOGGLE_INDICATORS = ["solid", "soft", "tonal"] as const;
+export type MultiToggleIndicator = (typeof MULTI_TOGGLE_INDICATORS)[number];
 
 type LiteralUnion<T extends U, U = string> = T | (U & Record<never, never>);
 
@@ -39,143 +64,18 @@ export interface MultiToggleProps {
   adaptiveWidth?: boolean;
   optionMaxWidth?: number | string;
   activeWidthStrategy?: MultiToggleActiveWidthStrategy;
+  /** The track's surface, from the Panel family. @default "subtle" */
   variant?: MultiToggleVariant;
-  /** When set, overrides the active option's text color with this color's active-text token. */
+  /** How the active segment is drawn. @default "solid" */
+  indicator?: MultiToggleIndicator;
+  /** Accent for the indicator, the active label and the focus ring. @default "blue" */
+  tone?: TrueColor;
+  /** Overrides the active option's text tone. */
+  accentTone?: TrueColor;
+  /** @deprecated Use `accentTone`. */
   accentColor?: TrueColor;
   disabled?: boolean;
 }
-
-const toneTokens: Record<
-  TrueColor,
-  { activeText: string; indicator: string; hover: string }
-> = {
-  red: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
-  orange: {
-    activeText: "text-orange-700 dark:text-orange-200",
-    indicator:
-      "bg-orange-500/15 dark:bg-orange-400/20 border border-orange-400/40 dark:border-orange-300/20",
-    hover: "hover:text-orange-600 dark:hover:text-orange-300",
-  },
-  amber: {
-    activeText: "text-amber-700 dark:text-amber-200",
-    indicator:
-      "bg-amber-500/15 dark:bg-amber-400/20 border border-amber-400/40 dark:border-amber-300/20",
-    hover: "hover:text-amber-600 dark:hover:text-amber-300",
-  },
-  yellow: {
-    activeText: "text-yellow-700 dark:text-yellow-200",
-    indicator:
-      "bg-yellow-500/15 dark:bg-yellow-400/20 border border-yellow-400/40 dark:border-yellow-300/20",
-    hover: "hover:text-yellow-600 dark:hover:text-yellow-300",
-  },
-  lime: {
-    activeText: "text-lime-700 dark:text-lime-200",
-    indicator:
-      "bg-lime-500/15 dark:bg-lime-400/20 border border-lime-400/40 dark:border-lime-300/20",
-    hover: "hover:text-lime-600 dark:hover:text-lime-300",
-  },
-  green: {
-    activeText: "text-emerald-700 dark:text-emerald-200",
-    indicator:
-      "bg-emerald-500/15 dark:bg-emerald-400/20 border border-emerald-400/40 dark:border-emerald-300/20",
-    hover: "hover:text-emerald-600 dark:hover:text-emerald-300",
-  },
-  emerald: {
-    activeText: "text-emerald-700 dark:text-emerald-200",
-    indicator:
-      "bg-emerald-500/15 dark:bg-emerald-400/20 border border-emerald-400/40 dark:border-emerald-300/20",
-    hover: "hover:text-emerald-600 dark:hover:text-emerald-300",
-  },
-  teal: {
-    activeText: "text-teal-700 dark:text-teal-200",
-    indicator:
-      "bg-teal-500/15 dark:bg-teal-400/20 border border-teal-400/40 dark:border-teal-300/20",
-    hover: "hover:text-teal-600 dark:hover:text-teal-300",
-  },
-  cyan: {
-    activeText: "text-cyan-700 dark:text-cyan-200",
-    indicator:
-      "bg-cyan-500/15 dark:bg-cyan-400/20 border border-cyan-400/40 dark:border-cyan-300/20",
-    hover: "hover:text-cyan-600 dark:hover:text-cyan-300",
-  },
-  sky: {
-    activeText: "text-sky-700 dark:text-sky-200",
-    indicator:
-      "bg-sky-500/15 dark:bg-sky-400/20 border border-sky-400/40 dark:border-sky-300/20",
-    hover: "hover:text-sky-600 dark:hover:text-sky-300",
-  },
-  blue: {
-    activeText: "text-blue-700 dark:text-blue-200",
-    indicator:
-      "bg-blue-500/15 dark:bg-blue-400/20 border border-blue-400/40 dark:border-blue-300/20",
-    hover: "hover:text-blue-600 dark:hover:text-blue-300",
-  },
-  indigo: {
-    activeText: "text-indigo-700 dark:text-indigo-200",
-    indicator:
-      "bg-indigo-500/15 dark:bg-indigo-400/20 border border-indigo-400/40 dark:border-indigo-300/20",
-    hover: "hover:text-indigo-600 dark:hover:text-indigo-300",
-  },
-  violet: {
-    activeText: "text-violet-700 dark:text-violet-200",
-    indicator:
-      "bg-violet-500/15 dark:bg-violet-400/20 border border-violet-400/40 dark:border-violet-300/20",
-    hover: "hover:text-violet-600 dark:hover:text-violet-300",
-  },
-  purple: {
-    activeText: "text-purple-700 dark:text-purple-200",
-    indicator:
-      "bg-purple-500/15 dark:bg-purple-400/20 border border-purple-400/40 dark:border-purple-300/20",
-    hover: "hover:text-purple-600 dark:hover:text-purple-300",
-  },
-  fuchsia: {
-    activeText: "text-fuchsia-700 dark:text-fuchsia-200",
-    indicator:
-      "bg-fuchsia-500/15 dark:bg-fuchsia-400/20 border border-fuchsia-400/40 dark:border-fuchsia-300/20",
-    hover: "hover:text-fuchsia-600 dark:hover:text-fuchsia-300",
-  },
-  rose: {
-    activeText: "text-rose-700 dark:text-rose-200",
-    indicator:
-      "bg-rose-500/15 dark:bg-rose-400/20 border border-rose-400/40 dark:border-rose-300/20",
-    hover: "hover:text-rose-600 dark:hover:text-rose-300",
-  },
-  slate: {
-    activeText: "text-slate-700 dark:text-slate-200",
-    indicator:
-      "bg-slate-500/15 dark:bg-slate-400/20 border border-slate-400/40 dark:border-slate-300/20",
-    hover: "hover:text-slate-600 dark:hover:text-slate-300",
-  },
-  gray: {
-    activeText: "text-gray-700 dark:text-gray-200",
-    indicator:
-      "bg-gray-500/15 dark:bg-gray-400/20 border border-gray-400/40 dark:border-gray-300/20",
-    hover: "hover:text-gray-600 dark:hover:text-gray-300",
-  },
-  zinc: {
-    activeText: "text-zinc-700 dark:text-zinc-200",
-    indicator:
-      "bg-zinc-500/15 dark:bg-zinc-400/20 border border-zinc-400/40 dark:border-zinc-300/20",
-    hover: "hover:text-zinc-600 dark:hover:text-zinc-300",
-  },
-  neutral: {
-    activeText: "text-neutral-700 dark:text-neutral-200",
-    indicator:
-      "bg-neutral-500/15 dark:bg-neutral-400/20 border border-neutral-400/40 dark:border-neutral-300/20",
-    hover: "hover:text-neutral-600 dark:hover:text-neutral-300",
-  },
-  stone: {
-    activeText: "text-stone-700 dark:text-stone-200",
-    indicator:
-      "bg-stone-500/15 dark:bg-stone-400/20 border border-stone-400/40 dark:border-stone-300/20",
-    hover: "hover:text-stone-600 dark:hover:text-stone-300",
-  },
-};
 
 const sizeTokens: Record<
   MultiToggleSize,
@@ -189,6 +89,15 @@ const sizeTokens: Record<
     paddingY: string;
   }
 > = {
+  xs: {
+    track: "h-7 text-[11px]",
+    indicatorInset: "inset-y-[0px]",
+    cell: "px-1.5 py-0.5",
+    gap: "gap-1",
+    label: "text-[11px]",
+    icon: "h-3.5 w-3.5",
+    paddingY: "py-0.5",
+  },
   sm: {
     track: "h-8 text-xs",
     indicatorInset: "inset-y-[0px]",
@@ -214,6 +123,15 @@ const sizeTokens: Record<
     gap: "gap-2",
     label: "text-base",
     icon: "h-6 w-6",
+    paddingY: "py-0.5",
+  },
+  xl: {
+    track: "h-12 text-lg",
+    indicatorInset: "inset-y-[0px]",
+    cell: "px-4 py-2.5",
+    gap: "gap-2.5",
+    label: "text-lg",
+    icon: "h-7 w-7",
     paddingY: "py-0.5",
   },
 };
@@ -262,7 +180,12 @@ import {
 } from "vue";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getMultiToggleVariantTokens } from "../theme/Theme";
+import {
+  getMultiToggleVariantTokens,
+  getSurfaceTextTokens,
+  getSurfaceTriggerTokens,
+  getSurfaceVariantClasses,
+} from "../theme/Theme";
 import type { IconSize } from "../types/Icon";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
@@ -277,7 +200,8 @@ const props = withDefaults(defineProps<MultiToggleProps>(), {
   adaptiveWidth: false,
   rounded: "lg",
   activeWidthStrategy: "auto",
-  variant: "theme",
+  variant: "subtle",
+  indicator: "solid",
 });
 
 const emit = defineEmits<{
@@ -359,19 +283,40 @@ const activeIndex = computed(() =>
   ),
 );
 const sizeStyles = computed(() => sizeTokens[props.size] ?? sizeTokens.md);
-const colorStyles = computed(() => toneTokens[props.color] ?? toneTokens.blue);
-const variantTokens = computed(() => getMultiToggleVariantTokens(props.color));
-const isVariantMode = computed(
-  () => props.variant === "solid" || props.variant === "soft",
+// `color` is the old name for `tone`.
+const resolvedTone = computed(() => props.tone ?? props.color ?? "blue");
+const resolvedAccent = computed(
+  () => props.accentTone ?? props.accentColor ?? resolvedTone.value,
 );
-const activeTextClass = computed(() =>
-  props.accentColor
-    ? isVariantMode.value
-      ? getMultiToggleVariantTokens(props.accentColor).activeText
-      : (toneTokens[props.accentColor] ?? toneTokens.blue).activeText
-    : isVariantMode.value
-      ? variantTokens.value.activeText
-      : colorStyles.value.activeText,
+const variantTokens = computed(() =>
+  getMultiToggleVariantTokens(resolvedTone.value),
+);
+const trigger = computed(() => getSurfaceTriggerTokens(resolvedTone.value));
+// The track is a surface, so its copy colour comes from the surface — a
+// hardcoded `text-neutral-600` is unreadable on `glass` over a photo.
+const surfaceText = computed(() => getSurfaceTextTokens(props.variant));
+const trackClasses = computed(() =>
+  getSurfaceVariantClasses(props.variant, resolvedTone.value),
+);
+
+/**
+ * The active pill. All three carry a tone-following edge: a white pill on a
+ * light track with only a soft shadow is nearly invisible — the selection read
+ * as "the blue label" rather than as a moved pill.
+ *
+ * `solid` is the crispest (a raised card with a full-strength hairline),
+ * `soft` tints the fill, `tonal` is the most washed.
+ */
+const indicatorClasses = computed(() => {
+  const t = resolvedTone.value;
+  return {
+    solid: `bg-white shadow-md border border-${t}-300 dark:bg-neutral-800 dark:border-${t}-500/50`,
+    soft: `${variantTokens.value.softIndicator} border border-${t}-300 dark:border-${t}-500/25`,
+    tonal: `bg-${t}-500/15 dark:bg-${t}-400/20 border border-${t}-400/40 dark:border-${t}-300/20`,
+  }[props.indicator];
+});
+const activeTextClass = computed(
+  () => getMultiToggleVariantTokens(resolvedAccent.value).activeText,
 );
 const usesSegmentLayout = computed(
   () => !hasCustomWidths.value && !shouldLockToMaxWidth.value,
@@ -578,9 +523,7 @@ const computedIndicatorStyle = computed(
 const containerClass = computed(() =>
   classNames(
     "relative inline-flex select-none items-center p-0.5",
-    isVariantMode.value
-      ? "bg-neutral-100 dark:bg-neutral-700"
-      : "bg-neutral-100 shadow-inner dark:bg-neutral-600",
+    trackClasses.value,
     controlRounded.value,
     sizeStyles.value.track,
     props.fullWidth && "w-full",
@@ -601,9 +544,7 @@ const indicatorClass = computed(() =>
   classNames(
     "h-full w-full",
     indicatorRounded.value,
-    props.variant === "solid" && "bg-white dark:bg-neutral-800 shadow-sm",
-    props.variant === "soft" && variantTokens.value.softIndicator,
-    props.variant === "theme" && colorStyles.value.indicator,
+    indicatorClasses.value,
   ),
 );
 
@@ -633,16 +574,13 @@ const optionClass = (option: MultiToggleOption) => {
     sizeStyles.value.cell,
     sizeStyles.value.gap,
     hasCustomWidths.value ? "flex-none" : "flex-1",
+    trigger.value.focusRing,
     optionDisabled
-      ? "text-neutral-400 dark:text-neutral-500 cursor-not-allowed"
+      ? classNames(surfaceText.value.muted, "cursor-not-allowed opacity-60")
       : classNames(
           "cursor-pointer",
-          isActive
-            ? activeTextClass.value
-            : "text-neutral-600 dark:text-neutral-300",
-          isVariantMode.value
-            ? variantTokens.value.hover
-            : colorStyles.value.hover,
+          isActive ? activeTextClass.value : surfaceText.value.body,
+          variantTokens.value.hover,
         ),
   );
 };
@@ -696,6 +634,43 @@ const optionStyle = (option: MultiToggleOption): CSSProperties | undefined => {
   return buttonStyle;
 };
 
+/**
+ * Arrow-key navigation. The component already used a roving tabindex (only the
+ * active option is tabbable) but handled no keys, so a keyboard user could
+ * reach the group and then had no way to change the selection — the one
+ * interaction a radiogroup exists for.
+ */
+const handleKeyDown = (event: KeyboardEvent) => {
+  const step =
+    event.key === "ArrowRight" || event.key === "ArrowDown"
+      ? 1
+      : event.key === "ArrowLeft" || event.key === "ArrowUp"
+        ? -1
+        : 0;
+  if (step === 0 && event.key !== "Home" && event.key !== "End") return;
+  event.preventDefault();
+
+  const selectable = props.options
+    .map((option, index) => ({ option, index }))
+    .filter(({ option }) => !isOptionDisabled(option));
+  if (selectable.length === 0) return;
+
+  const commit = (target: { option: MultiToggleOption; index: number }) => {
+    emit("update:modelValue", target.option.value);
+    emit("change", target.option.value);
+    optionRefs[target.index]?.focus();
+  };
+
+  if (event.key === "Home" || event.key === "End") {
+    commit(event.key === "Home" ? selectable[0] : selectable[selectable.length - 1]);
+    return;
+  }
+
+  const current = selectable.findIndex(({ index }) => index === activeIndex.value);
+  // Wraps at both ends, which is what the radiogroup pattern specifies.
+  commit(selectable[(current + step + selectable.length) % selectable.length]);
+};
+
 const handleSelect = (option: MultiToggleOption) => {
   if (isOptionDisabled(option) || option.value === props.modelValue) {
     return;
@@ -711,6 +686,7 @@ const handleSelect = (option: MultiToggleOption) => {
     :class="containerClass"
     role="radiogroup"
     :aria-disabled="disabled"
+    v-bind="restAttrs"
   >
     <span :class="indicatorWrapperClass" :style="computedIndicatorStyle">
       <span :class="indicatorClass" />
@@ -765,15 +741,14 @@ const handleSelect = (option: MultiToggleOption) => {
       type="button"
       :class="optionClass(option)"
       :disabled="isOptionDisabled(option)"
-      :aria-pressed="option.value === modelValue"
       role="radio"
       :aria-checked="option.value === modelValue"
       :tabindex="
         isOptionDisabled(option) ? -1 : option.value === modelValue ? 0 : -1
       "
-      v-bind="restAttrs"
       :style="optionStyle(option)"
       @click="handleSelect(option)"
+      @keydown="handleKeyDown"
     >
       <span
         :class="

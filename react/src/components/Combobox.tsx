@@ -1,324 +1,488 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import classNames from "classnames";
+
+import Input from "./Input";
+import Spinner from "./Spinner";
 import { useIconRenderer } from "../contexts/IconContext";
-import IconButton from "./IconButton";
-import { type TrueColor } from "../theme/Theme";
+import {
+  TRUE_COLORS,
+  VALIDATION_STATUSES,
+  type ControlSize,
+  type InputVariant,
+  type TrueColor,
+  type ValidationStatus,
+} from "../theme/Theme";
 
-const toneTokens: Record<
-  TrueColor,
-  { focusRing: string; optionHover: string; optionSelected: string }
-> = {
-  red: {
-    focusRing:
-      "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
-    optionHover:
-      "hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/30 dark:hover:text-rose-300",
-    optionSelected:
-      "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-  },
-  orange: {
-    focusRing:
-      "focus:border-orange-500 focus:ring-orange-200 dark:focus:border-orange-400 dark:focus:ring-orange-900/40",
-    optionHover:
-      "hover:bg-orange-50 hover:text-orange-700 dark:hover:bg-orange-900/30 dark:hover:text-orange-300",
-    optionSelected:
-      "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  },
-  amber: {
-    focusRing:
-      "focus:border-amber-500 focus:ring-amber-200 dark:focus:border-amber-400 dark:focus:ring-amber-900/40",
-    optionHover:
-      "hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/30 dark:hover:text-amber-300",
-    optionSelected:
-      "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  },
-  yellow: {
-    focusRing:
-      "focus:border-yellow-500 focus:ring-yellow-200 dark:focus:border-yellow-400 dark:focus:ring-yellow-900/40",
-    optionHover:
-      "hover:bg-yellow-50 hover:text-yellow-700 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-300",
-    optionSelected:
-      "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-  },
-  lime: {
-    focusRing:
-      "focus:border-lime-500 focus:ring-lime-200 dark:focus:border-lime-400 dark:focus:ring-lime-900/40",
-    optionHover:
-      "hover:bg-lime-50 hover:text-lime-700 dark:hover:bg-lime-900/30 dark:hover:text-lime-300",
-    optionSelected:
-      "bg-lime-50 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300",
-  },
-  green: {
-    focusRing:
-      "focus:border-emerald-500 focus:ring-emerald-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-900/40",
-    optionHover:
-      "hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300",
-    optionSelected:
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  },
-  emerald: {
-    focusRing:
-      "focus:border-emerald-500 focus:ring-emerald-200 dark:focus:border-emerald-400 dark:focus:ring-emerald-900/40",
-    optionHover:
-      "hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300",
-    optionSelected:
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  },
-  teal: {
-    focusRing:
-      "focus:border-teal-500 focus:ring-teal-200 dark:focus:border-teal-400 dark:focus:ring-teal-900/40",
-    optionHover:
-      "hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-900/30 dark:hover:text-teal-300",
-    optionSelected:
-      "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
-  },
-  cyan: {
-    focusRing:
-      "focus:border-cyan-500 focus:ring-cyan-200 dark:focus:border-cyan-400 dark:focus:ring-cyan-900/40",
-    optionHover:
-      "hover:bg-cyan-50 hover:text-cyan-700 dark:hover:bg-cyan-900/30 dark:hover:text-cyan-300",
-    optionSelected:
-      "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
-  },
-  sky: {
-    focusRing:
-      "focus:border-sky-500 focus:ring-sky-200 dark:focus:border-sky-400 dark:focus:ring-sky-900/40",
-    optionHover:
-      "hover:bg-sky-50 hover:text-sky-700 dark:hover:bg-sky-900/30 dark:hover:text-sky-300",
-    optionSelected:
-      "bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-  },
-  blue: {
-    focusRing:
-      "focus:border-blue-500 focus:ring-blue-200 dark:focus:border-blue-400 dark:focus:ring-blue-900/40",
-    optionHover:
-      "hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-900/30 dark:hover:text-blue-300",
-    optionSelected:
-      "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  },
-  indigo: {
-    focusRing:
-      "focus:border-indigo-500 focus:ring-indigo-200 dark:focus:border-indigo-400 dark:focus:ring-indigo-900/40",
-    optionHover:
-      "hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300",
-    optionSelected:
-      "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-  },
-  violet: {
-    focusRing:
-      "focus:border-violet-500 focus:ring-violet-200 dark:focus:border-violet-400 dark:focus:ring-violet-900/40",
-    optionHover:
-      "hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-900/30 dark:hover:text-violet-300",
-    optionSelected:
-      "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
-  },
-  purple: {
-    focusRing:
-      "focus:border-purple-500 focus:ring-purple-200 dark:focus:border-purple-400 dark:focus:ring-purple-900/40",
-    optionHover:
-      "hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-900/30 dark:hover:text-purple-300",
-    optionSelected:
-      "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  },
-  fuchsia: {
-    focusRing:
-      "focus:border-fuchsia-500 focus:ring-fuchsia-200 dark:focus:border-fuchsia-400 dark:focus:ring-fuchsia-900/40",
-    optionHover:
-      "hover:bg-fuchsia-50 hover:text-fuchsia-700 dark:hover:bg-fuchsia-900/30 dark:hover:text-fuchsia-300",
-    optionSelected:
-      "bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
-  },
-  rose: {
-    focusRing:
-      "focus:border-rose-500 focus:ring-rose-200 dark:focus:border-rose-400 dark:focus:ring-rose-900/40",
-    optionHover:
-      "hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-900/30 dark:hover:text-rose-300",
-    optionSelected:
-      "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
-  },
-  slate: {
-    focusRing:
-      "focus:border-slate-500 focus:ring-slate-200 dark:focus:border-slate-400 dark:focus:ring-slate-900/40",
-    optionHover:
-      "hover:bg-slate-50 hover:text-slate-700 dark:hover:bg-slate-900/30 dark:hover:text-slate-300",
-    optionSelected:
-      "bg-slate-50 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
-  },
-  gray: {
-    focusRing:
-      "focus:border-gray-500 focus:ring-gray-200 dark:focus:border-gray-400 dark:focus:ring-gray-900/40",
-    optionHover:
-      "hover:bg-gray-50 hover:text-gray-700 dark:hover:bg-gray-900/30 dark:hover:text-gray-300",
-    optionSelected:
-      "bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300",
-  },
-  zinc: {
-    focusRing:
-      "focus:border-zinc-500 focus:ring-zinc-200 dark:focus:border-zinc-400 dark:focus:ring-zinc-900/40",
-    optionHover:
-      "hover:bg-zinc-50 hover:text-zinc-700 dark:hover:bg-zinc-900/30 dark:hover:text-zinc-300",
-    optionSelected:
-      "bg-zinc-50 text-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-300",
-  },
-  neutral: {
-    focusRing:
-      "focus:border-neutral-500 focus:ring-neutral-200 dark:focus:border-neutral-400 dark:focus:ring-neutral-900/40",
-    optionHover:
-      "hover:bg-neutral-50 hover:text-neutral-700 dark:hover:bg-neutral-900/30 dark:hover:text-neutral-300",
-    optionSelected:
-      "bg-neutral-50 text-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-300",
-  },
-  stone: {
-    focusRing:
-      "focus:border-stone-500 focus:ring-stone-200 dark:focus:border-stone-400 dark:focus:ring-stone-900/40",
-    optionHover:
-      "hover:bg-stone-50 hover:text-stone-700 dark:hover:bg-stone-900/30 dark:hover:text-stone-300",
-    optionSelected:
-      "bg-stone-50 text-stone-700 dark:bg-stone-900/30 dark:text-stone-300",
-  },};
+export const COMBOBOX_VALIDATION_STATUSES = VALIDATION_STATUSES;
+export type ComboboxValidationStatus = ValidationStatus;
+export type ComboboxSize = ControlSize;
+export type ComboboxVariant = InputVariant;
 
-export interface ComboboxProps {
-  value?: string;
-  onChange: (value: string) => void;
-  options: string[];
-  placeholder?: string;
-  className?: string;
+export interface ComboboxOption {
+  value: string;
+  /** Falls back to `value`. */
+  label?: string;
+  /** Secondary line under the label. */
+  description?: string;
+  /** Registry icon name or a node. */
+  icon?: string | React.ReactElement;
   disabled?: boolean;
-  error?: boolean;
-  emptyMessage?: string;
-  color?: TrueColor;
 }
 
-export const Combobox: React.FC<ComboboxProps> = ({
-  value = "",
-  onChange,
-  options = [],
-  placeholder,
-  className,
-  disabled = false,
-  error = false,
-  emptyMessage = "No matching options found. You can keep typing to create a custom one.",
-  color = "blue",
-}) => {
-  const renderIcon = useIconRenderer();
-  const [isOpen, setIsOpen] = useState(false);
-  const [filter, setFilter] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const colorTokens = toneTokens[color] ?? toneTokens.neutral;
+/** A bare string is shorthand for `{ value }`. */
+export type ComboboxOptionInput = string | ComboboxOption;
 
-  useEffect(() => {
-    setFilter(value);
-  }, [value]);
+export const normaliseOption = (option: ComboboxOptionInput): ComboboxOption =>
+  typeof option === "string" ? { value: option } : option;
 
-  const filteredOptions = useMemo(() => {
-    if (!filter) return options;
-    const lowerFilter = filter.toLowerCase();
-    return options.filter((opt) => opt.toLowerCase().includes(lowerFilter));
-  }, [options, filter]);
+/**
+ * Option tones, generated rather than written out.
+ *
+ * The table this replaces had 21 hand-written entries in which `red` painted
+ * rose and `green` painted emerald — the same drift found in `Input`,
+ * `Select` and `MultiSelectPills`, four components deep before anyone noticed
+ * two of the twenty-one were lying.
+ */
+export interface ComboboxToneClasses {
+  /** The highlighted row — hover, or the keyboard cursor. */
+  active: string;
+  /** The row matching the current value. */
+  selected: string;
+}
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
+const buildToneClasses = (tone: TrueColor): ComboboxToneClasses => ({
+  active: `bg-${tone}-50 text-${tone}-700 dark:bg-${tone}-500/15 dark:text-${tone}-200`,
+  selected: `text-${tone}-700 dark:text-${tone}-200`,
+});
+
+export const COMBOBOX_TONE_CLASSES: Record<TrueColor, ComboboxToneClasses> =
+  Object.fromEntries(
+    TRUE_COLORS.map((tone) => [tone, buildToneClasses(tone)]),
+  ) as Record<TrueColor, ComboboxToneClasses>;
+
+export const getComboboxToneClasses = (
+  tone: TrueColor | undefined,
+): ComboboxToneClasses =>
+  COMBOBOX_TONE_CLASSES[tone ?? "blue"] ?? COMBOBOX_TONE_CLASSES.blue;
+
+/** Row metrics per shared control size, so a row lines up with the field. */
+const SIZE_ROW: Record<ComboboxSize, string> = {
+  xs: "px-2.5 py-1 text-xs",
+  sm: "px-3 py-1.5 text-xs",
+  md: "px-3 py-2 text-sm",
+  lg: "px-3.5 py-2.5 text-base",
+  xl: "px-4 py-3 text-base",
+};
+
+export interface ComboboxProps
+  extends Omit<
+    React.InputHTMLAttributes<HTMLInputElement>,
+    // `onSelect` is also a DOM handler on an input; leaving it in would
+    // silently widen this component's own callback to a SyntheticEvent one.
+    "size" | "color" | "onChange" | "onSelect" | "value" | "className"
+  > {
+  value?: string;
+  onChange: (value: string) => void;
+  /** Fired only when a row is chosen, not on every keystroke. */
+  onSelect?: (option: ComboboxOption) => void;
+  options: ComboboxOptionInput[];
+
+  /** @default "md" */
+  size?: ComboboxSize;
+  /** Accent colour for the focus ring and the highlighted row. */
+  tone?: TrueColor;
+  /** Alias for `tone`, matching `Input` and `Select`. */
+  color?: TrueColor;
+  /** Entry style. @default "flat" */
+  variant?: ComboboxVariant;
+  /** @default "none" */
+  validationStatus?: ComboboxValidationStatus;
+  /** @deprecated Use `validationStatus="error"`. */
+  error?: boolean;
+
+  placeholder?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  /** Fetching options. The list shows a spinner instead of the empty message. */
+  loading?: boolean;
+  loadingMessage?: React.ReactNode;
+  emptyMessage?: React.ReactNode;
+  /** Show the clear button once there is something to clear. @default true */
+  clearable?: boolean;
+  leadingIcon?: string | React.ReactElement;
+  /** Rows to show before the list scrolls. @default 6 */
+  visibleRows?: number;
+  /** Classes for the field box. */
+  className?: string;
+  /** Classes for the drop-down. */
+  listClassName?: string;
+}
+
+/**
+ * A text field that suggests, without preventing.
+ *
+ * Renders `Input` rather than a second field implementation, so the box, the
+ * sizes, the entry variants and the validation ring are the ones every other
+ * control in the kit uses — the previous version drew its own `border px-3
+ * py-2 text-sm` box with a hand-written 21-tone map and no size prop at all,
+ * so it could not line up with the `Button` beside it.
+ */
+export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
+  function Combobox(
+    {
+      value = "",
+      onChange,
+      onSelect,
+      options = [],
+      size = "md",
+      tone,
+      color,
+      variant = "flat",
+      validationStatus = "none",
+      error = false,
+      placeholder,
+      disabled = false,
+      readOnly = false,
+      loading = false,
+      loadingMessage = "Loading…",
+      emptyMessage = "No matching options. Keep typing to use what you entered.",
+      clearable = true,
+      leadingIcon,
+      visibleRows = 6,
+      className,
+      listClassName,
+      id,
+      onKeyDown,
+      onFocus,
+      onBlur,
+      ...rest
+    },
+    ref,
+  ) {
+    const renderIcon = useIconRenderer();
+    const generatedId = useId();
+    const fieldId = id ?? `${generatedId}-combobox`;
+    const listId = `${fieldId}-listbox`;
+
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState(value);
+    const [activeIndex, setActiveIndex] = useState(-1);
+
+    /**
+     * Suppresses the next focus-driven open.
+     *
+     * Committing puts focus back in the field, and focus opens the list — so
+     * choosing an option re-opened the very list it had just closed. Whether
+     * that fires at all depends on where focus already was, which is exactly
+     * the kind of thing that works in a browser and not in a test, or the
+     * other way round.
+     */
+    const skipNextFocusOpen = useRef(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const listRef = useRef<HTMLUListElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
+
+    const accent = tone ?? color ?? "blue";
+    const toneClasses = getComboboxToneClasses(accent);
+    // `error` predates `validationStatus`; the explicit status wins.
+    const status: ComboboxValidationStatus =
+      validationStatus !== "none" ? validationStatus : error ? "error" : "none";
+
+    useEffect(() => setQuery(value), [value]);
+
+    const normalised = useMemo(() => options.map(normaliseOption), [options]);
+
+    const filtered = useMemo(() => {
+      if (!query) return normalised;
+      const needle = query.toLowerCase();
+      return normalised.filter(
+        (option) =>
+          option.value.toLowerCase().includes(needle) ||
+          (option.label ?? "").toLowerCase().includes(needle),
+      );
+    }, [normalised, query]);
+
+    /** Rows a keyboard cursor may land on. A disabled row is skipped. */
+    const selectableIndexes = useMemo(
+      () =>
+        filtered
+          .map((option, index) => (option.disabled ? -1 : index))
+          .filter((index) => index >= 0),
+      [filtered],
+    );
+
+    const close = useCallback(() => {
+      setOpen(false);
+      setActiveIndex(-1);
+    }, []);
+
+    useEffect(() => {
+      if (!open) return;
+      const onPointerDown = (event: MouseEvent) => {
+        if (!containerRef.current?.contains(event.target as Node)) close();
+      };
+      document.addEventListener("mousedown", onPointerDown);
+      return () => document.removeEventListener("mousedown", onPointerDown);
+    }, [open, close]);
+
+    // Keep the cursor in view. A list that scrolls only with the mouse is not
+    // keyboard-navigable, however correct its `aria-activedescendant` is.
+    useEffect(() => {
+      if (!open || activeIndex < 0) return;
+      // Optional-called: `scrollIntoView` is not implemented everywhere a
+      // component tree gets rendered, and an unguarded call throws rather
+      // than merely failing to scroll.
+      listRef.current
+        ?.querySelector(`[data-index="${activeIndex}"]`)
+        ?.scrollIntoView?.({ block: "nearest" });
+    }, [open, activeIndex]);
+
+    const commit = (option: ComboboxOption) => {
+      if (option.disabled) return;
+      setQuery(option.value);
+      onChange(option.value);
+      onSelect?.(option);
+      close();
+      skipNextFocusOpen.current = true;
+      inputRef.current?.focus();
+    };
+
+    const step = (direction: 1 | -1) => {
+      if (selectableIndexes.length === 0) return;
+      const position = selectableIndexes.indexOf(activeIndex);
+      const next =
+        position === -1
+          ? direction === 1
+            ? selectableIndexes[0]
+            : selectableIndexes[selectableIndexes.length - 1]
+          : selectableIndexes[
+              (position + direction + selectableIndexes.length) %
+                selectableIndexes.length
+            ];
+      setActiveIndex(next);
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented || disabled || readOnly) return;
+
+      switch (event.key) {
+        case "ArrowDown":
+          event.preventDefault();
+          if (!open) setOpen(true);
+          step(1);
+          break;
+        case "ArrowUp":
+          event.preventDefault();
+          if (!open) setOpen(true);
+          step(-1);
+          break;
+        case "Home":
+          if (!open) break;
+          event.preventDefault();
+          setActiveIndex(selectableIndexes[0] ?? -1);
+          break;
+        case "End":
+          if (!open) break;
+          event.preventDefault();
+          setActiveIndex(
+            selectableIndexes[selectableIndexes.length - 1] ?? -1,
+          );
+          break;
+        case "Enter":
+          if (open && activeIndex >= 0 && filtered[activeIndex]) {
+            event.preventDefault();
+            commit(filtered[activeIndex]);
+          }
+          break;
+        case "Escape":
+          if (open) {
+            event.preventDefault();
+            close();
+          }
+          break;
+        case "Tab":
+          close();
+          break;
+        default:
+          break;
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    const showClear = clearable && Boolean(query) && !disabled && !readOnly;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setFilter(newValue);
-    onChange(newValue);
-    setIsOpen(true);
-  };
+    const rowClass = SIZE_ROW[size] ?? SIZE_ROW.md;
 
-  const handleOptionClick = (option: string) => {
-    onChange(option);
-    setFilter(option);
-    setIsOpen(false);
-  };
-
-  const handleInputFocus = () => {
-    if (!disabled) {
-      setIsOpen(true);
-    }
-  };
-
-  return (
-    <div
-      ref={containerRef}
-      className={classNames("relative w-full", className)}
-    >
-      <div className="relative">
-        <input
+    return (
+      <div ref={containerRef} className="relative w-full">
+        <Input
+          {...rest}
           ref={inputRef}
+          id={fieldId}
           type="text"
-          value={filter}
-          onChange={handleInputChange}
-          onFocus={handleInputFocus}
-          placeholder={placeholder}
+          value={query}
+          size={size}
+          tone={accent}
+          variant={variant}
+          validationStatus={status}
           disabled={disabled}
-          className={classNames(
-            "block w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500",
-            error
-              ? "border-red-300 focus:border-red-500 focus:ring-red-200"
-              : `border-gray-300 ${colorTokens.focusRing}`,
-          )}
+          readOnly={readOnly}
+          placeholder={placeholder}
+          className={className}
+          leadingIcon={leadingIcon}
+          // One contextual affordance rather than two stacked glyphs in a
+          // small field: clear while there is something to clear, otherwise
+          // the caret. Rendered by `Input`, so it keeps the kit's focus ring
+          // and hit area — the old version nested its own `IconButton` in a
+          // `pointer-events-none` box.
+          trailingIcon={showClear ? "Close" : "ArrowDown"}
+          trailingIconLabel={showClear ? "Clear" : "Show options"}
+          onTrailingIconClick={() => {
+            if (showClear) {
+              setQuery("");
+              onChange("");
+              inputRef.current?.focus();
+              return;
+            }
+            if (disabled || readOnly) return;
+            setOpen((current) => !current);
+            inputRef.current?.focus();
+          }}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={open ? listId : undefined}
+          aria-haspopup="listbox"
+          aria-autocomplete="list"
+          aria-activedescendant={
+            open && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined
+          }
+          autoComplete="off"
+          onChange={(event) => {
+            const next = event.target.value;
+            setQuery(next);
+            onChange(next);
+            setActiveIndex(-1);
+            if (!open) setOpen(true);
+          }}
+          onFocus={(event) => {
+            onFocus?.(event);
+            if (skipNextFocusOpen.current) {
+              skipNextFocusOpen.current = false;
+              return;
+            }
+            if (!disabled && !readOnly) setOpen(true);
+          }}
+          onBlur={onBlur}
+          onKeyDown={handleKeyDown}
         />
-        <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-          {filter && !disabled && (
-            <IconButton
-              icon="Close"
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-gray-600"
-              onClick={() => {
-                onChange("");
-                setFilter("");
-                inputRef.current?.focus();
-              }}
-              aria-label="Clear"
-            />
-          )}
-          <div className="pointer-events-none text-gray-400 pl-1">
-            {renderIcon("ArrowDown", "sm", "h-4 w-4")}
-          </div>
-        </div>
-      </div>
 
-      {isOpen && !disabled && (
-        <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none dark:bg-neutral-800">
-          {filteredOptions.length > 0 ? (
-            filteredOptions.map((option, index) => (
-              <div
-                key={index}
-                onClick={() => handleOptionClick(option)}
+        {open && !disabled && !readOnly && (
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            aria-label={rest["aria-label"] ?? placeholder ?? "Options"}
+            className={classNames(
+              "absolute z-20 mt-1 w-full overflow-auto rounded-lg border border-neutral-200 bg-white py-1 shadow-lg",
+              "dark:border-neutral-700 dark:bg-neutral-900",
+              listClassName,
+            )}
+            style={{ maxHeight: `${visibleRows * 2.5}rem` }}
+          >
+            {loading ? (
+              <li
                 className={classNames(
-                  `cursor-pointer px-4 py-2 text-sm ${colorTokens.optionHover}`,
-                  option === value
-                    ? `${colorTokens.optionSelected} font-medium`
-                    : "text-gray-900 dark:text-gray-100",
+                  "flex items-center gap-2 text-neutral-500 dark:text-neutral-400",
+                  rowClass,
                 )}
               >
-                {option}
-              </div>
-            ))
-          ) : (
-            <div className="px-4 py-2 text-sm text-gray-500 italic dark:text-gray-400">
-              {emptyMessage}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+                <Spinner size="xs" color={accent} />
+                {loadingMessage}
+              </li>
+            ) : filtered.length === 0 ? (
+              <li
+                className={classNames(
+                  "italic text-neutral-500 dark:text-neutral-400",
+                  rowClass,
+                )}
+              >
+                {emptyMessage}
+              </li>
+            ) : (
+              filtered.map((option, index) => {
+                const selected = option.value === value;
+                const active = index === activeIndex;
+                return (
+                  <li
+                    key={option.value}
+                    id={`${listId}-${index}`}
+                    data-index={index}
+                    role="option"
+                    aria-selected={selected}
+                    aria-disabled={option.disabled || undefined}
+                    // `onMouseDown` rather than `onClick`: the input's blur
+                    // fires first otherwise and the list is gone before the
+                    // click lands.
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      commit(option);
+                    }}
+                    onMouseEnter={() =>
+                      !option.disabled && setActiveIndex(index)
+                    }
+                    className={classNames(
+                      "flex items-center gap-2",
+                      rowClass,
+                      option.disabled
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer",
+                      // One class or the other, never both: two rules setting
+                      // a background at the same specificity are resolved by
+                      // emission order, which is arbitrary.
+                      active && !option.disabled
+                        ? toneClasses.active
+                        : selected
+                          ? toneClasses.selected
+                          : "text-neutral-900 dark:text-neutral-100",
+                      selected && "font-medium",
+                    )}
+                  >
+                    {option.icon && (
+                      <span className="inline-flex shrink-0 items-center">
+                        {typeof option.icon === "string"
+                          ? renderIcon(option.icon, "sm", "h-4 w-4")
+                          : option.icon}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">
+                        {option.label ?? option.value}
+                      </span>
+                      {option.description && (
+                        <span className="block truncate text-xs text-neutral-500 dark:text-neutral-400">
+                          {option.description}
+                        </span>
+                      )}
+                    </span>
+                    {selected && renderIcon("Check", "sm", "h-4 w-4 shrink-0")}
+                  </li>
+                );
+              })
+            )}
+          </ul>
+        )}
+      </div>
+    );
+  },
+);
 
 Combobox.displayName = "Combobox";
 

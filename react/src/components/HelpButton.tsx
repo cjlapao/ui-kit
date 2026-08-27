@@ -6,7 +6,16 @@ import type { Components } from "react-markdown";
 import classNames from "classnames";
 import IconButton from "./IconButton";
 import CustomIcon from "./CustomIcon";
-import type { TrueColor } from "../theme/Theme";
+import Panel from "./Panel";
+import {
+  DEFAULT_SURFACE_CORNER,
+  getPanelToneStyles,
+  getSurfaceTextTokens,
+  type ControlSize,
+  type SurfaceCorner,
+  type SurfaceVariant,
+  type TrueColor,
+} from "../theme/Theme";
 import type { IconName } from "../icons/registry";
 
 /* ------------------------------------------------------------------ */
@@ -29,92 +38,43 @@ export interface HelpButtonProps {
    * "auto" (default) picks the side with the most available space.
    */
   placement?: HelpButtonPlacement;
-  /** Accent color for the trigger button and the panel header stripe. */
+  /** Accent color for the trigger button and the panel header band. @default "sky" */
   color?: TrueColor;
-  /** Size of the trigger icon button. */
-  size?: "xs" | "sm" | "md" | "lg";
+  /**
+   * Surface treatment of the floating panel — the shared container family the
+   * `Panel` reference owns, so a help panel and a card beside it read the same.
+   * @default "elevated"
+   */
+  variant?: SurfaceVariant;
+  /** Corner radius of the panel, on the shared container scale. @default "rounded-md" */
+  corner?: SurfaceCorner;
+  /** Size of the trigger icon button, on the shared control scale. @default "xs" */
+  size?: ControlSize;
   /** Icon for the trigger button. Defaults to "Help". */
   icon?: IconName;
   /** Maximum width of the floating panel in px. Defaults to 360. */
   maxWidth?: number;
+  /**
+   * When true the panel body is a pulsing skeleton shaped like the help copy,
+   * so a slow help fetch does not flash empty text. @default false
+   */
+  loading?: boolean;
   /** Extra class applied to the root wrapper. */
   className?: string;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tone tokens (header stripe + accent text + icon bg)                 */
+/*  Header-band tone — generated from the shared panel palette          */
 /* ------------------------------------------------------------------ */
-
-type ToneTokens = { strip: string; accent: string; iconBg: string };
-
-const toneMap: Partial<Record<TrueColor, ToneTokens>> = {
-  blue: {
-    strip: "border-t-blue-500    bg-blue-50/70    dark:bg-blue-950/40",
-    accent: "text-blue-700    dark:text-blue-300",
-    iconBg: "bg-blue-100/80    dark:bg-blue-900/40",
-  },
-  indigo: {
-    strip: "border-t-indigo-500  bg-indigo-50/70  dark:bg-indigo-950/40",
-    accent: "text-indigo-700  dark:text-indigo-300",
-    iconBg: "bg-indigo-100/80  dark:bg-indigo-900/40",
-  },
-  violet: {
-    strip: "border-t-violet-500  bg-violet-50/70  dark:bg-violet-950/40",
-    accent: "text-violet-700  dark:text-violet-300",
-    iconBg: "bg-violet-100/80  dark:bg-violet-900/40",
-  },
-  sky: {
-    strip: "border-t-sky-500     bg-sky-50/70     dark:bg-sky-950/40",
-    accent: "text-sky-700     dark:text-sky-300",
-    iconBg: "bg-sky-100/80     dark:bg-sky-900/40",
-  },
-  cyan: {
-    strip: "border-t-cyan-500    bg-cyan-50/70    dark:bg-cyan-950/40",
-    accent: "text-cyan-700    dark:text-cyan-300",
-    iconBg: "bg-cyan-100/80    dark:bg-cyan-900/40",
-  },
-  teal: {
-    strip: "border-t-teal-500    bg-teal-50/70    dark:bg-teal-950/40",
-    accent: "text-teal-700    dark:text-teal-300",
-    iconBg: "bg-teal-100/80    dark:bg-teal-900/40",
-  },
-  emerald: {
-    strip: "border-t-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40",
-    accent: "text-emerald-700 dark:text-emerald-300",
-    iconBg: "bg-emerald-100/80 dark:bg-emerald-900/40",
-  },
-  green: {
-    strip: "border-t-green-500   bg-green-50/70   dark:bg-green-950/40",
-    accent: "text-green-700   dark:text-green-300",
-    iconBg: "bg-green-100/80   dark:bg-green-900/40",
-  },
-  amber: {
-    strip: "border-t-amber-500   bg-amber-50/70   dark:bg-amber-950/40",
-    accent: "text-amber-700   dark:text-amber-300",
-    iconBg: "bg-amber-100/80   dark:bg-amber-900/40",
-  },
-  orange: {
-    strip: "border-t-orange-500  bg-orange-50/70  dark:bg-orange-950/40",
-    accent: "text-orange-700  dark:text-orange-300",
-    iconBg: "bg-orange-100/80  dark:bg-orange-900/40",
-  },
-  rose: {
-    strip: "border-t-rose-500    bg-rose-50/70    dark:bg-rose-950/40",
-    accent: "text-rose-700    dark:text-rose-300",
-    iconBg: "bg-rose-100/80    dark:bg-rose-900/40",
-  },
-  slate: {
-    strip: "border-t-slate-400   bg-slate-50/80   dark:bg-slate-800/50",
-    accent: "text-slate-700   dark:text-slate-300",
-    iconBg: "bg-slate-100/80   dark:bg-slate-800",
-  },
-};
-
-const fallbackTone: ToneTokens = {
-  strip: "border-t-neutral-400 bg-neutral-50/80 dark:bg-neutral-800/50",
-  accent: "text-neutral-700 dark:text-neutral-300",
-  iconBg: "bg-neutral-100 dark:bg-neutral-800",
-};
+/*
+ * The header band's tint, top accent and copy colour all come from
+ * `getPanelToneStyles(color)`, so every one of the 21 TrueColors is present
+ * and a new tone in the theme reaches this component automatically. A
+ * hand-written per-colour map is exactly the drift the hardening brief exists
+ * to eliminate (§5.2): the previous 12-entry table fell through to a neutral
+ * fallback for red, yellow, lime, purple, fuchsia, gray, zinc, neutral and
+ * stone — so half the tone set rendered with no accent at all.
+ */
 
 /* ------------------------------------------------------------------ */
 /*  Markdown component map                                              */
@@ -325,9 +285,12 @@ const HelpButton: React.FC<HelpButtonProps> = ({
   title,
   placement = "auto",
   color = "sky",
+  variant = "elevated",
+  corner = DEFAULT_SURFACE_CORNER,
   size = "xs",
   icon = "Help",
   maxWidth = 360,
+  loading = false,
   className,
 }) => {
   const [open, setOpen] = useState(false);
@@ -397,7 +360,11 @@ const HelpButton: React.FC<HelpButtonProps> = ({
     };
   }, [open, recompute]);
 
-  const tone = toneMap[color] ?? fallbackTone;
+  // Generated from the theme — all 21 tones, no local map to drift.
+  const palette = getPanelToneStyles(color);
+  // Copy colour follows the surface, so a see-through (glass) panel gets the
+  // higher-contrast ink instead of a hardcoded neutral pair (§4).
+  const surfaceText = getSurfaceTextTokens(variant);
   const isMarkdown = typeof content === "string";
 
   return (
@@ -422,11 +389,10 @@ const HelpButton: React.FC<HelpButtonProps> = ({
           role="dialog"
           aria-modal="false"
           aria-label={typeof title === "string" ? title : "Help"}
+          aria-busy={loading}
           style={{ ...popoverStyle, position: "fixed" }}
           className={classNames(
-            "z-[2000] rounded-2xl border shadow-xl dark:shadow-neutral-950/60",
-            "bg-white dark:bg-neutral-900",
-            "border-neutral-200/70 dark:border-neutral-700/60",
+            "z-[2000]",
             // Animation — opacity + scale, origin tracks resolved placement
             "transition-[opacity,transform] duration-200 ease-out",
             originClass[resolvedPlacement],
@@ -435,56 +401,84 @@ const HelpButton: React.FC<HelpButtonProps> = ({
               : "opacity-0 scale-95 pointer-events-none",
           )}
         >
-          {/* ---- Accent header strip ---- */}
-          <div
-            className={classNames(
-              "flex items-center justify-between gap-2 px-3 py-2 rounded-t-2xl border-t-[3px]",
-              tone.strip,
-            )}
+          {/* The surface is a real `Panel`, so the eight container variants,
+              tone, corner and every glass prop read identically to a card.
+              Padding is "none" — the accent band and body supply their own
+              inset, and the panel's overflow-hidden clips the band's top
+              corners to the shared corner radius. */}
+          <Panel
+            variant={variant}
+            tone={color}
+            corner={corner}
+            padding="none"
+            scrollable={false}
           >
-            <div
-              className={classNames(
-                "flex items-center gap-2 min-w-0",
-                tone.accent,
-              )}
-            >
-              <span
+            <div className="flex flex-col">
+              {/* ---- Accent header band (tone generated, never hand-mapped) ---- */}
+              <div
                 className={classNames(
-                  "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full",
-                  tone.iconBg,
+                  "flex items-center justify-between gap-2 px-3 py-2",
+                  palette.subtleBg,
                 )}
               >
-                <CustomIcon icon="Info" className="h-3 w-3" />
-              </span>
-              <span className="text-xs font-semibold truncate">
-                {title ?? "Help"}
-              </span>
-            </div>
-            <IconButton
-              icon="Close"
-              size="xs"
-              variant="ghost"
-              color="slate"
-              onClick={close}
-              aria-label="Close help"
-            />
-          </div>
-
-          {/* ---- Content body ---- */}
-          <div className="px-4 py-3 overflow-y-auto max-h-[55vh] scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700">
-            {isMarkdown ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={mdComponents}
-              >
-                {content as string}
-              </ReactMarkdown>
-            ) : (
-              <div className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">
-                {content}
+                <div
+                  className={classNames(
+                    "flex items-center gap-2 min-w-0",
+                    palette.heading,
+                  )}
+                >
+                  <span
+                    className={classNames(
+                      "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full",
+                      palette.subtleBg,
+                    )}
+                  >
+                    <CustomIcon icon="Info" className="h-3 w-3" />
+                  </span>
+                  <span className="text-xs font-semibold truncate">
+                    {title ?? "Help"}
+                  </span>
+                </div>
+                <IconButton
+                  icon="Close"
+                  size="xs"
+                  variant="ghost"
+                  color="slate"
+                  onClick={close}
+                  aria-label="Close help"
+                />
               </div>
-            )}
-          </div>
+
+              {/* ---- Content body ---- */}
+              <div className="px-4 py-3 overflow-y-auto max-h-[55vh] scrollbar-thin scrollbar-thumb-neutral-300 dark:scrollbar-thumb-neutral-700">
+                {loading ? (
+                  <div className="space-y-3" aria-hidden="true">
+                    <span className="block h-3 w-24 animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                    <span className="block h-2.5 w-full animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                    <span className="block h-2.5 w-full animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                    <span className="block h-2.5 w-4/5 animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                    <span className="block h-2.5 w-2/3 animate-pulse rounded bg-black/10 dark:bg-white/10 motion-reduce:animate-none" />
+                  </div>
+                ) : isMarkdown ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={mdComponents}
+                  >
+                    {content as string}
+                  </ReactMarkdown>
+                ) : (
+                  <div
+                    className={classNames(
+                      "text-sm leading-relaxed",
+                      surfaceText.body,
+                    )}
+                  >
+                    {content}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Panel>
         </div>,
         document.body,
       )}

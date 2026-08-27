@@ -1,11 +1,29 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import classNames from "classnames";
-import { type PanelTone, Loader, type LoaderProps } from ".";
-import { useStepper } from "../hooks";
-import { getStepperTonePalette, type Orientation } from "../theme";
-import { type IconName } from "../icons/registry";
-import { renderIcon } from "../utils/renderIcon";
+import EmptyState from "./EmptyState";
+import Loader from "./Loader";
+import Panel, { type PanelLoaderType, type PanelProps } from "./Panel";
+import {
+  DEFAULT_SURFACE_CORNER,
+  getLoaderProgressColors,
+  getPanelToneStyles,
+  getStepperTonePalette,
+  getSurfaceCornerClass,
+  getSurfaceTriggerTokens,
+  type ControlSize,
+  type Orientation,
+  type SurfaceCorner,
+  type TrueColor,
+} from "../theme/Theme";
+import { useStepper, type StepperState } from "../hooks";
+import { useIconRenderer } from "../contexts/IconContext";
+import { useSurfaceText } from "../contexts/SurfaceContext";
 
 export type StepStatus = "pending" | "active" | "completed" | "error";
 
@@ -15,7 +33,7 @@ export interface StepperStep {
   subtitle?: React.ReactNode;
   description?: React.ReactNode;
   content?: React.ReactNode;
-  icon?: IconName | React.ReactElement;
+  icon?: string | React.ReactElement;
   optionalLabel?: React.ReactNode;
   status?: StepStatus;
   disabled?: boolean;
@@ -24,237 +42,303 @@ export interface StepperStep {
 export type Step = StepperStep;
 
 export type StepperOrientation = Orientation;
-export type StepperVariant = "card" | "minimal";
-export type StepperSize = "sm" | "md" | "lg";
+
+/** How the line between nodes behaves. `progress` fills it as steps complete. */
 export type StepperConnector = "line" | "progress" | "none";
 export type StepperProgressBarPosition = "top" | "bottom";
 export type StepperConnectorAlign = "left" | "center" | "right";
 
+/**
+ * Shape of the step node. The Panel corner scale (`none` → `rounded-xl`) gives
+ * the usual card corners; `"full"` is the classic circle. @default "full"
+ */
+export type StepperNodeCorner = SurfaceCorner | "full";
+
+/**
+ * A multi-step workflow on the shared container surface.
+ *
+ * It renders `Panel` (like `Accordion` and `CollapsiblePanel`), so `variant`,
+ * `tone`, `corner`, `padding`, `loading` and every glass prop come from the
+ * same scales as every other card. Node and connector colour comes from
+ * `getStepperTonePalette`, hover/focus from `getSurfaceTriggerTokens` and copy
+ * colour from the surface's text tokens — nothing is a hardcoded
+ * `text-neutral-*` pair, so the component reads correctly on glass.
+ *
+ * `size` is the shared `ControlSize` scale and drives node box, type, icons
+ * and connector thickness; `variant` is the shared surface family — the old
+ * local `"card" | "minimal"` and `"sm" | "md" | "lg"` unions are gone, and
+ * density differences come from `size` + `padding` instead.
+ */
+/**
+ * How the Stepper shows loading. "spinner"/"progress" overlay the node (and the
+ * Panel when the whole stepper loads); "skeleton" replaces the content with
+ * pulsing lines instead of a spinning overlay.
+ */
+export type StepperLoaderType = PanelLoaderType | "skeleton";
+
 export interface StepperProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange"> {
+  extends Omit<
+    PanelProps,
+    "title" | "subtitle" | "actions" | "children" | "onChange" | "loaderType"
+  > {
+  /** @default "spinner" */
+  loaderType?: StepperLoaderType;
   steps: StepperStep[];
   currentIndex?: number;
   currentStepId?: string;
   defaultCurrentIndex?: number;
   defaultCurrentStepId?: string;
   completedStepIds?: string[];
+  /** @default "horizontal" */
   orientation?: StepperOrientation;
-  variant?: StepperVariant;
-  size?: StepperSize;
-  tone?: PanelTone;
+  /** Density of the node, its type, icons and the connector. @default "md" */
+  size?: ControlSize;
+  /** Shape of the step node: a Panel corner scale or the classic circle. @default "full" */
+  nodeCorner?: StepperNodeCorner;
+  /**
+   * "progress" runs edge-to-edge between the node circles and fills up to the
+   * active step; "line" draws a static track with a breathing gap around
+   * every circle. Both in every orientation. @default "progress"
+   */
   connector?: StepperConnector;
+  /** @default true */
   interactive?: boolean;
-  readOnly?: boolean;
+  /**
+   * Animate connectors, fills and the progress bar. With `false` the
+   * transition classes are dropped, not just paused. @default true
+   */
   animated?: boolean;
-  transitionMs?: number;
   showProgressSummary?: boolean;
   showProgressBar?: boolean;
-  progressBarPosition?: "top" | "bottom";
+  /** Where the progress bar/summary sits relative to the steps. @default "bottom" */
+  progressBarPosition?: StepperProgressBarPosition;
   progressPrecision?: number;
   progressLabel?: React.ReactNode;
   onChange?: (index: number, stepId?: string) => void;
   onStepClick?: (step: StepperStep, index: number) => void;
+  /** Per-step actions rendered under the step's copy. */
   renderActions?: (step: StepperStep, index: number) => React.ReactNode;
+  /** Step ids whose node shows a loader overlay (and whose content shows a skeleton). */
   loaderStepIds?: string[];
-  loading?: boolean;
-  loaderTitle?: React.ReactNode;
-  loaderMessage?: React.ReactNode;
-  loaderType?: LoaderProps["variant"];
-  loaderProgress?: number;
-  loaderColor?: LoaderProps["color"];
-  wrapperClassName?: string;
   headerClassName?: string;
   stepClassName?: string;
   contentClassName?: string;
   stepMaxHeight?: number | string;
+  /** @default false */
   connectNodes?: boolean;
+  /** @default "center" */
   connectorAlign?: StepperConnectorAlign;
-  /** Override whether the underline bar is shown beneath each step's title/subtitle. When omitted the variant default is used (`card` → true, `minimal` → false). */
+  /** The underline bar beneath each step's title. @default false */
   showStepUnderline?: boolean;
 }
 
-const sizeTokens: Record<
-  StepperSize,
+/**
+ * Type/icon/connector density only. Every class is a complete literal — the
+ * previous version built `h-${n}` from a number and used `h-32` where it meant
+ * 32px, which Tailwind reads as 8rem.
+ */
+const SIZE_TOKENS: Record<
+  ControlSize,
   {
     node: string;
+    nodeRadius: number;
     nodeText: string;
     title: string;
     subtitle: string;
     description: string;
     optional: string;
-    gap: string;
-    underlineHeight: string;
+    icon: ControlSize;
+    connector: string;
+    connectorVertical: string;
+    underline: string;
   }
 > = {
+  xs: {
+    node: "h-8 w-8",
+    nodeRadius: 16,
+    nodeText: "text-xs",
+    title: "text-xs font-semibold",
+    subtitle: "text-[11px] font-medium",
+    description: "text-[11px]",
+    optional: "text-[11px] italic",
+    icon: "xs",
+    connector: "h-0.5",
+    connectorVertical: "w-0.5",
+    underline: "h-0.5",
+  },
   sm: {
-    node: "h-9 w-9 text-xs",
+    node: "h-9 w-9",
+    nodeRadius: 18,
     nodeText: "text-xs",
     title: "text-sm font-semibold",
-    subtitle: "text-xs font-medium text-neutral-500 dark:text-neutral-400",
-    description: "text-xs text-neutral-500 dark:text-neutral-400",
-    optional: "text-[11px] italic text-neutral-400 dark:text-neutral-500",
-    gap: "gap-2.5",
-    underlineHeight: "h-0.5",
+    subtitle: "text-xs font-medium",
+    description: "text-xs",
+    optional: "text-[11px] italic",
+    icon: "sm",
+    connector: "h-[3px]",
+    connectorVertical: "w-[3px]",
+    underline: "h-0.5",
   },
   md: {
-    node: "h-10 w-10 text-sm",
+    node: "h-10 w-10",
+    nodeRadius: 20,
     nodeText: "text-sm",
     title: "text-base font-semibold",
-    subtitle: "text-sm font-medium text-neutral-500 dark:text-neutral-400",
-    description: "text-sm text-neutral-500 dark:text-neutral-400",
-    optional: "text-xs italic text-neutral-400 dark:text-neutral-500",
-    gap: "gap-3",
-    underlineHeight: "h-[3px]",
+    subtitle: "text-sm font-medium",
+    description: "text-sm",
+    optional: "text-xs italic",
+    icon: "md",
+    connector: "h-1",
+    connectorVertical: "w-1",
+    underline: "h-[3px]",
   },
   lg: {
-    node: "h-12 w-12 text-base",
+    node: "h-12 w-12",
+    nodeRadius: 24,
     nodeText: "text-base",
     title: "text-lg font-semibold",
-    subtitle: "text-sm font-medium text-neutral-500 dark:text-neutral-400",
-    description: "text-sm text-neutral-500 dark:text-neutral-400",
-    optional: "text-sm italic text-neutral-400 dark:text-neutral-500",
-    gap: "gap-4",
-    underlineHeight: "h-1",
+    subtitle: "text-sm font-medium",
+    description: "text-sm",
+    optional: "text-sm italic",
+    icon: "lg",
+    connector: "h-[5px]",
+    connectorVertical: "w-[5px]",
+    underline: "h-1",
+  },
+  xl: {
+    node: "h-14 w-14",
+    nodeRadius: 28,
+    nodeText: "text-lg",
+    title: "text-xl font-semibold",
+    subtitle: "text-sm font-medium",
+    description: "text-base",
+    optional: "text-sm italic",
+    icon: "xl",
+    connector: "h-1.5",
+    connectorVertical: "w-1.5",
+    underline: "h-1",
   },
 };
 
-const variantConfig: Record<
-  StepperVariant,
-  {
-    headerPadding: string;
-    showDescription: boolean;
-    emphasizeActiveTitle: boolean;
-    showUnderline: boolean;
-  }
-> = {
-  card: {
-    headerPadding: "px-2 py-1.5",
-    showDescription: true,
-    emphasizeActiveTitle: true,
-    showUnderline: false,
-  },
-  minimal: {
-    headerPadding: "px-1 py-1",
-    showDescription: false,
-    emphasizeActiveTitle: true,
-    showUnderline: false,
-  },
-};
-
-const statusIcon: Record<StepStatus, IconName | undefined> = {
+const STATUS_ICON: Record<StepStatus, string | undefined> = {
   pending: undefined,
   active: undefined,
   completed: "CheckCircle",
   error: "Error",
 };
 
-const convertToBg = (value: string): string =>
-  value
-    .split(" ")
-    .map((token) => {
-      if (token.startsWith("bg-") || token.startsWith("dark:bg-")) {
-        return token;
-      }
-      if (token.startsWith("border-")) {
-        return token.replace("border-", "bg-");
-      }
-      if (token.startsWith("dark:border-")) {
-        return token.replace("dark:border-", "dark:bg-");
-      }
-      return "";
-    })
-    .filter(Boolean)
-    .join(" ");
+/**
+ * Semantic, not tone-driven: an error step is always rose. Same `-700` light /
+ * `-400` dark rule as every other fill that carries a glyph — the old
+ * `bg-rose-500` under white measured ~3.9:1.
+ */
+const ERROR_NODE = "bg-rose-700 dark:bg-rose-400 text-white dark:text-rose-950";
 
-const nodeRadii: Record<StepperSize, number> = {
-  sm: 18,
-  md: 20,
-  lg: 24,
-};
+interface StepMeta {
+  step: StepperStep;
+  index: number;
+  resolvedId: string;
+  status: StepStatus;
+  /** A step that is active never fills the connector, even if completed. */
+  isCompleted: boolean;
+  statusClasses: string | string[];
+  hoverClass: string;
+  underlineClasses: string;
+  textStyle: React.CSSProperties | undefined;
+  nodeIcon: string | React.ReactElement | undefined;
+  isLoadingStep: boolean;
+}
 
-const connectorThickness: Record<StepperSize, string> = {
-  sm: "h-[3px]",
-  md: "h-1",
-  lg: "h-[5px]",
-};
+interface StepperBodyProps {
+  state: StepperState<StepperStep>;
+  orientation: StepperOrientation;
+  size: ControlSize;
+  nodeCorner: StepperNodeCorner;
+  tone: TrueColor;
+  connector: StepperConnector;
+  animated: boolean;
+  loaderType: PanelLoaderType;
+  /** `interactive && !disabled`, resolved by the parent. */
+  clickable: boolean;
+  showProgressSummary: boolean;
+  showProgressBar: boolean;
+  progressBarPosition: StepperProgressBarPosition;
+  progressPrecision: number;
+  progressLabel?: React.ReactNode;
+  onStepClick?: (step: StepperStep, index: number) => void;
+  renderActions?: (step: StepperStep, index: number) => React.ReactNode;
+  loaderStepIds?: string[];
+  headerClassName?: string;
+  stepClassName?: string;
+  contentClassName?: string;
+  stepMaxHeight?: number | string;
+  connectNodes: boolean;
+  connectorAlign: StepperConnectorAlign;
+  showStepUnderline: boolean;
+}
 
-const verticalConnectorThickness: Record<StepperSize, string> = {
-  sm: "w-[3px]",
-  md: "w-1",
-  lg: "w-[5px]",
-};
-export const Stepper: React.FC<StepperProps> = ({
-  steps,
-  currentIndex,
-  currentStepId,
-  defaultCurrentIndex,
-  defaultCurrentStepId,
-  completedStepIds,
-  orientation = "horizontal",
-  variant = "card",
-  size = "md",
-  tone = "blue",
-  connector = "progress",
-  interactive = true,
-  readOnly,
-  showProgressSummary = false,
-  showProgressBar = false,
-  progressPrecision = 0,
+/**
+ * Split out so it can read the surface context `Panel` publishes — a component
+ * cannot consume a provider it renders itself. That is how the copy, the
+ * hover wash and the recessed content fill adapt to glass without a hardcoded
+ * neutral pair.
+ */
+const StepperBody: React.FC<StepperBodyProps> = ({
+  state,
+  orientation,
+  size,
+  nodeCorner,
+  tone,
+  connector,
+  animated,
+  loaderType,
+  clickable,
+  showProgressSummary,
+  showProgressBar,
+  progressBarPosition,
+  progressPrecision,
   progressLabel,
-  onChange,
   onStepClick,
+  renderActions,
   loaderStepIds,
-  loading = false,
-  loaderTitle,
-  loaderMessage,
-  loaderType = "spinner",
-  loaderProgress,
-  loaderColor,
-  wrapperClassName,
   headerClassName,
   stepClassName,
   contentClassName,
   stepMaxHeight,
-  connectNodes = false,
-  connectorAlign = "center",
+  connectNodes,
+  connectorAlign,
   showStepUnderline,
-  className,
-  style,
-  ...rest
 }) => {
-  const state = useStepper(steps, {
-    currentIndex,
-    currentStepId,
-    defaultCurrentIndex,
-    defaultCurrentStepId,
-    completedStepIds,
-    onChange,
-  });
-  const nodeRefs = useRef<(HTMLDivElement | HTMLButtonElement | null)[]>([]);
-  const verticalContainerRef = useRef<HTMLDivElement | null>(null);
-  const [verticalSegments, setVerticalSegments] = useState<number[]>([]);
-
+  const renderIcon = useIconRenderer();
+  const surface = useSurfaceText();
+  const trigger = getSurfaceTriggerTokens(tone);
   const palette = getStepperTonePalette(tone);
-  const sizeToken = sizeTokens[size];
-  const connectorThicknessClass = connectorThickness[size];
-  const verticalConnectorThicknessClass = verticalConnectorThickness[size];
-  const variantToken = variantConfig[variant];
-  const isInteractive = interactive && !readOnly;
+  const panelTone = getPanelToneStyles(tone);
+  const progressColors = getLoaderProgressColors(tone);
+  const tokens = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
+  const nodeCornerClass =
+    nodeCorner === "full" ? "rounded-full" : getSurfaceCornerClass(nodeCorner);
+  const steps = state.steps;
+  const progressLabelId = useId();
   const loaderSet = useMemo(
     () => new Set(loaderStepIds ?? []),
     [loaderStepIds],
   );
-  const connectorBaseClasses = convertToBg(palette.underlineBase);
-  const connectorActiveClasses = convertToBg(palette.activeBg);
+  const nodeRefs = useRef<(HTMLElement | null)[]>([]);
+  const verticalContainerRef = useRef<HTMLDivElement | null>(null);
+  const [verticalSegments, setVerticalSegments] = useState<number[]>([]);
 
-  const progressPercent = Math.min(100, Math.max(0, state.progressPercent));
-  const formattedProgress =
-    Math.round(progressPercent * Math.pow(10, progressPrecision)) /
-    Math.pow(10, progressPrecision);
+  const nodeTransition = animated
+    ? "transition-all duration-200 motion-reduce:transition-none"
+    : "";
+  const lineTransition = animated
+    ? "transition-colors duration-200 motion-reduce:transition-none"
+    : "";
+  const fillTransition = animated
+    ? "transition-all duration-300 ease-out motion-reduce:transition-none"
+    : "";
 
-  const activeStep = steps[state.currentIndex];
-
-  const stepMeta = steps.map((step, index) => {
+  const stepMeta: StepMeta[] = steps.map((step, index) => {
     const resolvedId = step.id ?? String(index);
     const derivedActive = state.isActive(resolvedId, index);
     const derivedCompleted = state.isCompleted(resolvedId, index);
@@ -262,46 +346,37 @@ export const Stepper: React.FC<StepperProps> = ({
       step.status ??
       (derivedActive ? "active" : derivedCompleted ? "completed" : "pending");
 
-    // A step that is active is never "completed" for connector-fill purposes,
-    // even if its id appears in completedStepIds or its explicit status is "completed".
     const isCompleted =
       (step.status ? step.status === "completed" : derivedCompleted) &&
       !derivedActive;
 
-    const nodeBaseClass =
-      variant === "minimal"
-        ? "rounded-md border flex items-center justify-center font-semibold transition-all duration-200"
-        : "rounded-full border flex items-center justify-center font-semibold transition-all duration-200";
+    const statusClasses =
+      status === "active"
+        ? [palette.activeBg, palette.activeText, "border-transparent shadow-sm"]
+        : status === "completed"
+          ? [
+              palette.completedBg,
+              palette.completedText,
+              "border-transparent shadow-sm",
+            ]
+          : status === "error"
+            ? [ERROR_NODE, "border-transparent shadow-sm"]
+            : // No fill: a pending node is just its tone border and number, so
+              // it stays see-through on a glass surface instead of painting an
+              // opaque slab.
+              ["bg-transparent", palette.pendingBorder, palette.pendingText];
 
-    const nodeClasses = classNames(
-      nodeBaseClass,
-      sizeToken.node,
-      sizeToken.nodeText,
-      step.disabled && "opacity-60",
-      status === "active" && [
-        palette.activeBg,
-        palette.activeText,
-        "border-transparent shadow-sm",
-      ],
-      status === "completed" && [
-        palette.completedBg,
-        palette.completedText,
-        "border-transparent shadow-sm",
-      ],
-      status === "pending" && [
-        "bg-white dark:bg-neutral-900",
-        palette.pendingBorder,
-        palette.pendingText,
-      ],
-      status === "error" &&
-        "bg-rose-500 text-white border-transparent shadow-sm",
-    );
+    // Filled nodes darken on hover; a transparent pending node takes the
+    // surface's tone wash instead (brightness-95 on nothing paints nothing).
+    const hoverClass =
+      status === "pending" ? trigger.hover : "hover:brightness-95";
 
     const underlineClasses =
       connector !== "none"
         ? classNames(
-            "w-full transition-all duration-200 ease-out rounded-full",
-            sizeToken.underlineHeight,
+            "w-full rounded-full",
+            lineTransition,
+            tokens.underline,
             palette.underlineBase,
           )
         : "";
@@ -316,7 +391,7 @@ export const Stepper: React.FC<StepperProps> = ({
           }
         : undefined;
 
-    const nodeIcon = step.icon ?? statusIcon[status];
+    const nodeIcon = step.icon ?? STATUS_ICON[status];
     const isLoadingStep = loaderSet.has(resolvedId);
 
     return {
@@ -324,15 +399,71 @@ export const Stepper: React.FC<StepperProps> = ({
       index,
       resolvedId,
       status,
-      nodeClasses,
+      isCompleted,
+      statusClasses,
+      hoverClass,
       underlineClasses,
       textStyle,
       nodeIcon,
       isLoadingStep,
-      isCompleted,
     };
   });
-  nodeRefs.current.length = stepMeta.length;
+
+  const goTo = (step: StepperStep, index: number) => {
+    if (!clickable || step.disabled) return;
+    state.goToIndex(index);
+    onStepClick?.(step, index);
+  };
+
+  const handleNodeKeyDown = (
+    event: React.KeyboardEvent,
+    index: number,
+  ) => {
+    // Only when the node itself has focus.
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    if (
+      ![
+        "ArrowDown",
+        "ArrowUp",
+        "ArrowLeft",
+        "ArrowRight",
+        "Home",
+        "End",
+      ].includes(event.key)
+    ) {
+      return;
+    }
+    event.preventDefault();
+
+    // Arrow keys move focus between steps without activating them (APG
+    // disclosure pattern); Enter/Space activate via the native button.
+    const enabled = steps
+      .map((_, i) => i)
+      .filter((i) => !steps[i].disabled);
+    if (enabled.length === 0) return;
+    const current = enabled.indexOf(index);
+    if (current === -1) return;
+
+    let next: number;
+    switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        next = (current + 1) % enabled.length;
+        break;
+      case "ArrowUp":
+      case "ArrowLeft":
+        next = (current - 1 + enabled.length) % enabled.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      default:
+        next = enabled.length - 1;
+    }
+    nodeRefs.current[enabled[next]]?.focus();
+  };
 
   useLayoutEffect(() => {
     if (orientation !== "vertical") {
@@ -352,10 +483,9 @@ export const Stepper: React.FC<StepperProps> = ({
       }
       const containerRect = container.getBoundingClientRect();
       const centers: number[] = [];
-      for (const node of nodes) {
-        if (!node) {
-          return;
-        }
+      for (let i = 0; i < nodes.length; i += 1) {
+        const node = nodes[i];
+        if (!node) return;
         const rect = node.getBoundingClientRect();
         centers.push(rect.top + rect.height / 2 - containerRect.top);
       }
@@ -374,25 +504,67 @@ export const Stepper: React.FC<StepperProps> = ({
     };
 
     measure();
+    // Observe the container, not just the window: a stepper in a resizable
+    // split resizes while the window does not.
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(measure);
+    if (observer && verticalContainerRef.current) {
+      observer.observe(verticalContainerRef.current);
+    }
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [orientation, steps, completedStepIds, loaderStepIds, state.currentIndex]);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orientation, steps, state.currentIndex, loaderStepIds]);
+
+  const progressPercent = Math.min(100, Math.max(0, state.progressPercent));
+  const formattedProgress =
+    Math.round(progressPercent * Math.pow(10, progressPrecision)) /
+    Math.pow(10, progressPrecision);
 
   const progressBlock =
     showProgressBar || showProgressSummary ? (
-      <div className="mt-6 flex w-full flex-col gap-2">
+      <div
+        className={classNames(
+          "flex w-full flex-col gap-2",
+          progressBarPosition === "bottom" && "mt-6",
+        )}
+      >
         {showProgressSummary && (
-          <div className="flex items-center justify-between text-sm font-medium text-neutral-500 dark:text-neutral-400">
-            <span>{progressLabel ?? "Progress"}</span>
+          <div
+            className={classNames(
+              "flex items-center justify-between text-sm font-medium",
+              surface.muted,
+            )}
+          >
+            <span id={progressLabelId}>
+              {progressLabel ?? "Progress"}
+            </span>
             <span>{formattedProgress}%</span>
           </div>
         )}
         {showProgressBar && (
-          <div className="relative h-1 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+          <div
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={formattedProgress}
+            aria-labelledby={showProgressSummary ? progressLabelId : undefined}
+            aria-label={showProgressSummary ? undefined : "Progress"}
+            className={classNames(
+              "relative h-1 w-full overflow-hidden rounded-full",
+              progressColors.track,
+            )}
+          >
             <div
               className={classNames(
-                "absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out",
-                palette.completedBg,
+                "absolute inset-y-0 left-0 rounded-full",
+                fillTransition,
+                progressColors.bar,
               )}
               style={{ width: `${progressPercent}%` }}
             />
@@ -401,178 +573,204 @@ export const Stepper: React.FC<StepperProps> = ({
       </div>
     ) : null;
 
-  const renderNodeRow = () => {
-    const rowGapClass = connectNodes ? "gap-0" : "gap-2";
-    const nodeRadius = nodeRadii[size];
-    let connectorWidth = `calc(50% + ${nodeRadius}px)`;
-    let leftNodeStyle =
-      connectorAlign === "left"
-        ? "calc(50% * -1)"
-        : connectorAlign === "right"
-          ? `${nodeRadius * 4}px`
-          : `-${nodeRadius}px`;
-    let rightNodeStyle =
-      connectorAlign === "left"
-        ? "unset"
-        : connectorAlign === "right"
-          ? "calc(50% * -1)"
-          : `-${nodeRadius}px`;
+  const renderNode = (
+    meta: StepMeta,
+    idx: number,
+    cellClassName?: string,
+  ) => {
+    const { step, statusClasses, hoverClass, nodeIcon, isLoadingStep } =
+      meta;
+    const isDisabled = Boolean(step.disabled);
+    const active = state.isActive(meta.resolvedId, idx);
+    const NodeTag = clickable && !isDisabled ? "button" : "div";
 
     return (
-      <div className={classNames("flex items-center", rowGapClass)}>
-        {stepMeta.map((meta, idx) => {
-          const {
-            resolvedId,
-            nodeClasses,
-            nodeIcon,
-            isLoadingStep,
-            step,
-            isCompleted,
-          } = meta;
-          const NodeTag = isInteractive && !step.disabled ? "button" : "div";
-
-          const handleClick = () => {
-            if (!isInteractive || step.disabled) return;
-            state.goToIndex(idx);
-            onStepClick?.(step, idx);
-          };
-
-          let showLeft = connectNodes && connector !== "none" && idx > 0;
-          let showRight =
-            connectNodes && connector !== "none" && idx < stepMeta.length - 1;
-          let segmentSize = "pl-4 pr-2";
-          if (!connectNodes) {
-            if (connectorAlign === "left") {
-              showRight = false;
-              showLeft = false;
-              segmentSize = "pl-4 pr-2 flex-1";
-              leftNodeStyle = "0px";
-            }
-            if (connectorAlign === "center") {
-              showLeft = connector !== "none" && idx > 0;
-              showRight = connector !== "none" && idx < stepMeta.length - 1;
-              connectorWidth = `calc(50% - ${nodeRadius}px)`;
-              rightNodeStyle = `0px`;
-            }
-            if (connectorAlign === "right") {
-              showLeft = connector !== "none" && idx > 0;
-              showRight = false;
-              // Connector spans from the previous cell's right edge (= left: 0)
-              // to just before the current node (= calc(100% - 2r)).
-              leftNodeStyle = "0px";
-              connectorWidth = `calc(100% - ${nodeRadius * 2}px)`;
-            }
-          }
-          const previousStep = stepMeta[idx - 1];
-          const previousCompleted = previousStep?.isCompleted ?? false;
-          const currentCompleted = isCompleted;
-          // For right-align the absolute left-connector handles the line; the flex segment would push the node off the right edge.
-          const detachedSegment =
-            !connectNodes &&
-            connector !== "none" &&
-            connectorAlign !== "right" &&
-            idx < stepMeta.length - 1;
-          const segmentIsCompleted = isCompleted;
-
-          const connectorSegment = detachedSegment ? (
-            <div className={`flex items-center  ${segmentSize}`}>
-              <div
-                className={classNames(
-                  "relative w-full overflow-hidden rounded-full transition-colors duration-200",
-                  connectorThicknessClass,
-                  connectorBaseClasses,
-                )}
-              >
-                {connector === "progress" && (
-                  <div
-                    className={classNames(
-                      "absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out",
-                      connectorActiveClasses,
-                    )}
-                    style={{ width: segmentIsCompleted ? "100%" : "0%" }}
-                  />
-                )}
-              </div>
-            </div>
-          ) : null;
-
-          const leftConnector = showLeft ? (
-            <span
-              className={classNames(
-                "pointer-events-none  absolute top-1/2 -translate-y-1/2 rounded-full transition-colors duration-200",
-                connectorThicknessClass,
-                connector === "progress" && previousCompleted
-                  ? connectorActiveClasses
-                  : connectorBaseClasses,
-              )}
-              style={{ left: `${leftNodeStyle}`, width: connectorWidth }}
-            />
-          ) : null;
-
-          const rightConnector = showRight ? (
-            <span
-              className={classNames(
-                "pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full transition-colors duration-200",
-                connectorThicknessClass,
-                connector === "progress" && currentCompleted
-                  ? connectorActiveClasses
-                  : connectorBaseClasses,
-              )}
-              style={{ right: `${rightNodeStyle}`, width: connectorWidth }}
-            />
-          ) : null;
-
-          return (
-            <div
-              key={`${resolvedId}-node`}
-              className={`relative flex flex-1  ${connectorAlign === "left" ? "items-center" : connectorAlign === "right" ? "items-center justify-end" : "items-center justify-center"}`}
-            >
-              {leftConnector}
-              <NodeTag
-                type={NodeTag === "button" ? "button" : undefined}
-                className={classNames(
-                  "relative z-10 flex items-center justify-center focus-visible:outline-none",
-                  nodeClasses,
-                  NodeTag === "button" &&
-                    !step.disabled &&
-                    "hover:brightness-95",
-                  NodeTag === "button" &&
-                    step.disabled &&
-                    "cursor-not-allowed opacity-60",
-                )}
-                onClick={handleClick}
-                aria-current={
-                  state.isActive(resolvedId, idx) ? "step" : undefined
-                }
-                disabled={step.disabled}
-              >
-                {nodeIcon ? renderIcon(nodeIcon, "sm") : idx + 1}
-                {isLoadingStep && (
-                  <Loader
-                    overlay
-                    variant="spinner"
-                    size="sm"
-                    className="rounded-full"
-                    title={null}
-                    label={null}
-                  />
-                )}
-              </NodeTag>
-              {rightConnector}
-              {connectorSegment}
-            </div>
-          );
-        })}
-      </div>
+      <NodeTag
+        type={NodeTag === "button" ? "button" : undefined}
+        ref={(el: HTMLElement | null) => {
+          nodeRefs.current[idx] = el;
+        }}
+        className={classNames(
+          "relative z-10 flex items-center justify-center border font-semibold",
+          nodeCornerClass,
+          tokens.node,
+          tokens.nodeText,
+          nodeTransition,
+          isDisabled && "opacity-60",
+          statusClasses,
+          clickable && !isDisabled && hoverClass,
+          clickable && !isDisabled && trigger.focusRing,
+          cellClassName,
+        )}
+        onClick={() => goTo(step, idx)}
+        onKeyDown={
+          NodeTag === "button" ? (e) => handleNodeKeyDown(e, idx) : undefined
+        }
+        aria-current={active ? "step" : undefined}
+        aria-label={typeof step.title === "string" ? step.title : undefined}
+      >
+        {nodeIcon ? renderIcon(nodeIcon, tokens.icon) : idx + 1}
+        {/* "skeleton" loads the content, not the node — the node stays put. */}
+        {isLoadingStep && loaderType !== "skeleton" && (
+          <Loader
+            overlay
+            variant={loaderType}
+            size="sm"
+            className="rounded-full"
+            title={null}
+            label={null}
+          />
+        )}
+      </NodeTag>
     );
   };
 
   const renderHorizontal = () => {
+    const nodeRadius = tokens.nodeRadius;
     const gridColumns = Math.max(1, steps.length);
+    // The node row uses gap-2 (8px) while the nodes are detached; a negative
+    // offset of the same size lets a span bridge the gap and reach the
+    // previous cell's edge. Keep in sync with the gap-2 class below.
+    const nodeGap = connectNodes ? 0 : 8;
+    // "progress" runs edge-to-edge (node edge to node edge); "line" keeps a
+    // breathing gap around every circle, in every orientation.
+    const lineInset = connector === "line" ? 8 : 0;
 
     return (
       <div className={classNames("relative flex flex-col", headerClassName)}>
-        {renderNodeRow()}
+        <div
+          className={classNames(
+            "flex items-center",
+            connectNodes ? "gap-0" : "gap-2",
+          )}
+        >
+          {stepMeta.map((meta, idx) => {
+            const { resolvedId, isCompleted } = meta;
+
+            // Connector geometry. Each gap between two nodes is drawn so the
+            // line runs from one node's far edge to the other node's near edge
+            // (edge-to-edge for "progress"), or stops `lineInset` short of
+            // each circle ("line") — never entering a circle, solid or
+            // transparent. A single-span gap (left/right align) insets BOTH
+            // ends; the split-span gap (center) insets one end per span. The
+            // left span (this cell) joins THIS step to the previous one; the
+            // right span (this cell) joins it to the next.
+            // The px offsets are folded in JS (one term per calc): jsdom's
+            // CSSOM mis-signs 3+-term calcs, and pre-folded calcs render
+            // identically in real browsers.
+            const bothEndsPx = nodeGap - nodeRadius * 2 - lineInset * 2;
+            const bothEnds = `calc(100% ${bothEndsPx < 0 ? "-" : "+"} ${Math.abs(bothEndsPx)}px)`;
+            const centerLeftPx = nodeGap - nodeRadius - lineInset;
+            const centerLeft = `calc(50% ${centerLeftPx < 0 ? "-" : "+"} ${Math.abs(centerLeftPx)}px)`;
+            const centerRightPx = -(nodeRadius + lineInset);
+            const centerRight = `calc(50% ${centerRightPx < 0 ? "-" : "+"} ${Math.abs(centerRightPx)}px)`;
+            let leftStyle: React.CSSProperties | undefined;
+            let rightStyle: React.CSSProperties | undefined;
+            if (connector !== "none") {
+              if (connectorAlign === "left") {
+                // Node at the cell's left edge: one right span per cell runs
+                // from this node's right edge across the gap to the next
+                // node's left edge.
+                if (idx < stepMeta.length - 1) {
+                  rightStyle = {
+                    right: `${lineInset - nodeGap}px`,
+                    width: bothEnds,
+                  };
+                }
+              } else if (connectorAlign === "right") {
+                // Node at the cell's right edge: one left span per cell starts
+                // one gap before the cell (= previous node's right edge) and
+                // runs to this node's left edge.
+                if (idx > 0) {
+                  leftStyle = {
+                    left: `${lineInset - nodeGap}px`,
+                    width: bothEnds,
+                  };
+                }
+              } else {
+                // Centered node: the gap splits at the cell boundary — this
+                // cell's right span covers node→cell edge (inset on the node
+                // side), the next cell's left span covers cell edge→node
+                // (inset on its node side). The two spans meet at a point, so
+                // their junction-side corners are squared — a rounded-full cap
+                // on each would pinch the line into a visible notch. The
+                // node-side corners stay rounded. Both spans are always the
+                // same color (both key off the left step's completion), so the
+                // square-to-square meeting reads as one continuous line.
+                if (idx > 0) {
+                  leftStyle = {
+                    left: `-${nodeGap}px`,
+                    width: centerLeft,
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                  };
+                }
+                if (idx < stepMeta.length - 1) {
+                  rightStyle = {
+                    right: "0px",
+                    width: centerRight,
+                    borderTopRightRadius: 0,
+                    borderBottomRightRadius: 0,
+                  };
+                }
+              }
+            }
+            const previousCompleted =
+              stepMeta[idx - 1]?.isCompleted ?? false;
+
+            // The left connector joins THIS step to the previous one, so it
+            // fills when the PREVIOUS step completed; the right connector joins
+            // this step to the next, so it fills when THIS step completed. One
+            // class set per direction, never a shared condition.
+            const leftConnector = leftStyle ? (
+              <span
+                className={classNames(
+                  "pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full",
+                  tokens.connector,
+                  lineTransition,
+                  connector === "progress" && previousCompleted
+                    ? palette.activeBg
+                    : palette.underlineBase,
+                )}
+                style={leftStyle}
+                aria-hidden="true"
+              />
+            ) : null;
+
+            const rightConnector = rightStyle ? (
+              <span
+                className={classNames(
+                  "pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full",
+                  tokens.connector,
+                  lineTransition,
+                  connector === "progress" && isCompleted
+                    ? palette.activeBg
+                    : palette.underlineBase,
+                )}
+                style={rightStyle}
+                aria-hidden="true"
+              />
+            ) : null;
+
+            return (
+              <div
+                key={`${resolvedId}-node`}
+                className={classNames(
+                  "relative flex flex-1",
+                  connectorAlign === "left"
+                    ? "items-center"
+                    : connectorAlign === "right"
+                      ? "items-center justify-end"
+                      : "items-center justify-center",
+                )}
+              >
+                {leftConnector}
+                {renderNode(meta, idx)}
+                {rightConnector}
+              </div>
+            );
+          })}
+        </div>
         <div
           className="mt-4 grid items-stretch gap-2"
           style={{
@@ -581,73 +779,81 @@ export const Stepper: React.FC<StepperProps> = ({
         >
           {stepMeta.map((meta) => {
             const {
-              resolvedId,
-              status,
-              textStyle,
-              underlineClasses,
               step,
               index,
+              resolvedId,
+              underlineClasses,
+              textStyle,
             } = meta;
-            const TextTag = isInteractive && !step.disabled ? "button" : "div";
-
-            const handleClick = () => {
-              if (!isInteractive || step.disabled) return;
-              state.goToIndex(index);
-              onStepClick?.(step, index);
-            };
+            const isDisabled = Boolean(step.disabled);
+            const active = state.isActive(resolvedId, index);
+            const actions = renderActions?.(step, index);
 
             return (
-              <TextTag
+              <div
                 key={`${resolvedId}-body`}
-                type={TextTag === "button" ? "button" : undefined}
                 className={classNames(
-                  "flex h-full flex-col justify-between rounded-xl px-2 text-left transition-colors duration-150 focus-visible:outline-none",
-                  step.disabled && "cursor-not-allowed opacity-60",
-                  isInteractive &&
-                    !step.disabled &&
-                    "hover:bg-neutral-50 dark:hover:bg-neutral-800/30",
+                  "flex h-full flex-col justify-between rounded-xl px-2 text-left",
+                  clickable &&
+                    !isDisabled &&
+                    classNames(
+                      "cursor-pointer",
+                      animated &&
+                        "transition-colors duration-150 motion-reduce:transition-none",
+                      trigger.hover,
+                    ),
+                  isDisabled && "opacity-60",
+                  stepClassName,
                 )}
-                onClick={handleClick}
-                aria-current={
-                  state.isActive(resolvedId, index) ? "step" : undefined
-                }
-                disabled={step.disabled}
+                onClick={() => goTo(step, index)}
+                aria-current={active ? "step" : undefined}
               >
                 <div
                   className="flex min-w-0 flex-col gap-1 overflow-hidden break-words"
                   style={textStyle}
                 >
-                  <div
-                    className={classNames(
-                      sizeToken.title,
-                      variantToken.emphasizeActiveTitle &&
-                        status === "active" &&
-                        "text-neutral-900 dark:text-neutral-100",
-                    )}
-                  >
+                  <div className={classNames(tokens.title, surface.heading)}>
                     {step.title}
                   </div>
                   {step.subtitle && (
-                    <div className={sizeToken.subtitle}>{step.subtitle}</div>
+                    <div
+                      className={classNames(tokens.subtitle, surface.muted)}
+                    >
+                      {step.subtitle}
+                    </div>
                   )}
-                  {variantToken.showDescription && step.description ? (
-                    <div className={sizeToken.description}>
+                  {step.description && (
+                    <div
+                      className={classNames(
+                        tokens.description,
+                        surface.description,
+                      )}
+                    >
                       {step.description}
                     </div>
-                  ) : null}
+                  )}
                 </div>
                 <div className="mt-3 flex flex-col gap-1">
-                  {step.optionalLabel ? (
-                    <div className={sizeToken.optional}>
+                  {step.optionalLabel && (
+                    <div className={classNames(tokens.optional, surface.muted)}>
                       {step.optionalLabel}
                     </div>
-                  ) : null}
-                  {connector !== "none" &&
-                    (showStepUnderline ?? variantToken.showUnderline) && (
-                      <div className={underlineClasses} />
-                    )}
+                  )}
+                  {actions && (
+                    // Stops both activation paths, not just the pointer one.
+                    <div
+                      className="flex flex-wrap items-center gap-1.5"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {actions}
+                    </div>
+                  )}
+                  {connector !== "none" && showStepUnderline && (
+                    <div className={underlineClasses} />
+                  )}
                 </div>
-              </TextTag>
+              </div>
             );
           })}
         </div>
@@ -655,28 +861,30 @@ export const Stepper: React.FC<StepperProps> = ({
     );
   };
 
-  const renderVertical = () => (
+  const renderVertical = () => {
+    // "progress" runs edge-to-edge between the circles; "line" keeps a
+    // breathing gap around every circle.
+    const lineInset = connector === "line" ? 8 : 0;
+    return (
     <div
       ref={verticalContainerRef}
-      className={classNames("relative flex flex-col gap-0", headerClassName)}
+      className={classNames("relative flex flex-col", headerClassName)}
     >
       {stepMeta.map((meta, index) => {
         const {
           step,
           resolvedId,
-          nodeClasses,
-          textStyle,
-          nodeIcon,
-          isLoadingStep,
           isCompleted,
+          underlineClasses,
+          textStyle,
         } = meta;
-        const StepTag = isInteractive && !step.disabled ? "button" : "div";
-        const NodeTag = isInteractive && !step.disabled ? "button" : "div";
+        const isDisabled = Boolean(step.disabled);
         const segmentLength = verticalSegments[index] ?? 0;
         const showConnector =
           connector !== "none" &&
           index < stepMeta.length - 1 &&
           segmentLength > 0;
+        const actions = renderActions?.(step, index);
 
         return (
           <div
@@ -689,165 +897,322 @@ export const Stepper: React.FC<StepperProps> = ({
             )}
           >
             <div className="relative flex flex-col items-center">
-              <div
-                className="relative flex items-center justify-center"
-                ref={(el) => {
-                  if (orientation === "vertical") {
-                    nodeRefs.current[index] = el;
-                  }
-                }}
-              >
-                <NodeTag
-                  type={NodeTag === "button" ? "button" : undefined}
-                  className={classNames(
-                    "relative z-10 flex items-center justify-center focus-visible:outline-none",
-                    nodeClasses,
-                    NodeTag === "button" &&
-                      !step.disabled &&
-                      "hover:brightness-95",
-                    NodeTag === "button" &&
-                      step.disabled &&
-                      "cursor-not-allowed opacity-60",
-                  )}
-                  onClick={() => {
-                    if (!isInteractive || step.disabled) return;
-                    state.goToIndex(index);
-                    onStepClick?.(step, index);
-                  }}
-                  aria-current={
-                    state.isActive(resolvedId, index) ? "step" : undefined
-                  }
-                  disabled={step.disabled}
-                >
-                  {nodeIcon ? renderIcon(nodeIcon, "sm") : index + 1}
-                  {isLoadingStep && (
-                    <Loader
-                      overlay
-                      variant="spinner"
-                      size="sm"
-                      className="rounded-full"
-                      title={null}
-                      label={null}
-                    />
-                  )}
-                </NodeTag>
-              </div>
+              {renderNode(meta, index)}
               {showConnector && (
                 <span
                   className={classNames(
-                    "pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full transition-colors duration-200",
-                    verticalConnectorThicknessClass,
-                    connectorBaseClasses,
+                    "pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full",
+                    tokens.connectorVertical,
+                    lineTransition,
+                    connector === "progress" && isCompleted
+                      ? palette.activeBg
+                      : palette.underlineBase,
                   )}
+                  // segmentLength is measured center-to-center; the line runs
+                  // from this node's bottom edge to the next node's top edge
+                  // (edge-to-edge for "progress"), or `lineInset` short of
+                  // each circle ("line") — never entering a circle.
                   style={{
-                    top: `${nodeRadii[size]}px`,
-                    height: `${segmentLength}px`,
+                    top: `${tokens.nodeRadius * 2 + lineInset}px`,
+                    height: `${Math.max(
+                      0,
+                      segmentLength - tokens.nodeRadius * 2 - lineInset * 2,
+                    )}px`,
                   }}
-                >
-                  {connector === "progress" && isCompleted && (
-                    <span
-                      className={classNames(
-                        "absolute inset-0 rounded-full",
-                        connectorActiveClasses,
-                      )}
-                    />
-                  )}
-                </span>
+                  aria-hidden="true"
+                />
               )}
             </div>
-            <StepTag
-              type={StepTag === "button" ? "button" : undefined}
-              className="flex flex-1 flex-col text-left"
-              onClick={() => {
-                if (!isInteractive || step.disabled) return;
-                state.goToIndex(index);
-                onStepClick?.(step, index);
-              }}
-              aria-current={
-                state.isActive(resolvedId, index) ? "step" : undefined
-              }
-              disabled={step.disabled}
+            <div
+              className={classNames(
+                "flex min-w-0 flex-1 flex-col gap-0.5 text-left",
+                clickable && !isDisabled && "cursor-pointer",
+                isDisabled && "opacity-60",
+              )}
+              onClick={() => goTo(step, index)}
             >
-              <div className={sizeToken.title} style={textStyle}>
+              <div
+                className={classNames(tokens.title, surface.heading)}
+                style={textStyle}
+              >
                 {step.title}
               </div>
               {step.subtitle && (
-                <div className={sizeToken.subtitle}>{step.subtitle}</div>
+                <div className={classNames(tokens.subtitle, surface.muted)}>
+                  {step.subtitle}
+                </div>
               )}
               {step.description && (
-                <div className={sizeToken.description}>{step.description}</div>
+                <div
+                  className={classNames(tokens.description, surface.description)}
+                >
+                  {step.description}
+                </div>
               )}
               {step.optionalLabel && (
-                <div className={sizeToken.optional}>{step.optionalLabel}</div>
+                <div className={classNames(tokens.optional, surface.muted)}>
+                  {step.optionalLabel}
+                </div>
               )}
-            </StepTag>
+              {connector !== "none" && showStepUnderline && (
+                <div className={underlineClasses} />
+              )}
+              {actions && (
+                <div
+                  className="mt-2 flex flex-wrap items-center gap-1.5"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {actions}
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
     </div>
-  );
+    );
+  };
 
   const horizontal = orientation === "horizontal";
 
-  const content = activeStep?.content ?? (
-    <div className="space-y-2 text-sm text-neutral-600 dark:text-neutral-300">
-      {activeStep?.description}
+  const activeStep = steps[state.currentIndex];
+  const activeStepLoading =
+    activeStep !== undefined &&
+    loaderSet.has(activeStep.id ?? String(state.currentIndex));
+
+  const contentNode = activeStepLoading ? (
+    // Shaped like the content it replaces: title line, then two body lines.
+    <div
+      className="flex animate-pulse flex-col gap-2 motion-reduce:animate-none"
+      aria-hidden="true"
+    >
+      <span className="h-3 w-2/3 rounded-full bg-black/10 dark:bg-white/10" />
+      <span className="h-2.5 w-full rounded-full bg-black/10 dark:bg-white/10" />
+      <span className="h-2.5 w-5/6 rounded-full bg-black/10 dark:bg-white/10" />
     </div>
+  ) : (
+    activeStep?.content ?? (
+      <div className={classNames("space-y-2 text-sm", surface.body)}>
+        {activeStep?.description}
+      </div>
+    )
   );
 
-  const alignmentMarginClass =
-    connectorAlign === "left"
-      ? "mr-auto"
-      : connectorAlign === "right"
-        ? "ml-auto"
-        : "mx-auto";
+  // The recessed detail region. On a solid surface it takes the tone's subtle
+  // fill and hairline; on a translucent one an opaque fill would punch a slab
+  // through the glass, so it takes the surface's own divider plus a faint
+  // wash that works over a busy backdrop.
+  const contentRegionClass = surface.translucent
+    ? classNames("border", surface.divider, "bg-white/40 dark:bg-black/20")
+    : classNames("border", panelTone.outlineBorder, panelTone.subtleBg);
 
   return (
     <div
       className={classNames(
-        "relative flex w-full flex-col",
+        "flex w-full flex-col",
         horizontal ? "gap-6" : "gap-4",
-        alignmentMarginClass,
-        wrapperClassName,
-        className,
       )}
-      aria-busy={loading}
-      style={style}
-      {...rest}
     >
-      {horizontal ? (
-        <>
-          {renderHorizontal()}
-          {progressBlock}
-        </>
-      ) : (
-        <>
-          {renderVertical()}
-          {progressBlock}
-        </>
-      )}
-
+      {progressBarPosition === "top" && progressBlock}
+      {horizontal ? renderHorizontal() : renderVertical()}
+      {progressBarPosition === "bottom" && progressBlock}
       <div
         className={classNames(
-          "rounded-2xl border border-neutral-200 bg-white/95 p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/80",
+          "rounded-xl p-4 sm:p-5",
+          contentRegionClass,
           contentClassName,
         )}
       >
-        {content}
+        {contentNode}
       </div>
-
-      {loading && (
-        <Loader
-          overlay
-          title={loaderTitle}
-          label={loaderMessage}
-          variant={loaderType}
-          progress={loaderProgress}
-          color={loaderColor}
-        />
-      )}
     </div>
   );
 };
+
+interface StepperSkeletonProps {
+  orientation: StepperOrientation;
+  count: number;
+  size: ControlSize;
+}
+
+/**
+ * Whole-stepper loading placeholder shown when `loaderType` is "skeleton": the
+ * step nodes as pulsing discs plus the content region as pulsing lines, shaped
+ * like the stepper it replaces.
+ */
+const StepperSkeleton: React.FC<StepperSkeletonProps> = ({
+  orientation,
+  count,
+  size,
+}) => {
+  const { node: nodeClass, connector, connectorVertical } = SIZE_TOKENS[size];
+  const disc =
+    "relative z-10 shrink-0 rounded-full bg-black/10 dark:bg-white/10 animate-pulse motion-reduce:animate-none";
+  const nodes = Array.from({ length: Math.max(0, count) });
+  // The connector is drawn as ONE segment per gap (disc to disc), stopping 8px
+  // short of each disc (mx/my-2) — exactly how the "line" connector behaves — so
+  // it never runs into the translucent discs. Thickness matches the live
+  // connector (size-based), so the skeleton reads as a dimmed copy of it.
+  const bar =
+    "rounded-full bg-black/10 dark:bg-white/10 animate-pulse motion-reduce:animate-none";
+  const contentLines = (
+    <div
+      className="flex animate-pulse flex-col gap-2 motion-reduce:animate-none"
+      aria-hidden="true"
+    >
+      <span className="h-3 w-2/3 rounded-full bg-black/10 dark:bg-white/10" />
+      <span className="h-2.5 w-full rounded-full bg-black/10 dark:bg-white/10" />
+      <span className="h-2.5 w-5/6 rounded-full bg-black/10 dark:bg-white/10" />
+    </div>
+  );
+  const region =
+    "rounded-xl border border-black/10 bg-black/[0.03] p-4 dark:border-white/10 dark:bg-white/5 sm:p-5";
+
+  if (orientation === "vertical") {
+    return (
+      <div className="flex w-full gap-4" aria-hidden="true">
+        <div className="flex flex-col items-center py-1">
+          {nodes.map((_, i) => (
+            <React.Fragment key={i}>
+              <div className={classNames(disc, nodeClass)} />
+              {i < nodes.length - 1 && (
+                <div
+                  className={classNames("my-2 min-h-6 flex-1", bar, connectorVertical)}
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        <div className={classNames("flex-1", region)}>{contentLines}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-6" aria-hidden="true">
+      <div className="flex w-full items-center">
+        {nodes.map((_, i) => (
+          <React.Fragment key={i}>
+            <div className={classNames(disc, nodeClass)} />
+            {i < nodes.length - 1 && (
+              <div className={classNames("mx-2 flex-1", bar, connector)} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className={region}>{contentLines}</div>
+    </div>
+  );
+};
+
+const Stepper: React.FC<StepperProps> = ({
+  steps,
+  currentIndex,
+  currentStepId,
+  defaultCurrentIndex,
+  defaultCurrentStepId,
+  completedStepIds,
+  orientation = "horizontal",
+  variant = "elevated",
+  tone = "neutral",
+  size = "md",
+  nodeCorner = "full",
+  padding = "md",
+  corner = DEFAULT_SURFACE_CORNER,
+  connector = "progress",
+  interactive = true,
+  animated = true,
+  loaderType = "spinner",
+  loading = false,
+  showProgressSummary = false,
+  showProgressBar = false,
+  progressBarPosition = "bottom",
+  progressPrecision = 0,
+  progressLabel,
+  onChange,
+  onStepClick,
+  renderActions,
+  loaderStepIds,
+  connectNodes = false,
+  connectorAlign = "center",
+  showStepUnderline = false,
+  headerClassName,
+  stepClassName,
+  contentClassName,
+  stepMaxHeight,
+  disabled,
+  className,
+  ...panelRest
+}) => {
+  const state = useStepper(steps, {
+    currentIndex,
+    currentStepId,
+    defaultCurrentIndex,
+    defaultCurrentStepId,
+    completedStepIds,
+    onChange,
+  });
+  const clickable = interactive && !disabled;
+  const isSkeletonLoading = loading && loaderType === "skeleton";
+
+  return (
+    <Panel
+      className={classNames("w-full", className)}
+      variant={variant}
+      tone={tone}
+      padding={padding}
+      corner={corner}
+      loaderType={loaderType === "skeleton" ? "spinner" : loaderType}
+      loading={loading && !isSkeletonLoading}
+      disabled={disabled}
+      scrollable={false}
+      {...panelRest}
+    >
+      {steps.length === 0 ? (
+        <EmptyState
+          variant="plain"
+          dashed={false}
+          icon="ViewRows"
+          title="No steps"
+          subtitle="Add steps to show the workflow."
+          tone={tone}
+          size={size}
+        />
+      ) : isSkeletonLoading ? (
+        <StepperSkeleton orientation={orientation} count={steps.length} size={size} />
+      ) : (
+        <StepperBody
+          state={state}
+          orientation={orientation}
+          size={size}
+          nodeCorner={nodeCorner}
+          tone={tone}
+          connector={connector}
+          animated={animated}
+          loaderType={loaderType}
+          clickable={clickable}
+          showProgressSummary={showProgressSummary}
+          showProgressBar={showProgressBar}
+          progressBarPosition={progressBarPosition}
+          progressPrecision={progressPrecision}
+          progressLabel={progressLabel}
+          onStepClick={onStepClick}
+          renderActions={renderActions}
+          loaderStepIds={loaderStepIds}
+          headerClassName={headerClassName}
+          stepClassName={stepClassName}
+          contentClassName={contentClassName}
+          stepMaxHeight={stepMaxHeight}
+          connectNodes={connectNodes}
+          connectorAlign={connectorAlign}
+          showStepUnderline={showStepUnderline}
+        />
+      )}
+    </Panel>
+  );
+};
+
+Stepper.displayName = "Stepper";
 
 export default Stepper;

@@ -14,6 +14,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glowIntensityOptions,
@@ -57,72 +58,98 @@ export const TextareaPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={inputVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as InputVariant)}
-          />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as ControlSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          {variant === "gradient" && (
-            <Control label="Glow intensity">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={glowIntensityOptions}
-                value={glowIntensity}
-                onChange={(v) => setGlowIntensity(v as GlowIntensity)}
-              />
-            </Control>
-          )}
-          <Control label="Validation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={validationOptions}
-              value={validationStatus}
-              onChange={(v) => setValidationStatus(v as TextareaValidationStatus)}
-            />
-          </Control>
-          <Control label="Resize">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={resizeOptions}
-              value={resize}
-              onChange={(v) => setResize(v as TextareaResize)}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Label" checked={showLabel} onChange={setShowLabel} />
-            <ToggleRow
-              label="Help text"
-              checked={showHelp}
-              onChange={setShowHelp}
-            />
-            <ToggleRow
-              label="Character count"
-              checked={showCount}
-              onChange={setShowCount}
-            />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Variant"
+                    options={inputVariantOptions}
+                    value={variant}
+                    onChange={(v) => setVariant(v as InputVariant)}
+                  />
+                  <Control label="Size">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={controlSizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as ControlSize)}
+                    />
+                  </Control>
+                  <SelectControl
+                    label="Tone"
+                    options={trueColorOptions}
+                    value={tone}
+                    onChange={(v) => setTone(v as TrueColor)}
+                  />
+                </>
+              ),
+            },
+            ...(variant === "gradient"
+              ? [
+                  {
+                    id: "glow",
+                    title: "Glow",
+                    controls: (
+                      <Control label="Glow intensity">
+                        <MultiToggle
+                          fullWidth
+                          size="sm"
+                          options={glowIntensityOptions}
+                          value={glowIntensity}
+                          onChange={(v) => setGlowIntensity(v as GlowIntensity)}
+                        />
+                      </Control>
+                    ),
+                  },
+                ]
+              : []),
+            {
+              id: "content",
+              title: "Content",
+              controls: (
+                <>
+                  <Control label="Validation">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={validationOptions}
+                      value={validationStatus}
+                      onChange={(v) => setValidationStatus(v as TextareaValidationStatus)}
+                    />
+                  </Control>
+                  <Control label="Resize">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={resizeOptions}
+                      value={resize}
+                      onChange={(v) => setResize(v as TextareaResize)}
+                    />
+                  </Control>
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow label="Label" checked={showLabel} onChange={setShowLabel} />
+                    <ToggleRow
+                      label="Help text"
+                      checked={showHelp}
+                      onChange={setShowHelp}
+                    />
+                    <ToggleRow
+                      label="Character count"
+                      checked={showCount}
+                      onChange={setShowCount}
+                    />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="w-full max-w-sm">

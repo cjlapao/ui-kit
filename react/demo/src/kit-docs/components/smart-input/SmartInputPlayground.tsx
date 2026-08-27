@@ -15,6 +15,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   inputVariantOptions,
   SMART_INPUT_SAMPLES,
@@ -80,81 +81,111 @@ export const SmartInputPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Sample value">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={SAMPLE_OPTIONS}
-              value={sample}
-              onChange={(next) => {
-                const key = next as keyof typeof SMART_INPUT_SAMPLES;
-                setSample(key);
-                setValue(SMART_INPUT_SAMPLES[key]);
-                setMultiline(key === "multiline");
-              }}
-            />
-          </Control>
-          <Control label="Surface">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={inputVariantOptions}
-              value={variant}
-              onChange={(next) => setVariant(next as InputVariant)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <Control label="Sample value">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={SAMPLE_OPTIONS}
+                      value={sample}
+                      onChange={(next) => {
+                        const key = next as keyof typeof SMART_INPUT_SAMPLES;
+                        setSample(key);
+                        setValue(SMART_INPUT_SAMPLES[key]);
+                        setMultiline(key === "multiline");
+                      }}
+                    />
+                  </Control>
+                ),
+              },
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <Control label="Surface">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={inputVariantOptions}
+                        value={variant}
+                        onChange={(next) => setVariant(next as InputVariant)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(v) => setTone(v as TrueColor)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={smartInputSizeOptions}
+                        value={size}
+                        onChange={(next) => setSize(next as SmartInputSize)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "preview",
+                title: "Preview",
+                controls: (
+                  <Control label="Preview opens in">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={VIEW_OPTIONS}
+                      value={defaultView}
+                      onChange={(next) => setDefaultView(next as SmartViewMode)}
+                    />
+                  </Control>
+                ),
+              },
+              {
+                id: "behavior",
+                title: "Behavior",
+                controls: (
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow
+                      label="Multiline"
+                      checked={multiline}
+                      onChange={setMultiline}
+                    />
+                    <ToggleRow
+                      label="Disabled"
+                      checked={disabled}
+                      onChange={setDisabled}
+                    />
+                    <ToggleRow
+                      label={`Autocomplete on {{`}
+                      checked={autocomplete}
+                      onChange={setAutocomplete}
+                    />
+                    <ToggleRow
+                      label="Flag missing"
+                      checked={flagMissing}
+                      onChange={setFlagMissing}
+                    />
+                    <ToggleRow
+                      label="Custom resolver"
+                      checked={customResolver}
+                      onChange={setCustomResolver}
+                    />
+                  </div>
+                ),
+              },
+            ]}
           />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={smartInputSizeOptions}
-              value={size}
-              onChange={(next) => setSize(next as SmartInputSize)}
-            />
-          </Control>
-          <Control label="Preview opens in">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={VIEW_OPTIONS}
-              value={defaultView}
-              onChange={(next) => setDefaultView(next as SmartViewMode)}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow
-              label="Multiline"
-              checked={multiline}
-              onChange={setMultiline}
-            />
-            <ToggleRow
-              label="Disabled"
-              checked={disabled}
-              onChange={setDisabled}
-            />
-            <ToggleRow
-              label={`Autocomplete on {{`}
-              checked={autocomplete}
-              onChange={setAutocomplete}
-            />
-            <ToggleRow
-              label="Flag missing"
-              checked={flagMissing}
-              onChange={setFlagMissing}
-            />
-            <ToggleRow
-              label="Custom resolver"
-              checked={customResolver}
-              onChange={setCustomResolver}
-            />
-          </div>
           {customResolver && (
             <p className="text-xs opacity-70">
               The custom resolver gives <code>BUILD_ID</code> and{" "}
@@ -163,7 +194,7 @@ export const SmartInputPlayground: React.FC = () => {
               <code>NOT_A_VARIABLE</code> stays missing either way.
             </p>
           )}
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

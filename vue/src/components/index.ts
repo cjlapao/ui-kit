@@ -62,6 +62,12 @@ export {
   type SpinnerVariant,
 } from "./Spinner.vue";
 export {
+  default as ProgressSpinner,
+  type ProgressSpinnerProps,
+  type ProgressSpinnerSize,
+  type ProgressSpinnerColor,
+} from "./ProgressSpinner.vue";
+export {
   default as StatusSpinner,
   type StatusSpinnerProps,
   type StatusSpinnerSize,
@@ -87,9 +93,13 @@ export {
 } from "./EmptyState.vue";
 export {
   default as Hero,
+  HERO_VARIANTS,
+  HERO_TITLE_ELEMENTS,
   type HeroProps,
   type HeroTitleSize,
   type HeroSubtitleSize,
+  type HeroVariant,
+  type HeroTitleElement,
   type HeroPadding,
 } from "./Hero.vue";
 export {
@@ -121,7 +131,16 @@ export {
   default as Tooltip,
   type TooltipProps,
   type TooltipPosition,
+  type TooltipVariant,
 } from "./Tooltip.vue";
+export {
+  TOOLTIP_POSITIONS,
+  type TooltipPlacement,
+} from "../../../common/tooltip/placement";
+export {
+  TOOLTIP_VARIANTS,
+  getTooltipVariantTokens,
+} from "../../../common/tooltip/tokens";
 export {
   default as TooltipWrapper,
   type TooltipWrapperProps,
@@ -149,7 +168,16 @@ export {
   type SelectValidationStatus,
   type SelectVariant,
 } from "./Select.vue";
-export { default as Combobox, type ComboboxProps } from "./Combobox.vue";
+export {
+  default as Combobox,
+  COMBOBOX_VALIDATION_STATUSES,
+  type ComboboxProps,
+  type ComboboxOption,
+  type ComboboxOptionInput,
+  type ComboboxSize,
+  type ComboboxValidationStatus,
+  type ComboboxVariant,
+} from "./Combobox.vue";
 export {
   default as Picker,
   type PickerProps,
@@ -182,9 +210,12 @@ export {
 export { default as Toggle, type ToggleProps, type ToggleSize, type ToggleAlign, type ToggleDescriptionPlacement, type TogglePadding } from "./Toggle.vue";
 export {
   default as MultiToggle,
+  MULTI_TOGGLE_VARIANTS,
+  MULTI_TOGGLE_INDICATORS,
   type MultiToggleProps,
   type MultiToggleOption,
   type MultiToggleVariant,
+  type MultiToggleIndicator,
 } from "./MultiToggle.vue";
 export {
   default as ButtonSelector,
@@ -224,10 +255,19 @@ export {
   type TruncatedTextProps,
 } from "./TruncatedText.vue";
 export {
+  default as MetricBar,
+  type MetricBarProps,
+} from "./MetricBar.vue";
+
+export {
   default as InfoRow,
+  INFO_ROW_VARIANTS,
+  INFO_ROW_LOADERS,
   type InfoRowProps,
   type InfoRowSize,
   type InfoRowPadding,
+  type InfoRowVariant,
+  type InfoRowLoader,
 } from "./InfoRow.vue";
 export {
   default as SectionCard,
@@ -241,7 +281,12 @@ export {
   type SectionSize,
   type SectionVariant,
 } from "./Section.vue";
-export { default as PagedPanel, type PagedPanelProps } from "./PagedPanel.vue";
+export {
+  default as PagedPanel,
+  PAGED_PANEL_LOADERS,
+  type PagedPanelProps,
+  type PagedPanelLoader,
+} from "./PagedPanel.vue";
 export {
   default as Panel,
   type PanelProps,
@@ -269,6 +314,13 @@ export {
   type CollapsibleHelpTextProps,
 } from "./CollapsibleHelpText.vue";
 
+// Help
+export {
+  default as HelpButton,
+  type HelpButtonProps,
+  type HelpButtonPlacement,
+} from "./HelpButton.vue";
+
 // Dropdown
 export {
   default as DropdownMenu,
@@ -288,6 +340,8 @@ export {
   default as Accordion,
   type AccordionProps,
   type AccordionItem,
+  type AccordionIndicator,
+  type AccordionIndicatorPlacement,
 } from "./Accordion.vue";
 export {
   default as Tabs,
@@ -411,11 +465,17 @@ export {
 export {
   default as ApiErrorState,
   type ApiErrorStateProps,
+  type ApiErrorKind,
 } from "./ApiErrorState.vue";
 export { default as CustomIcon, type CustomIconProps } from "./CustomIcon.vue";
 export {
   default as DynamicFormField,
+  DYNAMIC_FORM_FIELD_VARIANTS,
+  normalizeOptions as normalizeDynamicFormFieldOptions,
   type DynamicFormFieldProps,
+  type DynamicFormFieldOption,
+  type DynamicFormFieldValue,
+  type DynamicFormFieldVariant,
 } from "./DynamicFormField.vue";
 export {
   default as NotificationModal,

@@ -7,24 +7,28 @@ import {
   Button,
   type StepperProps,
   type PanelTone,
+  type ControlSize,
+  type StepperOrientation,
+  type StepperConnector,
+  type StepperConnectorAlign,
+  type StepperNodeCorner,
+  type StepperLoaderType,
 } from "@cjlapao/ui-kit-vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import {
-  stepperVariantOptions,
+  panelVariantOptions,
+  panelToneOptions,
+  controlSizeOptions,
   stepperOrientationOptions,
-  stepperSizeOptions,
   stepperConnectorOptions,
   stepperConnectorAlignOptions,
-  panelToneOptions,
+  stepperNodeCornerOptions,
+  stepperLoaderTypeOptions,
 } from "../constants";
 
-// The individual Stepper option types are not re-exported from the kit index;
-// derive them from StepperProps.
+// The surface variant rides the shared Panel scale, so derive its type from
+// the component props rather than keeping a private scale.
 type StepperVariant = NonNullable<StepperProps["variant"]>;
-type StepperOrientation = NonNullable<StepperProps["orientation"]>;
-type StepperSize = NonNullable<StepperProps["size"]>;
-type StepperConnector = NonNullable<StepperProps["connector"]>;
-type StepperConnectorAlign = NonNullable<StepperProps["connectorAlign"]>;
 
 const deploymentSteps = [
   {
@@ -54,21 +58,24 @@ const deploymentSteps = [
 ];
 
 const stepperCompletedIds = ref<string[]>([]);
-const stepperLoadingIds = ref<string[]>([]);
 const stepperLoading = ref(false);
+const stepperDisabled = ref(false);
+const stepperVariant = ref<StepperVariant>("elevated");
 const stepperTone = ref<PanelTone>("neutral");
+const stepperSize = ref<ControlSize>("md");
+const stepperNodeCorner = ref<StepperNodeCorner>("full");
 const stepperOrientation = ref<StepperOrientation>("horizontal");
-const stepperVariant = ref<StepperVariant>("card");
-const stepperSize = ref<StepperSize>("md");
-const stepperConnector = ref<StepperConnector>("line");
+const stepperConnector = ref<StepperConnector>("progress");
 const stepperConnectorAlign = ref<StepperConnectorAlign>("center");
 const stepperConnectNodes = ref<boolean>(false);
 const stepperInteractive = ref<boolean>(true);
+const stepperAnimated = ref<boolean>(true);
+const stepperLoaderType = ref<StepperLoaderType>("spinner");
 const stepperShowProgressBar = ref<boolean>(false);
 const stepperShowProgressSummary = ref<boolean>(false);
 
 const handleStepperStepClick = (id: string) => {
-  if (stepperLoadingIds.value.includes(id) || stepperLoading.value) return;
+  if (stepperLoading.value) return;
   // Simulate async verification when clicking a completed step
   if (stepperCompletedIds.value.includes(id)) {
     stepperLoading.value = true;
@@ -94,6 +101,21 @@ const handleStepperChange = (index: number, stepId?: string) => {
 
 const stepperBooleanOptions = computed(() => [
   {
+    label: "Connect nodes",
+    value: stepperConnectNodes.value,
+    setter: (checked: boolean) => (stepperConnectNodes.value = checked),
+  },
+  {
+    label: "Interactive",
+    value: stepperInteractive.value,
+    setter: (checked: boolean) => (stepperInteractive.value = checked),
+  },
+  {
+    label: "Animated",
+    value: stepperAnimated.value,
+    setter: (checked: boolean) => (stepperAnimated.value = checked),
+  },
+  {
     label: "Progress bar",
     value: stepperShowProgressBar.value,
     setter: (checked: boolean) => (stepperShowProgressBar.value = checked),
@@ -104,14 +126,14 @@ const stepperBooleanOptions = computed(() => [
     setter: (checked: boolean) => (stepperShowProgressSummary.value = checked),
   },
   {
-    label: "Interactive",
-    value: stepperInteractive.value,
-    setter: (checked: boolean) => (stepperInteractive.value = checked),
-  },
-  {
     label: "Loading",
     value: stepperLoading.value,
     setter: (checked: boolean) => (stepperLoading.value = checked),
+  },
+  {
+    label: "Disabled",
+    value: stepperDisabled.value,
+    setter: (checked: boolean) => (stepperDisabled.value = checked),
   },
 ]);
 </script>
@@ -120,7 +142,7 @@ const stepperBooleanOptions = computed(() => [
   <PlaygroundSection
     title="Stepper"
     label="[Stepper]"
-    description="Multi-step workflow with optional actions and progress."
+    description="Multi-step workflow on the shared panel surface, with connectors and progress."
   >
     <template #controls>
       <div class="space-y-4 text-sm">
@@ -129,7 +151,7 @@ const stepperBooleanOptions = computed(() => [
             <span>Variant</span>
             <MultiToggle
               full-width
-              :options="stepperVariantOptions"
+              :options="panelVariantOptions"
               :model-value="stepperVariant"
               size="sm"
               @update:model-value="
@@ -150,16 +172,16 @@ const stepperBooleanOptions = computed(() => [
             />
           </label>
         </div>
-        <div class="grid gap-3 md:grid-cols-3">
+        <div class="grid gap-3 md:grid-cols-2">
           <label class="flex flex-col gap-2">
             <span>Size</span>
             <MultiToggle
               full-width
-              :options="stepperSizeOptions"
+              :options="controlSizeOptions"
               :model-value="stepperSize"
               size="sm"
               @update:model-value="
-                (value: string) => (stepperSize = value as StepperSize)
+                (value: string) => (stepperSize = value as ControlSize)
               "
             />
           </label>
@@ -176,6 +198,32 @@ const stepperBooleanOptions = computed(() => [
               "
             />
           </label>
+        </div>
+        <label class="flex flex-col gap-2">
+          <span>Node corner</span>
+          <MultiToggle
+            full-width
+            :options="stepperNodeCornerOptions"
+            :model-value="stepperNodeCorner"
+            size="sm"
+            @update:model-value="
+              (value: string) => (stepperNodeCorner = value as StepperNodeCorner)
+            "
+          />
+        </label>
+        <label class="flex flex-col gap-2">
+          <span>Loader type</span>
+          <MultiToggle
+            full-width
+            :options="stepperLoaderTypeOptions"
+            :model-value="stepperLoaderType"
+            size="sm"
+            @update:model-value="
+              (value: string) => (stepperLoaderType = value as StepperLoaderType)
+            "
+          />
+        </label>
+        <div class="grid gap-3 md:grid-cols-2">
           <label class="flex flex-col gap-2">
             <span>Connector</span>
             <MultiToggle
@@ -184,13 +232,10 @@ const stepperBooleanOptions = computed(() => [
               :model-value="stepperConnector"
               size="sm"
               @update:model-value="
-                (value: string) =>
-                  (stepperConnector = value as StepperConnector)
+                (value: string) => (stepperConnector = value as StepperConnector)
               "
             />
           </label>
-        </div>
-        <div class="grid gap-3 md:grid-cols-2">
           <label class="flex flex-col gap-2">
             <span>Connector align</span>
             <MultiToggle
@@ -203,10 +248,6 @@ const stepperBooleanOptions = computed(() => [
                   (stepperConnectorAlign = value as StepperConnectorAlign)
               "
             />
-          </label>
-          <label class="flex items-center justify-between">
-            <span>Connect nodes</span>
-            <Toggle size="sm" v-model="stepperConnectNodes" />
           </label>
         </div>
         <div class="grid gap-2 md:grid-cols-3">
@@ -231,14 +272,17 @@ const stepperBooleanOptions = computed(() => [
           :steps="deploymentSteps"
           :variant="stepperVariant"
           :tone="stepperTone"
+          :size="stepperSize"
+          :node-corner="stepperNodeCorner"
           :orientation="stepperOrientation"
           :connector="stepperConnector"
           :connector-align="stepperConnectorAlign"
-          :size="stepperSize"
           :connect-nodes="stepperConnectNodes"
           :interactive="stepperInteractive"
+          :animated="stepperAnimated"
+          :loader-type="stepperLoaderType"
+          :disabled="stepperDisabled"
           :completed-step-ids="stepperCompletedIds"
-          :loader-step-ids="stepperLoadingIds"
           :loading="stepperLoading"
           :show-progress-bar="stepperShowProgressBar"
           :show-progress-summary="stepperShowProgressSummary"

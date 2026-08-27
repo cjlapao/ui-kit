@@ -17,6 +17,7 @@ const variantOptions: { label: string; value: SidebarVariant }[] = [
   { label: "Sidebar", value: "sidebar" },
   { label: "Inset", value: "inset" },
   { label: "Floating", value: "floating" },
+  { label: "Floating Glass", value: "floating-glass" },
   { label: "Glass", value: "glass" },
 ];
 
@@ -119,7 +120,7 @@ export const SideMenuDemo: React.FC = () => {
     <PlaygroundSection
       title="Side Menu"
       label="Layout"
-      description="Four surface treatments, icon-rail and offcanvas collapse, a hover rail, nested items, search and top/footer menus. Toggle the background image to see the glass variant over content."
+      description="Five surface treatments, icon-rail and offcanvas collapse, a hover rail, nested items, search and top/footer menus. Toggle the background image to see the glass variants over content."
       controls={
         <>
           <div className="space-y-1.5">

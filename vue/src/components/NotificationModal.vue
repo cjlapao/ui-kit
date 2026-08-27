@@ -1,37 +1,50 @@
 <script lang="ts">
 import { type IconName } from "../icons/registry";
+import type { TrueColor } from "../theme/Theme";
 
-export type NotificationType = "success" | "error" | "warning" | "info";
+/**
+ * The kit's shared severity vocabulary is `AlertIntent`
+ * (`info | success | warning | danger | neutral`). This component predates it
+ * and ships `error` rather than `danger`; the name is kept so call sites are
+ * not broken, and the mapping below is the single place the two meet.
+ */
+export const NOTIFICATION_TYPES = [
+  "success",
+  "error",
+  "warning",
+  "info",
+] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface NotificationModalProps {
   isOpen: boolean;
   title: string;
   message?: string;
+  /** @default "info" */
   type?: NotificationType;
+  /** @default "Close" */
   actionLabel?: string;
   secondaryActionLabel?: string;
+  /** Override the glyph the `type` would pick. */
+  icon?: IconName;
+  /** Override the tone the `type` would pick. */
+  tone?: TrueColor;
+  /** @default "sm" */
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
-const typeConfig: Record<
+const TYPE_CONFIG: Record<
   NotificationType,
-  { icon: IconName; color: string; titleColor: string }
+  { icon: IconName; tone: TrueColor }
 > = {
-  success: {
-    icon: "CheckCircle",
-    color: "emerald",
-    titleColor: "text-emerald-900",
-  },
-  error: {
-    icon: "Warning" as IconName,
-    color: "rose",
-    titleColor: "text-rose-900",
-  },
-  warning: {
-    icon: "Warning" as IconName,
-    color: "amber",
-    titleColor: "text-amber-900",
-  },
-  info: { icon: "Info", color: "blue", titleColor: "text-blue-900" },
+  // `titleColor` used to be a third field here (`text-emerald-900` and
+  // friends). Nothing ever read it, and it had no dark-mode partner.
+  success: { icon: "CheckCircle", tone: "emerald" },
+  // Was `Warning`, the same glyph as `warning` — so a failure and a caution
+  // were indistinguishable at a glance.
+  error: { icon: "Error", tone: "rose" },
+  warning: { icon: "Warning", tone: "amber" },
+  info: { icon: "Info", tone: "blue" },
 };
 </script>
 
@@ -39,13 +52,13 @@ const typeConfig: Record<
 import { computed, getCurrentInstance } from "vue";
 import Modal, { ModalActions } from "./Modal.vue";
 import Button from "./Button.vue";
-import type { ButtonColor } from "./Button.vue";
 
 defineOptions({ name: "NotificationModal" });
 
 const props = withDefaults(defineProps<NotificationModalProps>(), {
   type: "info",
   actionLabel: "Close",
+  size: "sm",
 });
 
 const emit = defineEmits<{
@@ -56,8 +69,9 @@ const emit = defineEmits<{
 
 const instance = getCurrentInstance();
 
-const config = computed(() => typeConfig[props.type]);
-const actionColor = computed(() => config.value.color as ButtonColor);
+const config = computed(() => TYPE_CONFIG[props.type] ?? TYPE_CONFIG.info);
+const resolvedTone = computed(() => props.tone ?? config.value.tone);
+const resolvedIcon = computed(() => props.icon ?? config.value.icon);
 
 const handleAction = () => {
   if (instance?.vnode.props?.onAction) {
@@ -80,8 +94,9 @@ const handleSecondaryAction = () => {
   <Modal
     :is-open="isOpen"
     :title="title"
-    size="sm"
-    :icon="config.icon"
+    :size="size"
+    :tone="resolvedTone"
+    :icon="resolvedIcon"
     @close="emit('close')"
   >
     <template #actions>
@@ -94,11 +109,17 @@ const handleSecondaryAction = () => {
         >
           {{ secondaryActionLabel }}
         </Button>
-        <Button :color="actionColor" @click="handleAction">
+        <!-- Was `config.color as ButtonColor` — the config typed its tone as a
+             bare `string`, so the cast hid the fact that nothing checked it. -->
+        <Button :color="resolvedTone" @click="handleAction">
           {{ actionLabel }}
         </Button>
       </ModalActions>
     </template>
-    <div class="text-sm text-gray-600"><slot>{{ message }}</slot></div>
+    <!-- Was `text-gray-600` with no dark-mode partner, so the message was
+         near-invisible on a dark modal. -->
+    <div class="text-sm text-neutral-700 dark:text-neutral-300">
+      <slot>{{ message }}</slot>
+    </div>
   </Modal>
 </template>

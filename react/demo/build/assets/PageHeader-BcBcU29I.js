@@ -1,0 +1,1 @@
+import{j as e}from"./index-BBK6HA-D.js";const s=({name:t,description:a})=>e.jsxs("header",{className:"flex flex-col gap-1.5",children:[e.jsx("h1",{className:"text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-50",children:t}),e.jsx("p",{className:"max-w-3xl text-sm leading-6 text-neutral-500 dark:text-neutral-400",children:a})]});export{s as P};

@@ -15,17 +15,16 @@ import {
   DEFAULT_SURFACE_CORNER,
   getSurfacePaddingClass,
 } from "../theme/Theme";
-import type { ControlSize, TrueColor } from "../theme/Theme";
+import type { ControlSize, PlainSurfaceVariant, TrueColor } from "../theme/Theme";
 import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
-  PanelVariant,
 } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
 
 /** Every container surface, plus `plain` for use inside a card that exists. */
-export type InfiniteScrollPanelVariant = PanelVariant | "plain";
+export type InfiniteScrollPanelVariant = PlainSurfaceVariant;
 
 /**
  * How the items are arranged.

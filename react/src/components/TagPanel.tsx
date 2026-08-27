@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import classNames from "classnames";
 import { Section, type SectionSize, type SectionVariant } from "./Section";
 import { Pill, type PillVariant, type PillSize } from "./Pill";
+import Button from "./Button";
+import EmptyState from "./EmptyState";
 import { type TrueColor } from "../theme/Theme";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -9,11 +11,11 @@ import { type TrueColor } from "../theme/Theme";
 export interface TagPanelTag {
   id?: string;
   label: string;
-  /** Pill tone. Defaults to `'neutral'`. */
+  /** Pill tone. @default "neutral" */
   tone?: TrueColor;
-  /** Pill variant. Defaults to `'soft'`. */
+  /** Pill variant. @default "soft" */
   variant?: PillVariant;
-  /** Pill size. Defaults to `'sm'`. */
+  /** Pill size. Falls back to the panel's own `tagSize`. */
   size?: PillSize;
   /** Optional leading icon inside the pill. */
   icon?: React.ReactNode;
@@ -29,21 +31,27 @@ export interface TagPanelProps {
   tags: TagPanelTag[];
   /**
    * Maximum number of pills shown before a `+N` overflow pill appears.
-   * Set to `0` to always show all. Default: `5`.
+   * Set to `0` to always show all. @default 5
    */
   tagLimit?: number;
-  /**
-   * Tone used for the `+N` overflow pill.
-   * Defaults to `'neutral'`.
-   */
+  /** Tone used for the `+N` overflow pill. @default "neutral" */
   overflowTone?: TrueColor;
   /** Rendered when `tags` is empty. */
   emptyState?: React.ReactNode;
+  /** Copy for the default empty state. @default "No tags" */
+  emptyMessage?: string;
   /** Optional actions rendered on the right side of the section header. */
   actions?: React.ReactNode;
-  /** Controls header padding and font size. Defaults to `'md'`. */
+  /** Controls header padding and font size. @default "md" */
   size?: SectionSize;
-  /** Visual style of the section header. Defaults to `'uppercase'`. */
+  /**
+   * Size of the pills. Separate from `size`, which is the *section header's*
+   * scale — the two were conflated, so the overflow pill was handed a
+   * `SectionSize` where a `PillSize` was expected.
+   * @default "sm"
+   */
+  tagSize?: PillSize;
+  /** Visual style of the section header. @default "uppercase" */
   variant?: SectionVariant;
   /** Extra classes for the root element. */
   className?: string;
@@ -62,8 +70,10 @@ export const TagPanel: React.FC<TagPanelProps> = ({
   tagLimit = 5,
   overflowTone = "neutral",
   emptyState,
+  emptyMessage = "No tags",
   actions,
   size,
+  tagSize = "sm",
   variant,
   className,
   bodyClassName,
@@ -95,13 +105,10 @@ export const TagPanel: React.FC<TagPanelProps> = ({
         )}
       >
         {tags.length === 0 ? (
-          emptyState ? (
-            <>{emptyState}</>
-          ) : (
-            <span className="text-xs text-neutral-400 dark:text-neutral-500 italic">
-              No tags
-            </span>
-          )
+          (emptyState ?? (
+            // Was a bare italic `<span className="text-neutral-400 …">`.
+            <EmptyState variant="plain" size="sm" title={emptyMessage} />
+          ))
         ) : (
           <>
             {visible.map((tag, i) => (
@@ -109,7 +116,7 @@ export const TagPanel: React.FC<TagPanelProps> = ({
                 key={tag.id ?? `${tag.label}-${i}`}
                 tone={tag.tone ?? "neutral"}
                 variant={tag.variant ?? "soft"}
-                size={tag.size ?? "sm"}
+                size={tag.size ?? tagSize}
                 icon={tag.icon}
               >
                 {tag.children ?? tag.label}
@@ -117,26 +124,30 @@ export const TagPanel: React.FC<TagPanelProps> = ({
             ))}
 
             {limited && (
-              <button
-                type="button"
+              // Was a bare `<button>` wrapping a Pill — a nested interactive
+              // with no focus ring of its own and no accessible affordance.
+              <Button
+                variant="clear"
+                size="xs"
+                color={overflowTone}
                 onClick={() => setExpanded(true)}
                 aria-label={`Show ${overflowCount} more tags`}
-                className="inline-flex"
               >
-                <Pill tone={overflowTone} variant="soft" size={size}>
+                <Pill tone={overflowTone} variant="soft" size={tagSize}>
                   +{overflowCount}
                 </Pill>
-              </button>
+              </Button>
             )}
 
             {expanded && tagLimit > 0 && tags.length > tagLimit && (
-              <button
-                type="button"
+              <Button
+                variant="link"
+                size="xs"
+                color={overflowTone}
                 onClick={() => setExpanded(false)}
-                className="text-xs text-neutral-400 underline-offset-2 hover:underline dark:text-neutral-500"
               >
                 Show less
-              </button>
+              </Button>
             )}
           </>
         )}

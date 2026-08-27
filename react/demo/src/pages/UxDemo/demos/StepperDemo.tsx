@@ -1,22 +1,25 @@
-// @ts-nocheck
 import React, { useState } from "react";
 import { PlaygroundSection } from "../PlaygroundSection";
 import { Stepper, MultiToggle, Toggle, Button } from "@cjlapao/ui-kit";
-import {
-  StepperVariant,
+import type {
+  PanelVariant,
+  PanelTone,
+  ControlSize,
   StepperOrientation,
-  StepperSize,
   StepperConnector,
   StepperConnectorAlign,
+  StepperNodeCorner,
+  StepperLoaderType,
 } from "@cjlapao/ui-kit";
-import { PanelTone } from "@cjlapao/ui-kit";
 import {
-  stepperVariantOptions,
+  panelVariantOptions,
+  panelToneOptions,
+  controlSizeOptions,
   stepperOrientationOptions,
-  stepperSizeOptions,
   stepperConnectorOptions,
   stepperConnectorAlignOptions,
-  panelToneOptions,
+  stepperNodeCornerOptions,
+  stepperLoaderTypeOptions,
 } from "../constants";
 
 const deploymentSteps = [
@@ -48,27 +51,32 @@ const deploymentSteps = [
 
 export const StepperDemo: React.FC = () => {
   const [stepperCompletedIds, setStepperCompletedIds] = useState<string[]>([]);
-  const [stepperLoadingIds] = useState<string[]>([]);
   const [stepperLoading, setStepperLoading] = useState(false);
+  const [stepperDisabled, setStepperDisabled] = useState(false);
+  const [stepperVariant, setStepperVariant] = useState<PanelVariant>("elevated");
   const [stepperTone, setStepperTone] = useState<PanelTone>("neutral");
+  const [stepperSize, setStepperSize] = useState<ControlSize>("md");
+  const [stepperNodeCorner, setStepperNodeCorner] =
+    useState<StepperNodeCorner>("full");
   const [stepperOrientation, setStepperOrientation] =
     useState<StepperOrientation>("horizontal");
-  const [stepperVariant, setStepperVariant] = useState<StepperVariant>("card");
-  const [stepperSize, setStepperSize] = useState<StepperSize>("md");
   const [stepperConnector, setStepperConnector] =
-    useState<StepperConnector>("line");
+    useState<StepperConnector>("progress");
   const [stepperConnectorAlign, setStepperConnectorAlign] =
     useState<StepperConnectorAlign>("center");
   const [stepperConnectNodes, setStepperConnectNodes] =
     useState<boolean>(false);
   const [stepperInteractive, setStepperInteractive] = useState<boolean>(true);
+  const [stepperAnimated, setStepperAnimated] = useState<boolean>(true);
+  const [stepperLoaderType, setStepperLoaderType] =
+    useState<StepperLoaderType>("spinner");
   const [stepperShowProgressBar, setStepperShowProgressBar] =
     useState<boolean>(false);
   const [stepperShowProgressSummary, setStepperShowProgressSummary] =
     useState<boolean>(false);
 
   const handleStepperStepClick = (id: string) => {
-    if (stepperLoadingIds.includes(id) || stepperLoading) return;
+    if (stepperLoading) return;
     // Simulate async verification when clicking a completed step
     if (stepperCompletedIds.includes(id)) {
       setStepperLoading(true);
@@ -89,7 +97,7 @@ export const StepperDemo: React.FC = () => {
     <PlaygroundSection
       title="Stepper"
       label="[Stepper]"
-      description="Multi-step workflow with optional actions and progress."
+      description="Multi-step workflow on the shared panel surface, with connectors and progress."
       controls={
         <div className="space-y-4 text-sm">
           <div className="grid gap-3 md:grid-cols-2">
@@ -97,10 +105,10 @@ export const StepperDemo: React.FC = () => {
               <span>Variant</span>
               <MultiToggle
                 fullWidth
-                options={stepperVariantOptions}
+                options={panelVariantOptions}
                 value={stepperVariant}
                 size="sm"
-                onChange={(value) => setStepperVariant(value as StepperVariant)}
+                onChange={(value) => setStepperVariant(value as PanelVariant)}
               />
             </label>
             <label className="flex flex-col gap-2">
@@ -114,15 +122,15 @@ export const StepperDemo: React.FC = () => {
               />
             </label>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
             <label className="flex flex-col gap-2">
               <span>Size</span>
               <MultiToggle
                 fullWidth
-                options={stepperSizeOptions}
+                options={controlSizeOptions}
                 value={stepperSize}
                 size="sm"
-                onChange={(value) => setStepperSize(value as StepperSize)}
+                onChange={(value) => setStepperSize(value as ControlSize)}
               />
             </label>
             <label className="flex flex-col gap-2">
@@ -137,6 +145,30 @@ export const StepperDemo: React.FC = () => {
                 }
               />
             </label>
+          </div>
+          <label className="flex flex-col gap-2">
+            <span>Node corner</span>
+            <MultiToggle
+              fullWidth
+              options={stepperNodeCornerOptions}
+              value={stepperNodeCorner}
+              size="sm"
+              onChange={(value) => setStepperNodeCorner(value as StepperNodeCorner)}
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span>Loader type</span>
+            <MultiToggle
+              fullWidth
+              options={stepperLoaderTypeOptions}
+              value={stepperLoaderType}
+              size="sm"
+              onChange={(value) =>
+                setStepperLoaderType(value as StepperLoaderType)
+              }
+            />
+          </label>
+          <div className="grid gap-3 md:grid-cols-2">
             <label className="flex flex-col gap-2">
               <span>Connector</span>
               <MultiToggle
@@ -149,8 +181,6 @@ export const StepperDemo: React.FC = () => {
                 }
               />
             </label>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
             <label className="flex flex-col gap-2">
               <span>Connector align</span>
               <MultiToggle
@@ -163,19 +193,24 @@ export const StepperDemo: React.FC = () => {
                 }
               />
             </label>
-            <label className="flex items-center justify-between">
-              <span>Connect nodes</span>
-              <Toggle
-                size="sm"
-                checked={stepperConnectNodes}
-                onChange={(event) =>
-                  setStepperConnectNodes(event.target.checked)
-                }
-              />
-            </label>
           </div>
           <div className="grid gap-2 md:grid-cols-3">
             {[
+              {
+                label: "Connect nodes",
+                value: stepperConnectNodes,
+                setter: setStepperConnectNodes,
+              },
+              {
+                label: "Interactive",
+                value: stepperInteractive,
+                setter: setStepperInteractive,
+              },
+              {
+                label: "Animated",
+                value: stepperAnimated,
+                setter: setStepperAnimated,
+              },
               {
                 label: "Progress bar",
                 value: stepperShowProgressBar,
@@ -187,14 +222,14 @@ export const StepperDemo: React.FC = () => {
                 setter: setStepperShowProgressSummary,
               },
               {
-                label: "Interactive",
-                value: stepperInteractive,
-                setter: setStepperInteractive,
-              },
-              {
                 label: "Loading",
                 value: stepperLoading,
                 setter: setStepperLoading,
+              },
+              {
+                label: "Disabled",
+                value: stepperDisabled,
+                setter: setStepperDisabled,
               },
             ].map((option) => (
               <label
@@ -218,14 +253,17 @@ export const StepperDemo: React.FC = () => {
             steps={deploymentSteps}
             variant={stepperVariant}
             tone={stepperTone}
+            size={stepperSize}
+            nodeCorner={stepperNodeCorner}
             orientation={stepperOrientation}
             connector={stepperConnector}
             connectorAlign={stepperConnectorAlign}
-            size={stepperSize}
             connectNodes={stepperConnectNodes}
             interactive={stepperInteractive}
+            animated={stepperAnimated}
+            loaderType={stepperLoaderType}
+            disabled={stepperDisabled}
             completedStepIds={stepperCompletedIds}
-            loaderStepIds={stepperLoadingIds}
             loading={stepperLoading}
             showProgressBar={stepperShowProgressBar}
             showProgressSummary={stepperShowProgressSummary}

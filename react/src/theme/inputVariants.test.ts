@@ -99,15 +99,17 @@ describe("container surface tokens", () => {
     }
   });
 
-  it("has a distinct class per corner, apart from the two capsules", () => {
+  it("gives every corner its own distinct radius class", () => {
     const classes = SURFACE_CORNERS.map(getSurfaceCornerClass);
-    // `pill` and `rounded-full` are the same capsule on purpose; everything
-    // else must be its own step. `pill` used to duplicate `rounded-lg`, which
-    // made two different-sounding options render identically.
-    expect(new Set(classes).size).toBe(SURFACE_CORNERS.length - 1);
-    expect(getSurfaceCornerClass("pill")).toBe(
-      getSurfaceCornerClass("rounded-full"),
-    );
+    // Every step must be its own radius. The capsules (`pill`,
+    // `rounded-full`) were duplicates of each other and are no longer part of
+    // the container scale — a capsule is a shape the `Pill` component owns.
+    expect(new Set(classes).size).toBe(SURFACE_CORNERS.length);
+  });
+
+  it("keeps no capsule entry in the container corner scale", () => {
+    expect(SURFACE_CORNERS).not.toContain("pill");
+    expect(SURFACE_CORNERS).not.toContain("rounded-full");
   });
 
   it("defaults to a corner that is in the list", () => {

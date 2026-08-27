@@ -19,7 +19,7 @@ export const ReverseProxyHeadersRequest = forwardRef<
     ></path>
     <path
       d="M14,9 L14,14 L2,14 L2,9 L14,9 Z M13,10 L3,10 L3,13 L13,13 L13,10 Z"
-      fill-opacity="0.5"
+      fillOpacity="0.5"
       fill="currentColor"
     ></path>
   </svg>

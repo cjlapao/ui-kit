@@ -24,6 +24,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   surfaceVariantOptions,
@@ -79,71 +80,107 @@ export const FormPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Section surface"
-            options={surfaceVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as PanelVariant)}
-          />
-          <SelectControl
-            label="Section tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <Control label="Section padding">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={padding}
-              onChange={(v) => setPadding(v as ControlSize)}
-            />
-          </Control>
-          <Control label="Columns">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={columnOptions}
-              value={String(columns)}
-              onChange={(v) => setColumns(Number(v) as FormLayoutColumns)}
-            />
-          </Control>
-          <Control label="Row alignment">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={alignOptions}
-              value={align}
-              onChange={(v) => setAlign(v as FormLayoutAlign)}
-            />
-          </Control>
-          <Control label="Field layout">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={fieldLayoutOptions}
-              value={fieldLayout}
-              onChange={(v) => setFieldLayout(v as FormFieldLayout)}
-            />
-          </Control>
-          <Control label="Validation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={validationOptions}
-              value={validationStatus}
-              onChange={(v) =>
-                setValidationStatus(v as FormFieldValidationStatus)
-              }
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Required" checked={required} onChange={setRequired} />
-            <ToggleRow label="Hints" checked={showHint} onChange={setShowHint} />
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Section surface"
+                    options={surfaceVariantOptions}
+                    value={variant}
+                    onChange={(v) => setVariant(v as PanelVariant)}
+                  />
+                  <SelectControl
+                    label="Section tone"
+                    options={trueColorOptions}
+                    value={tone}
+                    onChange={(v) => setTone(v as TrueColor)}
+                  />
+                  <Control label="Section padding">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={controlSizeOptions}
+                      value={padding}
+                      onChange={(v) => setPadding(v as ControlSize)}
+                    />
+                  </Control>
+                </>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <>
+                    <Control label="Validation">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={validationOptions}
+                        value={validationStatus}
+                        onChange={(v) =>
+                          setValidationStatus(v as FormFieldValidationStatus)
+                        }
+                      />
+                    </Control>
+                    <div className="grid grid-cols-1 gap-2">
+                      <ToggleRow
+                        label="Required"
+                        checked={required}
+                        onChange={setRequired}
+                      />
+                      <ToggleRow
+                        label="Hints"
+                        checked={showHint}
+                        onChange={setShowHint}
+                      />
+                    </div>
+                  </>
+                ),
+              },
+              {
+                id: "layout",
+                title: "Layout",
+                controls: (
+                  <>
+                    <Control label="Columns">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={columnOptions}
+                        value={String(columns)}
+                        onChange={(v) =>
+                          setColumns(Number(v) as FormLayoutColumns)
+                        }
+                      />
+                    </Control>
+                    <Control label="Row alignment">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={alignOptions}
+                        value={align}
+                        onChange={(v) => setAlign(v as FormLayoutAlign)}
+                      />
+                    </Control>
+                    <Control label="Field layout">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={fieldLayoutOptions}
+                        value={fieldLayout}
+                        onChange={(v) => setFieldLayout(v as FormFieldLayout)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+            ]}
+        />
       }
       preview={
         <div className="w-full">

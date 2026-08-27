@@ -1,18 +1,23 @@
-import { Button, Tooltip } from "@cjlapao/ui-kit";
+import { Button, Tooltip, TOOLTIP_POSITIONS } from "@cjlapao/ui-kit";
 
+/**
+ * Four sides. `left` and `right` did not exist before — the type was
+ * `"top" | "bottom"` only.
+ *
+ * Each is a *preference*: the tooltip flips to the opposite side when there is
+ * no room, then to a perpendicular one if neither vertical side fits, and
+ * clamps inside the viewport either way.
+ */
 export default function Position() {
   return (
-    <>
-      <Tooltip text="I appear above the trigger." position="top">
-        <Button variant="soft" color="blue">
-          Position: top
-        </Button>
-      </Tooltip>
-      <Tooltip text="I appear below the trigger." position="bottom">
-        <Button variant="soft" color="blue">
-          Position: bottom
-        </Button>
-      </Tooltip>
-    </>
+    <div className="flex flex-wrap gap-3">
+      {TOOLTIP_POSITIONS.map((position) => (
+        <Tooltip key={position} text={`Preferred side: ${position}`} position={position} delay={200}>
+          <Button variant="soft" color="blue">
+            {position}
+          </Button>
+        </Tooltip>
+      ))}
+    </div>
   );
 }

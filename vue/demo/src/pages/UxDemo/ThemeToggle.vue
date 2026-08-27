@@ -25,7 +25,7 @@ const options = [
     :model-value="theme"
     size="sm"
     color="brand"
-    variant="theme"
+    indicator="tonal"
     aria-label="Theme"
     @update:model-value="emit('change', $event as ThemeMode)"
   />

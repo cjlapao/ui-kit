@@ -22,6 +22,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   glassOpacityOptions,
   glassVibrancyOptions,
@@ -102,108 +103,138 @@ export const WorkflowTrackerPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Data set">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={DATA_SETS}
-              value={dataSet}
-              onChange={(v) => setDataSet(v as DataSet)}
-            />
-          </Control>
-          <SelectControl
-            label="Card variant"
-            options={surfaceVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as WorkflowTrackerVariant)}
-          />
-          <SelectControl
-            label="Card tone"
-            options={trueColorOptions}
-            value={cardTone}
-            onChange={(v) => setCardTone(v as TrueColor)}
-          />
-          <SelectControl
-            label="Accent"
-            options={trueColorOptions}
-            value={accent}
-            onChange={(v) => setAccent(v as TrueColor)}
-          />
-          <SelectControl
-            label="Corner"
-            options={panelCornerOptions}
-            value={corner}
-            onChange={(v) => setCorner(v as WorkflowTrackerCorner)}
-          />
-          <SelectControl
-            label="Icon corner"
-            options={panelCornerOptions}
-            value={iconCorner}
-            onChange={(v) => setIconCorner(v as WorkflowTrackerCorner)}
-          />
-          <SelectControl
-            label="Padding"
-            options={panelPaddingOptions}
-            value={padding}
-            onChange={(v) => setPadding(v as WorkflowTrackerPadding)}
-          />
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
-            <ToggleRow
-              label="Interactive"
-              checked={interactive}
-              onChange={setInteractive}
-            />
-            <ToggleRow
-              label="Title icon"
-              checked={showIcon}
-              onChange={setShowIcon}
-            />
-            <ToggleRow label="Legend" checked={showLegend} onChange={setShowLegend} />
-            <ToggleRow
-              label="Header"
-              checked={showHeader}
-              onChange={setShowHeader}
-            />
-            <ToggleRow
-              label="Sticky rail"
-              checked={stickyRail}
-              onChange={setStickyRail}
-            />
-          </div>
-          {isGlass && (
-            <>
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy as string}
-                  onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity as string}
-                  onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                />
-              </Control>
-            </>
-          )}
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "content",
+              title: "Content",
+              controls: (
+                <Control label="Data set">
+                  <MultiToggle
+                    fullWidth
+                    size="sm"
+                    options={DATA_SETS}
+                    value={dataSet}
+                    onChange={(v) => setDataSet(v as DataSet)}
+                  />
+                </Control>
+              ),
+            },
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Card variant"
+                    options={surfaceVariantOptions}
+                    value={variant}
+                    onChange={(v) => setVariant(v as WorkflowTrackerVariant)}
+                  />
+                  <SelectControl
+                    label="Card tone"
+                    options={trueColorOptions}
+                    value={cardTone}
+                    onChange={(v) => setCardTone(v as TrueColor)}
+                  />
+                  <SelectControl
+                    label="Accent"
+                    options={trueColorOptions}
+                    value={accent}
+                    onChange={(v) => setAccent(v as TrueColor)}
+                  />
+                  <SelectControl
+                    label="Corner"
+                    options={panelCornerOptions}
+                    value={corner}
+                    onChange={(v) => setCorner(v as WorkflowTrackerCorner)}
+                  />
+                  <SelectControl
+                    label="Icon corner"
+                    options={panelCornerOptions}
+                    value={iconCorner}
+                    onChange={(v) => setIconCorner(v as WorkflowTrackerCorner)}
+                  />
+                  <SelectControl
+                    label="Padding"
+                    options={panelPaddingOptions}
+                    value={padding}
+                    onChange={(v) => setPadding(v as WorkflowTrackerPadding)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "states",
+              title: "States",
+              controls: (
+                <div className="grid grid-cols-1 gap-2">
+                  <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
+                  <ToggleRow
+                    label="Interactive"
+                    checked={interactive}
+                    onChange={setInteractive}
+                  />
+                  <ToggleRow
+                    label="Title icon"
+                    checked={showIcon}
+                    onChange={setShowIcon}
+                  />
+                  <ToggleRow label="Legend" checked={showLegend} onChange={setShowLegend} />
+                  <ToggleRow
+                    label="Header"
+                    checked={showHeader}
+                    onChange={setShowHeader}
+                  />
+                  <ToggleRow
+                    label="Sticky rail"
+                    checked={stickyRail}
+                    onChange={setStickyRail}
+                  />
+                </div>
+              ),
+            },
+            ...(isGlass
+              ? [
+                  {
+                    id: "glass",
+                    title: "Glass",
+                    controls: (
+                      <>
+                        <Control label="Specular">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={panelSpecularOptions}
+                            value={specularMode}
+                            onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
+                          />
+                        </Control>
+                        <Control label="Vibrancy">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glassVibrancyOptions}
+                            value={vibrancy as string}
+                            onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                          />
+                        </Control>
+                        <Control label="Glass opacity">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glassOpacityOptions}
+                            value={glassOpacity as string}
+                            onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                          />
+                        </Control>
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+        />
       }
       preview={
         <div className="w-full">

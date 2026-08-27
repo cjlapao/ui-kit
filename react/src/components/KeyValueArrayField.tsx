@@ -11,10 +11,9 @@ import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
-  PanelVariant,
 } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
-import type { InputVariant, TrueColor } from "../theme/Theme";
+import type { ControlSize, InputVariant, PlainSurfaceVariant, TrueColor } from "../theme/Theme";
 
 export interface KeyValuePair {
   key: string;
@@ -22,10 +21,12 @@ export interface KeyValuePair {
 }
 
 /** Every container surface, plus `plain` for use inside a card that already exists. */
-export type KeyValueArrayFieldVariant = PanelVariant | "plain";
+export type KeyValueArrayFieldVariant = PlainSurfaceVariant;
 
 /** `Input` still runs on its own three-step scale. */
-export type KeyValueArrayFieldSize = "sm" | "md" | "lg";
+/** The shared control scale. Was a bespoke `"sm" | "md" | "lg"`, so this
+ *  field could not line up with the controls beside it at `xs` or `xl`. */
+export type KeyValueArrayFieldSize = ControlSize;
 
 export interface KeyValueArrayFieldProps {
   label: React.ReactNode;

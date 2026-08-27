@@ -11,6 +11,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   ORG_CHART_DEMO_NODES,
   orgSelectionModeOptions,
@@ -61,47 +62,65 @@ export const OrgChartPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Selection mode"
-            options={orgSelectionModeOptions}
-            value={selectionMode}
-            onChange={(value) => {
-              setSelectionMode(value as OrgChartSelectionMode);
-              setSelected([]);
-            }}
-          />
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(value) => setTone(value as TrueColor)}
-          />
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow
-              label="Collapsible"
-              checked={collapsible}
-              onChange={setCollapsible}
-            />
-            <ToggleRow label="Show icons" checked={showIcons} onChange={setShowIcons} />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setExpanded(expandable)}
-            >
-              Expand all
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setExpanded([])}
-            >
-              Collapse all
-            </Button>
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Selection mode"
+                    options={orgSelectionModeOptions}
+                    value={selectionMode}
+                    onChange={(value) => {
+                      setSelectionMode(value as OrgChartSelectionMode);
+                      setSelected([]);
+                    }}
+                  />
+                  <SelectControl
+                    label="Tone"
+                    options={trueColorOptions}
+                    value={tone}
+                    onChange={(value) => setTone(value as TrueColor)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "layout",
+              title: "Layout",
+              controls: (
+                <>
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow
+                      label="Collapsible"
+                      checked={collapsible}
+                      onChange={setCollapsible}
+                    />
+                    <ToggleRow label="Show icons" checked={showIcons} onChange={setShowIcons} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setExpanded(expandable)}
+                    >
+                      Expand all
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setExpanded([])}
+                    >
+                      Collapse all
+                    </Button>
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="flex w-full min-w-0 flex-col gap-3">

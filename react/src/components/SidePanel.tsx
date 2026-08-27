@@ -4,6 +4,15 @@ import IconButton from "./IconButton";
 import { IconSize } from "../types";
 import { TrueColor } from "../theme/Theme";
 
+/**
+ * Dither-noise fill — the same fractal turbulence SideMenu paints, desaturated
+ * to grey so the light-mode `mix-blend-multiply` pass cannot cast color.
+ * (Overlay blend on a pure-white base is a no-op, hence the per-theme blend.)
+ */
+const NOISE_STYLE: React.CSSProperties = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+};
+
 export interface SidePanelProps {
   /** Whether the panel is open */
   isOpen: boolean;
@@ -32,6 +41,13 @@ export interface SidePanelProps {
   maxWidth?: number;
   /** color for the resizer */
   color?: TrueColor;
+  /**
+   * Paint a subtle dither-noise (film-grain) texture over the panel
+   * background, behind the content. Works in both light and dark mode
+   * (multiply blend in light, overlay in dark — the same dither SideMenu
+   * paints). @default false
+   */
+  noise?: boolean;
 }
 
 /**
@@ -62,6 +78,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   minWidth = 280,
   maxWidth = 900,
   color = "neutral",
+  noise = false,
 }) => {
   // Mount immediately on open so the opening animation can play.
   // Unmount only after the closing animation finishes (onTransitionEnd).
@@ -154,13 +171,25 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       {/* Inner container — fixed at target width so content never squishes during animation */}
       <div
         className={classNames(
-          "flex h-full flex-col bg-white dark:bg-neutral-900",
+          "relative flex h-full flex-col bg-white dark:bg-neutral-900",
           className,
         )}
         style={{ width: resolvedWidth }}
       >
+        {/* Dither-noise layer — behind the content sections (they are
+            `relative`) so it reads as a background grain. Multiply in light
+            (overlay is a no-op on a white base), overlay in dark — the same
+            dither SideMenu paints. */}
+        {noise && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 mix-blend-multiply opacity-[0.08] dark:mix-blend-overlay dark:opacity-[0.4]"
+            style={NOISE_STYLE}
+          />
+        )}
+
         {/* ── Header ─────────────────────────────────────────────── */}
-        <div className="flex-none flex items-center justify-between gap-3 border-b border-neutral-200 dark:border-neutral-700 px-4 py-3">
+        <div className="relative flex-none flex items-center justify-between gap-3 border-b border-neutral-200 dark:border-neutral-700 px-4 py-3">
           {icon && <div className="shrink-0 mt-0.5">{icon}</div>}
           <div className="min-w-0 flex-1">
             {title && (
@@ -190,11 +219,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         </div>
 
         {/* ── Body ───────────────────────────────────────────────── */}
-        <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
+        <div className="relative flex-1 min-h-0 overflow-y-auto">{children}</div>
 
         {/* ── Footer ─────────────────────────────────────────────── */}
         {footer && (
-          <div className="flex-none border-t border-neutral-200 dark:border-neutral-700 px-4 py-3">
+          <div className="relative flex-none border-t border-neutral-200 dark:border-neutral-700 px-4 py-3">
             {footer}
           </div>
         )}

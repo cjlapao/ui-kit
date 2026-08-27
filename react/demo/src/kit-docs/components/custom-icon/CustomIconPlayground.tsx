@@ -13,6 +13,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import { controlSizeOptions, trueColorOptions } from "../../shared/options";
 
 const ALL_ICONS = Object.keys(iconRegistry).sort() as IconName[];
@@ -50,72 +51,98 @@ export const CustomIconPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Icon"
-            options={iconOptions}
-            value={icon}
-            onChange={(v) => setIcon(v as IconName)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "icons",
+                title: "Icons",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Icon"
+                      options={iconOptions}
+                      value={icon}
+                      onChange={(v) => setIcon(v as IconName)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as IconSize)}
+                      />
+                    </Control>
+                    <Control label="Filter the gallery">
+                      <SearchBar
+                        size="sm"
+                        color={tone}
+                        debounceMs={0}
+                        placeholder="Search icons..."
+                        onSearch={setSearch}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow
+                      label="Use tone"
+                      checked={useTone}
+                      onChange={setUseTone}
+                    />
+                    <ToggleRow
+                      label="Hover colour"
+                      checked={hoverColor}
+                      onChange={setHoverColor}
+                    />
+                    <ToggleRow
+                      label="Keep own colours"
+                      checked={colored}
+                      onChange={setColored}
+                    />
+                    <ToggleRow label="Spin" checked={spin} onChange={setSpin} />
+                    <ToggleRow
+                      label="Clickable"
+                      checked={clickable}
+                      onChange={setClickable}
+                    />
+                    <ToggleRow
+                      label="Disabled"
+                      checked={disabled}
+                      onChange={setDisabled}
+                    />
+                    <ToggleRow
+                      label="Accessible name"
+                      checked={withAlt}
+                      onChange={setWithAlt}
+                    />
+                  </div>
+                ),
+              },
+              ...(!colored
+                ? [
+                    {
+                      id: "tone",
+                      title: "Tone",
+                      controls: (
+                        <SelectControl
+                          label="Tone"
+                          options={trueColorOptions}
+                          value={tone}
+                          onChange={(v) => setTone(v as TrueColor)}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           />
-          {!colored && (
-            <SelectControl
-              label="Tone"
-              options={trueColorOptions}
-              value={tone}
-              onChange={(v) => setTone(v as TrueColor)}
-            />
-          )}
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as IconSize)}
-            />
-          </Control>
-          <Control label="Filter the gallery">
-            <SearchBar
-              size="sm"
-              color={tone}
-              debounceMs={0}
-              placeholder="Search icons..."
-              onSearch={setSearch}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow
-              label="Use tone"
-              checked={useTone}
-              onChange={setUseTone}
-            />
-            <ToggleRow
-              label="Hover colour"
-              checked={hoverColor}
-              onChange={setHoverColor}
-            />
-            <ToggleRow
-              label="Keep own colours"
-              checked={colored}
-              onChange={setColored}
-            />
-            <ToggleRow label="Spin" checked={spin} onChange={setSpin} />
-            <ToggleRow
-              label="Clickable"
-              checked={clickable}
-              onChange={setClickable}
-            />
-            <ToggleRow
-              label="Disabled"
-              checked={disabled}
-              onChange={setDisabled}
-            />
-            <ToggleRow
-              label="Accessible name"
-              checked={withAlt}
-              onChange={setWithAlt}
-            />
-          </div>
           <p className="text-xs opacity-70">
             Without an <strong>accessible name</strong> the icon is decoration
             and hidden from assistive tech; with one it is announced as an
@@ -123,7 +150,7 @@ export const CustomIconPlayground: React.FC = () => {
             <code>&lt;button&gt;</code>, so it is reachable by keyboard.
             {clickable && ` Clicked ${clicks}×.`}
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="flex w-full flex-col gap-4">

@@ -6,18 +6,21 @@ import {
   IconButton,
   MultiToggle,
   Toggle,
+  Select,
   type TableVariant,
   type TableDensity,
   type TableSortState,
   type TableColumn,
   type TableSettings,
+  type SurfaceCorner,
   type PanelTone,
 } from "@cjlapao/ui-kit-vue";
 import PlaygroundSection from "../PlaygroundSection.vue";
 import {
   tableVariantOptions,
   tableDensityOptions,
-  tableToneOptions,
+  surfaceCornerOptions,
+  trueColorOptions,
 } from "../constants";
 
 type UserRow = {
@@ -76,10 +79,10 @@ const filledData: UserRow[] = [
 const emptyData: UserRow[] = [];
 
 const columns: TableColumn<UserRow>[] = [
-  { id: "name", header: "User", accessor: "name", sortable: true, minWidth: 240 },
-  { id: "email", header: "Email", accessor: "email", sortable: true, minWidth: 240 },
-  { id: "role", header: "Role", accessor: "role", sortable: true, minWidth: 240 },
-  { id: "lastSeen", header: "Last Seen", accessor: "lastSeen", sortable: true, minWidth: 240 },
+  { id: "name", header: "User", accessor: "name", sortable: true, minWidth: 160 },
+  { id: "email", header: "Email", accessor: "email", sortable: true, minWidth: 190 },
+  { id: "role", header: "Role", accessor: "role", sortable: true, minWidth: 120 },
+  { id: "lastSeen", header: "Last Seen", accessor: "lastSeen", sortable: true, minWidth: 140 },
 ];
 
 const sort = ref<TableSortState | null>({
@@ -90,6 +93,7 @@ const loading = ref(false);
 const data = ref<UserRow[]>(filledData);
 const tableVariant = ref<TableVariant>("outlined");
 const tableDensity = ref<TableDensity>("default");
+const tableCorner = ref<SurfaceCorner>("rounded-md");
 const tableBordered = ref(false);
 const tableTone = ref<PanelTone>("neutral");
 const tableStriped = ref(true);
@@ -143,32 +147,45 @@ const handleSettingsChange = (settings: TableSettings) => {
             "
           />
         </label>
-        <div class="grid gap-2 md:grid-cols-2">
-          <label class="flex flex-col gap-2">
-            <span>Density</span>
-            <MultiToggle
-              full-width
-              :options="tableDensityOptions"
-              :model-value="tableDensity"
-              size="sm"
-              @update:model-value="
-                (value: string) => (tableDensity = value as TableDensity)
-              "
-            />
-          </label>
-          <label class="flex flex-col gap-2">
-            <span>Tone</span>
-            <MultiToggle
-              full-width
-              :options="tableToneOptions"
-              :model-value="tableTone"
-              size="sm"
-              @update:model-value="
-                (value: string) => (tableTone = value as PanelTone)
-              "
-            />
-          </label>
-        </div>
+        <label class="flex flex-col gap-2">
+          <span>Density</span>
+          <MultiToggle
+            full-width
+            :options="tableDensityOptions"
+            :model-value="tableDensity"
+            size="sm"
+            @update:model-value="
+              (value: string) => (tableDensity = value as TableDensity)
+            "
+          />
+        </label>
+        <label class="flex flex-col gap-2">
+          <span>Corner</span>
+          <MultiToggle
+            full-width
+            :options="surfaceCornerOptions"
+            :model-value="tableCorner"
+            size="sm"
+            @update:model-value="
+              (value: string) => (tableCorner = value as SurfaceCorner)
+            "
+          />
+        </label>
+        <label class="flex flex-col gap-2">
+          <span>Tone</span>
+          <Select
+            :model-value="tableTone"
+            @update:model-value="tableTone = $event as PanelTone"
+          >
+            <option
+              v-for="option in trueColorOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </Select>
+        </label>
         <div class="grid gap-2 md:grid-cols-2">
           <label class="flex items-center justify-between">
             <span>Bordered grid</span>
@@ -207,6 +224,7 @@ const handleSettingsChange = (settings: TableSettings) => {
         :data="data"
         :variant="tableVariant"
         :density="tableDensity"
+        :corner="tableCorner"
         :bordered="tableBordered"
         :tone="tableTone"
         :striped="tableStriped"

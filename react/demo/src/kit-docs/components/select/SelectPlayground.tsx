@@ -12,6 +12,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   inputValidationOptions,
@@ -53,45 +54,65 @@ export const SelectPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={inputVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as SelectVariant)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Variant"
+                      options={inputVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as SelectVariant)}
+                    />
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as SelectSize)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(v) => setTone(v as TrueColor)}
+                    />
+                    <Control label="Validation">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={inputValidationOptions}
+                        value={validationStatus}
+                        onChange={(v) =>
+                          setValidationStatus(v as SelectValidationStatus)
+                        }
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "options",
+                title: "Options",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow label="Leading icon" checked={leadingIcon} onChange={setLeadingIcon} />
+                    <ToggleRow label="Placeholder" checked={placeholder} onChange={setPlaceholder} />
+                    <ToggleRow label="Hide caret" checked={hideCaret} onChange={setHideCaret} />
+                    <ToggleRow label="Multiple" checked={multiple} onChange={setMultiple} />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                    <ToggleRow label="On a glass panel" checked={onGlass} onChange={setOnGlass} />
+                  </div>
+                ),
+              },
+            ]}
           />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as SelectSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <Control label="Validation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={inputValidationOptions}
-              value={validationStatus}
-              onChange={(v) => setValidationStatus(v as SelectValidationStatus)}
-            />
-          </Control>
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow label="Leading icon" checked={leadingIcon} onChange={setLeadingIcon} />
-            <ToggleRow label="Placeholder" checked={placeholder} onChange={setPlaceholder} />
-            <ToggleRow label="Hide caret" checked={hideCaret} onChange={setHideCaret} />
-            <ToggleRow label="Multiple" checked={multiple} onChange={setMultiple} />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-            <ToggleRow label="On a glass panel" checked={onGlass} onChange={setOnGlass} />
-          </div>
           <p className="text-xs opacity-70">
             The surface sits on the field&apos;s wrapper, not the{" "}
             <code>&lt;select&gt;</code> — same structure as{" "}
@@ -100,7 +121,7 @@ export const SelectPlayground: React.FC = () => {
             fill: the native dropdown is painted by the platform from the
             select&apos;s background, which is now transparent.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

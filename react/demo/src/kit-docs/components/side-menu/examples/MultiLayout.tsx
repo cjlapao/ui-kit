@@ -15,7 +15,7 @@ const SECONDARY_ITEMS: SideMenuItem[] = [
 
 export default function MultiLayout() {
   return (
-    <div className="h-[26rem] w-full max-w-3xl overflow-hidden rounded-xl bg-white dark:bg-slate-950">
+    <div className="h-[26rem] w-full max-w-3xl overflow-hidden bg-white dark:bg-slate-950">
       <SideMenuLayout
         sideMenuProps={{
           title: "Primary",

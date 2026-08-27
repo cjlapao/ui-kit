@@ -1,6 +1,8 @@
 <script lang="ts">
+import type { ValidationStatus } from "../theme/Theme";
+
 type FormFieldLayout = "stacked" | "inline";
-type FormFieldValidationStatus = "none" | "error" | "success";
+type FormFieldValidationStatus = ValidationStatus;
 type FormFieldWidth = "auto" | "full";
 
 export interface FormFieldProps {

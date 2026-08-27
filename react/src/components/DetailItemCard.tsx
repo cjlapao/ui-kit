@@ -5,17 +5,16 @@ import Panel from "./Panel";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import { DEFAULT_SURFACE_CORNER, getSurfaceTriggerTokens } from "../theme/Theme";
-import type { TrueColor } from "../theme/Theme";
+import type { PlainSurfaceVariant, TrueColor } from "../theme/Theme";
 import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
-  PanelVariant,
 } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
 
 /** Every container surface, plus `plain` for a bare row inside a list. */
-export type DetailItemCardVariant = PanelVariant | "plain";
+export type DetailItemCardVariant = PlainSurfaceVariant;
 export type DetailItemCardBadgesAlignment = "right" | "bottom" | "bottom-end";
 
 export interface DetailItemCardProps

@@ -1,42 +1,66 @@
 import React from "react";
-import Modal from "./Modal";
-import { Button } from ".";
+import classNames from "classnames";
+import Modal, { type ModalProps } from "./Modal";
+import Button from "./Button";
+import { useSurfaceText } from "../contexts/SurfaceContext";
 import { type IconName } from "../icons/registry";
+import type { TrueColor } from "../theme/Theme";
 
-export type NotificationType = "success" | "error" | "warning" | "info";
+/**
+ * The kit's shared severity vocabulary is `AlertIntent`
+ * (`info | success | warning | danger | neutral`). This component predates it
+ * and ships `error` rather than `danger`; the name is kept so call sites are
+ * not broken, and the mapping below is the single place the two meet.
+ */
+export const NOTIFICATION_TYPES = [
+  "success",
+  "error",
+  "warning",
+  "info",
+] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
-export interface NotificationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+export interface NotificationModalProps
+  extends Omit<
+    ModalProps,
+    "children" | "actions" | "icon" | "title" | "tone"
+  > {
   title: string;
   message: React.ReactNode;
+  /** @default "info" */
   type?: NotificationType;
+  /** @default "Close" */
   actionLabel?: string;
   onAction?: () => void;
   secondaryActionLabel?: string;
   onSecondaryAction?: () => void;
+  /** Override the glyph the `type` would pick. */
+  icon?: IconName;
+  /** Override the tone the `type` would pick. */
+  tone?: TrueColor;
 }
 
-const typeConfig: Record<
+const TYPE_CONFIG: Record<
   NotificationType,
-  { icon: IconName; color: string; titleColor: string }
+  { icon: IconName; tone: TrueColor }
 > = {
-  success: {
-    icon: "CheckCircle",
-    color: "emerald",
-    titleColor: "text-emerald-900",
-  },
-  error: {
-    icon: "Warning" as IconName,
-    color: "rose",
-    titleColor: "text-rose-900",
-  },
-  warning: {
-    icon: "Warning" as IconName,
-    color: "amber",
-    titleColor: "text-amber-900",
-  },
-  info: { icon: "Info", color: "blue", titleColor: "text-blue-900" },
+  // `titleColor` used to be a third field here (`text-emerald-900` and
+  // friends). Nothing ever read it, and it had no dark-mode partner.
+  success: { icon: "CheckCircle", tone: "emerald" },
+  // Was `Warning`, the same glyph as `warning` — so a failure and a caution
+  // were indistinguishable at a glance.
+  error: { icon: "Error", tone: "rose" },
+  warning: { icon: "Warning", tone: "amber" },
+  info: { icon: "Info", tone: "blue" },
+};
+
+const NotificationModalBody: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  // Was `text-gray-600` with no dark-mode partner, so the message was
+  // near-invisible on a dark modal.
+  const text = useSurfaceText();
+  return <div className={classNames("text-sm", text.body)}>{children}</div>;
 };
 
 export const NotificationModal: React.FC<NotificationModalProps> = ({
@@ -49,8 +73,13 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   onAction,
   secondaryActionLabel,
   onSecondaryAction,
+  icon,
+  tone,
+  size = "sm",
+  ...rest
 }) => {
-  const config = typeConfig[type];
+  const config = TYPE_CONFIG[type] ?? TYPE_CONFIG.info;
+  const resolvedTone = tone ?? config.tone;
 
   const handleAction = () => {
     if (onAction) {
@@ -62,11 +91,13 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
   return (
     <Modal
+      {...rest}
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      size="sm"
-      icon={config.icon}
+      size={size}
+      tone={resolvedTone}
+      icon={icon ?? config.icon}
       actions={
         <Modal.Actions>
           {secondaryActionLabel && (
@@ -78,13 +109,16 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
               {secondaryActionLabel}
             </Button>
           )}
-          <Button onClick={handleAction} color={config.color as any}>
+          {/* Was `color={config.color as any}` — the config typed its tone as
+              a bare `string`, so the cast was hiding the fact that nothing
+              checked it against `TrueColor`. */}
+          <Button onClick={handleAction} color={resolvedTone}>
             {actionLabel}
           </Button>
         </Modal.Actions>
       }
     >
-      <div className={`text-sm text-gray-600`}>{message}</div>
+      <NotificationModalBody>{message}</NotificationModalBody>
     </Modal>
   );
 };

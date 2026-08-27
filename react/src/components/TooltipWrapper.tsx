@@ -7,20 +7,44 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import classNames from "classnames";
-import type { TooltipPosition } from "./Tooltip";
+import {
+  resolveTooltipPlacement,
+  type TooltipPlacement,
+  type TooltipPosition,
+} from "../../../common/tooltip/placement";
+import {
+  TOOLTIP_ARROW_BORDER,
+  TOOLTIP_ARROW_EDGE,
+  getTooltipVariantTokens,
+  type TooltipVariant,
+} from "../../../common/tooltip/tokens";
 
 export interface TooltipWrapperProps {
   /** Tooltip text. When omitted no tooltip is shown but the child is rendered unchanged. */
   text?: string;
-  /** Delay in ms before the tooltip appears. Defaults to 500. */
+  /** Delay in ms before the tooltip appears. @default 500 */
   delay?: number;
-  /** Where to place the tooltip relative to the child. Defaults to 'top'. */
+  /**
+   * Preferred side. The tooltip flips to the opposite side, then to a
+   * perpendicular one, when there is not enough room — so this is a
+   * preference, not a guarantee. @default "top"
+   */
   position?: TooltipPosition;
-  /** The element to attach the tooltip to. Must accept onMouseEnter / onMouseLeave. */
+  /** How the tooltip is painted. @default "surface" */
+  variant?: TooltipVariant;
+  /** Gap between trigger and tooltip, in px. @default 8 */
+  offset?: number;
+  /** Minimum distance kept from every viewport edge, in px. @default 8 */
+  margin?: number;
+  /**
+   * Keep the tooltip inside this element instead of the whole viewport — a
+   * scroll container, a panel, a modal. It flips and clamps against *that*
+   * edge, intersected with the viewport so it still never leaves the screen.
+   */
+  boundary?: HTMLElement | null;
+  /** The element to attach the tooltip to. Must accept mouse and focus handlers. */
   children: React.ReactElement<React.HTMLAttributes<Element>>;
 }
-
-const VIEWPORT_PADDING = 8; // px to keep away from viewport edges
 
 /**
  * Attaches a styled tooltip to any child element without adding any wrapper
@@ -28,9 +52,11 @@ const VIEWPORT_PADDING = 8; // px to keep away from viewport edges
  * document.body and positioned with `position: fixed`, so it has zero impact on
  * the child's layout or spacing.
  *
- * Includes edge collision detection: when the tooltip would overflow the
- * viewport, it is shifted inward and its caret is repositioned to still point
- * at the trigger element.
+ * Collision handling lives in `common/tooltip/placement.ts` — shared with the
+ * Vue kit, and tested directly as geometry. It flips to the opposite side when
+ * the preferred one has no room, falls back to a perpendicular side when
+ * neither fits, clamps the box inside the viewport, and slides the caret so it
+ * still points at the trigger after clamping.
  *
  * The component always renders a Fragment so that switching `text` between
  * undefined and a string value never causes the child element to unmount —
@@ -40,18 +66,21 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
   text,
   delay = 500,
   position = "top",
+  variant = "surface",
+  offset = 8,
+  margin = 8,
+  boundary,
   children,
 }) => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const triggerRectRef = useRef<DOMRect | null>(null);
 
   const [visible, setVisible] = useState(false);
-  // Captured center point of the trigger (fixed coords)
-  const [triggerCenter, setTriggerCenter] = useState({ top: 0, left: 0 });
-  // Post-collision-detection final left for the tooltip (null = not yet measured)
-  const [finalLeft, setFinalLeft] = useState<number | null>(null);
-  // Caret left offset inside the tooltip box
-  const [caretOffset, setCaretOffset] = useState("50%");
+  // `null` until the tooltip has been measured, which is also the "not yet
+  // positioned, keep it hidden" signal — otherwise there is a one-frame flash
+  // at the wrong place near a viewport edge.
+  const [placement, setPlacement] = useState<TooltipPlacement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -64,79 +93,114 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
     if (!text && visible) {
       if (timerRef.current) clearTimeout(timerRef.current);
       setVisible(false);
-      setFinalLeft(null);
+      setPlacement(null);
     }
   }, [text, visible]);
 
-  // After the tooltip renders, measure it and clamp within the viewport.
-  // The `finalLeft !== null` guard prevents re-running after we've already adjusted.
-  useLayoutEffect(() => {
-    if (!visible || !tooltipRef.current || finalLeft !== null) return;
-
+  const measure = useCallback(() => {
     const el = tooltipRef.current;
-    const rect = el.getBoundingClientRect();
-    const vw = window.innerWidth;
+    const trigger = triggerRectRef.current;
+    if (!el || !trigger) return;
+    const box = el.getBoundingClientRect();
+    const bounds = boundary?.getBoundingClientRect();
+    setPlacement(
+      resolveTooltipPlacement({
+        trigger,
+        tooltip: { width: box.width, height: box.height },
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        boundary: bounds
+          ? {
+              left: bounds.left,
+              top: bounds.top,
+              width: bounds.width,
+              height: bounds.height,
+            }
+          : undefined,
+        preferred: position,
+        offset,
+        margin,
+      }),
+    );
+  }, [position, offset, margin, boundary]);
 
-    // Start from the ideal center-aligned position
-    let left = triggerCenter.left;
+  // Measure once the tooltip is in the DOM. `placement === null` gates the
+  // re-run so this settles in one pass instead of looping on its own output.
+  useLayoutEffect(() => {
+    if (!visible || placement !== null) return;
+    measure();
+  }, [visible, placement, measure]);
 
-    if (rect.right > vw - VIEWPORT_PADDING) {
-      // Overflows right — shift left
-      left = triggerCenter.left - (rect.right - (vw - VIEWPORT_PADDING));
-    } else if (rect.left < VIEWPORT_PADDING) {
-      // Overflows left — shift right
-      left = triggerCenter.left + (VIEWPORT_PADDING - rect.left);
-    }
-
-    // Move the caret so it still points at the original trigger center.
-    // rect.width is the tooltip width; caret is inside the tooltip box.
-    const tooltipEdge = left - rect.width / 2;
-    const caretPct = ((triggerCenter.left - tooltipEdge) / rect.width) * 100;
-    setCaretOffset(`${Math.max(8, Math.min(92, caretPct))}%`);
-    setFinalLeft(left);
-  }, [visible, triggerCenter, finalLeft]);
+  // Re-place while open: the page can scroll or resize under an open tooltip,
+  // which used to leave it stranded at a stale position.
+  useEffect(() => {
+    if (!visible) return;
+    let frame = 0;
+    const schedule = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        measure();
+      });
+    };
+    window.addEventListener("resize", schedule);
+    window.addEventListener("scroll", schedule, true);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("scroll", schedule, true);
+    };
+  }, [visible, measure]);
 
   const show = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent | React.FocusEvent) => {
       // No text → no tooltip; still forward the original handler.
       if (text) {
-        const rect = (e.currentTarget as Element).getBoundingClientRect();
-        setTriggerCenter({
-          top: position === "top" ? rect.top : rect.bottom,
-          left: rect.left + rect.width / 2,
-        });
-        setFinalLeft(null);
-        setCaretOffset("50%");
+        triggerRectRef.current = (
+          e.currentTarget as Element
+        ).getBoundingClientRect();
+        setPlacement(null);
         timerRef.current = setTimeout(() => setVisible(true), delay);
       }
-      children.props.onMouseEnter?.(e);
+      if (e.type === "focus") {
+        children.props.onFocus?.(e as React.FocusEvent<Element>);
+      } else {
+        children.props.onMouseEnter?.(e as React.MouseEvent<Element>);
+      }
     },
-    [text, delay, position, children.props],
+    [text, delay, children.props],
   );
 
   const hide = useCallback(
-    (e?: React.MouseEvent) => {
+    (e?: React.MouseEvent | React.FocusEvent) => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
       setVisible(false);
-      setFinalLeft(null);
-      setCaretOffset("50%");
-      if (e) children.props.onMouseLeave?.(e);
+      setPlacement(null);
+      if (e?.type === "blur") {
+        children.props.onBlur?.(e as React.FocusEvent<Element>);
+      } else if (e) {
+        children.props.onMouseLeave?.(e as React.MouseEvent<Element>);
+      }
     },
     [children.props],
   );
 
-  const isTop = position === "top";
-  const renderLeft = finalLeft ?? triggerCenter.left;
-
-  // Always render a Fragment so the child element is never unmounted when
-  // `text` changes — this keeps refs and ResizeObserver stable.
+  // Focus as well as hover: a tooltip that only answers to a pointer is
+  // invisible to anyone driving the page from the keyboard. The child still
+  // has to be focusable for this to fire — give it `tabIndex={0}` when it is
+  // not natively so.
   const child = React.cloneElement(children, {
     onMouseEnter: show,
     onMouseLeave: hide,
+    onFocus: show,
+    onBlur: hide,
   });
+
+  const side = placement?.side ?? position;
+  const tokens = getTooltipVariantTokens(variant);
+  const vertical = side === "top" || side === "bottom";
 
   return (
     <>
@@ -147,28 +211,40 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
           <div
             ref={tooltipRef}
             role="tooltip"
+            data-side={side}
             style={{
               position: "fixed",
-              top: triggerCenter.top,
-              left: renderLeft,
-              transform: isTop
-                ? "translate(-50%, calc(-100% - 8px))"
-                : "translate(-50%, 8px)",
-              // Hide until collision detection has run to avoid a 1-frame flash
-              // at the wrong position when near the viewport edge
-              visibility: finalLeft === null ? "hidden" : "visible",
+              top: placement?.top ?? 0,
+              left: placement?.left ?? 0,
+              visibility: placement ? "visible" : "hidden",
               zIndex: 9999,
             }}
-            className="pointer-events-none whitespace-nowrap rounded-md bg-neutral-900 px-2.5 py-1.5 text-xs leading-snug text-white shadow-lg dark:bg-neutral-700"
+            className={classNames(
+              "pointer-events-none max-w-xs rounded-md px-2.5 py-1.5 text-xs leading-snug",
+              tokens.box,
+            )}
           >
             {text}
+            {/*
+              A rotated square centred on the box edge, not a CSS triangle. A
+              triangle made of `border-*-<colour>` carries no outline, so on
+              the light `surface` variant it was a white shape on a white page.
+              Half of this sits inside the box, where its unbordered edges
+              share the fill and disappear.
+            */}
             <span
-              style={{ left: caretOffset }}
+              aria-hidden="true"
+              style={{
+                ...(vertical
+                  ? { left: placement?.caret ?? 0 }
+                  : { top: placement?.caret ?? 0 }),
+                transform: "translate(-50%, -50%) rotate(45deg)",
+              }}
               className={classNames(
-                "absolute -translate-x-1/2 border-4 border-transparent",
-                isTop
-                  ? "top-full border-t-neutral-900 dark:border-t-neutral-700"
-                  : "bottom-full border-b-neutral-900 dark:border-b-neutral-700",
+                "absolute h-2 w-2",
+                TOOLTIP_ARROW_EDGE[side],
+                TOOLTIP_ARROW_BORDER[side],
+                tokens.arrow,
               )}
             />
           </div>,

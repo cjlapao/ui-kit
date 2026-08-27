@@ -10,9 +10,15 @@ import DynamicImgDemo from "./demos/DynamicImgDemo.vue";
 import HeaderGroupDemo from "./demos/HeaderGroupDemo.vue";
 import ModalDemo from "./demos/ModalDemo.vue";
 import MultiSelectPillsDemo from "./demos/MultiSelectPillsDemo.vue";
+import ConnectionFlowDemo from "./demos/ConnectionFlowDemo.vue";
 import InputDemo from "./demos/InputDemo.vue";
 import SelectDemo from "./demos/SelectDemo.vue";
 import CustomIconDemo from "./demos/CustomIconDemo.vue";
+import ApiErrorStateDemo from "./demos/ApiErrorStateDemo.vue";
+import ComboboxDemo from "./demos/ComboboxDemo.vue";
+import DynamicFormFieldDemo from "./demos/DynamicFormFieldDemo.vue";
+import HeroDemo from "./demos/HeroDemo.vue";
+import InfoRowDemo from "./demos/InfoRowDemo.vue";
 import EmptyStateDemo from "./demos/EmptyStateDemo.vue";
 import CheckboxDemo from "./demos/CheckboxDemo.vue";
 import PillDemo from "./demos/PillDemo.vue";
@@ -78,8 +84,14 @@ const sectionList: DemoSection[] = [
   { id: "sections-header-group", title: "Header Group", component: HeaderGroupDemo },
   { id: "sections-modal", title: "Modal", component: ModalDemo },
   { id: "sections-multi-select-pills", title: "Multi Select Pills", component: MultiSelectPillsDemo },
+  { id: "sections-connection-flow", title: "Connection Flow", component: ConnectionFlowDemo },
   { id: "sections-alerts", title: "Alerts", component: AlertDemo },
   { id: "sections-empty-state", title: "Empty States", component: EmptyStateDemo },
+  { id: "sections-api-error-state", title: "API Error State", component: ApiErrorStateDemo },
+  { id: "sections-combobox", title: "Combobox", component: ComboboxDemo },
+  { id: "sections-dynamic-form-field", title: "Dynamic Form Field", component: DynamicFormFieldDemo },
+  { id: "sections-hero", title: "Hero", component: HeroDemo },
+  { id: "sections-info-row", title: "Info Row", component: InfoRowDemo },
   { id: "sections-pills", title: "Pills", component: PillDemo },
   { id: "sections-checkbox", title: "Checkbox", component: CheckboxDemo },
   { id: "sections-input", title: "Inputs", component: InputDemo },

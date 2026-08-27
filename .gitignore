@@ -70,3 +70,5 @@ react/dist/
 .playwright-mcp/
 # brainstorming visual companion mockups
 .superpowers/
+.qa/
+.research/

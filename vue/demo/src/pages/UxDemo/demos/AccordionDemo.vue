@@ -8,25 +8,29 @@ import {
   Button,
   useAccordion,
 } from "@cjlapao/ui-kit-vue";
-import type { AccordionItem, PanelTone } from "@cjlapao/ui-kit-vue";
+import type {
+  AccordionItem,
+  AccordionIndicator,
+  AccordionIndicatorPlacement,
+  AccordionProps,
+  ControlSize,
+  PanelTone,
+} from "@cjlapao/ui-kit-vue";
 import {
-  accordionVariantOptions,
-  accordionSizeOptions,
-  accordionIndicatorOptions,
-  accordionChevronPlacementOptions,
+  panelVariantOptions,
   panelToneOptions,
+  controlSizeOptions,
+  accordionIndicatorOptions,
+  accordionIndicatorPlacementOptions,
 } from "../constants";
 
-type AccordionVariant = "default" | "bordered" | "minimal" | "tonal" | "ghost";
-type AccordionSize = "sm" | "md" | "lg";
-type AccordionIndicator = "chevron" | "plus-minus" | "caret" | "none";
-type AccordionChevronPlacement = "left" | "right";
+type PanelVariant = NonNullable<AccordionProps["variant"]>;
 
-const accordionVariant = ref<AccordionVariant>("default");
+const accordionVariant = ref<PanelVariant>("elevated");
 const accordionTone = ref<PanelTone>("neutral");
-const accordionSize = ref<AccordionSize>("md");
+const accordionSize = ref<ControlSize>("md");
 const accordionIndicator = ref<AccordionIndicator>("chevron");
-const accordionChevronPlacement = ref<AccordionChevronPlacement>("left");
+const accordionIndicatorPlacement = ref<AccordionIndicatorPlacement>("right");
 const accordionAllowMultipleOpen = ref<boolean>(false);
 const loadingAccordionIds = ref<string[]>([]);
 
@@ -50,6 +54,7 @@ const accordionItems = computed<AccordionItem[]>(() => [
     title: "United States",
     subtitle: "us-east-1 · N. Virginia",
     description: "Low latency for east coast workloads.",
+    icon: "Globe",
     badge: "Primary",
     content: h("div", { class: "space-y-2" }, [
       h("p", {}, ["Availability zones: ", h("strong", {}, "3")]),
@@ -76,6 +81,7 @@ const accordionItems = computed<AccordionItem[]>(() => [
     title: "Europe",
     subtitle: "eu-central-1 · Frankfurt",
     description: "Ideal for GDPR-compliant workloads.",
+    icon: "Globe",
     badge: "High demand",
     content: h("div", { class: "space-y-2" }, [
       h("p", {}, "Availability zones: 2"),
@@ -93,6 +99,7 @@ const accordionItems = computed<AccordionItem[]>(() => [
     title: "Asia Pacific",
     subtitle: "ap-southeast-1 · Singapore",
     description: "Great for APAC users and low-latency APIs.",
+    icon: "Globe",
     content: h("div", { class: "space-y-2" }, [
       h("p", {}, "Availability zones: 3"),
       h("p", {}, "Average latency: 55 ms"),
@@ -110,7 +117,7 @@ const handleItemToggle = (id: string, isOpen: boolean) => {
   <PlaygroundSection
     title="Accordion"
     label="[Accordion]"
-    description="Stacked disclosure list with multiple variants."
+    description="Stacked disclosure list on the shared panel surface."
   >
     <template #controls>
       <div class="space-y-4 text-sm">
@@ -119,11 +126,11 @@ const handleItemToggle = (id: string, isOpen: boolean) => {
             <span>Variant</span>
             <MultiToggle
               full-width
-              :options="accordionVariantOptions"
+              :options="panelVariantOptions"
               :model-value="accordionVariant"
               size="sm"
               @update:model-value="
-                accordionVariant = $event as AccordionVariant
+                accordionVariant = $event as PanelVariant
               "
             />
           </label>
@@ -143,10 +150,10 @@ const handleItemToggle = (id: string, isOpen: boolean) => {
             <span>Size</span>
             <MultiToggle
               full-width
-              :options="accordionSizeOptions"
+              :options="controlSizeOptions"
               :model-value="accordionSize"
               size="sm"
-              @update:model-value="accordionSize = $event as AccordionSize"
+              @update:model-value="accordionSize = $event as ControlSize"
             />
           </label>
           <label class="flex flex-col gap-2">
@@ -164,14 +171,15 @@ const handleItemToggle = (id: string, isOpen: boolean) => {
         </div>
         <div class="grid gap-3 md:grid-cols-2">
           <label class="flex flex-col gap-2">
-            <span>Caret placement</span>
+            <span>Indicator placement</span>
             <MultiToggle
               full-width
-              :options="accordionChevronPlacementOptions"
-              :model-value="accordionChevronPlacement"
+              :options="accordionIndicatorPlacementOptions"
+              :model-value="accordionIndicatorPlacement"
               size="sm"
               @update:model-value="
-                accordionChevronPlacement = $event as AccordionChevronPlacement
+                accordionIndicatorPlacement =
+                  $event as AccordionIndicatorPlacement
               "
             />
           </label>
@@ -189,7 +197,7 @@ const handleItemToggle = (id: string, isOpen: boolean) => {
         :tone="accordionTone"
         :size="accordionSize"
         :indicator="accordionIndicator"
-        :chevron-placement="accordionChevronPlacement"
+        :indicator-placement="accordionIndicatorPlacement"
         :multiple="accordionAllowMultipleOpen"
         :open-ids="accordion.openIds.value"
         aria-label="Cloud regions"

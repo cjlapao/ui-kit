@@ -59,7 +59,14 @@ export interface CheckboxProps
    * Surface treatment of the box, on the shared input scale. @default "flat"
    */
   variant?: CheckboxVariant;
-  /** @default "blue" */
+  /**
+   * Accent colour. Every other control in the kit names this `tone` with
+   * `color` as the alias; `Checkbox` had only `color`, so a form written
+   * against the shared name silently fell back to blue.
+   * @default "blue"
+   */
+  tone?: TrueColor;
+  /** Alias for `tone`. */
   color?: TrueColor;
   /** Native tri-state. Also announced as `aria-checked="mixed"`. */
   indeterminate?: boolean;
@@ -184,7 +191,8 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       descriptionPlacement = "bottom",
       size = "md",
       variant = "flat",
-      color = "blue",
+      tone,
+      color,
       indeterminate = false,
       fullWidth = false,
       controlAlign = "left",
@@ -226,7 +234,8 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     );
 
     const sizeStyles = SIZE_STYLES[size] ?? SIZE_STYLES.md;
-    const tokens = getCheckboxControlTokens(color);
+    const accent = tone ?? color ?? "blue";
+    const tokens = getCheckboxControlTokens(accent);
     const surface = getCheckboxVariantTokens(variant);
     const hasError = validationStatus === "error";
 

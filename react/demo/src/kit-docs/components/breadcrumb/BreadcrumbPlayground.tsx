@@ -10,6 +10,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import { trueColorOptions } from "../../shared/options";
 
 const separatorOptions = [
@@ -41,27 +42,37 @@ export const BreadcrumbPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Color"
-            options={trueColorOptions}
-            value={color}
-            onChange={(v) => setColor(v as TrueColor)}
-          />
-          <Control label="Separator">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={separatorOptions}
-              value={separator}
-              onChange={setSeparator}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Home crumb" checked={showHome} onChange={setShowHome} />
-            <ToggleRow label="Ellipsis" checked={ellipsis} onChange={setEllipsis} />
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "options",
+              title: "Options",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Color"
+                    options={trueColorOptions}
+                    value={color}
+                    onChange={(v) => setColor(v as TrueColor)}
+                  />
+                  <Control label="Separator">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={separatorOptions}
+                      value={separator}
+                      onChange={setSeparator}
+                    />
+                  </Control>
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow label="Home crumb" checked={showHome} onChange={setShowHome} />
+                    <ToggleRow label="Ellipsis" checked={ellipsis} onChange={setEllipsis} />
+                  </div>
+                </>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="flex w-full flex-col items-center gap-3">

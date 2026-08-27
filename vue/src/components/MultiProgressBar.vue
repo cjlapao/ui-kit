@@ -1,12 +1,18 @@
 <script lang="ts">
 import type { VNode } from "vue";
+import type { ControlSize, TrueColor } from "../theme/Theme";
 
 export interface MultiProgressBarSeries {
   key: string;
   label: string;
   labelClassName?: string;
   value: number;
-  /** Tailwind bg color class e.g., 'bg-rose-500'. Omit to auto-assign from the theme palette. */
+  /** Accent for this segment. Omit to auto-assign from the theme palette. */
+  tone?: TrueColor;
+  /**
+   * @deprecated Use `tone`. A raw class here cannot be dimmed or safelisted
+   * with the rest, and callers were passing shades the palette never emits.
+   */
   color?: string;
   /** Custom formatted value to display in legend, if omitted `value` is used */
   displayValue?: string | number | VNode;
@@ -20,7 +26,22 @@ export interface MultiProgressBarProps {
   totalLabel?: string;
   total: number;
   series: MultiProgressBarSeries[];
+  /** @default "md" */
+  size?: ControlSize;
+  /** Hide the legend under the bar. */
+  hideLegend?: boolean;
 }
+
+const SIZE_TOKENS: Record<
+  ControlSize,
+  { track: string; label: string; meta: string; dot: string; dotActive: string }
+> = {
+  xs: { track: "h-1.5", label: "text-xs", meta: "text-[10px]", dot: "w-1.5 h-1.5", dotActive: "w-2 h-2" },
+  sm: { track: "h-2", label: "text-xs", meta: "text-[11px]", dot: "w-2 h-2", dotActive: "w-2.5 h-2.5" },
+  md: { track: "h-2.5", label: "text-sm", meta: "text-xs", dot: "w-2 h-2", dotActive: "w-3 h-3" },
+  lg: { track: "h-3", label: "text-base", meta: "text-sm", dot: "w-2.5 h-2.5", dotActive: "w-3.5 h-3.5" },
+  xl: { track: "h-4", label: "text-lg", meta: "text-base", dot: "w-3 h-3", dotActive: "w-4 h-4" },
+};
 
 interface TooltipState {
   key: string;
@@ -32,12 +53,27 @@ interface TooltipState {
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import classNames from "classnames";
-import { getColorPalette } from "../theme";
+import { getColorPaletteNames, hasTextColor } from "../theme";
 import VNodeRenderer from "./internal/VNodeRenderer";
 
 defineOptions({ name: "MultiProgressBar" });
 
-const props = defineProps<MultiProgressBarProps>();
+const props = withDefaults(defineProps<MultiProgressBarProps>(), {
+  size: "md",
+  hideLegend: false,
+});
+
+const tokens = computed(() => SIZE_TOKENS[props.size] ?? SIZE_TOKENS.md);
+
+/**
+ * Vue has no `SurfaceProvider`, so the solid-surface tokens are spelled out.
+ * They are the same strings `getSurfaceTextTokens("elevated")` returns.
+ */
+const T = {
+  heading: "text-neutral-900 dark:text-neutral-100",
+  body: "text-neutral-700 dark:text-neutral-300",
+  muted: "text-neutral-500 dark:text-neutral-400",
+};
 
 const slots = defineSlots<{
   secondaryLabel?: () => unknown;
@@ -49,8 +85,12 @@ const tooltip = ref<TooltipState | null>(null);
 const barRef = ref<HTMLDivElement | null>(null);
 
 const resolvedSeries = computed(() => {
-  const palette = getColorPalette(props.series.length, "bg");
-  return props.series.map((s, i) => ({ ...s, color: s.color ?? palette[i] }));
+  const palette = getColorPaletteNames(props.series.length);
+  // A raw `color` class still wins, so existing call sites keep working.
+  return props.series.map((s, i) => ({
+    ...s,
+    fill: s.color ?? `bg-${s.tone ?? palette[i]}-500`,
+  }));
 });
 
 const defaultTotal = computed(() => props.total || 1);
@@ -66,15 +106,32 @@ const normalizationFactor = computed(() =>
     : 1,
 );
 
-const labelClasses = computed(
-  () =>
-    props.labelClassName ||
-    "text-sm font-semibold text-neutral-800 dark:text-neutral-200",
+const labelClasses = computed(() =>
+  classNames(
+    tokens.value.label,
+    "font-semibold",
+    !hasTextColor(props.labelClassName) && T.heading,
+    props.labelClassName,
+  ),
 );
-const secondaryLabelClasses = computed(
-  () =>
-    props.secondaryLabelClassName ||
-    "text-xs text-neutral-500 dark:text-neutral-400 mt-0.5",
+const secondaryLabelClasses = computed(() =>
+  classNames(
+    tokens.value.meta,
+    "mt-0.5",
+    !hasTextColor(props.secondaryLabelClassName) && T.muted,
+    props.secondaryLabelClassName,
+  ),
+);
+
+/**
+ * A stacked bar is a picture of a breakdown, so it gets one text alternative
+ * naming every slice. Previously the whole chart was invisible to a screen
+ * reader: no role, no label, and the numbers lived only in a hover tooltip.
+ */
+const summary = computed(() =>
+  segments.value
+    .map((s) => `${s.label}: ${s.value} (${s.pct.toFixed(1)}%)`)
+    .join(", "),
 );
 
 const hasSecondaryLabel = computed(
@@ -132,7 +189,7 @@ const tooltipSegment = computed(() =>
       </div>
       <span
         v-if="hasTotalLabel"
-        class="text-xs font-medium text-neutral-500 dark:text-neutral-400"
+        :class="classNames(tokens.meta, 'font-medium', T.muted)"
       >
         <slot name="totalLabel">{{ totalLabel }}</slot>
       </span>
@@ -141,7 +198,14 @@ const tooltipSegment = computed(() =>
     <!-- Bar -->
     <div ref="barRef" class="relative py-2">
       <div
-        class="h-2.5 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-800 shadow-inner"
+        role="img"
+        :aria-label="summary ? `${label} — ${summary}` : label"
+        :class="
+          classNames(
+            'rounded-full overflow-hidden bg-black/10 dark:bg-white/10 shadow-inner',
+            tokens.track,
+          )
+        "
       >
         <div class="flex h-full w-full">
           <div
@@ -150,7 +214,7 @@ const tooltipSegment = computed(() =>
             :class="
               classNames(
                 'h-full cursor-pointer transition-all duration-200 ease-out',
-                s.color,
+                s.fill,
                 hoveredKey === s.key && 'brightness-110',
                 hoveredKey !== null && hoveredKey !== s.key && 'opacity-25',
               )
@@ -197,19 +261,23 @@ const tooltipSegment = computed(() =>
     </Teleport>
 
     <!-- Legend -->
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1">
+    <div
+      v-if="!hideLegend"
+      class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1"
+    >
       <span
         v-for="s in resolvedSeries"
         :key="s.key"
         :class="
           classNames(
             'flex items-center gap-1.5 whitespace-nowrap cursor-pointer select-none',
-            'text-xs transition-all duration-200',
+            tokens.meta,
+            'transition-all duration-200',
             hoveredKey === s.key
-              ? 'text-neutral-800 dark:text-neutral-100'
+              ? T.heading
               : hoveredKey !== null
-                ? 'text-neutral-300 dark:text-neutral-600'
-                : 'text-neutral-500 dark:text-neutral-400',
+                ? 'opacity-40'
+                : T.muted,
           )
         "
         @mouseenter="hoveredKey = s.key"
@@ -220,10 +288,10 @@ const tooltipSegment = computed(() =>
           :class="
             classNames(
               'inline-block rounded-full transition-all duration-200',
-              s.color,
+              s.fill,
               hoveredKey === s.key
-                ? 'w-3 h-3 shadow-md brightness-110'
-                : 'w-2 h-2',
+                ? classNames(tokens.dotActive, 'shadow-md brightness-110')
+                : tokens.dot,
               hoveredKey !== null && hoveredKey !== s.key && 'opacity-30',
             )
           "
@@ -233,11 +301,7 @@ const tooltipSegment = computed(() =>
           :class="
             classNames(
               'font-semibold transition-colors duration-200',
-              hoveredKey === s.key
-                ? 'text-neutral-900 dark:text-neutral-50'
-                : hoveredKey !== null
-                  ? 'text-neutral-300 dark:text-neutral-600'
-                  : 'text-neutral-700 dark:text-neutral-300',
+              hoveredKey === s.key ? T.heading : T.body,
             )
           "
         >

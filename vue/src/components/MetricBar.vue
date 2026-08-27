@@ -1,16 +1,25 @@
 <script lang="ts">
-import type { SpinnerColor } from "./Spinner.vue";
+import type { ControlSize, TrueColor } from "../theme/Theme";
 
 export interface MetricBarProps {
+  /** Caption on the left. Also becomes the bar's accessible name. */
   label: string;
-  value: string;
+  /**
+   * Free-form reading shown on the right — "12 / 20 GB", "4 runs", "87%".
+   * This is display text, not the bar's geometry: `percentage` drives the fill.
+   */
+  value?: string | number;
+  /** Fill percentage, 0–100. */
   percentage: number;
-  color?: SpinnerColor;
+  /** @default "blue" */
+  color?: TrueColor;
+  /** Alias for `color`, matching the rest of the kit. */
+  tone?: TrueColor;
+  /** @default "sm" */
+  size?: ControlSize;
+  /** @deprecated Use Progress's `motion="shimmer"`. */
   showShimmer?: boolean;
 }
-
-// Named export for parity with the React kit (`export const MetricBar = ...`).
-export { default as MetricBar } from "./MetricBar.vue";
 </script>
 
 <script setup lang="ts">
@@ -19,35 +28,42 @@ import classNames from "classnames";
 import Progress from "./Progress.vue";
 import { useClassAttrs } from "../utils/attrsUtils";
 
+/**
+ * A labelled progress row: caption on the left, reading on the right, bar
+ * underneath.
+ *
+ * It renders `Progress` rather than drawing its own header. The hand-rolled
+ * one published no accessible name, so the `role="progressbar"` underneath it
+ * was announced as just "progress bar" — `Progress` already wires its `label`
+ * as `aria-labelledby`. That also brings the whole size ladder, every tone and
+ * the motion props, none of which this component used to expose.
+ */
 defineOptions({ name: "MetricBar", inheritAttrs: false });
 
-withDefaults(defineProps<MetricBarProps>(), {
-  color: "blue",
-  showShimmer: false,
+const props = withDefaults(defineProps<MetricBarProps>(), {
+  size: "sm",
+  showShimmer: undefined,
 });
 
 const { classAttr, restAttrs } = useClassAttrs();
 
-const rootClass = computed(() =>
-  classNames("flex flex-col gap-1.5 w-full", classAttr.value),
+const rootClass = computed(() => classNames("w-full", classAttr.value));
+const resolvedColor = computed(() => props.tone ?? props.color ?? "blue");
+const formatValue = computed(() =>
+  props.value !== undefined ? () => String(props.value) : undefined,
 );
 </script>
 
 <template>
-  <div :class="rootClass" v-bind="restAttrs">
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-        {{ label }}
-      </span>
-      <span class="text-xs text-neutral-600 dark:text-neutral-300">
-        {{ value }}
-      </span>
-    </div>
-    <Progress
-      :value="percentage"
-      size="sm"
-      :color="color"
-      :show-shimmer="showShimmer"
-    />
-  </div>
+  <Progress
+    v-bind="restAttrs"
+    :class="rootClass"
+    :value="percentage"
+    :label="label"
+    :show-value="value !== undefined"
+    :format-value="formatValue"
+    :size="size"
+    :color="resolvedColor"
+    :show-shimmer="showShimmer"
+  />
 </template>

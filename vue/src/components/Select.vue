@@ -5,9 +5,11 @@ import {
   getInputVariantTokens,
   stripBorderColor,
 } from "../theme/Theme";
+import { VALIDATION_STATUSES } from "../theme/Theme";
 import type { ControlSize, InputVariant, TrueColor } from "../theme/Theme";
 
-export const SELECT_VALIDATION_STATUSES = ["none", "error", "success"] as const;
+/** @deprecated Use `VALIDATION_STATUSES` from the theme. Kept as an alias. */
+export const SELECT_VALIDATION_STATUSES = VALIDATION_STATUSES;
 export type SelectValidationStatus =
   (typeof SELECT_VALIDATION_STATUSES)[number];
 

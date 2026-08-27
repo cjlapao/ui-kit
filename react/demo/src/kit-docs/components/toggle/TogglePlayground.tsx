@@ -16,6 +16,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glassOpacityOptions,
@@ -71,99 +72,123 @@ export const TogglePlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={toggleVariantOptions}
-            value={variant}
-            onChange={(value) => setVariant(value as ToggleVariant)}
-          />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(value) => setSize(value as ToggleSize)}
-            />
-          </Control>
-          <div className="grid grid-cols-2 gap-3">
-            <Control label="Label alignment">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={alignOptions}
-                value={align}
-                onChange={(value) => setAlign(value as ToggleAlign)}
-              />
-            </Control>
-            <Control label="Description">
-              <MultiToggle
-                fullWidth
-                size="sm"
-                options={placementOptions}
-                value={placement}
-                onChange={(value) =>
-                  setPlacement(value as ToggleDescriptionPlacement)
-                }
-              />
-            </Control>
-          </div>
-          <SelectControl
-            label="Color"
-            options={trueColorOptions}
-            value={color}
-            onChange={(value) => setColor(value as TrueColor)}
-          />
-          {variant === "glass" && (
-            <div className="flex flex-col gap-3">
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy}
-                  onChange={(value) => setVibrancy(value as VibrancyPreset)}
-                />
-              </Control>
-              <Control label="Fill">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity}
-                  onChange={(value) => setGlassOpacity(value as OpacityPreset)}
-                />
-              </Control>
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(value) =>
-                    setSpecularMode(value as SpecularMode)
-                  }
-                />
-              </Control>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow label="Label" checked={showLabel} onChange={setShowLabel} />
-            <ToggleRow
-              label="Description"
-              checked={showDescription}
-              onChange={setShowDescription}
-            />
-            <ToggleRow label="Icons" checked={showIcons} onChange={setShowIcons} />
-            <ToggleRow
-              label="Full width"
-              checked={fullWidth}
-              onChange={setFullWidth}
-            />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Variant"
+                    options={toggleVariantOptions}
+                    value={variant}
+                    onChange={(value) => setVariant(value as ToggleVariant)}
+                  />
+                  <Control label="Size">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={controlSizeOptions}
+                      value={size}
+                      onChange={(value) => setSize(value as ToggleSize)}
+                    />
+                  </Control>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Control label="Label alignment">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={alignOptions}
+                        value={align}
+                        onChange={(value) => setAlign(value as ToggleAlign)}
+                      />
+                    </Control>
+                    <Control label="Description">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={placementOptions}
+                        value={placement}
+                        onChange={(value) =>
+                          setPlacement(value as ToggleDescriptionPlacement)
+                        }
+                      />
+                    </Control>
+                  </div>
+                  <SelectControl
+                    label="Color"
+                    options={trueColorOptions}
+                    value={color}
+                    onChange={(value) => setColor(value as TrueColor)}
+                  />
+                </>
+              ),
+            },
+            ...(variant === "glass"
+              ? [
+                  {
+                    id: "glass",
+                    title: "Glass",
+                    controls: (
+                      <div className="flex flex-col gap-3">
+                        <Control label="Vibrancy">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glassVibrancyOptions}
+                            value={vibrancy}
+                            onChange={(value) => setVibrancy(value as VibrancyPreset)}
+                          />
+                        </Control>
+                        <Control label="Fill">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={glassOpacityOptions}
+                            value={glassOpacity}
+                            onChange={(value) => setGlassOpacity(value as OpacityPreset)}
+                          />
+                        </Control>
+                        <Control label="Specular">
+                          <MultiToggle
+                            fullWidth
+                            size="sm"
+                            options={panelSpecularOptions}
+                            value={specularMode}
+                            onChange={(value) =>
+                              setSpecularMode(value as SpecularMode)
+                            }
+                          />
+                        </Control>
+                      </div>
+                    ),
+                  },
+                ]
+              : []),
+            {
+              id: "content",
+              title: "Content",
+              controls: (
+                <div className="grid grid-cols-2 gap-2">
+                  <ToggleRow label="Label" checked={showLabel} onChange={setShowLabel} />
+                  <ToggleRow
+                    label="Description"
+                    checked={showDescription}
+                    onChange={setShowDescription}
+                  />
+                  <ToggleRow label="Icons" checked={showIcons} onChange={setShowIcons} />
+                  <ToggleRow
+                    label="Full width"
+                    checked={fullWidth}
+                    onChange={setFullWidth}
+                  />
+                  <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                </div>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="w-full">

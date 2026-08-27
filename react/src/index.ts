@@ -23,12 +23,12 @@ export * from "./components/MetricBar";
 export type { KeyValuePair } from "./components/KeyValueArrayField";
 export type {
   StepStatus,
-  StepperVariant,
   StepperOrientation,
-  StepperSize,
   StepperConnector,
   StepperConnectorAlign,
   StepperProgressBarPosition,
+  StepperNodeCorner,
+  StepperLoaderType,
 } from "./components/Stepper";
 
 // Icons — explicit re-exports of IconName type + iconRegistry (SVG components are re-exported via "./icons" above)

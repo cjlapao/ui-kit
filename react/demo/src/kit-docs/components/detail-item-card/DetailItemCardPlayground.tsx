@@ -23,6 +23,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   detailItemCardVariantOptions,
   glassOpacityOptions,
@@ -122,127 +123,169 @@ export const DetailItemCardPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={detailItemCardVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as DetailItemCardVariant)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Variant"
+                      options={detailItemCardVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as DetailItemCardVariant)}
+                    />
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(v) => setTone(v as TrueColor)}
+                    />
+                    <SelectControl
+                      label="Corner"
+                      options={panelCornerOptions}
+                      value={corner}
+                      onChange={(v) => setCorner(v as PanelCorner)}
+                    />
+                    <Control label="Padding">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={panelPaddingOptions}
+                        value={padding}
+                        onChange={(v) => setPadding(v as PanelPadding)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow
+                      label="Icon"
+                      checked={withIcon}
+                      onChange={setWithIcon}
+                    />
+                    <ToggleRow
+                      label="Badges"
+                      checked={withBadges}
+                      onChange={setWithBadges}
+                    />
+                    <ToggleRow
+                      label="Expandable detail"
+                      checked={withDetail}
+                      onChange={setWithDetail}
+                    />
+                    <ToggleRow
+                      label="Row is clickable"
+                      checked={clickable}
+                      onChange={setClickable}
+                    />
+                    <ToggleRow
+                      label="Disabled"
+                      checked={disabled}
+                      onChange={setDisabled}
+                    />
+                  </div>
+                ),
+              },
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <>
+                    <Control label="Badges alignment">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={BADGES_ALIGNMENT_OPTIONS}
+                        value={badgesAlignment}
+                        onChange={(v) =>
+                          setBadgesAlignment(
+                            v as DetailItemCardBadgesAlignment,
+                          )
+                        }
+                      />
+                    </Control>
+                    <Control label="Title">
+                      <Input
+                        size="sm"
+                        value={title}
+                        onChange={(event) => setTitle(event.target.value)}
+                      />
+                    </Control>
+                    <Control label="Subtitle">
+                      <Input
+                        size="sm"
+                        value={subtitle}
+                        onChange={(event) => setSubtitle(event.target.value)}
+                      />
+                    </Control>
+                    <Control label="Description">
+                      <Input
+                        size="sm"
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              ...(isGlass
+                ? [
+                    {
+                      id: "glass",
+                      title: "Glass",
+                      controls: (
+                        <>
+                          <Control label="Specular">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={panelSpecularOptions}
+                              value={specularMode}
+                              onChange={(v) =>
+                                setSpecularMode(v as PanelSpecularMode)
+                              }
+                            />
+                          </Control>
+                          <Control label="Vibrancy">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassVibrancyOptions}
+                              value={vibrancy as string}
+                              onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                            />
+                          </Control>
+                          <Control label="Glass opacity">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassOpacityOptions}
+                              value={glassOpacity as string}
+                              onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                            />
+                          </Control>
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           />
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <SelectControl
-            label="Corner"
-            options={panelCornerOptions}
-            value={corner}
-            onChange={(v) => setCorner(v as PanelCorner)}
-          />
-          <Control label="Padding">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={panelPaddingOptions}
-              value={padding}
-              onChange={(v) => setPadding(v as PanelPadding)}
-            />
-          </Control>
-          <Control label="Badges alignment">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={BADGES_ALIGNMENT_OPTIONS}
-              value={badgesAlignment}
-              onChange={(v) =>
-                setBadgesAlignment(v as DetailItemCardBadgesAlignment)
-              }
-            />
-          </Control>
-          <Control label="Title">
-            <Input
-              size="sm"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </Control>
-          <Control label="Subtitle">
-            <Input
-              size="sm"
-              value={subtitle}
-              onChange={(event) => setSubtitle(event.target.value)}
-            />
-          </Control>
-          <Control label="Description">
-            <Input
-              size="sm"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Icon" checked={withIcon} onChange={setWithIcon} />
-            <ToggleRow
-              label="Badges"
-              checked={withBadges}
-              onChange={setWithBadges}
-            />
-            <ToggleRow
-              label="Expandable detail"
-              checked={withDetail}
-              onChange={setWithDetail}
-            />
-            <ToggleRow
-              label="Row is clickable"
-              checked={clickable}
-              onChange={setClickable}
-            />
-            <ToggleRow
-              label="Disabled"
-              checked={disabled}
-              onChange={setDisabled}
-            />
-          </div>
-          {isGlass && (
-            <>
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy as string}
-                  onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity as string}
-                  onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                />
-              </Control>
-            </>
-          )}
           <p className="text-xs opacity-70">
             With <strong>Row is clickable</strong> on, the whole row becomes a
             keyboard-reachable button — tab to it and press Enter. Expanding a
             row never triggers it.
             {selected && ` Last selected: ${selected}.`}
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="flex w-full flex-col gap-4">

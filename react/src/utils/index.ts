@@ -9,3 +9,4 @@ export * from "./gravatar";
 export * from "./toastUtils";
 export * from "./smartVariables";
 export * from "./tableStorage";
+export * from "./gridStorage";

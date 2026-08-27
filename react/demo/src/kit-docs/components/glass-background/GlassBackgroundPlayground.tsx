@@ -5,6 +5,7 @@ import type {
   TrueColor,
 } from "@cjlapao/ui-kit";
 import { PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   gradientDirectionOptions,
   trueColorOptions,
@@ -20,37 +21,54 @@ export const GlassBackgroundPlayground: React.FC = () => {
 
   return (
     <PlaygroundPanel
+      hideBackgroundToggle
       controls={
-        <>
-          <SelectControl
-            label="Color"
-            options={trueColorOptions}
-            value={color}
-            onChange={(value) => setColor(value as TrueColor)}
-          />
-          <SelectControl
-            label="Secondary color"
-            options={trueColorOptions}
-            value={colorSecondary}
-            onChange={(value) => setColorSecondary(value as TrueColor)}
-          />
-          <SelectControl
-            label="Deep color"
-            options={trueColorOptions}
-            value={colorDeep}
-            onChange={(value) => setColorDeep(value as TrueColor)}
-          />
-          <SelectControl
-            label="Direction"
-            options={gradientDirectionOptions}
-            value={direction}
-            onChange={(value) => setDirection(value as GradientDirection)}
-          />
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Shimmer" checked={shimmer} onChange={setShimmer} />
-            <ToggleRow label="Ambient glow" checked={ambient} onChange={setAmbient} />
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Color"
+                    options={trueColorOptions}
+                    value={color}
+                    onChange={(value) => setColor(value as TrueColor)}
+                  />
+                  <SelectControl
+                    label="Secondary color"
+                    options={trueColorOptions}
+                    value={colorSecondary}
+                    onChange={(value) => setColorSecondary(value as TrueColor)}
+                  />
+                  <SelectControl
+                    label="Deep color"
+                    options={trueColorOptions}
+                    value={colorDeep}
+                    onChange={(value) => setColorDeep(value as TrueColor)}
+                  />
+                  <SelectControl
+                    label="Direction"
+                    options={gradientDirectionOptions}
+                    value={direction}
+                    onChange={(value) => setDirection(value as GradientDirection)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "effects",
+              title: "Effects",
+              controls: (
+                <div className="grid grid-cols-1 gap-2">
+                  <ToggleRow label="Shimmer" checked={shimmer} onChange={setShimmer} />
+                  <ToggleRow label="Ambient glow" checked={ambient} onChange={setAmbient} />
+                </div>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="relative h-72 w-full max-w-lg overflow-hidden rounded-xl">

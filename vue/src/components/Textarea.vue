@@ -1,17 +1,22 @@
 <script lang="ts">
-import type { TrueColor } from "../theme/Theme";
+import type { ControlSize, TrueColor, ValidationStatus } from "../theme/Theme";
 
-type TextareaSize = "sm" | "md" | "lg";
-type TextareaValidationStatus = "none" | "error" | "success";
+/** The shared control scale. Was a bespoke `"sm" | "md" | "lg"` here while the
+ *  React twin already used `ControlSize`, so the same component took different
+ *  sizes in the two kits. */
+type TextareaSize = ControlSize;
+type TextareaValidationStatus = ValidationStatus;
 type TextareaResize = "none" | "vertical" | "horizontal" | "both";
 
 const sizeTokens: Record<
   TextareaSize,
   { padding: string; text: string; minHeight: string }
 > = {
-  sm: { padding: "px-3 py-2", text: "text-sm", minHeight: "min-h-[6rem]" },
-  md: { padding: "px-3.5 py-2.5", text: "text-sm", minHeight: "min-h-[7rem]" },
-  lg: { padding: "px-4 py-3", text: "text-base", minHeight: "min-h-[8rem]" },
+  xs: { padding: "px-2.5 py-1.5", text: "text-xs", minHeight: "min-h-20" },
+  sm: { padding: "px-3 py-2", text: "text-sm", minHeight: "min-h-24" },
+  md: { padding: "px-3.5 py-2.5", text: "text-sm", minHeight: "min-h-28" },
+  lg: { padding: "px-4 py-3", text: "text-base", minHeight: "min-h-32" },
+  xl: { padding: "px-5 py-3.5", text: "text-base", minHeight: "min-h-40" },
 };
 
 type ToneTokens = {

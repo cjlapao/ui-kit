@@ -10,11 +10,51 @@ import React, {
 import { createPortal } from "react-dom";
 import classNames from "classnames";
 import Pill from "./Pill";
-import type { TrueColor } from "../theme/Theme";
+import Spinner from "./Spinner";
+import {
+  FIELD_STATUS_CLASSES,
+  TRUE_COLORS,
+  VALIDATION_STATUSES,
+  getFieldSizeTokens,
+  getFieldToneTokens,
+  getGlowTokens,
+  getInputVariantTokens,
+  resolveGlowGradient,
+  stripBorderColor,
+  type ControlSize,
+  type GlowIntensity,
+  type InputVariant,
+  type TrueColor,
+  type ValidationStatus,
+} from "../theme/Theme";
 import type { PickerTag } from "./Picker";
+
+/** The shared control scale. The trigger had no size prop at all before. */
+export type TagPickerSize = ControlSize;
+export type TagPickerValidationStatus = ValidationStatus;
+export { VALIDATION_STATUSES as TAG_PICKER_VALIDATION_STATUSES };
+
+/**
+ * Minimum trigger height per size. The pills are laid out with `flex-wrap`, so
+ * an empty trigger would otherwise be shorter than a populated one and the
+ * control would jump as the first tag lands.
+ */
+const MIN_HEIGHT: Record<ControlSize, string> = {
+  xs: "min-h-7",
+  sm: "min-h-8",
+  md: "min-h-10.5",
+  lg: "min-h-12",
+  xl: "min-h-13",
+};
 
 // ── Tone tokens (mirrors Picker) ──────────────────────────────────────────────
 
+/**
+ * Generated from `TRUE_COLORS`, not hand-written — same drift as `Picker`:
+ * `red` spelled every class with **rose** and `green` with **emerald**. The
+ * literal strings were also what Tailwind scanned, so the correct classes for
+ * those tones had never been emitted. See `scripts/generate-safelist.mjs`.
+ */
 const toneTokens: Record<
   TrueColor,
   {
@@ -26,208 +66,35 @@ const toneTokens: Record<
     createRowIcon: string;
     createRowLabel: string;
   }
-> = {
-  red: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-    focusedBg: "bg-rose-50/60 dark:bg-rose-900/10",
-    createRowIcon: "text-rose-500 dark:text-rose-400",
-    createRowLabel: "text-rose-700 dark:text-rose-300",
-  },
-  orange: {
-    triggerOpen:
-      "border-orange-500 ring-2 ring-orange-500/20 dark:border-orange-400",
-    optionSelectedBg: "bg-orange-50 dark:bg-orange-900/20",
-    optionSelectedText: "text-orange-700 dark:text-orange-300",
-    optionSelectedIcon: "text-orange-500 dark:text-orange-400",
-    focusedBg: "bg-orange-50/60 dark:bg-orange-900/10",
-    createRowIcon: "text-orange-500 dark:text-orange-400",
-    createRowLabel: "text-orange-700 dark:text-orange-300",
-  },
-  amber: {
-    triggerOpen:
-      "border-amber-500 ring-2 ring-amber-500/20 dark:border-amber-400",
-    optionSelectedBg: "bg-amber-50 dark:bg-amber-900/20",
-    optionSelectedText: "text-amber-700 dark:text-amber-300",
-    optionSelectedIcon: "text-amber-500 dark:text-amber-400",
-    focusedBg: "bg-amber-50/60 dark:bg-amber-900/10",
-    createRowIcon: "text-amber-500 dark:text-amber-400",
-    createRowLabel: "text-amber-700 dark:text-amber-300",
-  },
-  yellow: {
-    triggerOpen:
-      "border-yellow-500 ring-2 ring-yellow-500/20 dark:border-yellow-400",
-    optionSelectedBg: "bg-yellow-50 dark:bg-yellow-900/20",
-    optionSelectedText: "text-yellow-700 dark:text-yellow-300",
-    optionSelectedIcon: "text-yellow-500 dark:text-yellow-400",
-    focusedBg: "bg-yellow-50/60 dark:bg-yellow-900/10",
-    createRowIcon: "text-yellow-500 dark:text-yellow-400",
-    createRowLabel: "text-yellow-700 dark:text-yellow-300",
-  },
-  lime: {
-    triggerOpen: "border-lime-500 ring-2 ring-lime-500/20 dark:border-lime-400",
-    optionSelectedBg: "bg-lime-50 dark:bg-lime-900/20",
-    optionSelectedText: "text-lime-700 dark:text-lime-300",
-    optionSelectedIcon: "text-lime-500 dark:text-lime-400",
-    focusedBg: "bg-lime-50/60 dark:bg-lime-900/10",
-    createRowIcon: "text-lime-500 dark:text-lime-400",
-    createRowLabel: "text-lime-700 dark:text-lime-300",
-  },
-  green: {
-    triggerOpen:
-      "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400",
-    optionSelectedBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    optionSelectedText: "text-emerald-700 dark:text-emerald-300",
-    optionSelectedIcon: "text-emerald-500 dark:text-emerald-400",
-    focusedBg: "bg-emerald-50/60 dark:bg-emerald-900/10",
-    createRowIcon: "text-emerald-500 dark:text-emerald-400",
-    createRowLabel: "text-emerald-700 dark:text-emerald-300",
-  },
-  emerald: {
-    triggerOpen:
-      "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400",
-    optionSelectedBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    optionSelectedText: "text-emerald-700 dark:text-emerald-300",
-    optionSelectedIcon: "text-emerald-500 dark:text-emerald-400",
-    focusedBg: "bg-emerald-50/60 dark:bg-emerald-900/10",
-    createRowIcon: "text-emerald-500 dark:text-emerald-400",
-    createRowLabel: "text-emerald-700 dark:text-emerald-300",
-  },
-  teal: {
-    triggerOpen: "border-teal-500 ring-2 ring-teal-500/20 dark:border-teal-400",
-    optionSelectedBg: "bg-teal-50 dark:bg-teal-900/20",
-    optionSelectedText: "text-teal-700 dark:text-teal-300",
-    optionSelectedIcon: "text-teal-500 dark:text-teal-400",
-    focusedBg: "bg-teal-50/60 dark:bg-teal-900/10",
-    createRowIcon: "text-teal-500 dark:text-teal-400",
-    createRowLabel: "text-teal-700 dark:text-teal-300",
-  },
-  cyan: {
-    triggerOpen: "border-cyan-500 ring-2 ring-cyan-500/20 dark:border-cyan-400",
-    optionSelectedBg: "bg-cyan-50 dark:bg-cyan-900/20",
-    optionSelectedText: "text-cyan-700 dark:text-cyan-300",
-    optionSelectedIcon: "text-cyan-500 dark:text-cyan-400",
-    focusedBg: "bg-cyan-50/60 dark:bg-cyan-900/10",
-    createRowIcon: "text-cyan-500 dark:text-cyan-400",
-    createRowLabel: "text-cyan-700 dark:text-cyan-300",
-  },
-  sky: {
-    triggerOpen: "border-sky-500 ring-2 ring-sky-500/20 dark:border-sky-400",
-    optionSelectedBg: "bg-sky-50 dark:bg-sky-900/20",
-    optionSelectedText: "text-sky-700 dark:text-sky-300",
-    optionSelectedIcon: "text-sky-500 dark:text-sky-400",
-    focusedBg: "bg-sky-50/60 dark:bg-sky-900/10",
-    createRowIcon: "text-sky-500 dark:text-sky-400",
-    createRowLabel: "text-sky-700 dark:text-sky-300",
-  },
-  blue: {
-    triggerOpen: "border-blue-500 ring-2 ring-blue-500/20 dark:border-blue-400",
-    optionSelectedBg: "bg-blue-50 dark:bg-blue-900/20",
-    optionSelectedText: "text-blue-700 dark:text-blue-300",
-    optionSelectedIcon: "text-blue-500 dark:text-blue-400",
-    focusedBg: "bg-blue-50/60 dark:bg-blue-900/10",
-    createRowIcon: "text-blue-500 dark:text-blue-400",
-    createRowLabel: "text-blue-700 dark:text-blue-300",
-  },
-  indigo: {
-    triggerOpen:
-      "border-indigo-500 ring-2 ring-indigo-500/20 dark:border-indigo-400",
-    optionSelectedBg: "bg-indigo-50 dark:bg-indigo-900/20",
-    optionSelectedText: "text-indigo-700 dark:text-indigo-300",
-    optionSelectedIcon: "text-indigo-500 dark:text-indigo-400",
-    focusedBg: "bg-indigo-50/60 dark:bg-indigo-900/10",
-    createRowIcon: "text-indigo-500 dark:text-indigo-400",
-    createRowLabel: "text-indigo-700 dark:text-indigo-300",
-  },
-  violet: {
-    triggerOpen:
-      "border-violet-500 ring-2 ring-violet-500/20 dark:border-violet-400",
-    optionSelectedBg: "bg-violet-50 dark:bg-violet-900/20",
-    optionSelectedText: "text-violet-700 dark:text-violet-300",
-    optionSelectedIcon: "text-violet-500 dark:text-violet-400",
-    focusedBg: "bg-violet-50/60 dark:bg-violet-900/10",
-    createRowIcon: "text-violet-500 dark:text-violet-400",
-    createRowLabel: "text-violet-700 dark:text-violet-300",
-  },
-  purple: {
-    triggerOpen:
-      "border-purple-500 ring-2 ring-purple-500/20 dark:border-purple-400",
-    optionSelectedBg: "bg-purple-50 dark:bg-purple-900/20",
-    optionSelectedText: "text-purple-700 dark:text-purple-300",
-    optionSelectedIcon: "text-purple-500 dark:text-purple-400",
-    focusedBg: "bg-purple-50/60 dark:bg-purple-900/10",
-    createRowIcon: "text-purple-500 dark:text-purple-400",
-    createRowLabel: "text-purple-700 dark:text-purple-300",
-  },
-  fuchsia: {
-    triggerOpen:
-      "border-fuchsia-500 ring-2 ring-fuchsia-500/20 dark:border-fuchsia-400",
-    optionSelectedBg: "bg-fuchsia-50 dark:bg-fuchsia-900/20",
-    optionSelectedText: "text-fuchsia-700 dark:text-fuchsia-300",
-    optionSelectedIcon: "text-fuchsia-500 dark:text-fuchsia-400",
-    focusedBg: "bg-fuchsia-50/60 dark:bg-fuchsia-900/10",
-    createRowIcon: "text-fuchsia-500 dark:text-fuchsia-400",
-    createRowLabel: "text-fuchsia-700 dark:text-fuchsia-300",
-  },  rose: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-    focusedBg: "bg-rose-50/60 dark:bg-rose-900/10",
-    createRowIcon: "text-rose-500 dark:text-rose-400",
-    createRowLabel: "text-rose-700 dark:text-rose-300",
-  },
-  slate: {
-    triggerOpen:
-      "border-slate-500 ring-2 ring-slate-500/20 dark:border-slate-400",
-    optionSelectedBg: "bg-slate-50 dark:bg-slate-900/20",
-    optionSelectedText: "text-slate-700 dark:text-slate-300",
-    optionSelectedIcon: "text-slate-500 dark:text-slate-400",
-    focusedBg: "bg-slate-50/60 dark:bg-slate-900/10",
-    createRowIcon: "text-slate-500 dark:text-slate-400",
-    createRowLabel: "text-slate-700 dark:text-slate-300",
-  },
-  gray: {
-    triggerOpen: "border-gray-500 ring-2 ring-gray-500/20 dark:border-gray-400",
-    optionSelectedBg: "bg-gray-50 dark:bg-gray-900/20",
-    optionSelectedText: "text-gray-700 dark:text-gray-300",
-    optionSelectedIcon: "text-gray-500 dark:text-gray-400",
-    focusedBg: "bg-gray-50/60 dark:bg-gray-900/10",
-    createRowIcon: "text-gray-500 dark:text-gray-400",
-    createRowLabel: "text-gray-700 dark:text-gray-300",
-  },
-  zinc: {
-    triggerOpen: "border-zinc-500 ring-2 ring-zinc-500/20 dark:border-zinc-400",
-    optionSelectedBg: "bg-zinc-50 dark:bg-zinc-900/20",
-    optionSelectedText: "text-zinc-700 dark:text-zinc-300",
-    optionSelectedIcon: "text-zinc-500 dark:text-zinc-400",
-    focusedBg: "bg-zinc-50/60 dark:bg-zinc-900/10",
-    createRowIcon: "text-zinc-500 dark:text-zinc-400",
-    createRowLabel: "text-zinc-700 dark:text-zinc-300",
-  },
-  neutral: {
-    triggerOpen:
-      "border-neutral-500 ring-2 ring-neutral-500/20 dark:border-neutral-400",
-    optionSelectedBg: "bg-neutral-100 dark:bg-neutral-800",
-    optionSelectedText: "text-neutral-700 dark:text-neutral-300",
-    optionSelectedIcon: "text-neutral-500 dark:text-neutral-400",
-    focusedBg: "bg-neutral-50 dark:bg-neutral-800/60",
-    createRowIcon: "text-neutral-500 dark:text-neutral-400",
-    createRowLabel: "text-neutral-700 dark:text-neutral-300",
-  },
-  stone: {
-    triggerOpen:
-      "border-stone-500 ring-2 ring-stone-500/20 dark:border-stone-400",
-    optionSelectedBg: "bg-stone-50 dark:bg-stone-900/20",
-    optionSelectedText: "text-stone-700 dark:text-stone-300",
-    optionSelectedIcon: "text-stone-500 dark:text-stone-400",
-    focusedBg: "bg-stone-50/60 dark:bg-stone-900/10",
-    createRowIcon: "text-stone-500 dark:text-stone-400",
-    createRowLabel: "text-stone-700 dark:text-stone-300",
-  },
-};
+> = Object.fromEntries(
+  TRUE_COLORS.map((c) => [
+    c,
+    {
+      // The field system's focus treatment: the tone's -400 border with an
+      // *inset* ring. It was `-500` with a non-inset `ring-{c}-500/20`, which
+      // was a different colour from every sibling field and was clipped by any
+      // `overflow` ancestor — `Panel`'s body is `overflow-auto` by default.
+      triggerOpen: `border-${c}-400 ring-2 ring-inset ring-${c}-400/60 dark:border-${c}-400`,
+      optionSelectedBg: `bg-${c}-50 dark:bg-${c}-900/20`,
+      optionSelectedText: `text-${c}-700 dark:text-${c}-300`,
+      optionSelectedIcon: `text-${c}-500 dark:text-${c}-400`,
+      focusedBg: `bg-${c}-50/60 dark:bg-${c}-900/10`,
+      createRowIcon: `text-${c}-500 dark:text-${c}-400`,
+      createRowLabel: `text-${c}-700 dark:text-${c}-300`,
+    },
+  ]),
+) as Record<
+  TrueColor,
+  {
+    triggerOpen: string;
+    optionSelectedBg: string;
+    optionSelectedText: string;
+    optionSelectedIcon: string;
+    focusedBg: string;
+    createRowIcon: string;
+    createRowLabel: string;
+  }
+>;
 
 // ── Shared positioning helpers (mirrors Picker) ───────────────────────────────
 
@@ -339,8 +206,24 @@ export interface TagPickerProps {
   emptyMessage?: string;
   loading?: boolean;
   loadingMessage?: string;
+  /** Accent for the focus border, ring and the selected rows. */
+  tone?: TrueColor;
+  /** Alias for `tone`, matching `Input`, `Select`, `SearchBar` and `Picker`. */
   color?: TrueColor;
+  /** Tone of the tag pills. Falls back to `tone`. */
   itemColor?: TrueColor;
+  /** The shared control scale, `xs` through `xl`. @default "md" */
+  size?: TagPickerSize;
+  /** Visual surface style, from the shared field system. @default "flat" */
+  variant?: InputVariant;
+  /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
+  gradientFrom?: string;
+  /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
+  gradientTo?: string;
+  /** How prominent the gradient glow is. @default "soft" */
+  glowIntensity?: GlowIntensity;
+  /** @default "none" */
+  validationStatus?: TagPickerValidationStatus;
   /**
    * When true, the dropdown positions against the viewport instead of a clipping ancestor.
    * Useful when the component is inside a modal or constrained panel.
@@ -385,8 +268,15 @@ const TagPicker: React.FC<TagPickerProps> = ({
   emptyMessage = "No items found.",
   loading = false,
   loadingMessage = "Loading…",
-  color = "blue",
+  tone,
+  color,
   itemColor = null,
+  size = "md",
+  variant = "flat",
+  gradientFrom,
+  gradientTo,
+  glowIntensity = "soft",
+  validationStatus = "none",
   escapeBoundary = false,
   tagLimit = 3,
   highlightNew = true,
@@ -408,9 +298,21 @@ const TagPicker: React.FC<TagPickerProps> = ({
     useState(MAX_DROPDOWN_HEIGHT);
   const [showAllTags, setShowAllTags] = useState(false);
 
-  const colorTokens = toneTokens[color] ?? toneTokens.blue;
+  const effectiveTone = tone ?? color ?? "blue";
+  const colorTokens = toneTokens[effectiveTone] ?? toneTokens.blue;
+  // The field system, shared with Input, Select, SearchBar and Picker.
+  const sizeToken = getFieldSizeTokens(size);
+  const fieldTokens = getFieldToneTokens(effectiveTone);
+  const variantTokens = getInputVariantTokens(variant);
+  const hasStatus = validationStatus !== "none";
+  const glow = getGlowTokens(glowIntensity);
+  const [glowFrom, glowTo] = resolveGlowGradient(
+    effectiveTone,
+    gradientFrom,
+    gradientTo,
+  );
   if (!itemColor) {
-    itemColor = color;
+    itemColor = effectiveTone;
   }
 
   // ── Session-new tracking ───────────────────────────────────────────────────
@@ -918,53 +820,61 @@ const TagPicker: React.FC<TagPickerProps> = ({
 
   // ── Trigger ────────────────────────────────────────────────────────────────
 
-  return (
-    <>
+  const trigger = (
       <button
         ref={triggerRef}
         type="button"
-        disabled={disabled}
+        // Loading disables the trigger too — see `Picker` for the reasoning.
+        disabled={disabled || loading}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? `${uid}-listbox` : undefined}
         onClick={() => {
-          if (!disabled && !readOnly) setOpen((prev) => !prev);
+          if (!disabled && !readOnly && !loading) setOpen((prev) => !prev);
         }}
+        aria-invalid={validationStatus === "error" ? true : undefined}
+        aria-busy={loading || undefined}
         className={classNames(
-          "flex w-full min-h-10.5 flex-wrap items-start gap-1.5 rounded-lg border px-3 py-2 text-left transition-colors",
-          "bg-white dark:bg-neutral-900",
-          open
-            ? colorTokens.triggerOpen
-            : "border-neutral-300 hover:border-neutral-400 dark:border-neutral-600 dark:hover:border-neutral-500",
+          // `group`, so the tone's `group-focus-within:` accent reaches the
+          // chevron the way it reaches an Input's leading icon.
+          "group relative flex w-full flex-wrap items-start gap-1.5 text-left transition",
+          MIN_HEIGHT[size] ?? MIN_HEIGHT.md,
+          sizeToken.px,
+          sizeToken.py,
+          sizeToken.text,
+          // The surface comes from the variant. It was a hardcoded
+          // `bg-white dark:bg-neutral-900` with a `border-neutral-300`, so a
+          // TagPicker could not be glass, ghost, underlined or gradient while
+          // every sibling field could.
+          hasStatus
+            ? stripBorderColor(variantTokens.surface)
+            : variantTokens.surface,
+          !hasStatus && fieldTokens.focusBorder,
+          !hasStatus && fieldTokens.focusRing,
+          hasStatus && FIELD_STATUS_CLASSES[validationStatus],
+          open && !hasStatus && colorTokens.triggerOpen,
+          // Opacity, not a neutral repaint: a `bg-neutral-50` here is a
+          // same-specificity fight with the variant's own fill and turns a
+          // glass or underline trigger into an opaque grey slab. This is the
+          // same call `Input` made for `disabled`.
           disabled && "cursor-not-allowed opacity-50",
-          readOnly &&
-            "cursor-default border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50",
+          loading && !disabled && "cursor-wait",
+          readOnly && "cursor-default opacity-75",
           className,
         )}
       >
         {loading ? (
-          <>
-            <svg
-              className="h-4 w-4 animate-spin shrink-0 text-neutral-400"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            <span className="text-sm text-neutral-400">{loadingMessage}</span>
-          </>
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            <Spinner
+              size={sizeToken.icon}
+              color={effectiveTone}
+              thickness="thin"
+              aria-hidden="true"
+            />
+            <span className={classNames("truncate", sizeToken.text, variantTokens.text, "opacity-60")}>
+              {loadingMessage}
+            </span>
+          </span>
         ) : value.length > 0 ? (
           <span className="flex flex-1 flex-wrap items-center gap-1.5">
             {(multi && tagLimit > 0 && !showAllTags
@@ -975,7 +885,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                 <Pill
                   size="sm"
                   tone={
-                    sessionAddedSet.has(v) ? "emerald" : (itemColor ?? color)
+                    sessionAddedSet.has(v) ? "emerald" : (itemColor ?? effectiveTone)
                   }
                   variant="soft"
                 >
@@ -1051,7 +961,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
               )}
           </span>
         ) : (
-          <span className="flex-1 text-sm text-neutral-400 dark:text-neutral-500">
+          <span className={classNames("flex-1 truncate", sizeToken.text, variantTokens.icon)}>
             {placeholder}
           </span>
         )}
@@ -1059,7 +969,9 @@ const TagPicker: React.FC<TagPickerProps> = ({
         {/* Chevron */}
         <svg
           className={classNames(
-            "ml-auto mt-1 h-4 w-4 shrink-0 self-start text-neutral-400 transition-transform",
+            "ml-auto mt-1 h-4 w-4 shrink-0 self-start transition-transform",
+            variantTokens.icon,
+            !hasStatus && fieldTokens.icon,
             open && "rotate-180",
           )}
           viewBox="0 0 24 24"
@@ -1070,6 +982,32 @@ const TagPicker: React.FC<TagPickerProps> = ({
           <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
         </svg>
       </button>
+  );
+
+  // The gradient variant is the same trigger with a coloured glow behind it,
+  // matching Input, SearchBar and Picker. `glow.pad` keeps the halo inside the
+  // component's own box, so a clipping ancestor cannot shear it off.
+  return (
+    <>
+      {variant === "gradient" ? (
+        <span className={classNames("relative flex w-full", glow.pad)}>
+          <span
+            className={classNames(
+              "absolute rounded-2xl leading-none transition-opacity duration-500",
+              glow.inset,
+              glow.blur,
+            )}
+            style={{
+              background: `linear-gradient(to right, ${glowFrom}, ${glowTo})`,
+              opacity: open ? glow.focusOpacity : glow.idleOpacity,
+            }}
+            aria-hidden
+          />
+          {trigger}
+        </span>
+      ) : (
+        trigger
+      )}
 
       {dropdown}
     </>

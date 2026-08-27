@@ -16,6 +16,13 @@ import {
   PROGRESS_MOTION_SPEEDS,
   SPINNER_THICKNESSES,
   SPINNER_VARIANTS,
+  API_ERROR_KINDS,
+  HERO_VARIANTS,
+  INFO_ROW_VARIANTS,
+  INFO_ROW_LOADERS,
+  HERO_TITLE_ELEMENTS,
+  DYNAMIC_FORM_FIELD_VARIANTS,
+  VALIDATION_STATUSES,
   EMPTY_STATE_VARIANTS,
   ALERT_VARIANTS,
   CONTROL_SIZES,
@@ -25,6 +32,7 @@ import {
   SURFACE_VARIANTS,
   TABLE_DENSITIES,
   TRUE_COLORS,
+  getSurfaceCornerRem,
   type MultiToggleOption,
   type TrueColor,
 } from "@cjlapao/ui-kit-vue";
@@ -168,6 +176,44 @@ export const checkboxValidationOptions: MultiToggleOption[] =
     value,
   }));
 
+/** Every kind of API failure, from the kit's own runtime list. */
+/** The one shared field-status list, no longer six copies of it. */
+export const dynamicFormFieldVariantOptions: MultiToggleOption[] =
+  DYNAMIC_FORM_FIELD_VARIANTS.map((value) => ({
+    label: titleCaseIntent(value),
+    value,
+  }));
+
+/** Panel's decoration layer, shared by Panel and Hero. */
+export const panelDecorationOptions: MultiToggleOption[] = [
+  { label: "None", value: "none" },
+  { label: "Gradient", value: "gradient" },
+  { label: "Shapes", value: "shapes" },
+  { label: "Both", value: "both" },
+];
+
+export const infoRowVariantOptions: MultiToggleOption[] = INFO_ROW_VARIANTS.map(
+  (value) => ({ label: titleCaseIntent(value), value }),
+);
+
+export const infoRowLoaderOptions: MultiToggleOption[] = INFO_ROW_LOADERS.map(
+  (value) => ({ label: titleCaseIntent(value), value }),
+);
+
+export const heroVariantOptions: MultiToggleOption[] = HERO_VARIANTS.map(
+  (value) => ({ label: titleCaseIntent(value), value }),
+);
+
+export const heroTitleElementOptions: MultiToggleOption[] =
+  HERO_TITLE_ELEMENTS.map((value) => ({ label: value, value }));
+
+export const validationStatusOptions: MultiToggleOption[] =
+  VALIDATION_STATUSES.map((value) => ({ label: titleCaseIntent(value), value }));
+
+export const apiErrorKindOptions: MultiToggleOption[] = API_ERROR_KINDS.map(
+  (value) => ({ label: titleCaseIntent(value), value }),
+);
+
 export const emptyStateVariantOptions: MultiToggleOption[] =
   EMPTY_STATE_VARIANTS.map((value) => ({
     label: titleCaseIntent(value),
@@ -204,14 +250,16 @@ export const panelVariantOptions: MultiToggleOption[] = [
   { label: "Liquid Glass", value: "liquid-glass" },
 ];
 
-export const panelToneOptions: MultiToggleOption[] = [
-  { label: "Neutral", value: "neutral" },
-  { label: "Info", value: "info" },
-  { label: "Success", value: "success" },
-  { label: "Danger", value: "danger" },
-  { label: "Warning", value: "warning" },
-  { label: "Brand", value: "brand" },
-];
+/**
+ * A short list of tones for the demos that want a MultiToggle rather than the
+ * full 21-colour Select. Every value is a real TrueColor — the previous list
+ * was `info` / `success` / `danger` / `warning` / `brand`, none of which are,
+ * so picking any of them fell through to the fallback tone and appeared to do
+ * nothing.
+ */
+export const panelToneOptions: MultiToggleOption[] = (
+  ["neutral", "blue", "emerald", "rose", "amber", "violet"] as TrueColor[]
+).map((value) => ({ label: value.charAt(0).toUpperCase() + value.slice(1), value }));
 
 export const panelMediaPlacementOptions: MultiToggleOption[] = [
   { label: "Top", value: "top" },
@@ -306,17 +354,6 @@ export const surfaceCornerOptions: MultiToggleOption[] = SURFACE_CORNERS.filter(
   (value) => value !== "rounded-full" && value !== "pill",
 ).map((value) => ({ label: titleCaseIntent(value), value }));
 
-// Semantic role labels mapped to real palette tones — the table's tone is a
-// TrueColor, so the values must stay inside the kit's actual palette.
-export const tableToneOptions: MultiToggleOption[] = [
-  { label: "Neutral", value: "neutral" },
-  { label: "Info", value: "blue" },
-  { label: "Success", value: "emerald" },
-  { label: "Danger", value: "rose" },
-  { label: "Warning", value: "amber" },
-  { label: "Accent", value: "violet" },
-];
-
 export const dropdownButtonOptions = [
   {
     label: "Deploy latest",
@@ -395,28 +432,20 @@ export const dropdownMaxHeightOptions: MultiToggleOption[] = [
   { label: "Tall", value: "420" },
 ];
 
-export const accordionVariantOptions: MultiToggleOption[] = [
-  { label: "Default", value: "default" },
-  { label: "Bordered", value: "bordered" },
-  { label: "Minimal", value: "minimal" },
-  { label: "Tonal", value: "tonal" },
-  { label: "Ghost", value: "ghost" },
-];
-
-export const accordionSizeOptions: MultiToggleOption[] = [
-  { label: "Small", value: "sm" },
-  { label: "Medium", value: "md" },
-  { label: "Large", value: "lg" },
-];
-
+/**
+ * The accordion rides the shared container surface and control scale, so its
+ * variant/size pickers reuse `panelVariantOptions` / `controlSizeOptions`
+ * rather than keeping private copies (the old ones were
+ * `default/bordered/minimal/tonal/ghost` and `sm/md/lg` — two scales that
+ * matched nothing in the kit).
+ */
 export const accordionIndicatorOptions: MultiToggleOption[] = [
   { label: "Chevron", value: "chevron" },
   { label: "Plus/Minus", value: "plus-minus" },
-  { label: "Caret", value: "caret" },
   { label: "None", value: "none" },
 ];
 
-export const accordionChevronPlacementOptions: MultiToggleOption[] = [
+export const accordionIndicatorPlacementOptions: MultiToggleOption[] = [
   { label: "Left", value: "left" },
   { label: "Right", value: "right" },
 ];
@@ -424,17 +453,6 @@ export const accordionChevronPlacementOptions: MultiToggleOption[] = [
 export const stepperOrientationOptions: MultiToggleOption[] = [
   { label: "Horizontal", value: "horizontal" },
   { label: "Vertical", value: "vertical" },
-];
-
-export const stepperVariantOptions: MultiToggleOption[] = [
-  { label: "Card", value: "card" },
-  { label: "Minimal", value: "minimal" },
-];
-
-export const stepperSizeOptions: MultiToggleOption[] = [
-  { label: "Small", value: "sm" },
-  { label: "Medium", value: "md" },
-  { label: "Large", value: "lg" },
 ];
 
 export const stepperConnectorOptions: MultiToggleOption[] = [
@@ -447,6 +465,25 @@ export const stepperConnectorAlignOptions: MultiToggleOption[] = [
   { label: "Left", value: "left" },
   { label: "Center", value: "center" },
   { label: "Right", value: "right" },
+];
+
+/** The Panel corner scale for the step node, plus "full" (the classic circle). */
+export const stepperNodeCornerOptions: MultiToggleOption[] = [
+  ...SURFACE_CORNERS.map((value) => ({
+    label: `${titleCaseIntent(value)} (${getSurfaceCornerRem(value)})`,
+    value,
+  })),
+  { label: "Full (circle)", value: "full" },
+];
+
+/**
+ * The Stepper's own loading types. Unlike the Panel's scale, the Stepper draws
+ * its own skeleton, so "skeleton" is always available.
+ */
+export const stepperLoaderTypeOptions: MultiToggleOption[] = [
+  { label: "Progress", value: "progress" },
+  { label: "Spinner", value: "spinner" },
+  { label: "Skeleton", value: "skeleton" },
 ];
 
 /** "liquid-glass" -> "Liquid Glass". */
@@ -470,22 +507,22 @@ export const controlSizeOptions: MultiToggleOption[] = CONTROL_SIZES.map(
 );
 
 export const spinnerVariantOptions: MultiToggleOption[] = SPINNER_VARIANTS.map(
-  (value) => ({ label: titleCase(value), value }),
+  (value) => ({ label: titleCaseIntent(value), value }),
 );
 
 export const spinnerThicknessOptions: MultiToggleOption[] =
   SPINNER_THICKNESSES.map((value) => ({ label: titleCase(value), value }));
 
 export const loaderVariantOptions: MultiToggleOption[] = LOADER_VARIANTS.map(
-  (value) => ({ label: titleCase(value), value }),
+  (value) => ({ label: titleCaseIntent(value), value }),
 );
 
 export const loaderGlassBlurOptions: MultiToggleOption[] = LOADER_GLASS_BLURS.map(
-  (value) => ({ label: titleCase(value), value }),
+  (value) => ({ label: titleCaseIntent(value), value }),
 );
 
 export const pillVariantOptions: MultiToggleOption[] = PILL_VARIANTS.map(
-  (value) => ({ label: titleCase(value), value }),
+  (value) => ({ label: titleCaseIntent(value), value }),
 );
 
 export const pillCornerOptions: MultiToggleOption[] = PILL_CORNERS.map(

@@ -14,7 +14,7 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
     >
       <path
         d="m327.87 17.267c-3.379-1.689-7.355-1.689-10.734 0l-290.5 145.25c-4.065 2.033-6.633 6.188-6.633 10.733v287.67c0 4.545 2.568 8.7 6.633 10.733l290.5 145.25c3.379 1.689 7.355 1.689 10.734 0l290.5-145.25c4.065-2.033 6.633-6.188 6.633-10.733v-287.67c0-4.545-2.568-8.7-6.633-10.733z"
-        clip-rule="evenodd"
+        clipRule="evenodd"
         fill="url(#paint1_linear_1_2)"
         fillRule="evenodd"
         style={{ fill: "url(#paint1_linear_1_2)" }}
@@ -27,7 +27,7 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
         <path
           d="m506.13 211.68c3.379-1.689 7.355-1.689 10.734 0l290.5 145.25c4.065 2.033 6.633 6.188 6.633 10.733v287.67c0 4.545-2.568 8.7-6.633 10.733l-290.5 145.25c-3.379 1.689-7.355 1.689-10.734 0l-290.5-145.25c-4.065-2.033-6.633-6.188-6.633-10.733v-287.67c0-4.545 2.568-8.7 6.633-10.733z"
           fill="url(#paint2_linear_1_2)"
-          fill-opacity=".2"
+          fillOpacity=".2"
           style={{ fill: "url(#paint2_linear_1_2)" }}
         />
         <path
@@ -43,14 +43,14 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
         <path
           d="m512.5 227 285.5 144v282.5l-287.5 142-285.5-142v-282.5z"
           fill="url(#paint4_linear_1_2)"
-          fill-opacity=".2"
+          fillOpacity=".2"
           style={{ fill: "url(#paint4_linear_1_2)" }}
         />
       </g>
       <path
         d="m322 33.584-286 142.5 286 145.5 287-145.5z"
         fill="url(#paint5_linear_1_2)"
-        fill-opacity=".3"
+        fillOpacity=".3"
         style={{ fill: "url(#paint5_linear_1_2)" }}
       />
       <path
@@ -61,7 +61,7 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
       <g transform="translate(-189 -194.42)" filter="url(#filter2_dd_1_2)">
         <path
           d="m297.09 421.02c0-7.732 6.268-14 14-14h400.58c7.732 0 14 6.268 14 14v186.29c0 7.732-6.268 14-14 14h-400.58c-7.732 0-14-6.268-14-14zm35.714 26.715c0-2.762 2.239-5 5-5h25.715c2.762 0 5 2.238 5 5v97.145c0 2.761-2.238 5-5 5h-25.715c-2.761 0-5-2.239-5-5zm76.43-5c-2.761 0-5 2.238-5 5v97.145c0 2.761 2.239 5 5 5h25.715c2.761 0 5-2.239 5-5v-97.145c0-2.762-2.239-5-5-5zm66.43 5c0-2.762 2.239-5 5-5h25.715c2.761 0 5 2.238 5 5v97.145c0 2.761-2.239 5-5 5h-25.715c-2.761 0-5-2.239-5-5zm76.601-5.161c-2.762 0-5 2.238-5 5v97.145c0 2.761 2.238 5 5 5h25.715c2.761 0 5-2.239 5-5v-97.145c0-2.762-2.239-5-5-5z"
-          clip-rule="evenodd"
+          clipRule="evenodd"
           fill="url(#paint7_linear_1_2)"
           fillRule="evenodd"
           style={{ fill: "url(#paint7_linear_1_2)" }}
@@ -168,8 +168,8 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
           gradientTransform="translate(-189 -194.42)"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#2E114A" offset="0" />
-          <stop stop-color="#07051B" offset=".9434" />
+          <stop stopColor="#2E114A" offset="0" />
+          <stop stopColor="#07051B" offset=".9434" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_1_2"
@@ -179,8 +179,8 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
           y2="209"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-opacity=".73" offset="0" />
-          <stop stop-color="#F1F1F1" stop-opacity=".94" offset="1" />
+          <stop stopOpacity=".73" offset="0" />
+          <stop stopColor="#F1F1F1" stopOpacity=".94" offset="1" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_1_2"
@@ -190,10 +190,10 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
           y2="814"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#6AD2FA" offset="0" />
-          <stop stop-color="#7669FA" offset=".49479" />
-          <stop stop-color="#8850E4" offset=".74479" />
-          <stop stop-color="#CE0EBB" offset="1" />
+          <stop stopColor="#6AD2FA" offset="0" />
+          <stop stopColor="#7669FA" offset=".49479" />
+          <stop stopColor="#8850E4" offset=".74479" />
+          <stop stopColor="#CE0EBB" offset="1" />
         </linearGradient>
         <linearGradient
           id="paint4_linear_1_2"
@@ -203,8 +203,8 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
           y2="227"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-opacity=".73" offset="0" />
-          <stop stop-color="#F1F1F1" stop-opacity=".94" offset="1" />
+          <stop stopOpacity=".73" offset="0" />
+          <stop stopColor="#F1F1F1" stopOpacity=".94" offset="1" />
         </linearGradient>
         <linearGradient
           id="paint5_linear_1_2"
@@ -215,8 +215,8 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
           gradientTransform="translate(-189 -194.42)"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#621EA6" stop-opacity=".89" offset="0" />
-          <stop stop-color="#CCCAD1" stop-opacity="0" offset="1" />
+          <stop stopColor="#621EA6" stopOpacity=".89" offset="0" />
+          <stop stopColor="#CCCAD1" stopOpacity="0" offset="1" />
         </linearGradient>
         <linearGradient
           id="paint6_linear_1_2"
@@ -227,10 +227,10 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
           gradientTransform="translate(-189 -194.42)"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-opacity="0" offset="0" />
-          <stop stop-opacity=".37" offset=".22917" />
-          <stop stop-opacity=".046875" offset=".64583" />
-          <stop stop-opacity="0" offset="1" />
+          <stop stopOpacity="0" offset="0" />
+          <stop stopOpacity=".37" offset=".22917" />
+          <stop stopOpacity=".046875" offset=".64583" />
+          <stop stopOpacity="0" offset="1" />
         </linearGradient>
         <linearGradient
           id="paint7_linear_1_2"
@@ -240,8 +240,8 @@ export const PodmanDesktop = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
           y2="621.31"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#E9E9E9" offset="0" />
-          <stop stop-color="#A59ADE" offset="1" />
+          <stop stopColor="#E9E9E9" offset="0" />
+          <stop stopColor="#A59ADE" offset="1" />
         </linearGradient>
       </defs>
     </svg>

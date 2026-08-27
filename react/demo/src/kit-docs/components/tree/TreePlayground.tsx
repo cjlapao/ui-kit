@@ -16,6 +16,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   TREE_DEMO_ITEMS,
   treeSelectionModeOptions,
@@ -49,60 +50,88 @@ export const TreePlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Selection mode"
-            options={treeSelectionModeOptions}
-            value={selectionMode}
-            onChange={(value) => {
-              setSelectionMode(value as TreeSelectionMode);
-              setSelected([]);
-            }}
-          />
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={treeSizeOptions}
-              value={size}
-              onChange={(value) => setSize(value as TreeSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(value) => setTone(value as TrueColor)}
-          />
-          <Control label="Filter">
-            <Input
-              size="sm"
-              leadingIcon="Search"
-              placeholder="Filter nodes…"
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Show icons" checked={showIcons} onChange={setShowIcons} />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setExpanded(expandable)}
-            >
-              Expand all
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setExpanded([])}
-            >
-              Collapse all
-            </Button>
-          </div>
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <SelectControl
+                    label="Selection mode"
+                    options={treeSelectionModeOptions}
+                    value={selectionMode}
+                    onChange={(value) => {
+                      setSelectionMode(value as TreeSelectionMode);
+                      setSelected([]);
+                    }}
+                  />
+                  <Control label="Size">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={treeSizeOptions}
+                      value={size}
+                      onChange={(value) => setSize(value as TreeSize)}
+                    />
+                  </Control>
+                  <SelectControl
+                    label="Tone"
+                    options={trueColorOptions}
+                    value={tone}
+                    onChange={(value) => setTone(value as TrueColor)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "content",
+              title: "Content",
+              controls: (
+                <Control label="Filter">
+                  <Input
+                    size="sm"
+                    leadingIcon="Search"
+                    placeholder="Filter nodes…"
+                    value={filter}
+                    onChange={(event) => setFilter(event.target.value)}
+                  />
+                </Control>
+              ),
+            },
+            {
+              id: "icons",
+              title: "Icons",
+              controls: (
+                <div className="grid grid-cols-1 gap-2">
+                  <ToggleRow label="Show icons" checked={showIcons} onChange={setShowIcons} />
+                </div>
+              ),
+            },
+            {
+              id: "actions",
+              title: "Actions",
+              controls: (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setExpanded(expandable)}
+                  >
+                    Expand all
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setExpanded([])}
+                  >
+                    Collapse all
+                  </Button>
+                </div>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <div className="flex w-full flex-col gap-3">
