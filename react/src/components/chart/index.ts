@@ -46,6 +46,7 @@ import { PieCenter } from "./react/features/PieCenter";
 import { AxisBadges } from "./react/features/AxisBadges";
 import { GaugeSeries } from "./react/series/GaugeSeries";
 import { WaterfallSeries } from "./react/series/WaterfallSeries";
+import { HeatmapSeries } from "./react/series/HeatmapSeries";
 
 // Register the concrete types so the root can split children without a
 // circular import.
@@ -63,6 +64,7 @@ setChartRegistry({
   Scatter: ScatterSeries,
   Gauge: GaugeSeries,
   Waterfall: WaterfallSeries,
+  Heatmap: HeatmapSeries,
   XAxis,
   YAxis,
   Legend,
@@ -94,6 +96,7 @@ export const Chart = {
   Scatter: ScatterSeries,
   Gauge: GaugeSeries,
   Waterfall: WaterfallSeries,
+  Heatmap: HeatmapSeries,
   XAxis,
   YAxis,
   Legend,
@@ -131,6 +134,8 @@ export type {
   ScatterSeriesProps,
   GaugeSeriesProps,
   WaterfallSeriesProps,
+  HeatmapSeriesProps,
+  HeatmapAnnotation,
   XAxisProps,
   YAxisProps,
   TooltipProps,

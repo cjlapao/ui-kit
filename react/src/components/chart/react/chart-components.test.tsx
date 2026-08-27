@@ -2578,3 +2578,81 @@ describe("combo coexistence", () => {
     cxs.forEach((cx, i) => expect(cx).toBeCloseTo(pathXs[i], 0));
   });
 });
+describe("heatmap series", () => {
+  const data = [
+    { row: "A", col: "1", value: 10 },
+    { row: "A", col: "2", value: 20 },
+    { row: "A", col: "3", value: 30 },
+    { row: "B", col: "1", value: 40 },
+    { row: "B", col: "3", value: 50 },
+  ];
+
+  const hm = (extra: Record<string, unknown> = {}) => (
+    <Chart.Svg height={320} animation={false}>
+      <Chart.Heatmap
+        data={data}
+        rows={["A", "B"]}
+        cols={["1", "2", "3"]}
+        {...extra}
+      />
+    </Chart.Svg>
+  );
+
+  it("renders one rect per (row, col) cell including null gaps", () => {
+    const { container } = render(hm({}));
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    // 6 cell rects + 1 gradient legend bar — count cells only
+    const cellRects = Array.from(g.querySelectorAll("rect")).filter(
+      (r) => !(r.getAttribute("fill") ?? "").startsWith("url("),
+    );
+    expect(cellRects.length).toBe(6);
+    // the missing B/2 cell renders the transparent (no-fill) slot
+    expect(
+      cellRects.filter((r) => r.getAttribute("fill") === "transparent").length,
+    ).toBe(1);
+  });
+
+  it("draws value labels and a gradient legend when enabled", () => {
+    const { container } = render(hm({ valueLabels: true }));
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const texts = Array.from(g.querySelectorAll("text")).map((t) => t.textContent);
+    expect(texts).toContain("10.00");
+    expect(texts).toContain("50.00");
+    expect(g.querySelector("linearGradient")).toBeTruthy();
+  });
+
+  it("shows a tooltip with the cell value on hover", () => {
+    const { container } = render(
+      <Chart.Svg height={320} animation={false}>
+        <Chart.Heatmap data={data} rows={["A", "B"]} cols={["1", "2", "3"]} />
+        <Chart.XAxis />
+        <Chart.Tooltip />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0, top: 0, right: 800, bottom: 320,
+        width: 800, height: 320, x: 0, y: 0,
+        toJSON() { return this; },
+      }),
+      configurable: true,
+    });
+    // Grid: row-label gutter (~2 chars * 6.4 + 10 = 22.8) → gridX ≈ 60+23
+    // 3 cols over ~717px, 2 rows over (320 - 24 - 40) ≈ 256 → cell centers
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const rect = Array.from(g.querySelectorAll("rect")).find((r) => r.getAttribute("fill") !== "transparent")!;
+    const x = Number(rect.getAttribute("x")) + Number(rect.getAttribute("width")) / 2;
+    const y = Number(rect.getAttribute("y")) + Number(rect.getAttribute("height")) / 2;
+    // Hover is bound to the transparent hover rect (last rect in the svg).
+    const all = Array.from(container.querySelectorAll("svg rect"));
+    const hoverRect = all[all.length - 1] as SVGRectElement;
+    fireEvent.pointerMove(hoverRect, { clientX: x, clientY: y });
+    const tip = container.querySelector('[data-chart-feature="tooltip"]');
+    expect(tip).toBeTruthy();
+    // header = column ("1"), row = row label ("A"), value = 10
+    expect(tip?.textContent).toContain("10");
+    expect(tip?.textContent).toContain("A");
+  });
+});

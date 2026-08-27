@@ -467,6 +467,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/ComboChartPage")),
   },
   {
+    slug: "charts-heatmap",
+    name: "Heatmap",
+    description:
+      "Self-contained value grid: multi-stop color scales, null cells, value/tier labels, gradient legend, cell-anchored pills.",
+    icon: "ChartLine",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/HeatmapChartPage")),
+  },
+  {
     slug: "charts-waterfall",
     name: "Waterfall",
     description:
@@ -519,15 +528,6 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Image",
     category: "Data",
     Page: lazy(() => import("./components/carousel/CarouselPage")),
-  },
-  {
-    slug: "meter-group",
-    name: "Meter Group",
-    description:
-      "A group of process status indicators — labelled segments of a shared range, per-segment tones, horizontal or vertical, with a labelled breakdown list and full state treatment.",
-    icon: "Dashboard",
-    category: "Data",
-    Page: lazy(() => import("./components/meter-group/MeterGroupPage")),
   },
   {
     slug: "stat-card",
@@ -591,6 +591,141 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Rocket",
     category: "Layout",
     Page: lazy(() => import("./components/hero/HeroPage")),
+  },
+  {
+    slug: "metric-bar",
+    name: "Metric Bar",
+    description:
+      "A labelled progress row — caption, free-form reading, and a bar whose accessible name is that caption.",
+    icon: "ChartLine",
+    category: "Data",
+    Page: lazy(() => import("./components/metric-bar/MetricBarPage")),
+  },
+  {
+    slug: "multi-progress-bar",
+    name: "Multi Progress Bar",
+    description:
+      "A stacked breakdown bar with a hover-dimmed legend and a text alternative naming every slice.",
+    icon: "ChartLine",
+    category: "Data",
+    Page: lazy(() => import("./components/multi-progress-bar/MultiProgressBarPage")),
+  },
+  {
+    slug: "user-avatar",
+    name: "User Avatar",
+    description:
+      "A person's picture, with a toned initial or a glyph when there is none — named for assistive tech in every branch.",
+    icon: "User",
+    category: "Basics",
+    Page: lazy(() => import("./components/user-avatar/UserAvatarPage")),
+  },
+  {
+    slug: "password-input",
+    name: "Password Input",
+    description:
+      "An Input that masks its value, with a reveal toggle that withdraws on disabled and read-only fields.",
+    icon: "EyeOpen",
+    category: "Forms",
+    Page: lazy(() => import("./components/password-input/PasswordInputPage")),
+  },
+  {
+    slug: "truncated-text",
+    name: "Truncated Text",
+    description:
+      "Text that ellipsises when it overflows and reveals the full string on hover or focus.",
+    icon: "Details",
+    category: "Data",
+    Page: lazy(() => import("./components/truncated-text/TruncatedTextPage")),
+  },
+  {
+    slug: "multi-toggle",
+    name: "Multi Toggle",
+    description:
+      "A segmented radiogroup with a sliding indicator, arrow-key navigation and three fill variants.",
+    icon: "Dashboard",
+    category: "Forms",
+    Page: lazy(() => import("./components/multi-toggle/MultiTogglePage")),
+  },
+  {
+    slug: "stat-tile",
+    name: "Stat Tiles",
+    description:
+      "The metric-tile family — value, trend, progress, goals and a donut — all built on StatCard.",
+    icon: "ChartLine",
+    category: "Data",
+    Page: lazy(() => import("./components/stat-tile/StatTilePage")),
+  },
+  {
+    slug: "paged-panel",
+    name: "Paged Panel",
+    description:
+      "A Panel that shows one page at a time, with centred nav and a politely announced position.",
+    icon: "Details",
+    category: "Layout",
+    Page: lazy(() => import("./components/paged-panel/PagedPanelPage")),
+  },
+  {
+    slug: "notification-modal",
+    name: "Notification Modal",
+    description:
+      "A small Modal for a single outcome — glyph, title, message and one or two actions.",
+    icon: "Info",
+    category: "Overlays",
+    Page: lazy(() => import("./components/notification-modal/NotificationModalPage")),
+  },
+  {
+    slug: "tag-panel",
+    name: "Tag Panel",
+    description:
+      "A titled group of pills with a collapse limit and separate header and pill scales.",
+    icon: "Blueprint",
+    category: "Layout",
+    Page: lazy(() => import("./components/tag-panel/TagPanelPage")),
+  },
+  {
+    slug: "picker",
+    name: "Picker",
+    description:
+      "A searchable single- or multi-select over rich rows, portaled and flip-aware.",
+    icon: "Details",
+    category: "Forms",
+    Page: lazy(() => import("./components/picker/PickerPage")),
+  },
+  {
+    slug: "tag-picker",
+    name: "Tag Picker",
+    description:
+      "A multi-select that renders its selection as removable pills, with optional free-text creation.",
+    icon: "Blueprint",
+    category: "Forms",
+    Page: lazy(() => import("./components/tag-picker/TagPickerPage")),
+  },
+  {
+    slug: "split-view",
+    name: "Split View",
+    description:
+      "A searchable list beside a detail pane — collapsible, drag-resizable, and detail-only for a single item.",
+    icon: "Dashboard",
+    category: "Layout",
+    Page: lazy(() => import("./components/split-view/SplitViewPage")),
+  },
+  {
+    slug: "smart-value",
+    name: "Smart Value",
+    description:
+      "A value's tokens as badges, with a toggle between the token and what it resolves to.",
+    icon: "Key",
+    category: "Data",
+    Page: lazy(() => import("./components/smart-value/SmartValuePage")),
+  },
+  {
+    slug: "variable-picker",
+    name: "Variable Picker",
+    description:
+      "The panel for inserting a token — one tab per group, live search, resolved values inline.",
+    icon: "Key",
+    category: "Forms",
+    Page: lazy(() => import("./components/variable-picker/VariablePickerPage")),
   },
   {
     slug: "info-row",

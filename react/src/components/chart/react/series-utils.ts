@@ -7,6 +7,7 @@
 import { Fragment, type ReactElement, type ReactNode } from "react";
 import { readAccessor, type Accessor } from "../engine/types";
 import { computeWaterfallSteps, type WaterfallLayer } from "../engine/series/waterfall";
+import { computeHeatmapCells } from "../engine/series/heatmap";
 import { resolveColor } from "../engine/theme";
 import { DASH_PATTERNS, getDashPattern } from "./dash";
 import type {
@@ -122,7 +123,8 @@ export function describeSeries(
     | "polar"
     | "scatter"
     | "gauge"
-    | "waterfall",
+    | "waterfall"
+    | "heatmap",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -238,6 +240,78 @@ export function describeSeries(
       gaugeTicks: gp.ticks,
       gaugeTarget: gp.target,
       gaugeTargetLabel: gp.targetLabel,
+      animation,
+    };
+  }
+
+  // Heatmap: self-contained grid (no cartesian scales).
+  if (kind === "heatmap") {
+    const hp = p as unknown as import("./props").HeatmapSeriesProps<never>;
+    const rowField = fieldAccessor<never, string | number>(
+      (hp.categoryYField ?? "row") as Accessor<never, string | number> | string,
+      "row",
+    );
+    const colField = fieldAccessor<never, string | number>(
+      (hp.categoryXField ?? "col") as Accessor<never, string | number> | string,
+      "col",
+    );
+    const valueAcc = fieldAccessor<never, number | null | undefined>(
+      (hp.valueField ?? "value") as
+        | Accessor<never, number | null | undefined>
+        | string,
+      "value",
+    );
+    const firstSeenRows: string[] = [];
+    const firstSeenCols: string[] = [];
+    for (let i = 0; i < data.length; i++) {
+      const r = String(rowField(data[i], i));
+      const c = String(colField(data[i], i));
+      if (!firstSeenRows.includes(r)) firstSeenRows.push(r);
+      if (!firstSeenCols.includes(c)) firstSeenCols.push(c);
+    }
+    const rows = (hp.rows ?? firstSeenRows).map(String);
+    const cols = (hp.cols ?? firstSeenCols).map(String);
+    const rowAcc = (item: unknown, i: number) => String(rowField(item, i));
+    const colAcc = (item: unknown, i: number) => String(colField(item, i));
+    const { cells, min, max } = computeHeatmapCells(
+      rows,
+      cols,
+      data,
+      rowAcc,
+      colAcc,
+      (item, i) => valueAcc(item, i),
+    );
+    return {
+      id,
+      type: "heatmap",
+      name,
+      color: typeof hp.color === "function" ? undefined : hp.color,
+      paletteIndex,
+      data,
+      xAccessor: colAcc,
+      yAccessor: (item, i) => valueAcc(item, i) ?? null,
+      heatmapRows: rows,
+      heatmapCols: cols,
+      heatmapColorStops: hp.colorStops,
+      heatmapDomain: hp.domain,
+      heatmapNullColor: hp.nullColor,
+      heatmapValueLabels: hp.valueLabels ?? false,
+      heatmapValueLabelFormat: hp.valueLabelFormat as
+        | ((value: number, item: unknown, index: number) => string)
+        | undefined,
+      heatmapTierLabel: hp.tierLabel as
+        | ((value: number, item: unknown, index: number) => string | null)
+        | undefined,
+      heatmapCellGap: hp.cellGap,
+      heatmapCornerRadius: hp.cornerRadius,
+      heatmapRowLabels: hp.rowLabels ?? true,
+      heatmapColLabels: hp.colLabels ?? true,
+      heatmapRowLabelWidth: hp.rowLabelWidth,
+      heatmapShowLegend: hp.showLegend ?? true,
+      heatmapLegendTicks: hp.legendTicks ?? 3,
+      heatmapAnnotations: hp.annotations,
+      heatmapRange: hp.domain ?? (min === max ? [0, 1] : [min, max]),
+      heatmapCells: cells,
       animation,
     };
   }
@@ -630,6 +704,7 @@ export function summarizeChildren(
     Scatter: React.ComponentType | (new () => unknown);
     Gauge: React.ComponentType | (new () => unknown);
     Waterfall: React.ComponentType | (new () => unknown);
+    Heatmap: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -685,7 +760,8 @@ export function summarizeChildren(
       t === types.Polar ||
       t === types.Scatter ||
       t === types.Gauge ||
-      t === types.Waterfall
+      t === types.Waterfall ||
+      t === types.Heatmap
     ) {
       const kind:
         | "line"
@@ -697,7 +773,8 @@ export function summarizeChildren(
         | "polar"
         | "scatter"
         | "gauge"
-        | "waterfall" =
+        | "waterfall"
+        | "heatmap" =
         t === types.Waterfall
           ? "waterfall"
           : t === types.Bar
@@ -718,7 +795,9 @@ export function summarizeChildren(
                         ? "gauge"
                         : t === types.Waterfall
                           ? "waterfall"
-                          : "line";
+                          : t === types.Heatmap
+                            ? "heatmap"
+                            : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,

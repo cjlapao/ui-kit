@@ -883,3 +883,172 @@ export const comboTarget = [
   { month: "Nov", target: 261, actual: 246 },
   { month: "Dec", target: 275, actual: 283 },
 ];
+
+// ── Heatmap ──────────────────────────────────────────────────────────────────
+
+/** S&P 500 9-sector pairwise correlation (9×9, symmetric). */
+export const heatCorrelation: { row: string; col: string; value: number }[] = (() => {
+  const names = [
+    "Tech",
+    "Financials",
+    "Health",
+    "C. Discr.",
+    "C. Staples",
+    "Industrials",
+    "Energy",
+    "Utilities",
+    "Materials",
+  ];
+  const m: number[][] = [
+    [1.0, 0.58, 0.41, 0.61, 0.35, 0.63, 0.44, 0.31, 0.55],
+    [0.58, 1.0, 0.52, 0.55, 0.38, 0.59, 0.36, 0.42, 0.48],
+    [0.41, 0.52, 1.0, 0.43, 0.51, 0.47, 0.28, 0.44, 0.33],
+    [0.61, 0.55, 0.43, 1.0, 0.42, 0.64, 0.39, 0.33, 0.52],
+    [0.35, 0.38, 0.51, 0.42, 1.0, 0.36, 0.22, 0.41, 0.37],
+    [0.63, 0.59, 0.47, 0.64, 0.36, 1.0, 0.41, 0.35, 0.57],
+    [0.44, 0.36, 0.28, 0.39, 0.22, 0.41, 1.0, 0.19, 0.34],
+    [0.31, 0.42, 0.44, 0.33, 0.41, 0.35, 0.19, 1.0, 0.26],
+    [0.55, 0.48, 0.33, 0.52, 0.37, 0.57, 0.34, 0.26, 1.0],
+  ];
+  const out: { row: string; col: string; value: number }[] = [];
+  for (let r = 0; r < names.length; r++)
+    for (let c = 0; c < names.length; c++)
+      out.push({ row: names[r], col: names[c], value: m[r][c] });
+  return out;
+})();
+
+export const heatCorrelationRows = [
+  "Tech", "Financials", "Health", "C. Discr.", "C. Staples",
+  "Industrials", "Energy", "Utilities", "Materials",
+];
+
+/** Olympic medal counts: 10 sports × 10 nations (some combos have no medals). */
+export const heatOlympics: { row: string; col: string; value: number | null }[] = [
+  // Athletics
+  { row: "Athletics", col: "USA", value: 9 },
+  { row: "Athletics", col: "JPN", value: 2 },
+  { row: "Athletics", col: "CHN", value: 18 },
+  { row: "Athletics", col: "JAM", value: 11 },
+  { row: "Athletics", col: "KEN", value: 14 },
+  { row: "Athletics", col: "ETH", value: 12 },
+  { row: "Athletics", col: "GBR", value: 8 },
+  { row: "Athletics", col: "GER", value: 10 },
+  { row: "Athletics", col: "FRA", value: 7 },
+  { row: "Athletics", col: "AUS", value: 6 },
+  // Swimming
+  { row: "Swimming", col: "USA", value: 12 },
+  { row: "Swimming", col: "JPN", value: 3 },
+  { row: "Swimming", col: "CHN", value: 2 },
+  { row: "Swimming", col: "GBR", value: 4 },
+  { row: "Swimming", col: "GER", value: 9 },
+  { row: "Swimming", col: "FRA", value: 5 },
+  { row: "Swimming", col: "AUS", value: 8 },
+  // Gymnastics
+  { row: "Gymnastics", col: "USA", value: 7 },
+  { row: "Gymnastics", col: "JPN", value: 2 },
+  { row: "Gymnastics", col: "CHN", value: 9 },
+  { row: "Gymnastics", col: "GBR", value: 3 },
+  { row: "Gymnastics", col: "FRA", value: 2 },
+  // Diving
+  { row: "Diving", col: "CHN", value: 8 },
+  { row: "Diving", col: "JPN", value: 2 },
+  { row: "Diving", col: "GBR", value: 1 },
+  // Rowing
+  { row: "Rowing", col: "GBR", value: 6 },
+  { row: "Rowing", col: "GER", value: 4 },
+  { row: "Rowing", col: "FRA", value: 3 },
+  { row: "Rowing", col: "USA", value: 2 },
+  // Sailing
+  { row: "Sailing", col: "GBR", value: 5 },
+  { row: "Sailing", col: "FRA", value: 3 },
+  { row: "Sailing", col: "AUS", value: 4 },
+  { row: "Sailing", col: "USA", value: 2 },
+  // Boxing
+  { row: "Boxing", col: "USA", value: 4 },
+  { row: "Boxing", col: "JPN", value: 1 },
+  { row: "Boxing", col: "CHN", value: 3 },
+  { row: "Boxing", col: "GBR", value: 2 },
+  // Cycling
+  { row: "Cycling", col: "USA", value: 3 },
+  { row: "Cycling", col: "GER", value: 2 },
+  { row: "Cycling", col: "GBR", value: 3 },
+  { row: "Cycling", col: "AUS", value: 2 },
+  { row: "Cycling", col: "FRA", value: 1 },
+  // Fencing
+  { row: "Fencing", col: "JPN", value: 2 },
+  { row: "Fencing", col: "CHN", value: 3 },
+  { row: "Fencing", col: "GBR", value: 1 },
+  { row: "Fencing", col: "FRA", value: 2 },
+  // Judo
+  { row: "Judo", col: "JPN", value: 4 },
+  { row: "Judo", col: "CHN", value: 2 },
+  { row: "Judo", col: "USA", value: 1 },
+  { row: "Judo", col: "GER", value: 2 },
+  { row: "Judo", col: "FRA", value: 1 },
+];
+
+export const heatOlympicsRows = [
+  "Athletics", "Swimming", "Gymnastics", "Diving", "Rowing",
+  "Sailing", "Boxing", "Cycling", "Fencing", "Judo",
+];
+export const heatOlympicsCols = [
+  "USA", "JPN", "CHN", "JAM", "KEN", "ETH", "GBR", "GER", "FRA", "AUS",
+];
+
+/** SaaS cohort retention (Jan–Nov 2024 × M0–M11, triangular). */
+export const heatCohort: { row: string; col: string; value: number | null }[] = (() => {
+  const cohorts = [
+    "Jan 2024", "Feb 2024", "Mar 2024", "Apr 2024", "May 2024",
+    "Jun 2024", "Jul 2024", "Aug 2024", "Sep 2024", "Oct 2024", "Nov 2024",
+  ];
+  const months = [
+    "M0", "M1", "M2", "M3", "M4", "M5",
+    "M6", "M7", "M8", "M9", "M10", "M11",
+  ];
+  // Decay curve shared by all cohorts: 100 → ~18 by M11.
+  const curve = [100, 52, 44, 39, 35, 32, 30, 28, 27, 26, 25, 24];
+  const out: { row: string; col: string; value: number | null }[] = [];
+  cohorts.forEach((c, i) => {
+    months.forEach((m, j) => {
+      // Nov 2024 cohort has only M0; Oct has M0–M1; and so on.
+      const age = cohorts.length - 1 - i;
+      if (j > age) return;
+      const jitter = ((i * 7 + j * 3) % 5) - 2; // deterministic ±2
+      const v = j === 0 ? 100 : Math.max(14, curve[j] + jitter);
+      out.push({ row: c, col: m, value: v });
+    });
+  });
+  return out;
+})();
+
+export const heatCohortRows = [
+  "Jan 2024", "Feb 2024", "Mar 2024", "Apr 2024", "May 2024",
+  "Jun 2024", "Jul 2024", "Aug 2024", "Sep 2024", "Oct 2024", "Nov 2024",
+];
+export const heatCohortCols = [
+  "M0", "M1", "M2", "M3", "M4", "M5",
+  "M6", "M7", "M8", "M9", "M10", "M11",
+];
+
+/** Commute intensity: 7 days × 6 hour bands (share of trips, %). */
+export const heatCommute: { row: string; col: string; value: number }[] = (() => {
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const bands = ["06–08", "08–10", "10–13", "13–16", "16–18", "18–21"];
+  const m: number[][] = [
+    [14, 38, 12, 9, 34, 18],
+    [15, 40, 13, 9, 35, 19],
+    [16, 42, 14, 10, 37, 20],
+    [17, 43, 14, 10, 38, 21],
+    [18, 46, 13, 9, 41, 23],
+    [8, 14, 16, 15, 17, 12],
+    [7, 12, 18, 16, 14, 11],
+  ];
+  const out: { row: string; col: string; value: number }[] = [];
+  days.forEach((d, r) =>
+    bands.forEach((b, c) => out.push({ row: d, col: b, value: m[r][c] })),
+  );
+  return out;
+})();
+
+export const heatCommuteRows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const heatCommuteCols = ["06–08", "08–10", "10–13", "13–16", "16–18", "18–21"];

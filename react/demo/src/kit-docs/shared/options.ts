@@ -42,6 +42,10 @@ import {
   CONNECTION_FLOW_EDGE_STYLES,
   CONNECTION_FLOW_PROGRESS_TYPES,
   API_ERROR_KINDS,
+  HERO_VARIANTS,
+  INFO_ROW_VARIANTS,
+  INFO_ROW_LOADERS,
+  HERO_TITLE_ELEMENTS,
   DYNAMIC_FORM_FIELD_VARIANTS,
   VALIDATION_STATUSES,
   CONNECTION_FLOW_ITEM_PROGRESS,
@@ -560,6 +564,10 @@ export const detailItemCardVariantOptions: MultiToggleOption[] = [
 export const apiErrorKindOptions = toOptions(API_ERROR_KINDS);
 
 /** The one shared field-status list, no longer six copies of it. */
+export const heroVariantOptions = toOptions(HERO_VARIANTS);
+export const infoRowVariantOptions = toOptions(INFO_ROW_VARIANTS);
+export const infoRowLoaderOptions = toOptions(INFO_ROW_LOADERS);
+export const heroTitleElementOptions = toOptions(HERO_TITLE_ELEMENTS);
 export const validationStatusOptions = toOptions(VALIDATION_STATUSES);
 export const dynamicFormFieldVariantOptions = toOptions(
   DYNAMIC_FORM_FIELD_VARIANTS,
@@ -640,6 +648,25 @@ export const stepperLoaderTypeOptions: MultiToggleOption[] = toOptions([
 export const stepperProgressBarPositionOptions: MultiToggleOption[] =
   toOptions(["top", "bottom"]);
 
+// ── Help Button ──────────────────────────────────────────────────────────────
+// Variant / tone / size / corner reuse the shared `surfaceVariantOptions`,
+// `trueColorOptions`, `controlSizeOptions` and `panelCornerOptions` (all long,
+// so dropdowns). Only the two short HelpButton-specific lists are defined here.
+
+/** Where the panel opens relative to the trigger. Five — a dropdown. */
+export const helpButtonPlacementOptions: MultiToggleOption[] = toOptions([
+  "auto",
+  "top",
+  "bottom",
+  "left",
+  "right",
+]);
+/** How the panel content is authored. Two — a MultiToggle. */
+export const helpButtonContentTypeOptions: MultiToggleOption[] = [
+  { label: "Markdown", value: "markdown" },
+  { label: "Node", value: "node" },
+];
+
 // ── Dropdown Button ──────────────────────────────────────────────────────────
 
 /** Menu width: match the trigger, or a fixed pixel width. */
@@ -693,6 +720,9 @@ export const chartKindOptions: MultiToggleOption[] = [
   { label: "Scatter", value: "scatter" },
   { label: "Gauge", value: "gauge" },
   { label: "Nightingale", value: "nightingale" },
+  { label: "Waterfall", value: "waterfall" },
+  { label: "Combo", value: "combo" },
+  { label: "Heatmap", value: "heatmap" },
 ];
 
 /** Gauge arc spans (radians). */

@@ -59,6 +59,7 @@ import {
   hitTestScatter,
   nicePolarMax,
   resolveGrid,
+  computeHeatmapLayout,
 } from "../engine/index";
 import type {
   AnyScale,
@@ -98,6 +99,7 @@ export interface ChildTypeRegistry {
   Scatter: ComponentType<any>;
   Gauge: ComponentType<any>;
   Waterfall: ComponentType<any>;
+  Heatmap: ComponentType<any>;
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
@@ -160,7 +162,8 @@ function collectXValues(descriptors: ChartChildrenSummary["series"]): (
       d.type === "pie" ||
       d.type === "radar" ||
       d.type === "polar" ||
-      d.type === "gauge"
+      d.type === "gauge" ||
+      d.type === "heatmap"
     )
       continue;
     for (let i = 0; i < d.data.length; i++) {
@@ -372,7 +375,8 @@ export function ChartRootImpl({
       d.type !== "pie" &&
       d.type !== "radar" &&
       d.type !== "polar" &&
-      d.type !== "gauge",
+      d.type !== "gauge" &&
+      d.type !== "heatmap",
   );
   /**
    * Transposed cartesian: a horizontal waterfall carries its values on the
@@ -442,6 +446,33 @@ export function ChartRootImpl({
     ],
   );
   const area = layout.chartArea;
+  // Heatmap: self-contained grid — compute the layout (gutters, cell
+  // sizes) for drawing and hover hit-testing.
+  const heatmapSeries = useMemo(
+    () => summary.series.filter((d) => d.type === "heatmap"),
+    [summary.series],
+  );
+  const heatmapLayout = useMemo(() => {
+    const me = heatmapSeries[0];
+    if (!me) return null;
+    const rows = me.heatmapRows ?? [];
+    const cols = me.heatmapCols ?? [];
+    const rowLabels = me.heatmapRowLabels ?? true;
+    const longest = rowLabels ? Math.max(0, ...rows.map((r) => r.length)) : 0;
+    const gutter =
+      me.heatmapRowLabelWidth ?? (rowLabels ? longest * 6.4 + 10 : 0);
+    const layout = computeHeatmapLayout({
+      area: { x: area.x, y: area.y, width: area.width, height: area.height },
+      rowLabelWidth: gutter,
+      colsCount: cols.length,
+      rowsCount: rows.length,
+      showColLabels: me.heatmapColLabels ?? true,
+      showLegend: me.heatmapShowLegend ?? true,
+    });
+    return { descriptor: me, rows, cols, layout, gutter };
+  }, [heatmapSeries, area]);
+
+
 
   // ── Radar layout (shared polar space) ─────────────────────────────────────
   // The radar center/radius live in the plot area; rings and spokes are
@@ -1195,6 +1226,9 @@ export function ChartRootImpl({
 
       const pieVisible = visible.filter((s) => s.descriptor.type === "pie");
       const gaugeVisible = visible.filter((s) => s.descriptor.type === "gauge");
+      const heatmapVisible = visible.filter(
+        (s) => s.descriptor.type === "heatmap",
+      );
       const radarVisible = visible.filter(
         (s) => s.descriptor.type === "radar",
       );
@@ -1206,9 +1240,9 @@ export function ChartRootImpl({
           s.descriptor.type !== "pie" &&
           s.descriptor.type !== "gauge" &&
           s.descriptor.type !== "radar" &&
-          s.descriptor.type !== "polar",
+          s.descriptor.type !== "polar" &&
+          s.descriptor.type !== "heatmap",
       );
-
       // Radar charts: snap to the nearest axis, one row per series.
       if (
         radarVisible.length > 0 &&
@@ -1517,6 +1551,44 @@ export function ChartRootImpl({
         return null;
       }
 
+      // Heatmap: hit-test the cell grid (self-contained charts only).
+      if (heatmapVisible.length > 0 && cartVisible.length === 0) {
+        const s = heatmapVisible[0];
+        const d = s.descriptor;
+        if (!heatmapLayout) return null;
+        const { rows, cols, layout } = heatmapLayout;
+        if (px < layout.gridX || px > layout.gridX + layout.gridW) return null;
+        if (py < layout.gridY || py > layout.gridY + layout.gridH) return null;
+        const colIdx = Math.min(
+          Math.floor((px - layout.gridX) / layout.cellW),
+          cols.length - 1,
+        );
+        const rowIdx = Math.min(
+          Math.floor((py - layout.gridY) / layout.cellH),
+          rows.length - 1,
+        );
+        const cell =
+          d.heatmapCells?.[rowIdx * cols.length + colIdx] ?? null;
+        if (!cell || cell.value === null) return null;
+        return {
+          x: layout.gridX + (colIdx + 0.5) * layout.cellW,
+          y: layout.gridY + (rowIdx + 0.5) * layout.cellH,
+          pointerY: py,
+          rawX: cell.col,
+          items: [
+            {
+              seriesId: d.id,
+              name: d.name ?? cell.row,
+              color: s.color,
+              value: cell.value,
+              y: layout.gridY + (rowIdx + 0.5) * layout.cellH,
+              item: cell.data,
+              index: cell.index,
+            },
+          ],
+        };
+      }
+
       if (cartVisible.length === 0 || !xScale || !yScale) return null;
 
       // Transposed: snap the pointer's y to the nearest band category.
@@ -1793,7 +1865,8 @@ export function ChartRootImpl({
     for (const s of series) {
       if (s.hidden) continue;
       const d = s.descriptor;
-      if (d.type === "pie" || d.type === "gauge") continue;
+      if (d.type === "pie" || d.type === "gauge" || d.type === "heatmap")
+        continue;
       if (transposed && d.type === "waterfall") continue;
       const vs =
         (d.yFieldAxis === "right" && rightYScale ? rightYScale : yCont) as
@@ -1827,7 +1900,7 @@ export function ChartRootImpl({
       }
     }
     return out;
-  }, [series, xScale, yScale, rightYScale, transposed]);
+  }, [series, xScale, yScale, rightYScale, transposed, heatmapLayout]);
 
   const isEmpty =
     summary.series.length === 0 ||
@@ -1952,7 +2025,8 @@ export function ChartRootImpl({
       el.type === reg?.Radar ||
       el.type === reg?.Polar ||
       el.type === reg?.Gauge ||
-      el.type === reg?.Waterfall
+      el.type === reg?.Waterfall ||
+      el.type === reg?.Heatmap
     ) {
       // Stamp the series with its element identity (see seriesTokens).
       plotChildren.push(

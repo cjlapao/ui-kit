@@ -14,6 +14,7 @@ import type {
   LineCurve,
   MarkerShape,
 } from "../engine/types";
+import type { HeatmapCellDatum } from "../engine/series/heatmap";
 import type { GridStyle } from "../engine/grid";
 import type { BarMode, BarOrientation } from "../engine/series/bar";
 
@@ -490,6 +491,65 @@ export interface CandlestickSeriesProps<T = unknown> {
 
 // ── Scatter / Bubble ─────────────────────────────────────────────────────────
 
+export interface HeatmapAnnotation {
+  /** Row category the pill is anchored to. */
+  row: string;
+  /** Column category the pill is anchored to. */
+  col: string;
+  label: string;
+  tone?: "red" | "amber" | "neutral";
+}
+
+export interface HeatmapSeriesProps<T = unknown> {
+  data: T[];
+  /** Explicit row (y) categories in display order. Derived from the data when omitted. */
+  rows?: string[];
+  /** Explicit column (x) categories in display order. Derived from the data when omitted. */
+  cols?: string[];
+  /** Row category field. Default "row". */
+  categoryYField?: Accessor<T, string | number>;
+  /** Column category field. Default "col". */
+  categoryXField?: Accessor<T, string | number>;
+  /** Cell value field. Missing/non-finite values render as null cells. Default "value". */
+  valueField?: Accessor<T, number>;
+  /**
+   * Color scale stops (2+ hex colors). Values map linearly (RGB) across
+   * the stops over `domain`.
+   * @default ["#dbeafe", "#3b82f6", "#7c3aed"]
+   */
+  colorStops?: string[];
+  /** Value range for the color scale. Default: data min/max. */
+  domain?: [number, number];
+  /** Fill for missing (null) cells. Omit to leave them empty. */
+  nullColor?: string;
+  /** Draw the value inside each cell. Default false. */
+  valueLabels?: boolean;
+  /** Value label formatter. Default: 2 decimals. */
+  valueLabelFormat?: (value: number, item: unknown, index: number) => string;
+  /** Optional second-line tier label under the value (e.g. WEAK / MOD / STRONG). */
+  tierLabel?: (value: number, item: unknown, index: number) => string | null;
+  /** Gap between cells in px. Default 3. */
+  cellGap?: number;
+  /** Cell corner radius in px. Default 3. */
+  cornerRadius?: number;
+  /** Show row labels in the left gutter. Default true. */
+  rowLabels?: boolean;
+  /** Show column labels below the grid. Default true. */
+  colLabels?: boolean;
+  /** Width of the row-label gutter in px. Default: heuristic from the labels. */
+  rowLabelWidth?: number;
+  /** Draw the gradient legend bar under the grid. Default true. */
+  showLegend?: boolean;
+  /** Legend tick count (evenly spaced over the domain). Default 3. */
+  legendTicks?: number;
+  /** Cell-anchored pills (e.g. callouts on a specific row/col). */
+  annotations?: HeatmapAnnotation[];
+  name?: string;
+  id?: string;
+  color?: ChartColor;
+  animation?: boolean | "grow" | "fade";
+}
+
 export interface ScatterSeriesProps<T = unknown> {
   data: T[];
   /** x field (number | Date). Defaults to "x". */
@@ -783,7 +843,8 @@ export interface SeriesDescriptor {
     | "polar"
     | "scatter"
     | "gauge"
-    | "waterfall";
+    | "waterfall"
+    | "heatmap";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -882,6 +943,46 @@ export interface SeriesDescriptor {
   }[][];
   /** Per-step flags: total / delta sign, for color routing + labels. */
   waterfallKinds?: ("total" | "up" | "down")[];
+  // heatmap
+  heatmapRows?: string[];
+  heatmapCols?: string[];
+  heatmapColorStops?: string[];
+  heatmapDomain?: [number, number];
+  heatmapNullColor?: string;
+  heatmapValueLabels?: boolean;
+  heatmapValueLabelFormat?: (
+    value: number,
+    item: unknown,
+    index: number,
+  ) => string;
+  heatmapTierLabel?: (
+    value: number,
+    item: unknown,
+    index: number,
+  ) => string | null;
+  heatmapCellGap?: number;
+  heatmapCornerRadius?: number;
+  heatmapRowLabels?: boolean;
+  heatmapColLabels?: boolean;
+  heatmapRowLabelWidth?: number;
+  heatmapShowLegend?: boolean;
+  heatmapLegendTicks?: number;
+  heatmapAnnotations?: HeatmapAnnotation[];
+  /** Grid layout filled by the root (origin/sizes for hover + drawing). */
+  heatmapLayout?: {
+    gridX: number;
+    gridY: number;
+    gridW: number;
+    gridH: number;
+    cellW: number;
+    cellH: number;
+    legendY: number | null;
+    legendH: number;
+  };
+  /** Cell value range for the color scale (filled by the root). */
+  heatmapRange?: [number, number];
+  /** Row-major cell grid (filled by describeSeries). */
+  heatmapCells?: HeatmapCellDatum[];
   // gauge
   gaugeValue?: number;
   gaugeMin?: number;

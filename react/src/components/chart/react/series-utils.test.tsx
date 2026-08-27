@@ -21,6 +21,7 @@ const types = {
   Scatter: noop,
   Gauge: noop,
   Waterfall: noop,
+  Heatmap: noop,
   XAxis: noop,
   YAxis: noop,
   Legend: noop,

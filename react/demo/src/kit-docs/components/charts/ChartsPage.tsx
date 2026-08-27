@@ -55,6 +55,11 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "bars + lines + points in one plot, dual axes, stacked overlays",
   },
   {
+    slug: "charts-heatmap",
+    label: "Heatmap",
+    blurb: "value grids: multi-stop scales, null cells, tier labels, pills",
+  },
+  {
     slug: "charts-waterfall",
     label: "Waterfall",
     blurb: "bridges: deltas, totals, connectors, stacked layers",

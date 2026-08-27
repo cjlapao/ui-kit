@@ -78,6 +78,9 @@ import {
   nightingaleTornado,
   waterfallArr,
   comboMonthly,
+  heatCommute,
+  heatCommuteRows,
+  heatCommuteCols,
 } from "./data";
 
 type Kind =
@@ -92,7 +95,8 @@ type Kind =
   | "gauge"
   | "nightingale"
   | "waterfall"
-  | "combo";
+  | "combo"
+  | "heatmap";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -273,6 +277,10 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [comboStack, setComboStack] = useState(false);
   const [comboDashed, setComboDashed] = useState(false);
   const [comboArea, setComboArea] = useState(false);
+  const [hmPalette, setHmPalette] = useState<"ocean" | "warm" | "gold" | "diverging">("warm");
+  const [hmLabels, setHmLabels] = useState(true);
+  const [hmLegend, setHmLegend] = useState(true);
+  const [hmRadius, setHmRadius] = useState<number>(6);
   const [workflow, setWorkflow] = useState(workflowData);
   const [monaco, setMonaco] = useState(monacoData);
 
@@ -397,7 +405,9 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                           ? "ARR bridge by driver"
                           : kind === "combo"
                             ? "Revenue combo"
-                            : "Trading days"
+                            : kind === "heatmap"
+                              ? "Commute intensity"
+                              : "Trading days"
           }
           subtitle={renderer === "canvas" ? "Canvas renderer" : "SVG renderer"}
         />
@@ -899,6 +909,29 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             <Chart.Hover />
           </>
         )}
+        {kind === "heatmap" && (
+          <Chart.Heatmap
+            data={heatCommute}
+            rows={heatCommuteRows}
+            cols={heatCommuteCols}
+            colorStops={
+              hmPalette === "ocean"
+                ? ["#dbeafe", "#3b82f6", "#7c3aed"]
+                : hmPalette === "warm"
+                  ? ["#fff7ed", "#fb923c", "#dc2626"]
+                  : hmPalette === "gold"
+                    ? ["#fef9c3", "#fde047", "#f59e0b"]
+                    : ["#3b82f6", "#e2e8f0", "#dc2626"]
+            }
+            domain={[0, 50]}
+            valueLabels={hmLabels}
+            valueLabelFormat={(v) => String(v)}
+            cornerRadius={hmRadius}
+            showLegend={hmLegend}
+            cellGap={3}
+            rowLabelWidth={56}
+          />
+        )}
         <Chart.Legend
           position={
             kind === "nightingale" ||
@@ -1256,6 +1289,46 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
               checked={comboArea}
               onChange={setComboArea}
             />
+          </>
+        )}
+        {kind === "heatmap" && (
+          <>
+            <Control label="Palette">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={[
+                  { label: "Warm", value: "warm" },
+                  { label: "Ocean", value: "ocean" },
+                  { label: "Gold", value: "gold" },
+                  { label: "Diverging", value: "diverging" },
+                ]}
+                value={hmPalette}
+                onChange={(v) =>
+                  setHmPalette(v as "ocean" | "warm" | "gold" | "diverging")
+                }
+              />
+            </Control>
+            <ToggleRow
+              label="Value labels"
+              checked={hmLabels}
+              onChange={setHmLabels}
+            />
+            <ToggleRow label="Legend" checked={hmLegend} onChange={setHmLegend} />
+            <Control label="Cell radius">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={[
+                  { label: "0", value: "0" },
+                  { label: "3", value: "3" },
+                  { label: "6", value: "6" },
+                  { label: "10", value: "10" },
+                ]}
+                value={String(hmRadius)}
+                onChange={(v) => setHmRadius(Number(v))}
+              />
+            </Control>
           </>
         )}
         {kind === "scatter" && (
