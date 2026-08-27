@@ -65,6 +65,11 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "squarified tiles: palette fills, delta pills, grouped headers",
   },
   {
+    slug: "charts-synced",
+    label: "Synced charts",
+    blurb: "one hover across charts: Chart.Group + sync by category",
+  },
+  {
     slug: "charts-waterfall",
     label: "Waterfall",
     blurb: "bridges: deltas, totals, connectors, stacked layers",

@@ -1088,3 +1088,40 @@ export const treemapTeams = [
   { group: "Marketing", name: "Finance", value: 18 },
   { group: "Marketing", name: "Legal", value: 12 },
 ];
+
+// ── Synced charts ───────────────────────────────────────────────────────────
+
+/** Monthly climate metrics shared by the synced demo cards. */
+export const syncedMonthly = [
+  { month: "Jan", tempMax: 8, tempMin: 1, rainfall: 78, uv: 2.1 },
+  { month: "Feb", tempMax: 10, tempMin: 2, rainfall: 64, uv: 2.8 },
+  { month: "Mar", tempMax: 14, tempMin: 5, rainfall: 58, uv: 4.2 },
+  { month: "Apr", tempMax: 19, tempMin: 9, rainfall: 52, uv: 6.1 },
+  { month: "May", tempMax: 24, tempMin: 14, rainfall: 46, uv: 7.4 },
+  { month: "Jun", tempMax: 28, tempMin: 18, rainfall: 38, uv: 8.6 },
+  { month: "Jul", tempMax: 31, tempMin: 21, rainfall: 24, uv: 9.1 },
+  { month: "Aug", tempMax: 30, tempMin: 20, rainfall: 28, uv: 8.4 },
+  { month: "Sep", tempMax: 26, tempMin: 16, rainfall: 44, uv: 6.2 },
+  { month: "Oct", tempMax: 20, tempMin: 11, rainfall: 62, uv: 4.0 },
+  { month: "Nov", tempMax: 13, tempMin: 6, rainfall: 74, uv: 2.4 },
+  { month: "Dec", tempMax: 9, tempMin: 2, rainfall: 82, uv: 1.8 },
+];
+
+/** Solar irradiance (W/m²) by month and hour, for the synced heatmap card. */
+export const syncedSolar = (() => {
+  const hours = ["07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18"];
+  const peak = [96, 112, 158, 214, 268, 304, 332, 348, 336, 310, 276, 232, 188, 136, 92, 54];
+  const rows: { month: string; hour: string; value: number }[] = [];
+  syncedMonthly.forEach((m, i) => {
+    hours.forEach((h) => {
+      const col = Number(h) - 7;
+      const season = 0.72 + 0.28 * Math.cos(((i - 6) / 12) * Math.PI * 2);
+      rows.push({
+        month: m.month,
+        hour: `${h}:00`,
+        value: Math.max(4, Math.round(peak[col] * season * (1 + ((i * 5 + col * 3) % 7) * 0.008))),
+      });
+    });
+  });
+  return rows;
+})();

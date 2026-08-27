@@ -20,6 +20,7 @@
  * for advanced use: `registerEasing`, `EASING_PRESETS`, …
  */
 import { ChartCanvas, ChartSvg, setChartRegistry } from "./react/ChartRoot";
+import { ChartGroup } from "./react/ChartGroup";
 import {
   LineSeries,
 } from "./react/series/LineSeries";
@@ -85,6 +86,7 @@ setChartRegistry({
 export const Chart = {
   Svg: ChartSvg,
   Canvas: ChartCanvas,
+  Group: ChartGroup,
   Line: LineSeries,
   Bar: BarSeries,
   Pie: PieSeries,

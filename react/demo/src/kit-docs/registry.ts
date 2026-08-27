@@ -467,6 +467,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/ComboChartPage")),
   },
   {
+    slug: "charts-synced",
+    name: "Synced charts",
+    description:
+      "Chart.Group + sync: one hover across several charts, shared by category.",
+    icon: "ChartLine",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/SyncedChartPage")),
+  },
+  {
     slug: "charts-treemap",
     name: "Treemap",
     description:

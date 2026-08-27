@@ -865,6 +865,15 @@ export interface ChartRootProps {
    * Default 1 (off). Applies to every chart type.
    */
   hoverDim?: number;
+  /**
+   * Opt in to hover sync with sibling `sync` charts inside a
+   * `Chart.Group`: hovering this chart drives crosshair + tooltip on
+   * the others at the same category, and vice versa. Sync is keyed on
+   * the shared categorical x value, not pixels. Only cartesian
+   * members participate; non-cartesian series (pie, gauge, heatmap,
+   * treemap) keep local hover.
+   */
+  sync?: boolean;
   children: ReactNode;
 }
 

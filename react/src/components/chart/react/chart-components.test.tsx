@@ -2787,3 +2787,110 @@ describe("treemap series", () => {
     expect(tip?.textContent).toContain("Asia");
   });
 });
+describe("synced charts", () => {
+  const months = [
+    { month: "Jan", a: 10, b: 5 },
+    { month: "Feb", a: 20, b: 15 },
+    { month: "Mar", a: 30, b: 25 },
+  ];
+
+  const mockSvgs = (svgs: SVGSVGElement[]) => {
+    for (const svg of svgs) {
+      Object.defineProperty(svg, "getBoundingClientRect", {
+        value: () => ({
+          left: 0,
+          top: 0,
+          right: 800,
+          bottom: 300,
+          width: 800,
+          height: 300,
+          x: 0,
+          y: 0,
+          toJSON() {
+            return this;
+          },
+        }),
+        configurable: true,
+      });
+    }
+  };
+
+  const tipFor = (svg: SVGSVGElement): Element | null => {
+    // the tooltip portal lives in the chart host, not the svg — find it via
+    // the host wrapper preceding/following the svg
+    return svg.parentElement?.querySelector(
+      '[data-chart-feature="tooltip"]',
+    ) ?? null;
+  };
+
+  it("syncs hover to sibling sync charts by category and clears on leave", () => {
+    const { container } = render(
+      <Chart.Group>
+        <Chart.Svg height={300} animation={false} sync>
+          <Chart.Line
+            data={months}
+            categoryXField="month"
+            valueYField="a"
+            name="A"
+          />
+          <Chart.XAxis />
+          <Chart.YAxis />
+          <Chart.Tooltip />
+          <Chart.Hover />
+        </Chart.Svg>
+        <Chart.Svg height={300} animation={false} sync>
+          <Chart.Line
+            data={months}
+            categoryXField="month"
+            valueYField="b"
+            name="B"
+          />
+          <Chart.XAxis />
+          <Chart.YAxis />
+          <Chart.Tooltip />
+          <Chart.Hover />
+        </Chart.Svg>
+        <Chart.Svg height={300} animation={false}>
+          <Chart.Line
+            data={months}
+            categoryXField="month"
+            valueYField="a"
+            name="C"
+          />
+          <Chart.XAxis />
+          <Chart.YAxis />
+          <Chart.Tooltip />
+          <Chart.Hover />
+        </Chart.Svg>
+      </Chart.Group>,
+    );
+    const svgs = Array.from(container.querySelectorAll("svg")).filter(
+      (s) => (s as SVGSVGElement).querySelector("[data-chart-series]"),
+    ) as SVGSVGElement[];
+    expect(svgs.length).toBe(3);
+    mockSvgs(svgs);
+
+    // "Feb" tick x position from chart A's axis labels
+    const feb = Array.from(
+      svgs[0].querySelectorAll("text"),
+    ).find((t) => t.textContent === "Feb");
+    expect(feb).toBeTruthy();
+    const fx = Number(feb!.getAttribute("x"));
+    const fy = Number(feb!.getAttribute("y"));
+
+    const hoverRectA = Array.from(svgs[0].querySelectorAll("rect")).pop()!;
+    fireEvent.pointerMove(hoverRectA, { clientX: fx, clientY: Math.max(fy - 20, 10) });
+
+    // chart A (origin) shows its own tooltip
+    expect(tipFor(svgs[0])?.textContent).toContain("Feb");
+    // chart B (synced) shows the same category at its own scale
+    expect(tipFor(svgs[1])?.textContent).toContain("Feb");
+    // chart C (no sync prop) is untouched
+    expect(tipFor(svgs[2])).toBeNull();
+
+    // leave A → everything clears
+    fireEvent.pointerLeave(hoverRectA);
+    expect(tipFor(svgs[0])).toBeNull();
+    expect(tipFor(svgs[1])).toBeNull();
+  });
+});

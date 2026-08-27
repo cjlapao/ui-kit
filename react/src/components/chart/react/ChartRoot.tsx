@@ -19,6 +19,7 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useId,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -74,6 +75,8 @@ import type {
   RadarLayout,
 } from "../engine/types";
 import { useTheme } from "../../../hooks/useTheme";
+import { useChartGroup } from "./ChartGroup";
+
 import {
   ChartContextProvider,
   type ChartDrawFn,
@@ -339,6 +342,7 @@ export function ChartRootImpl({
   error,
   ariaLabel,
   hoverDim,
+  sync,
   children,
   hostRef,
   renderer,
@@ -1244,6 +1248,62 @@ export function ChartRootImpl({
   // Canvas: repaint on every relevant change (and at settle).
   const [hover, setHover] = useState<HoverState | null>(null);
 
+  // ── Group sync (Chart.Group + sync prop) ─────────────────────────────────
+  const group = useChartGroup();
+  const syncId = useId();
+  const syncing = Boolean(sync && group);
+  const lastSyncedRef = useRef<string | number | null>(undefined);
+  // refs to the latest values so the registered `apply` never goes stale
+  // (computeHover is assigned below, after its declaration)
+  const computeHoverRef = useRef<
+    ((px: number, py: number) => HoverState | null) | null
+  >(null);
+  const xScaleRef = useRef(xScale);
+  xScaleRef.current = xScale;
+  const areaRef = useRef(area);
+  areaRef.current = area;
+
+  const broadcastSync = useCallback(
+    (rawX: string | number | null) => {
+      if (!group || !syncing) return;
+      if (rawX === lastSyncedRef.current) return;
+      lastSyncedRef.current = rawX;
+      group.broadcast(rawX, syncId);
+    },
+    [group, syncing, syncId],
+  );
+
+  const applySync = useCallback(
+    (rawX: string | number | null) => {
+      if (rawX == null) {
+        setHover(null);
+        return;
+      }
+      const xs = xScaleRef.current;
+      const a = areaRef.current;
+      if (!xs || !a) return;
+      let px: number | null = null;
+      if ("bandWidth" in xs) {
+        const cat = String(rawX);
+        if (xs.domain.includes(cat)) px = xs.center(cat);
+      } else {
+        const num = typeof rawX === "number" ? rawX : Number(rawX);
+        if (Number.isFinite(num)) px = (xs as ContinuousScale).map(num as never);
+      }
+      if (px == null) return;
+      const fn = computeHoverRef.current;
+      if (!fn) return;
+      setHover(fn(px, a.y + a.height / 2));
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!group || !syncing) return;
+    group.register(syncId, applySync);
+    return () => group.unregister(syncId);
+  }, [group, syncing, syncId, applySync]);
+
   useEffect(() => {
     if (renderer === "canvas") scheduleCanvasDraw();
   }, [
@@ -1917,6 +1977,7 @@ export function ChartRootImpl({
     },
     [series, xScale, yScale, rightYScale, xIsCategorical, area, transposed],
   );
+  computeHoverRef.current = computeHover;
 
   const hoverEnabled = summary.hoverEnabled;
   const handlePointerMove = useCallback(
@@ -1940,13 +2001,25 @@ export function ChartRootImpl({
         py > area.y + area.height
       ) {
         setHover(null);
+        broadcastSync(null);
         return;
       }
-      setHover(computeHover(px, py));
+      const h = computeHover(px, py);
+      setHover(h);
+      broadcastSync(
+        h?.rawX instanceof Date
+          ? h.rawX.getTime()
+          : typeof h?.rawX === "string" || typeof h?.rawX === "number"
+            ? h.rawX
+            : null,
+      );
     },
-    [hoverEnabled, computeHover, area],
+    [hoverEnabled, computeHover, area, broadcastSync],
   );
-  const handlePointerLeave = useCallback(() => setHover(null), []);
+  const handlePointerLeave = useCallback(() => {
+    setHover(null);
+    broadcastSync(null);
+  }, [broadcastSync]);
 
   // ── Series endpoints (last-value badges / callouts) ────────────────────────
   const seriesEndpoints = useMemo(() => {
