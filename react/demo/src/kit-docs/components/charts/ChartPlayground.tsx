@@ -85,6 +85,7 @@ import {
   treemapContinents,
   treemapStocks,
   treemapTeams,
+  funnelMarketing,
 } from "./data";
 
 type Kind =
@@ -101,7 +102,8 @@ type Kind =
   | "waterfall"
   | "combo"
   | "heatmap"
-  | "treemap";
+  | "treemap"
+  | "funnel";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -295,6 +297,12 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
     "palette",
   );
   const [tmGrouped, setTmGrouped] = useState(false);
+  const [fnStages, setFnStages] = useState<"3" | "4" | "5" | "6">("6");
+  const [fnColors, setFnColors] = useState<"single" | "multi">("multi");
+  const [fnArrow, setFnArrow] = useState(true);
+  const [fnLabels, setFnLabels] = useState(true);
+  const [fnConversion, setFnConversion] = useState(true);
+  const [fnValues, setFnValues] = useState(true);
   const [tmCorner, setTmCorner] = useState(false);
   const [workflow, setWorkflow] = useState(workflowData);
   const [monaco, setMonaco] = useState(monacoData);
@@ -432,7 +440,9 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                                   : tmPalette === "stocks"
                                     ? "Big-cap market cap"
                                     : "Continent land area"
-                              : "Trading days"
+                                : kind === "funnel"
+                                  ? "Performance funnel"
+                                  : "Trading days"
           }
           subtitle={renderer === "canvas" ? "Canvas renderer" : "SVG renderer"}
         />
@@ -969,6 +979,29 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             gap={3}
           />
         )}
+        {kind === "funnel" && (
+          <Chart.Funnel
+            data={funnelMarketing.slice(0, Number(fnStages))}
+            name="Performance funnel"
+            color="#6366f1"
+            colors={
+              fnColors === "multi"
+                ? [
+                    "#7c5cf0",
+                    "#2f6fd0",
+                    "#12a5b8",
+                    "#0e9f6e",
+                    "#e0a520",
+                    "#e05252",
+                  ]
+                : undefined
+            }
+            arrow={fnArrow}
+            showLabels={fnLabels}
+            showConversion={fnConversion}
+            showValues={fnValues}
+          />
+        )}
         <Chart.Legend
           position={
             kind === "nightingale" ||
@@ -1463,6 +1496,56 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                         label="Corner values"
                         checked={tmCorner}
                         onChange={setTmCorner}
+                      />
+                    </>
+                  )}
+                  {kind === "funnel" && (
+                    <>
+                      <Control label="Stages">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={[
+                            { label: "3", value: "3" },
+                            { label: "4", value: "4" },
+                            { label: "5", value: "5" },
+                            { label: "6", value: "6" },
+                          ]}
+                          value={fnStages}
+                          onChange={(v) => setFnStages(v as "3" | "4" | "5" | "6")}
+                        />
+                      </Control>
+                      <Control label="Colors">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={[
+                            { label: "Single", value: "single" },
+                            { label: "Multi", value: "multi" },
+                          ]}
+                          value={fnColors}
+                          onChange={(v) => setFnColors(v as "single" | "multi")}
+                        />
+                      </Control>
+                      <ToggleRow
+                        label="Arrow"
+                        checked={fnArrow}
+                        onChange={setFnArrow}
+                      />
+                      <ToggleRow
+                        label="Stage labels"
+                        checked={fnLabels}
+                        onChange={setFnLabels}
+                      />
+                      <ToggleRow
+                        label="Conversion %"
+                        checked={fnConversion}
+                        onChange={setFnConversion}
+                      />
+                      <ToggleRow
+                        label="Values"
+                        checked={fnValues}
+                        onChange={setFnValues}
                       />
                     </>
                   )}

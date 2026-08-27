@@ -485,6 +485,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/TreemapChartPage")),
   },
   {
+    slug: "charts-funnel",
+    name: "Funnel",
+    description:
+      "Conversion funnel — up to 6 stages, width ∝ value: darker derived connectors, bottom arrow, conversion % between stages.",
+    icon: "ChartLine",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/FunnelChartPage")),
+  },
+  {
     slug: "charts-heatmap",
     name: "Heatmap",
     description:

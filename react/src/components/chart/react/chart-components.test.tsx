@@ -3319,3 +3319,96 @@ describe("tile-mode axes", () => {
     expect(vert.length).toBe(1);
   });
 });
+
+describe("funnel", () => {
+  const stages = [
+    { name: "Impressions", value: 3_600_000 },
+    { name: "Clicks", value: 83_100 },
+    { name: "Leads", value: 871 },
+    { name: "Trials", value: 342 },
+  ];
+
+  it("renders stages, connectors, arrow and labels", () => {
+    const { container } = render(
+      <Chart.Svg height={320} {...noAnim}>
+        <Chart.Funnel data={stages} name="Funnel" color="#4488ff" />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    const g = svg.querySelector('[data-chart-series]')!;
+    expect(g).not.toBeNull();
+    const polys = g.querySelectorAll("polygon");
+    // 4 stages + 3 connectors + 1 arrow
+    expect(polys.length).toBe(8);
+    const texts = Array.from(g.querySelectorAll("text")).map((t) =>
+      t.textContent,
+    );
+    expect(texts).toContain("3.6M");
+    expect(texts).toContain("83.1k");
+    // stage names on the right
+    expect(texts).toContain("Impressions");
+    expect(texts).toContain("Trials");
+    // conversion between the first two stages
+    expect(texts).toContain("2.3%");
+  });
+
+  it("caps at 6 stages", () => {
+    const nine = Array.from({ length: 9 }, (_, i) => ({
+      name: `S${i}`,
+      value: 100 - i,
+    }));
+    const { container } = render(
+      <Chart.Svg height={320} {...noAnim}>
+        <Chart.Funnel data={nine} name="F" showConversion={false} />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector(
+      "svg [data-chart-series]",
+    )! as Element;
+    // 6 stages + 5 connectors + 1 arrow
+    expect(g.querySelectorAll("polygon").length).toBe(12);
+  });
+
+  it("hover resolves the stage under the pointer", () => {
+    const { container } = render(
+      <Chart.Svg height={320} {...noAnim}>
+        <Chart.Funnel data={stages} name="Funnel" color="#4488ff" />
+        <Chart.Tooltip mode="shared" />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    const rects = svg.querySelectorAll("rect");
+    const hoverRect = rects[rects.length - 1] as SVGRectElement;
+    expect(hoverRect).not.toBeNull();
+    // Probe the ACTUAL rendered second stage polygon (robust to margins):
+    // the stage polys are the last `n` polygons before the text nodes.
+    const polys = svg.querySelectorAll(
+      "[data-chart-series] polygon",
+    );
+    const stagePolys = Array.from(polys).filter((p) =>
+      p.getAttribute("fill")?.startsWith("#") === true,
+    );
+    // connectors/arrow are darker fills too — stages are drawn after
+    // connectors, so the stage polygons are the last `stages.length`.
+    const stagePoly = stagePolys[stagePolys.length - stages.length + 1];
+    const pts = (stagePoly.getAttribute("points") ?? "")
+      .split(" ")
+      .map((q) => q.split(",").map(Number));
+    const cx =
+      (pts[0][0] + pts[1][0] + pts[2][0] + pts[3][0]) / 4;
+    const cy = (pts[0][1] + pts[1][1] + pts[2][1] + pts[3][1]) / 4;
+    // jsdom: rects report zero boxes, so client coords == svg coords.
+    fireEvent.pointerMove(hoverRect, {
+      clientX: cx,
+      clientY: cy,
+    });
+    const tip = document.querySelector(
+      '[data-chart-feature="tooltip"]',
+    ) as HTMLElement | null;
+    expect(tip).not.toBeNull();
+    expect(tip!.textContent).toContain("Clicks");
+    expect(tip!.textContent).toContain("83.1k");
+  });
+});

@@ -125,7 +125,8 @@ export function describeSeries(
     | "gauge"
     | "waterfall"
     | "heatmap"
-    | "treemap",
+    | "treemap"
+    | "funnel",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -331,6 +332,54 @@ export function describeSeries(
   }
 
   // Heatmap: self-contained grid (no cartesian scales).
+  // Funnel: self-contained conversion funnel (no cartesian scales).
+  if (kind === "funnel") {
+    const fp = p as unknown as import("./props").FunnelSeriesProps<never>;
+    const catAcc = fieldAccessor<never, string | number>(
+      (fp.categoryField ?? "name") as Accessor<never, string | number> | string,
+      "name",
+    );
+    const valAcc = fieldAccessor<never, number | null | undefined>(
+      (fp.valueField ?? "value") as
+        | Accessor<never, number | null | undefined>
+        | string,
+      "value",
+    );
+    const items = data
+      .slice(0, 6)
+      .map((item, i) => {
+        const v = valAcc(item, i);
+        return {
+          label: String(catAcc(item, i)),
+          value: v == null || !Number.isFinite(v as number) ? 0 : (v as number),
+        };
+      })
+      .filter((it) => it.value > 0);
+    return {
+      id,
+      type: "funnel",
+      name,
+      color: typeof fp.color === "string" ? fp.color : undefined,
+      paletteIndex,
+      data,
+      xAccessor: (item, i) => catAcc(item, i),
+      yAccessor: (item, i) => valAcc(item, i) ?? null,
+      funnelItems: items,
+      funnelColor:
+        typeof fp.color === "string" ? fp.color : undefined,
+      funnelColors: fp.colors as string[] | undefined,
+      funnelShowLabels: fp.showLabels ?? true,
+      funnelShowValues: fp.showValues ?? true,
+      funnelShowConversion: fp.showConversion ?? true,
+      funnelArrow: fp.arrow ?? true,
+      funnelMinWidthRatio: fp.minWidthRatio,
+      funnelValueFormat: fp.valueFormat as
+        | ((value: number) => string)
+        | undefined,
+      animation,
+    };
+  }
+
   if (kind === "heatmap") {
     const hp = p as unknown as import("./props").HeatmapSeriesProps<never>;
     const rowField = fieldAccessor<never, string | number>(
@@ -792,6 +841,7 @@ export function summarizeChildren(
     Waterfall: React.ComponentType | (new () => unknown);
     Heatmap: React.ComponentType | (new () => unknown);
     Treemap: React.ComponentType | (new () => unknown);
+    Funnel: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -849,7 +899,8 @@ export function summarizeChildren(
       t === types.Gauge ||
       t === types.Waterfall ||
       t === types.Heatmap ||
-      t === types.Treemap
+      t === types.Treemap ||
+      t === types.Funnel
     ) {
       const kind:
         | "line"
@@ -863,7 +914,8 @@ export function summarizeChildren(
         | "gauge"
         | "waterfall"
         | "heatmap"
-        | "treemap" =
+        | "treemap"
+        | "funnel" =
         t === types.Waterfall
           ? "waterfall"
           : t === types.Bar
@@ -888,7 +940,9 @@ export function summarizeChildren(
                             ? "heatmap"
                             : t === types.Treemap
                               ? "treemap"
-                              : "line";
+                              : t === types.Funnel
+                                ? "funnel"
+                                : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,

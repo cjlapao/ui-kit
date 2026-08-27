@@ -724,6 +724,7 @@ export const chartKindOptions: MultiToggleOption[] = [
   { label: "Combo", value: "combo" },
   { label: "Heatmap", value: "heatmap" },
   { label: "Treemap", value: "treemap" },
+  { label: "Funnel", value: "funnel" },
 ];
 
 /** Gauge arc spans (radians). */

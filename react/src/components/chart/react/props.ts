@@ -595,6 +595,35 @@ export interface TreemapSeriesProps<T = unknown> {
   id?: string;
   animation?: boolean | "grow" | "fade";
 }
+export interface FunnelSeriesProps<T = unknown> {
+  /** Stable series id (legend/hover routing). */
+  id?: string;
+  /** Stage data (max 6 stages — extras are ignored). */
+  data: readonly T[] | T[];
+  name?: string;
+  /** Name accessor. Default "name". */
+  categoryField?: string | ((item: T, index: number) => string);
+  /** Value accessor. Default "value". */
+  valueField?: string | ((item: T, index: number) => number);
+  /** Base stage color. Default: series palette color. */
+  color?: string;
+  /** Per-stage colors (overrides `color` when provided). */
+  colors?: string[];
+  /** Stage names + dotted leaders on the right. Default true. */
+  showLabels?: boolean;
+  /** Value inside each trapezoid. Default true. */
+  showValues?: boolean;
+  /** Conversion % between consecutive stages. Default true. */
+  showConversion?: boolean;
+  /** Bottom arrowhead. Default true. */
+  arrow?: boolean;
+  /** Min stage width as a fraction of the widest. Default 0.22. */
+  minWidthRatio?: number;
+  /** Value label formatter. Default: SI format (3.6M, 83.1K). */
+  valueFormat?: (value: number) => string;
+  animation?: ChartAnimation;
+}
+
 
 export interface ScatterSeriesProps<T = unknown> {
   data: T[];
@@ -930,7 +959,8 @@ export interface SeriesDescriptor {
     | "gauge"
     | "waterfall"
     | "heatmap"
-    | "treemap";
+    | "treemap"
+    | "funnel";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -1088,6 +1118,17 @@ export interface SeriesDescriptor {
   treemapItems?: { label: string; value: number; group?: string }[];
   /** Group names in first-seen order (filled by describeSeries). */
   treemapGroups?: string[];
+  // funnel
+  /** Stage labels in data order, capped at 6 (filled by describeSeries). */
+  funnelItems?: { label: string; value: number }[];
+  funnelColor?: string;
+  funnelColors?: string[];
+  funnelShowLabels?: boolean;
+  funnelShowValues?: boolean;
+  funnelShowConversion?: boolean;
+  funnelArrow?: boolean;
+  funnelMinWidthRatio?: number;
+  funnelValueFormat?: (value: number) => string;
   // gauge
   gaugeValue?: number;
   gaugeMin?: number;

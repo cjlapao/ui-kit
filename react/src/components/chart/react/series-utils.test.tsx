@@ -23,6 +23,7 @@ const types = {
   Waterfall: noop,
   Heatmap: noop,
   Treemap: noop,
+  Funnel: noop,
   XAxis: noop,
   YAxis: noop,
   Legend: noop,

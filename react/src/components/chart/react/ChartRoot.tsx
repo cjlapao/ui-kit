@@ -63,6 +63,8 @@ import {
   computeHeatmapLayout,
   computeTreemapLayout,
   hitTestTreemap,
+  computeFunnelGeometry,
+  pointInPolygon,
 } from "../engine/index";
 import type {
   AnyScale,
@@ -108,6 +110,7 @@ export interface ChildTypeRegistry {
   Waterfall: ComponentType<any>;
   Heatmap: ComponentType<any>;
   Treemap: ComponentType<any>;
+  Funnel: ComponentType<any>;
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
@@ -172,7 +175,8 @@ function collectXValues(descriptors: ChartChildrenSummary["series"]): (
       d.type === "polar" ||
       d.type === "gauge" ||
       d.type === "heatmap" ||
-      d.type === "treemap"
+      d.type === "treemap" ||
+      d.type === "funnel"
     )
       continue;
     for (let i = 0; i < d.data.length; i++) {
@@ -393,7 +397,8 @@ export function ChartRootImpl({
       d.type !== "polar" &&
       d.type !== "gauge" &&
       d.type !== "heatmap" &&
-      d.type !== "treemap",
+      d.type !== "treemap" &&
+      d.type !== "funnel",
   );
   /**
    * Transposed cartesian: a horizontal waterfall carries its values on the
@@ -530,6 +535,33 @@ export function ChartRootImpl({
     });
     return { descriptor: me, items, grouped, layout, groupDataIdx };
   }, [treemapSeries, area]);
+
+  const funnelSeries = useMemo(
+    () => summary.series.filter((d) => d.type === "funnel"),
+    [summary.series],
+  );
+  const funnelLayout = useMemo(() => {
+    const me = funnelSeries[0];
+    if (!me || !me.funnelItems?.length) return null;
+    const base =
+      me.funnelColor ??
+      (typeof me.color === "string" ? me.color : undefined) ??
+      DEFAULT_SERIES_PALETTE[me.paletteIndex % DEFAULT_SERIES_PALETTE.length];
+    const colors: string[] = me.funnelColors?.length
+      ? me.funnelColors.map((c) => (typeof c === "string" ? c : base))
+      : [base];
+    return computeFunnelGeometry(
+      area,
+      me.funnelItems,
+      {
+        colors,
+        showLabels: me.funnelShowLabels,
+        showConversion: me.funnelShowConversion,
+        arrow: me.funnelArrow,
+        minWidthRatio: me.funnelMinWidthRatio,
+      },
+    );
+  }, [funnelSeries, area]);
 
   // ── Radar layout (shared polar space) ─────────────────────────────────────
   // The radar center/radius live in the plot area; rings and spokes are
@@ -1347,6 +1379,9 @@ export function ChartRootImpl({
       const treemapVisible = visible.filter(
         (s) => s.descriptor.type === "treemap",
       );
+      const funnelVisible = visible.filter(
+        (s) => s.descriptor.type === "funnel",
+      );
       const radarVisible = visible.filter(
         (s) => s.descriptor.type === "radar",
       );
@@ -1360,7 +1395,8 @@ export function ChartRootImpl({
           s.descriptor.type !== "radar" &&
           s.descriptor.type !== "polar" &&
           s.descriptor.type !== "heatmap" &&
-          s.descriptor.type !== "treemap",
+          s.descriptor.type !== "treemap" &&
+          s.descriptor.type !== "funnel",
       );
       // Radar charts: snap to the nearest axis, one row per series.
       if (
@@ -1776,6 +1812,36 @@ export function ChartRootImpl({
             },
           ],
         };
+      }
+
+      // Funnel: point-in-polygon over the bright stage trapezoids.
+      if (funnelVisible.length > 0 && cartVisible.length === 0) {
+        const s = funnelVisible[0];
+        if (!funnelLayout) return null;
+        for (const stg of funnelLayout.stages) {
+          if (!pointInPolygon(px, py, stg.points)) continue;
+          const color =
+            s.descriptor.funnelColors?.[stg.index] ?? s.color ?? "#888888";
+          return {
+            x: stg.cx,
+            y: (stg.yTop + stg.yBottom) / 2,
+            pointerX: px,
+            pointerY: py,
+            rawX: stg.label,
+            items: [
+              {
+                seriesId: s.descriptor.id,
+                name: s.descriptor.name ?? stg.label,
+                color: typeof color === "string" ? color : "#888888",
+                value: stg.value,
+                y: (stg.yTop + stg.yBottom) / 2,
+                item: s.descriptor.data[stg.index],
+                index: stg.index,
+              },
+            ],
+          };
+        }
+        return null;
       }
 
       if (cartVisible.length === 0 || !xScale || !yScale) return null;
