@@ -81,6 +81,9 @@ import {
   heatCommute,
   heatCommuteRows,
   heatCommuteCols,
+  treemapContinents,
+  treemapStocks,
+  treemapTeams,
 } from "./data";
 
 type Kind =
@@ -96,7 +99,8 @@ type Kind =
   | "nightingale"
   | "waterfall"
   | "combo"
-  | "heatmap";
+  | "heatmap"
+  | "treemap";
 type FillMode = "flat" | "gradient" | "off";
 type Sweep = "full" | "270" | "180";
 type GridStyle = "solid" | "dashed" | "off";
@@ -281,6 +285,11 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   const [hmLabels, setHmLabels] = useState(true);
   const [hmLegend, setHmLegend] = useState(true);
   const [hmRadius, setHmRadius] = useState<number>(6);
+  const [tmPalette, setTmPalette] = useState<"flat" | "palette" | "stocks">(
+    "palette",
+  );
+  const [tmGrouped, setTmGrouped] = useState(false);
+  const [tmCorner, setTmCorner] = useState(false);
   const [workflow, setWorkflow] = useState(workflowData);
   const [monaco, setMonaco] = useState(monacoData);
 
@@ -407,6 +416,12 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                             ? "Revenue combo"
                             : kind === "heatmap"
                               ? "Commute intensity"
+                              : kind === "treemap"
+                                ? tmGrouped
+                                  ? "Headcount by department"
+                                  : tmPalette === "stocks"
+                                    ? "Big-cap market cap"
+                                    : "Continent land area"
                               : "Trading days"
           }
           subtitle={renderer === "canvas" ? "Canvas renderer" : "SVG renderer"}
@@ -932,6 +947,40 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             rowLabelWidth={56}
           />
         )}
+
+        {kind === "treemap" && (
+          <Chart.Treemap
+            data={
+              tmGrouped
+                ? treemapTeams
+                : tmPalette === "stocks"
+                  ? treemapStocks
+                  : treemapContinents
+            }
+            groupField={tmGrouped ? "group" : undefined}
+            color={tmPalette === "flat" ? "#7dd3fc" : undefined}
+            colors={
+              tmPalette === "stocks"
+                ? [
+                    "#33547a",
+                    "#3b5ba8",
+                    "#2c6e75",
+                    "#2f6b6d",
+                    "#356a58",
+                    "#4a5578",
+                  ]
+                : undefined
+            }
+            deltaField={tmPalette === "stocks" ? "delta" : undefined}
+            valueLabels={tmCorner || tmPalette === "stocks"}
+            valueLabelFormat={
+              tmPalette === "stocks"
+                ? (v: number) => `$${v}T`
+                : undefined
+            }
+            gap={3}
+          />
+        )}
         <Chart.Legend
           position={
             kind === "nightingale" ||
@@ -1329,6 +1378,33 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                 onChange={(v) => setHmRadius(Number(v))}
               />
             </Control>
+          </>
+        )}
+        {kind === "treemap" && (
+          <>
+            <Control label="Colors">
+              <MultiToggle
+                size="sm"
+                fullWidth
+                options={[
+                  { label: "Flat", value: "flat" },
+                  { label: "Palette", value: "palette" },
+                  { label: "Stocks", value: "stocks" },
+                ]}
+                value={tmPalette}
+                onChange={(v) => setTmPalette(v as "flat" | "palette" | "stocks")}
+              />
+            </Control>
+            <ToggleRow
+              label="Grouped (by department)"
+              checked={tmGrouped}
+              onChange={setTmGrouped}
+            />
+            <ToggleRow
+              label="Corner values"
+              checked={tmCorner}
+              onChange={setTmCorner}
+            />
           </>
         )}
         {kind === "scatter" && (

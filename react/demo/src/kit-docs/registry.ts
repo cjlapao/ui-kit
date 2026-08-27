@@ -467,6 +467,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/charts/ComboChartPage")),
   },
   {
+    slug: "charts-treemap",
+    name: "Treemap",
+    description:
+      "Squarified tiles — area is value: palette/flat fills, stock-style delta pills, grouped regions with headers.",
+    icon: "ChartLine",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/TreemapChartPage")),
+  },
+  {
     slug: "charts-heatmap",
     name: "Heatmap",
     description:

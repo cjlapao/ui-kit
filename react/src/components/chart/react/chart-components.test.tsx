@@ -2656,3 +2656,134 @@ describe("heatmap series", () => {
     expect(tip?.textContent).toContain("A");
   });
 });
+describe("treemap series", () => {
+  const data = [
+    { name: "Asia", value: 45 },
+    { name: "Africa", value: 28 },
+    { name: "Europe", value: 22 },
+    { name: "N. America", value: 14 },
+    { name: "S. America", value: 8 },
+    { name: "Oceania", value: 3 },
+  ];
+
+  it("renders one rect per tile with uniform fill when color is set", () => {
+    const { container } = render(
+      <Chart.Svg height={360} animation={false}>
+        <Chart.Treemap data={data} color="#38bdf8" />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const rects = Array.from(g.querySelectorAll("rect"));
+    expect(rects.length).toBe(6);
+    expect(rects.every((r) => r.getAttribute("fill") === "#38bdf8")).toBe(true);
+    expect(
+      Array.from(g.querySelectorAll("text"))
+        .map((t) => t.textContent)
+        .includes("Asia"),
+    ).toBe(true);
+  });
+
+  it("uses the palette (distinct fills) when no color is given", () => {
+    const { container } = render(
+      <Chart.Svg height={360} animation={false}>
+        <Chart.Treemap data={data} />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const fills = Array.from(
+      new Set(
+        Array.from(g.querySelectorAll("rect")).map((r) => r.getAttribute("fill")),
+      ),
+    );
+    expect(fills.length).toBeGreaterThan(1);
+  });
+
+  it("renders group headers and reserves the header band", () => {
+    const grouped = [
+      { group: "Engineering", name: "Frontend", value: 42 },
+      { group: "Engineering", name: "Backend", value: 34 },
+      { group: "Engineering", name: "DevOps", value: 28 },
+      { group: "Marketing", name: "Digital", value: 38 },
+      { group: "Marketing", name: "Brand", value: 24 },
+    ];
+    const { container } = render(
+      <Chart.Svg height={360} animation={false}>
+        <Chart.Treemap data={grouped} groupField="group" />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const texts = Array.from(g.querySelectorAll("text")).map(
+      (t) => t.textContent,
+    );
+    expect(texts).toContain("ENGINEERING");
+    expect(texts).toContain("MARKETING");
+    // 5 tiles + 2 header rects
+    const rects = Array.from(g.querySelectorAll("rect"));
+    expect(rects.length).toBe(7);
+  });
+
+  it("renders a delta pill and corner value in stock style", () => {
+    const stocks = [
+      { symbol: "AAPL", value: 2.9, delta: 1.2 },
+      { symbol: "MSFT", value: 2.8, delta: -0.8 },
+      { symbol: "NVDA", value: 1.2, delta: 3.4 },
+    ];
+    const { container } = render(
+      <Chart.Svg height={360} animation={false}>
+        <Chart.Treemap
+          data={stocks}
+          categoryField="symbol"
+          valueField="value"
+          deltaField="delta"
+          valueLabels
+          valueLabelFormat={(v: number) => `$${v}T`}
+        />
+      </Chart.Svg>,
+    );
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const texts = Array.from(g.querySelectorAll("text")).map(
+      (t) => t.textContent,
+    );
+    expect(texts).toContain("$2.9T");
+    expect(texts.some((t) => t?.includes("\u25b2"))).toBe(true);
+    expect(texts.some((t) => t?.includes("\u25bc"))).toBe(true);
+  });
+
+  it("shows a tooltip with the tile value on hover", () => {
+    const { container } = render(
+      <Chart.Svg height={360} animation={false}>
+        <Chart.Treemap data={data} />
+        <Chart.Tooltip />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = container.querySelector("svg")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 360,
+        width: 800,
+        height: 360,
+        x: 0,
+        y: 0,
+        toJSON() {
+          return this;
+        },
+      }),
+      configurable: true,
+    });
+    const g = container.querySelector("[data-chart-series]") as SVGGElement;
+    const rect = Array.from(g.querySelectorAll("rect"))[0] as SVGRectElement;
+    const x =
+      Number(rect.getAttribute("x")) + Number(rect.getAttribute("width")) / 2;
+    const y =
+      Number(rect.getAttribute("y")) + Number(rect.getAttribute("height")) / 2;
+    const all = Array.from(container.querySelectorAll("svg rect"));
+    fireEvent.pointerMove(all[all.length - 1], { clientX: x, clientY: y });
+    const tip = container.querySelector('[data-chart-feature="tooltip"]');
+    expect(tip).toBeTruthy();
+    expect(tip?.textContent).toContain("Asia");
+  });
+});

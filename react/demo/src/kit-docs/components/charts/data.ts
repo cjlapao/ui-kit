@@ -1052,3 +1052,39 @@ export const heatCommute: { row: string; col: string; value: number }[] = (() =>
 
 export const heatCommuteRows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export const heatCommuteCols = ["06–08", "08–10", "10–13", "13–16", "16–18", "18–21"];
+
+// ── Treemap ─────────────────────────────────────────────────────────────────
+
+/** Continent land-area weights for the flat / palette treemap examples. */
+export const treemapContinents = [
+  { name: "Asia", value: 45 },
+  { name: "Africa", value: 28 },
+  { name: "Europe", value: 22 },
+  { name: "N. America", value: 14 },
+  { name: "S. America", value: 8 },
+  { name: "Oceania", value: 3 },
+];
+
+/** Big-cap stocks with day delta for the stock-tile treemap. */
+export const treemapStocks = [
+  { symbol: "AAPL", value: 2.9, delta: 1.2 },
+  { symbol: "GOOGL", value: 1.7, delta: 2.1 },
+  { symbol: "AMZN", value: 1.6, delta: -1.5 },
+  { symbol: "MSFT", value: 2.8, delta: -0.8 },
+  { symbol: "NVDA", value: 1.2, delta: 3.4 },
+  { symbol: "META", value: 0.9, delta: 0.6 },
+];
+
+/** Headcount by team, grouped by department (Engineering sums to 123). */
+export const treemapTeams = [
+  { group: "Engineering", name: "Frontend", value: 42 },
+  { group: "Engineering", name: "Backend", value: 34 },
+  { group: "Engineering", name: "DevOps", value: 28 },
+  { group: "Engineering", name: "QA", value: 19 },
+  { group: "Marketing", name: "Digital", value: 38 },
+  { group: "Marketing", name: "Brand", value: 24 },
+  { group: "Marketing", name: "Events", value: 16 },
+  { group: "Marketing", name: "HR", value: 22 },
+  { group: "Marketing", name: "Finance", value: 18 },
+  { group: "Marketing", name: "Legal", value: 12 },
+];

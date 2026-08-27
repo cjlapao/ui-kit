@@ -60,6 +60,11 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
     blurb: "value grids: multi-stop scales, null cells, tier labels, pills",
   },
   {
+    slug: "charts-treemap",
+    label: "Treemap",
+    blurb: "squarified tiles: palette fills, delta pills, grouped headers",
+  },
+  {
     slug: "charts-waterfall",
     label: "Waterfall",
     blurb: "bridges: deltas, totals, connectors, stacked layers",

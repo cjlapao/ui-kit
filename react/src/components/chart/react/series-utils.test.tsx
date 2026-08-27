@@ -22,6 +22,7 @@ const types = {
   Gauge: noop,
   Waterfall: noop,
   Heatmap: noop,
+  Treemap: noop,
   XAxis: noop,
   YAxis: noop,
   Legend: noop,

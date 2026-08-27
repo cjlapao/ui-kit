@@ -550,6 +550,52 @@ export interface HeatmapSeriesProps<T = unknown> {
   animation?: boolean | "grow" | "fade";
 }
 
+export interface TreemapSeriesProps<T = unknown> {
+  data: T[];
+  /** Tile label field. Default "name". */
+  categoryField?: Accessor<T, string | number>;
+  /** Tile value field. Default "value". */
+  valueField?: Accessor<T, number>;
+  /**
+   * Group field. When set, tiles cluster into regions — one squarified
+   * region per group (by group total) with an uppercase header band.
+   */
+  groupField?: Accessor<T, string | number>;
+  /** Uniform fill for all tiles (beats palette). */
+  color?: ChartColor;
+  /** Per-tile fills, by tile (data) order. */
+  colors?: ChartColor[];
+  /** Per-tile fill callback. */
+  colorAccessor?: (item: unknown, index: number) => string | undefined;
+  /** Show tile labels. Default true. */
+  showLabels?: boolean;
+  /** Tile label formatter. */
+  labelFormat?: (label: string, item: unknown, index: number) => string;
+  /**
+   * Draw the value in the bottom-left corner (stock-tile style); the
+   * title moves to the top-left. Default false.
+   */
+  valueLabels?: boolean;
+  /** Value label formatter. Default: String(v). */
+  valueLabelFormat?: (value: number, item: unknown, index: number) => string;
+  /**
+   * Signed numeric field → a delta pill under the title (▲ green /
+   * ▼ red). Missing or 0 → no pill.
+   */
+  deltaField?: Accessor<T, number>;
+  /** Delta pill text (the glyph is drawn, the sign is not). Default `${Math.abs(v)}%`. */
+  deltaFormat?: (value: number, item: unknown, index: number) => string;
+  /** Gap between tiles in px. Default 2. */
+  gap?: number;
+  /** Tile corner radius in px. Default 0. */
+  cornerRadius?: number;
+  /** Group header band height in px. Default 18. */
+  groupHeaderHeight?: number;
+  name?: string;
+  id?: string;
+  animation?: boolean | "grow" | "fade";
+}
+
 export interface ScatterSeriesProps<T = unknown> {
   data: T[];
   /** x field (number | Date). Defaults to "x". */
@@ -844,7 +890,8 @@ export interface SeriesDescriptor {
     | "scatter"
     | "gauge"
     | "waterfall"
-    | "heatmap";
+    | "heatmap"
+    | "treemap";
   name?: string;
   color?: ChartColor;
   paletteIndex: number;
@@ -983,6 +1030,25 @@ export interface SeriesDescriptor {
   heatmapRange?: [number, number];
   /** Row-major cell grid (filled by describeSeries). */
   heatmapCells?: HeatmapCellDatum[];
+  // treemap
+  treemapLabelAccessor?: (item: unknown, index: number) => string;
+  treemapGroupAccessor?: (item: unknown, index: number) => string;
+  treemapColor?: string;
+  treemapColors?: string[];
+  treemapColorAccessor?: (item: unknown, index: number) => string | undefined;
+  treemapShowLabels?: boolean;
+  treemapLabelFormat?: (label: string, item: unknown, index: number) => string;
+  treemapValueLabels?: boolean;
+  treemapValueLabelFormat?: (value: number, item: unknown, index: number) => string;
+  treemapDeltaAccessor?: (item: unknown, index: number) => number | null | undefined;
+  treemapDeltaFormat?: (value: number, item: unknown, index: number) => string;
+  treemapGap?: number;
+  treemapCornerRadius?: number;
+  treemapGroupHeaderHeight?: number;
+  /** Resolved tile items in data order (filled by describeSeries). */
+  treemapItems?: { label: string; value: number; group?: string }[];
+  /** Group names in first-seen order (filled by describeSeries). */
+  treemapGroups?: string[];
   // gauge
   gaugeValue?: number;
   gaugeMin?: number;

@@ -124,7 +124,8 @@ export function describeSeries(
     | "scatter"
     | "gauge"
     | "waterfall"
-    | "heatmap",
+    | "heatmap"
+    | "treemap",
 ): SeriesDescriptor {
   const p = el.props;
   const id = (p.id as string | undefined) ?? `series-${index}`;
@@ -240,6 +241,91 @@ export function describeSeries(
       gaugeTicks: gp.ticks,
       gaugeTarget: gp.target,
       gaugeTargetLabel: gp.targetLabel,
+      animation,
+    };
+  }
+
+  // Treemap: self-contained squarified tiles (no cartesian scales).
+  if (kind === "treemap") {
+    const tp = p as unknown as import("./props").TreemapSeriesProps<never>;
+    const labelAcc = fieldAccessor<never, string | number>(
+      (tp.categoryField ?? "name") as Accessor<never, string | number> | string,
+      "name",
+    );
+    const valueAcc = fieldAccessor<never, number | null | undefined>(
+      (tp.valueField ?? "value") as
+        | Accessor<never, number | null | undefined>
+        | string,
+      "value",
+    );
+    const groupAcc = tp.groupField
+      ? fieldAccessor<never, string | number>(
+          tp.groupField as Accessor<never, string | number> | string,
+          "group",
+        )
+      : undefined;
+    const deltaAcc = tp.deltaField
+      ? fieldAccessor<never, number | null | undefined>(
+          tp.deltaField as Accessor<never, number | null | undefined> | string,
+          "delta",
+        )
+      : undefined;
+    const items = data.map((item, i) => {
+      const v = valueAcc(item, i);
+      return {
+        label: String(labelAcc(item, i)),
+        value: v == null || !Number.isFinite(v as number) ? 0 : (v as number),
+        group: groupAcc ? String(groupAcc(item, i)) : undefined,
+      };
+    });
+    const groups: string[] = [];
+    for (const it of items) {
+      if (it.group !== undefined && !groups.includes(it.group))
+        groups.push(it.group);
+    }
+    return {
+      id,
+      type: "treemap",
+      name,
+      color: typeof tp.color === "function" ? undefined : tp.color,
+      paletteIndex,
+      data,
+      xAccessor: (item, i) => labelAcc(item, i),
+      yAccessor: (item, i) => valueAcc(item, i) ?? null,
+      treemapLabelAccessor: (item, i) => String(labelAcc(item, i)),
+      treemapGroupAccessor: groupAcc
+        ? (item, i) => String(groupAcc(item, i))
+        : undefined,
+      treemapColor:
+        typeof tp.color === "function" || !tp.color
+          ? undefined
+          : typeof tp.color === "string"
+            ? tp.color
+            : undefined,
+      treemapColors: tp.colors as string[] | undefined,
+      treemapColorAccessor:
+        typeof tp.color === "function"
+          ? (item, i) => (tp.color as unknown as (i: unknown, n: number) => string)(item, i)
+          : undefined,
+      treemapShowLabels: tp.showLabels ?? true,
+      treemapLabelFormat: tp.labelFormat as
+        | ((label: string, item: unknown, index: number) => string)
+        | undefined,
+      treemapValueLabels: tp.valueLabels ?? false,
+      treemapValueLabelFormat: tp.valueLabelFormat as
+        | ((value: number, item: unknown, index: number) => string)
+        | undefined,
+      treemapDeltaAccessor: deltaAcc
+        ? (item, i) => deltaAcc(item, i) ?? null
+        : undefined,
+      treemapDeltaFormat: tp.deltaFormat as
+        | ((value: number, item: unknown, index: number) => string)
+        | undefined,
+      treemapGap: tp.gap,
+      treemapCornerRadius: tp.cornerRadius,
+      treemapGroupHeaderHeight: tp.groupHeaderHeight,
+      treemapItems: items,
+      treemapGroups: groups,
       animation,
     };
   }
@@ -705,6 +791,7 @@ export function summarizeChildren(
     Gauge: React.ComponentType | (new () => unknown);
     Waterfall: React.ComponentType | (new () => unknown);
     Heatmap: React.ComponentType | (new () => unknown);
+    Treemap: React.ComponentType | (new () => unknown);
     XAxis: React.ComponentType | (new () => unknown);
     YAxis: React.ComponentType | (new () => unknown);
     Legend: React.ComponentType | (new () => unknown);
@@ -761,7 +848,8 @@ export function summarizeChildren(
       t === types.Scatter ||
       t === types.Gauge ||
       t === types.Waterfall ||
-      t === types.Heatmap
+      t === types.Heatmap ||
+      t === types.Treemap
     ) {
       const kind:
         | "line"
@@ -774,7 +862,8 @@ export function summarizeChildren(
         | "scatter"
         | "gauge"
         | "waterfall"
-        | "heatmap" =
+        | "heatmap"
+        | "treemap" =
         t === types.Waterfall
           ? "waterfall"
           : t === types.Bar
@@ -797,7 +886,9 @@ export function summarizeChildren(
                           ? "waterfall"
                           : t === types.Heatmap
                             ? "heatmap"
-                            : "line";
+                            : t === types.Treemap
+                              ? "treemap"
+                              : "line";
       summary.series.push(
         describeSeries(
           el as ReactElement<Record<string, unknown>>,

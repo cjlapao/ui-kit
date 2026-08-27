@@ -60,6 +60,8 @@ import {
   nicePolarMax,
   resolveGrid,
   computeHeatmapLayout,
+  computeTreemapLayout,
+  hitTestTreemap,
 } from "../engine/index";
 import type {
   AnyScale,
@@ -100,6 +102,7 @@ export interface ChildTypeRegistry {
   Gauge: ComponentType<any>;
   Waterfall: ComponentType<any>;
   Heatmap: ComponentType<any>;
+  Treemap: ComponentType<any>;
   Bar: ComponentType<any>;
   Pie: ComponentType<any>;
   Candlestick: ComponentType<any>;
@@ -163,7 +166,8 @@ function collectXValues(descriptors: ChartChildrenSummary["series"]): (
       d.type === "radar" ||
       d.type === "polar" ||
       d.type === "gauge" ||
-      d.type === "heatmap"
+      d.type === "heatmap" ||
+      d.type === "treemap"
     )
       continue;
     for (let i = 0; i < d.data.length; i++) {
@@ -376,7 +380,8 @@ export function ChartRootImpl({
       d.type !== "radar" &&
       d.type !== "polar" &&
       d.type !== "gauge" &&
-      d.type !== "heatmap",
+      d.type !== "heatmap" &&
+      d.type !== "treemap",
   );
   /**
    * Transposed cartesian: a horizontal waterfall carries its values on the
@@ -473,6 +478,41 @@ export function ChartRootImpl({
   }, [heatmapSeries, area]);
 
 
+
+  // Treemap: self-contained squarified layout for drawing + hover.
+  const treemapSeries = useMemo(
+    () => summary.series.filter((d) => d.type === "treemap"),
+    [summary.series],
+  );
+  const treemapLayout = useMemo(() => {
+    const me = treemapSeries[0];
+    if (!me || !me.treemapItems?.length) return null;
+    const items = me.treemapItems;
+    const grouped = (me.treemapGroups?.length ?? 0) > 0;
+    const hh = me.treemapGroupHeaderHeight ?? 18;
+    const groups: { name: string; values: number[] }[] = grouped
+      ? (me.treemapGroups ?? []).map((g) => ({
+          name: g,
+          values: items
+            .filter((it) => it.group === g)
+            .map((it) => it.value),
+        }))
+      : [{ name: me.name ?? "Treemap", values: items.map((it) => it.value) }];
+    const layout = computeTreemapLayout(
+      { x: area.x, y: area.y, width: area.width, height: area.height },
+      groups,
+      grouped ? hh : 0,
+    );
+    const groupDataIdx: number[][] = groups.map((g) => {
+      if (!grouped) return items.map((_, i) => i);
+      const out: number[] = [];
+      items.forEach((it, i) => {
+        if (it.group === g.name) out.push(i);
+      });
+      return out;
+    });
+    return { descriptor: me, items, grouped, layout, groupDataIdx };
+  }, [treemapSeries, area]);
 
   // ── Radar layout (shared polar space) ─────────────────────────────────────
   // The radar center/radius live in the plot area; rings and spokes are
@@ -1229,6 +1269,9 @@ export function ChartRootImpl({
       const heatmapVisible = visible.filter(
         (s) => s.descriptor.type === "heatmap",
       );
+      const treemapVisible = visible.filter(
+        (s) => s.descriptor.type === "treemap",
+      );
       const radarVisible = visible.filter(
         (s) => s.descriptor.type === "radar",
       );
@@ -1241,7 +1284,8 @@ export function ChartRootImpl({
           s.descriptor.type !== "gauge" &&
           s.descriptor.type !== "radar" &&
           s.descriptor.type !== "polar" &&
-          s.descriptor.type !== "heatmap",
+          s.descriptor.type !== "heatmap" &&
+          s.descriptor.type !== "treemap",
       );
       // Radar charts: snap to the nearest axis, one row per series.
       if (
@@ -1589,6 +1633,59 @@ export function ChartRootImpl({
         };
       }
 
+      // Treemap: point-in-rect hit test (self-contained charts only).
+      if (treemapVisible.length > 0 && cartVisible.length === 0) {
+        const s = treemapVisible[0];
+        const d = s.descriptor;
+        if (!treemapLayout) return null;
+        const hit = hitTestTreemap(treemapLayout.layout, px, py);
+        if (!hit) return null;
+        const g = treemapLayout.layout.groups[hit.group];
+        if (hit.tile === -1) {
+          // Group header: one row with the group total.
+          const total = treemapLayout.items
+            .filter((it) => it.group === g.name)
+            .reduce((a, b) => a + b.value, 0);
+          return {
+            x: g.rect.x + g.rect.width / 2,
+            y: g.rect.y + g.headerH / 2,
+            pointerY: py,
+            rawX: g.name,
+            items: [
+              {
+                seriesId: d.id,
+                name: d.name ?? g.name,
+                color: s.color,
+                value: total,
+                y: g.rect.y + g.headerH / 2,
+                item: null,
+                index: -1,
+              },
+            ],
+          };
+        }
+        const dataIdx = treemapLayout.groupDataIdx[hit.group][hit.tile];
+        const it = treemapLayout.items[dataIdx];
+        const c = g.tiles[hit.tile];
+        return {
+          x: c.x + c.width / 2,
+          y: c.y + c.height / 2,
+          pointerY: py,
+          rawX: it.label,
+          items: [
+            {
+              seriesId: d.id,
+              name: d.name ?? it.label,
+              color: s.color,
+              value: it.value,
+              y: c.y + c.height / 2,
+              item: d.data[dataIdx],
+              index: dataIdx,
+            },
+          ],
+        };
+      }
+
       if (cartVisible.length === 0 || !xScale || !yScale) return null;
 
       // Transposed: snap the pointer's y to the nearest band category.
@@ -1865,7 +1962,12 @@ export function ChartRootImpl({
     for (const s of series) {
       if (s.hidden) continue;
       const d = s.descriptor;
-      if (d.type === "pie" || d.type === "gauge" || d.type === "heatmap")
+      if (
+        d.type === "pie" ||
+        d.type === "gauge" ||
+        d.type === "heatmap" ||
+        d.type === "treemap"
+      )
         continue;
       if (transposed && d.type === "waterfall") continue;
       const vs =
@@ -1900,7 +2002,7 @@ export function ChartRootImpl({
       }
     }
     return out;
-  }, [series, xScale, yScale, rightYScale, transposed, heatmapLayout]);
+  }, [series, xScale, yScale, rightYScale, transposed, heatmapLayout, treemapLayout]);
 
   const isEmpty =
     summary.series.length === 0 ||
@@ -2026,7 +2128,8 @@ export function ChartRootImpl({
       el.type === reg?.Polar ||
       el.type === reg?.Gauge ||
       el.type === reg?.Waterfall ||
-      el.type === reg?.Heatmap
+      el.type === reg?.Heatmap ||
+      el.type === reg?.Treemap
     ) {
       // Stamp the series with its element identity (see seriesTokens).
       plotChildren.push(

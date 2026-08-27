@@ -47,6 +47,7 @@ import { AxisBadges } from "./react/features/AxisBadges";
 import { GaugeSeries } from "./react/series/GaugeSeries";
 import { WaterfallSeries } from "./react/series/WaterfallSeries";
 import { HeatmapSeries } from "./react/series/HeatmapSeries";
+import { TreemapSeries } from "./react/series/TreemapSeries";
 
 // Register the concrete types so the root can split children without a
 // circular import.
@@ -65,6 +66,7 @@ setChartRegistry({
   Gauge: GaugeSeries,
   Waterfall: WaterfallSeries,
   Heatmap: HeatmapSeries,
+  Treemap: TreemapSeries,
   XAxis,
   YAxis,
   Legend,
@@ -97,6 +99,7 @@ export const Chart = {
   Gauge: GaugeSeries,
   Waterfall: WaterfallSeries,
   Heatmap: HeatmapSeries,
+  Treemap: TreemapSeries,
   XAxis,
   YAxis,
   Legend,
@@ -136,6 +139,7 @@ export type {
   WaterfallSeriesProps,
   HeatmapSeriesProps,
   HeatmapAnnotation,
+  TreemapSeriesProps,
   XAxisProps,
   YAxisProps,
   TooltipProps,
