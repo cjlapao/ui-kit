@@ -412,6 +412,8 @@ export interface HoverState {
   y?: number;
   /** Pixel y of the pointer itself — for cursor-following chrome. */
   pointerY?: number;
+  /** Pixel x of the pointer itself — for cursor-following chrome. */
+  pointerX?: number;
 }
 
 // ── Radar ────────────────────────────────────────────────────────────────────

@@ -1393,6 +1393,7 @@ export function ChartRootImpl({
         return {
           x: cx + R * Math.cos(a),
           y: cy + R * Math.sin(a),
+          pointerX: px,
           pointerY: py,
           rawX: axes[idx],
           items,
@@ -1459,6 +1460,7 @@ export function ChartRootImpl({
         return {
           x: cx + ((hit.rInner + hit.rOuter) / 2) * Math.cos(hit.midAngle),
           y: yMid,
+          pointerX: px,
           pointerY: py,
           rawX: categories[hit.categoryIndex],
           items,
@@ -1561,6 +1563,7 @@ export function ChartRootImpl({
         return {
           x: best.point.x,
           y: best.point.y,
+          pointerX: px,
           pointerY: py,
           rawX: hitSeries
             ? hitSeries.descriptor.xAccessor(
@@ -1593,6 +1596,7 @@ export function ChartRootImpl({
         return {
           x: px,
           y: py,
+          pointerX: px,
           pointerY: py,
           items: [
             {
@@ -1644,7 +1648,11 @@ export function ChartRootImpl({
             return {
               x: px,
               y: py,
+              pointerX: px,
               pointerY: py,
+              rawX:
+                s.descriptor.categoryField?.(s.descriptor.data[i], i) ??
+                s.descriptor.name,
               items: [
                 {
                   seriesId: s.descriptor.id,
@@ -1684,6 +1692,7 @@ export function ChartRootImpl({
         return {
           x: layout.gridX + (colIdx + 0.5) * layout.cellW,
           y: layout.gridY + (rowIdx + 0.5) * layout.cellH,
+          pointerX: px,
           pointerY: py,
           rawX: cell.col,
           items: [
@@ -1716,6 +1725,7 @@ export function ChartRootImpl({
           return {
             x: g.rect.x + g.rect.width / 2,
             y: g.rect.y + g.headerH / 2,
+            pointerX: px,
             pointerY: py,
             rawX: g.name,
             items: [
@@ -1737,6 +1747,7 @@ export function ChartRootImpl({
         return {
           x: c.x + c.width / 2,
           y: c.y + c.height / 2,
+          pointerX: px,
           pointerY: py,
           rawX: it.label,
           items: [
@@ -1796,6 +1807,7 @@ export function ChartRootImpl({
           items,
           rawX: bestCat,
           y: bandY.center(bestCat),
+          pointerX: px,
           pointerY: py,
         };
       }
@@ -1879,6 +1891,7 @@ export function ChartRootImpl({
           items,
           rawX: bestCat,
           y: items[0].y,
+          pointerX: px,
           pointerY: py,
         };
       }
@@ -1979,6 +1992,7 @@ export function ChartRootImpl({
         items,
         rawX: cont.type === "time" ? new Date(snapped) : snapped,
         y: items[0].y,
+        pointerX: px,
         pointerY: py,
       };
     },
@@ -2463,7 +2477,9 @@ export function ChartRootImpl({
               Crosshair sits in the back layer: above the grid but below the
               series marks, so the hover dots always paint over it.
             */}
-            {hover && !radarLayout && !polarLayout && (
+            {/* Cartesian-only: non-cartesian charts (pie/nightingale,
+                gauge, heatmap, treemap) have no x-axis to crosshair. */}
+            {hover && !radarLayout && !polarLayout && xScale && yScale && (
               <line
                 x1={hover.x}
                 x2={hover.x}

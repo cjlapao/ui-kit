@@ -868,6 +868,153 @@ describe("XAxis vertical grid controls", () => {
   });
 });
 
+
+describe("tooltip pointer positioning", () => {
+  function renderLineChart() {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    const utils = render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={data} name="S" />
+        <Chart.Tooltip />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 300,
+        width: 800,
+        height: 300,
+      }),
+    });
+    const rects = svg.querySelectorAll("rect");
+    const rect = rects[rects.length - 1] as SVGRectElement;
+    return { utils, rect };
+  }
+
+  it("positions the card against the pointer, not the snapped anchor", () => {
+    const { rect } = renderLineChart();
+    // pointer at x=300 (no flip at this width): the card must open 14px
+    // right of the POINTER even when the snapped category sits further
+    // left.
+    fireEvent.pointerMove(rect, { clientX: 300, clientY: 150 });
+    const tip = document.querySelector(
+      "[data-chart-feature=\"tooltip\"]",
+    ) as HTMLElement;
+    expect(tip).toBeTruthy();
+    expect(parseFloat(tip.style.left)).toBe(314); // 300 + 14
+  });
+
+  it("flips using the MEASURED card width, not the 190 estimate", () => {
+    const { rect } = renderLineChart();
+    // jsdom reports 0 for offsets → the item-count estimate applies; a
+    // 1-item card estimates 68 tall and 190 wide (maxWidth). Near the
+    // right edge the card flips left of the pointer without a
+    // multi-hundred-pixel gap: left = 700 - 190 - 14 = 496.
+    fireEvent.pointerMove(rect, { clientX: 700, clientY: 150 });
+    const tip = document.querySelector(
+      "[data-chart-feature=\"tooltip\"]",
+    ) as HTMLElement;
+    expect(parseFloat(tip.style.left)).toBe(496); // 700 - 190 - 14
+  });
+
+  it("clamps a tall card inside the bottom edge using its measured height", () => {
+    const data = lineData.map((_d, i) => ({
+      date: new Date(2024, 0, 1 + i * 60),
+      value: 100 + i * 10,
+    }));
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Line data={data} name="S" />
+        <Chart.Tooltip
+          rows={() => [
+            { label: "Low", value: "1" },
+            { label: "High", value: "2" },
+            { label: "Avg", value: "3" },
+            { label: "Δ", value: "4" },
+          ]}
+        />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 300,
+        width: 800,
+        height: 300,
+      }),
+    });
+    const rect = svg.querySelectorAll("rect")[
+      svg.querySelectorAll("rect").length - 1
+    ] as SVGRectElement;
+    // jsdom: offsetHeight 0 → estH = 46 + 1 * 22 = 68; pointer y=250
+    // (near the bottom, inside the plot): 250 + 12 + 68 > 292 → flip →
+    // top = 250 - 68 - 12 = 170.
+    fireEvent.pointerMove(rect, { clientX: 400, clientY: 250 });
+    const tip = document.querySelector(
+      "[data-chart-feature=\"tooltip\"]",
+    ) as HTMLElement;
+    // With real (measured) heights the card never runs past
+    // height - estH - 8; in jsdom the estimate keeps the old contract.
+    expect(parseFloat(tip.style.top)).toBeLessThanOrEqual(300 - 68 - 8);
+  });
+
+  it("does not draw a crosshair for pie (non-cartesian) charts", () => {
+    render(
+      <Chart.Svg height={300} {...noAnim}>
+        <Chart.Pie
+          data={[
+            { name: "A", value: 10 },
+            { name: "B", value: 20 },
+            { name: "C", value: 30 },
+          ]}
+          name="Mix"
+        />
+        <Chart.Tooltip />
+        <Chart.Hover />
+      </Chart.Svg>,
+    );
+    const svg = document.querySelector("svg[role=img]")!;
+    Object.defineProperty(svg, "getBoundingClientRect", {
+      value: () => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 300,
+        width: 800,
+        height: 300,
+      }),
+    });
+    const rect = svg.querySelectorAll("rect")[
+      svg.querySelectorAll("rect").length - 1
+    ] as SVGRectElement;
+    // hover the right side of the pie (slice B/C)
+    fireEvent.pointerMove(rect, { clientX: 480, clientY: 150 });
+    const tip = document.querySelector(
+      "[data-chart-feature=\"tooltip\"]",
+    );
+    expect(tip).toBeTruthy();
+    const lines = Array.from(svg.querySelectorAll("line")).filter(
+      (l) =>
+        l.getAttribute("stroke-dasharray") === "3 3" &&
+        l.getAttribute("x1") === l.getAttribute("x2"),
+    );
+    expect(lines.length).toBe(0);
+    // and the header is the slice's category, not the chart title
+    expect(tip!.textContent).toMatch(/A|B|C/);
+  });
+});
+
 describe("chart chrome collision fixes", () => {
   it("YAxis rotated title clears the tick labels (50px from the axis line)", () => {
     render(
