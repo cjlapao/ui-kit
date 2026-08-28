@@ -619,6 +619,12 @@ export interface FunnelSeriesProps<T = unknown> {
   arrow?: boolean;
   /** Min stage width as a fraction of the widest. Default 0.22. */
   minWidthRatio?: number;
+  /**
+   * Width scale. "log" (default) compresses huge drop-offs so small
+   * stages stay legible and distinct; "linear" is strictly
+   * proportional.
+   */
+  scale?: "linear" | "log";
   /** Value label formatter. Default: SI format (3.6M, 83.1K). */
   valueFormat?: (value: number) => string;
   animation?: ChartAnimation;
@@ -1128,6 +1134,7 @@ export interface SeriesDescriptor {
   funnelShowConversion?: boolean;
   funnelArrow?: boolean;
   funnelMinWidthRatio?: number;
+  funnelScale?: "linear" | "log";
   funnelValueFormat?: (value: number) => string;
   // gauge
   gaugeValue?: number;

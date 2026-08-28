@@ -57,6 +57,7 @@ export function FunnelSeries(props: FunnelSeriesProps<unknown>) {
         showConversion: d.funnelShowConversion,
         arrow: d.funnelArrow,
         minWidthRatio: d.funnelMinWidthRatio,
+        scale: d.funnelScale ?? "log",
       },
     );
   }, [me, d, area]);

@@ -298,6 +298,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
   );
   const [tmGrouped, setTmGrouped] = useState(false);
   const [fnStages, setFnStages] = useState<"3" | "4" | "5" | "6">("6");
+  const [fnScale, setFnScale] = useState<"log" | "linear">("log");
   const [fnColors, setFnColors] = useState<"single" | "multi">("multi");
   const [fnArrow, setFnArrow] = useState(true);
   const [fnLabels, setFnLabels] = useState(true);
@@ -1000,6 +1001,7 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
             showLabels={fnLabels}
             showConversion={fnConversion}
             showValues={fnValues}
+            scale={fnScale}
           />
         )}
         <Chart.Legend
@@ -1513,6 +1515,18 @@ export const ChartPlayground = ({ fixedKind }: ChartPlaygroundProps) => {
                           ]}
                           value={fnStages}
                           onChange={(v) => setFnStages(v as "3" | "4" | "5" | "6")}
+                        />
+                      </Control>
+                      <Control label="Width scale">
+                        <MultiToggle
+                          size="sm"
+                          fullWidth
+                          options={[
+                            { label: "Log", value: "log" },
+                            { label: "Linear", value: "linear" },
+                          ]}
+                          value={fnScale}
+                          onChange={(v) => setFnScale(v as "log" | "linear")}
                         />
                       </Control>
                       <Control label="Colors">

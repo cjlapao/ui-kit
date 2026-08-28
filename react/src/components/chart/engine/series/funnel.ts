@@ -73,6 +73,12 @@ export interface FunnelOptions {
   arrow?: boolean;
   /** Min stage width as a fraction of the max. Default 0.22. */
   minWidthRatio?: number;
+  /**
+   * Width scale. "log" (default) compresses huge drop-offs — funnels
+   * are steep by nature, so linear widths would leave the tail at
+   * sliver size. "linear" keeps widths strictly proportional.
+   */
+  scale?: "linear" | "log";
   /** Hard cap on stages. Default 6. */
   maxStages?: number;
 }
@@ -132,11 +138,15 @@ export function computeFunnelGeometry(
   const cx = area.x + funnelMaxW / 2;
 
   const vMax = Math.max(...all.map((it) => it.value));
+  // Default "log": funnels are steep by nature; log widths keep the
+  // tail legible and distinct. "linear" is strictly proportional.
+  const logMax = Math.log10(1 + vMax);
+  const ratio = (v: number) =>
+    opts.scale === "linear"
+      ? v / vMax
+      : Math.log10(1 + v) / (logMax > 0 ? logMax : 1);
   const widths = all.map((it) =>
-    Math.max(
-      funnelMaxW * (it.value / vMax),
-      funnelMaxW * minWidthRatio,
-    ),
+    Math.max(funnelMaxW * ratio(it.value), funnelMaxW * minWidthRatio),
   );
 
   const arrowH = showArrow ? H * 0.1 : 0;

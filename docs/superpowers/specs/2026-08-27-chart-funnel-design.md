@@ -24,6 +24,7 @@ geometry).
   showConversion                   // % between stages (default true)
   arrow                            // bottom arrowhead (default true)
   minWidthRatio={0.22}             // min stage width / max (default 0.22)
+  scale="log"                      // log (default) | linear width scale
   valueFormat={formatSI}           // default formatSI
 />
 ```
@@ -39,8 +40,11 @@ geometry).
 
 `computeFunnelGeometry(area, items, opts)` — pure function, unit-tested:
 
-- **Widths**: `w_i = funnelMaxW * (v_i / v_max)`, clamped to
+- **Widths**: `w_i = funnelMaxW * ratio(v_i)`, clamped to
   `minWidthRatio * funnelMaxW` so small stages stay legible.
+  `scale` (default `log`): `ratio = log10(1+v) / log10(1+v_max)` —
+  funnels are steep by nature, so log widths keep the tail legible
+  and distinct; `linear` is strictly proportional.
 - **Layout**: stages as bands of equal height;
   `stageH = (H - (n-1)*gap - arrowH) / n` with `gap ≈ 0.09H`,
   `arrowH ≈ 0.10H` (0 when `arrow` off).

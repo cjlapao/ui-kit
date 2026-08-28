@@ -559,6 +559,7 @@ export function ChartRootImpl({
         showConversion: me.funnelShowConversion,
         arrow: me.funnelArrow,
         minWidthRatio: me.funnelMinWidthRatio,
+        scale: me.funnelScale ?? "log",
       },
     );
   }, [funnelSeries, area]);

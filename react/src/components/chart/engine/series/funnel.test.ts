@@ -25,7 +25,7 @@ describe("computeFunnelGeometry", () => {
     ).toBeNull();
   });
 
-  it("caps at 6 stages and keeps widths proportional", () => {
+  it("caps at 6 stages and keeps widths ordered", () => {
     const items = Array.from({ length: 9 }, (_, i) => ({
       label: `S${i}`,
       value: 1000 - i * 100,
@@ -33,12 +33,39 @@ describe("computeFunnelGeometry", () => {
     const g = computeFunnelGeometry(AREA, items, { colors: ["#888"] })!;
     expect(g.stages.length).toBe(FUNNEL_MAX_STAGES);
     expect(g.stages[0].width).toBeGreaterThan(g.stages[5].width);
-    // proportional between two unclamped stages
-    const g2 = computeFunnelGeometry(AREA, ITEMS, { colors: ["#888"] })!;
-    expect(g2.stages[0].width / g2.stages[1].width).toBeCloseTo(
-      1000 / 400,
-      3,
-    );
+    for (let i = 1; i < g.stages.length; i++) {
+      expect(g.stages[i].width).toBeLessThanOrEqual(
+        g.stages[i - 1].width + 0.001,
+      );
+    }
+  });
+
+  it("linear scale keeps widths strictly proportional", () => {
+    const g = computeFunnelGeometry(AREA, ITEMS, {
+      colors: ["#888"],
+      scale: "linear",
+    })!;
+    expect(g.stages[0].width / g.stages[1].width).toBeCloseTo(1000 / 400, 3);
+  });
+
+  it("log scale keeps steep funnels legible and distinct", () => {
+    const steep = [
+      { label: "A", value: 3_600_000 },
+      { label: "B", value: 83_100 },
+      { label: "C", value: 871 },
+      { label: "D", value: 71 },
+    ];
+    const g = computeFunnelGeometry(AREA, steep, { colors: ["#888"] })!;
+    // 83.1K is 2.3% of the max — linear would clamp it to the minimum;
+    // log keeps it far above the clamp.
+    const minW = g.stages[0].width * 0.22;
+    expect(g.stages[1].width).toBeGreaterThan(minW);
+    // every step is visibly distinct (no equal-width tail)
+    for (let i = 1; i < g.stages.length; i++) {
+      expect(g.stages[i - 1].width).toBeGreaterThan(g.stages[i].width);
+    }
+    // and the top stage is exactly the max width
+    expect(g.stages[0].width).toBeCloseTo(g.maxW, 5);
   });
 
   it("clamps small stages to minWidthRatio", () => {

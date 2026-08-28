@@ -373,6 +373,7 @@ export function describeSeries(
       funnelShowConversion: fp.showConversion ?? true,
       funnelArrow: fp.arrow ?? true,
       funnelMinWidthRatio: fp.minWidthRatio,
+      funnelScale: fp.scale as "linear" | "log" | undefined,
       funnelValueFormat: fp.valueFormat as
         | ((value: number) => string)
         | undefined,
