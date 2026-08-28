@@ -510,6 +510,16 @@
   animation: date-picker-overlay-leave 300ms cubic-bezier(0.19, 1, 0.22, 1) both;
 }
 
+/* Hard ceiling on the overlay width — mirrors `MAX_WIDTH` in
+   useOverlayPosition.ts (keep the two in sync). The inline width set by the
+   hook is primary (it feeds the left/flip maths); this is the safety net:
+   even a stale build that sets a wider inline width can never stretch the
+   calendar past its compact size — on wide fields the fixed 32px day cells
+   would otherwise float in a sparse table. */
+.dp-date-picker-overlay {
+  max-width: 320px;
+}
+
 /* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   .dp-date-picker-overlay--enter,

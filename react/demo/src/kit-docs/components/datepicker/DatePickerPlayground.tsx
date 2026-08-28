@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { DatePicker, MultiToggle, Panel } from "@cjlapao/ui-kit";
+import { DatePicker, MultiToggle } from "@cjlapao/ui-kit";
 import type {
   DatePickerAppendTo,
   DatePickerLoaderType,
@@ -64,7 +64,6 @@ export const DatePickerPlayground: React.FC = () => {
   const [showOtherMonths, setShowOtherMonths] = useState(false);
   const [loading, setLoading] = useState(false);
   const [disabled, setDisabled] = useState(false);
-  const [onGlass, setOnGlass] = useState(false);
 
   const [singleValue, setSingleValue] = useState<DatePickerValue>(inDays(3));
   const [rangeValue, setRangeValue] = useState<DatePickerValue>([
@@ -255,11 +254,6 @@ export const DatePickerPlayground: React.FC = () => {
                       checked={disabled}
                       onChange={setDisabled}
                     />
-                    <ToggleRow
-                      label="On a glass panel"
-                      checked={onGlass}
-                      onChange={setOnGlass}
-                    />
                   </div>
                 ),
               },
@@ -274,11 +268,6 @@ export const DatePickerPlayground: React.FC = () => {
       }
       preview={
         <div className="w-full">
-          <Panel
-            variant={onGlass ? "liquid-glass" : "outlined"}
-            tone={onGlass ? tone : "neutral"}
-            padding="md"
-          >
             <div className="flex w-full flex-col gap-3">
               <DatePicker
                 selectionMode={selectionMode}
@@ -313,7 +302,6 @@ export const DatePickerPlayground: React.FC = () => {
                 }
               />
             </div>
-          </Panel>
         </div>
       }
     >
