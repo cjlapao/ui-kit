@@ -149,6 +149,16 @@ const OVERLAY_LEAVE_ANIMATION = "popover-overlay-leave";
 /** 16 px (w-4 h-4) rotated 45° — the diamond tip reaches ~11 px out. */
 const ARROW_SIZE = 16;
 const ARROW_HALF = ARROW_SIZE / 2;
+/**
+ * Half the rotated square's *visual* span (its bounding box is SIZE·√2).
+ * The arrow is clipped to the half of this diamond that sits OUTSIDE the
+ * panel: the inner half of a translucent fill would show through the panel
+ * as a rotated square (double opacity), so it must not be painted at all.
+ * Rounded to 0.01 px — the 0.004 px difference from the exact 16√2/2 is
+ * below one subpixel and keeps the style values (and tests) tidy.
+ */
+const ARROW_DIAMOND_HALF =
+  Math.round(((ARROW_SIZE * Math.SQRT2) / 2) * 100) / 100;
 /** Trigger ↔ popover gap. */
 const PLACEMENT_OFFSET = 8;
 /** Minimum distance to every viewport edge. */
@@ -533,18 +543,70 @@ const Popover: React.FC<PopoverProps> = ({
         maxWidth: cappedMaxWidth,
       };
 
-  const arrowStyle: CSSProperties = (() => {
+  /**
+   * The clip window for the arrow: the outer half of the diamond's visual
+   * bounding box, with its inner edge exactly on the panel edge the arrow
+   * rides. `overflow: hidden` drops the inner half of the rotated square,
+   * which is what read as a "rotated rectangle" over translucent panels.
+   */
+  const arrowClipStyle: CSSProperties = (() => {
     if (!position) return {};
     const { side, caret } = position.placement;
+    const d = ARROW_DIAMOND_HALF;
     switch (side) {
       case "bottom":
-        return { top: -ARROW_HALF, left: caret - ARROW_HALF };
+        return {
+          top: -d,
+          left: caret - d,
+          width: d * 2,
+          height: d,
+          overflow: "hidden",
+        };
       case "top":
-        return { bottom: -ARROW_HALF, left: caret - ARROW_HALF };
+        return {
+          bottom: -d,
+          left: caret - d,
+          width: d * 2,
+          height: d,
+          overflow: "hidden",
+        };
       case "left":
-        return { top: caret - ARROW_HALF, right: -ARROW_HALF };
+        return {
+          top: caret - d,
+          right: -d,
+          width: d,
+          height: d * 2,
+          overflow: "hidden",
+        };
       case "right":
-        return { top: caret - ARROW_HALF, left: -ARROW_HALF };
+        return {
+          top: caret - d,
+          left: -d,
+          width: d,
+          height: d * 2,
+          overflow: "hidden",
+        };
+    }
+  })();
+
+  /**
+   * The diamond inside its clip window, centred on the panel edge. In the
+   * window's local coordinates the edge point is a corner-centre: the
+   * square's centre lands d−8 px from that corner on each axis.
+   */
+  const arrowDiamondStyle: CSSProperties = (() => {
+    if (!position) return {};
+    const { side } = position.placement;
+    const s = ARROW_DIAMOND_HALF - ARROW_HALF;
+    switch (side) {
+      case "bottom":
+        return { left: s, top: s };
+      case "top":
+        return { left: s, top: -ARROW_HALF };
+      case "left":
+        return { left: -ARROW_HALF, top: s };
+      case "right":
+        return { left: s, top: s };
     }
   })();
 
@@ -638,18 +700,30 @@ const Popover: React.FC<PopoverProps> = ({
                   and the edge would run straight through the V. Its two
                   visible sides carry the panel's edge colour, so the join
                   reads as one shape. (The Loader's z-50 stays above both.)
+
+                  The diamond sits in a clip window sized to its outer half
+                  so the inner half is never painted — on glass/liquid-glass
+                  that half would show through the panel as a rotated square
+                  (Learnings). The window's inner edge is exactly the panel
+                  edge, so the V still meets it without a gap.
                 */}
                 <span
                   aria-hidden="true"
-                  className={classNames(
-                    "pointer-events-none absolute z-20 block h-4 w-4 rotate-45",
-                    ARROW_SIDE_BORDERS[position.placement.side],
-                    chrome.border,
-                    chrome.fill,
-                    chrome.backdrop,
-                  )}
-                  style={arrowStyle}
-                />
+                  className="pointer-events-none absolute z-20 overflow-hidden"
+                  style={arrowClipStyle}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={classNames(
+                      "absolute block h-4 w-4 rotate-45",
+                      ARROW_SIDE_BORDERS[position.placement.side],
+                      chrome.border,
+                      chrome.fill,
+                      chrome.backdrop,
+                    )}
+                    style={arrowDiamondStyle}
+                  />
+                </span>
               </>
             )}
             {/*

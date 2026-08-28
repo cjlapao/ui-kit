@@ -213,6 +213,12 @@ export type PanelEdgeChrome = {
  * same colour: a ring is a full box-shadow and cannot give the arrow its two
  * visible sides, while the hidden half of a full border would show through a
  * translucent panel.
+ *
+ * The borderless variants (subtle, tonal, simple) take the tone's own `border`
+ * colour for the arrow: their panel edge is `ring-transparent` in light mode,
+ * and a transparent V on a near-white tint is an invisible arrow. The tone
+ * edge gives the tip a visible outline while the fill still matches the panel
+ * exactly, so the join carries no colour step.
  */
 export const getPanelEdgeChrome = (
   variant: SurfaceVariant,
@@ -231,11 +237,11 @@ export const getPanelEdgeChrome = (
     case "subtle":
       return {
         fill: palette.subtleBg,
-        border: "border-transparent dark:border-white/5",
+        border: palette.border,
         backdrop: "",
       };
     case "tonal":
-      return { fill: palette.tonalBg, border: "border-transparent", backdrop: "" };
+      return { fill: palette.tonalBg, border: palette.border, backdrop: "" };
     case "default":
       return {
         fill: "bg-white/80 dark:bg-neutral-900/70",
@@ -255,7 +261,7 @@ export const getPanelEdgeChrome = (
         backdrop: `backdrop-blur-2xl ${getGlassVibrancyClass(vibrancy)}`,
       };
     case "simple":
-      return { fill: palette.tonalBg, border: "border-transparent", backdrop: "" };
+      return { fill: palette.tonalBg, border: palette.border, backdrop: "" };
     case "elevated":
     default:
       return {

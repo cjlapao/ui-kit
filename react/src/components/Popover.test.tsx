@@ -125,14 +125,50 @@ describe("Popover", () => {
     const w = overlay() as HTMLElement;
     const arrow = w.querySelector<HTMLElement>(".rotate-45");
     expect(arrow).not.toBeNull();
-    // Trigger centre x = 550; grow box left = 400 → caret 150 → 142.
-    expect(arrow!.style.left).toBe("142px");
-    expect(arrow!.style.top).toBe("-8px");
+    // The diamond sits in a clip window centred on the caret: trigger
+    // centre x = 550; grow box left = 400 → caret 150 → window at 150 − 11.31.
+    const clip = arrow!.parentElement as HTMLElement;
+    expect(clip.style.left).toBe("138.69px");
+    expect(clip.style.top).toBe("-11.31px");
+    expect(clip.style.width).toBe("22.62px");
+    expect(clip.style.height).toBe("11.31px");
+    expect(clip.style.overflow).toBe("hidden");
+    // The arrow paints over the panel, so the edge cannot run through the V.
+    expect(clip.className).toContain("z-20");
     // Bottom side: the visible V is the square's top + left borders.
     expect(arrow!.className).toContain("border-t");
     expect(arrow!.className).toContain("border-l");
-    // The arrow paints over the panel, so the edge cannot run through the V.
-    expect(arrow!.className).toContain("z-20");
+  });
+
+  it("clips the arrow to the half outside the panel (no rotated square over glass)", async () => {
+    renderPopover();
+    await openPopover();
+    const w = overlay() as HTMLElement;
+    const arrow = w.querySelector<HTMLElement>(".rotate-45");
+    expect(arrow).not.toBeNull();
+    const clip = arrow!.parentElement as HTMLElement;
+    // The 16 px square rotated 45° spans 22.62 px; the window shows only the
+    // outer 11.31 px, with the panel edge on its inner boundary. The inner
+    // half of the diamond (the part that would sit over the panel) is
+    // outside the window's box entirely, so nothing is painted over the
+    // surface — this is what removed the "rotated rectangle" on glass.
+    const clipR = {
+      left: parseFloat(clip.style.left),
+      top: parseFloat(clip.style.top),
+      width: parseFloat(clip.style.width),
+      height: parseFloat(clip.style.height),
+    };
+    const diamond = {
+      left: clipR.left + parseFloat(arrow!.style.left),
+      top: clipR.top + parseFloat(arrow!.style.top),
+      size: 16,
+    };
+    // Diamond centre sits exactly on the panel edge (top: 0).
+    expect(diamond.top + 8).toBeCloseTo(0, 5);
+    // The diamond's bottom (its inner tip) is clipped: it extends to
+    // top+16 = +8 in panel coordinates, but only to the clip window's
+    // bottom edge (also 0) does it exist.
+    expect(clipR.top + clipR.height).toBeCloseTo(0, 5);
   });
 
   it("notches the panel edge at the caret so the border stops at the V", async () => {
@@ -165,9 +201,10 @@ describe("Popover", () => {
     const positioned = overlay() as HTMLElement;
     expect(positioned).toHaveAttribute("data-placement", "bottom");
     expect(positioned.style.left).toBe("400px");
-    // Caret tracks the trigger centre (450): 450 − 400 = 50 → arrow 50 − 8.
-    const arrow = positioned.querySelector<HTMLElement>(".rotate-45");
-    expect(arrow!.style.left).toBe("42px");
+    // Caret tracks the trigger centre (450): 450 − 400 = 50 → the clip
+    // window's left edge is at 50 − 11.31.
+    const clip = positioned.querySelector<HTMLElement>(".rotate-45")!.parentElement as HTMLElement;
+    expect(clip.style.left).toBe("38.69px");
     expect(container).toBeDefined();
   });
 
@@ -184,9 +221,10 @@ describe("Popover", () => {
     await completeOverlayPhase(w as Element, "entering");
     const positioned = overlay() as HTMLElement;
     expect(positioned.style.left).toBe("600px");
-    // Caret still on the trigger centre (850) → 850 − 600 = 250.
-    const arrow = positioned.querySelector<HTMLElement>(".rotate-45");
-    expect(arrow!.style.left).toBe("242px");
+    // Caret still on the trigger centre (850) → 850 − 600 = 250 → clip
+    // window at 250 − 11.31.
+    const clip = positioned.querySelector<HTMLElement>(".rotate-45")!.parentElement as HTMLElement;
+    expect(clip.style.left).toBe("238.69px");
     expect(container).toBeDefined();
   });
 
@@ -305,9 +343,11 @@ describe("Popover", () => {
     expect(positioned).toHaveAttribute("data-placement", "top");
     // Box top = 720 − 8 − 160 = 552 → above the anchor's top (720).
     expect(positioned.style.top).toBe("552px");
-    // The arrow now rides the bottom edge.
+    // The arrow now rides the bottom edge: the clip window hangs below it.
     const arrow = positioned.querySelector<HTMLElement>(".rotate-45");
-    expect(arrow!.style.bottom).toBe("-8px");
+    const clip = arrow!.parentElement as HTMLElement;
+    expect(clip.style.bottom).toBe("-11.31px");
+    // Bottom-side V: the square's bottom + right borders.
     expect(arrow!.className).toContain("border-b");
     expect(arrow!.className).toContain("border-r");
     expect(container).toBeDefined();
@@ -352,6 +392,37 @@ describe("Popover", () => {
       expect(overlay()).toHaveAttribute("data-tone", tone);
       await closePopover();
     }
+  });
+
+  it("gives borderless-variant arrows the tone's edge so they stay visible", async () => {
+    // Tonal's panel edge is ring-transparent and its fill is a near-white
+    // tint — a transparent V would be an invisible arrow. The arrow instead
+    // carries the tone's own border (the same token the panel would use),
+    // so the tip reads as outlined while its fill still matches the panel.
+    for (const variant of ["tonal", "subtle", "simple"] as const) {
+      cleanup();
+      renderPopover({ variant, tone: "cyan" });
+      await openPopover();
+      const arrow = (overlay() as HTMLElement).querySelector<HTMLElement>(
+        ".rotate-45",
+      );
+      expect(arrow).not.toBeNull();
+      expect(arrow!.className).toContain("border-cyan-300");
+      await closePopover();
+    }
+  });
+
+  it("keeps the panel's own edge colour on rimmed-variant arrows", async () => {
+    cleanup();
+    renderPopover({ variant: "glass", tone: "cyan" });
+    await openPopover();
+    const arrow = (overlay() as HTMLElement).querySelector<HTMLElement>(
+      ".rotate-45",
+    );
+    // Glass rims are tone-independent (white bevel), not the tone border.
+    expect(arrow!.className).toContain("border-white/50");
+    expect(arrow!.className).not.toContain("border-cyan-300");
+    await closePopover();
   });
 
   it("shows the spinner overlay when loading", async () => {
