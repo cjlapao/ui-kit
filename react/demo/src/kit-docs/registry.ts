@@ -30,7 +30,8 @@ export type DocCategory =
   | "Data"
   | "Charts"
   | "Feedback"
-  | "Overlays";
+  | "Overlays"
+  | "Utilities";
 
 export const DOC_CATEGORIES: DocCategory[] = [
   "Layout",
@@ -40,6 +41,7 @@ export const DOC_CATEGORIES: DocCategory[] = [
   "Charts",
   "Feedback",
   "Overlays",
+  "Utilities",
 ];
 
 export const DOC_COMPONENTS: DocComponent[] = [
@@ -899,6 +901,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Help",
     category: "Overlays",
     Page: lazy(() => import("./components/help-button/HelpButtonPage")),
+  },
+  {
+    slug: "utilities",
+    name: "Utilities",
+    description:
+      "The pure helpers exported from the package root — number/byte/date/duration formatters, parsers, SVG sanitizers and form-visibility logic, with live outputs computed from the real implementation.",
+    icon: "Library",
+    category: "Utilities",
+    Page: lazy(() => import("./components/utilities/UtilitiesPage")),
   },
 ];
 
