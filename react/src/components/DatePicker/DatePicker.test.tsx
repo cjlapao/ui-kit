@@ -181,6 +181,69 @@ describe("overlay", () => {
   });
 });
 
+describe("overlay width", () => {
+  /**
+   * jsdom reports zero rects, so the field and panel are mocked explicitly:
+   * the field instance directly, the panel (the `role="dialog"` div) via the
+   * prototype — it only exists once the portal mounts, before the first
+   * placement pass reads it.
+   */
+  const mockRect = (width: number) => ({
+    width,
+    height: 40,
+    top: 100,
+    bottom: 140,
+    left: 10,
+    right: 10 + width,
+    x: 10,
+    y: 100,
+    toJSON: () => ({}),
+  });
+
+  const originalRect = Element.prototype.getBoundingClientRect;
+
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = originalRect;
+  });
+
+  const patchPanelRect = (width: number) => {
+    // The hook measures the overlay wrapper div, not the inner dialog.
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      if (this.classList.contains("dp-date-picker-overlay")) {
+        return mockRect(width);
+      }
+      return originalRect.call(this);
+    };
+  };
+
+  it("caps the portaled overlay at 320px for wide fields", async () => {
+    render(<DatePicker />);
+    const field = input().closest("span") as HTMLElement;
+    field.getBoundingClientRect = () => mockRect(600);
+    patchPanelRect(300);
+    const wrapper = await openOverlay();
+    expect(wrapper.style.width).toBe("320px");
+  });
+
+  it("stretches to a medium-width field, up to the cap", async () => {
+    render(<DatePicker />);
+    const field = input().closest("span") as HTMLElement;
+    field.getBoundingClientRect = () => mockRect(300);
+    patchPanelRect(248);
+    const wrapper = await openOverlay();
+    expect(wrapper.style.width).toBe("300px");
+  });
+
+  it("keeps the natural panel width for narrow fields", async () => {
+    render(<DatePicker />);
+    const field = input().closest("span") as HTMLElement;
+    field.getBoundingClientRect = () => mockRect(120);
+    patchPanelRect(248);
+    const wrapper = await openOverlay();
+    expect(wrapper.style.width).toBe("248px");
+  });
+});
+
 describe("selection — single", () => {
   it("commits a picked day, updates the text and closes", async () => {
     const onChange = vi.fn();

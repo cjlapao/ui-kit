@@ -36,6 +36,16 @@ const viewportBounds = (): RectBounds => ({
   height: window.innerHeight,
 });
 
+/**
+ * Ceiling for the overlay width. The calendar content (a 7-column day grid of
+ * 32px cells) is ~248px at the default size; letting the panel stretch to the
+ * input's width — PrimeVue's `minWidth` behaviour — leaves the fixed day
+ * cells floating in a sparse table on wide fields. 320px (Tailwind `w-80`)
+ * still lets the panel match medium-width inputs, and keeps the grid tight
+ * beyond that.
+ */
+const MAX_WIDTH = 320;
+
 const isClippingParent = (el: HTMLElement): boolean =>
   /(auto|scroll|hidden|clip)/.test(
     [
@@ -103,9 +113,11 @@ export const useOverlayPosition = (
     const minMargin = 8;
 
     // The panel keeps its natural width unless the input is wider — PrimeVue
-    // does the same (`minWidth: input outer width`).
+    // does the same (`minWidth: input outer width`) — but the stretch is
+    // capped: beyond MAX_WIDTH the day grid would just be sparse columns.
     const width = Math.min(
       Math.max(anchorRect.width, panelRect.width),
+      MAX_WIDTH,
       boundary.width - minMargin * 2,
     );
     const height = panelRect.height;
