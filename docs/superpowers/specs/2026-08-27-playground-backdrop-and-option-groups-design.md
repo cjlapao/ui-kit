@@ -224,3 +224,36 @@ groups={[…]} />}`.
 - **`overflow-hidden` on the stage** when the backdrop is on: the stage
   already renders rounded corners via the parent Panel; the class only
   clips the image to the stage, as in legacy.
+
+## 8. Extension — backdrop type + gradient templates (approved 2026-08-27)
+
+**Requirement (verbatim intent):** keep the background toggle; when on, add a
+select to pick the backdrop — the demo image (default) or a gradient; when
+gradient, a second select picks one of several muted templates (default
+Slate). The templates stand in for real app backgrounds, deliberately
+"nothing very colourful", so glass/translucent components can be judged as
+they would be in product.
+
+**Header layout:** `Background image [toggle]` then, only while on, two
+compact kit `Select`s — type (`Image` | `Gradient`, default Image) and,
+only in gradient mode, template (default Slate). Selects are wrapped in
+fixed-width divs (`w-28` / `w-32`) because the kit `Select` hardcodes
+`w-full` on its wrapper.
+
+**Templates:** each entry carries light + dark CSS (linear base + one soft
+radial highlight), swapped by `useTheme()` exactly like the demo photo.
+No new image assets. Current set (muted neutrals): `slate` (default),
+`mist`, `stone`, `dune`, `fog`, `graphite`. `GRADIENT_TEMPLATES` is
+exported from `PlaygroundPanel.tsx` for easy extension.
+
+**Stage:** image mode → unchanged `backgroundImage` + `bg-cover bg-center
+bg-no-repeat`; gradient mode → `style={{ background: template }}`.
+
+**Scope:** single-file change (`PlaygroundPanel.tsx`); all 79 playgrounds
+inherit it. `GlassBackground` keeps `hideBackgroundToggle` (no selects).
+
+**Verification:** tsc clean (only pre-existing kit-utils WIP errors remain
+outside the demo), `vite build` clean, headless screenshots — image
+default, Slate light, Graphite light, Slate dark; template select verified
+absent in image mode and defaulted to `slate` in gradient mode; selects
+appear only while the toggle is on.
