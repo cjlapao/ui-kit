@@ -611,3 +611,8 @@ The phase machine (`closed → entering → open → leaving → closed`) only a
 ## Virtual time never fires `animationend`, and CDP ignores the reduced-motion flag
 
 Extending the GlassBackground lesson: under `--virtual-time-budget`, Chrome fast-forwards `setTimeout` but does not complete CSS animations — so a component that *unmounts on `animationend`* (DatePicker, Popover) is permanently frozen in its `--enter` class in a virtual-time DOM dump, while a real browser settles it in 300ms. And `--force-prefers-reduced-motion` is not honoured when the browser is launched over CDP: `prefers-reduced-motion` still reports false. Verify animation-driven state machines in real time (Playwright `waitForTimeout`), and force reduced motion with `page.emulateMedia({ reducedMotion: "reduce" })` — the CDP media emulation is the only path that flips both the media query and the computed `animation-duration`.
+
+
+## `getBoundingClientRect` lies while a transform is running
+
+The Popover's first placement measurement ran in the same layout effect that started the enter animation — and `getBoundingClientRect` reports the *transformed* box. During the 300 ms enter the overlay is `scale(0.93)`, so the geometry saw a 7 %-smaller panel: grow-aligned boxes missed the trigger's edge by up to 21 px, and the error was invisible in jsdom (no compositor, no transforms) and in tests (mocked rects). What made it subtle: the `ResizeObserver` never corrected it, because it watches the *layout* box, which never changed — only the painted box did. Measure layout (`offsetWidth`/`offsetHeight`) for placement maths, and the bbox fallback only for environments without layout. The same bug was latent in the DatePicker's overlay, which shares the 0.93 enter scale.

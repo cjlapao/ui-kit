@@ -92,6 +92,13 @@ export const useOverlayPosition = (
 
     const anchorRect = anchor.getBoundingClientRect();
     const panelRect = panel.getBoundingClientRect();
+    // `getBoundingClientRect` reports the *transformed* box, and during
+    // enter/leave the overlay is scaled (0.93) — the first measurement would
+    // see a 7 %-smaller panel and clamp/flip against the wrong size. Read the
+    // layout size instead; jsdom has no layout (offsets are 0), and the
+    // mocked bbox is already untransformed, so the fallback is exact there.
+    const panelWidth = panel.offsetWidth || panelRect.width;
+    const panelHeight = panel.offsetHeight || panelRect.height;
     const boundary = resolveBoundaryBounds(anchor);
     const zIndex = resolveOverlayZIndex(anchor);
     const offset = 4;
@@ -101,11 +108,11 @@ export const useOverlayPosition = (
     // does the same (`minWidth: input outer width`) — but the stretch is
     // capped: beyond MAX_WIDTH the day grid would just be sparse columns.
     const width = Math.min(
-      Math.max(anchorRect.width, panelRect.width),
+      Math.max(anchorRect.width, panelWidth),
       MAX_WIDTH,
       boundary.width - minMargin * 2,
     );
-    const height = panelRect.height;
+    const height = panelHeight;
 
     const belowTop = anchorRect.bottom + offset;
     const aboveTop = anchorRect.top - offset - height;

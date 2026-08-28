@@ -238,4 +238,94 @@ describe("tooltip placement", () => {
       expect(r.caret).toBeLessThanOrEqual(TOOLTIP.height);
     });
   });
+
+  describe("grow alignment (popovers)", () => {
+    const grow = (
+      preferred: TooltipPosition,
+      cx: number,
+      cy: number,
+      overrides: Partial<Parameters<typeof resolveTooltipPlacement>[0]> = {},
+    ) => place(preferred, cx, cy, { align: "grow", ...overrides });
+
+    it("grows right, aligning the left edge to the trigger's left edge", () => {
+      // A 100 px trigger at centre-left, a 200 px box: room on both sides, so
+      // it grows right — left edge on the trigger's left edge (450), which is
+      // NOT the centred position (400).
+      const t = trigger(500, 400);
+      const r = grow("bottom", 500, 400);
+      expect(r.side).toBe("bottom");
+      expect(r.left).toBe(t.left);
+      expect(r.left).not.toBe(500 - TOOLTIP.width / 2);
+    });
+
+    it("grows left when the box does not fit on the right", () => {
+      // Trigger near the right edge: a 200 px box from x=800 would run past
+      // the viewport, so it grows left — right edge on the trigger's right.
+      const t = trigger(850, 400);
+      const r = grow("bottom", 850, 400);
+      expect(r.side).toBe("bottom");
+      expect(r.left).toBe(t.left + t.width - TOOLTIP.width);
+    });
+
+    it("clamps the box in bounds when neither side fits", () => {
+      // Box (900 px) wider than the room on either side of the trigger: it
+      // still must stay on screen, pinned to the margin.
+      const r = resolveTooltipPlacement({
+        trigger: trigger(830, 400, 40, 30),
+        tooltip: { width: 900, height: 40 },
+        viewport: VIEWPORT,
+        preferred: "bottom",
+        align: "grow",
+        margin: 8,
+      });
+      expect(r.left).toBeGreaterThanOrEqual(8);
+      expect(r.left + 900).toBeLessThanOrEqual(VIEWPORT.width - 8);
+    });
+
+    it("grows up or down along the trigger for side placements", () => {
+      // Plenty of room below → top edge on the trigger's top edge.
+      const downT = trigger(500, 200);
+      const down = grow("right", 500, 200);
+      expect(down.top).toBe(downT.top);
+
+      // Trigger near the bottom edge → grows up, bottom edge aligned.
+      const upT = trigger(500, 770);
+      const up = resolveTooltipPlacement({
+        trigger: upT,
+        tooltip: TOOLTIP,
+        viewport: VIEWPORT,
+        preferred: "right",
+        align: "grow",
+        margin: 8,
+      });
+      expect(up.top).toBe(upT.top + upT.height - TOOLTIP.height);
+    });
+
+    it("keeps the caret on the trigger's centre after growth and clamping", () => {
+      // Grew left: the caret still lands on the trigger's centre x.
+      const t = trigger(850, 400);
+      const r = grow("bottom", 850, 400);
+      expect(r.caret).toBeCloseTo(t.left + t.width / 2 - r.left, 5);
+
+      // Hard against the left edge: the box pins to the margin and the caret
+      // clamps to the inset rather than pointing off the box.
+      const clamped = resolveTooltipPlacement({
+        trigger: trigger(10, 400, 40, 30),
+        tooltip: { width: 900, height: 40 },
+        viewport: VIEWPORT,
+        preferred: "bottom",
+        align: "grow",
+        margin: 8,
+        caretInset: 10,
+      });
+      expect(clamped.left).toBe(8);
+      expect(clamped.caret).toBe(10);
+    });
+
+    it("does not change the centre-aligned default", () => {
+      const centred = place("bottom", 500, 400);
+      const explicit = place("bottom", 500, 400, { align: "center" });
+      expect(centred).toEqual(explicit);
+    });
+  });
 });

@@ -73,6 +73,11 @@ export interface PopoverProps {
    * perpendiculars — the shared placement geometry, so the arrow keeps
    * pointing at the trigger after any clamping. `auto` uses the canonical
    * `bottom` side as the preference.
+   *
+   * The box grows away from the trigger toward the side that has room
+   * (`align: "grow"`): right, with its left edge on the trigger's left edge,
+   * or left, with its right edge on the trigger's right edge — a popover
+   * reads as anchored to the button it came from, not centred over it.
    * @default "auto"
    */
   placement?: PopoverPlacement;
@@ -148,6 +153,16 @@ const ARROW_HALF = ARROW_SIZE / 2;
 const PLACEMENT_OFFSET = 8;
 /** Minimum distance to every viewport edge. */
 const VIEWPORT_MARGIN = 8;
+/**
+ * The edge-notch strip that erases the panel's border/ring segment behind
+ * the arrow, so the edge reads as *stopping* at the V instead of running on
+ * past it (a speech-bubble join). 24 px spans the diamond's full footprint
+ * at the edge line (16√2 ≈ 22.6 px) plus antialiasing slack; 2 px straddles
+ * the 1 px edge so both a real border and an outset ring are covered.
+ */
+const NOTCH_SPAN = 24;
+const NOTCH_HALF = NOTCH_SPAN / 2;
+const NOTCH_THICKNESS = 2;
 
 type OverlayPhase = "closed" | "entering" | "open" | "leaving";
 
@@ -330,8 +345,16 @@ const Popover: React.FC<PopoverProps> = ({
     if (!wrapper || !anchor) return;
     const anchorRect = anchor.getBoundingClientRect();
     const wrapperRect = wrapper.getBoundingClientRect();
+    // `getBoundingClientRect` reports the *transformed* box, and during
+    // enter/leave the overlay is scaled (0.93) — the first measurement would
+    // see a 7 %-smaller panel and every grow alignment would miss its edge.
+    // Read the layout size, which transforms don't touch; in jsdom there is
+    // no layout (offsets are 0), and the mocked bbox is already untransformed,
+    // so the fallback is exact there.
+    const wrapperWidth = wrapper.offsetWidth || wrapperRect.width;
+    const wrapperHeight = wrapper.offsetHeight || wrapperRect.height;
     // Unlaid-out (jsdom) or zero-sized boxes would poison the maths.
-    if (wrapperRect.width === 0 || wrapperRect.height === 0) return;
+    if (wrapperWidth === 0 || wrapperHeight === 0) return;
 
     const resolved = resolveTooltipPlacement({
       trigger: {
@@ -340,12 +363,15 @@ const Popover: React.FC<PopoverProps> = ({
         width: anchorRect.width,
         height: anchorRect.height,
       },
-      tooltip: { width: wrapperRect.width, height: wrapperRect.height },
+      tooltip: { width: wrapperWidth, height: wrapperHeight },
       viewport: { width: window.innerWidth, height: window.innerHeight },
       preferred: placement === "auto" ? "bottom" : placement,
       offset: PLACEMENT_OFFSET,
       margin: VIEWPORT_MARGIN,
       caretInset: cornerRadiusPx(corner) + 8,
+      // Edge-aligned growth, not centre-aligned: the panel anchors to the
+      // trigger's edge and grows toward the side with room.
+      align: "grow",
     });
 
     setPosition({
@@ -522,6 +548,42 @@ const Popover: React.FC<PopoverProps> = ({
     }
   })();
 
+  /** The notch straddles the same edge the arrow rides, centred on the caret. */
+  const notchStyle: CSSProperties = (() => {
+    if (!position) return {};
+    const { side, caret } = position.placement;
+    switch (side) {
+      case "bottom":
+        return {
+          top: -(NOTCH_THICKNESS / 2),
+          left: caret - NOTCH_HALF,
+          width: NOTCH_SPAN,
+          height: NOTCH_THICKNESS,
+        };
+      case "top":
+        return {
+          bottom: -(NOTCH_THICKNESS / 2),
+          left: caret - NOTCH_HALF,
+          width: NOTCH_SPAN,
+          height: NOTCH_THICKNESS,
+        };
+      case "left":
+        return {
+          right: -(NOTCH_THICKNESS / 2),
+          top: caret - NOTCH_HALF,
+          width: NOTCH_THICKNESS,
+          height: NOTCH_SPAN,
+        };
+      case "right":
+        return {
+          left: -(NOTCH_THICKNESS / 2),
+          top: caret - NOTCH_HALF,
+          width: NOTCH_THICKNESS,
+          height: NOTCH_SPAN,
+        };
+    }
+  })();
+
   const showSkeleton = loading && loaderType === "skeleton";
 
   return (
@@ -551,17 +613,44 @@ const Popover: React.FC<PopoverProps> = ({
             style={overlayStyle}
           >
             {arrow && position && (
-              <span
-                aria-hidden="true"
-                className={classNames(
-                  "pointer-events-none absolute block h-4 w-4 rotate-45",
-                  ARROW_SIDE_BORDERS[position.placement.side],
-                  chrome.border,
-                  chrome.fill,
-                  chrome.backdrop,
-                )}
-                style={arrowStyle}
-              />
+              <>
+                {/*
+                  Edge notch, painted OVER the panel (z-10): it erases the
+                  border/ring segment the arrow would otherwise sit on, so the
+                  edge stops at the V — the speech-bubble join. It wears the
+                  panel's own fill (and, for glass, its backdrop — whose blur
+                  dissolves the 1 px line across the strip), so it melts into
+                  the surface instead of reading as a patch.
+                */}
+                <span
+                  aria-hidden="true"
+                  data-popover-notch
+                  className={classNames(
+                    "pointer-events-none absolute z-10",
+                    chrome.fill,
+                    chrome.backdrop,
+                  )}
+                  style={notchStyle}
+                />
+                {/*
+                  The arrow must paint over the panel (z-20) — as a DOM
+                  sibling it would sit *under* the panel's fill and border,
+                  and the edge would run straight through the V. Its two
+                  visible sides carry the panel's edge colour, so the join
+                  reads as one shape. (The Loader's z-50 stays above both.)
+                */}
+                <span
+                  aria-hidden="true"
+                  className={classNames(
+                    "pointer-events-none absolute z-20 block h-4 w-4 rotate-45",
+                    ARROW_SIDE_BORDERS[position.placement.side],
+                    chrome.border,
+                    chrome.fill,
+                    chrome.backdrop,
+                  )}
+                  style={arrowStyle}
+                />
+              </>
             )}
             {/*
               The surface is a real, PASSIVE `Panel`: `padding="none"` +

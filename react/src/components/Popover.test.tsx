@@ -125,12 +125,69 @@ describe("Popover", () => {
     const w = overlay() as HTMLElement;
     const arrow = w.querySelector<HTMLElement>(".rotate-45");
     expect(arrow).not.toBeNull();
-    // Trigger centre x = 550; clamped box left = 400 → caret 150 → 142.
+    // Trigger centre x = 550; grow box left = 400 → caret 150 → 142.
     expect(arrow!.style.left).toBe("142px");
     expect(arrow!.style.top).toBe("-8px");
     // Bottom side: the visible V is the square's top + left borders.
     expect(arrow!.className).toContain("border-t");
     expect(arrow!.className).toContain("border-l");
+    // The arrow paints over the panel, so the edge cannot run through the V.
+    expect(arrow!.className).toContain("z-20");
+  });
+
+  it("notches the panel edge at the caret so the border stops at the V", async () => {
+    renderPopover();
+    await openPopover();
+    const w = overlay() as HTMLElement;
+    const notch = w.querySelector<HTMLElement>("[data-popover-notch]");
+    expect(notch).not.toBeNull();
+    // Bottom side, caret 150: a 24 × 2 strip centred on the caret,
+    // straddling the top edge, painted over the panel with its fill.
+    expect(notch!.style.left).toBe("138px");
+    expect(notch!.style.top).toBe("-1px");
+    expect(notch!.style.width).toBe("24px");
+    expect(notch!.style.height).toBe("2px");
+    expect(notch!.className).toContain("z-10");
+    expect(notch!.className).toContain("bg-white");
+  });
+
+  it("aligns the box edge to the trigger's edge, not its centre (grow)", async () => {
+    const { container } = renderPopover();
+    const trigger = screen.getByRole("button", { name: /Toggle/ });
+    // A 100 px trigger at (400, 400) with the default 300 px box: centre
+    // alignment would land at x=300; grow alignment lands at x=400 (the
+    // trigger's left edge), because the box fits on the right.
+    rects.set(trigger, makeRect({ top: 400, left: 400, width: 100, height: 40 }));
+    fireEvent.click(trigger);
+    const w = overlay();
+    expect(w).not.toBeNull();
+    await completeOverlayPhase(w as Element, "entering");
+    const positioned = overlay() as HTMLElement;
+    expect(positioned).toHaveAttribute("data-placement", "bottom");
+    expect(positioned.style.left).toBe("400px");
+    // Caret tracks the trigger centre (450): 450 − 400 = 50 → arrow 50 − 8.
+    const arrow = positioned.querySelector<HTMLElement>(".rotate-45");
+    expect(arrow!.style.left).toBe("42px");
+    expect(container).toBeDefined();
+  });
+
+  it("grows left when the box does not fit on the right", async () => {
+    const { container } = renderPopover();
+    const trigger = screen.getByRole("button", { name: /Toggle/ });
+    // Trigger at (800, 400)–(900, 440): a 300 px box to the right would
+    // cross the 1024 px viewport, so it grows left — right edge on the
+    // trigger's right edge → left = 900 − 300 = 600 (centre would be 700).
+    rects.set(trigger, makeRect({ top: 400, left: 800, width: 100, height: 40 }));
+    fireEvent.click(trigger);
+    const w = overlay();
+    expect(w).not.toBeNull();
+    await completeOverlayPhase(w as Element, "entering");
+    const positioned = overlay() as HTMLElement;
+    expect(positioned.style.left).toBe("600px");
+    // Caret still on the trigger centre (850) → 850 − 600 = 250.
+    const arrow = positioned.querySelector<HTMLElement>(".rotate-45");
+    expect(arrow!.style.left).toBe("242px");
+    expect(container).toBeDefined();
   });
 
   it("hides the arrow with arrow={false}", async () => {
