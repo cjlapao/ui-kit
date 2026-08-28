@@ -912,6 +912,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/help-button/HelpButtonPage")),
   },
   {
+    slug: "popover",
+    name: "Popover",
+    description:
+      "A floating panel anchored to any trigger — an arrow that tracks the trigger, every container surface with glass and liquid-glass, flip-aware placement, dismissable/Escape control and the shared loader set.",
+    icon: "Chat",
+    category: "Overlays",
+    Page: lazy(() => import("./components/popover/PopoverPage")),
+  },
+  {
     slug: "utilities",
     name: "Utilities",
     description:

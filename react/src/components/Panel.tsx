@@ -191,6 +191,81 @@ const GLASS_RIM = "border-white/50 dark:border-white/10";
 /** Variants whose surface is see-through, so they get a specular top edge. */
 const GLASS_VARIANTS: PanelVariant[] = ["glass", "liquid-glass", "default"];
 
+export type PanelEdgeChrome = {
+  /** The edge's surface fill — what the fragment behind the rim is painted with. */
+  fill: string;
+  /** Border colour classes for the arrow's two visible sides. */
+  border: string;
+  /** Backdrop treatment (blur + vibrancy) for the translucent variants. */
+  backdrop: string;
+};
+
+/**
+ * A surface's edge chrome as a standalone fragment — the Popover's
+ * rotated-square arrow must read as a continuation of the panel's own edge,
+ * so it takes the fill, rim and backdrop from the same tokens the variant
+ * branches above use instead of a second, drifting home of "what an edge
+ * looks like". The caller applies the side-specific border widths
+ * (`border-t border-l`, …); this returns colour and paint only, so one
+ * fragment can never emit two widths for one property (§5.1).
+ *
+ * The ring-based variants (elevated, subtle) are mirrored as *borders* of the
+ * same colour: a ring is a full box-shadow and cannot give the arrow its two
+ * visible sides, while the hidden half of a full border would show through a
+ * translucent panel.
+ */
+export const getPanelEdgeChrome = (
+  variant: SurfaceVariant,
+  tone: TrueColor,
+  glassOpacity: GlassOpacity = "frosted",
+  vibrancy: GlassVibrancy = "medium",
+): PanelEdgeChrome => {
+  const palette = getPanelToneStyles(tone);
+  switch (variant) {
+    case "outlined":
+      return {
+        fill: "bg-white/90 dark:bg-neutral-900/80",
+        border: palette.outlineBorder,
+        backdrop: "",
+      };
+    case "subtle":
+      return {
+        fill: palette.subtleBg,
+        border: "border-transparent dark:border-white/5",
+        backdrop: "",
+      };
+    case "tonal":
+      return { fill: palette.tonalBg, border: "border-transparent", backdrop: "" };
+    case "default":
+      return {
+        fill: "bg-white/80 dark:bg-neutral-900/70",
+        border: GLASS_RIM,
+        backdrop: "backdrop-blur-xl",
+      };
+    case "glass":
+      return {
+        fill: palette.glassBg,
+        border: GLASS_RIM,
+        backdrop: "backdrop-blur-xl",
+      };
+    case "liquid-glass":
+      return {
+        fill: getSurfaceGlassFillClass(tone, glassOpacity),
+        border: palette.liquidBorder,
+        backdrop: `backdrop-blur-2xl ${getGlassVibrancyClass(vibrancy)}`,
+      };
+    case "simple":
+      return { fill: palette.tonalBg, border: "border-transparent", backdrop: "" };
+    case "elevated":
+    default:
+      return {
+        fill: "bg-white dark:bg-neutral-900",
+        border: "border-black/5 dark:border-white/10",
+        backdrop: "",
+      };
+  }
+};
+
 /**
  * Re-exported from the theme for `CollapsiblePanel` and `TimelinePanel`, which
  * import the map directly rather than taking a Panel.

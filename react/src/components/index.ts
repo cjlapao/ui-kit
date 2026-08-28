@@ -434,6 +434,18 @@ export {
   type DropdownMenuOption,
 } from "./DropdownMenu";
 
+// Popover
+export {
+  default as Popover,
+  POPOVER_PLACEMENTS,
+  type PopoverLoaderType,
+  type PopoverPlacement,
+  type PopoverProps,
+} from "./Popover";
+
+// Panel edge chrome (the Popover arrow's source of edge paint)
+export { getPanelEdgeChrome, type PanelEdgeChrome } from "./Panel";
+
 // User
 export {
   default as UserAvatar,

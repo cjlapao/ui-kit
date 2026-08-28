@@ -27,6 +27,7 @@ import {
   PROGRESS_MOTIONS,
   PILL_CORNERS,
   PILL_VARIANTS,
+  POPOVER_PLACEMENTS,
   SURFACE_CORNERS,
   SURFACE_PADDINGS,
   OTP_VARIANTS,
@@ -200,6 +201,10 @@ export const glassOpacityOptions: { label: string; value: string }[] = [
 
 /** Every palette tone, for the tone selects (a MultiToggle row would overflow). */
 export const trueColorOptions = toOptions(TRUE_COLORS);
+
+// ── Popover ─────────────────────────────────────────────────────────────────
+/** Placement preference — derived from the kit's runtime list. */
+export const popoverPlacementOptions = toOptions(POPOVER_PLACEMENTS);
 
 // ── DatePicker ──────────────────────────────────────────────────────────────
 /** Single or range selection — derived from the kit's runtime list. */

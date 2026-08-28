@@ -5,6 +5,7 @@ import {
   useState,
   type RefObject,
 } from "react";
+import { resolveOverlayZIndex } from "../../../../common/utils/overlayZIndex";
 
 /**
  * Fixed positioning for a portaled overlay, mirroring `Picker`/`DropdownMenu`
@@ -74,22 +75,6 @@ const resolveBoundaryBounds = (anchor: HTMLElement): RectBounds => {
   return viewportBounds();
 };
 
-const resolveZIndex = (anchor: HTMLElement): number => {
-  let node: HTMLElement | null = anchor;
-  let highest: number | null = null;
-  while (node && node !== document.body) {
-    const z = getComputedStyle(node).zIndex;
-    if (z && z !== "auto") {
-      const n = Number(z);
-      if (Number.isFinite(n)) {
-        highest = highest === null ? n : Math.max(highest, n);
-      }
-    }
-    node = node.parentElement;
-  }
-  return Math.max(1, (highest ?? 20) + 1);
-};
-
 export const useOverlayPosition = (
   anchorRef: RefObject<HTMLElement | null>,
   panelRef: RefObject<HTMLElement | null>,
@@ -108,7 +93,7 @@ export const useOverlayPosition = (
     const anchorRect = anchor.getBoundingClientRect();
     const panelRect = panel.getBoundingClientRect();
     const boundary = resolveBoundaryBounds(anchor);
-    const zIndex = resolveZIndex(anchor);
+    const zIndex = resolveOverlayZIndex(anchor);
     const offset = 4;
     const minMargin = 8;
 

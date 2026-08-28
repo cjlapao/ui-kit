@@ -598,3 +598,16 @@ Every dashboard tile carried a delete button pinned to its top-right corner — 
 The fix was not a better backdrop. It was to take the action off the content: a drop zone that appears only while something is being dragged, in a corner the component owns. That removes the overlap problem, the legibility problem and the always-armed-destructive-control problem in one move.
 
 When a control needs a backdrop to survive the content underneath it, ask whether it belongs on that content at all.
+
+
+## An arrow's caret must clear the corner radius
+
+`Popover`'s arrow is a rotated square centred on the panel edge at the caret x. Left free, near the panel corners the diamond's centre lands inside the rounded region and the arrow visibly floats off the curve. The caret needs an inset of `cornerRadius + 8px` before it is clamped to the viewport — the 8px is half the arrow plus breathing room. The inset depends on the *configured* corner, so it comes from the same token the panel uses to round itself; hardcoding a "small" inset is a bug that only shows at `rounded-xl`.
+
+## Completing a leave animation before asking for it tests nothing
+
+The phase machine (`closed → entering → open → leaving → closed`) only adds the `--leave` class *after* a close intent lands. A test that dispatches a synthetic `animationend` for the leave phase without first triggering close finds the component still in `open` and the assertion fails on the class list — even though the component is correct. The helper must be two steps: initiate the close (click the trigger, or call the dismiss path), *then* complete the leave phase. A one-step "close it" helper hides the contract and turns every fixture into a mystery failure.
+
+## Virtual time never fires `animationend`, and CDP ignores the reduced-motion flag
+
+Extending the GlassBackground lesson: under `--virtual-time-budget`, Chrome fast-forwards `setTimeout` but does not complete CSS animations — so a component that *unmounts on `animationend`* (DatePicker, Popover) is permanently frozen in its `--enter` class in a virtual-time DOM dump, while a real browser settles it in 300ms. And `--force-prefers-reduced-motion` is not honoured when the browser is launched over CDP: `prefers-reduced-motion` still reports false. Verify animation-driven state machines in real time (Playwright `waitForTimeout`), and force reduced motion with `page.emulateMedia({ reducedMotion: "reduce" })` — the CDP media emulation is the only path that flips both the media query and the computed `animation-duration`.
