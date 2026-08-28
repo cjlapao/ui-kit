@@ -8,6 +8,8 @@ import RichContent from "./examples/RichContent";
 import richContentCode from "./examples/RichContent.tsx?raw";
 import EverySurface from "./examples/EverySurface";
 import everySurfaceCode from "./examples/EverySurface.tsx?raw";
+import BubbleIndicator from "./examples/BubbleIndicator";
+import bubbleIndicatorCode from "./examples/BubbleIndicator.tsx?raw";
 import EveryTone from "./examples/EveryTone";
 import everyToneCode from "./examples/EveryTone.tsx?raw";
 import PlacementFlip from "./examples/PlacementFlip";
@@ -23,7 +25,7 @@ export const PopoverPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Popover"
-      description="A floating panel anchored to any trigger — an arrow that tracks the trigger through every clamp, all eight container surfaces with glass and liquid-glass, flip-aware placement, dismissable/Escape control, and the shared loader set."
+      description="A floating panel anchored to any trigger — an arrow (or a detached bubble dot) that tracks the trigger through every clamp, all eight container surfaces with glass and liquid-glass, flip-aware placement, dismissable/Escape control, and the shared loader set."
     />
     <PopoverPlayground />
     <section className="flex flex-col gap-5">
@@ -54,6 +56,15 @@ export const PopoverPage: React.FC = () => (
         previewClassName="bg-gradient-to-br from-sky-100 via-indigo-100 to-fuchsia-100 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900"
       >
         <EverySurface />
+      </ExampleCard>
+      <ExampleCard
+        title="Bubble indicator"
+        description={"arrow=\"bubble\" replaces the speech-bubble arrow with a detached dot floating in the trigger↔panel gap — a bead of the panel's own surface, edge left unbroken. Each pair shows the two indicators on the same surface."}
+        code={bubbleIndicatorCode}
+        filename="BubbleIndicator.tsx"
+        previewClassName="bg-gradient-to-br from-sky-100 via-indigo-100 to-fuchsia-100 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900"
+      >
+        <BubbleIndicator />
       </ExampleCard>
       <ExampleCard
         title="Every tone"

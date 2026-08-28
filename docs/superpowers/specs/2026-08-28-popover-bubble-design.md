@@ -30,13 +30,15 @@ The user asked for a second, selectable indicator style to compare.
 - **The offset is part of the fit maths.** `resolveTooltipPlacement` receives
   `offset: arrowMode === "bubble" ? BUBBLE_OFFSET : PLACEMENT_OFFSET`, so
   flip/side decisions account for the extra room the bubble needs.
-- **The dot is placed from the *actual* gap**, not the nominal one — after
-  clamping the gap can be smaller than 24. Per side, with the resolved box
-  rect and the trigger rect:
+- **The dot is placed from the *actual* gap**, not the nominal one. (The
+  shared geometry never clamps the pointing axis — it must stay adjacent to
+  the trigger — so in practice the gap is always the offset; measuring it
+  from the resolved rects keeps the dot correct if that ever changes.)
+  Per side, with the resolved box rect and the trigger rect:
   - `gap` = distance between the trigger's facing edge and the box's facing
     edge (e.g. `box.top − trigger.bottom` for `bottom`).
-  - `dotSize = clamp(gap − 2·BUBBLE_CLEARANCE, 4, BUBBLE_SIZE)` — the dot
-    shrinks to fit a squeezed gap (floor 4 px).
+  - `dotSize = clamp(gap − 2·BUBBLE_CLEARANCE, 4, BUBBLE_SIZE)` — defensive
+    floor/ceiling; `BUBBLE_SIZE` in practice.
   - Centre: along the caret axis at the caret (same trigger-centre tracking
     as the arrow); across, at the gap midpoint.
   - Style per side (`bottom` shown; `top` mirrors, `left`/`right` swap axes):
@@ -62,12 +64,14 @@ The user asked for a second, selectable indicator style to compare.
 
 - `arrow="bubble"`: box sits at the 24 px offset (bottom: `top = trigger.bottom + 24`);
   dot present with `left = caret − 6`, `top = −18`, 12 px, `rounded-full`,
-  variant's edge colour; **no** `[data-popover-notch]`.
-- Dot shrink: a trigger 500 px tall at `top: 100` in the 768 px jsdom viewport
-  fits on neither side; the box clamps to `top: 600` (trigger bottom), the gap
-  is 0 → dot clamps to the 4 px floor and stays positioned.
-- `arrow={false}`: neither arrow nor dot. Default (`true`): unchanged arrow
-  (existing tests guard this).
+  variant's edge colour; **no** `[data-popover-notch]`, no `.rotate-45`.
+- Caret tracking: narrow trigger + wide box (grow alignment moves the box
+  off-centre) — the dot still sits on the trigger's centre (`left = 44`, not
+  the box-centre position).
+- Flip: trigger near the viewport bottom → `top` side, box at `trigger.top − 24 − height`,
+  dot below the panel edge at `+gap/2 − half` (`top: 6px`).
+- `arrow={false}`: neither arrow, dot, nor notch. Default (`true`): unchanged
+  arrow (existing tests guard this).
 
 ## Out of scope
 

@@ -56,6 +56,12 @@ const MAX_WIDTHS = [
   { label: "480px", value: "480" },
 ];
 
+const ARROW_OPTIONS = [
+  { label: "Arrow (speech-bubble)", value: "arrow" },
+  { label: "Bubble (detached dot)", value: "bubble" },
+  { label: "None", value: "none" },
+];
+
 /**
  * The popover is a fixed overlay, so the preview is the trigger plus a hint
  * and a current-settings block. Short lists use MultiToggles; the long ones
@@ -68,7 +74,7 @@ export const PopoverPlayground: React.FC = () => {
   const [padding, setPadding] = useState<SurfacePadding>("sm");
   const [placement, setPlacement] = useState<PopoverPlacement>("auto");
   const [maxWidth, setMaxWidth] = useState("320");
-  const [arrow, setArrow] = useState(true);
+  const [arrow, setArrow] = useState<boolean | "bubble">(true);
   const [dismissable, setDismissable] = useState(true);
   const [closeOnEscape, setCloseOnEscape] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -136,10 +142,13 @@ export const PopoverPlayground: React.FC = () => {
                       value={maxWidth}
                       onChange={setMaxWidth}
                     />
-                    <ToggleRow
-                      label="Arrow"
-                      checked={arrow}
-                      onChange={setArrow}
+                    <SelectControl
+                      label="Indicator"
+                      options={ARROW_OPTIONS}
+                      value={arrow === "bubble" ? "bubble" : arrow ? "arrow" : "none"}
+                      onChange={(v) =>
+                        setArrow(v === "none" ? false : v === "bubble" ? "bubble" : true)
+                      }
                     />
                   </>
                 ),
@@ -250,8 +259,13 @@ export const PopoverPlayground: React.FC = () => {
               <div className="space-y-1.5">
                 <p className="text-sm font-semibold">Popover content</p>
                 <p className="text-xs text-neutral-600 dark:text-neutral-300">
-                  This panel is a real Panel — {variant} / {tone} — with an
-                  arrow that keeps pointing at the trigger.
+                  This panel is a real Panel — {variant} / {tone} — with its
+                  {arrow === "bubble"
+                    ? " bubble dot floating in the gap"
+                    : arrow
+                      ? " arrow pointing at the trigger"
+                      : " edge unadorned"}
+                  .
                 </p>
               </div>
             </Popover>
@@ -262,7 +276,11 @@ export const PopoverPlayground: React.FC = () => {
               <p className="text-xs text-neutral-600 dark:text-neutral-300">
                 {variant} · {tone} · {corner} · {padding} · {placement} ·{" "}
                 {maxWidth}px
-                {arrow ? " · arrow" : " · no arrow"}
+                {arrow === "bubble"
+                  ? " · bubble"
+                  : arrow
+                    ? " · arrow"
+                    : " · no indicator"}
                 {dismissable ? "" : " · non-dismissable"}
                 {closeOnEscape ? "" : " · Escape ignored"}
                 {loading ? ` · loading (${loaderType})` : ""}

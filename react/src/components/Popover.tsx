@@ -91,8 +91,13 @@ export interface PopoverProps {
   padding?: SurfacePadding;
   /** Content-sized below this cap, which is itself capped at the viewport. @default 320 */
   maxWidth?: number;
-  /** The rotated-square arrow that points at the trigger. @default true */
-  arrow?: boolean;
+  /**
+   * The indicator that connects the panel to the trigger:
+   * the classic rotated-square arrow, or the detached "thinking-bubble"
+   * dot that floats in the gap. `true` is the arrow (the default).
+   * @default true
+   */
+  arrow?: boolean | "bubble";
   /** Close on a click outside the trigger and the popover. @default true */
   dismissable?: boolean;
   /** Close on Escape, returning focus to the trigger. @default true */
@@ -174,6 +179,23 @@ const NOTCH_SPAN = 24;
 const NOTCH_HALF = NOTCH_SPAN / 2;
 const NOTCH_THICKNESS = 2;
 
+/* ------------------------------------------------------------------ */
+/*  Bubble (thinking-bubble) indicator                                  */
+/* ------------------------------------------------------------------ */
+
+/** Diameter of the detached dot. Smaller than the ~22 px arrow diamond. */
+const BUBBLE_SIZE = 12;
+/**
+ * Trigger↔panel gap in bubble mode, vs `PLACEMENT_OFFSET` (8 px) for the
+ * arrow. The extra room is what lets the dot float detached from both the
+ * panel edge and the trigger. Must equal BUBBLE_SIZE + 2·BUBBLE_CLEARANCE.
+ */
+const BUBBLE_OFFSET = 24;
+/** Free space kept around the dot on each side of the gap. */
+const BUBBLE_CLEARANCE = 6;
+/** The dot's floor when the gap is squeezed by clamping. */
+const BUBBLE_MIN = 4;
+
 type OverlayPhase = "closed" | "entering" | "open" | "leaving";
 
 /**
@@ -251,6 +273,10 @@ const Popover: React.FC<PopoverProps> = ({
 }) => {
   const popoverId = useId();
 
+  /** Normalise `arrow?: boolean | "bubble"` to a three-state mode. */
+  const arrowMode: "arrow" | "bubble" | "none" =
+    arrow === "bubble" ? "bubble" : arrow ? "arrow" : "none";
+
   const isControlled = visible !== undefined;
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = isControlled ? visible : uncontrolledOpen;
@@ -262,6 +288,8 @@ const Popover: React.FC<PopoverProps> = ({
   const [position, setPosition] = useState<{
     style: CSSProperties;
     placement: TooltipPlacement;
+    /** Trigger↔panel distance on the caret axis, for the bubble dot. */
+    bubbleGap: number;
   } | null>(null);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -376,13 +404,37 @@ const Popover: React.FC<PopoverProps> = ({
       tooltip: { width: wrapperWidth, height: wrapperHeight },
       viewport: { width: window.innerWidth, height: window.innerHeight },
       preferred: placement === "auto" ? "bottom" : placement,
-      offset: PLACEMENT_OFFSET,
+      // The bubble needs its extra floating room, so the fit/flip maths must
+      // account for the wider gap or the panel would flip too late.
+      offset: arrowMode === "bubble" ? BUBBLE_OFFSET : PLACEMENT_OFFSET,
       margin: VIEWPORT_MARGIN,
       caretInset: cornerRadiusPx(corner) + 8,
       // Edge-aligned growth, not centre-aligned: the panel anchors to the
       // trigger's edge and grows toward the side with room.
       align: "grow",
     });
+
+    // The dot floats in the ACTUAL gap, not the nominal offset — clamping
+    // can squeeze the gap, so measure the distance between the trigger's
+    // facing edge and the box's facing edge after resolution.
+    const box = {
+      top: resolved.top,
+      left: resolved.left,
+      width: wrapperWidth,
+      height: wrapperHeight,
+    };
+    const bubbleGap = (() => {
+      switch (resolved.side) {
+        case "bottom":
+          return box.top - (anchorRect.top + anchorRect.height);
+        case "top":
+          return anchorRect.top - (box.top + box.height);
+        case "right":
+          return box.left - (anchorRect.left + anchorRect.width);
+        case "left":
+          return anchorRect.left - (box.left + box.width);
+      }
+    })();
 
     setPosition({
       style: {
@@ -392,8 +444,9 @@ const Popover: React.FC<PopoverProps> = ({
         zIndex: resolveOverlayZIndex(anchor),
       },
       placement: resolved,
+      bubbleGap,
     });
-  }, [placement, corner]);
+  }, [placement, corner, arrowMode]);
 
   useLayoutEffect(() => {
     if (!overlayVisible || position) return;
@@ -646,6 +699,34 @@ const Popover: React.FC<PopoverProps> = ({
     }
   })();
 
+  /**
+   * The detached bubble dot: centred on the caret along the panel edge, and
+   * at the MIDPOINT of the actual gap across it. The shared geometry never
+   * clamps the pointing axis (it must stay adjacent to the trigger), so the
+   * gap is the offset in practice; the size clamp is defensive in case that
+   * ever changes, with a BUBBLE_MIN floor.
+   */
+  const bubbleStyle: CSSProperties = (() => {
+    if (!position) return {};
+    const { side, caret } = position.placement;
+    const dot = Math.min(
+      BUBBLE_SIZE,
+      Math.max(BUBBLE_MIN, position.bubbleGap - 2 * BUBBLE_CLEARANCE),
+    );
+    const half = dot / 2;
+    const base = { width: dot, height: dot };
+    switch (side) {
+      case "bottom":
+        return { ...base, left: caret - half, top: -position.bubbleGap / 2 - half };
+      case "top":
+        return { ...base, left: caret - half, top: position.bubbleGap / 2 - half };
+      case "right":
+        return { ...base, top: caret - half, left: -position.bubbleGap / 2 - half };
+      case "left":
+        return { ...base, top: caret - half, left: position.bubbleGap / 2 - half };
+    }
+  })();
+
   const showSkeleton = loading && loaderType === "skeleton";
 
   return (
@@ -674,7 +755,7 @@ const Popover: React.FC<PopoverProps> = ({
             )}
             style={overlayStyle}
           >
-            {arrow && position && (
+            {arrowMode === "arrow" && position && (
               <>
                 {/*
                   Edge notch, painted OVER the panel (z-10): it erases the
@@ -725,6 +806,28 @@ const Popover: React.FC<PopoverProps> = ({
                   />
                 </span>
               </>
+            )}
+            {arrowMode === "bubble" && position && (
+              /*
+                The detached "thinking-bubble" dot: a small circle floating in
+                the MIDDLE of the trigger↔panel gap, centred on the caret. It
+                wears the panel's edge chrome (fill + a full circular border +
+                backdrop) so it reads as a bead of the same surface. Being
+                detached it never touches the panel edge, so no notch is
+                needed — the border/ring runs unbroken. It shrinks to fit a
+                gap clamped smaller than the nominal offset.
+              */
+              <span
+                aria-hidden="true"
+                data-popover-bubble
+                className={classNames(
+                  "pointer-events-none absolute z-20 block rounded-full border",
+                  chrome.border,
+                  chrome.fill,
+                  chrome.backdrop,
+                )}
+                style={bubbleStyle}
+              />
             )}
             {/*
               The surface is a real, PASSIVE `Panel`: `padding="none"` +

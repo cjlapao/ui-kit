@@ -231,7 +231,10 @@ describe("Popover", () => {
   it("hides the arrow with arrow={false}", async () => {
     renderPopover({ arrow: false });
     await openPopover();
-    expect((overlay() as HTMLElement).querySelector(".rotate-45")).toBeNull();
+    const w = overlay() as HTMLElement;
+    expect(w.querySelector(".rotate-45")).toBeNull();
+    expect(w.querySelector("[data-popover-bubble]")).toBeNull();
+    expect(w.querySelector("[data-popover-notch]")).toBeNull();
   });
 
   it("closes on the trigger re-click and fires onHide exactly once", async () => {
@@ -423,6 +426,73 @@ describe("Popover", () => {
     expect(arrow!.className).toContain("border-white/50");
     expect(arrow!.className).not.toContain("border-cyan-300");
     await closePopover();
+  });
+
+  describe("bubble indicator (arrow=\"bubble\")", () => {
+    it("floats a detached dot in the gap, with the panel at the bubble offset", async () => {
+      renderPopover({ arrow: "bubble" });
+      await openPopover();
+      const w = overlay() as HTMLElement;
+      // Bubble mode widens the trigger↔panel gap to 24 px: bottom side,
+      // default trigger (400,400,300×160) → box top = 560 + 24 = 584.
+      expect(w).toHaveAttribute("data-placement", "bottom");
+      expect(w.style.top).toBe("584px");
+      const dot = w.querySelector<HTMLElement>("[data-popover-bubble]");
+      expect(dot).not.toBeNull();
+      // Gap is 24 → full 12 px dot, centred at the gap midpoint (−12 from
+      // the panel edge) and on the caret (150).
+      expect(dot!.style.left).toBe("144px");
+      expect(dot!.style.top).toBe("-18px");
+      expect(dot!.style.width).toBe("12px");
+      expect(dot!.style.height).toBe("12px");
+      // A bead of the panel's own surface: full circular rim + fill.
+      expect(dot!.className).toContain("rounded-full");
+      expect(dot!.className).toContain("border");
+      expect(dot!.className).toContain("border-black/5");
+      // The dot is detached: no arrow, no notch, the edge stays unbroken.
+      expect(w.querySelector(".rotate-45")).toBeNull();
+      expect(w.querySelector("[data-popover-notch]")).toBeNull();
+    });
+
+    it("tracks the trigger's centre on the caret axis, not the box's", async () => {
+      const { container } = renderPopover({ arrow: "bubble" });
+      const trigger = screen.getByRole("button", { name: /Toggle/ });
+      // A 100 px trigger at (400,400) with the 300 px box: grow alignment
+      // pins the box's left edge to the trigger's left edge (400), so the box
+      // centre (550) is far from the trigger centre (450). The dot must sit on
+      // the trigger centre — caret 50 → dot left 44 — not on the box centre.
+      rects.set(trigger, makeRect({ top: 400, left: 400, width: 100, height: 40 }));
+      fireEvent.click(trigger);
+      const w = overlay();
+      expect(w).not.toBeNull();
+      await completeOverlayPhase(w as Element, "entering");
+      const positioned = overlay() as HTMLElement;
+      expect(positioned.style.left).toBe("400px");
+      const dot = positioned.querySelector<HTMLElement>("[data-popover-bubble]");
+      expect(dot!.style.left).toBe("44px");
+      expect(dot!.style.top).toBe("-18px");
+      expect(container).toBeDefined();
+    });
+
+    it("flips with the box, dotting the gap on whichever side it lands", async () => {
+      const { container } = renderPopover({ arrow: "bubble" });
+      const trigger = screen.getByRole("button", { name: /Toggle/ });
+      // Near the viewport bottom: the bubble gap doesn't fit below, so the
+      // panel flips up and the dot rides the bottom-edge gap.
+      rects.set(trigger, makeRect({ top: 720, left: 400, width: 300, height: 40 }));
+      fireEvent.click(trigger);
+      const w = overlay();
+      expect(w).not.toBeNull();
+      await completeOverlayPhase(w as Element, "entering");
+      const positioned = overlay() as HTMLElement;
+      expect(positioned).toHaveAttribute("data-placement", "top");
+      // Box top = 720 − 24 − 160 = 536; gap below the box = 720 − (536+160) = 24.
+      expect(positioned.style.top).toBe("536px");
+      const dot = positioned.querySelector<HTMLElement>("[data-popover-bubble]");
+      // Top side: the dot sits BELOW the panel edge, at +gap/2 − half.
+      expect(dot!.style.top).toBe("6px");
+      expect(container).toBeDefined();
+    });
   });
 
   it("shows the spinner overlay when loading", async () => {
