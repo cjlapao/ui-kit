@@ -241,8 +241,8 @@ fixed-width divs (`w-28` / `w-32`) because the kit `Select` hardcodes
 `w-full` on its wrapper.
 
 **Templates:** each entry carries light + dark CSS (linear base + one soft
-radial highlight), swapped by `useTheme()` exactly like the demo photo.
-No new image assets. Current set (muted neutrals): `slate` (default),
+radial highlight), swapped on the applied theme exactly like the demo
+photo. No new image assets. Current set (muted neutrals): `slate` (default),
 `mist`, `stone`, `dune`, `fog`, `graphite`. `GRADIENT_TEMPLATES` is
 exported from `PlaygroundPanel.tsx` for easy extension.
 
@@ -257,3 +257,14 @@ outside the demo), `vite build` clean, headless screenshots — image
 default, Slate light, Graphite light, Slate dark; template select verified
 absent in image mode and defaulted to `slate` in gradient mode; selects
 appear only while the toggle is on.
+
+**Theme reactivity fix (found during live verification):** `useTheme()` is
+a per-instance state hook with no context — `DocsApp`'s instance drives
+`class="dark"` on `<html>`, but a second `useTheme()` call inside
+`PlaygroundPanel` only saw its own mount-time state, so the backdrop
+(image *and* gradient) never swapped on a live header theme switch, only
+on page remount. `PlaygroundPanel` now reads the applied theme via
+`useSyncExternalStore` over a `MutationObserver` on the root `class` —
+the single source of truth, which also covers OS preference changes in
+system mode. Verified live (headless): all six gradient templates and the
+image backdrop swap on a header light↔dark click without reload.
