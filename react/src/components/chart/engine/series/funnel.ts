@@ -189,7 +189,11 @@ export function computeFunnelGeometry(
       ],
       color: darkenStage(stages[i].color),
       conversion: conv,
-      labelX: cx + botW / 2 + 16,
+      // Anchor OUTSIDE the connector's slanted right edge at the label's
+      // y (mid-gap): the edge width there is the average of the top and
+      // bottom half-widths. Fixed-to-bottom-width anchors land on the
+      // dark shape for steep connectors.
+      labelX: cx + (topW + botW) / 4 + 10,
       labelY: (y1 + y2) / 2,
     });
   }

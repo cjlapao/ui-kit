@@ -80,6 +80,25 @@ describe("computeFunnelGeometry", () => {
     expect(g.connectors[0].labelY).toBeLessThan(g.stages[1].yTop);
   });
 
+  it("keeps % labels outside the connector's slanted edge", () => {
+    // Steep funnel: first connector tapers from the full width to the
+    // clamped minimum — the label must clear the edge at its own y.
+    const steep = [
+      { label: "A", value: 1000 },
+      { label: "B", value: 10 },
+      { label: "C", value: 1 },
+    ];
+    const g = computeFunnelGeometry(AREA, steep, { colors: ["#888"] })!;
+    for (const cn of g.connectors) {
+      const [tl, tr, br, bl] = cn.points;
+      const edgeXAtLabelY =
+        (Math.max(tr[0], tl[0]) + Math.max(br[0], bl[0])) / 2;
+      expect(cn.labelX).toBeGreaterThan(edgeXAtLabelY);
+      // and the label must not sit inside the polygon
+      expect(pointInPolygon(cn.labelX, cn.labelY, cn.points)).toBe(false);
+    }
+  });
+
   it("arrow toggles and uses the last stage's dark color", () => {
     const g1 = computeFunnelGeometry(AREA, ITEMS, {
       colors: ["#4488ff"],
