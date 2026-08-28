@@ -480,8 +480,44 @@
   animation-duration: calc(var(--progress-spinner-duration, 2s) * 0.75);
 }
 
+/* ---- Date picker overlay ----
+   The open/close motion PrimeVue 4.5.5 uses for anchored overlays: a 300 ms
+   scale/opacity ease, natural state ↔ {opacity: 0; scale: 0.93}, default
+   (center) transform-origin. The animation lives in these classes — never
+   inline — so the reduced-motion block can shorten it. The duration there is
+   1 ms, NOT `animation: none`: the React state machine unmounts the panel on
+   `animationend`, and a suppressed animation would never fire it, leaving a
+   frozen invisible overlay. */
+@keyframes date-picker-overlay-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.93);
+  }
+}
+
+@keyframes date-picker-overlay-leave {
+  to {
+    opacity: 0;
+    transform: scale(0.93);
+  }
+}
+
+.dp-date-picker-overlay--enter {
+  animation: date-picker-overlay-enter 300ms cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+.dp-date-picker-overlay--leave {
+  animation: date-picker-overlay-leave 300ms cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
 /* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
+  .dp-date-picker-overlay--enter,
+  .dp-date-picker-overlay--leave {
+    /* Still a real (1 ms) animation: the overlay unmounts on `animationend`,
+       which `animation: none` would never fire. */
+    animation-duration: 1ms !important;
+  }
   .timeline-row-enter,
   .timeline-rail-draw,
   .timeline-current-pulse,

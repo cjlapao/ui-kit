@@ -13,6 +13,8 @@ import {
   ECG_STATE_COLORS,
   COLLAPSIBLE_HELP_VARIANTS,
   CONTROL_SIZES,
+  DATEPICKER_LOADER_TYPES,
+  DATEPICKER_SELECTION_MODES,
   GLOW_INTENSITIES,
   INPUT_VALIDATION_STATUSES,
   INPUT_VARIANTS,
@@ -198,6 +200,26 @@ export const glassOpacityOptions: { label: string; value: string }[] = [
 
 /** Every palette tone, for the tone selects (a MultiToggle row would overflow). */
 export const trueColorOptions = toOptions(TRUE_COLORS);
+
+// ── DatePicker ──────────────────────────────────────────────────────────────
+/** Single or range selection — derived from the kit's runtime list. */
+export const datePickerSelectionModeOptions: MultiToggleOption[] =
+  DATEPICKER_SELECTION_MODES.map((mode) => ({
+    label: mode === "single" ? "Single" : "Range",
+    value: mode,
+  }));
+/** Spinner, progress or the calendar-shaped skeleton. */
+export const datePickerLoaderTypeOptions = toOptions(DATEPICKER_LOADER_TYPES);
+/** Where the overlay mounts. */
+export const datePickerAppendToOptions: MultiToggleOption[] = [
+  { label: "Body (portal)", value: "body" },
+  { label: "Self (inline)", value: "self" },
+];
+/** First column of the weekday header — `getDay()` numbering. */
+export const weekStartsOnOptions: MultiToggleOption[] = [
+  { label: "Sunday", value: "0" },
+  { label: "Monday", value: "1" },
+];
 
 // ConnectionFlow — all from the kit's own runtime lists.
 export const connectionFlowEdgeStyleOptions = toOptions(

@@ -12,6 +12,7 @@ import { ModalDemo } from "./demos/ModalDemo";
 import { MultiSelectPillsDemo } from "./demos/MultiSelectPillsDemo";
 import { InputDemo } from "./demos/InputDemo";
 import { SelectDemo } from "./demos/SelectDemo";
+import { DatePickerDemo } from "./demos/DatePickerDemo";
 import { CustomIconDemo } from "./demos/CustomIconDemo";
 import { EmptyStateDemo } from "./demos/EmptyStateDemo";
 import { CheckboxDemo } from "./demos/CheckboxDemo";
@@ -186,6 +187,11 @@ export const UxDemo: React.FC = () => {
       },
       { id: "sections-input", title: "Inputs", render: () => <InputDemo /> },
       { id: "sections-select", title: "Select", render: () => <SelectDemo /> },
+      {
+        id: "sections-date-picker",
+        title: "Date Picker",
+        render: () => <DatePickerDemo />,
+      },
       {
         id: "sections-input-group",
         title: "Input Group",

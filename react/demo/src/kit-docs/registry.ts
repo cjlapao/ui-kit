@@ -244,6 +244,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/form/FormPage")),
   },
   {
+    slug: "datepicker",
+    name: "Date Picker",
+    description:
+      "A date field that parses formatted dates plus a real Panel calendar — single and range selection, month/year views, constraints and keyboard navigation.",
+    icon: "Calendar",
+    category: "Forms",
+    Page: lazy(() => import("./components/datepicker/DatePickerPage")),
+  },
+  {
     slug: "key-value-array-field",
     name: "Key/Value Array",
     description:

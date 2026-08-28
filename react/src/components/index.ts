@@ -414,6 +414,19 @@ export {
   type HelpButtonPlacement,
 } from "./HelpButton";
 
+// Date
+export {
+  DatePicker,
+  DATEPICKER_APPEND_TO,
+  DATEPICKER_LOADER_TYPES,
+  DATEPICKER_SELECTION_MODES,
+  type DatePickerAppendTo,
+  type DatePickerLoaderType,
+  type DatePickerProps,
+  type DatePickerSelectionMode,
+  type DatePickerValue,
+} from "./DatePicker";
+
 // Dropdown
 export {
   default as DropdownMenu,
