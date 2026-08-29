@@ -867,6 +867,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/loader/LoaderPage")),
   },
   {
+    slug: "shimmer",
+    name: "Shimmer",
+    description:
+      "A light sweep across waiting text — the chat 'thinking…' effect, with speed presets and the full 21-tone scale.",
+    icon: "Sun",
+    category: "Feedback",
+    Page: lazy(() => import("./components/shimmer/ShimmerPage")),
+  },
+  {
     slug: "stepper",
     name: "Stepper",
     description:

@@ -35,6 +35,7 @@ import {
   SIDEBAR_COLLAPSIBLE_MODES,
   SIDEBAR_SIDES,
   SIDEBAR_VARIANTS,
+  SHIMMER_SPEEDS,
   SLIDER_ORIENTATIONS,
   SLIDER_VARIANTS,
   SPINNER_THICKNESSES,
@@ -201,6 +202,15 @@ export const glassOpacityOptions: { label: string; value: string }[] = [
 
 /** Every palette tone, for the tone selects (a MultiToggle row would overflow). */
 export const trueColorOptions = toOptions(TRUE_COLORS);
+
+// ── Shimmer ─────────────────────────────────────────────────────────────────
+/** Sweep period presets, derived from the kit's runtime list. */
+export const shimmerSpeedOptions = toOptions(SHIMMER_SPEEDS);
+/** Inherit the surrounding text color, or force one of the 21 tones. */
+export const shimmerToneOptions: MultiToggleOption[] = [
+  { label: "Inherit", value: "inherit" },
+  ...trueColorOptions,
+];
 
 // ── Popover ─────────────────────────────────────────────────────────────────
 /** Placement preference — derived from the kit's runtime list. */

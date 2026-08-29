@@ -75,6 +75,14 @@ export {
   type MultiProgressBarSeries,
 } from "./MultiProgressBar";
 export {
+  default as Shimmer,
+  SHIMMER_SPEEDS,
+  SHIMMER_TONES,
+  type ShimmerProps,
+  type ShimmerSpeed,
+  type ShimmerTone,
+} from "./Shimmer";
+export {
   default as Spinner,
   SPINNER_THICKNESSES,
   SPINNER_VARIANTS,
