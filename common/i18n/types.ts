@@ -1,6 +1,7 @@
 // Shared i18n types. Framework-agnostic on purpose: both kits (react/src,
 // vue/src) and the CLI import from this module. No React/Vue imports anywhere
 // in common/i18n — the engine is plain TS over platform Intl (spec §3).
+import type { DateParseNames } from "../utils/dates";
 
 /** BCP-47 language tag: `"en"`, `"fr"`, `"fr-CA"`. */
 export type LocaleTag = string;
@@ -56,6 +57,12 @@ export interface I18nEngine {
   formatDate(value: Date, options?: Intl.DateTimeFormatOptions): string;
   monthNames(locale?: LocaleTag, short?: boolean): string[];
   weekdayNames(locale?: LocaleTag, short?: boolean): string[];
+  /**
+   * Localized month/weekday names for locale-aware DATE PARSING (spec §6) —
+   * feeds `parseDateText`/`parseValueText`'s `names` param. Catalog overrides
+   * included (same chain as `monthNames`).
+   */
+  parseNames(locale?: LocaleTag): DateParseNames;
   /** Whether the active locale is right-to-left. */
   isRTL: boolean;
   /** Subscribe to locale changes; returns the unsubscribe function. */

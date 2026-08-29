@@ -4,7 +4,7 @@
 
 import { buildResolution } from "./catalog";
 import { BUILT_IN_CATALOGS } from "./builtIn";
-import { getMonthNames, getWeekdayNames } from "./dates";
+import { getLocalizedParseNames, getMonthNames, getWeekdayNames } from "./dates";
 import { isRTLLocale, matchTag, resolveInitialLocale } from "./detect";
 import { IcuParseError, parseMessage, resolveNodes, type IcuNode } from "./icu";
 import { readStoredLocale } from "./storage";
@@ -131,6 +131,9 @@ export function createI18n(config: I18nConfig): I18nEngine {
     },
     weekdayNames(tag = locale, short = false) {
       return getWeekdayNames(tag, short, resolution.catalogFor(tag));
+    },
+    parseNames(tag = locale) {
+      return getLocalizedParseNames(tag, resolution.catalogFor(tag));
     },
     get isRTL() {
       return isRTL;

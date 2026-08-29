@@ -153,10 +153,10 @@ user[L][k]  →  kit[L][k] (if the kit ships a curated catalog for L)
   only**: the default source is runtime `Intl.DateTimeFormat` derivation (§6),
   which is why no locale needs shipped date data.
 - Key namespace pattern: `kit.<component>.<purpose>` — e.g.
-  `kit.combobox.noResults`, `kit.searchbar.placeholder`,
-  `kit.datepicker.today`, `kit.datepicker.ariaLabel`,
-  `kit.modal.close`, `kit.spinner.loading`, `kit.dropdown.searchMenuItems`,
-  `kit.pager.previousPage`, `kit.toast.dismiss`.
+  `kit.combobox.emptyMessage`, `kit.datepicker.today`,
+  `kit.datepicker.chooseMonth`, `kit.modal.cancel`,
+  `kit.spinner.loading`, `kit.sidemenu.searchAria`,
+  `kit.pagedpanel.empty`, `kit.toast.closeAria`.
 - The keys of `builtIn/en.ts` **are** the authoritative key list (no
   hand-maintained list); `ui-kit-i18n locales` prints them.
 
@@ -280,6 +280,9 @@ export interface I18nEngine {
   formatDate(value: Date, options?: Intl.DateTimeFormatOptions): string;
   monthNames(locale?: LocaleTag, short?: boolean): string[];
   weekdayNames(locale?: LocaleTag, short?: boolean): string[];
+  /** Localized month/weekday names for locale-aware date parsing (feeds
+   *  `parseDateText`/`parseValueText`'s `names` param, §6). */
+  parseNames(locale?: LocaleTag): DateParseNames;
   isRTL: boolean;
   // subscription surface (framework layers)
   subscribe(listener: () => void): () => void;
@@ -356,21 +359,28 @@ Pattern (per file, mechanical):
 <span aria-label="Search menu items">…
 // after
 const t = useKitT();
-<span aria-label={t("kit.dropdown.searchMenuItems")}>…
+<span aria-label={t("kit.sidemenu.searchAria")}>…
 ```
 
-- **React files affected** (inventory 2026-08-29): `Accordion, Alert,
-  Combobox, DatePicker/CalendarPanel, DatePicker/DatePicker, HelpButton,
-  InfoRow, InlinePanel, Modal, NotificationModal, Picker, Pill,
-  ProgressSpinner, SearchBar, Select, SideMenu, SidePanel,
-  SmartGridItemPalette, SmartInput, SpeedDial, Spinner, StatusSpinner,
-  Toast/ToastMessageCard, VariablePicker` (~22 components) plus their tests.
+- **React files affected** (inventory refined during Phase 2, 2026-08-29 —
+  icon-name-only matches like `icon="Close"` are NOT catalog entries;
+  `Alert`, `Picker`, `Select`, `SmartInput`, `SpeedDial` were dropped for
+  having no user-visible static strings; `Table`/`PagedPanel` added for their
+  empty-state copy): `Accordion, Combobox, DatePicker/CalendarPanel,
+  DatePicker/DatePicker, HelpButton, InfoRow, InlinePanel, Modal,
+  NotificationModal, PagedPanel, Pill, ProgressSpinner, SearchBar, SideMenu,
+  SidePanel, SmartGridItemPalette, Spinner, StatusSpinner,
+  Toast/ToastMessageCard, Table (React only), VariablePicker` (20 files) plus
+  their tests.
 - **Vue files affected:** `Accordion, HelpButton, InlinePanel,
-  internal/InfoRowContent, Modal, NotificationModal, Pill, ProgressSpinner,
-  SearchBar, SideMenu, SidePanel, Spinner, StatusSpinner, VariablePicker`
-  (~14 components) plus tests.
+  internal/InfoRowContent, Modal, NotificationModal, PagedPanel, Pill,
+  ProgressSpinner, SearchBar, SideMenu, SidePanel, Spinner, StatusSpinner,
+  VariablePicker` (15 files) plus tests. (No `DatePicker`/`Table` strings in
+  Vue; `Table.vue` inherits `PagedPanel.vue`'s empty state.)
 - `common/utils/dates.ts`: constants stay (public API); new locale-aware
-  getters per §6; `CalendarPanel`/`DatePicker` consume the locale-aware path.
+  getters per §6; `parseDateText`/`parseValueText` gained a backwards-
+  compatible optional `names?: DateParseNames` param; `CalendarPanel`/
+  `DatePicker` consume the locale-aware path.
 - Component tests that assert English literals continue to pass **unmodified**
   in the no-provider default case (that's the regression net); the i18n
   variants get spot tests (French `DatePicker` month/weekday names, Spanish

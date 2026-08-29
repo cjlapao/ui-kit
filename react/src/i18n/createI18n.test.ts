@@ -86,7 +86,8 @@ describe("createI18n", () => {
     expect(i18n.has("hello")).toBe(true);
     expect(i18n.has("hello", "fr")).toBe(true);
     expect(i18n.has("nope")).toBe(false);
-    expect(i18n.locales).toEqual(["ar", "en", "fr"]);
+    // Kit locales (fr/es/de/pt/en) join the union with user locales.
+    expect(i18n.locales).toEqual(["ar", "de", "en", "es", "fr", "pt"]);
   });
 
   it("detects from navigator.languages (jsdom default en-US → en)", () => {

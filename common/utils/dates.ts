@@ -136,6 +136,51 @@ const FULL_MONTH_REGEX = new RegExp(
   "gi",
 );
 
+/**
+ * Localized month/weekday names for locale-aware parsing (i18n, spec §6).
+ * date-fns parses English-only month names, so candidates are normalised
+ * locale → English before parsing; all four sets are optional (a missing set
+ * simply is not normalised).
+ */
+export interface DateParseNames {
+  monthFull?: string[];
+  monthShort?: string[];
+  weekdayFull?: string[];
+  weekdayShort?: string[];
+}
+
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Replace localized month/weekday names with their English equivalents
+ * (case-insensitive, longest-first per set) so date-fns' English `MMM`/
+ * `MMMM`/`E`/`EEEE` tokens can parse the result.
+ */
+const normalizeToEnglishNames = (text: string, names: DateParseNames): string => {
+  let out = text;
+  const mapSet = (source: string[] | undefined, target: string[]): void => {
+    if (!source) return;
+    const pairs = source
+      .map((s, i) => [s, target[i]] as const)
+      .filter(([s, t]) => s && t && s.toLowerCase() !== t.toLowerCase())
+      .sort((a, b) => b[0].length - a[0].length);
+    for (const [sourceName, englishName] of pairs) {
+      // (?<!\w)/(?!\w) instead of \b: CLDR short names end in a non-word
+      // character (fr "janv."), where a trailing \b can never match.
+      out = out.replace(
+        new RegExp(`(?<!\\w)${escapeRegExp(sourceName)}(?!\\w)`, "gi"),
+        englishName,
+      );
+    }
+  };
+  mapSet(names.monthFull, MONTH_NAMES);
+  mapSet(names.monthShort, MONTH_NAMES_SHORT);
+  mapSet(names.weekdayFull, WEEKDAY_LABELS);
+  mapSet(names.weekdayShort, WEEKDAY_LABELS_SHORT);
+  return out;
+};
+
 const abbreviateMonthNames = (text: string): string =>
   text.replace(
     FULL_MONTH_REGEX,
@@ -161,10 +206,24 @@ export const parseDateText = (
   text: string,
   formatString: string = DEFAULT_DATE_FORMAT,
   reference: Date = new Date(),
+  names?: DateParseNames,
 ): Date | null => {
   const trimmed = text.trim();
   if (!trimmed) return null;
-  for (const candidate of parseCandidates(trimmed)) {
+  const candidates = new Set<string>();
+  // Existing English variants first (raw, abbreviated, expanded).
+  for (const candidate of parseCandidates(trimmed)) candidates.add(candidate);
+  // Locale-aware variants: normalize localized month/weekday spellings to
+  // English, then run the same English normalization over the result.
+  if (names) {
+    for (const variant of [trimmed, abbreviateMonthNames(trimmed), expandMonthNames(trimmed)]) {
+      const normalized = normalizeToEnglishNames(variant, names);
+      candidates.add(normalized);
+      // NOTE: Set.add takes a SINGLE argument — never `add(...spread)`.
+      for (const candidate of parseCandidates(normalized)) candidates.add(candidate);
+    }
+  }
+  for (const candidate of candidates) {
     const parsed = parse(candidate, formatString, reference);
     if (isValid(parsed)) return parsed;
   }
@@ -182,11 +241,12 @@ export const parseValueText = (
   selectionMode: DatePickerSelectionMode = "single",
   formatString: string = DEFAULT_DATE_FORMAT,
   reference: Date = new Date(),
+  names?: DateParseNames,
 ): DatePickerValue | null => {
   const trimmed = text.trim();
   if (!trimmed) return null;
   if (selectionMode === "single") {
-    return parseDateText(trimmed, formatString, reference);
+    return parseDateText(trimmed, formatString, reference, names);
   }
   // Split on the raw text (not pre-trimmed) so a trailing separator with a
   // blank end — "Mar 10, 2026 -" — still parses as an open range; each part
@@ -194,10 +254,10 @@ export const parseValueText = (
   const withTrailingSeparator = /\s-$/.test(text) ? `${text} ` : text;
   const parts = withTrailingSeparator.split(RANGE_SEPARATOR);
   if (parts.length !== 2) return null;
-  const start = parseDateText(parts[0], formatString, reference);
+  const start = parseDateText(parts[0], formatString, reference, names);
   if (!start) return null;
   if (parts[1].trim() === "") return [start, null];
-  const end = parseDateText(parts[1], formatString, reference);
+  const end = parseDateText(parts[1], formatString, reference, names);
   if (end && isBefore(startOfDay(end), startOfDay(start))) return null;
   return [start, end ?? null];
 };
