@@ -170,16 +170,22 @@ part    := text | arg
 text    := character run;  ' quotes a literal (\' escapes a quote)
 arg     := { name }                        → string interpolation
         | { name , number [, currency=C , style=percent] }
-        | { name , date  [, dateStyle=short|medium|long|full | skeleton ] }
-        | { name , time  [, timeStyle=… | skeleton ] }
+        | { name , date  [, dateStyle=short|medium|long|full | timeZone=… ] }
+        | { name , time  [, timeStyle=short|medium|long|full | timeZone=… ] }
         | { name , plural [, offset:N ] , zero {…} one {…} other {…} }
         | { name , select , value1 {…} value2 {…} other {…} }
 ```
 
+- **Date skeletons** (`skeleton=yyyy-MM-dd`) are **not supported in v1**: the
+  platform `Intl.DateTimeFormat` skeleton option is not reliably available on
+  the target runtimes (verified ignored on Node 24, 2026-08-29). Such a
+  message still parses; at resolve time it dev-throws with guidance / in prod
+  warns once and degrades to the `medium` style. Use `dateStyle`/`timeStyle`.
 - `plural` categories come from `new Intl.PluralRules(locale)` (CLDR — the
   "auto" in auto-detection: `ar` gets `zero/one/two/few/many/other` handled
   correctly with zero shipped data). Exactly one `other` category is required;
-  `#` inside a branch renders the count (value − offset).
+  `#` inside a branch renders the count (value − offset); the category is
+  computed from the value **minus offset** (ICU semantics).
 - `select` branches by exact equality of the value's string form; `other` is
   required.
 - Branch bodies may nest any `part` (ICU allows nested args in branches).

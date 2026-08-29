@@ -8,6 +8,9 @@ export * from "./contexts/BottomSheetContext";
 // Composables (hooks)
 export * from "./composables";
 
+// I18n (engine in common/i18n; the provider + composable land in Phase 4)
+export * from "./i18n";
+
 // Theme
 export * from "./theme";
 

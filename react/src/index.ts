@@ -9,6 +9,9 @@ export * from "./contexts/BottomSheetContext";
 // Hooks
 export * from "./hooks";
 
+// I18n (engine in common/i18n; the provider + hooks land in Phase 3)
+export * from "./i18n";
+
 // Theme
 export * from "./theme";
 
