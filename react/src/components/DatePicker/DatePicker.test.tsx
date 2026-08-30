@@ -53,6 +53,9 @@ const closeOverlay = async () => {
 
 const input = () => screen.getByRole("textbox");
 const dialog = () => screen.getByRole("dialog");
+// The toggle button carries the disclosure state (aria-expanded is not
+// supported by the textbox role, so it lives on the button, not the input).
+const toggle = () => screen.getByRole("button", { name: /Choose a date/ });
 
 /** The day cell for a date, by its full-date aria-label. */
 const dayButton = (year: number, month: number, date: number) => {
@@ -96,7 +99,7 @@ describe("rendering", () => {
     expect(field).toHaveValue("");
     expect(field).toHaveAttribute("placeholder", "Pick a date");
     expect(field).toHaveAttribute("aria-haspopup", "dialog");
-    expect(field).toHaveAttribute("aria-expanded", "false");
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
   });
 
   it("publishes aria-invalid for the error status", () => {
@@ -117,7 +120,7 @@ describe("overlay", () => {
     render(<DatePicker />);
     const wrapper = await openOverlay();
     expect(dialog()).toBeInTheDocument();
-    expect(input()).toHaveAttribute("aria-expanded", "true");
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
     expect(wrapper.className).toContain("dp-date-picker-overlay");
   });
 
@@ -141,7 +144,7 @@ describe("overlay", () => {
     expect(wrapper.className).toContain("dp-date-picker-overlay--leave");
     await closeOverlay();
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(input()).toHaveAttribute("aria-expanded", "false");
+    expect(toggle()).toHaveAttribute("aria-expanded", "false");
     expect(onHide).toHaveBeenCalledTimes(1);
   });
 
@@ -168,7 +171,7 @@ describe("overlay", () => {
     await openOverlay();
     // Date view → month view via the month title.
     fireEvent.click(screen.getByRole("button", { name: /Choose month/ }));
-    const monthGrid = screen.getByRole("grid", { name: "Choose month" });
+    const monthGrid = screen.getByRole("group", { name: "Choose month" });
     expect(within(monthGrid).getAllByRole("button")).toHaveLength(12);
     // Back to the date view (September), then to the year view.
     fireEvent.click(within(monthGrid).getByRole("button", { name: "Sep" }));
@@ -176,7 +179,7 @@ describe("overlay", () => {
       screen.getByRole("button", { name: /Choose month/ }),
     ).toHaveTextContent("September");
     fireEvent.click(screen.getByRole("button", { name: /Choose year/ }));
-    const yearGrid = screen.getByRole("grid", { name: "Choose year" });
+    const yearGrid = screen.getByRole("group", { name: "Choose year" });
     expect(within(yearGrid).getAllByRole("button")).toHaveLength(10);
   });
 });
@@ -304,6 +307,42 @@ describe("selection — single", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear date" }));
     expect(onChange).toHaveBeenCalledWith(null);
     expect(input()).toHaveValue("");
+  });
+});
+
+describe("a11y — ARIA shape", () => {
+  it("keeps disclosure state on the toggle button, not the textbox", async () => {
+    render(<DatePicker defaultValue={new Date(2026, 2, 15)} />);
+    await openOverlay();
+    // aria-expanded is not supported by the textbox role; the input only
+    // signals that it can open a dialog, the button carries the state.
+    expect(input()).toHaveAttribute("aria-haspopup", "dialog");
+    expect(input()).not.toHaveAttribute("aria-expanded");
+    expect(toggle()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("marks the selected day on the gridcell, not the button", async () => {
+    render(<DatePicker defaultValue={new Date(2026, 2, 15)} />);
+    await openOverlay();
+    const cell = dayButton(2026, 2, 15);
+    // The button is the focusable control; its parent <td> is the implicit
+    // gridcell and carries aria-selected (button role does not support it).
+    expect(cell).not.toHaveAttribute("aria-selected");
+    const gridcell = cell.parentElement;
+    expect(gridcell?.tagName).toBe("TD");
+    expect(gridcell).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("presents the month/year pickers as labelled groups of pressed toggles", async () => {
+    render(<DatePicker defaultValue={new Date(2026, 7, 15)} />);
+    await openOverlay();
+    fireEvent.click(screen.getByRole("button", { name: /Choose month/ }));
+    const monthGroup = screen.getByRole("group", { name: "Choose month" });
+    const selectedMonth = within(monthGroup).getByRole("button", {
+      name: "Aug",
+    });
+    expect(selectedMonth).toHaveAttribute("aria-pressed", "true");
+    expect(monthGroup).not.toHaveAttribute("aria-selected");
   });
 });
 
@@ -435,7 +474,7 @@ describe("navigation", () => {
     render(<DatePicker />);
     await openOverlay();
     fireEvent.click(screen.getByRole("button", { name: /Choose month/ }));
-    const monthGrid = screen.getByRole("grid", { name: "Choose month" });
+    const monthGrid = screen.getByRole("group", { name: "Choose month" });
     fireEvent.click(within(monthGrid).getByRole("button", { name: "Dec" }));
     // Back in the date view, showing December.
     expect(screen.getByRole("button", { name: /Choose month/ })).toHaveTextContent(
@@ -448,11 +487,11 @@ describe("navigation", () => {
     await openOverlay();
     // Date view → year view via the year title.
     fireEvent.click(screen.getByRole("button", { name: /Choose year/ }));
-    const yearGrid = screen.getByRole("grid", { name: "Choose year" });
+    const yearGrid = screen.getByRole("group", { name: "Choose year" });
     fireEvent.click(within(yearGrid).getByRole("button", { name: "2027" }));
     // Year pick lands in the month view for that year: 12 month cells and the
     // year in the header.
-    const monthGrid = screen.getByRole("grid", { name: "Choose month" });
+    const monthGrid = screen.getByRole("group", { name: "Choose month" });
     expect(within(monthGrid).getAllByRole("button")).toHaveLength(12);
     expect(screen.getByText("2027", { selector: "span" })).toBeInTheDocument();
   });

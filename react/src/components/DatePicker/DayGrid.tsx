@@ -254,7 +254,9 @@ const DayGrid: React.FC<DayGridProps> = ({
     );
 
     return (
-      <td key={key} className="p-0 text-center">
+      // aria-selected lives on the gridcell (the td — implicit gridcell role
+      // inside role="grid"); the button role does not support it.
+      <td key={key} className="p-0 text-center" aria-selected={selected || undefined}>
         <button
           ref={roving.registerRef(key)}
           type="button"
@@ -263,7 +265,6 @@ const DayGrid: React.FC<DayGridProps> = ({
           tabIndex={roving.tabIndexFor(index)}
           disabled={disabled}
           aria-label={formatDateLabel(cell.date)}
-          aria-selected={selected || undefined}
           aria-disabled={disabled || undefined}
           onClick={() => {
             onPickDate(cell.date);

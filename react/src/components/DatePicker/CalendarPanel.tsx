@@ -432,8 +432,11 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
           onEscape={onEscape}
         />
       )}
+      {/* A flat set of month buttons is a labelled group of toggle
+          buttons — not a grid (no rows/cells), and the selected state
+          belongs on the button role as aria-pressed. */}
       {view === "month" && (
-        <div className="grid grid-cols-3 gap-1.5" role="grid" aria-label={i18n.t("kit.datepicker.chooseMonth")}>
+        <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={i18n.t("kit.datepicker.chooseMonth")}>
           {monthCells.map((cell, index) => (
             <button
               key={cell.index}
@@ -441,7 +444,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
               type="button"
               tabIndex={monthRoving.tabIndexFor(index)}
               disabled={disabled || !cell.selectable}
-              aria-selected={isMonthSelected(cell.index) || undefined}
+              aria-pressed={isMonthSelected(cell.index) || undefined}
               aria-disabled={!cell.selectable || undefined}
               onClick={() => onPickMonth(cell.index)}
               onKeyDown={(event) => handleMonthKeydown(event, index)}
@@ -453,7 +456,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
         </div>
       )}
       {view === "year" && (
-        <div className="grid grid-cols-2 gap-1.5" role="grid" aria-label={i18n.t("kit.datepicker.chooseYear")}>
+        <div className="grid grid-cols-2 gap-1.5" role="group" aria-label={i18n.t("kit.datepicker.chooseYear")}>
           {yearCells.map((cell, index) => (
             <button
               key={cell.year}
@@ -461,7 +464,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
               type="button"
               tabIndex={yearRoving.tabIndexFor(index)}
               disabled={disabled || !cell.selectable}
-              aria-selected={isYearSelected(cell.year) || undefined}
+              aria-pressed={isYearSelected(cell.year) || undefined}
               aria-disabled={!cell.selectable || undefined}
               onClick={() => onPickYear(cell.year)}
               onKeyDown={(event) => handleYearKeydown(event, index)}

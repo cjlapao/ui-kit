@@ -692,8 +692,11 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             inputClassName,
           )}
           {...rest}
+          // The input is the dialog trigger (focus opens the calendar), so
+          // aria-haspopup + aria-controls belong here — but aria-expanded is
+          // not supported by the textbox role; the toggle button below carries
+          // the expanded state.
           aria-haspopup="dialog"
-          aria-expanded={overlayVisible}
           aria-controls={overlayVisible ? panelId : undefined}
           aria-label={hasExplicitName ? undefined : inputAccessibleName}
           aria-invalid={validationStatus === "error" ? true : rest["aria-invalid"]}
