@@ -233,6 +233,39 @@ touched: `SmartGridLayout.tsx` (18 findings: `autoFocus`, static
 interactions, `tabIndex`) — the file is mid-change in the working tree;
 fix after that work lands, or in Phase B via documented exceptions.
 
+**Status (Phase B, 2026-08-30):** all three Phase B items landed.
+1. **ESLint jsx-a11y gate** — `react/eslint.config.mjs` (flat config,
+   tsParser, `jsx-a11y` recommended set + `no-aria-hidden-on-focusable`
+   at error; `label-has-associated-control` demoted to warn — its static
+   association check false-positives on labels wrapping kit controls and
+   the demo pages; the complementary `control-has-associated-label`
+   stays error; unused disable directives report at warn; per-file
+   override for the mid-change `SmartGridLayout.tsx`). `react/package.json`
+   `lint` script is now `tsc --noEmit && eslint src`; devDeps added
+   (`eslint`, `eslint-plugin-jsx-a11y`, `@typescript-eslint/parser`,
+   `axe-core`). Gate proven both ways: baseline 0 errors, a planted
+   violation file fails with 4 errors.
+2. **axe-core harness** — `react/src/a11y/axe-scan.test.tsx`: 47-fixture
+   props table (Modal, InlinePanel, Popover, DropdownMenu, Picker,
+   TagPicker, Table, Tree, TreeView, Stepper, Carousel, SplitView,
+   SidePanel, SideMenu, …) asserting no serious/critical violations;
+   `color-contrast` disabled (jsdom has no computed colour). It caught a
+   real defect: TagPicker rendered chip remove-`<button>`s *inside* the
+   trigger `<button>` (invalid nested HTML, axe `nested-interactive`).
+   Fixed: the trigger is now a plain non-interactive div (mouse
+   convenience click only, justified eslint-disable) and the chevron is
+   the real `aria-haspopup=listbox` button carrying
+   `aria-expanded/controls/invalid/busy` + ArrowDown-to-open.
+3. **Dev warnings** — `common/a11y/warn.ts` (`devWarnA11yOnce`,
+   dev-only, deduped, never throws — same contract as `i18n/warn.ts`)
+   wired into Button/IconButton (name + aria-hidden-on-focusable),
+   Toggle/Checkbox/Tree (missing accessible name), Modal (headless
+   without ariaLabel), SidePanel (missing title); unit-tested in
+   `react/src/a11y/warn.test.ts`.
+Gate: `npm run lint` and `npm test` both fail on new a11y violations —
+verified (planted jsx-a11y violations fail lint; the axe harness fails
+the suite on new serious/critical violations).
+
 ### Phase B — gates & warnings (estimate: 1–2 days)
 1. **ESLint jsx-a11y in CI**: add to `react/` lint (eslint 9 flat config,
    `jsx-a11y` recommended set at error + the P0 rules above; allow
