@@ -327,15 +327,21 @@ describe("TagPicker — the shared field system", () => {
   ];
   const noop = () => {};
 
+  // The trigger is a plain (non-interactive) div — the chips carry their own
+  // remove <button>s inside it, so an interactive container is invalid. The
+  // chevron button (aria-haspopup) is its stable anchor.
+  const triggerOf = (c: HTMLElement): HTMLElement =>
+    c.querySelector('button[aria-haspopup="listbox"]')!.parentElement!;
+
   it("draws the variant's surface rather than a hardcoded white box", () => {
     const { container, rerender } = render(
       <TagPicker items={TAGS} value={[]} onChange={noop} variant="elevated" />,
     );
-    expect(container.querySelector("button")!.className).toContain("shadow-sm");
+    expect(triggerOf(container).className).toContain("shadow-sm");
     rerender(
       <TagPicker items={TAGS} value={[]} onChange={noop} variant="ghost" />,
     );
-    expect(container.querySelector("button")!.className).toContain(
+    expect(triggerOf(container).className).toContain(
       "border-transparent",
     );
   });
@@ -344,7 +350,7 @@ describe("TagPicker — the shared field system", () => {
     const { container } = render(
       <TagPicker items={TAGS} value={[]} onChange={noop} tone="violet" />,
     );
-    const cls = container.querySelector("button")!.className;
+    const cls = triggerOf(container).className;
     expect(cls).toContain("focus-within:ring-inset");
     expect(cls).toContain("focus-within:ring-violet-400/60");
   });
@@ -353,7 +359,7 @@ describe("TagPicker — the shared field system", () => {
     const { container } = render(
       <TagPicker items={TAGS} value={[]} onChange={noop} size="lg" />,
     );
-    const cls = container.querySelector("button")!.className;
+    const cls = triggerOf(container).className;
     expect(cls).toContain("px-4");
     expect(cls).toContain("py-2.5");
   });
@@ -362,7 +368,7 @@ describe("TagPicker — the shared field system", () => {
     const empty = render(
       <TagPicker items={TAGS} value={[]} onChange={noop} size="md" />,
     );
-    expect(empty.container.querySelector("button")!.className).toContain(
+    expect(triggerOf(empty.container).className).toContain(
       "min-h-",
     );
   });
@@ -376,9 +382,13 @@ describe("TagPicker — the shared field system", () => {
         validationStatus="error"
       />,
     );
-    const button = container.querySelector("button")!;
-    expect(button.className).toContain("border-rose-500");
-    expect(button.getAttribute("aria-invalid")).toBe("true");
+    const trigger = triggerOf(container);
+    expect(trigger.className).toContain("border-rose-500");
+    expect(
+      container
+        .querySelector('button[aria-haspopup="listbox"]')!
+        .getAttribute("aria-invalid"),
+    ).toBe("true");
   });
 
   it("dims for readOnly rather than repainting the surface", () => {
@@ -387,7 +397,7 @@ describe("TagPicker — the shared field system", () => {
     const { container } = render(
       <TagPicker items={TAGS} value={[]} onChange={noop} readOnly />,
     );
-    const cls = container.querySelector("button")!.className;
+    const cls = triggerOf(container).className;
     expect(cls).toContain("opacity-75");
     expect(cls).not.toContain("bg-neutral-50");
   });
@@ -396,12 +406,12 @@ describe("TagPicker — the shared field system", () => {
     const a = render(
       <TagPicker items={TAGS} value={[]} onChange={noop} tone="emerald" />,
     );
-    const aCls = a.container.querySelector("button")!.className;
+    const aCls = triggerOf(a.container).className;
     a.unmount();
     const b = render(
       <TagPicker items={TAGS} value={[]} onChange={noop} color="emerald" />,
     );
-    expect(b.container.querySelector("button")!.className).toBe(aCls);
+    expect(triggerOf(b.container).className).toBe(aCls);
   });
 
   it("wraps the gradient variant in a glow", () => {
@@ -417,9 +427,13 @@ describe("TagPicker — the shared field system", () => {
     const { container } = render(
       <TagPicker items={[]} value={[]} onChange={noop} loading />,
     );
-    const button = container.querySelector("button")!;
-    expect(button.getAttribute("aria-busy")).toBe("true");
-    expect(button.querySelector(".flex-1")!.textContent).toContain("Loading");
+    const chevron = container.querySelector(
+      'button[aria-haspopup="listbox"]',
+    )!;
+    expect(chevron.getAttribute("aria-busy")).toBe("true");
+    expect(
+      chevron.parentElement!.querySelector(".flex-1")!.textContent,
+    ).toContain("Loading");
   });
 });
 
@@ -454,10 +468,12 @@ describe("loading disables the trigger", () => {
 
   it("TagPicker: the trigger is disabled and will not open", () => {
     render(<TagPicker items={TAGS} value={[]} onChange={noop} loading />);
-    const button = screen.getByRole("button");
-    expect(button).toBeDisabled();
-    fireEvent.click(button);
-    expect(button.getAttribute("aria-expanded")).toBe("false");
+    // The interactive opener is the chevron button; loading/aria-disabled
+    // replaces the native `disabled` on a div trigger.
+    const chevron = screen.getByRole("button", { name: "Toggle options" });
+    expect(chevron.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(chevron);
+    expect(chevron.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("TagPicker: shows a wait cursor rather than the disabled dim", () => {

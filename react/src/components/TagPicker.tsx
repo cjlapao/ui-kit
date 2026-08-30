@@ -286,7 +286,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
   normalizeValue,
 }) => {
   const uid = useId();
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -844,24 +844,25 @@ const TagPicker: React.FC<TagPickerProps> = ({
 
   // ── Trigger ────────────────────────────────────────────────────────────────
 
+  // The trigger container is deliberately a plain (non-interactive) div:
+  // with values present the chips render inside it and each carries its own
+  // remove <button> — an interactive container around those would be nested
+  // interactive controls (axe: nested-interactive, invalid HTML). The
+  // keyboard path is the chevron button below; the container click is a
+  // mouse-only convenience on top of it.
   const trigger = (
-      <button
+      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions -- mouse-only convenience; keyboard path is the chevron button (aria-haspopup)
+      <div
         ref={triggerRef}
-        type="button"
-        // Loading disables the trigger too — see `Picker` for the reasoning.
-        disabled={disabled || loading}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={open ? `${uid}-listbox` : undefined}
         onClick={() => {
           if (!disabled && !readOnly && !loading) setOpen((prev) => !prev);
         }}
-        aria-invalid={validationStatus === "error" ? true : undefined}
-        aria-busy={loading || undefined}
         className={classNames(
           // `group`, so the tone's `group-focus-within:` accent reaches the
           // chevron the way it reaches an Input's leading icon.
           "group relative flex w-full flex-wrap items-start gap-1.5 text-left transition",
+          // The trigger is a div (role=button), so pointer cursor is explicit.
+          !disabled && !loading && "cursor-pointer",
           MIN_HEIGHT[size] ?? MIN_HEIGHT.md,
           sizeToken.px,
           sizeToken.py,
@@ -990,22 +991,52 @@ const TagPicker: React.FC<TagPickerProps> = ({
           </span>
         )}
 
-        {/* Chevron */}
-        <svg
+        {/* Chevron — the interactive opener (aria listbox control). */}
+        <button
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={open ? `${uid}-listbox` : undefined}
+          aria-label="Toggle options"
+          aria-disabled={disabled || loading || undefined}
+          aria-invalid={validationStatus === "error" ? true : undefined}
+          aria-busy={loading || undefined}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!disabled && !readOnly && !loading) setOpen((prev) => !prev);
+          }}
+          onKeyDown={(event) => {
+            if (disabled || readOnly || loading) return;
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setOpen(true);
+            }
+          }}
           className={classNames(
-            "ml-auto mt-1 h-4 w-4 shrink-0 self-start transition-transform",
-            variantTokens.icon,
-            !hasStatus && fieldTokens.icon,
-            open && "rotate-180",
+            "ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors",
+            "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-current",
+            disabled && "cursor-not-allowed",
+            loading && !disabled && "cursor-wait",
+            readOnly && "cursor-default",
           )}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
+          <svg
+            className={classNames(
+              "h-4 w-4 transition-transform",
+              variantTokens.icon,
+              !hasStatus && fieldTokens.icon,
+              open && "rotate-180",
+            )}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            aria-hidden="true"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </div>
   );
 
   // The gradient variant is the same trigger with a coloured glow behind it,
