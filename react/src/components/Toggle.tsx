@@ -22,6 +22,7 @@ import {
   type SpecularMode,
 } from "../../../common/theme/glass";
 import { useIconRenderer } from "../contexts/IconContext";
+import { warnIfMissingName } from "../../../common/a11y/warn";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
 
@@ -198,6 +199,12 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
     },
     forwardedRef,
   ) => {
+    // a11y (P1-2): an unlabeled switch has no accessible name.
+    warnIfMissingName(
+      "Toggle",
+      (inputProps as { "aria-label"?: string })["aria-label"],
+      label,
+    );
     const renderIcon = useIconRenderer();
     const generatedId = useId();
     const toggleId = id ?? generatedId;
@@ -235,6 +242,10 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
     const glassSpecularClass = isGlass ? getSpecularClasses(specularMode) : null;
 
     const toggle = (
+      // The row is the visible track of the sr-only checkbox: clicking it
+      // fires the input's real click, and keyboard activation is the native
+      // checkbox's (Space / arrows) — not a second interactive layer.
+      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- hit area for the native checkbox (keyboard lives on the input)
       <div
         data-glass={isGlass}
         data-variant={effectiveVariant}

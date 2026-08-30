@@ -6,6 +6,7 @@ import React, {
   type ReactElement,
   type ReactNode,
 } from "react";
+import { warnIfMissingName } from "../../../common/a11y/warn";
 import classNames from "classnames";
 
 import { useIconRenderer } from "../contexts/IconContext";
@@ -153,6 +154,8 @@ export const Tree: React.FC<TreeProps> = ({
   style,
   ...rest
 }) => {
+  // a11y (P1-2): the role="tree" container needs an accessible name.
+  warnIfMissingName("Tree", ariaLabel);
   const renderIcon = useIconRenderer();
   const uid = useId().replace(/:/g, "");
   const sizeTokens = SIZES[size];

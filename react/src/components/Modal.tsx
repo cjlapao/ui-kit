@@ -1,4 +1,5 @@
 import classNames from "classnames";
+import { devWarnA11yOnce } from "../../../common/a11y/warn";
 import React, {
   type ReactNode,
   useCallback,
@@ -294,6 +295,14 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const t = useKitT();
   const hasDom = isBrowser;
+  // a11y (P1-2): a headless modal drops the title heading, so it must still
+  // carry an explicit name or it is nameless in the dialog list.
+  if (headless && !ariaLabel) {
+    devWarnA11yOnce(
+      "Modal:headless-no-name",
+      "<Modal> is headless and has no ariaLabel — dialogs need an accessible name (WCAG 2.4.1).",
+    );
+  }
   const contentRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -777,6 +786,9 @@ const Modal: React.FC<ModalProps> = ({
   );
 
   const content = (
+    // Backdrop press closes the dialog; Escape and the close button provide
+    // the keyboard path, so the overlay itself is not an interactive element.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- backdrop close affordance (Escape + close button cover keyboard)
     <div className={overlayClasses} onMouseDown={handleBackdropMouseDown}>
       <Panel
         // The dialog is a card, so it renders one — every surface, tone and

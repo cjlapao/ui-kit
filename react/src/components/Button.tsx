@@ -4,6 +4,7 @@ import React, {
   forwardRef,
 } from "react";
 import classNames from "classnames";
+import { warnIfMissingName, warnIfAriaHiddenFocusable } from "../../../common/a11y/warn";
 import { type IconSize } from "../types/Icon";
 import { useIconRenderer } from "../contexts/IconContext";
 import {
@@ -226,6 +227,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const isDisabled = disabled ?? false;
     const ariaLabel = (props as { "aria-label"?: string })["aria-label"];
+    // a11y (P1-2): the kit renders perfectly happily unlabeled — warn in dev.
+    warnIfMissingName("Button", ariaLabel, children);
+    warnIfAriaHiddenFocusable("Button", {
+      ariaHidden: (props as { "aria-hidden"?: boolean })["aria-hidden"],
+      interactive: !isDisabled,
+    });
     const srOnlyContent =
       typeof children === "string"
         ? children

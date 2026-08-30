@@ -455,12 +455,12 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         className,
       )}
     >
+      {/* Not a user interaction: this only stops click events inside the
+          menu from bubbling to the document-level outside-click handler. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- propagation guard for the outside-click handler */}
       <ul
         className="overflow-auto"
         style={{ maxHeight: computedMaxHeight }}
-        // Not a user interaction: this only stops click events inside the
-        // menu from bubbling to the document-level outside-click handler.
-        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
         onClick={(event) => event.stopPropagation()}
       >
         {items.map((item, index) => (

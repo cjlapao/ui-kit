@@ -216,6 +216,9 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   };
 
   return (
+    // Larger hit area for the native <select> inside (the keyboard path is
+    // the select's own — arrows/Enter work on it directly).
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- wrapper delegates to the native select
     <span
       onClick={handleWrapperClick}
       className={classNames(

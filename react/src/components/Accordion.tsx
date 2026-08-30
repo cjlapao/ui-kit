@@ -389,6 +389,7 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
               </div>
               {item.actions ? (
                 // Stops both activation paths, not just the pointer one.
+                // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- propagation guard for nested actions, not an interactive element
                 <div
                   className="flex flex-none items-center gap-2"
                   onClick={(event) => event.stopPropagation()}

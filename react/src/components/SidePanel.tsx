@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
+import { warnIfMissingTitle } from "../../../common/a11y/warn";
 import IconButton from "./IconButton";
 import { IconSize } from "../types";
 import { useKitT } from "../i18n";
@@ -245,6 +246,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   onKeyDown,
 }) => {
   const t = useKitT();
+  // a11y (P1-2): an unnamed panel is an unidentifiable landmark/region.
+  warnIfMissingTitle("SidePanel", title);
   const effectiveTone = tone ?? color ?? "neutral";
   const sizeToken = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
   const surface = getSidebarSurfaceTokens(variant, surfaceTone);
@@ -372,6 +375,39 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   const resolvedWidth = resizable ? currentWidth : width;
 
+  // Keyboard resize (WCAG 2.1.1) so the separator is not pointer-only. The
+  // directions mirror the mouse drag: a right-docked panel grows on
+  // ArrowLeft (pointer moves left), a left-docked one grows on ArrowRight.
+  const onSeparatorKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!resizable) return;
+      const step = 20;
+      const grow =
+        side === "right" ? e.key === "ArrowLeft" : e.key === "ArrowRight";
+      const shrink =
+        side === "right" ? e.key === "ArrowRight" : e.key === "ArrowLeft";
+      if (e.key === "Home") {
+        e.preventDefault();
+        setCurrentWidth(minWidth);
+        return;
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        setCurrentWidth(maxWidth);
+        return;
+      }
+      if (!grow && !shrink) return;
+      e.preventDefault();
+      setCurrentWidth(
+        Math.min(
+          maxWidth,
+          Math.max(minWidth, currentWidth + (grow ? step : -step)),
+        ),
+      );
+    },
+    [resizable, side, currentWidth, minWidth, maxWidth],
+  );
+
   if (!mounted) return null;
 
   // The handle rides the panel's outer edge, so it tracks the same value the
@@ -453,6 +489,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           default), or the reveal reads as a wipe. Transparent: the fill is the
           layer above, so header, body and footer are all rounded by one
           container instead of each having to know about corners. */}
+          {/* Consumer passthrough (React.KeyboardEventHandler), not the
+              panel's own interaction. */}
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- passthrough keyboard prop */}
         <div
           className={classNames(
             "relative flex h-full flex-col",
@@ -533,13 +572,23 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           height because the edge is grabbed at whatever point the pointer
           happens to be at, so the affordance has to be visible there too. */}
       {resizable && (
+        // ARIA 1.2 resizable separator: focusable (tabIndex), arrow keys /
+        // Home / End resize, aria-valuenow|min|max report the width. The
+        // rule does not model the valuenow-bearing separator as a widget.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- resizable separator (WCAG 2.1.1 keyboard resize below)
         <div
           onMouseDown={onMouseDown}
+          onKeyDown={onSeparatorKeyDown}
           role="separator"
           aria-orientation="vertical"
           aria-label={t("kit.sidepanel.resize")}
+          aria-valuenow={resolvedWidth}
+          aria-valuemin={minWidth}
+          aria-valuemax={maxWidth}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- resizable separator (ARIA 1.2 widget with valuenow)
+          tabIndex={0}
           className={classNames(
-            "group absolute z-40 w-3 cursor-col-resize bg-transparent",
+            "group absolute z-40 w-3 cursor-col-resize bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500",
             isInset ? INSET_GAP_Y_CLASS : "inset-y-0",
           )}
           style={handleStyle}

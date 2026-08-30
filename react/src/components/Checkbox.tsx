@@ -8,6 +8,7 @@ import React, {
   useRef,
 } from "react";
 import classNames from "classnames";
+import { warnIfMissingName } from "../../../common/a11y/warn";
 
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import {
@@ -206,6 +207,12 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     },
     forwardedRef,
   ) => {
+    // a11y (P1-2): an unlabeled checkbox has no accessible name.
+    warnIfMissingName(
+      "Checkbox",
+      (inputProps as { "aria-label"?: string })["aria-label"],
+      label,
+    );
     const generatedId = useId();
     const controlId = id ?? generatedId;
     const descriptionId = description ? `${controlId}-description` : undefined;
