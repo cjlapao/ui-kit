@@ -475,6 +475,7 @@ export const Tree: React.FC<TreeProps> = ({
 
     return (
       <div key={node.id} role="presentation">
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events -- keyboard activation lives on the tree container (roving tabindex + arrow keys) */}
         <div
           ref={(el) => {
             if (el) {

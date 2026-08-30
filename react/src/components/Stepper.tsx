@@ -790,6 +790,11 @@ const StepperBody: React.FC<StepperBodyProps> = ({
             const actions = renderActions?.(step, index);
 
             return (
+              // Pointer-only convenience: the step node (a native button in
+              // clickable mode) is the single keyboard tab stop and already
+              // activates on Enter/Space — a second stop per step would
+              // double the tab path (see "one button per step" tests).
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keyboard activation lives on the step node
               <div
                 key={`${resolvedId}-body`}
                 className={classNames(
@@ -805,11 +810,6 @@ const StepperBody: React.FC<StepperBodyProps> = ({
                   isDisabled && "opacity-60",
                   stepClassName,
                 )}
-                // Pointer-only convenience: the step node (a native button in
-                // clickable mode) is the single keyboard tab stop and already
-                // activates on Enter/Space — a second stop per step would
-                // double the tab path (see "one button per step" tests).
-                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keyboard activation lives on the step node
                 onClick={() => goTo(step, index)}
                 aria-current={active ? "step" : undefined}
               >
@@ -929,15 +929,15 @@ const StepperBody: React.FC<StepperBodyProps> = ({
                 />
               )}
             </div>
+            {/* Pointer-only convenience: keyboard activation lives on the
+                step node (the single tab stop per step). */}
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
             <div
               className={classNames(
                 "flex min-w-0 flex-1 flex-col gap-0.5 text-left",
                 clickable && !isDisabled && "cursor-pointer",
                 isDisabled && "opacity-60",
               )}
-              // Pointer-only convenience: keyboard activation lives on the
-              // step node (the single tab stop per step).
-              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keyboard activation lives on the step node
               onClick={() => goTo(step, index)}
             >
               <div

@@ -666,6 +666,7 @@ const Picker: React.FC<PickerProps> = ({
               <ul
                 ref={listRef}
                 id={listboxId}
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list (a native <select> cannot carry rich options)
                 role="listbox"
                 aria-label="Options"
                 aria-multiselectable={multi || undefined}
@@ -683,6 +684,7 @@ const Picker: React.FC<PickerProps> = ({
                     <li
                       key={item.id}
                       id={optionId(index)}
+                      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list
                       role="option"
                       aria-selected={isSelected || undefined}
                       data-active={index === activeIndex || undefined}

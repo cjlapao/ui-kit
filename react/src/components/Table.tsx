@@ -1663,8 +1663,10 @@ function TableComponent<T>({
         onClick={onRowClick ? () => onRowClick(row, originalIndex) : undefined}
       >
         {/* Expand spacer column — only in grouped mode with visible group headers.
-            No aria-hidden: the cell is empty, so assistive tech skips it
-            anyway, and hiding it can collide with row-level focus handling. */}
+            Decorative spacer: aria-hidden is correct (no content to hide);
+            the cell holds nothing focusable, so the rule's focusable check
+            does not apply. */}
+        {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable, jsx-a11y/control-has-associated-label -- decorative empty spacer cell (no focusable content) */}
         {showGroupExpandCol && (
           <td
             className={classNames(
@@ -1679,14 +1681,18 @@ function TableComponent<T>({
                     : baseRowBgClass),
               rowHoverClass,
             )}
+            aria-hidden="true"
           >
             <div className="w-full h-full" />
           </td>
         )}
+        {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable, jsx-a11y/control-has-associated-label */}
         {/* Indent spacer — only in grouped mode without group headers */}
+        {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable, jsx-a11y/control-has-associated-label -- decorative empty spacer cell (no focusable content) */}
         {resolvedGroupBy && !showGroupExpandCol && (
-          <td className="w-4" />
+          <td className="w-4" aria-hidden="true" />
         )}
+        {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable, jsx-a11y/control-has-associated-label */}
         {orderedVisibleColumns.map((column, colIndex) => {
           const cellValue = resolveValue(row, column, originalIndex);
           // Text cells (string/number) get TruncatedText with a tooltip on actual overflow.
@@ -1936,6 +1942,7 @@ function TableComponent<T>({
                                 <input
                                   type="checkbox"
                                   id={`table-colvis-${uid}-${col.id}`}
+                                  aria-label={label}
                                   checked={visible}
                                   disabled={!hideable}
                                   onChange={() => {
@@ -2044,6 +2051,7 @@ function TableComponent<T>({
                             type="radio"
                             id={`table-groupby-none-${uid}`}
                             name="table-group-by"
+                            aria-label="None"
                             checked={!internalGroupBy}
                             onChange={() => handleGroupChange(null)}
                             className={classNames(
@@ -2067,6 +2075,7 @@ function TableComponent<T>({
                                 type="radio"
                                 id={`table-groupby-${uid}-${col.id}`}
                                 name="table-group-by"
+                                aria-label={getColumnLabel(col)}
                                 checked={internalGroupBy === col.id}
                                 onChange={() => handleGroupChange(col.id)}
                                 className={classNames(
@@ -2089,9 +2098,14 @@ function TableComponent<T>({
 
                       {/* Show group header toggle */}
                       <div className="border-t border-neutral-100 px-3 py-2.5 dark:border-neutral-800">
-                        <label className="flex items-center gap-2.5 text-sm select-none cursor-pointer">
+                        <label
+                          htmlFor={`table-grouphdr-${uid}`}
+                          className="flex items-center gap-2.5 text-sm select-none cursor-pointer"
+                        >
                           <input
                             type="checkbox"
+                            id={`table-grouphdr-${uid}`}
+                            aria-label="Show group header"
                             checked={resolvedShowGroupHeader}
                             onChange={() => {
                               const next = !resolvedShowGroupHeader;
@@ -2332,7 +2346,10 @@ function TableComponent<T>({
                       "border-b dark:border-opacity-60",
                     )}
                   >
-                    {/* Extra leading th for expand/collapse when grouping with group headers */}
+                    {/* Extra leading th for expand/collapse when grouping with group headers.
+                        Decorative spacer column header (no content); the
+                        rule's focusable check is a false positive here. */}
+                    {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable -- decorative empty spacer header */}
                     {showGroupExpandCol && (
                       <th
                         scope="col"
@@ -2348,10 +2365,13 @@ function TableComponent<T>({
                         <div className="w-full h-full" />
                       </th>
                     )}
+                    {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable */}
                     {/* Indent spacer th for grouped mode without group headers */}
+                    {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable -- decorative empty spacer header */}
                     {resolvedGroupBy && !showGroupExpandCol && (
                       <th scope="col" className="w-4" aria-hidden="true" />
                     )}
+                    {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable */}
                     {orderedVisibleColumns.map((column, colIndex) => {
                       const isSorted = resolvedSort?.columnId === column.id;
                       const sortDirection = isSorted

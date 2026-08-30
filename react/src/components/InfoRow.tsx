@@ -361,6 +361,7 @@ const InfoRowBody: React.FC<
       ref={valueRef}
       // Focusable only when there is actually a tooltip to reveal, so the row
       // does not add a dead tab stop to every details panel.
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable tooltip anchor (keyboard access to truncated text)
       tabIndex={canTooltip && truncated ? 0 : undefined}
       onMouseEnter={measure}
       onFocus={measure}

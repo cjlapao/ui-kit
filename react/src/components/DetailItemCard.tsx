@@ -131,6 +131,7 @@ const DetailBody: React.FC<DetailBodyProps> = ({
         disabled && "cursor-not-allowed opacity-60",
       )}
       role={interactive ? "button" : undefined}
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- card-as-button APG pattern (rich content)
       tabIndex={interactive ? 0 : undefined}
       aria-labelledby={interactive ? titleId : undefined}
       aria-disabled={disabled || undefined}

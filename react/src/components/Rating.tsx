@@ -214,6 +214,9 @@ const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
               const lit = display >= starValue - EPSILON;
               const starId = `${groupName}-${index}-${starValue}`;
               return (
+                // The label's mouseenter is hover preview only — the radio
+                // input is the real control (and the keyboard target).
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- hover preview; the radio input is the control
                 <label
                   key={starValue}
                   htmlFor={starId}
@@ -222,9 +225,6 @@ const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
                     allowHalf ? "w-1/2" : "w-full",
                     inert ? "cursor-not-allowed" : "cursor-pointer",
                   )}
-                  // Hover preview only — the radio input is the real control
-                  // and the visible pointer target is the label.
-                  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- hover preview; the radio input is the control
                   onMouseEnter={() => setHoverValue(starValue)}
                 >
                   <input
