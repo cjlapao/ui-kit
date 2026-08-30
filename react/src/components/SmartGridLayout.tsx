@@ -2637,6 +2637,41 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
   );
 
   /**
+   * Keyboard row resizing — the row-height drag handle had no keyboard
+   * equivalent (mouse-only, WCAG 2.1.1 gap). ArrowUp/ArrowDown move the
+   * row one span (ROW_SPAN_SIZE px), same clamps as the mouse path
+   * (1..MAX_ROW_SPANS), with the same SR announcement.
+   */
+  const nudgeRowHeight = useCallback(
+    (sectionId: string, rowId: string, direction: -1 | 1) => {
+      updateLayout((prev) => {
+        let changed = false;
+        const sections = prev.sections.map((section) => {
+          if (section.id !== sectionId) return section;
+          return {
+            ...section,
+            rows: section.rows.map((row) => {
+              if (row.id !== rowId) return row;
+              const current =
+                row.heightSpan ?? (row.height ? heightToSpan(row.height) : 0);
+              const next = Math.max(
+                1,
+                Math.min(MAX_ROW_SPANS, current + direction),
+              );
+              if (next === current) return row;
+              changed = true;
+              announce(`Row height ${next} of ${MAX_ROW_SPANS}`);
+              return { ...row, height: next * ROW_SPAN_SIZE, heightSpan: next };
+            }),
+          };
+        });
+        return changed ? { ...prev, sections } : prev;
+      });
+    },
+    [updateLayout, announce],
+  );
+
+  /**
    * Keyboard tile moving: lift, move, place.
    *
    * Drag-and-drop had no keyboard equivalent at all, so the *primary* action
@@ -2762,7 +2797,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
 
   const resizeKeyHandler = useCallback(
     (leftId: string, rightId: string) =>
-      (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      (event: React.KeyboardEvent<HTMLElement>) => {
         if (event.key === "ArrowLeft") {
           event.preventDefault();
           nudgeSpan(leftId, rightId, -1);
@@ -3378,8 +3413,8 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                     // transfer, cf. APG "focus moves to the input when the
                     // user opens it"). No page-load focus theft; an
                     // explicit ref.focus() effect would do the same thing
-                    // with more code. (jsx-a11y/no-autofocus is off in the
-                    // committed lint config — the triage stands on its own.)
+                    // with more code.
+                    // eslint-disable-next-line jsx-a11y/no-autofocus -- post-action focus transfer on the field the user just asked to rename (WCAG 2.4.3); only autoFocus in the kit
                     autoFocus
                   />
                 </div>
@@ -4205,8 +4240,8 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                                   {isEditMode && (
                                     <>
                                       {neighborCell && neighbor && (
-                                        <button
-                                          type="button"
+                                        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- ARIA 1.2 resizable separator: this div is the drag/keyboard resize target itself (WCAG 2.1.1); a button element here would conflict (interactive element with a non-interactive role)
+                                        <div
                                           onMouseDown={(event) => {
                                             beginResize(
                                               event,
@@ -4226,13 +4261,15 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                                           aria-valuenow={renderCell.span}
                                           aria-valuemin={1}
                                           aria-valuemax={maxColumns}
+                                          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a resizable separator is the keyboard focus target (WCAG 2.1.1)
+                                          tabIndex={0}
                                           className="group absolute left-full top-2 bottom-2 z-10 w-4 cursor-col-resize bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
                                           aria-label="Resize spacer — left and right arrows move one column"
                                         >
                                           <span
                                             className={`absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-80 group-focus-visible:opacity-80 ${editTheme.solid} ${resizeState?.leftId === cell.entry.id ? "opacity-90" : ""}`}
                                           />
-                                        </button>
+                                        </div>
                                       )}
                                     </>
                                   )}
@@ -4240,6 +4277,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                               );
                             }
                             return (
+                              // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- conditional composite: in edit mode this tile is a real control (role="button", tabIndex, aria-grabbed, full keyboard lift/move/place); the handlers and draggable are gated on isEditMode and inert otherwise — the rule cannot see the conditional role
                               <article
                                 key={cell.entry.id}
                                 data-sg-item-id={cell.entry.id}
@@ -4399,8 +4437,8 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
 
 
                                 {isEditMode && neighborCell && neighbor && (
-                                  <button
-                                    type="button"
+                                  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- ARIA 1.2 resizable separator: this div is the drag/keyboard resize target itself (WCAG 2.1.1); a button element here would conflict (interactive element with a non-interactive role)
+                                  <div
                                     onMouseDown={(event) => {
                                       beginResize(
                                         event,
@@ -4420,13 +4458,15 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                                     aria-valuenow={renderCell.span}
                                     aria-valuemin={1}
                                     aria-valuemax={maxColumns}
+                                    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a resizable separator is the keyboard focus target (WCAG 2.1.1)
+                                    tabIndex={0}
                                     className="group absolute left-full top-2 bottom-2 z-10 w-4 cursor-col-resize bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
                                     aria-label={`Resize ${cell.entry.item.title} — left and right arrows move one column`}
                                   >
                                     <span
                                       className={`absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-80 group-focus-visible:opacity-80 ${editTheme.solid} ${resizeState?.leftId === cell.entry.id ? "opacity-90" : ""}`}
                                     />
-                                  </button>
+                                  </div>
                                 )}
                               </article>
                             );
@@ -4458,13 +4498,31 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                       </div>
                     </div>
                     {isEditMode && (
+                      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- ARIA 1.2 resizable separator: this div is the drag/keyboard resize target itself (WCAG 2.1.1)
                       <div
                         onMouseDown={(event) => {
                           beginRowResize(event, row.id, sectionId, row.height ?? 120, row.heightSpan ?? 0);
                         }}
-                        className={`flex flex-col items-center rounded-full group bottom-0 h-1 cursor-ns-resize opacity-0 hover:opacity-80 ${editTheme.solid} transition-opacity ${rowResizeState?.rowId === row.id ? "opacity-100" : "group-hover:opacity-50"}`}
+                        onKeyDown={(event) => {
+                          if (event.key === "ArrowUp") {
+                            event.preventDefault();
+                            nudgeRowHeight(sectionId, row.id, -1);
+                          } else if (event.key === "ArrowDown") {
+                            event.preventDefault();
+                            nudgeRowHeight(sectionId, row.id, 1);
+                          }
+                        }}
+                        role="separator"
+                        aria-orientation="horizontal"
+                        aria-valuenow={row.heightSpan ?? (row.height ? heightToSpan(row.height) : 0)}
+                        aria-valuemin={1}
+                        aria-valuemax={MAX_ROW_SPANS}
+                        aria-label="Resize row height — up and down arrows move one row"
+                        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a resizable separator is the keyboard focus target (WCAG 2.1.1)
+                        tabIndex={0}
+                        className={`flex flex-col items-center rounded-full group bottom-0 h-1 cursor-ns-resize opacity-0 hover:opacity-80 focus-visible:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current ${editTheme.solid} transition-opacity ${rowResizeState?.rowId === row.id ? "opacity-100" : "group-hover:opacity-50"}`}
                         style={{ top: "auto", bottom: 0, width: "95%" }}
-                        title="Drag to resize row height"
+                        title="Drag to resize row height, or focus and use the up and down arrows"
                       />
                     )}
                   </div>

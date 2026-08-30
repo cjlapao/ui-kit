@@ -66,18 +66,6 @@ export default [
     },
   },
   {
-    // SmartGridLayout is mid-change in the working tree (uncommitted user
-    // work); its a11y sweep (autoFocus, static interactions, tabIndex) is
-    // deferred until that work lands — audit spec, Phase A status.
-    files: ["src/components/SmartGridLayout.tsx"],
-    rules: {
-      "jsx-a11y/no-autofocus": "off",
-      "jsx-a11y/no-interactive-element-to-noninteractive-role": "off",
-      "jsx-a11y/no-noninteractive-element-interactions": "off",
-      "jsx-a11y/no-static-element-interactions": "off",
-    },
-  },
-  {
     ignores: ["node_modules/**", "dist/**", "build/**", "**/*.test.*"],
   },
 ];

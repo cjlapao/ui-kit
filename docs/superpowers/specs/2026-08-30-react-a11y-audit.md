@@ -332,9 +332,11 @@ the suite on new serious/critical violations).
 Commits: `d101d4a` (contrast gate), `7aec902` (a11y guide), `04942a5`
 (SR checklist), `97016d7` (P1-3/P1-5 + P2 sweep). Verified: full suite
 3630/3630, `npm run lint` 0 errors / 107 warnings, tsc clean, demo
-build green. Residual, deliberately not committed:
-`SmartGridLayout.tsx` (P1-4 triage comment inside the user's
-mid-change file).
+build green. The `SmartGridLayout.tsx` deferral is resolved (its
+a11y sweep — justified disables for the autoFocus and the ARIA 1.2
+resizable-separator composites, plus keyboard row-resize — landed
+with the file's completed edit-mode work; the per-file config
+override is removed).
 
 **Definition of done:** P0 findings at zero with tests; lint+axe gates
 in CI; dev warnings live; a11y guide published; contrast asserted for
