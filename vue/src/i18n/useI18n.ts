@@ -13,6 +13,7 @@ import {
 } from "vue";
 import { devWarnOnce } from "../../../common/i18n/warn";
 import type { I18nEngine } from "../../../common/i18n";
+import type { DateParseNames } from "../../../common/utils/dates";
 import { injectEngine, resolveEngine } from "./I18nContext";
 
 export interface UseI18n {
@@ -32,7 +33,7 @@ export interface UseI18n {
   /** CLDR weekday names for `tag` (default: active locale). */
   weekdayNames: (tag?: string, short?: boolean) => string[];
   /** Month/weekday spellings the input parser must accept (active locale). */
-  parseNames: () => import("../../../common/i18n/dates").DateParseNames;
+  parseNames: () => DateParseNames;
   isRTL: ComputedRef<boolean>;
   /** The engine itself (escape hatch). */
   engine: I18nEngine;

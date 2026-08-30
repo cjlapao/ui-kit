@@ -6,6 +6,7 @@ import {
   type SurfaceVariant,
   type TrueColor,
 } from "../theme/Theme";
+import type { IconName } from "../icons/registry";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                               */
@@ -434,8 +435,6 @@ import {
   type ComponentPublicInstance,
 } from "vue";
 import classNames from "classnames";
-import { useKitT } from "../i18n";
-const t = useKitT();
 import IconButton from "./IconButton.vue";
 import CustomIcon from "./CustomIcon.vue";
 import Panel from "./Panel.vue";
@@ -444,9 +443,12 @@ import {
   getPanelToneStyles,
   getSurfaceTextTokens,
 } from "../theme/Theme";
-import type { IconName } from "../icons/registry";
+// IconName is imported by the Options-API block above (shared module scope).
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
+import { useKitT } from "../i18n";
+
+const t = useKitT();
 
 defineOptions({ name: "HelpButton", inheritAttrs: false });
 

@@ -3,7 +3,7 @@
 // SearchBar placeholder.
 import { afterEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
-import { defineComponent, h } from "vue";
+import { h } from "vue";
 import { I18nProvider } from "./index";
 import Combobox from "../components/Combobox.vue";
 import Modal from "../components/Modal.vue";

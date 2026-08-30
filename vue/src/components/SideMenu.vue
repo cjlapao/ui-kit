@@ -329,6 +329,8 @@ import VNodeRenderer from "./internal/VNodeRenderer";
 
 defineOptions({ name: "SideMenu", inheritAttrs: false });
 
+const t = useKitT();
+
 const props = withDefaults(defineProps<SideMenuProps>(), {
   collapsed: false,
   mobileOpen: false,

@@ -51,7 +51,9 @@ describe("I18nProvider", () => {
   });
 
   it("the locale ref tracks the engine", async () => {
-    let i18n: UseI18n | null = null;
+    // Assigned inside the child's setup() closure; `!` documents that the
+    // mount below guarantees it runs before the assertions read it.
+    let i18n!: UseI18n;
     const Child = defineComponent({
       setup() {
         i18n = useI18n();
