@@ -1428,3 +1428,120 @@ Two process notes:
 
 - The full test suite was **OOM-killed** (exit 137) at the default worker count. `--maxWorkers=2` runs clean. That is the same pressure behind the intermittent `Breadcrumb` / `Accordion` / `Carousel` timing failures reported earlier — memory-starved workers, not flaky assertions. The suite would benefit from a bounded worker count in its config.
 - A `vite preview` process killed mid-build left `demo/build/index.html` at **0 bytes**, which made the docs page look empty and briefly read as a code failure. Same class as the truncated-file problem from earlier in the session: a partial write from an interrupted process, not a bug in the source.
+
+## SidePanel — off the design language, and a dead resize handle
+
+Two problems, one of them a real bug.
+
+### The resize handle highlighted in no tone at all
+
+It tinted with `group-hover:bg-{tone}-300/60`, `dark:group-hover:bg-{tone}-600/60`, `active:bg-{tone}-400/60` and `dark:active:bg-{tone}-500/40`. **None of those four shapes is in the safelist**, and checking the built CSS confirms it: `group-hover:bg-blue-300` exists, `group-hover:bg-blue-300/60` does not — the `/60` alpha variants were never emitted. So the drag affordance was invisible until you were already dragging.
+
+Rather than add four bespoke shapes to the safelist, the handle now uses the treatment `SplitView`'s resizer already uses: opacity on a solid `bg-{tone}-400`, which is safelisted and proven. Same result, no new surface area. It also gained `role="separator"` and a name, which it had neither of.
+
+### Everything else was hardcoded
+
+- **No `variant`** — `bg-white dark:bg-neutral-900` with `border-neutral-200 dark:border-neutral-700` and a fixed `shadow-xl`. Now the `Panel` family plus `plain`, with `surfaceTone` kept separate from the accent as everywhere else.
+- **No `size`** — header padding and type were pinned at the `md` values.
+- **`color` → `tone`**, with `color` kept as a deprecated alias.
+- **Right edge only** — now `side="left" | "right"`, with the border on whichever edge faces the content.
+- **`color="slate"` hardcoded** on the close button; it takes the tone now.
+- Hardcoded neutrals for the title, subtitle and dividers replaced with surface tokens.
+
+### And a docstring that was never true
+
+It claimed *"slides in from the right as a fixed overlay… because it uses `position: fixed` it never affects the page layout"*. It has always been `position: absolute`. The behaviour it describes — not reflowing the content beside it — is real, but it comes from overlaying, not from `fixed`. Corrected, with the actual constraint stated: it needs a positioned ancestor and fills that box.
+
+### It had no demo page
+
+Registered at `side-panel`, with a playground covering variant, both tones, size, side, resizable, footer and the noise texture, plus a `Sides` example. Its four existing tests passed unchanged through all of the above; 9 more were added, including one asserting the handle no longer emits a `/60` class.
+
+**109 files passing** (`numberUtils.test.ts` fails on another agent's in-flight `formatBytes` collision), `tsc` clean for this component.
+
+### SidePanel — inverted left resize and a snapping open (follow-up)
+
+Two defects reported after the review pass, both from the same blind spot: only the right-docked default had ever been exercised.
+
+**Resize ran backwards on the left.** `delta = startX - clientX` grows the panel as the pointer moves left, which is right for a right-docked panel (handle on its left edge) and exactly wrong for a left-docked one (handle on its right edge). The delta is now chosen by `side`. The same branch was mis-anchored visually: the fixed-width inner container sat at the box's left edge for both sides, so a left panel's reveal read as a wipe rather than a slide — it now gets `ml-auto` so it hangs off the edge it is docked against.
+
+**Opening snapped, closing animated.** `mounted` and `isOpen` became true in the same render, so the element mounted already at full width, with no 0-width frame for `transition-[width]` to start from. Added an `entered` state: mount collapsed, widen on the next `requestAnimationFrame`. Seeded from `isOpen`, so a panel that is open on first render still appears instantly.
+
+7 tests added (21 total). Verified by reverting each fix and confirming failure: the old delta fails 3 of them, the old width expression fails the open-animation test. `tsc` clean; both dev servers serve the updated module. The playground already exposes side, resizable and the open toggle, so both fixes are reachable there without demo changes.
+
+**Follow-up pass.** The open/close was still reading as a snap at `duration-300 ease-in-out` — ease-in-out spends its speed in the middle and arrives abruptly. Now 450ms on `cubic-bezier(0.32, 0.72, 0, 1)`, which front-loads the motion and settles slowly. Written as an inline `transition` rather than Tailwind utilities: an arbitrary easing class would have to survive the safelist, and this curve is not themeable. Still suppressed mid-resize so the panel tracks the pointer exactly.
+
+Header and footer rules removed (`border-b` / `border-t`); the panel's own docked-edge border stays.
+
+While in there, `onTransitionEnd` now checks `target === currentTarget` and `propertyName === "width"`. transitionend bubbles, so the resize handle's opacity fade could unmount the panel part-way through its close. 22 tests; the guard is covered by a test that fails without it.
+
+**Resize grip restyled.** Rebuilt on SmartGridLayout's column-resizer shape: a 16px transparent hit area holding a short `rounded-full` pill (`h-16 w-1`) rather than a full-height 6px bar. The hit area is held `0.5` (2px) off the docked edge so the panel's own border still reads as a line beside the grip, and the pill sits at the outer end of that area so the grabbable slack extends inward. Hover reveal went 40% → 60% so the pill is legible at its smaller size.
+
+Verified with a fresh `@tailwindcss/cli` build that `group-hover:opacity-60`, `group-active:opacity-100`, `h-16`, `left-0.5` and `right-0.5` are all emitted — the shipped `dist/index.css` predates the change, so grepping it would have been a false negative. 24 tests.
+
+**Grip corrected — outside the panel, full height.** The previous pass put the pill *inside* the panel and only 64px tall, which was wrong on both counts. The handle is now a **sibling** of the panel rather than a child: inside, the panel's own `overflow-hidden` clips anything drawn past its border, so it could never sit outside. It is parked at the panel's outer edge with an inline `right`/`left` equal to the panel width, and carries the same 450ms curve on that property so it slides in step with the opening panel instead of jumping to its final position.
+
+The hit area (12px, `cursor-col-resize`) is therefore fully outside the panel, and the pill runs `inset-y-2` — nearly the whole edge — because the pointer arrives at whatever height it likes and the affordance has to be visible there. Held `0.5` off the panel-facing end so the border still reads as a line.
+
+26 tests. Fresh `@tailwindcss/cli` build confirms `inset-y-0`, `inset-y-2`, `w-3`, `left-0.5`, `right-0.5` and `group-hover:opacity-60` all emit.
+
+**Grip invisible in the demo — stale `dist/index.css`.** The component was correct; the demo could not draw it. `react/demo/src/index.css` does `@import "../../dist/index.css"`, so the demo renders library components against the *built* stylesheet while Vite serves their *source*. `dist/index.css` was a day old: `inset-y-2` and `group-hover:opacity-60` were both absent, so the pill had no height and no hover reveal. `cursor-col-resize` was already in the old build, which is why the cursor changed in the right place — the one signal suggesting the element was fine.
+
+Regenerated with the command tsup's `onSuccess` uses (`npx @tailwindcss/cli -i ./src/styles.css -o ./dist/index.css`).
+
+**Pressed state now actually renders.** Dragging lived only in `isDraggingRef`, and a ref change re-renders nothing, so the grabbed styling could not apply. Mirrored into `isDragging` state; the ref stays for the handlers and the width-sync effect, which run outside React's cycle. The pill now deepens `bg-{tone}-400` → `bg-{tone}-500` at full opacity while dragging (both shades safelisted for every tone), hover sits at 70%, and it transitions colour as well as opacity. 27 tests.
+
+### SmartGridLayout — edit-layout button, and the palette rebuilt on SidePanel
+
+**The edit-layout button now follows the controls.** It was pinned to `isEditMode ? "solid" : "outline"`, the last toolbar control ignoring its own surface — a glass dashboard grew one bordered chip beside its glass buttons. It uses `editorButtonVariant` like everything else, so it takes the surface by default (`plain` → glass, `elevated` → outline, `subtle` → ghost …) and `controlVariant` when that is set. Edit mode is signalled by the label and by the toolbar filling with controls rather than by a variant swap. Three tests, each asserting the button's className equals what a real `Button` of that variant renders — so they track the theme instead of pinning a copy of its output. All three fail with the old expression restored.
+
+**The palette shell is now `SidePanel`.** It was a hand-rolled `<aside>` reimplementing panel chrome that already existed. It gains the slide animation, the resize grip and the surface handling, and drops ~30 lines. It is `resizable` at 288px (240–520).
+
+Consequences worth knowing:
+- `SmartGridItemPaletteProps` changed — `surfaceText`, `borderClass` and `surfaceClass` are replaced by `variant` + `surfaceTone`, which the palette resolves itself. It is a public export, so this is a breaking change to a component added earlier in this same batch.
+- Closing is now animated, so the palette unmounts on `transitionend` rather than immediately. Two existing tests asserted "gone straight away"; they now assert it collapses to 0 *and* unmounts once the transition ends, which is strictly more than they checked before.
+- Escape-to-close needed `onKeyDown` on `SidePanel` (forwarded to the panel body). A wrapper around `children` alone would miss keys pressed while the close button — which lives in the panel header — has focus.
+- The palette keeps its own close button in `headerActions` rather than using `onClose`, to hold the accessible name "Close the item palette"; the editor has several dismissables and "Close panel" does not say which.
+
+One thing to watch in the browser: the resize grip is a 12px strip sitting *outside* the palette, over the grid. Drag events bubble to the grid's container-level `dragover` handler, so drops near that edge should still resolve, but jsdom's zero-size rects make that untestable here.
+
+110 test files, 2702 tests, all passing. `dist/index.css` regenerated.
+
+### SidePanel — SideMenu's surface family, and `inset`
+
+**The variants are `SideMenu`'s now, not `Panel`'s.** A docked panel and a docked menu are the same object with different content, and they were being dressed from two different vocabularies: `elevated`/`tonal`/`plain` cards on one side, `sidebar`/`floating`/`glass` shells on the other. `SIDE_PANEL_VARIANTS` is now `SIDEBAR_VARIANTS` (`sidebar` | `inset` | `floating` | `floating-glass` | `glass`), and fill, border, border sides, shadow, radius and offset all come from `getSidebarSurfaceTokens`. A test asserts the two lists are equal, so they cannot drift.
+
+Two consequences of the swap: the default is `sidebar`, which is borderless by design and casts a shadow toward the content instead of drawing a rule — the "border on the content-facing edge" test now runs on `inset`, which does draw one. And the shadow picks `shadow`/`shadowRight` by side, as SideMenu does.
+
+**`inset` detaches the panel from all four edges** — an 8px gap matching SideMenu's `m-2`, rounded corners, and a border all round rather than only on the content-facing edge. It defaults to *whatever the variant implies*: `floating` and `floating-glass` carry an offset in their own tokens, so they float without being told to, and `inset={false}` still overrides them. Reading the default off `surface.offset` avoids keeping a second list of "which variants float" in sync with the theme.
+
+The resize grip adds the gap to its own offset, or it would sit on top of the panel's rounded corner instead of beside it, and it spans `inset-y-2` so it matches the panel's height rather than the container's.
+
+Knock-ons: `SmartGridItemPalette` takes a `SidePanelVariant`, and `SmartGridLayout` maps its own surface to one (only the glass/solid distinction carries over — `sidebar` is the standing docked look). `getSidePanelTextTokens` is exported so the palette and the panel pick copy contrast the same way. Demo playground gained an Inset toggle and a `Floating` example over a gradient, where the detached geometry is actually visible.
+
+110 test files / 2709 tests. Reverting either half of the inset default fails exactly the two tests written for it.
+
+**Inset gaps are asymmetric.** The first pass used a uniform 8px, matching SideMenu's `m-2`. That is wrong for a panel: it is anchored to its edge, so air along that edge reads as the panel having come loose, while air above and below is what makes it read as a floating card. Now 12px top and bottom (`inset-y-3`) and 6px on the docked edge (`right-1.5` / `left-1.5`) — tighter than SideMenu's, but wide enough that the corner radius reads. The resize grip clears the edge gap (`width + 6`) and spans the same vertical inset.
+
+The vertical gap is a class constant and the edge gap a number, because only the second one is computed with — keeping both in one block so they cannot drift.
+
+**Inset geometry reworked.** The first version split the gap between the vertical and the docked edge, and the edge gap was too small to notice while still being enough to make the panel read as having come loose. Now all of the float is vertical (`inset-y-4`, 16px) and the panel stays flush against its own edge — the same silhouette SideMenu's floating variants have.
+
+The corners follow from that: only the two facing the content are rounded, since the other two meet the container and have nothing to round against. The border does the same — `border-y border-l` for a right-docked panel, so the flush edge does not draw a rule that doubles up with the container's own.
+
+New `radius` prop on the `Tabs` scale (`none` … `3xl`), defaulting to `2xl` while inset and `none` when flush. The per-side classes are written out in a record rather than composed from a template, since Tailwind only sees literals. Exported alongside `SIDE_PANEL_RADII`; the playground gained a Corner size control.
+
+### SidePanel — the corner artifact, and why the demo looked unpadded
+
+Three reports, three distinct causes.
+
+**The corner artifact was a layering bug.** `surface.fill` — `backdrop-blur-2xl` plus a translucent background — sat on the *content* container, a square-cornered box relying on the shell's `overflow-hidden` to round it. A backdrop-filtered element does not reliably clip to a rounded ancestor: the blur paints into its own context and leaves a nick at each corner, which is what showed up under magnification. `SideMenu` already avoids this, and the comment in its source says why — it paints fill and blur as a separate absolute layer carrying `surface.radius` itself.
+
+`SidePanel` does the same now: a `[data-sp-fill]` layer with the fill and the radius, the noise layer above it, and transparent content above that. So one container rounds everything and header / body / footer never have to know a corner exists — which is exactly the redesign that was asked for.
+
+**The corner size follows the panel size.** A radius is a fraction of the thing it rounds, so one fixed default is wrong at both ends of the scale; the generic `md` is 6px, which on a 420px panel reads as a rendering accident. `SIZE_TOKENS` carries a radius per size (xs→lg, sm→xl, md→2xl, lg/xl→3xl), and the `radius` prop still overrides.
+
+**The missing top padding was the playground, not the panel.** The Corner size control always passed a value, so `radius ?? (isInset ? … : "none")` never reached its fallback and every configuration rendered rounded — including flush, full-height ones. Rounded corners with no gap is precisely what "floating has no padding" looks like. The control now offers `auto (from size)` and passes no `radius` there.
+
+38 tests. Reverting either the fill layer or the size-derived radius fails exactly the test written for it.
+
+Not fixed, not mine: an untracked `src/components/DatePicker/` (10:57) imports `../theme/Theme` from inside its own folder, which breaks the component-barrel test and the demo typecheck.

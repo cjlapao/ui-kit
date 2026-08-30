@@ -26,6 +26,8 @@ import {
   SURFACE_PADDINGS,
   SURFACE_VARIANTS,
   TABLE_DENSITIES,
+  TOAST_POSITIONS,
+  TOAST_MODES,
   TRUE_COLORS,
   getSurfaceCornerRem,
   type MultiToggleOption,
@@ -127,6 +129,14 @@ export const alertIntentOptions: MultiToggleOption[] = ALERT_INTENTS.map(
 );
 
 export const alertVariantOptions: MultiToggleOption[] = ALERT_VARIANTS.map(
+  (value) => ({ label: titleCase(value), value }),
+);
+
+export const toastPositionOptions: MultiToggleOption[] = TOAST_POSITIONS.map(
+  (value) => ({ label: titleCase(value), value }),
+);
+
+export const toastModeOptions: MultiToggleOption[] = TOAST_MODES.map(
   (value) => ({ label: titleCase(value), value }),
 );
 

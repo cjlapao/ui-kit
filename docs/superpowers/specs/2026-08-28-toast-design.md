@@ -36,10 +36,21 @@ primevue.dev (scratch notes in `.qa/toast-research/`):
   hovered/focused — the container publishes `data-expanded`): each card
   transitions to its own measured height, translated by
   `offset + index × gap` away from the corner — the fan-out. A `::after`
-  spacer of `gap + 1px` keeps the seam honest during the transition.
+  spacer of `gap + 1px` covers each seam so the pointer crossing a gap
+  still counts as hovering the group (hitting a pseudo-element counts as
+  hovering its owner card), and the deck only collapses outside the
+  group. This requires the card root to stay overflow-visible — the
+  collapsed clamp's `overflow: hidden` is the stylesheet's own rule on
+  the clamped state, never a variant class on the root (a root-level
+  clip would clip the bridge away and the deck would collapse mid-gap).
 - `limit` (default **3**): only the 3 newest are visible; older messages keep
-  their slot in the math but get `opacity:0; pointer-events:none` +
-  `aria-hidden` (they un-hide as older ones leave).
+  their slot in the store (no early eviction — sticky/long-life toasts
+  survive) but get the FIFO step: they slide a full card height out along the
+  deck's extension axis (away from the corner) and fade
+  (`opacity:0; pointer-events:none` + `aria-hidden`), so a raised stack
+  visibly gains its newest at the corner while losing its oldest at the far
+  end. The same transition slides a card back in as the cards in front of it
+  leave. PrimeVue fades these in place; the slide is a deliberate extension.
 - Entry: opacity 0 + translated 100% off-screen → `data-mounted` (set after
   the first height measurement) → opacity 1 at the corner. Transition on
   transform/opacity/height at the theme duration.
@@ -123,8 +134,11 @@ react/src/components/Toast/
 toast.show(input)        // full form (below); returns the message id
 toast.info(title, detail?, opts?)     // intent sugar, same for
 toast.success(…)  toast.warning(…)  toast.danger(…)  toast.neutral(…)
-toast.update(id, patch)  // e.g. { progress, detail, title } — needed for
-                         // real progress toasts (PrimeVue re-adds instead)
+toast.update(id, patch)  // e.g. { progress, detail, title, intent }
+                         // — needed for real progress toasts (PrimeVue
+                         // re-adds instead); intent is patchable so a
+                         // message can turn green on success, and patching
+                         // life/sticky re-times the timer
 toast.close(id)
 toast.closeGroup(group)
 toast.clear()

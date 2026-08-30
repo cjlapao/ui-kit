@@ -1,6 +1,11 @@
 import React, { useState } from "react";
-import { SmartGridLayout, SMART_GRID_VARIANTS } from "@cjlapao/ui-kit";
-import type { ControlSize, SmartGridVariant, TrueColor } from "@cjlapao/ui-kit";
+import { BUTTON_VARIANTS, SmartGridLayout, SMART_GRID_VARIANTS } from "@cjlapao/ui-kit";
+import type {
+  ButtonVariant,
+  ControlSize,
+  SmartGridVariant,
+  TrueColor,
+} from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
   Control,
@@ -20,6 +25,7 @@ export const SmartGridLayoutPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SmartGridVariant>("plain");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [surfaceTone, setSurfaceTone] = useState<TrueColor>("neutral");
+  const [controlVariant, setControlVariant] = useState<string>("");
   const [size, setSize] = useState<ControlSize>("md");
   const [maxColumns, setMaxColumns] = useState("12");
   const [persist, setPersist] = useState(false);
@@ -48,7 +54,16 @@ export const SmartGridLayoutPlayground: React.FC = () => {
                       value={tone} onChange={(v) => setTone(v as TrueColor)} />
                     <ChoiceControl label="Surface tone" options={trueColorOptions}
                       value={surfaceTone} onChange={(v) => setSurfaceTone(v as TrueColor)} />
-                    <ChoiceControl label="Size" options={controlSizeOptions}
+                    <ChoiceControl
+            label="Control variant"
+            options={[
+              { label: "(follows surface)", value: "" },
+              ...BUTTON_VARIANTS.map((v) => ({ label: v, value: v })),
+            ]}
+            value={controlVariant}
+            onChange={setControlVariant}
+          />
+          <ChoiceControl label="Size" options={controlSizeOptions}
                       value={size} onChange={(v) => setSize(v as ControlSize)} />
                     <ChoiceControl label="Columns" options={columnOptions}
                       value={maxColumns} onChange={setMaxColumns} />
@@ -72,9 +87,20 @@ export const SmartGridLayoutPlayground: React.FC = () => {
             ]}
           />
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Turn on <strong>Edit mode</strong> and drag a tile, or focus a
-            resize handle and use the left and right arrows — the handles were
-            mouse-only before. <strong>Persist</strong> adds a{" "}
+            Turn on <strong>Edit mode</strong>, then: press <strong>Add Item</strong>{" "}
+            and drag an entry out of the palette onto the grid — it lands where
+            the preview shows, and the panel stays open so adding several is one
+            flow; drag a tile to move it,
+            or onto the red zone in the top-left to remove it; drag a section by
+            its <code>⠿</code> handle (only shown when there is more than one);
+            click a section title to rename it; focus a resize handle and use
+            the left and right arrows. It is fully operable from the keyboard —
+            tab to a tile, <kbd>Enter</kbd> to lift it, arrows to move,
+            <kbd>Enter</kbd> to place, <kbd>Esc</kbd> to cancel — and every
+            action is announced to a screen reader. <strong>Control variant</strong> gives
+            the editing chrome a surface of its own — a <code>plain</code>
+            dashboard over a photograph wants <code>glass</code> buttons while
+            its body draws nothing. <strong>Persist</strong> adds a{" "}
             <code>storageKey</code>, which is the entire opt-in: the layout is
             restored on mount and saved after every change, exactly as{" "}
             <code>Table</code> does it. <strong>Edit accent</strong> is
@@ -92,6 +118,7 @@ export const SmartGridLayoutPlayground: React.FC = () => {
             variant={variant}
             tone={tone}
             surfaceTone={surfaceTone}
+            controlVariant={(controlVariant || undefined) as ButtonVariant | undefined}
             size={size}
             maxColumns={
               responsive

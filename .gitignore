@@ -77,3 +77,5 @@ react/dist/
 
 # i18n CLI build artifact
 tools/i18n-cli/dist
+.npm-cache/
+.a11y-audit/

@@ -11,9 +11,8 @@ import React, {
 import Button from "./Button";
 import { CustomIcon } from "./CustomIcon";
 import IconButton from "./IconButton";
-import Modal from "./Modal";
 import Input from "./Input";
-import EmptyState from "./EmptyState";
+import SmartGridItemPalette from "./SmartGridItemPalette";
 import SmartGridTileBoundary from "./SmartGridTileBoundary";
 import {
   CONTROL_SIZES,
@@ -121,6 +120,14 @@ export interface SmartGridLayoutProps {
   surfaceTone?: TrueColor;
   /** Grid gap, tile padding and the row-height unit. @default "md" */
   size?: SmartGridSize;
+  /**
+   * Surface for the editor's own controls, independent of the body.
+   *
+   * They follow `variant` by default, which is right most of the time — but a
+   * `plain` dashboard over a photograph wants `glass` controls while its body
+   * draws nothing, and the two cannot be expressed with one prop.
+   */
+  controlVariant?: ButtonVariant;
   /**
    * Renders the dashboard with no editing affordances at all — no toolbar, no
    * drag handles, no resize grips, and edit mode cannot be entered.
@@ -278,6 +285,12 @@ const MAX_ROW_SPANS = 12;
 const SPACER_PREFIX = "spacer:";
 
 /**
+ * How far past a row's edge the pointer must travel before another row can
+ * take the drop preview from it. See `rowOwnsPointer`.
+ */
+const ROW_SWITCH_MARGIN_PX = 24;
+
+/**
  * Sections are dragged with their own MIME type rather than sharing
  * `text/plain` with items.
  *
@@ -329,6 +342,17 @@ const getEditToneTokens = (tone: TrueColor): EditToneTokens =>
  * the editing chrome looked the same on a glass dashboard as on an elevated
  * one — the one part of the component that ignored its own `variant`.
  */
+/**
+ * A deliberate exception to `EDITOR_BUTTON_FOR_SURFACE`.
+ *
+ * The icon actions attached to a *row or section* — add an item, remove a row,
+ * remove a section — stay `ghost` whatever surface the dashboard has. They sit
+ * in the margins beside content rather than in the toolbar, and giving them
+ * the toolbar's treatment made a column of bordered chips running down the
+ * left edge of every row.
+ */
+const ROW_ICON_VARIANT: ButtonVariant = "ghost";
+
 const EDITOR_BUTTON_FOR_SURFACE: Record<PlainSurfaceVariant, ButtonVariant> = {
   // `plain` means "the background is unknown". Glass is the treatment built
   // for exactly that: a frosted backdrop reads on a white page and on a photo.
@@ -885,6 +909,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
   variant = "plain",
   surfaceTone = "neutral",
   size = "md",
+  controlVariant,
   readOnly = false,
   onTileError,
   historyLimit = 50,
@@ -937,7 +962,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
   const rootPadding = isPlain ? "" : sizeToken.pad;
   /** Editor chrome follows the dashboard's own surface. */
   const editorButtonVariant =
-    EDITOR_BUTTON_FOR_SURFACE[variant] ?? "outline";
+    controlVariant ?? EDITOR_BUTTON_FOR_SURFACE[variant] ?? "outline";
   /** The quiet twin, for icon-only controls that sit on top of content. */
   const editorIconVariant: ButtonVariant =
     editorButtonVariant === "glass" ? "glass" : "ghost";
@@ -970,7 +995,16 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
   );
   const effectivePersistedLayout = persistedLayout ?? restoredLayout;
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  /**
+   * The definition being dragged out of the palette.
+   *
+   * Kept separate from `draggingId`, which is a *layout item* id: dropping one
+   * reorders, dropping the other creates. A ref because `dragover` fires
+   * before React re-renders, the same reason the section drag uses one.
+   */
+  const paletteDragRef = useRef<string | null>(null);
+  const [paletteDragId, setPaletteDragId] = useState<string | null>(null);
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   /**
@@ -1041,7 +1075,150 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
   const [rowAddTarget, setRowAddTarget] = useState<RowAddTargetState | null>(
     null,
   );
-  const [rowPreview, setRowPreview] = useState<RowPreviewState | null>(null);
+  /**
+   * Mirrored into a ref: the hysteresis below has to know which row owns the
+   * preview *right now*, and `dragover` fires faster than React re-renders.
+   */
+  const rowPreviewRef = useRef<RowPreviewState | null>(null);
+  const [rowPreview, setRowPreviewState] = useState<RowPreviewState | null>(
+    null,
+  );
+  const setRowPreview = useCallback(
+    (
+      next:
+        | RowPreviewState
+        | null
+        | ((prev: RowPreviewState | null) => RowPreviewState | null),
+    ) => {
+      const resolved =
+        typeof next === "function" ? next(rowPreviewRef.current) : next;
+      rowPreviewRef.current = resolved;
+      setRowPreviewState(resolved);
+    },
+    [],
+  );
+
+  /**
+   * What just happened, for a screen reader.
+   *
+   * Every editing action here was silent: reordering, resizing, removing and
+   * moving between sections all changed the layout with nothing announced —
+   * including the keyboard paths, so a user could press the arrow keys and get
+   * no confirmation that anything had moved.
+   *
+   * Polite rather than assertive: these are confirmations of the user's own
+   * action, not interruptions.
+   */
+  const [announcement, setAnnouncement] = useState("");
+  const announce = useCallback((message: string) => {
+    // Re-announce an identical message by nudging it, or a screen reader will
+    // treat the unchanged text as nothing new — moving two tiles the same way
+    // in a row would say it once.
+    setAnnouncement((prev) => (prev === message ? `${message} ` : message));
+  }, []);
+
+  /** A definition's title, for the announcements. */
+  const titleOf = useCallback(
+    (definitionId: string) =>
+      items.find((item) => item.id === definitionId)?.title ?? "Item",
+    [items],
+  );
+  /**
+   * Where every cell sat when the item drag began, in page coordinates.
+   *
+   * The insert index used to be computed from *live* `getBoundingClientRect`
+   * calls — but by the time a second `dragover` arrives the ghost has already
+   * been inserted and pushed those cells sideways, so the measurement includes
+   * the effect of the previous measurement. Between two rows that feedback
+   * shows up as flicker: the ghost reflows the row, the pointer falls outside
+   * it, the preview clears, the layout snaps back, and round it goes.
+   *
+   * Resolving against a fixed snapshot breaks the loop. The positions go stale
+   * as soon as a preview is applied, and that is the point: the pointer moves
+   * in screen space and we map it onto the layout as it was before we started
+   * rearranging it.
+   */
+  const itemDragGeomRef = useRef<{
+    cells: Record<string, { id: string; mid: number }[]>;
+    /** Each row's vertical band, so a reflow cannot hand the drag to a neighbour. */
+    rows: { rowId: string; top: number; bottom: number }[];
+  }>({ cells: {}, rows: [] });
+
+  const captureItemDragGeometry = useCallback(() => {
+    const cells: Record<string, { id: string; mid: number }[]> = {};
+    const rows: { rowId: string; top: number; bottom: number }[] = [];
+    const root = containerRef.current;
+    if (!root) return;
+    root.querySelectorAll("[data-sg-row-id]").forEach((rowEl) => {
+      const rowId = rowEl.getAttribute("data-sg-row-id");
+      if (!rowId) return;
+      const rowRect = rowEl.getBoundingClientRect();
+      rows.push({
+        rowId,
+        top: rowRect.top + window.scrollY,
+        bottom: rowRect.bottom + window.scrollY,
+      });
+      cells[rowId] = [...rowEl.querySelectorAll("[data-sg-item-id]")].map(
+        (cellEl) => {
+          const rect = cellEl.getBoundingClientRect();
+          return {
+            id: cellEl.getAttribute("data-sg-item-id") ?? "",
+            mid: rect.left + rect.width / 2 + window.scrollX,
+          };
+        },
+      );
+    });
+    itemDragGeomRef.current = { cells, rows };
+  }, []);
+
+  /**
+   * Is the pointer inside this row's *original* band?
+   *
+   * Inserting the ghost makes rows grow and shrink, which moves the pointer
+   * across row boundaries without the user moving it. Without this, the
+   * neighbour's `dragover` claims the preview, the layout swaps back, and the
+   * two rows trade it forever — the flicker. Ties are resolved to the nearest
+   * band so a pointer in the gap between rows still lands somewhere.
+   */
+  const rowOwnsPointer = useCallback((rowId: string, pageY: number) => {
+    const { rows } = itemDragGeomRef.current;
+    if (rows.length === 0) return true;
+    const own = rows.find((entry) => entry.rowId === rowId);
+    if (!own) return true;
+
+    const current = rowPreviewRef.current?.rowId;
+
+    // Hysteresis. The bands are frozen at drag start, but the *rendered* rows
+    // move during the drag: the source row collapses when its item goes to the
+    // preview, and the target grows to hold the ghost. Around the boundary
+    // that leaves a band where a movement of a pixel or two flips the answer,
+    // and the two rows trade the preview — the flicker.
+    //
+    // So the row holding the preview keeps it until the pointer is clearly
+    // outside its band, and a challenger has to be clearly inside its own.
+    // Between the two thresholds nobody claims anything and the preview simply
+    // stays put, which is what stops the chatter.
+    if (current === rowId) {
+      return (
+        pageY >= own.top - ROW_SWITCH_MARGIN_PX &&
+        pageY <= own.bottom + ROW_SWITCH_MARGIN_PX
+      );
+    }
+    if (pageY >= own.top + ROW_SWITCH_MARGIN_PX && pageY <= own.bottom) {
+      return true;
+    }
+    // Nothing owns it yet — fall back to the nearest band so the first
+    // `dragover` of a drag still finds a home.
+    if (!current) {
+      const nearest = rows.reduce((best, entry) => {
+        const d = pageY < entry.top ? entry.top - pageY : pageY - entry.bottom;
+        const bd = pageY < best.top ? best.top - pageY : pageY - best.bottom;
+        return d < bd ? entry : best;
+      });
+      return nearest.rowId === rowId;
+    }
+    return false;
+  }, []);
   /**
    * The pointer is over the delete zone.
    *
@@ -1245,6 +1422,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
       maxColumns,
     );
     setLayout(fresh);
+    announce("Layout reset to its default");
     onLayoutChange?.(fresh);
   }, [
     fullStorageKey,
@@ -1307,6 +1485,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
     const previous = undoStackRef.current[undoStackRef.current.length - 1];
     if (!previous) return;
     undoStackRef.current = undoStackRef.current.slice(0, -1);
+    announce("Undone");
     setLayout((current) => {
       redoStackRef.current = [...redoStackRef.current, current];
       onLayoutChange?.(previous);
@@ -1320,6 +1499,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
     const next = redoStackRef.current[redoStackRef.current.length - 1];
     if (!next) return;
     redoStackRef.current = redoStackRef.current.slice(0, -1);
+    announce("Redone");
     setLayout((current) => {
       undoStackRef.current = [...undoStackRef.current, current];
       onLayoutChange?.(next);
@@ -1381,6 +1561,8 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
 
   const removeItem = useCallback(
     (itemId: string) => {
+      const removed = findLayoutItem(layoutRef.current, itemId);
+      if (removed) announce(`${titleOf(removed.definitionId)} removed`);
       updateLayout((prev) => {
         const newSections = prev.sections.map((section) => {
           const newRows = section.rows.map((row) => {
@@ -1425,7 +1607,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         return { ...prev, sections: newSections };
       });
     },
-    [updateLayout, maxColumns],
+    [updateLayout, maxColumns, announce, titleOf],
   );
 
   const addSpacerToRow = useCallback(
@@ -1494,8 +1676,10 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
 
       if (isSpacerId(itemId)) {
         addSpacerToRow(sectionId, rowId);
+        announce("Spacer added");
         return;
       }
+      announce(`${titleOf(itemId)} added`);
 
       updateLayout((prev) => {
         const itemDef = items.find((i) => i.id === itemId);
@@ -1620,7 +1804,77 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         return { ...prev, sections: newSections };
       });
     },
-    [updateLayout, addSpacerToRow, items],
+    [updateLayout, addSpacerToRow, items, announce, titleOf],
+  );
+
+  /**
+   * Add a definition to a row at a given index.
+   *
+   * `addItemToRow` appends, which is all the modal could express — it knew a
+   * row but not a position. Dragging from the palette knows exactly where the
+   * preview is, so it can place instead of append.
+   */
+  const insertItemAt = useCallback(
+    (definitionId: string, sectionId: string, rowId: string, index: number) => {
+      const itemDef = items.find((entry) => entry.id === definitionId);
+      if (!itemDef) return;
+      announce(`${itemDef.title} added`);
+      updateLayout((prev) => {
+        const sectionIndex = prev.sections.findIndex((x) => x.id === sectionId);
+        if (sectionIndex === -1) return prev;
+        const rowIndex = prev.sections[sectionIndex].rows.findIndex(
+          (r) => r.id === rowId,
+        );
+        if (rowIndex === -1) return prev;
+
+        // `single` means one instance: remove any existing one first.
+        let working = prev.sections;
+        if (itemDef.single) {
+          working = working.map((section) => ({
+            ...section,
+            rows: section.rows.map((r) => ({
+              ...r,
+              items: r.items.filter((i) => i.definitionId !== definitionId),
+            })),
+          }));
+        }
+
+        const newItem: SmartGridItem = {
+          definitionId,
+          id: createSlug(),
+          span: itemDef.defaultSpan ?? 4,
+          order: index,
+          sectionId,
+          rowId,
+          isSpacer: itemDef.isSpacer,
+        };
+
+        return {
+          ...prev,
+          sections: working.map((section, si) =>
+            si !== sectionIndex
+              ? section
+              : {
+                  ...section,
+                  rows: section.rows.map((r, ri) => {
+                    if (ri !== rowIndex) return r;
+                    const at = Math.max(0, Math.min(index, r.items.length));
+                    const next = [
+                      ...r.items.slice(0, at),
+                      newItem,
+                      ...r.items.slice(at),
+                    ];
+                    return {
+                      ...r,
+                      items: next.map((item, i) => ({ ...item, order: i })),
+                    };
+                  }),
+                },
+          ),
+        };
+      });
+    },
+    [items, updateLayout, announce],
   );
 
   const ensureSection = useCallback(
@@ -1761,6 +2015,16 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
   const reorderSections = useCallback(
     (sourceId: string, targetId: string, position: "before" | "after") => {
       if (sourceId === targetId) return;
+      {
+        const sections = layoutRef.current.sections;
+        const from = sections.find((e) => e.id === sourceId);
+        const to = sections.find((e) => e.id === targetId);
+        if (from && to) {
+          announce(
+            `Section ${from.title} moved ${position} ${to.title}`,
+          );
+        }
+      }
       updateLayout((prev) => {
         const ordered = sortByOrder(
           prev.sections.map((section) => ({
@@ -1794,12 +2058,18 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         };
       });
     },
-    [updateLayout],
+    [updateLayout, announce],
   );
 
   /** Move a section one place up or down. The keyboard path for reordering. */
   const moveSection = useCallback(
     (sectionId: string, direction: -1 | 1) => {
+      const moved = layoutRef.current.sections.find((e) => e.id === sectionId);
+      if (moved) {
+        announce(
+          `Section ${moved.title} moved ${direction < 0 ? "up" : "down"}`,
+        );
+      }
       updateLayout((prev) => {
         const ordered = sortByOrder(
           prev.sections.map((section) => ({
@@ -1823,11 +2093,15 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         };
       });
     },
-    [updateLayout],
+    [updateLayout, announce],
   );
 
   const removeSection = useCallback(
     (sectionId: string) => {
+      const section = layoutRef.current.sections.find(
+        (entry) => entry.id === sectionId,
+      );
+      if (section) announce(`Section ${section.title} removed`);
       updateLayout((prev) => {
         const sectionIndex = prev.sections.findIndex((s) => s.id === sectionId);
         if (sectionIndex === -1) return prev;
@@ -1841,7 +2115,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         return { ...prev, sections: newSections };
       });
     },
-    [updateLayout],
+    [updateLayout, announce],
   );
 
   const setItemPlacement = useCallback(
@@ -1878,6 +2152,15 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
   const reorderItems = useCallback(
     (sourceId: string, targetId: string, position: "before" | "after") => {
       if (sourceId === targetId) return;
+      {
+        const from = findLayoutItem(layoutRef.current, sourceId);
+        const to = findLayoutItem(layoutRef.current, targetId);
+        if (from && to) {
+          announce(
+            `${titleOf(from.definitionId)} moved ${position} ${titleOf(to.definitionId)}`,
+          );
+        }
+      }
       updateLayout((prev) => {
         // Find source and target positions (read-only — do not mutate prev)
         let sourceSectionIndex = -1;
@@ -2022,7 +2305,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         return { ...prev, sections: newSections };
       });
     },
-    [updateLayout, items, maxColumns],
+    [updateLayout, items, maxColumns, announce, titleOf],
   );
 
   const moveItemToSectionEnd = useCallback(
@@ -2331,6 +2614,10 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
             const nextRight = right.span - direction;
             if (nextLeft < 1 || nextRight < 1) return row;
             changed = true;
+            announce(
+              `${titleOf(left.definitionId)} ${nextLeft} of ${maxColumns} columns, ` +
+                `${titleOf(right.definitionId)} ${nextRight}`,
+            );
             return {
               ...row,
               items: row.items.map((item) =>
@@ -2346,7 +2633,131 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         return changed ? { ...prev, sections } : prev;
       });
     },
-    [updateLayout],
+    [updateLayout, announce, titleOf, maxColumns],
+  );
+
+  /**
+   * Keyboard tile moving: lift, move, place.
+   *
+   * Drag-and-drop had no keyboard equivalent at all, so the *primary* action
+   * of the editor — move a tile — was mouse-only. A grab/move/place model is
+   * the accessible equivalent of a drag: Space or Enter lifts the tile, the
+   * arrows move it a slot at a time, Space or Enter places it, and Escape puts
+   * it back where it started.
+   *
+   * The pre-lift layout is kept so Escape can restore it, which is what makes
+   * the mode safe to explore.
+   */
+  const [grabbedId, setGrabbedId] = useState<string | null>(null);
+  const grabOriginRef = useRef<SmartGridLayoutState | null>(null);
+
+  const liftItem = useCallback(
+    (itemId: string) => {
+      const entry = findLayoutItem(layoutRef.current, itemId);
+      if (!entry) return;
+      grabOriginRef.current = layoutRef.current;
+      setGrabbedId(itemId);
+      announce(
+        `${titleOf(entry.definitionId)} lifted. Use the arrow keys to move it, ` +
+          `Enter to place it, Escape to cancel.`,
+      );
+    },
+    [announce, titleOf],
+  );
+
+  const placeItem = useCallback(() => {
+    const entry = grabbedId
+      ? findLayoutItem(layoutRef.current, grabbedId)
+      : null;
+    grabOriginRef.current = null;
+    setGrabbedId(null);
+    if (entry) announce(`${titleOf(entry.definitionId)} placed`);
+  }, [grabbedId, announce, titleOf]);
+
+  const cancelGrab = useCallback(() => {
+    const origin = grabOriginRef.current;
+    grabOriginRef.current = null;
+    setGrabbedId(null);
+    if (origin) {
+      setLayout(origin);
+      onLayoutChange?.(origin);
+      announce("Move cancelled");
+    }
+  }, [announce, onLayoutChange]);
+
+  /** One step in a direction, expressed through the existing move actions. */
+  const moveGrabbedItem = useCallback(
+    (itemId: string, direction: "left" | "right" | "up" | "down") => {
+      const layout = layoutRef.current;
+      let section: SmartGridSection | undefined;
+      let row: SmartGridRow | undefined;
+      let index = -1;
+      layout.sections.forEach((sec) =>
+        sec.rows.forEach((r) => {
+          const i = r.items.findIndex((item) => item.id === itemId);
+          if (i !== -1) {
+            section = sec;
+            row = r;
+            index = i;
+          }
+        }),
+      );
+      if (!section || !row || index === -1) return;
+
+      if (direction === "left" || direction === "right") {
+        const neighbourIndex = direction === "left" ? index - 1 : index + 1;
+        const neighbour = row.items[neighbourIndex];
+        if (!neighbour) {
+          announce("Edge of the row");
+          return;
+        }
+        reorderItems(itemId, neighbour.id, direction === "left" ? "before" : "after");
+        return;
+      }
+
+      const rowIndex = section.rows.findIndex((r) => r.id === row!.id);
+      const targetRow =
+        section.rows[direction === "up" ? rowIndex - 1 : rowIndex + 1];
+      if (!targetRow || targetRow.items.length === 0) {
+        announce(direction === "up" ? "Top row" : "Bottom row");
+        return;
+      }
+      // Into the adjacent row, at the nearest slot to where it sat.
+      const target =
+        targetRow.items[Math.min(index, targetRow.items.length - 1)];
+      reorderItems(itemId, target.id, index >= targetRow.items.length ? "after" : "before");
+    },
+    [reorderItems, announce],
+  );
+
+  const tileKeyHandler = useCallback(
+    (itemId: string) => (event: React.KeyboardEvent) => {
+      if (!isEditMode) return;
+      const key = event.key;
+      if (key === " " || key === "Enter") {
+        event.preventDefault();
+        if (grabbedId === itemId) placeItem();
+        else liftItem(itemId);
+        return;
+      }
+      if (grabbedId !== itemId) return;
+      if (key === "Escape") {
+        event.preventDefault();
+        cancelGrab();
+        return;
+      }
+      const map: Record<string, "left" | "right" | "up" | "down"> = {
+        ArrowLeft: "left",
+        ArrowRight: "right",
+        ArrowUp: "up",
+        ArrowDown: "down",
+      };
+      const direction = map[key];
+      if (!direction) return;
+      event.preventDefault();
+      moveGrabbedItem(itemId, direction);
+    },
+    [isEditMode, grabbedId, placeItem, liftItem, cancelGrab, moveGrabbedItem],
   );
 
   const resizeKeyHandler = useCallback(
@@ -2596,7 +3007,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
       setEditingSectionId(null);
       setSectionDraftTitle("");
       setRowAddTarget(null);
-      setIsAddModalOpen(false);
+      setIsPaletteOpen(false);
     }
   }, [isEditMode, resetDragState]);
 
@@ -2714,6 +3125,15 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         }
       }}
     >
+      <span
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+        data-sg-announcer="true"
+      >
+        {announcement}
+      </span>
+
       {(showToolbar || (isEditMode && draggingId)) && (
         <div
           className={`mb-3 flex items-center justify-between gap-2 ${sizeToken.label}`}
@@ -2756,7 +3176,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                 if (id) removeItem(id);
                 resetDragState();
               }}
-              className={`flex items-center gap-2 rounded-lg border-2 border-dashed px-3 py-1.5 transition-colors ${
+              className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border-2 border-dashed px-3 py-1.5 transition-colors ${
                 overDeleteZone
                   ? "border-rose-500 bg-rose-500/20 text-rose-700 dark:border-rose-400 dark:text-rose-200"
                   : "border-rose-300 bg-rose-500/10 text-rose-600 dark:border-rose-700 dark:text-rose-300"
@@ -2766,10 +3186,12 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
               <span>{overDeleteZone ? "Release to remove" : "Drop here to remove"}</span>
             </div>
           ) : (
-            <span />
+            <span className="flex-1" />
           )}
           <div
-            className={`flex items-center gap-2 ${showToolbar ? "" : "invisible"}`}
+            className={`flex shrink-0 items-center gap-2 ${
+              showToolbar ? "" : "invisible"
+            }`}
           >
           {isEditMode && historyLimit > 0 && (
             <>
@@ -2813,9 +3235,17 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
               Reset layout
             </Button>
           )}
+          {/*
+            The one toolbar button that still ignored the surface: it was
+            pinned solid/outline, so a glass dashboard got a bordered chip
+            beside its glass controls. It follows `editorButtonVariant` like
+            the rest, which means the surface by default and `controlVariant`
+            when that is set. Edit mode is signalled by the label and by the
+            toolbar filling with controls, not by a variant swap.
+          */}
           <Button
             type="button"
-            variant={isEditMode ? "solid" : "outline"}
+            variant={editorButtonVariant}
             size="xs"
             color={effectiveTone}
             onClick={() => setEditMode(!isEditMode)}
@@ -2826,167 +3256,50 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
         </div>
       )}
       {/*
-        The kit's Modal, not a hand-rolled `fixed inset-0` overlay. The old one
-        had no focus trap, no Escape handling, no scroll lock and no
-        restore-focus — a dialog only in appearance.
+        Built on the kit's `SidePanel`, so it inherits the slide animation, the
+        resize grip and the surface handling instead of maintaining its own.
+        (This comment used to describe a Modal; the palette replaced that, and
+        the note outlived what it was about.)
       */}
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => {
-          setRowAddTarget(null);
-          setIsAddModalOpen(false);
+      <SmartGridItemPalette
+        items={addableItems}
+        open={isEditMode && isPaletteOpen}
+        onClose={() => setIsPaletteOpen(false)}
+        onAdd={(definitionId) => {
+          const target =
+            rowAddTarget ??
+            (() => {
+              // No explicit target: append to the last row of the last
+              // section, which is where a click without a drag means.
+              const section = layout.sections[layout.sections.length - 1];
+              const lastRow = section?.rows[section.rows.length - 1];
+              return section && lastRow
+                ? { sectionId: section.id, rowId: lastRow.id }
+                : null;
+            })();
+          if (!target) return;
+          addItemToRow(definitionId, target.sectionId, target.rowId);
         }}
-        title="Add items to row"
-        size="lg"
+        onDragStart={(definitionId) => {
+          paletteDragRef.current = definitionId;
+          setPaletteDragId(definitionId);
+          captureItemDragGeometry();
+        }}
+        onDragEnd={() => {
+          paletteDragRef.current = null;
+          setPaletteDragId(null);
+          setRowPreview(null);
+        }}
         tone={effectiveTone}
-      >
-        <>
-            {addableItems.length === 0 && !isEditMode ? (
-              <EmptyState
-                icon="Info"
-                title="Nothing to add"
-                subtitle="Every available item is already on the dashboard."
-                showIcon
-                variant="plain"
-                color={effectiveTone}
-              />
-            ) : (
-              <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
-                {isEditMode &&
-                  rowAddTarget &&
-                  (() => {
-                    const section = layout.sections.find(
-                      (s) => s.id === rowAddTarget.sectionId,
-                    );
-                    const targetRow = section?.rows.find(
-                      (r) => r.id === rowAddTarget.rowId,
-                    );
-                    const hasItems = targetRow && targetRow.items.length > 0;
-                    if (!hasItems) return null;
-                    return (
-                      <div
-                        className="flex items-center gap-3 rounded-md border border-neutral-200 p-2 dark:border-neutral-700"
-                      >
-                        {/* Thumbnail */}
-                        <div
-                          className={`shrink-0 overflow-hidden rounded border ${tonePalette.border}`}
-                          style={{ width: 100, height: 100 }}
-                        >
-                          <div className="flex h-full w-full items-center justify-center bg-white dark:bg-neutral-900">
-                            <CustomIcon
-                              icon="Dashboard"
-                              className="h-8 w-8 text-neutral-300 dark:text-neutral-600"
-                            />
-                          </div>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-sm font-medium ${surfaceText.heading}`}>
-                              Spacer
-                            </span>
-                            <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
-                              · Spacer
-                            </span>
-                          </div>
-                          <div className={`mt-0.5 text-[11px] ${surfaceText.muted}`}>
-                            Flexible spacing between items
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant={editorButtonVariant}
-                          size="xs"
-                          color={effectiveTone}
-                          onClick={() => {
-                            if (!rowAddTarget) return;
-                            addSpacerToRow(
-                              rowAddTarget.sectionId,
-                              rowAddTarget.rowId,
-                            );
-                            setRowAddTarget(null);
-                            setIsAddModalOpen(false);
-                          }}
-                          className="shrink-0"
-                        >
-                          Add spacer
-                        </Button>
-                      </div>
-                    );
-                  })()}
-                {addableItems.map((item) => {
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 rounded-md border border-neutral-200 p-2 dark:border-neutral-700"
-                    >
-                      {/* Thumbnail */}
-                      <div
-                        className={`shrink-0 overflow-hidden rounded border ${tonePalette.border}`}
-                        style={{ width: 100, height: 100 }}
-                      >
-                        {item.screenshot ? (
-                          <img
-                            src={item.screenshot}
-                            alt={item.title}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-white dark:bg-neutral-900">
-                            <CustomIcon
-                              icon="Dashboard"
-                              className="h-8 w-8 text-neutral-300 dark:text-neutral-600"
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-sm font-medium ${surfaceText.heading}`}>
-                            {item.title}
-                          </span>
-                          <span className="text-[10px] text-neutral-400 dark:text-neutral-500">
-                            · {item.title}
-                          </span>
-                        </div>
-                        {item.description && (
-                          <div className={`mt-0.5 text-[11px] ${surfaceText.muted}`}>
-                            {item.description}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        type="button"
-                        variant={editorButtonVariant}
-                        size="xs"
-                        color={effectiveTone}
-                        onClick={() => {
-                          if (!rowAddTarget) return;
-                          if (isSpacerId(item.id)) {
-                            addSpacerToRow(
-                              rowAddTarget.sectionId,
-                              rowAddTarget.rowId,
-                            );
-                          } else {
-                            addItemToRow(
-                              item.id,
-                              rowAddTarget.sectionId,
-                              rowAddTarget.rowId,
-                            );
-                          }
-                          setRowAddTarget(null);
-                          setIsAddModalOpen(false);
-                        }}
-                        className="shrink-0"
-                      >
-                        {isSpacerId(item.id) ? "Add spacer" : "Add"}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-        </>
-      </Modal>
+        buttonVariant={editorButtonVariant}
+        // The palette is a `SidePanel`, which draws from SideMenu's surface
+        // family rather than the grid's. Only the glass/solid distinction
+        // carries over; `sidebar` is the standing docked look.
+        variant={
+          variant === "glass" || variant === "liquid-glass" ? "glass" : "sidebar"
+        }
+        surfaceTone={surfaceTone}
+      />
 
       {sectionRenderOrder.map((entry) => {
         if (entry.kind === "ghost") {
@@ -3057,12 +3370,25 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                         setEditingSectionId(null);
                       }
                     }}
+                    // A11y audit P1-4 triage: this autoFocus is the
+                    // legitimate case the rule can't see — it fires only
+                    // when the user has just activated the section-rename
+                    // control, and the focus lands on the very field that
+                    // activation targets (WCAG 2.4.3-safe post-action focus
+                    // transfer, cf. APG "focus moves to the input when the
+                    // user opens it"). No page-load focus theft; an
+                    // explicit ref.focus() effect would do the same thing
+                    // with more code. (jsx-a11y/no-autofocus is off in the
+                    // committed lint config — the triage stands on its own.)
                     autoFocus
                   />
                 </div>
               ) : (
                 <div className="flex min-w-0 items-center gap-1.5">
-                  {isEditMode && (
+                  {isEditMode && orderedSectionIds.length > 1 && (
+                    // Only with somewhere to move to: a lone section's handle
+                    // is a control that cannot do anything.
+                    //
                     // The handle carries the drag, not the whole section: a
                     // draggable section would swallow the item drags starting
                     // inside it.
@@ -3115,16 +3441,33 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                           moveSection(sectionId, 1);
                         }
                       }}
-                      className={`cursor-grab select-none rounded px-1 leading-none opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 active:cursor-grabbing ${surfaceText.muted}`}
+                      className={`cursor-grab select-none rounded px-1 leading-none opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 active:cursor-grabbing text-${effectiveTone}-600 dark:text-${effectiveTone}-400`}
                     >
                       ⠿
                     </span>
                   )}
-                  <h2
-                    className={`truncate text-xs font-semibold uppercase tracking-[0.15em] ${surfaceText.muted}`}
-                  >
-                    {section.title}
-                  </h2>
+                  {isEditMode ? (
+                    // The title is the rename affordance. There was a separate
+                    // "Rename" button for this, which is a second control for
+                    // something the label itself can carry.
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSectionId(sectionId);
+                        setSectionDraftTitle(section.title);
+                      }}
+                      title="Click to rename"
+                      className={`truncate rounded px-1 text-left text-xs font-semibold uppercase tracking-[0.15em] transition-colors hover:text-${effectiveTone}-600 focus-visible:outline-none focus-visible:ring-2 dark:hover:text-${effectiveTone}-400 ${surfaceText.muted}`}
+                    >
+                      {section.title}
+                    </button>
+                  ) : (
+                    <h2
+                      className={`truncate text-xs font-semibold uppercase tracking-[0.15em] ${surfaceText.muted}`}
+                    >
+                      {section.title}
+                    </h2>
+                  )}
                 </div>
               )}
 
@@ -3139,28 +3482,19 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                     onClick={() => {
                       const newRowId = makeId(`row:${sectionId}`);
                       setRowAddTarget({ sectionId, rowId: newRowId });
-                      setIsAddModalOpen(true);
+                      setIsPaletteOpen(true);
                     }}
                   >
                     Add Item
                   </Button>
-                  <Button
-                    type="button"
-                    variant={editorButtonVariant}
-                    color={effectiveTone}
-                    size="xs"
-                    leadingIcon="Edit"
-                    onClick={() => {
-                      setEditingSectionId(sectionId);
-                      setSectionDraftTitle(section.title);
-                    }}
-                  >
-                    Rename
-                  </Button>
+                  {/*
+                    `ghost`, matching the "+" on each row rather than the
+                    toolbar's buttons — see `ROW_ICON_VARIANT`.
+                  */}
                   <IconButton
                     icon="Trash"
                     size="xs"
-                    variant={editorIconVariant}
+                    variant={ROW_ICON_VARIANT}
                     color="rose"
                     onClick={() => removeSection(sectionId)}
                     title="Remove section and all items"
@@ -3179,7 +3513,11 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                 const rowContentSpan = maxColumns;
                 const isRowPreviewActive = Boolean(
                   isEditMode &&
-                    draggingId &&
+                    // Either kind of drag: `draggingId` is a layout item being
+                    // moved, `paletteDragId` a definition being added. Gating
+                    // on the first alone meant a palette drag set the preview
+                    // and then never rendered it — the drag looked dead.
+                    (draggingId || paletteDragId) &&
                     rowPreview &&
                     rowPreview.sectionId === sectionId &&
                     rowPreview.rowId === row.id,
@@ -3246,12 +3584,21 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                     }));
                   }
 
-                  if (isRowPreviewActive && draggingId && rowPreview) {
+                  if (
+                    isRowPreviewActive &&
+                    (draggingId || paletteDragId) &&
+                    rowPreview
+                  ) {
                     const draggedItem = row.items.find(
                       (i) => i.id === draggingId,
                     );
+                    // A palette drag has no layout item yet, so the ghost takes
+                    // the definition's own default width.
+                    const paletteDef = paletteDragId
+                      ? items.find((entry) => entry.id === paletteDragId)
+                      : undefined;
                     const draggedSpan = clampSpan(
-                      draggedItem?.span ?? 3,
+                      paletteDef?.defaultSpan ?? draggedItem?.span ?? 3,
                       rowContentSpan,
                     );
 
@@ -3375,7 +3722,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                             <IconButton
                               icon="Trash"
                               size="xs"
-                              variant={editorIconVariant}
+                              variant={ROW_ICON_VARIANT}
                               color="rose"
                               onClick={() =>
                                 removeRowItems(
@@ -3405,9 +3752,24 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                             // A section drag is in flight; the item handlers must not claim it.
                             if (draggingSectionRef.current) return;
                             if (!isEditMode) return;
-                            const sourceId = getDraggedId(event);
+                            // A palette drag carries a *definition* id and no
+                            // layout id — it creates rather than moves — so it
+                            // has to get past the `sourceId` guard.
+                            const paletteId = paletteDragRef.current;
+                            const sourceId = paletteId ?? getDraggedId(event);
                             if (!sourceId) return;
                             event.preventDefault();
+
+                            // Only the row the pointer *started* over can claim
+                            // the preview; see `rowOwnsPointer`.
+                            if (
+                              !rowOwnsPointer(
+                                row.id,
+                                event.clientY + window.scrollY,
+                              )
+                            ) {
+                              return;
+                            }
 
                             if (cells.length === 0) {
                               if (emptyRowDropTarget !== rowDomKey)
@@ -3430,10 +3792,17 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                             if (emptyRowDropTarget === rowDomKey)
                               setEmptyRowDropTarget(null);
 
-                            const rowEl = rowRefs.current[rowDomKey];
                             const rowCellsWithoutDragged = cells.filter(
                               (cell) => cell.id !== sourceId,
                             );
+                            // Against the drag-start snapshot, not live rects:
+                            // by now the ghost has already displaced these
+                            // cells, so measuring them would fold the previous
+                            // measurement back into this one.
+                            const snapshot = (
+                              itemDragGeomRef.current.cells[row.id] ?? []
+                            ).filter((entry) => entry.id !== sourceId);
+                            const x = event.clientX + window.scrollX;
                             let nextIndex = rowCellsWithoutDragged.length;
 
                             for (
@@ -3442,12 +3811,11 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                               i += 1
                             ) {
                               const candidate = rowCellsWithoutDragged[i];
-                              const candidateEl = rowEl?.querySelector(
-                                `[data-sg-item-id="${candidate.id}"]`,
-                              ) as HTMLElement | null;
-                              if (!candidateEl) continue;
-                              const rect = candidateEl.getBoundingClientRect();
-                              if (event.clientX < rect.left + rect.width / 2) {
+                              const measured = snapshot.find(
+                                (entry) => entry.id === candidate.id,
+                              );
+                              if (!measured) continue;
+                              if (x < measured.mid) {
                                 nextIndex = i;
                                 break;
                               }
@@ -3479,18 +3847,36 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                               return;
                             if (emptyRowDropTarget === rowDomKey)
                               setEmptyRowDropTarget(null);
-                            if (
-                              rowPreview?.sectionId === sectionId &&
-                              rowPreview.rowId === row.id
-                            ) {
-                              setRowPreview(null);
-                            }
+                            // The preview is deliberately *not* cleared here.
+                            // Inserting the ghost reflows the row, which pushes
+                            // the pointer outside it and fires this very
+                            // handler — clearing then snapped the layout back
+                            // and re-entered the row, which is the flicker.
+                            // Another row claiming it, or the drag ending,
+                            // is what clears it now.
                           }}
                           onDrop={(event) => {
                             // A section drag is in flight; the item handlers must not claim it.
                             if (draggingSectionRef.current) return;
                             if (!isEditMode) return;
                             event.preventDefault();
+
+                            // From the palette: place a new item at the
+                            // preview's index rather than reordering one.
+                            const paletteId = paletteDragRef.current;
+                            if (paletteId) {
+                              const at =
+                                rowPreviewRef.current?.sectionId === sectionId &&
+                                rowPreviewRef.current.rowId === row.id
+                                  ? rowPreviewRef.current.insertIndex
+                                  : cells.length;
+                              paletteDragRef.current = null;
+                              setPaletteDragId(null);
+                              setRowPreview(null);
+                              insertItemAt(paletteId, sectionId, row.id, at);
+                              return;
+                            }
+
                             const sourceId = getDraggedId(event);
                             if (!sourceId) return;
 
@@ -3673,9 +4059,24 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                                   data-sg-item-id={cell.entry.id}
                                   className={`smart-grid-item relative z-10 min-h-0 rounded-xl ${isEditMode ? `border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-500/10 cursor-grab active:cursor-grabbing` : "bg-transparent"} ${
                                     draggingId === cell.entry.id
-                                      ? overDeleteZone
-                                        ? "opacity-20 scale-95 grayscale"
-                                        : "opacity-50 scale-[0.99]"
+                                      ? // Nearly invisible, not half-faded. At
+                                        // 50% the tile still covered the ghost
+                                        // showing where it would land, so the
+                                        // one thing the user needs to see was
+                                        // hidden behind the thing they are
+                                        // moving. The browser's own drag image
+                                        // under the cursor is what tells them
+                                        // what is in flight.
+                                        //
+                                        // Opacity only — never
+                                        // `pointer-events-none`. Making the
+                                        // drag source non-hit-testable while a
+                                        // drag is running cancels it outright,
+                                        // the same way hiding or unmounting it
+                                        // does.
+                                        overDeleteZone
+                                        ? "opacity-10 scale-95 grayscale"
+                                        : "opacity-10 scale-[0.98]"
                                       : ""
                                   }`}
                                   data-sg-span={renderCell.span}
@@ -3683,13 +4084,27 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                                     gridColumn: `span ${renderCell.span} / span ${renderCell.span}`,
                                   }}
                                   draggable={isEditMode}
+                                  tabIndex={isEditMode ? 0 : undefined}
+                                  role={isEditMode ? "button" : undefined}
+                                  aria-grabbed={
+                                    isEditMode
+                                      ? grabbedId === cell.entry.id
+                                      : undefined
+                                  }
+                                  aria-label={
+                                    isEditMode
+                                      ? `${cell.entry.item?.title ?? "Item"}. Press Enter to lift, then the arrow keys to move it.`
+                                      : undefined
+                                  }
+                                  onKeyDown={tileKeyHandler(cell.entry.id)}
                                   onDragStart={(event) => {
                                     event.dataTransfer.effectAllowed = "move";
                                     event.dataTransfer.setData(
                                       "text/plain",
                                       cell.entry.id,
                                     );
-                                    setDraggingId(cell.entry.id);
+                                    captureItemDragGeometry();
+                                  setDraggingId(cell.entry.id);
                                     setDragOver(null);
                                   }}
                                   onDragEnd={resetDragState}
@@ -3830,9 +4245,24 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                                 data-sg-item-id={cell.entry.id}
                                 className={`smart-grid-item relative z-0 min-w-0 min-h-0 transition-[grid-column,transform,box-shadow] duration-150 ease-out ${isEditMode ? "cursor-grab active:cursor-grabbing" : ""} ${
                                     draggingId === cell.entry.id
-                                      ? overDeleteZone
-                                        ? "opacity-20 scale-95 grayscale"
-                                        : "opacity-50 scale-[0.99]"
+                                      ? // Nearly invisible, not half-faded. At
+                                        // 50% the tile still covered the ghost
+                                        // showing where it would land, so the
+                                        // one thing the user needs to see was
+                                        // hidden behind the thing they are
+                                        // moving. The browser's own drag image
+                                        // under the cursor is what tells them
+                                        // what is in flight.
+                                        //
+                                        // Opacity only — never
+                                        // `pointer-events-none`. Making the
+                                        // drag source non-hit-testable while a
+                                        // drag is running cancels it outright,
+                                        // the same way hiding or unmounting it
+                                        // does.
+                                        overDeleteZone
+                                        ? "opacity-10 scale-95 grayscale"
+                                        : "opacity-10 scale-[0.98]"
                                       : ""
                                   }`}
                                 data-sg-span={renderCell.span}
@@ -3840,12 +4270,26 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                                   gridColumn: `span ${renderCell.span} / span ${renderCell.span}`,
                                 }}
                                 draggable={isEditMode}
+                                tabIndex={isEditMode ? 0 : undefined}
+                                role={isEditMode ? "button" : undefined}
+                                aria-grabbed={
+                                  isEditMode
+                                    ? grabbedId === cell.entry.id
+                                    : undefined
+                                }
+                                aria-label={
+                                  isEditMode
+                                    ? `${cell.entry.item?.title ?? "Item"}. Press Enter to lift, then the arrow keys to move it.`
+                                    : undefined
+                                }
+                                onKeyDown={tileKeyHandler(cell.entry.id)}
                                 onDragStart={(event) => {
                                   event.dataTransfer.effectAllowed = "move";
                                   event.dataTransfer.setData(
                                     "text/plain",
                                     cell.entry.id,
                                   );
+                                  captureItemDragGeometry();
                                   setDraggingId(cell.entry.id);
                                   setDragOver(null);
                                 }}
@@ -3993,12 +4437,12 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                           <div className="z-20 flex w-7 shrink-0 items-center justify-center">
                             <IconButton
                               icon="Add"
-                              variant="ghost"
+                              variant={ROW_ICON_VARIANT}
                               size="xs"
                               color={editThemeColor}
                               onClick={() => {
                                 setRowAddTarget({ sectionId, rowId: row.id });
-                                setIsAddModalOpen(true);
+                                setIsPaletteOpen(true);
                               }}
                               aria-label={`Add item to ${section.title} row`}
                               title="Add item to row"
@@ -4065,7 +4509,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
                     leadingIcon="Add"
                     onClick={() => {
                       setRowAddTarget({ sectionId, rowId: "" });
-                      setIsAddModalOpen(true);
+                      setIsPaletteOpen(true);
                     }}
                   >
                     Add New Item
@@ -4116,7 +4560,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
               const sectionId = createSection();
               const rowId = createRow(sectionId);
               setRowAddTarget({ sectionId, rowId });
-              setIsAddModalOpen(true);
+              setIsPaletteOpen(true);
             }}
           >
             Add item to create new section

@@ -58,6 +58,8 @@ import {
   CONNECTION_STATES,
   TRUE_COLORS,
   TREE_SIZES,
+  TOAST_POSITIONS,
+  TOAST_MODES,
   type GradientDirection,
   type MultiToggleOption,
   type EcgMonitorState,
@@ -87,6 +89,8 @@ export const buttonSizeOptions = toOptions(BUTTON_SIZES);
 export const buttonWeightOptions = toOptions(BUTTON_WEIGHTS);
 export const alertIntentOptions = toOptions(ALERT_INTENTS);
 export const alertVariantOptions = toOptions(ALERT_VARIANTS);
+export const toastPositionOptions = toOptions(TOAST_POSITIONS);
+export const toastModeOptions = toOptions(TOAST_MODES);
 export const inputVariantOptions = toOptions(INPUT_VARIANTS);
 export const glowIntensityOptions = toOptions(GLOW_INTENSITIES);
 export const otpVariantOptions = toOptions(OTP_VARIANTS);

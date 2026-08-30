@@ -39,7 +39,7 @@ interface State {
  * A class component because React still has no hook equivalent of
  * `componentDidCatch`.
  */
-export class SmartGridTileBoundary extends React.Component<Props, State> {
+class SmartGridTileBoundaryImpl extends React.Component<Props, State> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
@@ -78,5 +78,17 @@ export class SmartGridTileBoundary extends React.Component<Props, State> {
     return <TileContent render={this.props.render} />;
   }
 }
+
+/**
+ * Memoised, because the grid re-renders on every frame of a drag or a resize —
+ * `setLayout` fires per `mousemove` — and without this every tile's `render()`
+ * ran again each time. On a dashboard of charts that is the difference between
+ * a smooth drag and a slideshow.
+ *
+ * The props are all stable for a given tile: `render` comes from the caller's
+ * item definition, `title` and `tone` are strings. A tile only re-renders when
+ * one of those actually changes, which is what a shallow compare gives.
+ */
+export const SmartGridTileBoundary = React.memo(SmartGridTileBoundaryImpl);
 
 export default SmartGridTileBoundary;

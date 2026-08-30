@@ -451,6 +451,33 @@ export {
   type PopoverProps,
 } from "./Popover";
 
+// Toast (PrimeVue's stacked toast — provider + service hook + viewports)
+export {
+  ToastProvider,
+  ToastViewport,
+  ToastMessageCard,
+  makeToast,
+  useToast,
+  useToastStore,
+  ToastContext,
+  createToastStore,
+  TOAST_EXIT_MS,
+  type ToastApi,
+  type ToastProviderProps,
+  type ToastViewportProps,
+  type ToastBreakpoints,
+  type ToastMessageCardProps,
+  type ToastStore,
+  type ToastMessageAction,
+  type ToastInput,
+  type ToastMessage,
+  type ToastSeverity,
+  type ToastUpdate,
+  type ToastEvent,
+  type ToastCloseHandler,
+  type ToastLifeEndHandler,
+} from "./Toast";
+
 // Panel edge chrome (the Popover arrow's source of edge paint)
 export { getPanelEdgeChrome, type PanelEdgeChrome } from "./Panel";
 
@@ -532,6 +559,11 @@ export {
 export {
   default as SmartGridTileBoundary,
 } from "./SmartGridTileBoundary";
+export {
+  default as SmartGridItemPalette,
+  PALETTE_MIME as SMART_GRID_PALETTE_MIME,
+  type SmartGridItemPaletteProps,
+} from "./SmartGridItemPalette";
 export {
   SmartGridLayout,
   SMART_GRID_VARIANTS,
@@ -680,7 +712,15 @@ export {
   type NotificationModalProps,
   type NotificationType,
 } from "./NotificationModal";
-export { default as SidePanel, type SidePanelProps } from "./SidePanel";
+export {
+  default as SidePanel,
+  SIDE_PANEL_VARIANTS,
+  SIDE_PANEL_SIDES,
+  getSidePanelTextTokens,
+  type SidePanelProps,
+  type SidePanelVariant,
+  type SidePanelSide,
+} from "./SidePanel";
 
 // TimelinePanel
 export {
@@ -741,3 +781,4 @@ export * from "./WorkflowTracker";
 
 // Chart (PrimeUI-style compound charts — SVG + Canvas)
 export * from "./chart";
+

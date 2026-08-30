@@ -599,6 +599,213 @@ The fix was not a better backdrop. It was to take the action off the content: a 
 
 When a control needs a backdrop to survive the content underneath it, ask whether it belongs on that content at all.
 
+## A half-faded drag source still hides the drop target
+
+The convention of fading a dragged element to ~50% comes from drag interactions that have no placeholder. The moment you add a ghost showing where the item will land, 50% is too opaque: the source sits on top of the very thing the user is trying to aim at.
+
+With a placeholder, the source should be nearly gone — 10% or removed from the flow entirely — and `pointer-events-none` so it cannot intercept drag events meant for what is beneath it. The browser's own drag image under the cursor already answers "what am I moving"; the source element's job is only to not be in the way.
+
+## `pointer-events: none` on a drag source cancels the drag
+
+Third instance of the same rule in one component, after hiding it and after unmounting it: **do not change how the drag source is hit-tested or rendered while a drag is running.** Opacity is safe. `display: none`, unmounting, and `pointer-events: none` all end the drag.
+
+What made this one avoidable and still shipped: I added `pointer-events-none` speculatively, bundled into an edit whose actual purpose was the opacity change, and verified only the opacity. A change made "while I'm in here" gets no verification of its own, and this class of bug is invisible to synthetic-event tests.
+
+Two habits that would have caught it: make the speculative addition a separate step, and when a rule has already bitten twice, treat any new line touching that same surface as needing the real-browser check rather than the test suite.
+
+## A ref read during render needs to be state as well
+
+`containerRef.current` is null on the first render, so a portal target read from it in JSX is null exactly once — and a ref assignment does not schedule a re-render, so nothing ever corrects it.
+
+When a DOM node is *consumed by rendering* rather than only by handlers, capture it with a callback ref that also sets state. Keep the plain ref alongside if handlers need synchronous access.
+
+## Group controls by where they live, not by what they do
+
+I first made the section delete match the "Add Item" beside it, reasoning that sibling actions should share a treatment and a destructive one should not recede. Carlos then asked for the opposite: the section and row deletes should be `ghost`, matching the `+` on each row.
+
+He is right, and my grouping was wrong. The relevant family is not "actions that sit next to each other" but **actions attached to a row or a section** — add an item, remove a row, remove a section. Those live in the margins beside content, and giving them the toolbar's bordered treatment put a column of chips down the left edge of every row. The toolbar is its own family and takes the surface variant.
+
+Recorded as `ROW_ICON_VARIANT` with a comment saying it is a deliberate exception, so the next person does not "fix" it back.
+
+## Shipping a prop without a demo control means shipping it unreachable
+
+A batch of seven changes went in and the demo was not touched. Six were behavioural and showed up on their own, but `controlVariant` was a new prop with no control anywhere — invisible to anyone reading the docs, and untested by hand.
+
+The rule that would have caught it: after adding a prop, diff the component's prop list against the playground. It is a two-line script, and it also surfaced that several *earlier* features — section reordering, drop-to-delete, undo/redo — had shipped with no example either.
+
+A related trap in the same check: demo fixtures can silently disable a feature. Every item in the fixture was `single: true` and already placed, so the "Add Item" dialog had nothing to offer and never opened — the dialog work from the previous turn could not be seen at all.
+
+## Drag placeholders need frozen geometry, and every path has to use it
+
+Third time in this component: inserting a placeholder changes the layout, the layout change changes what is under the pointer, and that unmakes the placeholder. The cure is always the same — snapshot the geometry at drag start and resolve against it for the whole drag.
+
+What made the row case harder than the section case is that there were three feeding paths, not one: `dragleave` clearing the preview, the insert index measured from live rects that the ghost had already displaced, and — the one I missed on the first pass — a *neighbouring* row claiming a pointer that had not moved, because adding a ghost to a full row changes its height and slides the rows underneath.
+
+Fixing the obvious path is not enough when several converge. After removing one, ask what else reads live geometry during the drag, and freeze that too.
+
+## Say when the harness cannot see the bug
+
+I "verified" a flicker fix with a synthetic sweep, then ran the same sweep against the unfixed code and got an identical clean result. The harness could not see the bug in either direction, so the first result had proved nothing.
+
+Running the check against the broken version is what exposes a blind test. It costs one extra run and is the difference between evidence and a green tick — and when it comes back blind, the honest report is "this needs a human", not "verified".
+
+## An unchanged live-region string is not announced
+
+Setting a live region to the same text it already holds is a no-op to a screen reader — so a user repeating an action gets told once and then hears silence, which reads as the action having stopped working.
+
+Force it through by making the string differ, e.g. appending a space when the new message equals the current one. It costs one line and is invisible except to the people who need it.
+
+## The accessible equivalent of a drag is grab / move / place, not arrow keys
+
+Bolting arrow handlers onto a draggable element gives you movement with no way to say "I am moving this now" or "put it back". The model that works is a mode: `Enter` lifts (and `aria-grabbed` says so), arrows move a slot at a time, `Enter` places, `Escape` restores the layout captured at lift.
+
+The Escape branch is the part that makes it usable rather than merely possible — without a way back, exploring the mode risks the user's layout, so they will not explore it.
+
+## Frozen geometry stops feedback loops; hysteresis stops boundary chatter
+
+These are two different problems and they need two different fixes.
+
+A *feedback loop* is when showing the placeholder changes the answer about where the placeholder goes. Freezing the geometry at drag start breaks it, because the decision no longer depends on the thing it caused.
+
+*Boundary chatter* survives that fix. The frozen bands and the rendered layout drift apart during the drag — rows collapse and grow as content moves — so near a frozen edge a pixel of hand movement flips the decision, and two candidates trade the target back and forth. The cure is a dead zone: the current owner keeps the target until the pointer is clearly out, a challenger must be clearly in, and in between nothing changes hands.
+
+## Asserting the end state hides a flicker
+
+I tested "the preview does not move while jittering across a boundary" by jittering and then checking the final state. It passed with the fix removed, because the sequence happened to end where it started.
+
+A flicker is a property of the *sequence*, not the destination. Assert after every step. And the way I found out was the habit that has now paid twice in this component: break the fix, re-run, and require the test to fail.
+
+## Test the feedback, not just the outcome
+
+A palette drag added the item correctly and showed nothing while dragging — no ghost, no movement — so it read as "I cannot drag it". The test covering it dragged an entry and asserted the tile arrived, which passed the whole time, because the drop path did not touch the broken render gate.
+
+Outcome assertions cannot see missing feedback, and for a drag interaction the feedback *is* most of the feature. Assert the intermediate state too: that the placeholder appears on `dragover`, that the source dims, that the target highlights.
+
+## When a flag gains a second source, grep for every place it is read
+
+`draggingId` meant "a drag is in progress" until the palette added `paletteDragId` as a second kind. I updated the branch that renders the ghost and missed the gate that decides whether to consider rendering it at all — one line above, in the same file.
+
+Adding a parallel source for an existing condition is not a local change. Grep every read of the original flag and decide, at each one, whether the new source belongs there too.
+
+## A class that renders nothing looks exactly like a class that renders subtly
+
+`SidePanel`'s resize handle tinted with `group-hover:bg-{tone}-300/60`. The `/60` alpha variants are not emitted by the safelist, so the highlight never appeared — and because the handle is a 1px strip you only notice while hovering it, nobody had.
+
+The check that finds these is grepping the *built* CSS for the exact escaped selector, not the safelist source and not the component. `group-hover:bg-blue-300` was present; `group-hover:bg-blue-300/60` was not, and only the second one mattered.
+
+The cheaper habit is to avoid bespoke shapes at all: this handle now uses opacity over a solid `bg-{tone}-400`, the same treatment `SplitView`'s resizer uses, which is already proven and needs nothing added.
+
+## Docstrings drift into being wrong, and get believed
+
+`SidePanel` said "slides in from the right as a fixed overlay… because it uses `position: fixed` it never affects the page layout". It has always been `position: absolute`. The *behaviour* claimed was real — it does not reflow its neighbour — but the reason given was wrong, and the actual constraint it implies (needs a positioned ancestor, fills that box, not the viewport) was missing.
+
+A wrong explanation is worse than none: it stops the reader checking. When touching a component, read its docstring against the code, not just the props.
+
+## A CSS transition needs a frame at the starting value, not just a starting value
+
+`SidePanel` closed smoothly and opened with a snap. The width came from `isOpen ? resolvedWidth : 0`, and on open `mounted` and `isOpen` both flipped in the same render, so the element was *inserted into the DOM already 320px wide*. There was no 0-width frame, so there was nothing to transition from. Closing looked correct only by accident: the element was already mounted and wide, so its width change had a real previous value.
+
+The fix is a second piece of state — mount collapsed, then widen on the next `requestAnimationFrame`. Same shape as the deferred section-drag ghost in `SmartGridLayout`: the browser has to *paint* the from-state before it will animate away from it. Seeding that state from `isOpen` keeps an initially-open panel from animating in on first render, which would be a different bug.
+
+Asymmetry is the tell. When one direction of an animation works and the other doesn't, the transition itself is fine — one direction is missing its start frame.
+
+## "It works" on the default is half a test
+
+`SidePanel`'s resize used `delta = startX - clientX`, which is only correct when the handle is on the panel's left edge. It shipped that way because `side` defaults to `"right"`, the demo opened on the right, and every manual check was on the right. Dragging the left-docked panel outward made it shrink.
+
+Anything whose behaviour mirrors — a side, a direction, an axis, an RTL flag — needs the non-default branch exercised explicitly, in a test, because the default branch will always be the one you happen to look at. The same review pass found the inner container anchored to the wrong edge for `side="left"`, turning the reveal into a wipe instead of a slide: one unexamined branch tends to hide others.
+
+## `transitionend` bubbles, so "the animation finished" is a claim you have to check
+
+`SidePanel` unmounts itself when its closing width transition ends. Any transition on any descendant reports through the same handler — the resize handle fades its opacity on hover, and that transitionend would unmount the panel mid-close, making it vanish instead of sliding shut.
+
+Any `onTransitionEnd` / `onAnimationEnd` used as a lifecycle signal needs both guards: `event.target === event.currentTarget`, and the specific `event.propertyName`. Without them the handler fires on events that have nothing to do with what it is waiting for.
+
+## `ease-in-out` is why the animation still feels abrupt
+
+After fixing `SidePanel`'s missing start frame the open still read as a snap at `duration-300 ease-in-out`. The curve was the remaining problem: ease-in-out spends its speed in the middle and arrives at full velocity into a hard stop. Drawer-style motion wants the opposite — move immediately, decelerate long (`cubic-bezier(0.32, 0.72, 0, 1)`).
+
+Duration is the knob people reach for first and it is usually the wrong one. Slowing a bad curve makes it feel sluggish *and* abrupt.
+
+## Grepping `dist/` for a class you just wrote proves nothing
+
+The "check the built CSS" rule has a precondition nobody states: the build has to be newer than the edit. Checking `group-hover:opacity-60` against a `dist/index.css` from the previous day returns 0 hits, which looks exactly like the safelist bug it is meant to catch.
+
+Two questions, not one. *Is the mechanism working?* — grep the old build for the sibling values already in the source (`opacity-40`, `-50`, `-80` were all there, so the scanner picks static literals up and no safelist entry is needed). *Is my new class emitted?* — that needs a fresh build; `npx @tailwindcss/cli -i src/styles.css -o /tmp/check.css` takes 300ms and answers it outright.
+
+## `overflow-hidden` decides what a child is *allowed* to be
+
+`SidePanel` clips its own width to animate open, so its resize handle — a child — could not be drawn outside the panel edge no matter what offset it was given. I spent a pass tuning `left-0.5` vs `-left-2` on an element that was structurally incapable of appearing where it was wanted.
+
+When a decoration has to escape its container, the container's overflow is the first thing to read, and the fix is nearly always to lift the element out to a sibling and position it against the same ancestor. The cost is that its position now has to be *computed* rather than inherited — here `right: resolvedWidth` — and so does every transition the parent had, or it snaps into place while the parent animates.
+
+## A grip is sized by where the pointer will be, not by what looks tidy
+
+Shrinking the resize pill to a short centred `h-16` looked neater in isolation and was wrong: the edge gets grabbed at whatever height the pointer happens to be, so a grip visible only in the middle is invisible exactly when it is needed. Nearly-full-height (`inset-y-2`) is the correct shape for an edge affordance; centred pills belong on things grabbed at one known point.
+
+## The demo renders source JS against built CSS
+
+`react/demo/src/index.css` imports `../../dist/index.css`. Vite serves component *source* over `@fs`, so a class added to a component appears in the DOM immediately while the rule that styles it does not exist until `dist/index.css` is rebuilt. New markup therefore renders unstyled, which looks exactly like a broken component.
+
+This invalidates the check I had been running: building `src/styles.css` to a temp file proves Tailwind *can* emit the class, not that the demo *has* it. The question the demo answers is `grep dist/index.css`, and the fix is `npx @tailwindcss/cli -i ./src/styles.css -o ./dist/index.css` — the same command `tsup.config.ts` runs on success. Any change that introduces a utility not already used elsewhere in the kit needs that rebuild before it can be looked at.
+
+The tell was that `cursor-col-resize` worked while the fill did not: an old class behaving and a new class missing, on the same element, is a stylesheet-age problem and not a component problem.
+
+## A ref cannot drive rendering, and a half-revert cannot test one
+
+`SidePanel` tracked resizing in `isDraggingRef` and styled the grip from it. Refs do not re-render, so the pressed state could only ever appear if some unrelated update happened to flush first. Mirroring it into state fixes it; the ref stays for the mouse handlers and the width-sync effect, which run outside React's cycle and need the live value.
+
+The test for it passed with the fix reverted, and the reason is worth keeping: I had only reverted the *read* (`isDragging` → `isDraggingRef.current`) while leaving the `setIsDragging` calls in place, so the re-render still happened and the ref was read at the right moment. Reverting a fix has to remove the whole mechanism. Half a revert re-tests the fix through its own remaining half.
+
+## Assert against the theme, not against its output
+
+The edit-layout button tests needed to say "this is styled as a glass button". Pinning the literal class string would have made them a second copy of the theme, failing on every unrelated palette change and passing for the wrong reasons.
+
+Rendering a real `Button` with the intended variant and comparing classNames says the actual thing — *this control is styled as that variant* — and keeps working when the theme moves. Cheap to write, and the failure message points at the variant rather than at a diff of forty utility classes.
+
+## Replacing a hand-rolled shell changes its tests, and that is the signal
+
+Rebuilding SmartGridLayout's palette on `SidePanel` broke exactly two tests, both asserting the palette was gone immediately after closing. That was correct for an `aside` that returned `null`, and wrong for a panel that animates out — so the failure was the change reporting itself accurately, not a regression.
+
+The repair should keep the coverage rather than delete the assertion: collapse to zero *and* unmount on `transitionend` checks more than the original did. A breaking test that gets weakened into passing is how the behaviour silently stops being covered.
+
+## Two components doing the same job should share the vocabulary, not just the tokens
+
+`SidePanel` took `Panel`'s surface variants (`elevated`, `tonal`, `plain`) while `SideMenu` took the sidebar family (`sidebar`, `floating`, `glass`). Both are a shell docked to an edge of a container; the only real difference is what goes inside. Two vocabularies for one shape meant `floating-glass` — the treatment that makes a docked thing read as a detached card — simply did not exist for panels, and nobody could ask for it.
+
+The tell is a variant you have to *translate* at a call site. When the grid handed its `plain` to the palette, the palette had to guess a replacement, because "no surface" is a card concept with no docked-shell equivalent.
+
+## Read a default off the theme instead of restating it
+
+`inset` defaults to whether the variant floats. The obvious implementation is a list — `["floating", "floating-glass"].includes(variant)` — and it is wrong, because the theme already records that as `offset: "m-2"`. A second list is a copy that goes stale the first time someone adds a floating variant.
+
+`inset ?? surface.offset !== ""` reads the answer from the source. The general form: before writing a predicate over variant names, check whether the token set already encodes the property you are testing for.
+
+## A gap on the anchored edge does not read as floating
+
+`SidePanel`'s inset first put air on all sides, then a smaller amount on the docked edge. Both were wrong, and the second failed twice over: too small to see, yet still enough to make the panel look like it had slipped off the wall.
+
+A docked element floats by lifting off the edges it is *not* attached to. Keeping it flush against its own edge is what preserves the anchoring while the vertical gap does the lifting — which is what `SideMenu`'s floating variants look like, and why they read as deliberate.
+
+The corner radius and the border follow the same rule rather than being separate decisions: round only the corners that face the content, rule only the edges that are not flush. Once the geometry is right, the decoration is determined by it.
+
+## `overflow-hidden` does not reliably clip a backdrop filter
+
+A rounded parent with `overflow: hidden` clips ordinary children cleanly, so it is natural to assume it clips everything. `backdrop-filter` is the exception: the filtered element paints into its own context, and the rounded clip leaves a visible nick at each corner. It is small enough to look like an antialiasing quirk, which is how it survived review.
+
+The element being rounded has to carry the radius itself. `SideMenu` already did this — fill and blur on a dedicated absolute layer with `surface.radius` on it — and the comment there explains the stacking-context half of the reasoning. When two components solve the same visual problem and only one of them has the extra layer, that layer is load-bearing.
+
+The general form: keep the fill on its own layer, put the radius on the layer, and let the content sit above it transparent. Then one container owns the corners and no section inside has to know they exist.
+
+## A radius is a proportion, so it cannot have one default
+
+`SidePanel` defaulted to `2xl` at every size. On the `xs` panel that is a bubble and on `xl` it is mean, and the generic `md` (6px) on a 420px panel reads as a rendering accident rather than a corner. Corner radius belongs in the size token table next to padding and type scale, not as a single constant.
+
+## A playground control that always sends a value hides the default
+
+The demo's Corner size control was seeded with a real value, so `radius ?? fallback` never once reached the fallback. Every configuration rendered rounded, including flush full-height ones, and the result was reported as a padding bug in the component — where there was nothing wrong.
+
+Any control over an optional prop needs an explicit "unset" option that passes `undefined`. Otherwise the playground silently makes the component's defaults untestable by hand, and the first thing it hides is the interaction *between* defaults.
 
 ## An arrow's caret must clear the corner radius
 
@@ -611,7 +818,6 @@ The phase machine (`closed → entering → open → leaving → closed`) only a
 ## Virtual time never fires `animationend`, and CDP ignores the reduced-motion flag
 
 Extending the GlassBackground lesson: under `--virtual-time-budget`, Chrome fast-forwards `setTimeout` but does not complete CSS animations — so a component that *unmounts on `animationend`* (DatePicker, Popover) is permanently frozen in its `--enter` class in a virtual-time DOM dump, while a real browser settles it in 300ms. And `--force-prefers-reduced-motion` is not honoured when the browser is launched over CDP: `prefers-reduced-motion` still reports false. Verify animation-driven state machines in real time (Playwright `waitForTimeout`), and force reduced motion with `page.emulateMedia({ reducedMotion: "reduce" })` — the CDP media emulation is the only path that flips both the media query and the computed `animation-duration`.
-
 
 ## `getBoundingClientRect` lies while a transform is running
 
@@ -627,6 +833,28 @@ Related: a borderless panel (subtle/tonal/simple have `ring-transparent`) gives 
 
 The shared tooltip/popover geometry (`resolveTooltipPlacement`) clamps only the *caret* (parallel) axis; the pointing axis is always exactly `trigger.edge + offset`, because clamping it would break the trigger↔box adjacency the arrow/dot depends on. Two consequences, both verified against the code rather than assumed: (1) a detached "thinking-bubble" dot floats in a gap that is *always* the configured offset, so gap-shrinking size logic is defensive dead code — a jsdom test that tried to engineer a squeezed gap with a trigger that fits on no side found the box clamp on the caret axis instead, and the gap stayed at the offset; (2) the offset must be part of the *fit* maths (`spaceOn >= needsOn`), or a bubble-mode panel flips too late, once the dot no longer fits. The dot wears the panel's edge chrome (full circular border + fill + backdrop) so it reads as a bead of the same surface, and — being detached — it needs no notch: the panel edge runs unbroken, the real simplicity win over the speech-bubble arrow.
 
+## jsdom's `relatedTarget` can be `window`, and `Node.contains(window)` throws
+
+RTL's synthetic `fireEvent.mouseOut` / `mouseover` default `relatedTarget` to the **`window` global** (a plain object, not a `Node`) when the event has no real related target. Any handler that decides "did we leave the container" by calling `container.contains(event.relatedTarget)` throws `TypeError: Failed to execute 'contains' on 'Node': parameter 1 is not of type 'Node'` the moment that guard runs in a test.
+
+The fix is a component-side guard, not a test shim: `const isInside = (t) => t instanceof Node && containerRef.current?.contains(t)`. It is also correct for a real browser — when the pointer or focus leaves the document entirely, `relatedTarget` is `window` too, so an unguarded `contains` is a latent production bug, not just a test artifact. Related jsdom quirk on the same component: a message's `removing` flag is `undefined` (not `false`) while the toast is live, so tests must assert `toBeFalsy()`, not `toBe(false)`.
+
+## A new feature type collided with an existing domain type at the barrel
+
+`react/src/types/Toast.ts` already exported a public **domain** type named `ToastAction` (the notification record's action). When the new Toast component named its own action prop's type `ToastAction`, the package-root `export *` produced a TS2308 ambiguous re-export. The domain type is the older, wider surface, so the *component* type yields: it is now `ToastMessageAction`. Rule: before adding a public type, grep the name across `react/src/types/` and the barrel — a domain-model type is never renamed to make room for a component one.
+
+## Headless `--window-size` is not the inner viewport, and CDP input needs real button fields
+
+Two harness traps that looked like component bugs: (1) `--window-size=1600,1000` actually ran against a **1600×913** inner viewport (87 px reserved), so coordinate-based CDP hover/swipe anchored to "1000" landed 87 px short and the "hover fans the stack out" behaviour appeared broken when it was fine. Read `innerWidth`/`innerHeight` and anchor input to a live `getBoundingClientRect`, never the launch flag. (2) `Input.dispatchMouseEvent` with `type: "mousePressed"` but no `button`/`buttons` fields synthesises a `pointerdown` whose `button` is not `0`, so a handler guarding `event.button !== 0` (or relying on pointer capture from a left press) silently drops the press. Pass `button: "left", buttons: 1`.
+
+## `Emulation.setEmulatedMedia` prefersReducedMotion can be ignored; the CLI flag is the sure path
+
+In Chrome 152 headless, `Emulation.setEmulatedMedia({ prefersReducedMotion: "reduce" })` left `--kt-duration` at `.3s` — the media query never flipped. Launching the browser with `--force-prefers-reduced-motion` made `matchMedia('(prefers-reduced-motion: reduce)')` report `true` and the built CSS collapsed `--kt-duration`/`--kt-removed-transform`/`--kt-removed-opacity` to `0s` while the cards still mounted at full opacity. So for reduced-motion verification the CLI flag is the reliable lever; `setEmulatedMedia` is not. (Nuances the earlier "CDP ignores the reduced-motion flag" entry — the CLI flag *was* honoured here, and the CDP media method *wasn't*.)
+
+## Swipe-to-dismiss exit is two chained timers, so a mid-flight probe is a moving target
+
+A committed swipe runs a `SWIPE_EXIT_MS` (300 ms) fly-out transform first, *then* calls the store's close, which starts its own `TOAST_EXIT_MS` (350 ms) removal window before the node is spliced. A probe that samples 400 ms after release therefore still sees the node with `data-swipe-out` + `data-removed` and `opacity: 0` — it has not yet left the DOM. The settled count (post-splice) is only meaningful after 300 + 350 ms. Plan verification probes around both timers, or assert the attributes mid-flight and the count late.
+
 ## `background-clip: text` hides the text under reduced motion unless the fill is restored
 
 The Shimmer's glyph fill is a clipped background (`-webkit-text-fill-color: transparent` + `background-image`), so a naive `prefers-reduced-motion` guard of `animation: none` is not enough: the gradient either parks a bright band mid-sweep or, if the background is also removed, the letters vanish entirely (the fill color is transparent). The fallback must restore the paint: `-webkit-text-fill-color: currentColor; background-image: none;`. That works *because* the span's own `color` is the source of truth (`color: var(--shimmer-c, currentColor)`), so the solid fallback keeps the exact tone or inherited color — reduced motion reads as plain text, not a broken one.
@@ -634,3 +862,19 @@ The Shimmer's glyph fill is a clipped background (`-webkit-text-fill-color: tran
 ## `currentColor` in a gradient is a tone-aware paint — one CSS path for inherit + 21 tones
 
 Instead of 21 gradient class variants (each needing safelist entries), Shimmer sets the span's `color` from the tone's own Tailwind variable — `--shimmer-c: var(--color-violet-400)`, the StatusSpinner pattern — and builds the sweep gradient and its `color-mix(in srgb, currentColor 45%, white)` highlight out of `currentColor`. `currentColor` resolves to the element's own color, so inherit mode (no override) and every tone, in both themes, run through a single rule with no per-tone map to drift. The sweep itself is `background-size: 200% 100%` with the bright pass at the image centre and base color at both ends: `background-position: 100% → 0%` sweeps left→right and the loop boundary is invisible.
+
+## Measuring the inner content, not the card root, silently killed the stacked deck peeks
+
+The collapsed deck clamps every back card's *root* to the front card's measured height (`height: var(--kt-front-height)`), so that variable must equal the front card's **root** natural height. The first implementation measured the inner content div instead, on the theory that "the root is clamped, so read the content". That is backwards: the content div excludes the root's padding and borders (26 px for the default size), so the registry held 40 px while the front card actually rendered 66 px. The back cards — clamped to 40 px and translated up by 12/24 px — sat entirely *behind* the 66 px front card and the peek strips never showed (the deck read as a single toast). The fix is PrimeVue's `measureHeight` verbatim in spirit: flash the **root** to inline `height: auto`, read `getBoundingClientRect()`, restore — a plain rect on the root would report the clamp for a clamped card and the deck could never learn the real height. The flash is paint-invisible (it runs in `useLayoutEffect`, synchronous, before the frame) and resizes nothing the ResizeObserver watches (the content div), so it cannot loop. Side effect fixed for free: the fanned-out state (`height: var(--kt-height)`) now uses true root heights instead of the under-measured content heights.
+
+## PrimeVue fades over-limit toasts in place; the kit slides them out along the deck axis
+
+PrimeVue's only over-limit rule is `.p-toast-message:not([data-visible]) { opacity: 0; pointer-events: none; user-select: none; }` — the oldest card simply fades out at its rank slot, so a raised stack looks like the oldest toast vanishing into the deck. The kit keeps the same store semantics (no early eviction — sticky/long-life toasts survive and re-enter as the front cards leave) but gives the hidden state a transform: collapsed backs slide a full card height further along the deck's extension axis (`translateY(raise × (index·gap + 100%))`, keep the rank scale) and expanded backs slide past their offset (`offset-y + raise·100%`), so the FIFO step reads as "newest slides in at the corner, oldest slides out at the far end". The 100%-of-own-height distance is PrimeVue's own idiom for entry/exit distances (entry: `translateY(±100%)` off the corner edge; front removal: `translateY(∓100%)` back to it). Documented in the spec as a deliberate extension, not a PrimeVue parity gap.
+
+## Pointer capture on the card root silently ate the close button's click
+
+The card's swipe handler ran `event.currentTarget.setPointerCapture(...)` on the card root. The browser retargets the *click* that follows a captured pointer release to the capture element: a press-and-release on the × button delivered its click to the card root instead of the button, so the button's `onClick` never fired and the close button "did nothing" — in a real browser only. jsdom has no pointer-capture model, so `fireEvent.click(button)` tests passed while the real browser gesture died; the regression test can only assert the thing the browser keys off — that capture was set on `event.target` (the pressed element), not the root. The fix is PrimeVue's `t.target.setPointerCapture(t.pointerId)`: capture on the pressed element (which may be a deep child, even an SVG node) keeps the click on the pressed element while pointer events still bubble up to the root's move/up handlers, so swipe-from-body and close-by-button coexist. (Guarded with `?.` + try/catch — `InvalidPointerId` if the pointer already released; capture is a safety net, bubbling does the tracking.)
+
+## A root-level overflow-hidden clip ate the hover seam bridge, collapsing the deck mid-gap
+
+The fanned-out deck hangs a `::after` bridge off each card (`bottom: 100%`, `height: gap + 1px`) so the pointer crossing a gap between cards still counts as hovering the group — hitting a pseudo-element is dispatched to its *owner* element, so the container's `mouseleave` (the hover-expand wiring) never fires mid-gap. The glass card variant put `overflow-hidden` on the card root, and an absolutely positioned pseudo-element sitting entirely above the root's top edge is clipped by exactly that overflow — the bridge was 100% invisible, so any pointer path through a gap left the hover group and the deck collapsed. The fix is removing the class: the collapsed deck's clamp is the stylesheet's own `overflow: hidden` rule scoped to the clamped state (collapsed backs), not the variant, and nothing in the glass chrome spills the root's border box (specular overlay is `inset-0` with a matching radius, content sits inside the padding). Regression guard is a class assertion (no `overflow-hidden` on the root for any variant) — jsdom cannot assert clipping geometry. The same trap applies to any hit-region helper (bridge, halo, invisible affordance) implemented as a pseudo-element of a clipped ancestor.

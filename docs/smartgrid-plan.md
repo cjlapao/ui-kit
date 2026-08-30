@@ -406,3 +406,169 @@ Why this is better than what it replaced: a destructive control was sitting perm
 7 tests replace the two that covered the old button, including the zone's absence when idle and outside edit mode, the wording change, and the dragged tile's treatment. Verified in the browser with a real `DragEvent`: the zone appears on drag, and reads "Release to remove" on hover.
 
 **108 files / 2613 passing, `tsc` clean.**
+
+## The dragged tile is now nearly invisible
+
+At `opacity-50` the tile being dragged still covered the ghost showing where it would land — the one thing the user needs to see was hidden behind the thing they were moving.
+
+Dropped to `opacity-10`. The browser's own drag image under the cursor is what tells the user what is in flight, so the source does not need to.
+
+**Correction:** the first version of this also added `pointer-events-none`, which broke dragging entirely — reported as "nothing happens". Making the drag source non-hit-testable while a drag is running cancels it outright, exactly as hiding or unmounting it does. That is the *third* time in this component that touching the drag source's rendering mid-drag killed the drag, and I added it speculatively in the same edit as the opacity change rather than as its own verified step. Opacity only; a test now asserts the class is absent, since synthetic events cannot catch it.
+
+Over the delete zone it stays at `opacity-10` and gains `grayscale`, which says what is about to happen to it without becoming visible enough to obscure anything.
+
+Worth noting for context: when the pointer is over a row, the dragged item is not rendered there at all — `rowPreview` already substitutes the ghost for it. The opacity matters for the states in between: dragging over the delete zone, between rows, or outside any drop target.
+
+**108 files / 2613 passing, `tsc` clean.**
+
+## Seven control-surface changes
+
+1. **`controlVariant`** — the editor's controls can now take a surface independent of the body. They still follow `variant` by default, which is right most of the time, but a `plain` dashboard over a photograph wants glass controls while its body draws nothing, and one prop cannot say both.
+
+2. **The section drag handle takes the accent tone** rather than the muted surface copy, so it reads as a control like everything else.
+
+3. **The handle only appears with more than one section.** A lone section's handle is a control that cannot do anything.
+
+4. **The section title *is* the rename control.** Clicking it opens the inline editor; the separate "Rename" button is gone. It was a second control for something the label itself can carry, and it competed for space with the two actions that actually need buttons. Outside edit mode the title stays a plain `<h2>`.
+
+5 & 7. **The section delete matches "Add Item".** It was an `IconButton` on the quieter variant, which made the *destructive* action the less prominent of the pair — backwards. Both are section-level actions and now read as one set.
+
+6. **The add-items dialog is scoped to the component.** `Modal` gained a `container` prop: given an element it portals there and switches the overlay from `fixed` to `absolute`, so it fills that box rather than the viewport, and dragging is disabled — a dialog scoped to a container it can be dragged out of is a contradiction. `Modal`'s own 43 tests pass unchanged. The dialog takes `glass` when the controls are glass and `elevated` otherwise, and the buttons inside it already followed the control variant.
+
+One supporting change: the container is held in **state** as well as a ref. `containerRef.current` is null during the first render, so the portal target would have been null exactly once with no re-render to pick it up.
+
+11 new tests. **109 files / 2634 passing, `tsc` clean.** Verified in the browser: `dialog=true insideGrid=true overlay=absolute`.
+
+### Demo catch-up
+
+Asked whether the demo had been updated, the honest answer was **no** — the last batch shipped `controlVariant` with no way to reach it, and several earlier features had never been demonstrated at all. Fixed:
+
+- **`controlVariant` in the playground**, with a "(follows surface)" default so the inherited behaviour is still the starting point.
+- **A new `Editing` example** covering everything the editor does — move a tile, drag one onto the delete zone, reorder a section by its handle, click a title to rename, resize a column, undo/redo. Section reordering, drop-to-delete and undo/redo had all shipped without an example.
+- **A spare item (`Queue depth`) in the demo data.** Every item was `single: true` and placed by the default layout, so `addableItems` was empty and the "Add Item" dialog was unreachable in the examples that use the full set — the dialog I had just spent a turn containing could not be opened from the docs.
+- The playground's explanatory copy now lists the editor's gestures, and the page description mentions the delete zone and undo/redo.
+
+**109 files / 2637 passing, `tsc` clean, page renders with no console errors.**
+
+### `ROW_ICON_VARIANT` — an exception to the surface mapping
+
+The section delete, the row delete and the row `+` are now all `ghost`, whatever surface the dashboard has, named as `ROW_ICON_VARIANT` so the exception is explicit rather than three literals that can drift.
+
+This reverses the previous pass, where the section delete was given the toolbar's variant to match "Add Item". The right family is not "actions that sit next to each other" but **actions attached to a row or section** — they live in the margins beside content, and the toolbar treatment put a column of bordered chips down the left edge of every row. The toolbar keeps the surface mapping; these do not.
+
+The test that asserted the old rule was replaced with one asserting the new one, checking both families at once: the toolbar's "Add Item" is bordered on an elevated surface, the row and section icon actions are not.
+
+**109 files / 2638 passing, `tsc` clean.**
+
+## Row-to-row flicker
+
+Reported: with two rows in a section, dragging an item up into the first row flickers in a narrow band near the boundary.
+
+Same class as the section flicker, with **three** feeding mechanisms rather than one:
+
+1. **`dragleave` cleared the preview.** Inserting the ghost reflows the row, which pushes the pointer outside it and fires `dragleave` — so the act of showing the preview destroyed it, the layout snapped back, and the pointer re-entered.
+2. **The insert index was measured from live rects.** By the second `dragover` the ghost had already displaced those cells, so each measurement folded the previous one back in.
+3. **The neighbouring row could claim the pointer.** Adding a ghost to a full row squeezes every span and changes the row's height, so rows move under a stationary pointer. The neighbour's `dragover` then fires for a point the user never moved to, takes the preview, the layout swaps back, and the two rows trade it indefinitely.
+
+Removing (1) alone is not enough — (3) keeps the loop alive on its own, which is why the first attempt at this needed a second pass.
+
+All three now resolve against a **snapshot taken at drag start**: each row's vertical band and each cell's horizontal midpoint, in page coordinates. Positions go stale the moment a preview is applied, and that is the point — the pointer moves in screen space and is mapped onto the layout as it was *before* the rearranging began. `rowOwnsPointer` gates every row's `dragover` on its original band, with ties going to the nearest band so a pointer in the gap still lands somewhere.
+
+This is the same fix as the section reorder, and answers the suggestion of pre-creating the ghost: reserving the space early would still leave live geometry deciding *where* it goes, so the loop could recur on the next boundary. Freezing the geometry removes the feedback path instead of trying to out-run it.
+
+3 tests, one of which was checked by deleting the band guard and watching it fail.
+
+### An honest note on verification
+
+The synthetic harness cannot reproduce this. A real flicker needs the browser's own hit-testing to fire `dragleave`/`dragenter` as the layout moves under a stationary pointer; dispatching `dragover` by hand never produces that. Running the same sweep against the *unfixed* component gave an identical clean result — the harness simply cannot see the bug, so it cannot confirm the fix either. The reasoning and the unit tests stand on their own, but this one needs a human to try it.
+
+**109 files / 2641 passing, `tsc` clean.**
+
+## Accessibility and rendering: the three improvements
+
+### 1. Nothing was announced
+
+`aria-live` appeared zero times in 4300 lines. Every reorder, resize, removal and section move changed the layout silently — including the keyboard paths added earlier, so a user could press the arrow keys and get no confirmation that anything had happened.
+
+A polite `role="status"` region now reports each action by name: *"Active capsules moved after Requests"*, *"Section Alpha moved down"*, *"alpha removed"*, *"Requests 7 of 12 columns, Queue depth 5"*, *"Undone"*, *"Layout reset to its default"*.
+
+One detail that is easy to miss: an unchanged string is not re-announced, so two identical moves in a row would be read once. Repeating a message appends a space to force it through.
+
+### 2. Moving a tile had no keyboard path
+
+Sections reordered with arrows and spans resized with arrows, but the *primary* action — move a tile — was mouse-only. It now uses the grab/move/place model, which is the accessible equivalent of a drag rather than key handlers bolted onto one:
+
+- `Enter` / `Space` lifts the focused tile, `aria-grabbed` goes true
+- arrows move it a slot at a time, left/right within the row, up/down between rows
+- `Enter` / `Space` places it, `Escape` puts it back
+
+The pre-lift layout is kept so `Escape` can restore it, which is what makes the mode safe to explore. Reaching an edge says so rather than doing nothing silently. Tiles are only focusable in edit mode.
+
+### 3. Every tile re-rendered on every drag frame
+
+`setLayout` fires on each `mousemove` of a resize and there was no `React.memo` anywhere, so every tile's `render()` ran again each frame — on a dashboard of charts, the difference between a smooth drag and a slideshow.
+
+`SmartGridTileBoundary` is memoised. A test counts a tile's renders across two keyboard resizes and asserts they do not increase; removing the memo makes it fail (4 renders instead of 2), so the guard is real rather than decorative.
+
+**Verified in a real browser**, not only in jsdom: lifting announces *"Active capsules lifted. Use…"*, moving announces *"Active capsules moved after Requests"*, and `Escape` announces *"Move cancelled"*.
+
+11 new tests. **109 files / 2656 passing, `tsc` clean.**
+
+## Row-to-row flicker, second pass: hysteresis
+
+Reported again: still a point between two rows where it flickers.
+
+The frozen-snapshot fix removed the feedback loop but left a boundary problem. The bands are measured at drag start, while the *rendered* rows move during the drag — the source row collapses when its item goes to the preview, the target grows to hold the ghost. So the visual layout and the decision geometry drift apart, and around the frozen boundary a movement of a pixel or two flips the answer. The two rows then trade the preview: flicker, in a narrow band, exactly as described.
+
+Freezing harder does not help, because the drift is real. **Hysteresis does**: the row holding the preview keeps it until the pointer is clearly outside its band (24px), and a challenger has to be clearly inside its own. Between the two thresholds nobody claims anything and the preview simply stays put. A hand cannot jitter across a 48px dead zone.
+
+`rowPreview` is now mirrored into a ref, because the hysteresis needs to know which row owns the preview *right now* and `dragover` fires faster than React re-renders.
+
+### The test almost lied again
+
+The first version jittered across the boundary and asserted the *final* state, which passes whether or not the preview flipped along the way — and it did pass with the margin set to zero. Asserting after **every** step is what makes it real: it now fails with the margin removed and passes with it.
+
+That is the second time in this component a test has been checked by breaking the fix and watching it fail, and the second time that check caught a test which proved nothing.
+
+**110 files / 2663 passing, `tsc` clean.**
+
+## The delete zone fills the row
+
+It sized to its label, which made a small target for something you have to hit mid-drag. It now takes `flex-1` up to the controls, with the label centred; the control group is `shrink-0` so it keeps its width. The placeholder that stands in when nothing is being dragged also takes `flex-1`, so the controls do not slide left when the zone is absent.
+
+Measured in the browser: 485px of a 651px row.
+
+## The add-items modal became a palette
+
+The modal cost three things, all of them structural rather than cosmetic:
+
+1. **It closed after every add** — four tiles meant four open/pick/close cycles.
+2. **It covered the dashboard**, so you could not see the gap you were filling while choosing.
+3. **Placement was a guess.** It inferred the target from whichever "Add Item" button opened it, so the tile appended and you dragged it afterwards: two operations for one placement.
+
+`SmartGridItemPalette` is a panel docked to the right *inside* the component, open while editing, with search and draggable entries. It is an overlay rather than a column so it never squeezes the grid.
+
+The reason a panel beats a modal here is specific to what already existed: the editor has a full drag system — ghost previews, row targeting, hysteresis, the delete zone. Making the palette a **drag source** turns adding into the same gesture as moving, so an item lands exactly where the preview shows and reuses all of it. A modal structurally cannot do that; it can only hand an item to a row and hope.
+
+Supporting changes:
+
+- **`insertItemAt(definitionId, sectionId, rowId, index)`** — `addItemToRow` could only append, which is all the modal could express. A drag knows the index.
+- **`PALETTE_MIME`** and a `paletteDragRef`, kept separate from `draggingId`: one is a *definition* id that creates, the other a *layout item* id that reorders. The row handlers branch on it, and the ghost takes the definition's `defaultSpan` since there is no layout item yet.
+- **Click-to-add remains** for keyboard users and anyone who would rather not drag. It appends; dragging places.
+- The adds are announced, like every other action.
+
+`Modal` keeps the `container` prop added for the old dialog — it is generally useful and cost nothing to leave.
+
+10 tests replace the 3 that covered the dialog, including one that drags an entry onto a row and asserts the tile arrives. **Verified in the browser**: palette open beside a visible dashboard, three entries, search working.
+
+**109 files / 2672 of my tests passing** (`numberUtils.test.ts` fails on another agent's in-flight `formatBytes` collision), `tsc` clean for this component.
+
+### Correction — the palette drag gave no feedback
+
+Reported: "I cannot drag it."
+
+The drag *was* starting and the drop *did* work — but `isRowPreviewActive` still required `draggingId`, which is null for a palette drag. I had updated the inner branch that renders the ghost to accept `draggingId || paletteDragId` and missed the gate above it, so the preview was computed and then never rendered. With no ghost and no movement, the drag reads as dead.
+
+Measured in the browser rather than guessed: `draggableAttr=true`, `dragstartFired=true`, `ghost=false` — which pointed straight at the render gate rather than at the drag itself.
+
+**The existing test passed straight through this**, because it dragged an entry and asserted the tile arrived: the drop path does not depend on `isRowPreviewActive`. A test that only checks the outcome cannot see missing feedback. The new one asserts the ghost cell appears during `dragover`, and fails with the fix reverted.

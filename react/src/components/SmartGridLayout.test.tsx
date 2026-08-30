@@ -5,8 +5,11 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { SmartGridLayout, SMART_GRID_VARIANTS } from "./SmartGridLayout";
+import Button from "./Button";
+import type { ButtonVariant } from "../theme";
 import type {
   SmartGridItemDefinition,
   SmartGridLayoutState,
@@ -1318,6 +1321,21 @@ describe("SmartGridLayout — drop an item on the zone to remove it", () => {
     expect(screen.getByTestId("tile-beta")).toBeTruthy();
   });
 
+  it("fills the row up to the controls", () => {
+    // A bigger target is easier to hit mid-drag, which is the whole point of
+    // a drop zone. It used to size to its label.
+    render(
+      <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} defaultEditMode />,
+    );
+    dragTile("tile-alpha");
+    expect(dropZone()!.className).toContain("flex-1");
+    // ...and the controls beside it keep their width.
+    const controls = screen
+      .getByRole("button", { name: "Done" })
+      .closest("div")!;
+    expect(controls.className).toContain("shrink-0");
+  });
+
   it("changes its wording once the pointer is over it", () => {
     render(
       <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} defaultEditMode />,
@@ -1329,16 +1347,28 @@ describe("SmartGridLayout — drop an item on the zone to remove it", () => {
     expect(dropZone()!.textContent).toContain("Release to remove");
   });
 
-  it("fades the dragged tile further while it is over the zone", () => {
+  it("all but hides the dragged tile, so the drop target stays visible", () => {
+    // At 50% the tile still covered the ghost showing where it would land —
+    // the one thing the user needs to see was behind the thing they are
+    // moving. The browser's own drag image under the cursor is what tells them
+    // what is in flight.
     render(
       <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} defaultEditMode />,
     );
     const tile = dragTile("tile-alpha");
-    expect(tile.className).toContain("opacity-50");
+    expect(tile.className).toContain("opacity-10");
+    expect(tile.className).not.toContain("opacity-50");
+    // Opacity only. Making the drag source non-hit-testable while a drag is
+    // running cancels it outright — the same failure as hiding or unmounting
+    // it, and it is invisible to a synthetic-event test, so it is asserted on
+    // the class instead.
+    expect(tile.className).not.toContain("pointer-events-none");
 
     fireEvent.dragOver(dropZone()!, { dataTransfer: { dropEffect: "none" } });
     const after = screen.getByTestId("tile-alpha").closest("[data-sg-span]")!;
-    expect(after.className).toContain("opacity-20");
+    // Still hidden, and greyed to say what is about to happen to it.
+    expect(after.className).toContain("opacity-10");
+    expect(after.className).toContain("grayscale");
   });
 
   it("leaving the zone restores the normal drag treatment", () => {
@@ -1405,5 +1435,780 @@ describe("SmartGridLayout — `plain` is the default", () => {
     );
     // The translucent palette, not the muted solid one.
     expect(container.innerHTML).not.toContain("text-neutral-500");
+  });
+});
+
+
+describe("SmartGridLayout — control surface, independent of the body", () => {
+  it("`controlVariant` overrides what the body implies", () => {
+    // A `plain` dashboard over a photograph wants glass controls while its
+    // body draws nothing — the two cannot be expressed with one prop.
+    render(
+      <SmartGridLayout
+        items={ITEMS}
+        defaultLayout={LAYOUT}
+        variant="elevated"
+        controlVariant="glass"
+        defaultEditMode
+      />,
+    );
+    const add = screen.getAllByRole("button", { name: "Add Item" })[0];
+    expect(add.className).toMatch(/backdrop|glass/);
+  });
+
+  it("still follows the body when it is not set", () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS}
+        defaultLayout={LAYOUT}
+        variant="elevated"
+        defaultEditMode
+      />,
+    );
+    expect(
+      screen.getAllByRole("button", { name: "Add Item" })[0].className,
+    ).toContain("border");
+  });
+});
+
+describe("SmartGridLayout — section header", () => {
+  const THREE_SECTIONS = [
+    { id: "a", title: "Alpha", rows: [{ itemIds: ["alpha"] }] },
+    { id: "b", title: "Beta", rows: [{ itemIds: ["beta"] }] },
+  ];
+
+  it("hides the drag handle when there is only one section", () => {
+    // A lone section's handle is a control that cannot do anything.
+    render(
+      <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} defaultEditMode />,
+    );
+    expect(
+      screen.queryAllByRole("button", { name: /Reorder section/ }),
+    ).toHaveLength(0);
+  });
+
+  it("shows it once there is somewhere to move to", () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS}
+        defaultLayout={THREE_SECTIONS}
+        defaultEditMode
+      />,
+    );
+    expect(
+      screen.getAllByRole("button", { name: /Reorder section/ }),
+    ).toHaveLength(2);
+  });
+
+  it("tints the handle with the accent tone", () => {
+    const { container } = render(
+      <SmartGridLayout
+        items={ITEMS}
+        defaultLayout={THREE_SECTIONS}
+        tone="violet"
+        defaultEditMode
+      />,
+    );
+    const handle = container.querySelector('[aria-label^="Reorder section"]');
+    expect(handle!.className).toContain("violet");
+  });
+
+  it("renames from the title itself, with no separate Rename button", () => {
+    render(
+      <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} defaultEditMode />,
+    );
+    expect(screen.queryByRole("button", { name: "Rename" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Main" }));
+    const input = screen.getByLabelText("Section title") as HTMLInputElement;
+    expect(input.value).toBe("Main");
+
+    fireEvent.change(input, { target: { value: "Renamed" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByRole("button", { name: "Renamed" })).toBeTruthy();
+  });
+
+  it("leaves the title as a plain heading outside edit mode", () => {
+    render(<SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} />);
+    expect(screen.queryByRole("button", { name: "Main" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Main" })).toBeTruthy();
+  });
+
+  it("keeps the row and section icon actions ghost on any surface", () => {
+    // A deliberate exception to the surface mapping: these sit in the margins
+    // beside content rather than in the toolbar, and giving them the toolbar's
+    // treatment put a column of bordered chips down the left edge of every row.
+    render(
+      <SmartGridLayout
+        items={ITEMS}
+        defaultLayout={LAYOUT}
+        variant="elevated"
+        defaultEditMode
+      />,
+    );
+    // The toolbar button does take the surface.
+    expect(
+      screen.getAllByRole("button", { name: "Add Item" })[0].className,
+    ).toContain("border");
+
+    // The row/section icon actions do not.
+    const sectionDelete = screen.getByRole("button", {
+      name: "Remove section and all items",
+    });
+    const rowDelete = screen.getAllByRole("button", { name: "Remove row" })[0];
+    for (const el of [sectionDelete, rowDelete]) {
+      expect(el.className).not.toContain("border-");
+    }
+  });
+});
+
+describe("SmartGridLayout — the item palette", () => {
+  const openPalette = () =>
+    fireEvent.click(screen.getAllByRole("button", { name: "Add Item" })[0]);
+  const palette = () => document.querySelector("[data-sg-palette]");
+  /**
+   * The palette is a `SidePanel` now, so closing collapses it and only unmounts
+   * when the width transition ends — which jsdom never fires on its own.
+   */
+  const paletteShell = () =>
+    palette()!.closest(".overflow-hidden") as HTMLElement;
+  const finishClosing = () =>
+    fireEvent.transitionEnd(paletteShell(), { propertyName: "width" });
+
+  const ITEMS_WITH_SPARE: SmartGridItemDefinition[] = [
+    ...ITEMS,
+    def("delta", { defaultSpan: 4 }),
+  ];
+
+  it("is closed until asked for, and lives inside the dashboard", () => {
+    const { container } = render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    expect(palette()).toBeNull();
+
+    openPalette();
+    expect(palette()).not.toBeNull();
+    // Contained: it is part of the component, not a document-level dialog.
+    expect(container.firstElementChild!.contains(palette()!)).toBe(true);
+  });
+
+  it("does not cover the dashboard the way the modal did", () => {
+    // The whole point: you can see the gap you are filling while you choose.
+    render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    expect(screen.getByTestId("tile-alpha")).toBeTruthy();
+    expect(screen.getByTestId("tile-beta")).toBeTruthy();
+  });
+
+  it("stays open after an add, so several items are one flow", () => {
+    // The modal closed after every add: four tiles was four open/pick/close
+    // cycles.
+    render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    const add = within(palette() as HTMLElement).getAllByRole("button", {
+      name: "Add",
+    })[0];
+    fireEvent.click(add);
+    expect(palette()).not.toBeNull();
+  });
+
+  it("filters as you search", () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    const scope = within(palette() as HTMLElement);
+    expect(scope.getByText("delta")).toBeTruthy();
+    fireEvent.change(scope.getByLabelText("Search items"), {
+      target: { value: "zzz" },
+    });
+    expect(scope.queryByText("delta")).toBeNull();
+    expect(scope.getByText("No matches")).toBeTruthy();
+  });
+
+  it("drops a `single` item once it is on the board, but repeatable ones stay", () => {
+    // `addableItems` filters deployed *single* items only — a definition that
+    // is not `single` can legitimately be added again.
+    render(
+      <SmartGridLayout
+        items={[
+          def("solo", { single: true }),
+          def("many", { single: false }),
+        ]}
+        defaultLayout={[
+          { id: "main", title: "Main", rows: [{ itemIds: ["solo", "many"] }] },
+        ]}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    const scope = within(palette() as HTMLElement);
+    expect(scope.queryByText("solo")).toBeNull();
+    expect(scope.getByText("many")).toBeTruthy();
+  });
+
+  it("closes on its own button", () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close the item palette" }),
+    );
+    // Collapsed straight away, gone once the slide finishes.
+    expect(paletteShell().style.width).toBe("0px");
+    finishClosing();
+    expect(palette()).toBeNull();
+  });
+
+  it("is never shown outside edit mode", () => {
+    const { rerender } = render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    expect(palette()).not.toBeNull();
+
+    rerender(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        isEditMode={false}
+      />,
+    );
+    expect(paletteShell().style.width).toBe("0px");
+    finishClosing();
+    expect(palette()).toBeNull();
+  });
+
+
+  it("can be resized, and drops the grip outside the panel", async () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    const grip = document.querySelector(
+      '[role="separator"][aria-label="Resize panel"]',
+    ) as HTMLElement;
+    expect(grip).not.toBeNull();
+    expect(paletteShell().contains(grip)).toBe(false);
+    // Rides the panel's edge — it starts collapsed and arrives with the slide.
+    await waitFor(() => expect(grip.style.right).toBe("288px"));
+
+    fireEvent.mouseDown(grip, { clientX: 600 });
+    fireEvent.mouseMove(window, { clientX: 540 });
+    fireEvent.mouseUp(window);
+    expect(paletteShell().style.width).toBe("348px");
+  });
+
+  it("shows the ghost while a palette item is dragged over a row", () => {
+    // The drop worked without this; the *preview* did not render, so the drag
+    // gave no feedback at all and read as "I cannot drag it". A test that only
+    // checks the drop passes straight through that.
+    const { container } = render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    const entry = document.querySelector('[data-sg-palette-item="delta"]')!;
+    const store = new Map<string, string>();
+    fireEvent.dragStart(entry, {
+      dataTransfer: {
+        effectAllowed: "copy",
+        setData: (t: string, v: string) => void store.set(t, v),
+        getData: (t: string) => store.get(t) ?? "",
+      },
+    });
+
+    const row = container.querySelector("[data-sg-row-id]")!;
+    const before = row.querySelectorAll("[data-sg-span]").length;
+    fireEvent.dragOver(row, {
+      clientX: 10,
+      clientY: 10,
+      dataTransfer: { dropEffect: "none", getData: () => "" },
+    });
+    // A ghost cell has appeared alongside the real ones.
+    expect(row.querySelectorAll("[data-sg-span]").length).toBeGreaterThan(
+      before,
+    );
+  });
+
+  it("drops a dragged item into the row it was aimed at", () => {
+    // Adding is now the same gesture as moving: the item lands where the
+    // preview shows, rather than appending and being dragged afterwards.
+    const { container } = render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    expect(screen.queryByTestId("tile-delta")).toBeNull();
+
+    const entry = document.querySelector('[data-sg-palette-item="delta"]')!;
+    const store = new Map<string, string>();
+    fireEvent.dragStart(entry, {
+      dataTransfer: {
+        effectAllowed: "copy",
+        setData: (t: string, v: string) => void store.set(t, v),
+        getData: (t: string) => store.get(t) ?? "",
+      },
+    });
+
+    const row = container.querySelector("[data-sg-row-id]")!;
+    fireEvent.dragOver(row, {
+      clientX: 10,
+      clientY: 10,
+      dataTransfer: { dropEffect: "none", getData: () => "" },
+    });
+    fireEvent.drop(row, { dataTransfer: { getData: () => "" } });
+
+    expect(screen.getByTestId("tile-delta")).toBeTruthy();
+  });
+
+  it("announces the add", () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS_WITH_SPARE}
+        defaultLayout={LAYOUT}
+        defaultEditMode
+      />,
+    );
+    openPalette();
+    fireEvent.click(
+      within(palette() as HTMLElement).getAllByRole("button", { name: "Add" })[0],
+    );
+    expect(
+      document.querySelector("[data-sg-announcer]")!.textContent,
+    ).toContain("added");
+  });
+});
+
+
+describe("SmartGridLayout — the row preview does not fight the reflow", () => {
+  const TWO_ROWS = [
+    {
+      id: "main",
+      title: "Main",
+      rows: [{ itemIds: ["alpha", "beta"] }, { itemIds: ["gamma"] }],
+    },
+  ];
+
+  const startItemDrag = (el: Element) => {
+    const store = new Map<string, string>();
+    fireEvent.dragStart(el, {
+      dataTransfer: {
+        effectAllowed: "move",
+        setData: (t: string, v: string) => void store.set(t, v),
+        getData: (t: string) => store.get(t) ?? "",
+      },
+    });
+  };
+
+  const overAt = (el: Element, clientX: number, clientY: number) => {
+    const event = createEvent.dragOver(el);
+    Object.defineProperty(event, "clientX", { value: clientX });
+    Object.defineProperty(event, "clientY", { value: clientY });
+    Object.defineProperty(event, "dataTransfer", {
+      value: { dropEffect: "none", getData: () => "" },
+    });
+    fireEvent(el, event);
+  };
+
+  /** Stack the rows so the drag-start snapshot means something. */
+  const layoutRows = (container: HTMLElement) => {
+    [...container.querySelectorAll("[data-sg-row-id]")].forEach((el, i) => {
+      const top = i * 200;
+      vi.spyOn(el, "getBoundingClientRect").mockReturnValue({
+        top, height: 200, bottom: top + 200,
+        left: 0, right: 400, width: 400, x: 0, y: top,
+        toJSON: () => ({}),
+      } as DOMRect);
+    });
+  };
+
+  it("leaves the preview alone when the pointer leaves a row", () => {
+    // Inserting the ghost reflows the row and pushes the pointer out of it,
+    // firing `dragleave`. Clearing there snapped the layout back and re-entered
+    // the row — the flicker the user reported between two rows.
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={TWO_ROWS} defaultEditMode />,
+    );
+    layoutRows(container);
+    const rows = container.querySelectorAll("[data-sg-row-id]");
+
+    startItemDrag(screen.getByTestId("tile-gamma").closest("[data-sg-span]")!);
+    overAt(rows[0], 100, 100);
+    const ghosts = () => container.querySelectorAll("[data-sg-span]").length;
+    const withPreview = ghosts();
+
+    fireEvent.dragLeave(rows[0], { relatedTarget: document.body });
+    // The preview survives: only another row claiming it, or the drag ending,
+    // takes it away.
+    expect(ghosts()).toBe(withPreview);
+  });
+
+  it("will not let a neighbouring row claim a pointer outside its own band", () => {
+    // The reflow moves rows under a stationary pointer. Without the band
+    // check, the neighbour's `dragover` claims the preview, the layout swaps
+    // back, and the two rows trade it forever.
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={TWO_ROWS} defaultEditMode />,
+    );
+    layoutRows(container);
+    const rows = container.querySelectorAll("[data-sg-row-id]");
+
+    startItemDrag(screen.getByTestId("tile-gamma").closest("[data-sg-span]")!);
+    // Pointer well inside row 1's band...
+    overAt(rows[0], 100, 100);
+    const afterRow1 = container.innerHTML;
+
+    // ...and row 2 fires a dragover for the same point. It must decline.
+    overAt(rows[1], 100, 100);
+    expect(container.innerHTML).toBe(afterRow1);
+  });
+
+  it("does not trade the preview back and forth near the boundary", () => {
+    // The bands are frozen at drag start, but the rendered rows move during
+    // the drag — the source row collapses, the target grows. Around the
+    // boundary a movement of a pixel or two used to flip the answer, and the
+    // two rows traded the preview: the flicker.
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={TWO_ROWS} defaultEditMode />,
+    );
+    layoutRows(container);
+    const rows = container.querySelectorAll("[data-sg-row-id]");
+
+    startItemDrag(screen.getByTestId("tile-gamma").closest("[data-sg-span]")!);
+    // Settle on row 1.
+    overAt(rows[0], 100, 100);
+    const owned = container.innerHTML;
+
+    // Now jitter across the 200px boundary, the way a hand does, checking
+    // *every* step — asserting only the final state would pass even if the
+    // preview flipped back and forth on the way.
+    for (const y of [195, 201, 198, 205, 199, 210, 197]) {
+      overAt(rows[0], 100, y);
+      expect(container.innerHTML).toBe(owned);
+      overAt(rows[1], 100, y);
+      expect(container.innerHTML).toBe(owned);
+    }
+  });
+
+  it("still hands over when the pointer really is in the other row", () => {
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={TWO_ROWS} defaultEditMode />,
+    );
+    layoutRows(container);
+    const rows = container.querySelectorAll("[data-sg-row-id]");
+
+    startItemDrag(screen.getByTestId("tile-alpha").closest("[data-sg-span]")!);
+    overAt(rows[0], 100, 100);
+    const inRow1 = container.innerHTML;
+
+    // 300 is inside row 2's band (200–400).
+    overAt(rows[1], 100, 300);
+    expect(container.innerHTML).not.toBe(inRow1);
+  });
+});
+
+
+describe("SmartGridLayout — tiles are not re-rendered by the grid's own churn", () => {
+  it("does not call a tile's render again when another tile is resized", () => {
+    // `setLayout` fires on every `mousemove` of a resize, so without a memo
+    // every tile's `render()` ran again each frame — the difference between a
+    // smooth drag and a slideshow on a dashboard of charts.
+    let alphaRenders = 0;
+    const counted: SmartGridItemDefinition[] = [
+      {
+        ...def("alpha", { defaultSpan: 6 }),
+        render: () => {
+          alphaRenders += 1;
+          return <div data-testid="tile-alpha">alpha</div>;
+        },
+      },
+      def("beta", { defaultSpan: 6 }),
+    ];
+
+    const { container } = render(
+      <SmartGridLayout
+        items={counted}
+        defaultLayout={[
+          { id: "main", title: "Main", rows: [{ itemIds: ["alpha", "beta"] }] },
+        ]}
+        defaultEditMode
+      />,
+    );
+    const initial = alphaRenders;
+    expect(initial).toBeGreaterThan(0);
+
+    // Resize the pair from the keyboard: the layout changes, so the grid
+    // re-renders, but alpha's own content has not.
+    const handle = container.querySelector('[role="separator"]')!;
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+
+    expect(alphaRenders).toBe(initial);
+  });
+
+  it("still re-renders a tile when its own definition changes", () => {
+    const { rerender } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} />,
+    );
+    expect(screen.getByTestId("tile-alpha")).toBeTruthy();
+
+    rerender(
+      <SmartGridLayout
+        items={ITEMS.map((item) =>
+          item.id === "alpha"
+            ? {
+                ...item,
+                render: () => <div data-testid="tile-alpha-v2">v2</div>,
+              }
+            : item,
+        )}
+        defaultLayout={LAYOUT}
+      />,
+    );
+    expect(screen.getByTestId("tile-alpha-v2")).toBeTruthy();
+  });
+});
+
+
+describe("SmartGridLayout — announcements", () => {
+  const live = () => document.querySelector("[data-sg-announcer]");
+
+  it("has a polite live region", () => {
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} />,
+    );
+    const region = container.querySelector("[data-sg-announcer]")!;
+    expect(region.getAttribute("aria-live")).toBe("polite");
+    expect(region.getAttribute("role")).toBe("status");
+  });
+
+  it("says what a keyboard resize did", () => {
+    // The keyboard paths moved things with no confirmation at all.
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} defaultEditMode />,
+    );
+    fireEvent.keyDown(container.querySelector('[role="separator"]')!, {
+      key: "ArrowRight",
+    });
+    expect(live()!.textContent).toMatch(/columns/);
+  });
+
+  it("names the tile it removed", () => {
+    render(
+      <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} defaultEditMode />,
+    );
+    const tile = screen.getByTestId("tile-alpha").closest("[data-sg-span]")!;
+    const store = new Map<string, string>();
+    fireEvent.dragStart(tile, {
+      dataTransfer: {
+        effectAllowed: "move",
+        setData: (t: string, v: string) => void store.set(t, v),
+        getData: (t: string) => store.get(t) ?? "",
+      },
+    });
+    const zone = document.querySelector("[data-sg-delete-zone]")!;
+    fireEvent.dragOver(zone, { dataTransfer: { dropEffect: "none" } });
+    fireEvent.drop(zone, { dataTransfer: { getData: () => "" } });
+    expect(live()!.textContent).toContain("alpha removed");
+  });
+
+  it("says which way a section moved", () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS}
+        defaultLayout={[
+          { id: "a", title: "Alpha", rows: [{ itemIds: ["alpha"] }] },
+          { id: "b", title: "Beta", rows: [{ itemIds: ["beta"] }] },
+        ]}
+        defaultEditMode
+      />,
+    );
+    fireEvent.keyDown(
+      screen.getAllByRole("button", { name: /Reorder section/ })[0],
+      { key: "ArrowDown" },
+    );
+    expect(live()!.textContent).toContain("Section Alpha moved down");
+  });
+
+  it("repeats an identical action rather than going silent", () => {
+    // An unchanged string is not re-announced, so two identical moves would be
+    // read once.
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} defaultEditMode />,
+    );
+    const handle = container.querySelector('[role="separator"]')!;
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    const first = live()!.textContent;
+    fireEvent.keyDown(handle, { key: "ArrowLeft" });
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    expect(live()!.textContent).not.toBe("");
+    expect(first).toBeTruthy();
+  });
+});
+
+describe("SmartGridLayout — moving a tile from the keyboard", () => {
+  const TWO = [
+    { id: "main", title: "Main", rows: [{ itemIds: ["alpha", "beta"] }] },
+  ];
+  const tileOf = (id: string) =>
+    screen.getByTestId(`tile-${id}`).closest("[data-sg-span]")!;
+  const order = (container: HTMLElement) =>
+    [...container.querySelectorAll("[data-sg-item-id]")]
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean);
+
+  it("exposes each tile as a focusable control while editing", () => {
+    render(<SmartGridLayout items={ITEMS} defaultLayout={TWO} defaultEditMode />);
+    const tile = tileOf("alpha");
+    expect(tile.getAttribute("tabindex")).toBe("0");
+    expect(tile.getAttribute("aria-label")).toMatch(/Press Enter to lift/);
+  });
+
+  it("is inert outside edit mode", () => {
+    render(<SmartGridLayout items={ITEMS} defaultLayout={TWO} />);
+    expect(tileOf("alpha").getAttribute("tabindex")).toBeNull();
+  });
+
+  it("lifts, moves and places", () => {
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={TWO} defaultEditMode />,
+    );
+    expect(order(container)[0]).toContain("alpha");
+
+    fireEvent.keyDown(tileOf("alpha"), { key: "Enter" });
+    expect(tileOf("alpha").getAttribute("aria-grabbed")).toBe("true");
+
+    fireEvent.keyDown(tileOf("alpha"), { key: "ArrowRight" });
+    expect(order(container)[0]).toContain("beta");
+
+    fireEvent.keyDown(tileOf("alpha"), { key: "Enter" });
+    expect(tileOf("alpha").getAttribute("aria-grabbed")).toBe("false");
+  });
+
+  it("ignores the arrows until the tile is lifted", () => {
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={TWO} defaultEditMode />,
+    );
+    fireEvent.keyDown(tileOf("alpha"), { key: "ArrowRight" });
+    expect(order(container)[0]).toContain("alpha");
+  });
+
+  it("Escape puts the tile back where it started", () => {
+    const { container } = render(
+      <SmartGridLayout items={ITEMS} defaultLayout={TWO} defaultEditMode />,
+    );
+    fireEvent.keyDown(tileOf("alpha"), { key: "Enter" });
+    fireEvent.keyDown(tileOf("alpha"), { key: "ArrowRight" });
+    expect(order(container)[0]).toContain("beta");
+
+    fireEvent.keyDown(tileOf("alpha"), { key: "Escape" });
+    expect(order(container)[0]).toContain("alpha");
+    expect(tileOf("alpha").getAttribute("aria-grabbed")).toBe("false");
+  });
+
+  it("says so at the edge instead of moving nothing silently", () => {
+    render(<SmartGridLayout items={ITEMS} defaultLayout={TWO} defaultEditMode />);
+    fireEvent.keyDown(tileOf("alpha"), { key: "Enter" });
+    fireEvent.keyDown(tileOf("alpha"), { key: "ArrowLeft" });
+    expect(
+      document.querySelector("[data-sg-announcer]")!.textContent,
+    ).toContain("Edge of the row");
+  });
+});
+
+/**
+ * The className a kit Button produces for a given variant, so the assertion
+ * reads "styled as this variant" instead of pinning a copy of the theme's
+ * Tailwind output that would need editing every time the theme moves.
+ */
+const renderVariantProbe = (variant: ButtonVariant, label: string) => {
+  const { container, unmount } = render(
+    <Button type="button" variant={variant} size="xs" color="blue">
+      {label}
+    </Button>,
+  );
+  const cls = (container.querySelector("button") as HTMLElement).className;
+  unmount();
+  return cls;
+};
+
+describe("SmartGridLayout — the edit-layout button follows the controls", () => {
+  const editButton = () =>
+    screen.getByRole("button", { name: /Edit layout|Done/ });
+
+  it("takes its variant from the surface", () => {
+    // `plain` maps to glass; it used to be pinned to `outline` regardless, so
+    // a glass dashboard grew one bordered chip beside its glass controls.
+    render(<SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} />);
+    expect(editButton().className).toBe(
+      renderVariantProbe("glass", "Edit layout"),
+    );
+  });
+
+  it("lets controlVariant override the surface default", () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS}
+        defaultLayout={LAYOUT}
+        variant="elevated"
+        controlVariant="solid"
+      />,
+    );
+    expect(editButton().className).toBe(
+      renderVariantProbe("solid", "Edit layout"),
+    );
+  });
+
+  it("keeps that variant once edit mode is on", () => {
+    render(
+      <SmartGridLayout
+        items={ITEMS}
+        defaultLayout={LAYOUT}
+        controlVariant="ghost"
+        defaultEditMode
+      />,
+    );
+    expect(editButton().textContent).toBe("Done");
+    expect(editButton().className).toBe(renderVariantProbe("ghost", "Done"));
   });
 });

@@ -17,6 +17,8 @@
  */
 
 // ── TrueColor values (must match common/theme/Theme.ts) ──────────
+// Note: the kit supports 21 of Tailwind's 22 palettes — `pink` is
+// deliberately NOT a TrueColor.
 const COLORS = [
   "red","orange","amber","yellow","lime","green","emerald","teal",
   "cyan","sky","blue","indigo","violet","purple","fuchsia","rose",
@@ -24,6 +26,31 @@ const COLORS = [
 ];
 
 const COLOR_LIST = COLORS.join(",");
+
+// Drift guard: this list is a hardcoded mirror of TRUE_COLORS because
+// Theme.ts is TypeScript and this script is plain node. When a colour is
+// added to TRUE_COLORS the mirror must be updated too — verify against the
+// source instead of trusting the mirror.
+{
+  const themeSrc = readFileSync(
+    fileURLToPath(new URL("../common/theme/Theme.ts", import.meta.url)),
+    "utf8",
+  );
+  const m = themeSrc.match(/export const TRUE_COLORS = \[([\s\S]*?)\];/);
+  if (!m) {
+    throw new Error("Could not find TRUE_COLORS in common/theme/Theme.ts");
+  }
+  const sourceColors = [...m[1].matchAll(/"([a-z]+)"/g)].map((x) => x[1]);
+  const a = [...COLORS].sort().join(",");
+  const b = [...sourceColors].sort().join(",");
+  if (a !== b) {
+    throw new Error(
+      `generate-safelist: COLORS drifted from TRUE_COLORS.\n` +
+        `  generator: ${a}\n  Theme.ts:  ${b}\n` +
+        `Update the COLORS array in scripts/generate-safelist.mjs and re-run.`,
+    );
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────
 function brace(pattern) {
@@ -499,7 +526,7 @@ src(`@source inline("dark:border-{COLOR}-500/20");`);
 L("");
 
 // ── Write output ──────────────────────────────────────────────────
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 

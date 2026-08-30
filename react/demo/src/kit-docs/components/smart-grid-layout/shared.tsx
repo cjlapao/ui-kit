@@ -36,6 +36,11 @@ export const DASHBOARD_ITEMS: SmartGridItemDefinition[] = [
     defaultSpan: 6, render: tile("Errors", 42, "Database") },
   { id: "latency", title: "Latency", active: true, single: true,
     defaultSpan: 6, render: tile("Latency", "142ms", "Database") },
+  // Not placed by the default layout, so there is always something for the
+  // "Add Item" dialog to offer. Without a spare, every example whose layout
+  // uses all six items renders no Add button at all.
+  { id: "queue", title: "Queue depth", active: true, single: true,
+    defaultSpan: 6, render: tile("Queue depth", 17, "Database") },
 ];
 
 /**

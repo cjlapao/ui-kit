@@ -19,6 +19,7 @@ import { CheckboxDemo } from "./demos/CheckboxDemo";
 import { PillDemo } from "./demos/PillDemo";
 import { TableDemo } from "./demos/TableDemo";
 import { AlertDemo } from "./demos/AlertDemo";
+import { ToastDemo } from "./demos/ToastDemo";
 import { ProgressDemo } from "./demos/ProgressDemo";
 import { LoaderDemo } from "./demos/LoaderDemo";
 import { SpinnerDemo } from "./demos/SpinnerDemo";
@@ -175,6 +176,7 @@ export const UxDemo: React.FC = () => {
         render: () => <MultiSelectPillsDemo />,
       },
       { id: "sections-alerts", title: "Alerts", render: () => <AlertDemo /> },
+      { id: "sections-toasts", title: "Toasts", render: () => <ToastDemo /> },
       {
         id: "sections-empty-state",
         title: "Empty States",

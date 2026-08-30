@@ -623,3 +623,257 @@
     animation: none !important;
   }
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Toast — the stacked viewport's state machine (PrimeVue 4.5.5 port).
+
+   All geometry is driven by custom properties set inline:
+     container: --kt-gap, --kt-front-height, --kt-raise-factor (±1)
+     message:   --kt-index (0 = newest/front), --kt-offset (px), --kt-height,
+                --kt-swipe-x / --kt-swipe-y (live drag deltas)
+   and by the data-attribute states the cards own (data-mounted, data-front,
+   data-expanded, data-visible, data-removed, data-swiping, data-swipe-out).
+
+   Everything is a *transition* between attribute-driven states — no
+   @keyframes — so `prefers-reduced-motion` only has to zero the durations.
+   The durations are custom properties on the class (not inline styles), so
+   the media query below can override them (brief §5.10).
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* The viewport: a fixed, zero-height column pinned to a corner (the cards do
+   all the visual work, absolutely positioned against it). Width and z-index
+   are set inline from props; the corner insets and the raise direction come
+   from the data-position attribute (2rem insets, PrimeVue's CSS values). */
+.kit-toast {
+  position: fixed;
+}
+.kit-toast[data-position="top-left"] {
+  top: 2rem;
+  left: 2rem;
+}
+.kit-toast[data-position="top-center"] {
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.kit-toast[data-position="top-right"] {
+  top: 2rem;
+  right: 2rem;
+}
+.kit-toast[data-position="bottom-left"] {
+  bottom: 2rem;
+  left: 2rem;
+}
+.kit-toast[data-position="bottom-center"] {
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.kit-toast[data-position="bottom-right"] {
+  bottom: 2rem;
+  right: 2rem;
+}
+.kit-toast[data-position="center"] {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.kit-toast-message {
+  --kt-duration: 300ms;
+  --kt-removed-transform: 500ms;
+  --kt-removed-opacity: 200ms;
+  --kt-offset-y: calc(
+    var(--kt-swipe-y, 0px) +
+      (var(--kt-offset, 0px) + var(--kt-index, 0) * var(--kt-gap, 12px)) *
+      var(--kt-raise-factor, 1)
+  );
+  --kt-offset-x: var(--kt-swipe-x, 0px);
+
+  position: absolute;
+  width: 100%;
+  outline: none;
+  touch-action: none;
+  opacity: 0;
+  /* Off the edge of the screen beyond the corner, ready to slide in. */
+  transform: translateX(var(--kt-offset-x))
+    translateY(calc(100% * var(--kt-raise-factor, 1) * -1));
+  transition: transform var(--kt-duration), opacity var(--kt-duration),
+    height var(--kt-duration);
+}
+
+/* Per-position anchoring of the pinned cards + the raise direction.
+   The container's width (300px) does the horizontal layout; only the
+   corner axis and the raise factor vary. */
+.kit-toast[data-position="bottom-right"] .kit-toast-message {
+  --kt-raise-factor: -1;
+  bottom: 0;
+  right: 0;
+}
+.kit-toast[data-position="bottom-center"] .kit-toast-message {
+  --kt-raise-factor: -1;
+  bottom: 0;
+}
+.kit-toast[data-position="bottom-left"] .kit-toast-message {
+  --kt-raise-factor: -1;
+  bottom: 0;
+  left: 0;
+}
+.kit-toast[data-position="top-right"] .kit-toast-message {
+  --kt-raise-factor: 1;
+  top: 0;
+  right: 0;
+}
+.kit-toast[data-position="top-center"] .kit-toast-message {
+  --kt-raise-factor: 1;
+  top: 0;
+}
+.kit-toast[data-position="top-left"] .kit-toast-message {
+  --kt-raise-factor: 1;
+  top: 0;
+  left: 0;
+}
+.kit-toast[data-position="center"] .kit-toast-message {
+  --kt-raise-factor: 1;
+  top: 0;
+}
+
+/* Measured and on screen: the entry slide completes. */
+.kit-toast-message[data-mounted] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* The collapsed deck: every card behind the front is clipped to the front
+   card's height, offset one gap per rank and scaled 5% down per rank — the
+   peeking deck. The front card itself stays at its natural size. */
+.kit-toast-message:not([data-expanded]):not([data-front]) {
+  overflow: hidden;
+  height: var(--kt-front-height, auto);
+  transform: translateX(var(--kt-offset-x))
+    translateY(
+      calc(var(--kt-raise-factor, 1) * var(--kt-index, 0) * var(--kt-gap, 12px))
+    )
+    scale(calc(var(--kt-index, 0) * -0.05 + 1));
+}
+
+/* The fan-out: every card grows to its own measured height and lays out at
+   its cumulative offset — the sum of the newer cards' heights plus one gap
+   per rank. */
+.kit-toast-message[data-mounted][data-expanded] {
+  height: var(--kt-height, auto);
+  transform: translateX(var(--kt-offset-x)) translateY(var(--kt-offset-y));
+}
+
+/* A hover bridge across the seam between fanned-out cards, so the
+   stack does not collapse while the pointer crosses a gap: hitting the
+   ::after counts as hovering the owning card, so the container's
+   mouseleave never fires mid-gap. Depends on the card root staying
+   overflow-visible: the collapsed clamp is the stylesheet's own
+   overflow:hidden rule scoped to the clamped state (collapsed backs),
+   so an expanded root is never clipped — a variant-level clip on the
+   root would clip this bridge away and the deck would collapse
+   mid-gap. */
+.kit-toast-message[data-expanded]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  width: 100%;
+  height: calc(var(--kt-gap, 12px) + 1px);
+}
+
+/* Hidden by `limit` — the FIFO step. The message keeps its slot in the
+   store (no early eviction; sticky/long-life toasts survive) but slides a
+   full height out along the deck's extension axis, away from the corner, and
+   fades: a raised stack visibly gains its newest at the corner while losing
+   its oldest at the far end. When the cards in front of it leave, the same
+   transition slides it back in. PrimeVue fades these in place — the slide is
+   a deliberate extension. Removed cards are excluded; their exit is owned by
+   the rules below. */
+.kit-toast-message:not([data-expanded]):not([data-front]):not(
+    [data-visible]
+  ):not([data-removed]) {
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  transform: translateX(var(--kt-offset-x))
+    translateY(
+      calc(var(--kt-raise-factor, 1) * (var(--kt-index, 0) * var(--kt-gap, 12px) + 100%))
+    )
+    scale(calc(var(--kt-index, 0) * -0.05 + 1));
+}
+.kit-toast-message[data-expanded]:not([data-visible]):not([data-removed]) {
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  transform: translateX(var(--kt-offset-x))
+    translateY(calc(var(--kt-offset-y) + var(--kt-raise-factor, 1) * 100%));
+}
+
+/* Exits. The leaving card keeps its frozen rank/offset (the viewport
+   derives them against the still-present newer cards), so the stack behind
+   it reflows under it while it flies away. */
+.kit-toast-message[data-removed][data-front]:not([data-swipe-out]) {
+  opacity: 0;
+  transform: translateX(var(--kt-offset-x))
+    translateY(calc(var(--kt-raise-factor, 1) * -100%));
+}
+.kit-toast-message[data-removed]:not([data-front]):not([data-swipe-out])[data-expanded] {
+  opacity: 0;
+  transform: translateX(var(--kt-offset-x))
+    translateY(
+      calc(var(--kt-offset-y) + var(--kt-raise-factor, 1) * -100%)
+    );
+}
+.kit-toast-message[data-removed]:not([data-front]):not([data-swipe-out]):not(
+    [data-expanded]
+  ) {
+  opacity: 0;
+  transform: translateX(var(--kt-offset-x))
+    translateY(calc(var(--kt-raise-factor, 1) * 40% * -1));
+  transition: transform var(--kt-removed-transform),
+    opacity var(--kt-removed-opacity);
+}
+
+/* Dragging: follow the pointer with no transition; a committed swipe flies
+   off along the drag direction; everything else springs back. */
+.kit-toast-message[data-swiping] {
+  transition: none;
+  transform: translateX(var(--kt-offset-x)) translateY(var(--kt-offset-y))
+    !important;
+}
+.kit-toast-message[data-swiped] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.kit-toast-message[data-swipe-out][data-swipe-direction="up"] {
+  opacity: 0;
+  transform: translateX(var(--kt-offset-x))
+    translateY(calc(var(--kt-offset-y) - 100%)) !important;
+}
+.kit-toast-message[data-swipe-out][data-swipe-direction="down"] {
+  opacity: 0;
+  transform: translateX(var(--kt-offset-x))
+    translateY(calc(var(--kt-offset-y) + 100%)) !important;
+}
+.kit-toast-message[data-swipe-out][data-swipe-direction="left"] {
+  opacity: 0;
+  transform: translateX(calc(var(--kt-offset-x) - 100%))
+    translateY(var(--kt-offset-y)) !important;
+}
+.kit-toast-message[data-swipe-out][data-swipe-direction="right"] {
+  opacity: 0;
+  transform: translateX(calc(var(--kt-offset-x) + 100%))
+    translateY(var(--kt-offset-y)) !important;
+}
+
+/* Respect reduced-motion: zero the durations; the state machine still
+   completes (the store splices on its own timer), the motion just vanishes. */
+@media (prefers-reduced-motion: reduce) {
+  .kit-toast-message {
+    --kt-duration: 0s;
+    --kt-removed-transform: 0s;
+    --kt-removed-opacity: 0s;
+  }
+}
