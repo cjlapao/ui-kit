@@ -3,6 +3,7 @@ import classNames from "classnames";
 import Modal, { type ModalProps } from "./Modal";
 import Button from "./Button";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
 import type { TrueColor } from "../theme/Theme";
 
@@ -69,7 +70,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   title,
   message,
   type = "info",
-  actionLabel = "Close",
+  actionLabel,
   onAction,
   secondaryActionLabel,
   onSecondaryAction,
@@ -78,6 +79,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   size = "sm",
   ...rest
 }) => {
+  const t = useKitT();
   const config = TYPE_CONFIG[type] ?? TYPE_CONFIG.info;
   const resolvedTone = tone ?? config.tone;
 
@@ -113,7 +115,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
               a bare `string`, so the cast was hiding the fact that nothing
               checked it against `TrueColor`. */}
           <Button onClick={handleAction} color={resolvedTone}>
-            {actionLabel}
+            {actionLabel ?? t("kit.notificationmodal.action")}
           </Button>
         </Modal.Actions>
       }

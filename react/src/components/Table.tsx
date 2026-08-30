@@ -10,6 +10,7 @@ import {
   type PanelTone,
 } from ".";
 import type { TrueColor } from "../theme";
+import { useKitT } from "../i18n";
 import {
   NEUTRAL_TONES,
   TRUE_COLORS,
@@ -900,6 +901,7 @@ function TableComponent<T>({
   storage,
   color,
 }: TableProps<T>) {
+  const t = useKitT();
   const getDefaultColumnVisibility = (column: TableColumn<T>) => {
     if (column.hideable === false) {
       return true;
@@ -1598,14 +1600,14 @@ function TableComponent<T>({
           "px-6 py-16 text-center text-sm font-medium text-neutral-500 dark:text-neutral-300",
         )}
       >
-        {emptyState ?? "No data to display"}
+        {emptyState ?? t("kit.table.empty")}
       </td>
     </tr>
   );
 
   const renderPanelEmptyState = () => (
     <div className="px-6 py-16 text-center text-sm font-medium text-neutral-500 dark:text-neutral-300">
-      {emptyState ?? "No data to display"}
+      {emptyState ?? t("kit.table.empty")}
     </div>
   );
 

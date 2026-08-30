@@ -24,6 +24,7 @@ import {
   type TrueColor,
 } from "../../theme/Theme";
 import CalendarPanel, { type CalendarView } from "./CalendarPanel";
+import { useKitEngine } from "../../i18n";
 import { useOverlayPosition } from "./useOverlayPosition";
 import type { DatePickerProps } from "./types";
 import {
@@ -115,6 +116,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     },
     ref,
   ) {
+    const i18n = useKitEngine();
     const renderIcon = useIconRenderer();
 
     // ── Value (controlled / uncontrolled) ───────────────────────────────────
@@ -228,7 +230,15 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         setTextInvalid(false);
         return;
       }
-      const parsed = parseValueText(next, selectionMode, format);
+      // Locale-aware parsing: normalize localized month/weekday spellings
+      // (e.g. "août") before date-fns sees them.
+      const parsed = parseValueText(
+        next,
+        selectionMode,
+        format,
+        new Date(),
+        i18n.parseNames(i18n.locale),
+      );
       if (parsed !== null && isParseValid(parsed)) {
         setTextInvalid(false);
         commit(parsed);
@@ -393,7 +403,13 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         return;
       }
       if (event.key === "Enter") {
-        const parsed = parseValueText(text, selectionMode, format);
+        const parsed = parseValueText(
+          text,
+          selectionMode,
+          format,
+          new Date(),
+          i18n.parseNames(i18n.locale),
+        );
         if (parsed !== null && isParseValid(parsed)) {
           event.preventDefault();
           requestClose();
@@ -491,7 +507,9 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const showClearIcon = showClear && hasValue && !disabled && !inline;
 
     const toggleLabel =
-      selectionMode === "range" ? "Choose a date range" : "Choose a date";
+      selectionMode === "range"
+        ? i18n.t("kit.datepicker.panelAriaLabelRange")
+        : i18n.t("kit.datepicker.panelAriaLabel");
 
     const trailingButtonClass = classNames(
       "ml-2 inline-flex shrink-0 items-center justify-center rounded transition-colors",
@@ -516,7 +534,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       ariaLabel ??
       (typeof placeholder === "string" && placeholder !== ""
         ? placeholder
-        : "Date");
+        : i18n.t("kit.datepicker.accessibleNameFallback"));
     const hasExplicitName =
       rest["aria-label"] !== undefined || rest["aria-labelledby"] !== undefined;
 
@@ -542,10 +560,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         inline={inline}
         loading={loading && loaderType === "skeleton"}
         showButtonBar={showButtonBar}
-        ariaLabel={
-          panelAriaLabel ??
-          (selectionMode === "range" ? "Choose a date range" : "Choose a date")
-        }
+        ariaLabel={panelAriaLabel ?? toggleLabel}
         todayButtonLabel={todayButtonLabel}
         clearButtonLabel={clearButtonLabel}
         onMonthNav={handleMonthNav}

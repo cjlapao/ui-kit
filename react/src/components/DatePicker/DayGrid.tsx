@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import classNames from "classnames";
 import {
-  WEEKDAY_LABELS,
-  WEEKDAY_LABELS_SHORT,
   formatDateLabel,
   isDateBetween,
   isSameDayDate,
@@ -12,6 +10,8 @@ import {
   type DatePickerValue,
   type DayCell,
 } from "../../../../common/utils/dates";
+import { getWeekdayNames } from "../../../../common/i18n/dates";
+import { useKitEngine } from "../../i18n";
 import { useSurfaceText } from "../../contexts/SurfaceContext";
 import { useRovingGrid } from "./useRovingGrid";
 import type { TrueColor } from "../../theme/Theme";
@@ -65,7 +65,10 @@ const DayGrid: React.FC<DayGridProps> = ({
   onYearNav,
   onEscape,
 }) => {
+  const i18n = useKitEngine();
   const surfaceText = useSurfaceText();
+  const weekdayNames = getWeekdayNames(i18n.locale);
+  const weekdayNamesShort = getWeekdayNames(i18n.locale, true);
 
   const isRange = selectionMode === "range";
   const rangeStart = isRange && Array.isArray(value) ? value[0] : null;
@@ -287,13 +290,13 @@ const DayGrid: React.FC<DayGridProps> = ({
             <th
               key={weekday}
               scope="col"
-              abbr={WEEKDAY_LABELS[weekday]}
+              abbr={weekdayNames[weekday]}
               className={classNames(
                 "pb-1.5 text-center text-[11px] font-semibold uppercase tracking-wide",
                 surfaceText.muted,
               )}
             >
-              {WEEKDAY_LABELS_SHORT[weekday]}
+              {weekdayNamesShort[weekday]}
             </th>
           ))}
         </tr>

@@ -10,6 +10,7 @@ import classNames from "classnames";
 
 import Input from "./Input";
 import Spinner from "./Spinner";
+import { useKitT } from "../i18n";
 import { useIconRenderer } from "../contexts/IconContext";
 import {
   TRUE_COLORS,
@@ -151,8 +152,8 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       disabled = false,
       readOnly = false,
       loading = false,
-      loadingMessage = "Loading…",
-      emptyMessage = "No matching options. Keep typing to use what you entered.",
+      loadingMessage,
+      emptyMessage,
       clearable = true,
       leadingIcon,
       visibleRows = 6,
@@ -166,6 +167,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
     },
     ref,
   ) {
+    const t = useKitT();
     const renderIcon = useIconRenderer();
     const generatedId = useId();
     const fieldId = id ?? `${generatedId}-combobox`;
@@ -344,7 +346,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
           // and hit area — the old version nested its own `IconButton` in a
           // `pointer-events-none` box.
           trailingIcon={showClear ? "Close" : "ArrowDown"}
-          trailingIconLabel={showClear ? "Clear" : "Show options"}
+          trailingIconLabel={showClear ? t("kit.combobox.clear") : t("kit.combobox.showOptions")}
           onTrailingIconClick={() => {
             if (showClear) {
               setQuery("");
@@ -405,7 +407,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
                 )}
               >
                 <Spinner size="xs" color={accent} />
-                {loadingMessage}
+                {loadingMessage ?? t("kit.combobox.loading")}
               </li>
             ) : filtered.length === 0 ? (
               <li
@@ -414,7 +416,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
                   rowClass,
                 )}
               >
-                {emptyMessage}
+                {emptyMessage ?? t("kit.combobox.emptyMessage")}
               </li>
             ) : (
               filtered.map((option, index) => {

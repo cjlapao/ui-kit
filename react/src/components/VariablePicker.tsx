@@ -6,6 +6,7 @@ import SearchBar from "./SearchBar";
 import Tabs, { type TabItem } from "./Tabs";
 import { SmartVariableBadge } from "./SmartVariableParts";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useKitT } from "../i18n";
 import { getSurfaceTriggerTokens } from "../theme/Theme";
 import { groupToVariables } from "../utils/smartVariables";
 import type { ControlSize, TrueColor } from "../theme/Theme";
@@ -91,9 +92,10 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
   tone = "blue",
   size = "md",
   initialSearch = "",
-  title = "Insert variable",
+  title,
   className,
 }) => {
+  const t = useKitT();
   const [search, setSearch] = useState(initialSearch);
   const [activeTab, setActiveTab] = useState(groups[0]?.id ?? "");
 
@@ -130,8 +132,10 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
               <EmptyRow>
                 {group.emptyMessage ??
                   (term
-                    ? `Nothing matches “${search}”.`
-                    : `No ${group.label.toLowerCase()} variables.`)}
+                    ? t("kit.variablepicker.noMatches", { term: search })
+                    : t("kit.variablepicker.noGroupVariables", {
+                        label: group.label.toLowerCase(),
+                      }))}
               </EmptyRow>
             ) : (
               <div className="flex flex-col gap-0.5">
@@ -162,7 +166,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
       scrollable={false}
       className={classNames("w-[26rem] max-w-[calc(100vw-2rem)]", className)}
     >
-      <Header title={title} onClose={onClose} />
+      <Header title={title ?? t("kit.variablepicker.title")} onClose={onClose} />
 
       <div className="px-4 py-3">
         <SearchBar
@@ -171,13 +175,13 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
           autoSearch
           debounceMs={0}
           initialValue={initialSearch}
-          placeholder="Search variables..."
+          placeholder={t("kit.variablepicker.searchPlaceholder")}
           onSearch={setSearch}
         />
       </div>
 
       {groups.length === 0 ? (
-        <EmptyRow>No variables available.</EmptyRow>
+        <EmptyRow>{t("kit.variablepicker.noVariables")}</EmptyRow>
       ) : (
         <div className="px-2 pb-2">
           <Tabs
@@ -197,6 +201,7 @@ const Header: React.FC<{ title: string; onClose?: () => void }> = ({
   title,
   onClose,
 }) => {
+  const t = useKitT();
   const surface = useSurfaceText();
   return (
     <div
@@ -215,7 +220,7 @@ const Header: React.FC<{ title: string; onClose?: () => void }> = ({
           variant="ghost"
           color="neutral"
           onClick={onClose}
-          srLabel="Close"
+          srLabel={t("kit.variablepicker.close")}
         />
       )}
     </div>

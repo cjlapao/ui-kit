@@ -3,8 +3,6 @@ import classNames from "classnames";
 import Panel, { SkeletonBar } from "../Panel";
 import Button from "../Button";
 import {
-  MONTH_NAMES,
-  MONTH_NAMES_SHORT,
   getDecadeRange,
   isDateSelectable,
   isValueEmpty,
@@ -13,6 +11,8 @@ import {
   type DatePickerValue,
   type DayCell,
 } from "../../../../common/utils/dates";
+import { getMonthNames } from "../../../../common/i18n/dates";
+import { useKitEngine } from "../../i18n";
 import { useIconRenderer } from "../../contexts/IconContext";
 import { useSurfaceText } from "../../contexts/SurfaceContext";
 import {
@@ -121,8 +121,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
   loading = false,
   showButtonBar = false,
   ariaLabel,
-  todayButtonLabel = "Today",
-  clearButtonLabel = "Clear",
+  todayButtonLabel,
+  clearButtonLabel,
   onMonthNav,
   onYearNav,
   onSwitchView,
@@ -133,6 +133,9 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
   onClear,
   onEscape,
 }) => {
+  const i18n = useKitEngine();
+  const monthNames = getMonthNames(i18n.locale);
+  const monthNamesShort = getMonthNames(i18n.locale, true);
   const surfaceText = useSurfaceText();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -345,7 +348,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
             onSwitchView("month");
             pendingFocus.current = "month";
           }}
-          aria-label={`Choose month, now ${MONTH_NAMES[viewMonth]} ${viewYear}`}
+          aria-label={i18n.t("kit.datepicker.chooseMonthNow", {
+            month: monthNames[viewMonth],
+            year: viewYear,
+          })}
           className={classNames(
             "rounded-md px-2 py-1 text-sm font-semibold transition-colors duration-200",
             surfaceText.heading,
@@ -354,7 +360,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
             toneFocusRing,
           )}
         >
-          {MONTH_NAMES[viewMonth]}
+          {monthNames[viewMonth]}
         </button>
         <button
           type="button"
@@ -363,7 +369,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
             onSwitchView("year");
             pendingFocus.current = "year";
           }}
-          aria-label={`Choose year, now ${viewYear}`}
+          aria-label={i18n.t("kit.datepicker.chooseYearNow", { year: viewYear })}
           className={classNames(
             "rounded-md px-2 py-1 text-sm font-semibold transition-colors duration-200",
             surfaceText.heading,
@@ -427,7 +433,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
         />
       )}
       {view === "month" && (
-        <div className="grid grid-cols-3 gap-1.5" role="grid" aria-label="Choose month">
+        <div className="grid grid-cols-3 gap-1.5" role="grid" aria-label={i18n.t("kit.datepicker.chooseMonth")}>
           {monthCells.map((cell, index) => (
             <button
               key={cell.index}
@@ -441,13 +447,13 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
               onKeyDown={(event) => handleMonthKeydown(event, index)}
               className={viewCellClass(isMonthSelected(cell.index), cell.selectable)}
             >
-              {MONTH_NAMES_SHORT[cell.index]}
+              {monthNamesShort[cell.index]}
             </button>
           ))}
         </div>
       )}
       {view === "year" && (
-        <div className="grid grid-cols-2 gap-1.5" role="grid" aria-label="Choose year">
+        <div className="grid grid-cols-2 gap-1.5" role="grid" aria-label={i18n.t("kit.datepicker.chooseYear")}>
           {yearCells.map((cell, index) => (
             <button
               key={cell.year}
@@ -544,7 +550,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
               onClick={onToday}
               disabled={disabled || todayDisabled}
             >
-              {todayButtonLabel}
+              {todayButtonLabel ?? i18n.t("kit.datepicker.today")}
             </Button>
             <Button
               variant="outline"
@@ -553,7 +559,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
               onClick={onClear}
               disabled={disabled || empty}
             >
-              {clearButtonLabel}
+              {clearButtonLabel ?? i18n.t("kit.datepicker.clear")}
             </Button>
           </div>
         )}

@@ -7,6 +7,7 @@ import classNames from "classnames";
 import IconButton from "./IconButton";
 import CustomIcon from "./CustomIcon";
 import Panel from "./Panel";
+import { useKitT } from "../i18n";
 import {
   DEFAULT_SURFACE_CORNER,
   getPanelToneStyles,
@@ -293,6 +294,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
   loading = false,
   className,
 }) => {
+  const t = useKitT();
   const [open, setOpen] = useState(false);
   const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
   const [resolvedPlacement, setResolvedPlacement] = useState<
@@ -377,7 +379,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
         variant="ghost"
         color={color}
         onClick={toggle}
-        aria-label="Show help"
+        aria-label={t("kit.help.show")}
         aria-expanded={open}
         aria-haspopup="dialog"
       />
@@ -388,7 +390,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
           ref={panelRef}
           role="dialog"
           aria-modal="false"
-          aria-label={typeof title === "string" ? title : "Help"}
+          aria-label={typeof title === "string" ? title : t("kit.help.panelTitle")}
           aria-busy={loading}
           style={{ ...popoverStyle, position: "fixed" }}
           className={classNames(
@@ -436,7 +438,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
                     <CustomIcon icon="Info" className="h-3 w-3" />
                   </span>
                   <span className="text-xs font-semibold truncate">
-                    {title ?? "Help"}
+                    {title ?? t("kit.help.panelTitle")}
                   </span>
                 </div>
                 <IconButton
@@ -445,7 +447,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
                   variant="ghost"
                   color="slate"
                   onClick={close}
-                  aria-label="Close help"
+                  aria-label={t("kit.help.close")}
                 />
               </div>
 

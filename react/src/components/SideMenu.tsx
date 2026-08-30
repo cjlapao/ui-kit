@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import CustomIcon from "./CustomIcon";
+import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
 import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
 import Input from "./Input";
@@ -568,8 +569,9 @@ export const SideMenu = ({
   search = false,
   searchValue,
   onSearchChange,
-  searchPlaceholder = "Search menu",
+  searchPlaceholder,
 }: SideMenuProps) => {
+  const t = useKitT();
   const location = useLocation();
   const panelId = useId();
   const isMobile = useSidebarIsMobile(responsive);
@@ -990,7 +992,11 @@ export const SideMenu = ({
             <button
               type="button"
               aria-expanded={showChildren}
-              aria-label={`${showChildren ? "Collapse" : "Expand"} ${link.label} submenu`}
+              aria-label={t("kit.sidemenu.toggleSubmenu", {
+                verb:
+                  showChildren ? t("kit.sidemenu.verbCollapse") : t("kit.sidemenu.verbExpand"),
+                label: link.label,
+              })}
                 onClick={() => toggleSubmenu(link.slug)}
                 className="inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-200/60 hover:text-neutral-600 dark:text-neutral-500 dark:hover:bg-neutral-700/40 dark:hover:text-neutral-300"
             >
@@ -1051,8 +1057,8 @@ export const SideMenu = ({
             leadingIcon="Search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label="Search menu items"
+            placeholder={searchPlaceholder ?? t("kit.sidemenu.searchPlaceholder")}
+            aria-label={t("kit.sidemenu.searchAria")}
             className="w-full"
           />
         </div>
@@ -1077,7 +1083,7 @@ export const SideMenu = ({
             <button
               onClick={onCloseMobile}
               className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-neutral-700/50 text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors ml-auto"
-              aria-label="Close menu"
+              aria-label={t("kit.sidemenu.closeAria")}
             >
               <CustomIcon icon="Close" className="w-5 h-5" />
             </button>
@@ -1179,7 +1185,9 @@ export const SideMenu = ({
               className="w-4 h-4 shrink-0"
             />
             {expanded && (
-              <span className="ml-3 whitespace-nowrap">Collapse</span>
+              <span className="ml-3 whitespace-nowrap">
+                {t("kit.sidemenu.collapse")}
+              </span>
             )}
           </button>
         </div>
@@ -1262,8 +1270,8 @@ export const SideMenu = ({
               type="button"
               onClick={toggleCollapse}
               aria-expanded={false}
-              aria-label="Open sidebar"
-              title="Open sidebar"
+              aria-label={t("kit.sidemenu.openSidebar")}
+              title={t("kit.sidemenu.openSidebar")}
               className={`absolute top-1/2 -translate-y-1/2 z-20 flex h-14 w-6 items-center justify-center border border-neutral-200 bg-white/95 text-neutral-500 shadow-md backdrop-blur transition-colors hover:text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900/95 dark:text-neutral-400 dark:hover:text-neutral-100 ${
                 isLeft ? "left-0 rounded-r-lg" : "right-0 rounded-l-lg"
               }`}

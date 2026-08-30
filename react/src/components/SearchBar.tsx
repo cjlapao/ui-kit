@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useKitT } from "../i18n";
 import Spinner from "./Spinner";
 import {
   TRUE_COLORS,
@@ -114,7 +115,7 @@ export interface SearchBarProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export const SearchBar: React.FC<SearchBarProps> = ({
-  placeholder = "Search...",
+  placeholder,
   onSearch,
   onClear,
   debounceMs = 400,
@@ -132,6 +133,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   glowIntensity = "soft",
   loading = false,
 }) => {
+  const t = useKitT();
   const [resolvedFrom, resolvedTo] = resolveGlowGradient(
     color,
     gradientFrom,
@@ -252,7 +254,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         "bg-neutral-200/80 text-neutral-500 dark:bg-neutral-700/80 dark:text-neutral-300",
         clearHover,
       )}
-      aria-label="Clear search"
+      aria-label={t("kit.searchbar.clearAria")}
     >
       {renderIcon("Close", "xs")}
     </button>
@@ -309,7 +311,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         onKeyDown={handleKeyDown}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t("kit.searchbar.placeholder")}
         disabled={disabled}
         className={classNames(
           "min-w-0 flex-1 border-none bg-transparent outline-none",

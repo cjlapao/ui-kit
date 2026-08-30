@@ -6,6 +6,7 @@ import {
   type TrueColor,
 } from "../theme/Theme";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useKitT } from "../i18n";
 
 /**
  * The shared control scale, so a spinner lines up with the Button next to it
@@ -101,6 +102,7 @@ const Spinner = React.forwardRef<HTMLSpanElement, SpinnerProps>(
     },
     ref,
   ) => {
+    const t = useKitT();
     const sizeStyles = sizeTokens[size] ?? sizeTokens.md;
     const borderThickness =
       sizeStyles.border[thickness] ?? sizeStyles.border.thin;
@@ -130,7 +132,9 @@ const Spinner = React.forwardRef<HTMLSpanElement, SpinnerProps>(
           With a visible label the text is already inside the status region —
           an sr-only copy beside it would be announced twice.
         */}
-        {label ? <SpinnerLabel text={label} /> : <span className="sr-only">Loading</span>}
+        {label ? <SpinnerLabel text={label} /> : (
+          <span className="sr-only">{t("kit.spinner.loading")}</span>
+        )}
       </span>
     );
   },

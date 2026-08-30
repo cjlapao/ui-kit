@@ -13,6 +13,7 @@ export const ES_KIT_CATALOG: MessageCatalog = {
         "No hay opciones coincidentes. Sigue escribiendo para usar lo que ingresaste.",
       clear: "Borrar",
       showOptions: "Mostrar opciones",
+      loading: "Cargando…",
     },
     datepicker: {
       today: "Hoy",
@@ -21,6 +22,8 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       chooseYear: "Elegir año",
       panelAriaLabel: "Elegir una fecha",
       panelAriaLabelRange: "Elegir un rango de fechas",
+      chooseMonthNow: "Elegir mes, ahora {month} {year}",
+      chooseYearNow: "Elegir a\u00f1o, ahora {year}",
       accessibleNameFallback: "Fecha",
     },
     help: {
@@ -34,10 +37,21 @@ export const ES_KIT_CATALOG: MessageCatalog = {
     inlinepanel: {
       cancel: "Cancelar",
       close: "Cerrar",
+      confirm: "Confirmar",
+      delete: "Eliminar",
+      confirmValueLabel: "nombre",
+      typeValuePrefix: "Escribe el",
+      typeValueSuffix: "para confirmar:",
     },
     modal: {
       cancel: "Cancelar",
       closeAria: "Cerrar diálogo",
+      confirm: "Confirmar",
+      delete: "Eliminar",
+      apply: "Aplicar",
+      confirmValueLabel: "nombre",
+      typeValuePrefix: "Escribe el",
+      typeValueSuffix: "para confirmar:",
     },
     notificationmodal: {
       action: "Cerrar",
@@ -53,6 +67,7 @@ export const ES_KIT_CATALOG: MessageCatalog = {
     },
     searchbar: {
       clearAria: "Borrar búsqueda",
+      placeholder: "Buscar...",
     },
     sidemenu: {
       openSidebar: "Abrir barra lateral",
@@ -67,7 +82,6 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       toggleSubmenu: "{verb} el submenú {label}",
     },
     sidepanel: {
-      close: "Cerrar",
       closeAria: "Cerrar panel",
       resize: "Redimensionar panel",
     },
@@ -76,6 +90,7 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       searchPlaceholder: "Buscar elementos",
       addItems: "Agregar elementos",
       close: "Cerrar",
+      closeAria: "Cerrar la paleta de elementos",
     },
     spinner: {
       loading: "Cargando",
@@ -87,6 +102,9 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       closeAria: "Cerrar notificación",
     },
     variablepicker: {
+      title: "Insertar variable",
+      noMatches: "Nada coincide con “{term}”.",
+      noGroupVariables: "No hay variables {label}.",
       searchPlaceholder: "Buscar variables...",
       noVariables: "No hay variables disponibles.",
       close: "Cerrar",

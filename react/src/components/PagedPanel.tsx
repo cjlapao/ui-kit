@@ -5,6 +5,7 @@ import IconButton from "./IconButton";
 import EmptyState from "./EmptyState";
 import Loader from "./Loader";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useKitT } from "../i18n";
 import { usePager } from "../hooks/usePager";
 import type { ControlSize, TrueColor } from "../theme/Theme";
 
@@ -273,7 +274,7 @@ const PagedPanel: React.FC<PagedPanelProps> = ({
   subtitle,
   error,
   emptyState,
-  emptyMessage = "No data available.",
+  emptyMessage,
   tone = "blue",
   size = "md",
   page,
@@ -286,6 +287,7 @@ const PagedPanel: React.FC<PagedPanelProps> = ({
   loadingState,
   ...rest
 }) => {
+  const t = useKitT();
   // The index, the clamp when `pages` shrinks under a reload, and the
   // effect-based resync (a render-phase `setState` makes React re-run the
   // component and warn) all live in `usePager` now — shared with `StatCard`,
@@ -302,7 +304,7 @@ const PagedPanel: React.FC<PagedPanelProps> = ({
       subtitle={subtitle}
       error={error}
       emptyState={emptyState}
-      emptyMessage={emptyMessage}
+      emptyMessage={emptyMessage ?? t("kit.pagedpanel.empty")}
       tone={tone}
       size={size}
       current={current}

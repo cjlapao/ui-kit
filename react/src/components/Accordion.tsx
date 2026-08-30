@@ -12,6 +12,7 @@ import {
   type ControlSize,
 } from "../theme/Theme";
 import { useAccordion, type UseAccordionOptions } from "../hooks/useAccordion";
+import { useKitT } from "../i18n";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 
@@ -200,6 +201,7 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
   isOpen,
   onToggle,
 }) => {
+  const t = useKitT();
   const renderIcon = useIconRenderer();
   const surface = useSurfaceText();
   const trigger = getSurfaceTriggerTokens(tone);
@@ -215,7 +217,7 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
           variant="plain"
           dashed={false}
           icon="ViewRows"
-          title="No items"
+          title={t("kit.accordion.noItemsTitle")}
           tone={tone}
           size={size}
         />
@@ -436,7 +438,7 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
             {item.loading ? (
               <Loader
                 overlay
-                title="Loading"
+                title={t("kit.accordion.loadingTitle")}
                 className="rounded-none"
                 size="md"
                 color={tone}

@@ -39,6 +39,7 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       emptyMessage: "No matching options. Keep typing to use what you entered.",
       clear: "Clear",
       showOptions: "Show options",
+      loading: "Loading…",
     },
     datepicker: {
       today: "Today",
@@ -47,6 +48,8 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       chooseYear: "Choose year",
       panelAriaLabel: "Choose a date",
       panelAriaLabelRange: "Choose a date range",
+      chooseMonthNow: "Choose month, now {month} {year}",
+      chooseYearNow: "Choose year, now {year}",
       accessibleNameFallback: "Date",
     },
     help: {
@@ -60,10 +63,21 @@ export const EN_KIT_CATALOG: MessageCatalog = {
     inlinepanel: {
       cancel: "Cancel",
       close: "Close",
+      confirm: "Confirm",
+      delete: "Delete",
+      confirmValueLabel: "name",
+      typeValuePrefix: "Type the",
+      typeValueSuffix: "to confirm:",
     },
     modal: {
       cancel: "Cancel",
       closeAria: "Close dialog",
+      confirm: "Confirm",
+      delete: "Delete",
+      apply: "Apply",
+      confirmValueLabel: "name",
+      typeValuePrefix: "Type the",
+      typeValueSuffix: "to confirm:",
     },
     notificationmodal: {
       action: "Close",
@@ -79,6 +93,7 @@ export const EN_KIT_CATALOG: MessageCatalog = {
     },
     searchbar: {
       clearAria: "Clear search",
+      placeholder: "Search...",
     },
     sidemenu: {
       openSidebar: "Open sidebar",
@@ -93,7 +108,6 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       toggleSubmenu: "{verb} {label} submenu",
     },
     sidepanel: {
-      close: "Close",
       closeAria: "Close panel",
       resize: "Resize panel",
     },
@@ -102,6 +116,7 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       searchPlaceholder: "Search items",
       addItems: "Add items",
       close: "Close",
+      closeAria: "Close the item palette",
     },
     spinner: {
       loading: "Loading",
@@ -113,6 +128,9 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       closeAria: "Close notification",
     },
     variablepicker: {
+      title: "Insert variable",
+      noMatches: "Nothing matches “{term}”.",
+      noGroupVariables: "No {label} variables.",
       searchPlaceholder: "Search variables...",
       noVariables: "No variables available.",
       close: "Close",

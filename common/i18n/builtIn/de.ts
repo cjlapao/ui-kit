@@ -13,6 +13,7 @@ export const DE_KIT_CATALOG: MessageCatalog = {
         "Keine passenden Optionen. Weiter tippen, um den eingegebenen Wert zu verwenden.",
       clear: "Löschen",
       showOptions: "Optionen anzeigen",
+      loading: "Wird geladen…",
     },
     datepicker: {
       today: "Heute",
@@ -21,6 +22,8 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       chooseYear: "Jahr auswählen",
       panelAriaLabel: "Datum auswählen",
       panelAriaLabelRange: "Datumsbereich auswählen",
+      chooseMonthNow: "Monat auswählen, derzeit {month} {year}",
+      chooseYearNow: "Jahr auswählen, derzeit {year}",
       accessibleNameFallback: "Datum",
     },
     help: {
@@ -34,10 +37,21 @@ export const DE_KIT_CATALOG: MessageCatalog = {
     inlinepanel: {
       cancel: "Abbrechen",
       close: "Schließen",
+      confirm: "Bestätigen",
+      delete: "Löschen",
+      confirmValueLabel: "Name",
+      typeValuePrefix: "Gib den",
+      typeValueSuffix: "ein, um zu bestätigen:",
     },
     modal: {
       cancel: "Abbrechen",
       closeAria: "Dialog schließen",
+      confirm: "Bestätigen",
+      delete: "Löschen",
+      apply: "Anwenden",
+      confirmValueLabel: "Name",
+      typeValuePrefix: "Gib den",
+      typeValueSuffix: "ein, um zu bestätigen:",
     },
     notificationmodal: {
       action: "Schließen",
@@ -53,6 +67,7 @@ export const DE_KIT_CATALOG: MessageCatalog = {
     },
     searchbar: {
       clearAria: "Suche löschen",
+      placeholder: "Suchen...",
     },
     sidemenu: {
       openSidebar: "Seitenleiste öffnen",
@@ -67,7 +82,6 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       toggleSubmenu: "{verb} Untermenü {label}",
     },
     sidepanel: {
-      close: "Schließen",
       closeAria: "Panel schließen",
       resize: "Panelgröße ändern",
     },
@@ -76,6 +90,7 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       searchPlaceholder: "Elemente durchsuchen",
       addItems: "Elemente hinzufügen",
       close: "Schließen",
+      closeAria: "Elementpalette schließen",
     },
     spinner: {
       loading: "Wird geladen",
@@ -87,6 +102,9 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       closeAria: "Benachrichtigung schließen",
     },
     variablepicker: {
+      title: "Variable einfügen",
+      noMatches: "Nichts entspricht „{term}“.",
+      noGroupVariables: "Keine {label}-Variablen.",
       searchPlaceholder: "Variablen durchsuchen...",
       noVariables: "Keine Variablen verfügbar.",
       close: "Schließen",

@@ -2,6 +2,7 @@ import React from "react";
 import classNames from "classnames";
 
 import { useIconRenderer } from "../contexts/IconContext";
+import { useKitT } from "../i18n";
 import type { ControlSize, TrueColor } from "../theme/Theme";
 import { getPillColorClasses } from "../theme/Theme";
 import {
@@ -129,7 +130,7 @@ export const Pill: React.FC<PillProps> = ({
   trailingIcon,
   dot = false,
   onRemove,
-  removeLabel = "Remove",
+  removeLabel,
   onClick,
   disabled = false,
   maxWidth,
@@ -139,6 +140,7 @@ export const Pill: React.FC<PillProps> = ({
   style,
   ...rest
 }) => {
+  const t = useKitT();
   const renderIcon = useIconRenderer();
 
   const isGlass = GLASS_VARIANTS.has(variant);
@@ -233,7 +235,7 @@ export const Pill: React.FC<PillProps> = ({
             event.stopPropagation();
             onRemove();
           }}
-          aria-label={removeLabel}
+          aria-label={removeLabel ?? t("kit.pill.remove")}
           className="-mr-1 flex shrink-0 items-center rounded-full p-0.5 opacity-70 transition hover:bg-black/10 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current disabled:pointer-events-none dark:hover:bg-white/20"
         >
           {renderIcon("Close", "xs")}

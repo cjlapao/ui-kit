@@ -7,6 +7,7 @@ import {
   type TrueColor,
 } from "../theme/Theme";
 import type { SpinnerThickness } from "./Spinner";
+import { useKitT } from "../i18n";
 
 /**
  * The shared control scale, so a progress spinner lines up with the `Spinner`
@@ -92,7 +93,7 @@ const ProgressSpinner = React.forwardRef<HTMLDivElement, ProgressSpinnerProps>(
       thickness = "normal",
       animationDuration = "2s",
       showValue = true,
-      ariaLabel = "Loading",
+      ariaLabel,
       className,
       valueClassName,
       style,
@@ -100,6 +101,7 @@ const ProgressSpinner = React.forwardRef<HTMLDivElement, ProgressSpinnerProps>(
     },
     ref,
   ) => {
+    const t = useKitT();
     const geometry = sizeTokens[size] ?? sizeTokens.md;
     const width = (strokePx[size] ?? strokePx.md)[thickness] ?? 4;
 
@@ -159,7 +161,7 @@ const ProgressSpinner = React.forwardRef<HTMLDivElement, ProgressSpinnerProps>(
       <div
         ref={ref}
         role="progressbar"
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? t("kit.progressspinner.loading")}
         aria-valuemin={determinate ? min : undefined}
         aria-valuemax={determinate ? max : undefined}
         aria-valuenow={determinate ? clamped : undefined}

@@ -4,6 +4,7 @@ import Panel, { SkeletonBar } from "./Panel";
 import TooltipWrapper from "./TooltipWrapper";
 import IconButton from "./IconButton";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useKitT } from "../i18n";
 import {
   DEFAULT_SURFACE_CORNER,
   PLAIN_SURFACE_VARIANTS,
@@ -293,6 +294,7 @@ const InfoRowBody: React.FC<
   rowTone,
   rootProps,
 }) => {
+  const t = useKitT();
   const text = useSurfaceText();
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const [truncated, setTruncated] = useState(false);
@@ -417,7 +419,7 @@ const InfoRowBody: React.FC<
                 loaderText,
               )}
               role="status"
-              aria-label="Loading"
+              aria-label={t("kit.inforow.loading")}
             />
           ) : (
             <SkeletonBar
