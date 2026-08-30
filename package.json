@@ -5,9 +5,10 @@
   "type": "module",
   "description": "Meta root for @cjlapao/ui-kit (react/), @cjlapao/ui-kit-vue (vue/) and the shared framework-agnostic source (common/).",
   "scripts": {
-    "build": "npm run build:react && npm run build:vue",
+    "build": "npm run build:react && npm run build:vue && npm run build:cli",
     "build:react": "npm --prefix react run build",
     "build:vue": "npm --prefix vue run build",
+    "build:cli": "npm --prefix tools/i18n-cli run build",
     "lint": "npm run lint:react && npm run lint:vue",
     "lint:react": "npm --prefix react run lint",
     "lint:vue": "npm --prefix vue run lint",

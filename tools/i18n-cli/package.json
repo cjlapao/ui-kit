@@ -1,0 +1,29 @@
+{
+  "name": "@cjlapao/ui-kit-i18n-cli",
+  "version": "0.2.0",
+  "description": "CLI for authoring and checking ui-kit i18n locale files (scaffold | check | locales).",
+  "type": "module",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "bin": {
+    "ui-kit-i18n": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "npm run build && node --test test/cli.test.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "0.28.1",
+    "typescript": "~5.9.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  }
+}

@@ -37,6 +37,7 @@ make dev-vue          # run the Vue demo (port 5175)
 
 ## Publishing
 
-Pushing a `v*` tag publishes both packages (see
+Pushing a `v*` tag publishes the two kit packages and the i18n CLI (see
 `.github/workflows/publish.yml`). The release workflow bumps the version in
-`react/package.json`, `vue/package.json`, root `package.json`, and `VERSION`.
+`react/package.json`, `vue/package.json`, `tools/i18n-cli/package.json`,
+root `package.json`, and `VERSION`.
