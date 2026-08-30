@@ -8,10 +8,7 @@ import {
   useI18n,
 } from "@cjlapao/ui-kit";
 import { DEMO_LOCALE_TAGS } from "./catalog";
-import {
-  PlaygroundPanel,
-  type BackdropType,
-} from "../../shared/PlaygroundPanel";
+import { PlaygroundPanel } from "../../shared/PlaygroundPanel";
 
 /**
  * The live i18n playground: one <I18nProvider> for the whole panel, a
@@ -57,7 +54,7 @@ const LiveComponents: React.FC = () => {
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
             SearchBar
           </p>
-          <SearchBar aria-label="Search" />
+          <SearchBar aria-label="Search" onSearch={() => {}} />
         </div>
       </div>
       <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2">
@@ -90,18 +87,12 @@ const LiveComponents: React.FC = () => {
 
 /**
  * The live i18n playground — rendered INSIDE the page's single
- * <I18nProvider>, so the switcher and the examples below it share the same
- * engine (one setLocale() updates every demo on the page).
+ * <I18nProvider>, so the switcher and the previews share the same engine
+ * (one setLocale() updates every demo on the page). PlaygroundPanel takes
+ * the columns as `controls`/`preview` props — it does not render children.
  */
-export const I18nPlayground: React.FC<{ backdrop?: BackdropType }> = ({
-  backdrop = "gradient",
-}) => (
-  <PlaygroundPanel backdrop={backdrop}>
-    <div className="flex w-full flex-col gap-6">
-      <Switcher />
-      <LiveComponents />
-    </div>
-  </PlaygroundPanel>
+export const I18nPlayground: React.FC = () => (
+  <PlaygroundPanel controls={<Switcher />} preview={<LiveComponents />} />
 );
 
 export default I18nPlayground;
