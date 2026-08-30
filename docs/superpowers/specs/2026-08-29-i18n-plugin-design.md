@@ -1,6 +1,7 @@
 # i18n Plugin (React + Vue kits) — Design
 
-**Date:** 2026-08-29 · **Status:** draft (pending user review) · **Scope:** both
+**Date:** 2026-08-29 · **Status:** approved (implemented 2026-08-30, see
+`docs/superpowers/plans/2026-08-29-i18n-plugin-plan.md`) · **Scope:** both
 frameworks together — the engine is framework-agnostic (`common/i18n`); React and
 Vue ship thin provider/hook layers in the same pass. Zero new runtime
 dependencies: pluralization, numbers and dates come from the platform `Intl`

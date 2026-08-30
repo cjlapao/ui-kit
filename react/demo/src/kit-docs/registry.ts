@@ -748,6 +748,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/smart-grid-layout/SmartGridLayoutPage")),
   },
   {
+    slug: "side-panel",
+    name: "Side Panel",
+    description:
+      "A panel docked to either edge of its container — overlaying rather than reflowing, optionally drag-resizable.",
+    icon: "Dashboard",
+    category: "Layout",
+    Page: lazy(() => import("./components/side-panel/SidePanelPage")),
+  },
+  {
     slug: "split-view",
     name: "Split View",
     description:
@@ -885,6 +894,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/stepper/StepperPage")),
   },
   {
+    slug: "toast",
+    name: "Toast",
+    description:
+      "Corner-pinned notification stacks: a clipped deck of glass cards that fans out on hover, with life timers that pause while engaged, swipe-to-dismiss and the full alert-intent scale.",
+    icon: "Notification",
+    category: "Feedback",
+    Page: lazy(() => import("./components/toast/ToastPage")),
+  },
+  {
     slug: "modal",
     name: "Modal",
     description:
@@ -937,6 +955,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Library",
     category: "Utilities",
     Page: lazy(() => import("./components/utilities/UtilitiesPage")),
+  },
+  {
+    slug: "i18n",
+    name: "I18n",
+    description:
+      "The kit's localization layer: a zero-dependency ICU-subset engine (interpolation, number/date, plural via Intl.PluralRules, select), built-in kit catalogs for en/fr/es/de/pt, detection + persistence, and byte-identical no-provider rendering.",
+    icon: "Globe",
+    category: "Utilities",
+    Page: lazy(() => import("./components/i18n/I18nPage")),
   },
 ];
 

@@ -51,6 +51,7 @@ import AccessMatrixDemo from "./demos/AccessMatrixDemo.vue";
 import TimelinePanelDemo from "./demos/TimelinePanelDemo.vue";
 import GlassBackgroundDemo from "./demos/GlassBackgroundDemo.vue";
 import GlassButtonDemo from "./demos/GlassButtonDemo.vue";
+import I18nDemo from "./demos/I18nDemo.vue";
 
 interface DemoSection {
   id: string;
@@ -63,6 +64,7 @@ const sectionRefs = ref<Record<string, HTMLDivElement | null>>({});
 const { theme, setTheme } = useTheme();
 
 const sectionList: DemoSection[] = [
+  { id: "sections-i18n", title: "I18n", component: I18nDemo },
   { id: "sections-glass-background", title: "Glass Background", component: GlassBackgroundDemo },
   { id: "sections-glass-buttons", title: "Glass Buttons", component: GlassButtonDemo },
   { id: "sections-badge-icon", title: "Badge Icon", component: BadgeIconDemo },
