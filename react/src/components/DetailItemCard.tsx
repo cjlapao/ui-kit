@@ -116,6 +116,11 @@ const DetailBody: React.FC<DetailBodyProps> = ({
   };
 
   return (
+    // Card-as-button: a native <button> cannot host the rich content
+    // (title row, details block, nested controls) this card carries, so the
+    // button role + tabindex + Enter/Space is the APG pattern; the focus
+    // ring is on the card (trigger.focusRing).
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-tabindex -- card-as-button APG pattern (rich content)
     <div
       className={classNames(
         "flex w-full flex-col gap-2.5 rounded-[inherit]",

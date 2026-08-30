@@ -352,6 +352,11 @@ const InfoRowBody: React.FC<
       : text.body;
 
   const valueSpan = (
+    // The truncated value is the tooltip's anchor: focusable (with a
+    // focus-visible ring) only when there is a tooltip to reveal, so
+    // keyboard users can surface it without a dead stop on every row.
+    // The listeners measure overflow — they are not user interactions.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-tabindex -- focusable tooltip anchor (keyboard access to truncated text)
     <span
       ref={valueRef}
       // Focusable only when there is actually a tooltip to reveal, so the row

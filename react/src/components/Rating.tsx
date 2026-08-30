@@ -181,6 +181,9 @@ const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
       role="radiogroup"
       aria-label={ariaLabel}
       aria-readonly={readOnly || undefined}
+      // Programmatic focus stop for the group (the radios are the tab stops
+      // and the browser moves between them natively with the arrow keys).
+      tabIndex={-1}
       onMouseLeave={() => setHoverValue(null)}
       className={classNames(
         "inline-flex select-none items-center",
@@ -209,18 +212,24 @@ const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
           >
             {halves.map((starValue) => {
               const lit = display >= starValue - EPSILON;
+              const starId = `${groupName}-${index}-${starValue}`;
               return (
                 <label
                   key={starValue}
+                  htmlFor={starId}
                   className={classNames(
                     "relative block h-full overflow-hidden",
                     allowHalf ? "w-1/2" : "w-full",
                     inert ? "cursor-not-allowed" : "cursor-pointer",
                   )}
+                  // Hover preview only — the radio input is the real control
+                  // and the visible pointer target is the label.
+                  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- hover preview; the radio input is the control
                   onMouseEnter={() => setHoverValue(starValue)}
                 >
                   <input
                     type="radio"
+                    id={starId}
                     className="sr-only"
                     name={groupName}
                     value={starValue}

@@ -70,7 +70,10 @@ const Tooltip: React.FC<TooltipProps> = ({
       <div
         // `tabIndex` so the focus path TooltipWrapper offers is reachable: the
         // wrapper is a plain div, so without it a keyboard user can never
-        // surface the tooltip.
+        // surface the tooltip. (Deliberate a11y pattern — a focusable anchor
+        // for a non-interactive target; the focus-visible ring is the
+        // indicator.)
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- focusable anchor so keyboard users can surface the tooltip
         tabIndex={0}
         className={classNames(
           "relative inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",

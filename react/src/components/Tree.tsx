@@ -517,6 +517,10 @@ export const Tree: React.FC<TreeProps> = ({
           onFocus={() => setFocusedId(node.id)}
         >
           {hasChildren ? (
+            // Pointer-only affordance: hidden from assistive tech and out of
+            // the tab order on purpose — the row exposes aria-expanded and
+            // arrow keys (Left/Right) toggle expansion for keyboard users.
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- pointer-only chevron; keyboard expansion lives on the row
             <button
               type="button"
               tabIndex={-1}
@@ -611,6 +615,9 @@ export const Tree: React.FC<TreeProps> = ({
           ? true
           : undefined
       }
+      // Programmatic focus stop for the tree (the treeitems carry the roving
+      // tabindex; the container is not a tab stop).
+      tabIndex={-1}
       onKeyDown={handleKeyDown}
       className={classNames("flex w-full flex-col", className)}
       style={style}

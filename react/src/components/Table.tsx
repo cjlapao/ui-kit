@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import {
   Loader,
@@ -902,6 +902,7 @@ function TableComponent<T>({
   color,
 }: TableProps<T>) {
   const t = useKitT();
+  const uid = useId();
   const getDefaultColumnVisibility = (column: TableColumn<T>) => {
     if (column.hideable === false) {
       return true;
@@ -1661,7 +1662,9 @@ function TableComponent<T>({
         className={rowClasses}
         onClick={onRowClick ? () => onRowClick(row, originalIndex) : undefined}
       >
-        {/* Expand spacer column — only in grouped mode with visible group headers */}
+        {/* Expand spacer column — only in grouped mode with visible group headers.
+            No aria-hidden: the cell is empty, so assistive tech skips it
+            anyway, and hiding it can collide with row-level focus handling. */}
         {showGroupExpandCol && (
           <td
             className={classNames(
@@ -1676,14 +1679,13 @@ function TableComponent<T>({
                     : baseRowBgClass),
               rowHoverClass,
             )}
-            aria-hidden="true"
           >
             <div className="w-full h-full" />
           </td>
         )}
         {/* Indent spacer — only in grouped mode without group headers */}
         {resolvedGroupBy && !showGroupExpandCol && (
-          <td className="w-4" aria-hidden="true" />
+          <td className="w-4" />
         )}
         {orderedVisibleColumns.map((column, colIndex) => {
           const cellValue = resolveValue(row, column, originalIndex);
@@ -1923,6 +1925,7 @@ function TableComponent<T>({
                             return (
                               <label
                                 key={col.id}
+                                htmlFor={`table-colvis-${uid}-${col.id}`}
                                 className={classNames(
                                   "flex items-center gap-2.5 px-3 py-1.5 text-sm select-none",
                                   hideable
@@ -1932,6 +1935,7 @@ function TableComponent<T>({
                               >
                                 <input
                                   type="checkbox"
+                                  id={`table-colvis-${uid}-${col.id}`}
                                   checked={visible}
                                   disabled={!hideable}
                                   onChange={() => {
@@ -2032,9 +2036,13 @@ function TableComponent<T>({
 
                       {/* Column radio list — shows ALL columns (even hidden), excludes groupable:false */}
                       <div className="py-1 max-h-64 overflow-y-auto">
-                        <label className="flex items-center gap-2.5 px-3 py-1.5 text-sm select-none cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60">
+                        <label
+                          htmlFor={`table-groupby-none-${uid}`}
+                          className="flex items-center gap-2.5 px-3 py-1.5 text-sm select-none cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
+                        >
                           <input
                             type="radio"
+                            id={`table-groupby-none-${uid}`}
                             name="table-group-by"
                             checked={!internalGroupBy}
                             onChange={() => handleGroupChange(null)}
@@ -2052,10 +2060,12 @@ function TableComponent<T>({
                           .map((col) => (
                             <label
                               key={col.id}
+                              htmlFor={`table-groupby-${uid}-${col.id}`}
                               className="flex items-center gap-2.5 px-3 py-1.5 text-sm select-none cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
                             >
                               <input
                                 type="radio"
+                                id={`table-groupby-${uid}-${col.id}`}
                                 name="table-group-by"
                                 checked={internalGroupBy === col.id}
                                 onChange={() => handleGroupChange(col.id)}
