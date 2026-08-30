@@ -965,6 +965,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     category: "Utilities",
     Page: lazy(() => import("./components/i18n/I18nPage")),
   },
+  {
+    slug: "a11y",
+    name: "A11y",
+    description:
+      "The kit's accessibility support statement (WCAG 2.1 AA target), the per-widget keyboard model, known screen-reader behaviours, and the consumer labelling guide.",
+    icon: "EyeOpen",
+    category: "Utilities",
+    Page: lazy(() => import("./components/a11y/A11yPage")),
+  },
 ];
 
 export const findDocComponent = (slug: string | undefined) =>
