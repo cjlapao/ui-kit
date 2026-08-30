@@ -998,7 +998,14 @@ const SplitView: React.FC<SplitViewProps> = ({
                           }
                         }}
                         className={classNames(
-                          "group/item w-full text-left border-l-3 transition-all duration-150 outline-none cursor-default",
+                          // A11y audit P1-5: the row is the interactive
+                          // control (role=button, tabIndex, Enter/Space) and
+                          // had `outline-none` with no replacement — no
+                          // visible focus indicator (WCAG 2.4.7). Inset ring
+                          // so it stays inside the row's 3px accent border;
+                          // tone colour comes from the generated safelist.
+                          "group/item w-full text-left border-l-3 transition-all duration-150 outline-none cursor-default focus-visible:ring-2 focus-visible:ring-inset",
+                          `focus-visible:ring-${effectiveTone}-400`,
                           item.disabled &&
                             "opacity-50 cursor-not-allowed pointer-events-none",
                           tokens.item,

@@ -235,7 +235,6 @@ const SpeedDial: React.FC<SpeedDialProps> = ({
     };
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded, hideOnClickOutside]);
 
   useEffect(() => {
@@ -248,7 +247,6 @@ const SpeedDial: React.FC<SpeedDialProps> = ({
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded]);
 
   const mainIconClass =

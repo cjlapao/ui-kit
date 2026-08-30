@@ -202,7 +202,6 @@ export function Annotation(props: AnnotationProps) {
     };
     ctx.registerDraw(id, fn);
     return () => ctx.unregisterDraw(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     renderer,
     px,

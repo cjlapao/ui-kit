@@ -305,7 +305,6 @@ export function TreemapSeries(props: TreemapSeriesProps<unknown>) {
     };
     registerDraw(seriesId, fn);
     return () => unregisterDraw(seriesId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     renderer,
     model,

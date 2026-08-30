@@ -77,7 +77,6 @@ export function computePieGeometry(input: PieSeriesInput): PieGeometry {
     })),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const arcGen = arc<any>()
     .innerRadius(innerRadius)
     .outerRadius((a) => {

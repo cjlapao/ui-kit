@@ -181,7 +181,6 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     return () => cancelAnimationFrame(frame);
     // `enabledIndices` derives from `items`, which is stable for the life of an
     // open menu; re-running only on `open` is intentional.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // On close: if the close was NOT an outside click and focus was left on

@@ -118,7 +118,6 @@ const DayGrid: React.FC<DayGridProps> = ({
     if (!navFocusPending.current) return;
     navFocusPending.current = false;
     roving.focusActive();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cellsSignature]);
 
   /** Step `from` by `step` up to `limit` times, landing on the first selectable cell. */

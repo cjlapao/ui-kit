@@ -575,7 +575,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         // ARIA 1.2 resizable separator: focusable (tabIndex), arrow keys /
         // Home / End resize, aria-valuenow|min|max report the width. The
         // rule does not model the valuenow-bearing separator as a widget.
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- resizable separator (WCAG 2.1.1 keyboard resize below)
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- resizable separator (WCAG 2.1.1 keyboard resize below)
         <div
           onMouseDown={onMouseDown}
           onKeyDown={onSeparatorKeyDown}

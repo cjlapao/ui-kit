@@ -216,7 +216,6 @@ const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
               return (
                 // The label's mouseenter is hover preview only — the radio
                 // input is the real control (and the keyboard target).
-                // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- hover preview; the radio input is the control
                 <label
                   key={starValue}
                   htmlFor={starId}

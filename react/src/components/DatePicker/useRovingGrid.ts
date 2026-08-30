@@ -33,7 +33,6 @@ export const useRovingGrid = (config: {
   const keysSignature = keys.join("\u0000");
   useEffect(() => {
     setActiveIndex(resolveActive());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keysSignature, activeKey, resolveActive]);
 
   /**

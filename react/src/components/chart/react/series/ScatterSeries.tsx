@@ -210,7 +210,6 @@ export function ScatterSeries(props: ScatterSeriesProps<unknown>) {
     };
     registerDraw(id, fn);
     return () => unregisterDraw(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     renderer,
     final,

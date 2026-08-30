@@ -518,7 +518,6 @@ const StepperBody: React.FC<StepperBodyProps> = ({
       observer?.disconnect();
       window.removeEventListener("resize", measure);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orientation, steps, state.currentIndex, loaderStepIds]);
 
   const progressPercent = Math.min(100, Math.max(0, state.progressPercent));

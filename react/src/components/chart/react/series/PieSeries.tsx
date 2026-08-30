@@ -196,7 +196,6 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
       }
       return resolveColor(undefined, i, DEFAULT_SERIES_PALETTE).base;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, props.colors, props.color, props.data]);
 
   const hidden = me?.hidden ?? false;
@@ -232,7 +231,6 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     });
     // me + area are stable across re-renders (descriptor objects and the
     // root's layout memo), so the geometry identity is stable too.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, area]);
 
   // ── Nightingale outside labels (name + value + leader spoke) ────────────
@@ -281,7 +279,6 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
       });
     });
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [final, me, sliceColors, baseColor]);
 
   // Bookkeeping on settled renders only — keeps `prev` the previous settled
@@ -326,7 +323,6 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     });
     return out;
     // me + final + colors are stable across re-renders (see the final memo).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [final, me, sliceColors, baseColor]);
 
   // Publish per-slice presentation (name/value/color/angle + geometry) for
@@ -351,7 +347,6 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
         labelAngle: s.labelAngle,
       })),
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, final, sliceColors, baseColor]);
 
   useEffect(() => {
@@ -361,7 +356,6 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     return () => {
       ctx.piePresentations.delete(seriesId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [piePresentation, seriesId]);
 
   useEffect(() => {
@@ -498,7 +492,6 @@ export function PieSeries(props: PieSeriesProps<unknown>) {
     };
     registerDraw(id, fn);
     return () => unregisterDraw(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     renderer,
     final,

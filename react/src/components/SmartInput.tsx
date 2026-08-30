@@ -320,7 +320,12 @@ export const SmartInput: React.FC<SmartInputProps> = ({
       }}
       aria-label={ariaLabel ?? placeholder ?? "Edit value"}
       className={classNames(
-        "min-w-0 flex-1 cursor-text",
+        // A11y audit P1-5: in preview mode this div is the interactive
+        // control (role=button, tabIndex, Enter/Space) — give it the same
+        // ring the wrapper shows while editing, so keyboard focus is
+        // visible before the field is even opened (WCAG 2.4.7).
+        "min-w-0 flex-1 cursor-text focus-visible:ring-2 focus-visible:ring-inset",
+        `focus-visible:ring-${tone}-400/60`,
         sizeToken.text,
         sizeToken.pad,
         surface.text,
@@ -345,7 +350,6 @@ export const SmartInput: React.FC<SmartInputProps> = ({
 
   return (
     // onBlur is focus-out detection for the inner input, not an interaction.
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- focus-out detection wrapper
     <div
       ref={containerRef}
       onBlur={handleBlur}

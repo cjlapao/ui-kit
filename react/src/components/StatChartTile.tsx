@@ -220,7 +220,6 @@ const Donut: React.FC<{
             // Clickable legend rows are activatable (WCAG 2.1.1): the row
             // carries rich content a native <button> cannot hold, so the
             // button role + tabindex + Enter/Space is the APG pattern.
-            // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- row-as-button APG pattern (rich content)
             <div
               key={idx}
               className={classNames(
@@ -231,7 +230,6 @@ const Donut: React.FC<{
               )}
               title={`${item.label}: ${item.value}`}
               role={item.onClick ? "button" : undefined}
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- row-as-button APG pattern (rich content)
               tabIndex={item.onClick ? 0 : undefined}
               aria-label={`${item.label}: ${item.value}`}
               onClick={() => item.onClick?.()}

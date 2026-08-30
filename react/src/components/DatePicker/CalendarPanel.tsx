@@ -206,7 +206,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
     pendingFocus.current = null;
     if (target === "month") monthRoving.focusActive();
     if (target === "year") yearRoving.focusActive();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, viewYear, viewMonth]);
 
   const handleMonthKeydown = (

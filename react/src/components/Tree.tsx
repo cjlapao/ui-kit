@@ -265,7 +265,6 @@ export const Tree: React.FC<TreeProps> = ({
     };
     walk(items, 0, null);
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, visibleIds, expandedSet, filterActive]);
 
   const focusNode = (id: string): void => {
@@ -524,7 +523,6 @@ export const Tree: React.FC<TreeProps> = ({
             // Pointer-only affordance: hidden from assistive tech and out of
             // the tab order on purpose — the row exposes aria-expanded and
             // arrow keys (Left/Right) toggle expansion for keyboard users.
-            // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- pointer-only chevron; keyboard expansion lives on the row
             <button
               type="button"
               tabIndex={-1}

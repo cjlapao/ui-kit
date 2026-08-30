@@ -992,7 +992,6 @@ function TableComponent<T>({
       }
       return next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnVisibilityProp, tableSettings?.columnVisibility]);
 
   const [colPanelOpen, setColPanelOpen] = useState(false);
@@ -1027,7 +1026,6 @@ function TableComponent<T>({
     const widthSource = tableSettings?.columnWidths ?? columnWidthsProp;
     if (!widthSource) return;
     setInternalColWidths((prev) => ({ ...prev, ...widthSource }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnWidthsProp, tableSettings?.columnWidths]);
 
   // refs: one per <th> for DOM measurement, plus transient resize state
@@ -1395,7 +1393,6 @@ function TableComponent<T>({
   // the appropriate edge while preserving relative order within each group:
   //   [ left-pinned | normal | right-pinned ]
   // The stickyActions column (original last col) is always last within the right group.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const orderedVisibleColumns = useMemo((): TableColumn<T>[] => {
     const left: TableColumn<T>[] = [];
     const middle: TableColumn<T>[] = [];
@@ -1666,7 +1663,7 @@ function TableComponent<T>({
             Decorative spacer: aria-hidden is correct (no content to hide);
             the cell holds nothing focusable, so the rule's focusable check
             does not apply. */}
-        {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable, jsx-a11y/control-has-associated-label -- decorative empty spacer cell (no focusable content) */}
+        {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable -- decorative empty spacer cell (no focusable content) */}
         {showGroupExpandCol && (
           <td
             className={classNames(
@@ -1686,13 +1683,13 @@ function TableComponent<T>({
             <div className="w-full h-full" />
           </td>
         )}
-        {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable, jsx-a11y/control-has-associated-label */}
+        {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable */}
         {/* Indent spacer — only in grouped mode without group headers */}
-        {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable, jsx-a11y/control-has-associated-label -- decorative empty spacer cell (no focusable content) */}
+        {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable -- decorative empty spacer cell (no focusable content) */}
         {resolvedGroupBy && !showGroupExpandCol && (
           <td className="w-4" aria-hidden="true" />
         )}
-        {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable, jsx-a11y/control-has-associated-label */}
+        {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable */}
         {orderedVisibleColumns.map((column, colIndex) => {
           const cellValue = resolveValue(row, column, originalIndex);
           // Text cells (string/number) get TruncatedText with a tooltip on actual overflow.

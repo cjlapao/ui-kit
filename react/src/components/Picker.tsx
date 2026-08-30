@@ -480,7 +480,6 @@ const Picker: React.FC<PickerProps> = ({
       effectiveSelectedIds.includes(item.id),
     );
     setActiveIndex(idx >= 0 ? idx : filtered.length > 0 ? 0 : -1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Keep the highlighted option in view during arrow navigation.
@@ -662,11 +661,9 @@ const Picker: React.FC<PickerProps> = ({
                  APG "combobox with list" — a native <select> cannot host the
                  rich option content (tags, descriptions, multi-select) this
                  widget renders, so the ARIA listbox pattern is deliberate. */
-              // eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list (a native <select> cannot carry rich options)
               <ul
                 ref={listRef}
                 id={listboxId}
-                // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list (a native <select> cannot carry rich options)
                 role="listbox"
                 aria-label="Options"
                 aria-multiselectable={multi || undefined}
@@ -680,11 +677,10 @@ const Picker: React.FC<PickerProps> = ({
                     // Enter move/confirm the aria-activedescendant), so the
                     // option row needs no listener of its own; a native
                     // <option> cannot carry the rich content rendered here.
-                    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role, jsx-a11y/click-events-have-key-events -- APG combobox-with-list
+                    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- APG combobox-with-list
                     <li
                       key={item.id}
                       id={optionId(index)}
-                      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list
                       role="option"
                       aria-selected={isSelected || undefined}
                       data-active={index === activeIndex || undefined}

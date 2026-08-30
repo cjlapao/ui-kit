@@ -120,7 +120,6 @@ const DetailBody: React.FC<DetailBodyProps> = ({
     // (title row, details block, nested controls) this card carries, so the
     // button role + tabindex + Enter/Space is the APG pattern; the focus
     // ring is on the card (trigger.focusRing).
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-tabindex -- card-as-button APG pattern (rich content)
     <div
       className={classNames(
         "flex w-full flex-col gap-2.5 rounded-[inherit]",
@@ -131,7 +130,6 @@ const DetailBody: React.FC<DetailBodyProps> = ({
         disabled && "cursor-not-allowed opacity-60",
       )}
       role={interactive ? "button" : undefined}
-      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- card-as-button APG pattern (rich content)
       tabIndex={interactive ? 0 : undefined}
       aria-labelledby={interactive ? titleId : undefined}
       aria-disabled={disabled || undefined}

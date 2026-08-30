@@ -108,7 +108,6 @@ export function XAxis(props: XAxisProps = {}) {
     };
     ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderer, xScale, area, theme, axesEnabled, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridStyle, props.gridWidth, props.gridColor, props.gridOpacity, props.format, props.label, props.axisLine, props.labels]);
 
   if (renderer !== "svg" || !xScale || !axesEnabled) return null;

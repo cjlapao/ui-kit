@@ -248,7 +248,12 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
             role="button"
             tabIndex={laid.node.disabled ? -1 : 0}
             className={classNames(
-              "pointer-events-auto absolute overflow-hidden outline-none",
+              // A11y audit P1-5: the card silhouette is SVG, so the
+              // keyboard-focus state was only a 1px→1.5px stroke bump — not
+              // a reliable indicator (WCAG 2.4.7 / 1.4.11). The hit-target
+              // div now carries a visible inset ring; neutral reads on cards
+              // of any tone.
+              "pointer-events-auto absolute overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-500 dark:focus-visible:ring-neutral-400",
               laid.node.disabled ? "cursor-default" : "cursor-pointer",
             )}
             style={{

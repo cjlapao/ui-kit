@@ -380,7 +380,7 @@ const ConnectionFlow = React.forwardRef<
     // Keyed on the graph and the viewport, deliberately *not* on `layout`:
     // expanding a card's item list changes the layout, and refitting on that
     // would slide the whole graph out from under the pointer that opened it.
-  }, [fitOnLoad, nodes, viewport.width, viewport.height]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fitOnLoad, nodes, viewport.width, viewport.height]);
 
   const onHover = (node: LaidOutNode | null) => {
     setHoveredId(node?.id ?? null);

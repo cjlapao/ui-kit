@@ -807,7 +807,6 @@ export const SideMenu = ({
         return !item.groupName || groupsWithVisibleLinks.has(item.groupName);
       return true;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, guardEvaluator, activeModuleView, moduleViewOptions, query]);
 
   const hasVisibleLink = visibleItems.some(
@@ -1256,7 +1255,6 @@ export const SideMenu = ({
             }
             // Hover-rail expansion is a pointer-only enhancement; the nav
             // content is native and fully keyboard-operable without it.
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- hover expansion is pointer-only; content is natively accessible
             onMouseEnter={handleRailEnter}
             onMouseLeave={handleRailLeave}
           >

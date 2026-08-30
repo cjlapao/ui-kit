@@ -86,7 +86,6 @@ export function YAxis(props: YAxisProps = {}) {
     };
     ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderer, scale, onRight, area, theme, axesEnabled, ctx.registerDraw, ctx.unregisterDraw, props.tickCount, props.grid, props.gridDash, props.gridOpacity, props.labels, props.axisLine, props.format]);
 
   if (renderer !== "svg" || !scale || !axesEnabled) return null;

@@ -634,10 +634,8 @@ const TagPicker: React.FC<TagPickerProps> = ({
 
             {/* Option list — APG combobox-with-list: a native select cannot
                 carry the create-row + rich option content rendered here. */}
-            {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role */}
             <ul
               id={`${uid}-listbox`}
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list (a native select cannot carry this content)
               role="listbox"
               aria-label="Options"
               aria-multiselectable={multi}
@@ -682,11 +680,10 @@ const TagPicker: React.FC<TagPickerProps> = ({
                     // Keyboard lives on the combobox input (arrows + Enter
                     // drive aria-activedescendant); a native <option> cannot
                     // carry this content.
-                    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role, jsx-a11y/click-events-have-key-events -- APG combobox-with-list
+                    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- APG combobox-with-list
                     <li
                       key={item.id}
                       id={`${uid}-option-${index}`}
-                      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list
                       role="option"
                       aria-selected={isSelected}
                       onMouseDown={(e) => e.preventDefault()}
@@ -790,10 +787,9 @@ const TagPicker: React.FC<TagPickerProps> = ({
               {showCreate && (
                 // Same APG justification as the options above; Enter on the
                 // combobox input activates it.
-                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role, jsx-a11y/click-events-have-key-events -- APG combobox-with-list
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- APG combobox-with-list
                 <li
                   id={`${uid}-option-create`}
-                  // eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list
                   role="option"
                   aria-selected={false}
                   onMouseDown={(e) => e.preventDefault()}
@@ -851,7 +847,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
   // keyboard path is the chevron button below; the container click is a
   // mouse-only convenience on top of it.
   const trigger = (
-      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/no-noninteractive-element-interactions -- mouse-only convenience; keyboard path is the chevron button (aria-haspopup)
+      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- mouse-only convenience; keyboard path is the chevron button (aria-haspopup)
       <div
         ref={triggerRef}
         onClick={() => {

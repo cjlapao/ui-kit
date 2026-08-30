@@ -324,7 +324,6 @@ export function Carousel<T = ReactNode>({
     setWrap(null);
     setAnimated(false);
     setPhysical(pageToShift(safePage));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geometryKey]);
 
   // An external (controlled) page change animates to the new page.
@@ -336,7 +335,6 @@ export function Carousel<T = ReactNode>({
     setWrap(null);
     setPhysical(pageToShift(clampInt(page, 0, Math.max(0, totalPages - 1))));
     setAnimated(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   // ── Autoplay ──────────────────────────────────────────────────────────────
