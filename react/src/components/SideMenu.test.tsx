@@ -582,6 +582,22 @@ describe("SideMenu — responsive", () => {
     expect(onCloseMobile).toHaveBeenCalledTimes(1);
   });
 
+  it("dismisses the open mobile drawer on Escape (keyboard parity with the backdrop)", () => {
+    setViewportMobile(true);
+    const onCloseMobile = vi.fn();
+    renderMenu({ mobileOpen: true, onCloseMobile });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onCloseMobile).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores Escape on desktop (no off-canvas to dismiss)", () => {
+    setViewportMobile(false);
+    const onCloseMobile = vi.fn();
+    renderMenu({ mobileOpen: true, onCloseMobile });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onCloseMobile).not.toHaveBeenCalled();
+  });
+
   it("a closed mobile drawer is inert (not focusable)", () => {
     setViewportMobile(true);
     renderMenu({ mobileOpen: false });

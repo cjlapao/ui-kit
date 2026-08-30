@@ -587,6 +587,18 @@ export const SideMenu = ({
     };
   }, []);
 
+  // The mobile off-canvas dismisses the same way a dialog does: the
+  // backdrop click is a pointer-only extra, the labelled close button and
+  // Escape cover keyboard users.
+  useEffect(() => {
+    if (!isMobile || !mobileOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCloseMobile?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isMobile, mobileOpen, onCloseMobile]);
+
   const searchQuery = searchValue ?? internalSearch;
   const setSearchQuery = (value: string) => {
     setInternalSearch(value);
@@ -1199,6 +1211,9 @@ export const SideMenu = ({
     <>
       {/* Mobile Backdrop */}
       {isMobile && mobileOpen && (
+        // Pointer-only dismiss affordance; keyboard users have the labelled
+        // close button and Escape (effect above).
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- backdrop click is pointer-only; Escape + close button cover keyboard
         <div
           className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
           onClick={onCloseMobile}
@@ -1219,6 +1234,9 @@ export const SideMenu = ({
         </aside>
       ) : (
         // Desktop Sidebar
+        // The Escape handler only clears the pointer-driven hover state;
+        // every control inside is a native, keyboard-operable element.
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- hover state is pointer-only; nav content is natively keyboard-accessible
         <div
           className={desktopClasses}
           onKeyDown={(event) => {
@@ -1236,6 +1254,9 @@ export const SideMenu = ({
             style={
               isHoverMode ? { transitionDuration: `${hoverTransitionMs}ms` } : undefined
             }
+            // Hover-rail expansion is a pointer-only enhancement; the nav
+            // content is native and fully keyboard-operable without it.
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- hover expansion is pointer-only; content is natively accessible
             onMouseEnter={handleRailEnter}
             onMouseLeave={handleRailLeave}
           >

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import Picker from "./Picker";
 import TagPicker from "./TagPicker";
 import SplitView from "./SplitView";
@@ -196,6 +196,76 @@ describe("Picker — the shared field system", () => {
     expect(button.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");
+  });
+});
+
+describe("Picker — accessibility (listbox + keyboard)", () => {
+  it("exposes the option list as a listbox of options with selected state", () => {
+    render(<Picker items={ITEMS} selectedId="b" onSelect={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Beta/ }));
+    const listbox = screen.getByRole("listbox");
+    const options = within(listbox).getAllByRole("option");
+    expect(options).toHaveLength(2);
+    const beta = within(listbox).getByRole("option", { name: /Beta/ });
+    expect(beta).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("exposes the search field as a labelled combobox driving the listbox", () => {
+    render(<Picker items={ITEMS} />);
+    fireEvent.click(screen.getByRole("button"));
+    const search = screen.getByRole("combobox");
+    expect(search).toHaveAttribute("aria-label", "Search options");
+    const listboxId = search.getAttribute("aria-controls");
+    expect(document.getElementById(listboxId ?? "")).toHaveAttribute(
+      "role",
+      "listbox",
+    );
+  });
+
+  it("supports ArrowDown/Enter keyboard selection and announces the active option", () => {
+    const onSelect = vi.fn();
+    render(<Picker items={ITEMS} onSelect={onSelect} />);
+    fireEvent.click(screen.getByRole("button"));
+    const search = screen.getByRole("combobox");
+    // Opening highlights the first option; it is announced via
+    // aria-activedescendant.
+    const firstOption = screen.getAllByRole("option")[0];
+    expect(search.getAttribute("aria-activedescendant")).toBe(
+      firstOption.getAttribute("id"),
+    );
+    // ArrowDown moves to the second option, Enter selects it.
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    const secondOption = screen.getAllByRole("option")[1];
+    expect(
+      search.getAttribute("aria-activedescendant"),
+    ).toBe(secondOption.getAttribute("id"));
+    fireEvent.keyDown(search, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "b" }),
+    );
+  });
+
+  it("multi-select: the clear action is a real button and the list is multiselectable", () => {
+    render(
+      <Picker
+        items={ITEMS}
+        multi
+        selectedIds={["a", "b"]}
+        onMultiChange={vi.fn()}
+      />,
+    );
+    fireEvent.click(
+      document.querySelector('[aria-haspopup="listbox"]') as HTMLElement,
+    );
+    expect(screen.getByRole("listbox")).toHaveAttribute(
+      "aria-multiselectable",
+      "true",
+    );
+    // The "N selected / Clear" row is a button, not a clickable <li>.
+    const clear = screen.getByRole("button", {
+      name: /selected/i,
+    });
+    expect(clear).toBeInTheDocument();
   });
 });
 

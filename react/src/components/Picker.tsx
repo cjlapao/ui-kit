@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -266,6 +267,8 @@ const Picker: React.FC<PickerProps> = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const listboxId = useId();
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -273,6 +276,12 @@ const Picker: React.FC<PickerProps> = ({
   const [style, setStyle] = useState<React.CSSProperties>();
   const [computedMaxHeight, setComputedMaxHeight] =
     useState(MAX_DROPDOWN_HEIGHT);
+  // Highlighted option for keyboard navigation (ArrowUp/Down, Home/End,
+  // Enter) — -1 = none. Announced through the search input's
+  // aria-activedescendant (combobox pattern).
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  const optionId = (index: number) => `${listboxId}-option-${index}`;
   const effectiveTone = tone ?? color ?? "blue";
   const colorTokens = toneTokens[effectiveTone] ?? toneTokens.blue;
   // The field system, shared with Input, Select and SearchBar — so a Picker
@@ -448,8 +457,40 @@ const Picker: React.FC<PickerProps> = ({
   }, [open]);
 
   useEffect(() => {
-    if (open) requestAnimationFrame(() => searchRef.current?.focus());
+    if (!open) {
+      setActiveIndex(-1);
+      // If focus is still inside the (now-removed) list — selection or
+      // Escape — return it to the trigger so keyboard flow continues.
+      // An outside click leaves focus on the clicked element instead, so
+      // this never steals focus.
+      if (
+        document.activeElement instanceof HTMLElement &&
+        dropdownRef.current?.contains(document.activeElement)
+      ) {
+        triggerRef.current?.focus();
+      }
+      return;
+    }
+    requestAnimationFrame(() => searchRef.current?.focus());
+    // Highlight the current selection if present, else the first option —
+    // the search input's aria-activedescendant then announces it.
+    // (filtered/effectiveSelectedIds are memoized; [open] is intentional so
+    // typing a query re-highlights via the key handler below.)
+    const idx = filtered.findIndex((item) =>
+      effectiveSelectedIds.includes(item.id),
+    );
+    setActiveIndex(idx >= 0 ? idx : filtered.length > 0 ? 0 : -1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Keep the highlighted option in view during arrow navigation.
+  useEffect(() => {
+    if (activeIndex < 0) return;
+    // (scrollIntoView is absent in jsdom — optional call keeps tests happy.)
+    listRef.current
+      ?.querySelector('[data-active="true"]')
+      ?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIndex]);
 
   const handleSelect = (item: PickerItem) => {
     if (multi) {
@@ -507,17 +548,59 @@ const Picker: React.FC<PickerProps> = ({
               <input
                 ref={searchRef}
                 type="text"
+                // Combobox-with-list pattern: this input drives the listbox
+                // below (type to filter, arrows to move the highlight, Enter
+                // to select), announced via aria-activedescendant.
+                role="combobox"
+                aria-label="Search options"
+                aria-expanded
+                aria-controls={listboxId}
+                aria-activedescendant={
+                  activeIndex >= 0 ? optionId(activeIndex) : undefined
+                }
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Escape" && (setOpen(false), setQuery(""))
-                }
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setOpen(false);
+                    setQuery("");
+                    return;
+                  }
+                  if (filtered.length === 0) return;
+                  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                    e.preventDefault();
+                    const delta = e.key === "ArrowDown" ? 1 : -1;
+                    setActiveIndex((i) =>
+                      i < 0
+                        ? delta > 0
+                          ? 0
+                          : filtered.length - 1
+                        : Math.min(
+                            Math.max(i + delta, 0),
+                            filtered.length - 1,
+                          ),
+                    );
+                  } else if (e.key === "Home" || e.key === "End") {
+                    e.preventDefault();
+                    setActiveIndex(
+                      e.key === "Home" ? 0 : filtered.length - 1,
+                    );
+                  } else if (
+                    e.key === "Enter" &&
+                    activeIndex >= 0 &&
+                    filtered[activeIndex]
+                  ) {
+                    e.preventDefault();
+                    handleSelect(filtered[activeIndex]);
+                  }
+                }}
                 placeholder={resolvedSearchPlaceholder}
                 className="min-w-0 flex-1 bg-transparent text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none dark:text-neutral-200 dark:placeholder:text-neutral-500"
               />
               {query && (
                 <button
                   type="button"
+                  aria-label="Clear search"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setQuery("")}
                   className="shrink-0 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
@@ -551,35 +634,58 @@ const Picker: React.FC<PickerProps> = ({
             </div>
 
             {/* Option list */}
-            <ul
-              className="divide-y divide-neutral-50 overflow-y-auto dark:divide-neutral-800/60"
-              style={{ maxHeight: computedMaxHeight }}
-            >
-              {/* Multi-select clear row */}
-              {multi && effectiveSelectedIds.length > 0 && (
-                <li
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={handleClearMulti}
-                  className="flex cursor-pointer select-none items-center justify-between px-4 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800/60 dark:text-neutral-500 border-b border-neutral-100 dark:border-neutral-800"
-                >
-                  <span>{effectiveSelectedIds.length} selected</span>
-                  <span className="text-rose-500 dark:text-rose-400 hover:underline">
-                    Clear
-                  </span>
-                </li>
-              )}
-              {filtered.length === 0 ? (
-                <li className="px-4 py-5 text-center text-sm text-neutral-400 dark:text-neutral-500">
-                  {baseItems.length === 0
-                    ? emptyMessage
-                    : "No items match your search."}
-                </li>
-              ) : (
-                filtered.map((item) => {
+            {/* Multi-select clear action — a button, kept out of the
+                listbox so the listbox contains only options. */}
+            {multi && effectiveSelectedIds.length > 0 && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleClearMulti}
+                className="flex w-full cursor-pointer select-none items-center justify-between border-b border-neutral-100 px-4 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-500 dark:hover:bg-neutral-800/60"
+              >
+                <span>{effectiveSelectedIds.length} selected</span>
+                <span className="text-rose-500 hover:underline dark:text-rose-400">
+                  Clear
+                </span>
+              </button>
+            )}
+
+            {filtered.length === 0 ? (
+              <div className="px-4 py-5 text-center text-sm text-neutral-400 dark:text-neutral-500">
+                {baseItems.length === 0
+                  ? emptyMessage
+                  : "No items match your search."}
+              </div>
+            ) : (
+              /* Option list — a real listbox: the search input above is the
+                 combobox driving it (arrow keys, Enter, aria-activedescendant).
+                 APG "combobox with list" — a native <select> cannot host the
+                 rich option content (tags, descriptions, multi-select) this
+                 widget renders, so the ARIA listbox pattern is deliberate. */
+              // eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role -- APG combobox-with-list (a native <select> cannot carry rich options)
+              <ul
+                ref={listRef}
+                id={listboxId}
+                role="listbox"
+                aria-label="Options"
+                aria-multiselectable={multi || undefined}
+                className="divide-y divide-neutral-50 overflow-y-auto dark:divide-neutral-800/60"
+                style={{ maxHeight: computedMaxHeight }}
+              >
+                {filtered.map((item, index) => {
                   const isSelected = effectiveSelectedIds.includes(item.id);
                   return (
+                    // Keyboard lives on the combobox input (arrow keys +
+                    // Enter move/confirm the aria-activedescendant), so the
+                    // option row needs no listener of its own; a native
+                    // <option> cannot carry the rich content rendered here.
+                    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role, jsx-a11y/click-events-have-key-events -- APG combobox-with-list
                     <li
                       key={item.id}
+                      id={optionId(index)}
+                      role="option"
+                      aria-selected={isSelected || undefined}
+                      data-active={index === activeIndex || undefined}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => handleSelect(item)}
                       className={classNames(
@@ -587,6 +693,8 @@ const Picker: React.FC<PickerProps> = ({
                         isSelected
                           ? colorTokens.optionSelectedBg
                           : "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
+                        index === activeIndex &&
+                          "bg-neutral-100 dark:bg-neutral-800/60",
                       )}
                     >
                       {/* Multi: always show checkbox. Single: only show checkmark for selected item. */}
@@ -698,9 +806,9 @@ const Picker: React.FC<PickerProps> = ({
                       )}
                     </li>
                   );
-                })
-              )}
-            </ul>
+                })}
+              </ul>
+            )}
           </div>,
           PORTAL_ROOT,
         )
@@ -781,6 +889,7 @@ const Picker: React.FC<PickerProps> = ({
       disabled={disabled || loading}
       aria-haspopup="listbox"
       aria-expanded={open}
+      aria-controls={open ? listboxId : undefined}
       aria-invalid={validationStatus === "error" ? true : undefined}
       aria-busy={loading || undefined}
       onClick={() => setOpen((prev) => !prev)}
