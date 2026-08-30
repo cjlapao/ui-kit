@@ -292,9 +292,54 @@ the suite on new serious/critical violations).
 4. Fix `svg-img-alt` (P1-3), `autoFocus` (P1-4), P1-5 verification, P2
    sweep opportunistically.
 
+**Status (Phase C, 2026-08-30):** all four items landed.
+1. **Contrast gate** — `react/src/theme/contrast.test.ts` (596
+   assertions): surface text tokens (8 variants × 4 text roles) on the
+   opaque fills and every button variant × 21 tones in base/hover/
+   active/active-hover states, light + dark, against palette values
+   extracted from the installed Tailwind v4 theme
+   (`react/src/theme/tailwind-palette.json`, regen command in the
+   fixture header). One genuine deficit found and recorded as a
+   ratcheting allowlist: light-mode `green-700 on green-100` measures
+   4.497:1 (hover/active states of the green text buttons) — 0.003
+   under AA; one-step theme fix (`text-green-800`), deferred because
+   `common/theme/Theme.ts` is mid-change in the working tree. The
+   visual light/dark demo pass is part of the SR checklist run.
+2. **A11y guide** — `react/demo/src/kit-docs/components/a11y/A11yPage.tsx`
+   (registry `slug: "a11y"`, Utilities): support statement, per-widget
+   keyboard table (implemented handlers), SR known-behaviours with the
+   honest gaps, consumer labelling guide.
+3. **SR pass checklist** — `docs/a11y-sr-checklist.md`: NVDA +
+   VoiceOver, global pass + ten-page run + toast live regions,
+   documented as a release gate.
+4. **P1-3/P1-4/P1-5 + P2** — P1-3: the seven `role="img"` @uiw toolbar
+   icons (verified 7× `svg-img-alt` serious) re-cloned as
+   `aria-hidden` in `MarkdownEditor` (declarative, no node_modules
+   patching) — 0 violations, verified. P1-4: triaged as legitimate
+   post-action focus transfer (triage comment left in
+   `SmartGridLayout.tsx` uncommitted with the user's mid-change work;
+   `no-autofocus` is off in the committed config by design). P1-5:
+   SplitView rows, SmartInput preview and ConnectionFlowSvg cards had
+   no visible focus indicator — focus rings added; Select, Picker,
+   TagPicker, Popover verified as the expected false positives. P2:
+   63 now-unused eslint-disable directives removed across 31 files
+   (lint baseline 0 errors, 171 → 107 warnings); the remaining P2
+   items (`prefer-tag-over-role`, `label-has-for`) stay as planned —
+   no standalone sweep, config-level resolution.
+
+Commits: `d101d4a` (contrast gate), `7aec902` (a11y guide), `04942a5`
+(SR checklist), `97016d7` (P1-3/P1-5 + P2 sweep). Verified: full suite
+3630/3630, `npm run lint` 0 errors / 107 warnings, tsc clean, demo
+build green. Residual, deliberately not committed:
+`SmartGridLayout.tsx` (P1-4 triage comment inside the user's
+mid-change file).
+
 **Definition of done:** P0 findings at zero with tests; lint+axe gates
 in CI; dev warnings live; a11y guide published; contrast asserted for
-tokens; SR checklist documented.
+tokens; SR checklist documented. — **met** (the two human-only steps —
+the visual light/dark pass and the NVDA/VoiceOver run — are encoded as
+the release-gate checklist above; the known green-100 hair's-breadth
+is tracked in the contrast gate's allowlist).
 
 ## 7. Known limitations of this audit
 
