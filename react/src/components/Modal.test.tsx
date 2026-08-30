@@ -1,3 +1,5 @@
+import { act } from "react";
+import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import Modal, { MODAL_POSITIONS } from "./Modal";
@@ -263,5 +265,37 @@ describe("Modal — basics still work", () => {
     open({ onClose });
     fireEvent.mouseDown(screen.getByText("Body"));
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe("Modal — focus management", () => {
+  function RestoreHarness() {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setIsOpen(true)}>
+          Open
+        </button>
+        <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Settings">
+          <p>Body</p>
+        </Modal>
+      </>
+    );
+  }
+
+  it("restores focus to the trigger when the dialog closes (Escape)", async () => {
+    render(<RestoreHarness />);
+    const trigger = screen.getByRole("button", { name: "Open" });
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await act(async () => {});
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 });
