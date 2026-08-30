@@ -299,12 +299,14 @@ the suite on new serious/critical violations).
    active/active-hover states, light + dark, against palette values
    extracted from the installed Tailwind v4 theme
    (`react/src/theme/tailwind-palette.json`, regen command in the
-   fixture header). One genuine deficit found and recorded as a
-   ratcheting allowlist: light-mode `green-700 on green-100` measures
-   4.497:1 (hover/active states of the green text buttons) — 0.003
-   under AA; one-step theme fix (`text-green-800`), deferred because
-   `common/theme/Theme.ts` is mid-change in the working tree. The
-   visual light/dark demo pass is part of the SR checklist run.
+   fixture header). One genuine deficit found — light-mode
+   `green-700 on green-100` at 4.497:1 (hover/active states of the
+   green text buttons, 0.003 under AA) — and fixed in the theme:
+   green's tinted-fill text steps to -800 (`common/theme/Theme.ts`,
+   `lightText` in `createTheme`; 6.45:1), with link/clear left at -700
+   (they sit on the page background, where green-700 passes). The gate
+   now asserts the full matrix with no allowlist. The visual
+   light/dark demo pass is part of the SR checklist run.
 2. **A11y guide** — `react/demo/src/kit-docs/components/a11y/A11yPage.tsx`
    (registry `slug: "a11y"`, Utilities): support statement, per-widget
    keyboard table (implemented handlers), SR known-behaviours with the
@@ -338,8 +340,8 @@ mid-change file).
 in CI; dev warnings live; a11y guide published; contrast asserted for
 tokens; SR checklist documented. — **met** (the two human-only steps —
 the visual light/dark pass and the NVDA/VoiceOver run — are encoded as
-the release-gate checklist above; the known green-100 hair's-breadth
-is tracked in the contrast gate's allowlist).
+the release-gate checklist above; the green-100 hair's-breadth was
+fixed in the theme and the contrast gate asserts the full matrix).
 
 ## 7. Known limitations of this audit
 

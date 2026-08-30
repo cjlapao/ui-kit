@@ -361,14 +361,21 @@ describe("Button — variant/tone matrix (every variant × every tone)", () => {
   // The signature of each variant at rest, per tone. A tone that is missing a
   // single safelisted class renders with a currentColor fallback — this is
   // what the per-tone loop is for (one representative colour is not enough).
+  //
+  // Green's tinted-fill text is -800, not -700: green-700 on the green-100
+  // hover/active tint measured 4.497:1 (0.003 under WCAG AA); the theme's
+  // `lightText` exception in common/theme/Theme.ts and the contrast gate
+  // (src/theme/contrast.test.ts) are the source of truth.
+  const lightText = (c: TrueColor) =>
+    c === "green" ? "text-green-800" : `text-${c}-700`;
   const signatures: Record<ButtonVariant, (c: TrueColor) => string[]> = {
     solid: (c) => [`bg-${c}-700`, "text-white"],
-    soft: (c) => [`bg-${c}-50`, `text-${c}-700`, `ring-${c}-200`],
-    outline: (c) => [`border-${c}-200`, `text-${c}-700`],
-    ghost: (c) => [`text-${c}-700`, `hover:bg-${c}-100`],
+    soft: (c) => [`bg-${c}-50`, lightText(c), `ring-${c}-200`],
+    outline: (c) => [`border-${c}-200`, lightText(c)],
+    ghost: (c) => [lightText(c), `hover:bg-${c}-100`],
     link: (c) => [`text-${c}-700`, "hover:underline"],
     clear: (c) => [`text-${c}-700`, `hover:text-${c}-800`],
-    icon: (c) => [`bg-${c}-50`, `text-${c}-700`],
+    icon: (c) => [`bg-${c}-50`, lightText(c)],
     glass: (_c) => ["backdrop-blur-sm"],
   };
 

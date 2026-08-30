@@ -1147,20 +1147,29 @@ const createTheme = (): ThemeDefinition => {
     // Hover follows the same rule in the direction that *improves* contrast
     // (dark fills darken, light tints stay one step in), so no transient
     // state regresses below 4.5:1 either.
+    //
+    // Light-mode text on a *tinted* fill: -700 clears WCAG AA for 20 of the
+    // 21 tones, but green-700 on the green-100 hover/active tint measures
+    // 4.497:1 — 0.003 under 4.5 (the contrast gate in
+    // react/src/theme/contrast.test.ts asserts the whole matrix). Green
+    // takes -800 for the tinted-fill text variants (6.45:1 on green-100).
+    // link/clear sit on the page background, where green-700 passes, and
+    // are deliberately left at -700.
+    const lightText = color === "green" ? "green-800" : `${color}-700`;
     theme.button.solid[color] =
       `bg-${color}-700 text-white shadow-sm hover:bg-${color}-800 focus-visible:ring-2 focus-visible:ring-${color}-500 focus-visible:ring-offset-2 dark:bg-${color}-400 dark:text-${color}-950 dark:hover:bg-${color}-300`;
     theme.button.soft[color] =
-      `bg-${color}-50 text-${color}-700 ring-1 ring-inset ring-${color}-200 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:bg-${color}-500/10 dark:text-${color}-200 dark:ring-${color}-500/40 dark:hover:bg-${color}-500/20`;
+      `bg-${color}-50 text-${lightText} ring-1 ring-inset ring-${color}-200 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:bg-${color}-500/10 dark:text-${color}-200 dark:ring-${color}-500/40 dark:hover:bg-${color}-500/20`;
     theme.button.outline[color] =
-      `border border-${color}-200 text-${color}-700 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:border-${color}-500/50 dark:text-${color}-200 dark:hover:bg-${color}-500/10`;
+      `border border-${color}-200 text-${lightText} hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:border-${color}-500/50 dark:text-${color}-200 dark:hover:bg-${color}-500/10`;
     theme.button.ghost[color] =
-      `text-${color}-700 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:text-${color}-200 dark:hover:bg-${color}-500/10`;
+      `text-${lightText} hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:text-${color}-200 dark:hover:bg-${color}-500/10`;
     theme.button.link[color] =
       `text-${color}-700 hover:text-${color}-800 hover:underline dark:text-${color}-200 dark:hover:text-${color}-300`;
     theme.button.clear[color] =
       `text-${color}-700 hover:text-${color}-800 dark:text-${color}-200`;
     theme.button.icon[color] =
-      `text-${color}-700 bg-${color}-50 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:text-${color}-200 dark:bg-${color}-500/10 dark:hover:bg-${color}-500/20`;
+      `text-${lightText} bg-${color}-50 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:text-${color}-200 dark:bg-${color}-500/10 dark:hover:bg-${color}-500/20`;
 
     // Button hover classes (accent override — matches the hover portion of each button variant above)
     theme.buttonHover.solid[color] =
@@ -1182,16 +1191,16 @@ const createTheme = (): ThemeDefinition => {
     theme.buttonActive.solid[color] =
       `bg-${color}-200 text-${color}-900 shadow-sm dark:bg-${color}-300 dark:text-${color}-900`;
     theme.buttonActive.soft[color] =
-      `bg-${color}-100 text-${color}-700 ring-1 ring-inset ring-${color}-300 dark:bg-${color}-500/20 dark:text-${color}-100 dark:ring-${color}-400/50`;
+      `bg-${color}-100 text-${lightText} ring-1 ring-inset ring-${color}-300 dark:bg-${color}-500/20 dark:text-${color}-100 dark:ring-${color}-400/50`;
     theme.buttonActive.outline[color] =
-      `border border-${color}-300 bg-${color}-50 text-${color}-700 dark:border-${color}-400/60 dark:bg-${color}-500/15 dark:text-${color}-100`;
+      `border border-${color}-300 bg-${color}-50 text-${lightText} dark:border-${color}-400/60 dark:bg-${color}-500/15 dark:text-${color}-100`;
     theme.buttonActive.ghost[color] =
-      `bg-${color}-100 text-${color}-700 dark:bg-${color}-500/15 dark:text-${color}-100`;
+      `bg-${color}-100 text-${lightText} dark:bg-${color}-500/15 dark:text-${color}-100`;
     theme.buttonActive.link[color] =
       `text-${color}-800 underline dark:text-${color}-300`;
     theme.buttonActive.clear[color] = `text-${color}-800 dark:text-${color}-300`;
     theme.buttonActive.icon[color] =
-      `bg-${color}-100 text-${color}-700 dark:bg-${color}-500/20 dark:text-${color}-200`;
+      `bg-${color}-100 text-${lightText} dark:bg-${color}-500/20 dark:text-${color}-200`;
 
     // Button active-hover classes (hover within the active state).
     // Light-mode soft/ghost/icon step the *text* out to -800 because their
@@ -2082,6 +2091,154 @@ export const ALERT_INTENT_CONFIG: Record<AlertIntent, AlertIntentConfig> = {
   danger: { tone: "red", icon: "Error", live: "assertive" },
   neutral: { tone: "neutral", icon: "Info", live: "polite" },
 };
+
+/**
+ * Where a toast viewport sits on the screen — PrimeVue's seven anchor
+ * positions, kept as a runtime list so demos and docs enumerate the same
+ * seven. `center` is the only one without a corner.
+ */
+export const TOAST_POSITIONS = [
+  "top-left",
+  "top-center",
+  "top-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+  "center",
+] as const;
+export type ToastPosition = (typeof TOAST_POSITIONS)[number];
+
+/**
+ * How the stack reads: `stacked` (the PrimeVue 4.5.5 default — a deck of
+ * collapsed cards that fans out on hover) or `expanded` (always fanned out,
+ * the classic list).
+ */
+export const TOAST_MODES = ["stacked", "expanded"] as const;
+export type ToastMode = (typeof TOAST_MODES)[number];
+
+export const DEFAULT_TOAST_POSITION: ToastPosition = "top-right";
+export const DEFAULT_TOAST_MODE: ToastMode = "stacked";
+/** Distance the stack offsets each card (stacked peek and expanded seam). */
+export const DEFAULT_TOAST_GAP_PX = 12;
+/** How many newest toasts stay visible; older ones wait their turn. */
+export const DEFAULT_TOAST_LIMIT = 3;
+/**
+ * Kit default — PrimeVue has no default auto-dismiss, and a toast that never
+ * dies is a trap. `life: 0` or `sticky: true` for a persistent message.
+ */
+export const DEFAULT_TOAST_LIFE_MS = 5000;
+/** Above Modal's 1600: a toast raised while a modal is open sits above it. */
+export const DEFAULT_TOAST_Z_INDEX = 2000;
+/** PrimeVue's viewport width (18.75rem = 300px). */
+export const TOAST_DEFAULT_WIDTH = "18.75rem";
+
+/**
+ * The geometry of a toast card at each shared control size.
+ *
+ * Same reasoning as Alert's size table, promoted to the theme because the
+ * card lives in a different folder than the callout it shares its language
+ * with, and a second size table for the same scale would drift (brief §2).
+ * The close button and the action buttons sit on the trigger family's scale,
+ * so a toast and the Button beside it are described in the same language.
+ */
+export interface ToastSizeTokens {
+  /** The card's own padding. */
+  container: string;
+  /** Space between the leading glyph and the copy. */
+  gap: string;
+  /** Title type. */
+  title: string;
+  /** Detail type. */
+  detail: string;
+  /** The intent glyph, on the shared control scale. */
+  icon: ControlSize;
+  /**
+   * Height of the glyph's box: exactly the title's line box, so the glyph
+   * centres on the title's cap height at any size (Alert's calibration).
+   */
+  iconBox: string;
+  /** The close button's square box. */
+  close: string;
+  /** The close glyph's size. */
+  closeIcon: ControlSize;
+  /** The progress bar's height, on the shared scale. */
+  progress: ControlSize;
+  /** The action buttons' size (trigger family). */
+  action: ControlSize;
+  /** Space above the actions row. */
+  actions: string;
+}
+
+const toastSizeTokens: Record<ControlSize, ToastSizeTokens> = {
+  xs: {
+    container: "px-3 py-2",
+    gap: "gap-2",
+    title: "text-xs",
+    detail: "text-xs",
+    icon: "sm",
+    iconBox: "h-4",
+    close: "h-5 w-5",
+    closeIcon: "xs",
+    progress: "xs",
+    action: "xs",
+    actions: "pt-1.5",
+  },
+  sm: {
+    container: "px-3 py-2.5",
+    gap: "gap-2.5",
+    title: "text-xs",
+    detail: "text-xs",
+    icon: "sm",
+    iconBox: "h-4",
+    close: "h-6 w-6",
+    closeIcon: "xs",
+    progress: "sm",
+    action: "xs",
+    actions: "pt-2",
+  },
+  md: {
+    container: "px-4 py-3",
+    gap: "gap-3",
+    title: "text-sm",
+    detail: "text-sm",
+    icon: "md",
+    iconBox: "h-5",
+    close: "h-7 w-7",
+    closeIcon: "sm",
+    progress: "sm",
+    action: "sm",
+    actions: "pt-2",
+  },
+  lg: {
+    container: "px-4 py-3.5",
+    gap: "gap-3",
+    title: "text-base",
+    detail: "text-sm",
+    icon: "md",
+    iconBox: "h-6",
+    close: "h-8 w-8",
+    closeIcon: "sm",
+    progress: "md",
+    action: "sm",
+    actions: "pt-2.5",
+  },
+  xl: {
+    container: "px-5 py-4",
+    gap: "gap-3.5",
+    title: "text-base",
+    detail: "text-sm",
+    icon: "lg",
+    iconBox: "h-7",
+    close: "h-9 w-9",
+    closeIcon: "md",
+    progress: "md",
+    action: "md",
+    actions: "pt-3",
+  },
+};
+
+export const getToastSizeTokens = (size: ControlSize): ToastSizeTokens =>
+  toastSizeTokens[size] ?? toastSizeTokens.md;
 
 /**
  * Whether a field is reporting a problem.

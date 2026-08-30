@@ -225,26 +225,6 @@ const BUTTON_VARIANTS = [
   "icon",
 ] as const;
 
-/**
- * Known deficits (Phase C sweep, 2026-08-30): the light-mode text-button
- * pair `green-700 on green-100` measures 4.497:1 — 0.003 short of AA.
- * One-step theme fix: `text-green-800` on the light-mode hover/active
- * fills of soft/outline/ghost/icon (6.45:1). `common/theme/Theme.ts` is
- * mid-change in the working tree, so this allowlist records the exact
- * deficit set until that lands — any NEW deficit fails the test; the
- * allowlist is dead weight once the theme fix lands and can be dropped.
- */
-const KNOWN_DEFICITS = new Set<string>([
-  "soft/green/hover (light)",
-  "soft/green/active (light)",
-  "outline/green/hover (light)",
-  "outline/green/active-hover (light)",
-  "ghost/green/hover (light)",
-  "ghost/green/active (light)",
-  "icon/green/hover (light)",
-  "icon/green/active (light)",
-]);
-
 const buttonCases: Array<{
   label: string;
   build: (variant: (typeof BUTTON_VARIANTS)[number], color: TrueColor) => string[];
@@ -300,11 +280,6 @@ describe("button label/fill pairs (WCAG 1.4.3 AA)", () => {
       state.stripHover,
       DARK_SUBSTRATE,
     );
-    // New deficits fail; the documented green-100 hair's-breadth set is
-    // tolerated until the theme fix lands (see KNOWN_DEFICITS).
-    const unexpected = violations.filter(
-      (v) => !KNOWN_DEFICITS.has(v.where),
-    );
-    expectNoViolations(unexpected);
+    expectNoViolations(violations);
   });
 });

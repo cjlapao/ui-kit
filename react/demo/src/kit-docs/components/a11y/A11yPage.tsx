@@ -296,11 +296,12 @@ export const A11yPage: React.FC = () => (
             stop per widget, arrows to move, exactly as the APG prescribes.
           </li>
           <li>
-            <strong>Known gaps (tracked, not hidden):</strong> light-mode{" "}
-            <em>green</em> text buttons on their hover/active tint measure
-            4.497:1 — 0.003 under the AA floor (a one-step theme fix away);
-            and decorative icons in the MarkdownEditor toolbar are
-            aria-hidden next to their visible labels.
+            <strong>Known gaps (tracked, not hidden):</strong> the
+            light-mode <em>green</em> text buttons used to sit 0.003
+            under the AA floor on their hover/active tint; the theme now
+            steps green's tinted-fill text to -800 (6.45:1) and the
+            contrast gate asserts the whole matrix, so the gap set is
+            empty — and any regression fails the suite.
           </li>
         </ul>
       </Prose>
