@@ -805,6 +805,11 @@ const StepperBody: React.FC<StepperBodyProps> = ({
                   isDisabled && "opacity-60",
                   stepClassName,
                 )}
+                // Pointer-only convenience: the step node (a native button in
+                // clickable mode) is the single keyboard tab stop and already
+                // activates on Enter/Space — a second stop per step would
+                // double the tab path (see "one button per step" tests).
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keyboard activation lives on the step node
                 onClick={() => goTo(step, index)}
                 aria-current={active ? "step" : undefined}
               >
@@ -841,6 +846,7 @@ const StepperBody: React.FC<StepperBodyProps> = ({
                   )}
                   {actions && (
                     // Stops both activation paths, not just the pointer one.
+                    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- propagation guard for nested actions, not an interactive element
                     <div
                       className="flex flex-wrap items-center gap-1.5"
                       onClick={(e) => e.stopPropagation()}
@@ -929,6 +935,9 @@ const StepperBody: React.FC<StepperBodyProps> = ({
                 clickable && !isDisabled && "cursor-pointer",
                 isDisabled && "opacity-60",
               )}
+              // Pointer-only convenience: keyboard activation lives on the
+              // step node (the single tab stop per step).
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- keyboard activation lives on the step node
               onClick={() => goTo(step, index)}
             >
               <div
@@ -958,6 +967,7 @@ const StepperBody: React.FC<StepperBodyProps> = ({
                 <div className={underlineClasses} />
               )}
               {actions && (
+                // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- propagation guard for nested actions, not an interactive element
                 <div
                   className="mt-2 flex flex-wrap items-center gap-1.5"
                   onClick={(e) => e.stopPropagation()}

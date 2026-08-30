@@ -74,6 +74,26 @@ describe("TagPicker", () => {
     expect(document.body.innerHTML).toContain("border-green-400");
     expect(document.body.innerHTML).not.toContain("border-emerald-400");
   });
+
+  it("labels the search combobox and announces the focused option", () => {
+    render(
+      <TagPicker
+        items={ITEMS.map((i) => ({ id: i.id, label: i.title }))}
+        value={[]}
+        onChange={vi.fn()}
+      />,
+    );
+    fireEvent.click(
+      document.querySelector('[aria-haspopup]') as HTMLElement,
+    );
+    const search = screen.getByRole("combobox");
+    expect(search).toHaveAttribute("aria-label", "Search tags");
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    const firstOption = screen.getAllByRole("option")[0];
+    expect(search.getAttribute("aria-activedescendant")).toBe(
+      firstOption.getAttribute("id"),
+    );
+  });
 });
 
 describe("SplitView", () => {

@@ -1075,6 +1075,9 @@ const SplitView: React.FC<SplitViewProps> = ({
                             (item.highlight && showHighlightIndicator)) && (
                             <div className="shrink-0 flex items-center gap-0.5">
                               {item.actions && (
+                                // Not an interaction: this stops clicks on
+                                // the action buttons from selecting the row.
+                                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation guard only
                                 <div
                                   className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
                                   onClick={(e) => e.stopPropagation()}
@@ -1094,6 +1097,9 @@ const SplitView: React.FC<SplitViewProps> = ({
                               )}
                               {/* Expand button – only when autoExpand=false */}
                               {hasExpandControl && (
+                                // Not an interaction: this stops clicks on
+                                // the expand button from selecting the row.
+                                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation guard only
                                 <div
                                   className="flex items-center"
                                   onClick={(e) => e.stopPropagation()}
@@ -1191,7 +1197,10 @@ const SplitView: React.FC<SplitViewProps> = ({
         <div
           {...handleProps}
           className={classNames(
-            "w-1.5 shrink-0 cursor-col-resize transition-all duration-150",
+            // The handle is invisible at rest; keyboard focus must reveal it
+            // (WCAG 2.4.7) — useResizable supplies role="separator",
+            // aria-value* and arrow-key resizing.
+            "w-1.5 shrink-0 cursor-col-resize transition-all duration-150 focus-visible:opacity-100",
             resizerColor,
             isDragging
               ? "opacity-100"

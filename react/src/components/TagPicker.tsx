@@ -593,8 +593,16 @@ const TagPicker: React.FC<TagPickerProps> = ({
                 ref={searchRef}
                 id={`${uid}-search`}
                 role="combobox"
+                aria-label="Search tags"
                 aria-expanded={open}
                 aria-controls={`${uid}-listbox`}
+                aria-activedescendant={
+                  focusedIndex >= 0
+                    ? showCreate && focusedIndex === filtered.length
+                      ? `${uid}-option-create`
+                      : `${uid}-option-${focusedIndex}`
+                    : undefined
+                }
                 aria-autocomplete="list"
                 type="text"
                 value={query}
@@ -606,6 +614,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
               {query && (
                 <button
                   type="button"
+                  aria-label="Clear search"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => setQuery("")}
                   className="shrink-0 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
@@ -623,10 +632,13 @@ const TagPicker: React.FC<TagPickerProps> = ({
               )}
             </div>
 
-            {/* Option list */}
+            {/* Option list — APG combobox-with-list: a native select cannot
+                carry the create-row + rich option content rendered here. */}
+            {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role */}
             <ul
               id={`${uid}-listbox`}
               role="listbox"
+              aria-label="Options"
               aria-multiselectable={multi}
               className="overflow-y-auto divide-y divide-neutral-50 dark:divide-neutral-800/60"
               style={{ maxHeight: computedMaxHeight }}
@@ -666,8 +678,13 @@ const TagPicker: React.FC<TagPickerProps> = ({
                   const isFocused = index === focusedIndex;
                   const isNew = sessionAddedSet.has(item.id);
                   return (
+                    // Keyboard lives on the combobox input (arrows + Enter
+                    // drive aria-activedescendant); a native <option> cannot
+                    // carry this content.
+                    // eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role, jsx-a11y/click-events-have-key-events -- APG combobox-with-list
                     <li
                       key={item.id}
+                      id={`${uid}-option-${index}`}
                       role="option"
                       aria-selected={isSelected}
                       onMouseDown={(e) => e.preventDefault()}
@@ -769,7 +786,11 @@ const TagPicker: React.FC<TagPickerProps> = ({
 
               {/* Create row */}
               {showCreate && (
+                // Same APG justification as the options above; Enter on the
+                // combobox input activates it.
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-to-interactive-role, jsx-a11y/click-events-have-key-events -- APG combobox-with-list
                 <li
+                  id={`${uid}-option-create`}
                   role="option"
                   aria-selected={false}
                   onMouseDown={(e) => e.preventDefault()}

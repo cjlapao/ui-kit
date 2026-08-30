@@ -695,6 +695,9 @@ export function Carousel<T = ReactNode>({
           )}
 
           {showIndicators && (
+            // The list itself is not focusable — the dot buttons carry the
+            // roving tabindex; this handler just receives their key events.
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- delegated key handling for the dot buttons
             <ul
               aria-label="Slides"
               onKeyDown={onIndicatorKeyDown}

@@ -155,6 +155,7 @@ const CollapsibleBody: React.FC<CollapsibleBodyProps> = ({
         <div className="flex h-5 shrink-0 items-center gap-2">
           {actions && (
             // Stops both activation paths, not just the pointer one.
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- propagation guard for nested actions, not an interactive element
             <div
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}

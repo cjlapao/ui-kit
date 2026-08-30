@@ -344,6 +344,8 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   );
 
   return (
+    // onBlur is focus-out detection for the inner input, not an interaction.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- focus-out detection wrapper
     <div
       ref={containerRef}
       onBlur={handleBlur}

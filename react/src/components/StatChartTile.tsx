@@ -222,11 +222,22 @@ const Donut: React.FC<{
               className={classNames(
                 "group flex min-w-0 items-center justify-between",
                 item.onClick
-                  ? "-mx-1 cursor-pointer rounded px-1 hover:bg-black/5 dark:hover:bg-white/5"
+                  ? "-mx-1 cursor-pointer rounded px-1 hover:bg-black/5 focus-visible:bg-black/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400 dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:focus-visible:ring-neutral-500"
                   : "cursor-default",
               )}
               title={`${item.label}: ${item.value}`}
+              // Clickable legend rows are activatable (WCAG 2.1.1).
+              role={item.onClick ? "button" : undefined}
+              tabIndex={item.onClick ? 0 : undefined}
+              aria-label={`${item.label}: ${item.value}`}
               onClick={() => item.onClick?.()}
+              onKeyDown={(event) => {
+                if (!item.onClick) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  item.onClick?.();
+                }
+              }}
             >
               <div className="mr-2 flex min-w-0 items-center">
                 <div
