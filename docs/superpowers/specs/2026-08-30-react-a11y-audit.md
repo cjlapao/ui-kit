@@ -220,6 +220,18 @@ Per-widget, ordered by exposure:
 **Gate per task:** new/updated `getByRole` + keyboard-event tests
 (`fireEvent.keyDown`) for each touched widget; jsx-a11y findings for the
 file at zero (or justified).
+**Status (2026-08-30):** steps 1–5 complete. Commits: `d037ee1`
+(DatePicker, DropdownMenu), `ba63e2c` (Picker, SideMenu), `7dab14e`
+(widget batch: SplitView, Stepper, Carousel, StatChartTile,
+CollapsiblePanel, SmartInput, TagPicker), `0214eb2` (Tree/Rating/Table
+containers + labels, Tooltip/InfoRow/DetailItemCard anchors), `73e3697`
+(effective lint exemptions). Verified: every Phase A touched file at
+**zero non-P2 jsx-a11y findings** under the scratch all-rules config
+(only `prefer-tag-over-role` P2 items remain, for the Phase B config);
+full suite 2974/2974; demo build green. Residual, deliberately not
+touched: `SmartGridLayout.tsx` (18 findings: `autoFocus`, static
+interactions, `tabIndex`) — the file is mid-change in the working tree;
+fix after that work lands, or in Phase B via documented exceptions.
 
 ### Phase B — gates & warnings (estimate: 1–2 days)
 1. **ESLint jsx-a11y in CI**: add to `react/` lint (eslint 9 flat config,
