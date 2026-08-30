@@ -70,9 +70,12 @@ const sizeTokens: Record<
 import { computed, ref } from "vue";
 import classNames from "classnames";
 import { getSpinnerColorTokens, getSurfaceTextTokens } from "../theme/Theme";
+import { useKitT } from "../i18n";
 import { useClassAttrs } from "../utils/attrsUtils";
 
 defineOptions({ name: "Spinner", inheritAttrs: false });
+
+const t = useKitT();
 
 const props = withDefaults(defineProps<SpinnerProps>(), {
   size: "md",
@@ -122,6 +125,6 @@ const spinnerClass = computed(() =>
     <!-- With a visible label the text is already inside the status region —
          an sr-only copy beside it would be announced twice. -->
     <span v-if="label" :class="labelClass">{{ label }}</span>
-    <span v-else class="sr-only">Loading</span>
+    <span v-else class="sr-only">{{ t("kit.spinner.loading") }}</span>
   </span>
 </template>

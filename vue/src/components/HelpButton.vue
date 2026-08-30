@@ -434,6 +434,8 @@ import {
   type ComponentPublicInstance,
 } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
+const t = useKitT();
 import IconButton from "./IconButton.vue";
 import CustomIcon from "./CustomIcon.vue";
 import Panel from "./Panel.vue";
@@ -576,7 +578,7 @@ const panelClass = computed(() =>
       :size="size"
       variant="ghost"
       :color="color"
-      aria-label="Show help"
+      :aria-label="t('kit.help.show')"
       :aria-expanded="open"
       aria-haspopup="dialog"
       @click="toggle"
@@ -588,7 +590,7 @@ const panelClass = computed(() =>
         ref="panelRef"
         role="dialog"
         aria-modal="false"
-        :aria-label="title ?? 'Help'"
+        :aria-label="title ?? t('kit.help.panelTitle')"
         :aria-busy="loading"
         :style="panelStyle"
         :class="panelClass"
@@ -626,7 +628,7 @@ const panelClass = computed(() =>
                   <CustomIcon icon="Info" class="h-3 w-3" />
                 </span>
                 <span class="text-xs font-semibold truncate">
-                  <slot name="title">{{ title ?? "Help" }}</slot>
+                  <slot name="title">{{ title ?? t("kit.help.panelTitle") }}</slot>
                 </span>
               </div>
               <IconButton
@@ -634,7 +636,7 @@ const panelClass = computed(() =>
                 size="xs"
                 variant="ghost"
                 color="slate"
-                aria-label="Close help"
+                :aria-label="t('kit.help.close')"
                 @click="close"
               />
             </div>

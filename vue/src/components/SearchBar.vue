@@ -250,14 +250,16 @@ export interface SearchBarProps {
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
 
+const t = useKitT();
+
 defineOptions({ name: "SearchBar", inheritAttrs: false });
 
 const props = withDefaults(defineProps<SearchBarProps>(), {
-  placeholder: "Search...",
   debounceMs: 400,
   autoSearch: true,
   disabled: false,
@@ -456,7 +458,7 @@ const defaultRootClass = computed(() =>
         ref="inputRef"
         type="text"
         :value="query"
-        :placeholder="placeholder"
+        :placeholder="placeholder ?? t('kit.searchbar.placeholder')"
         :disabled="disabled"
         class="text-sm flex-1 border-none bg-transparent text-slate-900 placeholder-slate-400 outline-none leading-5"
         @input="handleInput"
@@ -468,7 +470,7 @@ const defaultRootClass = computed(() =>
         v-if="showClear"
         type="button"
         :class="clearBtnGradientClass"
-        aria-label="Clear search"
+        :aria-label="t('kit.searchbar.clearAria')"
         @click="handleClear"
       >
         <VNodeRenderer :nodes="renderIcon('Close', 'xs')" />
@@ -487,7 +489,7 @@ const defaultRootClass = computed(() =>
       ref="inputRef"
       type="text"
       :value="query"
-      :placeholder="placeholder"
+      :placeholder="placeholder ?? t('kit.searchbar.placeholder')"
       :disabled="disabled"
       class="flex-1 border-none bg-transparent text-sm text-slate-900 placeholder-slate-400 outline-none dark:text-slate-200 dark:placeholder-slate-500"
       @input="handleInput"
@@ -497,7 +499,7 @@ const defaultRootClass = computed(() =>
       v-if="showClear"
       type="button"
       :class="clearBtnClass"
-      aria-label="Clear search"
+      :aria-label="t('kit.searchbar.clearAria')"
       @click="handleClear"
     >
       <VNodeRenderer :nodes="renderIcon('Close', 'xs')" />

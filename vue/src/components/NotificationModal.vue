@@ -52,12 +52,14 @@ const TYPE_CONFIG: Record<
 import { computed, getCurrentInstance } from "vue";
 import Modal, { ModalActions } from "./Modal.vue";
 import Button from "./Button.vue";
+import { useKitT } from "../i18n";
 
 defineOptions({ name: "NotificationModal" });
 
+const t = useKitT();
+
 const props = withDefaults(defineProps<NotificationModalProps>(), {
   type: "info",
-  actionLabel: "Close",
   size: "sm",
 });
 
@@ -112,7 +114,7 @@ const handleSecondaryAction = () => {
         <!-- Was `config.color as ButtonColor` — the config typed its tone as a
              bare `string`, so the cast hid the fact that nothing checked it. -->
         <Button :color="resolvedTone" @click="handleAction">
-          {{ actionLabel }}
+          {{ actionLabel ?? t("kit.notificationmodal.action") }}
         </Button>
       </ModalActions>
     </template>

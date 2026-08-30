@@ -139,6 +139,7 @@ const SIZE_TOKENS: Record<
 <script setup lang="ts">
 import { computed, ref, useId } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import EmptyState from "./EmptyState.vue";
 import Loader from "./Loader.vue";
 import Panel, { paddingStyles, type PanelPadding } from "./Panel.vue";
@@ -184,6 +185,8 @@ const accordion = useAccordion({
   onChange: (openIds) => emit("change", openIds),
   multiple: props.multiple,
 });
+
+const t = useKitT();
 
 const baseId = useId();
 
@@ -316,7 +319,7 @@ const panelBindings = computed(() => {
         variant="plain"
         :dashed="false"
         icon="ViewRows"
-        title="No items"
+        :title="t('kit.accordion.noItemsTitle')"
         :tone="tone"
         :size="size"
       />
@@ -496,7 +499,7 @@ const panelBindings = computed(() => {
         <Loader
           v-if="item.loading"
           overlay
-          title="Loading"
+          :title="t('kit.accordion.loadingTitle')"
           class="rounded-none"
           size="md"
           :color="tone"

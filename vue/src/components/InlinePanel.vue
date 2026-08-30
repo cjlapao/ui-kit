@@ -11,6 +11,7 @@ import {
   type Ref,
   type VNode,
 } from "vue";
+import { useKitT } from "../i18n";
 import classNames from "classnames";
 import Button from "./Button.vue";
 import type { ButtonProps, ButtonVariant, ButtonColor } from "./Button.vue";
@@ -161,11 +162,11 @@ export const ConfirmInlinePanel = defineComponent({
     size: { type: String as PropType<Size>, default: "sm" },
     confirmLabel: {
       type: [String, Object] as PropType<string | VNode>,
-      default: "Confirm",
+      default: undefined,
     },
     cancelLabel: {
       type: [String, Object] as PropType<string | VNode>,
-      default: "Cancel",
+      default: undefined,
     },
     confirmVariant: {
       type: String as PropType<ButtonVariant>,
@@ -179,6 +180,7 @@ export const ConfirmInlinePanel = defineComponent({
   },
   emits: ["close", "confirm"],
   setup(props, { attrs, slots, emit }) {
+    const t = useKitT();
     return () =>
       h(
         getInlinePanel(),
@@ -200,7 +202,7 @@ export const ConfirmInlinePanel = defineComponent({
                 size: "sm",
                 onClick: () => emit("close"),
               },
-              { default: () => props.cancelLabel },
+              { default: () => props.cancelLabel ?? t("kit.inlinepanel.cancel") },
             ),
             h(
               Button,
@@ -211,7 +213,7 @@ export const ConfirmInlinePanel = defineComponent({
                 disabled: props.isConfirmDisabled,
                 onClick: () => emit("confirm"),
               },
-              { default: () => props.confirmLabel },
+              { default: () => props.confirmLabel ?? t("kit.inlinepanel.confirm") },
             ),
           ],
         },
@@ -239,19 +241,17 @@ export const DeleteConfirmInlinePanel = defineComponent({
   props: {
     isOpen: { type: Boolean, required: true },
     confirmValue: { type: String, required: true },
-    confirmValueLabel: { type: String, default: "name" },
+    confirmValueLabel: { type: String, default: undefined },
     confirmLabel: {
       type: [String, Object] as PropType<string | VNode>,
-      default: "Delete",
+      default: undefined,
     },
-    cancelLabel: {
-      type: [String, Object] as PropType<string | VNode>,
-      default: "Cancel",
-    },
+    cancelLabel: { type: [String, Object] as PropType<string | VNode> },
     isConfirmDisabled: { type: Boolean, default: false },
   },
   emits: ["close", "confirm"],
   setup(props, { attrs, slots, emit }) {
+    const t = useKitT();
     const inputValue = ref("");
     const inputRef: Ref<HTMLElement | null> = ref(null);
 
@@ -269,8 +269,8 @@ export const DeleteConfirmInlinePanel = defineComponent({
         ConfirmInlinePanel,
         mergeProps(attrs, {
           isOpen: props.isOpen,
-          confirmLabel: props.confirmLabel,
-          cancelLabel: props.cancelLabel,
+          confirmLabel: props.confirmLabel ?? t("kit.inlinepanel.delete"),
+          cancelLabel: props.cancelLabel ?? t("kit.inlinepanel.cancel"),
           confirmVariant: "solid" as const,
           confirmColor: "rose" as const,
           isConfirmDisabled: !isMatch || props.isConfirmDisabled,
@@ -287,8 +287,9 @@ export const DeleteConfirmInlinePanel = defineComponent({
                 "label",
                 { class: "text-sm text-neutral-600 dark:text-neutral-400" },
                 [
-                  "Type the ",
-                  props.confirmValueLabel,
+                  t("kit.inlinepanel.typeValuePrefix"),
+                  " ",
+                  props.confirmValueLabel ?? t("kit.inlinepanel.confirmValueLabel"),
                   " ",
                   h(
                     "span",
@@ -299,7 +300,7 @@ export const DeleteConfirmInlinePanel = defineComponent({
                     props.confirmValue,
                   ),
                   " ",
-                  "to confirm:",
+                  t("kit.inlinepanel.typeValueSuffix"),
                 ],
               ),
               h("input", {
@@ -350,6 +351,8 @@ import { useClassAttrs } from "../utils/attrsUtils";
 
 defineOptions({ name: "InlinePanel", inheritAttrs: false });
 
+const t = useKitT();
+
 const props = withDefaults(defineProps<InlinePanelProps>(), {
   size: "md",
   anchor: "fill",
@@ -358,7 +361,6 @@ const props = withDefaults(defineProps<InlinePanelProps>(), {
   closeOnBackdropClick: false,
   showBackdrop: false,
   headerActions: () => [],
-  backTooltip: "Go back",
   hideCloseButton: false,
   role: "dialog",
 });
@@ -657,9 +659,9 @@ const headerActionBindings = (action: InlinePanelHeaderAction) => {
             variant="ghost"
             color="slate"
             size="sm"
-            :tooltip="backTooltip"
+            :tooltip="backTooltip ?? t('kit.inlinepanel.back')"
             tooltip-position="bottom"
-            :aria-label="backTooltip"
+            :aria-label="backTooltip ?? t('kit.inlinepanel.back')"
             @click="emit('back')"
           />
         </div>
@@ -702,7 +704,7 @@ const headerActionBindings = (action: InlinePanelHeaderAction) => {
             variant="ghost"
             color="slate"
             size="sm"
-            aria-label="Close"
+            :aria-label="t('kit.inlinepanel.close')"
             @click="emit('close')"
           />
         </div>

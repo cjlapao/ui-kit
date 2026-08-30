@@ -36,8 +36,11 @@ export interface InfoRowView {
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useKitT } from "../../i18n";
 import TooltipWrapper from "../TooltipWrapper.vue";
 import IconButton from "../IconButton.vue";
+
+const t = useKitT();
 
 // `inheritAttrs: true` (the default) on purpose: `InfoRow` binds the caller's
 // native attributes onto this component when the row is the root, and
@@ -74,7 +77,7 @@ const measure = () => {
         v-if="view.loading && view.loaderType === 'spinner'"
         :class="view.spinnerClass"
         role="status"
-        aria-label="Loading"
+        :aria-label="t('kit.inforow.loading')"
       />
       <span v-else-if="view.loading" :class="view.skeletonClass" />
 

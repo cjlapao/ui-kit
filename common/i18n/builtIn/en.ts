@@ -68,6 +68,7 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       confirmValueLabel: "name",
       typeValuePrefix: "Type the",
       typeValueSuffix: "to confirm:",
+      back: "Go back",
     },
     modal: {
       cancel: "Cancel",
@@ -78,6 +79,7 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       confirmValueLabel: "name",
       typeValuePrefix: "Type the",
       typeValueSuffix: "to confirm:",
+      back: "Go back",
     },
     notificationmodal: {
       action: "Close",

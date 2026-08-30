@@ -57,6 +57,7 @@ export interface PagedPanelProps
 <script setup lang="ts">
 import { computed, ref, useSlots, watch } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import Panel from "./Panel.vue";
 import PagedPanelContent, {
   type PagedPanelView,
@@ -71,8 +72,9 @@ const props = withDefaults(defineProps<PagedPanelProps>(), {
   loaderType: "skeleton",
   tone: "blue",
   size: "md",
-  emptyMessage: "No data available.",
 });
+
+const t = useKitT();
 
 const emit = defineEmits<{ "update:page": [page: number] }>();
 
@@ -110,7 +112,7 @@ const view = computed<PagedPanelView>(() => ({
   subtitle: props.subtitle,
   page: props.pages[current.value],
   error: props.error,
-  emptyMessage: props.emptyMessage,
+  emptyMessage: props.emptyMessage ?? t("kit.pagedpanel.empty"),
   tone: props.tone,
   size: props.size,
   current: current.value,

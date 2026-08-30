@@ -321,6 +321,7 @@ type SideMenuRenderEntry =
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import { RouterLink, useRoute } from "vue-router";
 import CustomIcon from "./CustomIcon.vue";
 import { useClassAttrs } from "../utils/attrsUtils";
@@ -615,7 +616,7 @@ const handleLinkClick = () => {
           :class="`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg text-gray-500 dark:text-neutral-400 hover:bg-gray-100 dark:hover:bg-neutral-700/50 hover:text-gray-700 dark:hover:text-neutral-200 transition-colors ${
             isCollapsed ? 'justify-center' : ''
           }`"
-          :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          :title="isCollapsed ? t('kit.sidemenu.expandSidebar') : t('kit.sidemenu.collapseSidebar')"
           @click="toggleCollapse"
         >
           <CustomIcon

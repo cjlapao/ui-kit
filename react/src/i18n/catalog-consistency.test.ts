@@ -16,9 +16,15 @@ import { describe, expect, it } from "vitest";
 import { flattenCatalog } from "../../../common/i18n/catalog";
 import { EN_KIT_CATALOG } from "../../../common/i18n/builtIn";
 
-const HERE = path.dirname(fileURLToPath(new URL(import.meta.url)));
-const REACT_SRC = path.resolve(HERE, "..");
-const VUE_SRC = path.resolve(HERE, "..", "..", "vue", "src");
+const HERE = path.dirname(fileURLToPath(new URL(import.meta.url))); // react/src/i18n
+const REACT_SRC = path.resolve(HERE, ".."); // react/src
+const VUE_SRC = path.resolve(HERE, "..", "..", "..", "vue", "src"); // <repo>/vue/src
+
+// The walk below silently skips a missing dir — fail loudly if the vue kit
+// tree is where we expect it, so the cross-kit scan can't degrade silently.
+if (!fs.existsSync(VUE_SRC)) {
+  throw new Error(`catalog-consistency: vue/src not found at ${VUE_SRC}`);
+}
 
 function* walk(dir: string): Generator<string> {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -42,18 +48,12 @@ function sourceBlob(): string {
 const enFlat = flattenCatalog(EN_KIT_CATALOG);
 
 describe("catalog consistency (a) — no dead keys", () => {
-  // Keys intentionally unreferenced in react/src until Phase 4 (Vue SideMenu
-  // detached-variant labels). Remove these entries when Phase 4 lands.
-  const allowlist = new Set([
-    "kit.sidemenu.expandSidebar",
-    "kit.sidemenu.collapseSidebar",
-  ]);
-
   it("every en kit key is referenced in react/src or vue/src", () => {
     const blob = sourceBlob();
-    const dead = Object.keys(enFlat).filter(
-      (key) => !allowlist.has(key) && !blob.includes(`"${key}"`),
-    );
+    // React uses double quotes, Vue SFCs single — accept both.
+    const referenced = (key: string) =>
+      blob.includes(`"${key}"`) || blob.includes(`'${key}'`);
+    const dead = Object.keys(enFlat).filter((key) => !referenced(key));
     expect(dead).toEqual([]);
   });
 });

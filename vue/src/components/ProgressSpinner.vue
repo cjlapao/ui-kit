@@ -46,8 +46,11 @@ export interface ProgressSpinnerProps {
 <script setup lang="ts">
 import { computed, useAttrs } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 
 defineOptions({ inheritAttrs: false });
+
+const t = useKitT();
 
 const props = withDefaults(defineProps<ProgressSpinnerProps>(), {
   min: 0,
@@ -57,7 +60,6 @@ const props = withDefaults(defineProps<ProgressSpinnerProps>(), {
   thickness: "normal",
   animationDuration: "2s",
   showValue: true,
-  ariaLabel: "Loading",
 });
 
 const attrs = useAttrs();
@@ -126,7 +128,7 @@ const rootClass = computed(() =>
 <template>
   <div
     role="progressbar"
-    :aria-label="ariaLabel"
+    :aria-label="ariaLabel ?? t('kit.progressspinner.loading')"
     :aria-valuemin="determinate ? min : undefined"
     :aria-valuemax="determinate ? max : undefined"
     :aria-valuenow="determinate ? clamped : undefined"

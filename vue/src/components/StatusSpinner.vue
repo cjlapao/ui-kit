@@ -20,6 +20,7 @@ export interface StatusSpinnerProps {
 <script setup lang="ts">
 import { computed, ref, type CSSProperties } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import {
   getSurfaceTextTokens,
   getStatusSpinnerSizeTokens,
@@ -28,6 +29,8 @@ import {
 import { useClassAttrs } from "../utils/attrsUtils";
 
 defineOptions({ name: "StatusSpinner", inheritAttrs: false });
+
+const t = useKitT();
 
 const props = withDefaults(defineProps<StatusSpinnerProps>(), {
   tone: "blue",
@@ -103,6 +106,6 @@ const labelClass = `text-sm font-medium ${getSurfaceTextTokens("elevated").body}
     <!-- With a visible label the text is already inside the status region —
          an sr-only copy beside it would be announced twice. -->
     <span v-if="label" :class="labelClass">{{ label }}</span>
-    <span v-else class="sr-only">Loading</span>
+    <span v-else class="sr-only">{{ t("kit.spinner.loading") }}</span>
   </span>
 </template>

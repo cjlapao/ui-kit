@@ -65,6 +65,7 @@ export interface ComboboxProps {
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch, useId } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import Input from "./Input.vue";
 import Spinner from "./Spinner.vue";
 import CustomIcon from "./CustomIcon.vue";
@@ -91,10 +92,10 @@ const props = withDefaults(defineProps<ComboboxProps>(), {
   readOnly: false,
   loading: false,
   clearable: true,
-  loadingMessage: "Loading…",
-  emptyMessage: "No matching options. Keep typing to use what you entered.",
   visibleRows: 6,
 });
+
+const t = useKitT();
 
 const emit = defineEmits<{
   "update:value": [value: string];
@@ -364,7 +365,7 @@ const onFocus = () => {
       "
       autocomplete="off"
       :trailing-icon="showClear ? 'Close' : 'ArrowDown'"
-      :trailing-icon-label="showClear ? 'Clear' : 'Show options'"
+      :trailing-icon-label="showClear ? t('kit.combobox.clear') : t('kit.combobox.showOptions')"
       @trailing-icon-click="onTrailingIconClick"
       @update:model-value="onInput(String($event))"
       @focus="onFocus"
@@ -396,7 +397,7 @@ const onFocus = () => {
         "
       >
         <Spinner size="xs" :color="accent" />
-        {{ loadingMessage }}
+        {{ loadingMessage ?? t("kit.combobox.loading") }}
       </li>
 
       <li
@@ -405,7 +406,7 @@ const onFocus = () => {
           classNames('italic text-neutral-500 dark:text-neutral-400', rowClass)
         "
       >
-        {{ emptyMessage }}
+        {{ emptyMessage ?? t("kit.combobox.emptyMessage") }}
       </li>
 
       <li
