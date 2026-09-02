@@ -48,6 +48,8 @@ interface GanttBodyRowProps {
   liveDates: { start: number; end: number } | null;
   /** Live percent complete (0..1) while this row's progress knob is dragged. */
   liveProgress: number | null;
+  /** Live lane roll-up (0..1) while one of the lane's children is dragged. */
+  liveLane?: number | null;
   onBarPointerDown: (task: GanttTask, e: React.PointerEvent) => void;
   onResizePointerDown: (task: GanttTask, edge: "start" | "end", e: React.PointerEvent) => void;
   onGripPointerDown: (rowKey: string, task: GanttTask, e: React.PointerEvent) => void;
@@ -83,6 +85,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
   drag,
   liveDates,
   liveProgress,
+  liveLane,
   onBarPointerDown,
   onResizePointerDown,
   onGripPointerDown,
@@ -117,6 +120,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
           color={color}
           onCaretClick={onLaneCaretClick}
           dividerClass={dividerClass}
+          liveProgress={liveLane}
         />
       ) : (
         <>
@@ -197,7 +201,9 @@ const LaneHeader: React.FC<{
   color: TrueColor;
   onCaretClick: (laneId: string, isOpen: boolean) => void;
   dividerClass?: string;
-}> = ({ row, columns, leftWidth, color, onCaretClick, dividerClass = "border-neutral-200 dark:border-neutral-800" }) => {
+  /** Live lane roll-up (0..1) while one of the lane's children is dragged. */
+  liveProgress?: number | null;
+}> = ({ row, columns, leftWidth, color, onCaretClick, dividerClass = "border-neutral-200 dark:border-neutral-800", liveProgress }) => {
   const lane = row.lane!;
   const laneColor = lane.color ?? color;
   const tokens = getGanttLaneTokens(laneColor);
@@ -249,7 +255,7 @@ const LaneHeader: React.FC<{
                 )}
               </>
             ) : col.key === "progress" ? (
-              <ProgressCell value={row.progress ?? 0} barClass={tokens.chip} />
+              <ProgressCell value={liveProgress ?? row.progress ?? 0} barClass={tokens.chip} />
             ) : null}
           </div>
         ))}

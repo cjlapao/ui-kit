@@ -10,6 +10,7 @@ import {
   dateToX,
   toMs,
   computeViewRange,
+  laneRollupProgress,
   MS_PER_DAY,
 } from "../../../../common/gantt";
 import type { GanttTask } from "../../../../common/gantt";
@@ -155,6 +156,42 @@ describe("Gantt (Vue)", () => {
     expect(w.emitted("tasks-change")).toBeTruthy();
     const next = w.emitted("tasks-change")![0][0] as GanttTask[];
     expect(next.find((t) => t.id === "webapp")!.progress).toBe(0.8);
+  });
+
+  it("re-rolls the lane progress live while dragging a child's knob", async () => {
+    const w = mountGantt({ editable: true });
+    // webapp-screens is a leaf of the eng lane (a group's own progress is
+    // ignored by the leaf-based roll-up).
+    const bar = w.find('[data-gantt-bar="webapp-screens"]');
+    const knob = bar.find('[title="Adjust progress"]');
+    expect(knob.exists()).toBe(true);
+
+    const screens = tasks.find((t) => t.id === "webapp-screens")!;
+    const committed = laneRollupProgress(tasks, "webapp-screens")!;
+    const live = laneRollupProgress(tasks, "webapp-screens", { ...screens, progress: 0.8 })!;
+    // The previewed edit actually moves the lane's roll-up (test guard).
+    expect(Math.round(live.progress * 100)).not.toBe(Math.round(committed.progress * 100));
+
+    const range = computeViewRange(
+      tasks.map((t) => toMs(t.start)),
+      tasks.map((t) => toMs(t.end)),
+    );
+    const left = dateToX(toMs(screens.start), range.start, 16);
+    const width = Math.max(6, dateToX(toMs(screens.end), range.start, 16) - left);
+
+    await knob.trigger("pointerdown");
+    await nextTick();
+    pointer("pointermove", left + width * 0.8, 100);
+    await nextTick();
+
+    // Mid-drag: the lane header reads the re-rolled %.
+    const laneRow = w.find('[data-row-key="lane:eng"]');
+    expect(laneRow.text()).toContain(`${Math.round(live.progress * 100)}%`);
+    expect(w.emitted("tasks-change")).toBeFalsy();
+
+    pointer("pointerup", left + width * 0.8, 100);
+    await nextTick();
+    expect(w.emitted("tasks-change")).toBeTruthy();
   });
 
   it("reorders rows by dragging the row grip", async () => {

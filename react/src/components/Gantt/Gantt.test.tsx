@@ -11,6 +11,7 @@ import {
   toMs,
   computeViewRange,
   computeLinkPaths,
+  laneRollupProgress,
   MS_PER_DAY,
 } from "../../../../common/gantt";
 import type { GanttTask, GanttBarGeometry } from "../../../../common/gantt";
@@ -186,6 +187,73 @@ describe("Gantt component", () => {
     expect(onTasksChange).toHaveBeenCalledTimes(1);
     const next = onTasksChange.mock.calls[0][0] as GanttTask[];
     expect(next.find((t) => t.id === "webapp")!.progress).toBe(0.8);
+  });
+
+  it("re-rolls the lane progress live while dragging a child's knob", () => {
+    const onTasksChange = vi.fn();
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />,
+    );
+    // webapp-screens is a leaf of the eng lane (a group's own progress is
+    // ignored by the leaf-based roll-up).
+    const barEl = container.querySelector<HTMLElement>('[data-gantt-bar="webapp-screens"]')!;
+    const knob = barEl.querySelector('[title="Adjust progress"]') as HTMLElement;
+    const laneRow = container.querySelector<HTMLElement>('[data-row-key="lane:eng"]')!;
+
+    const screens = tasks.find((t) => t.id === "webapp-screens")!;
+    const committed = laneRollupProgress(tasks, "webapp-screens")!;
+    const live = laneRollupProgress(tasks, "webapp-screens", { ...screens, progress: 0.8 })!;
+    // The previewed edit actually moves the lane's roll-up (test guard).
+    expect(Math.round(live.progress * 100)).not.toBe(Math.round(committed.progress * 100));
+
+    const left = parseFloat(barEl.style.left);
+    const width = parseFloat(barEl.style.width);
+    fireEvent.pointerDown(knob, { clientX: left + width * 0.2, clientY: 100, button: 0 });
+    pointer(window, "pointermove", left + width * 0.8, 100);
+    // Mid-drag: the lane header reads the re-rolled %, nothing is committed.
+    expect(laneRow.textContent).toContain(`${Math.round(live.progress * 100)}%`);
+    expect(onTasksChange).not.toHaveBeenCalled();
+
+    pointer(window, "pointerup", left + width * 0.8, 100);
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    const next = onTasksChange.mock.calls[0][0] as GanttTask[];
+    expect(next.find((t) => t.id === "webapp-screens")!.progress).toBe(0.8);
+    // Re-render with the committed tasks: the lane keeps the re-rolled value.
+    const c2 = render(
+      <Gantt tasks={next} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />,
+    ).container;
+    expect(c2.querySelector('[data-row-key="lane:eng"]')!.textContent).toContain(
+      `${Math.round(live.progress * 100)}%`,
+    );
+  });
+
+  it("re-rolls the lane progress live while resizing a child bar (duration weights)", () => {
+    const onTasksChange = vi.fn();
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />,
+    );
+    const barEl = container.querySelector<HTMLElement>('[data-gantt-bar="api"]')!;
+    const handle = barEl.querySelector('[title="Resize start"]') as HTMLElement;
+    const laneRow = container.querySelector<HTMLElement>('[data-row-key="lane:eng"]')!;
+
+    const api = tasks.find((t) => t.id === "api")!;
+    const committed = laneRollupProgress(tasks, "api")!;
+    // Start edge +2 days shrinks api's duration; api is 100% done, so the
+    // lane's duration-weighted roll-up shifts.
+    const live = laneRollupProgress(
+      tasks,
+      "api",
+      { ...api, start: toMs(api.start) + 2 * MS_PER_DAY },
+    )!;
+    expect(Math.round(live.progress * 100)).not.toBe(Math.round(committed.progress * 100));
+
+    fireEvent.pointerDown(handle, { clientX: 0, clientY: 0, button: 0 });
+    pointer(window, "pointermove", 32, 0); // +2 days on the start edge
+    expect(laneRow.textContent).toContain(`${Math.round(live.progress * 100)}%`);
+    expect(onTasksChange).not.toHaveBeenCalled();
+
+    pointer(window, "pointerup", 32, 0);
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
   });
 
   it("previews a move on the dragged bar only — other bars keep their geometry", () => {

@@ -54,6 +54,7 @@ import {
   dateToX,
   getGanttSelectionTokens,
   getGanttTodayTokens,
+  laneRollupProgress,
   LINK_RIGHT_GUTTER,
   rangeWidth,
   toMs,
@@ -570,6 +571,27 @@ export const Gantt: React.FC<GanttProps> = ({
   const liveDragProgress =
     drag?.kind === "progress" && drag.liveProgress != null ? drag.liveProgress : null;
 
+  // While a drag is live, the lane that owns the dragged task re-rolls its
+  // roll-up with the previewed edit, so the lane's Progress column follows
+  // the child in real time — a move/resize changes the duration weights,
+  // the progress knob changes the leaf value. Committed values are unchanged
+  // until the drop.
+  const liveLaneProgress = useMemo(() => {
+    if (!drag || !dragTask) return null;
+    let override: GanttTask | undefined;
+    if (drag.kind === "progress" && drag.liveProgress != null) {
+      override = { ...dragTask, progress: drag.liveProgress };
+    } else if (
+      (drag.kind === "move" || drag.kind === "resize-start" || drag.kind === "resize-end") &&
+      liveDragDates
+    ) {
+      override = { ...dragTask, start: liveDragDates.start, end: liveDragDates.end };
+    } else {
+      return null;
+    }
+    return laneRollupProgress(effectiveTasks, dragTask.id, override);
+  }, [drag, dragTask, liveDragDates, effectiveTasks]);
+
   // While a move/resize drag is live, the dragged task's committed geometry is
   // replaced by its preview geometry, so its dependency arrows re-route in
   // place (following the bar as it moves/resizes) instead of snapping on drop.
@@ -783,6 +805,11 @@ export const Gantt: React.FC<GanttProps> = ({
                   liveDates={liveDragDates ?? null}
                   liveProgress={
                     row.task && drag?.taskId === row.task.id ? liveDragProgress : null
+                  }
+                  liveLane={
+                    row.lane && liveLaneProgress && row.lane.id === liveLaneProgress.laneId
+                      ? liveLaneProgress.progress
+                      : null
                   }
                   onBarPointerDown={dragApi.onBarPointerDown}
                   onResizePointerDown={dragApi.onResizePointerDown}

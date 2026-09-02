@@ -29,6 +29,8 @@ export interface GanttBodyRowProps {
   liveDates: { start: number; end: number } | null;
   /** Live percent complete (0..1) while this row's progress knob is dragged. */
   liveProgress?: number | null;
+  /** Live lane roll-up (0..1) while one of the lane's children is dragged. */
+  liveLane?: number | null;
   selectionTokens: { ring: string; row: string };
   /**
    * Hairline divider classes (border colour) for row / cell edges — the
@@ -79,7 +81,9 @@ const lane = computed(() => props.row.lane!);
 const laneColor = computed(() => lane.value.color ?? props.color);
 const laneTokens = computed(() => getGanttLaneTokens(laneColor.value));
 const laneIsOpen = computed(() => lane.value.open !== false);
-const lanePct = computed(() => Math.round((props.row.progress ?? 0) * 100));
+const lanePct = computed(
+  () => Math.round(((props.liveLane ?? props.row.progress) ?? 0) * 100),
+);
 </script>
 
 <template>

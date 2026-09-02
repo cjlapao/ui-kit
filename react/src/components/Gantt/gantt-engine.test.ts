@@ -17,6 +17,7 @@ import {
   applyRowReorder,
   resolveDropBeforeId,
   rollupProgress,
+  laneRollupProgress,
 } from "../../../../common/gantt/layout";
 import {
   applyDragDates,
@@ -153,6 +154,39 @@ describe("layout engine", () => {
     const p = rollupProgress(visual, tasksById, children);
     // tokens: 3d @ 1.0, flow: 4d @ 0.5 → (3 + 2) / 7 ≈ 0.7143
     expect(p).toBeCloseTo(5 / 7, 5);
+  });
+
+  it("re-rolls a lane's progress with a previewed edit of one of its children", () => {
+    // Baseline: matches the committed lane header value from buildRows.
+    const committed = laneRollupProgress(tasks, "webapp");
+    expect(committed).not.toBeNull();
+    expect(committed!.laneId).toBe("eng");
+    const laneRow = rows.find((r) => r.key === "lane:eng")!;
+    expect(laneRow.progress).toBeTruthy();
+    expect(committed!.progress).toBeCloseTo(laneRow.progress!, 5);
+
+    // Preview a progress edit on a leaf (knob drag webapp-screens 0.2 → 0.8)
+    // → the lane moves. (A group's own progress is ignored by the
+    // leaf-based roll-up, so the edit must land on a leaf.)
+    const screens = tasks.find((t) => t.id === "webapp-screens")!;
+    const edited = laneRollupProgress(tasks, "webapp-screens", {
+      ...screens,
+      progress: 0.8,
+    })!;
+    expect(edited.progress).toBeGreaterThan(committed!.progress);
+
+    // Preview a duration change (resize api's start +2 days shrinks its
+    // duration weight, and api is 100% done) → the lane moves too.
+    const api = tasks.find((t) => t.id === "api")!;
+    const resized = laneRollupProgress(
+      tasks,
+      "api",
+      { ...api, start: toMs(api.start) + 2 * MS_PER_DAY },
+    )!;
+    expect(resized.progress).not.toBeCloseTo(committed!.progress, 5);
+
+    // Unknown task → null.
+    expect(laneRollupProgress(tasks, "nope")).toBeNull();
   });
 
   it("collapses a lane to its header row when open === false", () => {

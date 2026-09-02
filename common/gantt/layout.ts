@@ -42,6 +42,41 @@ export function rollupProgress(
 }
 
 /**
+ * Duration-weighted progress over the lane that owns `taskId`, with
+ * `override` (a preview edit of that task — the live dates of an in-flight
+ * bar drag, or the live progress of a knob drag) substituted in place of
+ * the task's committed values. This is what lets a lane header recompute
+ * its roll-up in real time while one of its children is being edited.
+ * Returns `null` when `taskId` is not in the list.
+ */
+export function laneRollupProgress(
+  tasks: GanttTask[],
+  taskId: string,
+  override?: GanttTask,
+): { laneId: string; progress: number } | null {
+  const tasksById = new Map<string, GanttTask>(tasks.map((t) => [t.id, t]));
+  const target = tasksById.get(taskId);
+  if (!target) return null;
+  const laneId = target.lane ?? "";
+  const edited = override ? tasks.map((t) => (t.id === taskId ? override : t)) : tasks;
+  const childrenByParent = new Map<string, GanttTask[]>();
+  for (const t of edited) {
+    if (t.parent != null && tasksById.has(t.parent)) {
+      let list = childrenByParent.get(t.parent);
+      if (!list) {
+        list = [];
+        childrenByParent.set(t.parent, list);
+      }
+      list.push(t);
+    }
+  }
+  const top = edited.filter(
+    (t) => (t.parent == null || !tasksById.has(t.parent)) && (t.lane ?? "") === laneId,
+  );
+  return { laneId, progress: rollupLaneProgress(top, childrenByParent) };
+}
+
+/**
  * Build the row model.
  *
  * @param tasks    The task list (parents may precede or follow children).

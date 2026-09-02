@@ -109,6 +109,7 @@ import {
   dateToX,
   getGanttSelectionTokens,
   getGanttTodayTokens,
+  laneRollupProgress,
   LINK_RIGHT_GUTTER,
   rangeWidth,
   toMs,
@@ -499,6 +500,29 @@ const liveDragProgress = computed(
       : null,
 );
 
+// While a drag is live, the lane that owns the dragged task re-rolls its
+// roll-up with the previewed edit, so the lane's Progress column follows
+// the child in real time — a move/resize changes the duration weights,
+// the progress knob changes the leaf value. Committed values are unchanged
+// until the drop.
+const liveLaneProgress = computed(() => {
+  const d = drag.value;
+  const t = dragTask.value;
+  if (!d || !t) return null;
+  let override: GanttTask | undefined;
+  if (d.kind === "progress" && d.liveProgress != null) {
+    override = { ...t, progress: d.liveProgress };
+  } else if (
+    (d.kind === "move" || d.kind === "resize-start" || d.kind === "resize-end") &&
+    liveDragDates.value
+  ) {
+    override = { ...t, start: liveDragDates.value.start, end: liveDragDates.value.end };
+  } else {
+    return null;
+  }
+  return laneRollupProgress(effectiveTasks.value, t.id, override);
+});
+
 // While a move/resize drag is live, the dragged task's committed geometry is
 // replaced by its preview geometry, so its dependency arrows re-route in
 // place (following the bar as it moves/resizes) instead of snapping on drop.
@@ -723,6 +747,7 @@ const colJustify = (col: GanttColumn) =>
             :drag="drag"
             :live-dates="liveDragDates ?? null"
             :live-progress="row.task && drag?.taskId === row.task.id ? liveDragProgress : null"
+            :live-lane="row.lane && liveLaneProgress && row.lane.id === liveLaneProgress.laneId ? liveLaneProgress.progress : null"
             :selection-tokens="selectionTokens"
             :divider-class="surfaceText.divider"
             @bar-pointer-down="hBarPointerDown"
