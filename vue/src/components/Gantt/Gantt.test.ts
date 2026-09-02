@@ -170,6 +170,40 @@ describe("Gantt (Vue)", () => {
     expect(next[0]).toMatchObject({ source: "api", target: "webapp", type: "fs" });
   });
 
+  it("fans out the ports of links sharing a source (16px slots, no stacking)", () => {
+    const fanTasks: GanttTask[] = [
+      { id: "fa", name: "A", start: "2026-08-10", end: "2026-08-14", lane: "fl" },
+      { id: "fb", name: "B", start: "2026-08-20", end: "2026-08-24", lane: "fl" },
+      { id: "fc", name: "C", start: "2026-08-24", end: "2026-08-28", lane: "fl" },
+    ];
+    const w = mount(Gantt as any, {
+      props: {
+        tasks: fanTasks,
+        links: [
+          { id: "f1", source: "fa", target: "fb" },
+          { id: "f2", source: "fa", target: "fc" },
+        ],
+        lanes: [{ id: "fl", label: "Lane" }],
+      },
+    });
+    // Port dots: group by cx (each x position = one bar edge). The source's
+    // right edge carries both links — its two distinct cy's differ by the
+    // 16px fan spacing instead of stacking on one point.
+    const circles = w.element.querySelectorAll("circle");
+    const byX = new Map<number, Set<number>>();
+    circles.forEach((c: Element) => {
+      const x = Number(c.getAttribute("cx"));
+      const y = Number(c.getAttribute("cy"));
+      const set = byX.get(x) ?? new Set<number>();
+      set.add(y);
+      byX.set(x, set);
+    });
+    const fanned = [...byX.values()].find((ys) => ys.size === 2);
+    expect(fanned).toBeTruthy();
+    const [y1, y2] = [...fanned!];
+    expect(Math.abs(y1 - y2)).toBeCloseTo(16, 5);
+  });
+
   it("collapses a lane via its caret", async () => {
     const w = mountGantt();
     const before = w.findAll('[data-gantt-bar]').length;

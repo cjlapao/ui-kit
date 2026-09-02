@@ -48,11 +48,13 @@ import {
   buildRows,
   buildTimeScale,
   commitDragEdit,
+  computeLinkFanOffsets,
   computeLinkPaths,
   computeViewRange,
   dateToX,
   getGanttSelectionTokens,
   getGanttTodayTokens,
+  LINK_RIGHT_GUTTER,
   rangeWidth,
   toMs,
   MS_PER_DAY,
@@ -581,6 +583,11 @@ export const Gantt: React.FC<GanttProps> = ({
     [links, liveLinkBars, color],
   );
 
+  // Port slots per bar edge: the hover link handle sits on the largest free
+  // slot (never on the static fan) and passes the same offset to the
+  // rubber-band preview.
+  const linkFan = useMemo(() => computeLinkFanOffsets(links, bars), [links, bars]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
   // The chart is a Panel: the container chrome (fill, border, backdrop,
   // corner) comes from the surface variant, and the surface context flows to
@@ -715,7 +722,7 @@ export const Gantt: React.FC<GanttProps> = ({
           className="gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain"
           onScroll={syncHeaderScale}
         >
-          <div style={{ width: leftWidth + timelineWidth, minWidth: "100%" }}>
+          <div style={{ width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER, minWidth: "100%" }}>
           {loading ? (
             <GanttSkeleton rows={12} rowHeight={rowHeight} leftWidth={leftWidth} />
           ) : isEmpty ? (
@@ -757,6 +764,8 @@ export const Gantt: React.FC<GanttProps> = ({
                   zoom={zoom}
                   color={color}
                   interactive={interactive}
+                  fanOut={row.task ? linkFan.bars.get(row.task.id)?.out : undefined}
+                  fanIn={row.task ? linkFan.bars.get(row.task.id)?.inc : undefined}
                   selected={
                     row.task ? row.task.id === selectedId : selectedId === `lane:${row.lane?.id ?? ""}`
                   }
@@ -782,7 +791,7 @@ export const Gantt: React.FC<GanttProps> = ({
               {/* Dependency overlay (above rows, below handles via z-index) */}
               <GanttLinkLayer
                 ref={overlayRef}
-                width={timelineWidth}
+                width={timelineWidth + LINK_RIGHT_GUTTER}
                 height={bodyHeight}
                 offsetLeft={leftWidth}
                 paths={linkPaths}

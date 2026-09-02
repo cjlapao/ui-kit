@@ -103,11 +103,13 @@ import {
   buildRows,
   buildTimeScale,
   commitDragEdit,
+  computeLinkFanOffsets,
   computeLinkPaths,
   computeViewRange,
   dateToX,
   getGanttSelectionTokens,
   getGanttTodayTokens,
+  LINK_RIGHT_GUTTER,
   rangeWidth,
   toMs,
   MS_PER_DAY,
@@ -456,8 +458,8 @@ const hBarPointerDown = (t: GanttTask, ev: PointerEvent) => dragApi.onBarPointer
 const hResizePointerDown = (t: GanttTask, edge: "start" | "end", ev: PointerEvent) =>
   dragApi.onResizePointerDown(t, edge, ev);
 const hGripPointerDown = (k: string, t: GanttTask, ev: PointerEvent) => dragApi.onGripPointerDown(k, t, ev);
-const hLinkHandlePointerDown = (t: GanttTask, side: 1 | -1, ev: PointerEvent) =>
-  dragApi.onLinkHandlePointerDown(t, side, ev);
+const hLinkHandlePointerDown = (t: GanttTask, side: 1 | -1, ev: PointerEvent, fromOffset?: number) =>
+  dragApi.onLinkHandlePointerDown(t, side, ev, fromOffset);
 const hProgressPointerDown = (t: GanttTask, ev: PointerEvent) => dragApi.onProgressPointerDown(t, ev);
 const hCaretClick = (id: string, open: boolean) => toggleCollapse(id, open);
 const hLaneCaretClick = (id: string, open: boolean) => toggleLane(id, open);
@@ -504,6 +506,11 @@ const liveLinkBars = computed(() => {
 });
 
 const linkPaths = computed(() => computeLinkPaths(props.links, liveLinkBars.value, accentColor.value));
+
+// Port slots per bar edge: the hover link handle sits on the largest free
+// slot (never on the static fan) and passes the same offset to the
+// rubber-band preview.
+const linkFan = computed(() => computeLinkFanOffsets(props.links, bars.value));
 
 function formatRangeLabel(start: number, end: number, zoom: number): string {
   const fmt = (ms: number) =>
@@ -632,7 +639,7 @@ const colJustify = (col: GanttColumn) =>
         class="gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain"
         @scroll="syncHeaderScale"
       >
-        <div :style="{ width: leftWidth + timelineWidth, minWidth: '100%' }">
+        <div :style="{ width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER, minWidth: '100%' }">
 
         <!-- ── Body ───────────────────────────────────────────────────── -->
         <!-- Loading skeleton -->
@@ -696,6 +703,8 @@ const colJustify = (col: GanttColumn) =>
             :zoom="zoom"
             :color="accentColor"
             :interactive="interactive"
+            :fan-out="row.task ? linkFan.bars.get(row.task.id)?.out : undefined"
+            :fan-in="row.task ? linkFan.bars.get(row.task.id)?.inc : undefined"
             :selected="row.task ? row.task.id === selectedId : selectedId === `lane:${row.lane?.id ?? ''}`"
             :labels="allLabels"
             :render-cell="renderCell"
@@ -719,10 +728,10 @@ const colJustify = (col: GanttColumn) =>
           <div
             ref="overlayRef"
             class="pointer-events-none absolute top-0 z-10"
-            :style="{ left: `${leftWidth}px`, width: `${timelineWidth}px`, height: `${bodyHeight}px` }"
+            :style="{ left: `${leftWidth}px`, width: `${timelineWidth + LINK_RIGHT_GUTTER}px`, height: `${bodyHeight}px` }"
           >
             <GanttLinkLayer
-              :width="timelineWidth"
+              :width="timelineWidth + LINK_RIGHT_GUTTER"
               :height="bodyHeight"
               :paths="linkPaths"
               :color="accentColor"
