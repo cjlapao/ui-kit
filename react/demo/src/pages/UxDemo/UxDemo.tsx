@@ -49,6 +49,7 @@ import { InfiniteScrollDemo } from "./demos/InfiniteScrollDemo";
 import { AppDividerDemo } from "./demos/AppDividerDemo";
 import { BadgeDemo } from "./demos/BadgeDemo";
 import { AccessMatrixDemo } from "./demos/AccessMatrixDemo";
+import { GanttDemo } from "./demos/GanttDemo";
 import { TimelinePanelDemo } from "./demos/TimelinePanelDemo";
 import { WorkflowTrackerDemo } from "./demos/WorkflowTrackerDemo";
 import { GlassBackgroundDemo } from "./demos/GlassBackgroundDemo";
@@ -261,6 +262,11 @@ export const UxDemo: React.FC = () => {
         id: "sections-access-matrix",
         title: "Access Matrix",
         render: () => <AccessMatrixDemo />,
+      },
+      {
+        id: "sections-gantt",
+        title: "Gantt Chart",
+        render: () => <GanttDemo />,
       },
 
       {

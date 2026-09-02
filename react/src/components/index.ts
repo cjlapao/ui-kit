@@ -779,6 +779,9 @@ export {
 // WorkflowTracker
 export * from "./WorkflowTracker";
 
+// Gantt (editable timeline: drag/resize/reorder, lanes, groups, dependencies)
+export * from "./Gantt";
+
 // Chart (PrimeUI-style compound charts — SVG + Canvas)
 export * from "./chart";
 

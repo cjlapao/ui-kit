@@ -379,6 +379,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/workflow-tracker/WorkflowTrackerPage")),
   },
   {
+    slug: "gantt",
+    name: "Gantt Chart",
+    description:
+      "An interactive, drag-to-edit schedule: move and resize bars, draw finish/start dependencies, reorder rows within swimlanes, collapse parent groups with roll-up progress, and zoom day → quarter with a live today marker.",
+    icon: "ViewRows",
+    category: "Data",
+    Page: lazy(() => import("./components/gantt/GanttPage")),
+  },
+  {
     slug: "charts",
     name: "Charts",
     description:

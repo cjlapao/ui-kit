@@ -500,6 +500,9 @@ export {
 // ConnectionFlow
 export * from "./ConnectionFlow";
 
+// Gantt (editable timeline: drag/resize/reorder, lanes, groups, dependencies)
+export * from "./Gantt";
+
 // Tree
 export {
   TreeView,

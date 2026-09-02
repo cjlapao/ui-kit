@@ -48,3 +48,4 @@ export { default as MultiToggle } from "./components/MultiToggle";
 export { Sun } from "./icons/components/Sun";
 export { Moon } from "./icons/components/Moon";
 export { ThemeAuto } from "./icons/components/ThemeAuto";
+export { Rocket } from "./icons/components/Rocket";

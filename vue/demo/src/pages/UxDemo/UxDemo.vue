@@ -48,6 +48,7 @@ import InfiniteScrollDemo from "./demos/InfiniteScrollDemo.vue";
 import AppDividerDemo from "./demos/AppDividerDemo.vue";
 import BadgeDemo from "./demos/BadgeDemo.vue";
 import AccessMatrixDemo from "./demos/AccessMatrixDemo.vue";
+import GanttDemo from "./demos/GanttDemo.vue";
 import TimelinePanelDemo from "./demos/TimelinePanelDemo.vue";
 import GlassBackgroundDemo from "./demos/GlassBackgroundDemo.vue";
 import GlassButtonDemo from "./demos/GlassButtonDemo.vue";
@@ -111,6 +112,7 @@ const sectionList: DemoSection[] = [
   { id: "sections-status-spinner", title: "Status Spinner", component: StatusSpinnerDemo },
   { id: "sections-table", title: "Tables", component: TableDemo },
   { id: "sections-access-matrix", title: "Access Matrix", component: AccessMatrixDemo },
+  { id: "sections-gantt", title: "Gantt Chart", component: GanttDemo },
   { id: "sections-accordion", title: "Accordions", component: AccordionDemo },
   { id: "sections-stepper", title: "Steppers", component: StepperDemo },
 ];
