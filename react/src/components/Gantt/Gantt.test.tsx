@@ -13,6 +13,7 @@ import {
   computeLinkPaths,
   laneRollupProgress,
   taskRollupProgress,
+  applyRowReorder,
   MS_PER_DAY,
 } from "../../../../common/gantt";
 import type { GanttTask, GanttBarGeometry } from "../../../../common/gantt";
@@ -364,6 +365,58 @@ describe("Gantt component", () => {
     const order = onReorder.mock.calls[0][0] as string[];
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
     expect(webappRow.top).toBeGreaterThan(0);
+  });
+
+  it("reorders rows live while dragging the grip, with the line tracking the slot", () => {
+    const onReorder = vi.fn();
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} onReorder={onReorder} />,
+    );
+    const taskKeys = () =>
+      [...container.querySelectorAll<HTMLElement>('[data-row-key^="task:"]')].map(
+        (r) => r.dataset.rowKey!,
+      );
+    const before = taskKeys();
+    expect(before.indexOf("task:webapp")).toBeGreaterThan(before.indexOf("task:api"));
+
+    const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
+    const apiRow = rows.find((r) => r.key === "task:api")!;
+
+    const grip = container.querySelector(
+      `[data-row-key="task:webapp"] [title="Drag to reorder"]`,
+    ) as HTMLElement;
+    const webappRowEl = container.querySelector<HTMLElement>('[data-row-key="task:webapp"]')!;
+    fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, button: 0 });
+
+    // Hover the upper half of "api" → webapp previews directly above it.
+    pointer(window, "pointermove", 0, apiRow.top + 5);
+    const live = taskKeys();
+    expect(live.indexOf("task:webapp")).toBeLessThan(live.indexOf("task:api"));
+    // Its children travel with it.
+    expect(live.indexOf("task:webapp-shell")).toBeGreaterThan(live.indexOf("task:webapp"));
+    expect(live.indexOf("task:webapp-shell")).toBeLessThan(live.indexOf("task:api"));
+    // The insertion line sits on the top edge of the api row in the
+    // previewed order (it shifted down by webapp's subtree).
+    const liveRows = buildRows(
+      tasks,
+      sampleGanttLanes,
+      applyRowReorder(tasks, "webapp", "api", undefined),
+      44,
+    ).rows;
+    const line = [...container.querySelectorAll("div")].find(
+      (d) => d.className.includes("h-0.5") && d.className.includes("z-30"),
+    );
+    expect(line).toBeTruthy();
+    expect(line!.style.top).toBe(`${liveRows.find((r) => r.key === "task:api")!.top}px`);
+    // Accent cue on the grip and no dimming on the moving row.
+    expect(grip.style.color).toContain("var(--color-");
+    expect(webappRowEl.className).not.toContain("opacity-40");
+    expect(onReorder).not.toHaveBeenCalled();
+
+    pointer(window, "pointerup", 0, apiRow.top + 5);
+    expect(onReorder).toHaveBeenCalledTimes(1);
+    const order = onReorder.mock.calls[0][0] as string[];
+    expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
   });
 
   it("creates a dependency by dragging from a bar edge handle", () => {

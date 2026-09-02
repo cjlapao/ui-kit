@@ -78,6 +78,13 @@ interface UseGanttDragOptions {
   overlayRef: React.RefObject<HTMLDivElement | null>;
   rows: GanttRow[];
   tasksById: Map<string, GanttTask>;
+  /**
+   * Ref to the rows *currently rendered* (the live preview order while a
+   * reorder drag is in flight). Reorder hit-testing resolves against these
+   * so drop targets track the real-time preview instead of the committed
+   * layout.
+   */
+  rowsRef?: React.RefObject<GanttRow[] | null>;
   zoom: number;
   snap: GanttSnap;
   rangeStart: number;
@@ -97,7 +104,6 @@ interface UseGanttDragOptions {
 export interface UseGanttDragApi {
   drag: GanttDragState | null;
   rubber: GanttRubber | null;
-  reorderPreviewY: number | null;
   linkSelected: GanttLink | null;
   setLinkSelected: (link: GanttLink | null) => void;
   onBarPointerDown: (task: GanttTask, e: React.PointerEvent) => void;
@@ -175,31 +181,6 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
     return clientY - overlay.getBoundingClientRect().top;
   }, []);
 
-  // ── Reorder preview Y ──────────────────────────────────────────────────────
-  const reorderPreviewY = (state: GanttDragState): number | null => {
-    const { rows } = optsRef.current;
-    const dragRow = rows.find((r) => r.key === `task:${state.taskId}`);
-    if (!dragRow) return null;
-    if (state.beforeId != null) {
-      const target = rows.find((r) => r.key === `task:${state.beforeId}`);
-      return target ? target.top : null;
-    }
-    // End of the dragged lane's segment: the next foreign lane header below
-    // the dragged row, or the bottom of the body.
-    const dragLane = dragRow.task?.lane ?? dragRow.lane?.id ?? "";
-    for (let i = rows.indexOf(dragRow) + 1; i < rows.length; i++) {
-      const r = rows[i];
-      const rLane = r.task ? (r.task.lane ?? "") : (r.lane?.id ?? "");
-      if (rLane !== dragLane && (r.task == null ? true : i > 0)) {
-        // A row whose lane differs ends the segment when it is a header;
-        // task rows of another lane also end it (lanes are contiguous).
-        if (r.task == null || rLane !== dragLane) return r.top;
-      }
-    }
-    const last = rows[rows.length - 1];
-    return last ? last.top + last.height : null;
-  };
-
   // ── Move listener while dragging ───────────────────────────────────────────
   useEffect(() => {
     if (!drag) return;
@@ -213,8 +194,12 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
       const y = rowY(e.clientY);
 
       if (state.kind === "reorder") {
+        // Resolve against the rendered (live preview) rows: the dragged row
+        // already sits in its previewed slot, so the mapping from pointer y
+        // to target row is self-consistent and jitter-free.
+        const rows = o.rowsRef?.current ?? o.rows;
         const { beforeId } = resolveDropBeforeId(
-          o.rows,
+          rows,
           o.tasksById,
           `task:${state.taskId}`,
           y,
@@ -510,7 +495,6 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
   return {
     drag,
     rubber,
-    reorderPreviewY: drag?.kind === "reorder" ? reorderPreviewY(drag) : null,
     linkSelected,
     setLinkSelected,
     onBarPointerDown,

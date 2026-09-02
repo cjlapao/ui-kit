@@ -19,6 +19,7 @@ import {
   rollupProgress,
   laneRollupProgress,
   taskRollupProgress,
+  reorderPreviewTop,
 } from "../../../../common/gantt/layout";
 import {
   applyDragDates,
@@ -221,6 +222,28 @@ describe("layout engine", () => {
     const engIdx = (id: string) => order.indexOf(id);
     expect(engIdx("webapp")).toBeLessThan(engIdx("api"));
     expect(engIdx("api")).toBeLessThan(engIdx("qa"));
+  });
+
+  it("reorderPreviewTop resolves the insertion line from the displayed order", () => {
+    const api = rows.find((r) => r.key === "task:api")!;
+    // Inserting before a row → that row's top edge.
+    expect(reorderPreviewTop(rows, "task:webapp", "api")).toBe(api.top);
+    // Dropping at the lane's end → the first row of the next foreign lane
+    // (segments are contiguous), or the bottom of the body.
+    const webapp = rows.find((r) => r.key === "task:webapp")!;
+    let expected: number;
+    for (let i = rows.indexOf(webapp) + 1; i < rows.length; i++) {
+      const r = rows[i];
+      const rLane = r.task ? (r.task.lane ?? "") : (r.lane?.id ?? "");
+      if (rLane !== "eng") {
+        expected = r.top;
+        break;
+      }
+    }
+    expected ??= rows.reduce((sum, r) => sum + r.height, 0);
+    expect(reorderPreviewTop(rows, "task:webapp", null)).toBe(expected);
+    // Unknown drag key → null.
+    expect(reorderPreviewTop(rows, "task:nope", null)).toBeNull();
   });
 
   it("no-ops a reorder onto itself or across lanes", () => {

@@ -262,6 +262,36 @@ function rollupLaneProgress(
 }
 
 /**
+ * Y (px, body-relative) of the reorder insertion indicator for the given
+ * displayed row order: the top edge of the row the dragged row is being
+ * inserted before, or the end of the dragged lane's segment when dropping
+ * at the tail. Pass the *previewed* row order while a live reorder is in
+ * flight so the indicator tracks the slot the dragged row currently
+ * occupies. Returns `null` when the dragged row can't be found.
+ */
+export function reorderPreviewTop(
+  rows: GanttRow[],
+  dragKey: string,
+  beforeId: string | null,
+): number | null {
+  const dragRow = rows.find((r) => r.key === dragKey);
+  if (!dragRow) return null;
+  if (beforeId != null) {
+    const target = rows.find((r) => r.key === `task:${beforeId}`);
+    if (target) return target.top;
+  }
+  // End of the dragged lane's segment: the first row of a foreign lane
+  // (segments are contiguous), or the bottom of the body.
+  const dragLane = dragRow.task?.lane ?? dragRow.lane?.id ?? "";
+  for (let i = rows.indexOf(dragRow) + 1; i < rows.length; i++) {
+    const r = rows[i];
+    const rLane = r.task ? (r.task.lane ?? "") : (r.lane?.id ?? "");
+    if (rLane !== dragLane) return r.top;
+  }
+  return rows.reduce((sum, r) => sum + r.height, 0);
+}
+
+/**
  * Apply a vertical reorder within one lane: move top-level task `dragId` so
  * it sits just before `beforeId` (or at the lane's end when `beforeId` is
  * null). Returns the new per-lane top-level id order for `buildRows`.

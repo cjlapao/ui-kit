@@ -115,6 +115,8 @@ import {
   taskRollupProgress,
   toMs,
   MS_PER_DAY,
+  applyRowReorder,
+  reorderPreviewTop,
 } from "../../../../common/gantt";
 import { mergeGanttLabels } from "./labels";
 import Panel from "../Panel.vue";
@@ -252,7 +254,18 @@ const effectiveLanes = computed<GanttLane[] | undefined>(() => {
 });
 
 // ── Derived model ──────────────────────────────────────────────────────────
-const model = computed(() => buildRows(effectiveTasks.value, effectiveLanes.value, rowOrder.value, props.rowHeight));
+// While a reorder drag is live, rows render in the previewed order (the
+// dragged row moved into its slot); the committed order only changes on
+// drop. `liveRowOrder` is declared after the drag hook below — the getter
+// only runs after setup, so the reference is safe.
+const model = computed(() =>
+  buildRows(
+    effectiveTasks.value,
+    effectiveLanes.value,
+    liveRowOrder.value ?? rowOrder.value,
+    props.rowHeight,
+  ),
+);
 
 const range = computed(() => {
   const starts = props.tasks.map((t) => toMs(t.start));
@@ -366,6 +379,16 @@ const dragApi = useGanttDrag({
   setSelected,
 });
 
+// Live reorder preview: while a grip drag is in flight, rows render in the
+// previewed order, so the dragged row (with its bar, cells and links) moves
+// into the slot in real time; the hook's drop-target resolution reads these
+// same live rows at event time.
+const liveRowOrder = computed<string[] | null>(() => {
+  const d = dragApi.drag.value;
+  if (d?.kind !== "reorder") return null;
+  return applyRowReorder(effectiveTasks.value, d.taskId, d.beforeId ?? null, rowOrder.value);
+});
+
 // Keyboard editing on the focused bar.
 const onBarKeyDown = (e: KeyboardEvent, task: GanttTask) => {
   if (!interactive.value || task.locked || !hasChangeListeners) return;
@@ -476,6 +499,14 @@ const selectionTokens = computed(() => getGanttSelectionTokens(accentColor.value
 const isEmpty = computed(() => props.tasks.length === 0);
 
 const drag = computed(() => dragApi.drag.value);
+// Reorder insertion indicator: resolved against the *current* previewed
+// rows, so the line sits on the edge of the slot the dragged row occupies
+// and travels with it (zero render lag).
+const reorderLineY = computed<number | null>(() => {
+  const d = drag.value;
+  if (d?.kind !== "reorder") return null;
+  return reorderPreviewTop(model.value.rows, `task:${d.taskId}`, d.beforeId ?? null);
+});
 const dragTask = computed(() => (drag.value?.taskId ? model.value.tasksById.get(drag.value.taskId) : undefined));
 const liveDragDates = computed(() => {
   const d = drag.value;
@@ -807,13 +838,13 @@ const colJustify = (col: GanttColumn) =>
 
           <!-- Reorder insertion indicator -->
           <div
-            v-if="drag?.kind === 'reorder' && dragApi.reorderPreviewY.value != null"
+            v-if="drag?.kind === 'reorder' && reorderLineY != null"
             class="pointer-events-none absolute z-30 h-0.5 rounded-full"
             :style="{
               left: leftWidth,
-              width: timelineWidth,
-              top: dragApi.reorderPreviewY.value,
-              backgroundColor: `var(--color-${accentColor}-500)`,
+              width: timelineWidth + 'px',
+              top: reorderLineY != null ? reorderLineY + 'px' : '',
+              backgroundColor: 'var(--color-' + accentColor + '-500)',
             }"
           />
 

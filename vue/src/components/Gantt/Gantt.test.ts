@@ -12,6 +12,7 @@ import {
   computeViewRange,
   laneRollupProgress,
   taskRollupProgress,
+  applyRowReorder,
   MS_PER_DAY,
 } from "../../../../common/gantt";
 import type { GanttTask } from "../../../../common/gantt";
@@ -256,6 +257,49 @@ describe("Gantt (Vue)", () => {
     pointer("pointerup", 0, apiRow.top + 5);
     await nextTick();
 
+    expect(w.emitted("reorder")).toBeTruthy();
+    const order = w.emitted("reorder")![0][0] as string[];
+    expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
+  });
+
+  it("reorders rows live while dragging the grip, with the line tracking the slot", async () => {
+    const w = mountGantt({ editable: true });
+    const taskKeys = () =>
+      w.findAll('[data-row-key^="task:"]').map((el) => el.attributes("data-row-key"));
+    expect(taskKeys().indexOf("task:webapp")).toBeGreaterThan(taskKeys().indexOf("task:api"));
+
+    const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
+    const apiRow = rows.find((r) => r.key === "task:api")!;
+    const grip = w.find('[data-row-key="task:webapp"] [title="Drag to reorder"]');
+    await grip.trigger("pointerdown");
+    await nextTick();
+
+    // Hover the upper half of "api" → webapp previews directly above it.
+    pointer("pointermove", 0, apiRow.top + 5);
+    await nextTick();
+    const live = taskKeys();
+    expect(live.indexOf("task:webapp")).toBeLessThan(live.indexOf("task:api"));
+    expect(live.indexOf("task:webapp-shell")).toBeLessThan(live.indexOf("task:api"));
+
+    // Insertion line on the api row's top edge in the previewed order.
+    const liveRows = buildRows(
+      tasks,
+      sampleGanttLanes,
+      applyRowReorder(tasks, "webapp", "api", undefined),
+      44,
+    ).rows;
+    const line = w.find("div.z-30.h-0\\.5");
+    expect(line.exists()).toBe(true);
+    expect(line.attributes("style")).toContain(`top: ${liveRows.find((r) => r.key === "task:api")!.top}px`);
+
+    // Accent cue on the grip; the moving row is not dimmed.
+    expect((grip.element as HTMLElement).style.color).toContain("var(--color-");
+    const webappRow = w.find('[data-row-key="task:webapp"]');
+    expect(webappRow.classes()).not.toContain("opacity-40");
+    expect(w.emitted("reorder")).toBeFalsy();
+
+    pointer("pointerup", 0, apiRow.top + 5);
+    await nextTick();
     expect(w.emitted("reorder")).toBeTruthy();
     const order = w.emitted("reorder")![0][0] as string[];
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));

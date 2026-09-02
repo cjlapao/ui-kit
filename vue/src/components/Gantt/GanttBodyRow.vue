@@ -74,8 +74,10 @@ const divider = computed(() => props.dividerClass ?? "border-neutral-100 dark:bo
 const isDraggingThis = computed(
   () => props.row.task != null && props.drag?.taskId === props.row.task.id,
 );
-const dimmed = computed(
-  () => props.drag?.kind === "reorder" && props.row.task?.id === props.drag.taskId,
+// While this row's reorder drag is live, the row sits in its previewed slot
+// (fully visible) with an accent cue on the grip and the row itself.
+const reorderDragging = computed(
+  () => isDraggingThis.value && props.drag?.kind === "reorder",
 );
 
 // Lane header derived values.
@@ -96,10 +98,17 @@ const lanePct = computed(
         'group/row relative flex border-b',
         divider,
         selected && selectionTokens.row,
-        dimmed && 'opacity-40',
       )
     "
-    :style="{ height: row.height }"
+    :style="{
+      height: row.height,
+      ...(reorderDragging
+        ? {
+            background: `color-mix(in srgb, var(--color-${color}-500) 7%, transparent)`,
+            boxShadow: `inset 2px 0 0 var(--color-${color}-500)`,
+          }
+        : {}),
+    }"
   >
     <!-- ── Lane header ──────────────────────────────────────────── -->
     <!-- Left block zoned to the same column geometry as task rows so the
@@ -177,7 +186,15 @@ const lanePct = computed(
         <div class="flex w-9 shrink-0 items-center justify-center">
           <span
             v-if="interactive && !row.task.locked"
-            class="flex cursor-grab touch-none items-center text-neutral-300 opacity-0 transition-opacity group-hover/row:opacity-100 active:cursor-grabbing dark:text-neutral-600"
+            :class="
+              classNames(
+                'flex cursor-grab touch-none items-center text-neutral-300 transition-opacity active:cursor-grabbing dark:text-neutral-600',
+                reorderDragging
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover/row:opacity-100',
+              )
+            "
+            :style="reorderDragging ? { color: `var(--color-${color}-500)` } : undefined"
             title="Drag to reorder"
             aria-hidden="true"
             @pointerdown="emit('grip-pointer-down', row.key, row.task!, $event)"

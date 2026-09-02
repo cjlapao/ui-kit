@@ -101,7 +101,6 @@ interface UseGanttDragOptions {
 export interface UseGanttDragApi {
   drag: Ref<GanttDragState | null>;
   rubber: ComputedRef<GanttRubber | null>;
-  reorderPreviewY: ComputedRef<number | null>;
   linkSelected: Ref<GanttLink | null>;
   setLinkSelected: (link: GanttLink | null) => void;
   onBarPointerDown: (task: GanttTask, e: PointerEvent) => void;
@@ -127,25 +126,6 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
     const overlay = opts.overlayRef.value;
     if (!overlay) return 0;
     return clientY - overlay.getBoundingClientRect().top;
-  };
-
-  // ── Reorder preview Y ──────────────────────────────────────────────────────
-  const reorderPreviewYOf = (state: GanttDragState): number | null => {
-    const rows = opts.rows.value;
-    const dragRow = rows.find((r) => r.key === `task:${state.taskId}`);
-    if (!dragRow) return null;
-    if (state.beforeId != null) {
-      const target = rows.find((r) => r.key === `task:${state.beforeId}`);
-      return target ? target.top : null;
-    }
-    const dragLane = dragRow.task?.lane ?? dragRow.lane?.id ?? "";
-    for (let i = rows.indexOf(dragRow) + 1; i < rows.length; i++) {
-      const r = rows[i];
-      const rLane = r.task ? (r.task.lane ?? "") : (r.lane?.id ?? "");
-      if (r.task == null || rLane !== dragLane) return r.top;
-    }
-    const last = rows[rows.length - 1];
-    return last ? last.top + last.height : null;
   };
 
   // ── Move listener while dragging ───────────────────────────────────────────
@@ -473,14 +453,9 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
     return { d: path, arrow, from, to, color: d.color ?? opts.accentColor.value };
   });
 
-  const reorderPreviewY = computed<number | null>(() =>
-    drag.value?.kind === "reorder" ? reorderPreviewYOf(drag.value) : null,
-  );
-
   return {
     drag,
     rubber,
-    reorderPreviewY,
     linkSelected,
     setLinkSelected,
     onBarPointerDown,

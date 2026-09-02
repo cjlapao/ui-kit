@@ -102,7 +102,9 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
   dividerClass = "border-neutral-100 dark:border-neutral-800",
 }) => {
   const isDraggingThis = row.task != null && drag?.taskId === row.task.id;
-  const dimmed = drag?.kind === "reorder" && row.task?.id === drag.taskId;
+  // While this row's reorder drag is live, the row sits in its previewed
+  // slot (fully visible) with an accent cue on the grip and the row itself.
+  const reorderDragging = isDraggingThis && drag?.kind === "reorder";
 
   return (
     <div
@@ -111,9 +113,16 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
         "group/row relative flex border-b",
         dividerClass,
         selected && selectionTokens.row,
-        dimmed && "opacity-40",
       )}
-      style={{ height: row.height }}
+      style={{
+        height: row.height,
+        ...(reorderDragging
+          ? {
+              background: `color-mix(in srgb, var(--color-${color}-500) 7%, transparent)`,
+              boxShadow: `inset 2px 0 0 var(--color-${color}-500)`,
+            }
+          : {}),
+      }}
     >
       {row.task == null ? (
         <LaneHeader
@@ -135,7 +144,13 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
             <div className="flex w-9 shrink-0 items-center justify-center">
               {interactive && !row.task.locked && (
                 <span
-                  className="flex cursor-grab touch-none items-center text-neutral-300 opacity-0 transition-opacity group-hover/row:opacity-100 active:cursor-grabbing dark:text-neutral-600"
+                  className={classNames(
+                    "flex cursor-grab touch-none items-center text-neutral-300 transition-opacity active:cursor-grabbing dark:text-neutral-600",
+                    reorderDragging ? "opacity-100" : "opacity-0 group-hover/row:opacity-100",
+                  )}
+                  style={
+                    reorderDragging ? { color: `var(--color-${color}-500)` } : undefined
+                  }
                   onPointerDown={(e) => onGripPointerDown(row.key, row.task!, e)}
                   title="Drag to reorder"
                   aria-hidden="true"

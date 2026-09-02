@@ -41,6 +41,7 @@ import {
   GanttLabels,
   GanttLane,
   GanttLink,
+  GanttRow,
   GanttSnap,
   GanttTask,
   TrueColor,
@@ -60,6 +61,8 @@ import {
   taskRollupProgress,
   toMs,
   MS_PER_DAY,
+  applyRowReorder,
+  reorderPreviewTop,
 } from "../../../../common/gantt";
 import { getSurfaceTextTokens, getSurfaceVariantClasses } from "../../theme/Theme";
 import Panel, { type PanelVariant } from "../Panel";
@@ -306,7 +309,7 @@ export const Gantt: React.FC<GanttProps> = ({
   }, [lanes, closedLanes]);
 
   // ── Derived model ──────────────────────────────────────────────────────────
-  const model = useMemo(
+  const committedModel = useMemo(
     () => buildRows(effectiveTasks, effectiveLanes, rowOrder, rowHeight),
     [effectiveTasks, effectiveLanes, rowOrder, rowHeight],
   );
@@ -333,30 +336,10 @@ export const Gantt: React.FC<GanttProps> = ({
     [resolvedColumns],
   );
 
-  // Bar geometry for every visible task row (link layer + drag math).
-  const bars = useMemo(() => {
-    const map = new Map<string, GanttBarGeometry>();
-    for (const row of model.rows) {
-      if (!row.task) continue;
-      const t = row.task;
-      const s = toMs(t.start);
-      const e = toMs(t.end);
-      const milestone = t.type === "milestone";
-      const left = dateToX(s, range.start, zoom);
-      const width = milestone ? 0 : Math.max(6, dateToX(e, range.start, zoom) - left);
-      map.set(t.id, {
-        taskId: t.id,
-        left,
-        width,
-        top: row.top,
-        height: row.height,
-        milestone,
-      });
-    }
-    return map;
-  }, [model.rows, range, zoom]);
-
-  const bodyHeight = model.rows.length > 0 ? model.rows[model.rows.length - 1].top + model.rows[model.rows.length - 1].height : 0;
+  // Bar geometry + body height are derived from the *live* model (the
+  // previewed row order while a reorder drag is in flight) — they're
+  // defined below, after the drag hook, so the link layer follows rows as
+  // they move.
 
   // ── Scrolling / zoom anchoring ─────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -424,11 +407,16 @@ export const Gantt: React.FC<GanttProps> = ({
   }, [syncHeaderScale, timelineWidth, zoom, range.start, leftWidth]);
 
   // ── Drag machinery ─────────────────────────────────────────────────────────
+  // Latest rendered rows (the live preview order while a reorder drag is in
+  // flight) — the hook resolves reorder drop targets against this at event
+  // time so they track the real-time preview.
+  const liveRowsRef = useRef<GanttRow[] | null>(null);
   const dragApi = useGanttDrag({
     scrollRef,
     overlayRef,
-    rows: model.rows,
-    tasksById: model.tasksById,
+    rows: committedModel.rows,
+    tasksById: committedModel.tasksById,
+    rowsRef: liveRowsRef,
     zoom,
     snap,
     rangeStart: range.start,
@@ -444,6 +432,54 @@ export const Gantt: React.FC<GanttProps> = ({
     rowOrder,
     setSelected,
   });
+
+  // Live reorder preview: while a grip drag is in flight, rows render in
+  // the previewed order, so the dragged row (with its bar, cells and links)
+  // moves into the slot in real time and the insertion indicator tracks
+  // that slot. The committed order only changes on drop.
+  const liveRowOrder = useMemo(() => {
+    const d = dragApi.drag;
+    if (d?.kind !== "reorder") return null;
+    return applyRowReorder(effectiveTasks, d.taskId, d.beforeId ?? null, rowOrder);
+  }, [dragApi.drag, effectiveTasks, rowOrder]);
+
+  const liveModel = useMemo(
+    () =>
+      liveRowOrder
+        ? buildRows(effectiveTasks, effectiveLanes, liveRowOrder, rowHeight)
+        : committedModel,
+    [liveRowOrder, effectiveTasks, effectiveLanes, rowHeight, committedModel],
+  );
+  liveRowsRef.current = liveModel.rows;
+
+  // Bar geometry for every visible task row (link layer + drag math).
+  const bars = useMemo(() => {
+    const map = new Map<string, GanttBarGeometry>();
+    for (const row of liveModel.rows) {
+      if (!row.task) continue;
+      const t = row.task;
+      const s = toMs(t.start);
+      const e = toMs(t.end);
+      const milestone = t.type === "milestone";
+      const left = dateToX(s, range.start, zoom);
+      const width = milestone ? 0 : Math.max(6, dateToX(e, range.start, zoom) - left);
+      map.set(t.id, {
+        taskId: t.id,
+        left,
+        width,
+        top: row.top,
+        height: row.height,
+        milestone,
+      });
+    }
+    return map;
+  }, [liveModel.rows, range, zoom]);
+
+  const bodyHeight =
+    liveModel.rows.length > 0
+      ? liveModel.rows[liveModel.rows.length - 1].top +
+        liveModel.rows[liveModel.rows.length - 1].height
+      : 0;
 
   // Keyboard editing on the focused bar.
   const onBarKeyDown = useCallback(
@@ -553,7 +589,14 @@ export const Gantt: React.FC<GanttProps> = ({
   const isEmpty = tasks.length === 0;
 
   const drag = dragApi.drag;
-  const dragTask = drag?.taskId ? model.tasksById.get(drag.taskId) : undefined;
+  const dragTask = drag?.taskId ? committedModel.tasksById.get(drag.taskId) : undefined;
+  // Reorder insertion indicator: resolved against the *current* previewed
+  // rows, so the line sits on the edge of the slot the dragged row occupies
+  // and travels with it (zero render lag).
+  const reorderLineY =
+    drag?.kind === "reorder"
+      ? reorderPreviewTop(liveModel.rows, `task:${drag.taskId}`, drag.beforeId ?? null)
+      : null;
   const liveDragDates = useMemo(() => {
     if (!drag || !dragTask) return null;
     if (drag.kind !== "move" && drag.kind !== "resize-start" && drag.kind !== "resize-end") return null;
@@ -806,7 +849,7 @@ export const Gantt: React.FC<GanttProps> = ({
               </div>
 
               {/* Rows */}
-              {model.rows.map((row) => (
+              {liveModel.rows.map((row) => (
                 <GanttBodyRow
                   key={row.key}
                   row={row}
@@ -869,14 +912,15 @@ export const Gantt: React.FC<GanttProps> = ({
                 onDeleteLink={interactive && onLinksChange ? deleteSelectedLink : undefined}
               />
 
-              {/* Reorder insertion indicator */}
-              {drag?.kind === "reorder" && dragApi.reorderPreviewY != null && (
+              {/* Reorder insertion indicator — travels with the dragged row's
+                  previewed slot */}
+              {drag?.kind === "reorder" && reorderLineY != null && (
                 <div
                   className="pointer-events-none absolute z-30 h-0.5 rounded-full"
                   style={{
                     left: leftWidth,
                     width: timelineWidth,
-                    top: dragApi.reorderPreviewY,
+                    top: reorderLineY,
                     backgroundColor: `var(--color-${color}-500)`,
                   }}
                 />
