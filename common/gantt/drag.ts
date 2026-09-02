@@ -121,8 +121,6 @@ export const LINK_PORT_R = 3.5;
  * padding everywhere in the diagram.
  */
 export const LINK_PASS_PADDING = 6;
-/** Extra offset past the passing padding so the stub into a port keeps a visible length. */
-const LINK_CHANNEL_OUT = 5;
 /** Radius of the rounded elbow at each turn. */
 const LINK_ELBOW_R = 6;
 /** Length of the arrowhead. */
@@ -131,6 +129,17 @@ const LINK_HEAD = 7;
  *  *at* the connector dot (fill + 2.5 halo) instead of vanishing under it:
  *  port fill + halo + a 2px gap. */
 const LINK_PORT_CLEAR = LINK_PORT_R + 2.5 + 2;
+/** Straight run (px) a route must keep between a port and the nearest
+ *  rounded corner, so the elbow reads as its own curve, not a blob hugging
+ *  the bar or the arrowhead. */
+const LINK_CORNER_ROOM = LINK_ELBOW_R + 2;
+/** How far past the source's right edge (beyond the port dot + halo) the
+ *  first corner must sit, keeping the exit curve clear of the bar. */
+const LINK_EXIT_CLEAR = LINK_PORT_R + 2.5 + LINK_CORNER_ROOM + 2;
+/** How far left of the target's left edge the final corner must sit, so the
+ *  rounded elbow *and* the arrowhead both sit on a straight approach:
+ *  corner room + port clearance + arrowhead length + margin. */
+export const LINK_ENTRY_CLEAR = LINK_CORNER_ROOM + LINK_PORT_CLEAR + LINK_HEAD + 2;
 /** Glyph height of a bar inside its row (rows carry padding above/below). */
 const LINK_BAR_HEIGHT = 24;
 
@@ -296,13 +305,20 @@ interface Channel {
  * Route shapes (none ever crosses a bar):
  * - **Same row** — a straight connector between the two ports (no channels).
  * - **Target to the right** — a vertical channel in the horizontal gap, in a
- *   column no intermediate bar occupies (channel window `(fr, tl)`).
+ *   column no intermediate bar occupies (channel window
+ *   `(fr + LINK_EXIT_CLEAR, tl - LINK_ENTRY_CLEAR)`).
  * - **Overlapping / "going back"** — the connector steps out of the source row
  *   into the clear row-boundary band, drops in a clear column, and enters the
- *   target's left edge (drop-channel window `(-∞, tl)`).
+ *   target's left edge (drop-channel window `(-∞, tl - LINK_ENTRY_CLEAR)`).
  * - **No clear column** — the route swings out to the right of every bar in
  *   the corridor, drops to the target row's clear band, and enters the port
- *   (two channels: the right swing `(fr, +∞)` and the drop `(-∞, tl)`).
+ *   (two channels: the right swing `(fr, +∞)` and the drop
+ *   `(-∞, tl - LINK_ENTRY_CLEAR)`).
+ *
+ * The exit corner keeps `LINK_EXIT_CLEAR` past the source edge and the final
+ * corner keeps `LINK_ENTRY_CLEAR` before the target edge, so a rounded elbow
+ * never hugs a bar and the elbow + arrowhead always sit on a straight run
+ * into the port dot.
  *
  * `obstacles` are the bars (other than the source and target) the connector
  * must not cross. `fanSrcY` / `fanTgtY` offset the port vertically so several
@@ -349,24 +365,29 @@ function routePoints(
     );
     const X = rightOfAll + LINK_PASS_PADDING;
     const bandT = ty > sy ? to.top + to.height : to.top; // target row boundary
-    const inX = tl - LINK_PASS_PADDING - LINK_CHANNEL_OUT;
+    // Drop far enough left of the port that the elbow + arrowhead keep a
+    // straight approach (LINK_ENTRY_CLEAR from the target edge).
+    const inX = tl - LINK_ENTRY_CLEAR;
     return {
       points: [start, [X, sy], [X, bandT], [inX, bandT], [inX, ty], end],
       // seg 1 = the right swing (x = X), seg 3 = the drop (x = inX).
       channels: [
         { seg: 1, lo: fr, hi: Infinity },
-        { seg: 3, lo: -Infinity, hi: tl },
+        { seg: 3, lo: -Infinity, hi: tl - LINK_ENTRY_CLEAR },
       ],
     };
   };
 
   // Target's left edge clears the source's right edge → a vertical channel
   // fits in the horizontal gap between the two bars; pick the clear column
-  // nearest the middle of that gap.
+  // nearest the middle of that gap. The window keeps LINK_EXIT_CLEAR past the
+  // source edge (so the exit curve doesn't hug the bar) and LINK_ENTRY_CLEAR
+  // before the target edge (so the elbow + arrowhead keep a straight
+  // approach). A gap too narrow for both falls through to the outside route.
   if (tl - fr >= 2 * LINK_PASS_PADDING) {
     const cx = findClearX(
-      fr + LINK_PASS_PADDING,
-      tl - LINK_PASS_PADDING,
+      fr + LINK_EXIT_CLEAR,
+      tl - LINK_ENTRY_CLEAR,
       (fr + tl) / 2,
       blocked,
     );
@@ -375,29 +396,29 @@ function routePoints(
         points: [start, [cx, sy], [cx, ty], end],
         arrow: arrowHead(tl - LINK_PORT_CLEAR, ty, 1),
         // seg 1 = the channel (x = cx); it must stay between the ports.
-        channels: [{ seg: 1, lo: fr, hi: tl }],
+        channels: [{ seg: 1, lo: fr + LINK_EXIT_CLEAR, hi: tl - LINK_ENTRY_CLEAR }],
       };
     }
-    // A bar in the way blocks the whole gap → swing around everything.
+    // A bar in the way (or a gap too narrow for the port clearances) blocks
+    // the channel → swing around everything.
     const o = outsideRoute();
     return { points: o.points, arrow: arrowHead(tl - LINK_PORT_CLEAR, ty, 1), channels: o.channels };
   }
 
-  // Overlapping / going back: no horizontal gap. Step out of the source row
-  // into the clear band just beyond it (on the target's side), travel across
-  // that band (a row-boundary line is clear of every bar), then drop in a
-  // column clear of every intermediate bar and enter the target's left edge.
-  // `inX` hugs the target's left edge (tight) when possible, and steps left of
-  // any blocking bar otherwise.
-  const tightInX = tl - LINK_PASS_PADDING - LINK_CHANNEL_OUT;
-  const inX =
-    findClearX(-Infinity, tl - LINK_PASS_PADDING, tightInX, blocked) ?? tightInX;
+  // Overlapping / going back (or a tight forward gap): step out of the source
+  // row into the clear band just beyond it (on the target's side), travel
+  // across that band (a row-boundary line is clear of every bar), then drop
+  // in a column clear of every intermediate bar and enter the target's left
+  // edge. `inX` keeps the target-port clearance (LINK_ENTRY_CLEAR) when
+  // possible, and steps left of any blocking bar otherwise.
+  const tightInX = tl - LINK_ENTRY_CLEAR;
+  const inX = findClearX(-Infinity, tl - LINK_ENTRY_CLEAR, tightInX, blocked) ?? tightInX;
   const bandY = ty > sy ? from.top + from.height : from.top;
   return {
     points: [start, [start[0], bandY], [inX, bandY], [inX, ty], end],
     arrow: arrowHead(tl - LINK_PORT_CLEAR, ty, 1),
-    // seg 2 = the drop (x = inX); it must stay left of the target's port.
-    channels: [{ seg: 2, lo: -Infinity, hi: tl }],
+    // seg 2 = the drop (x = inX); it must stay left of the arrowhead.
+    channels: [{ seg: 2, lo: -Infinity, hi: tl - LINK_ENTRY_CLEAR }],
   };
 }
 

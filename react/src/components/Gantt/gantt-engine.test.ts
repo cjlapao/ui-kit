@@ -28,7 +28,7 @@ import {
   linkDistance,
   pickLinkAt,
   LINK_HIT_RADIUS,
-  LINK_PASS_PADDING,
+  LINK_ENTRY_CLEAR,
   computeLinkFanOffsets,
   fanSlotOffset,
 } from "../../../../common/gantt/drag";
@@ -251,9 +251,10 @@ describe("drag / interaction math", () => {
     expect(tp).toEqual({ x: 140, y: 110 });
     expect(arrow!.startsWith("132,110")).toBe(true);
     // Travels across the clear band at the source row's bottom boundary (y = 44),
-    // hugging just left of the target's left edge (x = 140 - 11 = 129).
+    // hugging LINK_ENTRY_CLEAR left of the target's left edge (x = 140 - 25 = 115)
+    // so the elbow + arrowhead keep a straight approach into the port.
     expect(d).toContain("44"); // the clear row-boundary band
-    expect(d).toContain("129"); // channel just left of the target's left edge
+    expect(d).toContain("115"); // channel at the target's entry clearance
   });
 
   it("rubber previews the exact committed path when the pointer is over a target bar", () => {
@@ -281,7 +282,7 @@ describe("drag / interaction math", () => {
     const obstacle = { taskId: "c", left: 150, width: 120, top: 44, height: 44, milestone: false };
     const { d, arrow } = linkPath(from, to, "fs", 0, 0, [obstacle]);
     expect(d).toContain("326"); // outside column: right of every bar in the corridor
-    expect(d).toContain("235"); // the band travel stops 6px short of the drop corner (x = 229 + 6)
+    expect(d).toContain("221"); // the band travel stops 6px short of the drop corner (x = 215 + 6; 215 = 240 - 25)
     expect(arrow!.startsWith("232,110")).toBe(true);
   });
 
@@ -409,19 +410,19 @@ describe("drag / interaction math", () => {
 
     const xa = dropX(paths[0].d);
     const xb = dropX(paths[1].d);
-    // Both drops land in the same clear column hugging A's target bar at the
-    // passing padding (6px left of it), instead of the two different columns
-    // (79 and 109) they'd pick alone.
+    // Both drops land in one shared clear column at A's target entry
+    // clearance (90 - 25 = 65), instead of the two different columns (65 and
+    // 95) they'd pick alone.
     expect(xa).toBe(xb);
-    expect(xa).toBe(84);
+    expect(xa).toBe(65);
   });
 
-  it("hugs the nearest passed bar at the passing padding when aligning a group", () => {
+  it("aligns a group into the target's entry-clearance column, not the floating mean", () => {
     // Two band drops share a corridor and both pass the middle bar `c`. Their
-    // natural columns (49 and 54) put the group's mean (51.5) in a clear gap
-    // — a mean-based placement would float there at an arbitrary margin. The
-    // alignment must instead hug the nearest passed bar at exactly
-    // LINK_PASS_PADDING: both drops land 6px left of A's target bar (left 60).
+    // natural columns (35 and 54) put the group's mean (44.5) inside A's
+    // entry-clearance window but a mean-based placement would float there at
+    // an arbitrary margin. The alignment must slide both into the single
+    // shared clear column at A's target entry clearance (60 - 25 = 35).
     const bar = (
       taskId: string,
       left: number,
@@ -466,11 +467,11 @@ describe("drag / interaction math", () => {
 
     const xa = dropX(paths[0].d);
     const xb = dropX(paths[1].d);
-    // Shared column, at exactly the passing padding left of the nearest
-    // passed bar's left edge — not the floating mean (51.5) between them.
+    // Shared column, at A's target entry clearance — not the floating mean
+    // (44.5) between the natural columns (35 and 54).
     expect(xa).toBe(xb);
-    expect(xa).toBe(a1.left - LINK_PASS_PADDING);
-    expect(xa).not.toBeCloseTo(51.5, 1);
+    expect(xa).toBe(a1.left - LINK_ENTRY_CLEAR);
+    expect(xa).not.toBeCloseTo(44.5, 1);
   });
 });
 
