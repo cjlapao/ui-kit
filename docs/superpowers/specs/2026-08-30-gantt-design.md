@@ -153,20 +153,19 @@ cross-lane drag.
   left block, the grid lines and the scale window all start at `leftWidth`, so the columns never
   overflow into the first days of the timeline and the header columns line up exactly with the
   row cells.
-- **Optional chart header strip.** Optional `title` / `subtitle` / `icon` / `actions` props
-  render a `shrink-0` strip **above the 52px column header** — part of the chart surface, so
+- **Chart header strip.** The `shrink-0` strip **above the 52px column header** is **always
+  rendered** (it provides the header space even when `title` / `subtitle` / `icon` /
+  `actions` are absent) and the **zoom selector always renders inside it at the right edge**
+  (after `actions`) — it never floats over the scale window. Part of the chart surface, so
   the `variant` applies to it: its bottom hairline uses `getSurfaceTextTokens(variant).divider`
   and the icon tile (`h-10 w-10 rounded-xl`) uses
   `getSurfaceVariantClasses(variant, "neutral")` (elevated → white tile + soft shadow,
   flush → flat bordered tile, glass → translucent). `subtitle` renders as a small uppercase
   eyebrow **above** the `title` (reference-design layout); both truncate. In React
   `icon`/`actions` are `ReactNode`; in Vue they are `VNodeChild` props rendered via the
-  internal `VNodeRenderer` (same pattern as `renderCell`/`renderBar`). The strip renders only
-  when at least one of the four is provided — existing usages are untouched — and the body's
-  `flex-1` absorbs the added height automatically. When the strip is present the **zoom toolbar
-  renders inside it at the right edge** (after `actions`), and the floating overlay over the
-  scale window is suppressed; without a header the toolbar keeps floating over the scale
-  window as before.
+  internal `VNodeRenderer` (same pattern as `renderCell`/`renderBar`). `false` counts as
+  absent for the node props (React idiom — and Vue boolean-casts VNode-typed props to
+  `false` when they are not passed); the body's `flex-1` absorbs the strip's height.
 - **Scale bands:** the coarse band is a fixed 24px; the fine band takes the remaining height
   (`flex-1`) and the label/sublabel spans use `leading-none` so a two-line cell (day number +
   weekday, month + year) fully fits the band — no clipped sublabels at day zoom.

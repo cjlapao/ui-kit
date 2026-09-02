@@ -77,15 +77,16 @@ describe("Gantt (Vue)", () => {
     expect(columnHeader.textContent).not.toContain("Quarter");
   });
 
-  it("renders no chart header when none of its props are provided", () => {
+  it("always renders the header strip with the zoom selector, even without header props", () => {
     const w = mountGantt();
     const scroller = w.find(".gantt-scroller").element as HTMLElement;
     const columnHeader = scroller.previousElementSibling as HTMLElement;
-    // The scroller's previous sibling is the column header strip, not a chart header.
-    expect(columnHeader.textContent).toContain("Task");
-    expect(columnHeader.textContent).not.toContain("Northwind");
-    // Without a chart header the zoom toolbar floats over the scale window.
-    expect(columnHeader.textContent).toContain("Quarter");
+    const chartHeader = columnHeader.previousElementSibling as HTMLElement;
+    // The strip is always present and carries the zoom selector — it never
+    // floats over the scale window.
+    expect(chartHeader.textContent).toContain("Quarter");
+    expect(chartHeader.textContent).not.toContain("Northwind");
+    expect(columnHeader.textContent).not.toContain("Quarter");
   });
 
   it("shows the empty state when there are no tasks", () => {

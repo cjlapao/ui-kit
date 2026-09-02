@@ -27,9 +27,9 @@ export interface GanttProps {
   /** Left-panel columns. Defaults to name / owner / progress. */
   columns?: GanttColumn[];
   /**
-   * Optional chart header (above the column header, part of the chart
-   * surface — follows `variant`). The strip renders only when at least one
-   * of `icon` / `subtitle` / `title` / `actions` is provided.
+   * Chart header content. The header strip (above the column header) is
+   * always rendered — it carries the zoom selector at the right edge (after
+   * `actions`) — and these parts render when provided.
    */
   icon?: VNodeChild;
   /** Small uppercase eyebrow rendered above the `title`. */
@@ -158,20 +158,12 @@ const accentColor = computed<TrueColor>(() => props.color);
 // surface language (solid vs translucent ink included).
 const surfaceText = computed(() => getSurfaceTextTokens(props.variant));
 
-// Optional chart header (icon / subtitle / title / actions) — renders only
-// when the consumer provides at least one. When present, the zoom toolbar
-// moves into it (right edge, after the actions) instead of overlaying the
-// scale window.
-// `false` counts as absent: Vue boolean-casts VNode-typed props to `false`
-// when they are not passed (VNodeChild's union includes boolean).
+// Chart header (icon / subtitle / title / actions) — the strip is always
+// rendered and always carries the zoom selector (right edge, after the
+// actions). `false` counts as absent for the VNode props: Vue boolean-casts
+// VNode-typed props to `false` when they are not passed (VNodeChild's union
+// includes boolean).
 const hasNode = (v: unknown) => v != null && v !== false;
-const hasChartHeader = computed(
-  () =>
-    hasNode(props.icon) ||
-    props.subtitle != null ||
-    props.title != null ||
-    hasNode(props.actions),
-);
 const hasIcon = computed(() => hasNode(props.icon));
 const hasActions = computed(() => hasNode(props.actions));
 // Icon tile chrome follows the panel variant (sits flush beside the container).
@@ -550,9 +542,9 @@ const colJustify = (col: GanttColumn) =>
     @pointerdown="handleRootPointerDown"
   >
     <div class="flex h-full min-h-0 flex-col">
-      <!-- ── Optional chart header (icon | eyebrow + title | actions) ── -->
+      <!-- ── Chart header (always rendered; icon | eyebrow + title | actions
+           | zoom selector — the selector never floats over the scale) ── -->
       <div
-        v-if="hasChartHeader"
         :class="classNames('flex shrink-0 items-center gap-3 border-b px-4 py-3', surfaceText.divider)"
       >
         <div
@@ -580,17 +572,20 @@ const colJustify = (col: GanttColumn) =>
         <div v-if="hasActions" class="flex shrink-0 items-center gap-2">
           <VNodeRenderer :nodes="actions" />
         </div>
-        <!-- Zoom selector lives in the header when one is present (after the
-             actions), instead of overlaying the scale window. -->
-        <GanttToolbar
-          :variant="variant"
-          :zoom="zoom"
-          :presets="GANTT_ZOOM_PRESETS"
-          @zoom-to="setZoom"
-          @zoom-by="hZoomBy"
-        />
+        <!-- Zoom selector — always in the header strip (after the actions),
+             never floating over the scale window. `ml-auto` keeps it at the
+             right edge when no icon/title/actions are present. -->
+        <div class="ml-auto shrink-0">
+          <GanttToolbar
+            :variant="variant"
+            :zoom="zoom"
+            :presets="GANTT_ZOOM_PRESETS"
+            @zoom-to="setZoom"
+            @zoom-by="hZoomBy"
+          />
+        </div>
       </div>
-      <!-- ── Header (detached: labels | synced scale window | toolbar) ── -->
+      <!-- ── Header (detached: labels | synced scale window) ── -->
       <div
         :class="classNames('relative flex shrink-0 items-stretch border-b', surfaceText.divider)"
         :style="{ height: HEADER_HEIGHT }"
@@ -628,18 +623,6 @@ const colJustify = (col: GanttColumn) =>
               </span>
             </div>
           </div>
-        </div>
-        <!-- Zoom toolbar — pinned to the header's right edge (overlaying the
-             scale window). Suppressed when a chart header is present: the
-             toolbar then lives in the header strip instead. -->
-        <div v-if="!hasChartHeader" class="absolute right-2 top-1/2 z-20 -translate-y-1/2">
-          <GanttToolbar
-            :variant="variant"
-            :zoom="zoom"
-            :presets="GANTT_ZOOM_PRESETS"
-            @zoom-to="setZoom"
-            @zoom-by="hZoomBy"
-          />
         </div>
       </div>
 

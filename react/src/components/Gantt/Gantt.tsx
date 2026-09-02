@@ -90,9 +90,9 @@ export interface GanttProps {
   /** Left-panel columns. Defaults to name / owner / progress. */
   columns?: GanttColumn[];
   /**
-   * Optional chart header (above the column header, part of the chart
-   * surface — follows the `variant`). The strip renders only when at least
-   * one of `icon` / `subtitle` / `title` / `actions` is provided.
+   * Chart header content. The header strip (above the column header) is
+   * always rendered — it carries the zoom selector at the right edge (after
+   * `actions`) — and these parts render when provided.
    */
   icon?: ReactNode;
   /** Small uppercase eyebrow rendered above the `title`. */
@@ -194,15 +194,9 @@ export const Gantt: React.FC<GanttProps> = ({
   renderCell,
 }) => {
   const resolvedColumns = columns ?? DEFAULT_COLUMNS;
-  // Optional chart header (icon / subtitle / title / actions) — the strip
-  // renders only when the consumer provides at least one. When present, the
-  // zoom toolbar moves into it (right edge, after the actions) instead of
-  // overlaying the scale window.
   // `false` counts as absent (React idiom — and Vue boolean-casts
   // VNode-typed props to `false` when they are not passed).
   const hasNode = (v: unknown) => v != null && v !== false;
-  const hasChartHeader =
-    hasNode(icon) || subtitle != null || title != null || hasNode(actions);
   const allLabels = useMemo(() => mergeGanttLabels(labels), [labels]);
   const interactive =
     editable ?? Boolean(onTasksChange || onLinksChange || onReorder);
@@ -609,43 +603,46 @@ export const Gantt: React.FC<GanttProps> = ({
       onPointerDown={handleRootPointerDown}
     >
       <div className="flex h-full min-h-0 flex-col">
-        {/* ── Optional chart header (icon | eyebrow + title | actions | zoom) ── */}
-        {hasChartHeader && (
-          <div
-            className={classNames(
-              "flex shrink-0 items-center gap-3 border-b px-4 py-3",
-              surfaceText.divider,
-            )}
-          >
-            {hasNode(icon) && (
-              <div
-                className={classNames(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                  getSurfaceVariantClasses(variant, "neutral"),
-                )}
-              >
-                {icon}
-              </div>
-            )}
-            {(title != null || subtitle != null) && (
-              <div className="min-w-0 flex-1">
-                {subtitle != null && (
-                  <div className="truncate text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-                    {subtitle}
-                  </div>
-                )}
-                {title != null && (
-                  <div className="truncate text-lg font-semibold text-neutral-900 dark:text-white">
-                    {title}
-                  </div>
-                )}
-              </div>
-            )}
-            {hasNode(actions) && (
-              <div className="flex shrink-0 items-center gap-2">{actions}</div>
-            )}
-            {/* Zoom selector lives in the header when one is present (after
-                the actions), instead of overlaying the scale window. */}
+        {/* ── Chart header (always rendered; icon | eyebrow + title | actions
+              | zoom selector). The zoom selector always lives here — it never
+              floats over the scale window. ── */}
+        <div
+          className={classNames(
+            "flex shrink-0 items-center gap-3 border-b px-4 py-3",
+            surfaceText.divider,
+          )}
+        >
+          {hasNode(icon) && (
+            <div
+              className={classNames(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                getSurfaceVariantClasses(variant, "neutral"),
+              )}
+            >
+              {icon}
+            </div>
+          )}
+          {(title != null || subtitle != null) && (
+            <div className="min-w-0 flex-1">
+              {subtitle != null && (
+                <div className="truncate text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  {subtitle}
+                </div>
+              )}
+              {title != null && (
+                <div className="truncate text-lg font-semibold text-neutral-900 dark:text-white">
+                  {title}
+                </div>
+              )}
+            </div>
+          )}
+          {hasNode(actions) && (
+            <div className="flex shrink-0 items-center gap-2">{actions}</div>
+          )}
+          {/* Zoom selector — always in the header strip (after the actions),
+              never floating over the scale window. `ml-auto` keeps it at the
+              right edge when no icon/title/actions are present. */}
+          <div className="ml-auto shrink-0">
             <GanttToolbar
               variant={variant}
               zoom={zoom}
@@ -654,8 +651,8 @@ export const Gantt: React.FC<GanttProps> = ({
               onZoomBy={(f) => zoomBy(f)}
             />
           </div>
-        )}
-        {/* ── Header (detached: labels | synced scale window | toolbar) ── */}
+        </div>
+        {/* ── Header (detached: labels | synced scale window) ── */}
         <div
           className={classNames(
             "relative flex shrink-0 items-stretch border-b",
@@ -710,21 +707,6 @@ export const Gantt: React.FC<GanttProps> = ({
               )}
             </div>
           </div>
-          {/* Zoom toolbar — pinned to the header's right edge (overlaying the
-              scale window) so the header never scrolls and the scale keeps
-              the full remaining width. Suppressed when a chart header is
-              present: the toolbar then lives in the header strip instead. */}
-          {!hasChartHeader && (
-            <div className="absolute right-2 top-1/2 z-20 -translate-y-1/2">
-              <GanttToolbar
-                variant={variant}
-                zoom={zoom}
-                presets={GANTT_ZOOM_PRESETS}
-                onZoomTo={setZoom}
-                onZoomBy={(f) => zoomBy(f)}
-              />
-            </div>
-          )}
         </div>
 
         {/* ── Body (the only scroller) ─────────────────────────────────── */}
