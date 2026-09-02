@@ -11,6 +11,7 @@ import {
   toMs,
   computeViewRange,
   laneRollupProgress,
+  taskRollupProgress,
   MS_PER_DAY,
 } from "../../../../common/gantt";
 import type { GanttTask } from "../../../../common/gantt";
@@ -127,7 +128,9 @@ describe("Gantt (Vue)", () => {
 
   it("previews progress live while dragging the knob, committing only on drop", async () => {
     const w = mountGantt({ editable: true });
-    const bar = w.find('[data-gantt-bar="webapp"]');
+    // webapp-screens is a leaf (groups display their children's roll-up and
+    // expose no knob).
+    const bar = w.find('[data-gantt-bar="webapp-screens"]');
     const knob = bar.find('[title="Adjust progress"]');
     expect(knob.exists()).toBe(true);
 
@@ -135,9 +138,9 @@ describe("Gantt (Vue)", () => {
       tasks.map((t) => toMs(t.start)),
       tasks.map((t) => toMs(t.end)),
     );
-    const webapp = tasks.find((t) => t.id === "webapp")!;
-    const left = dateToX(toMs(webapp.start), range.start, 16);
-    const width = Math.max(6, dateToX(toMs(webapp.end), range.start, 16) - left);
+    const screens = tasks.find((t) => t.id === "webapp-screens")!;
+    const left = dateToX(toMs(screens.start), range.start, 16);
+    const width = Math.max(6, dateToX(toMs(screens.end), range.start, 16) - left);
 
     await knob.trigger("pointerdown");
     await nextTick();
@@ -155,7 +158,7 @@ describe("Gantt (Vue)", () => {
     await nextTick();
     expect(w.emitted("tasks-change")).toBeTruthy();
     const next = w.emitted("tasks-change")![0][0] as GanttTask[];
-    expect(next.find((t) => t.id === "webapp")!.progress).toBe(0.8);
+    expect(next.find((t) => t.id === "webapp-screens")!.progress).toBe(0.8);
   });
 
   it("re-rolls the lane progress live while dragging a child's knob", async () => {
@@ -187,6 +190,53 @@ describe("Gantt (Vue)", () => {
     // Mid-drag: the lane header reads the re-rolled %.
     const laneRow = w.find('[data-row-key="lane:eng"]');
     expect(laneRow.text()).toContain(`${Math.round(live.progress * 100)}%`);
+    expect(w.emitted("tasks-change")).toBeFalsy();
+
+    pointer("pointerup", left + width * 0.8, 100);
+    await nextTick();
+    expect(w.emitted("tasks-change")).toBeTruthy();
+  });
+
+  it("shows the children's roll-up on group rows — read-only, no progress knob", () => {
+    const w = mountGantt({ editable: true });
+    const webapp = tasks.find((t) => t.id === "webapp")!;
+    const rollup = taskRollupProgress(tasks, "webapp")!;
+    expect(rollup).not.toBeCloseTo(webapp.progress ?? 0, 5);
+    const row = w.find('[data-row-key="task:webapp"]');
+    expect(row.text()).toContain(`${Math.round(rollup * 100)}%`);
+    const bar = w.find('[data-gantt-bar="webapp"]');
+    const overlay = bar
+      .element.children ? [...bar.element.children].find((c) => (c as HTMLElement).style.width) : null;
+    expect((overlay as HTMLElement).style.width).toBe(`${rollup * 100}%`);
+    expect(bar.find('[title="Adjust progress"]').exists()).toBe(false);
+  });
+
+  it("re-rolls the parent group's progress live while dragging a child's knob", async () => {
+    const w = mountGantt({ editable: true });
+    const bar = w.find('[data-gantt-bar="webapp-screens"]');
+    const knob = bar.find('[title="Adjust progress"]');
+    expect(knob.exists()).toBe(true);
+
+    const screens = tasks.find((t) => t.id === "webapp-screens")!;
+    const groupCommitted = taskRollupProgress(tasks, "webapp")!;
+    const groupLive = taskRollupProgress(tasks, "webapp", { ...screens, progress: 0.8 })!;
+    expect(Math.round(groupLive * 100)).not.toBe(Math.round(groupCommitted * 100));
+
+    const range = computeViewRange(
+      tasks.map((t) => toMs(t.start)),
+      tasks.map((t) => toMs(t.end)),
+    );
+    const left = dateToX(toMs(screens.start), range.start, 16);
+    const width = Math.max(6, dateToX(toMs(screens.end), range.start, 16) - left);
+
+    await knob.trigger("pointerdown");
+    await nextTick();
+    pointer("pointermove", left + width * 0.8, 100);
+    await nextTick();
+
+    // Mid-drag: the parent group's Progress cell shows the re-rolled %.
+    const groupRow = w.find('[data-row-key="task:webapp"]');
+    expect(groupRow.text()).toContain(`${Math.round(groupLive * 100)}%`);
     expect(w.emitted("tasks-change")).toBeFalsy();
 
     pointer("pointerup", left + width * 0.8, 100);

@@ -57,6 +57,7 @@ import {
   laneRollupProgress,
   LINK_RIGHT_GUTTER,
   rangeWidth,
+  taskRollupProgress,
   toMs,
   MS_PER_DAY,
 } from "../../../../common/gantt";
@@ -571,26 +572,49 @@ export const Gantt: React.FC<GanttProps> = ({
   const liveDragProgress =
     drag?.kind === "progress" && drag.liveProgress != null ? drag.liveProgress : null;
 
-  // While a drag is live, the lane that owns the dragged task re-rolls its
-  // roll-up with the previewed edit, so the lane's Progress column follows
-  // the child in real time — a move/resize changes the duration weights,
-  // the progress knob changes the leaf value. Committed values are unchanged
-  // until the drop.
-  const liveLaneProgress = useMemo(() => {
+  // While a drag is live, the previewed edit of the dragged task (live dates
+  // for a move/resize, live progress for the knob) — the single input to the
+  // live re-rolls below.
+  const dragOverride = useMemo(() => {
     if (!drag || !dragTask) return null;
-    let override: GanttTask | undefined;
     if (drag.kind === "progress" && drag.liveProgress != null) {
-      override = { ...dragTask, progress: drag.liveProgress };
-    } else if (
+      return { ...dragTask, progress: drag.liveProgress };
+    }
+    if (
       (drag.kind === "move" || drag.kind === "resize-start" || drag.kind === "resize-end") &&
       liveDragDates
     ) {
-      override = { ...dragTask, start: liveDragDates.start, end: liveDragDates.end };
-    } else {
-      return null;
+      return { ...dragTask, start: liveDragDates.start, end: liveDragDates.end };
     }
-    return laneRollupProgress(effectiveTasks, dragTask.id, override);
-  }, [drag, dragTask, liveDragDates, effectiveTasks]);
+    return null;
+  }, [drag, dragTask, liveDragDates]);
+
+  // The lane that owns the dragged task re-rolls its roll-up with the
+  // previewed edit, so the lane's Progress column follows the child in real
+  // time — a move/resize changes the duration weights, the progress knob
+  // changes the leaf value. Committed values are unchanged until the drop.
+  const liveLaneProgress = useMemo(
+    () =>
+      dragOverride && dragTask
+        ? laneRollupProgress(effectiveTasks, dragTask.id, dragOverride)
+        : null,
+    [dragOverride, dragTask, effectiveTasks],
+  );
+
+  // The dragged task's ancestor groups are read-only roll-ups of their
+  // children, so each re-rolls live as the child moves/resizes/edits.
+  const liveGroupProgress = useMemo(() => {
+    if (!dragOverride || !dragTask) return null;
+    const byId = new Map(effectiveTasks.map((t) => [t.id, t]));
+    const m = new Map<string, number>();
+    let p = dragTask.parent != null ? byId.get(dragTask.parent) : undefined;
+    while (p) {
+      const r = taskRollupProgress(effectiveTasks, p.id, dragOverride);
+      if (r != null) m.set(p.id, r);
+      p = p.parent != null ? byId.get(p.parent) : undefined;
+    }
+    return m.size > 0 ? m : null;
+  }, [dragOverride, dragTask, effectiveTasks]);
 
   // While a move/resize drag is live, the dragged task's committed geometry is
   // replaced by its preview geometry, so its dependency arrows re-route in
@@ -809,6 +833,11 @@ export const Gantt: React.FC<GanttProps> = ({
                   liveLane={
                     row.lane && liveLaneProgress && row.lane.id === liveLaneProgress.laneId
                       ? liveLaneProgress.progress
+                      : null
+                  }
+                  liveRollup={
+                    row.task && row.isGroup
+                      ? liveGroupProgress?.get(row.task.id) ?? null
                       : null
                   }
                   onBarPointerDown={dragApi.onBarPointerDown}

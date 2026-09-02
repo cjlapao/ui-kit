@@ -50,6 +50,8 @@ interface GanttBodyRowProps {
   liveProgress: number | null;
   /** Live lane roll-up (0..1) while one of the lane's children is dragged. */
   liveLane?: number | null;
+  /** Live group roll-up (0..1) while one of this row's descendants is dragged. */
+  liveRollup?: number | null;
   onBarPointerDown: (task: GanttTask, e: React.PointerEvent) => void;
   onResizePointerDown: (task: GanttTask, edge: "start" | "end", e: React.PointerEvent) => void;
   onGripPointerDown: (rowKey: string, task: GanttTask, e: React.PointerEvent) => void;
@@ -86,6 +88,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
   liveDates,
   liveProgress,
   liveLane,
+  liveRollup,
   onBarPointerDown,
   onResizePointerDown,
   onGripPointerDown,
@@ -152,6 +155,8 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
                 onCaretClick={onCaretClick}
                 renderCell={renderCell}
                 liveProgress={isDraggingThis ? liveProgress : null}
+                liveRollup={row.isGroup ? liveRollup : null}
+                rowProgress={row.progress ?? null}
                 first={i === 0}
                 dividerClass={dividerClass}
               />
@@ -174,6 +179,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
               isDraggingThis={isDraggingThis}
               liveDates={isDraggingThis ? liveDates : null}
               liveProgress={isDraggingThis ? liveProgress : null}
+              liveRollup={row.isGroup ? liveRollup : null}
               renderBar={renderBar}
               onBarPointerDown={onBarPointerDown}
               onResizePointerDown={onResizePointerDown}
@@ -280,10 +286,22 @@ const Cell: React.FC<{
   renderCell?: (value: unknown, task: GanttTask, column: GanttColumn) => React.ReactNode;
   /** Live percent complete (0..1) while this task's progress knob is dragged. */
   liveProgress?: number | null;
+  /** Live group roll-up (0..1) while one of this group's descendants is dragged. */
+  liveRollup?: number | null;
+  /** Committed roll-up (0..1) for a group row (groups display their children's roll-up, not an own value). */
+  rowProgress?: number | null;
   dividerClass?: string;
-}> = ({ col, task, depth, isGroup, childCount, first, onCaretClick, renderCell, liveProgress, dividerClass = "border-neutral-100 dark:border-neutral-800" }) => {
+}> = ({ col, task, depth, isGroup, childCount, first, onCaretClick, renderCell, liveProgress, liveRollup, rowProgress, dividerClass = "border-neutral-100 dark:border-neutral-800" }) => {
   const value =
-    col.key === "name" ? task.name : col.key === "owner" ? task.owner : col.key === "progress" ? (liveProgress ?? task.progress) : (task.values?.[col.key] ?? null);
+    col.key === "name"
+      ? task.name
+      : col.key === "owner"
+        ? task.owner
+        : col.key === "progress"
+          ? isGroup
+            ? (liveRollup ?? rowProgress ?? 0)
+            : (liveProgress ?? task.progress ?? 0)
+          : (task.values?.[col.key] ?? null);
 
   const custom = col.key !== "name" && renderCell ? renderCell(value, task, col) : null;
 
@@ -396,6 +414,8 @@ const TaskBar: React.FC<{
   liveDates: { start: number; end: number } | null;
   /** Live percent complete (0..1) while this bar's progress knob is dragged. */
   liveProgress?: number | null;
+  /** Live group roll-up (0..1) while one of this group's descendants is dragged. */
+  liveRollup?: number | null;
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => React.ReactNode;
   onBarPointerDown: (task: GanttTask, e: React.PointerEvent) => void;
   onResizePointerDown: (task: GanttTask, edge: "start" | "end", e: React.PointerEvent) => void;
@@ -417,6 +437,7 @@ const TaskBar: React.FC<{
   labels,
   liveDates,
   liveProgress,
+  liveRollup,
   renderBar,
   onBarPointerDown,
   onResizePointerDown,
@@ -438,9 +459,12 @@ const TaskBar: React.FC<{
   const top = (row.height - BAR_HEIGHT) / 2;
   const showName = !milestone && width > 44;
   const canEdit = interactive && !task.locked;
-  // Progress knob drag: the fill, knob and % readout follow the pointer in
-  // real time (liveProgress); nothing commits until drop.
-  const progress = liveProgress ?? task.progress ?? 0;
+  // Progress: a leaf is its own (draggable) value; a group has no progress of
+  // its own — it displays the (read-only) roll-up of its children, re-rolled
+  // live while one of them is edited.
+  const progress = row.isGroup
+    ? (liveRollup ?? row.progress ?? 0)
+    : (liveProgress ?? task.progress ?? 0);
   const progressPct = Math.round(progress * 100);
   // The un-done part of the bar is a light tint, so the label reads dark on
   // it (low progress) and white on the dark progress fill (high progress).
@@ -511,8 +535,8 @@ const TaskBar: React.FC<{
           style={{ width: `${progress * 100}%` }}
         />
       )}
-      {/* Progress knob (drag to set progress) */}
-      {canEdit && progress > 0 && progress < 1 && (
+      {/* Progress knob (drag to set progress) — groups are read-only roll-ups */}
+      {canEdit && !row.isGroup && progress > 0 && progress < 1 && (
         <div
           className={classNames(
             "absolute inset-y-0 z-20 w-2 cursor-ew-resize touch-none opacity-0 transition-opacity group-hover/bar:opacity-100",

@@ -112,6 +112,7 @@ import {
   laneRollupProgress,
   LINK_RIGHT_GUTTER,
   rangeWidth,
+  taskRollupProgress,
   toMs,
   MS_PER_DAY,
 } from "../../../../common/gantt";
@@ -500,27 +501,50 @@ const liveDragProgress = computed(
       : null,
 );
 
-// While a drag is live, the lane that owns the dragged task re-rolls its
-// roll-up with the previewed edit, so the lane's Progress column follows
-// the child in real time — a move/resize changes the duration weights,
-// the progress knob changes the leaf value. Committed values are unchanged
-// until the drop.
-const liveLaneProgress = computed(() => {
+// While a drag is live, the previewed edit of the dragged task (live dates
+// for a move/resize, live progress for the knob) — the single input to the
+// live re-rolls below.
+const dragOverride = computed<GanttTask | null>(() => {
   const d = drag.value;
   const t = dragTask.value;
   if (!d || !t) return null;
-  let override: GanttTask | undefined;
   if (d.kind === "progress" && d.liveProgress != null) {
-    override = { ...t, progress: d.liveProgress };
-  } else if (
+    return { ...t, progress: d.liveProgress };
+  }
+  if (
     (d.kind === "move" || d.kind === "resize-start" || d.kind === "resize-end") &&
     liveDragDates.value
   ) {
-    override = { ...t, start: liveDragDates.value.start, end: liveDragDates.value.end };
-  } else {
-    return null;
+    return { ...t, start: liveDragDates.value.start, end: liveDragDates.value.end };
   }
-  return laneRollupProgress(effectiveTasks.value, t.id, override);
+  return null;
+});
+
+// The lane that owns the dragged task re-rolls its roll-up with the
+// previewed edit, so the lane's Progress column follows the child in real
+// time — a move/resize changes the duration weights, the progress knob
+// changes the leaf value. Committed values are unchanged until the drop.
+const liveLaneProgress = computed(() =>
+  dragOverride.value && dragTask.value
+    ? laneRollupProgress(effectiveTasks.value, dragTask.value.id, dragOverride.value)
+    : null,
+);
+
+// The dragged task's ancestor groups are read-only roll-ups of their
+// children, so each re-rolls live as the child moves/resizes/edits.
+const liveGroupProgress = computed<Map<string, number> | null>(() => {
+  const o = dragOverride.value;
+  const t = dragTask.value;
+  if (!o || !t) return null;
+  const byId = new Map(effectiveTasks.value.map((x) => [x.id, x]));
+  const m = new Map<string, number>();
+  let p = t.parent != null ? byId.get(t.parent) : undefined;
+  while (p) {
+    const r = taskRollupProgress(effectiveTasks.value, p.id, o);
+    if (r != null) m.set(p.id, r);
+    p = p.parent != null ? byId.get(p.parent) : undefined;
+  }
+  return m.size > 0 ? m : null;
 });
 
 // While a move/resize drag is live, the dragged task's committed geometry is
@@ -748,6 +772,7 @@ const colJustify = (col: GanttColumn) =>
             :live-dates="liveDragDates ?? null"
             :live-progress="row.task && drag?.taskId === row.task.id ? liveDragProgress : null"
             :live-lane="row.lane && liveLaneProgress && row.lane.id === liveLaneProgress.laneId ? liveLaneProgress.progress : null"
+            :live-rollup="row.task && row.isGroup ? (liveGroupProgress?.get(row.task.id) ?? null) : null"
             :selection-tokens="selectionTokens"
             :divider-class="surfaceText.divider"
             @bar-pointer-down="hBarPointerDown"

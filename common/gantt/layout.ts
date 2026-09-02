@@ -41,6 +41,46 @@ export function rollupProgress(
   return totalMs === 0 ? 0 : clamp01(weighted / totalMs);
 }
 
+/** Children index — a task whose parent id is unknown degrades to top level. */
+function childrenIndex(tasks: GanttTask[]): Map<string, GanttTask[]> {
+  const byId = new Map<string, GanttTask>(tasks.map((t) => [t.id, t]));
+  const childrenByParent = new Map<string, GanttTask[]>();
+  for (const t of tasks) {
+    if (t.parent != null && byId.has(t.parent)) {
+      let list = childrenByParent.get(t.parent);
+      if (!list) {
+        list = [];
+        childrenByParent.set(t.parent, list);
+      }
+      list.push(t);
+    }
+  }
+  return childrenByParent;
+}
+
+/**
+ * Roll-up of the task identified by `taskId`: its own progress for a leaf,
+ * the duration-weighted roll-up of its descendants for a group (the value a
+ * group row displays — groups have no progress of their own). `override` is
+ * a preview edit of *any* task (usually the dragged child — live dates or
+ * live progress) substituted in place of that task's committed values before
+ * the roll-up is computed, which is what makes a group's percentage follow
+ * its child in real time while the child is being edited.
+ * Returns `null` when `taskId` is not in the list.
+ */
+export function taskRollupProgress(
+  tasks: GanttTask[],
+  taskId: string,
+  override?: GanttTask,
+): number | null {
+  const tasksById = new Map<string, GanttTask>(tasks.map((t) => [t.id, t]));
+  if (!tasksById.has(taskId)) return null;
+  const edited = override
+    ? tasks.map((t) => (t.id === override.id ? override : t))
+    : tasks;
+  return rollupProgress(edited.find((t) => t.id === taskId)!, new Map(), childrenIndex(edited));
+}
+
 /**
  * Duration-weighted progress over the lane that owns `taskId`, with
  * `override` (a preview edit of that task — the live dates of an in-flight
@@ -58,18 +98,10 @@ export function laneRollupProgress(
   const target = tasksById.get(taskId);
   if (!target) return null;
   const laneId = target.lane ?? "";
-  const edited = override ? tasks.map((t) => (t.id === taskId ? override : t)) : tasks;
-  const childrenByParent = new Map<string, GanttTask[]>();
-  for (const t of edited) {
-    if (t.parent != null && tasksById.has(t.parent)) {
-      let list = childrenByParent.get(t.parent);
-      if (!list) {
-        list = [];
-        childrenByParent.set(t.parent, list);
-      }
-      list.push(t);
-    }
-  }
+  const edited = override
+    ? tasks.map((t) => (t.id === override.id ? override : t))
+    : tasks;
+  const childrenByParent = childrenIndex(edited);
   const top = edited.filter(
     (t) => (t.parent == null || !tasksById.has(t.parent)) && (t.lane ?? "") === laneId,
   );
@@ -99,19 +131,7 @@ export function buildRows(
   laneOrder: string[];
 } {
   const tasksById = new Map<string, GanttTask>(tasks.map((t) => [t.id, t]));
-
-  // Children index — a task whose parent id is unknown degrades to top level.
-  const childrenByParent = new Map<string, GanttTask[]>();
-  for (const t of tasks) {
-    if (t.parent != null && tasksById.has(t.parent)) {
-      let list = childrenByParent.get(t.parent);
-      if (!list) {
-        list = [];
-        childrenByParent.set(t.parent, list);
-      }
-      list.push(t);
-    }
-  }
+  const childrenByParent = childrenIndex(tasks);
 
   // Lane specs: explicit lanes first, then lanes discovered from tasks.
   const laneSpecs = new Map<string, GanttLane>();

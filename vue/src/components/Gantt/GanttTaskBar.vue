@@ -22,6 +22,8 @@ export interface GanttTaskBarProps {
   liveDates: { start: number; end: number } | null;
   /** Live percent complete (0..1) while this bar's progress knob is dragged. */
   liveProgress?: number | null;
+  /** Live group roll-up (0..1) while one of this group's descendants is dragged. */
+  liveRollup?: number | null;
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => VNodeChild;
   selectionTokens: { ring: string };
 }
@@ -66,7 +68,14 @@ const width = computed(() =>
 );
 // Progress knob drag: the fill, knob and % readout follow the pointer in
 // real time (liveProgress); nothing commits until drop.
-const progress = computed(() => props.liveProgress ?? props.task.progress ?? 0);
+// Progress: a leaf is its own (draggable) value; a group has no progress of
+// its own — it displays the (read-only) roll-up of its children, re-rolled
+// live while one of them is edited.
+const progress = computed(() =>
+  props.row.isGroup
+    ? (props.liveRollup ?? props.row.progress ?? 0)
+    : (props.liveProgress ?? props.task.progress ?? 0),
+);
 const progressPct = computed(() => Math.round(progress.value * 100));
 // The un-done part of the bar is a light tint, so the label reads dark on
 // it (low progress) and white on the dark progress fill (high progress).
@@ -171,9 +180,9 @@ const renderBarNode = computed(() => {
         :class="classNames('absolute inset-y-0 left-0 rounded-l-md', tokens.progress)"
         :style="{ width: `${progress * 100}%` }"
       />
-      <!-- Progress knob (drag to set progress) -->
+      <!-- Progress knob (drag to set progress) — groups are read-only roll-ups -->
       <div
-        v-if="canEdit && progress > 0 && progress < 1"
+        v-if="canEdit && !row.isGroup && progress > 0 && progress < 1"
         :class="
           classNames(
             'absolute inset-y-0 z-20 w-2 cursor-ew-resize touch-none opacity-0 transition-opacity group-hover/bar:opacity-100',

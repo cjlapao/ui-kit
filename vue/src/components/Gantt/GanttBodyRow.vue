@@ -31,6 +31,8 @@ export interface GanttBodyRowProps {
   liveProgress?: number | null;
   /** Live lane roll-up (0..1) while one of the lane's children is dragged. */
   liveLane?: number | null;
+  /** Live group roll-up (0..1) while one of this row's descendants is dragged. */
+  liveRollup?: number | null;
   selectionTokens: { ring: string; row: string };
   /**
    * Hairline divider classes (border colour) for row / cell edges — the
@@ -194,6 +196,8 @@ const lanePct = computed(
           :first="i === 0"
           :render-cell="renderCell"
           :live-progress="isDraggingThis ? liveProgress : null"
+          :live-rollup="row.isGroup ? liveRollup : null"
+          :row-progress="row.progress ?? null"
           :divider-class="divider"
           @caret-click="(id, open) => emit('caret-click', id, open)"
         />
@@ -215,6 +219,7 @@ const lanePct = computed(
           :is-dragging-this="isDraggingThis"
           :live-dates="isDraggingThis ? liveDates : null"
           :live-progress="isDraggingThis ? liveProgress : null"
+          :live-rollup="row.isGroup ? liveRollup : null"
           :render-bar="renderBar"
           :selection-tokens="selectionTokens"
           @bar-pointer-down="(t, ev) => emit('bar-pointer-down', t, ev)"

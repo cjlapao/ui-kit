@@ -12,6 +12,7 @@ import {
   computeViewRange,
   computeLinkPaths,
   laneRollupProgress,
+  taskRollupProgress,
   MS_PER_DAY,
 } from "../../../../common/gantt";
 import type { GanttTask, GanttBarGeometry } from "../../../../common/gantt";
@@ -159,7 +160,9 @@ describe("Gantt component", () => {
     const { container } = render(
       <Gantt tasks={tasks} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />,
     );
-    const barEl = container.querySelector<HTMLElement>('[data-gantt-bar="webapp"]')!;
+    // webapp-screens is a leaf (groups display their children's roll-up and
+    // expose no knob).
+    const barEl = container.querySelector<HTMLElement>('[data-gantt-bar="webapp-screens"]')!;
     const knob = barEl.querySelector('[title="Adjust progress"]') as HTMLElement;
     expect(knob).toBeTruthy();
 
@@ -167,8 +170,8 @@ describe("Gantt component", () => {
     const width = parseFloat(barEl.style.width);
     expect(width).toBeGreaterThan(0);
 
-    // Start a progress drag from the knob (webapp is at 30%).
-    fireEvent.pointerDown(knob, { clientX: left + width * 0.3, clientY: 100, button: 0 });
+    // Start a progress drag from the knob (webapp-screens is at 20%).
+    fireEvent.pointerDown(knob, { clientX: left + width * 0.2, clientY: 100, button: 0 });
 
     // Mid-drag: the pointer at 80% of the bar — the fill, the knob and the
     // live % chip follow in real time, and the Progress column cell updates;
@@ -186,7 +189,60 @@ describe("Gantt component", () => {
     pointer(window, "pointerup", left + width * 0.8, 100);
     expect(onTasksChange).toHaveBeenCalledTimes(1);
     const next = onTasksChange.mock.calls[0][0] as GanttTask[];
-    expect(next.find((t) => t.id === "webapp")!.progress).toBe(0.8);
+    expect(next.find((t) => t.id === "webapp-screens")!.progress).toBe(0.8);
+  });
+
+  it("shows the children's roll-up on group rows — read-only, no progress knob", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} editable />,
+    );
+    const webapp = tasks.find((t) => t.id === "webapp")!;
+    const rollup = taskRollupProgress(tasks, "webapp")!;
+    // The roll-up differs from the group's own (now-ignored) progress.
+    expect(rollup).not.toBeCloseTo(webapp.progress ?? 0, 5);
+    const row = container.querySelector<HTMLElement>('[data-row-key="task:webapp"]')!;
+    expect(row.textContent).toContain(`${Math.round(rollup * 100)}%`);
+    // The bar's progress overlay is the roll-up width…
+    const bar = container.querySelector<HTMLElement>('[data-gantt-bar="webapp"]')!;
+    const overlay = ([...bar.children] as HTMLElement[]).find((c) => c.style.width)!;
+    expect(overlay.style.width).toBe(`${rollup * 100}%`);
+    // …and the group exposes no progress knob (its percentage is derived).
+    expect(bar.querySelector('[title="Adjust progress"]')).toBeNull();
+  });
+
+  it("re-rolls the parent group's progress live while dragging a child's knob", () => {
+    const onTasksChange = vi.fn();
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />,
+    );
+    const barEl = container.querySelector<HTMLElement>('[data-gantt-bar="webapp-screens"]')!;
+    const knob = barEl.querySelector('[title="Adjust progress"]') as HTMLElement;
+    const groupRow = container.querySelector<HTMLElement>('[data-row-key="task:webapp"]')!;
+
+    const screens = tasks.find((t) => t.id === "webapp-screens")!;
+    const groupCommitted = taskRollupProgress(tasks, "webapp")!;
+    const groupLive = taskRollupProgress(tasks, "webapp", { ...screens, progress: 0.8 })!;
+    expect(Math.round(groupLive * 100)).not.toBe(Math.round(groupCommitted * 100));
+
+    const left = parseFloat(barEl.style.left);
+    const width = parseFloat(barEl.style.width);
+    fireEvent.pointerDown(knob, { clientX: left + width * 0.2, clientY: 100, button: 0 });
+    pointer(window, "pointermove", left + width * 0.8, 100);
+    // Mid-drag: the parent group's Progress cell shows the re-rolled %.
+    expect(groupRow.textContent).toContain(`${Math.round(groupLive * 100)}%`);
+    expect(onTasksChange).not.toHaveBeenCalled();
+
+    pointer(window, "pointerup", left + width * 0.8, 100);
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    const next = onTasksChange.mock.calls[0][0] as GanttTask[];
+    // Committed roll-up holds on re-render (the group's own progress is still
+    // whatever it was — the displayed value is the roll-up).
+    const c2 = render(
+      <Gantt tasks={next} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />,
+    ).container;
+    expect(
+      c2.querySelector('[data-row-key="task:webapp"]')!.textContent,
+    ).toContain(`${Math.round(taskRollupProgress(next, "webapp")! * 100)}%`);
   });
 
   it("re-rolls the lane progress live while dragging a child's knob", () => {

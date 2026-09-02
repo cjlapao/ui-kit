@@ -18,6 +18,7 @@ import {
   resolveDropBeforeId,
   rollupProgress,
   laneRollupProgress,
+  taskRollupProgress,
 } from "../../../../common/gantt/layout";
 import {
   applyDragDates,
@@ -187,6 +188,22 @@ describe("layout engine", () => {
 
     // Unknown task → null.
     expect(laneRollupProgress(tasks, "nope")).toBeNull();
+  });
+
+  it("taskRollupProgress: own value for leaves, descendant roll-up for groups, live with an override", () => {
+    // Leaf → its own progress.
+    expect(taskRollupProgress(tasks, "api")).toBeCloseTo(1, 5);
+    // Group → duration-weighted roll-up of its descendants (matches
+    // rollupProgress and the committed group row value from buildRows).
+    const committed = taskRollupProgress(tasks, "visual");
+    expect(committed).toBeCloseTo(5 / 7, 5);
+    const groupRow = rows.find((r) => r.key === "task:visual")!;
+    expect(groupRow.progress).toBeCloseTo(committed!, 5);
+    // Live: preview a leaf edit (flow mockups 0.5 → 1.0) → the group moves.
+    const flow = tasks.find((t) => t.id === "visual-flow")!;
+    const live = taskRollupProgress(tasks, "visual", { ...flow, progress: 1 });
+    expect(live).toBeCloseTo(1, 5);
+    expect(taskRollupProgress(tasks, "nope")).toBeNull();
   });
 
   it("collapses a lane to its header row when open === false", () => {

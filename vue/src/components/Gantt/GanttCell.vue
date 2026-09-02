@@ -10,6 +10,10 @@ export interface GanttCellProps {
   first: boolean;
   /** Live percent complete (0..1) while this task's progress knob is dragged. */
   liveProgress?: number | null;
+  /** Live group roll-up (0..1) while one of this group's descendants is dragged. */
+  liveRollup?: number | null;
+  /** Committed roll-up (0..1) for a group row — groups display their children's roll-up, not an own value. */
+  rowProgress?: number | null;
   renderCell?: (value: unknown, task: GanttTask, column: GanttColumn) => VNodeChild | null;
   /** Hairline divider classes (border colour) for the cell's right edge. */
   dividerClass?: string;
@@ -38,7 +42,9 @@ const value = computed(
       : props.col.key === "owner"
         ? props.task.owner
         : props.col.key === "progress"
-          ? (props.liveProgress ?? props.task.progress)
+          ? props.isGroup
+            ? (props.liveRollup ?? props.rowProgress ?? 0)
+            : (props.liveProgress ?? props.task.progress ?? 0)
           : (props.task.values?.[props.col.key] ?? null),
 );
 
