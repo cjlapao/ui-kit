@@ -40,7 +40,7 @@ import {
   formatDateTime,
   formatDuration,
   getGanttBarTokens,
-  fanSlotOffset,
+  fanHandleOffset,
   toMs,
   dateToX,
 } from "../../../../common/gantt";
@@ -71,8 +71,8 @@ const canEdit = computed(() => props.interactive && !props.task.locked);
 // Port slot on each edge: the centre of the largest free gap, so a handle
 // never sits on the static fan — and the rubber band departs from the same
 // slot the handle occupies.
-const inSlot = computed(() => fanSlotOffset(BAR_HEIGHT, props.fanIn ?? []));
-const outSlot = computed(() => fanSlotOffset(BAR_HEIGHT, props.fanOut ?? []));
+const inSlot = computed(() => fanHandleOffset(BAR_HEIGHT, props.fanIn ?? []));
+const outSlot = computed(() => fanHandleOffset(BAR_HEIGHT, props.fanOut ?? []));
 
 const ariaLabel = computed(
   () =>

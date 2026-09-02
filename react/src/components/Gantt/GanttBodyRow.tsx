@@ -16,7 +16,7 @@ import {
   dateToX,
   formatDateTime,
   formatDuration,
-  fanSlotOffset,
+  fanHandleOffset,
   getGanttBarTokens,
   getGanttLaneTokens,
   toMs,
@@ -427,8 +427,8 @@ const TaskBar: React.FC<{
   // Port slot on each edge: the centre of the largest free gap, so a handle
   // never sits on the static fan — and the rubber band departs from the same
   // slot the handle occupies.
-  const inSlot = fanSlotOffset(BAR_HEIGHT, fanIn ?? []);
-  const outSlot = fanSlotOffset(BAR_HEIGHT, fanOut ?? []);
+  const inSlot = fanHandleOffset(BAR_HEIGHT, fanIn ?? []);
+  const outSlot = fanHandleOffset(BAR_HEIGHT, fanOut ?? []);
 
   const ariaLabel = `${task.name}: ${formatDateTime(startMs)} to ${formatDateTime(endMs)}, ${
     milestone ? "milestone" : `${formatDuration(startMs, endMs)}, ${progressPct}% complete`

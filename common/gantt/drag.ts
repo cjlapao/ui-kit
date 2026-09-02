@@ -476,6 +476,9 @@ export function linkPath(
 export const LINK_FAN_MAX_SPREAD = 16;
 /** Min distance (px) from a port to the bar's top/bottom edge. */
 export const LINK_FAN_INSET = 4;
+/** How far past the bar's half height the hover handle may float (into the
+ *  row's padding) so it can keep the fan's spacing from an occupied port. */
+export const LINK_HANDLE_OVERHANG = 4;
 /** Blank right gutter (px) past the timeline, so rightmost link routes and
  *  their arrowheads never sit at the scroll edge. */
 export const LINK_RIGHT_GUTTER = 24;
@@ -557,15 +560,43 @@ export function computeLinkFanOffsets(
 }
 
 /**
- * Pick the slot a *new* connector (hover handle / rubber preview) should use
- * on a bar edge that already carries `taken` port offsets: the centre of the
- * largest free gap, where each taken port excludes a zone of port dot + halo
- * (~{@link LINK_PORT_R} + 2.5px) around it. `0` (the bar centre) when the
- * side is free, or when no gap remains.
+ * Pick the slot a *new* connector's hover handle / rubber preview should use
+ * on a bar edge that already carries `taken` port offsets.
+ *
+ * The handle floats into the row's padding, so the slot range extends
+ * {@link LINK_HANDLE_OVERHANG} past the bar's half height. Placement by
+ * preference:
+ * 1. the bar centre, when no port sits within a visible gap;
+ * 2. otherwise `LINK_FAN_MAX_SPREAD` (the fan's own spacing) away from the
+ *    nearest port, pushed toward the bar's edge (top first) — so the handle
+ *    never sits on a port and reads with the same spacing the fan gives its
+ *    ports;
+ * 3. otherwise the centre of the largest free gap (a crowded side).
+ * `0` when the side is free.
  */
-export function fanSlotOffset(barHeight: number, taken: number[]): number {
-  const half = Math.min(barHeight, LINK_BAR_HEIGHT) / 2 - LINK_FAN_INSET;
-  if (half <= 0) return 0;
+export function fanHandleOffset(barHeight: number, taken: number[]): number {
+  const n = taken.length;
+  if (n === 0) return 0;
+  const half = Math.min(barHeight, LINK_BAR_HEIGHT) / 2 + LINK_HANDLE_OVERHANG;
+  // A slot reads clear of a port when the handle (r 5) keeps a visible gap
+  // from the port's dot + halo.
+  const clearOf = (x: number) =>
+    taken.every((t) => Math.abs(x - t) >= LINK_PORT_R + 2.5 + 3);
+
+  // 1) The centre.
+  if (clearOf(0)) return 0;
+
+  // 2) The fan's own spacing, toward the edge (top first). A port exactly at
+  //    the centre belongs to both sides.
+  for (const sign of [-1, 1] as const) {
+    const sidePorts = taken.filter((t) => sign * t >= 0);
+    if (sidePorts.length === 0) continue;
+    const nearest = Math.min(...sidePorts.map((t) => Math.abs(t)));
+    const cand = sign * (nearest + LINK_FAN_MAX_SPREAD);
+    if (Math.abs(cand) <= half && clearOf(cand)) return cand;
+  }
+
+  // 3) Largest free gap, each taken port excluding its dot + halo zone.
   const EXCL = LINK_PORT_R + 2.5;
   const zones: [number, number][] = taken
     .map((p) => [Math.max(p - EXCL, -half), Math.min(p + EXCL, half)] as [number, number])
@@ -802,7 +833,7 @@ export function rubberLinkPath(
   target?: GanttBarGeometry,
   obstacles: GanttBarGeometry[] = [],
   /** Vertical slot the rubber band departs from on the source edge (the
-   *  hover-handle's {@link fanSlotOffset}), so the preview never starts on an
+   *  hover-handle's {@link fanHandleOffset}), so the preview never starts on an
    *  existing port. Defaults to the bar centre. */
   fromOffset = 0,
 ): { d: string; arrow?: string; from: GanttLinkPoint; to: GanttLinkPoint } {

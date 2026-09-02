@@ -51,7 +51,7 @@ export interface GanttDragState {
   y: number; // live row-area y
   /** Link kind only: which edge the rubber band departs from. */
   side?: 1 | -1;
-  /** Link kind only: vertical slot (from the handle's `fanSlotOffset`) the
+  /** Link kind only: vertical slot (from the handle's `fanHandleOffset`) the
    *  rubber band departs from on the source edge, so the preview starts in
    *  the largest free gap instead of on an existing port. */
   fromOffset?: number;

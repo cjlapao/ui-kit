@@ -30,7 +30,7 @@ import {
   LINK_HIT_RADIUS,
   LINK_ENTRY_CLEAR,
   computeLinkFanOffsets,
-  fanSlotOffset,
+  fanHandleOffset,
 } from "../../../../common/gantt/drag";
 import { getGanttBarTokens, getGanttLaneTokens } from "../../../../common/gantt/tokens";
 import {
@@ -549,13 +549,18 @@ describe("link fan slots (port distribution)", () => {
     expect(up.from.y).toBeLessThan(down.from.y);
   });
 
-  it("fanSlotOffset picks the centre of the largest free gap", () => {
+  it("fanHandleOffset keeps the fan's spacing from existing ports", () => {
     // Empty side → bar centre.
-    expect(fanSlotOffset(24, [])).toBe(0);
-    // Two ports at ±8 → the largest free gap is the centre between them.
-    expect(fanSlotOffset(24, [-8, 8])).toBe(0);
-    // A single centred port → one of the two side gaps (±7 from centre).
-    expect(Math.abs(fanSlotOffset(24, [0]))).toBeCloseTo(7, 5);
+    expect(fanHandleOffset(24, [])).toBe(0);
+    // A single centred port → the handle floats LINK_FAN_MAX_SPREAD away,
+    // toward the top edge (into the row padding), never on the port.
+    expect(fanHandleOffset(24, [0])).toBe(-16);
+    // Two ports at ±8 → the centre still reads clear of both (8px, the fan's
+    // own port spacing) → it stays centred.
+    expect(fanHandleOffset(24, [-8, 8])).toBe(0);
+    // Crowded side (centre port plus ±8) → no slot keeps the spacing, so the
+    // handle falls back to the largest free gap (the top edge gap).
+    expect(fanHandleOffset(24, [-8, 0, 8])).toBeCloseTo(-15, 5);
   });
 
   it("rubberLinkPath departs from the requested slot offset", () => {
