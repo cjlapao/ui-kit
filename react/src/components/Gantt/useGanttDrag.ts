@@ -55,6 +55,10 @@ export interface GanttDragState {
   anchor?: { x: number; y: number };
   /** Reorder kind only: resolved drop target. */
   beforeId?: string | null;
+  /** Progress kind only: live percent complete (0..1) as the knob drags, so
+   *  the bar's progress fill and the % readout follow the pointer in real
+   *  time (committed only on drop). */
+  liveProgress?: number;
   /** Accent colour for the rubber band (link kind). */
   color?: TrueColor;
 }
@@ -220,6 +224,21 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
       }
       if (state.kind === "link") {
         setDrag({ ...state, x, y });
+        return;
+      }
+      if (state.kind === "progress") {
+        // Live percent: the bar's geometry is fixed during a progress drag
+        // (dates don't change), so the pointer maps straight to 0..1.
+        const task = o.tasksById.get(state.taskId);
+        if (task) {
+          const s = toMs(task.start);
+          const en = toMs(task.end);
+          const barLeft = dateToX(s, o.rangeStart, o.zoom);
+          const barWidth = Math.max(6, dateToX(en, o.rangeStart, o.zoom) - barLeft);
+          setDrag({ ...state, x, y, liveProgress: progressFromPointer(x, barLeft, barWidth) });
+        } else {
+          setDrag({ ...state, x, y });
+        }
         return;
       }
       setDrag({ ...state, x, y });

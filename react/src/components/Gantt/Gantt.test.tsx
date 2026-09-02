@@ -153,6 +153,41 @@ describe("Gantt component", () => {
     expect(toMs(apiNext.end)).toBe(toMs(apiOrig.end)); // end unchanged
   });
 
+  it("previews progress live while dragging the knob, committing only on drop", () => {
+    const onTasksChange = vi.fn();
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />,
+    );
+    const barEl = container.querySelector<HTMLElement>('[data-gantt-bar="webapp"]')!;
+    const knob = barEl.querySelector('[title="Adjust progress"]') as HTMLElement;
+    expect(knob).toBeTruthy();
+
+    const left = parseFloat(barEl.style.left);
+    const width = parseFloat(barEl.style.width);
+    expect(width).toBeGreaterThan(0);
+
+    // Start a progress drag from the knob (webapp is at 30%).
+    fireEvent.pointerDown(knob, { clientX: left + width * 0.3, clientY: 100, button: 0 });
+
+    // Mid-drag: the pointer at 80% of the bar — the fill, the knob and the
+    // live % chip follow in real time, and the Progress column cell updates;
+    // nothing is committed yet.
+    pointer(window, "pointermove", left + width * 0.8, 100);
+    const overlay = barEl.querySelector<HTMLElement>("[class*='rounded-l-md']")!;
+    expect(overlay.style.width).toBe("80%");
+    const chip = barEl.querySelector<HTMLElement>("[class*='bg-neutral-900']");
+    expect(chip?.textContent).toBe("80%");
+    // Chip (on the bar) + the live Progress column cell both read 80%.
+    expect(screen.getAllByText("80%").length).toBe(2);
+    expect(onTasksChange).not.toHaveBeenCalled();
+
+    // Drop commits the pointer's value.
+    pointer(window, "pointerup", left + width * 0.8, 100);
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    const next = onTasksChange.mock.calls[0][0] as GanttTask[];
+    expect(next.find((t) => t.id === "webapp")!.progress).toBe(0.8);
+  });
+
   it("previews a move on the dragged bar only — other bars keep their geometry", () => {
     const onTasksChange = vi.fn();
     render(<Gantt tasks={tasks} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />);

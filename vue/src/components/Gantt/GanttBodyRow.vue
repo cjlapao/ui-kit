@@ -27,6 +27,8 @@ export interface GanttBodyRowProps {
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => VNodeChild;
   drag: { taskId: string; kind: string } | null;
   liveDates: { start: number; end: number } | null;
+  /** Live percent complete (0..1) while this row's progress knob is dragged. */
+  liveProgress?: number | null;
   selectionTokens: { ring: string; row: string };
   /**
    * Hairline divider classes (border colour) for row / cell edges — the
@@ -187,6 +189,7 @@ const lanePct = computed(() => Math.round((props.row.progress ?? 0) * 100));
           :child-count="row.childCount"
           :first="i === 0"
           :render-cell="renderCell"
+          :live-progress="isDraggingThis ? liveProgress : null"
           :divider-class="divider"
           @caret-click="(id, open) => emit('caret-click', id, open)"
         />
@@ -207,6 +210,7 @@ const lanePct = computed(() => Math.round((props.row.progress ?? 0) * 100));
           :labels="labels"
           :is-dragging-this="isDraggingThis"
           :live-dates="isDraggingThis ? liveDates : null"
+          :live-progress="isDraggingThis ? liveProgress : null"
           :render-bar="renderBar"
           :selection-tokens="selectionTokens"
           @bar-pointer-down="(t, ev) => emit('bar-pointer-down', t, ev)"

@@ -525,6 +525,25 @@ src(`@source inline("border-{COLOR}-100");`);
 src(`@source inline("dark:border-{COLOR}-500/20");`);
 L("");
 
+// Gantt. The bar/lane/column/link tokens in common/gantt/tokens.ts emit
+// these per TrueColor. Before this section the progress overlay
+// (`bg-{c}-700/70`), the light bar base (`bg-{c}-300/70` + its hover step),
+// the dark lane band (`dark:bg-{c}-950/40`), the bar rim
+// (`border-{c}-600/40`), the dark lane accent
+// (`dark:border-{c}-500/50`) and the selection ring
+// (`ring-{c}-400/50`) existed for 0 of the 21 tones.
+src(`@source inline("bg-{COLOR}-700/70");`);
+src(`@source inline("bg-{COLOR}-300/70");`);
+src(`@source inline("dark:bg-{COLOR}-400/35");`);
+src(`@source inline("hover:bg-{COLOR}-400/70");`);
+src(`@source inline("dark:hover:bg-{COLOR}-400/55");`);
+src(`@source inline("dark:bg-{COLOR}-950");`);
+src(`@source inline("dark:bg-{COLOR}-950/40");`);
+src(`@source inline("border-{COLOR}-600/40");`);
+src(`@source inline("dark:border-{COLOR}-500/50");`);
+src(`@source inline("ring-{COLOR}-400/50");`);
+L("");
+
 // ── Write output ──────────────────────────────────────────────────
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

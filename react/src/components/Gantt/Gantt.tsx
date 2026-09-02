@@ -563,6 +563,13 @@ export const Gantt: React.FC<GanttProps> = ({
     );
   }, [drag, dragTask, zoom, snap]);
 
+  // While a progress drag is live, the dragged task's percent complete is
+  // replaced by the pointer's live value, so the progress fill, the % readout
+  // and the Progress column all follow the knob in real time (committed only
+  // on drop).
+  const liveDragProgress =
+    drag?.kind === "progress" && drag.liveProgress != null ? drag.liveProgress : null;
+
   // While a move/resize drag is live, the dragged task's committed geometry is
   // replaced by its preview geometry, so its dependency arrows re-route in
   // place (following the bar as it moves/resizes) instead of snapping on drop.
@@ -774,6 +781,9 @@ export const Gantt: React.FC<GanttProps> = ({
                   renderBar={renderBar}
                   drag={drag}
                   liveDates={liveDragDates ?? null}
+                  liveProgress={
+                    row.task && drag?.taskId === row.task.id ? liveDragProgress : null
+                  }
                   onBarPointerDown={dragApi.onBarPointerDown}
                   onResizePointerDown={dragApi.onResizePointerDown}
                   onGripPointerDown={dragApi.onGripPointerDown}

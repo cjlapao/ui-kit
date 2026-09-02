@@ -46,6 +46,8 @@ interface GanttBodyRowProps {
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => React.ReactNode;
   drag: { taskId: string; kind: string } | null;
   liveDates: { start: number; end: number } | null;
+  /** Live percent complete (0..1) while this row's progress knob is dragged. */
+  liveProgress: number | null;
   onBarPointerDown: (task: GanttTask, e: React.PointerEvent) => void;
   onResizePointerDown: (task: GanttTask, edge: "start" | "end", e: React.PointerEvent) => void;
   onGripPointerDown: (rowKey: string, task: GanttTask, e: React.PointerEvent) => void;
@@ -80,6 +82,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
   renderBar,
   drag,
   liveDates,
+  liveProgress,
   onBarPointerDown,
   onResizePointerDown,
   onGripPointerDown,
@@ -144,6 +147,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
                 childCount={row.childCount}
                 onCaretClick={onCaretClick}
                 renderCell={renderCell}
+                liveProgress={isDraggingThis ? liveProgress : null}
                 first={i === 0}
                 dividerClass={dividerClass}
               />
@@ -165,6 +169,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
               labels={labels}
               isDraggingThis={isDraggingThis}
               liveDates={isDraggingThis ? liveDates : null}
+              liveProgress={isDraggingThis ? liveProgress : null}
               renderBar={renderBar}
               onBarPointerDown={onBarPointerDown}
               onResizePointerDown={onResizePointerDown}
@@ -267,10 +272,12 @@ const Cell: React.FC<{
   first: boolean;
   onCaretClick: (taskId: string, isOpen: boolean) => void;
   renderCell?: (value: unknown, task: GanttTask, column: GanttColumn) => React.ReactNode;
+  /** Live percent complete (0..1) while this task's progress knob is dragged. */
+  liveProgress?: number | null;
   dividerClass?: string;
-}> = ({ col, task, depth, isGroup, childCount, first, onCaretClick, renderCell, dividerClass = "border-neutral-100 dark:border-neutral-800" }) => {
+}> = ({ col, task, depth, isGroup, childCount, first, onCaretClick, renderCell, liveProgress, dividerClass = "border-neutral-100 dark:border-neutral-800" }) => {
   const value =
-    col.key === "name" ? task.name : col.key === "owner" ? task.owner : col.key === "progress" ? task.progress : (task.values?.[col.key] ?? null);
+    col.key === "name" ? task.name : col.key === "owner" ? task.owner : col.key === "progress" ? (liveProgress ?? task.progress) : (task.values?.[col.key] ?? null);
 
   const custom = col.key !== "name" && renderCell ? renderCell(value, task, col) : null;
 
@@ -381,6 +388,8 @@ const TaskBar: React.FC<{
   labels: GanttLabels;
   isDraggingThis: boolean;
   liveDates: { start: number; end: number } | null;
+  /** Live percent complete (0..1) while this bar's progress knob is dragged. */
+  liveProgress?: number | null;
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => React.ReactNode;
   onBarPointerDown: (task: GanttTask, e: React.PointerEvent) => void;
   onResizePointerDown: (task: GanttTask, edge: "start" | "end", e: React.PointerEvent) => void;
@@ -401,6 +410,7 @@ const TaskBar: React.FC<{
   selected,
   labels,
   liveDates,
+  liveProgress,
   renderBar,
   onBarPointerDown,
   onResizePointerDown,
@@ -418,12 +428,18 @@ const TaskBar: React.FC<{
   const endMs = liveDates ? liveDates.end : toMs(task.end);
   const left = dateToX(startMs, rangeStart, zoom);
   const width = milestone ? 0 : Math.max(6, dateToX(endMs, rangeStart, zoom) - left);
-  const progress = task.progress ?? 0;
-  const progressPct = Math.round(progress * 100);
 
   const top = (row.height - BAR_HEIGHT) / 2;
   const showName = !milestone && width > 44;
   const canEdit = interactive && !task.locked;
+  // Progress knob drag: the fill, knob and % readout follow the pointer in
+  // real time (liveProgress); nothing commits until drop.
+  const progress = liveProgress ?? task.progress ?? 0;
+  const progressPct = Math.round(progress * 100);
+  // The un-done part of the bar is a light tint, so the label reads dark on
+  // it (low progress) and white on the dark progress fill (high progress).
+  const labelText =
+    progress < 0.5 ? "text-neutral-800/80 dark:text-neutral-100/90" : "text-white";
   // Port slot on each edge: the centre of the largest free gap, so a handle
   // never sits on the static fan — and the rubber band departs from the same
   // slot the handle occupies.
@@ -467,10 +483,10 @@ const TaskBar: React.FC<{
       data-gantt-bar={task.id}
       className={classNames(
         "group/bar absolute z-10 cursor-grab touch-none rounded-md shadow-sm outline-none transition-shadow active:cursor-grabbing",
-        tokens.fill,
+        tokens.base,
         tokens.rim,
         "border",
-        tokens.hover,
+        tokens.baseHover,
         selected && selectionTokens.ring,
         "hover:shadow-md",
       )}
@@ -492,7 +508,10 @@ const TaskBar: React.FC<{
       {/* Progress knob (drag to set progress) */}
       {canEdit && progress > 0 && progress < 1 && (
         <div
-          className="absolute inset-y-0 z-20 w-2 cursor-ew-resize touch-none opacity-0 transition-opacity group-hover/bar:opacity-100"
+          className={classNames(
+            "absolute inset-y-0 z-20 w-2 cursor-ew-resize touch-none opacity-0 transition-opacity group-hover/bar:opacity-100",
+            liveProgress != null && "opacity-100",
+          )}
           style={{ left: `${progress * 100}%`, marginLeft: -4 }}
           onPointerDown={(e) => onProgressPointerDown(task, e)}
           title={labels.progress}
@@ -501,14 +520,23 @@ const TaskBar: React.FC<{
           <div className="mx-auto h-full w-0.5 rounded-full bg-white/90" />
         </div>
       )}
+      {/* Live % readout while the knob is dragged */}
+      {liveProgress != null && (
+        <div
+          className="pointer-events-none absolute -top-5 z-30 -translate-x-1/2 rounded-full bg-neutral-900/90 px-1.5 py-px text-[10px] font-semibold tabular-nums text-white shadow-md"
+          style={{ left: `${progress * 100}%` }}
+        >
+          {progressPct}%
+        </div>
+      )}
       {/* Label */}
       {showName &&
         (renderBar != null ? (
-          <div className="pointer-events-none absolute inset-0 flex items-center px-1.5 text-[11px] font-medium text-white">
+          <div className={classNames("pointer-events-none absolute inset-0 flex items-center px-1.5 text-[11px] font-medium", labelText)}>
             {renderBar(task, { taskId: task.id, left, width, top, height: row.height, milestone: false })}
           </div>
         ) : (
-          <span className="pointer-events-none absolute inset-0 flex items-center truncate px-1.5 text-[11px] font-medium text-white">
+          <span className={classNames("pointer-events-none absolute inset-0 flex items-center truncate px-1.5 text-[11px] font-medium", labelText)}>
             {task.name}
           </span>
         ))}

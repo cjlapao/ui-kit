@@ -124,6 +124,39 @@ describe("Gantt (Vue)", () => {
     expect(toMs(api.end)).toBe(toMs(apiOrig.end) + 10 * MS_PER_DAY);
   });
 
+  it("previews progress live while dragging the knob, committing only on drop", async () => {
+    const w = mountGantt({ editable: true });
+    const bar = w.find('[data-gantt-bar="webapp"]');
+    const knob = bar.find('[title="Adjust progress"]');
+    expect(knob.exists()).toBe(true);
+
+    const range = computeViewRange(
+      tasks.map((t) => toMs(t.start)),
+      tasks.map((t) => toMs(t.end)),
+    );
+    const webapp = tasks.find((t) => t.id === "webapp")!;
+    const left = dateToX(toMs(webapp.start), range.start, 16);
+    const width = Math.max(6, dateToX(toMs(webapp.end), range.start, 16) - left);
+
+    await knob.trigger("pointerdown");
+    await nextTick();
+
+    // Mid-drag: the pointer at 80% of the bar — the fill and the live %
+    // chip follow in real time; nothing is committed yet.
+    pointer("pointermove", left + width * 0.8, 100);
+    await nextTick();
+    const overlay = bar.find("[class*='rounded-l-md']");
+    expect(overlay.attributes("style")).toContain("width: 80%");
+    expect(bar.find("[class*='bg-neutral-900']").text()).toBe("80%");
+    expect(w.emitted("tasks-change")).toBeFalsy();
+
+    pointer("pointerup", left + width * 0.8, 100);
+    await nextTick();
+    expect(w.emitted("tasks-change")).toBeTruthy();
+    const next = w.emitted("tasks-change")![0][0] as GanttTask[];
+    expect(next.find((t) => t.id === "webapp")!.progress).toBe(0.8);
+  });
+
   it("reorders rows by dragging the row grip", async () => {
     const w = mountGantt({ editable: true });
     const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);

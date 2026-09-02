@@ -20,6 +20,8 @@ export interface GanttTaskBarProps {
   labels: GanttLabels;
   isDraggingThis: boolean;
   liveDates: { start: number; end: number } | null;
+  /** Live percent complete (0..1) while this bar's progress knob is dragged. */
+  liveProgress?: number | null;
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => VNodeChild;
   selectionTokens: { ring: string };
 }
@@ -62,8 +64,18 @@ const left = computed(() => dateToX(startMs.value, props.rangeStart, props.zoom)
 const width = computed(() =>
   milestone.value ? 0 : Math.max(6, dateToX(endMs.value, props.rangeStart, props.zoom) - left.value),
 );
-const progress = computed(() => props.task.progress ?? 0);
+// Progress knob drag: the fill, knob and % readout follow the pointer in
+// real time (liveProgress); nothing commits until drop.
+const progress = computed(() => props.liveProgress ?? props.task.progress ?? 0);
 const progressPct = computed(() => Math.round(progress.value * 100));
+// The un-done part of the bar is a light tint, so the label reads dark on
+// it (low progress) and white on the dark progress fill (high progress).
+const labelText = computed(
+  () =>
+    progress.value < 0.5
+      ? "text-neutral-800/80 dark:text-neutral-100/90"
+      : "text-white",
+);
 
 const top = computed(() => (props.row.height - BAR_HEIGHT) / 2);
 const showName = computed(() => !milestone.value && width.value > 44);
@@ -140,10 +152,10 @@ const renderBarNode = computed(() => {
       :class="
         classNames(
           'group/bar absolute z-10 cursor-grab touch-none rounded-md shadow-sm outline-none transition-shadow active:cursor-grabbing',
-          tokens.fill,
+          tokens.base,
           tokens.rim,
           'border',
-          tokens.hover,
+          tokens.baseHover,
           selected && selectionTokens.ring,
           'hover:shadow-md',
         )
@@ -162,7 +174,12 @@ const renderBarNode = computed(() => {
       <!-- Progress knob (drag to set progress) -->
       <div
         v-if="canEdit && progress > 0 && progress < 1"
-        class="absolute inset-y-0 z-20 w-2 cursor-ew-resize touch-none opacity-0 transition-opacity group-hover/bar:opacity-100"
+        :class="
+          classNames(
+            'absolute inset-y-0 z-20 w-2 cursor-ew-resize touch-none opacity-0 transition-opacity group-hover/bar:opacity-100',
+            liveProgress != null && 'opacity-100',
+          )
+        "
         :style="{ left: `${progress * 100}%`, marginLeft: -4 }"
         :title="labels.progress"
         aria-hidden="true"
@@ -170,16 +187,24 @@ const renderBarNode = computed(() => {
       >
         <div class="mx-auto h-full w-0.5 rounded-full bg-white/90" />
       </div>
+      <!-- Live % readout while the knob is dragged -->
+      <div
+        v-if="liveProgress != null"
+        class="pointer-events-none absolute -top-5 z-30 -translate-x-1/2 rounded-full bg-neutral-900/90 px-1.5 py-px text-[10px] font-semibold tabular-nums text-white shadow-md"
+        :style="{ left: `${progress * 100}%` }"
+      >
+        {{ progressPct }}%
+      </div>
       <!-- Label -->
       <div
         v-if="showName && renderBar"
-        class="pointer-events-none absolute inset-0 flex items-center px-1.5 text-[11px] font-medium text-white"
+        :class="classNames('pointer-events-none absolute inset-0 flex items-center px-1.5 text-[11px] font-medium', labelText)"
       >
         <VNodeRenderer :nodes="renderBarNode" />
       </div>
       <span
         v-else-if="showName"
-        class="pointer-events-none absolute inset-0 flex items-center truncate px-1.5 text-[11px] font-medium text-white"
+        :class="classNames('pointer-events-none absolute inset-0 flex items-center truncate px-1.5 text-[11px] font-medium', labelText)"
       >
         {{ task.name }}
       </span>

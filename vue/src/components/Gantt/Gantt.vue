@@ -488,6 +488,17 @@ const liveDragDates = computed(() => {
   );
 });
 
+// While a progress drag is live, the dragged task's percent complete is
+// replaced by the pointer's live value, so the progress fill, the % readout
+// and the Progress column all follow the knob in real time (committed only
+// on drop).
+const liveDragProgress = computed(
+  () =>
+    drag.value?.kind === "progress" && drag.value.liveProgress != null
+      ? drag.value.liveProgress
+      : null,
+);
+
 // While a move/resize drag is live, the dragged task's committed geometry is
 // replaced by its preview geometry, so its dependency arrows re-route in
 // place (following the bar as it moves/resizes) instead of snapping on drop.
@@ -711,6 +722,7 @@ const colJustify = (col: GanttColumn) =>
             :render-bar="renderBar"
             :drag="drag"
             :live-dates="liveDragDates ?? null"
+            :live-progress="row.task && drag?.taskId === row.task.id ? liveDragProgress : null"
             :selection-tokens="selectionTokens"
             :divider-class="surfaceText.divider"
             @bar-pointer-down="hBarPointerDown"
