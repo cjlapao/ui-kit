@@ -163,7 +163,10 @@ cross-lane drag.
   `icon`/`actions` are `ReactNode`; in Vue they are `VNodeChild` props rendered via the
   internal `VNodeRenderer` (same pattern as `renderCell`/`renderBar`). The strip renders only
   when at least one of the four is provided — existing usages are untouched — and the body's
-  `flex-1` absorbs the added height automatically.
+  `flex-1` absorbs the added height automatically. When the strip is present the **zoom toolbar
+  renders inside it at the right edge** (after `actions`), and the floating overlay over the
+  scale window is suppressed; without a header the toolbar keeps floating over the scale
+  window as before.
 - **Scale bands:** the coarse band is a fixed 24px; the fine band takes the remaining height
   (`flex-1`) and the label/sublabel spans use `leading-none` so a two-line cell (day number +
   weekday, month + year) fully fits the band — no clipped sublabels at day zoom.
