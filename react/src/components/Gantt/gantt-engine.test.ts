@@ -233,8 +233,9 @@ describe("drag / interaction math", () => {
     expect(d.startsWith("M 184.5 22")).toBe(true);
     expect(d).toContain("200"); // the clear vertical channel between the bars
     expect(arrow).toBeDefined();
-    // The arrowhead tip lands on the target's left edge.
-    expect(arrow!.startsWith("220,110")).toBe(true);
+    // The arrowhead tip stops 8px short of the target's left edge (LINK_PORT_CLEAR),
+    // pointing at the port dot instead of hiding under it.
+    expect(arrow!.startsWith("212,110")).toBe(true);
   });
 
   it("routes a going-back (overlapping) link through the clear band into the target's left edge", () => {
@@ -248,7 +249,7 @@ describe("drag / interaction math", () => {
     const { d, arrow, to: tp } = linkPath(from, to, "fs");
     // Enters the target's LEFT edge (140), pointing right.
     expect(tp).toEqual({ x: 140, y: 110 });
-    expect(arrow!.startsWith("140,110")).toBe(true);
+    expect(arrow!.startsWith("132,110")).toBe(true);
     // Travels across the clear band at the source row's bottom boundary (y = 44),
     // hugging just left of the target's left edge (x = 140 - 11 = 129).
     expect(d).toContain("44"); // the clear row-boundary band
@@ -281,7 +282,7 @@ describe("drag / interaction math", () => {
     const { d, arrow } = linkPath(from, to, "fs", 0, 0, [obstacle]);
     expect(d).toContain("326"); // outside column: right of every bar in the corridor
     expect(d).toContain("235"); // the band travel stops 6px short of the drop corner (x = 229 + 6)
-    expect(arrow!.startsWith("240,110")).toBe(true);
+    expect(arrow!.startsWith("232,110")).toBe(true);
   });
 
   it("keeps the channel in a clear column when a bar blocks the gap middle", () => {
@@ -640,11 +641,12 @@ describe("pickLinkAt / linkDistance (hit radius)", () => {
     // (the endpoints sit at the port node's edge, i.e. within its radius).
     const [px0, py0] = paths[0].points[0];
     expect(Math.hypot(px0 - paths[0].from.x, py0 - paths[0].from.y)).toBeLessThanOrEqual(5);
-    // …and stops at the arrowhead's base (the head covers the final 7px).
+    // …and stops at the arrowhead's base (the head covers the final 7px,
+    // which itself sits 8px short of the port dot).
     const last = paths[0].points[paths[0].points.length - 1];
     expect(
       Math.hypot(last[0] - paths[0].to.x, last[1] - paths[0].to.y),
-    ).toBeLessThanOrEqual(7);
+    ).toBeLessThanOrEqual(15);
   });
 });
 

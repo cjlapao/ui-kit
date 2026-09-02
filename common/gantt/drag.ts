@@ -127,6 +127,10 @@ const LINK_CHANNEL_OUT = 5;
 const LINK_ELBOW_R = 6;
 /** Length of the arrowhead. */
 const LINK_HEAD = 7;
+/** How far the arrowhead's tip stops short of the target port, so it points
+ *  *at* the connector dot (fill + 2.5 halo) instead of vanishing under it:
+ *  port fill + halo + a 2px gap. */
+const LINK_PORT_CLEAR = LINK_PORT_R + 2.5 + 2;
 /** Glyph height of a bar inside its row (rows carry padding above/below). */
 const LINK_BAR_HEIGHT = 24;
 
@@ -285,6 +289,9 @@ interface Channel {
  * edge** and enters the **target's left edge**, so every dependency reads
  * "item 1's right → item 2's left"; the link type is carried by the line
  * style (dashed for `ff`/`sf`) and the tooltip, not by which edge is used.
+ * The arrowhead's tip stops `LINK_PORT_CLEAR` short of the port so it points
+ * *at* the connector dot (which sits on the bar edge) instead of vanishing
+ * under it.
  *
  * Route shapes (none ever crosses a bar):
  * - **Same row** — a straight connector between the two ports (no channels).
@@ -315,13 +322,13 @@ function routePoints(
 
   const depart = LINK_PORT_R + 1; // how far the line starts out from the source port
   const start: Pt = [fr + depart, sy];
-  const end: Pt = [tl - LINK_HEAD, ty]; // leave room for the arrowhead at the port
+  const end: Pt = [tl - LINK_PORT_CLEAR - LINK_HEAD, ty]; // line stops short of the arrowhead, which points at the port dot
 
   // Same row → straight connector between the ports.
   if (Math.abs(sy - ty) < 0.5) {
     return {
       points: [start, end],
-      arrow: tl - fr > LINK_HEAD + depart ? arrowHead(tl, ty, 1) : undefined,
+      arrow: tl - fr > LINK_PORT_CLEAR + LINK_HEAD + depart ? arrowHead(tl - LINK_PORT_CLEAR, ty, 1) : undefined,
       channels: [],
     };
   }
@@ -366,14 +373,14 @@ function routePoints(
     if (cx != null) {
       return {
         points: [start, [cx, sy], [cx, ty], end],
-        arrow: arrowHead(tl, ty, 1),
+        arrow: arrowHead(tl - LINK_PORT_CLEAR, ty, 1),
         // seg 1 = the channel (x = cx); it must stay between the ports.
         channels: [{ seg: 1, lo: fr, hi: tl }],
       };
     }
     // A bar in the way blocks the whole gap → swing around everything.
     const o = outsideRoute();
-    return { points: o.points, arrow: arrowHead(tl, ty, 1), channels: o.channels };
+    return { points: o.points, arrow: arrowHead(tl - LINK_PORT_CLEAR, ty, 1), channels: o.channels };
   }
 
   // Overlapping / going back: no horizontal gap. Step out of the source row
@@ -388,7 +395,7 @@ function routePoints(
   const bandY = ty > sy ? from.top + from.height : from.top;
   return {
     points: [start, [start[0], bandY], [inX, bandY], [inX, ty], end],
-    arrow: arrowHead(tl, ty, 1),
+    arrow: arrowHead(tl - LINK_PORT_CLEAR, ty, 1),
     // seg 2 = the drop (x = inX); it must stay left of the target's port.
     channels: [{ seg: 2, lo: -Infinity, hi: tl }],
   };
