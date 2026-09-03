@@ -16,6 +16,7 @@ import {
   buildRows,
   applyRowReorder,
   resolveDropBeforeId,
+  reorderDragSubtree,
   rollupProgress,
   laneRollupProgress,
   taskRollupProgress,
@@ -218,10 +219,34 @@ describe("layout engine", () => {
 
   it("reorders a top-level row within its lane", () => {
     // In the eng lane the input order is api, webapp, qa. Move webapp before api.
-    const order = applyRowReorder(tasks, "webapp", "api", undefined);
+    const { order, tasks: outTasks } = applyRowReorder(tasks, "webapp", "api", undefined);
     const engIdx = (id: string) => order.indexOf(id);
     expect(engIdx("webapp")).toBeLessThan(engIdx("api"));
     expect(engIdx("api")).toBeLessThan(engIdx("qa"));
+    // Top-level drags never reorder the flat tasks array.
+    expect(outTasks).toBe(tasks);
+  });
+
+  it("reorders a child among its siblings without touching the top-level order", () => {
+    // visual-tokens and visual-flow are siblings under "visual".
+    const before = applyRowReorder(tasks, "visual-flow", "visual-tokens", undefined);
+    expect(before.tasks).not.toBe(tasks);
+    // Top-level order is untouched (same as a no-op top-level drop).
+    expect(before.order).toEqual(applyRowReorder(tasks, "api", "api", undefined).order);
+    const kids = before.tasks
+      .filter((t) => t.parent === "visual")
+      .map((t) => t.id);
+    expect(kids).toEqual(["visual-flow", "visual-tokens"]);
+    // Dropping a child onto itself or in another group is a no-op.
+    const self = applyRowReorder(tasks, "visual-flow", "visual-flow", undefined);
+    expect(self.tasks).toBe(tasks);
+    const cross = applyRowReorder(tasks, "visual-flow", "webapp", undefined);
+    expect(cross.tasks).toBe(tasks);
+    // `null` appends to the end of the sibling list.
+    const end = applyRowReorder(tasks, "visual-tokens", null, undefined);
+    expect(
+      end.tasks.filter((t) => t.parent === "visual").map((t) => t.id),
+    ).toEqual(["visual-flow", "visual-tokens"]);
   });
 
   it("reorderPreviewTop resolves the insertion line from the displayed order", () => {
@@ -242,82 +267,139 @@ describe("layout engine", () => {
     }
     expected ??= rows.reduce((sum, r) => sum + r.height, 0);
     expect(reorderPreviewTop(rows, "task:webapp", null)).toBe(expected);
+    // A child's end drop sits at the bottom of its parent's visible block.
+    const flowRow = rows.find((r) => r.key === "task:visual-flow")!;
+    expect(reorderPreviewTop(rows, "task:visual-tokens", null)).toBe(
+      flowRow.top + flowRow.height,
+    );
     // Unknown drag key → null.
     expect(reorderPreviewTop(rows, "task:nope", null)).toBeNull();
   });
 
   it("no-ops a reorder onto itself or across lanes", () => {
     const before = applyRowReorder(tasks, "api", "api", undefined);
-    expect(before).toEqual(applyRowReorder(tasks, "api", "api", undefined));
+    expect(before.order).toEqual(applyRowReorder(tasks, "api", "api", undefined).order);
     // "docs" is in the launch lane; dropping "api" (eng) before it is a no-op.
     const cross = applyRowReorder(tasks, "api", "docs", undefined);
-    const engOrder = cross.filter((id) => ["api", "webapp", "qa"].includes(id));
+    const engOrder = cross.order.filter((id) => ["api", "webapp", "qa"].includes(id));
     expect(engOrder).toEqual(["api", "webapp", "qa"]);
   });
 
-  it("resolves a drop target by pointer position within the lane segment", () => {
-    // Middle band of "api"'s row (the pointer has clearly moved into it) →
-    // before "api".
-    const apiRow = rows.find((r) => r.key === "task:api")!;
-    const { beforeId } = resolveDropBeforeId(
-      rows,
-      tasksById,
-      "task:webapp",
-      apiRow.top + apiRow.height * 0.5,
-    );
-    expect(beforeId).toBe("api");
-  });
-
-  it("keeps the previous target while the pointer is in a 25% edge zone (hysteresis)", () => {
-    const apiRow = rows.find((r) => r.key === "task:api")!;
-    // Top 25% of "api": the pointer hasn't committed to it yet → keep the
-    // current target ("qa"), and `undefined` while nothing was previewed.
-    const inTopZone = resolveDropBeforeId(
-      rows,
-      tasksById,
-      "task:webapp",
-      apiRow.top + apiRow.height * 0.1,
-      "qa",
-    );
-    expect(inTopZone.beforeId).toBe("qa");
-    const freshPress = resolveDropBeforeId(
-      rows,
-      tasksById,
-      "task:webapp",
-      apiRow.top + apiRow.height * 0.1,
-    );
-    expect(freshPress.beforeId).toBeUndefined();
-    // Bottom 25% of "api": still over "api" territory → keep it.
-    const inBottomZone = resolveDropBeforeId(
-      rows,
-      tasksById,
-      "task:webapp",
-      apiRow.top + apiRow.height * 0.9,
-      "api",
-    );
-    expect(inBottomZone.beforeId).toBe("api");
-    // Middle band switches the target despite the previous one.
-    const middle = resolveDropBeforeId(
-      rows,
-      tasksById,
-      "task:webapp",
-      apiRow.top + apiRow.height * 0.5,
-      "qa",
-    );
-    expect(middle.beforeId).toBe("api");
-  });
-
-  it("resolves the lane head and the lane end", () => {
+  it("decides before/after at the hovered block's midpoint", () => {
     const apiRow = rows.find((r) => r.key === "task:api")!;
     const qaRow = rows.find((r) => r.key === "task:qa")!;
-    // Above the first candidate (lane header band) → top of the lane.
+    // Upper half of "api" → before "api" (drag webapp above api).
+    expect(
+      resolveDropBeforeId(rows, tasksById, "task:webapp", apiRow.top + apiRow.height * 0.25)
+        .beforeId,
+    ).toBe("api");
+    // Lower half of "api" → after "api" = before the next block ("qa"):
+    // moving webapp *down one* happens once the pointer is past api's
+    // midpoint — not "almost over the second item".
+    expect(
+      resolveDropBeforeId(rows, tasksById, "task:webapp", apiRow.top + apiRow.height * 0.75)
+        .beforeId,
+    ).toBe("qa");
+    // Above the first block (lane header band) → top of the lane.
     expect(
       resolveDropBeforeId(rows, tasksById, "task:webapp", apiRow.top - 10).beforeId,
     ).toBe("api");
-    // Below the last candidate → end of the lane (`null`).
+    // Below the last block → end of the lane (`null`).
     expect(
       resolveDropBeforeId(rows, tasksById, "task:webapp", qaRow.top + qaRow.height + 10).beforeId,
     ).toBeNull();
+  });
+
+  it("keeps the preview while the pointer is over the dragged block (incl. a fresh press)", () => {
+    const webappRow = rows.find((r) => r.key === "task:webapp")!;
+    // The press itself: pointer inside the dragged row's band → nothing is
+    // decided yet (no shift on press).
+    const press = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:webapp",
+      webappRow.top + webappRow.height * 0.5,
+    );
+    expect(press.beforeId).toBeUndefined();
+    // A previous decision is kept while the pointer hovers the dragged
+    // object (its expanded block, here: webapp + its children).
+    const shellRow = rows.find((r) => r.key === "task:webapp-shell")!;
+    const overObject = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:webapp",
+      shellRow.top + shellRow.height * 0.5,
+      "api",
+    );
+    expect(overObject.beforeId).toBe("api");
+    // A decided target switches as soon as the pointer crosses a
+    // neighbouring block's midpoint, despite the previous one.
+    const apiRow = rows.find((r) => r.key === "task:api")!;
+    const decided = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:webapp",
+      apiRow.top + apiRow.height * 0.25,
+      "qa",
+    );
+    expect(decided.beforeId).toBe("api");
+  });
+
+  it("reorders children among their siblings within the group", () => {
+    const tokensRow = rows.find((r) => r.key === "task:visual-tokens")!;
+    const flowRow = rows.find((r) => r.key === "task:visual-flow")!;
+    const visualRow = rows.find((r) => r.key === "task:visual")!;
+    // Upper half of the sibling → before it.
+    expect(
+      resolveDropBeforeId(rows, tasksById, "task:visual-tokens", flowRow.top + flowRow.height * 0.25)
+        .beforeId,
+    ).toBe("visual-flow");
+    // Lower half of the sibling → after it (end of the siblings: `null`).
+    expect(
+      resolveDropBeforeId(rows, tasksById, "task:visual-tokens", flowRow.top + flowRow.height * 0.75)
+        .beforeId,
+    ).toBeNull();
+    // Over the group's own header row → first sibling (top of the group).
+    expect(
+      resolveDropBeforeId(rows, tasksById, "task:visual-tokens", visualRow.top + visualRow.height * 0.5)
+        .beforeId,
+    ).toBe("visual-flow");
+    // Far below the group (another top-level row) → end of the siblings,
+    // never a cross-group move.
+    const apiRow = rows.find((r) => r.key === "task:api")!;
+    expect(
+      resolveDropBeforeId(rows, tasksById, "task:visual-tokens", apiRow.top + apiRow.height * 0.5)
+        .beforeId,
+    ).toBeNull();
+    // The pointer over the dragged child's own row keeps the preview.
+    const overSelf = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:visual-tokens",
+      tokensRow.top + tokensRow.height * 0.5,
+    );
+    expect(overSelf.beforeId).toBeUndefined();
+  });
+
+  it("reorderDragSubtree spans the visible block of an open group", () => {
+    const webapp = reorderDragSubtree(rows, "task:webapp");
+    expect(webapp?.map((r) => r.key)).toEqual([
+      "task:webapp",
+      "task:webapp-shell",
+      "task:webapp-screens",
+      "task:webapp-polish",
+    ]);
+    // A leaf subtree is a single row.
+    const api = reorderDragSubtree(rows, "task:api");
+    expect(api?.map((r) => r.key)).toEqual(["task:api"]);
+    // A collapsed group (open === false) hides its children → single row.
+    const collapsed = buildRows(
+      tasks.map((t) => (t.id === "webapp" ? { ...t, open: false } : t)),
+    ).rows;
+    expect(reorderDragSubtree(collapsed, "task:webapp")?.map((r) => r.key)).toEqual([
+      "task:webapp",
+    ]);
+    expect(reorderDragSubtree(rows, "task:nope")).toBeNull();
   });
 });
 

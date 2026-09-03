@@ -118,6 +118,7 @@ import {
   MS_PER_DAY,
   applyRowReorder,
   reorderPreviewTop,
+  reorderDragSubtree,
 } from "../../../../common/gantt";
 import { mergeGanttLabels } from "./labels";
 import Panel from "../Panel.vue";
@@ -257,16 +258,17 @@ const effectiveLanes = computed<GanttLane[] | undefined>(() => {
 // ── Derived model ──────────────────────────────────────────────────────────
 // While a reorder drag is live, rows render in the previewed order (the
 // dragged row moved into its slot); the committed order only changes on
-// drop. `liveRowOrder` is declared after the drag hook below — the getter
+// drop. `liveReorder` is declared after the drag hook below — the getter
 // only runs after setup, so the reference is safe.
-const model = computed(() =>
-  buildRows(
-    effectiveTasks.value,
+const model = computed(() => {
+  const r = liveReorder.value;
+  return buildRows(
+    r ? r.tasks : effectiveTasks.value,
     effectiveLanes.value,
-    liveRowOrder.value ?? rowOrder.value,
+    r ? r.order : rowOrder.value,
     props.rowHeight,
-  ),
-);
+  );
+});
 
 const range = computed(() => {
   const starts = props.tasks.map((t) => toMs(t.start));
@@ -380,12 +382,13 @@ const dragApi = useGanttDrag({
   setSelected,
 });
 
-// Live reorder preview: while a grip drag has *committed* a target (25%
-// threshold — `beforeId !== undefined`), rows render in the previewed
-// order, so the slot closes up and reopens around the ghost. The dragged
-// row itself renders as the floating clone + a dashed ghost slot. The
-// committed order only changes on drop.
-const liveRowOrder = computed<string[] | null>(() => {
+// Live reorder preview: while a grip drag has *decided* a target (the
+// pointer crossed a block's midpoint — `beforeId !== undefined`), rows
+// render in the previewed order, so the slot closes up and reopens around
+// the ghost. The dragged object (the row and its visible children) renders
+// as the floating clone + a dashed ghost slot spanning its full height.
+// The committed order only changes on drop.
+const liveReorder = computed<ReturnType<typeof applyRowReorder> | null>(() => {
   const d = dragApi.drag.value;
   if (d?.kind !== "reorder" || d.beforeId === undefined) return null;
   return applyRowReorder(effectiveTasks.value, d.taskId, d.beforeId, rowOrder.value);
@@ -506,16 +509,20 @@ const drag = computed(() => dragApi.drag.value);
 // and travels with it (zero render lag).
 const reorderLineY = computed<number | null>(() => {
   const d = drag.value;
-  if (d?.kind !== "reorder" || d.beforeId == null) return null;
+  if (d?.kind !== "reorder" || d.beforeId === undefined) return null;
   return reorderPreviewTop(model.value.rows, `task:${d.taskId}`, d.beforeId);
 });
-// The floating clone row (the visible object being dragged): the row's own
-// data is order-independent, so any current row serves.
-const dragCloneRow = computed<GanttRow | null>(() => {
+// The floating clone is the visible object being dragged: the row *and*
+// its visible children (one row for a leaf, the whole expanded block for
+// an open group). Driven by the live rows so the clone shows the exact
+// subtree at its previewed spot.
+const dragSubtree = computed<GanttRow[] | null>(() => {
   const d = drag.value;
   if (d?.kind !== "reorder") return null;
-  return model.value.rows.find((r) => r.key === `task:${d.taskId}`) ?? null;
+  return reorderDragSubtree(model.value.rows, `task:${d.taskId}`);
 });
+const dragSubtreeKeys = computed(() => new Set((dragSubtree.value ?? []).map((r) => r.key)));
+const dragSubtreeHeight = computed(() => (dragSubtree.value ?? []).reduce((sum, r) => sum + r.height, 0));
 const dragTask = computed(() => (drag.value?.taskId ? model.value.tasksById.get(drag.value.taskId) : undefined));
 const liveDragDates = computed(() => {
   const d = drag.value;
@@ -792,16 +799,18 @@ const colJustify = (col: GanttColumn) =>
 
           <!-- Rows -->
           <template v-for="row in model.rows" :key="row.key">
-            <!-- The dragged row renders as a dashed ghost slot in-flow (the
-                 rows close up behind it); the floating clone below is the
-                 visible object being dragged. -->
+            <!-- The dragged object renders as a dashed ghost slot in-flow
+                 (spanning the whole expanded block, so the rows close up
+                 behind it); the floating clone below is the visible object
+                 being dragged. Descendant rows travel inside the clone and
+                 render nothing in-flow. -->
             <div
               v-if="drag?.kind === 'reorder' && row.task != null && row.task.id === drag.taskId"
               :data-row-key="row.key"
               data-gantt-ghost="true"
               aria-hidden="true"
               class="pointer-events-none flex border-b"
-              :style="{ height: row.height }"
+              :style="{ height: (dragSubtreeHeight || row.height) + 'px' }"
             >
               <div
                 class="m-1 flex-1 rounded-md border-2 border-dashed"
@@ -812,7 +821,7 @@ const colJustify = (col: GanttColumn) =>
               />
             </div>
             <GanttBodyRow
-              v-else
+              v-else-if="!(drag?.kind === 'reorder' && dragSubtreeKeys.has(row.key))"
               :row="row"
             :columns="resolvedColumns"
             :left-width="leftWidth"
@@ -880,9 +889,10 @@ const colJustify = (col: GanttColumn) =>
           <!-- Floating clone — the visible object being dragged (a
                pointer-event drag has no browser drag image). Follows the
                pointer at the grab offset; the dashed ghost slot above marks
-               where it will land. -->
+               where it will land. A group drag carries its whole expanded
+               block. -->
           <div
-            v-if="drag?.kind === 'reorder' && drag.clientX != null && drag.clientY != null && dragCloneRow"
+            v-if="drag?.kind === 'reorder' && drag.clientX != null && drag.clientY != null && dragSubtree"
             data-gantt-drag-clone="true"
             aria-hidden="true"
             class="pointer-events-none fixed z-50"
@@ -899,7 +909,9 @@ const colJustify = (col: GanttColumn) =>
               }"
             >
               <GanttBodyRow
-                :row="dragCloneRow"
+                v-for="subRow in dragSubtree"
+                :key="subRow.key"
+                :row="subRow"
                 :columns="resolvedColumns"
                 :left-width="leftWidth"
                 :timeline-width="timelineWidth"
@@ -907,9 +919,9 @@ const colJustify = (col: GanttColumn) =>
                 :zoom="zoom"
                 :color="accentColor"
                 :interactive="true"
-                :fan-out="dragCloneRow.task ? linkFan.bars.get(dragCloneRow.task.id)?.out : undefined"
-                :fan-in="dragCloneRow.task ? linkFan.bars.get(dragCloneRow.task.id)?.inc : undefined"
-                :selected="dragCloneRow.task ? dragCloneRow.task.id === selectedId : false"
+                :fan-out="subRow.task ? linkFan.bars.get(subRow.task.id)?.out : undefined"
+                :fan-in="subRow.task ? linkFan.bars.get(subRow.task.id)?.inc : undefined"
+                :selected="subRow.task ? subRow.task.id === selectedId : false"
                 :labels="allLabels"
                 :render-cell="renderCell"
                 :render-bar="renderBar"

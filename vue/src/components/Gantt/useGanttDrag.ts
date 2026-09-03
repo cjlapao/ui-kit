@@ -147,9 +147,10 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
     const y = rowY(e.clientY);
 
     if (state.kind === "reorder") {
-      // Resolve against the rendered (live preview) rows with 25% hysteresis:
-      // the preview only shifts once the pointer commits to a new row, so a
-      // fresh press and small jitters move nothing.
+      // Resolve against the rendered (live preview) rows at the hovered
+      // block's midpoint: the press and small jitters move nothing, and a
+      // neighbouring block only takes over once the pointer has crossed its
+      // midpoint.
       const { beforeId } = resolveDropBeforeId(
         opts.rows.value,
         opts.tasksById.value,
@@ -260,17 +261,24 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
     }
 
     if (state.kind === "reorder") {
-      if (!opts.onReorder) return;
-      // No committed target yet (pointer never cleared the 25% threshold) →
-      // the row stays where it was; nothing to emit.
+      // No decided target yet (the pointer never crossed a block's midpoint)
+      // → the row stays where it was; nothing to emit.
       if (state.beforeId === undefined) return;
-      const order = applyRowReorder(
+      const { order, tasks } = applyRowReorder(
         opts.tasks.value,
         state.taskId,
         state.beforeId,
         opts.rowOrder.value,
       );
-      opts.onReorder(order);
+      if (tasks !== opts.tasks.value) {
+        // Child-level reorder: the flat tasks array moved (a sibling was
+        // repositioned) — commit through the tasks channel.
+        if (opts.onTasksChange) opts.onTasksChange(tasks);
+        return;
+      }
+      // Top-level reorder (idempotent: a drop that lands where the row
+      // already is re-emits the same order — a harmless no-op).
+      if (opts.onReorder) opts.onReorder(order);
     }
   };
 

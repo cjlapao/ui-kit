@@ -63,6 +63,7 @@ import {
   MS_PER_DAY,
   applyRowReorder,
   reorderPreviewTop,
+  reorderDragSubtree,
 } from "../../../../common/gantt";
 import { getSurfaceTextTokens, getSurfaceVariantClasses } from "../../theme/Theme";
 import Panel, { type PanelVariant } from "../Panel";
@@ -433,12 +434,13 @@ export const Gantt: React.FC<GanttProps> = ({
     setSelected,
   });
 
-  // Live reorder preview: while a grip drag has *committed* a target (25%
-  // threshold — `beforeId !== undefined`), rows render in the previewed
-  // order, so the slot closes up and reopens around the ghost. The dragged
-  // row itself renders as the floating clone + a dashed ghost slot. The
-  // committed order only changes on drop.
-  const liveRowOrder = useMemo(() => {
+  // Live reorder preview: while a grip drag has *decided* a target (the
+  // pointer crossed a block's midpoint — `beforeId !== undefined`), rows
+  // render in the previewed order, so the slot closes up and reopens around
+  // the ghost. The dragged object (the row and its visible children)
+  // renders as the floating clone + a dashed ghost slot spanning its full
+  // height. The committed order only changes on drop.
+  const liveReorder = useMemo(() => {
     const d = dragApi.drag;
     if (d?.kind !== "reorder" || d.beforeId === undefined) return null;
     return applyRowReorder(effectiveTasks, d.taskId, d.beforeId, rowOrder);
@@ -446,10 +448,15 @@ export const Gantt: React.FC<GanttProps> = ({
 
   const liveModel = useMemo(
     () =>
-      liveRowOrder
-        ? buildRows(effectiveTasks, effectiveLanes, liveRowOrder, rowHeight)
+      liveReorder
+        ? buildRows(
+            liveReorder.tasks,
+            effectiveLanes,
+            liveReorder.order,
+            rowHeight,
+          )
         : committedModel,
-    [liveRowOrder, effectiveTasks, effectiveLanes, rowHeight, committedModel],
+    [liveReorder, effectiveLanes, rowHeight, committedModel],
   );
   liveRowsRef.current = liveModel.rows;
 
@@ -593,17 +600,32 @@ export const Gantt: React.FC<GanttProps> = ({
   const dragTask = drag?.taskId ? committedModel.tasksById.get(drag.taskId) : undefined;
   // Reorder insertion indicator: resolved against the *current* previewed
   // rows, so the line sits on the edge of the slot the ghost occupies.
-  // `null` before the pointer commits to a target (nothing previewed yet).
+  // `null` before the pointer decides a target (nothing previewed yet);
+  // an end-of-scope drop (`beforeId === null`) shows the line at the
+  // block's bottom edge.
   const reorderLineY =
-    drag?.kind === "reorder" && drag.beforeId != null
+    drag?.kind === "reorder" && drag.beforeId !== undefined
       ? reorderPreviewTop(liveModel.rows, `task:${drag.taskId}`, drag.beforeId)
       : null;
-  // The floating clone row (the visible object being dragged): the row's
-  // own data is order-independent, so the committed row serves.
-  const dragCloneRow =
-    drag?.kind === "reorder"
-      ? committedModel.rows.find((r) => r.key === `task:${drag.taskId}`) ?? null
-      : null;
+  // The floating clone is the visible object being dragged: the row *and*
+  // its visible children (one row for a leaf, the whole expanded block for
+  // an open group). Driven by the live rows so the clone shows the exact
+  // subtree at its previewed spot.
+  const dragSubtree = useMemo(() => {
+    if (dragApi.drag?.kind !== "reorder") return null;
+    return reorderDragSubtree(
+      liveModel.rows,
+      `task:${dragApi.drag.taskId}`,
+    );
+  }, [dragApi.drag, liveModel.rows]);
+  const dragSubtreeKeys = useMemo(
+    () => new Set((dragSubtree ?? []).map((r) => r.key)),
+    [dragSubtree],
+  );
+  const dragSubtreeHeight = useMemo(
+    () => (dragSubtree ?? []).reduce((sum, r) => sum + r.height, 0),
+    [dragSubtree],
+  );
   const liveDragDates = useMemo(() => {
     if (!drag || !dragTask) return null;
     if (drag.kind !== "move" && drag.kind !== "resize-start" && drag.kind !== "resize-end") return null;
@@ -857,9 +879,11 @@ export const Gantt: React.FC<GanttProps> = ({
 
               {/* Rows */}
               {liveModel.rows.map((row) => {
-                // The dragged row renders as a dashed ghost slot in-flow
-                // (the rows close up behind it); the floating clone below is
-                // the visible object being dragged.
+                // The dragged object renders as a dashed ghost slot in-flow
+                // (spanning the whole expanded block, so the rows close up
+                // behind it); the floating clone below is the visible
+                // object being dragged. Descendant rows travel inside the
+                // clone and render nothing in-flow.
                 const isDragSource =
                   drag?.kind === "reorder" &&
                   row.task != null &&
@@ -872,7 +896,7 @@ export const Gantt: React.FC<GanttProps> = ({
                       data-gantt-ghost="true"
                       aria-hidden="true"
                       className="pointer-events-none flex border-b"
-                      style={{ height: row.height }}
+                      style={{ height: dragSubtreeHeight || row.height }}
                     >
                       <div
                         className="m-1 flex-1 rounded-md border-2 border-dashed"
@@ -883,6 +907,9 @@ export const Gantt: React.FC<GanttProps> = ({
                       />
                     </div>
                   );
+                }
+                if (drag?.kind === "reorder" && dragSubtreeKeys.has(row.key)) {
+                  return null; // a descendant row: rendered inside the clone
                 }
                 return (
                   <GanttBodyRow
@@ -965,11 +992,12 @@ export const Gantt: React.FC<GanttProps> = ({
               {/* Floating clone — the visible object being dragged (a
                   pointer-event drag has no browser drag image). Follows the
                   pointer at the grab offset; the dashed ghost slot above
-                  marks where it will land. */}
+                  marks where it will land. A group drag carries its whole
+                  expanded block. */}
               {drag?.kind === "reorder" &&
                 drag.clientX != null &&
                 drag.clientY != null &&
-                dragCloneRow && (
+                dragSubtree && (
                   <div
                     data-gantt-drag-clone="true"
                     aria-hidden="true"
@@ -986,38 +1014,41 @@ export const Gantt: React.FC<GanttProps> = ({
                         boxShadow: `0 8px 32px rgba(0, 0, 0, 0.28), inset 2px 0 0 var(--color-${color}-500)`,
                       }}
                     >
-                      <GanttBodyRow
-                        row={dragCloneRow}
-                        columns={resolvedColumns}
-                        leftWidth={leftWidth}
-                        timelineWidth={timelineWidth}
-                        rangeStart={range.start}
-                        zoom={zoom}
-                        color={color}
-                        interactive
-                        fanOut={linkFan.bars.get(dragCloneRow.task!.id)?.out}
-                        fanIn={linkFan.bars.get(dragCloneRow.task!.id)?.inc}
-                        selected={dragCloneRow.task?.id === selectedId}
-                        labels={allLabels}
-                        renderCell={renderCell}
-                        renderBar={renderBar}
-                        drag={drag}
-                        liveDates={null}
-                        liveProgress={null}
-                        liveLane={null}
-                        liveRollup={null}
-                        onBarPointerDown={() => undefined}
-                        onResizePointerDown={() => undefined}
-                        onGripPointerDown={() => undefined}
-                        onLinkHandlePointerDown={() => undefined}
-                        onProgressPointerDown={() => undefined}
-                        onCaretClick={() => undefined}
-                        onLaneCaretClick={() => undefined}
-                        onSelect={() => undefined}
-                        onBarKeyDown={() => undefined}
-                        selectionTokens={selectionTokens}
-                        dividerClass={surfaceText.divider}
-                      />
+                      {dragSubtree.map((row) => (
+                        <GanttBodyRow
+                          key={row.key}
+                          row={row}
+                          columns={resolvedColumns}
+                          leftWidth={leftWidth}
+                          timelineWidth={timelineWidth}
+                          rangeStart={range.start}
+                          zoom={zoom}
+                          color={color}
+                          interactive
+                          fanOut={row.task ? linkFan.bars.get(row.task.id)?.out : undefined}
+                          fanIn={row.task ? linkFan.bars.get(row.task.id)?.inc : undefined}
+                          selected={row.task ? row.task.id === selectedId : false}
+                          labels={allLabels}
+                          renderCell={renderCell}
+                          renderBar={renderBar}
+                          drag={drag}
+                          liveDates={null}
+                          liveProgress={null}
+                          liveLane={null}
+                          liveRollup={null}
+                          onBarPointerDown={() => undefined}
+                          onResizePointerDown={() => undefined}
+                          onGripPointerDown={() => undefined}
+                          onLinkHandlePointerDown={() => undefined}
+                          onProgressPointerDown={() => undefined}
+                          onCaretClick={() => undefined}
+                          onLaneCaretClick={() => undefined}
+                          onSelect={() => undefined}
+                          onBarKeyDown={() => undefined}
+                          selectionTokens={selectionTokens}
+                          dividerClass={surfaceText.divider}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}

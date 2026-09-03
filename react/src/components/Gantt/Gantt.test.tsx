@@ -357,10 +357,10 @@ describe("Gantt component", () => {
     ) as HTMLElement;
     expect(grip).toBeTruthy();
     fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, button: 0 });
-    // Drop in the middle band of the "api" row (the 25% commit zone) →
+    // Drop in the upper half of the "api" row (before its midpoint) →
     // before api.
-    pointer(window, "pointermove", 0, apiRow.top + apiRow.height * 0.5);
-    pointer(window, "pointerup", 0, apiRow.top + apiRow.height * 0.5);
+    pointer(window, "pointermove", 0, apiRow.top + apiRow.height * 0.25);
+    pointer(window, "pointerup", 0, apiRow.top + apiRow.height * 0.25);
 
     expect(onReorder).toHaveBeenCalledTimes(1);
     const order = onReorder.mock.calls[0][0] as string[];
@@ -368,30 +368,57 @@ describe("Gantt component", () => {
     expect(webappRow.top).toBeGreaterThan(0);
   });
 
-  it("does not emit a reorder when the pointer never commits to a target", () => {
+  it("moves a row down once the pointer crosses the next row's midpoint", () => {
     const onReorder = vi.fn();
     const { container } = render(
       <Gantt tasks={tasks} lanes={sampleGanttLanes} onReorder={onReorder} />,
     );
     const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
     const apiRow = rows.find((r) => r.key === "task:api")!;
+    const qaRow = rows.find((r) => r.key === "task:qa")!;
+
     const grip = containerGrip(container, "task:webapp");
     fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, button: 0 });
-    // Only ever inside api's 25% top edge zone (or above) → never commits.
-    pointer(window, "pointermove", 0, apiRow.top + apiRow.height * 0.1);
-    pointer(window, "pointermove", 0, apiRow.top + apiRow.height * 0.2);
-    pointer(window, "pointerup", 0, apiRow.top + apiRow.height * 0.2);
+    // Past api's midpoint → after api (webapp drops below api, above qa) —
+    // a one-row-down move that used to require reaching qa's band.
+    pointer(window, "pointermove", 0, apiRow.top + apiRow.height * 0.75);
+    pointer(window, "pointerup", 0, apiRow.top + apiRow.height * 0.75);
+
+    expect(onReorder).toHaveBeenCalledTimes(1);
+    const order = onReorder.mock.calls[0][0] as string[];
+    const idx = (id: string) => order.indexOf(id);
+    expect(idx("api")).toBeLessThan(idx("webapp"));
+    expect(idx("webapp")).toBeLessThan(idx("qa"));
+    expect(qaRow.top).toBeGreaterThan(0);
+  });
+
+  it("does not emit a reorder when the pointer never leaves the dragged block", () => {
+    const onReorder = vi.fn();
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} onReorder={onReorder} />,
+    );
+    const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
+    const webappRow = rows.find((r) => r.key === "task:webapp")!;
+    const shellRow = rows.find((r) => r.key === "task:webapp-shell")!;
+    const grip = containerGrip(container, "task:webapp");
+    // Press inside the webapp row; small jitters that stay over the dragged
+    // object (its row and its children) never decide a target → nothing to
+    // emit.
+    fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, button: 0 });
+    pointer(window, "pointermove", 0, webappRow.top + webappRow.height * 0.5);
+    pointer(window, "pointermove", 0, shellRow.top + shellRow.height * 0.5);
+    pointer(window, "pointerup", 0, shellRow.top + shellRow.height * 0.5);
     expect(onReorder).not.toHaveBeenCalled();
   });
 
-  it("lifts the dragged row into a floating clone with a ghost slot, and only shifts once the pointer commits", () => {
+  it("lifts the dragged block into a floating clone with a full-height ghost slot", () => {
     const onReorder = vi.fn();
     const { container } = render(
       <Gantt tasks={tasks} lanes={sampleGanttLanes} onReorder={onReorder} />,
     );
     const taskKeys = () =>
       [...container.querySelectorAll<HTMLElement>('[data-row-key^="task:"]')]
-        // Exclude the floating clone (it duplicates the dragged row's key).
+        // Exclude the floating clone (it duplicates the dragged block's keys).
         .filter((r) => !r.closest('[data-gantt-drag-clone="true"]'))
         .map((r) => r.dataset.rowKey!);
     const before = taskKeys();
@@ -399,24 +426,44 @@ describe("Gantt component", () => {
 
     const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
     const apiRow = rows.find((r) => r.key === "task:api")!;
+    const webappRow = rows.find((r) => r.key === "task:webapp")!;
+    const pressClientY = webappRow.top + webappRow.height * 0.5;
     const grip = containerGrip(container, "task:webapp");
-    fireEvent.pointerDown(grip, { clientX: 12, clientY: 1300, button: 0 });
+    fireEvent.pointerDown(grip, { clientX: 12, clientY: pressClientY, button: 0 });
 
-    // Press alone: the order is untouched (no immediate shift), the row in
-    // flow is replaced by a dashed ghost slot, and a floating clone follows
-    // the pointer with the accent grip.
-    expect(taskKeys()).toEqual(before);
+    // Press alone: the block's relative order is untouched (no immediate
+    // shift), the in-flow rows close up (webapp's children travel to the
+    // clone), and a dashed ghost slot spanning the whole expanded block
+    // (webapp + 3 children = 4 × 44px) marks the slot.
+    const afterPress = taskKeys();
+    expect(afterPress).toEqual(
+      before.filter(
+        (k) =>
+          k !== "task:webapp-shell" &&
+          k !== "task:webapp-screens" &&
+          k !== "task:webapp-polish",
+      ),
+    );
+    expect(afterPress.indexOf("task:webapp")).toBeGreaterThan(
+      afterPress.indexOf("task:api"),
+    );
     const ghost = container.querySelector<HTMLElement>(
       '[data-row-key="task:webapp"][data-gantt-ghost="true"]',
     );
     expect(ghost).toBeTruthy();
-    // The ghost slot is an empty dashed placeholder (no row content).
+    // The ghost slot is an empty dashed placeholder at the block's height.
     expect(ghost!.querySelector("div")).toBeTruthy();
     expect(ghost!.textContent ?? "").toBe("");
+    expect(ghost!.style.height).toBe(`${4 * 44}px`);
+    // The floating clone carries the whole expanded block (4 rows) with the
+    // accent grip on the group row.
     const clone = container.querySelector<HTMLElement>(
       '[data-gantt-drag-clone="true"]',
     );
     expect(clone).toBeTruthy();
+    expect(
+      clone!.querySelectorAll<HTMLElement>('[data-row-key^="task:"]').length,
+    ).toBe(4);
     const cloneGrip = clone!.querySelector<HTMLElement>(
       '[title="Drag to reorder"]',
     );
@@ -425,45 +472,72 @@ describe("Gantt component", () => {
     expect(cloneGrip!.style.color).toContain("-500");
     // (jsdom row rects are 0×0, so the grab offset equals the press pointer
     // position — the clone's top tracks `pointerY − grabY`.)
-    const pressClientY = 1300;
     expect(clone!.style.top).toBe("0px");
-    // No insertion line before the pointer commits.
+    // No insertion line before the pointer decides a target.
     expect(containerLine(container)).toBeFalsy();
 
-    // Into api's 25% top edge zone → still no shift (hysteresis).
-    pointer(window, "pointermove", 12, apiRow.top + apiRow.height * 0.1);
-    expect(taskKeys()).toEqual(before);
-    expect(containerLine(container)).toBeFalsy();
-
-    // Into api's middle band → the preview commits: webapp (and its
-    // children) shifts above api, the line tracks api's new top edge, and
-    // the clone follows the pointer.
-    pointer(window, "pointermove", 12, apiRow.top + apiRow.height * 0.5);
-    const live = taskKeys();
+    // Into api's upper half (past its midpoint is not needed yet) → the
+    // preview commits: webapp (and its children) shifts above api, the line
+    // tracks api's new top edge, and the clone follows the pointer.
+    pointer(window, "pointermove", 12, apiRow.top + apiRow.height * 0.25);
+    let live = taskKeys();
     expect(live.indexOf("task:webapp")).toBeLessThan(live.indexOf("task:api"));
     expect(live.indexOf("task:webapp-shell")).toBeLessThan(live.indexOf("task:api"));
     const liveRows = buildRows(
       tasks,
       sampleGanttLanes,
-      applyRowReorder(tasks, "webapp", "api", undefined),
+      applyRowReorder(tasks, "webapp", "api", undefined).order,
       44,
     ).rows;
     expect(containerLine(container)?.style.top).toBe(
       `${liveRows.find((r) => r.key === "task:api")!.top}px`,
     );
     expect(clone!.style.top).toBe(
-      `${apiRow.top + apiRow.height * 0.5 - pressClientY}px`,
+      `${apiRow.top + apiRow.height * 0.25 - pressClientY}px`,
     );
     expect(onReorder).not.toHaveBeenCalled();
 
-    // Drop → the previewed order commits, and the clone/ghost/line clear.
-    pointer(window, "pointerup", 12, apiRow.top + apiRow.height * 0.5);
+    // Back into api's lower half → the preview reverts to the natural slot
+    // (after api, before qa): moving down one happens past api's midpoint.
+    // (The pointer tracks the *live* geometry — after the shift, api sits
+    // one block lower, and a pointer inside the moved object's band keeps
+    // the current target, so no oscillation.)
+    const liveApi = liveRows.find((r) => r.key === "task:api")!;
+    pointer(window, "pointermove", 12, liveApi.top + liveApi.height * 0.75);
+    live = taskKeys();
+    expect(live.indexOf("task:api")).toBeLessThan(live.indexOf("task:webapp"));
+    expect(live.indexOf("task:webapp")).toBeLessThan(live.indexOf("task:qa"));
+
+    // Drop → the previewed order commits (the no-op order here), and the
+    // clone/ghost/line clear.
+    pointer(window, "pointerup", 12, liveApi.top + liveApi.height * 0.75);
     expect(onReorder).toHaveBeenCalledTimes(1);
     const order = onReorder.mock.calls[0][0] as string[];
-    expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
+    expect(order.indexOf("api")).toBeLessThan(order.indexOf("webapp"));
+    expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("qa"));
     expect(container.querySelector('[data-gantt-drag-clone="true"]')).toBeNull();
     expect(container.querySelector('[data-gantt-ghost="true"]')).toBeNull();
     expect(containerLine(container)).toBeFalsy();
+  });
+
+  it("reorders a child among its siblings and commits through the tasks channel", () => {
+    const onTasksChange = vi.fn();
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />,
+    );
+    const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
+    const flowRow = rows.find((r) => r.key === "task:visual-flow")!;
+
+    const grip = containerGrip(container, "task:visual-tokens");
+    fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, button: 0 });
+    // Below the sibling's midpoint → after it (end of the sibling list).
+    pointer(window, "pointermove", 0, flowRow.top + flowRow.height * 0.75);
+    pointer(window, "pointerup", 0, flowRow.top + flowRow.height * 0.75);
+
+    expect(onTasksChange).toHaveBeenCalledTimes(1);
+    const next = onTasksChange.mock.calls[0][0] as GanttTask[];
+    const kids = next.filter((t) => t.parent === "visual").map((t) => t.id);
+    expect(kids).toEqual(["visual-flow", "visual-tokens"]);
   });
 
   /** Grip of a task row (shared by the grip drag tests). */

@@ -264,9 +264,10 @@ function rollupLaneProgress(
 /**
  * Y (px, body-relative) of the reorder insertion indicator for the given
  * displayed row order: the top edge of the row the dragged row is being
- * inserted before, or the end of the dragged lane's segment when dropping
- * at the tail. Pass the *previewed* row order while a live reorder is in
- * flight so the indicator tracks the slot the dragged row currently
+ * inserted before, or — for an end drop — the bottom of the scope block
+ * (the parent's visible block for a child drag, the lane segment for a
+ * top-level drag). Pass the *previewed* row order while a live reorder is
+ * in flight so the indicator tracks the slot the dragged row currently
  * occupies. Returns `null` when the dragged row can't be found.
  */
 export function reorderPreviewTop(
@@ -280,8 +281,28 @@ export function reorderPreviewTop(
     const target = rows.find((r) => r.key === `task:${beforeId}`);
     if (target) return target.top;
   }
-  // End of the dragged lane's segment: the first row of a foreign lane
-  // (segments are contiguous), or the bottom of the body.
+  // End drop: the bottom of the scope block the dragged row moves within.
+  // A child drag scopes to its parent's visible block (end of the sibling
+  // list); a top-level drag scopes to the lane segment (the first row of a
+  // foreign lane — segments are contiguous — or the bottom of the body).
+  const byId = new Map<string, GanttTask>();
+  for (const r of rows) if (r.task) byId.set(r.task.id, r.task);
+  const scopeRoot =
+    dragRow.task?.parent != null && byId.has(dragRow.task.parent)
+      ? byId.get(dragRow.task.parent)!
+      : null;
+  if (scopeRoot) {
+    const parentIdx = rows.findIndex((r) => r.key === `task:${scopeRoot.id}`);
+    if (parentIdx !== -1) {
+      let bottom = rows[parentIdx].top + rows[parentIdx].height;
+      for (let i = parentIdx + 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (r.task == null || !inSubtree(r.task, scopeRoot.id, byId)) break;
+        bottom = r.top + r.height;
+      }
+      return bottom;
+    }
+  }
   const dragLane = dragRow.task?.lane ?? dragRow.lane?.id ?? "";
   for (let i = rows.indexOf(dragRow) + 1; i < rows.length; i++) {
     const r = rows[i];
@@ -292,18 +313,35 @@ export function reorderPreviewTop(
 }
 
 /**
- * Apply a vertical reorder within one lane: move top-level task `dragId` so
- * it sits just before `beforeId` (or at the lane's end when `beforeId` is
- * null). Returns the new per-lane top-level id order for `buildRows`.
- * Reordering across lanes is out of scope in v1 — both ids must share a lane.
+ * Apply a reorder drop to the dataset.
+ *
+ * - Top-level drag (`dragId` has no parent): `order` is the new per-lane
+ *   top-level id order for `buildRows`; `tasks` is the input array.
+ * - Child drag (`dragId` has a parent): the row moves among its *siblings*
+ *   (same parent). The top-level `order` is unchanged; `tasks` is a new flat
+ *   array with the dragged task repositioned relative to its siblings
+ *   (sibling order is the tasks-array order).
+ *
+ * `beforeId` is the top-level / sibling task id to insert before, or `null`
+ * for the end of the lane / sibling list. Returns the input references
+ * unchanged when the drop is a no-op (onto itself, across parents or lanes,
+ * or landing where the row already is).
  */
+export interface RowReorderResult {
+  /** Per-lane top-level id order for `buildRows` (unchanged for child drags). */
+  order: string[];
+  /** Flat tasks array with the child-level move applied (the input array for
+   *  top-level drags and no-ops). */
+  tasks: GanttTask[];
+}
+
 export function applyRowReorder(
   tasks: GanttTask[],
   dragId: string,
   beforeId: string | null,
   currentOrder?: string[],
-): string[] {
-  const tasksById = new Map(tasks.map((t) => [t.id, t]));
+): RowReorderResult {
+  const tasksById = new Map<string, GanttTask>(tasks.map((t) => [t.id, t]));
   const laneOf = (id: string): string => tasksById.get(id)?.lane ?? "";
 
   const topLevel = tasks.filter(
@@ -337,18 +375,72 @@ export function applyRowReorder(
     list.push(t.id);
   }
 
-  const unchanged = () => currentOrder ?? topLevel.map((t) => t.id);
+  // Re-emit in the original lane sequence.
+  const unchangedOrder = (): string[] => {
+    const out: string[] = [];
+    const lanes = new Set(topLevel.map((t) => laneOf(t.id)));
+    for (const lane of lanes) out.push(...(laneLists.get(lane) ?? []));
+    return out;
+  };
+
+  const dragTask = tasksById.get(dragId);
+  if (!dragTask) return { order: unchangedOrder(), tasks };
+
+  // ── Child level: move among the siblings of the same parent ─────────────
+  if (dragTask.parent != null && tasksById.has(dragTask.parent)) {
+    const parentId = dragTask.parent;
+    const target = beforeId != null ? tasksById.get(beforeId) : null;
+    if (beforeId === dragId) return { order: unchangedOrder(), tasks }; // onto itself
+    if (
+      beforeId != null &&
+      (!target || target.parent !== parentId)
+    ) {
+      // Cross-parent (or unknown target) — no-op: v1 keeps children in
+      // their group.
+      return { order: unchangedOrder(), tasks };
+    }
+    const cur = tasks.filter((t) => t.parent === parentId).map((t) => t.id);
+    const from = cur.indexOf(dragId);
+    if (from === -1) return { order: unchangedOrder(), tasks };
+    const next = cur.filter((id) => id !== dragId);
+    let to = next.length; // `null` → end of the sibling list
+    if (beforeId != null) {
+      const idx = next.indexOf(beforeId);
+      to = idx === -1 ? next.length : idx;
+    }
+    next.splice(to, 0, dragId);
+    if (next.every((id, i) => id === cur[i])) {
+      return { order: unchangedOrder(), tasks }; // lands where it already is
+    }
+    // Rebuild the flat array: the drag task sits just before its target
+    // sibling (or is appended) so the tasks-array order — the sibling order
+    // — reflects the drop.
+    const out: GanttTask[] = [];
+    let placed = false;
+    for (const t of tasks) {
+      if (t.id === dragId) continue;
+      if (!placed && beforeId != null && t.id === beforeId) {
+        out.push(dragTask);
+        placed = true;
+      }
+      out.push(t);
+    }
+    if (!placed) out.push(dragTask);
+    return { order: unchangedOrder(), tasks: out };
+  }
+
+  // ── Top level: reorder within the dragged lane ───────────────────────────
   const dragLane = laneOf(dragId);
   const dragList = laneLists.get(dragLane);
-  if (!dragList) return unchanged();
+  if (!dragList) return { order: unchangedOrder(), tasks };
 
   const from = dragList.indexOf(dragId);
-  if (from === -1) return unchanged();
+  if (from === -1) return { order: unchangedOrder(), tasks };
 
-  if (beforeId === dragId) return unchanged(); // dropped on itself
+  if (beforeId === dragId) return { order: unchangedOrder(), tasks }; // dropped on itself
   if (beforeId != null && laneOf(beforeId) !== dragLane) {
     // Different lane — no-op (v1 keeps rows in their lane).
-    return unchanged();
+    return { order: unchangedOrder(), tasks };
   }
 
   dragList.splice(from, 1);
@@ -359,11 +451,7 @@ export function applyRowReorder(
   }
   dragList.splice(to, 0, dragId);
 
-  // Re-emit in the original lane sequence.
-  const lanes = new Set(topLevel.map((t) => laneOf(t.id)));
-  const out: string[] = [];
-  for (const lane of lanes) out.push(...(laneLists.get(lane) ?? []));
-  return out;
+  return { order: unchangedOrder(), tasks };
 }
 
 function t_isTopLevel(id: string, tasksById: Map<string, GanttTask>): boolean {
@@ -372,33 +460,34 @@ function t_isTopLevel(id: string, tasksById: Map<string, GanttTask>): boolean {
 }
 
 /**
- * Resolve where a row being dragged vertically lands. `pointerY` is in the
- * row area's pixel space. Returns the top-level task id to insert *before*
- * (null = end of the dragged task's lane), constrained to the dragged row's
- * lane so cross-lane drops are ignored.
+ * Resolve the reorder drop target for a live pointer position (`pointerY`
+ * in the row area's pixel space) — the same before/after system
+ * SmartGridLayout uses, evaluated against *blocks*: a row and its visible
+ * descendants form one unit, because a top-level drag can only address
+ * top-level rows and a child drag can only address its siblings.
  *
- * Dropping on the lower half of a row means "after it"; on the upper half,
- * "before it". Dropping on a child row targets its top-level ancestor — the
- * thing the `rowOrder` list actually addresses.
- */
-/**
- * Resolve the reorder drop target for a live pointer position, with a 25%
- * hysteresis band so the preview only shifts once the pointer has clearly
- * moved into (or out of) a row — the same commit rule SmartGridLayout uses
- * for its row previews:
+ * - Top-level drag: the candidate blocks are the other top-level subtrees
+ *   of the dragged lane.
+ * - Child drag: the candidate blocks are the sibling subtrees (same
+ *   parent).
  *
- * - Pointer in the middle 50% of a candidate row → that row is the target
- *   (insert before it).
- * - Pointer in the top/bottom 25% of a candidate row → the preview is kept
- *   (`currentBeforeId`): the pointer hasn't committed to a new row yet.
- * - Pointer above the first candidate (the lane header band) → the first
- *   candidate (top of the lane).
- * - Pointer below the last candidate → `null` (end of the lane).
+ * The pointer decides at the *block's* midpoint:
+ * - Above the midpoint → insert before the block.
+ * - Below the midpoint → insert after the block (i.e. before the next
+ *   block; `null` = end of the lane / sibling list).
+ * - Over the object being dragged (the dragged subtree's band) → the
+ *   previous target is kept. This is also the press itself: nothing shifts
+ *   until the pointer crosses into a neighbouring block, and the shift
+ *   happens once it has passed that block's midpoint — never "almost over
+ *   the second item".
+ * - Above the first block (the lane header band) → top of the lane; below
+ *   the last block → end of the lane.
  *
- * `currentBeforeId` is `undefined` before the first committed target (right
- * after the press) — no preview until the pointer commits. Candidates are
- * the dragged lane's rows minus the dragged row and its descendants (the
- * pointer over the object being dragged never changes the target).
+ * `currentBeforeId` is `undefined` before the first decision (right after
+ * the press) — no preview until the pointer commits. Because resolution
+ * runs against the *live preview* rows, a committed move parks the pointer
+ * over the dragged object's new band, where the target is kept — a stable
+ * fixed point, no oscillation.
  */
 export function resolveDropBeforeId(
   rows: GanttRow[],
@@ -409,23 +498,47 @@ export function resolveDropBeforeId(
 ): { beforeId: string | null | undefined } {
   const dragRow = rows.find((r) => r.key === dragKey);
   if (!dragRow?.task) return { beforeId: currentBeforeId };
-  const dragLane = dragRow.task.lane ?? "";
-  const dragAncestor = topAncestorId(dragRow, tasksById);
+  const dragTask = dragRow.task;
 
-  // The dragged lane's row segment: from its own header (or the top) to the
-  // next foreign lane header. Only rows inside the segment are candidates.
-  const laneHeaderKey = `lane:${dragLane}`;
+  // The dragged subtree: the drag task and all of its descendants (hidden
+  // ones included — they can't render anyway).
+  const childrenMap = new Map<string, string[]>();
+  for (const t of tasksById.values()) {
+    if (t.parent != null && tasksById.has(t.parent)) {
+      let list = childrenMap.get(t.parent);
+      if (!list) {
+        list = [];
+        childrenMap.set(t.parent, list);
+      }
+      list.push(t.id);
+    }
+  }
+  const dragSubtree = new Set<string>([dragTask.id]);
+  {
+    const stack = [dragTask.id];
+    while (stack.length > 0) {
+      const id = stack.pop()!;
+      for (const child of childrenMap.get(id) ?? []) {
+        if (!dragSubtree.has(child)) {
+          dragSubtree.add(child);
+          stack.push(child);
+        }
+      }
+    }
+  }
+  const isChild = dragTask.parent != null && tasksById.has(dragTask.parent);
+
+  // The dragged lane's row segment (top-level drags only): from its own
+  // header (or the top) to the next foreign lane header.
   let segStart = 0;
   let segEnd = rows.length;
-  if (dragLane !== "") {
-    // The header always exists for a named lane (buildRows materialises a
-    // spec for any lane a task references), so the segment is well-defined.
-    const headerIdx = rows.findIndex((r) => r.key === laneHeaderKey);
+  if (!isChild && dragTask.lane != null) {
+    const headerIdx = rows.findIndex((r) => r.key === `lane:${dragTask.lane}`);
     if (headerIdx !== -1) {
       segStart = headerIdx;
       for (let i = headerIdx + 1; i < rows.length; i++) {
         const r = rows[i];
-        if (r.task == null && r.lane != null && r.lane.id !== dragLane) {
+        if (r.task == null && r.lane != null && r.lane.id !== dragTask.lane) {
           segEnd = i;
           break;
         }
@@ -433,31 +546,100 @@ export function resolveDropBeforeId(
     }
   }
 
-  let firstCandidate: GanttRow | null = null;
+  // Candidate blocks in visual order. A block starts at its root row (a
+  // top-level task row for top-level drags, a sibling row for child drags)
+  // and spans its visible descendants.
+  const blocks: { top: number; bottom: number; target: string }[] = [];
   for (let i = segStart; i < segEnd; i++) {
     const r = rows[i];
-    if (r.key === dragKey || r.key === laneHeaderKey || r.task == null) continue;
-    const ancestor = topAncestorId(r, tasksById);
-    if (ancestor == null || ancestor === dragAncestor) continue; // self/descendant
-    if (firstCandidate == null) firstCandidate = r;
-
-    if (pointerY < r.top) {
-      // Above this candidate: either the lane header band (top of the lane)
-      // or the 25% bottom zone of the candidate above — hysteresis keeps the
-      // preview in both cases unless this is the first candidate.
-      if (r === firstCandidate) return { beforeId: ancestor };
-      return { beforeId: currentBeforeId };
+    if (r.task == null || dragSubtree.has(r.task.id)) continue;
+    const isCandidateRoot = isChild
+      ? r.task.parent === dragTask.parent
+      : r.task.parent == null || !tasksById.has(r.task.parent);
+    if (!isCandidateRoot) continue; // a descendant row: part of its root's block
+    let j = i;
+    while (j + 1 < segEnd) {
+      const n = rows[j + 1];
+      if (n.task == null || !inSubtree(n.task, r.task.id, tasksById)) break;
+      j++;
     }
-    if (pointerY < r.top + r.height) {
-      const inset = pointerY - r.top;
-      if (inset >= r.height * 0.25 && inset <= r.height * 0.75) {
-        return { beforeId: ancestor }; // middle band → commit to this row
-      }
-      return { beforeId: currentBeforeId }; // 25% edge zone → keep the preview
+    blocks.push({ top: r.top, bottom: rows[j].top + rows[j].height, target: r.task.id });
+    i = j;
+  }
+  if (blocks.length === 0) return { beforeId: currentBeforeId };
+
+  // The dragged object's band (its visible subtree, contiguous in the live
+  // model): the pointer over the object never changes the target.
+  let dragBottom = dragRow.top + dragRow.height;
+  for (let i = rows.indexOf(dragRow) + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (r.task == null || !dragSubtree.has(r.task.id)) break;
+    dragBottom = r.top + r.height;
+  }
+  if (pointerY >= dragRow.top && pointerY < dragBottom) {
+    return { beforeId: currentBeforeId };
+  }
+
+  const first = blocks[0];
+  const last = blocks[blocks.length - 1];
+  // Above the first block (the lane header band, or above the siblings for a
+  // child drag) → top of the lane / first sibling.
+  if (pointerY < first.top) return { beforeId: first.target };
+  // Below the last block → end of the lane / sibling list.
+  if (pointerY >= last.bottom) return { beforeId: null };
+
+  for (let bi = 0; bi < blocks.length; bi++) {
+    const b = blocks[bi];
+    if (pointerY >= b.top && pointerY < b.bottom) {
+      const mid = b.top + (b.bottom - b.top) / 2;
+      if (pointerY < mid) return { beforeId: b.target }; // before the block
+      return { beforeId: blocks[bi + 1]?.target ?? null }; // after the block
     }
   }
-  // Below the last candidate → end of the lane.
-  return { beforeId: null };
+  return { beforeId: currentBeforeId };
+}
+
+/** True when `task` is `rootId` itself or a descendant of it. */
+function inSubtree(
+  task: GanttTask,
+  rootId: string,
+  tasksById: Map<string, GanttTask>,
+): boolean {
+  let t: GanttTask | undefined = task;
+  const seen = new Set<string>();
+  while (t) {
+    if (t.id === rootId) return true;
+    if (seen.has(t.id)) return false;
+    seen.add(t.id);
+    t = t.parent != null ? tasksById.get(t.parent) : undefined;
+  }
+  return false;
+}
+
+/**
+ * The visible object being dragged for a reorder: the dragged row plus its
+ * visible descendant rows (contiguous in the live model — a single row for
+ * a leaf, the whole expanded block for an open group). `null` when the drag
+ * row can't be found. Used for the dashed ghost slot (its total height) and
+ * the floating clone (its stacked rows).
+ */
+export function reorderDragSubtree(
+  rows: GanttRow[],
+  dragKey: string,
+): GanttRow[] | null {
+  const idx = rows.findIndex((r) => r.key === dragKey);
+  if (idx === -1) return null;
+  const dragRow = rows[idx];
+  if (!dragRow.task) return null;
+  const byId = new Map<string, GanttTask>();
+  for (const r of rows) if (r.task) byId.set(r.task.id, r.task);
+  const out = [dragRow];
+  for (let i = idx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (r.task == null || !inSubtree(r.task, dragRow.task.id, byId)) break;
+    out.push(r);
+  }
+  return out;
 }
 
 /** The top-level ancestor task id of a row (the row's task when top level). */
