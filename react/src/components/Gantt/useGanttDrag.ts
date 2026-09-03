@@ -53,8 +53,18 @@ export interface GanttDragState {
   fromOffset?: number;
   /** Link kind only: anchor point (timeline coords). */
   anchor?: { x: number; y: number };
-  /** Reorder kind only: resolved drop target. */
+  /** Reorder kind only: resolved drop target. `undefined` until the pointer
+   *  commits to a target (25% hysteresis — see `resolveDropBeforeId`), so a
+   *  fresh press previews nothing; `null` = end of the lane. */
   beforeId?: string | null;
+  /** Reorder kind only: live pointer position in *client* coordinates —
+   *  the floating row clone follows it (pointer-event drags have no browser
+   *  drag image). */
+  clientX?: number;
+  clientY?: number;
+  /** Reorder kind only: grab point within the row (client offset), so the
+   *  floating clone holds the grip under the pointer. */
+  grabOffset?: { x: number; y: number };
   /** Progress kind only: live percent complete (0..1) as the knob drags, so
    *  the bar's progress fill and the % readout follow the pointer in real
    *  time (committed only on drop). */
@@ -192,23 +202,26 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
       if (!state) return;
       const x = timelineX(e.clientX);
       const y = rowY(e.clientY);
+      const clientXY = { clientX: e.clientX, clientY: e.clientY };
 
       if (state.kind === "reorder") {
-        // Resolve against the rendered (live preview) rows: the dragged row
-        // already sits in its previewed slot, so the mapping from pointer y
-        // to target row is self-consistent and jitter-free.
+        // Resolve against the rendered (live preview) rows with 25%
+        // hysteresis: the preview only shifts once the pointer commits to a
+        // new row (middle 50% of a candidate), so a fresh press and small
+        // jitters move nothing.
         const rows = o.rowsRef?.current ?? o.rows;
         const { beforeId } = resolveDropBeforeId(
           rows,
           o.tasksById,
           `task:${state.taskId}`,
           y,
+          state.beforeId,
         );
-        setDrag({ ...state, x, y, beforeId });
+        setDrag({ ...state, x, y, beforeId, ...clientXY });
         return;
       }
       if (state.kind === "link") {
-        setDrag({ ...state, x, y });
+        setDrag({ ...state, x, y, ...clientXY });
         return;
       }
       if (state.kind === "progress") {
@@ -220,13 +233,13 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
           const en = toMs(task.end);
           const barLeft = dateToX(s, o.rangeStart, o.zoom);
           const barWidth = Math.max(6, dateToX(en, o.rangeStart, o.zoom) - barLeft);
-          setDrag({ ...state, x, y, liveProgress: progressFromPointer(x, barLeft, barWidth) });
+          setDrag({ ...state, x, y, liveProgress: progressFromPointer(x, barLeft, barWidth), ...clientXY });
         } else {
-          setDrag({ ...state, x, y });
+          setDrag({ ...state, x, y, ...clientXY });
         }
         return;
       }
-      setDrag({ ...state, x, y });
+      setDrag({ ...state, x, y, ...clientXY });
     };
 
     const onUp = (e: PointerEvent) => {
@@ -306,13 +319,16 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
 
       if (state.kind === "reorder") {
         if (!o.onReorder) return;
+        // No committed target yet (pointer never cleared the 25% threshold)
+        // → the row stays where it was; nothing to emit.
+        if (state.beforeId === undefined) return;
         // applyRowReorder is idempotent: a drop that lands where the row
         // already is returns the same order, so emitting it is a harmless
         // no-op rather than a loop.
         const order = applyRowReorder(
           o.tasks,
           state.taskId,
-          state.beforeId ?? null,
+          state.beforeId,
           o.rowOrder,
         );
         o.onReorder(order);
@@ -330,7 +346,7 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
   // ── Start handlers ─────────────────────────────────────────────────────────
   const beginDrag = useCallback(
     (
-      partial: Omit<GanttDragState, "x" | "y">,
+      partial: Omit<GanttDragState, "x" | "y" | "clientX" | "clientY">,
       e: React.PointerEvent,
       focusEl?: HTMLElement,
     ) => {
@@ -363,7 +379,7 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
           );
         }
       }
-      setDrag({ ...partial, x, y, anchor, color: partial.color ?? o.accentColor } as GanttDragState);
+      setDrag({ ...partial, x, y, clientX: e.clientX, clientY: e.clientY, anchor, color: partial.color ?? o.accentColor } as GanttDragState);
       o.setSelected(partial.taskId);
       focusEl?.focus();
     },
@@ -413,6 +429,12 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
   const onGripPointerDown = useCallback(
     (_rowKey: string, task: GanttTask, e: React.PointerEvent) => {
       if (e.button !== 0) return;
+      // Grab offset within the row, so the floating clone (the visible
+      // object being dragged) holds the grip under the pointer.
+      const rowEl = (e.currentTarget as HTMLElement).closest<HTMLElement>(
+        "[data-row-key]",
+      );
+      const rect = rowEl?.getBoundingClientRect();
       beginDrag(
         {
           kind: "reorder",
@@ -421,7 +443,12 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
           startY: rowY(e.clientY),
           originStart: 0,
           originEnd: 0,
-          beforeId: null,
+          // `undefined` (not `null`): no preview until the pointer commits
+          // to a target, so the press itself shifts nothing.
+          beforeId: undefined,
+          grabOffset: rect
+            ? { x: e.clientX - rect.left, y: e.clientY - rect.top }
+            : undefined,
         },
         e,
       );

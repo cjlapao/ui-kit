@@ -357,9 +357,10 @@ describe("Gantt component", () => {
     ) as HTMLElement;
     expect(grip).toBeTruthy();
     fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, button: 0 });
-    // Drop on the upper half of the "api" row → before api.
-    pointer(window, "pointermove", 0, apiRow.top + 5);
-    pointer(window, "pointerup", 0, apiRow.top + 5);
+    // Drop in the middle band of the "api" row (the 25% commit zone) →
+    // before api.
+    pointer(window, "pointermove", 0, apiRow.top + apiRow.height * 0.5);
+    pointer(window, "pointerup", 0, apiRow.top + apiRow.height * 0.5);
 
     expect(onReorder).toHaveBeenCalledTimes(1);
     const order = onReorder.mock.calls[0][0] as string[];
@@ -367,57 +368,119 @@ describe("Gantt component", () => {
     expect(webappRow.top).toBeGreaterThan(0);
   });
 
-  it("reorders rows live while dragging the grip, with the line tracking the slot", () => {
+  it("does not emit a reorder when the pointer never commits to a target", () => {
+    const onReorder = vi.fn();
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} onReorder={onReorder} />,
+    );
+    const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
+    const apiRow = rows.find((r) => r.key === "task:api")!;
+    const grip = containerGrip(container, "task:webapp");
+    fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, button: 0 });
+    // Only ever inside api's 25% top edge zone (or above) → never commits.
+    pointer(window, "pointermove", 0, apiRow.top + apiRow.height * 0.1);
+    pointer(window, "pointermove", 0, apiRow.top + apiRow.height * 0.2);
+    pointer(window, "pointerup", 0, apiRow.top + apiRow.height * 0.2);
+    expect(onReorder).not.toHaveBeenCalled();
+  });
+
+  it("lifts the dragged row into a floating clone with a ghost slot, and only shifts once the pointer commits", () => {
     const onReorder = vi.fn();
     const { container } = render(
       <Gantt tasks={tasks} lanes={sampleGanttLanes} onReorder={onReorder} />,
     );
     const taskKeys = () =>
-      [...container.querySelectorAll<HTMLElement>('[data-row-key^="task:"]')].map(
-        (r) => r.dataset.rowKey!,
-      );
+      [...container.querySelectorAll<HTMLElement>('[data-row-key^="task:"]')]
+        // Exclude the floating clone (it duplicates the dragged row's key).
+        .filter((r) => !r.closest('[data-gantt-drag-clone="true"]'))
+        .map((r) => r.dataset.rowKey!);
     const before = taskKeys();
     expect(before.indexOf("task:webapp")).toBeGreaterThan(before.indexOf("task:api"));
 
     const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
     const apiRow = rows.find((r) => r.key === "task:api")!;
+    const grip = containerGrip(container, "task:webapp");
+    fireEvent.pointerDown(grip, { clientX: 12, clientY: 1300, button: 0 });
 
-    const grip = container.querySelector(
-      `[data-row-key="task:webapp"] [title="Drag to reorder"]`,
-    ) as HTMLElement;
-    const webappRowEl = container.querySelector<HTMLElement>('[data-row-key="task:webapp"]')!;
-    fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, button: 0 });
+    // Press alone: the order is untouched (no immediate shift), the row in
+    // flow is replaced by a dashed ghost slot, and a floating clone follows
+    // the pointer with the accent grip.
+    expect(taskKeys()).toEqual(before);
+    const ghost = container.querySelector<HTMLElement>(
+      '[data-row-key="task:webapp"][data-gantt-ghost="true"]',
+    );
+    expect(ghost).toBeTruthy();
+    // The ghost slot is an empty dashed placeholder (no row content).
+    expect(ghost!.querySelector("div")).toBeTruthy();
+    expect(ghost!.textContent ?? "").toBe("");
+    const clone = container.querySelector<HTMLElement>(
+      '[data-gantt-drag-clone="true"]',
+    );
+    expect(clone).toBeTruthy();
+    const cloneGrip = clone!.querySelector<HTMLElement>(
+      '[title="Drag to reorder"]',
+    );
+    expect(cloneGrip).toBeTruthy();
+    expect(cloneGrip!.style.color).toContain("var(--color-");
+    expect(cloneGrip!.style.color).toContain("-500");
+    // (jsdom row rects are 0×0, so the grab offset equals the press pointer
+    // position — the clone's top tracks `pointerY − grabY`.)
+    const pressClientY = 1300;
+    expect(clone!.style.top).toBe("0px");
+    // No insertion line before the pointer commits.
+    expect(containerLine(container)).toBeFalsy();
 
-    // Hover the upper half of "api" → webapp previews directly above it.
-    pointer(window, "pointermove", 0, apiRow.top + 5);
+    // Into api's 25% top edge zone → still no shift (hysteresis).
+    pointer(window, "pointermove", 12, apiRow.top + apiRow.height * 0.1);
+    expect(taskKeys()).toEqual(before);
+    expect(containerLine(container)).toBeFalsy();
+
+    // Into api's middle band → the preview commits: webapp (and its
+    // children) shifts above api, the line tracks api's new top edge, and
+    // the clone follows the pointer.
+    pointer(window, "pointermove", 12, apiRow.top + apiRow.height * 0.5);
     const live = taskKeys();
     expect(live.indexOf("task:webapp")).toBeLessThan(live.indexOf("task:api"));
-    // Its children travel with it.
-    expect(live.indexOf("task:webapp-shell")).toBeGreaterThan(live.indexOf("task:webapp"));
     expect(live.indexOf("task:webapp-shell")).toBeLessThan(live.indexOf("task:api"));
-    // The insertion line sits on the top edge of the api row in the
-    // previewed order (it shifted down by webapp's subtree).
     const liveRows = buildRows(
       tasks,
       sampleGanttLanes,
       applyRowReorder(tasks, "webapp", "api", undefined),
       44,
     ).rows;
-    const line = [...container.querySelectorAll("div")].find(
-      (d) => d.className.includes("h-0.5") && d.className.includes("z-30"),
+    expect(containerLine(container)?.style.top).toBe(
+      `${liveRows.find((r) => r.key === "task:api")!.top}px`,
     );
-    expect(line).toBeTruthy();
-    expect(line!.style.top).toBe(`${liveRows.find((r) => r.key === "task:api")!.top}px`);
-    // Accent cue on the grip and no dimming on the moving row.
-    expect(grip.style.color).toContain("var(--color-");
-    expect(webappRowEl.className).not.toContain("opacity-40");
+    expect(clone!.style.top).toBe(
+      `${apiRow.top + apiRow.height * 0.5 - pressClientY}px`,
+    );
     expect(onReorder).not.toHaveBeenCalled();
 
-    pointer(window, "pointerup", 0, apiRow.top + 5);
+    // Drop → the previewed order commits, and the clone/ghost/line clear.
+    pointer(window, "pointerup", 12, apiRow.top + apiRow.height * 0.5);
     expect(onReorder).toHaveBeenCalledTimes(1);
     const order = onReorder.mock.calls[0][0] as string[];
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
+    expect(container.querySelector('[data-gantt-drag-clone="true"]')).toBeNull();
+    expect(container.querySelector('[data-gantt-ghost="true"]')).toBeNull();
+    expect(containerLine(container)).toBeFalsy();
   });
+
+  /** Grip of a task row (shared by the grip drag tests). */
+  function containerGrip(container: HTMLElement, rowKey: string) {
+    const grip = container.querySelector(
+      `[data-row-key="${rowKey}"] [title="Drag to reorder"]`,
+    ) as HTMLElement;
+    expect(grip).toBeTruthy();
+    return grip;
+  }
+
+  /** The reorder insertion line, if any. */
+  function containerLine(container: HTMLElement) {
+    return [...container.querySelectorAll("div")].find(
+      (d) => d.className.includes("h-0.5") && d.className.includes("z-30"),
+    ) as HTMLElement | undefined;
+  }
 
   it("creates a dependency by dragging from a bar edge handle", () => {
     const onLinksChange = vi.fn();

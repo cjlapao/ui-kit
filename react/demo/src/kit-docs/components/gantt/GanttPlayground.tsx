@@ -114,7 +114,9 @@ export const GanttPlayground: React.FC = () => {
             Reset sample data
           </button>
           <Control label="Event log">
-            <ul className="flex flex-col gap-1">
+            {/* Fixed height: log entries (e.g. the drag-start selection) must
+                never reflow the page mid-drag. */}
+            <ul className="flex h-[168px] flex-col gap-1 overflow-y-auto">
               {log.length === 0 && (
                 <li className="text-xs text-neutral-400 dark:text-neutral-500">
                   Interact with the chart to see events.

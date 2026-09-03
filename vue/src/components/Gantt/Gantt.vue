@@ -6,6 +6,7 @@ import type {
   GanttLabels,
   GanttLane,
   GanttLink,
+  GanttRow,
   GanttSnap,
   GanttTask,
   TrueColor,
@@ -379,14 +380,15 @@ const dragApi = useGanttDrag({
   setSelected,
 });
 
-// Live reorder preview: while a grip drag is in flight, rows render in the
-// previewed order, so the dragged row (with its bar, cells and links) moves
-// into the slot in real time; the hook's drop-target resolution reads these
-// same live rows at event time.
+// Live reorder preview: while a grip drag has *committed* a target (25%
+// threshold — `beforeId !== undefined`), rows render in the previewed
+// order, so the slot closes up and reopens around the ghost. The dragged
+// row itself renders as the floating clone + a dashed ghost slot. The
+// committed order only changes on drop.
 const liveRowOrder = computed<string[] | null>(() => {
   const d = dragApi.drag.value;
-  if (d?.kind !== "reorder") return null;
-  return applyRowReorder(effectiveTasks.value, d.taskId, d.beforeId ?? null, rowOrder.value);
+  if (d?.kind !== "reorder" || d.beforeId === undefined) return null;
+  return applyRowReorder(effectiveTasks.value, d.taskId, d.beforeId, rowOrder.value);
 });
 
 // Keyboard editing on the focused bar.
@@ -504,8 +506,15 @@ const drag = computed(() => dragApi.drag.value);
 // and travels with it (zero render lag).
 const reorderLineY = computed<number | null>(() => {
   const d = drag.value;
+  if (d?.kind !== "reorder" || d.beforeId == null) return null;
+  return reorderPreviewTop(model.value.rows, `task:${d.taskId}`, d.beforeId);
+});
+// The floating clone row (the visible object being dragged): the row's own
+// data is order-independent, so any current row serves.
+const dragCloneRow = computed<GanttRow | null>(() => {
+  const d = drag.value;
   if (d?.kind !== "reorder") return null;
-  return reorderPreviewTop(model.value.rows, `task:${d.taskId}`, d.beforeId ?? null);
+  return model.value.rows.find((r) => r.key === `task:${d.taskId}`) ?? null;
 });
 const dragTask = computed(() => (drag.value?.taskId ? model.value.tasksById.get(drag.value.taskId) : undefined));
 const liveDragDates = computed(() => {
@@ -782,10 +791,29 @@ const colJustify = (col: GanttColumn) =>
           </div>
 
           <!-- Rows -->
-          <GanttBodyRow
-            v-for="row in model.rows"
-            :key="row.key"
-            :row="row"
+          <template v-for="row in model.rows" :key="row.key">
+            <!-- The dragged row renders as a dashed ghost slot in-flow (the
+                 rows close up behind it); the floating clone below is the
+                 visible object being dragged. -->
+            <div
+              v-if="drag?.kind === 'reorder' && row.task != null && row.task.id === drag.taskId"
+              :data-row-key="row.key"
+              data-gantt-ghost="true"
+              aria-hidden="true"
+              class="pointer-events-none flex border-b"
+              :style="{ height: row.height }"
+            >
+              <div
+                class="m-1 flex-1 rounded-md border-2 border-dashed"
+                :style="{
+                  borderColor: `var(--color-${accentColor}-400)`,
+                  background: `color-mix(in srgb, var(--color-${accentColor}-500) 6%, transparent)`,
+                }"
+              />
+            </div>
+            <GanttBodyRow
+              v-else
+              :row="row"
             :columns="resolvedColumns"
             :left-width="leftWidth"
             :timeline-width="timelineWidth"
@@ -816,6 +844,7 @@ const colJustify = (col: GanttColumn) =>
             @select="hSelect"
             @bar-keydown="hBarKeyDown"
           />
+          </template>
 
           <!-- Dependency overlay (above rows, below handles via z-index) -->
           <div
@@ -847,6 +876,62 @@ const colJustify = (col: GanttColumn) =>
               backgroundColor: 'var(--color-' + accentColor + '-500)',
             }"
           />
+
+          <!-- Floating clone — the visible object being dragged (a
+               pointer-event drag has no browser drag image). Follows the
+               pointer at the grab offset; the dashed ghost slot above marks
+               where it will land. -->
+          <div
+            v-if="drag?.kind === 'reorder' && drag.clientX != null && drag.clientY != null && dragCloneRow"
+            data-gantt-drag-clone="true"
+            aria-hidden="true"
+            class="pointer-events-none fixed z-50"
+            :style="{
+              left: drag.clientX - (drag.grabOffset?.x ?? 0) + 'px',
+              top: drag.clientY - (drag.grabOffset?.y ?? 0) + 'px',
+              width: (leftWidth + timelineWidth + LINK_RIGHT_GUTTER) + 'px',
+            }"
+          >
+            <div
+              class="overflow-hidden rounded-lg bg-white/95 shadow-2xl backdrop-blur-sm dark:bg-neutral-900/95"
+              :style="{
+                boxShadow: `0 8px 32px rgba(0, 0, 0, 0.28), inset 2px 0 0 var(--color-${accentColor}-500)`,
+              }"
+            >
+              <GanttBodyRow
+                :row="dragCloneRow"
+                :columns="resolvedColumns"
+                :left-width="leftWidth"
+                :timeline-width="timelineWidth"
+                :range-start="range.start"
+                :zoom="zoom"
+                :color="accentColor"
+                :interactive="true"
+                :fan-out="dragCloneRow.task ? linkFan.bars.get(dragCloneRow.task.id)?.out : undefined"
+                :fan-in="dragCloneRow.task ? linkFan.bars.get(dragCloneRow.task.id)?.inc : undefined"
+                :selected="dragCloneRow.task ? dragCloneRow.task.id === selectedId : false"
+                :labels="allLabels"
+                :render-cell="renderCell"
+                :render-bar="renderBar"
+                :drag="drag"
+                :live-dates="null"
+                :live-progress="null"
+                :live-lane="null"
+                :live-rollup="null"
+                :selection-tokens="selectionTokens"
+                :divider-class="surfaceText.divider"
+                @bar-pointer-down="() => undefined"
+                @resize-pointer-down="() => undefined"
+                @grip-pointer-down="() => undefined"
+                @link-handle-pointer-down="() => undefined"
+                @progress-pointer-down="() => undefined"
+                @caret-click="() => undefined"
+                @lane-caret-click="() => undefined"
+                @select="() => undefined"
+                @bar-keydown="() => undefined"
+              />
+            </div>
+          </div>
 
           <!-- Live drag readout -->
           <div

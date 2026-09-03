@@ -433,14 +433,15 @@ export const Gantt: React.FC<GanttProps> = ({
     setSelected,
   });
 
-  // Live reorder preview: while a grip drag is in flight, rows render in
-  // the previewed order, so the dragged row (with its bar, cells and links)
-  // moves into the slot in real time and the insertion indicator tracks
-  // that slot. The committed order only changes on drop.
+  // Live reorder preview: while a grip drag has *committed* a target (25%
+  // threshold — `beforeId !== undefined`), rows render in the previewed
+  // order, so the slot closes up and reopens around the ghost. The dragged
+  // row itself renders as the floating clone + a dashed ghost slot. The
+  // committed order only changes on drop.
   const liveRowOrder = useMemo(() => {
     const d = dragApi.drag;
-    if (d?.kind !== "reorder") return null;
-    return applyRowReorder(effectiveTasks, d.taskId, d.beforeId ?? null, rowOrder);
+    if (d?.kind !== "reorder" || d.beforeId === undefined) return null;
+    return applyRowReorder(effectiveTasks, d.taskId, d.beforeId, rowOrder);
   }, [dragApi.drag, effectiveTasks, rowOrder]);
 
   const liveModel = useMemo(
@@ -591,11 +592,17 @@ export const Gantt: React.FC<GanttProps> = ({
   const drag = dragApi.drag;
   const dragTask = drag?.taskId ? committedModel.tasksById.get(drag.taskId) : undefined;
   // Reorder insertion indicator: resolved against the *current* previewed
-  // rows, so the line sits on the edge of the slot the dragged row occupies
-  // and travels with it (zero render lag).
+  // rows, so the line sits on the edge of the slot the ghost occupies.
+  // `null` before the pointer commits to a target (nothing previewed yet).
   const reorderLineY =
+    drag?.kind === "reorder" && drag.beforeId != null
+      ? reorderPreviewTop(liveModel.rows, `task:${drag.taskId}`, drag.beforeId)
+      : null;
+  // The floating clone row (the visible object being dragged): the row's
+  // own data is order-independent, so the committed row serves.
+  const dragCloneRow =
     drag?.kind === "reorder"
-      ? reorderPreviewTop(liveModel.rows, `task:${drag.taskId}`, drag.beforeId ?? null)
+      ? committedModel.rows.find((r) => r.key === `task:${drag.taskId}`) ?? null
       : null;
   const liveDragDates = useMemo(() => {
     if (!drag || !dragTask) return null;
@@ -849,10 +856,38 @@ export const Gantt: React.FC<GanttProps> = ({
               </div>
 
               {/* Rows */}
-              {liveModel.rows.map((row) => (
-                <GanttBodyRow
-                  key={row.key}
-                  row={row}
+              {liveModel.rows.map((row) => {
+                // The dragged row renders as a dashed ghost slot in-flow
+                // (the rows close up behind it); the floating clone below is
+                // the visible object being dragged.
+                const isDragSource =
+                  drag?.kind === "reorder" &&
+                  row.task != null &&
+                  row.task.id === drag.taskId;
+                if (isDragSource) {
+                  return (
+                    <div
+                      key={row.key}
+                      data-row-key={row.key}
+                      data-gantt-ghost="true"
+                      aria-hidden="true"
+                      className="pointer-events-none flex border-b"
+                      style={{ height: row.height }}
+                    >
+                      <div
+                        className="m-1 flex-1 rounded-md border-2 border-dashed"
+                        style={{
+                          borderColor: `var(--color-${color}-400)`,
+                          background: `color-mix(in srgb, var(--color-${color}-500) 6%, transparent)`,
+                        }}
+                      />
+                    </div>
+                  );
+                }
+                return (
+                  <GanttBodyRow
+                    key={row.key}
+                    row={row}
                   columns={resolvedColumns}
                   leftWidth={leftWidth}
                   timelineWidth={timelineWidth}
@@ -895,7 +930,8 @@ export const Gantt: React.FC<GanttProps> = ({
                   selectionTokens={selectionTokens}
                   dividerClass={surfaceText.divider}
                 />
-              ))}
+                );
+              })}
 
               {/* Dependency overlay (above rows, below handles via z-index) */}
               <GanttLinkLayer
@@ -925,6 +961,66 @@ export const Gantt: React.FC<GanttProps> = ({
                   }}
                 />
               )}
+
+              {/* Floating clone — the visible object being dragged (a
+                  pointer-event drag has no browser drag image). Follows the
+                  pointer at the grab offset; the dashed ghost slot above
+                  marks where it will land. */}
+              {drag?.kind === "reorder" &&
+                drag.clientX != null &&
+                drag.clientY != null &&
+                dragCloneRow && (
+                  <div
+                    data-gantt-drag-clone="true"
+                    aria-hidden="true"
+                    className="pointer-events-none fixed z-50"
+                    style={{
+                      left: drag.clientX - (drag.grabOffset?.x ?? 0),
+                      top: drag.clientY - (drag.grabOffset?.y ?? 0),
+                      width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER,
+                    }}
+                  >
+                    <div
+                      className="overflow-hidden rounded-lg bg-white/95 shadow-2xl backdrop-blur-sm dark:bg-neutral-900/95"
+                      style={{
+                        boxShadow: `0 8px 32px rgba(0, 0, 0, 0.28), inset 2px 0 0 var(--color-${color}-500)`,
+                      }}
+                    >
+                      <GanttBodyRow
+                        row={dragCloneRow}
+                        columns={resolvedColumns}
+                        leftWidth={leftWidth}
+                        timelineWidth={timelineWidth}
+                        rangeStart={range.start}
+                        zoom={zoom}
+                        color={color}
+                        interactive
+                        fanOut={linkFan.bars.get(dragCloneRow.task!.id)?.out}
+                        fanIn={linkFan.bars.get(dragCloneRow.task!.id)?.inc}
+                        selected={dragCloneRow.task?.id === selectedId}
+                        labels={allLabels}
+                        renderCell={renderCell}
+                        renderBar={renderBar}
+                        drag={drag}
+                        liveDates={null}
+                        liveProgress={null}
+                        liveLane={null}
+                        liveRollup={null}
+                        onBarPointerDown={() => undefined}
+                        onResizePointerDown={() => undefined}
+                        onGripPointerDown={() => undefined}
+                        onLinkHandlePointerDown={() => undefined}
+                        onProgressPointerDown={() => undefined}
+                        onCaretClick={() => undefined}
+                        onLaneCaretClick={() => undefined}
+                        onSelect={() => undefined}
+                        onBarKeyDown={() => undefined}
+                        selectionTokens={selectionTokens}
+                        dividerClass={surfaceText.divider}
+                      />
+                    </div>
+                  </div>
+                )}
 
               {/* Live drag readout */}
               {drag && drag.kind !== "reorder" && dragTask && liveDragDates && (

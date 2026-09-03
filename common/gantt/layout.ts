@@ -381,14 +381,34 @@ function t_isTopLevel(id: string, tasksById: Map<string, GanttTask>): boolean {
  * "before it". Dropping on a child row targets its top-level ancestor — the
  * thing the `rowOrder` list actually addresses.
  */
+/**
+ * Resolve the reorder drop target for a live pointer position, with a 25%
+ * hysteresis band so the preview only shifts once the pointer has clearly
+ * moved into (or out of) a row — the same commit rule SmartGridLayout uses
+ * for its row previews:
+ *
+ * - Pointer in the middle 50% of a candidate row → that row is the target
+ *   (insert before it).
+ * - Pointer in the top/bottom 25% of a candidate row → the preview is kept
+ *   (`currentBeforeId`): the pointer hasn't committed to a new row yet.
+ * - Pointer above the first candidate (the lane header band) → the first
+ *   candidate (top of the lane).
+ * - Pointer below the last candidate → `null` (end of the lane).
+ *
+ * `currentBeforeId` is `undefined` before the first committed target (right
+ * after the press) — no preview until the pointer commits. Candidates are
+ * the dragged lane's rows minus the dragged row and its descendants (the
+ * pointer over the object being dragged never changes the target).
+ */
 export function resolveDropBeforeId(
   rows: GanttRow[],
   tasksById: Map<string, GanttTask>,
   dragKey: string,
   pointerY: number,
-): { beforeId: string | null } {
+  currentBeforeId?: string | null,
+): { beforeId: string | null | undefined } {
   const dragRow = rows.find((r) => r.key === dragKey);
-  if (!dragRow?.task) return { beforeId: null };
+  if (!dragRow?.task) return { beforeId: currentBeforeId };
   const dragLane = dragRow.task.lane ?? "";
   const dragAncestor = topAncestorId(dragRow, tasksById);
 
@@ -413,16 +433,30 @@ export function resolveDropBeforeId(
     }
   }
 
+  let firstCandidate: GanttRow | null = null;
   for (let i = segStart; i < segEnd; i++) {
     const r = rows[i];
-    if (r.key === dragKey || r.key === laneHeaderKey) continue;
-    const mid = r.top + r.height / 2;
-    if (pointerY < mid) {
-      const ancestor = r.task ? topAncestorId(r, tasksById) : null;
-      if (ancestor == null || ancestor === dragAncestor) continue; // self/descendant
-      return { beforeId: ancestor };
+    if (r.key === dragKey || r.key === laneHeaderKey || r.task == null) continue;
+    const ancestor = topAncestorId(r, tasksById);
+    if (ancestor == null || ancestor === dragAncestor) continue; // self/descendant
+    if (firstCandidate == null) firstCandidate = r;
+
+    if (pointerY < r.top) {
+      // Above this candidate: either the lane header band (top of the lane)
+      // or the 25% bottom zone of the candidate above — hysteresis keeps the
+      // preview in both cases unless this is the first candidate.
+      if (r === firstCandidate) return { beforeId: ancestor };
+      return { beforeId: currentBeforeId };
+    }
+    if (pointerY < r.top + r.height) {
+      const inset = pointerY - r.top;
+      if (inset >= r.height * 0.25 && inset <= r.height * 0.75) {
+        return { beforeId: ancestor }; // middle band → commit to this row
+      }
+      return { beforeId: currentBeforeId }; // 25% edge zone → keep the preview
     }
   }
+  // Below the last candidate → end of the lane.
   return { beforeId: null };
 }
 

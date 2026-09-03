@@ -57,8 +57,18 @@ export interface GanttDragState {
   fromOffset?: number;
   /** Link kind only: anchor point (timeline coords). */
   anchor?: { x: number; y: number };
-  /** Reorder kind only: resolved drop target. */
+  /** Reorder kind only: resolved drop target. `undefined` until the pointer
+   *  commits to a target (25% hysteresis — see `resolveDropBeforeId`), so a
+   *  fresh press previews nothing; `null` = end of the lane. */
   beforeId?: string | null;
+  /** Reorder kind only: live pointer position in *client* coordinates —
+   *  the floating row clone follows it (pointer-event drags have no browser
+   *  drag image). */
+  clientX?: number;
+  clientY?: number;
+  /** Reorder kind only: grab point within the row (client offset), so the
+   *  floating clone holds the grip under the pointer. */
+  grabOffset?: { x: number; y: number };
   /** Progress kind only: live percent complete (0..1) as the knob drags, so
    *  the bar's progress fill and the % readout follow the pointer in real
    *  time (committed only on drop). */
@@ -137,13 +147,17 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
     const y = rowY(e.clientY);
 
     if (state.kind === "reorder") {
+      // Resolve against the rendered (live preview) rows with 25% hysteresis:
+      // the preview only shifts once the pointer commits to a new row, so a
+      // fresh press and small jitters move nothing.
       const { beforeId } = resolveDropBeforeId(
         opts.rows.value,
         opts.tasksById.value,
         `task:${state.taskId}`,
         y,
+        state.beforeId,
       );
-      drag.value = { ...state, x, y, beforeId };
+      drag.value = { ...state, x, y, beforeId, clientX: e.clientX, clientY: e.clientY };
       return;
     }
     if (state.kind === "progress") {
@@ -247,10 +261,13 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
 
     if (state.kind === "reorder") {
       if (!opts.onReorder) return;
+      // No committed target yet (pointer never cleared the 25% threshold) →
+      // the row stays where it was; nothing to emit.
+      if (state.beforeId === undefined) return;
       const order = applyRowReorder(
         opts.tasks.value,
         state.taskId,
-        state.beforeId ?? null,
+        state.beforeId,
         opts.rowOrder.value,
       );
       opts.onReorder(order);
@@ -275,7 +292,7 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
 
   // ── Start handlers ─────────────────────────────────────────────────────────
   const beginDrag = (
-    partial: Omit<GanttDragState, "x" | "y">,
+    partial: Omit<GanttDragState, "x" | "y" | "clientX" | "clientY">,
     e: PointerEvent,
     focusEl?: HTMLElement,
   ) => {
@@ -307,7 +324,7 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
         );
       }
     }
-    drag.value = { ...partial, x, y, anchor, color: partial.color ?? opts.accentColor.value };
+    drag.value = { ...partial, x, y, clientX: e.clientX, clientY: e.clientY, anchor, color: partial.color ?? opts.accentColor.value };
     opts.setSelected(partial.taskId);
     focusEl?.focus();
   };
@@ -347,6 +364,12 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
 
   const onGripPointerDown = (_rowKey: string, task: GanttTask, e: PointerEvent) => {
     if (e.button !== 0) return;
+    // Grab offset within the row, so the floating clone (the visible object
+    // being dragged) holds the grip under the pointer.
+    const rowEl = (e.currentTarget as HTMLElement | null)?.closest?.(
+      "[data-row-key]",
+    ) as HTMLElement | null;
+    const rect = rowEl?.getBoundingClientRect();
     beginDrag(
       {
         kind: "reorder",
@@ -355,7 +378,12 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
         startY: rowY(e.clientY),
         originStart: 0,
         originEnd: 0,
-        beforeId: null,
+        // `undefined` (not `null`): no preview until the pointer commits to
+        // a target, so the press itself shifts nothing.
+        beforeId: undefined,
+        grabOffset: rect
+          ? { x: e.clientX - rect.left, y: e.clientY - rect.top }
+          : undefined,
       },
       e,
     );

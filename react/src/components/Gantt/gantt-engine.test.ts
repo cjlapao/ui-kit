@@ -256,10 +256,68 @@ describe("layout engine", () => {
   });
 
   it("resolves a drop target by pointer position within the lane segment", () => {
-    // Dragging "webapp" (eng) to the upper half of "api"'s row → before "api".
+    // Middle band of "api"'s row (the pointer has clearly moved into it) →
+    // before "api".
     const apiRow = rows.find((r) => r.key === "task:api")!;
-    const { beforeId } = resolveDropBeforeId(rows, tasksById, "task:webapp", apiRow.top + 5);
+    const { beforeId } = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:webapp",
+      apiRow.top + apiRow.height * 0.5,
+    );
     expect(beforeId).toBe("api");
+  });
+
+  it("keeps the previous target while the pointer is in a 25% edge zone (hysteresis)", () => {
+    const apiRow = rows.find((r) => r.key === "task:api")!;
+    // Top 25% of "api": the pointer hasn't committed to it yet → keep the
+    // current target ("qa"), and `undefined` while nothing was previewed.
+    const inTopZone = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:webapp",
+      apiRow.top + apiRow.height * 0.1,
+      "qa",
+    );
+    expect(inTopZone.beforeId).toBe("qa");
+    const freshPress = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:webapp",
+      apiRow.top + apiRow.height * 0.1,
+    );
+    expect(freshPress.beforeId).toBeUndefined();
+    // Bottom 25% of "api": still over "api" territory → keep it.
+    const inBottomZone = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:webapp",
+      apiRow.top + apiRow.height * 0.9,
+      "api",
+    );
+    expect(inBottomZone.beforeId).toBe("api");
+    // Middle band switches the target despite the previous one.
+    const middle = resolveDropBeforeId(
+      rows,
+      tasksById,
+      "task:webapp",
+      apiRow.top + apiRow.height * 0.5,
+      "qa",
+    );
+    expect(middle.beforeId).toBe("api");
+  });
+
+  it("resolves the lane head and the lane end", () => {
+    const apiRow = rows.find((r) => r.key === "task:api")!;
+    const qaRow = rows.find((r) => r.key === "task:qa")!;
+    // Above the first candidate (lane header band) → top of the lane.
+    expect(
+      resolveDropBeforeId(rows, tasksById, "task:webapp", apiRow.top - 10).beforeId,
+    ).toBe("api");
+    // Below the last candidate → end of the lane (`null`).
+    expect(
+      resolveDropBeforeId(rows, tasksById, "task:webapp", qaRow.top + qaRow.height + 10).beforeId,
+    ).toBeNull();
   });
 });
 

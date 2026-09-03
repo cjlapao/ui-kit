@@ -253,8 +253,9 @@ describe("Gantt (Vue)", () => {
     expect(grip.exists()).toBe(true);
     await grip.trigger("pointerdown");
     await nextTick();
-    pointer("pointermove", 0, apiRow.top + 5);
-    pointer("pointerup", 0, apiRow.top + 5);
+    // Middle band of the "api" row (the 25% commit zone) → before api.
+    pointer("pointermove", 0, apiRow.top + apiRow.height * 0.5);
+    pointer("pointerup", 0, apiRow.top + apiRow.height * 0.5);
     await nextTick();
 
     expect(w.emitted("reorder")).toBeTruthy();
@@ -262,11 +263,15 @@ describe("Gantt (Vue)", () => {
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
   });
 
-  it("reorders rows live while dragging the grip, with the line tracking the slot", async () => {
+  it("lifts the dragged row into a floating clone with a ghost slot, and only shifts once the pointer commits", async () => {
     const w = mountGantt({ editable: true });
     const taskKeys = () =>
-      w.findAll('[data-row-key^="task:"]').map((el) => el.attributes("data-row-key"));
-    expect(taskKeys().indexOf("task:webapp")).toBeGreaterThan(taskKeys().indexOf("task:api"));
+      // Exclude the floating clone (it duplicates the dragged row's key).
+      w.findAll('[data-row-key^="task:"]')
+        .filter((el) => !el.element.closest('[data-gantt-drag-clone="true"]'))
+        .map((el) => el.attributes("data-row-key"));
+    const before = taskKeys();
+    expect(before.indexOf("task:webapp")).toBeGreaterThan(before.indexOf("task:api"));
 
     const { rows } = buildRows(tasks, sampleGanttLanes, undefined, 44);
     const apiRow = rows.find((r) => r.key === "task:api")!;
@@ -274,14 +279,31 @@ describe("Gantt (Vue)", () => {
     await grip.trigger("pointerdown");
     await nextTick();
 
-    // Hover the upper half of "api" → webapp previews directly above it.
-    pointer("pointermove", 0, apiRow.top + 5);
+    // Press alone: no shift, a dashed ghost slot in flow, a floating clone
+    // with the accent grip, no insertion line.
+    expect(taskKeys()).toEqual(before);
+    const ghost = w.find('[data-row-key="task:webapp"][data-gantt-ghost="true"]');
+    expect(ghost.exists()).toBe(true);
+    const clone = w.find('[data-gantt-drag-clone="true"]');
+    expect(clone.exists()).toBe(true);
+    const cloneGrip = clone.find('[title="Drag to reorder"]');
+    expect(cloneGrip.exists()).toBe(true);
+    expect((cloneGrip.element as HTMLElement).style.color).toContain("var(--color-");
+    expect((cloneGrip.element as HTMLElement).style.color).toContain("-500");
+    expect(w.find("div.z-30.h-0\\.5").exists()).toBe(false);
+
+    // Into api's 25% top edge zone → still no shift (hysteresis).
+    pointer("pointermove", 0, apiRow.top + apiRow.height * 0.1);
+    await nextTick();
+    expect(taskKeys()).toEqual(before);
+
+    // Into api's middle band → the preview commits: webapp (and its
+    // children) shifts above api and the line tracks api's new top edge.
+    pointer("pointermove", 0, apiRow.top + apiRow.height * 0.5);
     await nextTick();
     const live = taskKeys();
     expect(live.indexOf("task:webapp")).toBeLessThan(live.indexOf("task:api"));
     expect(live.indexOf("task:webapp-shell")).toBeLessThan(live.indexOf("task:api"));
-
-    // Insertion line on the api row's top edge in the previewed order.
     const liveRows = buildRows(
       tasks,
       sampleGanttLanes,
@@ -291,18 +313,15 @@ describe("Gantt (Vue)", () => {
     const line = w.find("div.z-30.h-0\\.5");
     expect(line.exists()).toBe(true);
     expect(line.attributes("style")).toContain(`top: ${liveRows.find((r) => r.key === "task:api")!.top}px`);
-
-    // Accent cue on the grip; the moving row is not dimmed.
-    expect((grip.element as HTMLElement).style.color).toContain("var(--color-");
-    const webappRow = w.find('[data-row-key="task:webapp"]');
-    expect(webappRow.classes()).not.toContain("opacity-40");
     expect(w.emitted("reorder")).toBeFalsy();
 
-    pointer("pointerup", 0, apiRow.top + 5);
+    pointer("pointerup", 0, apiRow.top + apiRow.height * 0.5);
     await nextTick();
     expect(w.emitted("reorder")).toBeTruthy();
     const order = w.emitted("reorder")![0][0] as string[];
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
+    expect(w.find('[data-gantt-drag-clone="true"]').exists()).toBe(false);
+    expect(w.find('[data-gantt-ghost="true"]').exists()).toBe(false);
   });
 
   it("creates a dependency by dragging from a bar edge handle", async () => {
