@@ -95,8 +95,7 @@ const lanePct = computed(
     :data-row-key="row.key"
     :class="
       classNames(
-        'group/row relative flex border-b',
-        divider,
+        'group/row relative flex',
         selected && selectionTokens.row,
       )
     "
@@ -112,19 +111,22 @@ const lanePct = computed(
   >
     <!-- ── Lane header ──────────────────────────────────────────── -->
     <!-- Left block zoned to the same column geometry as task rows so the
-         lane progress sits in the Progress column. -->
+         lane progress sits in the Progress column. The tint sits on an
+         opaque surface so the scrolling timeline never shows through the
+         fixed lane cells; border-b lives on the halves (full row height)
+         so nothing pokes through the bottom pixel row under the sticky. -->
     <template v-if="row.task == null">
       <div
         :class="
           classNames(
-            'sticky left-0 z-20 flex items-stretch border-r',
+            'sticky left-0 z-20 flex items-stretch border-r border-b bg-white dark:bg-neutral-900',
             divider,
-            laneTokens.band,
           )
         "
         :style="{ width: leftWidth }"
       >
-        <div class="flex w-9 shrink-0 items-center justify-center">
+        <div :class="classNames('pointer-events-none absolute inset-0', laneTokens.band)" />
+        <div class="relative flex w-9 shrink-0 items-center justify-center">
           <button
             type="button"
             class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-400 dark:hover:bg-white/10"
@@ -141,7 +143,7 @@ const lanePct = computed(
           :key="col.key"
           :class="
             classNames(
-              'flex shrink-0 items-center gap-2 overflow-hidden border-r px-2 last:border-r-0',
+              'relative flex shrink-0 items-center gap-2 overflow-hidden border-r px-2 last:border-r-0',
               divider,
             )
           "
@@ -174,15 +176,20 @@ const lanePct = computed(
           </span>
         </div>
       </div>
-      <div class="relative min-w-0 flex-1">
+      <div :class="classNames('relative min-w-0 flex-1 border-b', divider)">
         <div :class="classNames('absolute inset-0', laneTokens.band)" />
       </div>
     </template>
 
     <!-- ── Task row ─────────────────────────────────────────────── -->
     <template v-else>
-      <!-- Left cells -->
-      <div class="sticky left-0 z-20 flex items-stretch bg-white dark:bg-neutral-900" :style="{ width: leftWidth }">
+      <!-- Left cells (border-b on the halves: see the lane header note) -->
+      <div
+        :class="
+          classNames('sticky left-0 z-20 flex items-stretch border-b bg-white dark:bg-neutral-900', divider)
+        "
+        :style="{ width: leftWidth }"
+      >
         <div class="flex w-9 shrink-0 items-center justify-center">
           <span
             v-if="interactive && !row.task.locked"
@@ -221,7 +228,7 @@ const lanePct = computed(
       </div>
 
       <!-- Timeline cell -->
-      <div class="relative shrink-0" :style="{ width: timelineWidth }">
+      <div :class="classNames('relative shrink-0 border-b', divider)" :style="{ width: timelineWidth }">
         <GanttTaskBar
           :task="row.task!"
           :row="row"

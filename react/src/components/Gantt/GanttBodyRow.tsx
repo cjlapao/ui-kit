@@ -110,8 +110,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
     <div
       data-row-key={row.key}
       className={classNames(
-        "group/row relative flex border-b",
-        dividerClass,
+        "group/row relative flex",
         selected && selectionTokens.row,
       )}
       style={{
@@ -137,8 +136,15 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
       ) : (
         <>
           {/* ── Left cells ─────────────────────────────────────────── */}
+          {/* border-b lives on the halves, not the row: each half is the
+              full row height, so the sticky edge paints its own divider in
+              the bottom pixel row — scrolling links/grid lines can't poke
+              through a 1px gap under the sticky block. */}
           <div
-            className="sticky left-0 z-20 flex items-stretch bg-white dark:bg-neutral-900"
+            className={classNames(
+              "sticky left-0 z-20 flex items-stretch border-b bg-white dark:bg-neutral-900",
+              dividerClass,
+            )}
             style={{ width: leftWidth }}
           >
             <div className="flex w-9 shrink-0 items-center justify-center">
@@ -179,7 +185,10 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
           </div>
 
           {/* ── Timeline cell ──────────────────────────────────────── */}
-          <div className="relative shrink-0" style={{ width: timelineWidth }}>
+          <div
+            className={classNames("relative shrink-0 border-b", dividerClass)}
+            style={{ width: timelineWidth }}
+          >
             <TaskBar
               task={row.task!}
               row={row}
@@ -233,16 +242,18 @@ const LaneHeader: React.FC<{
   return (
     <>
       {/* Left block — zoned to the same column geometry as task rows so the
-          lane progress sits in the Progress column. */}
+          lane progress sits in the Progress column. The tint sits on an
+          opaque surface (not a translucent background) so the scrolling
+          timeline can never show through the fixed lane cells. */}
       <div
         className={classNames(
-          "sticky left-0 z-20 flex items-stretch border-r",
+          "sticky left-0 z-20 flex items-stretch border-r border-b bg-white dark:bg-neutral-900",
           dividerClass,
-          tokens.band,
         )}
         style={{ width: leftWidth }}
       >
-        <div className="flex w-9 shrink-0 items-center justify-center">
+        <div className={classNames("pointer-events-none absolute inset-0", tokens.band)} />
+        <div className="relative flex w-9 shrink-0 items-center justify-center">
           <button
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-400 dark:hover:bg-white/10"
@@ -256,7 +267,7 @@ const LaneHeader: React.FC<{
           <div
             key={col.key}
             className={classNames(
-              "flex shrink-0 items-center gap-2 overflow-hidden border-r px-2 last:border-r-0",
+              "relative flex shrink-0 items-center gap-2 overflow-hidden border-r px-2 last:border-r-0",
               dividerClass,
             )}
             style={{ width: col.width ?? "160px" }}
@@ -281,7 +292,7 @@ const LaneHeader: React.FC<{
           </div>
         ))}
       </div>
-      <div className="relative min-w-0 flex-1">
+      <div className={classNames("relative min-w-0 flex-1 border-b", dividerClass)}>
         <div className={classNames("absolute inset-0", tokens.band)} />
       </div>
     </>

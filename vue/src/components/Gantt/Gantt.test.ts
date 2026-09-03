@@ -57,6 +57,32 @@ describe("Gantt (Vue)", () => {
     expect(laneTimeline?.textContent ?? "").not.toContain("%");
   });
 
+  it("keeps the fixed columns opaque and gap-free so scrolled content can't bleed through", () => {
+    const w: VueWrapper = mountGantt();
+    // The row divider lives on each half (sticky block + timeline cell), not
+    // on the row root: each half spans the full row height, so there is no
+    // 1px strip under the sticky block that scrolled links/grid lines could
+    // poke through.
+    const taskRow = w.element.querySelector('[data-row-key="task:research"]')!;
+    expect(taskRow.className).not.toContain("border-b");
+    const sticky = taskRow.querySelector(":scope > div.sticky") as HTMLElement;
+    expect(sticky.className).toContain("border-b");
+    expect(sticky.className).toContain("bg-white");
+    const timelineHalf = taskRow.children[taskRow.children.length - 1] as HTMLElement;
+    expect(timelineHalf.className).toContain("border-b");
+    // The lane tint sits on an opaque surface inside the sticky block (the
+    // translucent band is an overlay), so scrolling never shows through the
+    // fixed lane cells.
+    const laneRow = w.element.querySelector('[data-row-key="lane:design"]')!;
+    const laneSticky = laneRow.querySelector(":scope > div.sticky") as HTMLElement;
+    expect(laneSticky.className).toContain("bg-white");
+    expect(laneSticky.className).not.toContain("bg-violet-50/70");
+    const overlay = laneSticky.querySelector(":scope > div.absolute") as HTMLElement;
+    expect(overlay).toBeTruthy();
+    expect(overlay.className).toContain("bg-violet-50/70");
+    w.unmount();
+  });
+
   it("renders the optional chart header above the column header", () => {
     const w = mountGantt({
       title: "Northwind Logistics GmbH",
@@ -497,8 +523,11 @@ describe("Gantt (Vue)", () => {
     const pill = w.find<HTMLElement>('[class*="pointer-events-auto"]').element;
     expect(pill.className).toContain(getSurfaceVariantClasses("glass", "neutral"));
 
-    // Row hairlines follow the divider token.
+    // Row hairlines follow the divider token — carried by the row's sticky
+    // half, which owns the bottom border.
     const row = w.find<HTMLElement>("[data-row-key]").element;
-    expect(row.className).toContain(getSurfaceTextTokens("glass").divider.split(" ")[0]);
+    const rowSticky =
+      row.querySelector<HTMLElement>(":scope > div.sticky") ?? (row.firstElementChild as HTMLElement);
+    expect(rowSticky.className).toContain(getSurfaceTextTokens("glass").divider.split(" ")[0]);
   });
 });

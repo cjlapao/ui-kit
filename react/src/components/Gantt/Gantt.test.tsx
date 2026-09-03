@@ -60,6 +60,31 @@ describe("Gantt component", () => {
     expect(screen.getByText("Progress")).toBeTruthy();
   });
 
+  it("keeps the fixed columns opaque and gap-free so scrolled content can't bleed through", () => {
+    const { container } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} />);
+    // The row divider lives on each half (sticky block + timeline cell), not
+    // on the row root: each half spans the full row height, so there is no
+    // 1px strip under the sticky block that scrolled links/grid lines could
+    // poke through.
+    const taskRow = container.querySelector<HTMLElement>('[data-row-key="task:research"]')!;
+    expect(taskRow.className).not.toContain("border-b");
+    const sticky = taskRow.querySelector<HTMLElement>(":scope > div.sticky")!;
+    expect(sticky.className).toContain("border-b");
+    expect(sticky.className).toContain("bg-white");
+    const timelineHalf = taskRow.children[taskRow.children.length - 1] as HTMLElement;
+    expect(timelineHalf.className).toContain("border-b");
+    // The lane tint sits on an opaque surface inside the sticky block (the
+    // translucent band is an overlay), so scrolling never shows through the
+    // fixed lane cells.
+    const laneRow = container.querySelector<HTMLElement>('[data-row-key="lane:design"]')!;
+    const laneSticky = laneRow.querySelector<HTMLElement>(":scope > div.sticky")!;
+    expect(laneSticky.className).toContain("bg-white");
+    expect(laneSticky.className).not.toContain("bg-violet-50/70");
+    const overlay = laneSticky.querySelector<HTMLElement>(":scope > div.absolute");
+    expect(overlay).toBeTruthy();
+    expect(overlay!.className).toContain("bg-violet-50/70");
+  });
+
   it("renders the optional chart header above the column header", () => {
     const { container } = render(
       <Gantt
@@ -958,8 +983,10 @@ describe("Gantt component", () => {
     expect(pill.className).toContain(SURFACE_GLASS_RIM.split(" ")[0]);
 
     // Row hairlines follow the divider token (solid → neutral-200 hairline by
-    // default, the translucent divider on glass).
+    // default, the translucent divider on glass) — carried by the row's sticky
+    // half, which owns the bottom border.
     const row = container.querySelector<HTMLElement>("[data-row-key]")!;
-    expect(row.className).toContain(getSurfaceTextTokens("glass").divider.split(" ")[0]);
+    const rowSticky = row.querySelector<HTMLElement>(":scope > div.sticky") ?? row.firstElementChild as HTMLElement;
+    expect(rowSticky.className).toContain(getSurfaceTextTokens("glass").divider.split(" ")[0]);
   });
 });
