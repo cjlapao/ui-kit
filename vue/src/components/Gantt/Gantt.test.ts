@@ -416,6 +416,64 @@ describe("Gantt (Vue)", () => {
     expect(kids).toEqual(["visual-flow", "visual-tokens"]);
   });
 
+  it("resizes the task and owner columns by dragging their header edges", async () => {
+    const w = mountGantt({ editable: true, resizableColumns: true });
+    // Only the task and owner columns are resizable — the progress column
+    // has a fixed layout and the grip column is structural.
+    const handles = w.element.querySelectorAll('[data-gantt-col-resize="true"]');
+    expect(handles.length).toBe(2);
+    const nameHandle = w.find(
+      '[data-gantt-col-resize="true"][data-col-key="name"]',
+    );
+    expect(nameHandle.exists()).toBe(true);
+    await nameHandle.trigger("pointerdown");
+    // +30px (jsdom clientX is 0 on the triggered down).
+    pointer("pointermove", 30, 0);
+    pointer("pointerup", 30, 0);
+    await nextTick();
+
+    expect(w.emitted("column-width-change")).toBeTruthy();
+    const widths = w.emitted("column-width-change")![0][0] as Record<string, number>;
+    expect(widths).toEqual({ name: 250, owner: 120, progress: 110 });
+    // The header cell follows the new width (string widths set cleanly in
+    // jsdom; the sticky block's numeric width is a no-op there).
+    const taskHeader = w
+      .findAll("span")
+      .map((s) => s.element)
+      .find((el) => el.textContent === "Task");
+    expect(taskHeader!.parentElement!.style.width).toBe("250px");
+    w.unmount();
+  });
+
+  it("clamps a resized column at the minimum width", async () => {
+    const w = mountGantt({ editable: true, resizableColumns: true });
+    const nameHandle = w.find(
+      '[data-gantt-col-resize="true"][data-col-key="name"]',
+    );
+    await nameHandle.trigger("pointerdown");
+    // Far left — well past the 80px floor.
+    pointer("pointermove", -400, 0);
+    pointer("pointerup", -400, 0);
+    await nextTick();
+    const widths = w.emitted("column-width-change")![0][0] as Record<string, number>;
+    expect(widths.name).toBe(80);
+    w.unmount();
+  });
+
+  it("honours the initial columnWidths prop", async () => {
+    const w = mountGantt({ columnWidths: { name: 300 } });
+    // The header cell carries the string width (the sticky block's numeric
+    // width renders empty in jsdom).
+    const taskHeader = w
+      .findAll("span")
+      .map((s) => s.element)
+      .find((el) => el.textContent === "Task");
+    expect(taskHeader!.parentElement!.style.width).toBe("300px");
+    // Without resizableColumns no resize handles render.
+    expect(w.element.querySelectorAll('[data-gantt-col-resize="true"]').length).toBe(0);
+    w.unmount();
+  });
+
   it("creates a dependency by dragging from a bar edge handle", async () => {
     const w = mountGantt({ links: [], editable: true });
     const range = computeViewRange(

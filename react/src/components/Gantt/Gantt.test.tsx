@@ -592,6 +592,74 @@ describe("Gantt component", () => {
     expect(kids).toEqual(["visual-flow", "visual-tokens"]);
   });
 
+  it("resizes the task and owner columns by dragging their header edges", () => {
+    const onColumnWidthChange = vi.fn();
+    const { container } = render(
+      <Gantt
+        tasks={tasks}
+        lanes={sampleGanttLanes}
+        resizableColumns
+        onColumnWidthChange={onColumnWidthChange}
+      />,
+    );
+    // Only the task and owner columns are resizable — the progress column
+    // has a fixed layout and the grip column is structural.
+    const handles = container.querySelectorAll("[data-gantt-col-resize]");
+    expect(handles.length).toBe(2);
+    expect(container.querySelector('[data-gantt-col-resize="name"]')).toBeTruthy();
+    expect(container.querySelector('[data-gantt-col-resize="owner"]')).toBeTruthy();
+    expect(container.querySelector('[data-gantt-col-resize="progress"]')).toBeNull();
+
+    const nameHandle = container.querySelector<HTMLElement>(
+      '[data-gantt-col-resize="name"]',
+    )!;
+    fireEvent.pointerDown(nameHandle, { clientX: 0, clientY: 0, button: 0 });
+    // +30px.
+    pointer(window, "pointermove", 30, 0);
+    pointer(window, "pointerup", 30, 0);
+
+    expect(onColumnWidthChange).toHaveBeenCalledTimes(1);
+    const widths = onColumnWidthChange.mock.calls[0][0] as Record<string, number>;
+    expect(widths).toEqual({ name: 250, owner: 120, progress: 110 });
+    // The body cells follow the new width (sticky block = grip + new sizes).
+    const sticky = container.querySelector<HTMLElement>('[data-row-key="task:research"] > div.sticky')!;
+    expect(sticky.style.width).toBe(`${36 + 250 + 120 + 110}px`);
+    const nameCell = sticky.children[1] as HTMLElement;
+    expect(nameCell.style.width).toBe("250px");
+  });
+
+  it("clamps a resized column at the minimum width", () => {
+    const onColumnWidthChange = vi.fn();
+    const { container } = render(
+      <Gantt
+        tasks={tasks}
+        lanes={sampleGanttLanes}
+        resizableColumns
+        onColumnWidthChange={onColumnWidthChange}
+      />,
+    );
+    const nameHandle = container.querySelector<HTMLElement>(
+      '[data-gantt-col-resize="name"]',
+    )!;
+    fireEvent.pointerDown(nameHandle, { clientX: 0, clientY: 0, button: 0 });
+    // Far left — well past the 80px floor.
+    pointer(window, "pointermove", -400, 0);
+    pointer(window, "pointerup", -400, 0);
+    const widths = onColumnWidthChange.mock.calls[0][0] as Record<string, number>;
+    expect(widths.name).toBe(80);
+  });
+
+  it("honours the initial columnWidths prop", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} columnWidths={{ name: 300 }} />,
+    );
+    const sticky = container.querySelector<HTMLElement>('[data-row-key="task:research"] > div.sticky')!;
+    // 36 (grip) + 300 (name) + 120 (owner) + 110 (progress).
+    expect(sticky.style.width).toBe("566px");
+    // Without resizableColumns no resize handles render.
+    expect(container.querySelectorAll("[data-gantt-col-resize]").length).toBe(0);
+  });
+
   /** Grip of a task row (shared by the grip drag tests). */
   function containerGrip(container: HTMLElement, rowKey: string) {
     const grip = container.querySelector(

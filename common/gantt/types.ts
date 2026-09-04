@@ -103,6 +103,11 @@ export interface GanttColumn {
    * `"badge"`. Defaults to `"text"`.
    */
   kind?: "text" | "progress" | "owner" | "badge";
+  /**
+   * When false, this column cannot be resized even when `resizableColumns`
+   * is set on the Gantt. Defaults to true.
+   */
+  resizable?: boolean;
 }
 
 /** Snap targets for drag operations. */

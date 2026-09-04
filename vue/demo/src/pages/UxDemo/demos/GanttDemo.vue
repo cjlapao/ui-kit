@@ -48,6 +48,11 @@ const onReorder = (order: string[]) => {
 const onSelect = (id: string | null) => {
   pushLog(id ? `Selected “${id}”` : "Selection cleared");
 };
+const columnWidths = ref<Record<string, number>>({});
+const onColumnWidthChange = (widths: Record<string, number>) => {
+  columnWidths.value = widths;
+  pushLog("Columns resized");
+};
 
 const reset = () => {
   tasks.value = initialTasks;
@@ -132,10 +137,13 @@ const stats = computed(() => {
           :color="color"
           :snap="snap"
           :height="430"
+          :resizable-columns="true"
+          :column-widths="columnWidths"
           @tasks-change="onTasksChange"
           @links-change="onLinksChange"
           @reorder="onReorder"
           @select="onSelect"
+          @column-width-change="onColumnWidthChange"
         />
         <p class="px-1 text-[11px] leading-relaxed text-neutral-400 dark:text-neutral-500">
           Tip: hover a bar to reveal resize / progress / link handles · use the floating toolbar

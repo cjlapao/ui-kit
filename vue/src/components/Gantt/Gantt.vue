@@ -81,6 +81,17 @@ export interface GanttProps {
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => VNodeChild;
   /** Custom cell content for user columns. */
   renderCell?: (value: unknown, task: GanttTask, column: GanttColumn) => VNodeChild | null;
+  /**
+   * Enables drag-to-resize of the fixed columns (like `Table.resizableColumns`).
+   * Each column can opt out via `column.resizable = false`; the built-in
+   * progress column does.
+   */
+  resizableColumns?: boolean;
+  /**
+   * Initial column width map (`columnKey → pixels`). Serialise with
+   * `JSON.stringify` to save; parse and pass back to restore.
+   */
+  columnWidths?: Record<string, number>;
 }
 
 export interface GanttEmits {
@@ -89,6 +100,8 @@ export interface GanttEmits {
   (e: "reorder", order: string[]): void;
   (e: "select", id: string | null): void;
   (e: "zoom-change", zoom: number): void;
+  /** Emitted with the full column width map after a column resize. */
+  (e: "column-width-change", widths: Record<string, number>): void;
 }
 </script>
 
@@ -143,6 +156,7 @@ const props = withDefaults(defineProps<GanttProps>(), {
   color: "blue",
   variant: "elevated",
   loading: false,
+  resizableColumns: false,
 });
 const emit = defineEmits<GanttEmits>();
 
@@ -154,8 +168,11 @@ const GRIP_WIDTH = 36;
 const DEFAULT_COLUMNS: GanttColumn[] = [
   { key: "name", title: "Task", width: "220px", kind: "text" },
   { key: "owner", title: "Owner", width: "120px", kind: "owner" },
-  { key: "progress", title: "Progress", width: "110px", kind: "progress" },
+  // The progress cell (bar + percent readout) has a fixed layout.
+  { key: "progress", title: "Progress", width: "110px", kind: "progress", resizable: false },
 ];
+/** Smallest a resized column may be shrunk to. */
+const MIN_COL_WIDTH = 80;
 
 const resolvedColumns = computed<GanttColumn[]>(() => props.columns ?? DEFAULT_COLUMNS);
 const allLabels = computed<GanttLabels>(() => mergeGanttLabels(props.labels));
@@ -279,11 +296,82 @@ const timelineWidth = computed(() => rangeWidth(range.value.start, range.value.e
 const scaleLevels = computed(() => buildTimeScale(range.value.start, range.value.end, zoom.value));
 const leftWidth = computed(() =>
   GRIP_WIDTH +
-    resolvedColumns.value.reduce((sum, c) => {
-      const m = /^(\d+(?:\.\d+)?)px$/.exec(c.width ?? "");
-      return sum + (m ? Number(m[1]) : 160);
-    }, 0),
+    resolvedColumns.value.reduce((sum, c) => sum + effectiveColWidth(c), 0),
 );
+
+// ── Column widths (drag-to-resize) ─────────────────────────────────────────
+// Stored per column key; a missing entry falls back to the column's own
+// `width` (160px default), so partially-populated maps mix cleanly.
+const colWidths = ref<Record<string, number>>({ ...(props.columnWidths ?? {}) });
+// Sync when the columnWidths prop changes (e.g. after loading saved config).
+watch(
+  () => props.columnWidths,
+  (source) => {
+    if (!source) return;
+    Object.assign(colWidths.value, source);
+  },
+);
+
+const effectiveColWidth = (col: GanttColumn): number => {
+  const stored = colWidths.value[col.key];
+  if (stored != null && stored > 0) return stored;
+  const m = /^(\d+(?:\.\d+)?)px$/.exec(col.width ?? "");
+  return m ? Number(m[1]) : 160;
+};
+
+// Columns with their effective (post-resize) width resolved — every width
+// consumer (header cells, body cells, left block, clone) uses this, so a
+// resize moves the whole fixed block, grid lines and timeline origin.
+const sizedColumns = computed<GanttColumn[]>(() =>
+  resolvedColumns.value.map((c) => ({ ...c, width: `${effectiveColWidth(c)}px` })),
+);
+
+// Transient resize state: one drag at a time.
+const resizingRef = ref<{ key: string; startX: number; startWidth: number } | null>(null);
+const resizingKey = ref<string | null>(null);
+
+const startColumnResize = (e: PointerEvent, key: string) => {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const startWidth = effectiveColWidth(
+    resolvedColumns.value.find((c) => c.key === key) ?? { key, title: "" },
+  );
+  const startX = e.clientX;
+  resizingRef.value = { key, startX, startWidth };
+  resizingKey.value = key;
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
+  const onMove = (ev: PointerEvent) => {
+    const r = resizingRef.value;
+    if (!r) return;
+    const next = Math.max(MIN_COL_WIDTH, Math.round(r.startWidth + (ev.clientX - r.startX)));
+    if (colWidths.value[r.key] !== next) {
+      colWidths.value = { ...colWidths.value, [r.key]: next };
+    }
+  };
+  const onUp = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    resizingRef.value = null;
+    resizingKey.value = null;
+    // The full effective map (every column), like Table's width callback.
+    emit(
+      "column-width-change",
+      Object.fromEntries(sizedColumns.value.map((c) => [c.key, effectiveColWidth(c)])),
+    );
+  };
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+};
+
+// Clean up any lingering body styles if the component unmounts mid-resize.
+onBeforeUnmount(() => {
+  document.body.style.cursor = "";
+  document.body.style.userSelect = "";
+});
 
 // Bar geometry for every visible task row (link layer + drag math).
 const bars = computed(() => {
@@ -710,17 +798,39 @@ const colJustify = (col: GanttColumn) =>
           <!-- Grip/caret column — no label (the name column carries it). -->
           <div class="w-9 shrink-0" />
           <div
-            v-for="col in resolvedColumns"
+            v-for="col in sizedColumns"
             :key="col.key"
             :class="
               classNames(
-                'flex shrink-0 items-center overflow-hidden border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400',
+                'relative flex shrink-0 items-center overflow-hidden border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400',
                 surfaceText.divider,
               )
             "
             :style="{ width: col.width ?? '160px', justifyContent: colJustify(col) }"
           >
             <span class="truncate">{{ col.title }}</span>
+            <!-- Resize handle — Table's header-edge pattern: an 8px hit area
+                 whose 1px line centres on the column border. -->
+            <div
+              v-if="resizableColumns && col.resizable !== false"
+              role="separator"
+              aria-hidden="true"
+              data-gantt-col-resize="true"
+              :data-col-key="col.key"
+              class="absolute inset-y-0 right-0 z-10 flex w-2 cursor-col-resize select-none items-center justify-center"
+              :title="`Resize ${col.title} column`"
+              @pointerdown.prevent.stop="startColumnResize($event, col.key)"
+            >
+              <div
+                :class="
+                  classNames(
+                    'h-1/2 w-px transition-colors',
+                    resizingKey !== col.key && 'bg-neutral-300 dark:bg-neutral-600',
+                  )
+                "
+                :style="resizingKey === col.key ? { backgroundColor: `var(--color-${accentColor}-500)` } : undefined"
+              />
+            </div>
           </div>
         </div>
         <div class="relative min-w-0 flex-1 overflow-hidden">
@@ -747,7 +857,7 @@ const colJustify = (col: GanttColumn) =>
       <!-- ── Body (the only scroller) ─────────────────────────────────── -->
       <div
         ref="scrollRef"
-        class="gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain"
+        class="gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
         @scroll="syncHeaderScale"
       >
         <div :style="{ width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER, minWidth: '100%' }">
@@ -828,7 +938,7 @@ const colJustify = (col: GanttColumn) =>
             <GanttBodyRow
               v-else-if="!(drag?.kind === 'reorder' && dragSubtreeKeys.has(row.key))"
               :row="row"
-            :columns="resolvedColumns"
+            :columns="sizedColumns"
             :left-width="leftWidth"
             :timeline-width="timelineWidth"
             :range-start="range.start"
@@ -925,7 +1035,7 @@ const colJustify = (col: GanttColumn) =>
                 v-for="subRow in dragSubtree"
                 :key="subRow.key"
                 :row="subRow"
-                :columns="resolvedColumns"
+                :columns="sizedColumns"
                 :left-width="leftWidth"
                 :timeline-width="timelineWidth"
                 :range-start="range.start"

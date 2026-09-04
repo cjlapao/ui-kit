@@ -86,8 +86,11 @@ const GRIP_WIDTH = 36;
 const DEFAULT_COLUMNS: GanttColumn[] = [
   { key: "name", title: "Task", width: "220px", kind: "text" },
   { key: "owner", title: "Owner", width: "120px", kind: "owner" },
-  { key: "progress", title: "Progress", width: "110px", kind: "progress" },
+  // The progress cell (bar + percent readout) has a fixed layout.
+  { key: "progress", title: "Progress", width: "110px", kind: "progress", resizable: false },
 ];
+/** Smallest a resized column may be shrunk to. */
+const MIN_COL_WIDTH = 80;
 
 export interface GanttProps {
   /** The task list (controlled). Parents/children via `task.parent`. */
@@ -161,6 +164,19 @@ export interface GanttProps {
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => React.ReactNode;
   /** Custom cell content for user columns (`renderCell(value, task, column)`). */
   renderCell?: (value: unknown, task: GanttTask, column: GanttColumn) => React.ReactNode;
+  /**
+   * Enables drag-to-resize of the fixed columns (like `Table.resizableColumns`).
+   * Each column can opt out via `column.resizable = false`; the built-in
+   * progress column does.
+   */
+  resizableColumns?: boolean;
+  /**
+   * Initial column width map (`columnKey → pixels`). Serialise with
+   * `JSON.stringify` to save; parse and pass back to restore.
+   */
+  columnWidths?: Record<string, number>;
+  /** Called when the user finishes resizing a column. Receives the full updated widths map. */
+  onColumnWidthChange?: (widths: Record<string, number>) => void;
 }
 
 /** Merge user copy with the defaults. */
@@ -201,6 +217,9 @@ export const Gantt: React.FC<GanttProps> = ({
   labels,
   renderBar,
   renderCell,
+  resizableColumns = false,
+  columnWidths,
+  onColumnWidthChange,
 }) => {
   const resolvedColumns = columns ?? DEFAULT_COLUMNS;
   // `false` counts as absent (React idiom — and Vue boolean-casts
@@ -328,14 +347,89 @@ export const Gantt: React.FC<GanttProps> = ({
     [range, zoom],
   );
 
+  // ── Column widths (drag-to-resize) ─────────────────────────────────────────
+  // Stored per column key; a missing entry falls back to the column's own
+  // `width` (160px default), so partially-populated maps mix cleanly.
+  const [colWidths, setColWidths] = useState<Record<string, number>>(() =>
+    columnWidths ? { ...columnWidths } : {},
+  );
+  // Sync when the columnWidths prop changes (e.g. after loading saved config).
+  useEffect(() => {
+    if (!columnWidths) return;
+    setColWidths((prev) => ({ ...prev, ...columnWidths }));
+  }, [columnWidths]);
+
+  const effectiveColWidth = (col: GanttColumn) => {
+    const stored = colWidths[col.key];
+    if (stored != null && stored > 0) return stored;
+    const m = /^(\d+(?:\.\d+)?)px$/.exec(col.width ?? "");
+    return m ? Number(m[1]) : 160;
+  };
+
+  // Columns with their effective (post-resize) width resolved — every width
+  // consumer (header cells, body cells, left block, clone) uses this, so a
+  // resize moves the whole fixed block, grid lines and timeline origin.
+  const sizedColumns = useMemo(
+    () => resolvedColumns.map((c) => ({ ...c, width: `${effectiveColWidth(c)}px` })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resolvedColumns, colWidths],
+  );
+  const effectiveWidthsRef = useRef<Record<string, number>>({});
+  effectiveWidthsRef.current = Object.fromEntries(
+    sizedColumns.map((c) => [c.key, effectiveColWidth(c)]),
+  );
+
   const leftWidth = useMemo(
-    () =>
-      GRIP_WIDTH +
-      resolvedColumns.reduce((sum, c) => {
-        const m = /^(\d+(?:\.\d+)?)px$/.exec(c.width ?? "");
-        return sum + (m ? Number(m[1]) : 160);
-      }, 0),
-    [resolvedColumns],
+    () => GRIP_WIDTH + resolvedColumns.reduce((sum, c) => sum + effectiveColWidth(c), 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [resolvedColumns, colWidths],
+  );
+
+  // Transient resize state: one drag at a time, tracked by refs so the
+  // window listeners never close over stale state.
+  const resizingRef = useRef<{ key: string; startX: number; startWidth: number } | null>(null);
+  const [resizingKey, setResizingKey] = useState<string | null>(null);
+
+  const startColumnResize = useCallback(
+    (e: React.PointerEvent, key: string) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const startWidth = effectiveWidthsRef.current[key] ?? 160;
+      const startX = e.clientX;
+      resizingRef.current = { key, startX, startWidth };
+      setResizingKey(key);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      const onMove = (ev: PointerEvent) => {
+        const r = resizingRef.current;
+        if (!r) return;
+        const next = Math.max(MIN_COL_WIDTH, Math.round(r.startWidth + (ev.clientX - r.startX)));
+        setColWidths((prev) => (prev[r.key] === next ? prev : { ...prev, [r.key]: next }));
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        resizingRef.current = null;
+        setResizingKey(null);
+        // The full effective map (every column), like Table's width callback.
+        onColumnWidthChange?.(effectiveWidthsRef.current);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [onColumnWidthChange],
+  );
+
+  // Clean up any lingering body styles if the component unmounts mid-resize.
+  useEffect(
+    () => () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    },
+    [],
   );
 
   // Bar geometry + body height are derived from the *live* model (the
@@ -802,11 +896,13 @@ export const Gantt: React.FC<GanttProps> = ({
           >
             {/* Grip/caret column — no label (the name column carries it). */}
             <div className="w-9 shrink-0" />
-            {resolvedColumns.map((col) => (
+            {sizedColumns.map((col) => {
+              const resizable = resizableColumns && col.resizable !== false;
+              return (
               <div
                 key={col.key}
                 className={classNames(
-                  "flex shrink-0 items-center overflow-hidden border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400",
+                  "relative flex shrink-0 items-center overflow-hidden border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400",
                   surfaceText.divider,
                 )}
                 style={{
@@ -815,8 +911,33 @@ export const Gantt: React.FC<GanttProps> = ({
                 }}
               >
                 <span className="truncate">{col.title}</span>
+                {resizable && (
+                  /* Resize handle — Table's header-edge pattern: an 8px hit
+                      area whose 1px line centres on the column border. */
+                  <div
+                    role="separator"
+                    aria-hidden="true"
+                    data-gantt-col-resize={col.key}
+                    className="absolute inset-y-0 right-0 z-10 flex w-2 cursor-col-resize select-none items-center justify-center"
+                    onPointerDown={(e) => startColumnResize(e, col.key)}
+                    title={`Resize ${col.title} column`}
+                  >
+                    <div
+                      className={classNames(
+                        "h-1/2 w-px transition-colors",
+                        resizingKey !== col.key && "bg-neutral-300 dark:bg-neutral-600",
+                      )}
+                      style={
+                        resizingKey === col.key
+                          ? { backgroundColor: `var(--color-${color}-500)` }
+                          : undefined
+                      }
+                    />
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
           <div className="relative min-w-0 flex-1 overflow-hidden">
             <div
@@ -851,7 +972,7 @@ export const Gantt: React.FC<GanttProps> = ({
         {/* ── Body (the only scroller) ─────────────────────────────────── */}
         <div
           ref={scrollRef}
-          className="gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain"
+          className="gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
           onScroll={syncHeaderScale}
         >
           <div style={{ width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER, minWidth: "100%" }}>
@@ -922,7 +1043,7 @@ export const Gantt: React.FC<GanttProps> = ({
                   <GanttBodyRow
                     key={row.key}
                     row={row}
-                  columns={resolvedColumns}
+                  columns={sizedColumns}
                   leftWidth={leftWidth}
                   timelineWidth={timelineWidth}
                   rangeStart={range.start}
@@ -1033,7 +1154,7 @@ export const Gantt: React.FC<GanttProps> = ({
                         <GanttBodyRow
                           key={row.key}
                           row={row}
-                          columns={resolvedColumns}
+                          columns={sizedColumns}
                           leftWidth={leftWidth}
                           timelineWidth={timelineWidth}
                           rangeStart={range.start}

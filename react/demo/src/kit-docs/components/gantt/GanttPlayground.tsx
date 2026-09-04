@@ -48,6 +48,8 @@ export const GanttPlayground: React.FC = () => {
   const [snap, setSnap] = useState<GanttSnap>("day");
   const [editable, setEditable] = useState(true);
   const [showToday, setShowToday] = useState(true);
+  const [resizableCols, setResizableCols] = useState(true);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
   const [log, setLog] = useState<{ id: number; label: string }[]>([]);
   const [seq, setSeq] = useState(0);
 
@@ -61,6 +63,7 @@ export const GanttPlayground: React.FC = () => {
     setLinks(INITIAL_LINKS);
     setRowOrder(undefined);
     setVariant("elevated");
+    setColumnWidths({});
     setLog([]);
   };
 
@@ -105,6 +108,11 @@ export const GanttPlayground: React.FC = () => {
               onChange={setEditable}
             />
             <ToggleRow label="Today marker" checked={showToday} onChange={setShowToday} />
+            <ToggleRow
+              label="Resizable columns (drag a header edge)"
+              checked={resizableCols}
+              onChange={setResizableCols}
+            />
           </div>
           <button
             type="button"
@@ -146,6 +154,12 @@ export const GanttPlayground: React.FC = () => {
             snap={snap}
             editable={editable}
             showToday={showToday}
+            resizableColumns={resizableCols}
+            columnWidths={columnWidths}
+            onColumnWidthChange={(widths) => {
+              setColumnWidths(widths);
+              pushLog("Columns resized");
+            }}
             height={440}
             icon={<Rocket className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
             subtitle="VENDOR ONBOARDING · REQ-4128"
