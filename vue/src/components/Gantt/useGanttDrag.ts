@@ -333,7 +333,10 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
       }
     }
     drag.value = { ...partial, x, y, clientX: e.clientX, clientY: e.clientY, anchor, color: partial.color ?? opts.accentColor.value };
-    opts.setSelected(partial.taskId);
+    // Bar drags select the task (a press-release reads as a click); a grip
+    // press only starts a reorder — selecting there left the moved row
+    // tinted after the drop.
+    if (partial.kind !== "reorder") opts.setSelected(partial.taskId);
     focusEl?.focus();
   };
 

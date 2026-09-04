@@ -68,6 +68,8 @@ describe("Gantt component", () => {
     // poke through.
     const taskRow = container.querySelector<HTMLElement>('[data-row-key="task:research"]')!;
     expect(taskRow.className).not.toContain("border-b");
+    // The row pins its rendered height to the model height.
+    expect(taskRow.className).toContain("overflow-hidden");
     const sticky = taskRow.querySelector<HTMLElement>(":scope > div.sticky")!;
     expect(sticky.className).toContain("border-b");
     expect(sticky.className).toContain("bg-white");
@@ -406,6 +408,10 @@ describe("Gantt component", () => {
     const order = onReorder.mock.calls[0][0] as string[];
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
     expect(webappRow.top).toBeGreaterThan(0);
+    // A grip press starts a reorder — it must not leave the moved row
+    // selected, or the selection tint lingers on it after the drop.
+    const movedRow = container.querySelector<HTMLElement>('[data-row-key="task:webapp"]');
+    expect(movedRow!.className).not.toMatch(/bg-/);
   });
 
   it("moves a row down once the pointer crosses the next row's midpoint", () => {

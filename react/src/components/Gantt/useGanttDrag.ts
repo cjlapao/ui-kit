@@ -384,7 +384,10 @@ export function useGanttDrag(opts: UseGanttDragOptions): UseGanttDragApi {
         }
       }
       setDrag({ ...partial, x, y, clientX: e.clientX, clientY: e.clientY, anchor, color: partial.color ?? o.accentColor } as GanttDragState);
-      o.setSelected(partial.taskId);
+      // Bar drags select the task (a press-release reads as a click); a grip
+      // press only starts a reorder — selecting there left the moved row
+      // tinted after the drop.
+      if (partial.kind !== "reorder") o.setSelected(partial.taskId);
       focusEl?.focus();
     },
     [timelineX, rowY],

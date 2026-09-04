@@ -65,6 +65,8 @@ describe("Gantt (Vue)", () => {
     // poke through.
     const taskRow = w.element.querySelector('[data-row-key="task:research"]')!;
     expect(taskRow.className).not.toContain("border-b");
+    // The row pins its rendered height to the model height.
+    expect(taskRow.className).toContain("overflow-hidden");
     const sticky = taskRow.querySelector(":scope > div.sticky") as HTMLElement;
     expect(sticky.className).toContain("border-b");
     expect(sticky.className).toContain("bg-white");
@@ -307,6 +309,11 @@ describe("Gantt (Vue)", () => {
     expect(w.emitted("reorder")).toBeTruthy();
     const order = w.emitted("reorder")![0][0] as string[];
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
+    // A grip press starts a reorder — it must not leave the moved row
+    // selected, or the selection tint lingers on it after the drop.
+    const movedRow = w.element.querySelector('[data-row-key="task:webapp"]') as HTMLElement;
+    expect(movedRow.className).not.toMatch(/bg-/);
+    w.unmount();
   });
 
   it("lifts the dragged block into a floating clone with a full-height ghost slot", async () => {

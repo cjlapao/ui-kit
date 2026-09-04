@@ -95,7 +95,11 @@ const lanePct = computed(
     :data-row-key="row.key"
     :class="
       classNames(
-        'group/row relative flex',
+        // overflow-hidden pins the rendered row to its model height: the
+        // flex halves carry `min-height: auto`, so with roomier font metrics
+        // (zoom/DPI/fallback fonts) their content can push a row taller than
+        // the geometry the bars/links/dividers are laid out from.
+        'group/row relative flex overflow-hidden',
         selected && selectionTokens.row,
       )
     "
