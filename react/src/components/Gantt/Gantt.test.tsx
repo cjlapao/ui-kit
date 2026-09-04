@@ -83,6 +83,21 @@ describe("Gantt component", () => {
     const overlay = laneSticky.querySelector<HTMLElement>(":scope > div.absolute");
     expect(overlay).toBeTruthy();
     expect(overlay!.className).toContain("bg-violet-50/70");
+    // Every fixed-column divider (header cells, the header sticky edge, the
+    // lane/task sticky edges) carries the same surface-divider token — one
+    // line style, same width, same position on every row.
+    const dividerToken = getSurfaceTextTokens("elevated").divider.split(" ")[0];
+    const headerRow = [...container.querySelectorAll<HTMLElement>('[class*="border-b"]')].find(
+      (el) => el.style.height === "52px",
+    )!;
+    const headerLeft = headerRow.children[0] as HTMLElement;
+    expect(headerLeft.className).toContain("border-r");
+    expect(headerLeft.className).toContain(dividerToken);
+    const headerCell = headerLeft.children[1] as HTMLElement;
+    expect(headerCell.className).toContain(dividerToken);
+    expect(headerCell.className).not.toContain("/70");
+    expect(sticky.className).toContain("border-r");
+    expect(laneSticky.className).toContain("border-r");
   });
 
   it("renders the optional chart header above the column header", () => {

@@ -80,6 +80,26 @@ describe("Gantt (Vue)", () => {
     const overlay = laneSticky.querySelector(":scope > div.absolute") as HTMLElement;
     expect(overlay).toBeTruthy();
     expect(overlay.className).toContain("bg-violet-50/70");
+    // Every fixed-column divider (header cells, the header sticky edge, the
+    // lane/task sticky edges) carries the same surface-divider token — one
+    // line style, same width, same position on every row.
+    const dividerToken = getSurfaceTextTokens("elevated").divider.split(" ")[0];
+    // The detached header row: the only `items-stretch border-b` strip with a
+    // sticky left block (first child, `border-r`) and a scale window.
+    const headerRow = [...w.element.querySelectorAll("div")].find(
+      (el) =>
+        (el.className as string).includes("items-stretch") &&
+        (el.className as string).includes("border-b") &&
+        (el.children[0]?.getAttribute("class") || "").includes("border-r"),
+    ) as HTMLElement;
+    const headerLeft = headerRow.children[0] as HTMLElement;
+    expect(headerLeft.className).toContain("border-r");
+    expect(headerLeft.className).toContain(dividerToken);
+    const headerCell = headerLeft.children[1] as HTMLElement;
+    expect(headerCell.className).toContain(dividerToken);
+    expect(headerCell.className).not.toContain("/70");
+    expect(sticky.className).toContain("border-r");
+    expect(laneSticky.className).toContain("border-r");
     w.unmount();
   });
 

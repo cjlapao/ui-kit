@@ -136,13 +136,14 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
       ) : (
         <>
           {/* ── Left cells ─────────────────────────────────────────── */}
-          {/* border-b lives on the halves, not the row: each half is the
-              full row height, so the sticky edge paints its own divider in
-              the bottom pixel row — scrolling links/grid lines can't poke
-              through a 1px gap under the sticky block. */}
+          {/* border-r on the sticky edge keeps the fixed/timeline divider
+              continuous with the header and lane rows; border-b lives on
+              the halves, not the row, so each half is the full row height
+              and scrolling links/grid lines can't poke through a 1px gap
+              under the sticky block. */}
           <div
             className={classNames(
-              "sticky left-0 z-20 flex items-stretch border-b bg-white dark:bg-neutral-900",
+              "sticky left-0 z-20 flex items-stretch border-r border-b bg-white dark:bg-neutral-900",
               dividerClass,
             )}
             style={{ width: leftWidth }}

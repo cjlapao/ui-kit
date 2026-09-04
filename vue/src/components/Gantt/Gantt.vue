@@ -704,7 +704,7 @@ const colJustify = (col: GanttColumn) =>
         :style="{ height: HEADER_HEIGHT }"
       >
         <div
-          class="flex items-stretch border-r bg-white dark:bg-neutral-900"
+          :class="classNames('flex items-stretch border-r bg-white dark:bg-neutral-900', surfaceText.divider)"
           :style="{ width: leftWidth }"
         >
           <!-- Grip/caret column — no label (the name column carries it). -->
@@ -712,7 +712,12 @@ const colJustify = (col: GanttColumn) =>
           <div
             v-for="col in resolvedColumns"
             :key="col.key"
-            class="flex shrink-0 items-center overflow-hidden border-r border-neutral-200/70 px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:border-neutral-800/70 dark:text-neutral-400"
+            :class="
+              classNames(
+                'flex shrink-0 items-center overflow-hidden border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400',
+                surfaceText.divider,
+              )
+            "
             :style="{ width: col.width ?? '160px', justifyContent: colJustify(col) }"
           >
             <span class="truncate">{{ col.title }}</span>

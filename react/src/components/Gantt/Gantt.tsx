@@ -793,7 +793,10 @@ export const Gantt: React.FC<GanttProps> = ({
           style={{ height: HEADER_HEIGHT }}
         >
           <div
-            className="flex items-stretch border-r bg-white dark:bg-neutral-900"
+            className={classNames(
+              "flex items-stretch border-r bg-white dark:bg-neutral-900",
+              surfaceText.divider,
+            )}
             style={{ width: leftWidth }}
           >
             {/* Grip/caret column — no label (the name column carries it). */}
@@ -801,7 +804,10 @@ export const Gantt: React.FC<GanttProps> = ({
             {resolvedColumns.map((col) => (
               <div
                 key={col.key}
-                className="flex shrink-0 items-center overflow-hidden border-r border-neutral-200/70 px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:border-neutral-800/70 dark:text-neutral-400"
+                className={classNames(
+                  "flex shrink-0 items-center overflow-hidden border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400",
+                  surfaceText.divider,
+                )}
                 style={{
                   width: col.width ?? "160px",
                   justifyContent: col.align === "center" ? "center" : col.align === "right" ? "flex-end" : "flex-start",

@@ -183,10 +183,12 @@ const lanePct = computed(
 
     <!-- ── Task row ─────────────────────────────────────────────── -->
     <template v-else>
-      <!-- Left cells (border-b on the halves: see the lane header note) -->
+      <!-- Left cells (border-r keeps the fixed/timeline divider continuous
+           with the header and lane rows; border-b on the halves: see the
+           lane header note) -->
       <div
         :class="
-          classNames('sticky left-0 z-20 flex items-stretch border-b bg-white dark:bg-neutral-900', divider)
+          classNames('sticky left-0 z-20 flex items-stretch border-r border-b bg-white dark:bg-neutral-900', divider)
         "
         :style="{ width: leftWidth }"
       >
