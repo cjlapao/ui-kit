@@ -95,11 +95,13 @@ const lanePct = computed(
     :data-row-key="row.key"
     :class="
       classNames(
-        // overflow-hidden pins the rendered row to its model height: the
-        // flex halves carry `min-height: auto`, so with roomier font metrics
-        // (zoom/DPI/fallback fonts) their content can push a row taller than
-        // the geometry the bars/links/dividers are laid out from.
-        'group/row relative flex overflow-hidden',
+        // No overflow here: an overflow-hidden row root would become the
+        // sticky halves' (non-scrolling) scrollport and stop them pinning to
+        // the left edge while the timeline scrolls. The halves pin the
+        // rendered row to its model height by clipping their own content
+        // (their `min-height: auto` content can exceed the row with roomier
+        // font metrics — zoom/DPI/fallback fonts).
+        'group/row relative flex',
         selected && selectionTokens.row,
       )
     "
@@ -123,7 +125,7 @@ const lanePct = computed(
       <div
         :class="
           classNames(
-            'sticky left-0 z-20 flex items-stretch border-r border-b bg-white dark:bg-neutral-900',
+            'sticky left-0 z-20 flex items-stretch overflow-hidden border-r border-b bg-white dark:bg-neutral-900',
             divider,
           )
         "
@@ -192,7 +194,7 @@ const lanePct = computed(
            lane header note) -->
       <div
         :class="
-          classNames('sticky left-0 z-20 flex items-stretch border-r border-b bg-white dark:bg-neutral-900', divider)
+          classNames('sticky left-0 z-20 flex items-stretch overflow-hidden border-r border-b bg-white dark:bg-neutral-900', divider)
         "
         :style="{ width: leftWidth }"
       >

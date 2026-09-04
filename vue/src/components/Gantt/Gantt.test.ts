@@ -65,11 +65,15 @@ describe("Gantt (Vue)", () => {
     // poke through.
     const taskRow = w.element.querySelector('[data-row-key="task:research"]')!;
     expect(taskRow.className).not.toContain("border-b");
-    // The row pins its rendered height to the model height.
-    expect(taskRow.className).toContain("overflow-hidden");
+    // The row root must stay overflow-visible: an overflow-hidden row would
+    // become the sticky halves' (non-scrolling) scrollport and stop them
+    // pinning to the left edge while the timeline scrolls.
+    expect(taskRow.className).not.toContain("overflow-hidden");
     const sticky = taskRow.querySelector(":scope > div.sticky") as HTMLElement;
     expect(sticky.className).toContain("border-b");
     expect(sticky.className).toContain("bg-white");
+    // The sticky halves clip their own content to the row height.
+    expect(sticky.className).toContain("overflow-hidden");
     const timelineHalf = taskRow.children[taskRow.children.length - 1] as HTMLElement;
     expect(timelineHalf.className).toContain("border-b");
     // The lane tint sits on an opaque surface inside the sticky block (the
@@ -102,6 +106,7 @@ describe("Gantt (Vue)", () => {
     expect(headerCell.className).not.toContain("/70");
     expect(sticky.className).toContain("border-r");
     expect(laneSticky.className).toContain("border-r");
+    expect(laneSticky.className).toContain("overflow-hidden");
     w.unmount();
   });
 
