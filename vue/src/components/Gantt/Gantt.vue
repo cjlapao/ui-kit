@@ -802,7 +802,7 @@ const colJustify = (col: GanttColumn) =>
             :key="col.key"
             :class="
               classNames(
-                'relative flex shrink-0 items-center overflow-hidden border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400',
+                'relative flex shrink-0 items-center border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400',
                 surfaceText.divider,
               )
             "
@@ -810,24 +810,24 @@ const colJustify = (col: GanttColumn) =>
           >
             <span class="truncate">{{ col.title }}</span>
             <!-- Resize handle — Table's header-edge pattern: an 8px hit area
-                 whose 1px line centres on the column border. -->
+                 whose 1px line sits exactly on the column border. Absolute
+                 insets stop at the padding edge (1px inside border-r), so
+                 `-right-px` reaches the border box and `justify-end` puts
+                 the line in that outermost pixel — the border's own pixel.
+                 The cell carries no overflow-hidden so the line can paint
+                 over the border (the title span truncates itself). -->
             <div
               v-if="resizableColumns && col.resizable !== false"
               role="separator"
               aria-hidden="true"
               data-gantt-col-resize="true"
               :data-col-key="col.key"
-              class="absolute inset-y-0 right-0 z-10 flex w-2 cursor-col-resize select-none items-center justify-center"
+              class="group/rh absolute inset-y-0 -right-px z-10 flex w-2 cursor-col-resize select-none items-stretch justify-end"
               :title="`Resize ${col.title} column`"
               @pointerdown.prevent.stop="startColumnResize($event, col.key)"
             >
               <div
-                :class="
-                  classNames(
-                    'h-1/2 w-px transition-colors',
-                    resizingKey !== col.key && 'bg-neutral-300 dark:bg-neutral-600',
-                  )
-                "
+                class="h-full w-px bg-neutral-300 transition-colors group-hover/rh:bg-neutral-400 dark:bg-neutral-600 dark:group-hover/rh:bg-neutral-500"
                 :style="resizingKey === col.key ? { backgroundColor: `var(--color-${accentColor}-500)` } : undefined"
               />
             </div>

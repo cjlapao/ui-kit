@@ -902,7 +902,7 @@ export const Gantt: React.FC<GanttProps> = ({
               <div
                 key={col.key}
                 className={classNames(
-                  "relative flex shrink-0 items-center overflow-hidden border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400",
+                  "relative flex shrink-0 items-center border-r px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 last:border-r-0 dark:text-neutral-400",
                   surfaceText.divider,
                 )}
                 style={{
@@ -913,20 +913,23 @@ export const Gantt: React.FC<GanttProps> = ({
                 <span className="truncate">{col.title}</span>
                 {resizable && (
                   /* Resize handle — Table's header-edge pattern: an 8px hit
-                      area whose 1px line centres on the column border. */
+                      area whose 1px line sits exactly on the column border.
+                      Absolute insets stop at the padding edge (1px inside
+                      border-r), so `-right-px` reaches the border box and
+                      `justify-end` puts the line in that outermost pixel —
+                      the border's own pixel. The cell carries no
+                      overflow-hidden so the line can paint over the border
+                      (the title span truncates itself). */
                   <div
                     role="separator"
                     aria-hidden="true"
                     data-gantt-col-resize={col.key}
-                    className="absolute inset-y-0 right-0 z-10 flex w-2 cursor-col-resize select-none items-center justify-center"
+                    className="group/rh absolute inset-y-0 -right-px z-10 flex w-2 cursor-col-resize select-none items-stretch justify-end"
                     onPointerDown={(e) => startColumnResize(e, col.key)}
                     title={`Resize ${col.title} column`}
                   >
                     <div
-                      className={classNames(
-                        "h-1/2 w-px transition-colors",
-                        resizingKey !== col.key && "bg-neutral-300 dark:bg-neutral-600",
-                      )}
+                      className="h-full w-px bg-neutral-300 transition-colors group-hover/rh:bg-neutral-400 dark:bg-neutral-600 dark:group-hover/rh:bg-neutral-500"
                       style={
                         resizingKey === col.key
                           ? { backgroundColor: `var(--color-${color}-500)` }

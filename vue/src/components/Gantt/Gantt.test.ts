@@ -426,6 +426,9 @@ describe("Gantt (Vue)", () => {
       '[data-gantt-col-resize="true"][data-col-key="name"]',
     );
     expect(nameHandle.exists()).toBe(true);
+    // The handle reaches the cell's border box (-right-px) so its line
+    // paints on the column border itself.
+    expect((nameHandle.element as HTMLElement).className).toContain("-right-px");
     await nameHandle.trigger("pointerdown");
     // +30px (jsdom clientX is 0 on the triggered down).
     pointer("pointermove", 30, 0);

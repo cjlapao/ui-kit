@@ -613,6 +613,9 @@ describe("Gantt component", () => {
     const nameHandle = container.querySelector<HTMLElement>(
       '[data-gantt-col-resize="name"]',
     )!;
+    // The handle reaches the cell's border box (-right-px) so its line
+    // paints on the column border itself.
+    expect(nameHandle.className).toContain("-right-px");
     fireEvent.pointerDown(nameHandle, { clientX: 0, clientY: 0, button: 0 });
     // +30px.
     pointer(window, "pointermove", 30, 0);
