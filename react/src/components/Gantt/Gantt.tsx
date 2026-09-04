@@ -26,6 +26,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import classNames from "classnames";
 
@@ -1003,7 +1004,15 @@ export const Gantt: React.FC<GanttProps> = ({
               {drag?.kind === "reorder" &&
                 drag.clientX != null &&
                 drag.clientY != null &&
-                dragSubtree && (
+                dragSubtree &&
+                // Portaled to document.body: the variant's Panel may carry a
+                // backdrop-filter (glass / liquid-glass / default), which
+                // makes it the containing block for this `fixed` clone — and
+                // then the body scroller's overflow would clip it away, so
+                // the clone only showed on solid variants. From document.body
+                // there is no filtered/overflowing ancestor and the fixed
+                // clone always tracks the viewport pointer.
+                createPortal(
                   <div
                     data-gantt-drag-clone="true"
                     aria-hidden="true"
@@ -1056,7 +1065,8 @@ export const Gantt: React.FC<GanttProps> = ({
                         />
                       ))}
                     </div>
-                  </div>
+                  </div>,
+                  document.body,
                 )}
 
               {/* Live drag readout */}

@@ -895,7 +895,15 @@ const colJustify = (col: GanttColumn) =>
                pointer-event drag has no browser drag image). Follows the
                pointer at the grab offset; the dashed ghost slot above marks
                where it will land. A group drag carries its whole expanded
-               block. -->
+               block.
+               Portaled to document.body: the variant's surface may carry a
+               backdrop-filter (glass / liquid-glass / default), which makes
+               it the containing block for this `fixed` clone — and then the
+               body scroller's overflow would clip it away, so the clone only
+               showed on solid variants. From document.body there is no
+               filtered/overflowing ancestor and the fixed clone always
+               tracks the viewport pointer. -->
+          <Teleport to="body">
           <div
             v-if="drag?.kind === 'reorder' && drag.clientX != null && drag.clientY != null && dragSubtree"
             data-gantt-drag-clone="true"
@@ -948,7 +956,8 @@ const colJustify = (col: GanttColumn) =>
                 @bar-keydown="() => undefined"
               />
             </div>
-          </div>
+           </div>
+          </Teleport>
 
           <!-- Live drag readout -->
           <div

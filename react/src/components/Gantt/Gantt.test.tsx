@@ -502,8 +502,9 @@ describe("Gantt component", () => {
     expect(ghost!.textContent ?? "").toBe("");
     expect(ghost!.style.height).toBe(`${4 * 44}px`);
     // The floating clone carries the whole expanded block (4 rows) with the
-    // accent grip on the group row.
-    const clone = container.querySelector<HTMLElement>(
+    // accent grip on the group row. It is portaled to document.body — the
+    // variant surface's backdrop-filter would otherwise clip the fixed clone.
+    const clone = document.querySelector<HTMLElement>(
       '[data-gantt-drag-clone="true"]',
     );
     expect(clone).toBeTruthy();
@@ -561,7 +562,7 @@ describe("Gantt component", () => {
     const order = onReorder.mock.calls[0][0] as string[];
     expect(order.indexOf("api")).toBeLessThan(order.indexOf("webapp"));
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("qa"));
-    expect(container.querySelector('[data-gantt-drag-clone="true"]')).toBeNull();
+    expect(document.querySelector('[data-gantt-drag-clone="true"]')).toBeNull();
     expect(container.querySelector('[data-gantt-ghost="true"]')).toBeNull();
     expect(containerLine(container)).toBeFalsy();
   });

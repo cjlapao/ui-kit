@@ -351,13 +351,16 @@ describe("Gantt (Vue)", () => {
     const ghost = w.find('[data-row-key="task:webapp"][data-gantt-ghost="true"]');
     expect(ghost.exists()).toBe(true);
     expect(ghost.attributes("style")).toContain("height: 176px");
-    const clone = w.find('[data-gantt-drag-clone="true"]');
-    expect(clone.exists()).toBe(true);
-    expect(clone.findAll('[data-row-key^="task:"]').length).toBe(4);
-    const cloneGrip = clone.find('[title="Drag to reorder"]');
-    expect(cloneGrip.exists()).toBe(true);
-    expect((cloneGrip.element as HTMLElement).style.color).toContain("var(--color-");
-    expect((cloneGrip.element as HTMLElement).style.color).toContain("-500");
+    // The clone is teleported to document.body — the variant surface's
+    // backdrop-filter would otherwise make it the fixed clone's containing
+    // block and the body scroller would clip it away.
+    const clone = document.querySelector('[data-gantt-drag-clone="true"]');
+    expect(clone).toBeTruthy();
+    expect(clone!.querySelectorAll('[data-row-key^="task:"]').length).toBe(4);
+    const cloneGrip = clone!.querySelector('[title="Drag to reorder"]') as HTMLElement;
+    expect(cloneGrip).toBeTruthy();
+    expect(cloneGrip.style.color).toContain("var(--color-");
+    expect(cloneGrip.style.color).toContain("-500");
     expect(w.find("div.z-30.h-0\\.5").exists()).toBe(false);
 
     // Into api's upper half → the preview commits: webapp (and its children)
@@ -383,7 +386,7 @@ describe("Gantt (Vue)", () => {
     expect(w.emitted("reorder")).toBeTruthy();
     const order = w.emitted("reorder")![0][0] as string[];
     expect(order.indexOf("webapp")).toBeLessThan(order.indexOf("api"));
-    expect(w.find('[data-gantt-drag-clone="true"]').exists()).toBe(false);
+    expect(document.querySelector('[data-gantt-drag-clone="true"]')).toBeNull();
     expect(w.find('[data-gantt-ghost="true"]').exists()).toBe(false);
   });
 
