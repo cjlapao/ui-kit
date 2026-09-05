@@ -19,6 +19,7 @@ export interface GanttLinkLayerEmits {
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useKitT } from "../../i18n";
 import { getGanttLinkTokens, pickLinkAt, LINK_HIT_RADIUS } from "../../../../common/gantt";
 
 /**
@@ -36,6 +37,7 @@ import { getGanttLinkTokens, pickLinkAt, LINK_HIT_RADIUS } from "../../../../com
  */
 defineOptions({ name: "GanttLinkLayer" });
 const props = defineProps<GanttLinkLayerProps>();
+const t = useKitT();
 const emit = defineEmits<GanttLinkLayerEmits>();
 const svgRef = ref<SVGSVGElement | null>(null);
 
@@ -184,10 +186,10 @@ const canDelete = computed(() => Boolean(props.interactive && props.onDeleteLink
           borderColor: `var(--color-${selColor}-300)`,
           color: `var(--color-${selColor}-700)`,
         }"
-        title="Remove this dependency (or press Delete)"
+        :title="t('kit.gantt.removeDependency')"
         @click="selected && onDeleteLink && onDeleteLink(selected)"
       >
-        <span aria-hidden="true">✕</span> Delete
+        <span aria-hidden="true">✕</span> {{ t("kit.gantt.delete") }}
       </button>
     </foreignObject>
   </svg>

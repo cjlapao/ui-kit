@@ -11,6 +11,7 @@
 
 import React, { useMemo } from "react";
 import classNames from "classnames";
+import { useKitT } from "../../i18n";
 import { getSurfaceVariantClasses } from "../../theme/Theme";
 import type { SurfaceVariant } from "../../theme/Theme";
 import type { GANTT_ZOOM_PRESET } from "../../../../common/gantt";
@@ -49,6 +50,13 @@ export const GanttToolbar: React.FC<GanttToolbarProps> = ({
   onZoomTo,
   onZoomBy,
 }) => {
+  const t = useKitT();
+  const ZOOM_LABELS: Record<string, string> = {
+    Day: t("kit.gantt.zoomDay"),
+    Week: t("kit.gantt.zoomWeek"),
+    Month: t("kit.gantt.zoomMonth"),
+    Quarter: t("kit.gantt.zoomQuarter"),
+  };
   const active = useMemo(() => nearestPreset(zoom, presets), [zoom, presets]);
   const chrome = useMemo(
     () => getSurfaceVariantClasses(variant, "neutral"),
@@ -75,15 +83,15 @@ export const GanttToolbar: React.FC<GanttToolbarProps> = ({
                 : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200",
             )}
           >
-            {p.label}
+            {ZOOM_LABELS[p.label] ?? p.label}
           </button>
         ))}
       </div>
       <div className="mx-0.5 h-4 w-px bg-neutral-200 dark:bg-neutral-700" />
-      <Button variant="ghost" size="xs" onClick={() => onZoomBy(1 / 1.25)} aria-label="Zoom out">
+      <Button variant="ghost" size="xs" onClick={() => onZoomBy(1 / 1.25)} aria-label={t("kit.gantt.zoomOut")}>
         <span className="text-xs font-semibold leading-none">−</span>
       </Button>
-      <Button variant="ghost" size="xs" onClick={() => onZoomBy(1.25)} aria-label="Zoom in">
+      <Button variant="ghost" size="xs" onClick={() => onZoomBy(1.25)} aria-label={t("kit.gantt.zoomIn")}>
         <span className="text-xs font-semibold leading-none">+</span>
       </Button>
     </div>

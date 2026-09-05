@@ -25,6 +25,7 @@ export interface GanttCellEmits {
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useKitT } from "../../i18n";
 import classNames from "classnames";
 import { getGanttBarTokens } from "../../../../common/gantt";
 import VNodeRenderer from "../internal/VNodeRenderer";
@@ -33,6 +34,7 @@ import { useIconRenderer } from "../../contexts/IconContext";
 defineOptions({ name: "GanttCell" });
 const props = defineProps<GanttCellProps>();
 const emit = defineEmits<GanttCellEmits>();
+const t = useKitT();
 const renderIcon = useIconRenderer();
 
 const value = computed(
@@ -85,7 +87,7 @@ const progressValue = computed(() => (typeof value.value === "number" ? value.va
           v-if="isGroup"
           type="button"
           class="flex h-4 w-4 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:hover:bg-white/10 dark:hover:text-neutral-300"
-          :aria-label="`${isOpen ? 'Collapse' : 'Expand'} ${task.name}`"
+          :aria-label="t(isOpen ? 'kit.gantt.collapse' : 'kit.gantt.expand', { name: task.name })"
           @click="emit('caret-click', task.id, isOpen)"
         >
           <VNodeRenderer

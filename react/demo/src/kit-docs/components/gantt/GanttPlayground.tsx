@@ -222,7 +222,8 @@ export const GanttPlayground: React.FC = () => {
           />
           <p className="px-1 pt-2 text-[11px] leading-relaxed text-neutral-400 dark:text-neutral-500">
             Hover a bar to reveal resize / progress / link handles · drag the right-edge handle to
-            draw a dependency · drag the row grip to reorder · Ctrl/Cmd + scroll to pinch zoom.
+            draw a dependency · drag the row grip to reorder · Ctrl/Cmd + scroll to pinch zoom ·
+            click the chart, then use ↑/↓ · Home/End to walk rows and +/− to zoom.
           </p>
         </div>
       }

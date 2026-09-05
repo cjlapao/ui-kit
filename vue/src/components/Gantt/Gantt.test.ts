@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { mount, type VueWrapper } from "@vue/test-utils";
 import { nextTick, h } from "vue";
 import Gantt from "./Gantt.vue";
+import { I18nProvider } from "../../i18n";
 import {
   sampleGanttTasks,
   sampleGanttLanes,
@@ -640,5 +641,42 @@ describe("Gantt (Vue)", () => {
     const rowSticky =
       row.querySelector<HTMLElement>(":scope > div.sticky") ?? (row.firstElementChild as HTMLElement);
     expect(rowSticky.className).toContain(getSurfaceTextTokens("glass").divider.split(" ")[0]);
+  });
+});
+
+describe("Gantt i18n & keyboard (Vue)", () => {
+  const mountFr = () =>
+    mount(() =>
+      h(I18nProvider as any, { locale: "fr", locales: {} }, () =>
+        h(Gantt as any, { tasks, links, lanes: sampleGanttLanes }),
+      ),
+    );
+
+  it("renders translated chrome and aria strings under an FR provider", () => {
+    const w = mountFr();
+    expect(w.find("section[data-gantt]").attributes("aria-label")).toBe("Graphique de Gantt");
+    expect(w.html()).toContain('aria-label="Zoom avant"');
+    expect(w.text()).toContain("T\u00e2che");
+    expect(w.html()).toContain('aria-label="R\u00e9duire Design"');
+    const barAria = w.find('[data-gantt-bar="api"]').attributes("aria-label") ?? "";
+    expect(barAria).toMatch(/du .* au .*(terminé|jalon)/);
+  });
+
+  it("walks the selection with arrow keys and jumps with Home/End", () => {
+    const w = mountGantt();
+    const root = w.find("section[data-gantt]");
+    root.trigger("keydown", { key: "ArrowDown" });
+    expect(w.emitted("select")?.[0]).toEqual(["lane:design"]);
+    root.trigger("keydown", { key: "ArrowDown" });
+    expect(w.emitted("select")?.[1]).toEqual(["research"]);
+    root.trigger("keydown", { key: "End" });
+    const sel = w.emitted("select")!;
+    const last = sel[sel.length - 1][0];
+    expect(last).toBeTruthy();
+    // Stepping down from the last row is a no-op (clamped, not wrapped).
+    root.trigger("keydown", { key: "ArrowDown" });
+    expect(w.emitted("select")!.slice(-1)[0][0]).toBe(last);
+    root.trigger("keydown", { key: "Home" });
+    expect(w.emitted("select")!.slice(-1)[0][0]).toBe("lane:design");
   });
 });

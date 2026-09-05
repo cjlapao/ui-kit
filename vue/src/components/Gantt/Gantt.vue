@@ -118,6 +118,11 @@ export interface GanttProps {
    * `JSON.stringify` to save; parse and pass back to restore.
    */
   columnWidths?: Record<string, number>;
+  /**
+   * Locale for the scale/date labels. Defaults to the active kit i18n
+   * locale (built-in English when no provider is mounted).
+   */
+  locale?: string;
 }
 
 export interface GanttEmits {
@@ -134,6 +139,7 @@ export interface GanttEmits {
 <script setup lang="ts">
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import classNames from "classnames";
+import { useKitLocale, useKitT } from "../../i18n";
 import {
   GANTT_MAX_ZOOM,
   GANTT_MIN_ZOOM,
@@ -159,7 +165,6 @@ import {
   reorderPreviewTop,
   reorderDragSubtree,
 } from "../../../../common/gantt";
-import { mergeGanttLabels } from "./labels";
 import Panel from "../Panel.vue";
 import VNodeRenderer from "../internal/VNodeRenderer";
 import { getSurfaceTextTokens, getSurfaceVariantClasses } from "../../theme/Theme";
@@ -187,6 +192,10 @@ const props = withDefaults(defineProps<GanttProps>(), {
   resizableColumns: false,
 });
 const emit = defineEmits<GanttEmits>();
+const t = useKitT();
+const kitLocale = useKitLocale();
+// Explicit prop wins; otherwise follow the app's active i18n locale.
+const dateLocale = computed(() => props.locale ?? kitLocale.value);
 
 const HEADER_HEIGHT = 52;
 /** Grip/caret column width (w-9 = 36px) — part of the left block, so
@@ -202,8 +211,35 @@ const DEFAULT_COLUMNS: GanttColumn[] = [
 /** Smallest a resized column may be shrunk to. */
 const MIN_COL_WIDTH = 80;
 
-const resolvedColumns = computed<GanttColumn[]>(() => props.columns ?? DEFAULT_COLUMNS);
-const allLabels = computed<GanttLabels>(() => mergeGanttLabels(props.labels));
+const resolvedColumns = computed<GanttColumn[]>(() =>
+  // The built-in columns' titles follow the resolved labels, so the
+  // default header translates with the kit locale.
+  props.columns ??
+  DEFAULT_COLUMNS.map((c) => ({
+    ...c,
+    title:
+      c.key === "name"
+        ? allLabels.value.task
+        : c.key === "owner"
+          ? t("kit.gantt.colOwner")
+          : t("kit.gantt.colProgress"),
+  })),
+);
+// Copy resolution: `labels` prop > kit.gantt catalog (translated) >
+// nothing (the catalog always resolves through the engine's en fallback).
+const allLabels = computed<GanttLabels>(() => ({
+  loading: t("kit.gantt.loading"),
+  empty: t("kit.gantt.empty"),
+  today: t("kit.gantt.today"),
+  select: t("kit.gantt.select"),
+  move: t("kit.gantt.move"),
+  resize: t("kit.gantt.resize"),
+  link: t("kit.gantt.link"),
+  progress: t("kit.gantt.progress"),
+  duration: t("kit.gantt.duration"),
+  task: t("kit.gantt.task"),
+  ...props.labels,
+}));
 const accentColor = computed<TrueColor>(() => props.color);
 
 // Surface chrome derived from the variant — one source for the container,
@@ -321,7 +357,9 @@ const range = computed(() => {
   return computeViewRange(starts, ends);
 });
 const timelineWidth = computed(() => rangeWidth(range.value.start, range.value.end, zoom.value));
-const scaleLevels = computed(() => buildTimeScale(range.value.start, range.value.end, zoom.value));
+const scaleLevels = computed(() =>
+  buildTimeScale(range.value.start, range.value.end, zoom.value, dateLocale.value),
+);
 const leftWidth = computed(() =>
   GRIP_WIDTH +
     resolvedColumns.value.reduce((sum, c) => sum + effectiveColWidth(c), 0),
@@ -567,15 +605,74 @@ const deleteSelectedLink = () => {
 
 // Delete key removes the selected link; Escape deselects (the chart gains
 // focus the moment a link is selected, so these fire right after a click).
+// Otherwise the chart itself is keyboard-navigable from its focusable
+// root: ArrowUp/ArrowDown walk the selection across visible rows (bars
+// use Left/Right for date nudging), Home/End jump to the first/last row,
+// and +/- zoom. Keys a focused bar already handled don't reach here.
+const moveSelection = (where: 1 | -1 | "first" | "last") => {
+  const rows = model.value.rows;
+  if (!rows.length) return;
+  const keyOf = (r: (typeof rows)[number]) => (r.task ? r.task.id : `lane:${r.lane?.id ?? ""}`);
+  const idx = rows.findIndex((r) => keyOf(r) === selectedId.value);
+  const next =
+    where === "first"
+      ? rows[0]
+      : where === "last"
+        ? rows[rows.length - 1]
+        : idx === -1
+          ? where === -1
+            ? rows[rows.length - 1]
+            : rows[0]
+          : rows[Math.min(rows.length - 1, Math.max(0, idx + where))];
+  if (!next) return;
+  setSelected(keyOf(next));
+  // Keep the moved-to row in view inside the scroller.
+  (rootRef.value?.$el as HTMLElement | undefined)
+    ?.querySelector(`[data-row-key="${next.key}"]`)
+    ?.scrollIntoView?.({ block: "nearest" });
+};
+
 const onRootKeyDown = (e: KeyboardEvent) => {
-  if (!dragApi.linkSelected.value) return;
-  if (e.key === "Escape") {
-    dragApi.setLinkSelected(null);
+  if (dragApi.linkSelected.value) {
+    if (e.key === "Escape") {
+      dragApi.setLinkSelected(null);
+      return;
+    }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      deleteSelectedLink();
+    }
     return;
   }
-  if (e.key === "Delete" || e.key === "Backspace") {
-    e.preventDefault();
-    deleteSelectedLink();
+  switch (e.key) {
+    case "ArrowDown":
+      e.preventDefault();
+      moveSelection(1);
+      break;
+    case "ArrowUp":
+      e.preventDefault();
+      moveSelection(-1);
+      break;
+    case "Home":
+      e.preventDefault();
+      moveSelection("first");
+      break;
+    case "End":
+      e.preventDefault();
+      moveSelection("last");
+      break;
+    case "+":
+    case "=":
+      e.preventDefault();
+      setZoom(zoom.value * 1.25);
+      break;
+    case "-":
+    case "_":
+      e.preventDefault();
+      setZoom(zoom.value / 1.25);
+      break;
+    default:
+      break;
   }
 };
 
@@ -768,7 +865,7 @@ const colJustify = (col: GanttColumn) =>
     :style="{ height: typeof height === 'number' ? `${height}px` : height }"
     data-gantt
     tabindex="0"
-    aria-label="Gantt chart"
+    :aria-label="t('kit.gantt.root')"
     @keydown="onRootKeyDown"
     @pointerdown="handleRootPointerDown"
   >
@@ -853,7 +950,7 @@ const colJustify = (col: GanttColumn) =>
               data-gantt-col-resize="true"
               :data-col-key="col.key"
               class="group/rh absolute inset-y-0 -right-px z-10 flex w-2 cursor-col-resize select-none items-stretch justify-end"
-              :title="`Resize ${col.title} column`"
+              :title="t('kit.gantt.resizeColumn', { column: col.title })"
               @pointerdown.prevent.stop="startColumnResize($event, col.key)"
             >
               <div
@@ -979,6 +1076,7 @@ const colJustify = (col: GanttColumn) =>
             :fan-in="row.task ? linkFan.bars.get(row.task.id)?.inc : undefined"
             :selected="row.task ? row.task.id === selectedId : selectedId === `lane:${row.lane?.id ?? ''}`"
             :labels="allLabels"
+            :locale="dateLocale"
             :render-cell="renderCell"
             :render-bar="renderBar"
             :drag="drag"
@@ -1076,6 +1174,7 @@ const colJustify = (col: GanttColumn) =>
                 :fan-in="subRow.task ? linkFan.bars.get(subRow.task.id)?.inc : undefined"
                 :selected="subRow.task ? subRow.task.id === selectedId : false"
                 :labels="allLabels"
+                :locale="dateLocale"
                 :render-cell="renderCell"
                 :render-bar="renderBar"
                 :drag="drag"

@@ -93,3 +93,12 @@ export function useKitT(): (
 ) => string {
   return bind(resolveEngine(), true).t;
 }
+
+/**
+ * The internal kit LOCALE — provider engine or the built-in default —
+ * reactive, **never warns**. Kit components thread this into their `Intl`
+ * formatters; mirroring the React `useKitEngine().locale`.
+ */
+export function useKitLocale(): Ref<string> {
+  return bind(resolveEngine(), true).locale;
+}

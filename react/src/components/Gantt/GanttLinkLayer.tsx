@@ -15,6 +15,7 @@
  */
 
 import { forwardRef, useRef } from "react";
+import { useKitT } from "../../i18n";
 import {
   GanttLink,
   GanttLinkPath,
@@ -66,6 +67,7 @@ export const GanttLinkLayer = forwardRef<HTMLDivElement, GanttLinkLayerProps>(
     },
     ref,
   ) {
+    const t = useKitT();
     const svgRef = useRef<SVGSVGElement | null>(null);
     const selPath = selected ? paths.find((p) => p.link === selected) : undefined;
     const selColor = selPath ? (selPath.color ?? color) : color;
@@ -202,9 +204,9 @@ export const GanttLinkLayer = forwardRef<HTMLDivElement, GanttLinkLayerProps>(
               color: `var(--color-${selColor}-700)`,
             }}
             onClick={() => onDeleteLink!(selected!)}
-            title="Remove this dependency (or press Delete)"
+            title={t("kit.gantt.removeDependency")}
           >
-            <span aria-hidden>✕</span> Delete
+            <span aria-hidden>✕</span> {t("kit.gantt.delete")}
           </button>
         )}
       </div>

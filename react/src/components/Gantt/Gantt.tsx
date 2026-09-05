@@ -69,6 +69,7 @@ import {
 import { getSurfaceTextTokens, getSurfaceVariantClasses } from "../../theme/Theme";
 import Panel, { type PanelCorner, type PanelPadding, type PanelVariant } from "../Panel";
 import type { GlassOpacity, GlassVibrancy } from "../../theme/glass";
+import { useKitEngine, useKitT } from "../../i18n";
 import { GanttScale } from "./GanttScale";
 import { GanttLinkLayer } from "./GanttLinkLayer";
 import { GanttBodyRow } from "./GanttBodyRow";
@@ -204,6 +205,11 @@ export interface GanttProps {
   columnWidths?: Record<string, number>;
   /** Called when the user finishes resizing a column. Receives the full updated widths map. */
   onColumnWidthChange?: (widths: Record<string, number>) => void;
+  /**
+   * Locale for the scale/date labels. Defaults to the active kit i18n
+   * locale (built-in English when no provider is mounted).
+   */
+  locale?: string;
 }
 
 /** Merge user copy with the defaults. */
@@ -251,12 +257,46 @@ export const Gantt: React.FC<GanttProps> = ({
   resizableColumns = false,
   columnWidths,
   onColumnWidthChange,
+  locale,
 }) => {
-  const resolvedColumns = columns ?? DEFAULT_COLUMNS;
   // `false` counts as absent (React idiom — and Vue boolean-casts
   // VNode-typed props to `false` when they are not passed).
   const hasNode = (v: unknown) => v != null && v !== false;
-  const allLabels = useMemo(() => mergeGanttLabels(labels), [labels]);
+  const t = useKitT();
+  const kitEngine = useKitEngine();
+  // Explicit prop wins; otherwise follow the app's active i18n locale.
+  const dateLocale = locale ?? kitEngine.locale;
+  // Copy resolution: `labels` prop > kit.gantt catalog (translated) >
+  // nothing (the catalog always resolves through the engine's en fallback).
+  const allLabels = useMemo<GanttLabels>(
+    () => ({
+      loading: t("kit.gantt.loading"),
+      empty: t("kit.gantt.empty"),
+      today: t("kit.gantt.today"),
+      select: t("kit.gantt.select"),
+      move: t("kit.gantt.move"),
+      resize: t("kit.gantt.resize"),
+      link: t("kit.gantt.link"),
+      progress: t("kit.gantt.progress"),
+      duration: t("kit.gantt.duration"),
+      task: t("kit.gantt.task"),
+      ...labels,
+    }),
+    [t, labels],
+  );
+  const resolvedColumns =
+    columns ??
+    // The built-in columns' titles follow the resolved labels, so the
+    // default header translates with the kit locale.
+    DEFAULT_COLUMNS.map((c) => ({
+      ...c,
+      title:
+        c.key === "name"
+          ? allLabels.task
+          : c.key === "owner"
+            ? t("kit.gantt.colOwner")
+            : t("kit.gantt.colProgress"),
+    }));
   const interactive =
     editable ?? Boolean(onTasksChange || onLinksChange || onReorder);
 
@@ -374,8 +414,8 @@ export const Gantt: React.FC<GanttProps> = ({
 
   const timelineWidth = rangeWidth(range.start, range.end, zoom);
   const scaleLevels = useMemo(
-    () => buildTimeScale(range.start, range.end, zoom),
-    [range, zoom],
+    () => buildTimeScale(range.start, range.end, zoom, dateLocale),
+    [range, zoom, dateLocale],
   );
 
   // ── Column widths (drag-to-resize) ─────────────────────────────────────────
@@ -680,19 +720,83 @@ export const Gantt: React.FC<GanttProps> = ({
 
   // Delete key removes the selected link; Escape deselects (only when the
   // chart has focus — it gains focus the moment a link is selected).
+  // Otherwise the chart itself is keyboard-navigable from its focusable
+  // root: ArrowUp/ArrowDown walk the selection across visible rows
+  // (bars use Left/Right for date nudging), Home/End jump to the first/
+  // last row, and +/- zoom. Keys a focused bar already handles bubble
+  // here only when the bar passed on them.
+  const moveSelection = useCallback(
+    (where: 1 | -1 | "first" | "last") => {
+      const rows = liveModel.rows;
+      if (!rows.length) return;
+      const keyOf = (r: (typeof rows)[number]) =>
+        r.task ? r.task.id : `lane:${r.lane?.id ?? ""}`;
+      const idx = rows.findIndex((r) => keyOf(r) === selectedId);
+      const next =
+        where === "first"
+          ? rows[0]
+          : where === "last"
+            ? rows[rows.length - 1]
+            : idx === -1
+              ? where === -1
+                ? rows[rows.length - 1]
+                : rows[0]
+              : rows[Math.min(rows.length - 1, Math.max(0, idx + where))];
+      if (!next) return;
+      setSelected(keyOf(next));
+      // Keep the moved-to row in view inside the scroller.
+      rootRef.current
+        ?.querySelector(`[data-row-key="${next.key}"]`)
+        ?.scrollIntoView?.({ block: "nearest" });
+    },
+    [liveModel.rows, selectedId, setSelected],
+  );
+
   const onRootKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (!dragApi.linkSelected) return;
-      if (e.key === "Escape") {
-        dragApi.setLinkSelected(null);
+      if (dragApi.linkSelected) {
+        if (e.key === "Escape") {
+          dragApi.setLinkSelected(null);
+          return;
+        }
+        if (e.key === "Delete" || e.key === "Backspace") {
+          e.preventDefault();
+          deleteSelectedLink();
+        }
         return;
       }
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        deleteSelectedLink();
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          moveSelection(1);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          moveSelection(-1);
+          break;
+        case "Home":
+          e.preventDefault();
+          moveSelection("first");
+          break;
+        case "End":
+          e.preventDefault();
+          moveSelection("last");
+          break;
+        case "+":
+        case "=":
+          e.preventDefault();
+          setZoom(zoom * 1.25);
+          break;
+        case "-":
+        case "_":
+          e.preventDefault();
+          setZoom(zoom / 1.25);
+          break;
+        default:
+          break;
       }
     },
-    [dragApi, deleteSelectedLink],
+    [dragApi, deleteSelectedLink, moveSelection, setZoom, zoom],
   );
 
   // Select a link and move focus to the chart so the Delete key works right
@@ -858,7 +962,7 @@ export const Gantt: React.FC<GanttProps> = ({
       style={{ height }}
       data-gantt
       tabIndex={0}
-      aria-label="Gantt chart"
+      aria-label={t("kit.gantt.root")}
       onKeyDown={onRootKeyDown}
       onPointerDown={handleRootPointerDown}
     >
@@ -959,7 +1063,7 @@ export const Gantt: React.FC<GanttProps> = ({
                     data-gantt-col-resize={col.key}
                     className="group/rh absolute inset-y-0 -right-px z-10 flex w-2 cursor-col-resize select-none items-stretch justify-end"
                     onPointerDown={(e) => startColumnResize(e, col.key)}
-                    title={`Resize ${col.title} column`}
+                    title={t("kit.gantt.resizeColumn", { column: col.title })}
                   >
                     <div
                       className="h-full w-px bg-neutral-300 transition-colors group-hover/rh:bg-neutral-400 dark:bg-neutral-600 dark:group-hover/rh:bg-neutral-500"
@@ -1092,6 +1196,7 @@ export const Gantt: React.FC<GanttProps> = ({
                     row.task ? row.task.id === selectedId : selectedId === `lane:${row.lane?.id ?? ""}`
                   }
                   labels={allLabels}
+                  locale={dateLocale}
                   renderCell={renderCell}
                   renderBar={renderBar}
                   drag={drag}
@@ -1201,6 +1306,7 @@ export const Gantt: React.FC<GanttProps> = ({
                           fanIn={row.task ? linkFan.bars.get(row.task.id)?.inc : undefined}
                           selected={row.task ? row.task.id === selectedId : false}
                           labels={allLabels}
+                          locale={dateLocale}
                           renderCell={renderCell}
                           renderBar={renderBar}
                           drag={drag}
@@ -1235,7 +1341,7 @@ export const Gantt: React.FC<GanttProps> = ({
                     top: (drag.y ?? 0) - 24,
                   }}
                 >
-                  {formatRangeLabel(liveDragDates.start, liveDragDates.end, zoom)}
+                  {formatRangeLabel(liveDragDates.start, liveDragDates.end, zoom, dateLocale)}
                 </div>
               )}
             </div>
@@ -1249,9 +1355,9 @@ export const Gantt: React.FC<GanttProps> = ({
 
 Gantt.displayName = "Gantt";
 
-function formatRangeLabel(start: number, end: number, zoom: number): string {
+function formatRangeLabel(start: number, end: number, zoom: number, locale?: string): string {
   const fmt = (ms: number) =>
-    new Intl.DateTimeFormat("en", {
+    new Intl.DateTimeFormat(locale ?? "en", {
       day: "numeric",
       month: "short",
       ...(zoom >= 24 ? { hour: "2-digit", minute: "2-digit" } : {}),

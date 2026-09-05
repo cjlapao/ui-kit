@@ -18,6 +18,8 @@ export interface GanttTaskBarProps {
   fanIn?: number[];
   selected: boolean;
   labels: GanttLabels;
+  /** Locale for date/aria strings. */
+  locale?: string;
   isDraggingThis: boolean;
   liveDates: { start: number; end: number } | null;
   /** Live percent complete (0..1) while this bar's progress knob is dragged. */
@@ -48,6 +50,7 @@ import {
   toMs,
   dateToX,
 } from "../../../../common/gantt";
+import { useKitT } from "../../i18n";
 import VNodeRenderer from "../internal/VNodeRenderer";
 
 const BAR_HEIGHT = 24;
@@ -56,6 +59,7 @@ const MILESTONE_SIZE = 14;
 defineOptions({ name: "GanttTaskBar" });
 const props = defineProps<GanttTaskBarProps>();
 const emit = defineEmits<GanttTaskBarEmits>();
+const t = useKitT();
 
 const milestone = computed(() => props.task.type === "milestone");
 const tokens = computed(() => getGanttBarTokens(props.task.color ?? props.color));
@@ -95,16 +99,25 @@ const canEdit = computed(() => props.interactive && !props.task.locked);
 const inSlot = computed(() => fanHandleOffset(BAR_HEIGHT, props.fanIn ?? []));
 const outSlot = computed(() => fanHandleOffset(BAR_HEIGHT, props.fanOut ?? []));
 
-const ariaLabel = computed(
-  () =>
-    `${props.task.name}: ${formatDateTime(startMs.value)} to ${formatDateTime(endMs.value)}, ${
-      milestone.value ? "milestone" : `${formatDuration(startMs.value, endMs.value)}, ${progressPct.value}% complete`
-    }`,
+const ariaLabel = computed(() =>
+  milestone.value
+    ? t("kit.gantt.barAriaMilestone", {
+        task: props.task.name,
+        start: formatDateTime(startMs.value, props.locale),
+        end: formatDateTime(endMs.value, props.locale),
+      })
+    : t("kit.gantt.barAria", {
+        task: props.task.name,
+        start: formatDateTime(startMs.value, props.locale),
+        end: formatDateTime(endMs.value, props.locale),
+        duration: formatDuration(startMs.value, endMs.value),
+        pct: progressPct.value,
+      }),
 );
 
 const barTitle = computed(
   () =>
-    `${props.task.name} · ${formatDateTime(startMs.value)} → ${formatDateTime(endMs.value)} · ${progressPct.value}%`,
+    `${props.task.name} · ${formatDateTime(startMs.value, props.locale)} → ${formatDateTime(endMs.value, props.locale)} · ${progressPct.value}%`,
 );
 
 const renderBarNode = computed(() => {
@@ -221,7 +234,7 @@ const renderBarNode = computed(() => {
       <template v-if="canEdit">
         <div
           class="absolute inset-y-0 -left-1 z-20 w-2 cursor-ew-resize touch-none"
-          title="Resize start"
+          :title="t('kit.gantt.resizeStart')"
           aria-hidden="true"
           @pointerdown="emit('resize-pointer-down', task, 'start', $event)"
         >
@@ -229,7 +242,7 @@ const renderBarNode = computed(() => {
         </div>
         <div
           class="absolute inset-y-0 -right-1 z-20 w-2 cursor-ew-resize touch-none"
-          title="Resize end"
+          :title="t('kit.gantt.resizeEnd')"
           aria-hidden="true"
           @pointerdown="emit('resize-pointer-down', task, 'end', $event)"
         >
@@ -243,7 +256,7 @@ const renderBarNode = computed(() => {
           class="absolute -left-1.5 z-30 h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-neutral-400 bg-white opacity-0 shadow-sm transition-opacity hover:scale-125 group-hover/bar:opacity-100 focus-visible:opacity-100 dark:border-neutral-300 dark:bg-neutral-800"
           :style="{ top: `calc(50% + ${inSlot}px)` }"
           :title="labels.link"
-          :aria-label="`${labels.link} from start of ${task.name}`"
+          :aria-label="t('kit.gantt.linkFromStart', { task: task.name })"
           @pointerdown="emit('link-handle-pointer-down', task, -1, $event, inSlot)"
         />
         <button
@@ -251,7 +264,7 @@ const renderBarNode = computed(() => {
           class="absolute -right-1.5 z-30 h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-neutral-400 bg-white opacity-0 shadow-sm transition-opacity hover:scale-125 group-hover/bar:opacity-100 focus-visible:opacity-100 dark:border-neutral-300 dark:bg-neutral-800"
           :style="{ top: `calc(50% + ${outSlot}px)` }"
           :title="labels.link"
-          :aria-label="`${labels.link} from end of ${task.name}`"
+          :aria-label="t('kit.gantt.linkFromEnd', { task: task.name })"
           @pointerdown="emit('link-handle-pointer-down', task, 1, $event, outSlot)"
         />
       </template>

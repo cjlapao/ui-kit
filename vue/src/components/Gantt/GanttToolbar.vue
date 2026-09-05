@@ -15,6 +15,7 @@ export interface GanttToolbarEmits {
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useKitT } from "../../i18n";
 import classNames from "classnames";
 import { getSurfaceVariantClasses } from "../../theme/Theme";
 import Button from "../Button.vue";
@@ -24,6 +25,15 @@ const props = withDefaults(defineProps<GanttToolbarProps>(), {
   variant: "elevated",
 });
 const emit = defineEmits<GanttToolbarEmits>();
+const t = useKitT();
+// Preset labels come from the kit catalog; the engine constant only
+// carries the machine English names.
+const ZOOM_LABELS: Record<string, string> = {
+  Day: t("kit.gantt.zoomDay"),
+  Week: t("kit.gantt.zoomWeek"),
+  Month: t("kit.gantt.zoomMonth"),
+  Quarter: t("kit.gantt.zoomQuarter"),
+};
 
 /** Nearest preset to a zoom value, by relative distance. */
 function nearestPreset(zoom: number, presets: GANTT_ZOOM_PRESET[]): number | null {
@@ -65,14 +75,14 @@ const chrome = computed(() => getSurfaceVariantClasses(props.variant, "neutral")
         "
         @click="emit('zoom-to', p.value)"
       >
-        {{ p.label }}
+        {{ ZOOM_LABELS[p.label] ?? p.label }}
       </button>
     </div>
     <div class="mx-0.5 h-4 w-px bg-neutral-200 dark:bg-neutral-700" />
-    <Button variant="ghost" size="xs" aria-label="Zoom out" @click="emit('zoom-by', 1 / 1.25)">
+    <Button variant="ghost" size="xs" :aria-label="t('kit.gantt.zoomOut')" @click="emit('zoom-by', 1 / 1.25)">
       <span class="text-xs font-semibold leading-none">−</span>
     </Button>
-    <Button variant="ghost" size="xs" aria-label="Zoom in" @click="emit('zoom-by', 1.25)">
+    <Button variant="ghost" size="xs" :aria-label="t('kit.gantt.zoomIn')" @click="emit('zoom-by', 1.25)">
       <span class="text-xs font-semibold leading-none">+</span>
     </Button>
   </div>

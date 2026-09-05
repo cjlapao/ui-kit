@@ -5,6 +5,7 @@
 
 import React, { useMemo } from "react";
 import classNames from "classnames";
+import { useKitT } from "../../i18n";
 
 import {
   GanttBarGeometry,
@@ -42,6 +43,8 @@ interface GanttBodyRowProps {
   fanIn?: number[];
   selected: boolean;
   labels: GanttLabels;
+  /** Locale for date/aria strings. */
+  locale?: string;
   renderCell?: (value: unknown, task: GanttTask, column: GanttColumn) => React.ReactNode;
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => React.ReactNode;
   drag: { taskId: string; kind: string } | null;
@@ -82,6 +85,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
   fanIn,
   selected,
   labels,
+  locale,
   renderCell,
   renderBar,
   drag,
@@ -101,6 +105,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
   selectionTokens,
   dividerClass = "border-neutral-100 dark:border-neutral-800",
 }) => {
+  const t = useKitT();
   const isDraggingThis = row.task != null && drag?.taskId === row.task.id;
   // While this row's reorder drag is live, the row sits in its previewed
   // slot (fully visible) with an accent cue on the grip and the row itself.
@@ -167,7 +172,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
                     reorderDragging ? { color: `var(--color-${color}-500)` } : undefined
                   }
                   onPointerDown={(e) => onGripPointerDown(row.key, row.task!, e)}
-                  title="Drag to reorder"
+                  title={t("kit.gantt.dragReorder")}
                   aria-hidden="true"
                 >
                   <Drag className="h-3.5 w-3.5" />
@@ -209,6 +214,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
               fanIn={fanIn}
               selected={selected}
               labels={labels}
+              locale={locale}
               isDraggingThis={isDraggingThis}
               liveDates={isDraggingThis ? liveDates : null}
               liveProgress={isDraggingThis ? liveProgress : null}
@@ -243,6 +249,7 @@ const LaneHeader: React.FC<{
   /** Live lane roll-up (0..1) while one of the lane's children is dragged. */
   liveProgress?: number | null;
 }> = ({ row, columns, leftWidth, color, onCaretClick, dividerClass = "border-neutral-200 dark:border-neutral-800", liveProgress }) => {
+  const t = useKitT();
   const lane = row.lane!;
   const laneColor = lane.color ?? color;
   const tokens = getGanttLaneTokens(laneColor);
@@ -267,7 +274,7 @@ const LaneHeader: React.FC<{
             type="button"
             className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-400 dark:hover:bg-white/10"
             onClick={() => onCaretClick(lane.id, isOpen)}
-            aria-label={`${isOpen ? "Collapse" : "Expand"} ${lane.label}`}
+            aria-label={t(isOpen ? "kit.gantt.collapse" : "kit.gantt.expand", { name: lane.label })}
           >
             <ChevronRight className={classNames("h-3 w-3 transition-transform", isOpen && "rotate-90")} />
           </button>
@@ -327,6 +334,7 @@ const Cell: React.FC<{
   rowProgress?: number | null;
   dividerClass?: string;
 }> = ({ col, task, depth, isGroup, childCount, first, onCaretClick, renderCell, liveProgress, liveRollup, rowProgress, dividerClass = "border-neutral-100 dark:border-neutral-800" }) => {
+  const t = useKitT();
   const value =
     col.key === "name"
       ? task.name
@@ -359,7 +367,7 @@ const Cell: React.FC<{
                 type="button"
                 className="flex h-4 w-4 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:hover:bg-white/10 dark:hover:text-neutral-300"
                 onClick={() => onCaretClick(task.id, task.open !== false)}
-                aria-label={`${task.open === false ? "Expand" : "Collapse"} ${task.name}`}
+                aria-label={t(task.open === false ? "kit.gantt.expand" : "kit.gantt.collapse", { name: task.name })}
               >
                 <ChevronRight className={classNames("h-3 w-3 transition-transform", task.open !== false && "rotate-90")} />
               </button>
@@ -445,6 +453,8 @@ const TaskBar: React.FC<{
   fanIn?: number[];
   selected: boolean;
   labels: GanttLabels;
+  /** Locale for date/aria strings. */
+  locale?: string;
   isDraggingThis: boolean;
   liveDates: { start: number; end: number } | null;
   /** Live percent complete (0..1) while this bar's progress knob is dragged. */
@@ -470,6 +480,7 @@ const TaskBar: React.FC<{
   fanIn,
   selected,
   labels,
+  locale,
   liveDates,
   liveProgress,
   liveRollup,
@@ -482,6 +493,7 @@ const TaskBar: React.FC<{
   onBarKeyDown,
   selectionTokens,
 }) => {
+  const t = useKitT();
   const milestone = task.type === "milestone";
   const barColor = task.color ?? color;
   const tokens = useMemo(() => getGanttBarTokens(barColor), [barColor]);
@@ -511,9 +523,19 @@ const TaskBar: React.FC<{
   const inSlot = fanHandleOffset(BAR_HEIGHT, fanIn ?? []);
   const outSlot = fanHandleOffset(BAR_HEIGHT, fanOut ?? []);
 
-  const ariaLabel = `${task.name}: ${formatDateTime(startMs)} to ${formatDateTime(endMs)}, ${
-    milestone ? "milestone" : `${formatDuration(startMs, endMs)}, ${progressPct}% complete`
-  }`;
+  const ariaLabel = milestone
+    ? t("kit.gantt.barAriaMilestone", {
+        task: task.name,
+        start: formatDateTime(startMs, locale),
+        end: formatDateTime(endMs, locale),
+      })
+    : t("kit.gantt.barAria", {
+        task: task.name,
+        start: formatDateTime(startMs, locale),
+        end: formatDateTime(endMs, locale),
+        duration: formatDuration(startMs, endMs),
+        pct: progressPct,
+      });
 
   if (milestone) {
     return (
@@ -544,7 +566,7 @@ const TaskBar: React.FC<{
       role="button"
       tabIndex={0}
       aria-label={ariaLabel}
-      title={`${task.name} · ${formatDateTime(startMs)} → ${formatDateTime(endMs)} · ${progressPct}%`}
+      title={`${task.name} · ${formatDateTime(startMs, locale)} → ${formatDateTime(endMs, locale)} · ${progressPct}%`}
       data-gantt-bar={task.id}
       className={classNames(
         "group/bar absolute z-10 cursor-grab touch-none rounded-md shadow-sm outline-none transition-shadow active:cursor-grabbing",
@@ -611,7 +633,7 @@ const TaskBar: React.FC<{
           <div
             className="absolute inset-y-0 -left-1 z-20 w-2 cursor-ew-resize touch-none"
             onPointerDown={(e) => onResizePointerDown(task, "start", e)}
-            title="Resize start"
+            title={t("kit.gantt.resizeStart")}
             aria-hidden="true"
           >
             <div className="mx-auto h-full w-1 rounded-full bg-white/0 opacity-0 transition-opacity group-hover/bar:opacity-100" />
@@ -619,7 +641,7 @@ const TaskBar: React.FC<{
           <div
             className="absolute inset-y-0 -right-1 z-20 w-2 cursor-ew-resize touch-none"
             onPointerDown={(e) => onResizePointerDown(task, "end", e)}
-            title="Resize end"
+            title={t("kit.gantt.resizeEnd")}
             aria-hidden="true"
           >
             <div className="mx-auto h-full w-1 rounded-full bg-white/0 opacity-0 transition-opacity group-hover/bar:opacity-100" />
@@ -635,7 +657,7 @@ const TaskBar: React.FC<{
             style={{ top: `calc(50% + ${inSlot}px)` }}
             onPointerDown={(e) => onLinkHandlePointerDown(task, -1, e, inSlot)}
             title={labels.link}
-            aria-label={`${labels.link} from start of ${task.name}`}
+            aria-label={t("kit.gantt.linkFromStart", { task: task.name })}
           />
           <button
             type="button"
@@ -643,7 +665,7 @@ const TaskBar: React.FC<{
             style={{ top: `calc(50% + ${outSlot}px)` }}
             onPointerDown={(e) => onLinkHandlePointerDown(task, 1, e, outSlot)}
             title={labels.link}
-            aria-label={`${labels.link} from end of ${task.name}`}
+            aria-label={t("kit.gantt.linkFromEnd", { task: task.name })}
           />
         </>
       )}

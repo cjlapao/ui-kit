@@ -23,6 +23,8 @@ export interface GanttBodyRowProps {
   fanIn?: number[];
   selected: boolean;
   labels: GanttLabels;
+  /** Locale for date/aria strings. */
+  locale?: string;
   renderCell?: (value: unknown, task: GanttTask, column: GanttColumn) => VNodeChild | null;
   renderBar?: (task: GanttTask, geo: GanttBarGeometry) => VNodeChild;
   drag: { taskId: string; kind: string } | null;
@@ -55,6 +57,7 @@ export interface GanttBodyRowEmits {
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useKitT } from "../../i18n";
 import classNames from "classnames";
 import { getGanttLaneTokens } from "../../../../common/gantt";
 import GanttCell from "./GanttCell.vue";
@@ -65,6 +68,7 @@ import { useIconRenderer } from "../../contexts/IconContext";
 defineOptions({ name: "GanttBodyRow" });
 const props = defineProps<GanttBodyRowProps>();
 const emit = defineEmits<GanttBodyRowEmits>();
+const t = useKitT();
 const renderIcon = useIconRenderer();
 
 // Hairline colour following the Gantt's surface variant (solid → neutral,
@@ -136,7 +140,7 @@ const lanePct = computed(
           <button
             type="button"
             class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-400 dark:hover:bg-white/10"
-            :aria-label="`${laneIsOpen ? 'Collapse' : 'Expand'} ${lane.label}`"
+            :aria-label="t(laneIsOpen ? 'kit.gantt.collapse' : 'kit.gantt.expand', { name: lane.label })"
             @click="emit('lane-caret-click', lane.id, laneIsOpen)"
           >
             <VNodeRenderer
@@ -210,7 +214,7 @@ const lanePct = computed(
               )
             "
             :style="reorderDragging ? { color: `var(--color-${color}-500)` } : undefined"
-            title="Drag to reorder"
+            :title="t('kit.gantt.dragReorder')"
             aria-hidden="true"
             @pointerdown="emit('grip-pointer-down', row.key, row.task!, $event)"
           >
@@ -248,6 +252,7 @@ const lanePct = computed(
           :fan-in="fanIn"
           :selected="selected"
           :labels="labels"
+          :locale="locale"
           :is-dragging-this="isDraggingThis"
           :live-dates="isDraggingThis ? liveDates : null"
           :live-progress="isDraggingThis ? liveProgress : null"
