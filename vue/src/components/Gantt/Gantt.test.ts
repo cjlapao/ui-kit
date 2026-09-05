@@ -477,6 +477,21 @@ describe("Gantt (Vue)", () => {
     w.unmount();
   });
 
+  it("passes the surface corner and padding down to the panel", async () => {
+    const w = mountGantt();
+    // The Gantt template is multi-root (Panel + the teleported drag clone),
+    // so the wrapper element is a fragment anchor — find the Panel section.
+    // Defaults: rounded-sm token (rounded-lg class), p-0.
+    const root = () => (w.find("section[data-gantt]").element as HTMLElement).className;
+    expect(root()).toContain("rounded-lg");
+    expect(root()).toContain("p-0");
+    await w.setProps({ corner: "rounded-xl", padding: "md" });
+    // Semantic token steps: rounded-xl paints rounded-4xl, md is p-6 sm:p-8.
+    expect(root()).toContain("rounded-4xl");
+    expect(root()).toContain("p-6");
+    w.unmount();
+  });
+
   it("creates a dependency by dragging from a bar edge handle", async () => {
     const w = mountGantt({ links: [], editable: true });
     const range = computeViewRange(

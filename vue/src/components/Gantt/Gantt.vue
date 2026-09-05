@@ -12,10 +12,14 @@ import type {
   TrueColor,
 } from "../../../../common/gantt";
 import type { VNodeChild } from "vue";
-import type { PanelVariant } from "../Panel.vue";
+import type { PanelCorner, PanelPadding, PanelVariant } from "../Panel.vue";
 export type { GanttTask, GanttLink, GanttLane, GanttColumn, GanttSnap, GanttLabels, TrueColor };
 /** The Panel surface variant driving the Gantt chrome (re-exported name). */
 export type GanttVariant = PanelVariant;
+/** The shared container radius scale (re-exported Panel `corner` scale). */
+export type GanttCorner = PanelCorner;
+/** The shared container padding scale (re-exported Panel `padding` scale). */
+export type GanttPadding = PanelPadding;
 export { mergeGanttLabels } from "./labels";
 
 export interface GanttProps {
@@ -73,6 +77,28 @@ export interface GanttProps {
    * @default "elevated"
    */
   variant?: GanttVariant;
+  /**
+   * Corner radius of the panel surface — the shared container scale
+   * (same `corner` vocabulary as Panel).
+   * @default "rounded-sm"
+   */
+  corner?: GanttCorner;
+  /**
+   * Inset around the whole chart, inside the panel surface (Panel's
+   * `padding` pass-through). The header seam and sticky columns keep
+   * working — the chart is simply framed by the surface.
+   * @default "none"
+   */
+  padding?: GanttPadding;
+  /**
+   * Backdrop vibrancy for the liquid-glass variant (Panel pass-through).
+   */
+  vibrancy?: "low" | "medium" | "high" | number;
+  /**
+   * Glass fill opacity for the liquid-glass variant (Panel pass-through).
+   * @default "frosted"
+   */
+  glassOpacity?: "frosted" | "light" | "clear" | number;
   /** Show a loading skeleton. */
   loading?: boolean;
   /** Copy overrides. */
@@ -155,6 +181,8 @@ const props = withDefaults(defineProps<GanttProps>(), {
   height: 520,
   color: "blue",
   variant: "elevated",
+  corner: "rounded-sm",
+  padding: "none",
   loading: false,
   resizableColumns: false,
 });
@@ -730,8 +758,10 @@ const colJustify = (col: GanttColumn) =>
   <Panel
     ref="rootRef"
     :variant="variant"
-    padding="none"
-    corner="rounded-sm"
+    :padding="padding"
+    :corner="corner"
+    :vibrancy="vibrancy"
+    :glass-opacity="glassOpacity"
     :flex-body="true"
     :scrollable="false"
     class="select-none outline-none focus:outline-none"

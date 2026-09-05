@@ -10,7 +10,7 @@
  */
 
 export { Gantt, mergeGanttLabels } from "./Gantt";
-export type { GanttProps, GanttVariant } from "./Gantt";
+export type { GanttProps, GanttVariant, GanttCorner, GanttPadding } from "./Gantt";
 
 // Re-export the engine's public types/values so the data model is one import.
 export {

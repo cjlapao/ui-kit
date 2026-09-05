@@ -67,7 +67,8 @@ import {
   reorderDragSubtree,
 } from "../../../../common/gantt";
 import { getSurfaceTextTokens, getSurfaceVariantClasses } from "../../theme/Theme";
-import Panel, { type PanelVariant } from "../Panel";
+import Panel, { type PanelCorner, type PanelPadding, type PanelVariant } from "../Panel";
+import type { GlassOpacity, GlassVibrancy } from "../../theme/glass";
 import { GanttScale } from "./GanttScale";
 import { GanttLinkLayer } from "./GanttLinkLayer";
 import { GanttBodyRow } from "./GanttBodyRow";
@@ -77,6 +78,10 @@ import { useGanttDrag } from "./useGanttDrag";
 export type { GanttTask, GanttLink, GanttLane, GanttColumn, GanttSnap, GanttLabels, TrueColor };
 /** The Panel surface variant driving the Gantt chrome (re-exported name). */
 export type GanttVariant = PanelVariant;
+/** The shared container radius scale (re-exported Panel `corner` scale). */
+export type GanttCorner = PanelCorner;
+/** The shared container padding scale (re-exported Panel `padding` scale). */
+export type GanttPadding = PanelPadding;
 
 const HEADER_HEIGHT = 52;
 /** Grip/caret column width (w-9) — part of the left block, so `leftWidth`
@@ -154,6 +159,28 @@ export interface GanttProps {
    * @default "elevated"
    */
   variant?: GanttVariant;
+  /**
+   * Corner radius of the panel surface — the shared container scale
+   * (same `corner` vocabulary as Panel).
+   * @default "rounded-sm"
+   */
+  corner?: GanttCorner;
+  /**
+   * Inset around the whole chart, inside the panel surface (Panel's
+   * `padding` pass-through). The header seam and sticky columns keep
+   * working — the chart is simply framed by the surface.
+   * @default "none"
+   */
+  padding?: GanttPadding;
+  /**
+   * Backdrop vibrancy for the liquid-glass variant (Panel pass-through).
+   */
+  vibrancy?: GlassVibrancy;
+  /**
+   * Glass fill opacity for the liquid-glass variant (Panel pass-through).
+   * @default "frosted"
+   */
+  glassOpacity?: GlassOpacity;
   /** Show a loading skeleton. */
   loading?: boolean;
   /** Replace the built-in empty message. */
@@ -212,6 +239,10 @@ export const Gantt: React.FC<GanttProps> = ({
   height = 520,
   color = "blue",
   variant = "elevated",
+  corner = "rounded-sm",
+  padding = "none",
+  vibrancy,
+  glassOpacity,
   loading = false,
   emptyState,
   labels,
@@ -817,8 +848,10 @@ export const Gantt: React.FC<GanttProps> = ({
     <Panel
       ref={rootRef}
       variant={variant}
-      padding="none"
-      corner="rounded-sm"
+      padding={padding}
+      corner={corner}
+      vibrancy={vibrancy}
+      glassOpacity={glassOpacity}
       flexBody
       scrollable={false}
       className="select-none outline-none focus:outline-none"

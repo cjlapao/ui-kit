@@ -652,6 +652,24 @@ describe("Gantt component", () => {
     expect(widths.name).toBe(80);
   });
 
+  it("passes the surface corner and padding down to the panel", () => {
+    const { container, rerender } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} />,
+    );
+    const root = () => container.querySelector("section[data-gantt]")!;
+    // Defaults: the rounded-sm token (semantically 0.5rem → the rounded-lg
+    // class) and no padding — today's chrome.
+    expect(root().className).toContain("rounded-lg");
+    expect(root().className).toContain("p-0");
+    rerender(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} corner="rounded-xl" padding="md" />,
+    );
+    // Token names are semantic steps — the rounded-xl token paints
+    // rounded-4xl; the md padding step is p-6 sm:p-8.
+    expect(root().className).toContain("rounded-4xl");
+    expect(root().className).toContain("p-6");
+  });
+
   it("honours the initial columnWidths prop", () => {
     const { container } = render(
       <Gantt tasks={tasks} lanes={sampleGanttLanes} columnWidths={{ name: 300 }} />,

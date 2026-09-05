@@ -3,8 +3,10 @@ import {
   Gantt,
   Rocket,
   sampleGantt,
+  type GanttCorner,
   type GanttLane,
   type GanttLink,
+  type GanttPadding,
   type GanttSnap,
   type GanttTask,
   type GanttVariant,
@@ -35,6 +37,22 @@ const VARIANTS: { label: string; value: GanttVariant }[] = [
   { label: "Simple", value: "simple" },
 ];
 
+const CORNERS: { label: string; value: GanttCorner }[] = [
+  { label: "Sharp (none)", value: "none" },
+  { label: "Slight (rounded)", value: "rounded" },
+  { label: "Soft (rounded-sm)", value: "rounded-sm" },
+  { label: "Medium (rounded-md)", value: "rounded-md" },
+  { label: "Large (rounded-lg)", value: "rounded-lg" },
+  { label: "Extra (rounded-xl)", value: "rounded-xl" },
+];
+const PADDINGS: { label: string; value: GanttPadding }[] = [
+  { label: "None", value: "none" },
+  { label: "Extra small", value: "xs" },
+  { label: "Small", value: "sm" },
+  { label: "Medium", value: "md" },
+  { label: "Large", value: "lg" },
+  { label: "Extra large", value: "xl" },
+];
 const LANES: GanttLane[] = sampleGantt.lanes;
 const INITIAL_TASKS = sampleGantt.tasks();
 const INITIAL_LINKS = sampleGantt.links();
@@ -45,6 +63,8 @@ export const GanttPlayground: React.FC = () => {
   const [rowOrder, setRowOrder] = useState<string[] | undefined>(undefined);
   const [accent, setAccent] = useState<TrueColor>("blue");
   const [variant, setVariant] = useState<GanttVariant>("elevated");
+  const [corner, setCorner] = useState<GanttCorner>("rounded-sm");
+  const [padding, setPadding] = useState<GanttPadding>("none");
   const [snap, setSnap] = useState<GanttSnap>("day");
   const [editable, setEditable] = useState(true);
   const [showToday, setShowToday] = useState(true);
@@ -63,6 +83,8 @@ export const GanttPlayground: React.FC = () => {
     setLinks(INITIAL_LINKS);
     setRowOrder(undefined);
     setVariant("elevated");
+    setCorner("rounded-sm");
+    setPadding("none");
     setColumnWidths({});
     setLog([]);
   };
@@ -100,6 +122,18 @@ export const GanttPlayground: React.FC = () => {
             options={SNAPS}
             value={snap}
             onChange={(v) => setSnap(v as GanttSnap)}
+          />
+          <SelectControl
+            label="Corner"
+            options={CORNERS}
+            value={corner}
+            onChange={(v) => setCorner(v as GanttCorner)}
+          />
+          <SelectControl
+            label="Padding"
+            options={PADDINGS}
+            value={padding}
+            onChange={(v) => setPadding(v as GanttPadding)}
           />
           <div className="flex flex-col gap-2.5">
             <ToggleRow
@@ -151,6 +185,8 @@ export const GanttPlayground: React.FC = () => {
             rowOrder={rowOrder}
             color={accent}
             variant={variant}
+            corner={corner}
+            padding={padding}
             snap={snap}
             editable={editable}
             showToday={showToday}

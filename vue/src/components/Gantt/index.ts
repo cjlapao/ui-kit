@@ -13,7 +13,13 @@
  */
 
 export { default as Gantt } from "./Gantt.vue";
-export type { GanttProps, GanttEmits, GanttVariant } from "./Gantt.vue";
+export type {
+  GanttProps,
+  GanttEmits,
+  GanttVariant,
+  GanttCorner,
+  GanttPadding,
+} from "./Gantt.vue";
 export { mergeGanttLabels } from "./labels";
 
 // Engine values.
