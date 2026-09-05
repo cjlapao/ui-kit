@@ -250,6 +250,10 @@ export {
 } from "./GlassBackground.vue";
 
 // Layout
+export { default as Toolbar } from "./Toolbar.vue";
+export { default as PageHeader } from "./PageHeader.vue";
+export { default as ScrollArea } from "./ScrollArea.vue";
+export { default as ColorSwatches } from "./ColorSwatches.vue";
 export {
   default as TruncatedText,
   type TruncatedTextProps,
@@ -331,8 +335,13 @@ export {
 // User
 export {
   default as UserAvatar,
+  USER_AVATAR_SHAPES,
+  USER_AVATAR_PRESET_SIZES,
   type UserAvatarProps,
   type UserAvatarUser,
+  type UserAvatarShape,
+  type UserAvatarPresetSize,
+  type UserAvatarSize,
 } from "./UserAvatar.vue";
 
 // Complex

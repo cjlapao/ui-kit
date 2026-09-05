@@ -163,8 +163,11 @@ export interface PanelProps extends Omit<
  * it comes from `getSurfaceTextTokens(variant)`, so the translucent variants
  * automatically get the higher-contrast copy instead of each entry carrying
  * its own hardcoded `text-neutral-*` pair that only worked on an opaque card.
+ *
+ * Exported so other surface components (`Toolbar`) paint the shared variant
+ * set from the same map — aliased, not redeclared, so they cannot drift.
  */
-const variantBaseStyles: Record<PanelVariant, string> = {
+export const variantBaseStyles: Record<PanelVariant, string> = {
   elevated:
     "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10",
   // A real 1px border, not a ring. `ring-1` with no ring colour resolves to
@@ -186,7 +189,7 @@ const variantBaseStyles: Record<PanelVariant, string> = {
  * a light rim that reads as a bevel instead of an outline. Pass `borderColor`
  * for a coloured rim.
  */
-const GLASS_RIM = "border-white/50 dark:border-white/10";
+export const GLASS_RIM = "border-white/50 dark:border-white/10";
 
 /** Variants whose surface is see-through, so they get a specular top edge. */
 const GLASS_VARIANTS: PanelVariant[] = ["glass", "liquid-glass", "default"];

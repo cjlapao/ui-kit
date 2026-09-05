@@ -1,6 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import UserAvatar, { USER_AVATAR_SHAPES } from "./UserAvatar";
+import UserAvatar, {
+  USER_AVATAR_SHAPES,
+  USER_AVATAR_PRESET_SIZES,
+} from "./UserAvatar";
 import { CONTROL_SIZES, TRUE_COLORS } from "../theme/Theme";
 
 describe("UserAvatar", () => {
@@ -64,5 +67,77 @@ describe("UserAvatar", () => {
     }
     const { container } = render(<UserAvatar user={{ name: "A" }} variant="square" />);
     expect(container.innerHTML).toContain("rounded-none");
+  });
+
+  // — PrimeVue Avatar parity —
+
+  it("renders a PrimeVue-style label, and names itself with it", () => {
+    render(<UserAvatar label="AR" />);
+    expect(screen.getByText("AR")).toBeTruthy();
+    expect(screen.getByRole("img")).toHaveAccessibleName("AR");
+  });
+
+  it("renders an icon from the registry", () => {
+    const { container } = render(<UserAvatar icon="User" />);
+    expect(container.querySelector("svg")).toBeTruthy();
+  });
+
+  it("takes the PrimeVue size presets, folded onto the ladder", () => {
+    const px: Record<string, string> = {
+      normal: "32px",
+      large: "40px",
+      xlarge: "48px",
+    };
+    for (const size of USER_AVATAR_PRESET_SIZES) {
+      const { unmount } = render(<UserAvatar user={{ name: "A" }} size={size} />);
+      expect((screen.getByRole("img") as HTMLElement).style.width).toBe(px[size]);
+      unmount();
+    }
+  });
+
+  it("prefers a direct image over the user's avatarUrl", () => {
+    render(
+      <UserAvatar
+        user={{ name: "Ada", avatarUrl: "http://x/user.png" }}
+        image="http://x/direct.png"
+      />,
+    );
+    expect(document.querySelector("img")?.getAttribute("src")).toBe(
+      "http://x/direct.png",
+    );
+  });
+
+  it("keeps PrimeVue's precedence: label over icon over image", () => {
+    const { container } = render(
+      <UserAvatar label="AR" icon="User" image="http://x/a.png" />,
+    );
+    expect(screen.getByText("AR")).toBeTruthy();
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("svg")).toBeNull();
+  });
+
+  it("falls back when the image fails and reports the error, PrimeVue-style", () => {
+    const onError = vi.fn();
+    render(<UserAvatar user={{ name: "Ada" }} image="http://x/broken.png" onError={onError} />);
+    fireEvent.error(document.querySelector("img")!);
+    expect(onError).toHaveBeenCalled();
+    expect(screen.getByText("A")).toBeTruthy();
+  });
+
+  it("lets a template replace the content wholesale", () => {
+    render(
+      <UserAvatar user={{ name: "Ada Lovelace" }}>
+        <span data-testid="template">TMPL</span>
+      </UserAvatar>,
+    );
+    expect(screen.getByTestId("template")).toBeTruthy();
+    expect(screen.queryByText("A")).toBeNull();
+    // The wrapper still stands for the person.
+    expect(screen.getByRole("img")).toHaveAccessibleName("Ada Lovelace");
+  });
+
+  it("lets an explicit aria-label override the derived name", () => {
+    render(<UserAvatar user={{ name: "Ada Lovelace" }} aria-label="Reviewer" />);
+    expect(screen.getByRole("img")).toHaveAccessibleName("Reviewer");
   });
 });

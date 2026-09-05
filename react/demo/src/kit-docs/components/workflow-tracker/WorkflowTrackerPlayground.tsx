@@ -238,7 +238,6 @@ export const WorkflowTrackerPlayground: React.FC = () => {
       }
       preview={
         <div className="w-full">
-          <div className="w-full rounded-lg bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 p-4 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
             <WorkflowTracker
               data={data}
               loading={loading}
@@ -277,7 +276,7 @@ export const WorkflowTrackerPlayground: React.FC = () => {
                 {lastAction}
               </p>
             )}
-          </div>
+
         </div>
       }
     >

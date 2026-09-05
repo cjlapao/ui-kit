@@ -16,6 +16,9 @@ import { SkeletonBar } from "./Panel";
 import {
   SIDEBAR_IDLE_COPY,
   SIDEBAR_MOBILE_QUERY,
+  SIDE_MENU_HEADER_FILL,
+  SIDE_MENU_HEADER_HEIGHT,
+  SIDE_MENU_HEADER_SEAM,
   getSideMenuItemTokens,
   getSidebarSurfaceTokens,
   type SidebarCollapsible,
@@ -267,6 +270,11 @@ const NOISE_STYLE: React.CSSProperties = {
 
 const PANEL_WIDTH = "w-64";
 const RAIL_WIDTH = "w-[68px]";
+
+// The logo header below paints the shared `SIDE_MENU_HEADER_*` seam constants
+// (see `common/theme/Theme.ts`) — `PageHeader` continues the same line into
+// the main column, so the height and colour of the horizontal seam crossing
+// the shell are spelled once and cannot drift apart.
 
 /** Row indent per nesting depth. Capped so deeper trees do not run off-screen. */
 const ROW_INDENT = ["px-3", "pl-9 pr-3", "pl-14 pr-3", "pl-20 pr-3"];
@@ -894,10 +902,10 @@ export const SideMenu = ({
     logoIcon || logoText
       ? (contentCollapsed: boolean) => (
           <div
-            className={`relative z-50 flex h-15 items-center border-b px-4 py-4 ${
+            className={`relative z-50 flex items-center border-b px-4 py-4 ${SIDE_MENU_HEADER_HEIGHT} ${
               variant === "glass" || variant === "floating-glass"
                 ? "bg-white/20 border-white/30 dark:bg-white/5 dark:border-white/10"
-                : "bg-white border-gray-200 dark:bg-neutral-900 dark:border-neutral-700"
+                : `${SIDE_MENU_HEADER_FILL} ${SIDE_MENU_HEADER_SEAM}`
             } ${contentCollapsed ? "justify-center" : ""}`}
           >
             {logoIcon && <div className="shrink-0">{logoIcon}</div>}

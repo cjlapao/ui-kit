@@ -1139,4 +1139,15 @@ export const tabsRadiusOptions: MultiToggleOption[] = [
   { label: "Full", value: "full" },
 ];
 
+// ── Scroll Area ────────────────────────────────────────────────────────────
+
+/** The five bar-visibility modes — a dropdown. */
+export const scrollAreaVariantOptions = toOptions([
+  "auto",
+  "hover",
+  "scroll",
+  "always",
+  "hidden",
+] as const);
+
 export { TRUE_COLORS };

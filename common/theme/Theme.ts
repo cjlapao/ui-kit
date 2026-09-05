@@ -599,6 +599,17 @@ export const getSurfaceCornerRem = (corner: SurfaceCorner): string =>
 export const SURFACE_PADDINGS = ["none", ...CONTROL_SIZES] as const;
 export type SurfacePadding = "none" | ControlSize;
 
+/**
+ * The header seam. `SideMenu` draws it below its logo block, and `PageHeader`
+ * continues it into the main column; both paint these same classes on their
+ * facing edges, so the horizontal line the user sees crossing the shell is
+ * spelled exactly once. A component that rounded, padded or recoloured past
+ * these would visibly break the seam where the two meet.
+ */
+export const SIDE_MENU_HEADER_HEIGHT = "h-15";
+export const SIDE_MENU_HEADER_SEAM = "border-gray-200 dark:border-neutral-700";
+export const SIDE_MENU_HEADER_FILL = "bg-white dark:bg-neutral-900";
+
 const surfacePaddingClasses: Record<SurfacePadding, string> = {
   none: "p-0",
   xs: "p-2 sm:p-3",

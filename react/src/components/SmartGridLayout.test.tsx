@@ -57,11 +57,13 @@ const deepFreeze = <T,>(value: T): T => {
 };
 
 describe("SmartGridLayout — it is actually reachable", () => {
+  // The barrel import is the slowest thing in this file; under full-suite
+  // parallel load it can exceed the default 5s, so give it headroom.
   it("is exported from the component barrel", async () => {
     // It was absent from `index.ts` entirely, so no consumer could import it.
     const barrel = await import("./index");
     expect(barrel.SmartGridLayout).toBeTypeOf("function");
-  });
+  }, 15_000);
 
   it("renders the tiles its default layout asks for", () => {
     render(<SmartGridLayout items={ITEMS} defaultLayout={LAYOUT} />);

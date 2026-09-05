@@ -65,20 +65,20 @@ export const NESTED_ITEMS: SideMenuItem[] = [
   {
     slug: "docs",
     label: "Documentation",
-    path: "/docs",
+    path: "/",
     icon: "Library",
     defaultOpen: true,
     children: [
-      { slug: "start", label: "Getting Started", path: "/docs/start", icon: "Rocket" },
-      { slug: "guides", label: "Guides", path: "/docs/guides", icon: "Log" },
+      { slug: "start", label: "Getting Started", path: "/start", icon: "Rocket" },
+      { slug: "guides", label: "Guides", path: "/guides", icon: "Log" },
       {
         slug: "api",
         label: "API Reference",
-        path: "/docs/api",
+        path: "/api",
         icon: "Script",
         children: [
-          { slug: "rest", label: "REST", path: "/docs/api/rest", icon: "Globe" },
-          { slug: "graphql", label: "GraphQL", path: "/docs/api/graphql", icon: "Key" },
+          { slug: "rest", label: "REST", path: "/api/rest", icon: "Globe" },
+          { slug: "graphql", label: "GraphQL", path: "/api/graphql", icon: "Key" },
         ],
       },
     ],

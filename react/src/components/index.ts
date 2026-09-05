@@ -340,6 +340,23 @@ export {
 
 // Layout
 export {
+  default as Toolbar,
+  type ToolbarProps,
+} from "./Toolbar";
+export {
+  default as PageHeader,
+  type PageHeaderProps,
+} from "./PageHeader";
+export {
+  default as ScrollArea,
+  type ScrollAreaProps,
+  type ScrollAreaVariant,
+} from "./ScrollArea";
+export {
+  default as ColorSwatches,
+  type ColorSwatchesProps,
+} from "./ColorSwatches";
+export {
   default as GlassBackground,
   type GlassBackgroundProps,
   type GradientDirection,
@@ -485,9 +502,12 @@ export { getPanelEdgeChrome, type PanelEdgeChrome } from "./Panel";
 export {
   default as UserAvatar,
   USER_AVATAR_SHAPES,
+  USER_AVATAR_PRESET_SIZES,
   type UserAvatarProps,
   type UserAvatarUser,
   type UserAvatarShape,
+  type UserAvatarPresetSize,
+  type UserAvatarSize,
 } from "./UserAvatar";
 
 // Complex

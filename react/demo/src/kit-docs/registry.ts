@@ -9,7 +9,7 @@ import type { IconName } from "@cjlapao/ui-kit";
  * the routes and the overview index all derive from this list.
  */
 export interface DocComponent {
-  /** URL segment and folder name: /docs/<slug> */
+  /** URL segment and folder name: /<slug> */
   slug: string;
   /** Display name in the menu and page header. */
   name: string;
@@ -388,6 +388,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/gantt/GanttPage")),
   },
   {
+    slug: "color-swatches",
+    name: "Color Swatches",
+    description:
+      "Colours on display as a strip of dots — condensed into an overlapping stack behind a +N chip when count or width outgrows the row, expanding height-first with a staggered pop.",
+    icon: "Dots",
+    category: "Data",
+    Page: lazy(() => import("./components/color-swatches/ColorSwatchesPage")),
+  },
+  {
     slug: "charts",
     name: "Charts",
     description:
@@ -661,10 +670,37 @@ export const DOC_COMPONENTS: DocComponent[] = [
     slug: "user-avatar",
     name: "User Avatar",
     description:
-      "A person's picture, with a toned initial or a glyph when there is none — named for assistive tech in every branch.",
+      "A person as image, icon, label or template — PrimeVue Avatar parity over a toned, named fallback in every branch.",
     icon: "User",
     category: "Basics",
     Page: lazy(() => import("./components/user-avatar/UserAvatarPage")),
+  },
+  {
+    slug: "toolbar",
+    name: "Toolbar",
+    description:
+      "A named row of actions with PrimeVue's start / center / end regions, wearing the shared Panel surface — variants, tones, corners, padding.",
+    icon: "ViewRows",
+    category: "Layout",
+    Page: lazy(() => import("./components/toolbar/ToolbarPage")),
+  },
+  {
+    slug: "page-header",
+    name: "Page Header",
+    description:
+      "The Toolbar's page-level sibling across the top of the main column — its seam with a SideMenu's logo header is painted from one source, so it always lines up.",
+    icon: "Windows",
+    category: "Layout",
+    Page: lazy(() => import("./components/page-header/PageHeaderPage")),
+  },
+  {
+    slug: "scroll-area",
+    name: "Scroll Area",
+    description:
+      "Native scrolling with drawn overlay scrollbars — PrimeVue's ScrollArea, so every browser scrolls alike and the bars show themselves only when wanted.",
+    icon: "ArrowDown",
+    category: "Layout",
+    Page: lazy(() => import("./components/scroll-area/ScrollAreaPage")),
   },
   {
     slug: "password-input",

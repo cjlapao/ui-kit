@@ -7,8 +7,8 @@ A Tailwind-based component kit shipped for two frameworks from one shared core.
 | Directory | What it is |
 | --- | --- |
 | `common/` | Framework-agnostic source shared by both kits: theme class maps, utils, types, Tailwind safelists. No package.json — both kits import it relatively. |
-| `react/` | `@cjlapao/ui-kit` — the React kit (`react/src`) and its demo app (`react/demo`). Builds to `react/dist` (tsup: ESM + CJS + d.ts + `index.css`). |
-| `vue/` | `@cjlapao/ui-kit-vue` — the Vue 3 kit (`vue/src`) and its demo app (`vue/demo`). Builds to `vue/dist` (vite lib: ESM + CJS + d.ts + `index.css`). |
+| `react/` | `@cjlapao/ui-kit` — the React kit (`react/src`) and its documentation site (`react/demo`). Builds to `react/dist` (tsup: ESM + CJS + d.ts + `index.css`). |
+| `vue/` | `@cjlapao/ui-kit-vue` — the Vue 3 kit (`vue/src`) and its demo app (`vue/demo`, a placeholder until the Vue docs site is ported). Builds to `vue/dist` (vite lib: ESM + CJS + d.ts + `index.css`). |
 
 Each of `react/`, `vue/`, `react/demo/`, `vue/demo/` is an independent npm
 root. The repo root is a private meta package with convenience scripts.
@@ -20,9 +20,22 @@ npm run install:all   # install all four npm roots
 npm run build         # build both kits + the i18n CLI (react/dist, vue/dist, tools/i18n-cli/dist)
 npm run lint          # typecheck both kits
 
-make dev-react        # run the React demo (port 5174)
+make dev-react        # run the React documentation site (port 5174)
 make dev-vue          # run the Vue demo (port 5175)
 ```
+
+## Documentation
+
+The main documentation is the **kit-docs** site in the React demo app
+(`react/demo/src/kit-docs/`), served at `/` by `make dev-react`
+(http://localhost:5174). It is registry-driven: `registry.ts` is the single
+source of truth for the side menu, routes and overview grid, and each
+component gets one folder under `components/<slug>/` — a `<Name>Page.tsx`,
+an interactive `<Name>Playground.tsx` (controls drive one live specimen) and
+fixed `examples/*.tsx` shown verbatim via `?raw` imports. Adding a page is
+one registry entry + one such folder.
+
+The Vue kit has no docs site yet; `vue/demo` currently renders a placeholder.
 
 ## How the sharing works
 

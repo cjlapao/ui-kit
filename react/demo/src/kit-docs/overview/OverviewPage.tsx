@@ -67,7 +67,7 @@ export const OverviewPage: React.FC = () => (
           <SectionTitle>{category}</SectionTitle>
           <div className="grid gap-4 sm:grid-cols-2">
             {components.map((component) => (
-              <Link key={component.slug} to={`/docs/${component.slug}`}>
+              <Link key={component.slug} to={`/${component.slug}`}>
                 <Panel
                   variant="outlined"
                   padding="md"

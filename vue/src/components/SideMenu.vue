@@ -321,6 +321,11 @@ type SideMenuRenderEntry =
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import classNames from "classnames";
+import {
+  SIDE_MENU_HEADER_FILL,
+  SIDE_MENU_HEADER_HEIGHT,
+  SIDE_MENU_HEADER_SEAM,
+} from "../theme";
 import { useKitT } from "../i18n";
 import { RouterLink, useRoute } from "vue-router";
 import CustomIcon from "./CustomIcon.vue";
@@ -345,6 +350,17 @@ const internalCollapsed = ref(false);
 
 const isCollapsed = computed(() =>
   props.onToggleCollapse ? props.collapsed : internalCollapsed.value,
+);
+// The shared header seam — `PageHeader` paints the same constants into the
+// main column, so the line crossing the shell cannot drift between the two.
+const logoHeaderClass = computed(() =>
+  classNames(
+    "relative z-50 flex items-center border-b px-4 py-4",
+    SIDE_MENU_HEADER_HEIGHT,
+    SIDE_MENU_HEADER_FILL,
+    SIDE_MENU_HEADER_SEAM,
+    isCollapsed.value && "justify-center",
+  ),
 );
 const toggleCollapse = () => {
   if (props.onToggleCollapse) {
@@ -500,7 +516,7 @@ const handleLinkClick = () => {
       <!-- Logo Header -->
       <div
         v-if="logoIcon || logoText || $slots.logoIcon || $slots.logoText"
-        :class="`relative z-50 flex h-15 items-center bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-700 px-4 py-4 ${isCollapsed ? 'justify-center' : ''}`"
+        :class="logoHeaderClass"
       >
         <div v-if="logoIcon || $slots.logoIcon" class="shrink-0">
           <slot name="logoIcon"><VNodeRenderer :nodes="logoIcon" /></slot>
