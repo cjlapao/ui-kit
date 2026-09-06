@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ColorSwatches, type ControlSize, type SurfacePadding } from "@cjlapao/ui-kit";
+import { ColorSwatches, type ControlSize, type SurfacePadding, type TrueColor } from "@cjlapao/ui-kit";
 import { PlaygroundPanel, ChoiceControl, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { controlSizeOptions, panelPaddingOptions } from "../../shared/options";
@@ -23,6 +23,8 @@ export const ColorSwatchesPlayground: React.FC = () => {
   const [maxVisible, setMaxVisible] = useState(5);
   const [showNames, setShowNames] = useState(false);
   const [defaultExpanded, setDefaultExpanded] = useState(false);
+  const [selectable, setSelectable] = useState(false);
+  const [selected, setSelected] = useState<TrueColor>("blue");
 
   return (
     <PlaygroundPanel
@@ -53,6 +55,12 @@ export const ColorSwatchesPlayground: React.FC = () => {
                       value={String(maxVisible)} onChange={(v) => setMaxVisible(Number(v))} />
                     <ToggleRow label="showNames" checked={showNames} onChange={setShowNames} />
                     <ToggleRow label="defaultExpanded" checked={defaultExpanded} onChange={setDefaultExpanded} />
+                    <ToggleRow label="selectable" checked={selectable} onChange={setSelectable} />
+                    {selectable && (
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                        Chosen: <code>{selected}</code>
+                      </p>
+                    )}
                   </>
                 ),
               },
@@ -78,6 +86,9 @@ export const ColorSwatchesPlayground: React.FC = () => {
             maxVisible={maxVisible}
             showNames={showNames}
             defaultExpanded={defaultExpanded}
+            selectable={selectable}
+            value={selected}
+            onSelect={setSelected}
           />
         </div>
       }

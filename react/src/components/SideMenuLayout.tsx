@@ -172,7 +172,7 @@ export const SideMenuLayout = ({
     >
       <div
         className={classNames(
-          "flex h-full w-full overflow-hidden bg-gray-50",
+          "flex h-full w-full overflow-hidden bg-neutral-50 dark:bg-neutral-950",
           className,
         )}
       >
@@ -186,10 +186,10 @@ export const SideMenuLayout = ({
         <div className="flex flex-1 flex-col min-w-0 h-full">
           {/* Mobile menu toggle — same breakpoint as the menu's offcanvas mode */}
           {isMobile && (
-            <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-1 border-b border-neutral-200 bg-white px-4 py-2 dark:border-neutral-800 dark:bg-neutral-900">
               <button
                 onClick={() => setMobileOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                className="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
                 aria-label="Open menu"
               >
                 <CustomIcon icon="ViewRows" className="w-5 h-5" />
@@ -197,7 +197,7 @@ export const SideMenuLayout = ({
               {rightSideMenuProps && (
                 <button
                   onClick={() => setRightMobileOpen(true)}
-                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                  className="p-2 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
                   aria-label="Open right menu"
                 >
                   <CustomIcon icon="ViewRows" className="w-5 h-5 rotate-180" />

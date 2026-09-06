@@ -356,6 +356,34 @@ export {
   default as ColorSwatches,
   type ColorSwatchesProps,
 } from "./ColorSwatches";
+export { default as Chat, type ChatProps } from "./Chat";
+export {
+  createLocalChatStorage,
+  createRestChatStorage,
+  usageTotals,
+  type ChatEvent,
+  type ChatFolder,
+  type ChatListQuery,
+  type ChatMessage,
+  type ChatMeta,
+  type ChatModel,
+  type ChatPage,
+  type ChatRecord,
+  type ChatStorage,
+  type ChatUsage,
+} from "../chat";
+export {
+  default as ActivityFeed,
+  type ActivityFeedProps,
+  type ActivityFeedItem,
+  type ActivityFeedFilter,
+} from "./ActivityFeed";
+export {
+  default as BreakdownCard,
+  type BreakdownCardProps,
+  type BreakdownItem,
+  type BreakdownStat,
+} from "./BreakdownCard";
 export {
   default as GlassBackground,
   type GlassBackgroundProps,

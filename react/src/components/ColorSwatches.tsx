@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import {
+  getTrueColorDotClass,
   TRUE_COLORS,
   getSurfacePaddingClass,
   type ControlSize,
@@ -8,35 +9,6 @@ import {
   type TrueColor,
 } from "../theme";
 
-/**
- * A colour, in its canonical swatch shade — the tone every component's
- * `tone` prop would take. Declared as literals (not `bg-${tone}-500`): the
- * Picker's history is what happens otherwise — Tailwind only emits what it
- * can see, and interpolated class strings are invisible to it.
- */
-const SWATCH_FILL: Record<TrueColor, string> = {
-  red: "bg-red-500 dark:bg-red-400",
-  orange: "bg-orange-500 dark:bg-orange-400",
-  amber: "bg-amber-500 dark:bg-amber-400",
-  yellow: "bg-yellow-500 dark:bg-yellow-400",
-  lime: "bg-lime-500 dark:bg-lime-400",
-  green: "bg-green-500 dark:bg-green-400",
-  emerald: "bg-emerald-500 dark:bg-emerald-400",
-  teal: "bg-teal-500 dark:bg-teal-400",
-  cyan: "bg-cyan-500 dark:bg-cyan-400",
-  sky: "bg-sky-500 dark:bg-sky-400",
-  blue: "bg-blue-500 dark:bg-blue-400",
-  indigo: "bg-indigo-500 dark:bg-indigo-400",
-  violet: "bg-violet-500 dark:bg-violet-400",
-  purple: "bg-purple-500 dark:bg-purple-400",
-  fuchsia: "bg-fuchsia-500 dark:bg-fuchsia-400",
-  rose: "bg-rose-500 dark:bg-rose-400",
-  slate: "bg-slate-500 dark:bg-slate-400",
-  gray: "bg-gray-500 dark:bg-gray-400",
-  zinc: "bg-zinc-500 dark:bg-zinc-400",
-  neutral: "bg-neutral-500 dark:bg-neutral-400",
-  stone: "bg-stone-500 dark:bg-stone-400",
-};
 
 const DOT_CLASS: Record<ControlSize, string> = {
   xs: "size-3",
@@ -66,7 +38,10 @@ const GROW_MS = 400;
 /** Inner breathing room so hover growth stays inside the clip. */
 const PAD_RATIO = 0.25;
 
-export interface ColorSwatchesProps extends React.HTMLAttributes<HTMLDivElement> {
+// `onSelect` here means "the tone you chose", not the DOM text-selection
+// event the div's own attributes would carry.
+export interface ColorSwatchesProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   /**
    * The colours to display.
    * @default TRUE_COLORS
@@ -99,6 +74,17 @@ export interface ColorSwatchesProps extends React.HTMLAttributes<HTMLDivElement>
    * @default false
    */
   showNames?: boolean;
+  /**
+   * Turns the strip into a picker: the dots become buttons, `value` carries
+   * the selection (a ring on the chosen dot) and `onSelect` fires with the
+   * tone under the cursor. The display-only default is untouched.
+   * @default false
+   */
+  selectable?: boolean;
+  /** The selected tone while `selectable`. */
+  value?: TrueColor;
+  /** Called with the tone of the dot the user chose. */
+  onSelect?: (color: TrueColor) => void;
   className?: string;
 }
 
@@ -109,6 +95,9 @@ export interface ColorSwatchesProps extends React.HTMLAttributes<HTMLDivElement>
  * apart, the rest pop in one by one, and the strip grows exactly as far as
  * the new lines need. One layout, clipped or whole; nothing replaces
  * anything.
+ *
+ * With `selectable` the same strip is a tone picker: the dots are buttons,
+ * the chosen one carries a ring, and `onSelect` reports the tone.
  */
 export const ColorSwatches = ({
   colors = TRUE_COLORS,
@@ -119,6 +108,9 @@ export const ColorSwatches = ({
   defaultExpanded = false,
   shape = "circle",
   showNames = false,
+  selectable = false,
+  value,
+  onSelect,
   className = "",
   ...rest
 }: ColorSwatchesProps) => {
@@ -236,49 +228,80 @@ export const ColorSwatches = ({
     opacity: hidden ? 0 : 1,
   });
 
-  const dot = (tone: TrueColor, index: number, hidden: boolean, leading: boolean, order?: number) => (
-    <span
-      key={`${tone}-${index}`}
-      title={tone}
-      className={classNames(
-        "flex shrink-0 flex-col items-center gap-1",
-        hidden && "overflow-hidden",
-      )}
-      style={dotStyle(index, hidden, leading, order)}
-    >
-      <span className="group relative block shrink-0 hover:z-10">
+  const dot = (tone: TrueColor, index: number, hidden: boolean, leading: boolean, order?: number) => {
+    const selected = selectable && tone === value;
+    const glyph = (
+      <>
         <span
           aria-hidden="true"
           className={classNames(
             "absolute inset-0 scale-100 opacity-0 transition duration-200 ease-out",
             "group-hover:scale-[1.45] group-hover:opacity-40",
-            SWATCH_FILL[tone],
+            getTrueColorDotClass(tone),
             shape === "circle" ? "rounded-full" : "rounded-md",
           )}
         />
         <span
           className={classNames(
             "relative block transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.15]",
-            SWATCH_FILL[tone],
+            getTrueColorDotClass(tone),
             DOT_CLASS[size],
             shape === "circle" ? "rounded-full" : "rounded-md",
+            // The chosen tone: a tone-neutral ring on its own offset, so it
+            // reads on every dot and both colour schemes.
+            selected &&
+              "ring-2 ring-offset-2 ring-neutral-900 ring-offset-white dark:ring-white dark:ring-offset-neutral-900",
           )}
         />
+      </>
+    );
+    return (
+      <span
+        key={`${tone}-${index}`}
+        title={tone}
+        className={classNames(
+          "flex shrink-0 flex-col items-center gap-1",
+          hidden && "overflow-hidden",
+        )}
+        style={dotStyle(index, hidden, leading, order)}
+      >
+        {selectable ? (
+          <button
+            type="button"
+            aria-label={tone}
+            aria-pressed={selected}
+            // Condensed dots sit zero-width behind the chip: no tab stop.
+            tabIndex={hidden ? -1 : 0}
+            onClick={(event) => {
+              event.stopPropagation();
+              onSelect?.(tone);
+            }}
+            className={classNames(
+              "group relative block shrink-0 hover:z-10",
+              shape === "circle" ? "rounded-full" : "rounded-md",
+              "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:focus-visible:outline-white",
+            )}
+          >
+            {glyph}
+          </button>
+        ) : (
+          <span className="group relative block shrink-0 hover:z-10">{glyph}</span>
+        )}
+        {showNames && (
+          <span
+            className="text-[10px] leading-4 text-neutral-500 dark:text-neutral-400"
+            style={{
+              opacity: expanded ? 1 : 0,
+              transition: "opacity 200ms ease-out",
+              transitionDelay: `${cascadeMs(index)}ms`,
+            }}
+          >
+            {tone}
+          </span>
+        )}
       </span>
-      {showNames && (
-        <span
-          className="text-[10px] leading-4 text-neutral-500 dark:text-neutral-400"
-          style={{
-            opacity: expanded ? 1 : 0,
-            transition: "opacity 200ms ease-out",
-            transitionDelay: `${cascadeMs(index)}ms`,
-          }}
-        >
-          {tone}
-        </span>
-      )}
-    </span>
-  );
+    );
+  };
 
   return (
     <div

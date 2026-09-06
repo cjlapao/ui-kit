@@ -66,6 +66,74 @@ export const TRUE_COLORS = [
 export type TrueColor = (typeof TRUE_COLORS)[number];
 
 /**
+ * The fill class for a dot/swatch of each TrueColor: the 500 step in light
+ * mode, the 400 step in dark. Literal per colour — never interpolated — so
+ * Tailwind's scanner always sees them; the helper is what components share.
+ */
+export const TRUE_COLOR_DOT_CLASSES: Record<TrueColor, string> = {
+  red: "bg-red-500 dark:bg-red-400",
+  orange: "bg-orange-500 dark:bg-orange-400",
+  amber: "bg-amber-500 dark:bg-amber-400",
+  yellow: "bg-yellow-500 dark:bg-yellow-400",
+  lime: "bg-lime-500 dark:bg-lime-400",
+  green: "bg-green-500 dark:bg-green-400",
+  emerald: "bg-emerald-500 dark:bg-emerald-400",
+  teal: "bg-teal-500 dark:bg-teal-400",
+  cyan: "bg-cyan-500 dark:bg-cyan-400",
+  sky: "bg-sky-500 dark:bg-sky-400",
+  blue: "bg-blue-500 dark:bg-blue-400",
+  indigo: "bg-indigo-500 dark:bg-indigo-400",
+  violet: "bg-violet-500 dark:bg-violet-400",
+  purple: "bg-purple-500 dark:bg-purple-400",
+  fuchsia: "bg-fuchsia-500 dark:bg-fuchsia-400",
+  rose: "bg-rose-500 dark:bg-rose-400",
+  slate: "bg-slate-500 dark:bg-slate-400",
+  gray: "bg-gray-500 dark:bg-gray-400",
+  zinc: "bg-zinc-500 dark:bg-zinc-400",
+  neutral: "bg-neutral-500 dark:bg-neutral-400",
+  stone: "bg-stone-500 dark:bg-stone-400",
+};
+
+/** Dot/swatch fill for a TrueColor. */
+export function getTrueColorDotClass(tone: TrueColor): string {
+  return TRUE_COLOR_DOT_CLASSES[tone];
+}
+
+/**
+ * The ink class for a TrueColor: the 500 step in light mode, the 400 step
+ * in dark — what SVG strokes (`stroke-current`) and legends use where a
+ * fill class would not apply. Literal per colour, as above.
+ */
+export const TRUE_COLOR_TEXT_CLASSES: Record<TrueColor, string> = {
+  red: "text-red-500 dark:text-red-400",
+  orange: "text-orange-500 dark:text-orange-400",
+  amber: "text-amber-500 dark:text-amber-400",
+  yellow: "text-yellow-500 dark:text-yellow-400",
+  lime: "text-lime-500 dark:text-lime-400",
+  green: "text-green-500 dark:text-green-400",
+  emerald: "text-emerald-500 dark:text-emerald-400",
+  teal: "text-teal-500 dark:text-teal-400",
+  cyan: "text-cyan-500 dark:text-cyan-400",
+  sky: "text-sky-500 dark:text-sky-400",
+  blue: "text-blue-500 dark:text-blue-400",
+  indigo: "text-indigo-500 dark:text-indigo-400",
+  violet: "text-violet-500 dark:text-violet-400",
+  purple: "text-purple-500 dark:text-purple-400",
+  fuchsia: "text-fuchsia-500 dark:text-fuchsia-400",
+  rose: "text-rose-500 dark:text-rose-400",
+  slate: "text-slate-500 dark:text-slate-400",
+  gray: "text-gray-500 dark:text-gray-400",
+  zinc: "text-zinc-500 dark:text-zinc-400",
+  neutral: "text-neutral-500 dark:text-neutral-400",
+  stone: "text-stone-500 dark:text-stone-400",
+};
+
+/** Ink (stroke/text) class for a TrueColor. */
+export function getTrueColorTextClass(tone: TrueColor): string {
+  return TRUE_COLOR_TEXT_CLASSES[tone];
+}
+
+/**
  * Shared size type used across all frameworks and components.
  * Replaces both the old ThemeSize (dead code) and ModalSize.
  */
@@ -430,6 +498,21 @@ export const SURFACE_VARIANTS = [
   "liquid-glass",
 ] as const;
 export type SurfaceVariant = (typeof SURFACE_VARIANTS)[number];
+
+/**
+ * The button a card surface implies — what a card CTA wears when it is not
+ * given a variant of its own. An outlined card offers an outlined button.
+ */
+export const SURFACE_TO_BUTTON_VARIANT: Record<SurfaceVariant, ButtonVariant> = {
+  elevated: "solid",
+  outlined: "outline",
+  subtle: "ghost",
+  tonal: "soft",
+  default: "solid",
+  glass: "glass",
+  simple: "link",
+  "liquid-glass": "glass",
+};
 
 /**
  * The surface family plus `plain` — "draw a card, or draw nothing at all".
@@ -846,6 +929,28 @@ export const SIDEBAR_IDLE_COPY = {
 } as const;
 export type SidebarIdleCopyKind = keyof typeof SIDEBAR_IDLE_COPY;
 
+/**
+ * Hairlines and tertiary copy per surface context.
+ *
+ * The same two-step rule as `SIDEBAR_IDLE_COPY` and `getSurfaceTextTokens`:
+ * a translucent surface composites over unknown content, where the light end
+ * of the neutral scale disappears — so glass surfaces get a stronger pair.
+ * A divider that reads on the solid `sidebar` look is invisible on `glass`.
+ */
+const SIDEBAR_SURFACE_COPY: Record<
+  SidebarIdleCopyKind,
+  { divider: string; muted: string }
+> = {
+  solid: {
+    divider: "border-neutral-200/60 dark:border-neutral-700/60",
+    muted: "text-neutral-400 dark:text-neutral-500",
+  },
+  glass: {
+    divider: "border-white/30 dark:border-white/10",
+    muted: "text-neutral-700 dark:text-neutral-200",
+  },
+};
+
 export interface SidebarSurfaceTokens {
   /** Fill and blur of the layer painted behind the content. */
   fill: string;
@@ -869,11 +974,15 @@ export interface SidebarSurfaceTokens {
   offset: string;
   /** Whether the row copy needs the see-through contrast step. */
   idleCopy: SidebarIdleCopyKind;
+  /** Hairline between regions of the panel (dividers, section seams). */
+  divider: string;
+  /** Tertiary copy — section titles, the empty-search note, idle glyphs. */
+  muted: string;
 }
 
 const sidebarSurfaceTokens: Record<
   Exclude<SidebarVariant, "glass" | "floating-glass">,
-  SidebarSurfaceTokens
+  Omit<SidebarSurfaceTokens, "divider" | "muted">
 > = {
   sidebar: {
     fill: "backdrop-blur-2xl bg-white/70 dark:bg-neutral-900/90",
@@ -906,7 +1015,8 @@ const sidebarSurfaceTokens: Record<
     borderSides: "all",
     shadow: "shadow-xl",
     shadowRight: "shadow-xl",
-    radius: "rounded-2xl",
+    // The detached card's corner — the kit's medium container default.
+    radius: getSurfaceCornerClass(DEFAULT_SURFACE_CORNER),
     offset: "m-2",
     idleCopy: "solid",
   },
@@ -923,25 +1033,41 @@ export const getSidebarSurfaceTokens = (
   variant: SidebarVariant,
   color: TrueColor,
 ): SidebarSurfaceTokens => {
-  if (variant === "glass" || variant === "floating-glass") {
-    const glassSurface: SidebarSurfaceTokens = {
-      fill: `backdrop-blur-2xl ${getSurfaceGlassFillClass(color, "frosted")}`,
-      // Near-opaque so the hover-rail expansion does not show the rail or a
-      // sibling menu through the panel.
-      solidFill: "backdrop-blur-2xl bg-white/95 dark:bg-neutral-900/95",
-      border: "border-white/50 dark:border-white/10",
-      borderSides: "all",
-      shadow: "shadow-xl",
-      shadowRight: "shadow-xl",
-      radius: "",
-      offset: "",
-      idleCopy: "glass",
-    };
-    return variant === "floating-glass"
-      ? { ...glassSurface, radius: "rounded-2xl", offset: "m-2" }
-      : glassSurface;
-  }
-  return sidebarSurfaceTokens[variant] ?? sidebarSurfaceTokens.sidebar;
+  const base =
+    variant === "glass" || variant === "floating-glass"
+      ? (() => {
+          const glassSurface: Omit<
+            SidebarSurfaceTokens,
+            "divider" | "muted"
+          > = {
+            fill: `backdrop-blur-2xl ${getSurfaceGlassFillClass(color, "frosted")}`,
+            // Near-opaque so the hover-rail expansion does not show the rail or
+            // a sibling menu through the panel.
+            solidFill: "backdrop-blur-2xl bg-white/95 dark:bg-neutral-900/95",
+            border: "border-white/50 dark:border-white/10",
+            borderSides: "all",
+            shadow: "shadow-xl",
+            shadowRight: "shadow-xl",
+            radius: "",
+            offset: "",
+            idleCopy: "glass",
+          };
+          return variant === "floating-glass"
+            ? {
+                ...glassSurface,
+                // The floating card's geometry — its corner is the kit's
+                // medium default, spelled once like every other detached
+                // container's.
+                radius: getSurfaceCornerClass(DEFAULT_SURFACE_CORNER),
+                offset: "m-2",
+              }
+            : glassSurface;
+        })()
+      : sidebarSurfaceTokens[variant] ?? sidebarSurfaceTokens.sidebar;
+  return {
+    ...base,
+    ...SIDEBAR_SURFACE_COPY[base.idleCopy],
+  };
 };
 
 const colors: readonly TrueColor[] = TRUE_COLORS;

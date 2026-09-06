@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  MultiToggle,
+  ColorSwatches,
   SideMenu,
   Slider,
   type SidebarCollapsible,
@@ -10,9 +10,9 @@ import {
   type TrueColor,
 } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
-  SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
@@ -21,7 +21,6 @@ import {
   sidebarLoaderTypeOptions,
   sidebarSideOptions,
   sidebarVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 import { DEMO_ITEMS, USER_MENU, WORKSPACE_MENU } from "./demoData";
 
@@ -74,13 +73,13 @@ export const SideMenuPlayground: React.FC = () => {
               title: "Core",
               controls: (
                 <>
-                  <SelectControl
+                  <ChoiceControl
                     label="Variant"
                     options={sidebarVariantOptions}
                     value={variant}
                     onChange={(value) => setVariant(value as SidebarVariant)}
                   />
-                  <SelectControl
+                  <ChoiceControl
                     label="Collapsible"
                     options={sidebarCollapsibleOptions}
                     value={collapsible}
@@ -88,20 +87,23 @@ export const SideMenuPlayground: React.FC = () => {
                       setCollapsible(value as SidebarCollapsible)
                     }
                   />
-                  <Control label="Side">
-                    <MultiToggle
+                  <ChoiceControl
+                    label="Side"
+                    options={sidebarSideOptions}
+                    value={side}
+                    onChange={(value) => setSide(value as SidebarSide)}
+                  />
+                  {/* Tone is a colour decision — pick it from colour swatches,
+                      not from a dropdown of words. */}
+                  <Control label="Tone">
+                    <ColorSwatches
+                      selectable
                       size="sm"
-                      options={sidebarSideOptions}
-                      value={side}
-                      onChange={(value) => setSide(value as SidebarSide)}
+                      value={tone}
+                      onSelect={setTone}
+                      defaultExpanded
                     />
                   </Control>
-                  <SelectControl
-                    label="Tone"
-                    options={trueColorOptions}
-                    value={tone}
-                    onChange={(value) => setTone(value as TrueColor)}
-                  />
                 </>
               ),
             },
@@ -167,7 +169,7 @@ export const SideMenuPlayground: React.FC = () => {
                     onChange={setLoading}
                   />
                   {loading && (
-                    <SelectControl
+                    <ChoiceControl
                       label="Loader type"
                       options={sidebarLoaderTypeOptions}
                       value={loaderType}

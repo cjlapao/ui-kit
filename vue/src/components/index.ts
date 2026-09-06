@@ -254,6 +254,28 @@ export { default as Toolbar } from "./Toolbar.vue";
 export { default as PageHeader } from "./PageHeader.vue";
 export { default as ScrollArea } from "./ScrollArea.vue";
 export { default as ColorSwatches } from "./ColorSwatches.vue";
+export { default as Chat } from "./Chat.vue";
+export type { ChatProps } from "./Chat.vue";
+export {
+  createLocalChatStorage,
+  createRestChatStorage,
+  usageTotals,
+} from "../chat";
+export type {
+  ChatEvent,
+  ChatFolder,
+  ChatMessage,
+  ChatMeta,
+  ChatModel,
+  ChatPage,
+  ChatRecord,
+  ChatStorage,
+  ChatUsage,
+} from "../chat";
+export { default as ActivityFeed } from "./ActivityFeed.vue";
+export type { ActivityFeedItem, ActivityFeedFilter } from "./ActivityFeed.vue";
+export { default as BreakdownCard } from "./BreakdownCard.vue";
+export type { BreakdownItem, BreakdownStat } from "./BreakdownCard.vue";
 export {
   default as TruncatedText,
   type TruncatedTextProps,

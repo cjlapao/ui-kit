@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import ColorSwatches from "./ColorSwatches";
 
@@ -68,5 +68,41 @@ describe("ColorSwatches", () => {
     const element = screen.getByTestId("cs");
     expect(element.className).toContain("rounded-lg");
     expect(element.className).toContain("relative");
+  });
+
+  it("renders plain spans by default — the picker is opt-in", () => {
+    render(<ColorSwatches colors={["red", "green"]} />);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+  });
+
+  it("marks the chosen tone and reports the dot under the cursor", () => {
+    const onSelect = vi.fn();
+    const { container } = render(
+      <ColorSwatches
+        selectable
+        value="green"
+        onSelect={onSelect}
+        colors={["red", "green", "blue"]}
+      />,
+    );
+    const chosen = screen.getByRole("button", { name: "green" });
+    expect(chosen.getAttribute("aria-pressed")).toBe("true");
+    expect(chosen.querySelector(".ring-2")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "red" }).getAttribute("aria-pressed"),
+    ).toBe("false");
+    fireEvent.click(screen.getByRole("button", { name: "blue" }));
+    expect(onSelect).toHaveBeenCalledWith("blue");
+    expect(container.querySelectorAll("button")).toHaveLength(3);
+  });
+
+  it("gives condensed dots no tab stop until the strip is expanded", () => {
+    render(
+      <ColorSwatches selectable colors={["red", "green", "blue", "yellow"]} maxVisible={2} />,
+    );
+    // Dots behind the chip are zero-width: skipped by the keyboard.
+    expect(screen.getByRole("button", { name: "yellow" }).tabIndex).toBe(-1);
+    fireEvent.click(screen.getByLabelText("Show 2 more colours"));
+    expect(screen.getByRole("button", { name: "yellow" }).tabIndex).toBe(0);
   });
 });

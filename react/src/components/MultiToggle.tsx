@@ -163,7 +163,8 @@ const sizeTokens: Record<
   },
 };
 
-const CONTAINER_HORIZONTAL_PADDING = 2;
+// Must match the track's px-1 — the fallback indicator geometry reads it.
+const CONTAINER_HORIZONTAL_PADDING = 4;
 const INDICATOR_MARGIN = 1;
 
 const computeInset = (segmentWidth: number) => {
@@ -235,7 +236,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
                 ? "rounded-xl"
                 : "rounded-full";
 
-  // Inner indicator is inset by p-0.5 (2px), so use one step smaller radius
+  // Inner indicator sits px-1/py-0.5 (4/2px) inside the track, so use one step smaller radius
   // to preserve consistent visual gap between track edge and indicator corners.
   const indicatorRounded =
     rounded === "none" || rounded === "xs"
@@ -501,7 +502,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     <div
       ref={containerRef}
       className={classNames(
-        "relative inline-flex select-none items-center p-0.5",
+        "relative inline-flex select-none items-center px-1 py-0.5",
         trackClasses,
         controlRounded,
         sizeStyles.track,

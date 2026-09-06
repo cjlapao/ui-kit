@@ -397,6 +397,33 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/color-swatches/ColorSwatchesPage")),
   },
   {
+    slug: "breakdown-card",
+    name: "Breakdown Card",
+    description:
+      "A whole split into parts — donut, labelled rows and a summary strip in one card, with shares computed from the values so the numbers never disagree with the picture.",
+    icon: "Scale",
+    category: "Data",
+    Page: lazy(() => import("./components/breakdown-card/BreakdownCardPage")),
+  },
+  {
+    slug: "chat",
+    name: "Chat",
+    description:
+      "A self-sustained chat: localStorage or REST (OData-paged, windowed in memory), folder management, OpenAI-compatible streaming, and seams left open for growth.",
+    icon: "Chat",
+    category: "Data",
+    Page: lazy(() => import("./components/chat/ChatPage")),
+  },
+  {
+    slug: "activity-feed",
+    name: "Activity Feed",
+    description:
+      "The audit log as a living feed — toned dots, a filter segment control, count badges for aggregated events and a load-more tail.",
+    icon: "Log",
+    category: "Data",
+    Page: lazy(() => import("./components/activity-feed/ActivityFeedPage")),
+  },
+  {
     slug: "charts",
     name: "Charts",
     description:

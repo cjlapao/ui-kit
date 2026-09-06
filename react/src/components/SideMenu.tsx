@@ -293,6 +293,8 @@ interface SideMenuSkeletonProps {
   showCollapse: boolean;
   /** Number of navigation placeholder rows. */
   lines: number;
+  /** The panel's surface-aware hairline. */
+  dividerClass: string;
 }
 
 /**
@@ -309,6 +311,7 @@ const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
   hasFooterItem,
   showCollapse,
   lines,
+  dividerClass,
 }) => (
   <div
     className="flex h-full w-full animate-pulse flex-col motion-reduce:animate-none"
@@ -317,7 +320,7 @@ const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
     {/* Logo header */}
     {hasLogo && (
       <div
-        className={`flex items-center gap-3 border-b border-neutral-200/60 px-4 py-4 dark:border-neutral-700/60 ${
+        className={`flex items-center gap-3 border-b px-4 py-4 ${dividerClass} ${
           collapsed ? "justify-center" : ""
         }`}
       >
@@ -382,7 +385,7 @@ const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
 
     {/* Collapse control */}
     {showCollapse && !collapsed && (
-      <div className="border-t border-neutral-200/60 px-3 py-3 dark:border-neutral-700/60">
+      <div className={`border-t px-3 py-3 ${dividerClass}`}>
         <div className="flex items-center gap-3 rounded-lg px-3 py-2">
           <SkeletonBar className="h-4 w-4" />
           <SkeletonBar width="6rem" className="h-3" />
@@ -434,6 +437,8 @@ interface DropdownRowProps {
   collapsed: boolean;
   side: SidebarSide;
   idleCopy: SidebarIdleCopyKind;
+  /** Menu tone: the row hovers with the same tokens as the nav rows. */
+  color: TrueColor;
 }
 
 const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
@@ -442,10 +447,12 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
   collapsed,
   side,
   idleCopy,
+  color,
 }) => {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const idle = SIDEBAR_IDLE_COPY[idleCopy];
+  const tokens = getSideMenuItemTokens(color);
   const hasMenu = !!item.menu?.length;
 
   // A left sidebar's menus grow to the right (into the content), a right
@@ -469,9 +476,7 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
   } ${idle.text}`;
 
   if (!hasMenu) {
-    const hoverClasses =
-      item.path &&
-      "hover:bg-neutral-200/50 dark:hover:bg-neutral-700/40";
+    const hoverClasses = item.path && `${tokens.hoverBg} ${tokens.hoverText}`;
 
     const content = (
       <>
@@ -506,7 +511,7 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         title={collapsed ? item.label : undefined}
-        className={`${rowClasses} hover:bg-neutral-200/50 dark:hover:bg-neutral-700/40`}
+        className={`${rowClasses} ${tokens.hoverBg} ${tokens.hoverText}`}
       >
         {media}
         {!collapsed && (
@@ -517,7 +522,7 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
             )}
             <CustomIcon
               icon="ChevronRight"
-              className="h-4 w-4 shrink-0 rotate-90 text-neutral-400 dark:text-neutral-500"
+              className={`h-4 w-4 shrink-0 rotate-90 ${idle.icon}`}
             />
           </>
         )}
@@ -643,6 +648,8 @@ export const SideMenu = ({
 
   const surface = getSidebarSurfaceTokens(variant, color);
   const idle = SIDEBAR_IDLE_COPY[surface.idleCopy];
+  /** The menu's own tone row-tokens, for chrome that follows the tone. */
+  const toneTokens = getSideMenuItemTokens(color);
 
   const showSkeleton = loading && loaderType === "skeleton";
   const skeletonSlots = {
@@ -653,6 +660,7 @@ export const SideMenu = ({
     hasFooterItem: Boolean(footerItem),
     showCollapse: showCollapseControl,
     lines: skeletonLines,
+    dividerClass: surface.divider,
   };
   // Written as one expression so `loaderType` narrows to the Loader's own
   // variants for the overlay (skeleton replaces the content instead).
@@ -890,9 +898,10 @@ export const SideMenu = ({
       ? `absolute inset-y-0 ${panelPosition} ${PANEL_WIDTH} flex flex-col`
       : "relative h-full w-full flex flex-col";
 
-  // Mobile drawer — always the standing translucent look.
+  // Mobile drawer — the panel's own surface treatment, carried into the
+  // offcanvas overlay instead of a hardcoded blur that ignored the variant.
   const mobileClasses = `
-    fixed inset-y-0 ${panelPosition} z-[60] w-64 bg-white/90 dark:bg-neutral-900/95 backdrop-blur-xl transition-transform duration-300 ease-in-out
+    fixed inset-y-0 ${panelPosition} z-[60] w-64 ${surface.fill} transition-transform duration-300 ease-in-out
     ${mobileOpen ? "translate-x-0" : isLeft ? "-translate-x-full" : "translate-x-full"}
     ${className}
   `;
@@ -1017,7 +1026,7 @@ export const SideMenu = ({
                 label: link.label,
               })}
                 onClick={() => toggleSubmenu(link.slug)}
-                className="inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-200/60 hover:text-neutral-600 dark:text-neutral-500 dark:hover:bg-neutral-700/40 dark:hover:text-neutral-300"
+                className={`inline-flex shrink-0 items-center justify-center rounded-md p-1.5 transition-colors ${surface.muted} ${tokens.hoverBg} ${tokens.hoverText}`}
             >
               <CustomIcon
                 icon="ChevronRight"
@@ -1062,6 +1071,7 @@ export const SideMenu = ({
             collapsed={contentCollapsed}
             side={side}
             idleCopy={surface.idleCopy}
+            color={color}
           />
         </div>
       )}
@@ -1093,7 +1103,7 @@ export const SideMenu = ({
           }`}
         >
           {title && !(contentCollapsed && !isMobileView) && (
-            <h2 className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider whitespace-nowrap">
+            <h2 className={`text-xs font-semibold uppercase tracking-wider whitespace-nowrap ${surface.muted}`}>
               {title}
             </h2>
           )}
@@ -1101,7 +1111,7 @@ export const SideMenu = ({
           {isMobileView && (
             <button
               onClick={onCloseMobile}
-              className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-neutral-700/50 text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors ml-auto"
+              className={`p-1 rounded-lg transition-colors ml-auto ${surface.muted} ${toneTokens.hoverBg} ${toneTokens.hoverText}`}
               aria-label={t("kit.sidemenu.closeAria")}
             >
               <CustomIcon icon="Close" className="w-5 h-5" />
@@ -1119,7 +1129,7 @@ export const SideMenu = ({
               return (
                 <div
                   key={`divider-${index}-${item.slug}`}
-                  className={`my-2 border-t border-neutral-200/60 dark:border-neutral-700/60 ${
+                  className={`my-2 border-t ${surface.divider} ${
                     contentCollapsed && !isMobileView ? "mx-1" : "mx-0"
                   }`}
                 />
@@ -1133,13 +1143,13 @@ export const SideMenu = ({
                 <React.Fragment key={`group-${index}-${item.slug}`}>
                   {item.hasDivider && (
                     <div
-                      className={`my-2 border-t border-neutral-200/60 dark:border-neutral-700/60 ${
+                      className={`my-2 border-t ${surface.divider} ${
                         contentCollapsed && !isMobileView ? "mx-1" : "mx-0"
                       }`}
                     />
                   )}
                   <div
-                    className={`px-3 py-1 mb-1 text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider ${
+                    className={`px-3 py-1 mb-1 text-xs font-semibold uppercase tracking-wider ${surface.muted} ${
                       index === 0 ? "mt-1" : "mt-4"
                     }`}
                   >
@@ -1158,7 +1168,7 @@ export const SideMenu = ({
             );
           })}
           {searchActive && !hasVisibleLink && (
-            <p className="px-3 py-6 text-center text-xs text-neutral-500 dark:text-neutral-400">
+            <p className={`px-3 py-6 text-center text-xs ${surface.muted}`}>
               No results for "{searchQuery.trim()}"
             </p>
           )}
@@ -1174,19 +1184,20 @@ export const SideMenu = ({
             collapsed={contentCollapsed}
             side={side}
             idleCopy={surface.idleCopy}
+            color={color}
           />
         </div>
       )}
 
       {/* Collapse Toggle (desktop only, hidden with openOnHover) */}
       {!isMobileView && showCollapseControl && (
-        <div className="shrink-0 border-t border-neutral-200/60 dark:border-neutral-700/60 px-3 py-3">
+        <div className={`shrink-0 border-t px-3 py-3 ${surface.divider}`}>
           <button
             type="button"
             onClick={toggleCollapse}
             aria-expanded={expanded}
             aria-controls={panelId}
-            className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700/50 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors ${
+            className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${surface.muted} ${toneTokens.hoverBg} ${toneTokens.hoverText} ${
               !expanded ? "justify-center" : ""
             }`}
             title={expanded ? "Collapse sidebar" : "Expand sidebar"}
