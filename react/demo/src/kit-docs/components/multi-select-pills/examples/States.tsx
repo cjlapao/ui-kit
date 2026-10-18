@@ -22,7 +22,9 @@ const States = () => {
   return (
     <div className="flex w-full flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <Caption>Required choice — allowDeselect off, so it can't be emptied</Caption>
+        <Caption>
+          Required choice — allowDeselect off, so it can't be emptied
+        </Caption>
         <MultiSelectPills
           name="schedule"
           options={OPTIONS}
@@ -31,18 +33,20 @@ const States = () => {
           selectionMode="single"
           allowDeselect={false}
           checkmark
-          color="emerald"
+          tone="emerald"
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Caption>Whole group disabled — "Custom" is also disabled per-option</Caption>
+        <Caption>
+          Whole group disabled — "Custom" is also disabled per-option
+        </Caption>
         <MultiSelectPills
           name="schedule-disabled"
           options={OPTIONS}
           value={whole}
           onChange={setWhole}
           disabled
-          color="slate"
+          tone="slate"
         />
       </div>
     </div>

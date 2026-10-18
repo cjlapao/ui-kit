@@ -1,4 +1,10 @@
 import React from "react";
+import {
+  A11ySection,
+  A11yTopic,
+  Kbd,
+  PropsTable,
+} from "../../shared/A11ySections";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
 import { InputPlayground } from "./InputPlayground";
@@ -85,6 +91,120 @@ export const InputPage: React.FC = () => (
         <Password />
       </ExampleCard>
     </section>
+
+    <PropsTable
+      props={[
+        {
+          name: "size",
+          type: "ControlSize",
+          default: '"md"',
+          description:
+            "The shared xs&rarr;xl ladder — height, text and icon scale step together, so the field lines up with the Button or Select beside it.",
+        },
+        {
+          name: "tone / color",
+          type: "TrueColor",
+          default: '"blue"',
+          description:
+            "Focus border, ring and the leading icon&rsquo;s focus highlight. `color` is a `SearchBar`-compat alias; `tone` wins when both are passed.",
+        },
+        {
+          name: "variant",
+          type: "InputVariant",
+          default: '"flat"',
+          description:
+            "Surface style — flat, filled, outlined, elevated, underline, glass and the gradient glow, shared byte-for-byte with Textarea and SearchBar via the theme.",
+        },
+        {
+          name: "validationStatus",
+          type: '"none" | "error" | "success"',
+          default: '"none"',
+          description:
+            "Paints the shared status surface on the box and sets aria-invalid on error — a caller&rsquo;s own aria-invalid cannot override the error state. Explain *why* with FormField&rsquo;s hint, not the colour.",
+        },
+        {
+          name: "glowIntensity / gradientFrom / gradientTo",
+          type: "GlowIntensity / string",
+          default: '"subtle" / tone 600 / tone 400',
+          description:
+            "The gradient glow: a two-lobe shadow — start colour glowing from the left, end colour from the right, defaulting to the tone&rsquo;s 600/400 shades. Intensity sets the shadow&rsquo;s geometry and opacity; the reach is sized into the component&rsquo;s own box, so clipping ancestors cannot shear it off.",
+        },
+        {
+          name: "leadingIcon / trailingIcon",
+          type: "IconName | ReactElement",
+          description:
+            "Flex siblings of the input — no padding hacks. Resting colour follows the variant; the tone&rsquo;s highlight follows on focus.",
+        },
+        {
+          name: "onTrailingIconClick / trailingIconLabel",
+          type: "(event) => void / string",
+          description:
+            "Makes the trailing icon a real named button that follows `disabled`. Without a label it takes the translated kit default (`kit.input.trailingAction`).",
+        },
+        {
+          name: "className / inputClassName",
+          type: "string",
+          description:
+            "`className` targets the box (the wrapper carrying border, fill and radius — `wrapperClassName` is the deprecated alias); `inputClassName` targets the inner `<input>`.",
+        },
+        {
+          name: "unstyled / fullHeight",
+          type: "boolean",
+          default: "false",
+          description:
+            "`unstyled` drops the surface wholesale — the seam InputGroup stitches through; `fullHeight` lets a constrained parent stretch the field.",
+        },
+      ]}
+    />
+    <p className="max-w-3xl text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+      Everything else spreads onto the native <code>&lt;input&gt;</code> —
+      `value` / `defaultValue`, `type`, `placeholder`, `readOnly`, `maxLength`,
+      the handlers — so the browser&rsquo;s own semantics carry through
+      untouched. `forwardRef` hands out the real input element, which is what
+      FormField uses for label wiring and focus management.
+    </p>
+
+    <A11ySection>
+      <A11yTopic title="Screen reader">
+        <p>
+          The field <em>is</em> a native <code>&lt;input&gt;</code> — the
+          wrapper is presentational — so role, value and typing announcements
+          come from the browser untouched. The label lives with
+          <strong>FormField</strong> (<code>labelFor</code> / automatic
+          id-matching); a bare Input has no name of its own, which is exactly
+          how native inputs fail their audits — pair them. Error status sets{" "}
+          <code>aria-invalid</code> and FormField carries the explanation as
+          text, never colour alone; the status icon tints but never speaks. The
+          action button always has a name — yours or the translated kit default.
+        </p>
+      </A11yTopic>
+
+      <A11yTopic title="Keyboard Support">
+        <p>
+          Native by construction: <Kbd>Tab</Kbd> reaches the field, editing is
+          the browser&rsquo;s, and a clickable trailing icon is a real{" "}
+          <code>&lt;button&gt;</code> in the tab order (before the input, as
+          written — order your DOM accordingly) with a visible focus ring. The
+          focus ring is deliberately <code>ring-inset</code>: rings outside the
+          border box get clipped by scrolling ancestors, which is the classic
+          &ldquo;where did the focus go&rdquo; bug in form-heavy panels.
+          Disabled fields drop out of the order natively and read at reduced
+          opacity, not a repainted slab.
+        </p>
+      </A11yTopic>
+
+      <A11yTopic title="Internationalization">
+        <p>
+          Content is 100% caller data — the field holds whatever the user types,
+          in any script, with native IME composition. The only kit string is the
+          unnamed action button&rsquo;s name at{" "}
+          <code>kit.input.trailingAction</code> (en, es, fr, de, pt). Layout is
+          RTL-safe: icons are flex siblings, so a `dir=&quot;rtl&quot;` ancestor
+          mirrors the field and flips leading/trailing for free — no absolute
+          offsets to invert.
+        </p>
+      </A11yTopic>
+    </A11ySection>
   </div>
 );
 

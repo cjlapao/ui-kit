@@ -9,24 +9,33 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import classNames from "classnames";
+import { ScrollArea } from "./ScrollArea";
+import { useKitT } from "../i18n";
 import Pill from "./Pill";
+import Panel from "./Panel";
 import Spinner from "./Spinner";
 import {
+  type ControlSize,
+  DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
+  type GlowIntensity,
+  type InputVariant,
   TRUE_COLORS,
+  type TrueColor,
   VALIDATION_STATUSES,
+  type ValidationStatus,
+  PANEL_TONE_FOR_FIELD,
+  SURFACE_VARIANT_FOR_FIELD,
+  type SurfaceCorner,
+  type SurfaceVariant,
   getFieldSizeTokens,
   getFieldToneTokens,
   getGlowTokens,
   getInputVariantTokens,
+  getSurfaceTextTokens,
   resolveGlowGradient,
   stripBorderColor,
-  type ControlSize,
-  type GlowIntensity,
-  type InputVariant,
-  type TrueColor,
-  type ValidationStatus,
-} from "../theme/Theme";
+} from "../theme";
 import type { TreeTone } from "./TreeView/types";
 
 /** The shared control scale. Was a local `"sm" | "md"`, which left three sizes unreachable. */
@@ -48,6 +57,8 @@ const toneTokens: Record<
   TrueColor,
   {
     triggerOpen: string;
+    /** Open state for the `underline` variant: the tint without the box. */
+    triggerOpenBorder: string;
     filterActive: string;
     optionSelectedBg: string;
     optionSelectedText: string;
@@ -62,6 +73,7 @@ const toneTokens: Record<
       // non-inset `ring-{c}-500/20`, which was both a different colour from
       // its siblings and clipped by any `overflow` ancestor.
       triggerOpen: `border-${c}-400 ring-2 ring-inset ring-${c}-400/60 dark:border-${c}-400`,
+      triggerOpenBorder: `border-${c}-400 dark:border-${c}-400`,
       filterActive: `bg-${c}-100 text-${c}-600 dark:bg-${c}-900/40 dark:text-${c}-400`,
       optionSelectedBg: `bg-${c}-50 dark:bg-${c}-900/20`,
       optionSelectedText: `text-${c}-700 dark:text-${c}-300`,
@@ -72,6 +84,7 @@ const toneTokens: Record<
   TrueColor,
   {
     triggerOpen: string;
+    triggerOpenBorder: string;
     filterActive: string;
     optionSelectedBg: string;
     optionSelectedText: string;
@@ -99,33 +112,14 @@ const viewportBounds = (): RectBounds => ({
   height: window.innerHeight,
 });
 
-const isClippingParent = (el: HTMLElement): boolean =>
-  /(auto|scroll|hidden|clip)/.test(
-    [
-      getComputedStyle(el).overflow,
-      getComputedStyle(el).overflowX,
-      getComputedStyle(el).overflowY,
-    ].join(" "),
-  );
-
-const resolveBoundaryBounds = (anchor: HTMLElement): RectBounds => {
-  let node: HTMLElement | null = anchor.parentElement;
-  while (node && node !== document.body) {
-    if (isClippingParent(node)) {
-      const r = node.getBoundingClientRect();
-      return {
-        top: r.top,
-        left: r.left,
-        right: r.right,
-        bottom: r.bottom,
-        width: r.width,
-        height: r.height,
-      };
-    }
-    node = node.parentElement;
-  }
-  return viewportBounds();
-};
+// The boundary is the viewport, full stop - the same finding the DatePicker's
+// overlay hook documents: this dropdown is a PORTALED popup, a <body> child,
+// so nothing in the field's clipping chain (a scrollable Panel, a modal's
+// overflow container) can clip it. Walking that chain and clamping against it
+// only pretended the popup had to stay inside - inside a panel host it
+// parked the popup over the field instead of below it. The chain walk was an
+// in-flow idiom (DropdownMenu keeps it for exactly that reason); a portal has
+// no chain to honour.
 
 const resolveZIndex = (anchor: HTMLElement): number => {
   let node: HTMLElement | null = anchor;
@@ -189,17 +183,21 @@ export interface PickerProps {
    */
   defaultFilter?: PickerFilter;
   /**
-   * When true, the dropdown ignores any clipping ancestor (e.g. a modal's
-   * overflow container) and positions itself against the viewport instead.
-   * Useful when the picker is inside a constrained modal or panel.
-   * Default: false
+   * @deprecated The dropdown is portaled to the document root, so it always
+   * positions itself against the viewport and no clipping ancestor can
+   * contain it - inside a panel or a modal the popup lands below the field
+   * either way, the way the DatePicker's overlay has since been fixed. The
+   * flag is accepted and ignored.
    */
   escapeBoundary?: boolean;
   /** Classes for the trigger box, which carries the border, fill and radius. */
   className?: string;
   /** Accent for the focus border, ring and the selected rows. */
   tone?: TrueColor;
-  /** Alias for `tone`, matching `Input`, `Select` and `SearchBar`. */
+  /**
+   * Alias for `tone`, matching `Input`, `Select` and `SearchBar`.
+   * @deprecated Use `tone`, which is what every control calls it.
+   */
   color?: TrueColor;
   /** Visual surface style, from the shared field system. @default "flat" */
   variant?: InputVariant;
@@ -207,10 +205,26 @@ export interface PickerProps {
   gradientFrom?: string;
   /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
   gradientTo?: string;
-  /** How prominent the gradient glow is. @default "soft" */
+  /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
   glowIntensity?: GlowIntensity;
   /** @default "none" */
   validationStatus?: PickerValidationStatus;
+  /**
+   * The dropdown card's surface. `"auto"` follows the field's own
+   * variant through `SURFACE_VARIANT_FOR_FIELD` - a glass field gets a
+   * glass popup - so the list reads as the field's own furniture
+   * instead of a hardcoded white box.
+   * @default "auto"
+   */
+  panelVariant?: "auto" | SurfaceVariant;
+  /**
+   * The dropdown card's radius. `"auto"` resolves to the theme's
+   * container corner — the same ladder SmartInput's card holds: the
+   * card stays one step tighter than the field poking out of it. An
+   * explicit token overrules.
+   * @default "auto"
+   */
+  panelCorner?: SurfaceCorner;
   /** Disables the trigger. */
   disabled?: boolean;
 
@@ -241,20 +255,23 @@ const Picker: React.FC<PickerProps> = ({
   loading = false,
   selectedId,
   onSelect,
-  placeholder = "Select an item…",
+  // The visible defaults are catalogue strings, resolved below — a default
+  // left in the destructuring would be English in every locale.
+  placeholder,
   searchPlaceholder,
-  emptyMessage = "No items found.",
-  loadingMessage = "Loading…",
+  emptyMessage,
+  loadingMessage,
   defaultFilter,
-  escapeBoundary = false,
   className,
   tone,
   color,
   variant = "flat",
   gradientFrom,
   gradientTo,
-  glowIntensity = "soft",
+  glowIntensity = DEFAULT_GLOW_INTENSITY,
   validationStatus = "none",
+  panelVariant = "auto",
+  panelCorner = "auto",
   disabled = false,
   multi = false,
   selectedIds: selectedIdsProp,
@@ -280,7 +297,14 @@ const Picker: React.FC<PickerProps> = ({
   // Enter) — -1 = none. Announced through the search input's
   // aria-activedescendant (combobox pattern).
   const [activeIndex, setActiveIndex] = useState(-1);
+  // Whether the cursor's last move came from the keyboard. A mouse click
+  // already answers itself (the check toggles); leaving the position wash
+  // on the clicked row read as a highlight stuck on - a deselect in
+  // particular kept showing a grey "selected" band. The wash is the
+  // keyboard's focus-visible marker, nothing else.
+  const [cursorByKeyboard, setCursorByKeyboard] = useState(false);
 
+  const t = useKitT();
   const optionId = (index: number) => `${listboxId}-option-${index}`;
   const effectiveTone = tone ?? color ?? "blue";
   const colorTokens = toneTokens[effectiveTone] ?? toneTokens.blue;
@@ -288,8 +312,17 @@ const Picker: React.FC<PickerProps> = ({
   // stacked beside any of them lines up and focuses identically.
   const sizeToken = getFieldSizeTokens(size);
   const fieldTokens = getFieldToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant);
+  const variantTokens = getInputVariantTokens(variant, effectiveTone);
   const hasStatus = validationStatus !== "none";
+  // The dropdown is a surface from the container family, following the
+  // field's variant the way SmartInput's suggestion card does. It used to
+  // be a hardcoded white box - an opaque slab hanging off a glass field.
+  const resolvedPanelVariant =
+    panelVariant === "auto" ? SURFACE_VARIANT_FOR_FIELD[variant] : panelVariant;
+  // Copy colour comes from that surface, so a translucent popup keeps its
+  // contrast instead of painting `text-neutral-800` onto a blurred card.
+  const popupText = getSurfaceTextTokens(resolvedPanelVariant);
+  const isUnderline = variant === "underline";
   const glow = getGlowTokens(glowIntensity);
   const [glowFrom, glowTo] = resolveGlowGradient(
     effectiveTone,
@@ -335,18 +368,21 @@ const Picker: React.FC<PickerProps> = ({
 
     const anchorRect = triggerRef.current.getBoundingClientRect();
     const menuRect = dropdownRef.current.getBoundingClientRect();
-    const boundary = escapeBoundary
-      ? viewportBounds()
-      : resolveBoundaryBounds(triggerRef.current);
+    // `getBoundingClientRect` reports the transformed box; the popup is
+    // measured mid-animation too, so prefer the honest layout size (the
+    // DatePicker's hook learned this the same way).
+    const menuWidth = dropdownRef.current.offsetWidth || menuRect.width;
+    const menuHeight = dropdownRef.current.offsetHeight || menuRect.height;
+    const boundary = viewportBounds();
     const zIndex = resolveZIndex(triggerRef.current);
     const offset = 4;
     const minMargin = 8;
 
     const computedWidth = Math.min(
-      Math.max(anchorRect.width, menuRect.width),
+      Math.max(anchorRect.width, menuWidth),
       boundary.width - minMargin * 2,
     );
-    const computedHeight = menuRect.height;
+    const computedHeight = menuHeight;
 
     const belowTop = anchorRect.bottom + offset;
     const aboveTop = anchorRect.top - offset - computedHeight;
@@ -473,13 +509,18 @@ const Picker: React.FC<PickerProps> = ({
     }
     requestAnimationFrame(() => searchRef.current?.focus());
     // Highlight the current selection if present, else the first option —
-    // the search input's aria-activedescendant then announces it.
+    // the search input's aria-activedescendant then announces it. In multi
+    // mode with nothing checked, highlight nothing: a lone row lit up on a
+    // list of unchecked boxes reads as "already picked", however softly it
+    // is painted - the first arrow key moves the cursor onto a row, and only
+    // then is one marked active.
     // (filtered/effectiveSelectedIds are memoized; [open] is intentional so
     // typing a query re-highlights via the key handler below.)
     const idx = filtered.findIndex((item) =>
       effectiveSelectedIds.includes(item.id),
     );
-    setActiveIndex(idx >= 0 ? idx : filtered.length > 0 ? 0 : -1);
+    setActiveIndex(idx >= 0 ? idx : multi || filtered.length === 0 ? -1 : 0);
+    setCursorByKeyboard(true);
   }, [open]);
 
   // Keep the highlighted option in view during arrow navigation.
@@ -491,7 +532,13 @@ const Picker: React.FC<PickerProps> = ({
       ?.scrollIntoView?.({ block: "nearest" });
   }, [activeIndex]);
 
-  const handleSelect = (item: PickerItem) => {
+  const handleSelect = (item: PickerItem, fromKeyboard = false) => {
+    // Selection moves the cursor with it; the WASH follows the input
+    // device - a mouse click must not park a highlight on the row it just
+    // toggled (deselecting kept showing a grey "selected" band); keyboard
+    // Enter keeps the cursor visible where it landed.
+    setActiveIndex(filtered.findIndex((candidate) => candidate.id === item.id));
+    setCursorByKeyboard(fromKeyboard);
     if (multi) {
       const next = effectiveSelectedIds.includes(item.id)
         ? effectiveSelectedIds.filter((id) => id !== item.id)
@@ -515,9 +562,14 @@ const Picker: React.FC<PickerProps> = ({
     searchPlaceholder ??
     (defaultFilter
       ? filterActive
-        ? `Search ${defaultFilter.label.toLowerCase()} items…`
-        : "Search all items…"
-      : "Search…");
+        ? t("kit.picker.searchIn", {
+            group: defaultFilter.label.toLowerCase(),
+          })
+        : t("kit.picker.searchAll")
+      : t("kit.picker.search"));
+  const resolvedPlaceholder = placeholder ?? t("kit.picker.placeholder");
+  const resolvedEmptyMessage = emptyMessage ?? t("kit.picker.empty");
+  const resolvedLoadingMessage = loadingMessage ?? t("kit.picker.loading");
 
   // ── Dropdown portal ───────────────────────────────────────────────────────
 
@@ -527,286 +579,346 @@ const Picker: React.FC<PickerProps> = ({
           <div
             ref={dropdownRef}
             style={style ?? { visibility: "hidden" }}
-            className={classNames(
-              "fixed overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl ring-1 ring-black/5 dark:border-neutral-700 dark:bg-neutral-900",
-              !style && "invisible opacity-0",
-            )}
+            data-slot="picker-popup"
+            className={classNames("fixed", !style && "invisible opacity-0")}
           >
-            {/* Search + filter row */}
-            <div className="flex items-center gap-2 border-b border-neutral-100 px-3 py-2 dark:border-neutral-800">
-              <svg
-                className="h-4 w-4 shrink-0 text-neutral-400"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path strokeLinecap="round" d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                ref={searchRef}
-                type="text"
-                // Combobox-with-list pattern: this input drives the listbox
-                // below (type to filter, arrows to move the highlight, Enter
-                // to select), announced via aria-activedescendant.
-                role="combobox"
-                aria-label="Search options"
-                aria-expanded
-                aria-controls={listboxId}
-                aria-activedescendant={
-                  activeIndex >= 0 ? optionId(activeIndex) : undefined
-                }
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setOpen(false);
-                    setQuery("");
-                    return;
-                  }
-                  if (filtered.length === 0) return;
-                  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                    e.preventDefault();
-                    const delta = e.key === "ArrowDown" ? 1 : -1;
-                    setActiveIndex((i) =>
-                      i < 0
-                        ? delta > 0
-                          ? 0
-                          : filtered.length - 1
-                        : Math.min(
-                            Math.max(i + delta, 0),
-                            filtered.length - 1,
-                          ),
-                    );
-                  } else if (e.key === "Home" || e.key === "End") {
-                    e.preventDefault();
-                    setActiveIndex(
-                      e.key === "Home" ? 0 : filtered.length - 1,
-                    );
-                  } else if (
-                    e.key === "Enter" &&
-                    activeIndex >= 0 &&
-                    filtered[activeIndex]
-                  ) {
-                    e.preventDefault();
-                    handleSelect(filtered[activeIndex]);
-                  }
-                }}
-                placeholder={resolvedSearchPlaceholder}
-                className="min-w-0 flex-1 bg-transparent text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none dark:text-neutral-200 dark:placeholder:text-neutral-500"
-              />
-              {query && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setQuery("")}
-                  className="shrink-0 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+            {/* The card is a Panel from the container family — the same move
+                SmartInput's suggestion card makes — so `glass` fields get a
+                glass popup instead of an opaque slab. */}
+            <Panel
+              variant={resolvedPanelVariant}
+              tone={PANEL_TONE_FOR_FIELD}
+              // "auto" resolves through the same corner scale the field
+              // uses - a hardcoded `rounded-lg` here could not follow the
+              // theme, and a field sitting in a tight panel would still
+              // open a balloon.
+              corner={panelCorner}
+              padding="none"
+              scrollable={false}
+            >
+              {/* Search + filter row */}
+              <div className="flex items-center gap-2 border-b border-black/5 px-3 py-2 dark:border-white/10">
+                <svg
+                  className={classNames("h-4 w-4 shrink-0", popupText.muted)}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
                 >
-                  <svg
-                    className="h-3.5 w-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
+                  <circle cx="11" cy="11" r="8" />
+                  <path strokeLinecap="round" d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  ref={searchRef}
+                  type="text"
+                  // Combobox-with-list pattern: this input drives the listbox
+                  // below (type to filter, arrows to move the highlight, Enter
+                  // to select), announced via aria-activedescendant.
+                  role="combobox"
+                  aria-label={t("kit.picker.searchOptions")}
+                  aria-expanded
+                  aria-controls={listboxId}
+                  aria-activedescendant={
+                    activeIndex >= 0 ? optionId(activeIndex) : undefined
+                  }
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      setOpen(false);
+                      setQuery("");
+                      return;
+                    }
+                    if (filtered.length === 0) return;
+                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setCursorByKeyboard(true);
+                      const delta = e.key === "ArrowDown" ? 1 : -1;
+                      setActiveIndex((i) =>
+                        i < 0
+                          ? delta > 0
+                            ? 0
+                            : filtered.length - 1
+                          : Math.min(
+                              Math.max(i + delta, 0),
+                              filtered.length - 1,
+                            ),
+                      );
+                    } else if (e.key === "Home" || e.key === "End") {
+                      e.preventDefault();
+                      setCursorByKeyboard(true);
+                      setActiveIndex(
+                        e.key === "Home" ? 0 : filtered.length - 1,
+                      );
+                    } else if (
+                      e.key === "Enter" &&
+                      activeIndex >= 0 &&
+                      filtered[activeIndex]
+                    ) {
+                      e.preventDefault();
+                      handleSelect(filtered[activeIndex], true);
+                    }
+                  }}
+                  placeholder={resolvedSearchPlaceholder}
+                  className={classNames(
+                    "min-w-0 flex-1 bg-transparent text-sm placeholder:text-neutral-400 focus:outline-none dark:placeholder:text-neutral-500",
+                    popupText.body,
+                  )}
+                />
+                {query && (
+                  <button
+                    type="button"
+                    aria-label={t("kit.picker.clearSearch")}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setQuery("")}
+                    className={classNames("shrink-0", popupText.muted)}
                   >
-                    <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-              {defaultFilter && (
+                    <svg
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+                {defaultFilter && (
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setFilterActive((v) => !v)}
+                    className={classNames(
+                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+                      filterActive
+                        ? colorTokens.filterActive
+                        : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400",
+                    )}
+                  >
+                    {filterActive ? defaultFilter.label : "All"}
+                  </button>
+                )}
+              </div>
+
+              {/* Option list */}
+              {/* Multi-select clear action — a button, kept out of the
+                listbox so the listbox contains only options. */}
+              {multi && effectiveSelectedIds.length > 0 && (
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => setFilterActive((v) => !v)}
+                  onClick={handleClearMulti}
                   className={classNames(
-                    "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors",
-                    filterActive
-                      ? colorTokens.filterActive
-                      : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400",
+                    "flex w-full cursor-pointer select-none items-center justify-between border-b border-black/5 px-4 py-1.5 text-xs hover:bg-neutral-50 dark:border-white/10 dark:hover:bg-neutral-800/60",
+                    popupText.muted,
                   )}
                 >
-                  {filterActive ? defaultFilter.label : "All"}
+                  <span>
+                    {t("kit.picker.selectedCount", {
+                      count: effectiveSelectedIds.length,
+                    })}
+                  </span>
+                  <span className="text-rose-500 hover:underline dark:text-rose-400">
+                    {t("kit.picker.clear")}
+                  </span>
                 </button>
               )}
-            </div>
 
-            {/* Option list */}
-            {/* Multi-select clear action — a button, kept out of the
-                listbox so the listbox contains only options. */}
-            {multi && effectiveSelectedIds.length > 0 && (
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={handleClearMulti}
-                className="flex w-full cursor-pointer select-none items-center justify-between border-b border-neutral-100 px-4 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-500 dark:hover:bg-neutral-800/60"
-              >
-                <span>{effectiveSelectedIds.length} selected</span>
-                <span className="text-rose-500 hover:underline dark:text-rose-400">
-                  Clear
-                </span>
-              </button>
-            )}
-
-            {filtered.length === 0 ? (
-              <div className="px-4 py-5 text-center text-sm text-neutral-400 dark:text-neutral-500">
-                {baseItems.length === 0
-                  ? emptyMessage
-                  : "No items match your search."}
-              </div>
-            ) : (
-              /* Option list — a real listbox: the search input above is the
+              {filtered.length === 0 ? (
+                <div
+                  className={classNames(
+                    "px-4 py-5 text-center text-sm",
+                    popupText.muted,
+                  )}
+                >
+                  {baseItems.length === 0
+                    ? resolvedEmptyMessage
+                    : t("kit.picker.emptyFiltered")}
+                </div>
+              ) : (
+                /* Option list — a real listbox: the search input above is the
                  combobox driving it (arrow keys, Enter, aria-activedescendant).
                  APG "combobox with list" — a native <select> cannot host the
                  rich option content (tags, descriptions, multi-select) this
                  widget renders, so the ARIA listbox pattern is deliberate. */
-              <ul
-                ref={listRef}
-                id={listboxId}
-                role="listbox"
-                aria-label="Options"
-                aria-multiselectable={multi || undefined}
-                className="divide-y divide-neutral-50 overflow-y-auto dark:divide-neutral-800/60"
-                style={{ maxHeight: computedMaxHeight }}
-              >
-                {filtered.map((item, index) => {
-                  const isSelected = effectiveSelectedIds.includes(item.id);
-                  return (
-                    // Keyboard lives on the combobox input (arrow keys +
-                    // Enter move/confirm the aria-activedescendant), so the
-                    // option row needs no listener of its own; a native
-                    // <option> cannot carry the rich content rendered here.
-                    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- APG combobox-with-list
-                    <li
-                      key={item.id}
-                      id={optionId(index)}
-                      role="option"
-                      aria-selected={isSelected || undefined}
-                      data-active={index === activeIndex || undefined}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => handleSelect(item)}
-                      className={classNames(
-                        "flex cursor-pointer select-none items-center gap-3 px-4 py-2.5 transition-colors",
-                        isSelected
-                          ? colorTokens.optionSelectedBg
-                          : "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
-                        index === activeIndex &&
-                          "bg-neutral-100 dark:bg-neutral-800/60",
-                      )}
-                    >
-                      {/* Multi: always show checkbox. Single: only show checkmark for selected item. */}
-                      {multi ? (
-                        <span
+                /* The kit's own ScrollArea does the scrolling - the same
+                 overlay bars every other kit list gets, instead of a bare
+                 `overflow-y-auto` with the browser's native scrollbar. The
+                 frame carries the computed cap; the viewport inherits it. */
+                <ScrollArea
+                  style={{ maxHeight: computedMaxHeight }}
+                  variant="hover"
+                  tabIndex={-1}
+                >
+                  <ul
+                    ref={listRef}
+                    id={listboxId}
+                    role="listbox"
+                    aria-label={t("kit.picker.options")}
+                    aria-multiselectable={multi || undefined}
+                  >
+                    {filtered.map((item, index) => {
+                      const isSelected = effectiveSelectedIds.includes(item.id);
+                      return (
+                        // Keyboard lives on the combobox input (arrow keys +
+                        // Enter move/confirm the aria-activedescendant), so the
+                        // option row needs no listener of its own; a native
+                        // <option> cannot carry the rich content rendered here.
+                        // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- APG combobox-with-list
+                        <li
+                          key={item.id}
+                          id={optionId(index)}
+                          role="option"
+                          aria-selected={isSelected || undefined}
+                          data-active={index === activeIndex || undefined}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleSelect(item)}
                           className={classNames(
-                            "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                            "flex cursor-pointer select-none items-center gap-3 px-4 py-2.5 transition-colors",
                             isSelected
-                              ? classNames(
-                                  colorTokens.optionSelectedBg,
-                                  "border-current",
-                                  colorTokens.optionSelectedIcon,
-                                )
-                              : "border-neutral-300 dark:border-neutral-600",
+                              ? colorTokens.optionSelectedBg
+                              : "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
+                            // The highlight is where the KEYBOARD is, never
+                            // a claim of selection - in multi mode an
+                            // unchecked row can carry it, and a solid grey
+                            // fill here read as "selected" while the
+                            // checkbox said otherwise. Same wash as hover
+                            // when unselected; a selected row keeps its
+                            // tone wash and gains an inset ring so the
+                            // position stays visible without a competing
+                            // background.
+                            index === activeIndex &&
+                              cursorByKeyboard &&
+                              (isSelected
+                                ? "ring-1 ring-inset ring-neutral-400/40 dark:ring-white/25"
+                                : "bg-neutral-50 dark:bg-neutral-800/60"),
                           )}
                         >
-                          {isSelected && (
-                            <svg
+                          {/* Multi: always show checkbox. Single: only show checkmark for selected item. */}
+                          {multi ? (
+                            <span
                               className={classNames(
-                                "h-3.5 w-3.5",
-                                colorTokens.optionSelectedIcon,
+                                "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                                isSelected
+                                  ? classNames(
+                                      colorTokens.optionSelectedBg,
+                                      "border-current",
+                                      colorTokens.optionSelectedIcon,
+                                    )
+                                  : "border-neutral-300 dark:border-neutral-600",
                               )}
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth={2.5}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="m5 13 4 4L19 7"
-                              />
-                            </svg>
+                              {isSelected && (
+                                <svg
+                                  className={classNames(
+                                    "h-3.5 w-3.5",
+                                    colorTokens.optionSelectedIcon,
+                                  )}
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth={2.5}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="m5 13 4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </span>
+                          ) : isSelected ? (
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                              <svg
+                                className={classNames(
+                                  "h-3.5 w-3.5",
+                                  colorTokens.optionSelectedIcon,
+                                )}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2.5}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="m5 13 4 4L19 7"
+                                />
+                              </svg>
+                            </span>
+                          ) : null}
+
+                          {/* Icon */}
+                          {item.icon && (
+                            <span
+                              className={classNames(
+                                "shrink-0",
+                                isSelected
+                                  ? colorTokens.optionSelectedIcon
+                                  : popupText.muted,
+                              )}
+                            >
+                              {item.icon}
+                            </span>
                           )}
-                        </span>
-                      ) : isSelected ? (
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                          <svg
-                            className={classNames(
-                              "h-3.5 w-3.5",
-                              colorTokens.optionSelectedIcon,
+
+                          {/* Title + subtitle + description */}
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className={classNames(
+                                "truncate text-sm font-medium",
+                                isSelected
+                                  ? colorTokens.optionSelectedText
+                                  : popupText.heading,
+                              )}
+                            >
+                              {item.title}
+                            </p>
+                            {item.subtitle && (
+                              <p
+                                className={classNames(
+                                  "truncate text-xs",
+                                  popupText.description,
+                                )}
+                              >
+                                {item.subtitle}
+                              </p>
                             )}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="m5 13 4 4L19 7"
-                            />
-                          </svg>
-                        </span>
-                      ) : null}
+                            {item.description && (
+                              <p
+                                className={classNames(
+                                  "truncate text-xs mt-0.5",
+                                  popupText.description,
+                                )}
+                              >
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
 
-                      {/* Icon */}
-                      {item.icon && (
-                        <span
-                          className={classNames(
-                            "shrink-0",
-                            isSelected
-                              ? colorTokens.optionSelectedIcon
-                              : "text-neutral-400 dark:text-neutral-500",
+                          {/* Tags */}
+                          {item.tags && item.tags.length > 0 && (
+                            <div className="flex shrink-0 flex-wrap gap-1">
+                              {item.tags.map((tag, ti) => (
+                                <Pill
+                                  key={ti}
+                                  size="sm"
+                                  tone={tag.tone ?? "neutral"}
+                                  variant="soft"
+                                >
+                                  {tag.label}
+                                </Pill>
+                              ))}
+                            </div>
                           )}
-                        >
-                          {item.icon}
-                        </span>
-                      )}
-
-                      {/* Title + subtitle + description */}
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={classNames(
-                            "truncate text-sm font-medium",
-                            isSelected
-                              ? colorTokens.optionSelectedText
-                              : "text-neutral-800 dark:text-neutral-200",
-                          )}
-                        >
-                          {item.title}
-                        </p>
-                        {item.subtitle && (
-                          <p className="truncate text-xs text-neutral-400 dark:text-neutral-500">
-                            {item.subtitle}
-                          </p>
-                        )}
-                        {item.description && (
-                          <p className="truncate text-xs text-neutral-400 dark:text-neutral-500 mt-0.5">
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Tags */}
-                      {item.tags && item.tags.length > 0 && (
-                        <div className="flex shrink-0 flex-wrap gap-1">
-                          {item.tags.map((tag, ti) => (
-                            <Pill
-                              key={ti}
-                              size="sm"
-                              tone={tag.tone ?? "neutral"}
-                              variant="soft"
-                            >
-                              {tag.label}
-                            </Pill>
-                          ))}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </ScrollArea>
+              )}
+            </Panel>
           </div>,
           PORTAL_ROOT,
         )
@@ -833,7 +945,7 @@ const Picker: React.FC<PickerProps> = ({
                 "text-neutral-400 dark:text-neutral-500",
               )}
             >
-              {placeholder}
+              {resolvedPlaceholder}
             </span>
           );
         }
@@ -896,8 +1008,11 @@ const Picker: React.FC<PickerProps> = ({
         // chevron the same way it reaches an Input's leading icon.
         "group relative flex w-full items-center text-left transition",
         fullHeight && "h-full",
-        sizeToken.px,
-        sizeToken.py,
+        // Underline drops the horizontal padding - there is no box to inset
+        // from - exactly as Input lays it out.
+        isUnderline
+          ? sizeToken.underlinePy
+          : classNames(sizeToken.px, sizeToken.py),
         triggerText,
         triggerGap,
         // The surface comes from the variant now. It was a hardcoded
@@ -908,13 +1023,18 @@ const Picker: React.FC<PickerProps> = ({
           ? stripBorderColor(variantTokens.surface)
           : variantTokens.surface,
         !hasStatus && fieldTokens.focusBorder,
-        !hasStatus && fieldTokens.focusRing,
+        // A ring around a borderless underline reads as a stray box.
+        !isUnderline && !hasStatus && fieldTokens.focusRing,
         hasStatus && FIELD_STATUS_CLASSES[validationStatus],
         // Open reads like focus, because it is: the same border and inset
         // ring the field system uses everywhere else. This used to be a
         // non-inset `ring-2 ring-{tone}-500/20`, which any `overflow` ancestor
         // clipped into square corners.
-        open && !hasStatus && colorTokens.triggerOpen,
+        open &&
+          !hasStatus &&
+          (isUnderline
+            ? colorTokens.triggerOpenBorder
+            : colorTokens.triggerOpen),
         // Opacity, not a neutral fill: a `bg-neutral-100` here would be a
         // same-specificity fight with the variant's own surface and would turn
         // a glass or underline trigger into an opaque grey slab.
@@ -934,72 +1054,96 @@ const Picker: React.FC<PickerProps> = ({
             thickness="thin"
             aria-hidden="true"
           />
-          <span className={classNames("truncate", triggerText, variantTokens.text, "opacity-60")}>
-            {loadingMessage}
+          <span
+            className={classNames(
+              "truncate",
+              triggerText,
+              variantTokens.text,
+              "opacity-60",
+            )}
+          >
+            {resolvedLoadingMessage}
           </span>
         </span>
-        ) : multi ? (
-          multiTriggerContent
-        ) : selectedItem ? (
-          <>
-            {selectedItem.icon && (
-              <span className={classNames("shrink-0 transition-colors", variantTokens.icon, fieldTokens.icon)}>
-                {selectedItem.icon}
-              </span>
-            )}
-            <div className="min-w-0 flex-1">
+      ) : multi ? (
+        multiTriggerContent
+      ) : selectedItem ? (
+        <>
+          {selectedItem.icon && (
+            <span
+              className={classNames(
+                "shrink-0 transition-colors",
+                variantTokens.icon,
+                fieldTokens.icon,
+              )}
+            >
+              {selectedItem.icon}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <span
+              className={classNames(
+                "block truncate font-medium",
+                variantTokens.text,
+                triggerText,
+              )}
+            >
+              {selectedItem.title}
+            </span>
+            {selectedItem.subtitle && (
               <span
                 className={classNames(
-                  "block truncate font-medium",
-                  variantTokens.text,
-                  triggerText,
+                  "block truncate text-xs",
+                  variantTokens.icon,
                 )}
               >
-                {selectedItem.title}
+                {selectedItem.subtitle}
               </span>
-              {selectedItem.subtitle && (
-                <span className={classNames("block truncate text-xs", variantTokens.icon)}>
-                  {selectedItem.subtitle}
-                </span>
-              )}
-            </div>
-            {selectedItem.tags && selectedItem.tags.length > 0 && (
-              <div className="flex shrink-0 flex-wrap gap-1">
-                {selectedItem.tags.map((tag, ti) => (
-                  <Pill
-                    key={ti}
-                    size="sm"
-                    tone={tag.tone ?? "neutral"}
-                    variant="soft"
-                  >
-                    {tag.label}
-                  </Pill>
-                ))}
-              </div>
             )}
-          </>
-        ) : (
-          <span className={classNames("flex-1 truncate", triggerText, variantTokens.icon)}>
-            {placeholder}
-          </span>
-        )}
-
-        {/* Chevron */}
-        <svg
-          className={classNames(
-            chevronSize,
-            "shrink-0 transition-transform",
-            variantTokens.icon,
-            !hasStatus && fieldTokens.icon,
-            open && "rotate-180",
+          </div>
+          {selectedItem.tags && selectedItem.tags.length > 0 && (
+            <div className="flex shrink-0 flex-wrap gap-1">
+              {selectedItem.tags.map((tag, ti) => (
+                <Pill
+                  key={ti}
+                  size="sm"
+                  tone={tag.tone ?? "neutral"}
+                  variant="soft"
+                >
+                  {tag.label}
+                </Pill>
+              ))}
+            </div>
           )}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
+        </>
+      ) : (
+        <span
+          className={classNames(
+            "flex-1 truncate",
+            triggerText,
+            variantTokens.icon,
+          )}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-        </svg>
+          {resolvedPlaceholder}
+        </span>
+      )}
+
+      {/* Chevron */}
+      <svg
+        className={classNames(
+          chevronSize,
+          "shrink-0 transition-transform",
+          variantTokens.icon,
+          !hasStatus && fieldTokens.icon,
+          open && "rotate-180",
+        )}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
+      </svg>
     </button>
   );
 
@@ -1008,15 +1152,20 @@ const Picker: React.FC<PickerProps> = ({
   // the component's own box, so a clipping ancestor cannot shear it off.
   const framed =
     variant === "gradient" ? (
-      <span className={classNames("relative flex w-full", glow.pad, fullHeight && "h-full")}>
+      <span
+        className={classNames(
+          "relative flex w-full",
+          glow.pad,
+          fullHeight && "h-full",
+        )}
+      >
         <span
           className={classNames(
-            "absolute rounded-2xl leading-none transition-opacity duration-500",
+            "absolute rounded-2xl transition-opacity duration-500",
             glow.inset,
-            glow.blur,
           )}
           style={{
-            background: `linear-gradient(to right, ${glowFrom}, ${glowTo})`,
+            boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowTo}`,
             opacity: open ? glow.focusOpacity : glow.idleOpacity,
           }}
           aria-hidden

@@ -20,9 +20,27 @@
 // Note: the kit supports 21 of Tailwind's 22 palettes — `pink` is
 // deliberately NOT a TrueColor.
 const COLORS = [
-  "red","orange","amber","yellow","lime","green","emerald","teal",
-  "cyan","sky","blue","indigo","violet","purple","fuchsia","rose",
-  "slate","gray","zinc","neutral","stone",
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "rose",
+  "slate",
+  "gray",
+  "zinc",
+  "neutral",
+  "stone",
 ];
 
 const COLOR_LIST = COLORS.join(",");
@@ -140,10 +158,17 @@ L("");
 // hover:bg-{color}-{shade}
 src(`@source inline("hover:bg-{COLOR}-100");`);
 src(`@source inline("hover:bg-{COLOR}-400");`);
+// The Combobox row wash follows the component's tone under the mouse -
+// emitted per tone, because that is exactly where a gap hides: the DOM
+// carries the right class and paints nothing.
+src(`@source inline("hover:bg-{COLOR}-50");`);
+src(`@source inline("dark:hover:bg-{COLOR}-500/15");`);
 L("");
 
 // hover:text-{color}-{shade}
 src(`@source inline("hover:text-{COLOR}-500");`);
+src(`@source inline("hover:text-{COLOR}-700");`);
+src(`@source inline("dark:hover:text-{COLOR}-200");`);
 L("");
 
 // hover:border-{color}-{shade}
@@ -309,11 +334,12 @@ src(`@source inline("peer-checked:border-{COLOR}-400");`);
 src(`@source inline("dark:peer-checked:border-{COLOR}-400");`);
 src(`@source inline("peer-checked:bg-{COLOR}-500/20");`);
 src(`@source inline("dark:peer-checked:bg-{COLOR}-400/25");`);
-// The glass variant's on-state: the frosted fill (and its dark twin) only
-// while checked, plus the backdrop blur that composes it. Mirrors the plain
-// glass-fill steps above with a peer-checked prefix.
+// The glass variant's on-state: a translucent full-chroma tint (and its dark
+// twin) only while checked, plus the backdrop blur that composes it. The
+// light step is the 500 at /40 (clear: /20) — the big-surface `100` pastel
+// washes out at pill size; the dark step stays in the 600 family.
 src(`@source inline("peer-checked:backdrop-blur-sm");`);
-src(`@source inline("peer-checked:bg-{COLOR}-100/{30,55,65,75,85}");`);
+src(`@source inline("peer-checked:bg-{COLOR}-500/{20,40}");`);
 src(`@source inline("dark:peer-checked:bg-{COLOR}-600/{5,10,15,25,35}");`);
 src(`@source inline("peer-focus-visible:ring-{COLOR}-400");`);
 L("");
@@ -339,10 +365,18 @@ L(`/* ── Opacity-modified classes (variants compiled by Tailwind) ── */`
 L("");
 
 // Glass fills: bg-{color}-100/{opacity} and its hover step
-src(`@source inline("bg-{COLOR}-100/{30,55,65,75,85}");`);
+src(`@source inline("bg-{COLOR}-100/{30,55,65,75,80,85}");`);
 src(`@source inline("hover:bg-{COLOR}-100/{40,65,75,85,95}");`);
 src(`@source inline("dark:bg-{COLOR}-600/{5,10,15,25,35}");`);
 src(`@source inline("dark:hover:bg-{COLOR}-600/{15,20,25,35,45}");`);
+// The intensified glass tints: control fills moved to the `-200`/`-500`
+// shades, container fills to `-100` — a `-50`/`-100` wash at these alphas
+// read as disabled, not tinted. Same alpha ladder, one notch up in shade.
+src(`@source inline("bg-{COLOR}-200/{30,65,75,85,95}");`);
+src(`@source inline("hover:bg-{COLOR}-200/{40,75,85,95}");`);
+src(`@source inline("dark:bg-{COLOR}-500/{5,10,15,20,25,30,35}");`);
+src(`@source inline("dark:hover:bg-{COLOR}-500/{15,25,35,45}");`);
+src(`@source inline("bg-{COLOR}-100/{20,45,50}");`);
 L("");
 
 // Toggle focus ring
@@ -372,6 +406,10 @@ src(`@source inline("group-focus-within:ring-{COLOR}-400");`);
 src(`@source inline("hover:text-{COLOR}-600");`);
 src(`@source inline("dark:hover:bg-{COLOR}-900/40");`);
 src(`@source inline("dark:hover:text-{COLOR}-400");`);
+// Breadcrumb link tokens (getBreadcrumbToneTokens): the contrast-correct
+// text-hover pair — `{c}-700` light, `{c}-300` dark (the dark step and the
+// current crumb are already covered above).
+src(`@source inline("hover:text-{COLOR}-700");`);
 L("");
 
 // SideMenu row tokens. The icon's hover colour comes from the row's
@@ -418,6 +456,10 @@ src(`@source inline("dark:peer-checked:{bg,border}-{COLOR}-400");`);
 src(`@source inline("dark:peer-indeterminate:{bg,border}-{COLOR}-400");`);
 src(`@source inline("peer-focus-visible:ring-{COLOR}-500");`);
 src(`@source inline("dark:peer-focus-visible:ring-{COLOR}-400");`);
+// The glass variant's on-state mirrors Toggle's: the full-chroma 500 step at
+// a translucent alpha (600/35 in dark), for checked *and* indeterminate.
+src(`@source inline("peer-indeterminate:bg-{COLOR}-500/{20,40}");`);
+src(`@source inline("dark:peer-indeterminate:bg-{COLOR}-600/{15,35}");`);
 // The glyph colour `dark:text-{COLOR}-950` is already emitted above, for
 // Alert's solid variant.
 L("");

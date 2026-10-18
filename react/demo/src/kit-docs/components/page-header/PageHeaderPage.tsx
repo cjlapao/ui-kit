@@ -1,6 +1,13 @@
 import React from "react";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
+import {
+  A11yCode,
+  A11ySection,
+  A11yTopic,
+  C,
+  PropsTable,
+} from "../../shared/A11ySections";
 import { PageHeaderPlayground } from "./PageHeaderPlayground";
 import Basic from "./examples/Basic";
 import basicCode from "./examples/Basic.tsx?raw";
@@ -15,32 +22,96 @@ export const PageHeaderPage: React.FC = () => (
     />
     <PageHeaderPlayground />
     <section className="flex flex-col gap-5">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Examples</h2>
-      <ExampleCard title="Basic" description="Brand and breadcrumb trail on the left, page controls on the right — the regions of a Toolbar wearing header chrome." code={basicCode} filename="Basic.tsx"><Basic /></ExampleCard>
-      <ExampleCard title="With SideMenu" description="The pairing it exists for: the sidebar's logo header and this bar paint the same height, seam colour and fill from one set of constants, so the horizontal line crosses the shell in one stroke — collapse the menu and nothing moves." code={withSideMenuCode} filename="WithSideMenu.tsx"><WithSideMenu /></ExampleCard>
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+        Examples
+      </h2>
+      <ExampleCard
+        title="Basic"
+        description="Brand and breadcrumb trail on the left, page controls on the right — the regions of a Toolbar wearing header chrome."
+        code={basicCode}
+        filename="Basic.tsx"
+      >
+        <Basic />
+      </ExampleCard>
+      <ExampleCard
+        title="With SideMenu"
+        description="The pairing it exists for: the sidebar's logo header and this bar paint the same height, seam colour and fill from one set of constants, so the horizontal line crosses the shell in one stroke — collapse the menu and nothing moves."
+        code={withSideMenuCode}
+        filename="WithSideMenu.tsx"
+      >
+        <WithSideMenu />
+      </ExampleCard>
     </section>
-    <section className="flex flex-col gap-5">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">API</h2>
-      <div className="max-w-3xl text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+    <A11ySection>
+      <A11yTopic title="Screen reader">
         <p>
-          Region props are <code>start</code>, <code>center</code> and{" "}
-          <code>end</code> (React nodes; Vue named slots), plus{" "}
-          <code>children</code> as an optional extra group — empty regions
-          still hold their place, as in <code>Toolbar</code>. There are
-          deliberately no <code>variant</code>, <code>padding</code> or{" "}
-          <code>corner</code> props: the component exists so the seam
-          continues unbroken from the sidebar's logo header, and both sides
-          paint the shared <code>SIDE_MENU_HEADER_HEIGHT</code>,{" "}
-          <code>SIDE_MENU_HEADER_SEAM</code> and{" "}
-          <code>SIDE_MENU_HEADER_FILL</code> constants — drift is a red test,
-          not a visual bug. It renders a <code>&lt;header&gt;</code> (the
-          banner landmark at page top level); attributes pass through to it,
-          so name it with <code>aria-label</code> when a page carries more
-          than one.
+          The element is a <C>&lt;header&gt;</C> — the banner landmark at page
+          top level — deliberately not <C>role="toolbar"</C>: this is a
+          page&rsquo;s identity bar, not a command bar. Banners are found{" "}
+          <C>by name</C>, and an unnamed one is just &ldquo;banner&rdquo;; a
+          page carrying more than one header must name each with{" "}
+          <C>aria-label</C>. Empty regions stay in the DOM but contribute
+          nothing to the accessibility tree.
         </p>
-      </div>
-    </section>
+        <A11yCode filename="Naming.tsx" code={NAMING_CODE} />
+      </A11yTopic>
+
+      <A11yTopic title="Keyboard Support">
+        <p>
+          None of its own — the bar is not focusable and adds no bindings.
+          Buttons, links and search fields in the regions stay individually
+          tabbable, in DOM order from left to right (start, center, end, then
+          the children group).
+        </p>
+      </A11yTopic>
+
+      <A11yTopic title="Internationalization">
+        <p>
+          No strings ship with it; every word arrives through the regions. The
+          layout is flex flow, so under <C>dir="rtl"</C> the <C>start</C> region
+          (brand, breadcrumb) and the <C>end</C> region (avatar, toggles) swap
+          sides exactly as those logical names mean, and the gap keeps its
+          rhythm while groups wrap instead of overflowing.
+        </p>
+      </A11yTopic>
+    </A11ySection>
+
+    <PropsTable
+      props={[
+        {
+          name: "start / center / end",
+          type: "ReactNode",
+          description:
+            "The three regions; empty ones still hold their DOM place, so an end-only header parks right.",
+        },
+        {
+          name: "children",
+          type: "ReactNode",
+          description: "Extra group appended after the regions.",
+        },
+        {
+          name: "—",
+          type: "no surface props",
+          description:
+            "Deliberately no variant, tone, padding or corner: both this bar and the sidebar's logo header paint the shared SIDE_MENU_HEADER_HEIGHT / _FILL / _SEAM constants so the seam never breaks — drift is a red test, not a visual bug.",
+        },
+        {
+          name: "…html props",
+          type: "HTMLAttributes",
+          description: (
+            <>
+              aria-label, id, className — everything lands on the{" "}
+              <C>&lt;header&gt;</C> itself.
+            </>
+          ),
+        },
+      ]}
+    />
   </div>
 );
+
+const NAMING_CODE = `// Two banners on one page — the names are all
+// a screen reader has to tell them apart.
+<PageHeader aria-label="Application" start={brand} end={account} />`;
 
 export default PageHeaderPage;

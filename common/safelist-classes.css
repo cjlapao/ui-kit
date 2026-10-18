@@ -389,7 +389,11 @@
 }
 
 @utility dark:bg-emerald-300/5 {
-  background-color: color-mix(in srgb, var(--color-emerald-300) 5%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-300) 5%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-400 {
@@ -397,11 +401,19 @@
 }
 
 @utility dark:bg-emerald-400/20 {
-  background-color: color-mix(in srgb, var(--color-emerald-400) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-400) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-400/90 {
-  background-color: color-mix(in srgb, var(--color-emerald-400) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-400) 90%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-500 {
@@ -409,47 +421,91 @@
 }
 
 @utility dark:bg-emerald-500/5 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 5%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 5%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-500/10 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-500/15 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 15%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-500/20 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-500/25 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 25%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 25%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-500/40 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-600/60 {
-  background-color: color-mix(in srgb, var(--color-emerald-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-600) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-700/10 {
-  background-color: color-mix(in srgb, var(--color-emerald-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-700) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-700/40 {
-  background-color: color-mix(in srgb, var(--color-emerald-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-700) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-900/40 {
-  background-color: color-mix(in srgb, var(--color-emerald-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-900) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-emerald-900/60 {
-  background-color: color-mix(in srgb, var(--color-emerald-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-900) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-300 {
@@ -457,7 +513,11 @@
 }
 
 @utility dark:bg-fuchsia-300/5 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-300) 5%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-300) 5%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-400 {
@@ -465,11 +525,19 @@
 }
 
 @utility dark:bg-fuchsia-400/20 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-400) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-400) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-400/90 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-400) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-400) 90%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-500 {
@@ -477,47 +545,91 @@
 }
 
 @utility dark:bg-fuchsia-500/5 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 5%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 5%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-500/10 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-500/15 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 15%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-500/20 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-500/25 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 25%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 25%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-500/40 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-600/60 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-600) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-700/10 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-700) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-700/40 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-700) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-900/40 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-900) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-fuchsia-900/60 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-900) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-gray-300 {
@@ -669,11 +781,19 @@
 }
 
 @utility dark:bg-indigo-400/20 {
-  background-color: color-mix(in srgb, var(--color-indigo-400) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-400) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-400/90 {
-  background-color: color-mix(in srgb, var(--color-indigo-400) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-400) 90%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-500 {
@@ -685,43 +805,83 @@
 }
 
 @utility dark:bg-indigo-500/10 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-500/15 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 15%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-500/20 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-500/25 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 25%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 25%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-500/40 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-600/60 {
-  background-color: color-mix(in srgb, var(--color-indigo-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-600) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-700/10 {
-  background-color: color-mix(in srgb, var(--color-indigo-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-700) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-700/40 {
-  background-color: color-mix(in srgb, var(--color-indigo-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-700) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-900/40 {
-  background-color: color-mix(in srgb, var(--color-indigo-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-900) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-indigo-900/60 {
-  background-color: color-mix(in srgb, var(--color-indigo-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-900) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-lime-300 {
@@ -797,7 +957,11 @@
 }
 
 @utility dark:bg-neutral-300/5 {
-  background-color: color-mix(in srgb, var(--color-neutral-300) 5%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-300) 5%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-400 {
@@ -805,11 +969,19 @@
 }
 
 @utility dark:bg-neutral-400/20 {
-  background-color: color-mix(in srgb, var(--color-neutral-400) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-400) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-400/90 {
-  background-color: color-mix(in srgb, var(--color-neutral-400) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-400) 90%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-500 {
@@ -817,47 +989,91 @@
 }
 
 @utility dark:bg-neutral-500/5 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 5%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 5%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-500/10 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-500/15 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 15%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-500/20 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-500/25 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 25%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 25%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-500/40 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-600/60 {
-  background-color: color-mix(in srgb, var(--color-neutral-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-600) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-700/10 {
-  background-color: color-mix(in srgb, var(--color-neutral-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-700) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-700/40 {
-  background-color: color-mix(in srgb, var(--color-neutral-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-700) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-900/40 {
-  background-color: color-mix(in srgb, var(--color-neutral-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-900) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-neutral-900/60 {
-  background-color: color-mix(in srgb, var(--color-neutral-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-900) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-300 {
@@ -873,11 +1089,19 @@
 }
 
 @utility dark:bg-orange-400/20 {
-  background-color: color-mix(in srgb, var(--color-orange-400) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-400) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-400/90 {
-  background-color: color-mix(in srgb, var(--color-orange-400) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-400) 90%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-500 {
@@ -889,43 +1113,83 @@
 }
 
 @utility dark:bg-orange-500/10 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-500/15 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 15%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-500/20 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-500/25 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 25%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 25%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-500/40 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-600/60 {
-  background-color: color-mix(in srgb, var(--color-orange-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-600) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-700/10 {
-  background-color: color-mix(in srgb, var(--color-orange-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-700) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-700/40 {
-  background-color: color-mix(in srgb, var(--color-orange-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-700) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-900/40 {
-  background-color: color-mix(in srgb, var(--color-orange-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-900) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-orange-900/60 {
-  background-color: color-mix(in srgb, var(--color-orange-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-900) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-pink-300 {
@@ -1009,11 +1273,19 @@
 }
 
 @utility dark:bg-purple-400/20 {
-  background-color: color-mix(in srgb, var(--color-purple-400) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-400) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-400/90 {
-  background-color: color-mix(in srgb, var(--color-purple-400) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-400) 90%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-500 {
@@ -1025,43 +1297,83 @@
 }
 
 @utility dark:bg-purple-500/10 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-500/15 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 15%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-500/20 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-500/25 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 25%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 25%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-500/40 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-600/60 {
-  background-color: color-mix(in srgb, var(--color-purple-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-600) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-700/10 {
-  background-color: color-mix(in srgb, var(--color-purple-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-700) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-700/40 {
-  background-color: color-mix(in srgb, var(--color-purple-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-700) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-900/40 {
-  background-color: color-mix(in srgb, var(--color-purple-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-900) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-purple-900/60 {
-  background-color: color-mix(in srgb, var(--color-purple-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-900) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-red-300 {
@@ -1485,11 +1797,19 @@
 }
 
 @utility dark:bg-violet-400/20 {
-  background-color: color-mix(in srgb, var(--color-violet-400) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-400) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-400/90 {
-  background-color: color-mix(in srgb, var(--color-violet-400) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-400) 90%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-500 {
@@ -1501,43 +1821,83 @@
 }
 
 @utility dark:bg-violet-500/10 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-500/15 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 15%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-500/20 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-500/25 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 25%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 25%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-500/40 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-600/60 {
-  background-color: color-mix(in srgb, var(--color-violet-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-600) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-700/10 {
-  background-color: color-mix(in srgb, var(--color-violet-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-700) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-700/40 {
-  background-color: color-mix(in srgb, var(--color-violet-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-700) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-900/40 {
-  background-color: color-mix(in srgb, var(--color-violet-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-900) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-violet-900/60 {
-  background-color: color-mix(in srgb, var(--color-violet-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-900) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-300 {
@@ -1553,11 +1913,19 @@
 }
 
 @utility dark:bg-yellow-400/20 {
-  background-color: color-mix(in srgb, var(--color-yellow-400) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-400) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-400/90 {
-  background-color: color-mix(in srgb, var(--color-yellow-400) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-400) 90%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-500 {
@@ -1569,43 +1937,83 @@
 }
 
 @utility dark:bg-yellow-500/10 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-500/15 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 15%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-500/20 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-500/25 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 25%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 25%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-500/40 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-600/60 {
-  background-color: color-mix(in srgb, var(--color-yellow-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-600) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-700/10 {
-  background-color: color-mix(in srgb, var(--color-yellow-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-700) 10%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-700/40 {
-  background-color: color-mix(in srgb, var(--color-yellow-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-700) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-900/40 {
-  background-color: color-mix(in srgb, var(--color-yellow-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-900) 40%,
+    transparent
+  );
 }
 
 @utility dark:bg-yellow-900/60 {
-  background-color: color-mix(in srgb, var(--color-yellow-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-900) 60%,
+    transparent
+  );
 }
 
 @utility dark:bg-zinc-300 {
@@ -2207,96 +2615,188 @@
 
 /* dark: border-b */
 @utility dark:border-b-amber-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-amber-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-amber-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-blue-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-blue-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-blue-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-cyan-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-cyan-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-cyan-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-emerald-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-emerald-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-emerald-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-fuchsia-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-fuchsia-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-gray-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-gray-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-gray-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-green-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-green-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-green-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-indigo-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-indigo-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-indigo-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-lime-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-lime-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-lime-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-neutral-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-neutral-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-neutral-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-orange-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-orange-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-orange-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-pink-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-pink-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-pink-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-purple-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-purple-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-purple-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-red-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-red-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-red-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-rose-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-rose-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-rose-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-sky-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-sky-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-sky-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-slate-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-slate-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-slate-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-stone-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-stone-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-stone-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-teal-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-teal-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-teal-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-violet-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-violet-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-violet-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-yellow-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-yellow-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-yellow-100) 60%,
+    transparent
+  );
 }
 
 @utility dark:border-b-zinc-100/60 {
-  border-bottom-color: color-mix(in srgb, var(--color-zinc-100) 60%, transparent);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--color-zinc-100) 60%,
+    transparent
+  );
 }
 
 /* dark: border-l */
 @utility dark:border-l-amber-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-amber-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-amber-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-blue-100/40 {
@@ -2308,11 +2808,19 @@
 }
 
 @utility dark:border-l-emerald-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-emerald-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-emerald-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-fuchsia-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-fuchsia-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-gray-100/40 {
@@ -2320,11 +2828,19 @@
 }
 
 @utility dark:border-l-green-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-green-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-green-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-indigo-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-indigo-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-indigo-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-lime-100/40 {
@@ -2332,11 +2848,19 @@
 }
 
 @utility dark:border-l-neutral-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-neutral-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-neutral-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-orange-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-orange-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-orange-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-pink-100/40 {
@@ -2344,7 +2868,11 @@
 }
 
 @utility dark:border-l-purple-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-purple-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-purple-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-red-100/40 {
@@ -2360,11 +2888,19 @@
 }
 
 @utility dark:border-l-slate-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-slate-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-slate-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-stone-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-stone-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-stone-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-teal-100/40 {
@@ -2372,11 +2908,19 @@
 }
 
 @utility dark:border-l-violet-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-violet-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-violet-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-yellow-100/40 {
-  border-left-color: color-mix(in srgb, var(--color-yellow-100) 40%, transparent);
+  border-left-color: color-mix(
+    in srgb,
+    var(--color-yellow-100) 40%,
+    transparent
+  );
 }
 
 @utility dark:border-l-zinc-100/40 {
@@ -2563,55 +3107,107 @@
 
 /* dark: from */
 @utility dark:from-amber-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-amber-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-amber-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-blue-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-blue-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-blue-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-cyan-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-cyan-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-cyan-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-emerald-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-emerald-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-emerald-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-fuchsia-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-fuchsia-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-gray-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-gray-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-gray-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-green-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-green-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-green-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-indigo-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-indigo-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-indigo-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-lime-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-lime-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-lime-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-neutral-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-neutral-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-orange-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-orange-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-orange-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-pink-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-pink-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-pink-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-purple-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-purple-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-purple-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-red-500/10 {
@@ -2619,7 +3215,11 @@
 }
 
 @utility dark:from-rose-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-rose-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-rose-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-sky-500/10 {
@@ -2627,27 +3227,51 @@
 }
 
 @utility dark:from-slate-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-slate-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-slate-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-stone-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-stone-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-stone-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-teal-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-teal-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-teal-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-violet-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-violet-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-violet-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-yellow-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-yellow-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-yellow-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:from-zinc-500/10 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-zinc-500) 10%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-zinc-500) 10%,
+    transparent
+  );
 }
 
 /* dark: ring */
@@ -2664,11 +3288,19 @@
 }
 
 @utility dark:ring-emerald-500/40 {
-  --tw-ring-color: color-mix(in srgb, var(--color-emerald-500) 40%, transparent);
+  --tw-ring-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:ring-fuchsia-500/40 {
-  --tw-ring-color: color-mix(in srgb, var(--color-fuchsia-500) 40%, transparent);
+  --tw-ring-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:ring-gray-500/40 {
@@ -2688,7 +3320,11 @@
 }
 
 @utility dark:ring-neutral-500/40 {
-  --tw-ring-color: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
+  --tw-ring-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 40%,
+    transparent
+  );
 }
 
 @utility dark:ring-orange-500/40 {
@@ -3780,11 +4416,19 @@
 }
 
 @utility dark:hover:bg-emerald-500/10 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-emerald-500/20 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-fuchsia-300 {
@@ -3792,11 +4436,19 @@
 }
 
 @utility dark:hover:bg-fuchsia-500/10 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-fuchsia-500/20 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-gray-300 {
@@ -3828,11 +4480,19 @@
 }
 
 @utility dark:hover:bg-indigo-500/10 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-indigo-500/20 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-lime-300 {
@@ -3852,11 +4512,19 @@
 }
 
 @utility dark:hover:bg-neutral-500/10 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-neutral-500/20 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-orange-300 {
@@ -3864,11 +4532,19 @@
 }
 
 @utility dark:hover:bg-orange-500/10 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-orange-500/20 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-pink-300 {
@@ -3888,11 +4564,19 @@
 }
 
 @utility dark:hover:bg-purple-500/10 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-purple-500/20 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-red-300 {
@@ -3972,11 +4656,19 @@
 }
 
 @utility dark:hover:bg-violet-500/10 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-violet-500/20 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-yellow-300 {
@@ -3984,11 +4676,19 @@
 }
 
 @utility dark:hover:bg-yellow-500/10 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 10%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-yellow-500/20 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 20%,
+    transparent
+  );
 }
 
 @utility dark:hover:bg-zinc-300 {
@@ -6243,15 +6943,27 @@
 }
 
 @utility bg-emerald-50/45 {
-  background-color: color-mix(in srgb, var(--color-emerald-50) 45%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-50) 45%,
+    transparent
+  );
 }
 
 @utility bg-emerald-50/70 {
-  background-color: color-mix(in srgb, var(--color-emerald-50) 70%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-50) 70%,
+    transparent
+  );
 }
 
 @utility bg-emerald-50/80 {
-  background-color: color-mix(in srgb, var(--color-emerald-50) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-50) 80%,
+    transparent
+  );
 }
 
 @utility bg-emerald-100 {
@@ -6259,11 +6971,19 @@
 }
 
 @utility bg-emerald-100/60 {
-  background-color: color-mix(in srgb, var(--color-emerald-100) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-100) 60%,
+    transparent
+  );
 }
 
 @utility bg-emerald-100/80 {
-  background-color: color-mix(in srgb, var(--color-emerald-100) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-100) 80%,
+    transparent
+  );
 }
 
 @utility bg-emerald-200 {
@@ -6271,7 +6991,11 @@
 }
 
 @utility bg-emerald-300/40 {
-  background-color: color-mix(in srgb, var(--color-emerald-300) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-300) 40%,
+    transparent
+  );
 }
 
 @utility bg-emerald-400 {
@@ -6279,7 +7003,11 @@
 }
 
 @utility bg-emerald-400/10 {
-  background-color: color-mix(in srgb, var(--color-emerald-400) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-400) 10%,
+    transparent
+  );
 }
 
 @utility bg-emerald-500 {
@@ -6287,23 +7015,43 @@
 }
 
 @utility bg-emerald-500/10 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 10%,
+    transparent
+  );
 }
 
 @utility bg-emerald-500/15 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 15%,
+    transparent
+  );
 }
 
 @utility bg-emerald-500/20 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 20%,
+    transparent
+  );
 }
 
 @utility bg-emerald-500/40 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 40%,
+    transparent
+  );
 }
 
 @utility bg-emerald-500/90 {
-  background-color: color-mix(in srgb, var(--color-emerald-500) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-500) 90%,
+    transparent
+  );
 }
 
 @utility bg-emerald-600 {
@@ -6311,23 +7059,43 @@
 }
 
 @utility bg-emerald-600/60 {
-  background-color: color-mix(in srgb, var(--color-emerald-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-600) 60%,
+    transparent
+  );
 }
 
 @utility bg-emerald-700/10 {
-  background-color: color-mix(in srgb, var(--color-emerald-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-700) 10%,
+    transparent
+  );
 }
 
 @utility bg-emerald-700/40 {
-  background-color: color-mix(in srgb, var(--color-emerald-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-700) 40%,
+    transparent
+  );
 }
 
 @utility bg-emerald-900/40 {
-  background-color: color-mix(in srgb, var(--color-emerald-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-900) 40%,
+    transparent
+  );
 }
 
 @utility bg-emerald-900/60 {
-  background-color: color-mix(in srgb, var(--color-emerald-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-emerald-900) 60%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-50 {
@@ -6335,15 +7103,27 @@
 }
 
 @utility bg-fuchsia-50/45 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-50) 45%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-50) 45%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-50/70 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-50) 70%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-50) 70%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-50/80 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-50) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-50) 80%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-100 {
@@ -6351,11 +7131,19 @@
 }
 
 @utility bg-fuchsia-100/60 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-100) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-100) 60%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-100/80 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-100) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-100) 80%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-200 {
@@ -6363,7 +7151,11 @@
 }
 
 @utility bg-fuchsia-300/40 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-300) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-300) 40%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-400 {
@@ -6371,7 +7163,11 @@
 }
 
 @utility bg-fuchsia-400/10 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-400) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-400) 10%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-500 {
@@ -6379,23 +7175,43 @@
 }
 
 @utility bg-fuchsia-500/10 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 10%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-500/15 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 15%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-500/20 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 20%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-500/40 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 40%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-500/90 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-500) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-500) 90%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-600 {
@@ -6403,23 +7219,43 @@
 }
 
 @utility bg-fuchsia-600/60 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-600) 60%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-700/10 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-700) 10%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-700/40 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-700) 40%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-900/40 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-900) 40%,
+    transparent
+  );
 }
 
 @utility bg-fuchsia-900/60 {
-  background-color: color-mix(in srgb, var(--color-fuchsia-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-fuchsia-900) 60%,
+    transparent
+  );
 }
 
 @utility bg-gray-50 {
@@ -6627,11 +7463,19 @@
 }
 
 @utility bg-indigo-100/60 {
-  background-color: color-mix(in srgb, var(--color-indigo-100) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-100) 60%,
+    transparent
+  );
 }
 
 @utility bg-indigo-100/80 {
-  background-color: color-mix(in srgb, var(--color-indigo-100) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-100) 80%,
+    transparent
+  );
 }
 
 @utility bg-indigo-200 {
@@ -6639,7 +7483,11 @@
 }
 
 @utility bg-indigo-300/40 {
-  background-color: color-mix(in srgb, var(--color-indigo-300) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-300) 40%,
+    transparent
+  );
 }
 
 @utility bg-indigo-400 {
@@ -6647,7 +7495,11 @@
 }
 
 @utility bg-indigo-400/10 {
-  background-color: color-mix(in srgb, var(--color-indigo-400) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-400) 10%,
+    transparent
+  );
 }
 
 @utility bg-indigo-500 {
@@ -6655,23 +7507,43 @@
 }
 
 @utility bg-indigo-500/10 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 10%,
+    transparent
+  );
 }
 
 @utility bg-indigo-500/15 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 15%,
+    transparent
+  );
 }
 
 @utility bg-indigo-500/20 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 20%,
+    transparent
+  );
 }
 
 @utility bg-indigo-500/40 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 40%,
+    transparent
+  );
 }
 
 @utility bg-indigo-500/90 {
-  background-color: color-mix(in srgb, var(--color-indigo-500) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-500) 90%,
+    transparent
+  );
 }
 
 @utility bg-indigo-600 {
@@ -6679,23 +7551,43 @@
 }
 
 @utility bg-indigo-600/60 {
-  background-color: color-mix(in srgb, var(--color-indigo-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-600) 60%,
+    transparent
+  );
 }
 
 @utility bg-indigo-700/10 {
-  background-color: color-mix(in srgb, var(--color-indigo-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-700) 10%,
+    transparent
+  );
 }
 
 @utility bg-indigo-700/40 {
-  background-color: color-mix(in srgb, var(--color-indigo-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-700) 40%,
+    transparent
+  );
 }
 
 @utility bg-indigo-900/40 {
-  background-color: color-mix(in srgb, var(--color-indigo-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-900) 40%,
+    transparent
+  );
 }
 
 @utility bg-indigo-900/60 {
-  background-color: color-mix(in srgb, var(--color-indigo-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-indigo-900) 60%,
+    transparent
+  );
 }
 
 @utility bg-lime-50 {
@@ -6795,15 +7687,27 @@
 }
 
 @utility bg-neutral-50/45 {
-  background-color: color-mix(in srgb, var(--color-neutral-50) 45%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-50) 45%,
+    transparent
+  );
 }
 
 @utility bg-neutral-50/70 {
-  background-color: color-mix(in srgb, var(--color-neutral-50) 70%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-50) 70%,
+    transparent
+  );
 }
 
 @utility bg-neutral-50/80 {
-  background-color: color-mix(in srgb, var(--color-neutral-50) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-50) 80%,
+    transparent
+  );
 }
 
 @utility bg-neutral-100 {
@@ -6811,11 +7715,19 @@
 }
 
 @utility bg-neutral-100/60 {
-  background-color: color-mix(in srgb, var(--color-neutral-100) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-100) 60%,
+    transparent
+  );
 }
 
 @utility bg-neutral-100/80 {
-  background-color: color-mix(in srgb, var(--color-neutral-100) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-100) 80%,
+    transparent
+  );
 }
 
 @utility bg-neutral-200 {
@@ -6823,7 +7735,11 @@
 }
 
 @utility bg-neutral-300/40 {
-  background-color: color-mix(in srgb, var(--color-neutral-300) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-300) 40%,
+    transparent
+  );
 }
 
 @utility bg-neutral-400 {
@@ -6831,7 +7747,11 @@
 }
 
 @utility bg-neutral-400/10 {
-  background-color: color-mix(in srgb, var(--color-neutral-400) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-400) 10%,
+    transparent
+  );
 }
 
 @utility bg-neutral-500 {
@@ -6839,23 +7759,43 @@
 }
 
 @utility bg-neutral-500/10 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 10%,
+    transparent
+  );
 }
 
 @utility bg-neutral-500/15 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 15%,
+    transparent
+  );
 }
 
 @utility bg-neutral-500/20 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 20%,
+    transparent
+  );
 }
 
 @utility bg-neutral-500/40 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 40%,
+    transparent
+  );
 }
 
 @utility bg-neutral-500/90 {
-  background-color: color-mix(in srgb, var(--color-neutral-500) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-500) 90%,
+    transparent
+  );
 }
 
 @utility bg-neutral-600 {
@@ -6863,23 +7803,43 @@
 }
 
 @utility bg-neutral-600/60 {
-  background-color: color-mix(in srgb, var(--color-neutral-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-600) 60%,
+    transparent
+  );
 }
 
 @utility bg-neutral-700/10 {
-  background-color: color-mix(in srgb, var(--color-neutral-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-700) 10%,
+    transparent
+  );
 }
 
 @utility bg-neutral-700/40 {
-  background-color: color-mix(in srgb, var(--color-neutral-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-700) 40%,
+    transparent
+  );
 }
 
 @utility bg-neutral-900/40 {
-  background-color: color-mix(in srgb, var(--color-neutral-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-900) 40%,
+    transparent
+  );
 }
 
 @utility bg-neutral-900/60 {
-  background-color: color-mix(in srgb, var(--color-neutral-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-900) 60%,
+    transparent
+  );
 }
 
 @utility bg-orange-50 {
@@ -6903,11 +7863,19 @@
 }
 
 @utility bg-orange-100/60 {
-  background-color: color-mix(in srgb, var(--color-orange-100) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-100) 60%,
+    transparent
+  );
 }
 
 @utility bg-orange-100/80 {
-  background-color: color-mix(in srgb, var(--color-orange-100) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-100) 80%,
+    transparent
+  );
 }
 
 @utility bg-orange-200 {
@@ -6915,7 +7883,11 @@
 }
 
 @utility bg-orange-300/40 {
-  background-color: color-mix(in srgb, var(--color-orange-300) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-300) 40%,
+    transparent
+  );
 }
 
 @utility bg-orange-400 {
@@ -6923,7 +7895,11 @@
 }
 
 @utility bg-orange-400/10 {
-  background-color: color-mix(in srgb, var(--color-orange-400) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-400) 10%,
+    transparent
+  );
 }
 
 @utility bg-orange-500 {
@@ -6931,23 +7907,43 @@
 }
 
 @utility bg-orange-500/10 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 10%,
+    transparent
+  );
 }
 
 @utility bg-orange-500/15 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 15%,
+    transparent
+  );
 }
 
 @utility bg-orange-500/20 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 20%,
+    transparent
+  );
 }
 
 @utility bg-orange-500/40 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 40%,
+    transparent
+  );
 }
 
 @utility bg-orange-500/90 {
-  background-color: color-mix(in srgb, var(--color-orange-500) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-500) 90%,
+    transparent
+  );
 }
 
 @utility bg-orange-600 {
@@ -6955,23 +7951,43 @@
 }
 
 @utility bg-orange-600/60 {
-  background-color: color-mix(in srgb, var(--color-orange-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-600) 60%,
+    transparent
+  );
 }
 
 @utility bg-orange-700/10 {
-  background-color: color-mix(in srgb, var(--color-orange-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-700) 10%,
+    transparent
+  );
 }
 
 @utility bg-orange-700/40 {
-  background-color: color-mix(in srgb, var(--color-orange-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-700) 40%,
+    transparent
+  );
 }
 
 @utility bg-orange-900/40 {
-  background-color: color-mix(in srgb, var(--color-orange-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-900) 40%,
+    transparent
+  );
 }
 
 @utility bg-orange-900/60 {
-  background-color: color-mix(in srgb, var(--color-orange-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-orange-900) 60%,
+    transparent
+  );
 }
 
 @utility bg-pink-50 {
@@ -7087,11 +8103,19 @@
 }
 
 @utility bg-purple-100/60 {
-  background-color: color-mix(in srgb, var(--color-purple-100) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-100) 60%,
+    transparent
+  );
 }
 
 @utility bg-purple-100/80 {
-  background-color: color-mix(in srgb, var(--color-purple-100) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-100) 80%,
+    transparent
+  );
 }
 
 @utility bg-purple-200 {
@@ -7099,7 +8123,11 @@
 }
 
 @utility bg-purple-300/40 {
-  background-color: color-mix(in srgb, var(--color-purple-300) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-300) 40%,
+    transparent
+  );
 }
 
 @utility bg-purple-400 {
@@ -7107,7 +8135,11 @@
 }
 
 @utility bg-purple-400/10 {
-  background-color: color-mix(in srgb, var(--color-purple-400) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-400) 10%,
+    transparent
+  );
 }
 
 @utility bg-purple-500 {
@@ -7115,23 +8147,43 @@
 }
 
 @utility bg-purple-500/10 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 10%,
+    transparent
+  );
 }
 
 @utility bg-purple-500/15 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 15%,
+    transparent
+  );
 }
 
 @utility bg-purple-500/20 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 20%,
+    transparent
+  );
 }
 
 @utility bg-purple-500/40 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 40%,
+    transparent
+  );
 }
 
 @utility bg-purple-500/90 {
-  background-color: color-mix(in srgb, var(--color-purple-500) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-500) 90%,
+    transparent
+  );
 }
 
 @utility bg-purple-600 {
@@ -7139,23 +8191,43 @@
 }
 
 @utility bg-purple-600/60 {
-  background-color: color-mix(in srgb, var(--color-purple-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-600) 60%,
+    transparent
+  );
 }
 
 @utility bg-purple-700/10 {
-  background-color: color-mix(in srgb, var(--color-purple-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-700) 10%,
+    transparent
+  );
 }
 
 @utility bg-purple-700/40 {
-  background-color: color-mix(in srgb, var(--color-purple-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-700) 40%,
+    transparent
+  );
 }
 
 @utility bg-purple-900/40 {
-  background-color: color-mix(in srgb, var(--color-purple-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-900) 40%,
+    transparent
+  );
 }
 
 @utility bg-purple-900/60 {
-  background-color: color-mix(in srgb, var(--color-purple-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-purple-900) 60%,
+    transparent
+  );
 }
 
 @utility bg-red-50 {
@@ -7731,11 +8803,19 @@
 }
 
 @utility bg-violet-100/60 {
-  background-color: color-mix(in srgb, var(--color-violet-100) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-100) 60%,
+    transparent
+  );
 }
 
 @utility bg-violet-100/80 {
-  background-color: color-mix(in srgb, var(--color-violet-100) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-100) 80%,
+    transparent
+  );
 }
 
 @utility bg-violet-200 {
@@ -7743,7 +8823,11 @@
 }
 
 @utility bg-violet-300/40 {
-  background-color: color-mix(in srgb, var(--color-violet-300) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-300) 40%,
+    transparent
+  );
 }
 
 @utility bg-violet-400 {
@@ -7751,7 +8835,11 @@
 }
 
 @utility bg-violet-400/10 {
-  background-color: color-mix(in srgb, var(--color-violet-400) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-400) 10%,
+    transparent
+  );
 }
 
 @utility bg-violet-500 {
@@ -7759,23 +8847,43 @@
 }
 
 @utility bg-violet-500/10 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 10%,
+    transparent
+  );
 }
 
 @utility bg-violet-500/15 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 15%,
+    transparent
+  );
 }
 
 @utility bg-violet-500/20 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 20%,
+    transparent
+  );
 }
 
 @utility bg-violet-500/40 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 40%,
+    transparent
+  );
 }
 
 @utility bg-violet-500/90 {
-  background-color: color-mix(in srgb, var(--color-violet-500) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-500) 90%,
+    transparent
+  );
 }
 
 @utility bg-violet-600 {
@@ -7783,23 +8891,43 @@
 }
 
 @utility bg-violet-600/60 {
-  background-color: color-mix(in srgb, var(--color-violet-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-600) 60%,
+    transparent
+  );
 }
 
 @utility bg-violet-700/10 {
-  background-color: color-mix(in srgb, var(--color-violet-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-700) 10%,
+    transparent
+  );
 }
 
 @utility bg-violet-700/40 {
-  background-color: color-mix(in srgb, var(--color-violet-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-700) 40%,
+    transparent
+  );
 }
 
 @utility bg-violet-900/40 {
-  background-color: color-mix(in srgb, var(--color-violet-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-900) 40%,
+    transparent
+  );
 }
 
 @utility bg-violet-900/60 {
-  background-color: color-mix(in srgb, var(--color-violet-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-violet-900) 60%,
+    transparent
+  );
 }
 
 @utility bg-yellow-50 {
@@ -7823,11 +8951,19 @@
 }
 
 @utility bg-yellow-100/60 {
-  background-color: color-mix(in srgb, var(--color-yellow-100) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-100) 60%,
+    transparent
+  );
 }
 
 @utility bg-yellow-100/80 {
-  background-color: color-mix(in srgb, var(--color-yellow-100) 80%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-100) 80%,
+    transparent
+  );
 }
 
 @utility bg-yellow-200 {
@@ -7835,7 +8971,11 @@
 }
 
 @utility bg-yellow-300/40 {
-  background-color: color-mix(in srgb, var(--color-yellow-300) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-300) 40%,
+    transparent
+  );
 }
 
 @utility bg-yellow-400 {
@@ -7843,7 +8983,11 @@
 }
 
 @utility bg-yellow-400/10 {
-  background-color: color-mix(in srgb, var(--color-yellow-400) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-400) 10%,
+    transparent
+  );
 }
 
 @utility bg-yellow-500 {
@@ -7851,23 +8995,43 @@
 }
 
 @utility bg-yellow-500/10 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 10%,
+    transparent
+  );
 }
 
 @utility bg-yellow-500/15 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 15%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 15%,
+    transparent
+  );
 }
 
 @utility bg-yellow-500/20 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 20%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 20%,
+    transparent
+  );
 }
 
 @utility bg-yellow-500/40 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 40%,
+    transparent
+  );
 }
 
 @utility bg-yellow-500/90 {
-  background-color: color-mix(in srgb, var(--color-yellow-500) 90%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-500) 90%,
+    transparent
+  );
 }
 
 @utility bg-yellow-600 {
@@ -7875,23 +9039,43 @@
 }
 
 @utility bg-yellow-600/60 {
-  background-color: color-mix(in srgb, var(--color-yellow-600) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-600) 60%,
+    transparent
+  );
 }
 
 @utility bg-yellow-700/10 {
-  background-color: color-mix(in srgb, var(--color-yellow-700) 10%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-700) 10%,
+    transparent
+  );
 }
 
 @utility bg-yellow-700/40 {
-  background-color: color-mix(in srgb, var(--color-yellow-700) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-700) 40%,
+    transparent
+  );
 }
 
 @utility bg-yellow-900/40 {
-  background-color: color-mix(in srgb, var(--color-yellow-900) 40%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-900) 40%,
+    transparent
+  );
 }
 
 @utility bg-yellow-900/60 {
-  background-color: color-mix(in srgb, var(--color-yellow-900) 60%, transparent);
+  background-color: color-mix(
+    in srgb,
+    var(--color-yellow-900) 60%,
+    transparent
+  );
 }
 
 @utility bg-zinc-50 {
@@ -8609,107 +9793,211 @@
 
 /* from */
 @utility from-amber-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-amber-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-amber-100) 60%,
+    transparent
+  );
 }
 
 @utility from-amber-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-amber-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-amber-900) 70%,
+    transparent
+  );
 }
 
 @utility from-blue-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-blue-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-blue-100) 60%,
+    transparent
+  );
 }
 
 @utility from-blue-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-blue-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-blue-900) 70%,
+    transparent
+  );
 }
 
 @utility from-cyan-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-cyan-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-cyan-100) 60%,
+    transparent
+  );
 }
 
 @utility from-cyan-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-cyan-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-cyan-900) 70%,
+    transparent
+  );
 }
 
 @utility from-emerald-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-emerald-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-emerald-100) 60%,
+    transparent
+  );
 }
 
 @utility from-emerald-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-emerald-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-emerald-900) 70%,
+    transparent
+  );
 }
 
 @utility from-fuchsia-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-fuchsia-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-fuchsia-100) 60%,
+    transparent
+  );
 }
 
 @utility from-fuchsia-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-fuchsia-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-fuchsia-900) 70%,
+    transparent
+  );
 }
 
 @utility from-gray-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-gray-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-gray-100) 60%,
+    transparent
+  );
 }
 
 @utility from-gray-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-gray-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-gray-900) 70%,
+    transparent
+  );
 }
 
 @utility from-green-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-green-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-green-100) 60%,
+    transparent
+  );
 }
 
 @utility from-green-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-green-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-green-900) 70%,
+    transparent
+  );
 }
 
 @utility from-indigo-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-indigo-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-indigo-100) 60%,
+    transparent
+  );
 }
 
 @utility from-indigo-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-indigo-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-indigo-900) 70%,
+    transparent
+  );
 }
 
 @utility from-lime-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-lime-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-lime-100) 60%,
+    transparent
+  );
 }
 
 @utility from-lime-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-lime-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-lime-900) 70%,
+    transparent
+  );
 }
 
 @utility from-neutral-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-neutral-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-neutral-100) 60%,
+    transparent
+  );
 }
 
 @utility from-neutral-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-neutral-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-neutral-900) 70%,
+    transparent
+  );
 }
 
 @utility from-orange-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-orange-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-orange-100) 60%,
+    transparent
+  );
 }
 
 @utility from-orange-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-orange-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-orange-900) 70%,
+    transparent
+  );
 }
 
 @utility from-pink-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-pink-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-pink-100) 60%,
+    transparent
+  );
 }
 
 @utility from-pink-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-pink-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-pink-900) 70%,
+    transparent
+  );
 }
 
 @utility from-purple-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-purple-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-purple-100) 60%,
+    transparent
+  );
 }
 
 @utility from-purple-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-purple-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-purple-900) 70%,
+    transparent
+  );
 }
 
 @utility from-red-100/60 {
@@ -8721,11 +10009,19 @@
 }
 
 @utility from-rose-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-rose-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-rose-100) 60%,
+    transparent
+  );
 }
 
 @utility from-rose-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-rose-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-rose-900) 70%,
+    transparent
+  );
 }
 
 @utility from-sky-100/60 {
@@ -8737,51 +10033,99 @@
 }
 
 @utility from-slate-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-slate-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-slate-100) 60%,
+    transparent
+  );
 }
 
 @utility from-slate-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-slate-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-slate-900) 70%,
+    transparent
+  );
 }
 
 @utility from-stone-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-stone-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-stone-100) 60%,
+    transparent
+  );
 }
 
 @utility from-stone-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-stone-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-stone-900) 70%,
+    transparent
+  );
 }
 
 @utility from-teal-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-teal-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-teal-100) 60%,
+    transparent
+  );
 }
 
 @utility from-teal-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-teal-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-teal-900) 70%,
+    transparent
+  );
 }
 
 @utility from-violet-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-violet-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-violet-100) 60%,
+    transparent
+  );
 }
 
 @utility from-violet-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-violet-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-violet-900) 70%,
+    transparent
+  );
 }
 
 @utility from-yellow-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-yellow-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-yellow-100) 60%,
+    transparent
+  );
 }
 
 @utility from-yellow-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-yellow-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-yellow-900) 70%,
+    transparent
+  );
 }
 
 @utility from-zinc-100/60 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-zinc-100) 60%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-zinc-100) 60%,
+    transparent
+  );
 }
 
 @utility from-zinc-900/70 {
-  --tw-gradient-from: color-mix(in srgb, var(--color-zinc-900) 70%, transparent);
+  --tw-gradient-from: color-mix(
+    in srgb,
+    var(--color-zinc-900) 70%,
+    transparent
+  );
 }
 
 /* ring */
@@ -9720,11 +11064,19 @@
 }
 
 @utility to-emerald-900/15 {
-  --tw-gradient-to: color-mix(in srgb, var(--color-emerald-900) 15%, transparent);
+  --tw-gradient-to: color-mix(
+    in srgb,
+    var(--color-emerald-900) 15%,
+    transparent
+  );
 }
 
 @utility to-fuchsia-900/15 {
-  --tw-gradient-to: color-mix(in srgb, var(--color-fuchsia-900) 15%, transparent);
+  --tw-gradient-to: color-mix(
+    in srgb,
+    var(--color-fuchsia-900) 15%,
+    transparent
+  );
 }
 
 @utility to-gray-900/15 {
@@ -9736,7 +11088,11 @@
 }
 
 @utility to-indigo-900/15 {
-  --tw-gradient-to: color-mix(in srgb, var(--color-indigo-900) 15%, transparent);
+  --tw-gradient-to: color-mix(
+    in srgb,
+    var(--color-indigo-900) 15%,
+    transparent
+  );
 }
 
 @utility to-lime-900/15 {
@@ -9744,11 +11100,19 @@
 }
 
 @utility to-neutral-900/15 {
-  --tw-gradient-to: color-mix(in srgb, var(--color-neutral-900) 15%, transparent);
+  --tw-gradient-to: color-mix(
+    in srgb,
+    var(--color-neutral-900) 15%,
+    transparent
+  );
 }
 
 @utility to-orange-900/15 {
-  --tw-gradient-to: color-mix(in srgb, var(--color-orange-900) 15%, transparent);
+  --tw-gradient-to: color-mix(
+    in srgb,
+    var(--color-orange-900) 15%,
+    transparent
+  );
 }
 
 @utility to-pink-900/15 {
@@ -9756,7 +11120,11 @@
 }
 
 @utility to-purple-900/15 {
-  --tw-gradient-to: color-mix(in srgb, var(--color-purple-900) 15%, transparent);
+  --tw-gradient-to: color-mix(
+    in srgb,
+    var(--color-purple-900) 15%,
+    transparent
+  );
 }
 
 @utility to-red-900/15 {
@@ -9784,11 +11152,19 @@
 }
 
 @utility to-violet-900/15 {
-  --tw-gradient-to: color-mix(in srgb, var(--color-violet-900) 15%, transparent);
+  --tw-gradient-to: color-mix(
+    in srgb,
+    var(--color-violet-900) 15%,
+    transparent
+  );
 }
 
 @utility to-yellow-900/15 {
-  --tw-gradient-to: color-mix(in srgb, var(--color-yellow-900) 15%, transparent);
+  --tw-gradient-to: color-mix(
+    in srgb,
+    var(--color-yellow-900) 15%,
+    transparent
+  );
 }
 
 @utility to-zinc-900/15 {
@@ -9797,7 +11173,11 @@
 
 /* via */
 @utility via-amber-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-amber-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-amber-900) 40%,
+    transparent
+  );
 }
 
 @utility via-blue-900/40 {
@@ -9809,11 +11189,19 @@
 }
 
 @utility via-emerald-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-emerald-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-emerald-900) 40%,
+    transparent
+  );
 }
 
 @utility via-fuchsia-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-fuchsia-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-fuchsia-900) 40%,
+    transparent
+  );
 }
 
 @utility via-gray-900/40 {
@@ -9821,11 +11209,19 @@
 }
 
 @utility via-green-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-green-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-green-900) 40%,
+    transparent
+  );
 }
 
 @utility via-indigo-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-indigo-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-indigo-900) 40%,
+    transparent
+  );
 }
 
 @utility via-lime-900/40 {
@@ -9833,11 +11229,19 @@
 }
 
 @utility via-neutral-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-neutral-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-neutral-900) 40%,
+    transparent
+  );
 }
 
 @utility via-orange-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-orange-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-orange-900) 40%,
+    transparent
+  );
 }
 
 @utility via-pink-900/40 {
@@ -9845,7 +11249,11 @@
 }
 
 @utility via-purple-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-purple-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-purple-900) 40%,
+    transparent
+  );
 }
 
 @utility via-red-900/40 {
@@ -9861,11 +11269,19 @@
 }
 
 @utility via-slate-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-slate-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-slate-900) 40%,
+    transparent
+  );
 }
 
 @utility via-stone-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-stone-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-stone-900) 40%,
+    transparent
+  );
 }
 
 @utility via-teal-900/40 {
@@ -9873,11 +11289,19 @@
 }
 
 @utility via-violet-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-violet-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-violet-900) 40%,
+    transparent
+  );
 }
 
 @utility via-yellow-900/40 {
-  --tw-gradient-via: color-mix(in srgb, var(--color-yellow-900) 40%, transparent);
+  --tw-gradient-via: color-mix(
+    in srgb,
+    var(--color-yellow-900) 40%,
+    transparent
+  );
 }
 
 @utility via-zinc-900/40 {

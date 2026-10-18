@@ -10,17 +10,23 @@
 //   combobox   Combobox.tsx             (emptyMessage, trailingIconLabel)
 //   datepicker DatePicker/ + Calendar   (Today, Clear, aria labels, "Date")
 //   help       HelpButton.tsx/.vue      ("Help" fallbacks, Show/Close help)
-//   inforow    InfoRow.tsx              (aria-label "Loading")
+//   button     Button.tsx               (last-resort accessible name)
+//   inforow    InfoRow.tsx              (copy button, copy confirmations, loading)
 //   inlinepanel InlinePanel.tsx/.vue    (cancelLabel, aria "Close")
 //   modal      Modal.tsx/.vue           (cancelLabel, aria "Close dialog")
 //   notificationmodal NotificationModal (actionLabel "Close")
 //   pill       Pill.tsx/.vue            (removeLabel "Remove")
+//   dropdownbutton DropdownButton.tsx   (caretLabel "Toggle dropdown menu")
+//   tagpanel   TagPanel.tsx            (group aria, show/collapse aria, empty copy)
 //   progressspinner ProgressSpinner     (aria-label "Loading")
-//   pagedpanel PagedPanel.tsx/.vue      (emptyMessage "No data available.")
+//   pagedpanel PagedPanel.tsx/.vue      (emptyMessage, prev/next page aria, error title)
+//   tagpicker  TagPicker.tsx           (defaults, create row, pills, aria labels)
+//   picker     Picker.tsx               (defaults, search labels, aria labels, "N selected")
 //   searchbar  SearchBar.tsx/.vue       (aria "Clear search")
 //   sidemenu   SideMenu.tsx/.vue        (placeholder, aria, Collapse, tooltips)
+//   splitview SplitView (search, loading, error, empty, collapse)
 //   sidepanel  SidePanel.tsx/.vue       (Close, aria, Resize panel)
-//   smartgrid  SmartGridItemPalette.tsx (search placeholder/aria, Add items)
+//   smartgrid SmartGridLayout + ItemPalette (all chrome, hints, narration)
 //   spinner    Spinner/StatusSpinner    (sr-only "Loading")
 //   table      Table.tsx (React only)   (emptyState "No data to display")
 //   toast      Toast/ToastMessageCard   (aria "Close notification")
@@ -51,6 +57,16 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       chooseMonthNow: "Choose month, now {month} {year}",
       chooseYearNow: "Choose year, now {year}",
       accessibleNameFallback: "Date",
+    },
+    keyValueArrayField: {
+      key: "Key",
+      value: "Value",
+      addEntry: "Add entry",
+      duplicateKey: "Duplicate key",
+      empty: "No entries yet.",
+      remove: "Remove",
+      removeAria: "Remove {key} {index}",
+      limitReached: "Limit of {max} reached",
     },
     gantt: {
       root: "Gantt chart",
@@ -90,7 +106,16 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       close: "Close help",
       panelTitle: "Help",
     },
+    button: {
+      name: "Button",
+    },
     inforow: {
+      yes: "Yes",
+      no: "No",
+      copy: "Copy to clipboard",
+      copied: "Copied!",
+      copiedLong: "Copied to clipboard",
+      copyFailed: "Copy failed",
       loading: "Loading",
     },
     inlinepanel: {
@@ -119,9 +144,27 @@ export const EN_KIT_CATALOG: MessageCatalog = {
     },
     pagedpanel: {
       empty: "No data available.",
+      previousPage: "Previous page",
+      nextPage: "Next page",
+      error: "Something went wrong",
+    },
+    useravatar: {
+      fallback: "User avatar",
+    },
+    input: {
+      trailingAction: "Input action",
     },
     pill: {
       remove: "Remove",
+    },
+    dropdownbutton: {
+      toggle: "Toggle dropdown menu",
+    },
+    tagpanel: {
+      group: "Tags",
+      showMore: "Show {count} more tags",
+      collapse: "Collapse tags",
+      empty: "No tags",
     },
     progressspinner: {
       loading: "Loading",
@@ -142,6 +185,23 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       verbExpand: "Expand",
       toggleSubmenu: "{verb} {label} submenu",
     },
+    splitview: {
+      moreOptions: "More options",
+      retry: "Retry",
+      search: "Search...",
+      loading: "Loading...",
+      pleaseWait: "Please wait...",
+      errorTitle: "Something went wrong",
+      errorSubtitle: "An unexpected error occurred.",
+      noItems: "No items",
+      noItemsSubtitle: "There are no items to display.",
+      expandList: "Expand list",
+      collapseList: "Collapse list",
+      expandDetails: "Expand details",
+      collapseDetails: "Collapse details",
+      noSelection: "No item selected",
+      noSelectionSubtitle: "Select an item from the list to view its details.",
+    },
     sidepanel: {
       closeAria: "Close panel",
       resize: "Resize panel",
@@ -152,15 +212,162 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       addItems: "Add items",
       close: "Close",
       closeAria: "Close the item palette",
+      editLayout: "Edit layout",
+      done: "Done",
+      resetLayout: "Reset layout",
+      undo: "Undo",
+      redo: "Redo",
+      undoTitle: "Undo (Ctrl+Z)",
+      redoTitle: "Redo (Ctrl+Shift+Z)",
+      dropToRemove: "Drop here to remove",
+      releaseToRemove: "Release to remove",
+      sectionTitleAria: "Section title",
+      untitledSection: "Untitled Section",
+      newSection: "New Section",
+      clickToRename: "Click to rename",
+      reorderHint: "Drag to reorder, or focus and use the up and down arrows",
+      reorderAria: "Reorder section {title}",
+      removeSection: "Remove section and all items",
+      removeRow: "Remove row",
+      emptyRow: "Empty row. Drag a card here.",
+      resizeColumnsAria:
+        "Resize spacer — left and right arrows move one column",
+      resizeItemAria: "Resize {title} — left and right arrows move one column",
+      resizeRowHint:
+        "Drag to resize row height, or focus and use the up and down arrows",
+      resizeRowAria: "Resize row height — up and down arrows move one row",
+      addItemToRow: "Add item to row",
+      addItemToRowAria: "Add item to {title} row",
+      addItem: "Add Item",
+      addNewItem: "Add New Item",
+      dropForNewRow: "Or drop here to add item to new row",
+      dropForNewSection:
+        "Or drop a card here to create a section and place it there",
+      addNewSection: "Add item to create new section",
+      item: "Item",
+      liftHint: "{title}. Press Enter to lift, then the arrow keys to move it.",
+      undone: "Undone",
+      redone: "Redone",
+      layoutReset: "Layout reset to its default",
+      added: "{title} added",
+      spacerAdded: "Spacer added",
+      removed: "{title} removed",
+      sectionRemoved: "Section {title} removed",
+      sectionMovedUp: "Section {title} moved up",
+      sectionMovedDown: "Section {title} moved down",
+      movedBetween: "{from} moved {position} {to}",
+      movedBefore: "before",
+      movedAfter: "after",
+      rowHeight: "Row height {value} of {max}",
+      columnsResized:
+        "{left} {leftValue} of {max} columns, {right} {rightValue}",
+      lifted:
+        "{title} lifted. Use the arrow keys to move it, Enter to place it, Escape to cancel.",
+      placed: "{title} placed",
+      moveCancelled: "Move cancelled",
+      edgeOfRow: "Edge of the row",
+      topRow: "Top row",
+      bottomRow: "Bottom row",
     },
     spinner: {
       loading: "Loading",
     },
     table: {
       empty: "No data to display",
+
+      tableView: "Table view",
+      panelView: "Panel view",
+      switchToTableView: "Switch to table view",
+      switchToPanelView: "Switch to panel view",
+      columns: "Columns",
+      toggleColumnVisibility: "Toggle column visibility",
+      groupBy: "Group by",
+      configureGrouping: "Configure row grouping",
+      clear: "Clear",
+      none: "None",
+      hidden: "hidden",
+      showGroupHeader: "Show group header",
+      stickyColumns: "Sticky columns",
+      configureSticky: "Configure sticky columns",
+      clearAll: "Clear all",
+      sortAscending: "Sort ascending",
+      sortDescending: "Sort descending",
+      clearSort: "Clear sort",
+      toggleSort: "Toggle sort",
+      expandGroup: "Expand group {name}",
+      collapseGroup: "Collapse group {name}",
+      showingResults: "Showing {from} to {to} of {total} results",
+      perPage: "{size} per page",
+      previous: "Previous",
+      next: "Next",
+      pageOf: "Page {page} of {pages}",
     },
     toast: {
       closeAria: "Close notification",
+    },
+    slider: {
+      label: "Slider",
+      min: "Minimum",
+      max: "Maximum",
+      minOf: "{label} min",
+      maxOf: "{label} max",
+    },
+    rating: {
+      label: "Rating",
+      value: "{count, plural, one {# star} other {# stars}}",
+    },
+    inputotp: {
+      label: "One-time password",
+      cell: "{label}, character {index} of {total}",
+    },
+    passwordinput: {
+      show: "Show password",
+      hide: "Hide password",
+    },
+    picker: {
+      placeholder: "Select an item\u2026",
+      empty: "No items found.",
+      loading: "Loading\u2026",
+      search: "Search\u2026",
+      searchAll: "Search all items\u2026",
+      searchIn: "Search {group} items\u2026",
+      searchOptions: "Search options",
+      clearSearch: "Clear search",
+      emptyFiltered: "No items match your search.",
+      selectedCount: "{count} selected",
+      clear: "Clear",
+      options: "Options",
+    },
+    tagpicker: {
+      placeholder: "Select…",
+      search: "Search…",
+      empty: "No items found.",
+      loading: "Loading…",
+      emptyFiltered: "No items match your search.",
+      searchTags: "Search tags",
+      clearSearch: "Clear search",
+      options: "Options",
+      create: "Create",
+      newBadge: "new",
+      remove: "Remove {label}",
+      showMore: "Show {count} more tags",
+      showLess: "Show less",
+      toggle: "Toggle options",
+    },
+    smartinput: {
+      showValues: "Show values",
+      showTokens: "Show tokens",
+      insertVariable: "Insert variable",
+      editValue: "Edit value",
+      empty: "Empty",
+      missing: "{count, plural, one {# missing} other {# missing}}",
+      couldNotResolve:
+        "{count, plural, one {# variable could not be resolved} other {# variables could not be resolved}}",
+      notFound: "not found",
+      emptyValue: "empty",
+      noSuchVariable: "{token} — no such variable",
+      noValue: "{token} — no value",
+      resolvesTo: "{token} → {value}",
     },
     variablepicker: {
       title: "Insert variable",
@@ -169,6 +376,11 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       searchPlaceholder: "Search variables...",
       noVariables: "No variables available.",
       close: "Close",
+    },
+    dynamicformfield: {
+      helpTitle: "What is this?",
+      selectPlaceholder: "Select…",
+      listPlaceholder: "One entry per line",
     },
   },
 };

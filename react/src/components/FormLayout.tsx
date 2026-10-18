@@ -32,9 +32,11 @@ const verticalPaddingClasses: Record<ControlSize, string> = {
 /**
  * Row alignment.
  *
- * Defaults to `start`. It used to force `items-center` for any multi-column
- * layout, which pushed every field to the vertical centre of its row — so a
- * field with help text under it dragged its neighbours' labels out of line.
+ * Defaults to `stretch`: fields fill the row's height and FormField spends
+ * that room on a spacer between its label block and its control, so controls
+ * start at the same line across a row no matter how much label, description
+ * or hint each field carries. `start` keeps labels top-aligned but lets
+ * controls drift; `center` centres whole fields.
  */
 const alignClasses: Record<FormLayoutAlign, string> = {
   start: "items-start",
@@ -46,7 +48,7 @@ export interface FormLayoutProps {
   columns?: FormLayoutColumns;
   gap?: ControlSize;
   verticalPadding?: ControlSize;
-  /** Row alignment. @default "start" */
+  /** Row alignment. @default "stretch" */
   align?: FormLayoutAlign;
   children: ReactNode;
   className?: string;
@@ -56,7 +58,7 @@ const FormLayout: React.FC<FormLayoutProps> = ({
   columns = 1,
   gap = "md",
   verticalPadding = "sm",
-  align = "start",
+  align = "stretch",
   children,
   className,
 }) => (
@@ -66,7 +68,7 @@ const FormLayout: React.FC<FormLayoutProps> = ({
       // pulls its fields out of line with the section heading above them.
       "grid",
       verticalPaddingClasses[verticalPadding] ?? verticalPaddingClasses.sm,
-      alignClasses[align] ?? alignClasses.start,
+      alignClasses[align] ?? alignClasses.stretch,
       columnClasses[columns] ?? columnClasses[1],
       gapClasses[gap] ?? gapClasses.md,
       className,

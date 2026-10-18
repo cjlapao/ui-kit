@@ -27,6 +27,7 @@ import {
   type SidebarVariant,
   TrueColor,
 } from "../theme";
+import { THIN_SCROLLBAR } from "../theme";
 
 export type SideMenuItemType = "link" | "group" | "divider";
 
@@ -1121,7 +1122,7 @@ export const SideMenu = ({
       )}
 
       {/* Navigation Items */}
-      <div className="flex-1 px-3 py-1 overflow-y-auto w-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent">
+      <div className={`flex-1 px-3 py-1 overflow-y-auto w-full ${THIN_SCROLLBAR}`}>
         <nav aria-label={title || "Side menu"} className="space-y-1 w-full">
           {visibleItems.map((item, index) => {
             // Divider

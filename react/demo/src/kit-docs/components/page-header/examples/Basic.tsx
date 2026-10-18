@@ -19,7 +19,10 @@ export default function Basic() {
           </span>
           <Breadcrumb
             ariaLabel="Example breadcrumb"
-            items={[{ label: "Docs", to: "#" }, { label: "Getting started", current: true }]}
+            items={[
+              { label: "Docs", to: "#" },
+              { label: "Getting started", current: true },
+            ]}
           />
         </>
       }

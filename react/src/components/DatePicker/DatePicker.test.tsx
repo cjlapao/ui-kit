@@ -1,4 +1,11 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import DatePicker from "./DatePicker";
 import { DATEPICKER_SELECTION_MODES } from "./types";
@@ -39,14 +46,18 @@ const openOverlay = async () => {
   // "Choose a date" (single) or "Choose a date range" (range).
   const button = screen.getByRole("button", { name: /Choose a date/ });
   fireEvent.click(button);
-  const wrapper = document.querySelector<HTMLElement>(".dp-date-picker-overlay");
+  const wrapper = document.querySelector<HTMLElement>(
+    ".dp-date-picker-overlay",
+  );
   expect(wrapper).not.toBeNull();
   await completeOverlayPhase(wrapper as Element, "entering");
   return wrapper as HTMLElement;
 };
 
 const closeOverlay = async () => {
-  const wrapper = document.querySelector<HTMLElement>(".dp-date-picker-overlay");
+  const wrapper = document.querySelector<HTMLElement>(
+    ".dp-date-picker-overlay",
+  );
   expect(wrapper).not.toBeNull();
   await completeOverlayPhase(wrapper as Element, "leaving");
 };
@@ -107,12 +118,6 @@ describe("rendering", () => {
     expect(input()).toHaveAttribute("aria-invalid", "true");
   });
 
-  it("renders a Loader over the field while loading", () => {
-    const { container } = render(<DatePicker loading />);
-    expect(document.querySelector(".dp-date-picker-overlay")).toBeNull();
-    // The Loader overlay covers the field box.
-    expect(container.querySelector(".absolute.inset-0.z-50")).not.toBeNull();
-  });
 });
 
 describe("overlay", () => {
@@ -360,19 +365,17 @@ describe("selection — range", () => {
     expect(first[1]).toBeNull();
 
     fireEvent.click(dayButton(2026, 7, 15));
-    const completed = onChange.mock.calls[onChange.mock.calls.length - 1][0] as [
-      Date,
-      Date | null,
-    ];
+    const completed = onChange.mock.calls[
+      onChange.mock.calls.length - 1
+    ][0] as [Date, Date | null];
     expect(completed[0].getDate()).toBe(10);
     expect(completed[1]?.getDate()).toBe(15);
 
     // A pick before the start restarts the range.
     fireEvent.click(dayButton(2026, 7, 5));
-    const restarted = onChange.mock.calls[onChange.mock.calls.length - 1][0] as [
-      Date,
-      Date | null,
-    ];
+    const restarted = onChange.mock.calls[
+      onChange.mock.calls.length - 1
+    ][0] as [Date, Date | null];
     expect(restarted[0].getDate()).toBe(5);
     expect(restarted[1]).toBeNull();
     await closeOverlay();
@@ -457,17 +460,17 @@ describe("navigation", () => {
   it("steps the month with the nav buttons", async () => {
     render(<DatePicker />);
     await openOverlay();
-    expect(screen.getByRole("button", { name: /Choose month/ })).toHaveTextContent(
-      "August",
-    );
+    expect(
+      screen.getByRole("button", { name: /Choose month/ }),
+    ).toHaveTextContent("August");
     fireEvent.click(screen.getByRole("button", { name: "Next month" }));
-    expect(screen.getByRole("button", { name: /Choose month/ })).toHaveTextContent(
-      "September",
-    );
+    expect(
+      screen.getByRole("button", { name: /Choose month/ }),
+    ).toHaveTextContent("September");
     fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
-    expect(screen.getByRole("button", { name: /Choose month/ })).toHaveTextContent(
-      "August",
-    );
+    expect(
+      screen.getByRole("button", { name: /Choose month/ }),
+    ).toHaveTextContent("August");
   });
 
   it("navigates to a month from the month view", async () => {
@@ -477,9 +480,9 @@ describe("navigation", () => {
     const monthGrid = screen.getByRole("group", { name: "Choose month" });
     fireEvent.click(within(monthGrid).getByRole("button", { name: "Dec" }));
     // Back in the date view, showing December.
-    expect(screen.getByRole("button", { name: /Choose month/ })).toHaveTextContent(
-      "December",
-    );
+    expect(
+      screen.getByRole("button", { name: /Choose month/ }),
+    ).toHaveTextContent("December");
   });
 
   it("navigates to a year's month view from the year view", async () => {
@@ -509,15 +512,6 @@ describe("inline mode", () => {
     );
   });
 
-  it("renders a calendar-shaped skeleton while loading", () => {
-    const { container } = render(
-      <DatePicker inline loading loaderType="skeleton" />,
-    );
-    expect(container.querySelector(".animate-pulse")).not.toBeNull();
-    // 3 header bars + 42 day circles, each a rounded-full skeleton.
-    const bars = container.querySelectorAll("[class*='rounded-full']");
-    expect(bars.length).toBeGreaterThanOrEqual(45);
-  });
 });
 
 describe("matrix coverage", () => {
@@ -558,9 +552,7 @@ describe("matrix coverage", () => {
 
   it("renders every panel surface variant for the calendar", async () => {
     for (const panelVariant of SURFACE_VARIANTS) {
-      const { unmount } = render(
-        <DatePicker panelVariant={panelVariant} />,
-      );
+      const { unmount } = render(<DatePicker panelVariant={panelVariant} />);
       await openOverlay();
       expect(dialog()).toBeInTheDocument();
       unmount();
@@ -592,4 +584,86 @@ describe("controlled mode", () => {
     );
     expect(input()).toHaveValue("Mar 10, 2026 - Mar 20, 2026");
   });
+  it("the header chevrons are ghost IconButtons in the field tone", () => {
+    render(<DatePicker inline tone="emerald" />);
+    const back = screen.getByRole("button", { name: "Previous month" });
+    expect(back.className).toContain("bg-emerald-50"); // IconButton ghost tint
+    expect(back.querySelector("svg")).not.toBeNull();
+  });
+
+  it("the button bar follows the field's variant, size and tone", () => {
+    const { rerender } = render(
+      <DatePicker showButtonBar inline value={new Date(2026, 7, 10)} />,
+    );
+    const today = screen.getByRole("button", { name: "Today" });
+    // flat field → solid button, tone-tinted, field size followed
+    expect(today.className).toContain("bg-blue-700");
+    expect(today.className).toContain("text-sm"); // Button md = field md
+    rerender(
+      <DatePicker
+        showButtonBar
+        inline
+        variant="ghost"
+        size="lg"
+        tone="emerald"
+        value={new Date(2026, 7, 10)}
+      />,
+    );
+    const ghost = screen.getByRole("button", { name: "Today" });
+    expect(ghost.className).toContain("text-emerald");
+    expect(ghost.className).toContain("text-base"); // Button lg
+    // The field's own `glass` reads as a glass button...
+    rerender(<DatePicker showButtonBar inline variant="glass" value={null} />);
+    expect(
+      screen.getByRole("button", { name: "Today" }).className,
+    ).toContain("backdrop-blur");
+    // ...and a glass PANEL wins over any field variant: solid becomes glass,
+    // ghost stays ghost — a dark fill floating on glass is a mistake.
+    rerender(
+      <DatePicker
+        showButtonBar
+        inline
+        panelVariant="glass"
+        value={new Date(2026, 7, 10)}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Today" }).className).toContain(
+      "backdrop-blur",
+    );
+    rerender(
+      <DatePicker
+        showButtonBar
+        inline
+        variant="ghost"
+        panelVariant="glass"
+        value={new Date(2026, 7, 10)}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Today" }).className,
+    ).not.toContain("backdrop-blur");
+  });
+});
+
+it("auto panel surfaces follow the field", async () => {
+  // "auto" is not a surface of its own — it is the field's, translated
+  // through SURFACE_VARIANT_FOR_FIELD. The surface classes live on the
+  // Panel card, a level above the dialog wrapper.
+  const surface = () =>
+    document.querySelector<HTMLElement>(".dp-date-picker-overlay")!
+      .firstElementChild!.className;
+  const { rerender } = render(
+    <DatePicker panelVariant="auto" variant="glass" />,
+  );
+  await openOverlay();
+  expect(surface()).toContain("backdrop-blur");
+  rerender(<DatePicker panelVariant="auto" variant="flat" />);
+  expect(surface()).toContain("border");
+    expect(surface()).not.toMatch(/backdrop-blur/);
+  rerender(
+    <DatePicker panelVariant="auto" variant="elevated" panelTone="auto" />,
+  );
+  // elevated → elevated, and tone "auto" resolves neutral — the field's
+  // blue stays in the selected days, not in the fill.
+  expect(surface()).not.toContain("bg-blue");
 });

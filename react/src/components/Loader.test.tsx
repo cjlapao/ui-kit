@@ -4,7 +4,8 @@ import Loader from "./Loader";
 import { TRUE_COLORS } from "../theme/Theme";
 import { SurfaceProvider } from "../contexts/SurfaceContext";
 
-const container = (w: { container: HTMLElement }) => w.container.firstElementChild as HTMLElement;
+const container = (w: { container: HTMLElement }) =>
+  w.container.firstElementChild as HTMLElement;
 const bar = (w: { container: HTMLElement }) =>
   w.container.querySelector('[role="progressbar"]') as HTMLElement;
 
@@ -17,11 +18,15 @@ describe("Loader", () => {
   describe("variants", () => {
     it("renders a spinner by default", () => {
       const { container: c } = render(<Loader />);
-      expect(c.querySelector('[role="status"] [class*="animate"]')).toBeTruthy();
+      expect(
+        c.querySelector('[role="status"] [class*="animate"]'),
+      ).toBeTruthy();
     });
 
     it("renders a progress bar on demand", () => {
-      const { container: c } = render(<Loader variant="progress" progress={40} />);
+      const { container: c } = render(
+        <Loader variant="progress" progress={40} />,
+      );
       expect(bar({ container: c })).toBeTruthy();
     });
   });
@@ -33,16 +38,12 @@ describe("Loader", () => {
       const { container: c } = render(<Loader variant="progress" size="xl" />);
       expect(bar({ container: c }).className).toContain("h-4");
 
-      const { container: sm } = render(
-        <Loader variant="progress" size="sm" />,
-      );
+      const { container: sm } = render(<Loader variant="progress" size="sm" />);
       expect(bar({ container: sm }).className).toContain("h-1.5");
     });
 
     it("scales the title and label type with the same prop", () => {
-      const { container: c } = render(
-        <Loader size="xs" title="T" label="L" />,
-      );
+      const { container: c } = render(<Loader size="xs" title="T" label="L" />);
       const [title, , label] = Array.from(c.children[0].children);
       expect((title as HTMLElement).className).toContain("text-xs");
       expect((label as HTMLElement).className).toContain("text-xs");
@@ -81,7 +82,7 @@ describe("Loader", () => {
         <Loader overlay glass color="blue" title="Busy" />,
       );
       const cls = container({ container: c }).className;
-      expect(cls).toContain("bg-blue-50/70");
+      expect(cls).toContain("bg-blue-100/70");
       expect(cls).toContain("dark:bg-blue-500/25");
     });
 
@@ -91,7 +92,7 @@ describe("Loader", () => {
           <Loader overlay glass color={color} title="Busy" />,
         );
         const cls = container({ container: c }).className;
-        expect(cls).toContain(`bg-${color}-50/70`);
+        expect(cls).toContain(`bg-${color}-100/70`);
         expect(cls).toContain(`dark:bg-${color}-500/25`);
       }
     });
@@ -101,14 +102,20 @@ describe("Loader", () => {
         <Loader overlay glass title="Busy" label="Hang tight" />,
       );
       expect(glass.textContent).toContain("Hang tight");
-      const label = glass.querySelectorAll("[role=status] div")[1] as HTMLElement;
+      const label = glass.querySelectorAll(
+        "[role=status] div",
+      )[1] as HTMLElement;
       expect(label.className).toContain("text-neutral-800");
 
       const { container: scrim } = render(
         <Loader overlay title="Busy" label="Hang tight" />,
       );
-      const scrimLabel = scrim.querySelectorAll("[role=status] div")[1] as HTMLElement;
-      expect(scrimLabel.className).toContain("text-neutral-600 dark:text-neutral-300");
+      const scrimLabel = scrim.querySelectorAll(
+        "[role=status] div",
+      )[1] as HTMLElement;
+      expect(scrimLabel.className).toContain(
+        "text-neutral-600 dark:text-neutral-300",
+      );
     });
 
     it("inherits the surrounding surface when it is not an overlay", () => {

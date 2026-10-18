@@ -31,8 +31,11 @@ describe("HeaderGroup", () => {
       const { container } = render(<HeaderGroup gap="xl">x</HeaderGroup>);
       const style = root(container).style;
       expect(style.getPropertyValue("--header-group-gap")).toBe("24px");
+      // Offset comes from the same gap (rounded to whole pixels), not a
+      // second hardcoded value.
+      expect(style.getPropertyValue("--header-group-sep-x")).toBe("-13px");
       expect(root(container).className).toContain(
-        "[&+&::before]:left-[calc(var(--header-group-gap)/-2)]",
+        "[&+&::before]:left-[var(--header-group-sep-x)]",
       );
     });
 
@@ -91,6 +94,54 @@ describe("HeaderGroup", () => {
         unmount();
       }
       expect(seen.size).toBe(5);
+    });
+  });
+
+  describe("separatorSize", () => {
+    it("defaults to a 1px rule centred in the gutter", () => {
+      const { container } = render(<HeaderGroup gap="sm">x</HeaderGroup>);
+      const style = root(container).style;
+      expect(style.getPropertyValue("--header-group-sep-w")).toBe("1px");
+      // −round((8 + 1) / 2) = −5px: centred with whole-pixel edges.
+      expect(style.getPropertyValue("--header-group-sep-x")).toBe("-5px");
+    });
+
+    it("steps on the shared control scale", () => {
+      const seen: Record<string, string> = {};
+      for (const size of ["xs", "sm", "md", "lg", "xl"] as const) {
+        const { container, unmount } = render(
+          <HeaderGroup separatorSize={size}>x</HeaderGroup>,
+        );
+        seen[size] = root(container).style.getPropertyValue(
+          "--header-group-sep-w",
+        );
+        unmount();
+      }
+      expect(seen).toEqual({
+        xs: "1px",
+        sm: "2px",
+        md: "3px",
+        lg: "4px",
+        xl: "6px",
+      });
+    });
+
+    it("accepts raw pixels", () => {
+      const { container } = render(
+        <HeaderGroup gap="md" separatorSize={2}>
+          x
+        </HeaderGroup>,
+      );
+      const style = root(container).style;
+      expect(style.getPropertyValue("--header-group-sep-w")).toBe("2px");
+      expect(style.getPropertyValue("--header-group-sep-x")).toBe("-7px");
+    });
+
+    it("draws with no transform, so browsers pixel-snap the rule", () => {
+      // A transform would take the 1px rule out of paint-time snapping and
+      // make its thickness depend on where the header happens to land.
+      const { container } = render(<HeaderGroup>x</HeaderGroup>);
+      expect(root(container).className).not.toMatch(/translate/);
     });
   });
 

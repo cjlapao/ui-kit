@@ -1047,7 +1047,8 @@ describe("Gantt component", () => {
     const root = container.querySelector<HTMLElement>("[data-gantt]")!;
     expect(root.tagName).toBe("SECTION");
     expect(root.getAttribute("data-variant")).toBe("elevated");
-    expect(root.getAttribute("data-tone")).toBe("neutral");
+    // Panel's default tone — the kit container standard — is blue.
+    expect(root.getAttribute("data-tone")).toBe("blue");
   });
 
   it("keeps the toolbar and the today marker in the detached header, out of the body scroller", () => {

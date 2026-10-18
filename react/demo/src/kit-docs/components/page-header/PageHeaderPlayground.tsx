@@ -1,11 +1,10 @@
 import React, { useState } from "react";
+import { Button, CustomIcon, PageHeader, SideMenu } from "@cjlapao/ui-kit";
 import {
-  Button,
-  CustomIcon,
-  PageHeader,
-  SideMenu,
-} from "@cjlapao/ui-kit";
-import { PlaygroundPanel, Control, ToggleRow } from "../../shared/PlaygroundPanel";
+  PlaygroundPanel,
+  Control,
+  ToggleRow,
+} from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { DEMO_ITEMS } from "../side-menu/demoData";
 
@@ -17,7 +16,9 @@ const startGroup = (
 );
 
 const centerGroup = (
-  <span className="text-sm text-neutral-400 dark:text-neutral-500">Q3 · draft</span>
+  <span className="text-sm text-neutral-400 dark:text-neutral-500">
+    Q3 · draft
+  </span>
 );
 
 const endGroup = (
@@ -45,10 +46,26 @@ export const PageHeaderPlayground: React.FC = () => {
                 controls: (
                   <Control label="Groups">
                     <div className="space-y-1.5">
-                      <ToggleRow label="start — trail" checked={hasStart} onChange={setHasStart} />
-                      <ToggleRow label="center — note" checked={hasCenter} onChange={setHasCenter} />
-                      <ToggleRow label="end — controls" checked={hasEnd} onChange={setHasEnd} />
-                      <ToggleRow label="extra children group" checked={hasExtra} onChange={setHasExtra} />
+                      <ToggleRow
+                        label="start — trail"
+                        checked={hasStart}
+                        onChange={setHasStart}
+                      />
+                      <ToggleRow
+                        label="center — note"
+                        checked={hasCenter}
+                        onChange={setHasCenter}
+                      />
+                      <ToggleRow
+                        label="end — controls"
+                        checked={hasEnd}
+                        onChange={setHasEnd}
+                      />
+                      <ToggleRow
+                        label="extra children group"
+                        checked={hasExtra}
+                        onChange={setHasExtra}
+                      />
                     </div>
                   </Control>
                 ),
@@ -58,7 +75,11 @@ export const PageHeaderPlayground: React.FC = () => {
                 title: "Shell",
                 controls: (
                   <Control label="Sidebar">
-                    <ToggleRow label="collapse the SideMenu" checked={collapsed} onChange={setCollapsed} />
+                    <ToggleRow
+                      label="collapse the SideMenu"
+                      checked={collapsed}
+                      onChange={setCollapsed}
+                    />
                   </Control>
                 ),
               },
@@ -66,10 +87,10 @@ export const PageHeaderPlayground: React.FC = () => {
           />
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             The seam line — height, colour, fill — is shared with the sidebar
-            through the <code>SIDE_MENU_HEADER_*</code> constants, so
-            collapsing the menu (the whole bar shifts left, nothing stretches)
-            or emptying a region never breaks it. An empty region still holds
-            its place, so an <em>end</em>-only header still parks right.
+            through the <code>SIDE_MENU_HEADER_*</code> constants, so collapsing
+            the menu (the whole bar shifts left, nothing stretches) or emptying
+            a region never breaks it. An empty region still holds its place, so
+            an <em>end</em>-only header still parks right.
           </p>
         </div>
       }
@@ -79,7 +100,9 @@ export const PageHeaderPlayground: React.FC = () => {
             <SideMenu
               fullHeight
               color="blue"
-              logoIcon={<CustomIcon icon="UX" className="h-6 w-6 text-blue-500" />}
+              logoIcon={
+                <CustomIcon icon="UX" className="h-6 w-6 text-blue-500" />
+              }
               logoText={
                 <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
                   ui-kit

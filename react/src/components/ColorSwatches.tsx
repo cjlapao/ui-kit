@@ -7,8 +7,8 @@ import {
   type ControlSize,
   type SurfacePadding,
   type TrueColor,
+  CASCADE_EXPAND,
 } from "../theme";
-
 
 const DOT_CLASS: Record<ControlSize, string> = {
   xs: "size-3",
@@ -19,8 +19,20 @@ const DOT_CLASS: Record<ControlSize, string> = {
 };
 
 /** Pixel footprints behind the class map, for the overlap and clip math. */
-const DOT_PX: Record<ControlSize, number> = { xs: 12, sm: 16, md: 20, lg: 28, xl: 36 };
-const GAP_PX: Record<ControlSize, number> = { xs: 4, sm: 6, md: 8, lg: 12, xl: 16 };
+const DOT_PX: Record<ControlSize, number> = {
+  xs: 12,
+  sm: 16,
+  md: 20,
+  lg: 28,
+  xl: 36,
+};
+const GAP_PX: Record<ControlSize, number> = {
+  xs: 4,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
+};
 /** How much of each dot the next one rides over, condensed. */
 const OVERLAP_RATIO = 0.3;
 /** Rough footprint of the +N chip, for the width-fits math. */
@@ -29,19 +41,20 @@ const CHIP_PX = 34;
 /** The label block a `showNames` swatch adds to a row: gap-1 over a
     `leading-4` 10px label. */
 const LABEL_PX = 20;
-/** Per-dot cascade step, expanding and collapsing. */
-const CASCADE_MS = 20;
-/** Retracting is swift: a tighter ripple and a shorter hold. */
-const RETRACT_MS = 8;
-const HOLD_MS = 300;
-const GROW_MS = 400;
+/** The shared unfold rhythm — see `CASCADE_EXPAND` in the theme. */
+const CASCADE_MS = CASCADE_EXPAND.stepMs;
+const RETRACT_MS = CASCADE_EXPAND.retractStepMs;
+const HOLD_MS = CASCADE_EXPAND.holdMs;
+const GROW_MS = CASCADE_EXPAND.growMs;
 /** Inner breathing room so hover growth stays inside the clip. */
 const PAD_RATIO = 0.25;
 
 // `onSelect` here means "the tone you chose", not the DOM text-selection
 // event the div's own attributes would carry.
-export interface ColorSwatchesProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onSelect"> {
+export interface ColorSwatchesProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "onSelect"
+> {
   /**
    * The colours to display.
    * @default TRUE_COLORS
@@ -168,7 +181,9 @@ export const ColorSwatches = ({
   const widthFits = !fitsAll
     ? Math.max(1, Math.floor((availablePx - CHIP_PX + stepPx) / stepPx))
     : count;
-  const visibleCount = condense ? Math.min(count, maxVisible, widthFits) : count;
+  const visibleCount = condense
+    ? Math.min(count, maxVisible, widthFits)
+    : count;
   const layoutOpen = expanded || collapsing;
   const hiddenCount = layoutOpen ? 0 : count - visibleCount;
   const expandable = condense || showNames;
@@ -179,7 +194,11 @@ export const ColorSwatches = ({
   const rowPx = padPx * 2 + dotPx + (showNames ? LABEL_PX : 0) + gapPx;
   const clipStyle: React.CSSProperties = {
     overflow: "hidden",
-    maxHeight: layoutOpen ? (contentH > 0 ? `${contentH}px` : "none") : `${rowPx}px`,
+    maxHeight: layoutOpen
+      ? contentH > 0
+        ? `${contentH}px`
+        : "none"
+      : `${rowPx}px`,
     transition: `max-height ${expanded ? GROW_MS : HOLD_MS}ms ease-out`,
   };
 
@@ -201,9 +220,14 @@ export const ColorSwatches = ({
   };
 
   const cascadeMs = (index: number) =>
-    (expanded ? index * CASCADE_MS : (count - 1 - index) * RETRACT_MS);
+    expanded ? index * CASCADE_MS : (count - 1 - index) * RETRACT_MS;
 
-  const dotStyle = (index: number, hidden: boolean, leading: boolean, order?: number): React.CSSProperties => ({
+  const dotStyle = (
+    index: number,
+    hidden: boolean,
+    leading: boolean,
+    order?: number,
+  ): React.CSSProperties => ({
     // Hidden dots keep their slot in the flow but zero their width, so the
     // clip shows a short condensed line while their layout never moves.
     width: hidden && !collapsing ? 0 : undefined,
@@ -228,7 +252,13 @@ export const ColorSwatches = ({
     opacity: hidden ? 0 : 1,
   });
 
-  const dot = (tone: TrueColor, index: number, hidden: boolean, leading: boolean, order?: number) => {
+  const dot = (
+    tone: TrueColor,
+    index: number,
+    hidden: boolean,
+    leading: boolean,
+    order?: number,
+  ) => {
     const selected = selectable && tone === value;
     const glyph = (
       <>
@@ -285,7 +315,9 @@ export const ColorSwatches = ({
             {glyph}
           </button>
         ) : (
-          <span className="group relative block shrink-0 hover:z-10">{glyph}</span>
+          <span className="group relative block shrink-0 hover:z-10">
+            {glyph}
+          </span>
         )}
         {showNames && (
           <span
@@ -307,7 +339,11 @@ export const ColorSwatches = ({
     <div
       {...rest}
       ref={rootRef}
-      className={classNames("relative", getSurfacePaddingClass(padding), className)}
+      className={classNames(
+        "relative",
+        getSurfacePaddingClass(padding),
+        className,
+      )}
       data-expanded={expanded ? "" : undefined}
       onPointerEnter={(event) => {
         if (expandOn === "hover" && expandable) reveal(true);
@@ -327,7 +363,9 @@ export const ColorSwatches = ({
           className="flex flex-wrap items-start"
           style={{ padding: `${padPx}px` }}
         >
-          {colors.slice(0, visibleCount).map((tone, index) => dot(tone, index, false, true))}
+          {colors
+            .slice(0, visibleCount)
+            .map((tone, index) => dot(tone, index, false, true))}
           {expandable && (
             <button
               type="button"
@@ -356,7 +394,8 @@ export const ColorSwatches = ({
                 // The last visible dot rides over by one overlap when
                 // condensed — the chip pays that back; otherwise the
                 // dot's own margin is the whole gap.
-                marginLeft: !layoutOpen && condense ? `${overlapPx + gapPx}px` : 0,
+                marginLeft:
+                  !layoutOpen && condense ? `${overlapPx + gapPx}px` : 0,
                 order: layoutOpen ? 3 : 1,
                 marginBottom: `${gapPx}px`,
               }}
@@ -373,9 +412,11 @@ export const ColorSwatches = ({
               {hiddenCount > 0 && hiddenCount}
             </button>
           )}
-          {colors.slice(visibleCount).map((tone, offset) =>
-            dot(tone, visibleCount + offset, !expanded, false, 2),
-          )}
+          {colors
+            .slice(visibleCount)
+            .map((tone, offset) =>
+              dot(tone, visibleCount + offset, !expanded, false, 2),
+            )}
         </div>
       </div>
     </div>

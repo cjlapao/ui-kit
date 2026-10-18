@@ -7,7 +7,7 @@ const MARK =
 const ROWS: { label: string; note: string; img: React.ReactNode }[] = [
   {
     label: "Accessible name",
-    note: "alt sets role=\"img\" + aria-label.",
+    note: 'alt sets role="img" + aria-label.',
     img: <DynamicImg src={MARK} size="lg" tone="blue" alt="Company logo" />,
   },
   {
@@ -19,7 +19,13 @@ const ROWS: { label: string; note: string; img: React.ReactNode }[] = [
     label: "Tooltip",
     note: "title adds a native tooltip.",
     img: (
-      <DynamicImg src={MARK} size="lg" tone="blue" alt="Company logo" title="Company logo" />
+      <DynamicImg
+        src={MARK}
+        size="lg"
+        tone="blue"
+        alt="Company logo"
+        title="Company logo"
+      />
     ),
   },
   {

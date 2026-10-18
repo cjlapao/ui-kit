@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 
-import Hero, { HERO_VARIANTS, HERO_TITLE_ELEMENTS } from "./Hero";
+import PanelHero, {
+  PANEL_HERO_VARIANTS,
+  PANEL_HERO_TITLE_ELEMENTS,
+} from "./PanelHero";
 import {
   CONTROL_SIZES,
   SURFACE_CORNERS,
@@ -24,14 +27,28 @@ const bandStyle = (container: HTMLElement) =>
   container.querySelector<HTMLElement>('[data-variant="gradient"]')?.style
     .backgroundImage ?? "";
 
-describe("Hero", () => {
+describe("PanelHero", () => {
+  it("renders children under the title row on both branches", () => {
+    // Children used to be spread onto the wrapper and then overridden by the
+    // body — callers got a silently empty banner.
+    for (const variant of ["gradient", "elevated"] as const) {
+      const { getByText, unmount } = render(
+        <PanelHero title="T" variant={variant}>
+          <button>Deploy</button>
+        </PanelHero>,
+      );
+      expect(getByText("Deploy").tagName).toBe("BUTTON");
+      unmount();
+    }
+  });
+
   describe("the gradient", () => {
     it("stays in its own tone for every one of them", () => {
       // The table this replaces mapped each tone to a *different* tone's
       // gradient: `sky` painted sky→indigo, `red` painted red→rose, `lime`
       // painted lime→green. Twenty-one entries, every one of them bleeding.
       for (const tone of TRUE_COLORS) {
-        const { container } = render(<Hero title="T" tone={tone} />);
+        const { container } = render(<PanelHero title="T" tone={tone} />);
         const band = bandStyle(container);
         expect(band).toContain(`--color-${tone}-700`);
         expect(band).toContain(`--color-${tone}-800`);
@@ -43,7 +60,7 @@ describe("Hero", () => {
       // was `-400`, where white measures 2.94:1 — under AA for nine tones and
       // under even the 3:1 asked of a graphical object.
       for (const tone of TRUE_COLORS) {
-        const { container } = render(<Hero title="T" tone={tone} />);
+        const { container } = render(<PanelHero title="T" tone={tone} />);
         const band = bandStyle(container);
         for (const shade of ["300", "400", "500", "600"]) {
           expect(band).not.toContain(`-${shade})`);
@@ -53,7 +70,7 @@ describe("Hero", () => {
 
     it("lets the caller state the stops outright", () => {
       const { container } = render(
-        <Hero title="T" gradientFrom="#123456" gradientTo="#abcdef" />,
+        <PanelHero title="T" gradientFrom="#123456" gradientTo="#abcdef" />,
       );
       // JSDOM re-serialises a hex to `rgb(...)`, so the check is that the
       // tone's own variables were displaced.
@@ -63,19 +80,24 @@ describe("Hero", () => {
     });
 
     it("takes `tone` and its `color` alias alike", () => {
-      const byTone = render(<Hero title="T" tone="violet" />).container;
-      const byColor = render(<Hero title="T" color="violet" />).container;
+      const byTone = render(<PanelHero title="T" tone="violet" />).container;
+      const byColor = render(<PanelHero title="T" color="violet" />).container;
       expect(bandStyle(byTone)).toBe(bandStyle(byColor));
     });
   });
 
   describe("the shared scales", () => {
     it("sizes the title and subtitle past `md`", () => {
-      // `HeroSubtitleSize` was truncated to `xs | sm | md`, so a hero could
+      // `PanelHeroSubtitleSize` was truncated to `xs | sm | md`, so a hero could
       // not be sized to match the controls beside it.
       for (const size of CONTROL_SIZES) {
         const { container } = render(
-          <Hero title="T" subtitle="S" titleSize={size} subtitleSize={size} />,
+          <PanelHero
+            title="T"
+            subtitle="S"
+            titleSize={size}
+            subtitleSize={size}
+          />,
         );
         expect(container.textContent).toContain("T");
         expect(container.textContent).toContain("S");
@@ -84,29 +106,32 @@ describe("Hero", () => {
 
     it("takes every container padding and corner", () => {
       for (const padding of SURFACE_PADDINGS) {
-        const { container } = render(<Hero title="T" padding={padding} />);
+        const { container } = render(<PanelHero title="T" padding={padding} />);
         expect(container.firstChild).toBeTruthy();
       }
       for (const corner of SURFACE_CORNERS) {
-        const { container } = render(<Hero title="T" corner={corner} />);
+        const { container } = render(<PanelHero title="T" corner={corner} />);
         expect(container.firstChild).toBeTruthy();
       }
     });
 
     it("still honours the deprecated `rounded` flag", () => {
-      const { container } = render(<Hero title="T" rounded={false} />);
+      const { container } = render(<PanelHero title="T" rounded={false} />);
       expect(container.innerHTML).not.toContain("rounded-2xl");
     });
   });
 
   describe("variants", () => {
     it("offers every container surface, plus the gradient band", () => {
-      expect([...HERO_VARIANTS]).toEqual([...SURFACE_VARIANTS, "gradient"]);
+      expect([...PANEL_HERO_VARIANTS]).toEqual([
+        ...SURFACE_VARIANTS,
+        "gradient",
+      ]);
     });
 
     it("renders a Panel for a surface and a bare band for the gradient", () => {
-      for (const variant of HERO_VARIANTS) {
-        const { container } = render(<Hero title="T" variant={variant} />);
+      for (const variant of PANEL_HERO_VARIANTS) {
+        const { container } = render(<PanelHero title="T" variant={variant} />);
         expect(Boolean(container.querySelector("section"))).toBe(
           variant !== "gradient",
         );
@@ -116,8 +141,12 @@ describe("Hero", () => {
     it("paints white copy only on the gradient", () => {
       // Every variant used to get `text-white`, so the title vanished on a
       // light surface.
-      const gradient = render(<Hero title="T" variant="gradient" />).container;
-      const surface = render(<Hero title="T" variant="subtle" />).container;
+      const gradient = render(
+        <PanelHero title="T" variant="gradient" />,
+      ).container;
+      const surface = render(
+        <PanelHero title="T" variant="subtle" />,
+      ).container;
       expect(gradient.innerHTML).toContain("text-white");
       expect(surface.innerHTML).not.toContain("text-white");
     });
@@ -125,18 +154,18 @@ describe("Hero", () => {
 
   describe("semantics", () => {
     it("renders the title as a paragraph by default", () => {
-      const { container } = render(<Hero title="T" />);
+      const { container } = render(<PanelHero title="T" />);
       expect(container.querySelector("p")?.textContent).toBe("T");
     });
 
     it("can be a real heading instead", () => {
       // It was always a `<p>`, so a banner at the top of a page announced no
       // heading at all.
-      for (const titleAs of HERO_TITLE_ELEMENTS) {
-        const { container } = render(<Hero title="T" titleAs={titleAs} />);
+      for (const titleAs of PANEL_HERO_TITLE_ELEMENTS) {
+        const { container } = render(<PanelHero title="T" titleAs={titleAs} />);
         expect(container.querySelector(titleAs)?.textContent).toBe("T");
       }
-      const { container } = render(<Hero title="T" titleAs="h2" />);
+      const { container } = render(<PanelHero title="T" titleAs="h2" />);
       expect(container.querySelector("h2")?.textContent).toBe("T");
     });
   });
@@ -145,14 +174,27 @@ describe("Hero", () => {
     it("draws the circles and the wash only when asked", () => {
       const count = (html: string) =>
         (html.match(/rounded-full bg-white\/10/g) ?? []).length;
-      expect(count(render(<Hero title="T" decoration="none" />).container.innerHTML)).toBe(0);
-      expect(count(render(<Hero title="T" decoration="shapes" />).container.innerHTML)).toBe(3);
-      expect(count(render(<Hero title="T" decoration="both" />).container.innerHTML)).toBe(3);
+      expect(
+        count(
+          render(<PanelHero title="T" decoration="none" />).container.innerHTML,
+        ),
+      ).toBe(0);
+      expect(
+        count(
+          render(<PanelHero title="T" decoration="shapes" />).container
+            .innerHTML,
+        ),
+      ).toBe(3);
+      expect(
+        count(
+          render(<PanelHero title="T" decoration="both" />).container.innerHTML,
+        ),
+      ).toBe(3);
     });
   });
 
   it("draws no icon slot when there is no icon", () => {
-    const { container } = render(<Hero title="T" />);
+    const { container } = render(<PanelHero title="T" />);
     expect(container.querySelector("svg")).toBeNull();
   });
 });

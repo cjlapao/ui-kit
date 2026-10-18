@@ -47,33 +47,24 @@ const viewportBounds = (): RectBounds => ({
  */
 const MAX_WIDTH = 320;
 
-const isClippingParent = (el: HTMLElement): boolean =>
-  /(auto|scroll|hidden|clip)/.test(
-    [
-      getComputedStyle(el).overflow,
-      getComputedStyle(el).overflowX,
-      getComputedStyle(el).overflowY,
-    ].join(" "),
-  );
-
-const resolveBoundaryBounds = (anchor: HTMLElement): RectBounds => {
-  let node: HTMLElement | null = anchor.parentElement;
-  while (node && node !== document.body) {
-    if (isClippingParent(node)) {
-      const r = node.getBoundingClientRect();
-      return {
-        top: r.top,
-        left: r.left,
-        right: r.right,
-        bottom: r.bottom,
-        width: r.width,
-        height: r.height,
-      };
-    }
-    node = node.parentElement;
-  }
-  return viewportBounds();
-};
+/**
+ * The boundary is the viewport, full stop — and that is not laziness, it is
+ * what a *portaled* overlay is. The hook only ever places the
+ * `appendTo="body"` overlay, which is a `<body>` child: nothing in the
+ * anchor's clipping chain (a rounded `Panel` shell's `overflow-hidden`, a
+ * body scroller, a scroll container) can clip it, so clamping against that
+ * chain only *pretends* the overlay must stay inside it. Walking the chain
+ * and intersecting was a direct port of the in-flow Picker/DropdownMenu
+ * math — and inside a `Panel` it parked the calendar against the card's
+ * corner instead of below the field, which is the coordinate bug the portal
+ * mode showed. `appendTo="self"` is CSS-placed in flow position and never
+ * reaches this hook.
+ *
+ * Shared with `Popover`, which portals the same way and had the same chain
+ * walk. `Picker`, `DropdownMenu` and `MegaMenu` keep theirs: they are
+ * in-flow inside their clipping container, where the walk is the point.
+ */
+const resolveBoundaryBounds = (): RectBounds => viewportBounds();
 
 export const useOverlayPosition = (
   anchorRef: RefObject<HTMLElement | null>,
@@ -98,8 +89,11 @@ export const useOverlayPosition = (
     // layout size instead; jsdom has no layout (offsets are 0), and the
     // mocked bbox is already untransformed, so the fallback is exact there.
     const panelWidth = panel.offsetWidth || panelRect.width;
+    // `offsetHeight` (not `clientHeight`): client excludes the border, so
+    // on a borderless jsdom element it reads 0 where offset is the honest
+    // layout number — and in a browser the difference here is only chrome.
     const panelHeight = panel.offsetHeight || panelRect.height;
-    const boundary = resolveBoundaryBounds(anchor);
+    const boundary = resolveBoundaryBounds();
     const zIndex = resolveOverlayZIndex(anchor);
     const offset = 4;
     const minMargin = 8;

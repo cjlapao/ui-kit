@@ -29,7 +29,9 @@ export default function WithSideMenu() {
             start={
               <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
                 Reports <span className="mx-1 text-neutral-300">/</span>
-                <span className="text-neutral-900 dark:text-neutral-50">Quarterly</span>
+                <span className="text-neutral-900 dark:text-neutral-50">
+                  Quarterly
+                </span>
               </span>
             }
             end={

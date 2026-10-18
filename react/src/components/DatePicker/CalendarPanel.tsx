@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import classNames from "classnames";
-import Panel, { SkeletonBar } from "../Panel";
-import Button from "../Button";
+import Panel from "../Panel";
+import Button, { type ButtonVariant } from "../Button";
+import IconButton from "../IconButton";
 import {
   getDecadeRange,
   isDateSelectable,
@@ -13,10 +14,12 @@ import {
 } from "../../../../common/utils/dates";
 import { getMonthNames } from "../../../../common/i18n/dates";
 import { useKitEngine } from "../../i18n";
-import { useIconRenderer } from "../../contexts/IconContext";
 import { useSurfaceText } from "../../contexts/SurfaceContext";
 import {
   DEFAULT_SURFACE_CORNER,
+  isGlassSurface,
+  type ControlSize,
+  type InputVariant,
   type SurfaceCorner,
   type SurfaceVariant,
   type TrueColor,
@@ -33,8 +36,18 @@ export interface CalendarPanelProps {
   panelTone: TrueColor;
   panelCorner: SurfaceCorner;
   panelClassName?: string;
-  /** Field accent — selected cells and focus rings. */
+  /** Field accent — selected cells, focus rings and the button bar. */
   tone: TrueColor;
+  /**
+   * The field's own surface, so the Today/Clear buttons read as part of the
+   * field (same idea as SplitView's search mapping): solid for the boxed
+   * surfaces, ghost for ghost, outline for underline. When the *panel* is a
+   * glass surface the buttons go glass or ghost instead — a solid chip on
+   * glass reads as a mistake, whatever the field's own variant is.
+   */
+  fieldVariant: InputVariant;
+  /** The field's size — the button bar follows it, `xs` riding up to `sm`. */
+  fieldSize: ControlSize;
   view: CalendarView;
   viewMonth: number;
   viewYear: number;
@@ -47,7 +60,6 @@ export interface CalendarPanelProps {
   today: Date;
   disabled?: boolean;
   inline?: boolean;
-  loading?: boolean;
   showButtonBar?: boolean;
   ariaLabel?: string;
   todayButtonLabel?: React.ReactNode;
@@ -72,26 +84,20 @@ const NavButton: React.FC<{
   onClick: () => void;
   disabled?: boolean;
   tone: TrueColor;
-}> = ({ label, icon, onClick, disabled, tone }) => {
-  const renderIcon = useIconRenderer();
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className={classNames(
-        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-200",
-        "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900",
-        "dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-neutral-100",
-        `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-${tone}-400`,
-        "disabled:cursor-not-allowed disabled:opacity-40",
-      )}
-    >
-      {renderIcon(icon, "sm")}
-    </button>
-  );
-};
+  /** The panel surface decides glass vs ghost — tone stays the field's. */
+  panelVariant: SurfaceVariant;
+}> = ({ label, icon, onClick, disabled, tone, panelVariant }) => (
+  <IconButton
+    icon={icon}
+    variant={isGlassSurface(panelVariant) ? "glass" : "ghost"}
+    color={tone}
+    size="sm"
+    tooltip={label}
+    aria-label={label}
+    disabled={disabled}
+    onClick={onClick}
+  />
+);
 
 /**
  * The calendar surface. The chrome is a real `Panel` (brief objective 1):
@@ -99,6 +105,25 @@ const NavButton: React.FC<{
  * `SurfaceProvider` it publishes is what lets the weekday row and titles pick
  * copy that survives a glass or liquid-glass fill.
  */
+/**
+ * Which `Button` variant the Today/Clear buttons take for the field's own
+ * surface — the same "reads as part of the thing it belongs to" idea as
+ * SplitView's search mapping. The boxed field surfaces (flat, elevated,
+ * gradient) all mean "solid control", so they land on `solid`; ghost stays
+ * ghost, the underline's single rule matches `outline`. The field's `glass`
+ * is `ghost` on the button scale — and whatever the field is, a *glass
+ * panel* wins the override below: solids and dark fills float on glass
+ * surfaces like debris.
+ */
+const BUTTON_VARIANT_FOR_FIELD: Record<InputVariant, ButtonVariant> = {
+  flat: "solid",
+  elevated: "solid",
+  gradient: "solid",
+  ghost: "ghost",
+  underline: "outline",
+  glass: "glass",
+};
+
 const CalendarPanel: React.FC<CalendarPanelProps> = ({
   id,
   panelVariant,
@@ -106,6 +131,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
   panelCorner = DEFAULT_SURFACE_CORNER,
   panelClassName,
   tone,
+  fieldVariant,
+  fieldSize,
   view,
   viewMonth,
   viewYear,
@@ -118,7 +145,6 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
   today,
   disabled = false,
   inline = false,
-  loading = false,
   showButtonBar = false,
   ariaLabel,
   todayButtonLabel,
@@ -133,6 +159,12 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
   onClear,
   onEscape,
 }) => {
+  const footerButtonVariant: ButtonVariant =
+    isGlassSurface(panelVariant) &&
+    BUTTON_VARIANT_FOR_FIELD[fieldVariant] !== "ghost"
+      ? "glass"
+      : BUTTON_VARIANT_FOR_FIELD[fieldVariant];
+
   const i18n = useKitEngine();
   const monthNames = getMonthNames(i18n.locale);
   const monthNamesShort = getMonthNames(i18n.locale, true);
@@ -157,8 +189,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
       (d) => d.getFullYear() === viewYear && d.getMonth() === index,
     );
   };
-  const monthActiveKey = monthCells.findIndex(
-    (cell) => isMonthSelected(cell.index),
+  const monthActiveKey = monthCells.findIndex((cell) =>
+    isMonthSelected(cell.index),
   );
 
   // ── Year view ─────────────────────────────────────────────────────────────
@@ -194,7 +226,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
   const yearRoving = useRovingGrid({
     keys: yearCells.map((c) => String(c.year)),
     isDisabled: (key) => !yearCells[Number(key) - decadeStart]?.selectable,
-    activeKey: yearActiveKey >= 0 ? String(yearCells[yearActiveKey].year) : null,
+    activeKey:
+      yearActiveKey >= 0 ? String(yearCells[yearActiveKey].year) : null,
   });
 
   // Landing focus after a view switch (title button click) or a decade/year
@@ -208,10 +241,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
     if (target === "year") yearRoving.focusActive();
   }, [view, viewYear, viewMonth]);
 
-  const handleMonthKeydown = (
-    event: React.KeyboardEvent,
-    index: number,
-  ) => {
+  const handleMonthKeydown = (event: React.KeyboardEvent, index: number) => {
     switch (event.key) {
       case "ArrowUp":
       case "ArrowDown": {
@@ -263,7 +293,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
           pendingFocus.current = "year";
           return;
         }
-        if (yearCells[next]?.selectable) yearRoving.move(String(yearCells[next].year));
+        if (yearCells[next]?.selectable)
+          yearRoving.move(String(yearCells[next].year));
         return;
       }
       case "ArrowLeft":
@@ -275,7 +306,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
           pendingFocus.current = "year";
           return;
         }
-        if (yearCells[next]?.selectable) yearRoving.move(String(yearCells[next].year));
+        if (yearCells[next]?.selectable)
+          yearRoving.move(String(yearCells[next].year));
         return;
       }
       case "PageUp":
@@ -368,7 +400,9 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
             onSwitchView("year");
             pendingFocus.current = "year";
           }}
-          aria-label={i18n.t("kit.datepicker.chooseYearNow", { year: viewYear })}
+          aria-label={i18n.t("kit.datepicker.chooseYearNow", {
+            year: viewYear,
+          })}
           className={classNames(
             "rounded-md px-2 py-1 text-sm font-semibold transition-colors duration-200",
             surfaceText.heading,
@@ -381,11 +415,21 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
         </button>
       </>
     ) : view === "month" ? (
-      <span className={classNames("px-2 text-sm font-semibold", surfaceText.heading)}>
+      <span
+        className={classNames(
+          "px-2 text-sm font-semibold",
+          surfaceText.heading,
+        )}
+      >
         {viewYear}
       </span>
     ) : (
-      <span className={classNames("px-2 text-sm font-semibold", surfaceText.heading)}>
+      <span
+        className={classNames(
+          "px-2 text-sm font-semibold",
+          surfaceText.heading,
+        )}
+      >
         {decadeStart} – {decadeEnd}
       </span>
     );
@@ -393,28 +437,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
   const empty = isValueEmpty(value);
   const todayDisabled = !isDateSelectable(today, constraints);
 
-  const skeleton = loading ? (
-    <div
-      className="flex animate-pulse flex-col gap-3 p-3 motion-reduce:animate-none"
-      aria-hidden="true"
-    >
-      <div className="flex items-center justify-between px-1">
-        <SkeletonBar width="2rem" height="h-8" className="rounded-full" />
-        <SkeletonBar width="5.5rem" height="h-5" />
-        <SkeletonBar width="2rem" height="h-8" className="rounded-full" />
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {Array.from({ length: 42 }, (_, i) => (
-          <SkeletonBar
-            key={i}
-            width="2rem"
-            height="h-8"
-            className="mx-auto rounded-full"
-          />
-        ))}
-      </div>
-    </div>
-  ) : (
+  const content = (
     <>
       {view === "date" && (
         <DayGrid
@@ -435,7 +458,11 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
           buttons — not a grid (no rows/cells), and the selected state
           belongs on the button role as aria-pressed. */}
       {view === "month" && (
-        <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={i18n.t("kit.datepicker.chooseMonth")}>
+        <div
+          className="grid grid-cols-3 gap-1.5"
+          role="group"
+          aria-label={i18n.t("kit.datepicker.chooseMonth")}
+        >
           {monthCells.map((cell, index) => (
             <button
               key={cell.index}
@@ -447,7 +474,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
               aria-disabled={!cell.selectable || undefined}
               onClick={() => onPickMonth(cell.index)}
               onKeyDown={(event) => handleMonthKeydown(event, index)}
-              className={viewCellClass(isMonthSelected(cell.index), cell.selectable)}
+              className={viewCellClass(
+                isMonthSelected(cell.index),
+                cell.selectable,
+              )}
             >
               {monthNamesShort[cell.index]}
             </button>
@@ -455,7 +485,11 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
         </div>
       )}
       {view === "year" && (
-        <div className="grid grid-cols-2 gap-1.5" role="group" aria-label={i18n.t("kit.datepicker.chooseYear")}>
+        <div
+          className="grid grid-cols-2 gap-1.5"
+          role="group"
+          aria-label={i18n.t("kit.datepicker.chooseYear")}
+        >
           {yearCells.map((cell, index) => (
             <button
               key={cell.year}
@@ -467,7 +501,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
               aria-disabled={!cell.selectable || undefined}
               onClick={() => onPickYear(cell.year)}
               onKeyDown={(event) => handleYearKeydown(event, index)}
-              className={viewCellClass(isYearSelected(cell.year), cell.selectable)}
+              className={viewCellClass(
+                isYearSelected(cell.year),
+                cell.selectable,
+              )}
             >
               {cell.year}
             </button>
@@ -508,6 +545,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
             icon="ChevronLeft"
             disabled={navDisabled}
             tone={tone}
+            panelVariant={panelVariant}
             onClick={() =>
               view === "date"
                 ? onMonthNav(-1)
@@ -528,6 +566,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
             icon="ChevronRight"
             disabled={navDisabled}
             tone={tone}
+            panelVariant={panelVariant}
             onClick={() =>
               view === "date"
                 ? onMonthNav(1)
@@ -537,8 +576,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
             }
           />
         </div>
-        <div className="px-3 pb-3">{skeleton}</div>
-        {showButtonBar && !loading && (
+        <div className="px-3 pb-3">{content}</div>
+        {showButtonBar && (
           <div
             className={classNames(
               "flex items-center justify-between gap-2 border-t px-3 py-2",
@@ -546,18 +585,18 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
             )}
           >
             <Button
-              variant="outline"
-              size="sm"
-              color="neutral"
+              variant={footerButtonVariant}
+              size={fieldSize === "xs" ? "sm" : fieldSize}
+              color={tone}
               onClick={onToday}
               disabled={disabled || todayDisabled}
             >
               {todayButtonLabel ?? i18n.t("kit.datepicker.today")}
             </Button>
             <Button
-              variant="outline"
-              size="sm"
-              color="neutral"
+              variant={footerButtonVariant}
+              size={fieldSize === "xs" ? "sm" : fieldSize}
+              color={tone}
               onClick={onClear}
               disabled={disabled || empty}
             >

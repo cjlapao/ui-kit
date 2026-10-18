@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { AccessMatrix, MultiToggle } from "@cjlapao/ui-kit";
+import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import type {
   AccessMatrixPermission,
   PanelTone,
@@ -65,7 +66,7 @@ export const AccessMatrixPlayground: React.FC = () => {
   const [variant, setVariant] = useState<TableVariant>("outlined");
   const [tone, setTone] = useState<PanelTone>("neutral");
   const [density, setDensity] = useState<TableDensity>("default");
-  const [corner, setCorner] = useState<SurfaceCorner>("rounded-lg");
+  const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [limit, setLimit] = useState(3);
   const [striped, setStriped] = useState(true);
   const [bordered, setBordered] = useState(false);
@@ -151,7 +152,9 @@ export const AccessMatrixPlayground: React.FC = () => {
                           { label: "Skeleton", value: "skeleton" },
                         ]}
                         value={loaderType}
-                        onChange={(value) => setLoaderType(value as TableLoaderType)}
+                        onChange={(value) =>
+                          setLoaderType(value as TableLoaderType)
+                        }
                       />
                     </Control>
                     {loaderType === "progress" && (
@@ -174,30 +177,49 @@ export const AccessMatrixPlayground: React.FC = () => {
                 title: "Layout",
                 controls: (
                   <div className="grid grid-cols-1 gap-2">
-                    <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
-                    <ToggleRow label="Striped rows" checked={striped} onChange={setStriped} />
-                    <ToggleRow label="Bordered grid" checked={bordered} onChange={setBordered} />
+                    <ToggleRow
+                      label="Loading"
+                      checked={loading}
+                      onChange={setLoading}
+                    />
+                    <ToggleRow
+                      label="Striped rows"
+                      checked={striped}
+                      onChange={setStriped}
+                    />
+                    <ToggleRow
+                      label="Bordered grid"
+                      checked={bordered}
+                      onChange={setBordered}
+                    />
                     <ToggleRow
                       label="Remove row borders"
                       checked={noBorders}
                       onChange={setNoBorders}
                     />
-                    <ToggleRow label="Row hover" checked={hoverable} onChange={setHoverable} />
-                    <ToggleRow label="Fill height, scroll inside" checked={fullHeight} onChange={setFullHeight} />
+                    <ToggleRow
+                      label="Row hover"
+                      checked={hoverable}
+                      onChange={setHoverable}
+                    />
+                    <ToggleRow
+                      label="Fill height, scroll inside"
+                      checked={fullHeight}
+                      onChange={setFullHeight}
+                    />
                   </div>
                 ),
               },
             ]}
           />
           <p className="text-xs opacity-70">
-            The matrix is read-only: it takes a flat{" "}
-            <code>permissions</code> list and derives the columns itself.
-            Group header rows collapse on click, and beyond{" "}
-            <code>limit</code> the remaining groups sit behind a "show more"
-            button. Toggle <code>Loading</code> to preview the three
-            Panel-style loaders — the spinner/progress overlay stays pinned to
-            the card while the content scrolls, and the skeleton replaces the
-            matrix with pulsing placeholders.
+            The matrix is read-only: it takes a flat <code>permissions</code>{" "}
+            list and derives the columns itself. Group header rows collapse on
+            click, and beyond <code>limit</code> the remaining groups sit behind
+            a "show more" button. Toggle <code>Loading</code> to preview the
+            three Panel-style loaders — the spinner/progress overlay stays
+            pinned to the card while the content scrolls, and the skeleton
+            replaces the matrix with pulsing placeholders.
           </p>
         </div>
       }

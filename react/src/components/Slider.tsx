@@ -8,7 +8,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { getSliderVariantTokens, ORIENTATIONS, SLIDER_VARIANTS } from "../theme/Theme";
+import {
+  getSliderVariantTokens,
+  ORIENTATIONS,
+  SLIDER_VARIANTS,
+} from "../theme/Theme";
+import { useKitT } from "../i18n";
 import type { Orientation, SliderVariant, TrueColor } from "../theme/Theme";
 
 export const SLIDER_ORIENTATIONS = ORIENTATIONS;
@@ -21,11 +26,10 @@ export type { SliderVariant };
 /** A single value, or a `[min, max]` pair in range mode. */
 export type SliderValue = number | [number, number];
 
-export interface SliderProps
-  extends Omit<
-    HTMLAttributes<HTMLDivElement>,
-    "onChange" | "defaultValue"
-  > {
+export interface SliderProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "onChange" | "defaultValue"
+> {
   /** The value — a number, or a `[min, max]` pair in range mode. */
   value?: SliderValue | null;
   /** Initial value when uncontrolled. @default min (or `[min, max]` in range mode) */
@@ -49,9 +53,9 @@ export interface SliderProps
   /** Visual treatment — the same eight values `Button` offers. @default "solid" */
   variant?: SliderVariant;
   /** Colour of the fill and handle. @default "blue" */
-  color?: TrueColor;
-  /** Alias for `color`, matching the input family's `tone`. @deprecated */
   tone?: TrueColor;
+  /** Deprecated alias for `tone`. @deprecated */
+  color?: TrueColor;
   /** Paint the fill and handle in the error colour. */
   invalid?: boolean;
   /** Freeze everything: the handles leave the tab order and ignore input. */
@@ -62,7 +66,10 @@ export interface SliderProps
   disabledMaxHandle?: boolean;
   /** Focusable but not editable — visually unchanged. */
   readOnly?: boolean;
-  /** Accessible name for the handle(s). @default "Slider" */
+  /**
+   * Accessible name for the handle(s).
+   * @default "Slider" (`kit.slider.label`)
+   */
   ariaLabel?: string;
 }
 
@@ -114,7 +121,7 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(function Slider(
     disabledMinHandle = false,
     disabledMaxHandle = false,
     readOnly = false,
-    ariaLabel = "Slider",
+    ariaLabel,
     className,
     ...rest
   },
@@ -138,9 +145,22 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(function Slider(
     safeStep,
   );
 
+  const t = useKitT();
   const inert = disabled || readOnly;
-  const effectiveColor = color ?? tone ?? "blue";
+  const effectiveColor = tone ?? color ?? "blue";
   const tokens = getSliderVariantTokens(effectiveColor, variant);
+
+  // Range handles name themselves "Minimum"/"Maximum" when the group has no
+  // name of its own; given one, it flows into the translated phrase instead
+  // of being glued on ("Volume: Mindestwert"). The keys stay literal — the
+  // catalog-consistency scan greps for them.
+  const defaultLabel = t("kit.slider.label");
+  const minLabel = ariaLabel
+    ? t("kit.slider.minOf", { label: ariaLabel })
+    : t("kit.slider.min");
+  const maxLabel = ariaLabel
+    ? t("kit.slider.maxOf", { label: ariaLabel })
+    : t("kit.slider.max");
 
   // One entry per interactive handle, so range and single share the same
   // pointer/keyboard paths. `index` is the handle's position in this array.
@@ -149,15 +169,15 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(function Slider(
         {
           value: currentPair[0],
           disabled: disabled || disabledMinHandle,
-          label: ariaLabel === "Slider" ? "Minimum" : `${ariaLabel} min`,
+          label: minLabel,
         },
         {
           value: currentPair[1],
           disabled: disabled || disabledMaxHandle,
-          label: ariaLabel === "Slider" ? "Maximum" : `${ariaLabel} max`,
+          label: maxLabel,
         },
       ]
-    : [{ value: currentPair[1], disabled, label: ariaLabel }];
+    : [{ value: currentPair[1], disabled, label: ariaLabel ?? defaultLabel }];
 
   const pct = (v: number) => (span > 0 ? ((v - safeMin) / span) * 100 : 0);
 
@@ -376,7 +396,10 @@ const Slider = forwardRef<HTMLDivElement, SliderProps>(function Slider(
             invalid ? INVALID_HANDLE : tokens.handle,
             orientation === "horizontal"
               ? "top-1/2 -translate-x-1/2 -translate-y-1/2"
-              : "left-1/2 -translate-x-1/2 -translate-y-1/2",
+              : // Anchored by `bottom`, the handle's bottom edge sits on the
+                // value point — centring it means moving down half a handle
+                // (`translate-y-1/2`), the mirror of the `left` case above.
+                "left-1/2 -translate-x-1/2 translate-y-1/2",
             "focus:outline-none focus-visible:ring-2",
             invalid ? INVALID_RING : tokens.ring,
             handle.disabled

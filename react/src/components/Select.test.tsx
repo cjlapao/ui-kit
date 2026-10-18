@@ -27,7 +27,7 @@ describe("Select", () => {
           {options}
         </Select>,
       );
-      const tokens = getInputVariantTokens(variant);
+      const tokens = getInputVariantTokens(variant, "blue");
       const box = field(container).split(/\s+/);
       const copy = screen.getByLabelText("s").className.split(/\s+/);
 
@@ -94,9 +94,7 @@ describe("Select", () => {
     });
 
     it("insets the focus ring so a scrolling ancestor cannot clip it", () => {
-      const { container } = render(
-        <Select aria-label="s">{options}</Select>,
-      );
+      const { container } = render(<Select aria-label="s">{options}</Select>);
       expect(field(container)).toContain("focus-within:ring-inset");
     });
 
@@ -211,14 +209,17 @@ describe("Select", () => {
       expect(style).toContain("width: 10rem");
     });
 
-    it("gives the options their own fill for the native popup", () => {
-      // The dropdown is painted by the platform from the select's own
-      // background; with the surface on the wrapper the select is transparent,
-      // which would leave the open list white in dark mode.
+    it("does not paint options from the component at all", () => {
+      // The fill used to be an unconditional `[&>option]:bg-white` utility —
+      // and utilities match regardless of what the browser can do, so it
+      // painted white slabs over the styled popup rows and over glass. The
+      // fallback fill now lives in `@supports not (appearance: base-select)`
+      // in styles.css: the class list must stay clean for the styled rows'
+      // washes to survive.
       render(<Select aria-label="s">{options}</Select>);
       const classes = screen.getByLabelText("s").className;
-      expect(classes).toContain("[&>option]:bg-white");
-      expect(classes).toContain("dark:[&>option]:bg-neutral-900");
+      expect(classes).not.toContain("[&>option]:bg-");
+      expect(classes).not.toContain("[&>optgroup]:bg-");
     });
   });
 
@@ -293,9 +294,9 @@ describe("Select", () => {
           {options}
         </Select>,
       );
-      expect((container.querySelector("select") as HTMLSelectElement).value).toBe(
-        "",
-      );
+      expect(
+        (container.querySelector("select") as HTMLSelectElement).value,
+      ).toBe("");
     });
 
     it("does not fight a caller that owns the value", () => {
@@ -304,9 +305,9 @@ describe("Select", () => {
           {options}
         </Select>,
       );
-      expect((container.querySelector("select") as HTMLSelectElement).value).toBe(
-        "b",
-      );
+      expect(
+        (container.querySelector("select") as HTMLSelectElement).value,
+      ).toBe("b");
     });
 
     it("forwards a ref and change events", () => {
@@ -380,8 +381,8 @@ describe("Select", () => {
           "text-sm": "[&>option]:leading-5",
           "text-base": "[&>option]:leading-6",
         };
-        const textClass = getControlSizeTokens(size).text
-          .split(/\s+/)
+        const textClass = getControlSizeTokens(size)
+          .text.split(/\s+/)
           .find((token) => token.startsWith("text-"))!;
         render(
           <Select size={size} aria-label="s">
@@ -407,11 +408,7 @@ describe("Select", () => {
     };
 
     it("opens the picker when the caret is clicked", () => {
-      const { container } = render(
-        <Select aria-label="s">
-          {options}
-        </Select>,
-      );
+      const { container } = render(<Select aria-label="s">{options}</Select>);
       const select = screen.getByLabelText("s");
       const showPicker = stubShowPicker(select);
       fireEvent.click(container.querySelector("span.ml-2")!);
@@ -419,11 +416,7 @@ describe("Select", () => {
     });
 
     it("opens the picker when the wrapper padding is clicked", () => {
-      const { container } = render(
-        <Select aria-label="s">
-          {options}
-        </Select>,
-      );
+      const { container } = render(<Select aria-label="s">{options}</Select>);
       const select = screen.getByLabelText("s");
       const showPicker = stubShowPicker(select);
       fireEvent.click(container.querySelector("span.group")!);
@@ -431,11 +424,7 @@ describe("Select", () => {
     });
 
     it("leaves a click on the select itself to the platform", () => {
-      render(
-        <Select aria-label="s">
-          {options}
-        </Select>,
-      );
+      render(<Select aria-label="s">{options}</Select>);
       const select = screen.getByLabelText("s");
       const showPicker = stubShowPicker(select);
       fireEvent.click(select);
@@ -469,14 +458,79 @@ describe("Select", () => {
     it("focuses the select where showPicker is unavailable", () => {
       // Firefox has no showPicker; the fallback is still better than the
       // click being lost. jsdom never has it, so this is the default path.
-      const { container } = render(
-        <Select aria-label="s">
-          {options}
-        </Select>,
-      );
+      const { container } = render(<Select aria-label="s">{options}</Select>);
       const select = screen.getByLabelText("s");
       fireEvent.click(container.querySelector("span.group")!);
       expect(document.activeElement).toBe(select);
+    });
+  });
+  describe("multiple list", () => {
+    it("lets a ScrollArea frame own the scrolling", () => {
+      // The widget grows to its rows (`height: fit-content` in the
+      // `.ui-select[multiple]` CSS — jsdom cannot check the layout, only
+      // that the frame is where the scrollbar will live).
+      const { container } = render(
+        <Select multiple aria-label="s">
+          {options}
+        </Select>,
+      );
+      expect(container.querySelector('[data-slot="scrollarea"]')).toBeTruthy();
+      expect(
+        container.querySelector('[data-slot="scrollarea"] select'),
+      ).toBeTruthy();
+    });
+
+    it("stays unwrapped as a single select", () => {
+      const { container } = render(<Select>{options}</Select>);
+      expect(container.querySelector('[data-slot="scrollarea"]')).toBeNull();
+    });
+  });
+
+  describe("kit conventions", () => {
+    const box = (container: HTMLElement) =>
+      container.querySelector("span.group") as HTMLElement;
+
+    it("auto corners to the control corner like every field", () => {
+      const { container } = render(<Select>{options}</Select>);
+      expect(box(container).className).toContain("rounded-lg");
+    });
+
+    it("swaps the radius for an explicit corner token", () => {
+      const { container } = render(
+        <Select corner="rounded-md">{options}</Select>,
+      );
+      expect(box(container).className).toContain("rounded-2xl");
+      expect(box(container).className).not.toContain("rounded-lg");
+    });
+
+    it("blurs for glass", () => {
+      const { container } = render(
+        <Select variant="glass" tone="violet">
+          {options}
+        </Select>,
+      );
+      expect(box(container).className).toContain("backdrop-blur-md");
+    });
+
+    it("glows behind the field once, on focus, for gradient", () => {
+      const { container } = render(
+        <Select variant="gradient" tone="violet" gradientFrom="#123456">
+          {options}
+        </Select>,
+      );
+      // The glow span is the decoration carrying a boxShadow (the serialized
+      // style attribute spells it `box-shadow`, so test via the style object).
+      const halos = container.querySelectorAll("span[aria-hidden]");
+      const halo = [...halos].find(
+        (el) => (el as HTMLElement).style.boxShadow,
+      ) as HTMLElement;
+      expect(halo).toBeDefined();
+      expect(halo.style.boxShadow).toContain("#123456");
+      expect(halo.style.boxShadow).toContain("var(--color-violet-400)");
+      // Idle subtle glow is a whisper; focus ignites it.
+      expect(halo.style.opacity).toBe("0.1");
+      fireEvent.focus(container.querySelector("select")!);
+      expect(halo.style.opacity).toBe("0.22");
     });
   });
 });

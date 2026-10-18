@@ -8,8 +8,8 @@ import { DEMO_LOCALES } from "../catalog";
  * the locale the engine picked (base-language match: `pt-BR` → `pt`).
  */
 export const Detection: React.FC = () => {
-  const languages: string[] =
-    typeof navigator !== "undefined" ? navigator.languages ?? [] : [];
+  const languages: readonly string[] =
+    typeof navigator !== "undefined" ? (navigator.languages ?? []) : [];
   const engine = React.useMemo(
     () =>
       createI18n({
@@ -26,9 +26,9 @@ export const Detection: React.FC = () => {
         <code className="font-mono">{JSON.stringify(languages)}</code>
       </p>
       <p>
-        The engine picked{" "}
-        <code className="font-mono">{engine.locale}</code> — exact or
-        base-language match against the catalog tags, else the fallback.
+        The engine picked <code className="font-mono">{engine.locale}</code> —
+        exact or base-language match against the catalog tags, else the
+        fallback.
       </p>
       <p className="text-xs text-neutral-500 dark:text-neutral-400">
         Pass <code className="font-mono">locale: "fr"</code> to the provider to

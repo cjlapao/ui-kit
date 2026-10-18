@@ -10,6 +10,7 @@ import classNames from "classnames";
 import {
   TOGGLE_VARIANTS,
   type ControlSize,
+  type SurfacePadding,
   type ToggleVariant,
   type TrueColor,
   getToggleVariantTokens,
@@ -34,7 +35,12 @@ import type { TooltipPosition } from "./Tooltip";
 export type ToggleSize = ControlSize;
 export type ToggleAlign = "left" | "right";
 export type ToggleDescriptionPlacement = "inline" | "stacked";
-export type TogglePadding = "none" | "xs" | "sm" | "md" | "lg" | "xl";
+/**
+ * Aliased to the shared surface padding scale rather than redeclared — the
+ * old local union spelled the same six members, but a future member added
+ * to the kit scale would have been silently unreachable here.
+ */
+export type TogglePadding = SurfacePadding;
 
 /** Re-exported from the theme, where the runtime lists live. */
 export { TOGGLE_VARIANTS };
@@ -49,11 +55,10 @@ const paddingStyles: Record<TogglePadding, string> = {
   xl: "p-3",
 };
 
-export interface ToggleProps
-  extends Omit<
-    InputHTMLAttributes<HTMLInputElement>,
-    "size" | "color" | "children"
-  > {
+export interface ToggleProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "size" | "color" | "children"
+> {
   label?: ReactNode;
   description?: ReactNode;
   descriptionPlacement?: ToggleDescriptionPlacement;
@@ -61,6 +66,12 @@ export interface ToggleProps
   padding?: TogglePadding;
   /** Visual treatment — the same five values `Button` and `Slider` offer. @default "solid" */
   variant?: ToggleVariant;
+  /** On-state fill and focus ring. @default "blue" */
+  tone?: TrueColor;
+  /**
+   * Deprecated spelling of `tone` — the rest of the kit says `tone`.
+   * @deprecated use `tone`
+   */
   color?: TrueColor;
   alignLabel?: ToggleAlign;
   /** Rendered in the half of the track the thumb is not in while checked. */
@@ -86,6 +97,12 @@ export interface ToggleProps
   specularMode?: SpecularMode;
 }
 
+// `thumbOffset` centers vertically on `top-1/2` + a half-height lift rather
+// than a pixel inset: the track carries a 1px border (transparent, but real
+// geometry), and absolute offsets resolve inside the *padding* box — a
+// hardcoded `top-0.5` was 2px from the border on one side and 0 on the
+// other, parking the thumb a pixel low. The percentage centering cannot be
+// off by a border.
 // `thumbTranslate` is the checked travel: track width − thumb width − the
 // 2px inset on both sides, so the thumb lands flush against the far wall —
 // xs 28−12−4=12, sm 36−16−4=16, md 44−20−4=20, lg 56−24−4=28, xl 64−28−4=32.
@@ -105,7 +122,7 @@ const sizeTokens: Record<
   xs: {
     track: "h-4 w-7",
     thumb: "h-3 w-3",
-    thumbOffset: "top-0.5 left-0.5",
+    thumbOffset: "top-1/2 left-0.5 -translate-y-1/2",
     thumbTranslate: "peer-checked:translate-x-3",
     gap: "gap-2",
     font: "text-xs",
@@ -114,7 +131,7 @@ const sizeTokens: Record<
   sm: {
     track: "h-5 w-9",
     thumb: "h-4 w-4",
-    thumbOffset: "top-0.5 left-0.5",
+    thumbOffset: "top-1/2 left-0.5 -translate-y-1/2",
     thumbTranslate: "peer-checked:translate-x-4",
     gap: "gap-2",
     font: "text-sm",
@@ -123,7 +140,7 @@ const sizeTokens: Record<
   md: {
     track: "h-6 w-11",
     thumb: "h-5 w-5",
-    thumbOffset: "top-0.5 left-0.5",
+    thumbOffset: "top-1/2 left-0.5 -translate-y-1/2",
     thumbTranslate: "peer-checked:translate-x-5",
     gap: "gap-3",
     font: "text-sm",
@@ -132,7 +149,7 @@ const sizeTokens: Record<
   lg: {
     track: "h-7 w-14",
     thumb: "h-6 w-6",
-    thumbOffset: "top-0.5 left-0.5",
+    thumbOffset: "top-1/2 left-0.5 -translate-y-1/2",
     thumbTranslate: "peer-checked:translate-x-7",
     gap: "gap-3",
     font: "text-base",
@@ -141,7 +158,7 @@ const sizeTokens: Record<
   xl: {
     track: "h-8 w-16",
     thumb: "h-7 w-7",
-    thumbOffset: "top-0.5 left-0.5",
+    thumbOffset: "top-1/2 left-0.5 -translate-y-1/2",
     thumbTranslate: "peer-checked:translate-x-8",
     gap: "gap-3",
     font: "text-base",
@@ -181,7 +198,8 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
       size = "md",
       padding = "sm",
       variant = "solid",
-      color = "blue",
+      tone,
+      color,
       alignLabel = "right",
       iconOn,
       iconOff,
@@ -228,8 +246,11 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
     // `glass` is the legacy spelling of `variant="glass"`.
     const effectiveVariant: ToggleVariant = glass ? "glass" : variant;
     const isGlass = effectiveVariant === "glass";
+    // `tone` is the kit word for it — `color` stays accepted as the legacy
+    // spelling, with `tone` winning when both are given.
+    const effectiveTone: TrueColor = tone ?? color ?? "blue";
     const tokens = getToggleVariantTokens(
-      color,
+      effectiveTone,
       effectiveVariant,
       glassOpacity,
     );
@@ -239,7 +260,9 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
     // backdrop-filter chain to compose into — at rest the neutral fill is
     // opaque and the saturate variable is inert.
     const glassVibrancyClass = isGlass ? getGlassVibrancyClass(vibrancy) : null;
-    const glassSpecularClass = isGlass ? getSpecularClasses(specularMode) : null;
+    const glassSpecularClass = isGlass
+      ? getSpecularClasses(specularMode)
+      : null;
 
     const toggle = (
       // The row is the visible track of the sr-only checkbox: clicking it

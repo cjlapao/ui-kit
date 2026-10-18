@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import Toggle, { TOGGLE_VARIANTS, type ToggleSize } from "./Toggle";
-import type { GlassVibrancy, GlassOpacity, SpecularMode } from "../../../common/theme/glass";
+import type {
+  GlassVibrancy,
+  GlassOpacity,
+  SpecularMode,
+} from "../../../common/theme/glass";
 
 // Mock the IconContext so useIconRenderer doesn't throw. The shared spy lets
 // tests assert what size/className the component asks the renderer for.
@@ -83,10 +87,12 @@ describe("Toggle — variants", () => {
     const { container } = render(<Toggle label="Test" variant="glass" />);
 
     const track = trackOf(container).className;
-    expect(track).toContain("peer-checked:bg-blue-100/65");
-    expect(track).toContain("dark:peer-checked:bg-blue-600/25");
+    // The full-chroma 500 step, not the 100 pastel big surfaces use — at
+    // pill size the pastel read as a washed-out sticker.
+    expect(track).toContain("peer-checked:bg-blue-500/40");
+    expect(track).toContain("dark:peer-checked:bg-blue-600/35");
     expect(track).toContain("peer-checked:backdrop-blur-sm");
-    // The rest state is the plain neutral base, not a solid tone.
+    // The rest state is the plain neutral base, not the solid fill.
     expect(track).not.toContain("peer-checked:bg-blue-500 ");
   });
 
@@ -192,12 +198,16 @@ describe("Toggle — glass props", () => {
 
   it("glass=true renders backdrop-blur-sm on the track", () => {
     const { container } = render(<Toggle label="Test" glass />);
-    expect(trackOf(container).className).toContain("peer-checked:backdrop-blur-sm");
+    expect(trackOf(container).className).toContain(
+      "peer-checked:backdrop-blur-sm",
+    );
   });
 
   it("glass=true renders the glass fill on the track", () => {
     const { container } = render(<Toggle label="Test" glass />);
-    expect(trackOf(container).className).toContain("peer-checked:bg-blue-100/65");
+    expect(trackOf(container).className).toContain(
+      "peer-checked:bg-blue-500/40",
+    );
   });
 
   it("glass=true renders vibrancy class on track", () => {
@@ -219,21 +229,33 @@ describe("Toggle — glass props", () => {
     const { container } = render(
       <Toggle label="Test" glass glassOpacity="light" />,
     );
-    expect(trackOf(container).className).toContain("peer-checked:bg-blue-100/85");
+    // Light lands on the same strong step as frosted — it differs in the
+    // vibrancy chrome, not the tint strength.
+    expect(trackOf(container).className).toContain(
+      "peer-checked:bg-blue-500/40",
+    );
   });
 
   it("glass=true with glassOpacity=clear renders correct fill class", () => {
     const { container } = render(
       <Toggle label="Test" glass glassOpacity="clear" />,
     );
-    expect(trackOf(container).className).toContain("peer-checked:bg-blue-100/30");
+    // Clear steps back — paler, but still the 500 step, never the pastel.
+    expect(trackOf(container).className).toContain(
+      "peer-checked:bg-blue-500/20",
+    );
+    expect(trackOf(container).className).toContain(
+      "dark:peer-checked:bg-blue-600/15",
+    );
   });
 
   it("glass=true does not render solid variant peer-checked classes", () => {
     const { container } = render(<Toggle label="Test" glass />);
     const track = trackOf(container).className;
-    expect(track).not.toContain("peer-checked:bg-blue-500");
-    expect(track).not.toContain("dark:peer-checked:bg-blue-400");
+    // The solid *solid* fills — the glass tint shares the 500 step but only
+    // with an alpha (…/40), so the bare-token forms must be absent.
+    expect(track).not.toMatch(/peer-checked:bg-blue-500(\s|$)/);
+    expect(track).not.toMatch(/dark:peer-checked:bg-blue-400(\s|$)/);
   });
 
   it("accepts glass=true prop", () => {
@@ -247,7 +269,9 @@ describe("Toggle — glass props", () => {
   });
 
   it("accepts vibrancy='medium' (default)", () => {
-    const { container } = render(<Toggle label="Test" glass vibrancy="medium" />);
+    const { container } = render(
+      <Toggle label="Test" glass vibrancy="medium" />,
+    );
     expect(trackOf(container)).not.toBeNull();
   });
 
@@ -290,7 +314,9 @@ describe("Toggle — glass props", () => {
   });
 
   it('specularMode="none" (default) renders normally', () => {
-    const { container } = render(<Toggle label="Test" glass specularMode="none" />);
+    const { container } = render(
+      <Toggle label="Test" glass specularMode="none" />,
+    );
     expect(container.querySelector("label")).not.toBeNull();
   });
 
@@ -342,7 +368,9 @@ describe("Toggle — glass props", () => {
 
   it("renders toggle checkbox input with role=switch", () => {
     const { container } = render(<Toggle label="Test" />);
-    const input = container.querySelector('input[type="checkbox"][role="switch"]');
+    const input = container.querySelector(
+      'input[type="checkbox"][role="switch"]',
+    );
     expect(input).not.toBeNull();
   });
 
@@ -367,7 +395,7 @@ describe("Toggle — glass props", () => {
         <Toggle label="Test" glass specularMode="classic" />,
       );
       const overlay = container.querySelector(
-        'div.pointer-events-none.absolute.inset-0.rounded-full',
+        "div.pointer-events-none.absolute.inset-0.rounded-full",
       );
       expect(overlay).not.toBeNull();
       expect(overlay!.getAttribute("aria-hidden")).toBe("true");
@@ -382,7 +410,7 @@ describe("Toggle — glass props", () => {
         <Toggle label="Test" glass specularMode="halo" />,
       );
       const overlay = container.querySelector(
-        'div.pointer-events-none.absolute.inset-0.rounded-full',
+        "div.pointer-events-none.absolute.inset-0.rounded-full",
       );
       expect(overlay).not.toBeNull();
       expect(overlay!.getAttribute("aria-hidden")).toBe("true");
@@ -396,7 +424,7 @@ describe("Toggle — glass props", () => {
         <Toggle label="Test" glass specularMode="none" />,
       );
       const overlay = container.querySelector(
-        'div.pointer-events-none.absolute.inset-0.rounded-full',
+        "div.pointer-events-none.absolute.inset-0.rounded-full",
       );
       expect(overlay).toBeNull();
     });
@@ -406,7 +434,7 @@ describe("Toggle — glass props", () => {
         <Toggle label="Test" glass={false} specularMode="classic" />,
       );
       const overlay = container.querySelector(
-        'div.pointer-events-none.absolute.inset-0.rounded-full',
+        "div.pointer-events-none.absolute.inset-0.rounded-full",
       );
       expect(overlay).toBeNull();
     });
@@ -416,7 +444,7 @@ describe("Toggle — glass props", () => {
         <Toggle label="Test" glass specularMode="classic" />,
       );
       const overlay = container.querySelector(
-        'div.pointer-events-none.absolute.inset-0.rounded-full',
+        "div.pointer-events-none.absolute.inset-0.rounded-full",
       );
       expect(overlay).not.toBeNull();
       expect(overlay!.className).toContain("pointer-events-none");
@@ -450,7 +478,9 @@ describe("Toggle — icons", () => {
       <Toggle label="Test" iconOn="Sun" iconOff="Moon" />,
     );
     const spans = [...container.querySelectorAll("span")];
-    const iconOn = spans.find((s) => s.className.includes("peer-checked:opacity-100"));
+    const iconOn = spans.find((s) =>
+      s.className.includes("peer-checked:opacity-100"),
+    );
     expect(iconOn).toBeDefined();
     expect(iconOn!.className).toContain("left-0.5");
     // The half is the track minus the thumb minus the 2px insets — md: 44-20-4 = 20.
@@ -465,7 +495,9 @@ describe("Toggle — icons", () => {
       <Toggle label="Test" iconOn="Sun" iconOff="Moon" />,
     );
     const spans = [...container.querySelectorAll("span")];
-    const iconOff = spans.find((s) => s.className.includes("peer-checked:opacity-0"));
+    const iconOff = spans.find((s) =>
+      s.className.includes("peer-checked:opacity-0"),
+    );
     expect(iconOff).toBeDefined();
     expect(iconOff!.className).toContain("right-0.5");
     expect(iconOff!.className).toContain("w-5");
@@ -486,7 +518,12 @@ describe("Toggle — icons", () => {
     for (const [size, exp] of Object.entries(EXPECTED)) {
       mockRenderIcon.mockClear();
       const { unmount } = render(
-        <Toggle label="T" size={size as ToggleSize} iconOn="Sun" iconOff="Moon" />,
+        <Toggle
+          label="T"
+          size={size as ToggleSize}
+          iconOn="Sun"
+          iconOff="Moon"
+        />,
       );
       // The icon half is the wrapper's box; the glyph size travels to the
       // renderer as its className (which supersedes the size token).
@@ -501,7 +538,9 @@ describe("Toggle — icons", () => {
   it("renders no icon spans when no icons are given", () => {
     const { container } = render(<Toggle label="Test" />);
     const spans = [...container.querySelectorAll("span")];
-    expect(spans.find((s) => s.className.includes("opacity-0"))).toBeUndefined();
+    expect(
+      spans.find((s) => s.className.includes("opacity-0")),
+    ).toBeUndefined();
   });
 });
 
@@ -564,5 +603,28 @@ describe("Toggle — click emits exactly once", () => {
     );
     fireEvent.click(b.querySelector("[data-glass]")!);
     expect(readOnlyChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("tone", () => {
+  it("paints the checked fill and ring with `tone`", () => {
+    const { container } = render(<Toggle label="T" tone="rose" />);
+    expect(trackOf(container).className).toContain("peer-checked:bg-rose-500");
+    expect(trackOf(container).className).toContain(
+      "peer-focus-visible:ring-rose-400",
+    );
+  });
+
+  it("keeps `color` as the legacy spelling, with `tone` winning", () => {
+    const { container } = render(<Toggle label="T" color="emerald" />);
+    expect(trackOf(container).className).toContain(
+      "peer-checked:bg-emerald-500",
+    );
+    const { container: both } = render(
+      <Toggle label="T" color="emerald" tone="rose" />,
+    );
+    expect(
+      both.querySelector("span[class*='peer-checked:bg-']")!.className,
+    ).toContain("peer-checked:bg-rose-500");
   });
 });

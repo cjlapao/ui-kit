@@ -21,8 +21,15 @@ export default function Tones() {
     <div className="grid w-full gap-4 sm:grid-cols-2">
       {(["red", "green", "blue", "violet"] as const).map((color) => (
         <div key={color} className="flex flex-col gap-1">
-          <span className="text-[11px] uppercase tracking-wide opacity-60">{color}</span>
-          <Picker items={items} color={color} selectedId={id} onSelect={(i) => setId(i.id)} />
+          <span className="text-[11px] uppercase tracking-wide opacity-60">
+            {color}
+          </span>
+          <Picker
+            items={items}
+            color={color}
+            selectedId={id}
+            onSelect={(i) => setId(i.id)}
+          />
         </div>
       ))}
     </div>

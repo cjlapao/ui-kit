@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { I18nProvider } from "../i18n";
 import PasswordInput from "./PasswordInput";
 import Input from "./Input";
 import { CONTROL_SIZES, INPUT_VARIANTS } from "../theme/Theme";
@@ -41,11 +42,28 @@ describe("PasswordInput", () => {
     expect(screen.queryByLabelText("Show password")).toBeNull();
   });
 
+  it("names the toggle in the user's language", () => {
+    render(
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        <PasswordInput aria-label="Passwort" />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByLabelText("Passwort anzeigen"));
+    expect(screen.getByLabelText("Passwort verbergen")).toBeTruthy();
+    // No English leaking through the only strings this component owns.
+    expect(screen.queryByLabelText("Hide password")).toBeNull();
+  });
+
   describe("behaves exactly like Input", () => {
     it("renders the same field markup as a bare Input at the same settings", () => {
       // The only intended differences are the type and the reveal button.
       const { container: pw, unmount } = render(
-        <PasswordInput size="lg" variant="elevated" tone="violet" revealable={false} />,
+        <PasswordInput
+          size="lg"
+          variant="elevated"
+          tone="violet"
+          revealable={false}
+        />,
       );
       const pwClass = pw.querySelector("input")!.className;
       unmount();
@@ -87,7 +105,9 @@ describe("PasswordInput", () => {
 
     it("takes every input variant", () => {
       for (const variant of INPUT_VARIANTS) {
-        const { container, unmount } = render(<PasswordInput variant={variant} />);
+        const { container, unmount } = render(
+          <PasswordInput variant={variant} />,
+        );
         expect(container.querySelector("input")).not.toBeNull();
         unmount();
       }

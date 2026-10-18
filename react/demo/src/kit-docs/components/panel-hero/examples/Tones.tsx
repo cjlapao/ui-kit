@@ -1,4 +1,4 @@
-import { TRUE_COLORS, Hero } from "@cjlapao/ui-kit";
+import { TRUE_COLORS, PanelHero } from "@cjlapao/ui-kit";
 
 /**
  * The gradient stops are the tone's own **700 and 800** shades, read from
@@ -11,7 +11,13 @@ export default function Tones() {
   return (
     <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {TRUE_COLORS.map((tone) => (
-        <Hero key={tone} tone={tone} title={tone} subtitle="White on -700" icon="Rocket" />
+        <PanelHero
+          key={tone}
+          tone={tone}
+          title={tone}
+          subtitle="White on -700"
+          icon="Rocket"
+        />
       ))}
     </div>
   );

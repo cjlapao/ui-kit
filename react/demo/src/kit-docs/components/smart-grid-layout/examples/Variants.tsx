@@ -2,7 +2,11 @@ import { SmartGridLayout, SMART_GRID_VARIANTS } from "@cjlapao/ui-kit";
 import { DASHBOARD_ITEMS } from "../shared";
 
 const SMALL = [
-  { id: "overview", title: "Overview", rows: [{ itemIds: ["capsules", "requests"] }] },
+  {
+    id: "overview",
+    title: "Overview",
+    rows: [{ itemIds: ["capsules", "requests"] }],
+  },
 ];
 
 /**
@@ -21,7 +25,9 @@ export default function Variants() {
     <div className="grid w-full gap-4 lg:grid-cols-2">
       {SMART_GRID_VARIANTS.slice(0, 4).map((variant) => (
         <div key={variant} className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-neutral-400">{variant}</span>
+          <span className="text-xs uppercase tracking-wide text-neutral-400">
+            {variant}
+          </span>
           <SmartGridLayout
             items={DASHBOARD_ITEMS}
             defaultLayout={SMALL}

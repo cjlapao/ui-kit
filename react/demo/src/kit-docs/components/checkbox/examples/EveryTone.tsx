@@ -5,8 +5,8 @@ export default function EveryTone() {
     <div className="grid gap-x-6 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
       {TRUE_COLORS.map((each) => (
         <div key={each} className="flex items-center gap-4">
-          <Checkbox color={each} defaultChecked label={each} />
-          <Checkbox color={each} indeterminate />
+          <Checkbox tone={each} defaultChecked label={each} />
+          <Checkbox tone={each} indeterminate />
         </div>
       ))}
     </div>

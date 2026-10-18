@@ -43,6 +43,7 @@ import {
   type SurfaceCorner,
   type SurfaceVariant,
   type TrueColor,
+  THIN_SCROLLBAR_FIELD,
 } from "../../theme/Theme";
 
 export interface ConnectionFlowProps {
@@ -508,7 +509,7 @@ const ConnectionFlow = React.forwardRef<
         >
         <div
           ref={viewportRef}
-          className="h-full w-full select-none overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent"
+          className={`h-full w-full select-none overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-2 ${THIN_SCROLLBAR_FIELD}`}
           style={{ cursor: panning ? "grabbing" : undefined }}
           onWheel={(event) => {
             if (!interactive) return;

@@ -65,3 +65,52 @@ describe("icon components", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * The drift guard for the generated registry. The components directory is the
+ * source of truth; `registry.ts` and `index.ts` are generated. Adding an icon
+ * is dropping a file — forgetting to run the generator must fail HERE, loudly,
+ * not silently drop the icon from `CustomIcon` at runtime.
+ */
+describe("registry drift", () => {
+  const dir = resolve(__dirname, "components");
+  const names = readdirSync(dir)
+    .filter((f) => f.endsWith(".tsx"))
+    .map((f) => {
+      const m = readFileSync(resolve(dir, f), "utf8").match(
+        /export const (\w+)/,
+      );
+      return { name: m ? m[1] : f.replace(/\.tsx$/, ""), file: f };
+    });
+
+  it("every component file declares exactly one export const", () => {
+    for (const { name, file } of names) {
+      const src = readFileSync(resolve(dir, file), "utf8");
+      const exports = [...src.matchAll(/export const (\w+)/g)].map((m) => m[1]);
+      expect(exports, file).toHaveLength(1);
+      expect(exports[0], file).toBe(name);
+    }
+  });
+
+  it("registry.ts knows every component", () => {
+    const registry = readFileSync(resolve(__dirname, "registry.ts"), "utf8");
+    const missing = names
+      .map(({ name }) => name)
+      .filter((n) => !registry.includes(`  ${n}: ${n},`));
+    expect(
+      missing,
+      `registry.ts is out of date for: ${missing.join(", ")} — run \`node scripts/generate-icon-registry.mjs\``,
+    ).toEqual([]);
+  });
+
+  it("index.ts re-exports every component file", () => {
+    const index = readFileSync(resolve(__dirname, "index.ts"), "utf8");
+    const missing = names
+      .map(({ file }) => file.replace(/\.tsx$/, ""))
+      .filter((f) => !index.includes(`"./components/${f}"`));
+    expect(
+      missing,
+      `index.ts is out of date for: ${missing.join(", ")} — run \`node scripts/generate-icons-index.mjs\``,
+    ).toEqual([]);
+  });
+});

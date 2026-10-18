@@ -6,16 +6,18 @@ import React, {
   useState,
 } from "react";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useKitT } from "../i18n";
 import {
+  DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
+  VALIDATION_STATUSES,
   getFieldSizeTokens,
   getFieldToneTokens,
   getGlowTokens,
   getInputVariantTokens,
-  stripBorderColor,
   resolveGlowGradient,
-  VALIDATION_STATUSES,
-} from "../theme/Theme";
+  stripBorderColor,
+} from "../theme";
 import type {
   ControlSize,
   GlowIntensity,
@@ -25,8 +27,7 @@ import type {
 
 /** @deprecated Use `VALIDATION_STATUSES` from the theme. Kept as an alias. */
 export const INPUT_VALIDATION_STATUSES = VALIDATION_STATUSES;
-export type InputValidationStatus =
-  (typeof INPUT_VALIDATION_STATUSES)[number];
+export type InputValidationStatus = (typeof INPUT_VALIDATION_STATUSES)[number];
 
 /**
  * The shared control scale, so an Input lines up with the Button, SearchBar and
@@ -47,11 +48,10 @@ export type { InputVariant };
 
 type InputVisual = string | React.ReactElement;
 
-export interface InputProps
-  extends Omit<
-    InputHTMLAttributes<HTMLInputElement>,
-    "size" | "color" | "className"
-  > {
+export interface InputProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "size" | "color" | "className"
+> {
   /** @default "md" */
   size?: InputSize;
   /** Accent colour for the focus border, ring and icon highlight. */
@@ -64,7 +64,7 @@ export interface InputProps
   gradientFrom?: string;
   /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
   gradientTo?: string;
-  /** How prominent the gradient glow is. @default "soft" */
+  /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
   glowIntensity?: GlowIntensity;
   /** @default "none" */
   validationStatus?: InputValidationStatus;
@@ -72,7 +72,10 @@ export interface InputProps
   trailingIcon?: InputVisual;
   /** Renders the trailing icon as a button rather than a static decoration. */
   onTrailingIconClick?: React.MouseEventHandler<HTMLButtonElement>;
-  /** Accessible name for that button. @default "Input action" */
+  /**
+   * Accessible name for that button.
+   * @default t("kit.input.trailingAction") — "Input action" in English
+   */
   trailingIconLabel?: string;
   /**
    * Classes for the field box. The surface moved from the `<input>` to its
@@ -97,14 +100,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     variant = "flat",
     gradientFrom,
     gradientTo,
-    glowIntensity = "soft",
+    glowIntensity = DEFAULT_GLOW_INTENSITY,
     onFocus,
     onBlur,
     validationStatus = "none",
     leadingIcon,
     trailingIcon,
     onTrailingIconClick,
-    trailingIconLabel = "Input action",
+    trailingIconLabel,
     className,
     wrapperClassName,
     inputClassName,
@@ -116,12 +119,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref: ForwardedRef<HTMLInputElement>,
 ) {
   const renderIcon = useIconRenderer();
+  const t = useKitT();
   const [focused, setFocused] = useState(false);
 
   const effectiveTone = tone ?? color ?? "blue";
   const sizeToken = getFieldSizeTokens(size);
   const tokens = getFieldToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant);
+  const variantTokens = getInputVariantTokens(variant, effectiveTone);
   const isUnderline = variant === "underline";
   const hasStatus = validationStatus !== "none";
 
@@ -168,7 +172,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         type="button"
         onClick={onTrailingIconClick}
         disabled={disabled}
-        aria-label={trailingIconLabel}
+        aria-label={trailingIconLabel ?? t("kit.input.trailingAction")}
         className={classNames(
           "ml-2 inline-flex shrink-0 items-center justify-center rounded transition-colors",
           "focus-visible:outline-none focus-visible:ring-2",
@@ -246,7 +250,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {...rest}
         // After the spread, so a caller cannot leave a field that reports
         // itself as valid while showing the error surface.
-        aria-invalid={validationStatus === "error" ? true : rest["aria-invalid"]}
+        aria-invalid={
+          validationStatus === "error" ? true : rest["aria-invalid"]
+        }
       />
       {trailing}
     </span>
@@ -259,19 +265,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     return (
       <span
         className={classNames(
-          "relative flex w-full",
+          "relative flex w-full overflow-hidden rounded-[28px]",
           glow.pad,
           fullHeight && "h-full",
         )}
       >
         <span
           className={classNames(
-            "absolute rounded-2xl leading-none transition-opacity duration-500",
+            "absolute rounded-2xl transition-opacity duration-500",
             glow.inset,
-            glow.blur,
           )}
           style={{
-            background: `linear-gradient(to right, ${glowFrom}, ${glowTo})`,
+            // Two lobes of the gradient, pushed apart on the shadow axis:
+            // start colour glows from the left, end colour from the right.
+            boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowTo}`,
             opacity: focused ? glow.focusOpacity : glow.idleOpacity,
           }}
           aria-hidden

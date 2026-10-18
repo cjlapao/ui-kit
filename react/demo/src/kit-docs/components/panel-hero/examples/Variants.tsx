@@ -1,4 +1,4 @@
-import { HERO_VARIANTS, Hero } from "@cjlapao/ui-kit";
+import { PANEL_HERO_VARIANTS, PanelHero } from "@cjlapao/ui-kit";
 
 /**
  * `gradient` is the saturated band the component exists for; every other
@@ -9,8 +9,8 @@ import { HERO_VARIANTS, Hero } from "@cjlapao/ui-kit";
 export default function Variants() {
   return (
     <div className="grid w-full gap-3 sm:grid-cols-2">
-      {HERO_VARIANTS.map((variant) => (
-        <Hero
+      {PANEL_HERO_VARIANTS.map((variant) => (
+        <PanelHero
           key={variant}
           variant={variant}
           tone="violet"

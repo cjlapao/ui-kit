@@ -1,6 +1,10 @@
 import { PagedPanel, PAGED_PANEL_LOADERS } from "@cjlapao/ui-kit";
 
-const PAGES = [<p key="1" className="text-sm">eu-west-1</p>];
+const PAGES = [
+  <p key="1" className="text-sm">
+    eu-west-1
+  </p>,
+];
 
 /**
  * The kit's three loader treatments, `skeleton` by default.

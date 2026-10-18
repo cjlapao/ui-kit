@@ -13,13 +13,21 @@ import {
   getPillColorClasses,
   getSurfaceTextTokens,
   getSurfaceVariantClasses,
+  type ControlSize,
+  PANE_EMPTY_STATE_SIZE,
   type SurfaceVariant,
   type TrueColor,
 } from "../theme/Theme";
 import CustomIcon from "./CustomIcon";
 import EmptyState from "./EmptyState";
+import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
 import { useResizable } from "../hooks/useResizable";
+import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
+import {
+  getGlassVibrancyClass,
+  getSurfaceGlassFillClass,
+} from "../theme/glass";
 import Loader from "./Loader";
 import IconButton from "./IconButton";
 import SearchBar from "./SearchBar";
@@ -31,7 +39,7 @@ import type { InputVariant } from "../theme/Theme";
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-export type SplitViewSize = "sm" | "md" | "lg";
+export type SplitViewSize = ControlSize;
 
 /**
  * The shared surface family, same as `Panel`. The component used to paint a
@@ -80,8 +88,9 @@ export interface SplitViewItem {
   subtitle?: React.ReactNode;
   /** Badges/pills rendered after the subtitle */
   badges?: SplitViewItemBadge[];
-  /** Content to render in the detail pane when this item is selected */
-  panel: React.ReactNode;
+  /** Content to render in the detail pane when this item is selected. Only
+      sub-rows may omit it — they never own the detail pane. */
+  panel?: React.ReactNode;
   /** Disable selection */
   disabled?: boolean;
   /** Hide the item entirely */
@@ -92,6 +101,23 @@ export interface SplitViewItem {
   actions?: React.ReactNode;
   /** Extra content rendered below the item row when it is the active selection */
   subContent?: React.ReactNode;
+  /**
+   * Overflow entries for the row, rendered as a three-dots button revealed on
+   * hover. The menu itself is the kit `DropdownMenu` — viewport collision
+   * detection included — so the row only supplies entries.
+   */
+  menu?: DropdownMenuOption[];
+  /**
+   * Structured child rows rendered under the expanded row, in place of (or
+   * with) `subContent`. Each accepts the same `menu` affordance — and an
+   * `onClick` of its own.
+   */
+  subItems?: SplitViewItem[];
+  /**
+   * Fired when a sub-item row is clicked. Top-level rows select through
+   * `onChange`; sub-rows act on themselves.
+   */
+  onClick?: (item: SplitViewItem) => void;
   tags?: string[];
   /** When true, renders the item with an intense accent background and a pulsing dot to signal new content */
   highlight?: boolean;
@@ -153,6 +179,8 @@ export interface SplitViewProps {
   /** Uncontrolled default */
   defaultValue?: string;
   onChange?: (id: string, item: SplitViewItem) => void;
+  /** Fired when an option is picked from a row's (or sub-row's) overflow menu */
+  onMenuSelect?: (item: SplitViewItem, option: DropdownMenuOption) => void;
 
   /** Title shown above the item list (e.g. "LIBRARIES (3)") */
   listTitle?: React.ReactNode;
@@ -164,21 +192,33 @@ export interface SplitViewProps {
   tone?: TrueColor;
   /** @deprecated Use `tone`, which is what every other component calls it. */
   color?: TrueColor;
-  /** The surface family, shared with `Panel`. @default "subtle" */
+  /** The surface family, shared with `Panel`. @default "elevated" */
   variant?: SplitViewVariant;
   /**
    * Tone of the *surface* — kept separate from `tone`, which is the accent.
+   * `"auto"` follows the accent tone; the default, `"neutral"`, keeps the
+   * surface grey so the accent stands out against it.
    * A full-height two-pane layout tinted in the accent colour is a lot of
-   * colour, and the accent's whole job is to stand out against the surface
-   * rather than match it. Set this to tint the panes deliberately.
+   * colour — that is what `"auto"` opts into.
+   *
+   * It always paints the divider between the panes, and it colours the
+   * surface with whatever treatment the variant itself has for a tone —
+   * a tinted fill on `tonal`/`subtle`, the tinted wash behind the glass
+   * family, a coloured rule on `outlined`, and nothing on `elevated`
+   * (white by design) or `default` (its rim is deliberately tone-free).
    * @default "neutral"
    */
-  surfaceTone?: TrueColor;
+  surfaceTone?: TrueColor | "auto";
   /**
    * Surface for the built-in search field. Defaults to whichever `InputVariant`
    * suits `variant`, so the field belongs to the pane it sits on.
    */
   searchVariant?: InputVariant;
+  /**
+   * The shared control scale (`xs` → `xl`), driving row density, icons and
+   * type — and the quiet pane-scale the empty/error states inherit.
+   * @default "md"
+   */
   size?: SplitViewSize;
   /**
    * Draws the pulsing dot on rows with `highlight`. Turn it off to keep the
@@ -204,7 +244,7 @@ export interface SplitViewProps {
   resizable?: boolean;
   /** Minimum list width in px when resizable (default: 180) */
   minListWidth?: number;
-  /** Maximum list width in px when resizable (default: 50% of container) */
+  /** Maximum list width in px when resizable (default: 75% of container) */
   maxListWidth?: number;
 
   /** Extra class for the root container */
@@ -248,6 +288,12 @@ export interface SplitViewProps {
   errorState?: React.ReactNode;
   /** Callback for the default error state's retry button */
   onRetry?: () => void;
+  /**
+   * Whether row overflow menus' dots buttons stay visible or appear on hover.
+   * `"always"` also keeps keyboard users from having to hunt for them.
+   * @default "hover"
+   */
+  menuVisibility?: "hover" | "always";
 
   /** When true, renders a left border on the SplitView container to visually separate it from adjacent content (e.g. a side menu) */
   borderLeft?: boolean;
@@ -282,6 +328,12 @@ const sizeTokens: Record<
   SplitViewSize,
   { item: string; label: string; subtitle: string; badge: string }
 > = {
+  xs: {
+    item: "px-3 py-1.5",
+    label: "text-xs font-medium",
+    subtitle: "text-[11px]",
+    badge: "text-[10px] px-1 py-0",
+  },
   sm: {
     item: "px-4 py-2.5",
     label: "text-sm",
@@ -300,12 +352,35 @@ const sizeTokens: Record<
     subtitle: "text-sm",
     badge: "text-xs px-2.5 py-0.5",
   },
+  xl: {
+    item: "px-6 py-5",
+    label: "text-lg",
+    subtitle: "text-base",
+    badge: "text-sm px-3 py-1",
+  },
+};
+
+/*
+  The error overlay speaks for the whole component — it covers both panes —
+  so it never shrinks below `md`: an xs/sm SplitView's failure must be as
+  legible as a md one's. Only `lg` grows it, and `xl` tops out there. The
+  loader overlay needs no such map: `Loader` scales its spinner, track,
+  progress bar and label across the full control scale on its own.
+*/
+const ERROR_STATE_SIZE: Record<ControlSize, ControlSize> = {
+  xs: "md",
+  sm: "md",
+  md: "md",
+  lg: "lg",
+  xl: "lg",
 };
 
 const iconSizeClasses: Record<SplitViewSize, string> = {
+  xs: "h-3.5 w-3.5",
   sm: "h-4 w-4",
   md: "h-5 w-5",
   lg: "h-6 w-6",
+  xl: "h-7 w-7",
 };
 
 /**
@@ -321,6 +396,7 @@ const iconSizeClasses: Record<SplitViewSize, string> = {
 type ActiveColorTokens = {
   bg: string;
   border: string;
+  bar: string;
   text: string;
   subtitle: string;
   resizer: string;
@@ -332,6 +408,8 @@ const activeColors: Record<TrueColor, ActiveColorTokens> = Object.fromEntries(
     {
       bg: `bg-${c}-50 dark:bg-${c}-900/30`,
       border: `border-l-${c}-600`,
+      // The active row's rail indicator — same 600 weight the border wore.
+      bar: `bg-${c}-600 dark:bg-${c}-400`,
       text: `text-${c}-900 dark:text-${c}-100`,
       subtitle: `text-${c}-600 dark:text-${c}-400`,
       resizer: `bg-${c}-400`,
@@ -357,12 +435,14 @@ const SplitView: React.FC<SplitViewProps> = ({
   value,
   defaultValue,
   onChange,
+  onMenuSelect,
+  menuVisibility = "hover",
   listTitle,
-  searchPlaceholder = "Search...",
+  searchPlaceholder,
   listWidth,
   tone,
   color,
-  variant = "subtle",
+  variant = "elevated",
   surfaceTone = "neutral",
   searchVariant,
   size = "md",
@@ -396,14 +476,92 @@ const SplitView: React.FC<SplitViewProps> = ({
   onExpand,
   panelScrollable = true,
 }) => {
+  const t = useKitT();
   const effectiveTone = tone ?? color ?? "blue";
+  // `"auto"` hands the surface to the accent; anything else names it.
+  const resolvedSurfaceTone: TrueColor =
+    surfaceTone === "auto" ? effectiveTone : surfaceTone;
   // The container owns the surface; the two panes are differentiated by a
   // *tint that composites over it* rather than a fill that replaces it — so a
   // glass or liquid-glass SplitView keeps its backdrop instead of being
   // painted over with an opaque slab.
-  const surfaceClasses = getSurfaceVariantClasses(variant, surfaceTone);
+  /*
+    `getSurfaceVariantClasses` deliberately knows nothing about the liquid
+    fill — `Panel` supplies it through `liquidExtras`, and a SplitView drawn
+    without it is a bare blur sheet with no tint at all. Mirror `Panel`'s
+    defaults here: the sheer frosted fill plus medium vibrancy.
+  */
+  const surfaceClasses = getSurfaceVariantClasses(
+    variant,
+    resolvedSurfaceTone,
+    variant === "liquid-glass"
+      ? {
+          liquidExtras: classNames(
+            getSurfaceGlassFillClass(resolvedSurfaceTone, "frosted"),
+            getGlassVibrancyClass("medium"),
+          ),
+        }
+      : undefined,
+  );
   const surfaceText = getSurfaceTextTokens(variant);
-  const tonePalette = getPanelToneStyles(surfaceTone);
+  const tonePalette = getPanelToneStyles(resolvedSurfaceTone);
+  /*
+    The empty/error states sit *below* the panes' own chrome, so they follow
+    the shared pane map rather than the raw scale — an `md` SplitView must
+    not announce its emptiness louder than its headers speak (same rule
+    `PagedPanel` fixed on).
+  */
+  const emptySize = PANE_EMPTY_STATE_SIZE[size] ?? PANE_EMPTY_STATE_SIZE.md;
+  const errorSize = ERROR_STATE_SIZE[size] ?? ERROR_STATE_SIZE.md;
+  /*
+    One menu for the whole list — a row's dots button promotes itself (its
+    element *and* its item) into this state on click, and the single
+    `DropdownMenu` instance anchors to it. Anchoring through state rather
+    than per-row refs keeps only the clicked button in the menu's geometry,
+    and viewport collision detection (flip above/below, align) is inherited
+    from `DropdownMenu` itself.
+  */
+  const [menu, setMenu] = useState<{ key: string; item: SplitViewItem } | null>(
+    null,
+  );
+  const menuAnchorRef = useRef<HTMLElement | null>(null);
+
+  const renderRowMenu = (
+    rowItem: SplitViewItem,
+    key: string,
+    reveal: "row" | "sub",
+  ) =>
+    rowItem.menu && rowItem.menu.length > 0 ? (
+      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation guard only
+      <div
+        className={classNames(
+          "flex items-center transition-opacity duration-150",
+          menuVisibility === "always" || menu?.key === key
+            ? "opacity-100"
+            : reveal === "row"
+              ? "opacity-0 group-hover/item:opacity-100 focus-within:opacity-100"
+              : "opacity-0 group-hover/sub:opacity-100 focus-within:opacity-100",
+        )}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        <IconButton
+          icon="DotsVertical"
+          variant="ghost"
+          color={effectiveTone}
+          size={size === "lg" ? "sm" : "xs"}
+          tooltip={t("kit.splitview.moreOptions")}
+          aria-label={t("kit.splitview.moreOptions")}
+          aria-haspopup="menu"
+          aria-expanded={menu?.key === key}
+          onClick={(e) => {
+            menuAnchorRef.current = e.currentTarget;
+            setMenu({ key, item: rowItem });
+          }}
+        />
+      </div>
+    ) : null;
   const resolvedSearchVariant =
     searchVariant ?? SEARCH_VARIANT_FOR_SURFACE[variant] ?? "flat";
 
@@ -450,8 +608,10 @@ const SplitView: React.FC<SplitViewProps> = ({
 
   const getMaxWidth = useCallback(() => {
     if (maxListWidthProp) return maxListWidthProp;
-    if (containerRef.current)
-      return Math.floor(containerRef.current.offsetWidth * 0.5);
+    const w = containerRef.current?.offsetWidth;
+    // 75%, not half: the initial width (w-72) is already around half of a
+    // typical container, so a 50% cap left the divider with nowhere to go.
+    if (w) return Math.floor(w * 0.75);
     return 600;
   }, [maxListWidthProp]);
 
@@ -505,8 +665,8 @@ const SplitView: React.FC<SplitViewProps> = ({
 
   const tokens = sizeTokens[size];
   const accent = activeColors[effectiveTone] ?? activeColors.blue;
-  const highlightAccent = highlightColors[effectiveTone] ?? highlightColors.blue;
-  const resizerColor = accent.resizer;
+  const highlightAccent =
+    highlightColors[effectiveTone] ?? highlightColors.blue;
 
   const handleSelect = (item: SplitViewItem) => {
     if (item.disabled) return;
@@ -610,10 +770,10 @@ const SplitView: React.FC<SplitViewProps> = ({
       headerDetails?.headerBody !== null;
     const hasHeaderDetailsContent = Boolean(
       hasCustomHeaderBody ||
-        headerDetails?.title ||
-        headerDetails?.subtitle ||
-        headerDetails?.description ||
-        headerDetails?.tags,
+      headerDetails?.title ||
+      headerDetails?.subtitle ||
+      headerDetails?.description ||
+      headerDetails?.tags,
     );
     const isDetailsBordered = headerDetails?.bordered ?? true;
 
@@ -750,7 +910,12 @@ const SplitView: React.FC<SplitViewProps> = ({
             // detail half of the skeleton with nowhere to draw.
             "flex shrink-0 flex-col gap-3 border-r p-4 max-w-[45%]",
             listPanelWidthClass ?? "w-72",
-            tonePalette.border,
+            // The skeleton borrows the container's tinted surface — it should
+            // read as the same panel going quiet, not as content. Its
+            // divider therefore stays neutral even when `surfaceTone` has
+            // coloured the live divider; a pulsing coloured rule reads as
+            // loading *state*, which is not what colour means here.
+            "border-neutral-200 dark:border-neutral-700",
           )}
         >
           <div className={classNames(SKELETON, "h-3 w-24 rounded")} />
@@ -779,12 +944,12 @@ const SplitView: React.FC<SplitViewProps> = ({
         <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[inherit] bg-white/60 backdrop-blur-md dark:bg-neutral-900/50">
           {loadingState ?? (
             <Loader
-              size="lg"
-              label="Please wait..."
+              size={size}
+              label={t("kit.splitview.pleaseWait")}
               color={effectiveTone}
               variant={loaderType === "progress" ? "progress" : "spinner"}
               progress={loadingProgress}
-              title="Loading..."
+              title={t("kit.splitview.loading")}
               spinnerThickness="thick"
               spinnerVariant="segments"
             />
@@ -798,20 +963,20 @@ const SplitView: React.FC<SplitViewProps> = ({
           {errorState ?? (
             <EmptyState
               icon="Error"
-              title="Something went wrong"
+              size={errorSize}
+              title={t("kit.splitview.errorTitle")}
               subtitle={
                 typeof error === "string"
                   ? error
-                  : "An unexpected error occurred."
+                  : t("kit.splitview.errorSubtitle")
               }
               showIcon
-              actionLabel={onRetry ? "Retry" : undefined}
+              actionLabel={onRetry ? t("kit.splitview.retry") : undefined}
               onAction={onRetry}
               actionVariant="solid"
               actionColor={effectiveTone}
               variant="plain"
               iconColor="rose"
-              size="lg"
             />
           )}
         </div>
@@ -828,7 +993,7 @@ const SplitView: React.FC<SplitViewProps> = ({
     return (
       <div
         className={classNames(
-          "relative flex h-full min-h-0 overflow-hidden",
+          "relative flex h-full min-h-0 overflow-hidden rounded-[inherit]",
           surfaceClasses,
           borderLeft && classNames("border-l", tonePalette.border),
           className,
@@ -848,7 +1013,12 @@ const SplitView: React.FC<SplitViewProps> = ({
               {singleHeader ? (
                 <div className="shrink-0">{singleHeader}</div>
               ) : listActions ? (
-                <div className={classNames("shrink-0 flex items-center justify-end gap-1 px-4 py-2 border-b", tonePalette.border)}>
+                <div
+                  className={classNames(
+                    "shrink-0 flex items-center justify-end gap-1 px-4 py-2 border-b",
+                    tonePalette.border,
+                  )}
+                >
                   {listActions}
                 </div>
               ) : null}
@@ -867,10 +1037,11 @@ const SplitView: React.FC<SplitViewProps> = ({
                 {panelEmptyState ?? (
                   <EmptyState
                     icon="Info"
-                    title="No items"
-                    subtitle="There are no items to display."
+                    title={t("kit.splitview.noItems")}
+                    subtitle={t("kit.splitview.noItemsSubtitle")}
                     showIcon
                     variant="plain"
+                    size={emptySize}
                     color={effectiveTone}
                   />
                 )}
@@ -886,7 +1057,7 @@ const SplitView: React.FC<SplitViewProps> = ({
     <div
       ref={containerRef}
       className={classNames(
-        "relative flex h-full min-h-0 overflow-hidden",
+        "relative flex h-full min-h-0 overflow-hidden rounded-[inherit]",
         surfaceClasses,
         borderLeft && classNames("border-l", tonePalette.border),
         className,
@@ -898,365 +1069,481 @@ const SplitView: React.FC<SplitViewProps> = ({
         renderSkeleton(true)
       ) : (
         <>
-      {/* ---- List Panel ---- */}
-      <div
-        style={listPanelStyle}
-        className={classNames(
-          // A translucent tint rather than `bg-gray-50/80 dark:bg-gray-900/80`:
-          // an opaque fill replaces the container's surface, so a glass or
-          // liquid-glass SplitView lost its backdrop entirely on this half.
-          "flex h-full shrink-0 flex-col overflow-hidden border-r bg-black/[0.025] dark:bg-white/[0.025]",
-          tonePalette.border,
-          isCollapsed && "transition-[width] duration-300 ease-in-out",
-          listPanelWidthClass,
-          listClassName,
-        )}
-      >
-        {isCollapsed ? (
-          /* ---- Collapsed: just an expand button ---- */
-          <div className="flex items-center justify-center pt-3">
-            <IconButton
-              tooltip="Expand View"
-              icon="ArrowChevronRight"
-              variant="ghost"
-              color={effectiveTone}
-              size="xs"
-              onClick={toggleCollapsed}
-              aria-label="Expand list"
-            />
-          </div>
-        ) : (
-          <>
-            {/* Title + Actions */}
-            {(listTitle || listActions || collapsible) && (
-              <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between gap-2">
-                {listTitle && (
-                  <h3 className={classNames("text-xs font-semibold uppercase tracking-wider", surfaceText.muted)}>
-                    {listTitle}
-                  </h3>
+          {/* ---- List Panel ---- */}
+          <div
+            style={listPanelStyle}
+            className={classNames(
+              // A translucent tint rather than `bg-gray-50/80 dark:bg-gray-900/80`:
+              // an opaque fill replaces the container's surface, so a glass or
+              // liquid-glass SplitView lost its backdrop entirely on this half.
+              "flex h-full shrink-0 flex-col overflow-hidden border-r bg-black/[0.025] dark:bg-white/[0.025]",
+              // The divider sits *between* two panes of the same surface — the
+              // full-strength panel border read as a hard cut, so it gets the
+              // outline-grade step instead.
+              tonePalette.outlineBorder,
+              /*
+                The transition used to be gated on `isCollapsed` — which meant
+                it existed exactly when you were collapsing and not a moment
+                later. Opening removed the 48px inline width and the transition
+                class in the same commit, so the computed style jumped
+                48 → full with nothing declared to animate: expand snapped
+                while collapse animated. The declaration must outlive whichever
+                direction triggered the change — and must step aside while a
+                resize drag wants the panel glued to the pointer.
+              */
+              collapsible &&
+                !isDragging &&
+                "transition-[width] duration-300 ease-in-out motion-reduce:transition-none",
+              listPanelWidthClass,
+              listClassName,
+            )}
+          >
+            {isCollapsed ? (
+              /* ---- Collapsed: just an expand button ---- */
+              <div className="flex items-center justify-center pt-3">
+                <IconButton
+                  tooltip="Expand View"
+                  icon="ArrowChevronRight"
+                  variant="ghost"
+                  color={effectiveTone}
+                  size="xs"
+                  onClick={toggleCollapsed}
+                  aria-label={t("kit.splitview.expandList")}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Title + Actions */}
+                {(listTitle || listActions || collapsible) && (
+                  <div className="shrink-0 px-4 pt-4 pb-2 flex items-center justify-between gap-2">
+                    {listTitle && (
+                      <h3
+                        className={classNames(
+                          "text-xs font-semibold uppercase tracking-wider",
+                          surfaceText.muted,
+                        )}
+                      >
+                        {listTitle}
+                      </h3>
+                    )}
+                    <div className="flex items-center gap-1 ml-auto">
+                      {listActions}
+                      {collapsible && (
+                        <IconButton
+                          tooltip="Collapse View"
+                          icon="ArrowChevronLeft"
+                          variant="ghost"
+                          color={effectiveTone}
+                          size="xs"
+                          onClick={toggleCollapsed}
+                          aria-label={t("kit.splitview.collapseList")}
+                        />
+                      )}
+                    </div>
+                  </div>
                 )}
-                <div className="flex items-center gap-1 ml-auto">
-                  {listActions}
-                  {collapsible && (
-                    <IconButton
-                      tooltip="Collapse View"
-                      icon="ArrowChevronLeft"
-                      variant="ghost"
+
+                {/* Search — hidden when only one item since there is nothing to filter */}
+                {visibleItems.length > 1 && (
+                  <div className="shrink-0 px-3 pb-2 pt-1">
+                    <SearchBar
+                      placeholder={
+                        searchPlaceholder ?? t("kit.splitview.search")
+                      }
+                      variant={resolvedSearchVariant}
+                      glowIntensity="subtle"
                       color={effectiveTone}
-                      size="xs"
-                      onClick={toggleCollapsed}
-                      aria-label="Collapse list"
+                      size={size === "lg" ? "md" : "sm"}
+                      onSearch={setFilter}
+                    />
+                  </div>
+                )}
+
+                {/* Item list */}
+                <div className="flex-1 overflow-y-auto">
+                  {filteredItems.length === 0 ? (
+                    <div
+                      className={classNames(
+                        "px-4 py-6 text-center text-sm",
+                        surfaceText.muted,
+                      )}
+                    >
+                      {emptyState ?? "No items found"}
+                    </div>
+                  ) : (
+                    filteredItems.map((item) => {
+                      const isActive = item.id === activeId;
+                      const isExpanded = item.id === expandedId;
+                      const hasExpandControl =
+                        !autoExpand && item.subContent !== undefined;
+                      return (
+                        <div key={item.id} className="relative">
+                          {/* Row wrapper – uses a div so that action/expand buttons inside are not nested buttons */}
+                          <div
+                            role="button"
+                            tabIndex={item.disabled ? -1 : 0}
+                            aria-disabled={item.disabled}
+                            aria-current={isActive ? "true" : undefined}
+                            onClick={() => {
+                              if (!item.disabled) handleSelect(item);
+                            }}
+                            onKeyDown={(e) => {
+                              if (
+                                !item.disabled &&
+                                (e.key === "Enter" || e.key === " ")
+                              ) {
+                                e.preventDefault();
+                                handleSelect(item);
+                              }
+                            }}
+                            className={classNames(
+                              // A11y audit P1-5: the row is the interactive
+                              // control (role=button, tabIndex, Enter/Space) and
+                              // had `outline-none` with no replacement — no
+                              // visible focus indicator (WCAG 2.4.7). Inset ring
+                              // so it stays inside the row's 3px accent border;
+                              // tone colour comes from the generated safelist.
+                              "group/item relative w-full text-left border-l-3 border-l-transparent transition-all duration-150 outline-none cursor-default focus-visible:ring-2 focus-visible:ring-inset",
+                              `focus-visible:ring-${effectiveTone}-400`,
+                              item.disabled &&
+                                "opacity-50 cursor-not-allowed pointer-events-none",
+                              tokens.item,
+                              isActive
+                                ? accent.bg
+                                : item.highlight
+                                  ? highlightAccent.bg
+                                  : // Composites over whatever surface is beneath, so hover
+                                    // still reads on glass.
+                                    "hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
+                            )}
+                          >
+                            <div className="flex items-start gap-2 min-w-0">
+                              {/* Item content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex min-w-0 items-start gap-2">
+                                  {item.icon && (
+                                    <div className="flex items-start">
+                                      <CustomIcon
+                                        icon={item.icon}
+                                        className={classNames(
+                                          "shrink-0",
+                                          iconSizeClasses[size],
+                                        )}
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div
+                                      className={classNames(
+                                        "font-semibold leading-tight truncate",
+                                        tokens.label,
+                                        isActive || item.highlight
+                                          ? accent.text
+                                          : surfaceText.heading,
+                                      )}
+                                    >
+                                      {item.label}
+                                    </div>
+                                    {item.subtitle && (
+                                      <div
+                                        className={classNames(
+                                          "mt-0.5 leading-tight truncate",
+                                          tokens.subtitle,
+                                          isActive
+                                            ? accent.subtitle
+                                            : surfaceText.muted,
+                                        )}
+                                      >
+                                        {item.subtitle}
+                                      </div>
+                                    )}
+                                    {item.badges && item.badges.length > 0 && (
+                                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                        {item.badges.map((badge, idx) =>
+                                          renderBadge(badge, idx),
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {/* Right rail order: actions, highlight dot, expand/collapse */}
+                              {(item.actions ||
+                                hasExpandControl ||
+                                !!item.menu?.length ||
+                                (item.highlight && showHighlightIndicator)) && (
+                                <div className="shrink-0 flex items-center gap-0.5">
+                                  {item.actions && (
+                                    // Not an interaction: this stops clicks on
+                                    // the action buttons from selecting the row.
+                                    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation guard only
+                                    <div
+                                      className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
+                                      onClick={(e) => e.stopPropagation()}
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                    >
+                                      {item.actions}
+                                    </div>
+                                  )}
+                                  {item.highlight && showHighlightIndicator && (
+                                    <span
+                                      className={classNames(
+                                        "h-2 w-2 shrink-0 rounded-full",
+                                        highlightAccent.dot,
+                                        !isActive && "animate-pulse",
+                                      )}
+                                    />
+                                  )}
+                                  {renderRowMenu(item, item.id, "row")}
+                                  {/* Expand button – only when autoExpand=false */}
+                                  {hasExpandControl && (
+                                    // Not an interaction: this stops clicks on
+                                    // the expand button from selecting the row.
+                                    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation guard only
+                                    <div
+                                      className="flex items-center"
+                                      onClick={(e) => e.stopPropagation()}
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                    >
+                                      <button
+                                        type="button"
+                                        disabled={item.disabled}
+                                        onClick={() => handleExpand(item)}
+                                        title={
+                                          isExpanded
+                                            ? t("kit.splitview.collapseDetails")
+                                            : t("kit.splitview.expandDetails")
+                                        }
+                                        aria-label={
+                                          isExpanded
+                                            ? t("kit.splitview.collapseDetails")
+                                            : t("kit.splitview.expandDetails")
+                                        }
+                                        aria-expanded={isExpanded}
+                                        className={classNames(
+                                          "rounded p-1 transition-colors duration-150",
+                                          isExpanded
+                                            ? classNames(
+                                                accent.text,
+                                                "opacity-100",
+                                              )
+                                            : classNames(
+                                                surfaceText.muted,
+                                                // Dimmed, not hidden. At `opacity-0`
+                                                // the only cue that a row *has*
+                                                // sub-items was hovering it, so the
+                                                // feature was undiscoverable on a
+                                                // list where only some rows expand.
+                                                "opacity-60 group-hover/item:opacity-100",
+                                              ),
+                                        )}
+                                      >
+                                        <svg
+                                          className={classNames(
+                                            "h-4 w-4 transition-transform duration-200 ease-in-out",
+                                            isExpanded
+                                              ? "rotate-90"
+                                              : "rotate-0",
+                                          )}
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M9 5l7 7-7 7"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {/*
+                            The accent for a selected (or highlighted) row is
+                            a floating bar, not a full-height border: a rule
+                            spanning the whole edge read like table chrome,
+                            while a slightly short, lightly rounded marker
+                            reads as a deliberate selection mark. It belongs to
+                            the whole block — row plus its expanded children —
+                            so it joins the seam between them and stops, still
+                            rounded, where the children end; collapsed, that
+                            just leaves the short mark on the row. The 3px
+                            gutter stays as each part's transparent border so
+                            content never shifts, and the grid animation grows
+                            the bar along with the children.
+                          */}
+                          <span
+                            aria-hidden
+                            className={classNames(
+                              "pointer-events-none absolute inset-y-1 left-0 w-[3px] rounded-[2px] transition-colors duration-150",
+                              isActive || item.highlight
+                                ? accent.bar
+                                : "bg-transparent",
+                            )}
+                          />
+                          {(item.subContent !== undefined ||
+                            item.subItems?.length) && (
+                            <div
+                              className={classNames(
+                                "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out",
+                                // When autoExpand=false, subContent is gated by the expand button (isExpanded),
+                                // not by row selection (isActive) — fixes both the auto-expand and sticky-collapse bugs.
+                                (autoExpand ? isActive : isExpanded)
+                                  ? "grid-rows-[1fr] opacity-100"
+                                  : "grid-rows-[0fr] opacity-0",
+                              )}
+                            >
+                              <div className="overflow-hidden">
+                                <div className="border-l-[3px] border-l-transparent">
+                                  {item.subContent}
+                                  {item.subItems?.map((sub) => {
+                                    const Row = sub.onClick ? "button" : "div";
+                                    return (
+                                      <Row
+                                        {...(sub.onClick
+                                          ? {
+                                              type: "button" as const,
+                                              onClick: () => sub.onClick?.(sub),
+                                            }
+                                          : {})}
+                                        key={`${item.id}:${sub.id}`}
+                                        className={classNames(
+                                          // A touch lighter than the parent
+                                          // row's own hover — sub-rows sit
+                                          // inside that row's shadow, so an
+                                          // equal tint would read as
+                                          // selecting the parent.
+                                          "group/sub flex w-full items-center gap-2 rounded-sm py-1 pr-1 pl-3 text-left transition-colors duration-150 hover:bg-black/[0.025] dark:hover:bg-white/[0.04]",
+                                          sub.onClick && "cursor-pointer",
+                                          sub.disabled &&
+                                            "pointer-events-none opacity-50",
+                                        )}
+                                      >
+                                        <span
+                                          className={classNames(
+                                            "min-w-0 flex-1 truncate",
+                                            tokens.subtitle,
+                                          )}
+                                        >
+                                          {sub.label}
+                                        </span>
+                                        {renderRowMenu(
+                                          sub,
+                                          `${item.id}:${sub.id}`,
+                                          "sub",
+                                        )}
+                                      </Row>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {menu && (
+            <DropdownMenu
+              anchorRef={menuAnchorRef}
+              open
+              onClose={() => setMenu(null)}
+              items={menu.item.menu ?? []}
+              onSelect={(option) => {
+                onMenuSelect?.(menu.item, option);
+                setMenu(null);
+              }}
+              align="end"
+              side="auto"
+            />
+          )}
+
+          {/* ---- Resize Handle ---- */}
+          {resizable && !isCollapsed && (
+            <div
+              {...handleProps}
+              className={classNames(
+                /*
+                  SidePanel's handle anatomy: a wide transparent hit area with
+                  a pill inside. The old handle *was* the strip — 6px of solid
+                  tone at opacity-0 — which made it both a narrow grab target
+                  and effectively undiscoverable. The edge is grabbed at
+                  whatever point the pointer happens to be at, so the pill runs
+                  nearly the full height. Opacity on a solid fill, never colour
+                  alpha; alpha tints were never safelisted. useResizable still
+                  supplies role="separator", aria-value* and arrow keys;
+                  focus-visible must reveal it (WCAG 2.4.7).
+                */
+                "group relative w-3 shrink-0 cursor-col-resize bg-transparent rounded-sm focus:outline-none",
+                `focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-${effectiveTone}-400`,
+              )}
+            >
+              <span
+                className={classNames(
+                  "absolute inset-y-2 left-1/2 w-1 -translate-x-1/2 rounded-full transition duration-150",
+                  // Hover reveals the affordance; dragging deepens the tone as
+                  // well as the opacity, so "grabbed" is distinct from "pointer
+                  // happens to be here".
+                  isDragging
+                    ? `opacity-100 bg-${effectiveTone}-500`
+                    : `bg-${effectiveTone}-400 opacity-0 group-hover:opacity-70 group-active:opacity-100`,
+                )}
+              />
+            </div>
+          )}
+
+          {/* ---- Detail Panel ---- */}
+          <div
+            className={classNames(
+              // No fill of its own: it inherits the container's surface. It was a
+              // bare `bg-white` with no `dark:` partner, so the whole detail half
+              // stayed a white slab in dark mode.
+              "flex h-full min-w-0 flex-1 flex-col overflow-hidden",
+              panelClassName,
+            )}
+          >
+            {activeItem ? (
+              <>
+                {/* Panel Header */}
+                {activeHeader && <div className="shrink-0">{activeHeader}</div>}
+                {/* Panel Body */}
+                <div
+                  className={classNames(
+                    "flex-1",
+                    panelScrollable ? "overflow-y-auto" : "overflow-hidden",
+                  )}
+                >
+                  {activeItem.panel ?? panelEmptyState ?? null}
+                </div>
+              </>
+            ) : (
+              panelEmptyState !== null && (
+                <div className="flex flex-1 items-center justify-center p-6">
+                  {panelEmptyState ?? (
+                    <EmptyState
+                      icon="Info"
+                      title={t("kit.splitview.noSelection")}
+                      subtitle={t("kit.splitview.noSelectionSubtitle")}
+                      showIcon
+                      variant="plain"
+                      size={emptySize}
+                      color={effectiveTone}
                     />
                   )}
                 </div>
-              </div>
+              )
             )}
-
-            {/* Search — hidden when only one item since there is nothing to filter */}
-            {visibleItems.length > 1 && (
-              <div className="shrink-0 px-3 pb-2 pt-1">
-                <SearchBar
-                  placeholder={searchPlaceholder}
-                  variant={resolvedSearchVariant}
-                  glowIntensity="subtle"
-                  color={effectiveTone}
-                  size={size === "lg" ? "md" : "sm"}
-                  onSearch={setFilter}
-                />
-              </div>
-            )}
-
-            {/* Item list */}
-            <div className="flex-1 overflow-y-auto">
-              {filteredItems.length === 0 ? (
-                <div className={classNames("px-4 py-6 text-center text-sm", surfaceText.muted)}>
-                  {emptyState ?? "No items found"}
-                </div>
-              ) : (
-                filteredItems.map((item) => {
-                  const isActive = item.id === activeId;
-                  const isExpanded = item.id === expandedId;
-                  const hasExpandControl =
-                    !autoExpand && item.subContent !== undefined;
-                  return (
-                    <div key={item.id}>
-                      {/* Row wrapper – uses a div so that action/expand buttons inside are not nested buttons */}
-                      <div
-                        role="button"
-                        tabIndex={item.disabled ? -1 : 0}
-                        aria-disabled={item.disabled}
-                        onClick={() => {
-                          if (!item.disabled) handleSelect(item);
-                        }}
-                        onKeyDown={(e) => {
-                          if (
-                            !item.disabled &&
-                            (e.key === "Enter" || e.key === " ")
-                          ) {
-                            e.preventDefault();
-                            handleSelect(item);
-                          }
-                        }}
-                        className={classNames(
-                          // A11y audit P1-5: the row is the interactive
-                          // control (role=button, tabIndex, Enter/Space) and
-                          // had `outline-none` with no replacement — no
-                          // visible focus indicator (WCAG 2.4.7). Inset ring
-                          // so it stays inside the row's 3px accent border;
-                          // tone colour comes from the generated safelist.
-                          "group/item w-full text-left border-l-3 transition-all duration-150 outline-none cursor-default focus-visible:ring-2 focus-visible:ring-inset",
-                          `focus-visible:ring-${effectiveTone}-400`,
-                          item.disabled &&
-                            "opacity-50 cursor-not-allowed pointer-events-none",
-                          tokens.item,
-                          isActive
-                            ? classNames(
-                                accent.bg,
-                                accent.border,
-                                "border-l-[3px]",
-                              )
-                            : item.highlight
-                              ? classNames(
-                                  highlightAccent.bg,
-                                  accent.border,
-                                  "border-l-[3px]",
-                                )
-                              // Composites over whatever surface is beneath, so hover
-                              // still reads on glass.
-                              : "border-l-[3px] border-l-transparent hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
-                        )}
-                      >
-                        <div className="flex items-start gap-2 min-w-0">
-                          {/* Item content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex min-w-0 items-start gap-2">
-                              {item.icon && (
-                                <div className="flex items-start">
-                                  <CustomIcon
-                                    icon={item.icon}
-                                    className={classNames(
-                                      "shrink-0",
-                                      iconSizeClasses[size],
-                                    )}
-                                  />
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <div
-                                  className={classNames(
-                                    "font-semibold leading-tight truncate",
-                                    tokens.label,
-                                    isActive || item.highlight
-                                      ? accent.text
-                                      : surfaceText.heading,
-                                  )}
-                                >
-                                  {item.label}
-                                </div>
-                                {item.subtitle && (
-                                  <div
-                                    className={classNames(
-                                      "mt-0.5 leading-tight truncate",
-                                      tokens.subtitle,
-                                      isActive
-                                        ? accent.subtitle
-                                        : surfaceText.muted,
-                                    )}
-                                  >
-                                    {item.subtitle}
-                                  </div>
-                                )}
-                                {item.badges && item.badges.length > 0 && (
-                                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                    {item.badges.map((badge, idx) =>
-                                      renderBadge(badge, idx),
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          {/* Right rail order: actions, highlight dot, expand/collapse */}
-                          {(item.actions ||
-                            hasExpandControl ||
-                            (item.highlight && showHighlightIndicator)) && (
-                            <div className="shrink-0 flex items-center gap-0.5">
-                              {item.actions && (
-                                // Not an interaction: this stops clicks on
-                                // the action buttons from selecting the row.
-                                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation guard only
-                                <div
-                                  className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity duration-150"
-                                  onClick={(e) => e.stopPropagation()}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                >
-                                  {item.actions}
-                                </div>
-                              )}
-                              {item.highlight && showHighlightIndicator && (
-                                <span
-                                  className={classNames(
-                                    "h-2 w-2 shrink-0 rounded-full",
-                                    highlightAccent.dot,
-                                    !isActive && "animate-pulse",
-                                  )}
-                                />
-                              )}
-                              {/* Expand button – only when autoExpand=false */}
-                              {hasExpandControl && (
-                                // Not an interaction: this stops clicks on
-                                // the expand button from selecting the row.
-                                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation guard only
-                                <div
-                                  className="flex items-center"
-                                  onClick={(e) => e.stopPropagation()}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                >
-                                  <button
-                                    type="button"
-                                    disabled={item.disabled}
-                                    onClick={() => handleExpand(item)}
-                                    title={
-                                      isExpanded
-                                        ? "Collapse details"
-                                        : "Expand details"
-                                    }
-                                    aria-label={
-                                      isExpanded
-                                        ? "Collapse details"
-                                        : "Expand details"
-                                    }
-                                    aria-expanded={isExpanded}
-                                    className={classNames(
-                                      "rounded p-1 transition-colors duration-150",
-                                      isExpanded
-                                        ? classNames(accent.text, "opacity-100")
-                                        : classNames(
-                                            surfaceText.muted,
-                                            // Dimmed, not hidden. At `opacity-0`
-                                            // the only cue that a row *has*
-                                            // sub-items was hovering it, so the
-                                            // feature was undiscoverable on a
-                                            // list where only some rows expand.
-                                            "opacity-60 group-hover/item:opacity-100",
-                                          ),
-                                    )}
-                                  >
-                                    <svg
-                                      className={classNames(
-                                        "h-4 w-4 transition-transform duration-200 ease-in-out",
-                                        isExpanded ? "rotate-90" : "rotate-0",
-                                      )}
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth={2}
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M9 5l7 7-7 7"
-                                      />
-                                    </svg>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {item.subContent !== undefined && (
-                        <div
-                          className={classNames(
-                            "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out",
-                            // When autoExpand=false, subContent is gated by the expand button (isExpanded),
-                            // not by row selection (isActive) — fixes both the auto-expand and sticky-collapse bugs.
-                            (autoExpand ? isActive : isExpanded)
-                              ? "grid-rows-[1fr] opacity-100"
-                              : "grid-rows-[0fr] opacity-0",
-                          )}
-                        >
-                          <div className="overflow-hidden">
-                            <div
-                              className={classNames(
-                                "border-l-[3px]",
-                                (autoExpand ? isActive : isExpanded)
-                                  ? accent.border
-                                  : "border-l-transparent",
-                              )}
-                            >
-                              {item.subContent}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ---- Resize Handle ---- */}
-      {resizable && !isCollapsed && (
-        <div
-          {...handleProps}
-          className={classNames(
-            // The handle is invisible at rest; keyboard focus must reveal it
-            // (WCAG 2.4.7) — useResizable supplies role="separator",
-            // aria-value* and arrow-key resizing.
-            "w-1.5 shrink-0 cursor-col-resize transition-all duration-150 focus-visible:opacity-100",
-            resizerColor,
-            isDragging
-              ? "opacity-100"
-              : "opacity-0 hover:opacity-30 active:opacity-100",
-          )}
-        />
-      )}
-
-      {/* ---- Detail Panel ---- */}
-      <div
-        className={classNames(
-          // No fill of its own: it inherits the container's surface. It was a
-          // bare `bg-white` with no `dark:` partner, so the whole detail half
-          // stayed a white slab in dark mode.
-          "flex h-full min-w-0 flex-1 flex-col overflow-hidden",
-          panelClassName,
-        )}
-      >
-        {activeItem ? (
-          <>
-            {/* Panel Header */}
-            {activeHeader && <div className="shrink-0">{activeHeader}</div>}
-            {/* Panel Body */}
-            <div
-              className={classNames(
-                "flex-1",
-                panelScrollable ? "overflow-y-auto" : "overflow-hidden",
-              )}
-            >
-              {activeItem.panel}
-            </div>
-          </>
-        ) : (
-          panelEmptyState !== null && (
-            <div className="flex flex-1 items-center justify-center p-6">
-              {panelEmptyState ?? (
-                <EmptyState
-                  icon="Info"
-                  title="No item selected"
-                  subtitle="Select an item from the list to view its details."
-                  showIcon
-                  variant="plain"
-                  color={effectiveTone}
-                />
-              )}
-            </div>
-          )
-        )}
-      </div>
+          </div>
         </>
       )}
     </div>

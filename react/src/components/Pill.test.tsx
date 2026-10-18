@@ -82,12 +82,14 @@ describe("Pill", () => {
             x
           </Pill>,
         );
-        const classes = root(container).className;
-        // The tone map paints a solid fill, so it is skipped entirely.
+        const classes = root(container).className.split(/\s+/);
+        // The tone map paints a solid fill, so it is skipped entirely. Token
+        // check: the glass dark step legitimately carries
+        // `dark:bg-violet-500/25` — a substring test would trip on it.
         expect(classes).not.toContain("bg-violet-500");
-        expect(classes).not.toContain("bg-violet-50 ");
-        expect(classes).toContain("backdrop-blur");
-        expect(classes).toContain("bg-violet-100/");
+        expect(classes.some((c) => /^bg-violet-\d+$/.test(c))).toBe(false);
+        expect(classes.some((c) => c.startsWith("backdrop-blur"))).toBe(true);
+        expect(classes.some((c) => /^bg-violet-200\/\d+$/.test(c))).toBe(true);
       },
     );
 
@@ -152,14 +154,86 @@ describe("Pill", () => {
           x
         </Pill>,
       );
-      expect(root(container).className).toContain(`bg-${tone}-100/`);
+      expect(root(container).className).toContain(`bg-${tone}-200/`);
+    });
+  });
+
+  describe("hover affordance for clickable pills", () => {
+    // A pill has no button chrome of its own — the tone hover step IS the
+    // affordance. It used to exist only on the glass variants (rim ignite),
+    // so a clickable solid/soft/outline pill gave no feedback at all.
+    it("solid darkens one step when clickable", () => {
+      const { container } = render(
+        <Pill variant="solid" tone="blue" onClick={() => {}} />,
+      );
+      const classes = root(container).className;
+      expect(classes).toContain("hover:bg-blue-400");
+      expect(classes).toContain("dark:hover:bg-blue-300");
+    });
+
+    it("soft and outline gain a translucent wash when clickable", () => {
+      const { container } = render(
+        <Pill variant="soft" tone="rose" onClick={() => {}} />,
+      );
+      expect(root(container).className).toContain("hover:bg-rose-100");
+      expect(root(container).className).toContain("dark:hover:bg-rose-500/20");
+
+      const { container: outline } = render(
+        <Pill variant="outline" tone="amber" onClick={() => {}} />,
+      );
+      expect(outline.firstElementChild!.className).toContain(
+        "hover:bg-amber-100",
+      );
+    });
+
+    it("never shows the wash when the pill is not activatable", () => {
+      const { container } = render(<Pill variant="soft" tone="blue" />);
+      expect(root(container).className).not.toMatch(/hover:bg-/);
+    });
+
+    it("a removable-but-inert pill stays quiet", () => {
+      // `onRemove` alone does not make the WHOLE pill clickable — lighting it
+      // up under the cursor would promise a click that does nothing. The
+      // remove button carries its own hover.
+      const { container } = render(<Pill onRemove={() => {}} />);
+      expect(root(container).className).not.toMatch(/hover:bg-/);
+      const { container: glass } = render(
+        <Pill variant="glass" onRemove={() => {}} />,
+      );
+      expect(root(glass).className).not.toMatch(/hover:border-blue-500/);
+    });
+
+    it("glass still ignites its rim — and only when clickable", () => {
+      const { container } = render(
+        <Pill variant="glass" tone="blue" onClick={() => {}} />,
+      );
+      expect(root(container).className).toContain("hover:border-blue-500");
+
+      const { container: plain } = render(<Pill variant="glass" tone="blue" />);
+      expect(root(plain).className).not.toMatch(/hover:border-/);
+    });
+
+    it("every tone has a hover step", () => {
+      for (const tone of TRUE_COLORS) {
+        const { container, unmount } = render(
+          <Pill variant="solid" tone={tone} onClick={() => {}} />,
+        );
+        expect(
+          root(container).className,
+          `${tone} has no solid hover`,
+        ).toContain(`hover:bg-${tone}-400`);
+        unmount();
+      }
     });
   });
 
   describe("content", () => {
     it("renders a leading and trailing icon", () => {
       const { container } = render(
-        <Pill icon={<i data-testid="lead" />} trailingIcon={<i data-testid="tail" />}>
+        <Pill
+          icon={<i data-testid="lead" />}
+          trailingIcon={<i data-testid="tail" />}
+        >
           Label
         </Pill>,
       );
@@ -169,7 +243,9 @@ describe("Pill", () => {
     });
 
     it("truncates when a maxWidth is set", () => {
-      const { container } = render(<Pill maxWidth={120}>A very long label</Pill>);
+      const { container } = render(
+        <Pill maxWidth={120}>A very long label</Pill>,
+      );
       expect(root(container).style.maxWidth).toBe("120px");
       expect(container.querySelector(".truncate")).not.toBeNull();
     });

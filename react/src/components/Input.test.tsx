@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Input from "./Input";
 import { getInputVariantTokens } from "../theme/Theme";
 import {
@@ -10,6 +10,8 @@ import {
 
 const field = (container: HTMLElement) =>
   container.querySelector("span.group")!.className;
+
+afterEach(cleanup);
 
 describe("Input", () => {
   /**
@@ -22,7 +24,7 @@ describe("Input", () => {
   describe("variant tokens", () => {
     it.each(INPUT_VARIANTS)("applies the %s surface and copy", (variant) => {
       const { container } = render(<Input variant={variant} placeholder="p" />);
-      const tokens = getInputVariantTokens(variant);
+      const tokens = getInputVariantTokens(variant, "blue");
       const box = field(container).split(/\s+/);
       const copy = screen.getByPlaceholderText("p").className.split(/\s+/);
 
@@ -63,6 +65,18 @@ describe("Input", () => {
     });
   });
 
+  it("tints the ghost surface with the tone", () => {
+    // Ghost used to be a grey slab whatever the tone said.
+    const { container } = render(
+      <Input variant="ghost" tone="violet" placeholder="p" />,
+    );
+    const box = field(container);
+    expect(box).toContain("bg-violet-50");
+    expect(box).toContain("hover:bg-violet-100");
+    expect(box).toContain("dark:bg-violet-500/10");
+    expect(box).not.toContain("bg-neutral-100");
+  });
+
   describe("tones", () => {
     it("emits the tone it was given, for every tone", () => {
       // The hand-written 21-entry map had two wrong: `red` emitted `rose-*` and
@@ -70,9 +84,7 @@ describe("Input", () => {
       for (const tone of TRUE_COLORS) {
         const { container, unmount } = render(<Input tone={tone} />);
         expect(field(container)).toContain(`focus-within:border-${tone}-400`);
-        expect(field(container)).toContain(
-          `focus-within:ring-${tone}-400/60`,
-        );
+        expect(field(container)).toContain(`focus-within:ring-${tone}-400/60`);
         unmount();
       }
     });
@@ -215,6 +227,25 @@ describe("Input", () => {
       const ref = vi.fn();
       render(<Input ref={ref} />);
       expect(ref).toHaveBeenCalledWith(expect.any(HTMLInputElement));
+    });
+
+    it("names the unnamed action button through the catalog", () => {
+      render(<Input trailingIcon="X" onTrailingIconClick={() => undefined} />);
+      expect(
+        screen.getByRole("button", { name: "Input action" }),
+      ).toBeInTheDocument();
+    });
+
+    it("translates the default action-button name", async () => {
+      const { I18nProvider } = await import("../i18n/I18nContext");
+      render(
+        <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+          <Input trailingIcon="X" onTrailingIconClick={() => undefined} />
+        </I18nProvider>,
+      );
+      expect(
+        screen.getByRole("button", { name: "Feldaktion" }),
+      ).toBeInTheDocument();
     });
 
     it("passes change events through", () => {

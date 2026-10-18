@@ -66,7 +66,7 @@ import {
   reorderPreviewTop,
   reorderDragSubtree,
 } from "../../../../common/gantt";
-import { getSurfaceTextTokens, getSurfaceVariantClasses } from "../../theme/Theme";
+import { getSurfaceTextTokens, getSurfaceVariantClasses, THIN_SCROLLBAR } from "../../theme/Theme";
 import Panel, { type PanelCorner, type PanelPadding, type PanelVariant } from "../Panel";
 import type { GlassOpacity, GlassVibrancy } from "../../theme/glass";
 import { useKitEngine, useKitT } from "../../i18n";
@@ -1112,7 +1112,7 @@ export const Gantt: React.FC<GanttProps> = ({
         {/* ── Body (the only scroller) ─────────────────────────────────── */}
         <div
           ref={scrollRef}
-          className="gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
+          className={`gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-1.5 ${THIN_SCROLLBAR}`}
           onScroll={syncHeaderScale}
         >
           <div style={{ width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER, minWidth: "100%" }}>

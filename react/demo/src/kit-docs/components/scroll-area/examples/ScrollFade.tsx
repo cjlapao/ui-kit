@@ -1,11 +1,26 @@
 import { ScrollArea } from "@cjlapao/ui-kit";
 
 const CITIES: Array<[string, number]> = [
-  ["Tokyo", 37.1], ["Delhi", 32.9], ["Shanghai", 29.2], ["Dhaka", 23.2],
-  ["São Paulo", 22.6], ["Mexico City", 22.3], ["Cairo", 22.1], ["Beijing", 21.8],
-  ["Mumbai", 21.3], ["Osaka", 19.0], ["New York", 18.9], ["Karachi", 17.1],
-  ["Chongqing", 16.9], ["Kinshasa", 16.3], ["Lagos", 15.9], ["Bengaluru", 14.8],
-  ["Istanbul", 15.8], ["Kolkata", 15.1], ["Manila", 14.2], ["Tianjin", 13.9],
+  ["Tokyo", 37.1],
+  ["Delhi", 32.9],
+  ["Shanghai", 29.2],
+  ["Dhaka", 23.2],
+  ["São Paulo", 22.6],
+  ["Mexico City", 22.3],
+  ["Cairo", 22.1],
+  ["Beijing", 21.8],
+  ["Mumbai", 21.3],
+  ["Osaka", 19.0],
+  ["New York", 18.9],
+  ["Karachi", 17.1],
+  ["Chongqing", 16.9],
+  ["Kinshasa", 16.3],
+  ["Lagos", 15.9],
+  ["Bengaluru", 14.8],
+  ["Istanbul", 15.8],
+  ["Kolkata", 15.1],
+  ["Manila", 14.2],
+  ["Tianjin", 13.9],
 ];
 
 /**

@@ -29,7 +29,12 @@ export default function Tinting() {
             <span className="text-[11px] opacity-60">color="#f43f5e"</span>
           </div>
           <div className="flex flex-col items-center gap-2">
-            <CustomIcon icon="Globe" size="lg" color="#0ea5e9" hoverColor="#f43f5e" />
+            <CustomIcon
+              icon="Globe"
+              size="lg"
+              color="#0ea5e9"
+              hoverColor="#f43f5e"
+            />
             <span className="text-[11px] opacity-60">hover → rose</span>
           </div>
         </div>

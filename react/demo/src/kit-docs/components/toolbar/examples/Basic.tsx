@@ -17,7 +17,9 @@ export default function Basic() {
             <IconButton icon="Download" variant="ghost" srLabel="Download" />
           </>
         }
-        center={<Input leadingIcon="Search" placeholder="Search" className="w-56" />}
+        center={
+          <Input leadingIcon="Search" placeholder="Search" className="w-56" />
+        }
         end={
           <Button leadingIcon="Save" color="indigo">
             Save

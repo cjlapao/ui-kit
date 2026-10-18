@@ -894,3 +894,67 @@ Two rules the shared `common/chat/` layer leaned on: framework-free modules (typ
 ## The outlined track's border got eaten at segment zero
 
 ActivityFeed started passing its own surface `variant` into `MultiToggle`, so the `outlined` track (a real 1px `border`) finally saw heavy use — and the active pill at index 0 appeared to cut the track's left border. The border was never actually covered (a red `border-color` showed through everywhere); the track had only 2px of horizontal padding, so the pill's inset, its shadow halo, and the focus ring's edge all landed within a pixel of the border, and on scaled screens the antialiasing smeared the 1px line into the pill's glow. The fix was geometry, not paint order: the track's horizontal gutter went from `p-0.5` to `px-1` (4px), with `CONTAINER_HORIZONTAL_PADDING` following, so every control inside an outlined track keeps 3px of clean space from the border. Debugging note: when `browser_evaluate` is off, `document.title = JSON.stringify(measurement)` inside a suspect effect turns the page title into a console — and a temporary `border-color: red` answers "covered or obscured?" in one screenshot.
+
+## i18n sweep backlog — components still shipping hardcoded strings
+
+The catalog pattern is proven end to end (Table, PagedPanel, TagPanel,
+SmartGridLayout…): strings live under `components.<name>.*` in
+`common/i18n/builtIn/{en,de,es,fr,pt}.ts`, components read them through
+`useKitT()`, and the dead-key guard (`src/i18n/catalog-consistency.test.ts`)
+fails any key that is added but not wired. What is left, per scan of attribute
+strings in files with no `useKitT` (counts are attribute-visible only —
+button labels and live-region narration need reading the file):
+
+- SplitView (8), Chat (4), TagPicker (3), Stepper (2), StatPager (2), DynamicFormField (done),
+  SideMenuLayout (2), ScrollArea (2), Picker (2), MeterGroup (2),
+  ActivityFeed (2), SmartInput, SmartGridTileBoundary, MultiProgressBar,
+  MarkdownEditor, DropdownButton, ColorSwatches, Carousel.
+
+Known shortcuts to take on the way: StatPager can reuse the
+`kit.pagedpanel.previousPage/nextPage` keys verbatim; ColorSwatches' own
+aria strings ("Colour swatches", "Collapse colours") belong to its pass;
+`PANE_EMPTY_STATE_SIZE` should be swept alongside (other EmptyState
+embedders: Table, Carousel, Chat, Accordion, SplitView, Stepper, MeterGroup,
+MultiProgressBar, ApiErrorState, SmartGrid*, InfiniteScrollPanel).
+SmartGridLayout's pass added the how-to docs too — the `/i18n` page's
+`KitOverrides.tsx` example shows users translating any of this into their
+own language via user-catalog keys; component pages' i18n topic should
+reference that pattern, not re-teach it.
+
+## The kit's defaults are one story - new components inherit them
+- Surface default: **`elevated`** (what Panel ships). Tone default:
+  **`blue`** - the kit's alias colour, so a `tonal` wash draws blue and
+  every focus ring carries the accent without anyone choosing it. The
+  entry style inside a card is **`auto`**, resolved through
+  `INPUT_VARIANT_FOR_SURFACE`, never hand-picked.
+- DynamicFormField was the last holdout (`outlined`/`neutral`/`flat`);
+  a component whose defaults disagree with Panel's reads as a different
+  product at every nesting depth. If adding or re-passing a composite
+  and its defaults are not elevated/blue/auto, that is the bug.
+| 2026-09-01 | Design | Kit defaults are a contract: surface `elevated`, tone `blue` (so `tonal` washes are blue by default), entry `auto` via `INPUT_VARIANT_FOR_SURFACE`. Inherited, not re-decided, per component. | DynamicFormField |
+| 2026-09-21 | Design | Where a component separates surface `tone` from accent `color`, the ACCENT defaults to the kit blue even when the surface tone stays neutral — a plain Table highlights in blue, not gray; washes stay keyed to `tone` so the chrome keeps its quiet default. | Table |
+
+## A Panel cannot be positioned by its caller - position a shell around it
+
+`Panel`'s root carries `relative` for its own chrome layers. A caller adding
+`absolute` in `className` does not reposition it - `relative` and `absolute`
+in one class list resolve by stylesheet order, not intent - and the "popup"
+lands in flow and simply sits there. Popups go through the portal pattern:
+a fixed-positioned shell div (portal root, `useAnchoredPopupPosition`) with
+the Panel inside as a plain block. Table's toolbar menus are the reference.
+
+## Safelist gaps are invisible failures
+- A component can ship the *right* dynamic class (`bg-{tone}-100/80` from
+  `panel.tonalBg`) and still paint nothing: Tailwind only emits what
+  `scripts/generate-safelist.mjs` declares, and the 100-series alpha ramp
+  skipped `/80` — so the `tonal` variant rendered untinted **kit-wide**
+  (Panel included) with a byte-perfect DOM. Symptoms: "the tint doesn't
+  apply" while every test passes and `container.className` is correct.
+- Debug path that cracked it: a static `.html` in `react/demo/` linking
+  `/src/index.css` renders the raw class through the *demo's* Tailwind —
+  if it tints there but not in the kit, the gap is in `react/dist/index.css`
+  (kit build), not the component. `grep 'bg-violet-100\\\\/80' dist/index.css`
+  matching only `group-hover:` variants was the tell.
+- Rule: any new `palette.*` shade/alpha used by a component must land in
+  the safelist script + regenerated + `npx @tailwindcss/cli -i src/styles.css
+  -o dist/index.css`, or it does not exist.

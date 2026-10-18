@@ -349,9 +349,7 @@ const Popover: React.FC<PopoverProps> = ({
     }
   }, [phase]);
 
-  const handleOverlayAnimationEnd = (
-    event: AnimationEvent<HTMLDivElement>,
-  ) => {
+  const handleOverlayAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
     // Guard per Learnings: animation events bubble from every descendant —
     // only the wrapper's own overlay animation ends the phase.
     if (event.target !== event.currentTarget) return;
@@ -492,7 +490,10 @@ const Popover: React.FC<PopoverProps> = ({
         }
       });
     };
-    window.addEventListener("scroll", schedule, { passive: true, capture: true });
+    window.addEventListener("scroll", schedule, {
+      passive: true,
+      capture: true,
+    });
     window.addEventListener("resize", schedule, { passive: true });
     const ro =
       typeof ResizeObserver !== "undefined"
@@ -558,9 +559,11 @@ const Popover: React.FC<PopoverProps> = ({
   };
 
   const handleTriggerClick = (event: React.MouseEvent) => {
-    const existing = ((trigger.props ?? {}) as {
-      onClick?: (e: React.MouseEvent) => void;
-    }).onClick;
+    const existing = (
+      (trigger.props ?? {}) as {
+        onClick?: (e: React.MouseEvent) => void;
+      }
+    ).onClick;
     existing?.(event);
     setOpen(!open);
   };
@@ -717,13 +720,29 @@ const Popover: React.FC<PopoverProps> = ({
     const base = { width: dot, height: dot };
     switch (side) {
       case "bottom":
-        return { ...base, left: caret - half, top: -position.bubbleGap / 2 - half };
+        return {
+          ...base,
+          left: caret - half,
+          top: -position.bubbleGap / 2 - half,
+        };
       case "top":
-        return { ...base, left: caret - half, top: position.bubbleGap / 2 - half };
+        return {
+          ...base,
+          left: caret - half,
+          top: position.bubbleGap / 2 - half,
+        };
       case "right":
-        return { ...base, top: caret - half, left: -position.bubbleGap / 2 - half };
+        return {
+          ...base,
+          top: caret - half,
+          left: -position.bubbleGap / 2 - half,
+        };
       case "left":
-        return { ...base, top: caret - half, left: position.bubbleGap / 2 - half };
+        return {
+          ...base,
+          top: caret - half,
+          left: position.bubbleGap / 2 - half,
+        };
     }
   })();
 

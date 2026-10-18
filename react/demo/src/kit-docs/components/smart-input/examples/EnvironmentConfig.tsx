@@ -45,7 +45,11 @@ const GROUPS: SmartVariableGroup[] = [
     icon: "Container",
     tone: "emerald",
     variables: [
-      { key: "postgres", description: "Reference to service: postgres", value: "postgres" },
+      {
+        key: "postgres",
+        description: "Reference to service: postgres",
+        value: "postgres",
+      },
     ],
   },
 ];

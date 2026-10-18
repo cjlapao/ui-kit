@@ -165,7 +165,7 @@ export const PlaygroundPanel: React.FC<PlaygroundPanelProps> = ({
   );
 
   return (
-    <Panel variant="outlined" padding="none" scrollable={false}>
+    <Panel variant="elevated" padding="none" scrollable={false}>
       <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-5 py-4 dark:border-neutral-800">
         <div>
           <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-50">

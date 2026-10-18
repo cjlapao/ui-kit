@@ -14,7 +14,9 @@ export default function Variants() {
     <div className="grid w-full gap-4 sm:grid-cols-2">
       {INPUT_VARIANTS.map((variant) => (
         <div key={variant} className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-neutral-400">{variant}</span>
+          <span className="text-xs uppercase tracking-wide text-neutral-400">
+            {variant}
+          </span>
           <Picker items={ITEMS} selectedId="a" variant={variant} />
         </div>
       ))}

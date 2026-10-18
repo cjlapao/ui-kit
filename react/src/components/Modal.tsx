@@ -23,7 +23,7 @@ import {
 } from ".";
 import Panel from "./Panel";
 import { type Size as ModalSize } from "../theme";
-import { DEFAULT_SURFACE_CORNER, getSurfaceTextTokens } from "../theme/Theme";
+import { DEFAULT_SURFACE_CORNER, getSurfaceTextTokens, THIN_SCROLLBAR } from "../theme/Theme";
 import type { TrueColor } from "../theme/Theme";
 import type { PanelCorner, PanelSpecularMode, PanelVariant } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
@@ -871,7 +871,7 @@ const Modal: React.FC<ModalProps> = ({
             id={bodyId}
             className={classNames(
               "relative min-h-0 flex-1 overflow-y-auto px-6 py-5",
-              "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent",
+              THIN_SCROLLBAR,
               bodyClassName,
               loading && "pointer-events-none",
             )}

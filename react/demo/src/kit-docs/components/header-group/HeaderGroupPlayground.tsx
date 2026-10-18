@@ -2,24 +2,23 @@ import React, { useState } from "react";
 import {
   Badge,
   Button,
+  ColorSwatches,
   CustomIcon,
   HeaderGroup,
   IconButton,
-  MultiToggle,
   Panel,
 } from "@cjlapao/ui-kit";
 import type { ControlSize, PanelVariant, TrueColor } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
-  SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   surfaceVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const GROUPS = [
@@ -69,6 +68,7 @@ export const HeaderGroupPlayground: React.FC = () => {
   const [gap, setGap] = useState<ControlSize>("sm");
   const [itemGap, setItemGap] = useState<ControlSize>("xs");
   const [divider, setDivider] = useState(true);
+  const [separatorSize, setSeparatorSize] = useState<ControlSize>("xs");
   const [useTone, setUseTone] = useState(false);
   const [tone, setTone] = useState<TrueColor>("blue");
   const [surface, setSurface] = useState<PanelVariant>("outlined");
@@ -85,31 +85,19 @@ export const HeaderGroupPlayground: React.FC = () => {
                 title: "Core",
                 controls: (
                   <>
-                    <Control label="Gap between groups">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={controlSizeOptions}
-                        value={gap}
-                        onChange={(v) => setGap(v as ControlSize)}
-                      />
-                    </Control>
-                    <Control label="Gap between items">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={controlSizeOptions}
-                        value={itemGap}
-                        onChange={(v) => setItemGap(v as ControlSize)}
-                      />
-                    </Control>
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
+                    <ChoiceControl
+                      label="Gap between groups"
+                      options={controlSizeOptions}
+                      value={gap}
+                      onChange={(v) => setGap(v as ControlSize)}
                     />
-                    <SelectControl
+                    <ChoiceControl
+                      label="Gap between items"
+                      options={controlSizeOptions}
+                      value={itemGap}
+                      onChange={(v) => setItemGap(v as ControlSize)}
+                    />
+                    <ChoiceControl
                       label="Header surface"
                       options={surfaceVariantOptions}
                       value={surface}
@@ -128,11 +116,31 @@ export const HeaderGroupPlayground: React.FC = () => {
                       checked={divider}
                       onChange={setDivider}
                     />
+                    <ChoiceControl
+                      label="Separator thickness"
+                      options={controlSizeOptions}
+                      value={separatorSize}
+                      onChange={(v) => setSeparatorSize(v as ControlSize)}
+                    />
                     <ToggleRow
                       label="Tone the separator"
                       checked={useTone}
                       onChange={setUseTone}
                     />
+                    {/* Tone is a colour decision — pick it from colour
+                        swatches, not from a dropdown of words. Off means the
+                        rule follows the surface's own text colour. */}
+                    {useTone && (
+                      <Control label="Separator tone">
+                        <ColorSwatches
+                          selectable
+                          size="sm"
+                          value={tone}
+                          onSelect={setTone}
+                          defaultExpanded
+                        />
+                      </Control>
+                    )}
                   </div>
                 ),
               },
@@ -174,6 +182,7 @@ export const HeaderGroupPlayground: React.FC = () => {
                   gap={gap}
                   itemGap={itemGap}
                   divider={divider}
+                  separatorSize={separatorSize}
                   tone={useTone ? tone : undefined}
                   label={group.label}
                 >
@@ -184,7 +193,6 @@ export const HeaderGroupPlayground: React.FC = () => {
           </Panel>
         </div>
       }
-    >
-    </PlaygroundPanel>
+    ></PlaygroundPanel>
   );
 };

@@ -9,10 +9,9 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import classNames from "classnames";
-import Loader, { type LoaderProps } from "../Loader";
 import { useIconRenderer } from "../../contexts/IconContext";
 import {
-  DEFAULT_SURFACE_CORNER,
+  DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
   getFieldSizeTokens,
   getFieldToneTokens,
@@ -22,7 +21,10 @@ import {
   stripBorderColor,
   stripTextColor,
   type TrueColor,
-} from "../../theme/Theme";
+  PANEL_TONE_FOR_FIELD,
+  type SurfaceVariant,
+  SURFACE_VARIANT_FOR_FIELD,
+} from "../../theme";
 import CalendarPanel, { type CalendarView } from "./CalendarPanel";
 import { useKitEngine } from "../../i18n";
 import { useOverlayPosition } from "./useOverlayPosition";
@@ -85,7 +87,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       tone,
       color,
       variant = "flat",
-      glowIntensity = "soft",
+      glowIntensity = DEFAULT_GLOW_INTENSITY,
       gradientFrom,
       gradientTo,
       validationStatus = "none",
@@ -93,13 +95,11 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       className,
       inputClassName,
       unstyled = false,
-      loading = false,
-      loaderType = "spinner",
       readonly = false,
       disabled = false,
-      panelVariant = "elevated",
-      panelTone = "neutral",
-      panelCorner = DEFAULT_SURFACE_CORNER,
+      panelVariant = "auto",
+      panelTone = "auto",
+      panelCorner = "auto",
       panelClassName,
       onShow,
       onHide,
@@ -125,7 +125,9 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const initialValue: DatePickerValue = valueProp ?? defaultValue ?? null;
     const [internalValue, setInternalValue] =
       useState<DatePickerValue>(initialValue);
-    const currentValue = isControlled ? (valueProp as DatePickerValue) : internalValue;
+    const currentValue = isControlled
+      ? (valueProp as DatePickerValue)
+      : internalValue;
 
     const constraints: DateConstraints = useMemo(
       () => ({
@@ -179,7 +181,14 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           today,
           selectOtherMonths,
         }),
-      [viewYear, viewMonth, weekStartsOn, constraints, today, selectOtherMonths],
+      [
+        viewYear,
+        viewMonth,
+        weekStartsOn,
+        constraints,
+        today,
+        selectOtherMonths,
+      ],
     );
 
     // An externally changed value (controlled update, Today button in another
@@ -214,8 +223,10 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const isParseValid = useCallback(
       (parsed: DatePickerValue): boolean => {
         if (Array.isArray(parsed)) {
-          if (parsed[0] && !isDateSelectable(parsed[0], constraints)) return false;
-          if (parsed[1] && !isDateSelectable(parsed[1], constraints)) return false;
+          if (parsed[0] && !isDateSelectable(parsed[0], constraints))
+            return false;
+          if (parsed[1] && !isDateSelectable(parsed[1], constraints))
+            return false;
           return true;
         }
         return parsed !== null && isDateSelectable(parsed, constraints);
@@ -305,10 +316,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     }, []);
 
     const closeTimerRef = useRef<number | undefined>(undefined);
-    useEffect(
-      () => () => window.clearTimeout(closeTimerRef.current),
-      [],
-    );
+    useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
 
     const handleOverlayAnimationEnd = (
       event: React.AnimationEvent<HTMLDivElement>,
@@ -376,7 +384,9 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
 
     // ── Input keyboard ──────────────────────────────────────────────────────
 
-    const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleInputKeyDown = (
+      event: React.KeyboardEvent<HTMLInputElement>,
+    ) => {
       if (event.key === "ArrowDown") {
         event.preventDefault();
         if (phaseRef.current === "closed") {
@@ -446,10 +456,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         } else if (!end) {
           // A second pick before the start restarts the range (PrimeVue).
           next = isBeforeDay(date, start) ? [date, null] : [start, date];
-          if (
-            !isBeforeDay(date, start) &&
-            hideOnRangeSelection
-          ) {
+          if (!isBeforeDay(date, start) && hideOnRangeSelection) {
             focusInput();
             scheduleClose();
           }
@@ -474,7 +481,11 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const handleToday = () => {
       const now = new Date();
       if (!isDateSelectable(now, constraints)) return;
-      const atMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const atMidnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
       commit(atMidnight);
       syncText(atMidnight);
     };
@@ -491,6 +502,14 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     // ── Field tokens — the same box `Input` draws ───────────────────────────
 
     const effectiveTone: TrueColor = tone ?? color ?? "blue";
+
+    // `"auto"` surfaces follow the field; an explicit choice wins.
+    const resolvedPanelVariant: SurfaceVariant =
+      panelVariant === "auto"
+        ? SURFACE_VARIANT_FOR_FIELD[variant]
+        : panelVariant;
+    const resolvedPanelTone: TrueColor =
+      panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone;
     const sizeToken = getFieldSizeTokens(size);
     const tokens = getFieldToneTokens(effectiveTone);
     const variantTokens = getInputVariantTokens(variant);
@@ -541,11 +560,13 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const calendarPanel = (
       <CalendarPanel
         id={panelId}
-        panelVariant={panelVariant}
-        panelTone={panelTone}
+        panelVariant={resolvedPanelVariant}
+        panelTone={resolvedPanelTone}
         panelCorner={panelCorner}
         panelClassName={panelClassName}
         tone={effectiveTone}
+        fieldVariant={variant}
+        fieldSize={size}
         view={currentView}
         viewMonth={viewMonth}
         viewYear={viewYear}
@@ -558,7 +579,6 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         today={today}
         disabled={disabled}
         inline={inline}
-        loading={loading && loaderType === "skeleton"}
         showButtonBar={showButtonBar}
         ariaLabel={panelAriaLabel ?? toggleLabel}
         todayButtonLabel={todayButtonLabel}
@@ -584,11 +604,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     // ── Inline mode: the panel is the component ─────────────────────────────
 
     if (inline) {
-      return (
-        <div className="relative w-full">
-          {calendarPanel}
-        </div>
-      );
+      return <div className="relative w-full">{calendarPanel}</div>;
     }
 
     // ── Overlay ─────────────────────────────────────────────────────────────
@@ -633,14 +649,15 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const field = (
       <span
         ref={fieldRef}
-        aria-busy={loading || undefined}
         className={classNames(
           "group relative flex w-full items-center transition",
           !unstyled &&
             (hasStatus
               ? stripBorderColor(variantTokens.surface)
               : variantTokens.surface),
-          isUnderline ? sizeToken.underlinePy : `${sizeToken.px} ${sizeToken.py}`,
+          isUnderline
+            ? sizeToken.underlinePy
+            : `${sizeToken.px} ${sizeToken.py}`,
           !unstyled && !hasStatus && tokens.focusBorder,
           !unstyled && !isUnderline && !hasStatus && tokens.focusRing,
           !unstyled && hasStatus && FIELD_STATUS_CLASSES[validationStatus],
@@ -699,7 +716,9 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           aria-haspopup="dialog"
           aria-controls={overlayVisible ? panelId : undefined}
           aria-label={hasExplicitName ? undefined : inputAccessibleName}
-          aria-invalid={validationStatus === "error" ? true : rest["aria-invalid"]}
+          aria-invalid={
+            validationStatus === "error" ? true : rest["aria-invalid"]
+          }
         />
         {showClearIcon && (
           <button
@@ -731,16 +750,6 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         >
           {renderIcon("Calendar", sizeToken.icon)}
         </button>
-        {loading && !unstyled && (
-          <Loader
-            overlay
-            variant={
-              loaderType === "skeleton" ? "spinner" : (loaderType as LoaderProps["variant"])
-            }
-            size="sm"
-            color={effectiveTone}
-          />
-        )}
         {overlay}
       </span>
     );
@@ -748,9 +757,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     // The gradient variant is the same field with a coloured glow behind it.
     if (variant === "gradient" && !unstyled) {
       return (
-        <span
-          className={classNames("relative flex w-full", glow.pad)}
-        >
+        <span className={classNames("relative flex w-full", glow.pad)}>
           <span
             className={classNames(
               "absolute rounded-2xl leading-none transition-opacity duration-500",

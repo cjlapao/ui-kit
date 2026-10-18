@@ -30,7 +30,12 @@ export default function Variants() {
             <span className="text-[10px] uppercase tracking-wide opacity-50">
               {variant}
             </span>
-            <Panel variant={variant} tone="violet" padding="sm" corner="rounded-lg">
+            <Panel
+              variant={variant}
+              tone="violet"
+              padding="sm"
+              corner="rounded-lg"
+            >
               <span className="text-xs">Panel</span>
             </Panel>
             <MultiToggle

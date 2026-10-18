@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import classNames from "classnames";
 
 /**
@@ -10,7 +17,12 @@ import classNames from "classnames";
  * - `always`: whenever the content overflows that axis.
  * - `hidden`: never — the content still scrolls, nothing is drawn.
  */
-export type ScrollAreaVariant = "auto" | "hover" | "scroll" | "always" | "hidden";
+export type ScrollAreaVariant =
+  | "auto"
+  | "hover"
+  | "scroll"
+  | "always"
+  | "hidden";
 
 export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -34,7 +46,9 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Classes for the content wrapper, for the rare caller that needs the
    * scrolling box itself styled apart from the frame. */
   contentClassName?: string;
-  /** The scrollable content. Give the area a height with `className`. */
+  /** The scrollable content. Give the area a height — or a maximum height —
+   * with `className`; a `max-h` frame works because the viewport inherits
+   * that cap and scrolls inside it instead of silently growing past it. */
   children?: ReactNode;
 }
 
@@ -92,22 +106,44 @@ export const ScrollArea = ({
   const [thumbX, setThumbX] = useState<ThumbMetrics>(FITTING_THUMB);
   const [hovered, setHovered] = useState(false);
   const [scrolling, setScrolling] = useState(false);
-  const dragging = useRef<{ axis: "x" | "y"; pointer: number; scroll: number; ratio: number } | null>(null);
+  const dragging = useRef<{
+    axis: "x" | "y";
+    pointer: number;
+    scroll: number;
+    ratio: number;
+  } | null>(null);
 
-  const thumb = useCallback((viewport: HTMLDivElement, track: HTMLDivElement | null, axis: "x" | "y"): ThumbMetrics => {
-    const viewportSize = axis === "y" ? viewport.clientHeight : viewport.clientWidth;
-    const contentSize = axis === "y" ? viewport.scrollHeight : viewport.scrollWidth;
-    const trackSize = (track ? (axis === "y" ? track.clientHeight : track.clientWidth) : viewportSize) || 1;
-    const scrollable = contentSize - viewportSize;
-    if (scrollable <= 1) return FITTING_THUMB;
-    const size = Math.max(MIN_THUMB, (viewportSize / contentSize) * trackSize);
-    const position = axis === "y" ? viewport.scrollTop : viewport.scrollLeft;
-    return {
-      size,
-      offset: (position / scrollable) * (trackSize - size),
-      ratio: position / scrollable,
-    };
-  }, []);
+  const thumb = useCallback(
+    (
+      viewport: HTMLDivElement,
+      track: HTMLDivElement | null,
+      axis: "x" | "y",
+    ): ThumbMetrics => {
+      const viewportSize =
+        axis === "y" ? viewport.clientHeight : viewport.clientWidth;
+      const contentSize =
+        axis === "y" ? viewport.scrollHeight : viewport.scrollWidth;
+      const trackSize =
+        (track
+          ? axis === "y"
+            ? track.clientHeight
+            : track.clientWidth
+          : viewportSize) || 1;
+      const scrollable = contentSize - viewportSize;
+      if (scrollable <= 1) return FITTING_THUMB;
+      const size = Math.max(
+        MIN_THUMB,
+        (viewportSize / contentSize) * trackSize,
+      );
+      const position = axis === "y" ? viewport.scrollTop : viewport.scrollLeft;
+      return {
+        size,
+        offset: (position / scrollable) * (trackSize - size),
+        ratio: position / scrollable,
+      };
+    },
+    [],
+  );
 
   const update = useCallback(() => {
     const viewport = viewportRef.current;
@@ -145,7 +181,10 @@ export const ScrollArea = ({
     update();
     setScrolling(true);
     window.clearTimeout(lingerTimer.current);
-    lingerTimer.current = window.setTimeout(() => setScrolling(false), SCROLL_LINGER_MS);
+    lingerTimer.current = window.setTimeout(
+      () => setScrolling(false),
+      SCROLL_LINGER_MS,
+    );
   };
 
   const visible = (overflows: boolean) => {
@@ -158,23 +197,27 @@ export const ScrollArea = ({
   const yVisible = visible(overflow.y);
   const xVisible = visible(overflow.x);
 
-  const startDrag = (axis: "x" | "y") => (event: React.PointerEvent<HTMLDivElement>) => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const track = axis === "y" ? yTrackRef.current : xTrackRef.current;
-    const metrics = axis === "y" ? thumbY : thumbX;
-    const travel = (track ? (axis === "y" ? track.clientHeight : track.clientWidth) : 0) - metrics.size;
-    const scrollable = (axis === "y" ? viewport.scrollHeight : viewport.scrollWidth) -
-      (axis === "y" ? viewport.clientHeight : viewport.clientWidth);
-    dragging.current = {
-      axis,
-      pointer: axis === "y" ? event.clientY : event.clientX,
-      scroll: axis === "y" ? viewport.scrollTop : viewport.scrollLeft,
-      ratio: travel > 0 ? scrollable / travel : 0,
+  const startDrag =
+    (axis: "x" | "y") => (event: React.PointerEvent<HTMLDivElement>) => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      const track = axis === "y" ? yTrackRef.current : xTrackRef.current;
+      const metrics = axis === "y" ? thumbY : thumbX;
+      const travel =
+        (track ? (axis === "y" ? track.clientHeight : track.clientWidth) : 0) -
+        metrics.size;
+      const scrollable =
+        (axis === "y" ? viewport.scrollHeight : viewport.scrollWidth) -
+        (axis === "y" ? viewport.clientHeight : viewport.clientWidth);
+      dragging.current = {
+        axis,
+        pointer: axis === "y" ? event.clientY : event.clientX,
+        scroll: axis === "y" ? viewport.scrollTop : viewport.scrollLeft,
+        ratio: travel > 0 ? scrollable / travel : 0,
+      };
     };
-  };
 
   const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragging.current;
@@ -238,7 +281,11 @@ export const ScrollArea = ({
         onScroll={handleScroll}
         style={maskStyle()}
         className={classNames(
-          "h-full w-full overflow-auto rounded-[inherit] outline-none",
+          "h-full w-full max-h-[inherit] overflow-auto rounded-[inherit] outline-none",
+          // `max-height: inherit` is what makes a `max-h-*` frame work: a
+          // percentage height would resolve against an auto-height parent
+          // and the viewport would simply grow past the frame's cap, get
+          // clipped by `overflow-hidden` and never learn it was scrollable.
           "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
           "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400",
         )}
@@ -261,12 +308,18 @@ export const ScrollArea = ({
         aria-orientation="vertical"
         aria-label="Vertical scroll"
         aria-valuenow={Math.round(thumbY.ratio * 100)}
-        className={classNames(BAR_BASE, "right-0 top-0 h-full w-2.5 flex-col border-x border-transparent p-[3px]")}
+        className={classNames(
+          BAR_BASE,
+          "right-0 top-0 h-full w-2.5 flex-col border-x border-transparent p-[3px]",
+        )}
       >
         <div ref={yTrackRef} className="relative h-full w-full">
           <div
             data-slot="scrollarea-handle"
-            style={{ height: thumbY.size, transform: `translateY(${thumbY.offset}px)` }}
+            style={{
+              height: thumbY.size,
+              transform: `translateY(${thumbY.offset}px)`,
+            }}
             onPointerDown={startDrag("y")}
             onPointerMove={moveDrag}
             onPointerUp={endDrag}
@@ -285,12 +338,18 @@ export const ScrollArea = ({
         aria-orientation="horizontal"
         aria-label="Horizontal scroll"
         aria-valuenow={Math.round(thumbX.ratio * 100)}
-        className={classNames(BAR_BASE, "bottom-0 left-0 h-2.5 w-full flex-row border-y border-transparent p-[3px]")}
+        className={classNames(
+          BAR_BASE,
+          "bottom-0 left-0 h-2.5 w-full flex-row border-y border-transparent p-[3px]",
+        )}
       >
         <div ref={xTrackRef} className="relative h-full w-full">
           <div
             data-slot="scrollarea-handle"
-            style={{ width: thumbX.size, transform: `translateX(${thumbX.offset}px)` }}
+            style={{
+              width: thumbX.size,
+              transform: `translateX(${thumbX.offset}px)`,
+            }}
             onPointerDown={startDrag("x")}
             onPointerMove={moveDrag}
             onPointerUp={endDrag}

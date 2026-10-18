@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactElement, type ReactNode } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
 import {
   getPillColorClasses,
@@ -28,8 +29,10 @@ export interface UserAvatarUser {
   avatarUrl?: string;
 }
 
-export interface UserAvatarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "color"> {
+export interface UserAvatarProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "color"
+> {
   user?: UserAvatarUser | null;
   /**
    * Scale on the shared control ladder. Was a bare pixel number, so an avatar
@@ -53,6 +56,14 @@ export interface UserAvatarProps
   label?: string;
   /** Registry icon name or element, the PrimeVue `icon` parity prop. */
   icon?: IconName | ReactElement;
+  /**
+   * With a handler, the avatar becomes a real button — Enter/Space and a
+   * tone focus ring included — instead of a div that only the mouse can
+   * reach. `onClick` otherwise rides the standard props spread.
+   */
+  onClick?: React.MouseEventHandler<HTMLElement>;
+  /** Disable the clickable avatar; no effect without `onClick`. @default false */
+  disabled?: boolean;
   /**
    * Direct image URL, the PrimeVue `image` parity prop. `user.avatarUrl`
    * still resolves when this is absent; either way a broken URL falls back
@@ -130,10 +141,12 @@ export const UserAvatar = ({
   icon,
   image,
   children,
+  disabled = false,
   className = "",
   ...rest
 }: UserAvatarProps) => {
   const renderIcon = useIconRenderer();
+  const t = useKitT();
   const [hasError, setHasError] = useState(false);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
 
@@ -197,7 +210,7 @@ export const UserAvatar = ({
       />
     );
   } else if (identifier) {
-    content = chipInner(identifier[0].toUpperCase());
+    content = chipInner(identifier.trimStart()[0].toUpperCase());
   } else {
     content = chipInner(
       // Decorative: the wrapper already carries the accessible name.
@@ -205,23 +218,55 @@ export const UserAvatar = ({
     );
   }
 
+  const name =
+    rest["aria-label"] ?? identifier ?? label ?? t("kit.useravatar.fallback");
+
+  const clickable = typeof rest.onClick === "function";
+  // The clickable variant is a real <button>: a div with onClick was a dead
+  // end for keyboards. Inside it the artwork is aria-hidden, so the button's
+  // name is just the person — not "Ada Lovelace Ada Lovelace".
+  const Wrapper = clickable ? "button" : "div";
+  // A disabled avatar is still a button — dimmed, inert, present in the tab
+  // order's memory (native disabled), never a mouse-creepable div.
+  const inert = clickable && disabled;
+
   return (
-    <div
-      {...rest}
-      // The avatar stands for a person, so it needs a name of its own; it used
-      // to be an unlabelled `<div>` with an `<img alt>` only in the happy path.
-      role="img"
-      aria-label={rest["aria-label"] ?? identifier ?? label ?? "User avatar"}
+    <Wrapper
+      {...(rest as React.HTMLAttributes<HTMLElement>)}
+      {...(clickable
+        ? {
+            type: "button" as const,
+            disabled: disabled || undefined,
+            onClick: inert ? undefined : rest.onClick,
+          }
+        : { role: "img" as const })}
+      aria-label={name}
       title={rest.title ?? identifier}
       className={classNames(
         "flex items-center justify-center overflow-hidden",
         shapeClass,
+        clickable &&
+          classNames(
+            "appearance-none border-0 bg-transparent p-0 text-inherit",
+            inert
+              ? "cursor-default"
+              : "cursor-pointer transition-[filter] hover:brightness-95",
+            "focus-visible:ring-2 focus-visible:ring-offset-2",
+            `focus-visible:ring-${tone}-400`,
+            "disabled:pointer-events-none disabled:opacity-50",
+          ),
         className,
       )}
       style={{ width: px, height: px, ...rest.style }}
     >
-      {content}
-    </div>
+      {clickable ? (
+        <span aria-hidden="true" className="contents">
+          {content}
+        </span>
+      ) : (
+        content
+      )}
+    </Wrapper>
   );
 };
 

@@ -1,15 +1,11 @@
-import React, { useId, useMemo, useState } from "react";
+import React, { useId, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 
 import Pill from "./Pill";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import type { PillCorner, PillVariant } from "./Pill";
 import type { ControlSize, TrueColor } from "../theme/Theme";
-import type {
-  GlassOpacity,
-  GlassVibrancy,
-  SpecularMode,
-} from "../theme/glass";
+import type { GlassOpacity, GlassVibrancy, SpecularMode } from "../theme/glass";
 
 export interface MultiSelectPillOption {
   value: string;
@@ -37,11 +33,15 @@ export interface MultiSelectPillsProps {
   className?: string;
   /** Disable the whole control. */
   disabled?: boolean;
-  /** Size of the pills, on the shared control scale. @default "sm" */
+  /** Size of the pills, on the shared control scale. @default "md" */
   size?: ControlSize;
-  /** Theme colour of a selected pill. @default "blue" */
+  /** Accent of a selected pill. @default "blue" */
+  tone?: TrueColor;
+  /** @deprecated Use `tone`, which is what every other control calls it. */
   color?: TrueColor;
-  /** Corner rounding of the pills. @default "full" */
+  /** Corner rounding of the pills, on the pill corner scale. @default "full" */
+  corner?: PillCorner;
+  /** @deprecated Use `corner`, which is what `Pill` calls it. */
   rounded?: PillCorner;
   /** Gap between pills, on the shared control scale. @default "sm" */
   gap?: ControlSize;
@@ -91,9 +91,11 @@ const MultiSelectPills: React.FC<MultiSelectPillsProps> = ({
   onChange,
   className,
   disabled = false,
-  size = "sm",
-  color = "blue",
-  rounded = "full",
+  size = "md",
+  tone,
+  color,
+  corner,
+  rounded,
   gap = "sm",
   selectionMode = "multiple",
   variant = "solid",
@@ -110,6 +112,14 @@ const MultiSelectPills: React.FC<MultiSelectPillsProps> = ({
   // its own — it can read the surface its host published directly. Hardcoded
   // `text-neutral-800 dark:text-neutral-200` vanished on glass over a photo.
   const surfaceText = useSurfaceText();
+
+  // `tone`/`corner` are the names the rest of the kit uses; the old
+  // `color`/`rounded` still resolve, deprecated.
+  const resolvedTone = tone ?? color ?? "blue";
+  const resolvedCorner = corner ?? rounded ?? "full";
+  const isSingle = selectionMode === "single";
+  const legendId = `${generatedId}-legend`;
+  const pillsRef = useRef<HTMLDivElement>(null);
 
   const [internalSelected, setInternalSelected] =
     useState<string[]>(defaultValue);
@@ -152,13 +162,70 @@ const MultiSelectPills: React.FC<MultiSelectPillsProps> = ({
     onChange?.(nextSelected);
   };
 
+  // Single mode is a radio group, so it follows the radiogroup pattern —
+  // the same one `MultiToggle` implements: one tab stop, arrows walk (and
+  // pick) the options, wrapping at the ends. Multiple mode is a checkbox
+  // group: every pill is its own tab stop and toggles with Space, exactly
+  // what a stack of native checkboxes does, so no keys are hijacked there.
+  const firstSelectableIndex = options.findIndex(
+    (option) => !isOptionDisabled(option),
+  );
+
+  const focusPill = (index: number) => {
+    const buttons = pillsRef.current?.querySelectorAll("button");
+    if (buttons) buttons[index]?.focus();
+  };
+
+  const handleRadioKeyDown = (
+    event: React.KeyboardEvent<HTMLElement>,
+    index: number,
+  ) => {
+    const step =
+      event.key === "ArrowRight" || event.key === "ArrowDown"
+        ? 1
+        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+          ? -1
+          : 0;
+    if (step === 0 && event.key !== "Home" && event.key !== "End") return;
+    event.preventDefault();
+
+    const selectable = options
+      .map((option, optionIndex) => ({ option, optionIndex }))
+      .filter(({ option }) => !isOptionDisabled(option));
+    if (selectable.length === 0) return;
+
+    const target =
+      event.key === "Home"
+        ? selectable[0]
+        : event.key === "End"
+          ? selectable[selectable.length - 1]
+          : (() => {
+              const position = selectable.findIndex(
+                ({ optionIndex }) => optionIndex === index,
+              );
+              const base = position === -1 ? 0 : position;
+              return selectable[
+                (base + step + selectable.length) % selectable.length
+              ];
+            })();
+
+    focusPill(target.optionIndex);
+    // Arrows pick, never clear — `allowDeselect` is a clicking affordance.
+    if (!selectedSet.has(target.option.value)) handleToggle(target.option);
+  };
+
   return (
     <fieldset
       className={classNames("flex flex-col", className)}
       disabled={disabled}
+      // In single mode the fieldset *is* the radiogroup — one element, one
+      // role, named by its own legend (overriding the implicit `group`).
+      role={isSingle ? "radiogroup" : undefined}
+      aria-labelledby={legend ? legendId : undefined}
     >
       {legend && (
         <legend
+          id={legendId}
           className={classNames(
             "text-sm font-medium",
             surfaceText.heading,
@@ -175,20 +242,33 @@ const MultiSelectPills: React.FC<MultiSelectPillsProps> = ({
       )}
 
       <div
-        className={classNames("flex flex-wrap", GAP_CLASSES[gap] ?? GAP_CLASSES.sm)}
+        ref={pillsRef}
+        className={classNames(
+          "flex flex-wrap",
+          GAP_CLASSES[gap] ?? GAP_CLASSES.sm,
+        )}
       >
         {options.map((option, index) => {
           const isSelected = selectedSet.has(option.value);
+          const optionDisabled = isOptionDisabled(option);
+          // Roving tabindex for the radio group: the selected pill is the
+          // tab stop — or, with nothing selected, the first usable one.
+          const radioTabIndex = optionDisabled
+            ? -1
+            : isSelected ||
+                (selectedValues.length === 0 && index === firstSelectableIndex)
+              ? 0
+              : -1;
           return (
             <React.Fragment key={option.value}>
               {/* Carries the value to a form submit only. The Pill beside it
                   owns the semantics, so this is hidden from assistive tech
-                  rather than announced a second time. `readonly` was also
-                  inert here — it does nothing on a checkbox. */}
+                  rather than announced a second time. Single mode submits a
+                  plain radio field (`name`, no `[]`) to match its semantics. */}
               <input
                 id={`${generatedId}-${name}-${index}`}
-                type="checkbox"
-                name={`${name}[]`}
+                type={isSingle ? "radio" : "checkbox"}
+                name={isSingle ? name : `${name}[]`}
                 value={option.value}
                 checked={isSelected}
                 onChange={() => handleToggle(option)}
@@ -199,20 +279,29 @@ const MultiSelectPills: React.FC<MultiSelectPillsProps> = ({
               {/* Renders the kit's own Pill rather than a second
                   implementation of one. The old inline version carried a
                   hand-written 21-colour map in which `red` painted rose and
-                  `green` painted emerald. */}
+                  `green` painted emerald. The role makes the pill say what
+                  it is: `aria-pressed` on a control that submits checkboxes
+                  described a toggle button, not a form value. */}
               <Pill
-                tone={color}
+                tone={resolvedTone}
                 variant={isSelected ? variant : unselectedVariant}
                 size={size}
-                corner={rounded}
+                corner={resolvedCorner}
                 icon={isSelected && checkmark ? "Check" : option.icon}
-                disabled={isOptionDisabled(option)}
+                disabled={optionDisabled}
                 glassOpacity={glassOpacity}
                 vibrancy={vibrancy}
                 specularMode={specularMode}
+                role={isSingle ? "radio" : "checkbox"}
+                aria-checked={isSelected}
+                tabIndex={isSingle ? radioTabIndex : undefined}
+                onKeyDown={
+                  isSingle
+                    ? (event) => handleRadioKeyDown(event, index)
+                    : undefined
+                }
                 onClick={() => handleToggle(option)}
-                aria-pressed={isSelected}
-                aria-disabled={isOptionDisabled(option) || undefined}
+                aria-disabled={optionDisabled || undefined}
               >
                 {option.label}
                 {option.description && (

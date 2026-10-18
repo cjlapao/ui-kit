@@ -4,14 +4,20 @@ import { resolve } from "node:path";
 import {
   TRUE_COLORS,
   getBadgeColorClasses,
+  getBreadcrumbToneTokens,
+  getAppDividerToneTokens,
+  getCollapsibleHelpToneTokens,
   getMultiToggleColorTokens,
   getMultiToggleVariantTokens,
   getPanelToneStyles,
   getPillColorClasses,
+  getSidebarSurfaceTokens,
+  getSideMenuItemTokens,
   getStatTileColorClasses,
   getStepperTonePalette,
   getSurfaceTriggerTokens,
   getTabsColorTokens,
+  type SidebarVariant,
 } from "./Theme";
 
 /**
@@ -52,8 +58,21 @@ const generatedClasses = (): Set<string> => {
     collect(getStepperTonePalette(tone), out);
     collect(getBadgeColorClasses(tone), out);
     collect(getSurfaceTriggerTokens(tone), out);
+    collect(getBreadcrumbToneTokens(tone), out);
+    collect(getCollapsibleHelpToneTokens(tone), out);
+    collect(getAppDividerToneTokens(tone), out);
+    collect(getSideMenuItemTokens(tone), out);
     for (const variant of ["solid", "soft", "outline"] as const) {
       collect(getPillColorClasses(tone, variant), out);
+    }
+    for (const variant of [
+      "sidebar",
+      "inset",
+      "floating",
+      "glass",
+      "floating-glass",
+    ] satisfies SidebarVariant[]) {
+      collect(getSidebarSurfaceTokens(variant, tone), out);
     }
   }
   return out;

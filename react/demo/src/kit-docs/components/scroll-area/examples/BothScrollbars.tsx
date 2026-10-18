@@ -41,11 +41,22 @@ export default function BothScrollbars() {
         </thead>
         <tbody>
           {CITIES.map(([city, state, population, area]) => (
-            <tr key={city} className="odd:bg-neutral-50 dark:odd:bg-neutral-800/40">
-              <td className="whitespace-nowrap border-b border-neutral-100 px-4 py-2 font-medium dark:border-neutral-800">{city}</td>
-              <td className="border-b border-neutral-100 px-4 py-2 text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">{state}</td>
-              <td className="border-b border-neutral-100 px-4 py-2 tabular-nums dark:border-neutral-800">{population.toLocaleString()}</td>
-              <td className="border-b border-neutral-100 px-4 py-2 tabular-nums dark:border-neutral-800">{area.toLocaleString()}</td>
+            <tr
+              key={city}
+              className="odd:bg-neutral-50 dark:odd:bg-neutral-800/40"
+            >
+              <td className="whitespace-nowrap border-b border-neutral-100 px-4 py-2 font-medium dark:border-neutral-800">
+                {city}
+              </td>
+              <td className="border-b border-neutral-100 px-4 py-2 text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+                {state}
+              </td>
+              <td className="border-b border-neutral-100 px-4 py-2 tabular-nums dark:border-neutral-800">
+                {population.toLocaleString()}
+              </td>
+              <td className="border-b border-neutral-100 px-4 py-2 tabular-nums dark:border-neutral-800">
+                {area.toLocaleString()}
+              </td>
             </tr>
           ))}
         </tbody>

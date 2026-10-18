@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Table, MultiToggle } from "@cjlapao/ui-kit";
+import { ColorSwatches, Table, MultiToggle } from "@cjlapao/ui-kit";
 import type {
   SurfaceVariant,
   TableDensity,
@@ -16,6 +16,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   surfaceVariantOptions,
   tableDensityOptions,
@@ -32,16 +33,63 @@ type ServiceRow = {
 };
 
 const ROWS: ServiceRow[] = [
-  { id: "1", service: "api-gateway", owner: "platform", region: "eu-west", status: "healthy", uptime: 99.99 },
-  { id: "2", service: "billing", owner: "payments", region: "eu-west", status: "degraded", uptime: 98.21 },
-  { id: "3", service: "search", owner: "discovery", region: "us-east", status: "healthy", uptime: 99.95 },
-  { id: "4", service: "notifications", owner: "comms", region: "us-east", status: "healthy", uptime: 99.87 },
-  { id: "5", service: "auth", owner: "platform", region: "eu-west", status: "healthy", uptime: 100 },
+  {
+    id: "1",
+    service: "api-gateway",
+    owner: "platform",
+    region: "eu-west",
+    status: "healthy",
+    uptime: 99.99,
+  },
+  {
+    id: "2",
+    service: "billing",
+    owner: "payments",
+    region: "eu-west",
+    status: "degraded",
+    uptime: 98.21,
+  },
+  {
+    id: "3",
+    service: "search",
+    owner: "discovery",
+    region: "us-east",
+    status: "healthy",
+    uptime: 99.95,
+  },
+  {
+    id: "4",
+    service: "notifications",
+    owner: "comms",
+    region: "us-east",
+    status: "healthy",
+    uptime: 99.87,
+  },
+  {
+    id: "5",
+    service: "auth",
+    owner: "platform",
+    region: "eu-west",
+    status: "healthy",
+    uptime: 100,
+  },
 ];
 
 const COLUMNS: TableColumn<ServiceRow>[] = [
-  { id: "service", header: "Service", accessor: "service", sortable: true, groupable: true },
-  { id: "owner", header: "Owner", accessor: "owner", sortable: true, groupable: true },
+  {
+    id: "service",
+    header: "Service",
+    accessor: "service",
+    sortable: true,
+    groupable: true,
+  },
+  {
+    id: "owner",
+    header: "Owner",
+    accessor: "owner",
+    sortable: true,
+    groupable: true,
+  },
   { id: "region", header: "Region", accessor: "region", sortable: true },
   {
     id: "uptime",
@@ -79,6 +127,8 @@ const COLUMNS: TableColumn<ServiceRow>[] = [
 
 export const TablePlayground: React.FC = () => {
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
+  // "auto" = the toolbar menus follow the table's surface.
+  const [panelVariant, setPanelVariant] = useState<string>("auto");
   const [tone, setTone] = useState<PanelTone>("neutral");
   // "" = the interior controls follow the table tone.
   const [controlTone, setControlTone] = useState("");
@@ -97,6 +147,7 @@ export const TablePlayground: React.FC = () => {
   // the toggle is there to show the opt-in in action.
   const [persist, setPersist] = useState(true);
   const [saved, setSaved] = useState<TableSettings | null>(null);
+  const [log, pushLog] = useEventLog();
 
   return (
     <PlaygroundPanel
@@ -116,11 +167,27 @@ export const TablePlayground: React.FC = () => {
                       onChange={(value) => setVariant(value as SurfaceVariant)}
                     />
                     <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(value) => setTone(value as PanelTone)}
+                      label="Menus surface"
+                      options={[
+                        {
+                          label: "Auto (follows the table)",
+                          value: "auto",
+                        },
+                        ...surfaceVariantOptions,
+                      ]}
+                      value={panelVariant}
+                      onChange={setPanelVariant}
                     />
+                    {/* Colour is a palette, not a dropdown of colour names. */}
+                    <Control label="Tone">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={tone}
+                        onSelect={(value) => setTone(value as PanelTone)}
+                        defaultExpanded
+                      />
+                    </Control>
                     <SelectControl
                       label="Control tone"
                       options={[
@@ -157,7 +224,9 @@ export const TablePlayground: React.FC = () => {
                           { label: "Skeleton", value: "skeleton" },
                         ]}
                         value={loaderType}
-                        onChange={(value) => setLoaderType(value as TableLoaderType)}
+                        onChange={(value) =>
+                          setLoaderType(value as TableLoaderType)
+                        }
                       />
                     </Control>
                     {loaderType === "progress" && (
@@ -180,39 +249,71 @@ export const TablePlayground: React.FC = () => {
                 title: "Options",
                 controls: (
                   <div className="grid grid-cols-1 gap-2">
-                    <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
-                    <ToggleRow label="Bordered grid" checked={bordered} onChange={setBordered} />
-                    <ToggleRow label="Striped rows" checked={striped} onChange={setStriped} />
-                    <ToggleRow label="Row hover" checked={hoverable} onChange={setHoverable} />
+                    <ToggleRow
+                      label="Loading"
+                      checked={loading}
+                      onChange={setLoading}
+                    />
+                    <ToggleRow
+                      label="Bordered grid"
+                      checked={bordered}
+                      onChange={setBordered}
+                    />
+                    <ToggleRow
+                      label="Striped rows"
+                      checked={striped}
+                      onChange={setStriped}
+                    />
+                    <ToggleRow
+                      label="Row hover"
+                      checked={hoverable}
+                      onChange={setHoverable}
+                    />
                     <ToggleRow
                       label="Column selector"
                       checked={columnSelector}
                       onChange={setColumnSelector}
                     />
-                    <ToggleRow label="Group by" checked={groupable} onChange={setGroupable} />
+                    <ToggleRow
+                      label="Group by"
+                      checked={groupable}
+                      onChange={setGroupable}
+                    />
                     <ToggleRow
                       label="Sticky columns"
                       checked={stickyColumns}
                       onChange={setStickyColumns}
                     />
-                    <ToggleRow label="Column resize" checked={resizable} onChange={setResizable} />
-                    <ToggleRow label="Persist settings" checked={persist} onChange={setPersist} />
+                    <ToggleRow
+                      label="Column resize"
+                      checked={resizable}
+                      onChange={setResizable}
+                    />
+                    <ToggleRow
+                      label="Persist settings"
+                      checked={persist}
+                      onChange={setPersist}
+                    />
                   </div>
                 ),
               },
             ]}
           />
+          <EventLogControl
+            log={log}
+            emptyText="No events yet — callbacks report through here."
+          />
           <p className="text-xs opacity-70">
-            Toggle <code>Loading</code> to preview the three Panel-style
-            loaders — the spinner/progress overlay stays pinned to the card
-            while the content scrolls (the preview has a fixed height, so
-            scroll it to check), and the skeleton replaces the rows with
-            pulsing placeholders.
+            Toggle <code>Loading</code> to preview the three Panel-style loaders
+            — the spinner/progress overlay stays pinned to the card while the
+            content scrolls (the preview has a fixed height, so scroll it to
+            check), and the skeleton replaces the rows with pulsing
+            placeholders.
             <br />
             With <code>storageKey</code> set, column visibility, column widths,
             group-by, pinned columns and the active view are written to{" "}
-            <code>localStorage</code> under{" "}
-            <code>ui-kit:table:playground</code> and restored on the next mount.
+            <code>localStorage</code> under <code>ui-kit:table:playground</code>{" "}
+            and restored on the next mount.
             {saved ? ` Last save: ${JSON.stringify(saved)}` : ""}
           </p>
         </div>
@@ -224,6 +325,7 @@ export const TablePlayground: React.FC = () => {
             data={ROWS}
             rowKey={(row) => row.id}
             variant={variant}
+            panelVariant={panelVariant as "auto" | SurfaceVariant}
             tone={tone}
             color={controlTone ? (controlTone as TrueColor) : undefined}
             density={density}
@@ -236,7 +338,20 @@ export const TablePlayground: React.FC = () => {
             resizableColumns={resizable}
             showGroupHeader
             storageKey={persist ? "playground" : undefined}
-            onTableSettingsChange={setSaved}
+            onSortChange={(sort) =>
+              pushLog(
+                sort
+                  ? `onSortChange \u2192 ${sort.columnId} ${
+                      sort.direction === "asc" ? "\u2191" : "\u2193"
+                    }`
+                  : "onSortChange \u2192 cleared",
+              )
+            }
+            onRowClick={(row) => pushLog(`onRowClick \u2192 ${row.service}`)}
+            onTableSettingsChange={(next) => {
+              setSaved(next);
+              pushLog("onTableSettingsChange \u2192 saved");
+            }}
             maxHeight={420}
             loading={loading}
             loadingMessage="Loading services…"
@@ -248,7 +363,6 @@ export const TablePlayground: React.FC = () => {
           />
         </div>
       }
-    >
-    </PlaygroundPanel>
+    ></PlaygroundPanel>
   );
 };

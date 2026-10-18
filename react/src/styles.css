@@ -22,9 +22,15 @@
    they are not standard utility values. Emit as raw CSS in the
    @layer utilities block.  */
 @layer utilities {
-  .backdrop-saturate-\[1\]  { --tw-backdrop-saturate: saturate(1); }
-  .backdrop-saturate-\[1\.2\] { --tw-backdrop-saturate: saturate(1.2); }
-  .backdrop-saturate-\[1\.4\] { --tw-backdrop-saturate: saturate(1.4); }
+  .backdrop-saturate-\[1\] {
+    --tw-backdrop-saturate: saturate(1);
+  }
+  .backdrop-saturate-\[1\.2\] {
+    --tw-backdrop-saturate: saturate(1.2);
+  }
+  .backdrop-saturate-\[1\.4\] {
+    --tw-backdrop-saturate: saturate(1.4);
+  }
   /* ---- GlassBackground shimmer ----
      A specular streak, not a sliding rectangle: skewed so it reads as light
      glancing across the surface, with a narrow bright core falling off to
@@ -86,8 +92,13 @@
 
   /* ---- GlassBackground ambient pulse (optional) ---- */
   @keyframes ambient-pulse {
-    0%, 100% { opacity: 0.35; }
-    50%      { opacity: 0.55; }
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 0.55;
+    }
   }
   .ambient-pulse {
     animation: ambient-pulse 6s ease-in-out infinite;
@@ -285,6 +296,15 @@
     display: none;
   }
 
+  /* A multiple list box grows to its rows instead of keeping Chrome's
+     built-in ~4-row scroller — the ScrollArea frame wrapped around it by the
+     component then owns the scrollbar, and the rows keep their padding
+     instead of sliding under a platform bar. Without this, `auto` is the
+     UA's fixed viewport height, not the content's. */
+  .ui-select[multiple] {
+    height: fit-content;
+  }
+
   .ui-select::picker(select) {
     /* Matches Panel's `rounded-md` (1rem) and the kit's elevated surface. */
     border: 1px solid var(--color-neutral-200);
@@ -301,7 +321,9 @@
     font-size: 0.875rem;
     /* Chrome animates the picker open by default; keep it, but let a
        reduced-motion preference switch it off (see the media query below). */
-    transition: opacity 120ms ease-out, overlay 120ms allow-discrete,
+    transition:
+      opacity 120ms ease-out,
+      overlay 120ms allow-discrete,
       display 120ms allow-discrete;
     opacity: 1;
   }
@@ -317,10 +339,16 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.4375rem 0.625rem;
+    /* The hover/selected highlight paints the whole box, so breathing room
+       must live in the margin — padding only grows the highlight until the
+       rows touch again. Without it the list reads as a solid slab. */
+    margin-block: 0.125rem;
     border-radius: 0.5rem;
     color: var(--color-neutral-800);
     cursor: pointer;
-    transition: background-color 120ms ease-out, color 120ms ease-out;
+    transition:
+      background-color 120ms ease-out,
+      color 120ms ease-out;
   }
 
   .ui-select option:hover,
@@ -412,6 +440,31 @@
 
   :where(.dark) .ui-select optgroup {
     color: var(--color-neutral-400);
+  }
+}
+
+/* The fill for the browsers *without* `appearance: base-select`: there the
+   open list is painted by the platform from the options' own background, and
+   the transparent select would give a white sheet in dark mode — so options
+   must carry an opaque one. Where base-select exists this must match
+   nothing: an opaque row background is precisely what kills the styled
+   rows' hover/selected washes and turns a glass list into white slabs.
+   (It used to be an unconditional `[&>option]:bg-white` utility on the
+   component, so it painted in both worlds.) */
+@supports not (appearance: base-select) {
+  .ui-select > option {
+    background-color: var(--color-white);
+    color: var(--color-neutral-900);
+  }
+  .ui-select > optgroup {
+    background-color: var(--color-white);
+  }
+  :where(.dark) .ui-select > option {
+    background-color: var(--color-neutral-900);
+    color: var(--color-neutral-100);
+  }
+  :where(.dark) .ui-select > optgroup {
+    background-color: var(--color-neutral-900);
   }
 }
 
@@ -612,12 +665,12 @@
   .timeline-row-enter,
   .timeline-rail-draw,
   .timeline-current-pulse,
-    .progress-shimmer,
-    .progress-stripes,
-    .progress-indeterminate,
-    .progress-spinner-rotate,
-    .progress-spinner-dash,
-    .animate-shimmer,
+  .progress-shimmer,
+  .progress-stripes,
+  .progress-indeterminate,
+  .progress-spinner-rotate,
+  .progress-spinner-dash,
+  .animate-shimmer,
   .shimmer-band,
   .ambient-pulse {
     animation: none !important;
@@ -698,7 +751,9 @@
   /* Off the edge of the screen beyond the corner, ready to slide in. */
   transform: translateX(var(--kt-offset-x))
     translateY(calc(100% * var(--kt-raise-factor, 1) * -1));
-  transition: transform var(--kt-duration), opacity var(--kt-duration),
+  transition:
+    transform var(--kt-duration),
+    opacity var(--kt-duration),
     height var(--kt-duration);
 }
 
@@ -799,7 +854,10 @@
   user-select: none;
   transform: translateX(var(--kt-offset-x))
     translateY(
-      calc(var(--kt-raise-factor, 1) * (var(--kt-index, 0) * var(--kt-gap, 12px) + 100%))
+      calc(
+        var(--kt-raise-factor, 1) *
+          (var(--kt-index, 0) * var(--kt-gap, 12px) + 100%)
+      )
     )
     scale(calc(var(--kt-index, 0) * -0.05 + 1));
 }
@@ -819,12 +877,12 @@
   transform: translateX(var(--kt-offset-x))
     translateY(calc(var(--kt-raise-factor, 1) * -100%));
 }
-.kit-toast-message[data-removed]:not([data-front]):not([data-swipe-out])[data-expanded] {
+.kit-toast-message[data-removed]:not([data-front]):not(
+    [data-swipe-out]
+  )[data-expanded] {
   opacity: 0;
   transform: translateX(var(--kt-offset-x))
-    translateY(
-      calc(var(--kt-offset-y) + var(--kt-raise-factor, 1) * -100%)
-    );
+    translateY(calc(var(--kt-offset-y) + var(--kt-raise-factor, 1) * -100%));
 }
 .kit-toast-message[data-removed]:not([data-front]):not([data-swipe-out]):not(
     [data-expanded]
@@ -832,7 +890,8 @@
   opacity: 0;
   transform: translateX(var(--kt-offset-x))
     translateY(calc(var(--kt-raise-factor, 1) * 40% * -1));
-  transition: transform var(--kt-removed-transform),
+  transition:
+    transform var(--kt-removed-transform),
     opacity var(--kt-removed-opacity);
 }
 
@@ -840,8 +899,7 @@
    off along the drag direction; everything else springs back. */
 .kit-toast-message[data-swiping] {
   transition: none;
-  transform: translateX(var(--kt-offset-x)) translateY(var(--kt-offset-y))
-    !important;
+  transform: translateX(var(--kt-offset-x)) translateY(var(--kt-offset-y)) !important;
 }
 .kit-toast-message[data-swiped] {
   -webkit-user-select: none;
@@ -876,4 +934,10 @@
     --kt-removed-transform: 0s;
     --kt-removed-opacity: 0s;
   }
+}
+/* Tabs: the actions lane caps at a fifth of the bar. A bracket arbitrary
+   value survives neither the runtime templates nor inline() (its `[ ]` read
+   as safelist syntax), so it is a named utility. */
+@utility tab-actions-cap {
+  max-width: 20%;
 }

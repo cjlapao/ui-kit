@@ -191,7 +191,12 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
   // invisible to anyone driving the page from the keyboard. The child still
   // has to be focusable for this to fire — give it `tabIndex={0}` when it is
   // not natively so.
+  const tooltipId = React.useId();
   const child = React.cloneElement(children, {
+    // The WAI pattern for tooltips: the relationship is declared only while
+    // the tooltip exists — a permanent `aria-describedby` to an absent id is
+    // a dangling reference most readers skip silently.
+    "aria-describedby": visible && text ? tooltipId : undefined,
     onMouseEnter: show,
     onMouseLeave: hide,
     onFocus: show,
@@ -210,6 +215,7 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
         createPortal(
           <div
             ref={tooltipRef}
+            id={tooltipId}
             role="tooltip"
             data-side={side}
             style={{

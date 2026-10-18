@@ -14,6 +14,7 @@ import {
 } from "../utils/tableStorage";
 import type { TableSettings } from "../types/TableSettings";
 import { TRUE_COLORS, NEUTRAL_TONES } from "../theme";
+import { I18nProvider } from "../i18n";
 
 type Row = { id: number; name: string; role: string; age: number };
 
@@ -45,8 +46,7 @@ function memoryStorage(): TableStorageAdapter & { store: Map<string, string> } {
   };
 }
 
-const firstTh = (container: HTMLElement) =>
-  container.querySelector("th")!;
+const firstTh = (container: HTMLElement) => container.querySelector("th")!;
 const thByHeader = (container: HTMLElement, header: string) => {
   const ths = Array.from(container.querySelectorAll("th"));
   return ths.find((th) => th.textContent?.includes(header))!;
@@ -145,7 +145,9 @@ describe("tableStorage — safe adapter", () => {
 describe("Table — surface family", () => {
   it("defaults to the outlined panel surface", () => {
     const { container } = render(<Table columns={baseColumns} data={rows} />);
-    expect(container.querySelector("section[data-variant='outlined']")).not.toBeNull();
+    expect(
+      container.querySelector("section[data-variant='outlined']"),
+    ).not.toBeNull();
   });
 
   it("forwards the panel family variant and tone", () => {
@@ -231,7 +233,12 @@ describe("Table — translucent surfaces", () => {
 
   it("keeps the header band and footer see-through on glass", () => {
     const { container } = render(
-      <Table columns={baseColumns} data={rows} variant="glass" footer={footer} />,
+      <Table
+        columns={baseColumns}
+        data={rows}
+        variant="glass"
+        footer={footer}
+      />,
     );
     // header band: the neutral tone steps down to a white veil, not paper-white
     expect(firstTh(container).className).toContain("bg-white/20");
@@ -400,7 +407,13 @@ describe("Table — tone-tinted rows", () => {
 
   it("gives a striped row the deeper hover step in the table tone", () => {
     const { container } = render(
-      <Table columns={baseColumns} data={rows} tone="emerald" striped hoverable />,
+      <Table
+        columns={baseColumns}
+        data={rows}
+        tone="emerald"
+        striped
+        hoverable
+      />,
     );
     const stripedTd = rowBy(container, "Ava").querySelector("td")!;
     expect(stripedTd.className).toContain("group-hover:bg-emerald-100/80");
@@ -479,7 +492,12 @@ describe("Table — built-in persistence", () => {
       encodeStoredSettings({ columnVisibility: { role: false } }),
     );
     const { container } = render(
-      <Table columns={baseColumns} data={rows} storageKey="users" storage={storage} />,
+      <Table
+        columns={baseColumns}
+        data={rows}
+        storageKey="users"
+        storage={storage}
+      />,
     );
     expect(thByHeader(container, "Role")).toBeUndefined();
   });
@@ -505,7 +523,9 @@ describe("Table — built-in persistence", () => {
     const stored = decodeStoredSettings(storage.getItem(key));
     expect(stored?.columnVisibility?.role).toBe(false);
     expect(onSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ columnVisibility: expect.objectContaining({ role: false }) }),
+      expect.objectContaining({
+        columnVisibility: expect.objectContaining({ role: false }),
+      }),
     );
     void container;
   });
@@ -567,7 +587,7 @@ describe("Table — built-in persistence", () => {
       screen.getByRole("button", { name: "Toggle column visibility" }),
     );
     fireEvent.click(screen.getByLabelText("Role"));
-    fireEvent.click(screen.getByRole("button", { name: "Reset to default" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
 
     const stored = decodeStoredSettings(storage.getItem(key));
     expect(stored?.columnVisibility?.role).toBe(true);
@@ -604,7 +624,9 @@ describe("Table — sorting", () => {
 
   it("marks sortable-but-unsorted columns with aria-sort=other", () => {
     const { container } = render(<Table columns={sortCols} data={rows} />);
-    expect(thByHeader(container, "Name").getAttribute("aria-sort")).toBe("other");
+    expect(thByHeader(container, "Name").getAttribute("aria-sort")).toBe(
+      "other",
+    );
     expect(thByHeader(container, "Age").getAttribute("aria-sort")).toBe("none");
   });
 
@@ -614,8 +636,7 @@ describe("Table — sorting", () => {
       <Table columns={sortCols} data={rows} onSortChange={onSort} />,
     );
     const th = thByHeader(container, "Name");
-    const button = () =>
-      screen.getByRole("button", { name: "Toggle sort" });
+    const button = () => screen.getByRole("button", { name: "Toggle sort" });
 
     fireEvent.click(button());
     expect(th.getAttribute("aria-sort")).toBe("ascending");
@@ -657,9 +678,7 @@ describe("Table — pagination", () => {
 
   it("offers the active page size even when it is not a preset", () => {
     render(<Table columns={baseColumns} data={rows} pagination={pagination} />);
-    const options = screen
-      .getAllByRole("option")
-      .map((o) => o.textContent);
+    const options = screen.getAllByRole("option").map((o) => o.textContent);
     expect(options).toContain("25 per page");
     expect(options).toContain("20 per page");
   });
@@ -791,5 +810,153 @@ describe("Table — loading", () => {
       <Table columns={baseColumns} data={rows} loading />,
     );
     expect(container.querySelector("[aria-busy='true']")).toBeTruthy();
+  });
+});
+
+// ── Kit defaults & the i18n sweep ────────────────────────────────────────────
+
+describe("Table — kit voice", () => {
+  it("the plain table's accent is the kit default blue", () => {
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        rowKey={(r) => r.id}
+        selectedItems={[rows[0]]}
+      />,
+    );
+    const tr = Array.from(container.querySelectorAll("tbody tr")).find((t) =>
+      t.textContent?.includes("Zoe"),
+    )!;
+    expect(tr.className).toContain("bg-blue-50");
+    // ...while the chrome washes stay neutral: the header of a default
+    // table must not read as a blue table.
+    expect(firstTh(container).className).toContain("bg-neutral-50");
+  });
+
+  it("the settings menus sit on the table's own surface", () => {
+    const renderCols = (
+      props: {
+        variant?: "glass" | "outlined";
+        panelVariant?: "auto" | "glass" | "outlined";
+        panelTone?: "auto" | "violet";
+      } = {},
+    ) =>
+      render(
+        <Table<Row>
+          columns={baseColumns}
+          data={rows}
+          showColumnSelector
+          {...props}
+        />,
+      );
+    const openMenu = () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Toggle column visibility" }),
+      );
+      // The wrapper is the fixed-position portal shell; the surface lives
+      // on the Panel inside it.
+      return screen
+        .getByRole("button", { name: "Clear all" })
+        .closest('[data-slot="table-menu"]')!.firstElementChild as HTMLElement;
+    };
+
+    // Auto: the menu wears the table's surface family. A glass table
+    // lands on the frosted popup surface - glass chrome over a white page
+    // is a transparent sheet, and a menu must stay readable - while an
+    // outlined one opens outlined menus.
+    const utils = renderCols({ variant: "glass" });
+    const glassMenu = openMenu().className;
+    expect(glassMenu).toContain("backdrop-blur");
+    expect(glassMenu).toContain("bg-white/80");
+    expect(glassMenu).not.toContain("bg-neutral-50/50");
+    utils.unmount();
+
+    const plain = renderCols({ variant: "outlined" });
+    const plainMenu = openMenu();
+    expect(plainMenu.className).toContain("bg-white/90");
+    expect(plainMenu.className).not.toContain("backdrop-blur");
+    // The list scrolls with the kit's overlay bars, not a native gutter.
+    expect(plainMenu.querySelector('[data-slot="scrollarea"]')).not.toBeNull();
+    plain.unmount();
+
+    // And either channel can be pinned over the table's look.
+    const pinned = renderCols({
+      variant: "glass",
+      panelVariant: "outlined",
+      panelTone: "violet",
+    });
+    const pinnedCls = openMenu().className;
+    expect(pinnedCls).toContain("bg-white/90");
+    expect(pinnedCls).not.toContain("backdrop-blur");
+    pinned.unmount();
+
+    // Pinning glass is the opt-in to the literal chrome - frosted popup
+    // or full glass, the caller decides.
+    const glassed = renderCols({ variant: "glass", panelVariant: "glass" });
+    expect(openMenu().className).toContain("bg-neutral-50/50");
+    glassed.unmount();
+  });
+
+  it("the whole console speaks the locale", () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        {children}
+      </I18nProvider>
+    );
+    render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        pagination={{
+          page: 1,
+          pageSize: 2,
+          total: 3,
+          onPageChange: () => {},
+          onPageSizeChange: () => {},
+        }}
+      />,
+      { wrapper: Wrapper },
+    );
+    expect(
+      screen.getByText("Zeige 1 bis 2 von 3 Ergebnissen"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Seite 1 von 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Zurück" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Weiter" })).toBeEnabled();
+    expect(screen.getByRole("option", { name: "20 pro Seite" })).toBeTruthy();
+    expect(
+      screen.getAllByRole("button", { name: "Sortierung umschalten" }).length,
+    ).toBeGreaterThan(0);
+  });
+});
+
+describe("Table — menu dismissal", () => {
+  it("Escape closes the open settings menu before the host sees it", () => {
+    render(
+      <Table columns={baseColumns} data={rows} groupable showColumnSelector />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Toggle column visibility" }),
+    );
+    expect(screen.getByRole("button", { name: "Clear all" })).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull();
+  });
+});
+
+describe("Table — floating menus", () => {
+  it("the menus are portaled popups, not rows in the header", () => {
+    render(<Table columns={baseColumns} data={rows} showColumnSelector />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Toggle column visibility" }),
+    );
+    const popup = document.querySelector('[data-slot="table-menu"]')!;
+    expect(popup.parentElement).toBe(document.body);
+    expect(popup.className.split(" ")).toContain("fixed");
+    // And it still belongs to its button: clicking inside the popup must
+    // not count as clicking outside it.
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Clear all" }));
+    expect(document.querySelector('[data-slot="table-menu"]')).not.toBeNull();
   });
 });

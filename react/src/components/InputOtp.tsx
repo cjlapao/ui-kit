@@ -11,19 +11,56 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { TRUE_COLORS } from "../theme/Theme";
-import type { ControlSize, TrueColor } from "../theme/Theme";
+import {
+  DEFAULT_GLOW_INTENSITY,
+  getFieldToneTokens,
+  getGlowTokens,
+  getInputVariantTokens,
+  resolveGlowGradient,
+} from "../theme/Theme";
+import type {
+  ControlSize,
+  GlowIntensity,
+  InputVariant,
+  TrueColor,
+} from "../theme/Theme";
+import { useKitT } from "../i18n";
+import type { PillCorner } from "./Pill";
 
-export const OTP_VARIANTS = ["outlined", "filled"] as const;
-export type InputOtpVariant = (typeof OTP_VARIANTS)[number];
+/**
+ * The shared input surface family — the cells really are fields, so they
+ * take the same six surfaces every other input does (`glass` blurs,
+ * `gradient` glows behind the whole group).
+ */
+export const OTP_VARIANTS = [
+  "flat",
+  "elevated",
+  "ghost",
+  "underline",
+  "glass",
+  "gradient",
+] as const satisfies readonly InputVariant[];
+export type InputOtpVariant = InputVariant;
+
+/** The pre-standardisation surface pair. */
+export type LegacyInputOtpVariant = "outlined" | "filled";
+
+const LEGACY_VARIANT_FOR: Record<LegacyInputOtpVariant, InputVariant> = {
+  // `outlined` was a flat border; `filled` was a soft neutral fill — the
+  // ghost surface, tone-tinted like the rest of the family now.
+  outlined: "flat",
+  filled: "ghost",
+};
 
 export type InputOtpSize = ControlSize;
 
 /** Maximum number of cells, so a typo in `length` cannot render a wall. */
 const MAX_LENGTH = 20;
 
-export interface InputOtpProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
+export interface InputOtpProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "onChange"
+> {
   /** The full code, one character per cell. */
   value?: string;
   /** Initial code when uncontrolled. */
@@ -38,18 +75,38 @@ export interface InputOtpProps
   mask?: boolean;
   /** Accept 0–9 only, and hint a numeric keyboard. */
   integerOnly?: boolean;
-  /** @default "outlined" */
-  variant?: InputOtpVariant;
+  /**
+   * The shared input surface family for the cells. The deprecated
+   * `"outlined"` / `"filled"` resolve to `flat` / `ghost`.
+   * @default "flat"
+   */
+  variant?: InputOtpVariant | LegacyInputOtpVariant;
   /** @default "md" */
   size?: InputOtpSize;
+  /**
+   * Cell radius. `"auto"` keeps the size ladder's own rounding; the tokens
+   * come from the pill corner scale — the card-corner scale would turn a
+   * 28px square into a blob, for the reason `Pill` documents.
+   * @default "auto"
+   */
+  corner?: "auto" | PillCorner;
   /** Focus accent. @default "blue" */
   tone?: TrueColor;
+  /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
+  gradientFrom?: string;
+  /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
+  gradientTo?: string;
+  /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
+  glowIntensity?: GlowIntensity;
   invalid?: boolean;
   disabled?: boolean;
   readOnly?: boolean;
   /** Form field name, set on the first cell. */
   name?: string;
-  /** Accessible name for the cell group. @default "One-time password" */
+  /**
+   * Accessible name for the cell group.
+   * @default "One-time password" (`kit.inputotp.label`)
+   */
   ariaLabel?: string;
   /**
    * Replace the default cell. Spread `cell.inputProps` onto your own
@@ -69,47 +126,59 @@ export interface InputOtpCellContext {
   };
 }
 
-// ── Tone tokens ───────────────────────────────────────────────────────────────
-// Generated from the shared TrueColor list, the same way `Input` builds its,
-// so a new tone in the theme reaches the OTP without a hand-typed entry.
-
-type OtpToneTokens = {
-  focus: string;
-};
-
-const buildToneTokens = (color: TrueColor): OtpToneTokens => ({
-  // Inset ring: an outer ring is painted outside the border box and gets
-  // clipped by any `overflow: auto|hidden` ancestor (Panel bodies do).
-  focus: `focus:border-${color}-400 focus:ring-2 focus:ring-inset focus:ring-${color}-400/60`,
-});
-
-const TONE_TOKENS: Record<TrueColor, OtpToneTokens> = Object.fromEntries(
-  TRUE_COLORS.map((color) => [color, buildToneTokens(color)]),
-) as Record<TrueColor, OtpToneTokens>;
-
-const getToneTokens = (color: TrueColor): OtpToneTokens =>
-  TONE_TOKENS[color] ?? TONE_TOKENS.blue;
-
 // ── Surfaces ──────────────────────────────────────────────────────────────────
-
-const VARIANT_STYLES: Record<InputOtpVariant, string> = {
-  outlined:
-    "border border-neutral-300 bg-white dark:border-neutral-600 dark:bg-neutral-800",
-  filled: "border border-transparent bg-neutral-100 dark:bg-neutral-700/50",
-};
+// The cells are fields, so their surface and focus come from the shared
+// tables — `getInputVariantTokens` (all six surfaces, tone-tinted ghost
+// included) and `getFieldToneTokens` (the same static focus pair every
+// field emits, safelist-covered). The old local tone map generated
+// `focus:border-*` per tone and nothing else.
 
 const INVALID_CELL =
   "border-rose-500 focus:border-rose-500 focus:ring-rose-500/60 dark:border-rose-400 dark:focus:border-rose-400 dark:focus:ring-rose-400/60";
 
 const SIZE_STYLES: Record<
   InputOtpSize,
-  { cell: string; text: string; gap: string }
+  { cell: string; rounded: string; text: string; gap: string }
 > = {
-  xs: { cell: "h-7 w-7 rounded-md", text: "text-xs", gap: "gap-1.5" },
-  sm: { cell: "h-9 w-9 rounded-md", text: "text-sm", gap: "gap-1.5" },
-  md: { cell: "h-11 w-11 rounded-lg", text: "text-base", gap: "gap-2" },
-  lg: { cell: "h-14 w-14 rounded-lg", text: "text-xl", gap: "gap-2" },
-  xl: { cell: "h-16 w-16 rounded-xl", text: "text-2xl", gap: "gap-2.5" },
+  xs: {
+    cell: "h-7 w-7",
+    rounded: "rounded-md",
+    text: "text-xs",
+    gap: "gap-1.5",
+  },
+  sm: {
+    cell: "h-9 w-9",
+    rounded: "rounded-md",
+    text: "text-sm",
+    gap: "gap-1.5",
+  },
+  md: {
+    cell: "h-11 w-11",
+    rounded: "rounded-lg",
+    text: "text-base",
+    gap: "gap-2",
+  },
+  lg: {
+    cell: "h-14 w-14",
+    rounded: "rounded-lg",
+    text: "text-xl",
+    gap: "gap-2",
+  },
+  xl: {
+    cell: "h-16 w-16",
+    rounded: "rounded-xl",
+    text: "text-2xl",
+    gap: "gap-2.5",
+  },
+};
+
+/** The pill corner scale — see the `corner` prop doc. */
+const CELL_CORNERS: Record<PillCorner, string> = {
+  none: "rounded-none",
+  sm: "rounded-sm",
+  md: "rounded-md",
+  lg: "rounded-lg",
+  full: "rounded-full",
 };
 
 const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
@@ -121,32 +190,41 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     length = 4,
     mask = false,
     integerOnly = false,
-    variant = "outlined",
+    variant = "flat",
     size = "md",
+    corner = "auto",
     tone = "blue",
+    gradientFrom,
+    gradientTo,
+    glowIntensity = DEFAULT_GLOW_INTENSITY,
     invalid = false,
     disabled = false,
     readOnly = false,
     name,
-    ariaLabel = "One-time password",
+    ariaLabel,
     renderCell,
     className,
     ...rest
   },
   ref: ForwardedRef<HTMLDivElement>,
 ) {
+  const t = useKitT();
+  const groupLabel = ariaLabel ?? t("kit.inputotp.label");
   const clampedLength = Math.min(
     MAX_LENGTH,
     Math.max(1, Math.floor(Number.isFinite(length) ? length : 4)),
   );
 
   const isControlled = value !== undefined;
-  const [innerValue, setInnerValue] = useState(
-    () => (defaultValue ?? "").slice(0, clampedLength),
+  const [innerValue, setInnerValue] = useState(() =>
+    (defaultValue ?? "").slice(0, clampedLength),
   );
   const current = (isControlled ? value : innerValue) ?? "";
 
-  const chars = Array.from({ length: clampedLength }, (_, i) => current[i] ?? "");
+  const chars = Array.from(
+    { length: clampedLength },
+    (_, i) => current[i] ?? "",
+  );
 
   const cellRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -228,7 +306,18 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
       commit(next.join(""));
       if (target < clampedLength - 1) focusCell(target + 1);
     },
-    [chars, clampedLength, commit, current.length, disabled, distribute, focusCell, isAllowed, readOnly, setChar],
+    [
+      chars,
+      clampedLength,
+      commit,
+      current.length,
+      disabled,
+      distribute,
+      focusCell,
+      isAllowed,
+      readOnly,
+      setChar,
+    ],
   );
 
   const handleCellKeyDown = useCallback(
@@ -266,15 +355,40 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     [disabled, distribute, readOnly],
   );
 
-  const tokens = getToneTokens(tone);
+  const tokens = getInputVariantTokens(
+    variant === "outlined" || variant === "filled"
+      ? LEGACY_VARIANT_FOR[variant]
+      : variant,
+    tone,
+    // The family's corner scale is the card one; `corner` (below) overrides
+    // the radius on the pill scale, so the tokens stay on `auto`.
+    "auto",
+  );
+  const fieldTone = getFieldToneTokens(tone);
+  const glow = getGlowTokens(glowIntensity);
+  const [glowFrom, glowTo] = resolveGlowGradient(
+    tone,
+    gradientFrom,
+    gradientTo,
+  );
   const sizeTokens = SIZE_STYLES[size] ?? SIZE_STYLES.md;
 
   const cellClass = classNames(
-    "block appearance-none border bg-transparent p-0 text-center font-semibold text-neutral-900 outline-none transition disabled:cursor-not-allowed disabled:opacity-50 dark:text-neutral-50",
+    "block appearance-none border p-0 text-center font-semibold outline-none transition disabled:cursor-not-allowed disabled:opacity-50",
     sizeTokens.cell,
     sizeTokens.text,
-    VARIANT_STYLES[variant],
-    invalid ? INVALID_CELL : tokens.focus,
+    tokens.text,
+    // Swap the radius the surface token baked in for the size ladder's (or a
+    // pinned pill-scale corner) — the card radii blob small squares.
+    tokens.surface.replace(
+      /rounded-\S+/,
+      corner === "auto" ? sizeTokens.rounded : CELL_CORNERS[corner],
+    ),
+    // Inset ring: an outer ring is painted outside the border box and gets
+    // clipped by any `overflow: auto|hidden` ancestor (Panel bodies do).
+    // `focus-within:` matches an element's own focus, so the shared field
+    // pair works cell-wise.
+    invalid ? INVALID_CELL : `${fieldTone.focusBorder} ${fieldTone.focusRing}`,
   );
 
   const cellProps = (index: number): InputOtpCellContext["inputProps"] => ({
@@ -290,7 +404,12 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     autoComplete: index === 0 ? "one-time-code" : "off",
     inputMode: integerOnly ? "numeric" : undefined,
     pattern: integerOnly ? "[0-9]*" : undefined,
-    "aria-label": `${ariaLabel}, character ${index + 1} of ${clampedLength}`,
+    "aria-label": t("kit.inputotp.cell", {
+      label: groupLabel,
+      index: index + 1,
+      total: clampedLength,
+    }),
+    "aria-invalid": invalid || undefined,
     onChange: (event) => handleCellChange(index, event),
     onKeyDown: (event) => handleCellKeyDown(index, event),
     onPaste: (event) => handleCellPaste(index, event),
@@ -303,12 +422,16 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     onBlur: () => setFocusedIndex(-1),
   });
 
-  return (
+  const group = (
     <div
       ref={ref}
       role="group"
-      aria-label={ariaLabel}
-      className={classNames("inline-flex items-center", sizeTokens.gap, className)}
+      aria-label={groupLabel}
+      className={classNames(
+        "inline-flex items-center",
+        sizeTokens.gap,
+        className,
+      )}
       {...rest}
     >
       {Array.from({ length: clampedLength }, (_, index) => {
@@ -320,12 +443,46 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
           inputProps: cellProps(index),
         };
         if (renderCell) {
-          return <React.Fragment key={index}>{renderCell(context)}</React.Fragment>;
+          return (
+            <React.Fragment key={index}>{renderCell(context)}</React.Fragment>
+          );
         }
-        return <input key={index} {...context.inputProps} className={cellClass} />;
+        return (
+          <input key={index} {...context.inputProps} className={cellClass} />
+        );
       })}
     </div>
   );
+
+  // The `gradient` variant is the same group with a coloured glow behind it,
+  // matching `Input`, `Textarea` and the rest — the glow belongs to the
+  // control, not to every cell. `glow.pad` keeps the halo inside the
+  // component's own box, so a clipping ancestor cannot shear it off.
+  if (variant === "gradient") {
+    return (
+      <span
+        className={classNames(
+          "relative inline-flex overflow-hidden rounded-[28px]",
+          glow.pad,
+        )}
+      >
+        <span
+          className={classNames(
+            "absolute rounded-2xl transition-opacity duration-500",
+            glow.inset,
+          )}
+          style={{
+            boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowTo}`,
+            opacity: focusedIndex >= 0 ? glow.focusOpacity : glow.idleOpacity,
+          }}
+          aria-hidden
+        />
+        {group}
+      </span>
+    );
+  }
+
+  return group;
 });
 
 InputOtp.displayName = "InputOtp";

@@ -24,23 +24,65 @@ const tile = (
   };
 
 export const DASHBOARD_ITEMS: SmartGridItemDefinition[] = [
-  { id: "capsules", title: "Active capsules", active: true, single: true,
-    defaultSpan: 3, render: tile("Active capsules", 128, "Rocket") },
-  { id: "requests", title: "Requests", active: true, single: true,
-    defaultSpan: 3, render: tile("Requests", "1.2M/h", "Database") },
-  { id: "spend", title: "Spend", active: true, single: true,
-    defaultSpan: 3, render: tile("Spend", "$8.4k", "Shop") },
-  { id: "health", title: "Health", active: true, single: true,
-    defaultSpan: 3, render: tile("Health", "99.98%", "HealthCheck") },
-  { id: "errors", title: "Errors", active: true, single: true,
-    defaultSpan: 6, render: tile("Errors", 42, "Database") },
-  { id: "latency", title: "Latency", active: true, single: true,
-    defaultSpan: 6, render: tile("Latency", "142ms", "Database") },
+  {
+    id: "capsules",
+    title: "Active capsules",
+    active: true,
+    single: true,
+    defaultSpan: 3,
+    render: tile("Active capsules", 128, "Rocket"),
+  },
+  {
+    id: "requests",
+    title: "Requests",
+    active: true,
+    single: true,
+    defaultSpan: 3,
+    render: tile("Requests", "1.2M/h", "Database"),
+  },
+  {
+    id: "spend",
+    title: "Spend",
+    active: true,
+    single: true,
+    defaultSpan: 3,
+    render: tile("Spend", "$8.4k", "Shop"),
+  },
+  {
+    id: "health",
+    title: "Health",
+    active: true,
+    single: true,
+    defaultSpan: 3,
+    render: tile("Health", "99.98%", "HealthCheck"),
+  },
+  {
+    id: "errors",
+    title: "Errors",
+    active: true,
+    single: true,
+    defaultSpan: 6,
+    render: tile("Errors", 42, "Database"),
+  },
+  {
+    id: "latency",
+    title: "Latency",
+    active: true,
+    single: true,
+    defaultSpan: 6,
+    render: tile("Latency", "142ms", "Database"),
+  },
   // Not placed by the default layout, so there is always something for the
   // "Add Item" dialog to offer. Without a spare, every example whose layout
   // uses all six items renders no Add button at all.
-  { id: "queue", title: "Queue depth", active: true, single: true,
-    defaultSpan: 6, render: tile("Queue depth", 17, "Database") },
+  {
+    id: "queue",
+    title: "Queue depth",
+    active: true,
+    single: true,
+    defaultSpan: 6,
+    render: tile("Queue depth", 17, "Database"),
+  },
 ];
 
 /**
@@ -64,7 +106,10 @@ export const DASHBOARD_LAYOUT: SmartGridSectionDefinition[] = [
     id: "overview",
     title: "Overview",
     rows: [
-      { itemIds: ["capsules", "requests", "spend", "health"], defaultHeightSpan: 2 },
+      {
+        itemIds: ["capsules", "requests", "spend", "health"],
+        defaultHeightSpan: 2,
+      },
     ],
   },
   {

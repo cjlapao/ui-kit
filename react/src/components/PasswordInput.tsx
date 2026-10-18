@@ -1,8 +1,11 @@
 import { useState, forwardRef, type ForwardedRef } from "react";
 import Input, { type InputProps } from "./Input";
+import { useKitT } from "../i18n";
 
-export interface PasswordInputProps
-  extends Omit<InputProps, "type" | "trailingIcon" | "onTrailingIconClick"> {
+export interface PasswordInputProps extends Omit<
+  InputProps,
+  "type" | "trailingIcon" | "onTrailingIconClick"
+> {
   /**
    * Offer the reveal toggle at all. Turn it off for a field the user should
    * never be able to read back (a stored secret being re-entered).
@@ -20,6 +23,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
     { revealable = true, revealed, onRevealedChange, ...props },
     ref: ForwardedRef<HTMLInputElement>,
   ) {
+    const t = useKitT();
     const [internal, setInternal] = useState(false);
     const isControlled = revealed !== undefined;
     const show = isControlled ? revealed : internal;
@@ -45,7 +49,11 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
         // icon renderer entirely.
         trailingIcon={canReveal ? (show ? "EyeClosed" : "EyeOpen") : undefined}
         onTrailingIconClick={canReveal ? toggle : undefined}
-        trailingIconLabel={show ? "Hide password" : "Show password"}
+        // Branching on whole keys, not interpolating: the i18n dead-key
+        // scan greps for literal "kit.x.y" strings in the source.
+        trailingIconLabel={
+          show ? t("kit.passwordinput.hide") : t("kit.passwordinput.show")
+        }
       />
     );
   },

@@ -17,11 +17,7 @@ import {
   type SurfacePadding,
   type TrueColor,
 } from "../theme/Theme";
-import type {
-  GlassOpacity,
-  GlassVibrancy,
-  SpecularMode,
-} from "../theme/glass";
+import type { GlassOpacity, GlassVibrancy, SpecularMode } from "../theme/glass";
 import { type IconName } from "../icons/registry";
 
 /**
@@ -29,18 +25,18 @@ import { type IconName } from "../icons/registry";
  * component's own reason to exist — the same shape `EmptyState` uses for its
  * extra `plain`.
  */
-export const HERO_VARIANTS = [...SURFACE_VARIANTS, "gradient"] as const;
-export type HeroVariant = (typeof HERO_VARIANTS)[number];
+export const PANEL_HERO_VARIANTS = [...SURFACE_VARIANTS, "gradient"] as const;
+export type PanelHeroVariant = (typeof PANEL_HERO_VARIANTS)[number];
 
 /** The shared control scale. Both were bespoke unions, and the subtitle's was
  *  truncated to three members, so a hero could not be sized past `md`. */
-export type HeroTitleSize = ControlSize;
-export type HeroSubtitleSize = ControlSize;
+export type PanelHeroTitleSize = ControlSize;
+export type PanelHeroSubtitleSize = ControlSize;
 /** The shared container padding scale. */
-export type HeroPadding = SurfacePadding;
+export type PanelHeroPadding = SurfacePadding;
 
 /** Elements a hero's title may be rendered as. */
-export const HERO_TITLE_ELEMENTS = [
+export const PANEL_HERO_TITLE_ELEMENTS = [
   "h1",
   "h2",
   "h3",
@@ -49,10 +45,17 @@ export const HERO_TITLE_ELEMENTS = [
   "h6",
   "p",
 ] as const;
-export type HeroTitleElement = (typeof HERO_TITLE_ELEMENTS)[number];
+export type PanelHeroTitleElement = (typeof PANEL_HERO_TITLE_ELEMENTS)[number];
 
-export interface HeroProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "title" | "color"> {
+export interface PanelHeroProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "title" | "color"
+> {
+  /**
+   * Actions or extra copy under the title row. They used to be dropped on the
+   * floor — the render spread `children` and then overrode it with the body.
+   */
+  children?: React.ReactNode;
   /** Main heading. */
   title: React.ReactNode;
   /** Supporting line under the title. */
@@ -62,7 +65,7 @@ export interface HeroProps
    * reads as the top of a page announced nothing to a screen reader.
    * @default "p"
    */
-  titleAs?: HeroTitleElement;
+  titleAs?: PanelHeroTitleElement;
   /** Registry icon name, or a node. Omit it and the slot is not drawn. */
   icon?: IconName | React.ReactElement;
   /** @default "blue" */
@@ -70,13 +73,13 @@ export interface HeroProps
   /** Alias for `tone`, matching the rest of the kit. */
   color?: TrueColor;
   /** @default "gradient" */
-  variant?: HeroVariant;
+  variant?: PanelHeroVariant;
   /** @default "sm" */
-  titleSize?: HeroTitleSize;
+  titleSize?: PanelHeroTitleSize;
   /** @default "xs" */
-  subtitleSize?: HeroSubtitleSize;
+  subtitleSize?: PanelHeroSubtitleSize;
   /** @default "sm" */
-  padding?: HeroPadding;
+  padding?: PanelHeroPadding;
   /** Corner radius on the shared container scale. */
   corner?: SurfaceCorner;
   /** @deprecated Use `corner`. Ignored when `corner` is set. */
@@ -125,11 +128,12 @@ const CHIP_SIZES: Record<ControlSize, { box: string; glyph: number }> = {
   xl: { box: "h-16 w-16", glyph: 30 },
 };
 
-interface HeroBodyProps
-  extends Pick<
-    HeroProps,
-    "title" | "subtitle" | "titleAs" | "icon" | "titleSize" | "subtitleSize"
-  > {
+interface PanelHeroBodyProps extends Pick<
+  PanelHeroProps,
+  "title" | "subtitle" | "titleAs" | "icon" | "titleSize" | "subtitleSize"
+> {
+  /** Actions or extra copy, rendered full-width under the title row. */
+  children?: React.ReactNode;
   /** The gradient band paints its own white copy; a surface does not. */
   onGradient: boolean;
 }
@@ -140,13 +144,14 @@ interface HeroBodyProps
  * to come from the surface. The old version hardcoded `text-white` on all of
  * them.
  */
-const HeroBody: React.FC<HeroBodyProps> = ({
+const PanelHeroBody: React.FC<PanelHeroBodyProps> = ({
   title,
   subtitle,
   titleAs = "p",
   icon,
   titleSize = "sm",
   subtitleSize = "xs",
+  children,
   onGradient,
 }) => {
   const surfaceText = useSurfaceText();
@@ -166,43 +171,46 @@ const HeroBody: React.FC<HeroBodyProps> = ({
   ) : null;
 
   return (
-    <div className="relative flex items-center gap-4">
-      {iconNode && (
-        <div
-          className={classNames(
-            "flex shrink-0 items-center justify-center rounded-xl border shadow-inner backdrop-blur-sm",
-            chip.box,
-            onGradient
-              ? "border-white/20 bg-white/15"
-              : "border-black/5 bg-black/5 dark:border-white/10 dark:bg-white/10",
-          )}
-        >
-          {iconNode}
-        </div>
-      )}
-
-      <div className="min-w-0 flex-1">
-        <Title
-          className={classNames(
-            "leading-tight",
-            TITLE_SIZES[titleSize] ?? TITLE_SIZES.sm,
-            onGradient ? "text-white" : surfaceText.heading,
-          )}
-        >
-          {title}
-        </Title>
-        {subtitle && (
-          <p
+    <div className="relative">
+      <div className="flex items-center gap-4">
+        {iconNode && (
+          <div
             className={classNames(
-              "mt-0.5 leading-relaxed",
-              SUBTITLE_SIZES[subtitleSize] ?? SUBTITLE_SIZES.xs,
-              onGradient ? "text-white/75" : surfaceText.description,
+              "flex shrink-0 items-center justify-center rounded-xl border shadow-inner backdrop-blur-sm",
+              chip.box,
+              onGradient
+                ? "border-white/20 bg-white/15"
+                : "border-black/5 bg-black/5 dark:border-white/10 dark:bg-white/10",
             )}
           >
-            {subtitle}
-          </p>
+            {iconNode}
+          </div>
         )}
+
+        <div className="min-w-0 flex-1">
+          <Title
+            className={classNames(
+              "leading-tight",
+              TITLE_SIZES[titleSize] ?? TITLE_SIZES.sm,
+              onGradient ? "text-white" : surfaceText.heading,
+            )}
+          >
+            {title}
+          </Title>
+          {subtitle && (
+            <p
+              className={classNames(
+                "mt-0.5 leading-relaxed",
+                SUBTITLE_SIZES[subtitleSize] ?? SUBTITLE_SIZES.xs,
+                onGradient ? "text-white/75" : surfaceText.description,
+              )}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
+      {children && <div className="mt-4 min-w-0">{children}</div>}
     </div>
   );
 };
@@ -218,7 +226,7 @@ const HeroBody: React.FC<HeroBodyProps> = ({
  * the white copy this component insists on measures 2.94:1 on yellow. White on
  * `{tone}-700` is the kit's measured floor at 4.93:1.
  */
-const Hero: React.FC<HeroProps> = ({
+const PanelHero: React.FC<PanelHeroProps> = ({
   title,
   subtitle,
   titleAs = "p",
@@ -239,6 +247,7 @@ const Hero: React.FC<HeroProps> = ({
   vibrancy,
   specularMode,
   className,
+  children,
   ...rest
 }) => {
   const accent = tone ?? color ?? "blue";
@@ -249,7 +258,7 @@ const Hero: React.FC<HeroProps> = ({
   const showGradient = decoration === "gradient" || decoration === "both";
 
   const body = (
-    <HeroBody
+    <PanelHeroBody
       title={title}
       subtitle={subtitle}
       titleAs={titleAs}
@@ -257,7 +266,9 @@ const Hero: React.FC<HeroProps> = ({
       titleSize={titleSize}
       subtitleSize={subtitleSize}
       onGradient={variant === "gradient"}
-    />
+    >
+      {children}
+    </PanelHeroBody>
   );
 
   if (variant !== "gradient") {
@@ -350,6 +361,30 @@ const Hero: React.FC<HeroProps> = ({
   );
 };
 
-Hero.displayName = "Hero";
+PanelHero.displayName = "PanelHero";
 
-export default Hero;
+export default PanelHero;
+
+/**
+ * Renamed to `PanelHero` to match the Panel-family naming (`CollapsiblePanel`,
+ * `PagedPanel` — this is a Panel wearing a banner). The old names stay as
+ * aliases for one cycle and will be removed at 1.0.
+ */
+/** @deprecated Use `PanelHero`. */
+export const Hero = PanelHero;
+/** @deprecated Use `PANEL_HERO_VARIANTS`. */
+export const HERO_VARIANTS = PANEL_HERO_VARIANTS;
+/** @deprecated Use `PANEL_HERO_TITLE_ELEMENTS`. */
+export const HERO_TITLE_ELEMENTS = PANEL_HERO_TITLE_ELEMENTS;
+/** @deprecated Use `PanelHeroProps`. */
+export type HeroProps = PanelHeroProps;
+/** @deprecated Use `PanelHeroVariant`. */
+export type HeroVariant = PanelHeroVariant;
+/** @deprecated Use `PanelHeroTitleElement`. */
+export type HeroTitleElement = PanelHeroTitleElement;
+/** @deprecated Use `PanelHeroTitleSize`. */
+export type HeroTitleSize = PanelHeroTitleSize;
+/** @deprecated Use `PanelHeroSubtitleSize`. */
+export type HeroSubtitleSize = PanelHeroSubtitleSize;
+/** @deprecated Use `PanelHeroPadding`. */
+export type HeroPadding = PanelHeroPadding;

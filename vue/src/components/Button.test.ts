@@ -30,7 +30,7 @@ describe("Button — glass variant", () => {
     const btn = wrapper.find("button");
     expect(btn.exists()).toBe(true);
     expect(btn.classes()).toContain("backdrop-blur-sm");
-    expect(btn.classes()).toContain("bg-blue-100/65");
+    expect(btn.classes()).toContain("bg-blue-200/65");
     expect(btn.classes()).toContain("backdrop-saturate-[1.2]");
   });
 
@@ -43,7 +43,7 @@ describe("Button — glass variant", () => {
     expect(btn.exists()).toBe(true);
     expect(btn.classes()).toContain("backdrop-blur-sm");
     // brand resolves to blue
-    expect(btn.classes()).toContain("bg-blue-100/65");
+    expect(btn.classes()).toContain("bg-blue-200/65");
     expect(btn.classes()).toContain("relative");
   });
 
@@ -53,8 +53,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-red-100/65");
-    expect(btn.classes()).toContain("dark:bg-red-600/25");
+    expect(btn.classes()).toContain("bg-red-200/65");
+    expect(btn.classes()).toContain("dark:bg-red-500/25");
   });
 
   it('glassOpacity="light" produces 85% light / 35% dark fill', () => {
@@ -63,8 +63,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-green-100/85");
-    expect(btn.classes()).toContain("dark:bg-green-600/35");
+    expect(btn.classes()).toContain("bg-green-200/85");
+    expect(btn.classes()).toContain("dark:bg-green-500/35");
   });
 
   it('glassOpacity="clear" produces 30% light / 10% dark fill', () => {
@@ -73,8 +73,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-purple-100/30");
-    expect(btn.classes()).toContain("dark:bg-purple-600/10");
+    expect(btn.classes()).toContain("bg-purple-200/30");
+    expect(btn.classes()).toContain("dark:bg-purple-500/10");
   });
 
   it('vibrancy="high" produces backdrop-saturate-[1.4]', () => {
@@ -109,7 +109,9 @@ describe("Button — glass variant", () => {
       props: { glass: true, specularMode: "classic", color: "blue" },
     });
 
-    const overlays = wrapper.findAll('div[aria-hidden="true"].pointer-events-none.absolute');
+    const overlays = wrapper.findAll(
+      'div[aria-hidden="true"].pointer-events-none.absolute',
+    );
     expect(overlays.length).toBeGreaterThan(0);
 
     // Check for rounded-[inherit] on overlay
@@ -122,7 +124,9 @@ describe("Button — glass variant", () => {
       props: { glass: true, specularMode: "halo", color: "blue" },
     });
 
-    const overlays = wrapper.findAll('div[aria-hidden="true"].pointer-events-none.absolute');
+    const overlays = wrapper.findAll(
+      'div[aria-hidden="true"].pointer-events-none.absolute',
+    );
     expect(overlays.length).toBeGreaterThan(0);
   });
 
@@ -131,16 +135,25 @@ describe("Button — glass variant", () => {
       props: { glass: true, specularMode: "none", color: "blue" },
     });
 
-    const overlays = wrapper.findAll('div[aria-hidden="true"].pointer-events-none.absolute');
+    const overlays = wrapper.findAll(
+      'div[aria-hidden="true"].pointer-events-none.absolute',
+    );
     expect(overlays.length).toBe(0);
   });
 
   it("renders no specular overlay when glass=false", () => {
     const wrapper = mount(Button, {
-      props: { variant: "solid", glass: false, specularMode: "classic", color: "blue" },
+      props: {
+        variant: "solid",
+        glass: false,
+        specularMode: "classic",
+        color: "blue",
+      },
     });
 
-    const overlays = wrapper.findAll('div[aria-hidden="true"].pointer-events-none.absolute');
+    const overlays = wrapper.findAll(
+      'div[aria-hidden="true"].pointer-events-none.absolute',
+    );
     expect(overlays.length).toBe(0);
   });
 
@@ -152,7 +165,9 @@ describe("Button — glass variant", () => {
     const btn = wrapper.find("button");
     expect(btn.classes()).not.toContain("backdrop-blur-sm");
     // Check that no class starts with backdrop-saturate-
-    const hasSaturate = btn.classes().some((c) => c.startsWith("backdrop-saturate-"));
+    const hasSaturate = btn
+      .classes()
+      .some((c) => c.startsWith("backdrop-saturate-"));
     expect(hasSaturate).toBe(false);
   });
 
@@ -179,8 +194,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-blue-100/65");
-    expect(btn.classes()).toContain("dark:bg-blue-600/25");
+    expect(btn.classes()).toContain("bg-blue-200/65");
+    expect(btn.classes()).toContain("dark:bg-blue-500/25");
   });
 
   it("builds the glass fill from the tone it is given", () => {
@@ -189,8 +204,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-emerald-100/65");
-    expect(btn.classes()).toContain("dark:bg-emerald-600/25");
+    expect(btn.classes()).toContain("bg-emerald-200/65");
+    expect(btn.classes()).toContain("dark:bg-emerald-500/25");
   });
 
   it("renders glass fill with rose color", () => {
@@ -199,8 +214,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-rose-100/65");
-    expect(btn.classes()).toContain("dark:bg-rose-600/25");
+    expect(btn.classes()).toContain("bg-rose-200/65");
+    expect(btn.classes()).toContain("dark:bg-rose-500/25");
   });
 
   it("renders children inside the button with glass", () => {
@@ -229,7 +244,9 @@ describe("Button — glass variant", () => {
       props: { variant: "glass", specularMode: "classic", color: "blue" },
     });
 
-    const overlays = wrapper.findAll('div[aria-hidden="true"].pointer-events-none.absolute');
+    const overlays = wrapper.findAll(
+      'div[aria-hidden="true"].pointer-events-none.absolute',
+    );
     expect(overlays.length).toBeGreaterThan(0);
   });
 
@@ -238,7 +255,9 @@ describe("Button — glass variant", () => {
       props: { variant: "solid", specularMode: "classic", color: "blue" },
     });
 
-    const overlays = wrapper.findAll('div[aria-hidden="true"].pointer-events-none.absolute');
+    const overlays = wrapper.findAll(
+      'div[aria-hidden="true"].pointer-events-none.absolute',
+    );
     expect(overlays.length).toBe(0);
   });
 
@@ -248,7 +267,7 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-sky-100/65");
+    expect(btn.classes()).toContain("bg-sky-200/65");
     expect(btn.classes()).toContain("backdrop-blur-sm");
     // Glass replaces the variant's own fill rather than layering over it —
     // solid's opaque background and shadow would defeat the effect.
@@ -263,8 +282,8 @@ describe("Button — glass variant", () => {
     });
 
     const btn = wrapper.find("button");
-    expect(btn.classes()).toContain("bg-indigo-100/60");
-    expect(btn.classes()).toContain("dark:bg-indigo-600/18");
+    expect(btn.classes()).toContain("bg-indigo-200/60");
+    expect(btn.classes()).toContain("dark:bg-indigo-500/18");
   });
 
   it("numeric vibrancy works correctly", () => {
@@ -300,7 +319,12 @@ describe("Button — bug regressions", () => {
 
   it("applies accent (transparent fill + accent ring) to a text button, not just icon mode", () => {
     const wrapper = mount(Button, {
-      props: { variant: "soft", color: "blue", accent: true, accentColor: "emerald" },
+      props: {
+        variant: "soft",
+        color: "blue",
+        accent: true,
+        accentColor: "emerald",
+      },
       slots: { default: "Save" },
     });
     const cls = wrapper.find("button").classes();
@@ -351,11 +375,16 @@ describe("Button — variant/tone matrix (every variant × every tone)", () => {
         });
         const cls = wrapper.find("button").classes();
         for (const signature of signatures[variant](color)) {
-          expect(cls, `${variant}/${color} → ${signature}`).toContain(signature);
+          expect(cls, `${variant}/${color} → ${signature}`).toContain(
+            signature,
+          );
         }
         if (variant === "ghost" || variant === "clear" || variant === "link") {
           const hasRestFill = cls.some((c: string) => /^(bg-|ring-)/.test(c));
-          expect(hasRestFill, `${variant}/${color} must have no rest fill`).toBe(false);
+          expect(
+            hasRestFill,
+            `${variant}/${color} must have no rest fill`,
+          ).toBe(false);
         }
         wrapper.unmount();
       }

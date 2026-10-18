@@ -7,7 +7,11 @@ const panelOf = (container: HTMLElement) =>
 
 describe("Panel — outlined border", () => {
   it("draws a hairline border instead of a currentColor ring", () => {
-    const { container } = render(<Panel variant="outlined">Body</Panel>);
+    const { container } = render(
+      <Panel variant="outlined" tone="neutral">
+        Body
+      </Panel>,
+    );
     const panel = panelOf(container);
 
     expect(panel.className).toContain("border");
@@ -36,6 +40,37 @@ describe("Panel — outlined border", () => {
 
     expect(panelOf(container).className).toContain("border-rose-300");
     expect(panelOf(container).className).not.toContain("border-neutral-200");
+  });
+});
+
+describe("Panel — common-property defaults", () => {
+  it("stands on the shared scales: sm padding, medium corner, blue tone", () => {
+    const { container } = render(<Panel variant="outlined">Body</Panel>);
+    const panel = panelOf(container);
+
+    // Padding sm, and the medium corner (DEFAULT_SURFACE_CORNER resolves
+    // to `rounded-2xl`).
+    expect(panel.className).toContain("p-4 sm:p-5");
+    expect(panel.className).toContain("rounded-2xl");
+    // Tone default blue — the outlined hairline picks up the tone.
+    expect(panel.className).toContain("border-blue-200");
+    expect(panel).toHaveAttribute("data-tone", "blue");
+  });
+
+  it("honours the deprecated `color` prop as an alias of `tone`", () => {
+    const { container } = render(
+      <Panel variant="outlined" color="rose">
+        Body
+      </Panel>,
+    );
+    expect(panelOf(container).className).toContain("border-rose-200");
+    expect(panelOf(container)).toHaveAttribute("data-tone", "rose");
+  });
+
+  it("loads with the skeleton by default, like every other loader surface", () => {
+    const { container } = render(<Panel loading>Body</Panel>);
+    expect(container.querySelector(".animate-pulse")).not.toBeNull();
+    expect(screen.queryByText("Body")).not.toBeInTheDocument();
   });
 });
 
@@ -175,6 +210,20 @@ describe("Panel — skeleton loading", () => {
     expect(full.querySelectorAll("span").length).toBeGreaterThan(
       bare.querySelectorAll("span").length,
     );
+  });
+
+  it("gives the skeleton its own inset when the card carries padding none", () => {
+    // Accordion/CollapsiblePanel render Panel with padding="none"; without a
+    // self-inset the bars run flush with the rounded corners and read as
+    // overflow (the bug the playground screenshot showed).
+    const { container } = render(
+      <Panel loading loaderType="skeleton" padding="none">
+        <div>content</div>
+      </Panel>,
+    );
+    const skeleton = container.querySelector(".animate-pulse")!;
+    expect(skeleton.className).toContain("px-4");
+    expect(skeleton.className).toContain("sm:px-5");
   });
 
   it("honours skeletonLines", () => {

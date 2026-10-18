@@ -9,6 +9,7 @@ import {
 } from "./Panel";
 import {
   DEFAULT_SURFACE_CORNER,
+  DEFAULT_SURFACE_TONE,
   getPanelToneStyles,
   getSurfaceCornerClass,
   getSurfacePaddingClass,
@@ -45,11 +46,12 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Surface treatment — Panel's shared set, from an invisible `simple` bar to
    * `liquid-glass`. A toolbar is a Panel turned sideways: same variants,
-   * same tone rules, same theme helpers.
-   * @default "outlined"
+   * same tone rules, same theme helpers — and the same default: `elevated`.
+   * Bars that want to recede into chrome pass `outlined` or `subtle`.
+   * @default "elevated"
    */
   variant?: PanelVariant;
-  /** Accent for the tinted and translucent variants. @default "neutral" */
+  /** Accent for the tinted and translucent variants. @default "blue" */
   tone?: TrueColor;
   /**
    * Inset around the regions, on the shared container scale — the same
@@ -84,8 +86,8 @@ export const Toolbar = ({
   center,
   end,
   children,
-  variant = "outlined",
-  tone = "neutral",
+  variant = "elevated",
+  tone = DEFAULT_SURFACE_TONE,
   padding = "xs",
   corner = DEFAULT_SURFACE_CORNER,
   vibrancy = "medium",
@@ -112,11 +114,7 @@ export const Toolbar = ({
       case "default":
         return classNames(variantBaseStyles.default, GLASS_RIM);
       case "glass":
-        return classNames(
-          variantBaseStyles.glass,
-          GLASS_RIM,
-          palette.glassBg,
-        );
+        return classNames(variantBaseStyles.glass, GLASS_RIM, palette.glassBg);
       case "liquid-glass":
         return classNames(
           variantBaseStyles["liquid-glass"],

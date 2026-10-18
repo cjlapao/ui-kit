@@ -4,6 +4,8 @@ import Button, { type ButtonProps } from "./Button";
 import Loader, { type LoaderProps } from "./Loader";
 import {
   DEFAULT_SURFACE_CORNER,
+  DEFAULT_SURFACE_PADDING,
+  DEFAULT_SURFACE_TONE,
   getPanelToneStyles,
   getSurfaceCornerClass,
   getSurfacePaddingClass,
@@ -14,6 +16,7 @@ import {
   type SurfaceVariant,
   type TrueColor,
 } from "../theme/Theme";
+import { THIN_SCROLLBAR } from "../theme/Theme";
 import {
   SURFACE_HALO_DARK,
   SURFACE_HALO_LIGHT,
@@ -79,9 +82,25 @@ export interface PanelProps extends Omit<
   mediaPlacement?: PanelMediaPlacement;
   actions?: PanelAction[];
   actionLayout?: PanelActionLayout;
+  /**
+   * The surface treatment.
+   * @default "elevated"
+   */
   variant?: PanelVariant;
+  /**
+   * The tint the surface, badge and accents take.
+   * @default "blue"
+   */
   tone?: TrueColor;
+  /**
+   * Body inset, on the shared container scale.
+   * @default "sm"
+   */
   padding?: PanelPadding;
+  /**
+   * The card radius, on the shared corner scale.
+   * @default "rounded-md" (`DEFAULT_SURFACE_CORNER` — the medium radius)
+   */
   corner?: PanelCorner;
   fullWidth?: boolean;
   disabled?: boolean;
@@ -92,6 +111,10 @@ export interface PanelProps extends Omit<
   bodyStyle?: React.CSSProperties;
   children?: React.ReactNode;
   loading?: boolean;
+  /**
+   * The loading treatment `loading` shows.
+   * @default "skeleton"
+   */
   loaderType?: PanelLoaderType;
   loaderTitle?: React.ReactNode;
   loaderMessage?: React.ReactNode;
@@ -109,15 +132,21 @@ export interface PanelProps extends Omit<
    * Defaults to `true` when an `onClick` handler is present, otherwise `false`.
    */
   hoverable?: boolean;
+  /**
+   * @deprecated Renamed to `tone`. Still honoured as an alias — when `tone`
+   * is absent it becomes the tone — so `color="rose"` finally does what it
+   * reads like it does. It also keeps hinting `hoverColor`, as before.
+   */
   color?: TrueColor;
   /**
-   * Override the default hover color.
-   * If not provided, it defaults to the `color` prop if available, or a neutral tint.
+   * Override the default hover tint.
+   * If not provided, the non-neutral `color` alias (not `tone`) hints it,
+   * otherwise a neutral tint is used.
    */
   hoverColor?: TrueColor;
   /**
-   * Override the default border color.
-   * If not provided, it defaults to the `tone` or `color` prop depending on variant.
+   * Override the default border colour.
+   * If not provided, it follows `tone` depending on variant.
    */
   borderColor?: TrueColor;
   /**
@@ -279,6 +308,17 @@ export const getPanelEdgeChrome = (
  * Re-exported from the theme for `CollapsiblePanel` and `TimelinePanel`, which
  * import the map directly rather than taking a Panel.
  */
+/**
+ * Resolve the tone a Panel surface takes: explicit `tone`, else the deprecated
+ * `color` alias, else the shared default. Wrappers that must paint their own
+ * trigger chrome around a Panel (`CollapsiblePanel`) call this too, so card
+ * and chrome can never disagree on the resolved tone.
+ */
+export const resolvePanelTone = (
+  tone?: TrueColor,
+  color?: TrueColor,
+): TrueColor => tone ?? color ?? DEFAULT_SURFACE_TONE;
+
 export const paddingStyles: Record<PanelPadding, string> =
   getSurfacePaddingClasses();
 
@@ -324,6 +364,13 @@ export const SkeletonBar: React.FC<{
 );
 
 interface PanelSkeletonProps {
+  /**
+   * When the card carries no inset (`padding="none"`, how `Accordion` and
+   * `CollapsiblePanel` use `Panel`), the skeleton supplies its own — otherwise
+   * the bars run flush with the card's rounded corners, which reads as
+   * overflow rather than placeholder.
+   */
+  selfInset: boolean;
   hasMedia: boolean;
   hasBadge: boolean;
   hasTitle: boolean;
@@ -341,6 +388,7 @@ interface PanelSkeletonProps {
  * instead of collapsing or over-reserving.
  */
 const PanelSkeleton: React.FC<PanelSkeletonProps> = ({
+  selfInset,
   hasMedia,
   hasBadge,
   hasTitle,
@@ -352,7 +400,10 @@ const PanelSkeleton: React.FC<PanelSkeletonProps> = ({
   actionLayout,
 }) => (
   <div
-    className="flex min-h-0 flex-1 animate-pulse flex-col gap-4 motion-reduce:animate-none"
+    className={classNames(
+      "flex min-h-0 flex-1 animate-pulse flex-col gap-4 motion-reduce:animate-none",
+      selfInset && "px-4 py-4 sm:px-5",
+    )}
     aria-hidden="true"
   >
     {hasMedia && (
@@ -419,8 +470,8 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     actions,
     actionLayout = "auto",
     variant = "elevated",
-    tone = "neutral",
-    padding = "md",
+    tone,
+    padding = DEFAULT_SURFACE_PADDING,
     corner = DEFAULT_SURFACE_CORNER,
     fullWidth,
     maxWidth,
@@ -433,7 +484,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     loading = false,
     disabled = false,
     flexBody = false,
-    loaderType = "spinner",
+    loaderType = "skeleton",
     loaderTitle,
     loaderMessage,
     loaderProgress,
@@ -458,7 +509,9 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   },
   ref,
 ) {
-  const palette = getPanelToneStyles(tone);
+  // The deprecated `color` prop is honoured as an alias of `tone`.
+  const resolvedTone = resolvePanelTone(tone, color);
+  const palette = getPanelToneStyles(resolvedTone);
   // A translucent card composites over whatever the app puts behind it, so the
   // light end of the neutral scale disappears — subtitles and descriptions on
   // a glass Panel over a photo were effectively invisible while the title
@@ -525,7 +578,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   // control-side helpers in theme/glass.ts. The container scale lives there
   // now, next to the control scale and the safelist that covers both.
   const vibrancyClass = getGlassVibrancyClass(vibrancy);
-  const glassFillClass = getSurfaceGlassFillClass(tone, glassOpacity);
+  const glassFillClass = getSurfaceGlassFillClass(resolvedTone, glassOpacity);
 
   const variantClasses = (() => {
     switch (variant) {
@@ -695,7 +748,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
         flexBody ? "flex-1 flex flex-col w-full" : "",
         "min-h-0 flex-1",
         scrollable
-          ? "overflow-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
+          ? `overflow-auto ${THIN_SCROLLBAR}`
           : "",
         padding === "none" ? "" : "pr-1",
       )}
@@ -756,6 +809,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
 
   const skeletonSection = showSkeleton ? (
     <PanelSkeleton
+      selfInset={padding === "none"}
       hasMedia={hasMedia && mediaPlacement !== "overlay"}
       hasBadge={Boolean(badge)}
       hasTitle={Boolean(title)}
@@ -826,7 +880,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
         )}
         style={resolvedStyle}
         data-variant={variant}
-        data-tone={tone}
+        data-tone={resolvedTone}
         aria-busy={loading}
         {...rest}
       >

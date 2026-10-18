@@ -1,4 +1,4 @@
-import { GLOW_INTENSITIES, Hero } from "@cjlapao/ui-kit";
+import { GLOW_INTENSITIES, PanelHero } from "@cjlapao/ui-kit";
 
 /**
  * The stops are overridable, and a halo sits behind the band at the chosen
@@ -11,7 +11,7 @@ import { GLOW_INTENSITIES, Hero } from "@cjlapao/ui-kit";
 export default function Gradient() {
   return (
     <div className="flex w-full flex-col gap-4">
-      <Hero
+      <PanelHero
         title="Custom stops"
         subtitle="gradientFrom / gradientTo"
         icon="Rocket"
@@ -21,7 +21,7 @@ export default function Gradient() {
       />
       <div className="grid gap-3 sm:grid-cols-2">
         {GLOW_INTENSITIES.map((glowIntensity) => (
-          <Hero
+          <PanelHero
             key={glowIntensity}
             tone="indigo"
             title={`glow: ${glowIntensity}`}

@@ -1,10 +1,5 @@
-import { describe, it, expect } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-} from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SidePanel from "./SidePanel";
 
 describe("SidePanel", () => {
@@ -33,9 +28,7 @@ describe("SidePanel", () => {
         <p>Body copy</p>
       </SidePanel>,
     );
-    expect(
-      container.querySelector("[data-sp-noise]"),
-    ).toBeNull();
+    expect(container.querySelector("[data-sp-noise]")).toBeNull();
   });
 
   it("paints a decorative, click-through noise layer when noise is set", () => {
@@ -74,7 +67,6 @@ describe("SidePanel", () => {
   });
 });
 
-
 describe("SidePanel — the shared design language", () => {
   it("renders every surface variant", async () => {
     const { SIDE_PANEL_VARIANTS } = await import("./SidePanel");
@@ -110,7 +102,11 @@ describe("SidePanel — the shared design language", () => {
   const shell = (container: HTMLElement) => container.firstChild as HTMLElement;
 
   it("sits flush and full-height by default", () => {
-    const { container } = render(<SidePanel isOpen title="Panel">body</SidePanel>);
+    const { container } = render(
+      <SidePanel isOpen title="Panel">
+        body
+      </SidePanel>,
+    );
     expect(shell(container).className).toContain("h-full");
     expect(shell(container).className).toContain("right-0");
   });
@@ -172,7 +168,11 @@ describe("SidePanel — the shared design language", () => {
       unmount();
     }
 
-    const { container } = render(<SidePanel isOpen title="Panel">body</SidePanel>);
+    const { container } = render(
+      <SidePanel isOpen title="Panel">
+        body
+      </SidePanel>,
+    );
     expect(shell(container).className).toContain(
       getSurfaceCornerClass(DEFAULT_SURFACE_CORNER).replace(
         "rounded-",
@@ -365,7 +365,14 @@ describe("SidePanel — the resize handle", () => {
 
   it("shrinks a left-docked panel when the pointer moves inward", () => {
     const { container } = render(
-      <SidePanel isOpen resizable side="left" minWidth={200} width={320} title="D" />,
+      <SidePanel
+        isOpen
+        resizable
+        side="left"
+        minWidth={200}
+        width={320}
+        title="D"
+      />,
     );
     expect(startResize(container, 500, 450)).toBe("270px");
   });
@@ -503,5 +510,66 @@ describe("SidePanel — the resize handle", () => {
     expect(handle.style.right).toBe("0px");
     expect(handle.style.transition).toContain("right");
     await waitFor(() => expect(handle.style.right).toBe("320px"));
+  });
+});
+
+describe("SidePanel — the overlay", () => {
+  const panelOf = (container: HTMLElement) =>
+    container.querySelector('[class*="z-40"]') as HTMLElement;
+
+  it("draws no scrim until it is asked for", () => {
+    const { container } = render(
+      <SidePanel isOpen onClose={vi.fn()} title="D">
+        body
+      </SidePanel>,
+    );
+    expect(container.querySelector('[class*="bg-black"]')).toBeNull();
+  });
+
+  it("dims the container behind the panel and closes on a scrim click", () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <SidePanel isOpen overlay onClose={onClose} title="D">
+        body
+      </SidePanel>,
+    );
+    const scrim = container.querySelector('[class*="bg-black"]') as HTMLElement;
+    expect(scrim).not.toBeNull();
+    // Under the panel (z-30 vs z-40), over the container's content.
+    expect(scrim.className).toContain("inset-0");
+    expect(panelOf(container).className).toContain("z-40");
+    fireEvent.click(scrim);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the scrim out of the accessibility tree and the tab order", () => {
+    const { container } = render(
+      <SidePanel isOpen overlay onClose={vi.fn()} title="D">
+        body
+      </SidePanel>,
+    );
+    const scrim = container.querySelector('[class*="bg-black"]') as HTMLElement;
+    expect(scrim.getAttribute("aria-hidden")).toBe("true");
+    expect(scrim.tabIndex).toBe(-1);
+  });
+
+  it("fades in with the panel and stays mounted through the close", () => {
+    const { container, rerender } = render(
+      <SidePanel isOpen overlay onClose={vi.fn()} title="D">
+        body
+      </SidePanel>,
+    );
+    const scrim = container.querySelector('[class*="bg-black"]') as HTMLElement;
+    expect(scrim.style.opacity).toBe("1");
+    expect(scrim.style.transition).toContain("opacity");
+    rerender(
+      <SidePanel isOpen={false} overlay onClose={vi.fn()} title="D">
+        body
+      </SidePanel>,
+    );
+    // Still mounted, fading: the unmount rides the panel's width transition.
+    expect(container.querySelector('[class*="bg-black"]')).not.toBeNull();
+    fireEvent.transitionEnd(panelOf(container), { propertyName: "width" });
+    expect(container.firstChild).toBeNull();
   });
 });

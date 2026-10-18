@@ -29,7 +29,11 @@ export default function AsInput() {
             <Input variant={variant} tone="violet" placeholder="text" />
           </FormField>
           <FormField label={`Password — ${label}`}>
-            <PasswordInput variant={variant} tone="violet" defaultValue="hunter2" />
+            <PasswordInput
+              variant={variant}
+              tone="violet"
+              defaultValue="hunter2"
+            />
           </FormField>
         </div>
       ))}

@@ -69,17 +69,25 @@ describe("Toolbar", () => {
   // — Panel surface —
 
   it("wears the Panel variant set", () => {
+    // Default rides the kit-wide surface default: elevated.
     const { rerender } = render(<Toolbar />);
+    expect(screen.getByRole("toolbar").className).toContain("shadow-xl");
+    rerender(<Toolbar variant="outlined" />);
     expect(screen.getByRole("toolbar").className).toContain("bg-white/90");
     rerender(<Toolbar variant="elevated" />);
     expect(screen.getByRole("toolbar").className).toContain("shadow-xl");
-    rerender(<Toolbar variant="simple" />);
+    rerender(<Toolbar variant="simple" tone="neutral" />);
     expect(screen.getByRole("toolbar").className).toContain("bg-neutral-100");
   });
 
   it("tints the surface by tone, Panel-style", () => {
     render(<Toolbar variant="tonal" tone="indigo" />);
     expect(screen.getByRole("toolbar").className).toContain("indigo");
+  });
+
+  it("defaults to the kit's blue surface tone", () => {
+    render(<Toolbar variant="tonal" />);
+    expect(screen.getByRole("toolbar").className).toMatch(/bg-blue-/);
   });
 
   it("takes the shared corner and padding scales", () => {

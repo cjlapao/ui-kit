@@ -6,20 +6,30 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import classNames from "classnames";
 
 import Input from "./Input";
+import Panel from "./Panel";
+import { ScrollArea } from "./ScrollArea";
 import Spinner from "./Spinner";
 import { useKitT } from "../i18n";
 import { useIconRenderer } from "../contexts/IconContext";
 import {
+  PANEL_TONE_FOR_FIELD,
+  SURFACE_VARIANT_FOR_FIELD,
   TRUE_COLORS,
   VALIDATION_STATUSES,
   type ControlSize,
   type InputVariant,
+  type SurfaceCorner,
+  type SurfaceVariant,
   type TrueColor,
   type ValidationStatus,
 } from "../theme/Theme";
+import { useAnchoredPopupPosition } from "../hooks/useAnchoredPopupPosition";
+
+const PORTAL_ROOT = typeof document !== "undefined" ? document.body : null;
 
 export const COMBOBOX_VALIDATION_STATUSES = VALIDATION_STATUSES;
 export type ComboboxValidationStatus = ValidationStatus;
@@ -52,14 +62,19 @@ export const normaliseOption = (option: ComboboxOptionInput): ComboboxOption =>
  * two of the twenty-one were lying.
  */
 export interface ComboboxToneClasses {
-  /** The highlighted row — hover, or the keyboard cursor. */
-  active: string;
+  /** The fill the keyboard cursor draws on the row it parks on. */
+  wash: string;
+  /** The wash under the mouse - the field's own tone, per the owner's
+   * call: a suggestion list is the field's shadow, so it tints like the
+   * field does. The keyboard cursor rules above stay as they were. */
+  hover: string;
   /** The row matching the current value. */
   selected: string;
 }
 
 const buildToneClasses = (tone: TrueColor): ComboboxToneClasses => ({
-  active: `bg-${tone}-50 text-${tone}-700 dark:bg-${tone}-500/15 dark:text-${tone}-200`,
+  wash: `bg-${tone}-50 dark:bg-${tone}-500/15`,
+  hover: `hover:bg-${tone}-50 hover:text-${tone}-700 dark:hover:bg-${tone}-500/15 dark:hover:text-${tone}-200`,
   selected: `text-${tone}-700 dark:text-${tone}-200`,
 });
 
@@ -82,13 +97,12 @@ const SIZE_ROW: Record<ComboboxSize, string> = {
   xl: "px-4 py-3 text-base",
 };
 
-export interface ComboboxProps
-  extends Omit<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    // `onSelect` is also a DOM handler on an input; leaving it in would
-    // silently widen this component's own callback to a SyntheticEvent one.
-    "size" | "color" | "onChange" | "onSelect" | "value" | "className"
-  > {
+export interface ComboboxProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  // `onSelect` is also a DOM handler on an input; leaving it in would
+  // silently widen this component's own callback to a SyntheticEvent one.
+  "size" | "color" | "onChange" | "onSelect" | "value" | "className"
+> {
   value?: string;
   onChange: (value: string) => void;
   /** Fired only when a row is chosen, not on every keystroke. */
@@ -120,6 +134,14 @@ export interface ComboboxProps
   leadingIcon?: string | React.ReactElement;
   /** Rows to show before the list scrolls. @default 6 */
   visibleRows?: number;
+  /**
+   * Surface of the popup. "auto" follows the field through
+   * `SURFACE_VARIANT_FOR_FIELD` - a glass field opens a glass popup.
+   * @default "auto"
+   */
+  panelVariant?: "auto" | SurfaceVariant;
+  /** Corner scale of the popup. @default "auto" */
+  panelCorner?: SurfaceCorner;
   /** Classes for the field box. */
   className?: string;
   /** Classes for the drop-down. */
@@ -157,6 +179,8 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       clearable = true,
       leadingIcon,
       visibleRows = 6,
+      panelVariant = "auto",
+      panelCorner = "auto",
       className,
       listClassName,
       id,
@@ -187,13 +211,21 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
      * other way round.
      */
     const skipNextFocusOpen = useRef(false);
+    // The cursor wash is keyboard-initiative: arrows move a caret, a
+    // mouse sweep over rows should not light them in the accent.
+    const [cursorByKeyboard, setCursorByKeyboard] = useState(true);
     const containerRef = useRef<HTMLDivElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
 
     const accent = tone ?? color ?? "blue";
     const toneClasses = getComboboxToneClasses(accent);
+    const resolvedPanelVariant =
+      panelVariant === "auto"
+        ? SURFACE_VARIANT_FOR_FIELD[variant]
+        : panelVariant;
     // `error` predates `validationStatus`; the explicit status wins.
     const status: ComboboxValidationStatus =
       validationStatus !== "none" ? validationStatus : error ? "error" : "none";
@@ -212,13 +244,19 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       );
     }, [normalised, query]);
 
-    /** Rows a keyboard cursor may land on. A disabled row is skipped. */
+    /** Rows a keyboard cursor may land on. A disabled row is skipped -
+     * and while `loading` the list shows only a spinner, so there are no
+     * rows to land on: stepping through option rows the eye cannot see
+     * (and committing one with Enter) was the cursor outrunning the
+     * screen. */
     const selectableIndexes = useMemo(
       () =>
-        filtered
-          .map((option, index) => (option.disabled ? -1 : index))
-          .filter((index) => index >= 0),
-      [filtered],
+        loading
+          ? []
+          : filtered
+              .map((option, index) => (option.disabled ? -1 : index))
+              .filter((index) => index >= 0),
+      [filtered, loading],
     );
 
     const close = useCallback(() => {
@@ -229,7 +267,15 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
     useEffect(() => {
       if (!open) return;
       const onPointerDown = (event: MouseEvent) => {
-        if (!containerRef.current?.contains(event.target as Node)) close();
+        const target = event.target as Node;
+        // The popup lives in a portal, so "outside" has to name it too -
+        // a click on a row is not a click outside.
+        if (
+          containerRef.current?.contains(target) ||
+          popupRef.current?.contains(target)
+        )
+          return;
+        close();
       };
       document.addEventListener("mousedown", onPointerDown);
       return () => document.removeEventListener("mousedown", onPointerDown);
@@ -258,6 +304,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
     };
 
     const step = (direction: 1 | -1) => {
+      setCursorByKeyboard(true);
       if (selectableIndexes.length === 0) return;
       const position = selectableIndexes.indexOf(activeIndex);
       const next =
@@ -290,14 +337,14 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
         case "Home":
           if (!open) break;
           event.preventDefault();
+          setCursorByKeyboard(true);
           setActiveIndex(selectableIndexes[0] ?? -1);
           break;
         case "End":
           if (!open) break;
           event.preventDefault();
-          setActiveIndex(
-            selectableIndexes[selectableIndexes.length - 1] ?? -1,
-          );
+          setCursorByKeyboard(true);
+          setActiveIndex(selectableIndexes[selectableIndexes.length - 1] ?? -1);
           break;
         case "Enter":
           if (open && activeIndex >= 0 && filtered[activeIndex]) {
@@ -307,7 +354,11 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
           break;
         case "Escape":
           if (open) {
+            // Consume the key: a host with its own Escape ladder (a
+            // modal, a docked SmartInput) must not close on the rung
+            // that merely dismissed this list.
             event.preventDefault();
+            event.stopPropagation();
             close();
           }
           break;
@@ -319,9 +370,158 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       }
     };
 
-    const showClear = clearable && Boolean(query) && !disabled && !readOnly;
+    const showClear =
+      clearable && Boolean(query) && !disabled && !readOnly && !loading;
 
     const rowClass = SIZE_ROW[size] ?? SIZE_ROW.md;
+
+    // The popup is a portal against the viewport - a combobox at the
+    // bottom of a scroller used to push its own options off-screen.
+    const { style: popupStyle, maxHeight: popupMaxHeight } =
+      useAnchoredPopupPosition({
+        open,
+        anchorRef: containerRef,
+        popupRef,
+        maxHeight: visibleRows * 40,
+      });
+
+    const popup = PORTAL_ROOT
+      ? createPortal(
+          <div
+            ref={popupRef}
+            style={popupStyle ?? { visibility: "hidden" }}
+            data-slot="combobox-popup"
+            className={classNames(
+              "fixed",
+              !popupStyle && "invisible opacity-0",
+            )}
+          >
+            {/* The card is a Panel from the container family, so a glass
+                field opens a glass popup instead of an opaque slab. */}
+            <Panel
+              variant={resolvedPanelVariant}
+              tone={PANEL_TONE_FOR_FIELD}
+              corner={panelCorner}
+              padding="none"
+              scrollable={false}
+              className={listClassName}
+            >
+              {/* The kit's own ScrollArea does the scrolling - the same
+                  overlay bars every other kit list gets, instead of a
+                  bare `overflow-auto` with the browser's native bar.
+                  The listbox exists whenever the popup is open; its
+                  message states are rows without the option role, so
+                  the field's aria-controls never points at nothing. */}
+              <ScrollArea
+                style={{ maxHeight: popupMaxHeight }}
+                variant="hover"
+                tabIndex={-1}
+              >
+                <ul
+                  ref={listRef}
+                  id={listId}
+                  role="listbox"
+                  aria-label={rest["aria-label"] ?? placeholder ?? "Options"}
+                  className="py-1"
+                >
+                  {loading ? (
+                    <li
+                      className={classNames(
+                        "flex items-center gap-2 text-neutral-500 dark:text-neutral-400",
+                        rowClass,
+                      )}
+                    >
+                      <Spinner size="xs" color={accent} />
+                      {loadingMessage ?? t("kit.combobox.loading")}
+                    </li>
+                  ) : filtered.length === 0 ? (
+                    <li
+                      className={classNames(
+                        "italic text-neutral-500 dark:text-neutral-400",
+                        rowClass,
+                      )}
+                    >
+                      {emptyMessage ?? t("kit.combobox.emptyMessage")}
+                    </li>
+                  ) : (
+                    filtered.map((option, index) => {
+                      const selected = option.value === value;
+                      const active = index === activeIndex && !option.disabled;
+                      return (
+                        <li
+                          key={option.value}
+                          id={`${listId}-${index}`}
+                          data-index={index}
+                          role="option"
+                          aria-selected={selected}
+                          aria-disabled={option.disabled || undefined}
+                          // `onMouseDown` rather than `onClick`: the input's
+                          // blur fires first otherwise and the list is gone
+                          // before the click lands.
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            commit(option);
+                          }}
+                          onMouseEnter={() => {
+                            if (option.disabled) return;
+                            // Hover follows the mouse for aria, but it is
+                            // not a cursor move - no wash from the cursor
+                            // rules, just CSS hover.
+                            setCursorByKeyboard(false);
+                            setActiveIndex(index);
+                          }}
+                          className={classNames(
+                            "flex items-center gap-2",
+                            rowClass,
+                            option.disabled
+                              ? "cursor-not-allowed opacity-50"
+                              : classNames("cursor-pointer", toneClasses.hover),
+                            // The cursor wash only paints when the keyboard
+                            // parked it: two same-specificity fills otherwise
+                            // resolve by emission order, not by intent.
+                            active &&
+                              cursorByKeyboard &&
+                              (selected
+                                ? classNames(
+                                    toneClasses.wash,
+                                    "ring-1 ring-inset ring-neutral-400/40 dark:ring-white/25",
+                                  )
+                                : "bg-neutral-50 dark:bg-neutral-800/60"),
+                            selected
+                              ? classNames(toneClasses.selected, "font-medium")
+                              : "text-neutral-900 dark:text-neutral-100",
+                          )}
+                        >
+                          {option.icon && (
+                            <span className="inline-flex shrink-0 items-center">
+                              {typeof option.icon === "string"
+                                ? renderIcon(option.icon, "sm", "h-4 w-4")
+                                : option.icon}
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">
+                              {option.label ?? option.value}
+                            </span>
+                            {option.description && (
+                              <span className="block truncate text-xs text-neutral-500 dark:text-neutral-400">
+                                {option.description}
+                              </span>
+                            )}
+                          </span>
+                          {selected &&
+                            renderIcon("Check", "sm", "h-4 w-4 shrink-0")}
+                        </li>
+                      );
+                    })
+                  )}
+                </ul>
+              </ScrollArea>
+            </Panel>
+          </div>,
+          PORTAL_ROOT,
+        )
+      : null;
 
     return (
       <div ref={containerRef} className="relative w-full">
@@ -345,8 +545,22 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
           // the caret. Rendered by `Input`, so it keeps the kit's focus ring
           // and hit area — the old version nested its own `IconButton` in a
           // `pointer-events-none` box.
-          trailingIcon={showClear ? "Close" : "ArrowDown"}
-          trailingIconLabel={showClear ? t("kit.combobox.clear") : t("kit.combobox.showOptions")}
+          trailingIcon={
+            showClear ? (
+              "Close"
+            ) : loading ? (
+              <Spinner size="xs" color={accent} />
+            ) : (
+              "ArrowDown"
+            )
+          }
+          trailingIconLabel={
+            showClear
+              ? t("kit.combobox.clear")
+              : loading
+                ? t("kit.combobox.loading")
+                : t("kit.combobox.showOptions")
+          }
           onTrailingIconClick={() => {
             if (showClear) {
               setQuery("");
@@ -386,101 +600,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
           onKeyDown={handleKeyDown}
         />
 
-        {open && !disabled && !readOnly && (
-          <ul
-            ref={listRef}
-            id={listId}
-            role="listbox"
-            aria-label={rest["aria-label"] ?? placeholder ?? "Options"}
-            className={classNames(
-              "absolute z-20 mt-1 w-full overflow-auto rounded-lg border border-neutral-200 bg-white py-1 shadow-lg",
-              "dark:border-neutral-700 dark:bg-neutral-900",
-              listClassName,
-            )}
-            style={{ maxHeight: `${visibleRows * 2.5}rem` }}
-          >
-            {loading ? (
-              <li
-                className={classNames(
-                  "flex items-center gap-2 text-neutral-500 dark:text-neutral-400",
-                  rowClass,
-                )}
-              >
-                <Spinner size="xs" color={accent} />
-                {loadingMessage ?? t("kit.combobox.loading")}
-              </li>
-            ) : filtered.length === 0 ? (
-              <li
-                className={classNames(
-                  "italic text-neutral-500 dark:text-neutral-400",
-                  rowClass,
-                )}
-              >
-                {emptyMessage ?? t("kit.combobox.emptyMessage")}
-              </li>
-            ) : (
-              filtered.map((option, index) => {
-                const selected = option.value === value;
-                const active = index === activeIndex;
-                return (
-                  <li
-                    key={option.value}
-                    id={`${listId}-${index}`}
-                    data-index={index}
-                    role="option"
-                    aria-selected={selected}
-                    aria-disabled={option.disabled || undefined}
-                    // `onMouseDown` rather than `onClick`: the input's blur
-                    // fires first otherwise and the list is gone before the
-                    // click lands.
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      commit(option);
-                    }}
-                    onMouseEnter={() =>
-                      !option.disabled && setActiveIndex(index)
-                    }
-                    className={classNames(
-                      "flex items-center gap-2",
-                      rowClass,
-                      option.disabled
-                        ? "cursor-not-allowed opacity-50"
-                        : "cursor-pointer",
-                      // One class or the other, never both: two rules setting
-                      // a background at the same specificity are resolved by
-                      // emission order, which is arbitrary.
-                      active && !option.disabled
-                        ? toneClasses.active
-                        : selected
-                          ? toneClasses.selected
-                          : "text-neutral-900 dark:text-neutral-100",
-                      selected && "font-medium",
-                    )}
-                  >
-                    {option.icon && (
-                      <span className="inline-flex shrink-0 items-center">
-                        {typeof option.icon === "string"
-                          ? renderIcon(option.icon, "sm", "h-4 w-4")
-                          : option.icon}
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">
-                        {option.label ?? option.value}
-                      </span>
-                      {option.description && (
-                        <span className="block truncate text-xs text-neutral-500 dark:text-neutral-400">
-                          {option.description}
-                        </span>
-                      )}
-                    </span>
-                    {selected && renderIcon("Check", "sm", "h-4 w-4 shrink-0")}
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        )}
+        {open && !disabled && !readOnly ? popup : null}
       </div>
     );
   },

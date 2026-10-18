@@ -7,6 +7,7 @@ import Loader from "./Loader";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import { useKitT } from "../i18n";
 import { usePager } from "../hooks/usePager";
+import { PANE_EMPTY_STATE_SIZE } from "../theme/Theme";
 import type { ControlSize, TrueColor } from "../theme/Theme";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -74,13 +75,49 @@ const SKELETON =
 
 const SIZE_TOKENS: Record<
   ControlSize,
-  { title: string; subtitle: string; counter: string; pad: string; icon: ControlSize }
+  {
+    title: string;
+    subtitle: string;
+    counter: string;
+    pad: string;
+    icon: ControlSize;
+  }
 > = {
-  xs: { title: "text-xs", subtitle: "text-[10px]", counter: "text-[10px]", pad: "px-3 py-2", icon: "xs" },
-  sm: { title: "text-xs", subtitle: "text-[11px]", counter: "text-[11px]", pad: "px-3 py-2", icon: "xs" },
-  md: { title: "text-sm", subtitle: "text-xs", counter: "text-[11px]", pad: "px-4 py-3", icon: "sm" },
-  lg: { title: "text-base", subtitle: "text-sm", counter: "text-xs", pad: "px-5 py-3.5", icon: "md" },
-  xl: { title: "text-lg", subtitle: "text-base", counter: "text-sm", pad: "px-6 py-4", icon: "md" },
+  xs: {
+    title: "text-xs",
+    subtitle: "text-[10px]",
+    counter: "text-[10px]",
+    pad: "px-3 py-2",
+    icon: "xs",
+  },
+  sm: {
+    title: "text-xs",
+    subtitle: "text-[11px]",
+    counter: "text-[11px]",
+    pad: "px-3 py-2",
+    icon: "xs",
+  },
+  md: {
+    title: "text-sm",
+    subtitle: "text-xs",
+    counter: "text-[11px]",
+    pad: "px-4 py-3",
+    icon: "sm",
+  },
+  lg: {
+    title: "text-base",
+    subtitle: "text-sm",
+    counter: "text-xs",
+    pad: "px-5 py-3.5",
+    icon: "md",
+  },
+  xl: {
+    title: "text-lg",
+    subtitle: "text-base",
+    counter: "text-sm",
+    pad: "px-6 py-4",
+    icon: "md",
+  },
 };
 
 // ── Body ─────────────────────────────────────────────────────────────────────
@@ -128,7 +165,11 @@ const PagedPanelBody: React.FC<{
   onNext,
 }) => {
   const text = useSurfaceText();
+  const t = useKitT();
   const tokens = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
+  // EmptyState's own scale is for full-page views; inside a pane the
+  // empty/error states follow the shared PANE_EMPTY_STATE_SIZE map.
+  const emptySize = PANE_EMPTY_STATE_SIZE[size] ?? PANE_EMPTY_STATE_SIZE.md;
   const showNav = total > 1;
   const showHeader = resolvedTitle != null || subtitle != null || showNav;
 
@@ -150,8 +191,8 @@ const PagedPanelBody: React.FC<{
                 variant="ghost"
                 color={tone}
                 size={tokens.icon}
-                srLabel="Previous page"
-                tooltip="Previous page"
+                srLabel={t("kit.pagedpanel.previousPage")}
+                tooltip={t("kit.pagedpanel.previousPage")}
                 disabled={current === 0}
                 onClick={onPrev}
               />
@@ -207,8 +248,8 @@ const PagedPanelBody: React.FC<{
                 variant="ghost"
                 color={tone}
                 size={tokens.icon}
-                srLabel="Next page"
-                tooltip="Next page"
+                srLabel={t("kit.pagedpanel.nextPage")}
+                tooltip={t("kit.pagedpanel.nextPage")}
                 disabled={current === total - 1}
                 onClick={onNext}
               />
@@ -219,34 +260,34 @@ const PagedPanelBody: React.FC<{
 
       <div className="h-full w-full p-4 flex items-center justify-center">
         {loading ? (
-          (loadingState ?? (
-            loaderType === "skeleton" ? (
-              // Shaped like a page: a couple of copy lines at the width real
-              // content tends to occupy, so the panel keeps its height and
-              // nothing jumps when the page arrives.
-              <div className="flex w-full flex-col gap-3" aria-hidden="true">
-                <div className={classNames(SKELETON, "h-3 w-3/4 rounded")} />
-                <div className={classNames(SKELETON, "h-3 w-full rounded")} />
-                <div className={classNames(SKELETON, "h-3 w-5/6 rounded")} />
-              </div>
-            ) : (
-              <Loader
-                variant={loaderType}
-                size={size === "xs" || size === "sm" ? "sm" : "md"}
-                color={tone}
-                progress={progress}
-                label={loadingLabel}
-              />
-            )
-          ))
+          (loadingState ??
+          (loaderType === "skeleton" ? (
+            // Shaped like a page: a couple of copy lines at the width real
+            // content tends to occupy, so the panel keeps its height and
+            // nothing jumps when the page arrives.
+            <div className="flex w-full flex-col gap-3" aria-hidden="true">
+              <div className={classNames(SKELETON, "h-3 w-3/4 rounded")} />
+              <div className={classNames(SKELETON, "h-3 w-full rounded")} />
+              <div className={classNames(SKELETON, "h-3 w-5/6 rounded")} />
+            </div>
+          ) : (
+            <Loader
+              variant={loaderType}
+              size={size === "xs" || size === "sm" ? "sm" : "md"}
+              color={tone}
+              progress={progress}
+              label={loadingLabel}
+            />
+          )))
         ) : error ? (
           <EmptyState
             variant="plain"
             icon="Error"
             iconColor="rose"
-            title="Something went wrong"
+            title={t("kit.pagedpanel.error")}
             subtitle={error}
             showIcon
+            size={emptySize}
           />
         ) : total === 0 && !loading ? (
           (emptyState ?? (
@@ -256,6 +297,7 @@ const PagedPanelBody: React.FC<{
               title={emptyMessage}
               showIcon
               tone={tone}
+              size={emptySize}
             />
           ))
         ) : (

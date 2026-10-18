@@ -1,4 +1,4 @@
-import { CONTROL_SIZES, Hero } from "@cjlapao/ui-kit";
+import { CONTROL_SIZES, PanelHero } from "@cjlapao/ui-kit";
 
 /**
  * Title, subtitle and the icon chip all move together on the shared control
@@ -9,7 +9,7 @@ export default function Sizes() {
   return (
     <div className="flex w-full flex-col gap-3">
       {CONTROL_SIZES.map((size) => (
-        <Hero
+        <PanelHero
           key={size}
           tone="emerald"
           titleSize={size}

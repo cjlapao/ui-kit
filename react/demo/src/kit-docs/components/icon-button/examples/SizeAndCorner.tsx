@@ -3,10 +3,18 @@ import type { ReactNode } from "react";
 
 const ROUNDED = ["md", "lg", "xl", "full"] as const;
 
-const Swatch = ({ label, children }: { label: string; children: ReactNode }) => (
+const Swatch = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) => (
   <div className="flex flex-col items-center gap-1.5">
     {children}
-    <span className="text-[10px] uppercase tracking-wide opacity-60">{label}</span>
+    <span className="text-[10px] uppercase tracking-wide opacity-60">
+      {label}
+    </span>
   </div>
 );
 

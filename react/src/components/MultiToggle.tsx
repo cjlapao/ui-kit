@@ -74,7 +74,10 @@ export interface MultiToggleProps
   // `onClick` replaced each option's own handler and an `id` was duplicated
   // once per option. They now land on the group, which is where an `id`,
   // `aria-label` or `data-*` belongs.
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> {
+  extends Omit<
+    React.HTMLAttributes<HTMLDivElement>,
+    "onChange" | "defaultValue"
+  > {
   /** Disables the whole group. */
   disabled?: boolean;
   options: MultiToggleOption[];
@@ -90,6 +93,12 @@ export interface MultiToggleProps
   fullWidth?: boolean;
   className?: string;
   showOnlyActiveLabel?: boolean;
+  /**
+   * Let labels ellipsize inside width-constrained segments. Defaults to on
+   * only where a constraint exists (`fullWidth` or fixed option widths) —
+   * in auto mode the track sizes to the words, and ellipsising them would
+   * defeat exactly that.
+   */
   truncateOverflow?: boolean;
   adaptiveWidth?: boolean;
   optionMaxWidth?: number | string;
@@ -266,7 +275,8 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
   // hardcoded `text-neutral-600` is unreadable on `glass` over a photo.
   const surfaceText = getSurfaceTextTokens(variant);
   const trackClasses = getSurfaceVariantClasses(variant, resolvedTone);
-  const activeTextClass = getMultiToggleVariantTokens(resolvedAccent).activeText;
+  const activeTextClass =
+    getMultiToggleVariantTokens(resolvedAccent).activeText;
 
   /**
    * The active pill. All three carry a tone-following edge: a white pill on a
@@ -483,19 +493,24 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
         return;
       }
 
-      const current = selectable.findIndex(({ index }) => index === activeIndex);
+      const current = selectable.findIndex(
+        ({ index }) => index === activeIndex,
+      );
       // Wraps at both ends, which is what the radiogroup pattern specifies.
       const next =
-        selectable[
-          (current + step + selectable.length) % selectable.length
-        ];
+        selectable[(current + step + selectable.length) % selectable.length];
       onChange(next.option.value);
       optionRefs.current[next.index]?.focus();
     },
     [options, disabled, activeIndex, onChange],
   );
 
-  const shouldTruncate = truncateOverflow ?? true;
+  // Truncation only makes sense where something constrains the width —
+  // `fullWidth` dividing fixed space, or an explicit per-option width. In
+  // plain auto mode the track shrink-wraps, and `truncate` there is
+  // self-defeating: the ellipsis is narrower than the word, so min-content
+  // sizing collapsed every label to "We…". It defaulted to on regardless.
+  const shouldTruncate = truncateOverflow ?? (fullWidth || hasCustomWidths);
   const computedIndicatorStyle = indicatorInlineStyle ?? indicatorStyle;
 
   return (
@@ -523,7 +538,11 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
         style={computedIndicatorStyle ?? indicatorStyle}
       >
         <span
-          className={classNames("h-full w-full", indicatorRounded, indicatorClasses)}
+          className={classNames(
+            "h-full w-full",
+            indicatorRounded,
+            indicatorClasses,
+          )}
         />
       </span>
 

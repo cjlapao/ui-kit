@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { I18nProvider } from "../i18n";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import Picker from "./Picker";
 import TagPicker from "./TagPicker";
 import SplitView from "./SplitView";
-import { TRUE_COLORS } from "../theme/Theme";
+import { TRUE_COLORS, getSurfaceCornerClass } from "../theme/Theme";
 
 const ITEMS = [
   { id: "a", title: "Alpha" },
@@ -55,7 +56,12 @@ describe("TagPicker", () => {
   it("paints every tone in its own tone, with no drift", () => {
     for (const tone of TRUE_COLORS) {
       const { unmount } = render(
-        <TagPicker items={ITEMS.map((i) => ({ id: i.id, label: i.title }))} value={[]} onChange={vi.fn()} color={tone} />,
+        <TagPicker
+          items={ITEMS.map((i) => ({ id: i.id, label: i.title }))}
+          value={[]}
+          onChange={vi.fn()}
+          color={tone}
+        />,
       );
       fireEvent.click(screen.getByRole("button"));
       // Same field-system focus treatment as Picker: the tone's -400 border
@@ -68,7 +74,12 @@ describe("TagPicker", () => {
 
   it("resolves `green` to green", () => {
     render(
-      <TagPicker items={[{ id: "a", label: "A" }]} value={[]} onChange={vi.fn()} color="green" />,
+      <TagPicker
+        items={[{ id: "a", label: "A" }]}
+        value={[]}
+        onChange={vi.fn()}
+        color="green"
+      />,
     );
     fireEvent.click(screen.getByRole("button"));
     expect(document.body.innerHTML).toContain("border-green-400");
@@ -83,9 +94,7 @@ describe("TagPicker", () => {
         onChange={vi.fn()}
       />,
     );
-    fireEvent.click(
-      document.querySelector('[aria-haspopup]') as HTMLElement,
-    );
+    fireEvent.click(document.querySelector("[aria-haspopup]") as HTMLElement);
     const search = screen.getByRole("combobox");
     expect(search).toHaveAttribute("aria-label", "Search tags");
     fireEvent.keyDown(search, { key: "ArrowDown" });
@@ -107,31 +116,32 @@ describe("SplitView", () => {
       const { container, unmount } = render(
         <SplitView items={items} color={tone} />,
       );
-      expect(container.innerHTML).toContain(`border-l-${tone}-600`);
+      expect(container.innerHTML).toContain(
+        `bg-${tone}-600 dark:bg-${tone}-400`,
+      );
       unmount();
     }
   });
 
   it("no longer aliases stone and neutral to one shared palette", () => {
     // Both used to point at the same `neutralActive` object, so a `stone`
-    // SplitView silently rendered neutral — and `neutral` used
-    // `border-l-neutral-500` where every other tone used `-600`.
+    // SplitView silently rendered neutral — and `neutral` used the 500
+    // weight where every other tone used 600.
     const { container: stone, unmount } = render(
       <SplitView items={items} color="stone" />,
     );
-    expect(stone.innerHTML).toContain("border-l-stone-600");
-    // The specific bug: stone rendered the neutral border.
-    expect(stone.innerHTML).not.toContain("border-l-neutral-500");
-    expect(stone.innerHTML).not.toContain("border-l-neutral-600");
+    expect(stone.innerHTML).toContain("bg-stone-600 dark:bg-stone-400");
+    // The specific bug: stone rendered the neutral accent.
+    expect(stone.innerHTML).not.toContain("bg-neutral-500");
+    expect(stone.innerHTML).not.toContain("bg-neutral-600 dark:bg-neutral-400");
     unmount();
 
     const { container: neutral } = render(
       <SplitView items={items} color="neutral" />,
     );
-    expect(neutral.innerHTML).toContain("border-l-neutral-600");
+    expect(neutral.innerHTML).toContain("bg-neutral-600 dark:bg-neutral-400");
   });
 });
-
 
 describe("Picker — the shared field system", () => {
   it("draws the variant's surface rather than a hardcoded white box", () => {
@@ -206,7 +216,7 @@ describe("Picker — the shared field system", () => {
     const { container } = render(<Picker items={ITEMS} variant="gradient" />);
     const glow = container.querySelector("[aria-hidden]") as HTMLElement | null;
     expect(glow).not.toBeNull();
-    expect(glow!.style.background).toContain("linear-gradient");
+    expect(glow!.style.boxShadow).toContain("px 0");
   });
 
   it("announces itself as a listbox trigger", () => {
@@ -256,13 +266,11 @@ describe("Picker — accessibility (listbox + keyboard)", () => {
     // ArrowDown moves to the second option, Enter selects it.
     fireEvent.keyDown(search, { key: "ArrowDown" });
     const secondOption = screen.getAllByRole("option")[1];
-    expect(
-      search.getAttribute("aria-activedescendant"),
-    ).toBe(secondOption.getAttribute("id"));
-    fireEvent.keyDown(search, { key: "Enter" });
-    expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "b" }),
+    expect(search.getAttribute("aria-activedescendant")).toBe(
+      secondOption.getAttribute("id"),
     );
+    fireEvent.keyDown(search, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "b" }));
   });
 
   it("multi-select: the clear action is a real button and the list is multiselectable", () => {
@@ -310,15 +318,18 @@ describe("Picker — loading row", () => {
 
   it("scales the spinner with the field size", () => {
     const small = render(<Picker items={[]} loading size="xs" />);
-    const smallCls = small.container.querySelector("span[class*='rounded-full']")?.className ?? "";
+    const smallCls =
+      small.container.querySelector("span[class*='rounded-full']")?.className ??
+      "";
     small.unmount();
     const large = render(<Picker items={[]} loading size="lg" />);
-    const largeCls = large.container.querySelector("span[class*='rounded-full']")?.className ?? "";
+    const largeCls =
+      large.container.querySelector("span[class*='rounded-full']")?.className ??
+      "";
     expect(smallCls).not.toBe("");
     expect(largeCls).not.toBe(smallCls);
   });
 });
-
 
 describe("TagPicker — the shared field system", () => {
   const TAGS = [
@@ -341,9 +352,7 @@ describe("TagPicker — the shared field system", () => {
     rerender(
       <TagPicker items={TAGS} value={[]} onChange={noop} variant="ghost" />,
     );
-    expect(triggerOf(container).className).toContain(
-      "border-transparent",
-    );
+    expect(triggerOf(container).className).toContain("border-transparent");
   });
 
   it("focuses with an inset ring, like every other field", () => {
@@ -368,9 +377,7 @@ describe("TagPicker — the shared field system", () => {
     const empty = render(
       <TagPicker items={TAGS} value={[]} onChange={noop} size="md" />,
     );
-    expect(triggerOf(empty.container).className).toContain(
-      "min-h-",
-    );
+    expect(triggerOf(empty.container).className).toContain("min-h-");
   });
 
   it("shows the error surface and reports itself invalid", () => {
@@ -420,16 +427,14 @@ describe("TagPicker — the shared field system", () => {
     );
     const glow = container.querySelector("[aria-hidden]") as HTMLElement | null;
     expect(glow).not.toBeNull();
-    expect(glow!.style.background).toContain("linear-gradient");
+    expect(glow!.style.boxShadow).toContain("px 0");
   });
 
   it("marks itself busy while loading and grows the copy", () => {
     const { container } = render(
       <TagPicker items={[]} value={[]} onChange={noop} loading />,
     );
-    const chevron = container.querySelector(
-      'button[aria-haspopup="listbox"]',
-    )!;
+    const chevron = container.querySelector('button[aria-haspopup="listbox"]')!;
     expect(chevron.getAttribute("aria-busy")).toBe("true");
     expect(
       chevron.parentElement!.querySelector(".flex-1")!.textContent,
@@ -437,6 +442,271 @@ describe("TagPicker — the shared field system", () => {
   });
 });
 
+describe("Picker — multi highlight is position, not selection", () => {
+  const multi = (selectedIds: string[] = []) => {
+    const onMultiChange = vi.fn();
+    const utils = render(
+      <Picker
+        items={ITEMS}
+        multi
+        selectedIds={selectedIds}
+        onMultiChange={onMultiChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    return { ...utils, onMultiChange };
+  };
+
+  it("opens an empty multi selection with nothing highlighted", () => {
+    // A lone lit row on a list of unchecked boxes reads as "already
+    // picked". The cursor only appears once the keyboard asks for it.
+    multi();
+    expect(document.querySelector('[data-active="true"]')).toBeNull();
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    expect(screen.getAllByRole("option")[0]).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+  });
+
+  it("does not paint an unchecked row with the selected fill", () => {
+    // Opening highlights a row for the keyboard; in multi mode that row
+    // may well be unchecked, and the grey fill read as "selected" while
+    // the checkbox said otherwise.
+    multi(["b"]);
+    const active = screen.getAllByRole("option")[1];
+    expect(active).toHaveAttribute("data-active", "true");
+    expect(active.className).toContain("bg-blue-50");
+    expect(active).toHaveAttribute("aria-selected", "true");
+    // And a highlighted row that is NOT checked is only ever a whisper.
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowUp" });
+    const activeUnselected = screen.getAllByRole("option")[0];
+    expect(activeUnselected.className).toContain("bg-neutral-50");
+    expect(activeUnselected.className).not.toContain("bg-blue-50");
+    expect(activeUnselected).not.toHaveAttribute("aria-selected");
+  });
+
+  it("follows the click, and the checkbox is the truth", () => {
+    const { onMultiChange, unmount } = multi();
+    const options = screen.getAllByRole("option");
+    fireEvent.click(options[1]);
+    expect(onMultiChange).toHaveBeenCalledWith(["b"]);
+    // The highlight moved to the clicked row - no phantom left behind.
+    expect(options[1]).toHaveAttribute("data-active", "true");
+    expect(options[0].hasAttribute("data-active")).toBe(false);
+    // With the selection applied (the controlled flow), clicking the same
+    // row again deselects - the checkbox is the truth, the highlight is not.
+    unmount();
+    const second = multi(["b"]);
+    fireEvent.click(screen.getAllByRole("option")[1]);
+    expect(second.onMultiChange).toHaveBeenCalledWith([]);
+  });
+
+  it("washes only on the keyboard's initiative - a click leaves no residue", () => {
+    // The reported bug: deselecting a row kept showing the position wash,
+    // loudest on the glass popup where bg-neutral-50 reads as a grey band.
+    // The wash is the keyboard's focus-visible marker; mouse answers
+    // itself via the checkbox.
+    const { onMultiChange } = multi();
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    const first = screen.getAllByRole("option")[0];
+    expect(first.className.split(" ")).toContain("bg-neutral-50");
+    // Deselect through the mouse: cursor moves for the keyboard's sake,
+    // but no wash is parked on the row.
+    onMultiChange.mockClear();
+    fireEvent.click(first);
+    expect(first).toHaveAttribute("data-active", "true");
+    expect(first.className.split(" ")).not.toContain("bg-neutral-50");
+    // And one arrow press brings it back.
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    expect(screen.getAllByRole("option")[1]).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    expect(screen.getAllByRole("option")[1].className.split(" ")).toContain(
+      "bg-neutral-50",
+    );
+  });
+
+  it("keeps the tone wash and adds a ring when the keyboard lands on a checked row", () => {
+    multi(["a"]);
+    const selected = screen.getAllByRole("option")[0];
+    expect(selected).toHaveAttribute("aria-selected", "true");
+    // Opening starts on the selected row: its tone wash stays the fill.
+    expect(selected.className.split(" ")).toContain("bg-blue-50");
+    expect(selected.className.split(" ")).not.toContain("bg-neutral-50");
+  });
+});
+
+describe("Picker — the portaled popup places against the viewport", () => {
+  afterEach(() => {
+    Element.prototype.getBoundingClientRect = originalRect;
+  });
+  let originalRect: typeof Element.prototype.getBoundingClientRect;
+
+  it("lands below the field inside a clipping panel host", () => {
+    // A Panel host scrolls (overflow) - the popup is portaled to the body,
+    // so the host must NOT act as a boundary: clamping against the host's
+    // short rect parked the popup on top of the field (the reported bug).
+    // The DatePicker's overlay hook documents the same coordinate fix.
+    originalRect = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      if (this.hasAttribute("data-host-clip")) {
+        return mockRect(100, 160, 400); // a short clipped card
+      }
+      if (
+        this.getAttribute("role") === "combobox" ||
+        this.tagName === "BUTTON"
+      ) {
+        return mockRect(100, 134, 200); // the field
+      }
+      if (
+        this.hasAttribute("data-slot") &&
+        this.getAttribute("data-slot") === "picker-popup"
+      ) {
+        return mockRect(0, 300, 200); // the popup's (tall) box
+      }
+      return originalRect.call(this);
+    };
+    render(
+      <div data-host-clip style={{ overflow: "auto" }}>
+        <Picker items={ITEMS} />
+      </div>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    const popup = document.querySelector('[data-slot="picker-popup"]')!;
+    // Below the field (134 + 4 gap) - not clamped into the host's 100..160
+    // strip, which is where the boundary walk used to drop it.
+    expect((popup as HTMLElement).style.top).toBe("138px");
+  });
+
+  function mockRect(top: number, bottom: number, width: number): DOMRect {
+    return {
+      top,
+      bottom,
+      left: 100,
+      right: 100 + width,
+      width,
+      height: bottom - top,
+      x: 100,
+      y: top,
+      toJSON: () => ({}),
+    } as DOMRect;
+  }
+});
+
+describe("Picker — the option list scrolls like the rest of the kit", () => {
+  it("scrolls through the shared ScrollArea, not a raw overflow div", () => {
+    render(<Picker items={ITEMS} />);
+    fireEvent.click(screen.getByRole("button"));
+    // The kit's overlay scrollbars (ScrollArea's viewport) - the same
+    // furniture VariablePicker's groups and the tab lanes use - rather
+    // than the browser's native bar.
+    expect(
+      screen.getByRole("listbox").closest('[data-slot="scrollarea-viewport"]'),
+    ).toBeTruthy();
+    expect(screen.getAllByRole("option")).toHaveLength(ITEMS.length);
+  });
+});
+
+describe("Picker — the dropdown surface follows the field", () => {
+  const popupCard = () => {
+    const shell = document.querySelector('[data-slot="picker-popup"]');
+    return (shell?.firstElementChild as HTMLElement | null)?.className ?? "";
+  };
+
+  it("maps the field variant to a surface, glass included", () => {
+    // The hardcoded `bg-white shadow-xl` box made a glass field's popup an
+    // opaque slab. `"auto"` follows SURFACE_VARIANT_FOR_FIELD, the mapping
+    // SmartInput's suggestion card already uses.
+    const { unmount } = render(<Picker items={ITEMS} variant="glass" />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(popupCard()).toContain("backdrop-blur-xl");
+    unmount();
+    render(<Picker items={ITEMS} variant="underline" />);
+    fireEvent.click(screen.getByRole("button"));
+    // Underline's popup is `subtle` — no rim colour to speak of.
+    expect(popupCard()).toContain("ring-transparent");
+  });
+
+  it("resolves the card corner through the theme in auto mode", () => {
+    // A hardcoded `rounded-lg` ignored the theme's corner scale; `auto`
+    // keeps the ladder SmartInput's card holds.
+    render(<Picker items={ITEMS} />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(popupCard()).toContain(getSurfaceCornerClass("auto"));
+  });
+
+  it("takes an explicit panelCorner", () => {
+    render(<Picker items={ITEMS} panelCorner="none" />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(popupCard()).toContain("rounded-none");
+    expect(popupCard()).not.toContain("rounded-2xl");
+  });
+
+  it("takes an explicit panelVariant", () => {
+    render(<Picker items={ITEMS} variant="glass" panelVariant="outlined" />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(popupCard()).toContain("bg-white/90");
+    expect(popupCard()).not.toContain("backdrop-blur");
+  });
+});
+
+describe("Picker — underline is laid out like Input's", () => {
+  it("drops the box treatment for the underline variant", () => {
+    render(<Picker items={ITEMS} variant="underline" />);
+    const trigger = screen.getByRole("button");
+    // A ring around a borderless field reads as a stray box — Input skips
+    // it, and so must the sibling that claims the same field system.
+    expect(trigger.className).not.toContain("focus-within:ring");
+    // The underline padding scale — never the box's horizontal inset.
+    expect(trigger.className).toMatch(/pt-\d pb-\d/);
+    expect(trigger.className).not.toMatch(/\bpx-\d/);
+  });
+
+  it("tints the rule while open without boxing it", () => {
+    render(<Picker items={ITEMS} variant="underline" />);
+    const trigger = screen.getByRole("button");
+    fireEvent.click(trigger);
+    expect(trigger.className).toContain("border-blue-400");
+    expect(trigger.className).not.toContain("ring-2");
+  });
+});
+
+describe("Picker — i18n", () => {
+  const items = [
+    { id: "1", title: "Alpha" },
+    { id: "2", title: "Beta" },
+  ];
+
+  it("speaks the user's language out of the box", () => {
+    // The defaults ARE the product for most callers — English defaults in a
+    // German app are the bug, and no prop can fix what was never passed.
+    render(
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        <Picker items={items} onSelect={vi.fn()} />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    const search = screen.getByRole("combobox", {
+      name: "Optionen durchsuchen",
+    });
+    expect(search.getAttribute("placeholder")).toBe("Suchen…");
+    expect(screen.getByRole("listbox", { name: "Optionen" })).toBeTruthy();
+    expect(screen.queryByText("Select an item…")).toBeNull();
+  });
+
+  it("localises the empty and loading copy", () => {
+    render(
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        <Picker items={[]} loading onSelect={vi.fn()} />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    expect(screen.getByText("Wird geladen…")).toBeTruthy();
+    expect(screen.queryByText("Loading…")).toBeNull();
+  });
+});
 
 describe("loading disables the trigger", () => {
   const TAGS = [{ id: "a", label: "Alpha" }];

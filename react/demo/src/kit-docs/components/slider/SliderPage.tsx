@@ -1,4 +1,10 @@
 import React from "react";
+import {
+  A11ySection,
+  A11yTopic,
+  C,
+  PropsTable,
+} from "../../shared/A11ySections";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
 import { SliderPlayground } from "./SliderPlayground";
@@ -44,7 +50,7 @@ export const SliderPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Variants"
-        description={`The \`variant\` treatments from \`Button\`'s vocabulary that make sense for a track. \`color\` takes any of the 21 palette tones.`}
+        description="The `variant` treatments from `Button`'s vocabulary that make sense for a track. `tone` takes any of the palette tones."
         code={variantsCode}
         filename="Variants.tsx"
       >
@@ -115,6 +121,133 @@ export const SliderPage: React.FC = () => (
         <Filter />
       </ExampleCard>
     </section>
+    <PropsTable
+      props={[
+        {
+          name: "value / defaultValue",
+          type: "SliderValue | null",
+          description:
+            "A number — or a `[min, max]` pair in range mode. Uncontrolled defaults to the bounds (`[min, max]` in range mode).",
+        },
+        {
+          name: "onChange / onSlideEnd",
+          type: "(value: SliderValue) => void",
+          description:
+            "`onChange` fires on every move — drag, track click, keyboard; `onSlideEnd` once when a pointer drag is released.",
+        },
+        {
+          name: "min / max / step",
+          type: "number",
+          default: "0 / 100 / 1",
+          description:
+            "The value axis. Everything snaps to the step grid; non-finite values fall back to the defaults.",
+        },
+        {
+          name: "range",
+          type: "boolean",
+          default: "false",
+          description:
+            "Two handles that cannot cross, picking a `[min, max]` pair.",
+        },
+        {
+          name: "minStepsBetweenHandles",
+          type: "number",
+          default: "0",
+          description:
+            "Range mode: the handles may not come closer than this many steps apart.",
+        },
+        {
+          name: "orientation",
+          type: "Orientation",
+          default: '"horizontal"',
+          description:
+            "The shared orientation family; vertical grows a `h-64` default unless a height is given.",
+        },
+        {
+          name: "variant",
+          type: "SliderVariant",
+          default: '"solid"',
+          description:
+            "The same eight treatments `Button` offers, resolved through the shared slider token map.",
+        },
+        {
+          name: "tone",
+          type: "TrueColor",
+          default: '"blue"',
+          description:
+            "Fill and handle colour. `color` still works as a deprecated alias — the kit standardized on `tone`.",
+        },
+        {
+          name: "invalid",
+          type: "boolean",
+          default: "false",
+          description:
+            "Paints fill, handle and focus ring with the error colour.",
+        },
+        {
+          name: "disabled / disabledMinHandle / disabledMaxHandle",
+          type: "boolean",
+          default: "false",
+          description:
+            "Whole-control freeze, or a single range handle frozen while the other stays live — frozen handles leave the tab order.",
+        },
+        {
+          name: "readOnly",
+          type: "boolean",
+          default: "false",
+          description:
+            "Focusable but not editable — announced via `aria-readonly`, visually unchanged.",
+        },
+        {
+          name: "ariaLabel",
+          type: "string",
+          default: '"Slider" (`kit.slider.label`)',
+          description:
+            "Names the handle(s). In range mode it flows into the translated phrases — &ldquo;Volume min&rdquo; / &ldquo;Volume max&rdquo;.",
+        },
+        {
+          name: "className / ref",
+          type: "string / Ref<HTMLDivElement>",
+          description: "Land on the root.",
+        },
+      ]}
+    />
+    <A11ySection>
+      <A11yTopic title="Screen reader">
+        <p>
+          Each handle is a real <C>role="slider"</C> with <C>aria-valuemin</C>/
+          <C>aria-valuemax</C>/<C>aria-valuenow</C> and <C>aria-orientation</C>{" "}
+          — range mode is two sliders, named through the catalog
+          (&ldquo;Minimum&rdquo;/&ldquo;Maximum&rdquo;, or the translated phrase
+          around an <C>ariaLabel</C>). <C>readOnly</C>
+          announces <C>aria-readonly</C> without pretending the handle is gone;
+          frozen handles get <C>aria-disabled</C> and leave the tab order. The
+          fill and track are decoration.
+        </p>
+      </A11yTopic>
+      <A11yTopic title="Keyboard support">
+        <p>
+          The standard slider key set, all of it: <C>ArrowLeft</C>/
+          <C>ArrowRight</C> and <C>ArrowDown</C>/<C>ArrowUp</C> step (so both
+          axes work regardless of orientation), <C>PageDown</C>/<C>PageUp</C>{" "}
+          jump ten steps, <C>Home</C>/<C>End</C> go to the bounds. A track click
+          drags the nearest handle — and focus parks on that handle, so the
+          keyboard story continues from where the pointer left off.
+        </p>
+      </A11yTopic>
+      <A11yTopic title="Internationalization">
+        <p>
+          The handle names ride the catalog in five locales —
+          <C>kit.slider.label</C> plus <C>kit.slider.min</C>/<C>max</C> for bare
+          range handles and <C>minOf</C>/<C>maxOf</C> when the caller named the
+          group (<C>Lautstärke: Mindestwert</C>). No English glue is ever bolted
+          onto a user-provided name. What stays put: the number itself —{" "}
+          <C>aria-valuenow</C> is spoken raw (there is no
+          <C>aria-valuetext</C> hook to the handles), so carry a unit in the
+          <C>ariaLabel</C> instead — &ldquo;Volume, percent&rdquo;.
+        </p>
+      </A11yTopic>
+    </A11ySection>
   </div>
 );
 

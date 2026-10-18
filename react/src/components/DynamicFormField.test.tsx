@@ -1,7 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { I18nProvider } from "../i18n";
 
-import DynamicFormField, { normalizeOptions } from "./DynamicFormField";
+import DynamicFormField, {
+  normalizeOptions,
+  type DynamicFormFieldProps,
+  type DynamicFormFieldVariant,
+} from "./DynamicFormField";
 import { CapsuleBlueprintValueType } from "../../../common/types/CapsuleBlueprint";
 import type { CapsuleBlueprintParameter } from "../../../common/types/CapsuleBlueprint";
 import { CONTROL_SIZES, SURFACE_VARIANTS } from "../theme/Theme";
@@ -84,7 +89,12 @@ describe("DynamicFormField", () => {
       const area = container.querySelector("textarea")!;
       expect(area.value).toBe("one\ntwo");
       fireEvent.change(area, { target: { value: "a\nb\n" } });
-      expect(onChange).toHaveBeenCalledWith("global", "region", ["a", "b"], true);
+      expect(onChange).toHaveBeenCalledWith(
+        "global",
+        "region",
+        ["a", "b"],
+        true,
+      );
     });
   });
 
@@ -186,6 +196,72 @@ describe("DynamicFormField", () => {
       }
     });
 
+    // The field's own surface span (Input's `field`): FormField and the
+    // card wrap it in layout divs, and the <input> itself is styled bare
+    // with a neutralising `border-none`.
+    const entryClasses = (container: HTMLElement) => {
+      let el: Element | null = container.querySelector("input");
+      while (
+        el &&
+        !(el.className.includes("group") && el.className.includes("w-full"))
+      )
+        el = el.parentElement;
+      return el?.className ?? "";
+    };
+
+    it("defaults to the kit's own surface: elevated card, auto entry", () => {
+      const { container } = render(
+        <DynamicFormField parameter={param()} onChange={() => {}} />,
+      );
+      const card = container.querySelector("section")!;
+      expect(card.className).toContain("bg-white");
+      // The auto entry mirrors a boxed card: the bordered flat field.
+      expect(entryClasses(container).split(" ")).toContain(
+        "border-neutral-300",
+      );
+    });
+
+    it("tints the tonal card with the default tone - blue", () => {
+      const { container } = render(
+        <DynamicFormField
+          parameter={param()}
+          onChange={() => {}}
+          variant="tonal"
+        />,
+      );
+      // "Our default" is one story: the tone the wash draws with is the
+      // kit default, not a grey nobody chose.
+      expect(container.querySelector("section")!.className).toContain(
+        "bg-blue-100/80",
+      );
+    });
+
+    it("follows the card with inputVariant=auto (default) and obeys overrides", () => {
+      const renderWith = (
+        variant: DynamicFormFieldVariant,
+        inputVariant?: DynamicFormFieldProps["inputVariant"],
+      ) => {
+        const { container } = render(
+          <DynamicFormField
+            parameter={param()}
+            onChange={() => {}}
+            variant={variant}
+            {...(inputVariant ? { inputVariant } : {})}
+          />,
+        );
+        return container;
+      };
+      // Glass card, glass entry - a flat box punched into a blurred
+      // card is a hole in the surface.
+      expect(entryClasses(renderWith("glass"))).toContain("backdrop-blur");
+      // A tonal card carries its shape in the wash - borderless entry.
+      expect(entryClasses(renderWith("tonal"))).toContain("border-transparent");
+      // An explicit entry style still wins over the card.
+      expect(entryClasses(renderWith("tonal", "underline"))).toContain(
+        "bg-transparent",
+      );
+    });
+
     it("takes every container surface, plus plain", () => {
       for (const variant of [...SURFACE_VARIANTS, "plain" as const]) {
         const { container } = render(
@@ -256,5 +332,52 @@ describe("DynamicFormField", () => {
       });
       expect(onChange).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("DynamicFormField - localised copy", () => {
+  const DE = (ui: React.ReactElement) =>
+    render(
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        {ui}
+      </I18nProvider>,
+    );
+
+  it("localises the help heading, the empty select choice and the list hint", () => {
+    DE(
+      <DynamicFormField
+        parameter={param({ help: "Hilfetext", key: "helpme" })}
+        value=""
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByText("Was ist das?")).toBeInTheDocument();
+
+    const select = DE(
+      <DynamicFormField
+        parameter={param({
+          value_type: CapsuleBlueprintValueType.Select,
+          options: ["a", "b"],
+          key: "sel",
+        })}
+        value=""
+        onChange={() => {}}
+      />,
+    );
+    expect(select.getByText("Auswählen…")).toBeInTheDocument();
+
+    const list = DE(
+      <DynamicFormField
+        parameter={param({
+          value_type: CapsuleBlueprintValueType.List,
+          key: "lst",
+        })}
+        value={[]}
+        onChange={() => {}}
+      />,
+    );
+    expect(
+      list.getByPlaceholderText("Ein Eintrag pro Zeile"),
+    ).toBeInTheDocument();
   });
 });

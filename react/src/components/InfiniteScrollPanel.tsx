@@ -14,6 +14,7 @@ import { useSurfaceText } from "../contexts/SurfaceContext";
 import {
   DEFAULT_SURFACE_CORNER,
   getSurfacePaddingClass,
+  THIN_SCROLLBAR_FIELD,
 } from "../theme/Theme";
 import type { ControlSize, PlainSurfaceVariant, TrueColor } from "../theme/Theme";
 import type {
@@ -52,9 +53,7 @@ const GAP_CLASSES: Record<ControlSize, string> = {
 /** Grid row unit for the masonry span maths. */
 const MASONRY_ROW_PX = 8;
 
-/** Thin scrollbar, the same treatment Panel's body uses. */
-const SCROLLBAR =
-  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
+const SCROLLBAR = THIN_SCROLLBAR_FIELD;
 
 export interface InfiniteScrollPanelProps<T> {
   items: T[];

@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import classNames from "classnames";
 import { warnIfMissingTitle } from "../../../common/a11y/warn";
 import IconButton from "./IconButton";
@@ -56,7 +62,12 @@ const INSET_GAP_Y_CLASS = "inset-y-4";
  * written out per side rather than composed because Tailwind only sees class
  * names it can read literally in the source.
  */
-const INNER_CORNER: Record<SurfaceCorner, Record<SidePanelSide, string>> = {
+const INNER_CORNER: Record<
+  Exclude<SurfaceCorner, "auto">,
+  Record<SidePanelSide, string>
+> = {
+  // (`"auto"` is absent by design: SidePanel's own default is `rounded`, and
+  // corner lookups below resolve it to the theme default.)
   none: { right: "", left: "" },
   rounded: { right: "rounded-l-sm", left: "rounded-r-sm" },
   "rounded-sm": { right: "rounded-l-lg", left: "rounded-r-lg" },
@@ -176,6 +187,8 @@ export interface SidePanelProps {
   /**
    * Corner size, applied to the two corners facing the content. The shared
    * `SurfaceCorner` scale `Panel` takes, so the two land on the same radii.
+   * `"auto"` resolves to the theme's container corner (`rounded-md`).
+   * @default "rounded-md" (`DEFAULT_SURFACE_CORNER`)
    */
   corner?: SurfaceCorner;
   /**
@@ -189,6 +202,17 @@ export interface SidePanelProps {
   size?: ControlSize;
   /** Which edge to dock to. @default "right" */
   side?: SidePanelSide;
+  /**
+   * Dim the rest of the container while open: a backdrop that fades in with
+   * the panel, swallows everything behind it, and closes the panel on click
+   * (the same scrim `SideMenu` paints for its off-canvas state).
+   *
+   * The panel is `position: absolute`, so the backdrop dims its container's
+   * box, not the viewport — the page-owning, scroll-locking, focus-trapping
+   * version of this is `Modal`'s job.
+   * @default false
+   */
+  overlay?: boolean;
   /**
    * Paint a subtle dither-noise (film-grain) texture over the panel
    * background, behind the content. Works in both light and dark mode
@@ -240,6 +264,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   surfaceTone = "neutral",
   size = "md",
   side = "right",
+  overlay = false,
   noise = false,
   inset,
   corner = DEFAULT_SURFACE_CORNER,
@@ -255,7 +280,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // `offset` is how SideMenu marks a detached variant, so it is the honest
   // default for "should this float?" rather than a second list to keep in sync.
   const isInset = inset ?? surface.offset !== "";
-  const cornerClass = INNER_CORNER[corner][side];
+  const cornerClass =
+    INNER_CORNER[corner === "auto" ? DEFAULT_SURFACE_CORNER : corner][side];
   // Inset outlines the three edges you can actually see; the docked one is
   // still flush against the container, so a rule there would double up with
   // whatever the container draws.
@@ -295,16 +321,39 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     const wasOpen = prevOpenRef.current;
     prevOpenRef.current = isOpen;
 
-    if (isOpen && !wasOpen) {
-      setMounted(true);
-      // Next frame: the browser needs to have painted the 0-width state before
-      // the target width can transition away from it.
+    if (isOpen && !wasOpen) setMounted(true);
+    if (!isOpen && wasOpen) setEntered(false);
+  }, [isOpen]);
+
+  /*
+   * The Vue/PrimeVue `useOverlayShow` technique, which is where this stopped
+   * racing: insert the shell at its 0-width state, force the browser to
+   * *compute* that state once — reading `offsetWidth` is the synchronisation
+   * point — then flip to the target width in the same frame. A transition
+   * needs two computed styles, not two painted frames, so this cannot miss.
+   *
+   * The handoff used to be `requestAnimationFrame`, and it raced React's
+   * scheduler: when the rAF fired before React had committed the 0-width
+   * element at all, the first style the browser ever computed *was* the
+   * target width — and a fresh element never transitions from its own initial
+   * style. That was the snap: open teleported while close, whose element was
+   * already mounted and already had a computed width to animate away from,
+   * looked perfect.
+   */
+  const shellRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (mounted && isOpen && !entered) {
+      // Force the browser to compute the 0-width state *now* — this is the
+      // half that fixes the race: by the time the rAF below fires, the
+      // element exists with a computed starting style to transition from,
+      // whatever order the scheduler picks. The hand-off then flips on the
+      // following frame, as before.
+      void shellRef.current?.offsetWidth;
       const frame = requestAnimationFrame(() => setEntered(true));
       return () => cancelAnimationFrame(frame);
     }
-    if (!isOpen && wasOpen) setEntered(false);
     return undefined;
-  }, [isOpen]);
+  }, [mounted, isOpen, entered]);
 
   const handleTransitionEnd = (
     event: React.TransitionEvent<HTMLDivElement>,
@@ -425,6 +474,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   return (
     <>
       <div
+        ref={shellRef}
         className={classNames(
           "absolute z-40 overflow-hidden",
           isInset ? INSET_GAP_Y_CLASS : "top-0 h-full",
@@ -489,9 +539,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           default), or the reveal reads as a wipe. Transparent: the fill is the
           layer above, so header, body and footer are all rounded by one
           container instead of each having to know about corners. */}
-          {/* Consumer passthrough (React.KeyboardEventHandler), not the
+        {/* Consumer passthrough (React.KeyboardEventHandler), not the
               panel's own interaction. */}
-          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- passthrough keyboard prop */}
+        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- passthrough keyboard prop */}
         <div
           className={classNames(
             "relative flex h-full flex-col",
@@ -501,7 +551,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           style={{ width: resolvedWidth }}
           onKeyDown={onKeyDown}
         >
-
           {/* ── Header ─────────────────────────────────────────────── */}
           <div
             className={classNames(
@@ -562,6 +611,29 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           )}
         </div>
       </div>
+
+      {/*
+        The scrim sits after the panel in the DOM (z-index decides the stack,
+        not order — and existing tests read `container.firstChild` as the
+        panel). `aria-hidden`: it carries no content and adds no tab stop; the
+        panel's own close button stays the keyboard path. Clicks anywhere on it
+        close, mirroring the panel's close button so the pointer and keyboard
+        stories agree.
+      */}
+      {overlay && (
+        <div
+          aria-hidden="true"
+          onClick={onClose}
+          className="absolute inset-0 z-30 bg-black/20 backdrop-blur-sm"
+          style={{
+            opacity: entered ? 1 : 0,
+            // Not clickable until it has faded in: a double-click-open
+            // gesture must not have its second click eaten by the scrim.
+            pointerEvents: isOpen && entered ? "auto" : "none",
+            transition: `opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+          }}
+        />
+      )}
 
       {/* Drag handle — a sibling of the panel, not a child of it, so it can sit
           *outside* the panel edge; inside, the panel's `overflow-hidden` would

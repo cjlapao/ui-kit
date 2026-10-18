@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import InputGroup from "./InputGroup";
 import Input from "./Input";
 import Select from "./Select";
@@ -63,12 +63,70 @@ describe("InputGroup", () => {
             <Input />
           </InputGroup>,
         );
-        const tokens = getInputVariantTokens(variant);
+        // Compared at the group's default tone: the call used to be
+        // tone-blind (`getInputVariantTokens(variant)` = neutral), which
+        // made every glass group blur grey whatever tone sat beside it.
+        const tokens = getInputVariantTokens(variant, "blue");
         for (const expected of tokens.surface.split(/\s+/)) {
           expect(group(container).split(/\s+/)).toContain(expected);
         }
         unmount();
       }
+    });
+
+    it("tints the ghost box with the tone", () => {
+      // `glass` stays toneless by design (shared with `Input`); `ghost` is
+      // the tone-reading surface. The tone-blind call this fixes made every
+      // ghost group grey whatever tone sat beside it.
+      const { container } = render(
+        <InputGroup variant="ghost" tone="violet">
+          <Input />
+        </InputGroup>,
+      );
+      expect(group(container)).toContain("bg-violet-50");
+      expect(group(container)).toContain("dark:bg-violet-500/10");
+    });
+
+    it("swaps the radius for an explicit corner token", () => {
+      const { container } = render(
+        <InputGroup corner="rounded-md">
+          <Input />
+        </InputGroup>,
+      );
+      expect(group(container).split(/\s+/)).toContain("rounded-2xl");
+    });
+
+    it("glows behind the group once, on focus, for gradient", () => {
+      const { container } = render(
+        <InputGroup variant="gradient" tone="violet" gradientFrom="#123456">
+          <Input />
+        </InputGroup>,
+      );
+      const halo = [...container.querySelectorAll("span[aria-hidden]")].find(
+        (el) => (el as HTMLElement).style.boxShadow,
+      ) as HTMLElement;
+      expect(halo).toBeDefined();
+      expect(halo.style.boxShadow).toContain("#123456");
+      expect(halo.style.boxShadow).toContain("var(--color-violet-400)");
+      expect(halo.style.opacity).toBe("0.1");
+      fireEvent.focus(screen.getByRole("textbox"));
+      expect(halo.style.opacity).toBe("0.22");
+      // Focus moving between two children inside the group must not blink.
+      fireEvent.blur(screen.getByRole("textbox"), {
+        relatedTarget: container.querySelector("button"),
+      });
+    });
+  });
+
+  describe("kit conventions", () => {
+    it("lets tone win over the deprecated color alias", () => {
+      const { container } = render(
+        <InputGroup tone="green" color="red">
+          <Input />
+        </InputGroup>,
+      );
+      expect(group(container)).toContain("outline-green-200/70");
+      expect(group(container)).not.toContain("outline-red-200/70");
     });
   });
 
@@ -97,7 +155,9 @@ describe("InputGroup", () => {
       const tokens = screen
         .getByText("@")
         .className.split(/\s+/)
-        .filter((token) => token.startsWith("text-") && !token.includes("-500"));
+        .filter(
+          (token) => token.startsWith("text-") && !token.includes("-500"),
+        );
       expect(tokens.filter((t) => /^text-(xs|sm|base|lg)$/.test(t))).toEqual([
         "text-base",
       ]);

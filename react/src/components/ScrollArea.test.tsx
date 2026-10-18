@@ -2,14 +2,21 @@ import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import ScrollArea from "./ScrollArea";
 
-const viewport = () => document.querySelector('[data-slot="scrollarea-viewport"]') as HTMLElement;
+const viewport = () =>
+  document.querySelector('[data-slot="scrollarea-viewport"]') as HTMLElement;
 const bars = () =>
   Array.from(document.querySelectorAll('[data-slot="scrollarea-scrollbar"]'));
 
 /** Make the viewport report a vertical overflow, then let it re-measure. */
 const overflowY = (element: HTMLElement, height: number) => {
-  Object.defineProperty(element, "scrollHeight", { configurable: true, value: height });
-  Object.defineProperty(element, "clientHeight", { configurable: true, value: 100 });
+  Object.defineProperty(element, "scrollHeight", {
+    configurable: true,
+    value: height,
+  });
+  Object.defineProperty(element, "clientHeight", {
+    configurable: true,
+    value: 100,
+  });
   fireEvent.scroll(element);
 };
 
@@ -21,13 +28,35 @@ describe("ScrollArea", () => {
       </ScrollArea>,
     );
     expect(viewport()).toBeTruthy();
-    expect(document.querySelector('[data-slot="scrollarea-content"]')).toBeTruthy();
+    expect(
+      document.querySelector('[data-slot="scrollarea-content"]'),
+    ).toBeTruthy();
     const tracks = bars();
     expect(tracks).toHaveLength(2);
     expect(tracks[0].getAttribute("data-orientation")).toBe("vertical");
     expect(tracks[1].getAttribute("data-orientation")).toBe("horizontal");
-    expect(document.querySelectorAll('[data-slot="scrollarea-handle"]')).toHaveLength(2);
-    expect(document.querySelector('[data-slot="scrollarea-corner"]')).toBeTruthy();
+    expect(
+      document.querySelectorAll('[data-slot="scrollarea-handle"]'),
+    ).toHaveLength(2);
+    expect(
+      document.querySelector('[data-slot="scrollarea-corner"]'),
+    ).toBeTruthy();
+  });
+
+  it("carries the frame's maximum height into the viewport", () => {
+    // A `max-h` frame only scrolls because the viewport inherits the cap —
+    // a percentage height would resolve against the frame's *auto* height,
+    // the viewport would grow past the cap, and the frame would just clip
+    // content it never learned was scrollable. (The picker's row list,
+    // capped at `max-h-64`, depends on this.)
+    render(
+      <ScrollArea className="max-h-64">
+        <p>content</p>
+      </ScrollArea>,
+    );
+    expect(viewport().style.maxHeight || viewport().className).toContain(
+      "inherit",
+    );
   });
 
   it("hides the bars while everything fits, and keeps the viewport out of the tab order", () => {
@@ -36,7 +65,8 @@ describe("ScrollArea", () => {
         <p>fits</p>
       </ScrollArea>,
     );
-    for (const bar of bars()) expect(bar.getAttribute("data-state")).toBe("hidden");
+    for (const bar of bars())
+      expect(bar.getAttribute("data-state")).toBe("hidden");
     expect(viewport().tabIndex).toBe(-1);
   });
 
@@ -68,7 +98,9 @@ describe("ScrollArea", () => {
         vi.advanceTimersByTime(900); // ... and it fades once the scrolling lingers out
       });
       expect(bars()[0].getAttribute("data-state")).toBe("hidden");
-      fireEvent.pointerEnter(document.querySelector('[data-slot="scrollarea"]')!);
+      fireEvent.pointerEnter(
+        document.querySelector('[data-slot="scrollarea"]')!,
+      );
       expect(bars()[0].getAttribute("data-state")).toBe("visible");
     } finally {
       vi.useRealTimers();

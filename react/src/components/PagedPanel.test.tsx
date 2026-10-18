@@ -107,7 +107,12 @@ describe("PagedPanel", () => {
       expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
       unmount();
       render(
-        <PagedPanel pages={PAGES} loading loaderType="progress" progress={40} />,
+        <PagedPanel
+          pages={PAGES}
+          loading
+          loaderType="progress"
+          progress={40}
+        />,
       );
       const bar = screen.getByRole("progressbar");
       expect(bar.getAttribute("aria-valuenow")).toBe("40");
@@ -136,7 +141,11 @@ describe("PagedPanel", () => {
 
     it("takes a custom loading node", () => {
       render(
-        <PagedPanel pages={PAGES} loading loadingState={<span>fetching…</span>} />,
+        <PagedPanel
+          pages={PAGES}
+          loading
+          loadingState={<span>fetching…</span>}
+        />,
       );
       expect(screen.getByText("fetching…")).toBeTruthy();
     });
@@ -145,6 +154,19 @@ describe("PagedPanel", () => {
       const { container } = render(<PagedPanel pages={PAGES} loading />);
       expect(container.innerHTML).toContain("motion-reduce:animate-none");
     });
+  });
+
+  it("scales the empty and error states with size, at least two steps under it", () => {
+    // EmptyState's own md is a text-lg title with an h-12 disc — tuned for
+    // full-page views. Inside a pane it must never outgrow the header.
+    const { rerender } = render(<PagedPanel pages={[]} size="xs" />);
+    expect(document.querySelector('[class*="h-8 w-8"]')).toBeTruthy();
+    rerender(<PagedPanel pages={[]} size="md" />);
+    expect(document.querySelector('[class*="h-8 w-8"]')).toBeTruthy();
+    rerender(<PagedPanel pages={[]} size="xl" />);
+    expect(document.querySelector('[class*="h-10 w-10"]')).toBeTruthy();
+    rerender(<PagedPanel pages={PAGES} size="xl" error="boom" />);
+    expect(document.querySelector('[class*="h-10 w-10"]')).toBeTruthy();
   });
 
   it("drops the Panel wrapper when bare", () => {

@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { BUTTON_VARIANTS, SmartGridLayout, SMART_GRID_VARIANTS } from "@cjlapao/ui-kit";
+import {
+  BUTTON_VARIANTS,
+  ColorSwatches,
+  SmartGridLayout,
+  SMART_GRID_VARIANTS,
+} from "@cjlapao/ui-kit";
 import type {
   ButtonVariant,
   ControlSize,
@@ -13,7 +18,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
-import { controlSizeOptions, trueColorOptions } from "../../shared/options";
+import { controlSizeOptions } from "../../shared/options";
 import { DASHBOARD_ITEMS, PLAYGROUND_LAYOUT } from "./shared";
 
 const columnOptions = [4, 6, 8, 12].map((n) => ({
@@ -46,27 +51,54 @@ export const SmartGridLayoutPlayground: React.FC = () => {
                   <>
                     <ChoiceControl
                       label="Variant"
-                      options={SMART_GRID_VARIANTS.map((v) => ({ label: v, value: v }))}
+                      options={SMART_GRID_VARIANTS.map((v) => ({
+                        label: v,
+                        value: v,
+                      }))}
                       value={variant}
                       onChange={(v) => setVariant(v as SmartGridVariant)}
                     />
-                    <ChoiceControl label="Edit accent" options={trueColorOptions}
-                      value={tone} onChange={(v) => setTone(v as TrueColor)} />
-                    <ChoiceControl label="Surface tone" options={trueColorOptions}
-                      value={surfaceTone} onChange={(v) => setSurfaceTone(v as TrueColor)} />
+                    {/* Both are colour decisions — pick them from colour
+                        swatches, not from a dropdown of words. */}
+                    <Control label="Edit accent">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={tone}
+                        onSelect={setTone}
+                        defaultExpanded
+                      />
+                    </Control>
+                    <Control label="Surface tone">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={surfaceTone}
+                        onSelect={setSurfaceTone}
+                        defaultExpanded
+                      />
+                    </Control>
                     <ChoiceControl
-            label="Control variant"
-            options={[
-              { label: "(follows surface)", value: "" },
-              ...BUTTON_VARIANTS.map((v) => ({ label: v, value: v })),
-            ]}
-            value={controlVariant}
-            onChange={setControlVariant}
-          />
-          <ChoiceControl label="Size" options={controlSizeOptions}
-                      value={size} onChange={(v) => setSize(v as ControlSize)} />
-                    <ChoiceControl label="Columns" options={columnOptions}
-                      value={maxColumns} onChange={setMaxColumns} />
+                      label="Control variant"
+                      options={[
+                        { label: "(follows surface)", value: "" },
+                        ...BUTTON_VARIANTS.map((v) => ({ label: v, value: v })),
+                      ]}
+                      value={controlVariant}
+                      onChange={setControlVariant}
+                    />
+                    <ChoiceControl
+                      label="Size"
+                      options={controlSizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as ControlSize)}
+                    />
+                    <ChoiceControl
+                      label="Columns"
+                      options={columnOptions}
+                      value={maxColumns}
+                      onChange={setMaxColumns}
+                    />
                   </>
                 ),
               },
@@ -76,10 +108,26 @@ export const SmartGridLayoutPlayground: React.FC = () => {
                 controls: (
                   <Control label="Behaviour">
                     <div className="space-y-1.5">
-                      <ToggleRow label="Edit mode" checked={editMode} onChange={setEditMode} />
-                      <ToggleRow label="Persist to localStorage" checked={persist} onChange={setPersist} />
-                      <ToggleRow label="Read-only" checked={readOnly} onChange={setReadOnly} />
-                      <ToggleRow label="Responsive columns" checked={responsive} onChange={setResponsive} />
+                      <ToggleRow
+                        label="Edit mode"
+                        checked={editMode}
+                        onChange={setEditMode}
+                      />
+                      <ToggleRow
+                        label="Persist to localStorage"
+                        checked={persist}
+                        onChange={setPersist}
+                      />
+                      <ToggleRow
+                        label="Read-only"
+                        checked={readOnly}
+                        onChange={setReadOnly}
+                      />
+                      <ToggleRow
+                        label="Responsive columns"
+                        checked={responsive}
+                        onChange={setResponsive}
+                      />
                     </div>
                   </Control>
                 ),
@@ -87,25 +135,26 @@ export const SmartGridLayoutPlayground: React.FC = () => {
             ]}
           />
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Turn on <strong>Edit mode</strong>, then: press <strong>Add Item</strong>{" "}
-            and drag an entry out of the palette onto the grid — it lands where
-            the preview shows, and the panel stays open so adding several is one
-            flow; drag a tile to move it,
-            or onto the red zone in the top-left to remove it; drag a section by
-            its <code>⠿</code> handle (only shown when there is more than one);
+            Turn on <strong>Edit mode</strong>, then: press{" "}
+            <strong>Add Item</strong> and drag an entry out of the palette onto
+            the grid — it lands where the preview shows, and the panel stays
+            open so adding several is one flow; drag a tile to move it, or onto
+            the red zone in the top-left to remove it; drag a section by its{" "}
+            <code>⠿</code> handle (only shown when there is more than one);
             click a section title to rename it; focus a resize handle and use
             the left and right arrows. It is fully operable from the keyboard —
             tab to a tile, <kbd>Enter</kbd> to lift it, arrows to move,
             <kbd>Enter</kbd> to place, <kbd>Esc</kbd> to cancel — and every
-            action is announced to a screen reader. <strong>Control variant</strong> gives
-            the editing chrome a surface of its own — a <code>plain</code>
+            action is announced to a screen reader.{" "}
+            <strong>Control variant</strong> gives the editing chrome a surface
+            of its own — a <code>plain</code>
             dashboard over a photograph wants <code>glass</code> buttons while
             its body draws nothing. <strong>Persist</strong> adds a{" "}
             <code>storageKey</code>, which is the entire opt-in: the layout is
             restored on mount and saved after every change, exactly as{" "}
-            <code>Table</code> does it. <strong>Edit accent</strong> is
-            separate from <strong>surface tone</strong> so the accent has
-            something to stand out against.
+            <code>Table</code> does it. <strong>Edit accent</strong> is separate
+            from <strong>surface tone</strong> so the accent has something to
+            stand out against.
           </p>
         </div>
       }
@@ -118,7 +167,9 @@ export const SmartGridLayoutPlayground: React.FC = () => {
             variant={variant}
             tone={tone}
             surfaceTone={surfaceTone}
-            controlVariant={(controlVariant || undefined) as ButtonVariant | undefined}
+            controlVariant={
+              (controlVariant || undefined) as ButtonVariant | undefined
+            }
             size={size}
             maxColumns={
               responsive

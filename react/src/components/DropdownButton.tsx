@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import Button, { type ButtonProps, type ButtonSize } from "./Button";
+import type { ButtonVariant } from "../theme/Theme";
 import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
+import { useKitT } from "../i18n";
 
 export interface DropdownButtonOption extends DropdownMenuOption {
   value: string;
@@ -14,6 +16,14 @@ export interface DropdownButtonProps
   > {
   label: React.ReactNode;
   options: DropdownButtonOption[];
+  /**
+   * The Button vocabulary, minus `clear`: a borderless button has no surface
+   * for the caret seam to live on, so the split would render as text with a
+   * mystery box next to it. Passing `clear` (JS callers) falls back to
+   * `ghost`, the nearest thing that still reads as one control.
+   * @default "solid"
+   */
+  variant?: Exclude<ButtonVariant, "clear">;
   onPrimaryClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onOptionSelect?: (option: DropdownButtonOption) => void;
   dropdownIcon?: ButtonProps["leadingIcon"];
@@ -26,6 +36,11 @@ export interface DropdownButtonProps
   hideDropdownTriggerWhenEmpty?: boolean;
   menuWidth?: number | "trigger";
   menuClassName?: string;
+  /**
+   * Accessible name for the caret button.
+   * @default t("kit.dropdownbutton.toggle")
+   */
+  caretLabel?: string;
 }
 
 export const DropdownButton: React.FC<DropdownButtonProps> = ({
@@ -44,9 +59,15 @@ export const DropdownButton: React.FC<DropdownButtonProps> = ({
   hideDropdownTriggerWhenEmpty = true,
   menuWidth = 220,
   menuClassName,
+  caretLabel,
   ...buttonProps
 }) => {
+  const t = useKitT();
   const [open, setOpen] = useState(false);
+  // `clear` is excluded by the type; coerce it anyway for JS callers, so a
+  // borderless split can never ship.
+  const safeVariant: ButtonVariant =
+    (variant as ButtonVariant) === "clear" ? "ghost" : (variant as ButtonVariant);
   const caretRef = useRef<HTMLButtonElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   const containerClasses = classNames(
@@ -104,11 +125,11 @@ export const DropdownButton: React.FC<DropdownButtonProps> = ({
     <Button
       ref={caretRef as React.Ref<HTMLButtonElement>}
       type="button"
-      variant={variant}
+      variant={safeVariant}
       color={color}
       size={size}
       iconOnly
-      aria-label="Toggle dropdown menu"
+      aria-label={caretLabel ?? t("kit.dropdownbutton.toggle")}
       aria-haspopup="menu"
       aria-expanded={menuOpen}
       leadingIcon={dropdownIcon}
@@ -126,7 +147,7 @@ export const DropdownButton: React.FC<DropdownButtonProps> = ({
   const mainButton = (
     <Button
       type="button"
-      variant={variant}
+      variant={safeVariant}
       color={color}
       size={size}
       className={classNames(

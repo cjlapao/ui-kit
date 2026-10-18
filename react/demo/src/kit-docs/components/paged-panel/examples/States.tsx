@@ -9,7 +9,11 @@ export default function States() {
   return (
     <div className="grid w-full gap-4 sm:grid-cols-2">
       <PagedPanel pages={[]} title="Nothing yet" />
-      <PagedPanel pages={[<p key="1">hidden</p>]} title="Failed" error="Could not reach the registry" />
+      <PagedPanel
+        pages={[<p key="1">hidden</p>]}
+        title="Failed"
+        error="Could not reach the registry"
+      />
     </div>
   );
 }

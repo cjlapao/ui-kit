@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PasswordInput, Panel } from "@cjlapao/ui-kit";
+import { ColorSwatches, Panel, PasswordInput } from "@cjlapao/ui-kit";
 import type {
   GlowIntensity,
   InputSize,
@@ -8,18 +8,18 @@ import type {
   TrueColor,
 } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
-  SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
   glowIntensityOptions,
   inputValidationOptions,
   inputVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 /**
@@ -34,15 +34,36 @@ export const PasswordInputPlayground: React.FC = () => {
   const [tone, setTone] = useState<TrueColor>("blue");
   const [validationStatus, setValidationStatus] =
     useState<InputValidationStatus>("none");
-  const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("soft");
+  const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("subtle");
   const [placeholder, setPlaceholder] = useState("Your password");
   const [leading, setLeading] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
+  const [inPanel, setInPanel] = useState(false);
   const [onGlass, setOnGlass] = useState(false);
   // ── this component's own ─────────────────────────────────────────────────
   const [revealable, setRevealable] = useState(true);
   const [value, setValue] = useState("correct-horse-battery-staple");
+  const [log, pushLog] = useEventLog();
+
+  const field = (
+    <PasswordInput
+      variant={variant}
+      size={size}
+      tone={tone}
+      validationStatus={validationStatus}
+      glowIntensity={glowIntensity}
+      placeholder={placeholder}
+      leadingIcon={leading ? "Key" : undefined}
+      disabled={disabled}
+      readOnly={readOnly}
+      revealable={revealable}
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      // What the event log gets is the toggle, never the secret.
+      onRevealedChange={(revealed) => pushLog(revealed ? "revealed" : "masked")}
+    />
+  );
 
   return (
     <PlaygroundPanel
@@ -55,35 +76,35 @@ export const PasswordInputPlayground: React.FC = () => {
                 title: "Core",
                 controls: (
                   <>
-                    <SelectControl
+                    <ChoiceControl
                       label="Variant"
                       options={inputVariantOptions}
                       value={variant}
                       onChange={(v) => setVariant(v as InputVariant)}
                     />
-                    <SelectControl
+                    <ChoiceControl
                       label="Size"
                       options={controlSizeOptions}
                       value={size}
                       onChange={(v) => setSize(v as InputSize)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                    />
-                    <SelectControl
+                    {/* Colour is a palette, not a dropdown of colour names. */}
+                    <Control label="Tone">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={tone}
+                        onSelect={setTone}
+                        defaultExpanded
+                      />
+                    </Control>
+                    <ChoiceControl
                       label="Validation"
                       options={inputValidationOptions}
                       value={validationStatus}
-                      onChange={(v) => setValidationStatus(v as InputValidationStatus)}
-                    />
-                    <SelectControl
-                      label="Glow intensity"
-                      options={glowIntensityOptions}
-                      value={glowIntensity}
-                      onChange={(v) => setGlowIntensity(v as GlowIntensity)}
+                      onChange={(v) =>
+                        setValidationStatus(v as InputValidationStatus)
+                      }
                     />
                     <Control label="Placeholder">
                       <input
@@ -96,80 +117,103 @@ export const PasswordInputPlayground: React.FC = () => {
                 ),
               },
               {
-                id: "states",
-                title: "States",
+                id: "options",
+                title: "Options",
                 controls: (
-                  <Control label="State">
-                    <div className="space-y-1.5">
-                      <ToggleRow label="Leading icon" checked={leading} onChange={setLeading} />
-                      <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-                      <ToggleRow label="Read-only" checked={readOnly} onChange={setReadOnly} />
-                      <ToggleRow label="On a glass panel" checked={onGlass} onChange={setOnGlass} />
-                    </div>
-                  </Control>
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow
+                      label="Leading icon"
+                      checked={leading}
+                      onChange={setLeading}
+                    />
+                    <ToggleRow
+                      label="Revealable"
+                      checked={revealable}
+                      onChange={setRevealable}
+                    />
+                    <ToggleRow
+                      label="Disabled"
+                      checked={disabled}
+                      onChange={setDisabled}
+                    />
+                    <ToggleRow
+                      label="Read-only"
+                      checked={readOnly}
+                      onChange={setReadOnly}
+                    />
+                  </div>
                 ),
               },
               {
-                id: "behaviour",
-                title: "Behaviour",
+                id: "states",
+                title: "States",
                 controls: (
-                  <Control label="Password behaviour">
-                    <ToggleRow label="Revealable" checked={revealable} onChange={setRevealable} />
-                  </Control>
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow
+                      label="In a panel"
+                      checked={inPanel}
+                      onChange={setInPanel}
+                    />
+                    <ToggleRow
+                      label="On a glass panel"
+                      checked={onGlass}
+                      onChange={(v) => {
+                        setOnGlass(v);
+                        if (v) setInPanel(true);
+                      }}
+                    />
+                  </div>
                 ),
               },
+              ...(variant === "gradient" || onGlass
+                ? [
+                    {
+                      id: "glow",
+                      title: "Glow",
+                      controls: (
+                        <ChoiceControl
+                          label="Intensity"
+                          options={glowIntensityOptions}
+                          value={glowIntensity}
+                          onChange={(v) => setGlowIntensity(v as GlowIntensity)}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
             ]}
           />
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Every control above the last group is one the{" "}
-            <code>Input</code> playground has, and behaves identically —{" "}
-            <code>PasswordInput</code> is an <code>Input</code> with a masked
-            type and a reveal button. The toggle withdraws on{" "}
-            <strong>Disabled</strong> and <strong>Read-only</strong>: a
-            password the user cannot edit should not be readable back either.
+            Every control above the reveal toggle is one the <code>Input</code>{" "}
+            playground has, and behaves identically — <code>PasswordInput</code>{" "}
+            is an <code>Input</code> with a masked type and a reveal button. The
+            toggle withdraws on <strong>Disabled</strong> and{" "}
+            <strong>Read-only</strong>: a password the user cannot edit should
+            not be readable back either. What the event log shows is the toggle
+            firing — never the secret being typed.
           </p>
+          <EventLogControl
+            log={log}
+            emptyText="No events yet — reveal and hide report here."
+          />
         </div>
       }
       preview={
-        <div
-          className={
-            onGlass
-              ? "w-full max-w-sm rounded-2xl bg-gradient-to-br from-sky-300 via-violet-300 to-rose-300 p-6 dark:from-sky-800 dark:via-violet-800 dark:to-rose-800"
-              : "w-full max-w-sm"
-          }
-        >
-          {onGlass ? (
-            <Panel variant="glass" padding="md">
-              <PasswordInput
-                variant={variant}
-                size={size}
-                tone={tone}
-                validationStatus={validationStatus}
-                glowIntensity={glowIntensity}
-                placeholder={placeholder}
-                leadingIcon={leading ? "Key" : undefined}
-                disabled={disabled}
-                readOnly={readOnly}
-                revealable={revealable}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-              />
+        <div className="w-full">
+          {inPanel ? (
+            <Panel
+              // Corner-free: the field is the furniture; a rounded host
+              // hugging a bare field reads as a mistake.
+              corner="none"
+              variant={onGlass ? "liquid-glass" : "outlined"}
+              tone={onGlass ? tone : "neutral"}
+              padding="md"
+              scrollable={false}
+            >
+              <div className="w-full max-w-sm py-2">{field}</div>
             </Panel>
           ) : (
-            <PasswordInput
-              variant={variant}
-              size={size}
-              tone={tone}
-              validationStatus={validationStatus}
-              glowIntensity={glowIntensity}
-              placeholder={placeholder}
-              leadingIcon={leading ? "Key" : undefined}
-              disabled={disabled}
-              readOnly={readOnly}
-              revealable={revealable}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-            />
+            <div className="mx-auto w-full max-w-sm py-2">{field}</div>
           )}
         </div>
       }

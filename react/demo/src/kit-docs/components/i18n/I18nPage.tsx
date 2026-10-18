@@ -16,6 +16,8 @@ import MissingKeys from "./examples/MissingKeys";
 import missingKeysCode from "./examples/MissingKeys.tsx?raw";
 import DefaultMessages from "./examples/DefaultMessages";
 import defaultMessagesCode from "./examples/DefaultMessages.tsx?raw";
+import KitOverrides from "./examples/KitOverrides";
+import kitOverridesCode from "./examples/KitOverrides.tsx?raw";
 
 /**
  * I18n — the kit's localization layer: a zero-dependency ICU-subset engine
@@ -74,6 +76,14 @@ export const I18nPage: React.FC = () => (
           filename="MissingKeys.tsx"
         >
           <MissingKeys />
+        </ExampleCard>
+        <ExampleCard
+          title="Tuning the kit's strings"
+          description="Component copy is catalog-resolved like any other string, so a user catalog entry for kit.smartgrid.editLayout replaces exactly what the grid's toolbar says — leaving the other fifty-three keys, in all five locales, to ship with the kit. Nest a provider (as here) to scope an override to part of the tree."
+          code={kitOverridesCode}
+          filename="KitOverrides.tsx"
+        >
+          <KitOverrides />
         </ExampleCard>
         <ExampleCard
           title="Default messages"

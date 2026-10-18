@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MultiToggle, Tabs } from "@cjlapao/ui-kit";
+import { ColorSwatches, Panel, Tabs } from "@cjlapao/ui-kit";
 import type {
   SpecularMode,
   TabItem,
@@ -17,6 +17,8 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { Kbd } from "../../shared/A11ySections";
+import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   glassOpacityOptions,
   glassVibrancyOptions,
@@ -26,17 +28,7 @@ import {
   tabsRadiusOptions,
   tabsSizeOptions,
   tabsVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
-
-const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="text-[11px] font-semibold uppercase tracking-wide opacity-60">
-    {children}
-  </span>
-);
-
-const GLASS_BACKDROP =
-  "rounded-lg bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 p-4 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950";
 
 // The pickers only offer the string presets; a bare `GlassVibrancy` /
 // `GlassOpacity` would carry `| number`, which a MultiToggle value can't take.
@@ -47,18 +39,20 @@ export const TabsPlayground: React.FC = () => {
   const [variant, setVariant] = useState<TabsVariant>("underline");
   const [size, setSize] = useState<TabsSize>("md");
   const [color, setColor] = useState<TrueColor>("blue");
-  const [orientation, setOrientation] =
-    useState<TabsOrientation>("horizontal");
+  const [orientation, setOrientation] = useState<TabsOrientation>("horizontal");
   const [justify, setJustify] = useState<TabsJustify>("start");
   const [fullWidth, setFullWidth] = useState(false);
   const [showDividers, setShowDividers] = useState(false);
-  const [scrollFade, setScrollFade] = useState(true);
   const [showActions, setShowActions] = useState(true);
+  const [actionsAuto, setActionsAuto] = useState(true);
+  const [actionsColor, setActionsColor] = useState<TrueColor>("blue");
   const [vibrancy, setVibrancy] = useState<VibrancyPreset>("medium");
   const [glassOpacity, setGlassOpacity] = useState<OpacityPreset>("frosted");
   const [specularMode, setSpecularMode] = useState<SpecularMode>("none");
   const [radius, setRadius] = useState<TabsRadius>("md");
   const [value, setValue] = useState("deployments");
+  const [glassPanel, setGlassPanel] = useState(false);
+  const [log, pushLog] = useEventLog();
 
   const isGlass = variant === "glass" || variant === "liquid-glass";
 
@@ -71,7 +65,7 @@ export const TabsPlayground: React.FC = () => {
       badge: "Live",
       actions: showActions
         ? [
-            { id: "create", icon: "Add", label: "Create release", active: true },
+            { id: "create", icon: "Add", label: "Create release" },
             { id: "sync", icon: "Reset", label: "Sync status" },
           ]
         : undefined,
@@ -129,19 +123,17 @@ export const TabsPlayground: React.FC = () => {
       description: "Incidents & reviews",
       panel: (
         <div className="space-y-2">
-          {["Database latency spike", "API rate limit warning"].map(
-            (title) => (
-              <div
-                key={title}
-                className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white/80 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900/80"
-              >
-                <span className="font-medium text-neutral-900 dark:text-white">
-                  {title}
-                </span>
-                <span className="text-xs text-neutral-500">just now</span>
-              </div>
-            ),
-          )}
+          {["Database latency spike", "API rate limit warning"].map((title) => (
+            <div
+              key={title}
+              className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white/80 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900/80"
+            >
+              <span className="font-medium text-neutral-900 dark:text-white">
+                {title}
+              </span>
+              <span className="text-xs text-neutral-500">just now</span>
+            </div>
+          ))}
         </div>
       ),
     },
@@ -164,39 +156,54 @@ export const TabsPlayground: React.FC = () => {
                       value={variant}
                       onChange={(v) => setVariant(v as TabsVariant)}
                     />
-                    <Control label="Size">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={tabsSizeOptions}
-                        value={size}
-                        onChange={(v) => setSize(v as TabsSize)}
-                      />
-                    </Control>
                     <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={color}
-                      onChange={(v) => setColor(v as TrueColor)}
+                      label="Size"
+                      options={tabsSizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as TabsSize)}
                     />
-                    <Control label="Orientation">
-                      <MultiToggle
-                        fullWidth
+                    {/* Colour is a palette, not a dropdown of colour names. */}
+                    <Control label="Tone">
+                      <ColorSwatches
+                        selectable
                         size="sm"
-                        options={tabsOrientationOptions}
-                        value={orientation}
-                        onChange={(v) => setOrientation(v as TabsOrientation)}
+                        value={color}
+                        onSelect={setColor}
+                        defaultExpanded
                       />
                     </Control>
-                    <Control label="Justify">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={tabsJustifyOptions}
-                        value={justify}
-                        onChange={(v) => setJustify(v as TabsJustify)}
-                      />
-                    </Control>
+                    {showActions && (
+                      <>
+                        <ToggleRow
+                          label="Actions follow tone"
+                          checked={actionsAuto}
+                          onChange={setActionsAuto}
+                        />
+                        {!actionsAuto && (
+                          <Control label="Actions tone">
+                            <ColorSwatches
+                              selectable
+                              size="sm"
+                              value={actionsColor}
+                              onSelect={setActionsColor}
+                              defaultExpanded
+                            />
+                          </Control>
+                        )}
+                      </>
+                    )}
+                    <SelectControl
+                      label="Orientation"
+                      options={tabsOrientationOptions}
+                      value={orientation}
+                      onChange={(v) => setOrientation(v as TabsOrientation)}
+                    />
+                    <SelectControl
+                      label="Justify"
+                      options={tabsJustifyOptions}
+                      value={justify}
+                      onChange={(v) => setJustify(v as TabsJustify)}
+                    />
                   </>
                 ),
               },
@@ -207,33 +214,26 @@ export const TabsPlayground: React.FC = () => {
                       title: "Glass",
                       controls: (
                         <div className="flex flex-col gap-3">
-                          <Control label="Vibrancy">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={glassVibrancyOptions}
-                              value={vibrancy}
-                              onChange={(v) => setVibrancy(v as VibrancyPreset)}
-                            />
-                          </Control>
-                          <Control label="Fill opacity">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={glassOpacityOptions}
-                              value={glassOpacity}
-                              onChange={(v) => setGlassOpacity(v as OpacityPreset)}
-                            />
-                          </Control>
-                          <Control label="Specular">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={panelSpecularOptions}
-                              value={specularMode}
-                              onChange={(v) => setSpecularMode(v as SpecularMode)}
-                            />
-                          </Control>
+                          <SelectControl
+                            label="Vibrancy"
+                            options={glassVibrancyOptions}
+                            value={vibrancy}
+                            onChange={(v) => setVibrancy(v as VibrancyPreset)}
+                          />
+                          <SelectControl
+                            label="Fill opacity"
+                            options={glassOpacityOptions}
+                            value={glassOpacity}
+                            onChange={(v) =>
+                              setGlassOpacity(v as OpacityPreset)
+                            }
+                          />
+                          <SelectControl
+                            label="Specular"
+                            options={panelSpecularOptions}
+                            value={specularMode}
+                            onChange={(v) => setSpecularMode(v as SpecularMode)}
+                          />
                           <SelectControl
                             label="Radius"
                             options={tabsRadiusOptions}
@@ -260,51 +260,79 @@ export const TabsPlayground: React.FC = () => {
                       checked={showDividers}
                       onChange={setShowDividers}
                     />
-                    <ToggleRow label="Actions" checked={showActions} onChange={setShowActions} />
-                    <ToggleRow label="Scroll fade" checked={scrollFade} onChange={setScrollFade} />
+                    <ToggleRow
+                      label="Actions"
+                      checked={showActions}
+                      onChange={setShowActions}
+                    />
+                    <ToggleRow
+                      label="Glass panel"
+                      checked={glassPanel}
+                      onChange={setGlassPanel}
+                    />
                   </div>
                 ),
               },
             ]}
           />
+          <EventLogControl
+            log={log}
+            emptyText="No events yet — pick a tab, by keyboard if you like."
+          />
           <p className="text-xs opacity-70">
             Contextual <strong>actions</strong> pin to whichever tab is active.
-            <strong> Dividers</strong> only apply to underline and minimal.
-            The <strong>scroll fade</strong> softens panel content against the
-            bar when it scrolls.
+            <strong> Dividers</strong> only apply to underline and minimal. Tall
+            panel content scrolls on the kit&rsquo;s own{" "}
+            <strong>ScrollArea</strong> — the same overlay bars everywhere else,
+            no browser-specific scrollbar styling.{" "}
+            <strong>Actions follow the tone</strong> by default so they stay
+            readable on glass and image hosts; untick to pin another tone. Focus
+            lands on the selected tab and <Kbd>ArrowRight</Kbd>/
+            <Kbd>ArrowLeft</Kbd> (or <Kbd>ArrowUp</Kbd>/<Kbd>ArrowDown</Kbd>{" "}
+            when vertical) walk the list, skipping disabled tabs and wrapping;{" "}
+            <Kbd>Home</Kbd>/<Kbd>End</Kbd> jump to the ends.
           </p>
         </div>
       }
       preview={
         <div className="flex w-full flex-col gap-3">
-          <div className={`flex h-72 flex-col ${GLASS_BACKDROP}`}>
-            <Tabs
-              items={items}
-              value={value}
-              onChange={(id) => setValue(id)}
-              variant={variant}
-              size={size}
-              color={color}
-              orientation={orientation}
-              justify={justify}
-              fullWidth={fullWidth}
-              showDividers={showDividers}
-              scrollFade={scrollFade}
-              vibrancy={vibrancy}
-              glassOpacity={glassOpacity}
-              specularMode={isGlass ? specularMode : "none"}
-              radius={radius}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Caption>Active tab</Caption>
-            <code className="rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/10">
-              {value}
-            </code>
-          </div>
+          <Panel
+            variant={glassPanel ? "glass" : "elevated"}
+            padding="md"
+            scrollable={false}
+          >
+            {/*
+              The height must be definite HERE, not just on the Panel: the
+              panel body wrapper is an auto-height block, and a vertical
+              Tabs scrolls its own column only when its lane has a real
+              height to be constrained by — otherwise the column grows and
+              whatever contains the whole component scrolls instead.
+            */}
+            <div className="h-72">
+              <Tabs
+                items={items}
+                value={value}
+                onChange={(id) => {
+                  setValue(id);
+                  pushLog(`selected "${id}"`);
+                }}
+                variant={variant}
+                size={size}
+                color={color}
+                orientation={orientation}
+                justify={justify}
+                fullWidth={fullWidth}
+                actionsColor={actionsAuto ? "auto" : actionsColor}
+                showDividers={showDividers}
+                vibrancy={vibrancy}
+                glassOpacity={glassOpacity}
+                specularMode={isGlass ? specularMode : "none"}
+                radius={radius}
+              />
+            </div>
+          </Panel>
         </div>
       }
-    >
-    </PlaygroundPanel>
+    ></PlaygroundPanel>
   );
 };

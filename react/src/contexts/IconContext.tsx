@@ -12,7 +12,7 @@ interface IconContextValue {
  *
  * This used to default to `defaultIconRenderer`, which returns `null` for string
  * icons — every component that takes an icon *name* (Button, IconButton, Modal,
- * Table, SideMenu, Hero, the Stat tiles…) silently rendered nothing unless the
+ * Table, SideMenu, PanelHero, the Stat tiles…) silently rendered nothing unless the
  * app happened to wrap itself in an `IconProvider`. Passing a React element
  * worked, which is why it looked inconsistent rather than broken.
  *

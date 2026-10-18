@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import {
   Button,
   CollapsiblePanel,
+  ColorSwatches,
   DEFAULT_SURFACE_CORNER,
-  MultiToggle,
 } from "@cjlapao/ui-kit";
 import type {
   GlassOpacity,
@@ -15,9 +15,9 @@ import type {
   TrueColor,
 } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
-  SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
@@ -28,7 +28,6 @@ import {
   panelPaddingOptions,
   panelSpecularOptions,
   surfaceVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 /** Variants whose surface is see-through, so the glass controls apply. */
@@ -46,10 +45,10 @@ const LOG_LINES = Array.from(
 
 export const CollapsiblePanelPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("neutral");
+  const [tone, setTone] = useState<TrueColor>("blue");
   const [corner, setCorner] =
     useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
-  const [padding, setPadding] = useState<PanelPadding>("md");
+  const [padding, setPadding] = useState<PanelPadding>("sm");
   const [expanded, setExpanded] = useState(true);
   const [disabled, setDisabled] = useState(false);
   const [withActions, setWithActions] = useState(true);
@@ -72,33 +71,35 @@ export const CollapsiblePanelPlayground: React.FC = () => {
               title: "Core",
               controls: (
                 <>
-                  <SelectControl
+                  <ChoiceControl
                     label="Variant"
                     options={surfaceVariantOptions}
                     value={variant}
                     onChange={(v) => setVariant(v as PanelVariant)}
                   />
-                  <SelectControl
-                    label="Tone"
-                    options={trueColorOptions}
-                    value={tone}
-                    onChange={(v) => setTone(v as TrueColor)}
-                  />
-                  <SelectControl
+                  {/* Tone is a colour decision — pick it from colour swatches,
+                      not from a dropdown of words. */}
+                  <Control label="Tone">
+                    <ColorSwatches
+                      selectable
+                      size="sm"
+                      value={tone}
+                      onSelect={setTone}
+                      defaultExpanded
+                    />
+                  </Control>
+                  <ChoiceControl
                     label="Corner"
                     options={panelCornerOptions}
                     value={corner}
                     onChange={(v) => setCorner(v as PanelCorner)}
                   />
-                  <Control label="Padding">
-                    <MultiToggle
-                      fullWidth
-                      size="sm"
-                      options={panelPaddingOptions}
-                      value={padding}
-                      onChange={(v) => setPadding(v as PanelPadding)}
-                    />
-                  </Control>
+                  <ChoiceControl
+                    label="Padding"
+                    options={panelPaddingOptions}
+                    value={padding}
+                    onChange={(v) => setPadding(v as PanelPadding)}
+                  />
                 </>
               ),
             },
@@ -138,33 +139,24 @@ export const CollapsiblePanelPlayground: React.FC = () => {
                     title: "Glass",
                     controls: (
                       <>
-                        <Control label="Specular">
-                          <MultiToggle
-                            fullWidth
-                            size="sm"
-                            options={panelSpecularOptions}
-                            value={specularMode}
-                            onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
-                          />
-                        </Control>
-                        <Control label="Vibrancy">
-                          <MultiToggle
-                            fullWidth
-                            size="sm"
-                            options={glassVibrancyOptions}
-                            value={vibrancy as string}
-                            onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                          />
-                        </Control>
-                        <Control label="Glass opacity">
-                          <MultiToggle
-                            fullWidth
-                            size="sm"
-                            options={glassOpacityOptions}
-                            value={glassOpacity as string}
-                            onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                          />
-                        </Control>
+                        <ChoiceControl
+                          label="Specular"
+                          options={panelSpecularOptions}
+                          value={specularMode}
+                          onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
+                        />
+                        <ChoiceControl
+                          label="Vibrancy"
+                          options={glassVibrancyOptions}
+                          value={vibrancy as string}
+                          onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                        />
+                        <ChoiceControl
+                          label="Glass opacity"
+                          options={glassOpacityOptions}
+                          value={glassOpacity as string}
+                          onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                        />
                       </>
                     ),
                   },
@@ -175,41 +167,39 @@ export const CollapsiblePanelPlayground: React.FC = () => {
       }
       preview={
         <div className="w-full">
-          <div className="w-full rounded-lg bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 p-4 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
-            <CollapsiblePanel
-              title="Deployment logs"
-              subtitle={withSubtitle ? "Last updated 5 minutes ago" : undefined}
-              actions={
-                withActions ? (
-                  <Button size="xs" variant="ghost" color={tone}>
-                    Refresh
-                  </Button>
-                ) : undefined
-              }
-              expanded={expanded}
-              onToggle={setExpanded}
-              disabled={disabled}
-              variant={variant}
-              tone={tone}
-              corner={corner}
-              padding={padding}
-              glassOpacity={glassOpacity}
-              vibrancy={vibrancy}
-              specularMode={specularMode}
-            >
-              {longContent ? (
-                <pre className="whitespace-pre-wrap font-mono text-xs">
-                  {LOG_LINES.join("\n")}
-                </pre>
-              ) : (
-                <p>
-                  Showing the latest deployment output. Errors and status logs
-                  appear here while we run automated checks against the new
-                  release.
-                </p>
-              )}
-            </CollapsiblePanel>
-          </div>
+          <CollapsiblePanel
+            title="Deployment logs"
+            subtitle={withSubtitle ? "Last updated 5 minutes ago" : undefined}
+            actions={
+              withActions ? (
+                <Button size="xs" variant="ghost" color={tone}>
+                  Refresh
+                </Button>
+              ) : undefined
+            }
+            expanded={expanded}
+            onToggle={setExpanded}
+            disabled={disabled}
+            variant={variant}
+            tone={tone}
+            corner={corner}
+            padding={padding}
+            glassOpacity={glassOpacity}
+            vibrancy={vibrancy}
+            specularMode={specularMode}
+          >
+            {longContent ? (
+              <pre className="whitespace-pre-wrap font-mono text-xs">
+                {LOG_LINES.join("\n")}
+              </pre>
+            ) : (
+              <p>
+                Showing the latest deployment output. Errors and status logs
+                appear here while we run automated checks against the new
+                release.
+              </p>
+            )}
+          </CollapsiblePanel>
         </div>
       }
     >

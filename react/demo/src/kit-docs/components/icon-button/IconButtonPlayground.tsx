@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { IconButton, MultiToggle } from "@cjlapao/ui-kit";
+import { ColorSwatches, IconButton, Panel } from "@cjlapao/ui-kit";
 import type {
   ButtonSize,
   ButtonVariant,
@@ -13,19 +13,13 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   buttonVariantOptions,
   controlSizeOptions,
   iconButtonRoundedOptions,
   panelSpecularOptions,
-  trueColorOptions,
 } from "../../shared/options";
-
-const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="text-[11px] font-semibold uppercase tracking-wide opacity-60">
-    {children}
-  </span>
-);
 
 type IconRounded = "md" | "lg" | "xl" | "full";
 
@@ -40,7 +34,8 @@ export const IconButtonPlayground: React.FC = () => {
   const [glass, setGlass] = useState(false);
   const [tooltip, setTooltip] = useState(false);
   const [specularMode, setSpecularMode] = useState<SpecularMode>("none");
-  const [clicks, setClicks] = useState(0);
+  const [glassPanel, setGlassPanel] = useState(false);
+  const [log, pushLog] = useEventLog();
 
   return (
     <PlaygroundPanel
@@ -59,30 +54,28 @@ export const IconButtonPlayground: React.FC = () => {
                       value={variant}
                       onChange={(v) => setVariant(v as ButtonVariant)}
                     />
-                    <Control label="Size">
-                      <MultiToggle
-                        fullWidth
+                    <SelectControl
+                      label="Size"
+                      options={controlSizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as ButtonSize)}
+                    />
+                    {/* Colour is a palette, not a dropdown of colour names. */}
+                    <Control label="Tone">
+                      <ColorSwatches
+                        selectable
                         size="sm"
-                        options={controlSizeOptions}
-                        value={size}
-                        onChange={(v) => setSize(v as ButtonSize)}
+                        value={color}
+                        onSelect={setColor}
+                        defaultExpanded
                       />
                     </Control>
                     <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={color}
-                      onChange={(v) => setColor(v as TrueColor)}
+                      label="Corner"
+                      options={iconButtonRoundedOptions}
+                      value={rounded}
+                      onChange={(v) => setRounded(v as IconRounded)}
                     />
-                    <Control label="Rounded">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={iconButtonRoundedOptions}
-                        value={rounded}
-                        onChange={(v) => setRounded(v as IconRounded)}
-                      />
-                    </Control>
                   </>
                 ),
               },
@@ -91,11 +84,36 @@ export const IconButtonPlayground: React.FC = () => {
                 title: "States",
                 controls: (
                   <div className="grid grid-cols-2 gap-2">
-                    <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
-                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-                    <ToggleRow label="Accent" checked={accent} onChange={setAccent} />
-                    <ToggleRow label="Glass" checked={glass} onChange={setGlass} />
-                    <ToggleRow label="Tooltip" checked={tooltip} onChange={setTooltip} />
+                    <ToggleRow
+                      label="Loading"
+                      checked={loading}
+                      onChange={setLoading}
+                    />
+                    <ToggleRow
+                      label="Disabled"
+                      checked={disabled}
+                      onChange={setDisabled}
+                    />
+                    <ToggleRow
+                      label="Accent"
+                      checked={accent}
+                      onChange={setAccent}
+                    />
+                    <ToggleRow
+                      label="Glass"
+                      checked={glass}
+                      onChange={setGlass}
+                    />
+                    <ToggleRow
+                      label="Tooltip"
+                      checked={tooltip}
+                      onChange={setTooltip}
+                    />
+                    <ToggleRow
+                      label="Glass panel"
+                      checked={glassPanel}
+                      onChange={setGlassPanel}
+                    />
                   </div>
                 ),
               },
@@ -105,31 +123,36 @@ export const IconButtonPlayground: React.FC = () => {
                       id: "glass",
                       title: "Glass",
                       controls: (
-                        <Control label="Specular">
-                          <MultiToggle
-                            fullWidth
-                            size="sm"
-                            options={panelSpecularOptions}
-                            value={specularMode}
-                            onChange={(v) => setSpecularMode(v as SpecularMode)}
-                          />
-                        </Control>
+                        <SelectControl
+                          label="Specular"
+                          options={panelSpecularOptions}
+                          value={specularMode}
+                          onChange={(v) => setSpecularMode(v as SpecularMode)}
+                        />
                       ),
                     },
                   ]
                 : []),
             ]}
           />
+          <EventLogControl
+            log={log}
+            emptyText="No events yet — press the icon button."
+          />
           <p className="text-xs opacity-70">
             Icon buttons carry no text — the <strong>srLabel</strong> is what
-            gets announced and doubles as the native title. Loading swaps the
-            glyph for a spinner and blocks clicks.
+            gets announced and doubles as the native title (a styled{" "}
+            <strong>tooltip</strong> replaces the native one, never doubling).
+            Loading swaps the glyph for a spinner and blocks clicks — without
+            dimming, or the spinner would fade with the button. The default{" "}
+            <code>rounded</code> is <code>full</code>: a circle, the icon
+            button&rsquo;s identity.
           </p>
         </div>
       }
       preview={
         <div className="flex w-full flex-col gap-3">
-          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-700 dark:bg-neutral-900">
+          <Panel variant={glassPanel ? "glass" : "elevated"} padding="md">
             <IconButton
               icon="Send"
               variant={variant}
@@ -144,18 +167,11 @@ export const IconButtonPlayground: React.FC = () => {
               tooltip={tooltip ? "Send message" : undefined}
               tooltipPosition="top"
               srLabel="Send"
-              onClick={() => setClicks((n) => n + 1)}
+              onClick={() => pushLog("clicked")}
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Caption>Clicks</Caption>
-            <code className="rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/10">
-              {clicks}
-            </code>
-          </div>
+          </Panel>
         </div>
       }
-    >
-    </PlaygroundPanel>
+    ></PlaygroundPanel>
   );
 };

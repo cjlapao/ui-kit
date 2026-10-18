@@ -54,6 +54,7 @@ type ChildElementProps = {
   id?: string;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean | "true" | "false";
+  "aria-required"?: boolean;
 };
 
 const FormField: React.FC<FormFieldProps> = ({
@@ -113,9 +114,11 @@ const FormField: React.FC<FormFieldProps> = ({
               ),
             }
           : {}),
-        ...(status === "error"
-          ? { "aria-invalid": "true" as const }
-          : {}),
+        ...(status === "error" ? { "aria-invalid": "true" as const } : {}),
+        // The asterisk is aria-hidden decoration — without this the required
+        // state was visual only, invisible to exactly the users a form
+        // notices most about.
+        ...(required ? { "aria-required": true } : {}),
       })
     : children;
 
@@ -133,9 +136,15 @@ const FormField: React.FC<FormFieldProps> = ({
     layout === "inline" ? "sm:col-span-1 flex flex-col" : "flex flex-col";
 
   const controlWrapperClasses =
-    layout === "inline"
-      ? "sm:col-span-2 mt-2 sm:mt-0"
-      : "flex flex-col gap-2";
+    layout === "inline" ? "sm:col-span-2 mt-2 sm:mt-0" : "flex flex-col gap-2";
+
+  // Stacked grows a spacer between the label block and the control. In a
+  // multi-column FormLayout row every field stretches to the row's height, so
+  // the field with less top matter (no description, say) gets a taller spacer
+  // and its control still starts exactly where its row neighbour's does — the
+  // Role-beside-Email misalignment was a content-height bug, not an
+  // alignment-prop bug.
+  const spacerClasses = layout === "inline" ? undefined : "grow min-h-0";
 
   const hintTone =
     status === "error"
@@ -150,31 +159,31 @@ const FormField: React.FC<FormFieldProps> = ({
         {(label || optionalLabel || (labelAction && layout === "stacked")) && (
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-            {label && (
-              <label
-                htmlFor={controlId}
-                className={classNames(
-                  "font-medium",
-                  surface.heading,
-                  sizeToken.label,
-                )}
-              >
-                {label}
-                {required && (
-                  <span
-                    className="ml-1 text-rose-500 dark:text-rose-400"
-                    aria-hidden="true"
-                  >
-                    *
-                  </span>
-                )}
-              </label>
-            )}
-            {!required && optionalLabel && (
-              <span className={classNames(surface.muted, sizeToken.note)}>
-                {optionalLabel}
-              </span>
-            )}
+              {label && (
+                <label
+                  htmlFor={controlId}
+                  className={classNames(
+                    "font-medium",
+                    surface.heading,
+                    sizeToken.label,
+                  )}
+                >
+                  {label}
+                  {required && (
+                    <span
+                      className="ml-1 text-rose-500 dark:text-rose-400"
+                      aria-hidden="true"
+                    >
+                      *
+                    </span>
+                  )}
+                </label>
+              )}
+              {!required && optionalLabel && (
+                <span className={classNames(surface.muted, sizeToken.note)}>
+                  {optionalLabel}
+                </span>
+              )}
             </div>
             {/* Stacked puts the action opposite the label; inline stacks it
                 under the description, where there is room. */}
@@ -194,23 +203,36 @@ const FormField: React.FC<FormFieldProps> = ({
         )}
       </div>
 
-      <div className={classNames("h-full", controlWrapperClasses)}>
-        <div className="flex h-full grow flex-col gap-2">{child}</div>
-        {helpText && (
-          <p id={helpId} className={classNames(sizeToken.note, surface.muted)}>
-            {helpText}
-          </p>
+      {layout === "stacked" && <div aria-hidden className={spacerClasses} />}
+      <div
+        className={classNames(
+          layout === "inline" && "h-full",
+          controlWrapperClasses,
         )}
-        {error ? (
-          <p id={errorId} className={classNames(sizeToken.note, errorColor)}>
-            {error}
-          </p>
-        ) : hint ? (
-          <p id={hintId} className={classNames(sizeToken.note, hintTone)}>
-            {hint}
-          </p>
-        ) : null}
+      >
+        <div className="flex h-full grow flex-col gap-2">{child}</div>
       </div>
+      {(helpText || error || hint) && (
+        <div className="flex flex-col gap-1">
+          {helpText && (
+            <p
+              id={helpId}
+              className={classNames(sizeToken.note, surface.muted)}
+            >
+              {helpText}
+            </p>
+          )}
+          {error ? (
+            <p id={errorId} className={classNames(sizeToken.note, errorColor)}>
+              {error}
+            </p>
+          ) : hint ? (
+            <p id={hintId} className={classNames(sizeToken.note, hintTone)}>
+              {hint}
+            </p>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 };

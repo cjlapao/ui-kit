@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { DynamicFormField } from "@cjlapao/ui-kit";
+import { ColorSwatches, DynamicFormField } from "@cjlapao/ui-kit";
+import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import type {
   ControlSize,
   DynamicFormFieldValue,
@@ -16,13 +17,13 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
   dynamicFormFieldVariantOptions,
   inputVariantOptions,
   panelCornerOptions,
   panelPaddingOptions,
-  trueColorOptions,
 } from "../../shared/options";
 import { PARAMETERS } from "./examples/sampleParameters";
 
@@ -38,18 +39,23 @@ export const DynamicFormFieldPlayground: React.FC = () => {
   const [required, setRequired] = useState(
     PARAMETERS[0].is_required ?? PARAMETERS[0].required ?? false,
   );
-  const [values, setValues] = useState<Record<string, DynamicFormFieldValue>>({});
+  const [values, setValues] = useState<Record<string, DynamicFormFieldValue>>(
+    {},
+  );
 
   const [size, setSize] = useState<ControlSize>("md");
-  const [variant, setVariant] = useState<DynamicFormFieldVariant>("outlined");
-  const [inputVariant, setInputVariant] = useState<InputVariant>("flat");
-  const [tone, setTone] = useState<TrueColor>("neutral");
-  const [corner, setCorner] = useState<SurfaceCorner>("rounded-xl");
+  const [variant, setVariant] = useState<DynamicFormFieldVariant>("elevated");
+  const [inputVariant, setInputVariant] = useState<InputVariant | "auto">(
+    "auto",
+  );
+  const [tone, setTone] = useState<TrueColor>("blue");
+  const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [padding, setPadding] = useState<SurfacePadding>("md");
 
   const [showError, setShowError] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
+  const [log, pushLog] = useEventLog();
 
   const base = PARAMETERS.find((p) => p.key === paramKey)!;
   // Authoritative, not OR'd with the parameter's own flag — that could only
@@ -82,16 +88,25 @@ export const DynamicFormFieldPlayground: React.FC = () => {
                     />
                     <SelectControl
                       label="Entry style"
-                      options={inputVariantOptions}
+                      options={[
+                        { label: "Auto (follows the card)", value: "auto" },
+                        ...inputVariantOptions,
+                      ]}
                       value={inputVariant}
-                      onChange={(v) => setInputVariant(v as InputVariant)}
+                      onChange={(v) =>
+                        setInputVariant(v as InputVariant | "auto")
+                      }
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                    />
+                    {/* Colour is a palette, not a dropdown of colour names. */}
+                    <Control label="Tone">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={tone}
+                        onSelect={setTone}
+                        defaultExpanded
+                      />
+                    </Control>
                     <SelectControl
                       label="Corner"
                       options={panelCornerOptions}
@@ -160,8 +175,15 @@ export const DynamicFormFieldPlayground: React.FC = () => {
             <strong>value type</strong> calls for. `List` and `Map` used to fall
             through to nothing and draw an empty card. The label, the required
             marker, the hint and the error all come from <code>FormField</code>{" "}
-            — so the error shows for a checkbox too, which it never did.
+            — so the error shows for a checkbox too, which it never did. The
+            help heading and both placeholders are localized — the log carries
+            the raw <code>onChange</code> callback (
+            <code>service_name, key, value</code>).
           </p>
+          <EventLogControl
+            log={log}
+            emptyText="No events yet — changes report through here."
+          />
         </div>
       }
       preview={
@@ -169,9 +191,10 @@ export const DynamicFormFieldPlayground: React.FC = () => {
           <DynamicFormField
             parameter={parameter}
             value={values[paramKey]}
-            onChange={(_service, key, value) =>
-              setValues((current) => ({ ...current, [key]: value }))
-            }
+            onChange={(_service, key, value) => {
+              setValues((current) => ({ ...current, [key]: value }));
+              pushLog(`${key} → ${JSON.stringify(value)}`);
+            }}
             size={size}
             variant={variant}
             inputVariant={inputVariant}

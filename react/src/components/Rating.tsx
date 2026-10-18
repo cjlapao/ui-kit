@@ -11,6 +11,7 @@ import React, {
 import { ORIENTATIONS, TRUE_COLORS } from "../theme/Theme";
 import type { ControlSize, Orientation, TrueColor } from "../theme/Theme";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useKitT } from "../i18n";
 import type { IconName } from "../icons/registry";
 
 export const RATING_ORIENTATIONS = ORIENTATIONS;
@@ -22,15 +23,20 @@ export type RatingSize = ControlSize;
  * A star icon: a registry name, a ready-made element, or a function that
  * computes it per star (e.g. a different emoji at each position).
  */
-export type RatingIcon = IconName | ReactElement | ((index: number) => ReactNode);
+export type RatingIcon =
+  | IconName
+  | ReactElement
+  | ((index: number) => ReactNode);
 
 /** Guard against a typo in `stars` rendering a wall. */
 const MAX_STARS = 15;
 
 const EPSILON = 1e-9;
 
-export interface RatingProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "name"> {
+export interface RatingProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "onChange" | "name"
+> {
   /** The rating. `null` or `0` leaves every star unlit. */
   value?: number | null;
   /** Initial rating when uncontrolled. */
@@ -65,7 +71,10 @@ export interface RatingProps
    * announced, but the inputs are disabled and leave the tab order.
    */
   readOnly?: boolean;
-  /** Accessible name for the star group. @default "Rating" */
+  /**
+   * Accessible name for the star group.
+   * @default "Rating" (`kit.rating.label`)
+   */
   ariaLabel?: string;
 }
 
@@ -107,9 +116,6 @@ const clampValue = (value: number, starCount: number, allowHalf: boolean) => {
   return allowHalf ? clamped : Math.floor(clamped);
 };
 
-const labelFor = (value: number) =>
-  `${value % 1 === 0 ? value : value.toFixed(1)} ${value === 1 ? "star" : "stars"}`;
-
 const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
   {
     value,
@@ -126,7 +132,7 @@ const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
     invalid = false,
     disabled = false,
     readOnly = false,
-    ariaLabel = "Rating",
+    ariaLabel,
     className,
     ...rest
   },
@@ -155,6 +161,12 @@ const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
   const [hoverValue, setHoverValue] = useState<number | null>(null);
   const display = hoverValue ?? current;
 
+  const t = useKitT();
+  // A radio's accessible name is its value: "2 stars", "2.5 stars" — one key
+  // with an ICU plural, where `#` carries the half-step decimal as-is.
+  const labelFor = (value: number) => t("kit.rating.value", { count: value });
+  const groupLabel = ariaLabel ?? t("kit.rating.label");
+
   const renderIcon = useIconRenderer();
   const sizeTokens = SIZE_STYLES[size] ?? SIZE_STYLES.md;
   const tokens = getToneTokens(tone);
@@ -172,14 +184,23 @@ const Rating = forwardRef<HTMLDivElement, RatingProps>(function Rating(
     if (typeof resolved === "string" || React.isValidElement(resolved)) {
       return renderIcon(resolved, size, sizeTokens.icon);
     }
-    return <span className={classNames("flex items-center justify-center", sizeTokens.icon)}>{resolved}</span>;
+    return (
+      <span
+        className={classNames(
+          "flex items-center justify-center",
+          sizeTokens.icon,
+        )}
+      >
+        {resolved}
+      </span>
+    );
   };
 
   return (
     <div
       ref={ref}
       role="radiogroup"
-      aria-label={ariaLabel}
+      aria-label={groupLabel}
       aria-readonly={readOnly || undefined}
       // Programmatic focus stop for the group (the radios are the tab stops
       // and the browser moves between them natively with the arrow keys).

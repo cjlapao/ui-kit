@@ -1,10 +1,31 @@
 import React, { useState } from "react";
 import { ScrollArea, type ScrollAreaVariant } from "@cjlapao/ui-kit";
-import { PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
+import {
+  PlaygroundPanel,
+  SelectControl,
+  ToggleRow,
+} from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { scrollAreaVariantOptions } from "../../shared/options";
 
-const CITIES = ["Tokyo", "Delhi", "Shanghai", "Dhaka", "São Paulo", "Mexico City", "Cairo", "Beijing", "Mumbai", "Osaka", "New York", "Karachi", "Chongqing", "Kinshasa", "Lagos", "Bengaluru"];
+const CITIES = [
+  "Tokyo",
+  "Delhi",
+  "Shanghai",
+  "Dhaka",
+  "São Paulo",
+  "Mexico City",
+  "Cairo",
+  "Beijing",
+  "Mumbai",
+  "Osaka",
+  "New York",
+  "Karachi",
+  "Chongqing",
+  "Kinshasa",
+  "Lagos",
+  "Bengaluru",
+];
 
 const TILES: Array<[string, string]> = [
   ["from-indigo-400 to-sky-400", "North shore"],
@@ -29,9 +50,17 @@ export const ScrollAreaPlayground: React.FC = () => {
                 title: "Behaviour",
                 controls: (
                   <>
-                    <SelectControl label="Variant" options={scrollAreaVariantOptions} value={variant}
-                      onChange={(v) => setVariant(v as ScrollAreaVariant)} />
-                    <ToggleRow label="mask — edge fade" checked={mask} onChange={setMask} />
+                    <SelectControl
+                      label="Variant"
+                      options={scrollAreaVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as ScrollAreaVariant)}
+                    />
+                    <ToggleRow
+                      label="mask — edge fade"
+                      checked={mask}
+                      onChange={setMask}
+                    />
                   </>
                 ),
               },
@@ -40,9 +69,8 @@ export const ScrollAreaPlayground: React.FC = () => {
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             Scrolling itself stays native — wheel, touch and the keyboard (the
             viewport is focusable only while content overflows) behave exactly
-            as the browser does; only the bars are drawn. Try{" "}
-            <code>auto</code> then drag inside, and the bar appears, lingers,
-            and fades.
+            as the browser does; only the bars are drawn. Try <code>auto</code>{" "}
+            then drag inside, and the bar appears, lingers, and fades.
           </p>
         </div>
       }
@@ -55,7 +83,9 @@ export const ScrollAreaPlayground: React.FC = () => {
             <ScrollArea className="h-56" variant={variant} mask={mask}>
               <div className="space-y-2 pr-2">
                 {CITIES.map((city) => (
-                  <span key={city} className="block text-sm">{city}</span>
+                  <span key={city} className="block text-sm">
+                    {city}
+                  </span>
                 ))}
               </div>
             </ScrollArea>
@@ -68,8 +98,12 @@ export const ScrollAreaPlayground: React.FC = () => {
               <div className="flex gap-4 p-1">
                 {TILES.map(([gradient, title]) => (
                   <figure key={title} className="shrink-0">
-                    <div className={`h-28 w-56 rounded-lg bg-gradient-to-br ${gradient}`} />
-                    <figcaption className="mt-1 text-xs opacity-60">{title}</figcaption>
+                    <div
+                      className={`h-28 w-56 rounded-lg bg-gradient-to-br ${gradient}`}
+                    />
+                    <figcaption className="mt-1 text-xs opacity-60">
+                      {title}
+                    </figcaption>
                   </figure>
                 ))}
               </div>

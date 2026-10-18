@@ -6,7 +6,7 @@ export default function SizeLadder() {
       {CONTROL_SIZES.map((each) => (
         <Checkbox
           key={each}
-          color="blue"
+          tone="blue"
           size={each}
           defaultChecked
           label={`Size ${each}`}

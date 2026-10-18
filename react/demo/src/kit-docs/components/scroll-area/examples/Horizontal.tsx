@@ -20,7 +20,9 @@ export default function Horizontal() {
       <div className="flex gap-4 p-3">
         {TILES.map(([gradient, title]) => (
           <figure key={title} className="shrink-0">
-            <div className={`h-40 w-72 rounded-lg bg-gradient-to-br ${gradient}`} />
+            <div
+              className={`h-40 w-72 rounded-lg bg-gradient-to-br ${gradient}`}
+            />
             <figcaption className="mt-2 text-xs">
               <span className="opacity-60">Shot at</span>{" "}
               <span className="font-medium">{title}</span>

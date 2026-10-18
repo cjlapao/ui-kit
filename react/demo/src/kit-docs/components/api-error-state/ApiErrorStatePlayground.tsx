@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ApiErrorState } from "@cjlapao/ui-kit";
+import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import type {
   ApiErrorKind,
   ControlSize,
@@ -29,7 +30,7 @@ export const ApiErrorStatePlayground: React.FC = () => {
   const [variant, setVariant] = useState<EmptyStateVariant>("outlined");
   const [size, setSize] = useState<ControlSize>("md");
   const [tone, setTone] = useState<TrueColor | "">("");
-  const [corner, setCorner] = useState<SurfaceCorner>("rounded-xl");
+  const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [padding, setPadding] = useState<SurfacePadding>("lg");
 
   const [showRetry, setShowRetry] = useState(true);
@@ -60,7 +61,9 @@ export const ApiErrorStatePlayground: React.FC = () => {
                       label="Variant"
                       options={emptyStateVariantOptions}
                       value={variant}
-                      onChange={(value) => setVariant(value as EmptyStateVariant)}
+                      onChange={(value) =>
+                        setVariant(value as EmptyStateVariant)
+                      }
                     />
                     <SelectControl
                       label="Size"
@@ -70,7 +73,10 @@ export const ApiErrorStatePlayground: React.FC = () => {
                     />
                     <SelectControl
                       label="Tone override"
-                      options={[{ label: "From the kind", value: "" }, ...trueColorOptions]}
+                      options={[
+                        { label: "From the kind", value: "" },
+                        ...trueColorOptions,
+                      ]}
                       value={tone}
                       onChange={(value) => setTone(value as TrueColor | "")}
                     />
@@ -105,8 +111,16 @@ export const ApiErrorStatePlayground: React.FC = () => {
                         checked={retrying}
                         onChange={setRetrying}
                       />
-                      <ToggleRow label="Dashed rule" checked={dashed} onChange={setDashed} />
-                      <ToggleRow label="Icon" checked={showIcon} onChange={setShowIcon} />
+                      <ToggleRow
+                        label="Dashed rule"
+                        checked={dashed}
+                        onChange={setDashed}
+                      />
+                      <ToggleRow
+                        label="Icon"
+                        checked={showIcon}
+                        onChange={setShowIcon}
+                      />
                       <ToggleRow
                         label="Icon disc"
                         checked={iconBackground}

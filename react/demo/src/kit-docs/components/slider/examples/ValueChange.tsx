@@ -9,7 +9,9 @@ export default function ValueChange() {
       <div className="font-mono text-sm text-neutral-500 dark:text-neutral-400">
         <div>
           change:{" "}
-          <strong className="text-neutral-900 dark:text-neutral-100">{value}</strong>
+          <strong className="text-neutral-900 dark:text-neutral-100">
+            {value}
+          </strong>
         </div>
         <div>
           slideend:{" "}

@@ -1,15 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { I18nProvider } from "../i18n/I18nContext";
 import InputOtp from "./InputOtp";
-import {
-  CONTROL_SIZES,
-  TRUE_COLORS,
-} from "../../../common/theme/Theme";
+import { CONTROL_SIZES, TRUE_COLORS } from "../../../common/theme/Theme";
 
 const cells = (container: HTMLElement) =>
   Array.from(container.querySelectorAll("input"));
 
-const values = (container: HTMLElement) => cells(container).map((cell) => cell.value);
+const values = (container: HTMLElement) =>
+  cells(container).map((cell) => cell.value);
 
 const typeIn = (container: HTMLElement, index: number, char: string) =>
   fireEvent.change(cells(container)[index], { target: { value: char } });
@@ -20,7 +19,9 @@ describe("InputOtp", () => {
       const { container } = render(<InputOtp />);
       expect(cells(container)).toHaveLength(4);
       expect(
-        container.querySelector('[role="group"][aria-label="One-time password"]'),
+        container.querySelector(
+          '[role="group"][aria-label="One-time password"]',
+        ),
       ).not.toBeNull();
     });
 
@@ -126,7 +127,9 @@ describe("InputOtp", () => {
 
     it("ignores characters outside the allowed set when integerOnly", () => {
       const onChange = vi.fn();
-      const { container } = render(<InputOtp integerOnly onChange={onChange} />);
+      const { container } = render(
+        <InputOtp integerOnly onChange={onChange} />,
+      );
       typeIn(container, 0, "a");
       expect(onChange).not.toHaveBeenCalled();
       typeIn(container, 0, "7");
@@ -238,8 +241,10 @@ describe("InputOtp", () => {
 
   describe("appearance", () => {
     it.each([
+      // The deprecated pair resolves onto the shared family: `outlined` was
+      // a flat border, `filled` a soft fill — now the tone-tinted ghost.
       ["outlined", "border-neutral-300"],
-      ["filled", "bg-neutral-100"],
+      ["filled", "bg-blue-50"],
     ] as const)("renders the %s variant", (variant, expected) => {
       const { container } = render(<InputOtp variant={variant} />);
       const classList = cells(container)[0].className.split(/\s+/);
@@ -249,8 +254,10 @@ describe("InputOtp", () => {
     it("emits the tone it was given, for every tone", () => {
       for (const tone of TRUE_COLORS) {
         const { container, unmount } = render(<InputOtp tone={tone} />);
+        // The shared field focus pair — `focus-within:` matches the cell's
+        // own focus and is what the safelist covers.
         expect(cells(container)[0].className).toContain(
-          `focus:border-${tone}-400`,
+          `focus-within:border-${tone}-400`,
         );
         unmount();
       }
@@ -300,6 +307,64 @@ describe("InputOtp", () => {
       fireEvent.focus(list2[0]);
       fireEvent.change(list2[0], { target: { value: "9" } });
       expect(onChange).toHaveBeenCalledWith("92");
+    });
+  });
+  describe("kit conventions", () => {
+    it("takes the shared input surface family — glass really blurs", () => {
+      const { container } = render(<InputOtp variant="glass" />);
+      expect(cells(container)[0].className).toContain("backdrop-blur-md");
+    });
+
+    it("keeps `ghost` tone-tinted like every other field", () => {
+      const { container } = render(<InputOtp variant="ghost" tone="violet" />);
+      expect(cells(container)[0].className).toContain("bg-violet-50");
+    });
+
+    it("glows once behind the whole group for `gradient`", () => {
+      const { container } = render(
+        <InputOtp variant="gradient" gradientFrom="#123456" />,
+      );
+      const halo = container.querySelector("span[aria-hidden]") as HTMLElement;
+      expect(halo).not.toBeNull();
+      expect(halo.style.boxShadow).toContain("#123456");
+      expect(halo.style.boxShadow).toContain("var(--color-blue-400)");
+      // The glow rides on the control, not on each cell.
+      expect(cells(container)[0].style.boxShadow).toBe("");
+    });
+
+    it("corners the cells on the pill scale, or keeps the size ladder's", () => {
+      const { container: auto } = render(<InputOtp size="md" />);
+      expect(auto.querySelector("input")!.className).toContain("rounded-lg");
+      const { container: pinned } = render(<InputOtp corner="none" />);
+      const cellClass = pinned.querySelector("input")!.className;
+      expect(cellClass).toContain("rounded-none");
+      expect(cellClass).not.toContain("rounded-lg");
+      // The surface itself survives the swap.
+      expect(cellClass).toContain("border-neutral-300");
+    });
+
+    it("names the cells through the catalog", () => {
+      render(
+        <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+          <InputOtp length={6} />
+        </I18nProvider>,
+      );
+      const all = screen.getAllByRole("textbox");
+      expect(all[0]).toHaveAttribute(
+        "aria-label",
+        "Einmalpasswort, Zeichen 1 von 6",
+      );
+    });
+
+    it("keeps a caller-given group name in every locale", () => {
+      render(
+        <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+          <InputOtp ariaLabel="Authentication code" />
+        </I18nProvider>,
+      );
+      expect(
+        screen.getAllByRole("textbox")[0].getAttribute("aria-label"),
+      ).toContain("Authentication code");
     });
   });
 });

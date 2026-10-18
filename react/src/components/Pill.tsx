@@ -144,13 +144,21 @@ export const Pill: React.FC<PillProps> = ({
   const renderIcon = useIconRenderer();
 
   const isGlass = GLASS_VARIANTS.has(variant);
-  const isInteractive = Boolean(onClick) || Boolean(onRemove);
+
+  // Hover only answers to `onClick` — a removable-but-inert pill must not
+  // light up as if the whole pill were a button. (The remove button carries
+  // its own hover.)
+  const isActivatable = Boolean(onClick);
 
   // The tone map only covers the opaque variants; a glass pill drops them
   // entirely — they paint a solid fill — and takes its rim, copy colour and
   // focus ring from the shared glass chrome instead.
   const toneTokens = isGlass
-    ? { base: undefined as string | undefined, border: undefined as string | undefined }
+    ? {
+        base: undefined as string | undefined,
+        border: undefined as string | undefined,
+        hover: undefined as string | undefined,
+      }
     : getPillColorClasses(tone, variant as "solid" | "soft" | "outline");
 
   const glassClasses = isGlass
@@ -161,7 +169,7 @@ export const Pill: React.FC<PillProps> = ({
         variant === "liquid-glass" ? "backdrop-blur-md" : "backdrop-blur-sm",
         getGlassFillClass(tone, glassOpacity),
         getGlassVibrancyClass(vibrancy),
-        getGlassChromeClasses(tone, { interactive: isInteractive }),
+        getGlassChromeClasses(tone, { interactive: isActivatable }),
       )
     : undefined;
 
@@ -250,6 +258,7 @@ export const Pill: React.FC<PillProps> = ({
     SIZE_STYLES[size] ?? SIZE_STYLES.md,
     toneTokens.base,
     toneTokens.border,
+    isActivatable && !isGlass && toneTokens.hover,
     isGlass && "relative overflow-hidden",
     glassClasses,
     uppercase && "uppercase tracking-wide",

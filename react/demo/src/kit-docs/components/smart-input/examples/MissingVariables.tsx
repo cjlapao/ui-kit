@@ -34,10 +34,10 @@ export default function MissingVariables() {
         aria-label="Deploy summary"
       />
       <p className="text-xs opacity-70">
-        <code>BUILD_ID</code> is declared but only gets a value at run time,
-        so it renders as a runtime placeholder. <code>OWNER</code> names no
-        variable at all — it is flagged, and the counter next to the field
-        says how many tokens could not be resolved.
+        <code>BUILD_ID</code> is declared but only gets a value at run time, so
+        it renders as a runtime placeholder. <code>OWNER</code> names no
+        variable at all — it is flagged, and the counter next to the field says
+        how many tokens could not be resolved.
       </p>
     </div>
   );

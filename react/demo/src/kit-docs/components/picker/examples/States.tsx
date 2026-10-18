@@ -23,19 +23,27 @@ export default function States() {
   return (
     <div className="grid w-full gap-4 sm:grid-cols-2">
       <div className="flex flex-col gap-2">
-        <span className="text-xs uppercase tracking-wide text-neutral-400">Loading (trigger disabled)</span>
+        <span className="text-xs uppercase tracking-wide text-neutral-400">
+          Loading (trigger disabled)
+        </span>
         <Picker items={[]} loading />
       </div>
       <div className="flex flex-col gap-2">
-        <span className="text-xs uppercase tracking-wide text-neutral-400">Disabled</span>
+        <span className="text-xs uppercase tracking-wide text-neutral-400">
+          Disabled
+        </span>
         <Picker items={ITEMS} selectedId="a" disabled />
       </div>
       <div className="flex flex-col gap-2">
-        <span className="text-xs uppercase tracking-wide text-neutral-400">Error</span>
+        <span className="text-xs uppercase tracking-wide text-neutral-400">
+          Error
+        </span>
         <Picker items={ITEMS} validationStatus="error" />
       </div>
       <div className="flex flex-col gap-2">
-        <span className="text-xs uppercase tracking-wide text-neutral-400">Beside an Input</span>
+        <span className="text-xs uppercase tracking-wide text-neutral-400">
+          Beside an Input
+        </span>
         <Picker items={ITEMS} selectedId="a" />
         <Input placeholder="Same size, same variant" />
       </div>

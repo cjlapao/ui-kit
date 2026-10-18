@@ -1,17 +1,19 @@
 import React, { useState } from "react";
-import { Breadcrumb, MultiToggle } from "@cjlapao/ui-kit";
-import type {
-  BreadcrumbItem,
-  TrueColor,
+import {
+  Breadcrumb,
+  ColorSwatches,
+  type BreadcrumbItem,
+  type ControlSize,
+  type TrueColor,
 } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
-  SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
-import { trueColorOptions } from "../../shared/options";
+import { controlSizeOptions } from "../../shared/options";
 
 const separatorOptions = [
   { label: "Chevron", value: "chevron" },
@@ -28,6 +30,7 @@ const FULL_ITEMS: BreadcrumbItem[] = [
 
 export const BreadcrumbPlayground: React.FC = () => {
   const [color, setColor] = useState<TrueColor>("blue");
+  const [size, setSize] = useState<ControlSize>("md");
   const [separator, setSeparator] = useState("chevron");
   const [showHome, setShowHome] = useState(true);
   const [ellipsis, setEllipsis] = useState(false);
@@ -49,21 +52,29 @@ export const BreadcrumbPlayground: React.FC = () => {
               title: "Options",
               controls: (
                 <>
-                  <SelectControl
-                    label="Color"
-                    options={trueColorOptions}
-                    value={color}
-                    onChange={(v) => setColor(v as TrueColor)}
-                  />
-                  <Control label="Separator">
-                    <MultiToggle
-                      fullWidth
+                  {/* Tone is a colour decision — pick it from colour swatches,
+                      not from a dropdown of words. */}
+                  <Control label="Tone">
+                    <ColorSwatches
+                      selectable
                       size="sm"
-                      options={separatorOptions}
-                      value={separator}
-                      onChange={setSeparator}
+                      value={color}
+                      onSelect={setColor}
+                      defaultExpanded
                     />
                   </Control>
+                  <ChoiceControl
+                    label="Size"
+                    options={controlSizeOptions}
+                    value={size}
+                    onChange={(v) => setSize(v as ControlSize)}
+                  />
+                  <ChoiceControl
+                    label="Separator"
+                    options={separatorOptions}
+                    value={separator}
+                    onChange={setSeparator}
+                  />
                   <div className="grid grid-cols-1 gap-2">
                     <ToggleRow label="Home crumb" checked={showHome} onChange={setShowHome} />
                     <ToggleRow label="Ellipsis" checked={ellipsis} onChange={setEllipsis} />
@@ -78,6 +89,7 @@ export const BreadcrumbPlayground: React.FC = () => {
         <div className="flex w-full flex-col items-center gap-3">
           <Breadcrumb
             color={color}
+            size={size}
             separator={
               separator === "slash" ? "/" : separator === "dot" ? "·" : undefined
             }

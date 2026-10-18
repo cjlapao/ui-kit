@@ -5,14 +5,14 @@ import Checkbox from "./Checkbox";
 import CollapsibleHelpText from "./CollapsibleHelpText";
 import FormField from "./FormField";
 import Input from "./Input";
-import KeyValueArrayField, {
-  type KeyValuePair,
-} from "./KeyValueArrayField";
+import KeyValueArrayField, { type KeyValuePair } from "./KeyValueArrayField";
 import Panel from "./Panel";
 import Select from "./Select";
+import { useKitT } from "../i18n";
 import Textarea from "./Textarea";
 import {
   DEFAULT_SURFACE_CORNER,
+  INPUT_VARIANT_FOR_SURFACE,
   SURFACE_VARIANTS,
   type ControlSize,
   type InputVariant,
@@ -20,11 +20,7 @@ import {
   type SurfacePadding,
   type TrueColor,
 } from "../theme/Theme";
-import type {
-  GlassOpacity,
-  GlassVibrancy,
-  SpecularMode,
-} from "../theme/glass";
+import type { GlassOpacity, GlassVibrancy, SpecularMode } from "../theme/glass";
 import type { CapsuleBlueprintParameter } from "../../../common/types/CapsuleBlueprint";
 import { CapsuleBlueprintValueType } from "../../../common/types/CapsuleBlueprint";
 
@@ -73,17 +69,31 @@ export interface DynamicFormFieldProps {
 
   /** Scale of the control, its label and its notes. @default "md" */
   size?: ControlSize;
-  /** Surface of the card around the field. @default "outlined" */
+  /**
+   * Surface of the card around the field - the kit's own surface
+   * default, matching Panel. `"tonal"` swaps the chrome for the tone's
+   * wash (blue by default); `"plain"` drops the card for a form the app
+   * already frames.
+   * @default "elevated"
+   */
   variant?: DynamicFormFieldVariant;
   tone?: TrueColor;
   corner?: SurfaceCorner;
   /** @default "md" */
   padding?: SurfacePadding;
-  /** Entry style of the control itself. @default "flat" */
-  inputVariant?: InputVariant;
+  /**
+   * Entry style of the control itself. `"auto"` follows the card through
+   * `INPUT_VARIANT_FOR_SURFACE` - glass card, glass entry; tonal card,
+   * borderless entry - so the two can never read as different widgets.
+   * @default "auto"
+   */
+  inputVariant?: InputVariant | "auto";
   disabled?: boolean;
   readOnly?: boolean;
-  /** Heading of the expanding help block. @default "What is this?" */
+  /**
+   * Heading of the expanding help block.
+   * @default t("kit.dynamicformfield.helpTitle") ("What is this?")
+   */
   helpTitle?: React.ReactNode;
   /** Tone of that block. Defaults to the field's own tone. */
   helpTone?: TrueColor;
@@ -152,14 +162,14 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   error,
   isVisible = true,
   size = "md",
-  variant = "outlined",
-  tone = "neutral",
+  variant = "elevated",
+  tone = "blue",
   corner = DEFAULT_SURFACE_CORNER,
   padding = "md",
-  inputVariant = "flat",
+  inputVariant = "auto",
   disabled = false,
   readOnly = false,
-  helpTitle = "What is this?",
+  helpTitle,
   helpTone,
   listRows = 4,
   className,
@@ -167,7 +177,15 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   vibrancy,
   specularMode,
 }) => {
+  const t = useKitT();
   const generatedId = useId();
+  // The card decides the entry style unless the caller overrides it -
+  // a flat entry punched into a glass card is a hole in the surface.
+  const resolvedInputVariant: InputVariant =
+    inputVariant === "auto" ? INPUT_VARIANT_FOR_SURFACE[variant] : inputVariant;
+  // Defaults resolve in the body: destructuring-time defaults are
+  // locale-blind.
+  const resolvedHelpTitle = helpTitle ?? t("kit.dynamicformfield.helpTitle");
   const { name, key, hint, options, is_secret, help } = parameter;
   // The blueprint type carries both spellings; only one was ever read, so a
   // parameter using `required` got no marker and no `required` attribute.
@@ -202,7 +220,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   const shared = {
     size,
     tone,
-    variant: inputVariant,
+    variant: resolvedInputVariant,
     disabled,
     validationStatus: error ? ("error" as const) : ("none" as const),
   };
@@ -256,7 +274,9 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
             // A `<select>` with no empty option lands on its first entry, so
             // an untouched optional parameter silently reported a value the
             // user never chose.
-            placeholder={required ? undefined : "Select…"}
+            placeholder={
+              required ? undefined : t("kit.dynamicformfield.selectPlaceholder")
+            }
             onChange={(event) => handleChange(event.target.value ?? "")}
             {...shared}
           >
@@ -281,7 +301,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
             size={size}
             tone={tone}
             variant="plain"
-            inputVariant={inputVariant}
+            inputVariant={resolvedInputVariant}
           />
         );
       case CapsuleBlueprintValueType.List:
@@ -292,7 +312,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
             rows={listRows}
             readOnly={readOnly}
             required={required}
-            placeholder="One entry per line"
+            placeholder={t("kit.dynamicformfield.listPlaceholder")}
             onChange={(event) =>
               handleChange(
                 event.target.value.split("\n").filter((line) => line !== ""),
@@ -312,8 +332,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   // up as an empty box.
   if (!isVisible || !parameter.value_type || control === null) return null;
 
-  const isCheckbox =
-    parameter.value_type === CapsuleBlueprintValueType.Boolean;
+  const isCheckbox = parameter.value_type === CapsuleBlueprintValueType.Boolean;
   const isKeyValue = parameter.value_type === CapsuleBlueprintValueType.Map;
 
   const body = (
@@ -336,7 +355,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
       )}
       {help && (
         <CollapsibleHelpText
-          title={helpTitle}
+          title={resolvedHelpTitle}
           text={help}
           tone={helpTone ?? tone}
           maxLength={180}

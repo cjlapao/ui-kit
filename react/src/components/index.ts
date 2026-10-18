@@ -124,7 +124,19 @@ export {
   type EmptyStateVariant,
 } from "./EmptyState";
 export {
-  default as Hero,
+  default as PanelHero,
+  PANEL_HERO_VARIANTS,
+  PANEL_HERO_TITLE_ELEMENTS,
+  type PanelHeroProps,
+  type PanelHeroVariant,
+  type PanelHeroTitleElement,
+  type PanelHeroTitleSize,
+  type PanelHeroSubtitleSize,
+  type PanelHeroPadding,
+} from "./PanelHero";
+/** @deprecated Renamed to `PanelHero`; aliases are kept for one cycle. */
+export {
+  Hero,
   HERO_VARIANTS,
   HERO_TITLE_ELEMENTS,
   type HeroProps,
@@ -133,7 +145,7 @@ export {
   type HeroTitleSize,
   type HeroSubtitleSize,
   type HeroPadding,
-} from "./Hero";
+} from "./PanelHero";
 export {
   default as DynamicImg,
   type DynamicImgProps,
@@ -284,7 +296,16 @@ export {
   type CarouselOrientation,
   type CarouselResponsiveOption,
 } from "./Carousel";
-export { default as Toggle, TOGGLE_VARIANTS, type ToggleProps, type ToggleVariant, type ToggleSize, type ToggleAlign, type ToggleDescriptionPlacement, type TogglePadding } from "./Toggle";
+export {
+  default as Toggle,
+  TOGGLE_VARIANTS,
+  type ToggleProps,
+  type ToggleVariant,
+  type ToggleSize,
+  type ToggleAlign,
+  type ToggleDescriptionPlacement,
+  type TogglePadding,
+} from "./Toggle";
 export {
   default as MultiToggle,
   MULTI_TOGGLE_VARIANTS,
@@ -293,6 +314,8 @@ export {
   type MultiToggleOption,
   type MultiToggleVariant,
   type MultiToggleIndicator,
+  // `rounded` is public, so its type has to be reachable too.
+  type MultiToggleShape,
 } from "./MultiToggle";
 export {
   default as ButtonSelector,
@@ -339,14 +362,8 @@ export {
 } from "./SearchBar";
 
 // Layout
-export {
-  default as Toolbar,
-  type ToolbarProps,
-} from "./Toolbar";
-export {
-  default as PageHeader,
-  type PageHeaderProps,
-} from "./PageHeader";
+export { default as Toolbar, type ToolbarProps } from "./Toolbar";
+export { default as PageHeader, type PageHeaderProps } from "./PageHeader";
 export {
   default as ScrollArea,
   type ScrollAreaProps,
@@ -471,10 +488,8 @@ export {
 export {
   DatePicker,
   DATEPICKER_APPEND_TO,
-  DATEPICKER_LOADER_TYPES,
   DATEPICKER_SELECTION_MODES,
   type DatePickerAppendTo,
-  type DatePickerLoaderType,
   type DatePickerProps,
   type DatePickerSelectionMode,
   type DatePickerValue,
@@ -604,9 +619,7 @@ export {
   default as SideMenuLayout,
   type SideMenuLayoutProps,
 } from "./SideMenuLayout";
-export {
-  default as SmartGridTileBoundary,
-} from "./SmartGridTileBoundary";
+export { default as SmartGridTileBoundary } from "./SmartGridTileBoundary";
 export {
   default as SmartGridItemPalette,
   PALETTE_MIME as SMART_GRID_PALETTE_MIME,
@@ -832,4 +845,3 @@ export * from "./Gantt";
 
 // Chart (PrimeUI-style compound charts — SVG + Canvas)
 export * from "./chart";
-

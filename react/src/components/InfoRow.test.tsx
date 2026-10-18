@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import InfoRow, { INFO_ROW_VARIANTS, INFO_ROW_LOADERS } from "./InfoRow";
 import {
   CONTROL_SIZES,
@@ -98,7 +104,9 @@ describe("InfoRow", () => {
       // Wrapping the row in a container div would make every row an only
       // child, so the last-child rule would match all of them and every
       // hairline would disappear.
-      const { container } = render(<InfoRow label="L" value="V" />);
+      const { container } = render(
+        <InfoRow label="L" value="V" variant="plain" />,
+      );
       const root = container.firstElementChild!;
       expect(root.className).toContain("last:border-0");
       expect(root.className).toContain("flex");
@@ -149,7 +157,11 @@ describe("InfoRow", () => {
     it("stays visible while loading even with no value yet", () => {
       // `hideIfEmpty` used to win over everything, so a row fetching its value
       // rendered nothing at all — the panel visibly jumped when it arrived.
-      const { container } = render(<InfoRow label="L" loading />);
+      // Scoped to `plain`: an `elevated` row hands its root to a Panel, which
+      // carries its own `aria-busy` — the row's own busy promise is the point.
+      const { container } = render(
+        <InfoRow label="L" loading variant="plain" />,
+      );
       expect(container.firstElementChild).not.toBeNull();
       expect(container.firstElementChild!.getAttribute("aria-busy")).toBe(
         "true",
@@ -257,18 +269,30 @@ describe("InfoRow", () => {
       await waitFor(() =>
         expect(screen.getByLabelText("Copied to clipboard")).toBeTruthy(),
       );
-      const live = Array.from(
-        document.querySelectorAll('[role="status"]'),
-      ).map((n) => n.textContent);
+      const live = Array.from(document.querySelectorAll('[role="status"]')).map(
+        (n) => n.textContent,
+      );
       expect(live).toContain("Copied to clipboard");
     });
 
     it("keeps the copy button reachable by keyboard", () => {
-      // `opacity-0` does not remove an element from the tab order, so the
-      // button was focusable but invisible until the mouse arrived.
+      // The reveal lives on the width-collapse wrapper, not the button: the
+      // hidden button stays in the tab order, and `group-focus-within` makes
+      // Tab summon it exactly as hover does — focusable-but-invisible is the
+      // bug that must not come back.
       render(<InfoRow label="L" value="abc" />);
       const button = screen.getByLabelText("Copy to clipboard");
-      expect(button.className).toContain("focus-visible:opacity-100");
+      const reveal = button.parentElement!;
+      // The reveal answers to `:focus-visible` — a focus the keyboard says
+      // it made — not to plain `focus-within`: the mouse-click that copies
+      // leaves DOM focus on the button, and `focus-within` would then hold
+      // the button open until the next click elsewhere, pointer gone or not.
+      expect(reveal.className).toContain(
+        "[.group\\/inforow:has(button:focus-visible)_&]:opacity-100",
+      );
+      expect(reveal.className).toContain(
+        "[.group\\/inforow:has(button:focus-visible)_&]:max-w-10",
+      );
     });
   });
 
@@ -283,6 +307,7 @@ describe("InfoRow", () => {
           value="V"
           valueClassName="text-sky-500"
           labelClassName="text-emerald-600 font-semibold"
+          variant="plain"
         />,
       );
       const html = container.innerHTML;
@@ -317,5 +342,58 @@ describe("InfoRow", () => {
         "text-sm font-bold",
       );
     });
+  });
+});
+
+describe("post-copy auto-dismiss", () => {
+  it("folds the button away after the confirmation, even under a parked cursor", async () => {
+    vi.useFakeTimers();
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+    const { container } = render(<InfoRow label="L" value="abc" />);
+    const reveal = container.querySelector("div[class*='max-w-']")!;
+    fireEvent.click(screen.getByLabelText("Copy to clipboard"));
+    // Let the clipboard promise chain settle inside the fake-timer world.
+    await act(async () => {
+      vi.advanceTimersByTime(10);
+    });
+    // The confirmation shows — as long as the pointer is still there: the
+    // class base stays closed and only the hover/focus variants open it, so
+    // leaving mid-confirmation hides it with the pointer. (While it shows,
+    // the button is labelled as such, hence the structural lookup.)
+    expect(reveal.className).toContain("max-w-0");
+    expect(reveal.className).toContain("group-hover:max-w-10");
+    // 1.6s later it folds — the hover reveal is gone from the classes; only
+    // focus still summons it until the pointer leaves and re-arms.
+    await act(async () => {
+      vi.advanceTimersByTime(1700);
+    });
+    expect(reveal.className).toContain("max-w-0");
+    expect(reveal.className).not.toContain("group-hover:max-w-10");
+    // ...and not by the focus the click itself left on the button, either —
+    // a `focus-within` reveal would hold it open until the next click
+    // somewhere else, which is exactly the "dismiss never happens" report.
+    expect(reveal.className).not.toContain("group-focus-within:max-w-10");
+    vi.useRealTimers();
+  });
+
+  it("leaving the row re-arms the hover reveal", async () => {
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+    vi.useFakeTimers();
+    const { container } = render(<InfoRow label="L" value="abc" />);
+    const reveal = container.querySelector("div[class*='max-w-']")!;
+    fireEvent.click(screen.getByLabelText("Copy to clipboard"));
+    await act(async () => {
+      vi.advanceTimersByTime(10);
+    });
+    fireEvent.mouseLeave(container.querySelector("div.group")!);
+    await act(async () => {
+      vi.advanceTimersByTime(1700);
+    });
+    expect(reveal.className).toContain("group-hover:max-w-10");
+    vi.useRealTimers();
   });
 });

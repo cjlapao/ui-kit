@@ -1,10 +1,8 @@
 import React from "react";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import { getPillColorClasses } from "../theme/Theme";
-import {
-  findDefinition,
-  splitSmartValue,
-} from "../utils/smartVariables";
+import { findDefinition, splitSmartValue } from "../utils/smartVariables";
 import type { TrueColor } from "../theme/Theme";
 import type {
   SmartVariable,
@@ -53,6 +51,7 @@ export const SmartVariableBadge: React.FC<SmartVariableBadgeProps> = ({
   flagMissing = true,
   className,
 }) => {
+  const t = useKitT();
   const found = findDefinition(groups, variable);
   // With no groups the caller is driving everything through `resolve`, so a
   // token cannot be judged unknown — only unresolved.
@@ -75,21 +74,29 @@ export const SmartVariableBadge: React.FC<SmartVariableBadgeProps> = ({
 
   // In token mode the label names the variable; in value mode it *is* the
   // value, so an unknown or empty one has to say so rather than render blank.
+  // The `VAR`/`ENV` prefixes stay untranslated — they echo the token's own
+  // grammar (`var::…`), not prose.
   const label = (() => {
     if (mode === "token") {
       const prefix = variable.type === "env" ? "ENV" : "VAR";
       return `${prefix}:${variable.name}`;
     }
-    if (unknown) return "not found";
-    if (empty) return "empty";
+    if (unknown) return t("kit.smartinput.notFound");
+    if (empty) return t("kit.smartinput.emptyValue");
     if (found?.definition.secret || variable.secret) return "••••••";
-    return resolution?.value || "empty";
+    return resolution?.value || t("kit.smartinput.emptyValue");
   })();
 
   const title = (() => {
-    if (unknown) return `${variable.fullToken} — no such variable`;
-    if (empty) return `${variable.fullToken} — no value`;
-    if (resolution) return `${variable.fullToken} → ${resolution.value}`;
+    if (unknown)
+      return t("kit.smartinput.noSuchVariable", { token: variable.fullToken });
+    if (empty)
+      return t("kit.smartinput.noValue", { token: variable.fullToken });
+    if (resolution)
+      return t("kit.smartinput.resolvesTo", {
+        token: variable.fullToken,
+        value: resolution.value,
+      });
     return variable.fullToken;
   })();
 
@@ -116,8 +123,10 @@ export const SmartVariableBadge: React.FC<SmartVariableBadgeProps> = ({
   );
 };
 
-export interface SmartValuePartsProps
-  extends Omit<SmartVariableBadgeProps, "variable"> {
+export interface SmartValuePartsProps extends Omit<
+  SmartVariableBadgeProps,
+  "variable"
+> {
   value: string;
   /** Rendered when `value` is empty. */
   placeholder?: React.ReactNode;

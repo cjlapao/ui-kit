@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Breadcrumb, { type BreadcrumbItem } from "./Breadcrumb";
-import { TRUE_COLORS } from "../../../common/theme/Theme";
+import {
+  getBreadcrumbToneTokens,
+  TRUE_COLORS,
+} from "../../../common/theme/Theme";
 import { Badge } from "./Badge";
 
 const PRODUCTS: BreadcrumbItem[] = [
@@ -135,7 +138,10 @@ describe("Breadcrumb", () => {
       for (const color of ["blue", "emerald", "rose"] as const) {
         const { unmount } = renderBreadcrumb({ color });
         const products = screen.getByRole("link", { name: "Products" });
-        expect(products.className).toContain(`hover:text-${color}-600`);
+        // The contrast-correct pair: {c}-700 light, {c}-300 dark — the old
+        // `-600`/`-400` dipped to 2.94:1 on yellow.
+        expect(products.className).toContain(`hover:text-${color}-700`);
+        expect(products.className).toContain(`dark:hover:text-${color}-300`);
         expect(products.className).toContain(`focus-visible:ring-${color}-400`);
         expect((screen.getByText("Dell").parentElement as HTMLElement).className).toContain(
           `text-${color}-700`,
@@ -149,9 +155,33 @@ describe("Breadcrumb", () => {
         const { unmount } = renderBreadcrumb({ color });
         expect(
           screen.getByRole("link", { name: "Products" }).className,
-        ).toContain(`hover:text-${color}-600`);
+        ).toContain(getBreadcrumbToneTokens(color).hover);
         unmount();
       }
+    });
+  });
+
+  describe("size", () => {
+    it("sits at the md step of the control scale by default", () => {
+      const { container } = renderBreadcrumb();
+      const nav = container.querySelector("nav") as HTMLElement;
+      expect(nav.className).toContain("text-sm");
+      expect(
+        screen.getByRole("link", { name: "Products" }).className,
+      ).toContain("px-1.5 py-1");
+    });
+
+    it("drives text, chip and icon geometry from the scale", () => {
+      const { container } = renderBreadcrumb({ size: "lg" });
+      const nav = container.querySelector("nav") as HTMLElement;
+      expect(nav.className).toContain("text-base");
+      const electronics = screen.getByRole("link", { name: "Electronics" });
+      expect(electronics.className).toContain("px-2 py-1");
+      // `CustomIcon` carries the scale class on the wrapper; the svg itself
+      // is `h-full w-full` inside it.
+      const iconBox = electronics.querySelector("svg")
+        ?.parentElement as HTMLElement;
+      expect(iconBox.className).toContain("h-5 w-5");
     });
   });
 });

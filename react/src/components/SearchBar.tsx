@@ -4,13 +4,14 @@ import { useIconRenderer } from "../contexts/IconContext";
 import { useKitT } from "../i18n";
 import Spinner from "./Spinner";
 import {
+  DEFAULT_GLOW_INTENSITY,
   TRUE_COLORS,
   getFieldSizeTokens,
   getFieldToneTokens,
   getGlowTokens,
   getInputVariantTokens,
   resolveGlowGradient,
-} from "../theme/Theme";
+} from "../theme";
 import type {
   ControlSize,
   GlowIntensity,
@@ -130,7 +131,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   color = "blue",
   gradientFrom,
   gradientTo,
-  glowIntensity = "soft",
+  glowIntensity = DEFAULT_GLOW_INTENSITY,
   loading = false,
 }) => {
   const t = useKitT();
@@ -261,7 +262,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   ) : null;
 
   const sizeToken = getFieldSizeTokens(size);
-  const variantTokens = getInputVariantTokens(variant);
+  const variantTokens = getInputVariantTokens(variant, color);
 
   const bar = (
     <div
@@ -328,15 +329,20 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     return (
       // `glow.pad` keeps the halo inside the component's own box, so a
       // clipping ancestor (a Panel body) cannot shear it off.
-      <div className={classNames("relative w-full", glow.pad, className)}>
+      <div
+        className={classNames(
+          "relative w-full overflow-hidden rounded-[28px]",
+          glow.pad,
+          className,
+        )}
+      >
         <div
           className={classNames(
-            "absolute rounded-2xl leading-none transition-opacity duration-500",
+            "absolute rounded-2xl transition-opacity duration-500",
             glow.inset,
-            glow.blur,
           )}
           style={{
-            background: `linear-gradient(to right, ${resolvedFrom}, ${resolvedTo})`,
+            boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${resolvedFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${resolvedTo}`,
             opacity: focused ? glow.focusOpacity : glow.idleOpacity,
           }}
           aria-hidden

@@ -1,10 +1,20 @@
 import { SplitView, SPLIT_VIEW_VARIANTS } from "@cjlapao/ui-kit";
 
 const ITEMS = [
-  { id: "a", label: "api-gateway", subtitle: "eu-west-1", icon: "Container" as const,
-    panel: <div className="p-4 text-sm">Gateway detail</div> },
-  { id: "b", label: "worker-pool", subtitle: "us-east-1", icon: "Container" as const,
-    panel: <div className="p-4 text-sm">Worker detail</div> },
+  {
+    id: "a",
+    label: "api-gateway",
+    subtitle: "eu-west-1",
+    icon: "Container" as const,
+    panel: <div className="p-4 text-sm">Gateway detail</div>,
+  },
+  {
+    id: "b",
+    label: "worker-pool",
+    subtitle: "us-east-1",
+    icon: "Container" as const,
+    panel: <div className="p-4 text-sm">Worker detail</div>,
+  },
 ];
 
 /**
@@ -28,9 +38,16 @@ export default function Variants() {
     <div className="grid w-full gap-4 lg:grid-cols-2">
       {SPLIT_VIEW_VARIANTS.map((variant) => (
         <div key={variant} className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-wide text-neutral-400">{variant}</span>
+          <span className="text-xs uppercase tracking-wide text-neutral-400">
+            {variant}
+          </span>
           <div className="h-56 overflow-hidden rounded-lg">
-            <SplitView items={ITEMS} variant={variant} tone="blue" listTitle="Capsules" />
+            <SplitView
+              items={ITEMS}
+              variant={variant}
+              tone="blue"
+              listTitle="Capsules"
+            />
           </div>
         </div>
       ))}

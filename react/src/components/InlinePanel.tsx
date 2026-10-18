@@ -18,6 +18,7 @@ import {
 } from ".";
 import { useKitT } from "../i18n";
 import type { Size } from "../theme";
+import { THIN_SCROLLBAR } from "../theme";
 import { type IconName } from "../icons/registry";
 import { renderIcon } from "../utils/renderIcon";
 
@@ -459,7 +460,7 @@ const InlinePanel: React.FC<InlinePanelProps> = ({
             id={bodyHeader ? undefined : bodyId}
             className={classNames(
               "relative flex-1 min-h-0 overflow-y-auto px-6 py-5",
-              "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700",
+              THIN_SCROLLBAR,
               bodyClassName,
               loading && "pointer-events-none",
             )}

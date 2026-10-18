@@ -163,6 +163,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/custom-icon/CustomIconPage")),
   },
   {
+    slug: "icons",
+    name: "Icon Registry",
+    description:
+      "Every shipped icon, discovered from the components directory — search, preview at each size, and copy the usage code.",
+    icon: "ViewGrid",
+    category: "Basics",
+    Page: lazy(() => import("./components/icons/IconsPage")),
+  },
+  {
     slug: "dynamic-img",
     name: "Dynamic Image",
     description:
@@ -667,13 +676,13 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/ecg-monitor/EcgMonitorPage")),
   },
   {
-    slug: "hero",
-    name: "Hero",
+    slug: "panel-hero",
+    name: "Panel Hero",
     description:
       "A banner — icon, heading and supporting line — on a saturated tone gradient or on any Panel surface.",
     icon: "Rocket",
     category: "Layout",
-    Page: lazy(() => import("./components/hero/HeroPage")),
+    Page: lazy(() => import("./components/panel-hero/PanelHeroPage")),
   },
   {
     slug: "metric-bar",

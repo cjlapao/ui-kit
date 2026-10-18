@@ -17,6 +17,7 @@ import {
   type NodeMetrics,
 } from "../../connectionFlow";
 import type { SurfaceVariant } from "../../theme/Theme";
+import { THIN_SCROLLBAR_FIELD } from "../../theme/Theme";
 
 export interface ConnectionFlowSvgProps {
   layout: ConnectionFlowLayout;
@@ -282,8 +283,7 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
             <div
               data-scrolls={laid.scrollable ? "" : undefined}
               className={classNames(
-                laid.scrollable &&
-                  "overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent",
+                laid.scrollable && `overflow-y-auto ${THIN_SCROLLBAR_FIELD}`,
               )}
               style={{
                 width: laid.width,

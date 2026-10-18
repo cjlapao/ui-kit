@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ConnectionFlow } from "@cjlapao/ui-kit";
+import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import type {
   ConnectionFlowEdgeStyle,
   ConnectionFlowItemProgress,
@@ -37,7 +38,7 @@ import { CI_FLOW } from "./examples/sampleFlow";
 export const ConnectionFlowPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
   const [tone, setTone] = useState<TrueColor>("neutral");
-  const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [variant, setVariant] = useState<PanelVariant | "plain">("outlined");
   const [edgeStyle, setEdgeStyle] =
     useState<ConnectionFlowEdgeStyle>("orthogonal");
@@ -48,7 +49,8 @@ export const ConnectionFlowPlayground: React.FC = () => {
   const [itemProgress, setItemProgress] =
     useState<ConnectionFlowItemProgress>("bar");
   const [maxVisibleItems, setMaxVisibleItems] = useState(2);
-  const [loaderType, setLoaderType] = useState<ConnectionFlowLoader>("skeleton");
+  const [loaderType, setLoaderType] =
+    useState<ConnectionFlowLoader>("skeleton");
   const [loading, setLoading] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [dotSpeed, setDotSpeed] = useState(120);
@@ -119,7 +121,9 @@ export const ConnectionFlowPlayground: React.FC = () => {
                       label="Flow state"
                       options={connectionStateOptions}
                       value={flowState}
-                      onChange={(value) => setFlowState(value as ConnectionState)}
+                      onChange={(value) =>
+                        setFlowState(value as ConnectionState)
+                      }
                     />
                     <Control label="Behaviour">
                       <div className="space-y-1.5">
@@ -180,7 +184,9 @@ export const ConnectionFlowPlayground: React.FC = () => {
                       label="Ring size"
                       options={connectionFlowRingSizeOptions}
                       value={ringSize}
-                      onChange={(value) => setRingSize(value as ConnectionFlowRingSize)}
+                      onChange={(value) =>
+                        setRingSize(value as ConnectionFlowRingSize)
+                      }
                     />
                     <SelectControl
                       label="Progress"
@@ -251,11 +257,10 @@ export const ConnectionFlowPlayground: React.FC = () => {
             <strong>speed</strong>, and each source releases one at a time —
             first target, second, third, then round again — so a fan reads as
             one source feeding its targets rather than as a swarm. The matrix
-            cards are built from{" "}
-            <strong>items</strong>: one runs past the cap so the rest fold
-            behind “show more”, one shows a spinner in place of its glyph until
-            it finishes, and “Announce on Discord” is capped with{" "}
-            <code>maxHeight</code> so its body scrolls.
+            cards are built from <strong>items</strong>: one runs past the cap
+            so the rest fold behind “show more”, one shows a spinner in place of
+            its glyph until it finishes, and “Announce on Discord” is capped
+            with <code>maxHeight</code> so its body scrolls.
           </p>
         </div>
       }

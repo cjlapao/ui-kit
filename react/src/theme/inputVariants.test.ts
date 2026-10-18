@@ -100,11 +100,16 @@ describe("container surface tokens", () => {
   });
 
   it("gives every corner its own distinct radius class", () => {
-    const classes = SURFACE_CORNERS.map(getSurfaceCornerClass);
+    const classes = SURFACE_CORNERS.filter((c) => c !== "auto").map(
+      getSurfaceCornerClass,
+    );
     // Every step must be its own radius. The capsules (`pill`,
     // `rounded-full`) were duplicates of each other and are no longer part of
     // the container scale — a capsule is a shape the `Pill` component owns.
-    expect(new Set(classes).size).toBe(SURFACE_CORNERS.length);
+    // `auto` is excluded for the same reason: it duplicates the theme default.
+    expect(new Set(classes).size).toBe(
+      SURFACE_CORNERS.filter((c) => c !== "auto").length,
+    );
   });
 
   it("keeps no capsule entry in the container corner scale", () => {

@@ -7,6 +7,7 @@ import {
   Panel,
   Textarea,
 } from "@cjlapao/ui-kit";
+import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import type {
   AlertIconAlign,
   AlertIntent,
@@ -36,7 +37,6 @@ import {
   trueColorOptions,
 } from "../../shared/options";
 
-const DEFAULT_CORNER: SurfaceCorner = "rounded-md";
 
 /** Padding for the alignment demo — a short callout cannot show the difference. */
 const LONG_BODY =
@@ -56,7 +56,7 @@ export const AlertPlayground: React.FC = () => {
   const [intent, setIntent] = useState<AlertIntent>("danger");
   const [variant, setVariant] = useState<AlertVariant>("subtle");
   const [size, setSize] = useState<ControlSize>("md");
-  const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CORNER);
+  const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [showIcon, setShowIcon] = useState(true);
   const [iconSize, setIconSize] = useState<ControlSize | "auto">("auto");
   const [iconAlign, setIconAlign] = useState<AlertIconAlign>("top");
@@ -125,7 +125,9 @@ export const AlertPlayground: React.FC = () => {
                         label="Icon size"
                         options={alertIconSizeOptions}
                         value={iconSize}
-                        onChange={(value) => setIconSize(value as ControlSize | "auto")}
+                        onChange={(value) =>
+                          setIconSize(value as ControlSize | "auto")
+                        }
                       />
                       <Control label="Icon alignment">
                         <MultiToggle
@@ -133,7 +135,9 @@ export const AlertPlayground: React.FC = () => {
                           size="sm"
                           options={alertIconAlignOptions}
                           value={iconAlign}
-                          onChange={(value) => setIconAlign(value as AlertIconAlign)}
+                          onChange={(value) =>
+                            setIconAlign(value as AlertIconAlign)
+                          }
                         />
                       </Control>
                     </div>
@@ -192,7 +196,11 @@ export const AlertPlayground: React.FC = () => {
                 controls: (
                   <>
                     <div className="grid grid-cols-2 gap-2">
-                      <ToggleRow label="Icon" checked={showIcon} onChange={setShowIcon} />
+                      <ToggleRow
+                        label="Icon"
+                        checked={showIcon}
+                        onChange={setShowIcon}
+                      />
                       <ToggleRow
                         label="Dismissible"
                         checked={dismissible}
@@ -201,8 +209,16 @@ export const AlertPlayground: React.FC = () => {
                           setOpen(true);
                         }}
                       />
-                      <ToggleRow label="Long body" checked={longBody} onChange={setLongBody} />
-                      <ToggleRow label="Actions" checked={withActions} onChange={setWithActions} />
+                      <ToggleRow
+                        label="Long body"
+                        checked={longBody}
+                        onChange={setLongBody}
+                      />
+                      <ToggleRow
+                        label="Actions"
+                        checked={withActions}
+                        onChange={setWithActions}
+                      />
                       <ToggleRow
                         label="On a glass panel"
                         checked={onGlass}
@@ -235,7 +251,9 @@ export const AlertPlayground: React.FC = () => {
                               size="sm"
                               options={panelSpecularOptions}
                               value={specularMode}
-                              onChange={(value) => setSpecularMode(value as SpecularMode)}
+                              onChange={(value) =>
+                                setSpecularMode(value as SpecularMode)
+                              }
                             />
                           </Control>
                           <Control label="Vibrancy">
@@ -244,7 +262,9 @@ export const AlertPlayground: React.FC = () => {
                               size="sm"
                               options={glassVibrancyOptions}
                               value={vibrancy}
-                              onChange={(value) => setVibrancy(value as VibrancyPreset)}
+                              onChange={(value) =>
+                                setVibrancy(value as VibrancyPreset)
+                              }
                             />
                           </Control>
                           <Control label="Glass opacity">
@@ -253,7 +273,9 @@ export const AlertPlayground: React.FC = () => {
                               size="sm"
                               options={glassOpacityOptions}
                               value={glassOpacity}
-                              onChange={(value) => setGlassOpacity(value as OpacityPreset)}
+                              onChange={(value) =>
+                                setGlassOpacity(value as OpacityPreset)
+                              }
                             />
                           </Control>
                         </div>
@@ -293,7 +315,9 @@ export const AlertPlayground: React.FC = () => {
                 specularMode={isGlass ? specularMode : "none"}
                 title={title || undefined}
                 description={
-                  longBody ? `${description} ${LONG_BODY}` : description || undefined
+                  longBody
+                    ? `${description} ${LONG_BODY}`
+                    : description || undefined
                 }
                 icon={showIcon ? undefined : false}
                 dismissible={dismissible}
@@ -321,7 +345,6 @@ export const AlertPlayground: React.FC = () => {
           </Panel>
         </div>
       }
-    >
-    </PlaygroundPanel>
+    ></PlaygroundPanel>
   );
 };

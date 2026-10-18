@@ -57,6 +57,23 @@ describe("MultiToggle", () => {
       const { container } = setup({ color: "fuchsia" });
       expect(container.innerHTML).toContain("fuchsia");
     });
+
+    it("prefers `tone` when both names are given", () => {
+      // The family rule: `color` is the deprecated alias, never a second
+      // knob. Both set must not blend into an ambiguous third state.
+      const { container } = setup({ tone: "green", color: "red" });
+      expect(container.innerHTML).toContain("text-green-600");
+      expect(container.innerHTML).not.toContain("text-red-600");
+    });
+
+    it("keeps `accentColor` as the old name for `accentTone`", () => {
+      // The accent is separate from the tone because the *active label* —
+      // not the pill's edge — is what it re-colours.
+      const { container } = setup({ accentColor: "orange" });
+      const active =
+        getMultiToggleVariantTokens("orange").activeText.split(" ")[0];
+      expect(container.innerHTML).toContain(active);
+    });
   });
 
   describe("variants", () => {
@@ -69,7 +86,9 @@ describe("MultiToggle", () => {
         const { container, unmount } = setup({ variant, tone: "violet" });
         const track = container.querySelector('[role="radiogroup"]')!;
         // Every class Panel would put on this surface is present.
-        for (const cls of getSurfaceVariantClasses(variant, "violet").split(" ")) {
+        for (const cls of getSurfaceVariantClasses(variant, "violet").split(
+          " ",
+        )) {
           if (cls) expect(track.className).toContain(cls);
         }
         unmount();
@@ -86,7 +105,10 @@ describe("MultiToggle", () => {
       });
       expect(soft.innerHTML).toContain("bg-violet-100");
       u2();
-      const { container: tonal } = setup({ indicator: "tonal", tone: "violet" });
+      const { container: tonal } = setup({
+        indicator: "tonal",
+        tone: "violet",
+      });
       expect(tonal.innerHTML).toContain("bg-violet-500/15");
     });
 
@@ -118,9 +140,9 @@ describe("MultiToggle", () => {
           )!;
           const classes = pill.className.split(" ");
           if (classes.includes("border")) {
-            expect(
-              classes.some((c) => c.startsWith(`border-${tone}-`)),
-            ).toBe(true);
+            expect(classes.some((c) => c.startsWith(`border-${tone}-`))).toBe(
+              true,
+            );
           }
           unmount();
         }
@@ -148,6 +170,15 @@ describe("MultiToggle", () => {
   });
 
   describe("a11y", () => {
+    it("has exactly one tab stop — the selected segment", () => {
+      // Roving tabindex: Tab reaches the group once, arrows move within.
+      // Before the key handlers existed this was one stop for a control
+      // that could not be changed from the keyboard at all.
+      setup();
+      const radios = screen.getAllByRole("radio");
+      expect(radios.map((r) => r.tabIndex)).toEqual([0, -1, -1]);
+    });
+
     it("announces state once, as a radio", () => {
       // It carried `aria-checked` *and* `aria-pressed` — a radio's state and a
       // toggle button's state, in two vocabularies, on one element.
@@ -197,6 +228,28 @@ describe("MultiToggle", () => {
       );
       fireEvent.keyDown(screen.getAllByRole("radio")[0], { key: "ArrowRight" });
       expect(onChange).toHaveBeenCalledWith("c");
+    });
+  });
+
+  describe("auto width", () => {
+    it("keeps labels whole in plain auto mode", () => {
+      // The track is an inline-flex that shrink-wraps, and `truncate` was
+      // always on — so min-content sizing (an ellipsis) won the shrink-wrap
+      // and every label collapsed to "We…". No constraint, no truncation.
+      const { container } = setup();
+      expect(container.innerHTML).not.toContain("truncate");
+      expect(container.innerHTML).toContain("whitespace-nowrap");
+    });
+
+    it("truncates under fullWidth, where segments really are constrained", () => {
+      const { container } = setup({ fullWidth: true });
+      expect(container.innerHTML).toContain("truncate");
+    });
+
+    it("honours an explicit truncateOverflow either way", () => {
+      const { container, unmount } = setup({ truncateOverflow: false });
+      expect(container.innerHTML).not.toContain("truncate");
+      unmount();
     });
   });
 

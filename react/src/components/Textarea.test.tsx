@@ -60,7 +60,7 @@ describe("Textarea — surfaces", () => {
     const { container } = render(<Textarea variant="gradient" tone="violet" />);
     const glow = container.querySelector("[aria-hidden]") as HTMLElement;
     expect(glow).not.toBeNull();
-    expect(glow.style.background).toContain("var(--color-violet-600)");
+    expect(glow.style.boxShadow).toContain("var(--color-violet-600)");
   });
 
   it("uses a border-only focus on underline, which has no box to ring", () => {
@@ -116,5 +116,15 @@ describe("Textarea — label, help text and counter", () => {
   it("renders no footer when there is nothing to put in it", () => {
     const { container } = render(<Textarea />);
     expect(container.querySelectorAll("span")).toHaveLength(0);
+  });
+
+  it("shares the status surface with Input byte-for-byte", () => {
+    // The status tint used to be a local copy; Textarea silently missed the
+    // inset focus ring its siblings got. Now it imports FIELD_STATUS_CLASSES.
+    render(<Textarea validationStatus="error" />);
+    const cls = field().className;
+    expect(cls).toContain("focus-within:ring-2");
+    expect(cls).toContain("focus-within:ring-inset");
+    expect(cls).toContain("focus-within:ring-rose-500/60");
   });
 });

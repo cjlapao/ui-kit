@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import classNames from "classnames";
 import Button from "./Button";
 import IconButton from "./IconButton";
@@ -6,14 +13,18 @@ import CollapsibleHelpText from "./CollapsibleHelpText";
 import Input from "./Input";
 import Panel from "./Panel";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useKitT } from "../i18n";
 import { DEFAULT_SURFACE_CORNER } from "../theme/Theme";
-import type {
-  PanelCorner,
-  PanelPadding,
-  PanelSpecularMode,
-} from "./Panel";
+import type { PanelCorner, PanelPadding, PanelSpecularMode } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
-import type { ControlSize, InputVariant, PlainSurfaceVariant, TrueColor } from "../theme/Theme";
+import { INPUT_VARIANT_FOR_SURFACE, isGlassSurface } from "../theme/Theme";
+import type {
+  ButtonVariant,
+  ControlSize,
+  InputVariant,
+  PlainSurfaceVariant,
+  TrueColor,
+} from "../theme/Theme";
 
 export interface KeyValuePair {
   key: string;
@@ -22,6 +33,25 @@ export interface KeyValuePair {
 
 /** Every container surface, plus `plain` for use inside a card that already exists. */
 export type KeyValueArrayFieldVariant = PlainSurfaceVariant;
+
+/**
+ * Which `Button` variant the add button wears for the row inputs' surface —
+ * the "reads as part of the thing it belongs to" mapping (SplitView's
+ * search, the DatePicker's button bar). The boxed surfaces mean "solid
+ * control"; ghost stays ghost, the underline's single rule matches
+ * `outline`, and — unlike the plain-field cases elsewhere — a glass field
+ * keeps the glass button even inside a solid card, where a frosted chip is
+ * what a "glass control" means. A glass *container* still wins whatever the
+ * field is: solids on glass float like debris.
+ */
+const BUTTON_VARIANT_FOR_FIELD: Record<InputVariant, ButtonVariant> = {
+  flat: "solid",
+  elevated: "solid",
+  gradient: "solid",
+  ghost: "ghost",
+  underline: "outline",
+  glass: "glass",
+};
 
 /** `Input` still runs on its own three-step scale. */
 /** The shared control scale. Was a bespoke `"sm" | "md" | "lg"`, so this
@@ -39,9 +69,11 @@ export interface KeyValueArrayFieldProps {
   help?: string;
   isVisible?: boolean;
   addLabel?: string;
-  /** Placeholder and column heading for the key column. @default "Key" */
+  /** Placeholder and column heading for the key column.
+   *  @default `kit.keyValueArrayField.key` ("Key") */
   keyLabel?: string;
-  /** Placeholder and column heading for the value column. @default "Value" */
+  /** Placeholder and column heading for the value column.
+   *  @default `kit.keyValueArrayField.value` ("Value") */
   valueLabel?: string;
   /** Shown in place of the rows when there are none. */
   emptyState?: React.ReactNode;
@@ -64,32 +96,35 @@ export interface KeyValueArrayFieldProps {
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
   /**
-   * Surface of the row inputs. Pair `glass` with a see-through variant, or the
-   * inputs read as opaque slabs punched through the card.
-   * @default "flat"
+   * Surface of the row inputs. `"auto"` follows the card variant through
+   * `INPUT_VARIANT_FOR_SURFACE` — a glass card gets glass inputs, a tinted
+   * one ghost fields; an explicit choice overrides.
+   * @default "auto"
    */
-  inputVariant?: InputVariant;
+  inputVariant?: "auto" | InputVariant;
   /** Scale of the inputs and buttons. @default "sm" */
   size?: KeyValueArrayFieldSize;
   className?: string;
 }
 
-interface RowsProps
-  extends Pick<
-    KeyValueArrayFieldProps,
-    | "label"
-    | "hint"
-    | "help"
-    | "error"
-    | "addLabel"
-    | "keyLabel"
-    | "valueLabel"
-    | "emptyState"
-    | "maxRows"
-    | "disabled"
-    | "inputVariant"
-    | "size"
-  > {
+interface RowsProps extends Pick<
+  KeyValueArrayFieldProps,
+  | "label"
+  | "hint"
+  | "help"
+  | "error"
+  | "addLabel"
+  | "keyLabel"
+  | "valueLabel"
+  | "emptyState"
+  | "maxRows"
+  | "disabled"
+  | "size"
+> {
+  /** The card surface, so the add button can honour glass containers. */
+  containerVariant?: KeyValueArrayFieldVariant;
+  /** The RESOLVED row-input surface — never "auto". */
+  inputVariant?: InputVariant;
   tone: TrueColor;
   pairs: KeyValuePair[];
   rowIds: string[];
@@ -111,13 +146,14 @@ const KeyValueRows: React.FC<RowsProps> = ({
   help,
   error,
   addLabel,
-  keyLabel = "Key",
-  valueLabel = "Value",
+  keyLabel: keyLabelProp,
+  valueLabel: valueLabelProp,
   emptyState,
   maxRows,
   disabled,
   inputVariant = "flat",
   size = "sm",
+  containerVariant,
   tone,
   pairs,
   rowIds,
@@ -128,8 +164,16 @@ const KeyValueRows: React.FC<RowsProps> = ({
   onRemove,
   onEdit,
 }) => {
+  const t = useKitT();
   const surface = useSurfaceText();
+  const keyLabel = keyLabelProp ?? t("kit.keyValueArrayField.key");
+  const valueLabel = valueLabelProp ?? t("kit.keyValueArrayField.value");
   const atLimit = typeof maxRows === "number" && pairs.length >= maxRows;
+  const addButtonVariant: ButtonVariant =
+    isGlassSurface(containerVariant ?? "plain") &&
+    BUTTON_VARIANT_FOR_FIELD[inputVariant] !== "ghost"
+      ? "glass"
+      : BUTTON_VARIANT_FOR_FIELD[inputVariant];
 
   return (
     <div
@@ -193,11 +237,13 @@ const KeyValueRows: React.FC<RowsProps> = ({
                     aria-label={`${keyLabel} ${index + 1}`}
                     validationStatus={duplicate ? "error" : "none"}
                     value={pair.key}
-                    onChange={(event) => onEdit(index, "key", event.target.value)}
+                    onChange={(event) =>
+                      onEdit(index, "key", event.target.value)
+                    }
                   />
                   {duplicate && (
                     <span className="mt-1 block text-xs text-rose-600 dark:text-rose-400">
-                      Duplicate key
+                      {t("kit.keyValueArrayField.duplicateKey")}
                     </span>
                   )}
                 </div>
@@ -224,8 +270,11 @@ const KeyValueRows: React.FC<RowsProps> = ({
                   size={size}
                   disabled={disabled}
                   onClick={() => onRemove(index)}
-                  srLabel={`Remove ${keyLabel.toLowerCase()} ${index + 1}`}
-                  tooltip="Remove"
+                  srLabel={t("kit.keyValueArrayField.removeAria", {
+                    key: keyLabel.toLowerCase(),
+                    index: index + 1,
+                  })}
+                  tooltip={t("kit.keyValueArrayField.remove")}
                   className="shrink-0"
                 />
               </div>
@@ -240,24 +289,24 @@ const KeyValueRows: React.FC<RowsProps> = ({
             surface.muted,
           )}
         >
-          {emptyState ?? "No entries yet."}
+          {emptyState ?? t("kit.keyValueArrayField.empty")}
         </div>
       )}
 
       <div className="flex items-center gap-3">
         <Button
-          variant="outline"
+          variant={addButtonVariant}
           color={tone}
           size={size}
           leadingIcon="Add"
           disabled={disabled || atLimit}
           onClick={onAdd}
         >
-          {addLabel ?? "Add entry"}
+          {addLabel ?? t("kit.keyValueArrayField.addEntry")}
         </Button>
         {atLimit && (
           <span className={classNames("text-xs", surface.muted)}>
-            Limit of {maxRows} reached
+            {t("kit.keyValueArrayField.limitReached", { max: maxRows })}
           </span>
         )}
       </div>
@@ -284,8 +333,8 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   help,
   isVisible = true,
   addLabel,
-  keyLabel = "Key",
-  valueLabel = "Value",
+  keyLabel,
+  valueLabel,
   emptyState,
   maxRows,
   disabled = false,
@@ -297,7 +346,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   glassOpacity,
   vibrancy,
   specularMode,
-  inputVariant = "flat",
+  inputVariant = "auto",
   size = "sm",
   className,
 }) => {
@@ -346,7 +395,9 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   const handleEdit = useCallback(
     (index: number, field: keyof KeyValuePair, next: string) => {
       onChange(
-        value.map((pair, i) => (i === index ? { ...pair, [field]: next } : pair)),
+        value.map((pair, i) =>
+          i === index ? { ...pair, [field]: next } : pair,
+        ),
       );
     },
     [onChange, value],
@@ -375,6 +426,9 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
     return null;
   }
 
+  const resolvedInputVariant =
+    inputVariant === "auto" ? INPUT_VARIANT_FOR_SURFACE[variant] : inputVariant;
+
   const rows = (
     <KeyValueRows
       label={label}
@@ -387,8 +441,9 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
       emptyState={emptyState}
       maxRows={maxRows}
       disabled={disabled}
-      inputVariant={inputVariant}
+      inputVariant={resolvedInputVariant}
       size={size}
+      containerVariant={variant}
       tone={tone}
       pairs={value}
       rowIds={rowIds}

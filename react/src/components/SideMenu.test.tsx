@@ -1,12 +1,11 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  afterEach,
-} from "vitest";
-import { fireEvent, render, screen, act, renderHook } from "@testing-library/react";
+  fireEvent,
+  render,
+  screen,
+  act,
+  renderHook,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SideMenu, {
   useSidebarIsMobile,
@@ -141,7 +140,11 @@ describe("SideMenu — collapse", () => {
     const onToggleCollapse = vi.fn();
     const { rerender } = render(
       <MemoryRouter initialEntries={["/"]}>
-        <SideMenu items={ITEMS} collapsed={false} onToggleCollapse={onToggleCollapse} />
+        <SideMenu
+          items={ITEMS}
+          collapsed={false}
+          onToggleCollapse={onToggleCollapse}
+        />
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByTitle("Collapse sidebar"));
@@ -257,9 +260,7 @@ describe("SideMenu — side and variant", () => {
   it("side=right mirrors the shadow toward the content", () => {
     renderMenu({ side: "right" });
     const aside = document.querySelector("aside") as HTMLElement;
-    expect(aside).toHaveClass(
-      "shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.1)]",
-    );
+    expect(aside).toHaveClass("shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.1)]");
   });
 
   it("side=right puts the inset hairline on the left edge", () => {
@@ -287,7 +288,7 @@ describe("SideMenu — side and variant", () => {
     // The glass treatment: the tone-tinted frosted fill, not the opaque
     // floating fill.
     const fill = aside.querySelector("div") as HTMLElement;
-    expect(fill).toHaveClass("bg-blue-50/45", "dark:bg-blue-500/15");
+    expect(fill).toHaveClass("bg-blue-100/45", "dark:bg-blue-500/15");
     expect(fill).not.toHaveClass("bg-white");
   });
 });
@@ -320,7 +321,9 @@ describe("SideMenu — topItem / footerItem", () => {
   });
 
   it("topItem without a menu navigates like a link", () => {
-    renderMenu({ topItem: { label: "Profile", icon: "User", path: "/profile" } });
+    renderMenu({
+      topItem: { label: "Profile", icon: "User", path: "/profile" },
+    });
     expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute(
       "href",
       "/profile",
@@ -395,9 +398,7 @@ describe("SideMenu — nested items", () => {
 
   it("renders the subtree initially when defaultOpen", () => {
     renderMenu({
-      items: [
-        { ...NESTED[0], defaultOpen: true } as (typeof NESTED)[number],
-      ],
+      items: [{ ...NESTED[0], defaultOpen: true } as (typeof NESTED)[number]],
     });
     expect(screen.getByText("Hosts")).toBeInTheDocument();
   });
@@ -429,7 +430,9 @@ describe("SideMenu — actions, badges", () => {
         <SideMenu items={actionItems} collapsed onToggleCollapse={() => {}} />
       </MemoryRouter>,
     );
-    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Edit" }),
+    ).not.toBeInTheDocument();
   });
 
   it("actionsOnHover keeps actions hidden until the row is hovered", () => {
@@ -441,8 +444,7 @@ describe("SideMenu — actions, badges", () => {
         } as (typeof actionItems)[number],
       ],
     });
-    const holder = screen
-      .getByRole("button", { name: "Edit" })
+    const holder = screen.getByRole("button", { name: "Edit" })
       .parentElement as HTMLElement;
     expect(holder).toHaveClass("opacity-0");
   });
@@ -486,8 +488,7 @@ describe("SideMenu — guards and module view", () => {
     ];
     renderMenu({
       items,
-      guardEvaluator: (guards) =>
-        guards.every((g) => g.type !== "claim"),
+      guardEvaluator: (guards) => guards.every((g) => g.type !== "claim"),
     });
     expect(screen.getByText("Visible")).toBeInTheDocument();
     expect(screen.queryByText("Hidden")).not.toBeInTheDocument();
@@ -643,9 +644,7 @@ describe("SideMenu — loading", () => {
       "true",
     );
     expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
-    const skeleton = container.querySelector(
-      ".animate-pulse",
-    ) as HTMLElement;
+    const skeleton = container.querySelector(".animate-pulse") as HTMLElement;
     expect(skeleton).toBeTruthy();
     expect(skeleton).toHaveAttribute("aria-hidden", "true");
     // No logo/top/search/title in this menu, so the first slot is the nav —
@@ -662,9 +661,7 @@ describe("SideMenu — loading", () => {
       footerItem: { label: "Profile", icon: "User", path: "/me" },
       skeletonLines: 2,
     });
-    const skeleton = container.querySelector(
-      ".animate-pulse",
-    ) as HTMLElement;
+    const skeleton = container.querySelector(".animate-pulse") as HTMLElement;
     // top item, search, title, nav, footer, collapse control
     expect(skeleton.children.length).toBe(6);
     expect(skeleton.children[3].children.length).toBe(2);
@@ -677,9 +674,7 @@ describe("SideMenu — loading", () => {
       loaderMessage: "Loading menu…",
     });
     expect(link("Dashboard")).toBeInTheDocument();
-    const overlay = container.querySelector(
-      '[role="status"]',
-    ) as HTMLElement;
+    const overlay = container.querySelector('[role="status"]') as HTMLElement;
     expect(overlay).toBeTruthy();
     expect(overlay.className).toContain("absolute inset-0");
     expect(overlay).toHaveTextContent("Loading menu…");
@@ -691,12 +686,11 @@ describe("SideMenu — loading", () => {
       loaderType: "progress",
       loaderProgress: 40,
     });
-    const overlay = container.querySelector(
-      '[role="status"]',
-    ) as HTMLElement;
+    const overlay = container.querySelector('[role="status"]') as HTMLElement;
     expect(overlay).toBeTruthy();
-    expect(
-      overlay.querySelector('[role="progressbar"]'),
-    ).toHaveAttribute("aria-valuenow", "40");
+    expect(overlay.querySelector('[role="progressbar"]')).toHaveAttribute(
+      "aria-valuenow",
+      "40",
+    );
   });
 });

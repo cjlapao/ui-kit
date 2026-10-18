@@ -8,6 +8,7 @@ import {
   type SurfaceVariant,
   type TrueColor,
 } from "@cjlapao/ui-kit";
+import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import {
   Control,
   PlaygroundPanel,
@@ -44,7 +45,10 @@ const MARKDOWN = [
 const NODE = (
   <div className="space-y-2 text-sm">
     <p>
-      Pass a <code className="rounded bg-neutral-100 px-1 font-mono text-xs">ReactNode</code>{" "}
+      Pass a{" "}
+      <code className="rounded bg-neutral-100 px-1 font-mono text-xs">
+        ReactNode
+      </code>{" "}
       and it renders as-is — bring your own layout and compose with any kit
       component.
     </p>
@@ -64,9 +68,8 @@ export const HelpButtonPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [size, setSize] = useState<ControlSize>("md");
-  const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
-  const [placement, setPlacement] =
-    useState<HelpButtonPlacement>("auto");
+  const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
+  const [placement, setPlacement] = useState<HelpButtonPlacement>("auto");
   const [contentType, setContentType] = useState("markdown");
   const [maxWidth, setMaxWidth] = useState("360");
   const [loading, setLoading] = useState(false);
@@ -190,7 +193,6 @@ export const HelpButtonPlayground: React.FC = () => {
           </span>
         </div>
       }
-    >
-    </PlaygroundPanel>
+    ></PlaygroundPanel>
   );
 };

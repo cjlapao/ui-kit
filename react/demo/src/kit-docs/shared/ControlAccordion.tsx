@@ -72,7 +72,7 @@ export const ControlAccordion: React.FC<ControlAccordionProps> = ({
           title: group.title,
           content: <div className="space-y-4">{group.controls}</div>,
         }))}
-        variant="outlined"
+        variant="elevated"
         size="sm"
         padding="sm"
         multiple

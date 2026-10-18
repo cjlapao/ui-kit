@@ -3,25 +3,45 @@ import { SplitView, Pill } from "@cjlapao/ui-kit";
 const replicas = (names: string[]) => (
   <ul className="space-y-1 py-2 pl-9 pr-4">
     {names.map((name) => (
-      <li key={name} className="flex items-center justify-between gap-2 text-xs text-neutral-600 dark:text-neutral-300">
+      <li
+        key={name}
+        className="flex items-center justify-between gap-2 text-xs text-neutral-600 dark:text-neutral-300"
+      >
         <span className="truncate">{name}</span>
-        <Pill size="sm" tone="emerald" variant="soft">ready</Pill>
+        <Pill size="sm" tone="emerald" variant="soft">
+          ready
+        </Pill>
       </li>
     ))}
   </ul>
 );
 
 const ITEMS = [
-  { id: "a", label: "api-gateway", subtitle: "2 replicas", icon: "Container" as const,
+  {
+    id: "a",
+    label: "api-gateway",
+    subtitle: "2 replicas",
+    icon: "Container" as const,
     panel: <div className="p-4 text-sm">Gateway detail</div>,
-    subContent: replicas(["gateway-7f4c", "gateway-9d21"]) },
-  { id: "b", label: "worker-pool", subtitle: "3 replicas", icon: "Container" as const,
+    subContent: replicas(["gateway-7f4c", "gateway-9d21"]),
+  },
+  {
+    id: "b",
+    label: "worker-pool",
+    subtitle: "3 replicas",
+    icon: "Container" as const,
     panel: <div className="p-4 text-sm">Worker detail</div>,
-    subContent: replicas(["worker-01", "worker-02", "worker-03"]) },
-  { id: "c", label: "batch-runner", subtitle: "1 replica", icon: "Container" as const,
+    subContent: replicas(["worker-01", "worker-02", "worker-03"]),
+  },
+  {
+    id: "c",
+    label: "batch-runner",
+    subtitle: "1 replica",
+    icon: "Container" as const,
     panel: <div className="p-4 text-sm">Batch detail</div>,
     highlight: true,
-    subContent: replicas(["batch-nightly"]) },
+    subContent: replicas(["batch-nightly"]),
+  },
 ];
 
 /**

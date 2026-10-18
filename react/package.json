@@ -8,7 +8,8 @@
     "dev": "tsup --watch",
     "lint": "tsc --noEmit && eslint src",
     "test": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prebuild": "node ../scripts/generate-icon-registry.mjs && node ../scripts/generate-icons-index.mjs"
   },
   "files": [
     "dist"

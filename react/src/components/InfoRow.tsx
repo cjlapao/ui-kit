@@ -37,13 +37,12 @@ export type InfoRowPadding = SurfacePadding;
 export const INFO_ROW_LOADERS = ["skeleton", "spinner"] as const;
 export type InfoRowLoader = (typeof INFO_ROW_LOADERS)[number];
 
-export interface InfoRowProps
-  extends Omit<
-    React.HTMLAttributes<HTMLDivElement>,
-    // Owned by this component, and each would otherwise land on the <div> as a
-    // native attribute with different meaning.
-    "color" | "title" | "content" | "onCopy"
-  > {
+export interface InfoRowProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  // Owned by this component, and each would otherwise land on the <div> as a
+  // native attribute with different meaning.
+  "color" | "title" | "content" | "onCopy"
+> {
   /** Row label (left side). Accepts ReactNode for composed/styled labels. */
   label: React.ReactNode;
   /**
@@ -83,8 +82,11 @@ export interface InfoRowProps
   /** Controls both label and value text size when individual overrides are absent. @default "md" */
   size?: InfoRowSize;
   /**
-   * The surface the row draws for itself. `plain` draws none — just the
-   * hairline — which is right for a row inside an existing card. @default "plain"
+   * The surface the row draws for itself — the kit's surface family, with
+   * `elevated` as the standing default. `plain` draws none (just the
+   * hairline), which is what a row dropped into a card the app already owns
+   * should look like — pass it for the details-list texture.
+   * @default "elevated"
    */
   variant?: InfoRowVariant;
   /** Accent for the hover wash, the focus ring and the glass tint. @default "blue" */
@@ -219,12 +221,17 @@ type NormalisedValue = {
   isEmpty: boolean;
 };
 
-function normaliseValue(value: React.ReactNode): NormalisedValue {
+function normaliseValue(
+  value: React.ReactNode,
+  boolWords: { yes: string; no: string },
+): NormalisedValue {
   if (value === undefined || value === null || value === "") {
     return { display: null, copyText: null, isEmpty: true };
   }
   if (typeof value === "boolean") {
-    const text = value ? "Yes" : "No";
+    // Localised like everything else the row renders — "Yes"/"No" used to be
+    // hardcoded English, the only untranslated word pair in the row.
+    const text = value ? boolWords.yes : boolWords.no;
     return { display: text, copyText: text, isEmpty: false };
   }
   if (typeof value === "string" || typeof value === "number") {
@@ -297,6 +304,15 @@ const InfoRowBody: React.FC<
   const t = useKitT();
   const text = useSurfaceText();
   const [copyState, setCopyState] = useState<CopyState>("idle");
+  /*
+    The reveal's third state. Hover and focus summon the button; a copy
+    *dismisses* it: the confirmation shows for its 1.6s, then the button
+    folds away even while the pointer is still parked on the row — a row
+    the user just acted on should settle back to reading mode, not hold the
+    affordance open under a motionless cursor. Leaving the row re-arms the
+    hover reveal, and keyboard focus overrides dismissal entirely.
+  */
+  const [dismissed, setDismissed] = useState(false);
   const [truncated, setTruncated] = useState(false);
   const valueRef = useRef<HTMLSpanElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -317,7 +333,8 @@ const InfoRowBody: React.FC<
   const rowPadding =
     padding !== undefined ? paddingTokens[padding] : tokens.defaultPadding;
   const hasError = Boolean(error);
-  const showCopy = copyable && copyText !== null && !isEmpty && !loading && !hasError;
+  const showCopy =
+    copyable && copyText !== null && !isEmpty && !loading && !hasError;
   const canTooltip =
     tooltipOnTruncate && !wrap && copyText !== null && !loading && !hasError;
   const useSmartLayout = labelWidth === undefined;
@@ -328,6 +345,7 @@ const InfoRowBody: React.FC<
     if (timerRef.current) clearTimeout(timerRef.current);
     const ok = await writeClipboard(copyText);
     setCopyState(ok ? "copied" : "failed");
+    setDismissed(true);
     if (ok) onCopy?.(copyText);
     timerRef.current = setTimeout(() => setCopyState("idle"), 1600);
   }, [copyText, onCopy]);
@@ -381,8 +399,15 @@ const InfoRowBody: React.FC<
   return (
     <div
       {...rootProps}
+      // Leaving the row re-arms the hover reveal — the dismissal is about
+      // settling after an action, not about disabling the affordance.
+      onMouseLeave={() => setDismissed(false)}
       className={classNames(
-        "group flex items-center transition-colors duration-300",
+        // The named `group/inforow` scope keeps the `:has(:focus-visible)`
+        // override below honest: without it, *any* ancestor carrying a bare
+        // `group` class (an accordion, a card) whose subtree holds a focused
+        // button would summon every dismissed copy button inside it.
+        "group group/inforow flex items-center transition-colors duration-300",
         tokens.gap,
         rowPadding,
         !noPadding && tokens.horizontalPadding,
@@ -411,8 +436,10 @@ const InfoRowBody: React.FC<
         {label}
       </span>
 
-      {/* Value + copy button — fills remaining space */}
-      <div className="relative flex flex-1 items-center justify-end gap-1 min-w-0">
+      {/* Value + copy button. No `gap`: spacing to the button lives on the
+          button wrapper itself, so a hidden button claims zero pixels and the
+          value owns the full width. */}
+      <div className="relative flex flex-1 items-center justify-end min-w-0">
         {loading ? (
           loaderType === "spinner" ? (
             <span
@@ -441,44 +468,66 @@ const InfoRowBody: React.FC<
         )}
 
         {showCopy && (
-          <IconButton
-            icon={copyState === "copied" ? "Check" : "Copy"}
-            variant="ghost"
-            size={tokens.iconSize}
-            color={copyState === "copied" ? "emerald" : rowTone}
-            srLabel={
-              copyState === "copied"
-                ? "Copied to clipboard"
-                : copyState === "failed"
-                  ? "Copy failed"
-                  : "Copy to clipboard"
-            }
-            tooltip={
-              copyState === "copied"
-                ? "Copied!"
-                : copyState === "failed"
-                  ? "Copy failed"
-                  : "Copy to clipboard"
-            }
-            onClick={() => void handleCopy()}
+          /*
+            A hidden button claims no space: at rest the value runs the full
+            length of the column, and on row hover — or Tab, via focus-within,
+            since an unfocused-but-hidden button stays in the tab order — the
+            button slides out of the right edge and pushes the value over.
+            Width, margin and opacity move as one 200ms gesture, so it reads
+            as a reveal rather than a reflow. `max-w` rather than `w` because
+            the natural width is the button's own, whatever `size` says.
+          */
+          <div
             className={classNames(
-              "shrink-0 transition-opacity duration-200",
-              // Revealed on hover *and* on keyboard focus — an
-              // opacity-0 button is still in the tab order, so a keyboard user
-              // used to land on something they could not see.
-              copyState === "idle"
-                ? "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                : "opacity-100",
+              "shrink-0 overflow-hidden text-right transition-[max-width,margin,opacity] duration-200 ease-out",
+              // One rule, everywhere: the button is summoned by the pointer
+              // or by a focus the keyboard *says* it made — never by the
+              // focus a mouse-click leaves behind, and never by its own
+              // confirmation state. Leaving the row mid-confirmation hides
+              // the check right with the pointer (the click that copied put
+              // DOM focus on the button; plain `focus-within` would have
+              // kept it open until the next click elsewhere). When the
+              // confirmation ends, hover stops summoning too — the fold
+              // lands under even a parked cursor — until the pointer leaves
+              // and re-arms. `:focus-visible` cannot come from a click, so
+              // the keyboard branch keeps Tab-navigated users whole.
+              "ml-0 max-w-0 opacity-0",
+              "[.group\\/inforow:has(button:focus-visible)_&]:ml-2 [.group\\/inforow:has(button:focus-visible)_&]:max-w-10 [.group\\/inforow:has(button:focus-visible)_&]:opacity-100",
+              !(copyState === "idle" && dismissed) &&
+                "group-hover:ml-2 group-hover:max-w-10 group-hover:opacity-100",
             )}
-          />
+          >
+            <IconButton
+              icon={copyState === "copied" ? "Check" : "Copy"}
+              variant="ghost"
+              size={tokens.iconSize}
+              color={copyState === "copied" ? "emerald" : rowTone}
+              srLabel={
+                copyState === "copied"
+                  ? t("kit.inforow.copiedLong")
+                  : copyState === "failed"
+                    ? t("kit.inforow.copyFailed")
+                    : t("kit.inforow.copy")
+              }
+              tooltip={
+                copyState === "copied"
+                  ? t("kit.inforow.copied")
+                  : copyState === "failed"
+                    ? t("kit.inforow.copyFailed")
+                    : t("kit.inforow.copy")
+              }
+              onClick={() => void handleCopy()}
+              className="shrink-0"
+            />
+          </div>
         )}
 
         {/* Polite, so a copy confirmation never interrupts what is being read. */}
         <span className="sr-only" role="status">
           {copyState === "copied"
-            ? "Copied to clipboard"
+            ? t("kit.inforow.copiedLong")
             : copyState === "failed"
-              ? "Copy failed"
+              ? t("kit.inforow.copyFailed")
               : ""}
         </span>
         {hasError && (
@@ -501,7 +550,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
   const {
     value,
     hideIfEmpty = true,
-    variant = "plain",
+    variant = "elevated",
     tone = "blue",
     corner = DEFAULT_SURFACE_CORNER,
     loading = false,
@@ -531,7 +580,11 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
     ...rest
   } = props;
 
-  const normalised = normaliseValue(value);
+  const t = useKitT();
+  const normalised = normaliseValue(value, {
+    yes: t("kit.inforow.yes"),
+    no: t("kit.inforow.no"),
+  });
 
   // A row that is loading, or reporting a failure, has something to say even
   // though it has no value yet — hiding it would be wrong.
@@ -539,7 +592,8 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
 
   // A `plain` row *is* the root element. Wrapping it in a div would make every
   // row an only child, so `last:border-0` would match all of them and the
-  // hairlines would vanish.
+  // hairlines would vanish. (The invariant is a property of the variant, not
+  // of the default — details lists pass `plain` explicitly.)
   if (variant === "plain") {
     return (
       <InfoRowBody

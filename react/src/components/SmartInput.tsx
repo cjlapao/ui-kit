@@ -12,37 +12,63 @@ import { createPortal } from "react-dom";
 import IconButton from "./IconButton";
 import { VariablePicker } from "./VariablePicker";
 import { SmartValueParts, type SmartViewMode } from "./SmartVariableParts";
-import { getInputVariantTokens } from "../theme/Theme";
+import { useKitT } from "../i18n";
+import {
+  DEFAULT_GLOW_INTENSITY,
+  SURFACE_VARIANT_FOR_FIELD,
+  THIN_SCROLLBAR_FIELD,
+  getFieldSizeTokens,
+  getFieldToneTokens,
+  getGlowTokens,
+  getInputVariantTokens,
+  resolveGlowGradient,
+} from "../theme";
 import {
   createDefaultResolver,
   extractVariables,
   findDefinition,
   hasSmartVariables,
 } from "../utils/smartVariables";
-import type { ControlSize, InputVariant, TrueColor } from "../theme/Theme";
+import type {
+  ControlSize,
+  GlowIntensity,
+  InputVariant,
+  SurfaceCorner,
+  SurfaceVariant,
+  TrueColor,
+} from "../theme/Theme";
 import type {
   SmartVariable,
   SmartVariableGroup,
   SmartVariableResolver,
 } from "../types/Variables";
 
-/** `Input`'s three-step scale, so the two line up when stacked. */
-export type SmartInputSize = "sm" | "md" | "lg";
+/**
+ * The shared control scale, so a `SmartInput` lines up with the `Input`,
+ * `SearchBar` and Select beside it. Was a local `"sm" | "md" | "lg"` with its
+ * own padding table, while every sibling had moved to the five-step scale —
+ * stacking one under an `Input` produced two visibly different boxes.
+ */
+export type SmartInputSize = ControlSize;
 
-const SIZE_STYLES: Record<
-  SmartInputSize,
-  { pad: string; text: string; icon: ControlSize; minHeight: string }
-> = {
-  sm: { pad: "px-3 py-1.5", text: "text-sm", icon: "xs", minHeight: "min-h-8" },
-  md: { pad: "px-3.5 py-2.5", text: "text-sm", icon: "sm", minHeight: "min-h-10" },
-  lg: { pad: "px-4 py-3", text: "text-base", icon: "sm", minHeight: "min-h-12" },
+/**
+ * A floor, not the height: the height itself comes from the shared
+ * `getFieldSizeTokens` padding, and these figures are just that height
+ * computed for an empty value, so the box never collapses below its own
+ * line of text while the badges swap between token and value views.
+ */
+const MIN_HEIGHTS: Record<ControlSize, string> = {
+  xs: "min-h-6",
+  sm: "min-h-7",
+  md: "min-h-9",
+  lg: "min-h-11",
+  xl: "min-h-12",
 };
 
 /** Distance from the viewport edge at which the picker flips above the field. */
 const PICKER_HEIGHT = 420;
 
-const SCROLLBAR =
-  "pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
+const SCROLLBAR = `pr-2 ${THIN_SCROLLBAR_FIELD}`;
 
 export interface SmartInputProps {
   value: string;
@@ -70,6 +96,34 @@ export interface SmartInputProps {
   variant?: InputVariant;
   /** Accent colour for focus and the picker trigger. @default "blue" */
   tone?: TrueColor;
+  /**
+   * The field's radius, on the shared corner scale. `"auto"` keeps the
+   * theme's control corner — the same `rounded-lg` every sibling field
+   * wears, one step looser than the container default so the control sits
+   * proud of its card.
+   * @default "auto"
+   */
+  corner?: SurfaceCorner;
+  /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
+  gradientFrom?: string;
+  /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
+  gradientTo?: string;
+  /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
+  glowIntensity?: GlowIntensity;
+  /**
+   * The picker card's surface. `"auto"` follows the field's own variant
+   * through `SURFACE_VARIANT_FOR_FIELD` — a glass field gets a glass
+   * picker, a flat field an outlined card — and an explicit choice wins.
+   * @default "auto" (the picker reads as the field's own furniture)
+   */
+  panelVariant?: "auto" | SurfaceVariant;
+  /**
+   * The picker card's radius. `"auto"` resolves to the theme's *container*
+   * corner — the ladder holds: the card stays one step tighter than the
+   * field poking out of it. An explicit token overrules.
+   * @default "auto"
+   */
+  panelCorner?: SurfaceCorner;
   /** Which view the preview opens in. @default "token" */
   defaultViewMode?: SmartViewMode;
   /** Typing the opening `{{` opens the picker. @default true */
@@ -92,12 +146,20 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   size = "md",
   variant = "flat",
   tone = "blue",
+  corner = "auto",
+  gradientFrom,
+  gradientTo,
+  glowIntensity = DEFAULT_GLOW_INTENSITY,
+  panelVariant = "auto",
+  panelCorner = "auto",
   defaultViewMode = "token",
   autocomplete = true,
   flagMissing = true,
   "aria-label": ariaLabel,
 }) => {
+  const t = useKitT();
   const [isEditing, setIsEditing] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [viewMode, setViewMode] = useState<SmartViewMode>(defaultViewMode);
   const [pickerFilter, setPickerFilter] = useState("");
@@ -116,8 +178,23 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   const autoTriggeredRef = useRef(false);
 
   const pickerId = useId();
-  const sizeToken = SIZE_STYLES[size] ?? SIZE_STYLES.md;
-  const surface = getInputVariantTokens(variant);
+  const sizeToken = getFieldSizeTokens(size);
+  const surface = getInputVariantTokens(variant, tone, corner);
+  // Tone goes through the shared field tokens — the `ring-${tone}-400`
+  // template strings this used to build only reach Tailwind if a safelist
+  // happens to carry them, which is how a colour sweep silently loses its
+  // focus state on 20 of the 21 tones.
+  const tokens = getFieldToneTokens(tone);
+  const glow = getGlowTokens(glowIntensity);
+  const [glowFrom, glowTo] = resolveGlowGradient(
+    tone,
+    gradientFrom,
+    gradientTo,
+  );
+  // `"auto"` surfaces follow the field; an explicit choice wins — the same
+  // contract the `DatePicker` calendar makes with its field.
+  const resolvedPanelVariant: SurfaceVariant =
+    panelVariant === "auto" ? SURFACE_VARIANT_FOR_FIELD[variant] : panelVariant;
 
   const resolver = useMemo<SmartVariableResolver>(
     () => resolve ?? createDefaultResolver(groups),
@@ -299,7 +376,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   const fieldClasses = classNames(
     "min-w-0 flex-1 resize-none border-none bg-transparent font-mono outline-none placeholder:font-sans",
     sizeToken.text,
-    sizeToken.pad,
+    classNames(sizeToken.px, sizeToken.py),
     surface.text,
     // A multiline field scrolls, and the platform scrollbar landed hard
     // against the button column. Same thin treatment the Panel body uses,
@@ -318,16 +395,16 @@ export const SmartInput: React.FC<SmartInputProps> = ({
           setIsEditing(true);
         }
       }}
-      aria-label={ariaLabel ?? placeholder ?? "Edit value"}
+      aria-label={ariaLabel ?? placeholder ?? t("kit.smartinput.editValue")}
       className={classNames(
         // A11y audit P1-5: in preview mode this div is the interactive
-        // control (role=button, tabIndex, Enter/Space) — give it the same
-        // ring the wrapper shows while editing, so keyboard focus is
-        // visible before the field is even opened (WCAG 2.4.7).
-        "min-w-0 flex-1 cursor-text focus-visible:ring-2 focus-visible:ring-inset",
-        `focus-visible:ring-${tone}-400/60`,
+        // control (role=button, tabIndex, Enter/Space), and the wrapper's
+        // `focus-within` tokens cover a focused child *or* a focused
+        // ancestor — so keyboard focus is visible before the field is even
+        // opened (WCAG 2.4.7), on every tone, without a safelist.
+        "min-w-0 flex-1 cursor-text",
         sizeToken.text,
-        sizeToken.pad,
+        classNames(sizeToken.px, sizeToken.py),
         surface.text,
         multiline ? "whitespace-pre-wrap" : "truncate",
         disabled && "cursor-not-allowed",
@@ -341,27 +418,42 @@ export const SmartInput: React.FC<SmartInputProps> = ({
         flagMissing={flagMissing}
         placeholder={
           <span className={classNames("italic", surface.icon)}>
-            {placeholder || "Empty"}
+            {placeholder || t("kit.smartinput.empty")}
           </span>
         }
       />
     </div>
   );
 
-  return (
+  const toggleLabel = t(
+    viewMode === "token"
+      ? "kit.smartinput.showValues"
+      : "kit.smartinput.showTokens",
+  );
+
+  const control = (
     // onBlur is focus-out detection for the inner input, not an interaction.
     <div
       ref={containerRef}
-      onBlur={handleBlur}
+      onFocus={() => setFocused(true)}
+      onBlur={(event) => {
+        setFocused(false);
+        handleBlur(event);
+      }}
       className={classNames(
         "group relative flex w-full transition",
         multiline ? "items-start" : "items-center",
-        sizeToken.minHeight,
+        MIN_HEIGHTS[size] ?? MIN_HEIGHTS.md,
         // The surface comes from the shared input tokens, so this control is
         // the same box as the Input beside it. It used to hard-code
         // `bg-white border-slate-300` with no dark-mode partner at all.
         surface.surface,
-        isEditing && `ring-2 ring-inset ring-${tone}-400/60 border-${tone}-400`,
+        // `focus-within` matches a focused child *or* a focused ancestor, so
+        // this one pair of static tokens covers editing and the preview's
+        // own keyboard focus — where the old `ring-${tone}-400` templates
+        // only existed if the safelist happened to carry them.
+        tokens.focusBorder,
+        tokens.focusRing,
         disabled && "opacity-60",
         className,
       )}
@@ -403,11 +495,16 @@ export const SmartInput: React.FC<SmartInputProps> = ({
         )}
       >
         {missingCount > 0 && (
+          // Rose, not the tone: a missing token is an error state, not an
+          // accent — recolouring it with the field would turn "typo" into
+          // "brand detail".
           <span
-            title={`${missingCount} variable${missingCount === 1 ? "" : "s"} could not be resolved`}
+            title={t("kit.smartinput.couldNotResolve", {
+              count: missingCount,
+            })}
             className="mr-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
           >
-            {missingCount} missing
+            {t("kit.smartinput.missing", { count: missingCount })}
           </span>
         )}
         {hasVariables && (
@@ -423,8 +520,8 @@ export const SmartInput: React.FC<SmartInputProps> = ({
               setIsEditing(false);
               setViewMode((prev) => (prev === "token" ? "value" : "token"));
             }}
-            srLabel={viewMode === "token" ? "Show values" : "Show tokens"}
-            tooltip={viewMode === "token" ? "Show values" : "Show tokens"}
+            srLabel={toggleLabel}
+            tooltip={toggleLabel}
           />
         )}
         <IconButton
@@ -436,8 +533,8 @@ export const SmartInput: React.FC<SmartInputProps> = ({
           size={sizeToken.icon}
           disabled={disabled}
           onClick={() => (showPicker ? closePicker() : openPicker())}
-          srLabel="Insert variable"
-          tooltip="Insert variable"
+          srLabel={t("kit.smartinput.insertVariable")}
+          tooltip={t("kit.smartinput.insertVariable")}
           aria-expanded={showPicker}
           aria-controls={showPicker ? pickerId : undefined}
         />
@@ -462,6 +559,8 @@ export const SmartInput: React.FC<SmartInputProps> = ({
               resolve={resolver}
               tone={tone}
               size={size}
+              variant={resolvedPanelVariant}
+              corner={panelCorner}
               initialSearch={pickerFilter}
               onSelect={handleSelect}
               onClose={closePicker}
@@ -471,6 +570,38 @@ export const SmartInput: React.FC<SmartInputProps> = ({
         )}
     </div>
   );
+
+  // The gradient variant is the same field with a coloured glow behind it,
+  // matching `Input`, `Textarea` and `SearchBar`. `glow.pad` keeps the halo
+  // inside the component's own box, so a clipping ancestor cannot shear it
+  // off — and the portal lives on `document.body` anyway, beyond any clip.
+  if (variant === "gradient") {
+    return (
+      <span
+        className={classNames(
+          "relative flex w-full overflow-hidden rounded-[28px]",
+          glow.pad,
+        )}
+      >
+        <span
+          className={classNames(
+            "absolute rounded-2xl transition-opacity duration-500",
+            glow.inset,
+          )}
+          style={{
+            // Two lobes of the gradient, pushed apart on the shadow axis:
+            // start colour glows from the left, end colour from the right.
+            boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowTo}`,
+            opacity: focused ? glow.focusOpacity : glow.idleOpacity,
+          }}
+          aria-hidden
+        />
+        {control}
+      </span>
+    );
+  }
+
+  return control;
 };
 
 /** Index of the `{{` that opens the token the caret currently sits in, or -1. */

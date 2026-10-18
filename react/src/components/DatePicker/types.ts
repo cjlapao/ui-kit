@@ -21,23 +21,13 @@ export type { DatePickerValue, DatePickerSelectionMode };
  * (`docs/superpowers/specs/2026-08-28-datepicker-design.md`); the value type
  * already leaves room for a `Date[]` to be added without breaking callers.
  */
-export const DATEPICKER_SELECTION_MODES: readonly DatePickerSelectionMode[] =
-  ["single", "range"];
+export const DATEPICKER_SELECTION_MODES: readonly DatePickerSelectionMode[] = [
+  "single",
+  "range",
+];
 
 export const DATEPICKER_APPEND_TO = ["body", "self"] as const;
 export type DatePickerAppendTo = (typeof DATEPICKER_APPEND_TO)[number];
-
-/**
- * `Loader`'s two variants plus a calendar-shaped skeleton — the same shape
- * `Panel`'s `loaderType` offers, so a loading DatePicker and a loading Panel
- * read the same.
- */
-export const DATEPICKER_LOADER_TYPES = [
-  "spinner",
-  "progress",
-  "skeleton",
-] as const;
-export type DatePickerLoaderType = (typeof DATEPICKER_LOADER_TYPES)[number];
 
 /**
  * The native `value`/`defaultValue`/`onChange` are the component's own
@@ -45,16 +35,10 @@ export type DatePickerLoaderType = (typeof DATEPICKER_LOADER_TYPES)[number];
  * than shadowed — a shadowed name would spread the native one over the
  * component's (brief §5.9).
  */
-export interface DatePickerProps
-  extends Omit<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    | "size"
-    | "color"
-    | "className"
-    | "value"
-    | "defaultValue"
-    | "onChange"
-  > {
+export interface DatePickerProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "size" | "color" | "className" | "value" | "defaultValue" | "onChange"
+> {
   // ── Selection ─────────────────────────────────────────────────────────────
   /** @default "single" */
   selectionMode?: DatePickerSelectionMode;
@@ -86,7 +70,12 @@ export interface DatePickerProps
   selectOtherMonths?: boolean;
   /** Clear icon in the field while a value is set. @default false */
   showClear?: boolean;
-  /** Today + Clear footer row. @default false */
+  /**
+   * Today + Clear footer row. The buttons follow the field's surface, tone
+   * and size — with the glass *panel* taking precedence — see
+   * `BUTTON_VARIANT_FOR_FIELD` in `CalendarPanel`.
+   * @default false
+   */
   showButtonBar?: boolean;
   /** Render the panel in place — no input, no portal. @default false */
   inline?: boolean;
@@ -108,7 +97,7 @@ export interface DatePickerProps
   color?: TrueColor;
   /** @default "flat" */
   variant?: InputVariant;
-  /** How prominent the gradient glow is. @default "soft" */
+  /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
   glowIntensity?: GlowIntensity;
   /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
   gradientFrom?: string;
@@ -125,21 +114,29 @@ export interface DatePickerProps
   unstyled?: boolean;
 
   // ── States ────────────────────────────────────────────────────────────────
-  /** @default false */
-  loading?: boolean;
-  /** Spinner/progress over the box; `skeleton` shapes the (inline) calendar. @default "spinner" */
-  loaderType?: DatePickerLoaderType;
+  // (No `loading`: a date is chosen, not fetched. The calendar has no state
+  // to wait into — an async value arrives through `value` like any other.)
   /** @default false */
   readonly?: boolean;
   /** @default false */
   disabled?: boolean;
 
   // ── Panel family — the calendar surface ───────────────────────────────────
-  /** @default "elevated" */
-  panelVariant?: SurfaceVariant;
-  /** Panel fill tone; the selected days use the field `tone` instead. @default "neutral" */
-  panelTone?: TrueColor;
-  /** @default the shared container corner */
+  /**
+   * The calendar's surface. `"auto"` follows the field's own variant through
+   * `SURFACE_VARIANT_FOR_FIELD` — a glass field gets a glass calendar, a
+   * flat field an outlined one.
+   * @default "auto" (the calendar reads as the field's own furniture)
+   */
+  panelVariant?: "auto" | SurfaceVariant;
+  /**
+   * Panel fill tone; the selected days use the field `tone` instead.
+   * `"auto"` resolves to neutral — the field's accent already lives in the
+   * selected days, so a following panel does not stack another tint.
+   * @default "auto"
+   */
+  panelTone?: "auto" | TrueColor;
+  /** @default `"auto"` — the theme's container corner (no radius pinned) */
   panelCorner?: SurfaceCorner;
   panelClassName?: string;
 

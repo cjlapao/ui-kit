@@ -1,17 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { I18nProvider } from "../i18n/I18nContext";
 import Rating from "./Rating";
-import {
-  CONTROL_SIZES,
-  TRUE_COLORS,
-} from "../../../common/theme/Theme";
+import { CONTROL_SIZES, TRUE_COLORS } from "../../../common/theme/Theme";
 
 const radios = (container: HTMLElement) =>
   Array.from(
-    container.querySelectorAll<HTMLInputElement>("input[type=\"radio\"]"),
+    container.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
   );
 
-const labelOf = (radio: HTMLInputElement) => radio.closest("label") as HTMLLabelElement;
+const labelOf = (radio: HTMLInputElement) =>
+  radio.closest("label") as HTMLLabelElement;
 
 const litCount = (container: HTMLElement) =>
   container.querySelectorAll(".text-amber-400").length;
@@ -38,7 +37,10 @@ describe("Rating", () => {
       expect(list[0]).toHaveAttribute("name", "review");
       list.forEach((radio, i) => {
         expect(radio).toHaveAttribute("name", "review");
-        expect(radio).toHaveAttribute("aria-label", `${i + 1} ${i === 0 ? "star" : "stars"}`);
+        expect(radio).toHaveAttribute(
+          "aria-label",
+          `${i + 1} ${i === 0 ? "star" : "stars"}`,
+        );
       });
     });
 
@@ -116,7 +118,9 @@ describe("Rating", () => {
 
     it("updates its own state when uncontrolled", () => {
       const onChange = vi.fn();
-      const { container } = render(<Rating defaultValue={1} onChange={onChange} />);
+      const { container } = render(
+        <Rating defaultValue={1} onChange={onChange} />,
+      );
       const list = radios(container);
       expect(list[0].checked).toBe(true);
       fireEvent.click(list[3]);
@@ -137,7 +141,9 @@ describe("Rating", () => {
 
     it("does not re-fire when the already-selected star is clicked", () => {
       const onChange = vi.fn();
-      const { container } = render(<Rating defaultValue={3} onChange={onChange} />);
+      const { container } = render(
+        <Rating defaultValue={3} onChange={onChange} />,
+      );
       fireEvent.click(radios(container)[2]);
       expect(onChange).not.toHaveBeenCalled();
     });
@@ -149,7 +155,16 @@ describe("Rating", () => {
       const list = radios(container);
       expect(list).toHaveLength(10);
       expect(list.map((radio) => radio.value)).toEqual([
-        "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5",
+        "0.5",
+        "1",
+        "1.5",
+        "2",
+        "2.5",
+        "3",
+        "3.5",
+        "4",
+        "4.5",
+        "5",
       ]);
     });
 
@@ -197,7 +212,9 @@ describe("Rating", () => {
   describe("states", () => {
     it("disabled disables every radio and swallows clicks", () => {
       const onChange = vi.fn();
-      const { container } = render(<Rating disabled defaultValue={2} onChange={onChange} />);
+      const { container } = render(
+        <Rating disabled defaultValue={2} onChange={onChange} />,
+      );
       const list = radios(container);
       for (const radio of list) expect(radio).toBeDisabled();
       fireEvent.click(list[3]);
@@ -207,7 +224,9 @@ describe("Rating", () => {
 
     it("readOnly freezes the stars and marks the group read-only", () => {
       const onChange = vi.fn();
-      const { container } = render(<Rating readOnly defaultValue={2} onChange={onChange} />);
+      const { container } = render(
+        <Rating readOnly defaultValue={2} onChange={onChange} />,
+      );
       const group = container.querySelector('[role="radiogroup"]');
       expect(group).toHaveAttribute("aria-readonly", "true");
       const list = radios(container);
@@ -226,7 +245,9 @@ describe("Rating", () => {
   describe("hover preview", () => {
     it("previewing a star on hover lights it without changing the value", () => {
       const onChange = vi.fn();
-      const { container } = render(<Rating defaultValue={1} onChange={onChange} />);
+      const { container } = render(
+        <Rating defaultValue={1} onChange={onChange} />,
+      );
       expect(litCount(container)).toBe(1);
       fireEvent.mouseEnter(labelOf(radios(container)[3]));
       expect(litCount(container)).toBe(4);
@@ -258,7 +279,9 @@ describe("Rating", () => {
   describe("appearance", () => {
     it("emits the tone it was given, for every tone", () => {
       for (const tone of TRUE_COLORS) {
-        const { container, unmount } = render(<Rating tone={tone} defaultValue={3} />);
+        const { container, unmount } = render(
+          <Rating tone={tone} defaultValue={3} />,
+        );
         expect(container.querySelector(`.text-${tone}-400`)).not.toBeNull();
         unmount();
       }
@@ -306,10 +329,56 @@ describe("Rating", () => {
     });
 
     it("invokes a function icon once per lit position with the star index", () => {
-      const icon = vi.fn((index: number) => <span data-fn-icon data-index={index} />);
+      const icon = vi.fn((index: number) => (
+        <span data-fn-icon data-index={index} />
+      ));
       const { container } = render(<Rating defaultValue={3} onIcon={icon} />);
       expect(icon.mock.calls.map(([index]) => index)).toEqual([1, 2, 3]);
       expect(container.querySelectorAll("[data-fn-icon]")).toHaveLength(3);
+    });
+  });
+  describe("kit conventions", () => {
+    it("names the radios through the catalog", () => {
+      const { container } = render(
+        <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+          <Rating defaultValue={3} />
+        </I18nProvider>,
+      );
+      // The group name and every radio's value string both come from the
+      // catalog — no English leaks into a German page.
+      expect(
+        screen.getByRole("radiogroup", { name: "Bewertung" }),
+      ).not.toBeNull();
+      expect(radios(container)[2].getAttribute("aria-label")).toBe("3 Sterne");
+      expect(
+        radios(container).every(
+          (r) => !/stars/.test(r.getAttribute("aria-label") ?? ""),
+        ),
+      ).toBe(true);
+    });
+
+    it("inflects star counts, carrying the half-step decimal", () => {
+      render(
+        <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+          <Rating allowHalf />
+        </I18nProvider>,
+      );
+      const all = screen.getAllByRole("radio");
+      // Halves enumerate 0.5, 1, 1.5, 2, 2.5 — the `one` category takes the
+      // whole 1, and the decimals ride through to the plural `other`.
+      expect(all[1].getAttribute("aria-label")).toBe("1 Stern");
+      expect(all[4].getAttribute("aria-label")).toBe("2.5 Sterne");
+    });
+
+    it("keeps a caller-given group name over the default", () => {
+      render(
+        <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+          <Rating ariaLabel="Course rating" />
+        </I18nProvider>,
+      );
+      expect(
+        screen.getByRole("radiogroup", { name: "Course rating" }),
+      ).not.toBeNull();
     });
   });
 });

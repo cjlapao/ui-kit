@@ -2,10 +2,11 @@ import React, { useId, useRef } from "react";
 import classNames from "classnames";
 import EmptyState from "./EmptyState";
 import Loader from "./Loader";
-import Panel, { type PanelProps } from "./Panel";
+import Panel, { resolvePanelTone, type PanelProps } from "./Panel";
 import Pill from "./Pill";
 import {
   DEFAULT_SURFACE_CORNER,
+  DEFAULT_SURFACE_PADDING,
   getPillColorClasses,
   getSurfacePaddingClass,
   getSurfaceTriggerTokens,
@@ -51,7 +52,8 @@ export interface AccordionItem {
  * other Panel.
  */
 export interface AccordionProps
-  extends Omit<
+  extends
+    Omit<
       PanelProps,
       "title" | "subtitle" | "actions" | "children" | "onChange"
     >,
@@ -79,10 +81,7 @@ export interface AccordionProps
   iconClassName?: string;
 }
 
-const INDICATOR_ICON: Record<
-  Exclude<AccordionIndicator, "none">,
-  string
-> = {
+const INDICATOR_ICON: Record<Exclude<AccordionIndicator, "none">, string> = {
   chevron: "ArrowDown",
   "plus-minus": "Plus",
 };
@@ -243,7 +242,16 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
     }
 
     // APG accordion: arrow keys move between headers without toggling.
-    if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+    if (
+      ![
+        "ArrowDown",
+        "ArrowUp",
+        "ArrowLeft",
+        "ArrowRight",
+        "Home",
+        "End",
+      ].includes(event.key)
+    ) {
       return;
     }
     event.preventDefault();
@@ -254,7 +262,9 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
     if (enabled.length === 0) {
       return;
     }
-    const current = enabled.findIndex(({ candidateIndex }) => candidateIndex === index);
+    const current = enabled.findIndex(
+      ({ candidateIndex }) => candidateIndex === index,
+    );
 
     let next: number;
     switch (event.key) {
@@ -312,7 +322,8 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
               // The hairline is the surface's own divider colour, not a
               // hardcoded neutral, and there is no second `divide-y` on top
               // of it (the old `divider` prop stacked both).
-              index < items.length - 1 && classNames("border-b", surface.divider),
+              index < items.length - 1 &&
+                classNames("border-b", surface.divider),
               itemDisabled && "opacity-60",
               itemClassName,
             )}
@@ -333,8 +344,9 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
               aria-disabled={itemDisabled || undefined}
               onClick={itemDisabled ? undefined : () => onToggle(item)}
               onKeyDown={
-                itemDisabled ? undefined : (event) =>
-                  handleHeaderKeyDown(event, item, index)
+                itemDisabled
+                  ? undefined
+                  : (event) => handleHeaderKeyDown(event, item, index)
               }
               className={classNames(
                 "flex w-full items-start gap-3 text-left transition-colors",
@@ -342,7 +354,11 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
                 headerClassName,
                 itemDisabled
                   ? "cursor-not-allowed"
-                  : classNames("cursor-pointer", trigger.hover, trigger.focusRing),
+                  : classNames(
+                      "cursor-pointer",
+                      trigger.hover,
+                      trigger.focusRing,
+                    ),
               )}
             >
               {indicatorPlacement === "left" ? indicatorElement : null}
@@ -376,12 +392,19 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
                     ) : null}
                   </div>
                   {item.subtitle ? (
-                    <span className={classNames(tokens.subtitle, surface.muted)}>
+                    <span
+                      className={classNames(tokens.subtitle, surface.muted)}
+                    >
                       {item.subtitle}
                     </span>
                   ) : null}
                   {item.description ? (
-                    <span className={classNames(tokens.description, surface.description)}>
+                    <span
+                      className={classNames(
+                        tokens.description,
+                        surface.description,
+                      )}
+                    >
                       {item.description}
                     </span>
                   ) : null}
@@ -419,7 +442,9 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
                 // announced, still animatable. Spread rather than passed
                 // directly so it type-checks against React 18, where `inert` is
                 // not a known prop.
-                {...(itemOpen ? {} : ({ inert: true } as Record<string, unknown>))}
+                {...(itemOpen
+                  ? {}
+                  : ({ inert: true } as Record<string, unknown>))}
                 className="min-h-0 overflow-hidden"
               >
                 <div
@@ -471,12 +496,17 @@ const Accordion: React.FC<AccordionProps> = ({
   className,
   disabled,
   variant = "elevated",
-  tone = "neutral",
-  padding = "md",
+  tone,
+  color,
+  padding,
   corner = DEFAULT_SURFACE_CORNER,
   hoverable = false,
   ...panelProps
 }) => {
+  // One resolver for the card chrome and the row internals — the deprecated
+  // `color` alias must steer both, or the hover ring and the card disagree.
+  const resolvedTone = resolvePanelTone(tone, color);
+  const resolvedPadding = padding ?? DEFAULT_SURFACE_PADDING;
   const accordion = useAccordion({
     defaultOpenIds,
     openIds,
@@ -499,7 +529,7 @@ const Accordion: React.FC<AccordionProps> = ({
     <Panel
       className={classNames("w-full", className)}
       variant={variant}
-      tone={tone}
+      tone={resolvedTone}
       // The rows own their own inset (from `padding`); the card must not add
       // another. `scrollable={false}` keeps the list from growing a scrollbar
       // over its own content.
@@ -513,8 +543,8 @@ const Accordion: React.FC<AccordionProps> = ({
       <AccordionBody
         items={items}
         size={size}
-        tone={tone}
-        padding={padding}
+        tone={resolvedTone}
+        padding={resolvedPadding}
         indicator={indicator}
         indicatorPlacement={indicatorPlacement}
         animated={animated}

@@ -339,6 +339,28 @@ describe("Accordion", () => {
     });
   });
 
+  describe("common-property defaults", () => {
+    it("stands on the container standard: elevated, tone blue, sm padding", () => {
+      const { container } = render(<Accordion items={ITEMS} />);
+      const card = container.querySelector<HTMLElement>("[data-tone]")!;
+      expect(card.getAttribute("data-tone")).toBe("blue");
+      const headerEl = container.querySelector<HTMLElement>('[role="button"]')!;
+      expect(headerEl.className).toContain("p-4 sm:p-5");
+      expect(headerEl.className).toContain("hover:bg-blue-100/40");
+      expect(headerEl.className).toContain("focus-visible:ring-blue-400");
+    });
+
+    it("routes the deprecated color alias through tone — card chrome and rows agree", () => {
+      const { container } = render(<Accordion items={ITEMS} color="rose" />);
+      const card = container.querySelector<HTMLElement>("[data-tone]")!;
+      expect(card.getAttribute("data-tone")).toBe("rose");
+      const headerEl = container.querySelector<HTMLElement>('[role="button"]')!;
+      // Before the resolver the card went rose while the rows stayed neutral.
+      expect(headerEl.className).toContain("hover:bg-rose-100/40");
+      expect(headerEl.className).not.toContain("bg-neutral-50/50");
+    });
+  });
+
   describe("states", () => {
     it("shows an empty state when there are no items", () => {
       render(<Accordion items={[]} />);
@@ -351,8 +373,11 @@ describe("Accordion", () => {
     });
 
     it("covers the whole accordion while loading", () => {
-      render(<Accordion items={ITEMS} loading />);
-      expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+      const { container } = render(<Accordion items={ITEMS} loading />);
+      // The whole-panel loader is the kit's default: a skeleton shaped like
+      // the card, not a spinner overlay.
+      expect(container.querySelector(".animate-pulse")).not.toBeNull();
+      expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
     });
   });
 });

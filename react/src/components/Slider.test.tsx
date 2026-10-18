@@ -1,12 +1,12 @@
+import React from "react";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { fireEvent, render } from "@testing-library/react";
+import { I18nProvider } from "../i18n/I18nContext";
 import Slider, { SLIDER_VARIANTS, type SliderVariant } from "./Slider";
 import { TRUE_COLORS } from "../../../common/theme/Theme";
 
 const handles = (container: HTMLElement) =>
-  Array.from(
-    container.querySelectorAll<HTMLDivElement>('[role="slider"]'),
-  );
+  Array.from(container.querySelectorAll<HTMLDivElement>('[role="slider"]'));
 
 const valuenow = (el: HTMLElement) => el.getAttribute("aria-valuenow");
 
@@ -16,19 +16,17 @@ const valuenow = (el: HTMLElement) => el.getAttribute("aria-valuenow");
  * (clientX 100 -> 50, clientY 0 -> 100 in vertical mode).
  */
 const rectMock = (width = 200, height = 24) =>
-  vi
-    .spyOn(Element.prototype, "getBoundingClientRect")
-    .mockReturnValue({
-      left: 0,
-      top: 0,
-      right: width,
-      bottom: height,
-      width,
-      height,
-      x: 0,
-      y: 0,
-      toJSON: () => ({}),
-    } as DOMRect);
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+    left: 0,
+    top: 0,
+    right: width,
+    bottom: height,
+    width,
+    height,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
 
 const dragTo = (
   el: HTMLElement,
@@ -38,8 +36,7 @@ const dragTo = (
   fireEvent.pointerMove(el, { clientX, clientY, pointerId: 1 });
 };
 
-const release = (el: HTMLElement) =>
-  fireEvent.pointerUp(el, { pointerId: 1 });
+const release = (el: HTMLElement) => fireEvent.pointerUp(el, { pointerId: 1 });
 
 beforeEach(() => {
   // jsdom has no layout, so pointer capture is a no-op stub.
@@ -68,7 +65,9 @@ describe("Slider", () => {
     });
 
     it("uses the ariaLabel for the handle", () => {
-      const { container } = render(<Slider defaultValue={50} ariaLabel="Volume" />);
+      const { container } = render(
+        <Slider defaultValue={50} ariaLabel="Volume" />,
+      );
       expect(handles(container)[0]).toHaveAttribute("aria-label", "Volume");
     });
 
@@ -104,8 +103,13 @@ describe("Slider", () => {
     });
 
     it("reports the vertical orientation on the handle", () => {
-      const { container } = render(<Slider orientation="vertical" defaultValue={40} />);
-      expect(handles(container)[0]).toHaveAttribute("aria-orientation", "vertical");
+      const { container } = render(
+        <Slider orientation="vertical" defaultValue={40} />,
+      );
+      expect(handles(container)[0]).toHaveAttribute(
+        "aria-orientation",
+        "vertical",
+      );
       expect(valuenow(handles(container)[0])).toBe("40");
     });
 
@@ -312,7 +316,12 @@ describe("Slider", () => {
     it("disabledMinHandle freezes only the start handle", () => {
       const onChange = vi.fn();
       const { container } = render(
-        <Slider range defaultValue={[20, 80]} disabledMinHandle onChange={onChange} />,
+        <Slider
+          range
+          defaultValue={[20, 80]}
+          disabledMinHandle
+          onChange={onChange}
+        />,
       );
       const [minHandle, maxHandle] = handles(container);
       expect(minHandle).toHaveAttribute("tabindex", "-1");
@@ -374,9 +383,8 @@ describe("Slider", () => {
     });
 
     const fill = (container: HTMLElement) =>
-      (
-        container.querySelector("div.cursor-pointer") as HTMLElement
-      ).firstElementChild as HTMLElement;
+      (container.querySelector("div.cursor-pointer") as HTMLElement)
+        .firstElementChild as HTMLElement;
 
     it("emits the solid fill in every colour", () => {
       for (const color of TRUE_COLORS) {
@@ -407,9 +415,11 @@ describe("Slider", () => {
     });
 
     it("uses the frosted glass fill for the glass variant", () => {
-      const { container } = render(<Slider defaultValue={30} variant="glass" />);
+      const { container } = render(
+        <Slider defaultValue={30} variant="glass" />,
+      );
       expect(fill(container).className).toContain("backdrop-blur-sm");
-      expect(fill(container).className).toContain("bg-blue-100/65");
+      expect(fill(container).className).toContain("bg-blue-200/65");
       expect(handles(container)[0].className).toContain("border-white/70");
     });
 
@@ -418,11 +428,13 @@ describe("Slider", () => {
       expect(fill(container).className).toContain(" bg-red-500 ");
     });
 
-    it("lets color win over tone", () => {
+    it("lets tone win over the deprecated color alias", () => {
       const { container } = render(
         <Slider defaultValue={30} color="red" tone="green" />,
       );
-      expect(fill(container).className).toContain(" bg-red-500 ");
+      // Flipped from the component's original precedence, in line with every
+      // other kit field: `tone` is the prop, `color` the alias.
+      expect(fill(container).className).toContain(" bg-green-500 ");
     });
 
     it("applies the variant focus ring to the handle", () => {
@@ -466,9 +478,84 @@ describe("Slider", () => {
       expect(single).toHaveBeenLastCalledWith(50);
       one.unmount();
 
-      const two = render(<Slider range defaultValue={[20, 80]} onChange={range} />);
+      const two = render(
+        <Slider range defaultValue={[20, 80]} onChange={range} />,
+      );
       dragTo(handles(two.container)[0], { clientX: 100 });
       expect(range).toHaveBeenLastCalledWith([50, 80]);
+    });
+  });
+  describe("kit conventions", () => {
+    const inGerman = (ui: React.ReactNode) =>
+      render(
+        <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+          {ui}
+        </I18nProvider>,
+      );
+
+    it("names the handle through the catalog", () => {
+      const { container } = inGerman(<Slider defaultValue={50} />);
+      expect(handles(container)[0]).toHaveAttribute(
+        "aria-label",
+        "Schieberegler",
+      );
+    });
+
+    it("translates both range handles, phrase and all", () => {
+      const { container } = inGerman(<Slider range defaultValue={[20, 80]} />);
+      expect(handles(container)[0]).toHaveAttribute(
+        "aria-label",
+        "Mindestwert",
+      );
+      expect(handles(container)[1]).toHaveAttribute(
+        "aria-label",
+        "Maximalwert",
+      );
+    });
+
+    it("flows a caller name into the translated phrase", () => {
+      const { container } = inGerman(
+        <Slider range ariaLabel="Lautstärke" defaultValue={[20, 80]} />,
+      );
+      expect(handles(container)[0]).toHaveAttribute(
+        "aria-label",
+        "Lautstärke: Mindestwert",
+      );
+      expect(handles(container)[1]).toHaveAttribute(
+        "aria-label",
+        "Lautstärke: Maximalwert",
+      );
+    });
+
+    it("accepts tone as the colour prop, color only as its alias", () => {
+      const { container } = render(<Slider tone="violet" defaultValue={50} />);
+      expect(container.firstChild).toHaveAttribute("data-color", "violet");
+      const legacy = render(<Slider color="emerald" defaultValue={50} />);
+      expect(legacy.container.firstChild).toHaveAttribute(
+        "data-color",
+        "emerald",
+      );
+      // tone wins where both are given, matching the rest of the kit.
+      const both = render(
+        <Slider tone="rose" color="emerald" defaultValue={50} />,
+      );
+      expect(both.container.firstChild).toHaveAttribute("data-color", "rose");
+    });
+
+    it("centres the vertical handle on its value point", () => {
+      // Anchored by `bottom`, the handle must be nudged down half a handle
+      // (translate-y-1/2); the negative shift leaves a handle-height gap
+      // above the fill.
+      const { container } = render(
+        <Slider orientation="vertical" defaultValue={50} />,
+      );
+      const classes = handles(container)[0].className.split(/\s+/);
+      expect(classes).toContain("translate-y-1/2");
+      expect(classes).not.toContain("-translate-y-1/2");
+      const horizontal = render(<Slider defaultValue={50} />);
+      expect(handles(horizontal.container)[0].className.split(/\s+/)).toContain(
+        "-translate-y-1/2",
+      );
     });
   });
 });

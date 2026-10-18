@@ -23,7 +23,9 @@ describe("SplitView — surfaces", () => {
     // half stayed a white slab in dark mode. The *container* may legitimately
     // carry a white surface from its variant — this is about the pane.
     const { container } = render(<SplitView items={ITEMS} />);
-    const detail = screen.getByText("Alpha panel").closest("div")!.parentElement!;
+    const detail = screen
+      .getByText("Alpha panel")
+      .closest("div")!.parentElement!;
     expect(detail.className).not.toContain("bg-white");
     expect(container.innerHTML).not.toContain("h-full bg-white");
   });
@@ -42,18 +44,51 @@ describe("SplitView — surfaces", () => {
     // self-defeating — the accent's job is to stand out against the surface.
     const { container } = render(<SplitView items={ITEMS} tone="blue" />);
     const cls = container.firstElementChild!.className;
-    expect(cls).toContain("bg-neutral-50/80");
-    expect(cls).not.toContain("bg-blue-50/80");
+    // The convention default: `elevated` — a clean lifted surface, untouched
+    // by either tone.
+    expect(cls).toContain("shadow-xl");
+    expect(cls).toContain("bg-white");
+    expect(cls).not.toContain("bg-blue");
   });
 
-  it("`surfaceTone` tints the panes deliberately", () => {
+  it("`surfaceTone` paints the divider on every variant", () => {
     const { container } = render(
       <SplitView items={ITEMS} tone="blue" surfaceTone="violet" />,
     );
-    const cls = container.firstElementChild!.className;
-    expect(cls).toContain("bg-violet-50/80");
+    expect(container.innerHTML).toContain("border-violet-200");
     // The accent is untouched.
-    expect(container.innerHTML).toContain("border-l-blue-600");
+    expect(container.innerHTML).toContain("bg-blue-600 dark:bg-blue-400");
+  });
+
+  it("`surfaceTone` colours every variant that has a treatment for it", () => {
+    // Each variant decides HOW the tone lands — a tinted fill, a coloured
+    // wash, a rule — but none of them drop it; `elevated` is the single
+    // exception, being white by design.
+    for (const variant of SURFACE_VARIANTS) {
+      const { container, unmount } = render(
+        <SplitView items={ITEMS} variant={variant} surfaceTone="violet" />,
+      );
+      const cls = container.firstElementChild!.className;
+      if (variant === "elevated" || variant === "default") {
+        // `elevated` is white by design; `default`'s rim is deliberately
+        // tone-free (SURFACE_GLASS_RIM) — both carry the tone on the divider.
+        expect(cls).not.toMatch(/violet/);
+      } else {
+        expect(cls).toMatch(/violet/);
+      }
+      // And the divider always carries the tone.
+      expect(container.innerHTML).toContain("border-violet-200");
+      unmount();
+    }
+  });
+
+  it("rounds its corners with its container, not against it", () => {
+    // The elevated box draws a ring and a shadow, so square corners inside a
+    // rounded host used to print a rectangular edge over the curve.
+    const { container } = render(<SplitView items={ITEMS} />);
+    expect(container.firstElementChild!.className).toContain(
+      "rounded-[inherit]",
+    );
   });
 
   it("carries the variant's surface classes on the container", () => {
@@ -74,11 +109,15 @@ describe("SplitView — search follows the surface", () => {
 
   it("uses a ghost field on a subtle surface", () => {
     render(<SplitView items={ITEMS} variant="subtle" />);
-    expect(searchBox().closest("div")!.className).toContain("border-transparent");
+    expect(searchBox().closest("div")!.className).toContain(
+      "border-transparent",
+    );
   });
 
   it("`searchVariant` overrides what the surface implies", () => {
-    render(<SplitView items={ITEMS} variant="subtle" searchVariant="elevated" />);
+    render(
+      <SplitView items={ITEMS} variant="subtle" searchVariant="elevated" />,
+    );
     expect(searchBox().closest("div")!.className).toContain("shadow-sm");
   });
 
@@ -91,20 +130,22 @@ describe("SplitView — search follows the surface", () => {
 describe("SplitView — tone replaces color", () => {
   it("`tone` drives the active row accent", () => {
     const { container } = render(<SplitView items={ITEMS} tone="violet" />);
-    expect(container.innerHTML).toContain("border-l-violet-600");
+    expect(container.innerHTML).toContain("bg-violet-600 dark:bg-violet-400");
   });
 
   it("the deprecated `color` still works", () => {
     const { container } = render(<SplitView items={ITEMS} color="violet" />);
-    expect(container.innerHTML).toContain("border-l-violet-600");
+    expect(container.innerHTML).toContain("bg-violet-600 dark:bg-violet-400");
   });
 
   it("`tone` wins when both are given", () => {
     const { container } = render(
       <SplitView items={ITEMS} tone="emerald" color="violet" />,
     );
-    expect(container.innerHTML).toContain("border-l-emerald-600");
-    expect(container.innerHTML).not.toContain("border-l-violet-600");
+    expect(container.innerHTML).toContain("bg-emerald-600 dark:bg-emerald-400");
+    expect(container.innerHTML).not.toContain(
+      "bg-violet-600 dark:bg-violet-400",
+    );
   });
 });
 
@@ -148,7 +189,11 @@ describe("SplitView — loading", () => {
   });
 
   it("exposes all three loader types", () => {
-    expect([...SPLIT_VIEW_LOADERS]).toEqual(["skeleton", "spinner", "progress"]);
+    expect([...SPLIT_VIEW_LOADERS]).toEqual([
+      "skeleton",
+      "spinner",
+      "progress",
+    ]);
   });
 
   it("a custom loadingState replaces whichever treatment would draw", () => {
@@ -180,9 +225,9 @@ describe("SplitView — sub content", () => {
     expect(expand.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(expand);
     expect(
-      screen.getByRole("button", { name: "Collapse details" }).getAttribute(
-        "aria-expanded",
-      ),
+      screen
+        .getByRole("button", { name: "Collapse details" })
+        .getAttribute("aria-expanded"),
     ).toBe("true");
   });
 
@@ -200,6 +245,179 @@ describe("SplitView — sub content", () => {
     const onChange = vi.fn();
     render(<SplitView items={withSub} onChange={onChange} />);
     fireEvent.click(screen.getByText("Beta"));
-    expect(onChange).toHaveBeenCalledWith("b", expect.objectContaining({ id: "b" }));
+    expect(onChange).toHaveBeenCalledWith(
+      "b",
+      expect.objectContaining({ id: "b" }),
+    );
+  });
+});
+
+describe("SplitView — collapse animation", () => {
+  it("declares the width transition for expanding, not just collapsing", () => {
+    // The transition class used to be gated on `isCollapsed`, so opening
+    // dropped the class and the 48px inline width in the same commit — the
+    // computed style jumped with nothing declared to animate. Collapse
+    // animated; expand snapped.
+    render(<SplitView items={ITEMS} collapsible />);
+    const panel = screen
+      .getByText("Alpha")
+      .closest("div[class*='overflow-hidden']") as HTMLElement;
+    fireEvent.click(screen.getByLabelText("Collapse list"));
+    expect(panel.style.width).toBe("48px");
+    fireEvent.click(screen.getByLabelText("Expand list"));
+    expect(panel.className).toContain("transition-[width]");
+  });
+});
+
+describe("SplitView — the resize handle", () => {
+  it("is a focusable separator with a tone pill inside, SidePanel-style", () => {
+    const { container } = render(<SplitView items={ITEMS} resizable />);
+    const sep = container.querySelector('[role="separator"]') as HTMLElement;
+    expect(sep).toBeTruthy();
+    expect(sep.tabIndex).toBe(0);
+    expect(sep.className).toContain("cursor-col-resize");
+    // The affordance lives inside the hit area, so a wider grab target no
+    // longer means an invisible one.
+    const pill = sep.querySelector("span") as HTMLElement;
+    expect(pill.className).toContain("rounded-full");
+    expect(pill.className).toContain("bg-blue-400");
+  });
+
+  it("stands down while the list is collapsed", () => {
+    const { container } = render(
+      <SplitView items={ITEMS} resizable collapsible defaultCollapsed />,
+    );
+    expect(container.querySelector('[role="separator"]')).toBeNull();
+  });
+});
+
+describe("SplitView — surfaceTone auto", () => {
+  it("`auto` hands the surface to the accent tone", () => {
+    const { container } = render(
+      <SplitView
+        items={ITEMS}
+        tone="violet"
+        variant="tonal"
+        surfaceTone="auto"
+      />,
+    );
+    expect(container.firstElementChild!.className).toContain(
+      "bg-violet-100/80",
+    );
+    expect(container.innerHTML).toContain("border-violet-200");
+  });
+});
+
+describe("SplitView — row overflow menus", () => {
+  const MENU_ITEMS = [
+    { label: "Rename", value: "rename" },
+    { label: "Delete", value: "delete", danger: true },
+  ];
+
+  it("opens the kit DropdownMenu without selecting the row", () => {
+    const onSelect = vi.fn();
+    const onMenu = vi.fn();
+    const items = [{ ...ITEMS[0], menu: MENU_ITEMS }, ...ITEMS.slice(1)];
+    render(
+      <SplitView items={items} onChange={onSelect} onMenuSelect={onMenu} />,
+    );
+    fireEvent.click(screen.getByLabelText("More options"));
+    const menu = document.querySelector('[role="menu"]');
+    expect(menu).toBeTruthy();
+    expect(onSelect).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+    expect(onMenu).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "a" }),
+      expect.objectContaining({ value: "delete" }),
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+  });
+
+  it("clicking a sub-item fires its own handler, not a selection", () => {
+    const onSelect = vi.fn();
+    const onClick = vi.fn();
+    const items = [
+      {
+        ...ITEMS[0],
+        subItems: [{ id: "s1", label: "worker-01", onClick }],
+      },
+      ...ITEMS.slice(1),
+    ];
+    render(<SplitView items={items} onChange={onSelect} />);
+    fireEvent.click(screen.getByRole("button", { name: "worker-01" }));
+    expect(onClick).toHaveBeenCalledWith(expect.objectContaining({ id: "s1" }));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("menuVisibility=always leaves the dots visible", () => {
+    const items = [{ ...ITEMS[0], menu: MENU_ITEMS }, ...ITEMS.slice(1)];
+    const { container } = render(
+      <SplitView items={items} menuVisibility="always" />,
+    );
+    const wrap = screen
+      .getByLabelText("More options")
+      .closest("div[class*='opacity']") as HTMLElement;
+    expect(wrap.className).toContain("opacity-100");
+    expect(container).toBeTruthy();
+  });
+
+  it("gives sub-items the same affordance", () => {
+    const onMenu = vi.fn();
+    const items = [
+      {
+        ...ITEMS[0],
+        subItems: [{ id: "s1", label: "worker-01", menu: MENU_ITEMS }],
+      },
+      ...ITEMS.slice(1),
+    ];
+    render(<SplitView items={items} onMenuSelect={onMenu} />);
+    fireEvent.click(screen.getByLabelText("More options"));
+    expect(document.querySelector('[role="menu"]')).toBeTruthy();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+    expect(onMenu).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "s1" }),
+      expect.objectContaining({ value: "rename" }),
+    );
+  });
+});
+
+describe("SplitView — state overlays scale with size", () => {
+  const sizeTokenOf = (el: Element | null) =>
+    [...(el?.classList ?? [])].find((c) => /^text-(xs|sm|base|lg)$/.test(c));
+
+  it("the error state keeps md legibility at xs/sm but grows at lg", () => {
+    const bySize = {} as Record<string, string | undefined>;
+    for (const size of ["xs", "sm", "md", "lg", "xl"] as const) {
+      const { container, unmount } = render(
+        <SplitView items={ITEMS} size={size} error="boom" />,
+      );
+      bySize[size] = sizeTokenOf(
+        container.querySelector('[role="alert"] strong') ??
+          container.querySelector('[class*="font-semibold"]'),
+      );
+      unmount();
+    }
+    // xs and sm must read exactly as md; lg and xl step up together.
+    expect(bySize.xs).toBe(bySize.md);
+    expect(bySize.sm).toBe(bySize.md);
+    expect(bySize.lg).not.toBe(bySize.md);
+    expect(bySize.xl).toBe(bySize.lg);
+  });
+
+  it("the loader spinner follows the parent size", () => {
+    const tokenFor = (size: "xs" | "md" | "xl") => {
+      const { container, unmount } = render(
+        <SplitView items={ITEMS} size={size} loading loaderType="spinner" />,
+      );
+      const token = sizeTokenOf(
+        container
+          .querySelector("[role='status']")
+          ?.querySelector("span,div,p") ?? null,
+      );
+      unmount();
+      return token;
+    };
+    expect(tokenFor("md")).not.toBe(tokenFor("xl"));
   });
 });

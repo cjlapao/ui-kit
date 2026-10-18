@@ -12,7 +12,9 @@ export default function Step() {
       />
       <span className="font-mono text-sm text-neutral-500 dark:text-neutral-400">
         Value:{" "}
-        <strong className="text-neutral-900 dark:text-neutral-100">{value}</strong>
+        <strong className="text-neutral-900 dark:text-neutral-100">
+          {value}
+        </strong>
       </span>
     </div>
   );

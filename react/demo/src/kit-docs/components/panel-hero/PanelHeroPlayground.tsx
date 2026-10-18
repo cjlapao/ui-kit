@@ -1,43 +1,42 @@
 import React, { useState } from "react";
-import { Hero } from "@cjlapao/ui-kit";
+import { ColorSwatches, PanelHero } from "@cjlapao/ui-kit";
 import type {
   ControlSize,
   GlowIntensity,
-  HeroTitleElement,
-  HeroVariant,
+  PanelHeroTitleElement,
+  PanelHeroVariant,
   PanelDecoration,
   SurfaceCorner,
   SurfacePadding,
   TrueColor,
 } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
-  SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glowIntensityOptions,
-  heroTitleElementOptions,
-  heroVariantOptions,
+  panelHeroTitleElementOptions,
+  panelHeroVariantOptions,
   panelCornerOptions,
   panelDecorationOptions,
   panelPaddingOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
-export const HeroPlayground: React.FC = () => {
-  const [variant, setVariant] = useState<HeroVariant>("gradient");
+export const PanelHeroPlayground: React.FC = () => {
+  const [variant, setVariant] = useState<PanelHeroVariant>("gradient");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [titleSize, setTitleSize] = useState<ControlSize>("sm");
   const [subtitleSize, setSubtitleSize] = useState<ControlSize>("xs");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
-  const [corner, setCorner] = useState<SurfaceCorner>("rounded-xl");
+  const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [decoration, setDecoration] = useState<PanelDecoration>("both");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("soft");
-  const [titleAs, setTitleAs] = useState<HeroTitleElement>("p");
+  const [titleAs, setTitleAs] = useState<PanelHeroTitleElement>("p");
 
   const [withIcon, setWithIcon] = useState(true);
   const [withSubtitle, setWithSubtitle] = useState(true);
@@ -53,49 +52,54 @@ export const HeroPlayground: React.FC = () => {
                 title: "Core",
                 controls: (
                   <>
-                    <SelectControl
+                    <ChoiceControl
                       label="Variant"
-                      options={heroVariantOptions}
+                      options={panelHeroVariantOptions}
                       value={variant}
-                      onChange={(v) => setVariant(v as HeroVariant)}
+                      onChange={(v) => setVariant(v as PanelHeroVariant)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                    />
-                    <SelectControl
+                    {/* Tone is a colour decision — pick it from colour
+                        swatches, not from a dropdown of words. */}
+                    <Control label="Tone">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={tone}
+                        onSelect={setTone}
+                        defaultExpanded
+                      />
+                    </Control>
+                    <ChoiceControl
                       label="Title size"
                       options={controlSizeOptions}
                       value={titleSize}
                       onChange={(v) => setTitleSize(v as ControlSize)}
                     />
-                    <SelectControl
+                    <ChoiceControl
                       label="Subtitle size"
                       options={controlSizeOptions}
                       value={subtitleSize}
                       onChange={(v) => setSubtitleSize(v as ControlSize)}
                     />
-                    <SelectControl
+                    <ChoiceControl
                       label="Padding"
                       options={panelPaddingOptions}
                       value={padding}
                       onChange={(v) => setPadding(v as SurfacePadding)}
                     />
-                    <SelectControl
+                    <ChoiceControl
                       label="Corner"
                       options={panelCornerOptions}
                       value={corner}
                       onChange={(v) => setCorner(v as SurfaceCorner)}
                     />
-                    <SelectControl
+                    <ChoiceControl
                       label="Decoration"
                       options={panelDecorationOptions}
                       value={decoration}
                       onChange={(v) => setDecoration(v as PanelDecoration)}
                     />
-                    <SelectControl
+                    <ChoiceControl
                       label="Glow"
                       options={glowIntensityOptions}
                       value={glowIntensity}
@@ -109,11 +113,11 @@ export const HeroPlayground: React.FC = () => {
                 title: "Content",
                 controls: (
                   <>
-                    <SelectControl
+                    <ChoiceControl
                       label="Title element"
-                      options={heroTitleElementOptions}
+                      options={panelHeroTitleElementOptions}
                       value={titleAs}
-                      onChange={(v) => setTitleAs(v as HeroTitleElement)}
+                      onChange={(v) => setTitleAs(v as PanelHeroTitleElement)}
                     />
                     <Control label="Content">
                       <div className="space-y-1.5">
@@ -138,15 +142,15 @@ export const HeroPlayground: React.FC = () => {
             The gradient runs between the tone's own <strong>700</strong> and{" "}
             <strong>800</strong> shades — white copy measures 4.93:1 at worst
             there, against 2.94:1 on the <code>-400</code> stop the old
-            hand-written table used. Every other variant is a{" "}
-            <code>Panel</code>, and takes its copy colour from the surface
-            instead of being forced to white.
+            hand-written table used. Every other variant is a <code>Panel</code>
+            , and takes its copy colour from the surface instead of being forced
+            to white.
           </p>
         </div>
       }
       preview={
         <div className="w-full max-w-2xl">
-          <Hero
+          <PanelHero
             variant={variant}
             tone={tone}
             titleSize={titleSize}

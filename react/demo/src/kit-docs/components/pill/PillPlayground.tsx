@@ -1,12 +1,9 @@
 import React, { useState } from "react";
-import {
-  MultiToggle,
-  Panel,
-  Pill,
-} from "@cjlapao/ui-kit";
+import { ColorSwatches, Panel, Pill } from "@cjlapao/ui-kit";
 import type {
   GlassOpacity,
   GlassVibrancy,
+  PillCorner,
   PillSize,
   PillTone,
   PillVariant,
@@ -19,13 +16,14 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
   glassOpacityOptions,
   glassVibrancyOptions,
   panelSpecularOptions,
+  pillCornerOptions,
   pillVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -34,22 +32,29 @@ const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
+const LABELS = ["Operational", "A long label that runs on"];
+
 export const PillPlayground: React.FC = () => {
   const [tone, setTone] = useState<PillTone>("blue");
   const [variant, setVariant] = useState<PillVariant>("soft");
   const [size, setSize] = useState<PillSize>("md");
+  const [corner, setCorner] = useState<PillCorner>("full");
   const [uppercase, setUppercase] = useState(false);
   const [withIcon, setWithIcon] = useState(true);
   const [withTrailingIcon, setWithTrailingIcon] = useState(false);
   const [clickable, setClickable] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [truncate, setTruncate] = useState(false);
+  const [removable, setRemovable] = useState(false);
+  const [withDot, setWithDot] = useState(false);
+  const [glassPanel, setGlassPanel] = useState(false);
   const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("frosted");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
   const [specularMode, setSpecularMode] = useState<SpecularMode | undefined>(
     undefined,
   );
-  const [clicked, setClicked] = useState<string | null>(null);
+  const [removed, setRemoved] = useState<string[]>([]);
+  const [log, pushLog] = useEventLog();
 
   const isGlass = variant === "glass" || variant === "liquid-glass";
 
@@ -57,6 +62,7 @@ export const PillPlayground: React.FC = () => {
     tone,
     variant,
     size,
+    corner,
     uppercase,
     disabled,
     icon: withIcon ? "Check" : undefined,
@@ -78,30 +84,34 @@ export const PillPlayground: React.FC = () => {
                 title: "Core",
                 controls: (
                   <>
+                    {/* Colour is a palette, not a dropdown of colour names. */}
+                    <Control label="Tone">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={tone}
+                        onSelect={setTone}
+                        defaultExpanded
+                      />
+                    </Control>
                     <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as PillTone)}
+                      label="Variant"
+                      options={pillVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as PillVariant)}
                     />
-                    <Control label="Variant">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={pillVariantOptions}
-                        value={variant}
-                        onChange={(v) => setVariant(v as PillVariant)}
-                      />
-                    </Control>
-                    <Control label="Size">
-                      <MultiToggle
-                        fullWidth
-                        size="sm"
-                        options={controlSizeOptions}
-                        value={size}
-                        onChange={(v) => setSize(v as PillSize)}
-                      />
-                    </Control>
+                    <SelectControl
+                      label="Size"
+                      options={controlSizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as PillSize)}
+                    />
+                    <SelectControl
+                      label="Corner"
+                      options={pillCornerOptions}
+                      value={corner}
+                      onChange={(v) => setCorner(v as PillCorner)}
+                    />
                   </>
                 ),
               },
@@ -110,7 +120,11 @@ export const PillPlayground: React.FC = () => {
                 title: "States",
                 controls: (
                   <div className="grid grid-cols-2 gap-2">
-                    <ToggleRow label="Uppercase" checked={uppercase} onChange={setUppercase} />
+                    <ToggleRow
+                      label="Uppercase"
+                      checked={uppercase}
+                      onChange={setUppercase}
+                    />
                     <ToggleRow
                       label="Leading icon"
                       checked={withIcon}
@@ -121,12 +135,38 @@ export const PillPlayground: React.FC = () => {
                       checked={withTrailingIcon}
                       onChange={setWithTrailingIcon}
                     />
-                    <ToggleRow label="Clickable" checked={clickable} onChange={setClickable} />
-                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                    <ToggleRow
+                      label="Clickable"
+                      checked={clickable}
+                      onChange={setClickable}
+                    />
+                    <ToggleRow
+                      label="Disabled"
+                      checked={disabled}
+                      onChange={setDisabled}
+                    />
                     <ToggleRow
                       label="Truncate label"
                       checked={truncate}
                       onChange={setTruncate}
+                    />
+                    <ToggleRow
+                      label="Removable"
+                      checked={removable}
+                      onChange={(v) => {
+                        setRemovable(v);
+                        setRemoved([]);
+                      }}
+                    />
+                    <ToggleRow
+                      label="Dot pill"
+                      checked={withDot}
+                      onChange={setWithDot}
+                    />
+                    <ToggleRow
+                      label="Glass panel"
+                      checked={glassPanel}
+                      onChange={setGlassPanel}
                     />
                   </div>
                 ),
@@ -138,36 +178,27 @@ export const PillPlayground: React.FC = () => {
                       title: "Glass",
                       controls: (
                         <div className="flex flex-col gap-3">
-                          <Control label="Specular">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={panelSpecularOptions}
-                              value={
-                                specularMode ??
-                                (variant === "liquid-glass" ? "classic" : "none")
-                              }
-                              onChange={(v) => setSpecularMode(v as SpecularMode)}
-                            />
-                          </Control>
-                          <Control label="Vibrancy">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={glassVibrancyOptions}
-                              value={vibrancy as string}
-                              onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                            />
-                          </Control>
-                          <Control label="Glass opacity">
-                            <MultiToggle
-                              fullWidth
-                              size="sm"
-                              options={glassOpacityOptions}
-                              value={glassOpacity as string}
-                              onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                            />
-                          </Control>
+                          <SelectControl
+                            label="Specular"
+                            options={panelSpecularOptions}
+                            value={
+                              specularMode ??
+                              (variant === "liquid-glass" ? "classic" : "none")
+                            }
+                            onChange={(v) => setSpecularMode(v as SpecularMode)}
+                          />
+                          <SelectControl
+                            label="Vibrancy"
+                            options={glassVibrancyOptions}
+                            value={vibrancy as string}
+                            onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                          />
+                          <SelectControl
+                            label="Glass opacity"
+                            options={glassOpacityOptions}
+                            value={glassOpacity as string}
+                            onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                          />
                         </div>
                       ),
                     },
@@ -175,46 +206,80 @@ export const PillPlayground: React.FC = () => {
                 : []),
             ]}
           />
+          <EventLogControl
+            log={log}
+            emptyText="No events yet — click or remove a pill (flip Clickable / Removable first)."
+          />
           <p className="text-xs opacity-70">
             The <strong>glass</strong> variants drop the tone fill for a
-            translucent one. <strong>Clickable</strong> renders a real{" "}
-            <code>&lt;button&gt;</code>
-            {clicked && ` Last clicked: ${clicked}.`}
+            translucent one — <strong>liquid-glass</strong> is the same thing
+            plus a specular highlight by default. <strong>Clickable</strong>{" "}
+            renders a real <code>&lt;button&gt;</code> and turns the tone hover
+            on — solid steps one shade deeper, soft and outline gain a
+            translucent wash, glass ignites its rim. A pill that is merely
+            <em>removable</em> stays quiet: only the little × reacts.{" "}
+            <strong>Removable</strong> adds that nested button, whose click
+            never activates the pill. <strong>Dot pill</strong> shows the
+            bare-dot form, announced only because it is labelled.{" "}
+            <strong>Glass panel</strong> swaps the host between the kit&rsquo;s
+            default <code>elevated</code> surface and <code>glass</code>; pair
+            it with the background-image toggle.
           </p>
         </div>
       }
       preview={
+        /*
+          The host is a real `Panel` — `elevated` by default, `glass` via the
+          States toggle. It used to mirror the pill's own variant, which hid
+          every setting inside a lookalike host.
+        */
         <div className="w-full">
-          <Panel
-            variant={isGlass ? "liquid-glass" : "outlined"}
-            tone={isGlass ? tone : "neutral"}
-            padding="md"
-          >
+          <Panel variant={glassPanel ? "glass" : "elevated"} padding="md">
             <div className="flex flex-col gap-2">
               <Caption>Current settings</Caption>
               <div className="flex flex-wrap items-center gap-2">
-                <Pill
-                  {...shared}
-                  onClick={clickable ? () => setClicked("Operational") : undefined}
-                >
-                  Operational
-                </Pill>
-                <Pill
-                  {...shared}
-                  onClick={
-                    clickable
-                      ? () => setClicked("A long label that runs on")
-                      : undefined
-                  }
-                >
-                  A long label that runs on
-                </Pill>
+                {withDot && (
+                  <Pill
+                    tone={tone}
+                    variant={variant}
+                    size={size}
+                    dot
+                    label="Operational status"
+                    disabled={disabled}
+                  />
+                )}
+                {LABELS.filter((l) => !removed.includes(l)).map((label) => (
+                  <Pill
+                    key={label}
+                    {...shared}
+                    onClick={
+                      clickable
+                        ? () => pushLog(`clicked "${label}"`)
+                        : undefined
+                    }
+                    onRemove={
+                      removable
+                        ? () => {
+                            setRemoved((r) => [...r, label]);
+                            pushLog(`removed "${label}"`);
+                          }
+                        : undefined
+                    }
+                  >
+                    {label}
+                  </Pill>
+                ))}
+                {removed.length > 0 && (
+                  <span className="text-xs opacity-60">
+                    {removed.length} removed — flip Removable off to bring them
+                    back.
+                  </span>
+                )}
               </div>
             </div>
           </Panel>
         </div>
       }
-    >
-    </PlaygroundPanel>
+    ></PlaygroundPanel>
   );
 };
