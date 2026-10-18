@@ -1,6 +1,11 @@
 {
   "name": "@cjlapao/ui-kit-vue",
   "version": "0.2.3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cjlapao/ui-kit.git",
+    "directory": "vue"
+  },
   "private": false,
   "type": "module",
   "scripts": {

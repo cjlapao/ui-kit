@@ -1,6 +1,11 @@
 {
   "name": "@cjlapao/ui-kit",
   "version": "0.2.3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cjlapao/ui-kit.git",
+    "directory": "react"
+  },
   "private": false,
   "type": "module",
   "scripts": {

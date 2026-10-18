@@ -52,7 +52,7 @@ jobs:
 
           node -e "
             const fs = require('fs');
-            for (const p of ['react/package.json', 'vue/package.json', 'package.json']) {
+            for (const p of ['react/package.json', 'vue/package.json', 'tools/i18n-cli/package.json', 'package.json']) {
               const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
               pkg.version = '$NEW_VERSION';
               fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + '\n');
@@ -68,7 +68,7 @@ jobs:
           git checkout -b "$BRANCH_NAME"
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add package.json react/package.json vue/package.json VERSION
+          git add package.json react/package.json vue/package.json tools/i18n-cli/package.json VERSION
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new-version }}"
           git config --global --add safe.directory /github/workspace
           echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT

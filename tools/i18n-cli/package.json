@@ -1,6 +1,11 @@
 {
   "name": "@cjlapao/ui-kit-i18n-cli",
-  "version": "0.2.0",
+  "version": "0.2.3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cjlapao/ui-kit.git",
+    "directory": "tools/i18n-cli"
+  },
   "description": "CLI for authoring and checking ui-kit i18n locale files (scaffold | check | locales).",
   "type": "module",
   "license": "SEE LICENSE IN ../LICENSE",

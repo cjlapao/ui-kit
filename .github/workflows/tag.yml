@@ -1,0 +1,28 @@
+name: Tag release
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # A PAT is required: tags pushed with GITHUB_TOKEN do not trigger publish.yml
+          token: ${{ secrets.PUBLISH_TOKEN }}
+      - name: Create tag from VERSION
+        run: |
+          TAG="v$(tr -d '[:space:]' < VERSION)"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping"
+            exit 0
+          fi
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag "$TAG"
+          git push origin "$TAG"
