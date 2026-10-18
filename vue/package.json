@@ -1,6 +1,6 @@
 {
   "name": "@cjlapao/ui-kit-vue",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "private": false,
   "type": "module",
   "scripts": {
@@ -37,8 +37,7 @@
     }
   },
   "publishConfig": {
-    "access": "public",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "dependencies": {
     "classnames": "^2.5.1",

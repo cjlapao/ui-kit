@@ -1,6 +1,6 @@
 {
   "name": "@cjlapao/ui-kit",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "private": false,
   "type": "module",
   "scripts": {
@@ -36,8 +36,7 @@
     "react-router-dom": "^6.0.0 || ^7.0.0"
   },
   "publishConfig": {
-    "access": "public",
-    "registry": "https://npm.pkg.github.com"
+    "access": "public"
   },
   "overrides": {
     "esbuild": "0.28.1"
