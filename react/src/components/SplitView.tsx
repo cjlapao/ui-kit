@@ -532,7 +532,7 @@ const SplitView: React.FC<SplitViewProps> = ({
     reveal: "row" | "sub",
   ) =>
     rowItem.menu && rowItem.menu.length > 0 ? (
-      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stopPropagation guard only
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- stopPropagation guard only
       <div
         className={classNames(
           "flex items-center transition-opacity duration-150",

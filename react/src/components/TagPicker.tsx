@@ -542,7 +542,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
     // selection (or the first row) so aria-activedescendant announces it.
     const idx = filtered.findIndex((item) => selectedSet.has(item.id));
     setFocusedIndex(idx >= 0 ? idx : multi || filtered.length === 0 ? -1 : 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- [open] is intentional, like Picker's
+     
   }, [open]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────

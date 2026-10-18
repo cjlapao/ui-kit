@@ -668,6 +668,7 @@ const Tabs: React.FC<TabsProps> = ({
           >
             <div
               role="tablist"
+              tabIndex={0}
               aria-orientation={orientation}
               onKeyDown={handleTabListKeyDown}
               className={classNames(
@@ -742,6 +743,7 @@ const Tabs: React.FC<TabsProps> = ({
           <ScrollArea variant="hover" tabIndex={-1} className="min-h-0 flex-1">
             <div
               role="tablist"
+              tabIndex={0}
               aria-orientation={orientation}
               onKeyDown={handleTabListKeyDown}
               className={classNames(

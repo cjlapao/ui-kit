@@ -124,7 +124,7 @@ export const TagPanel: React.FC<TagPanelProps> = ({
     const first = el.firstElementChild as HTMLElement | null;
     setRowPx(first ? first.getBoundingClientRect().height + GAP_PX : 0);
   };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   useLayoutEffect(measure, [tags.length, tagLimit, tagSize]);
   useEffect(() => {
     const el = contentRef.current;
@@ -132,7 +132,7 @@ export const TagPanel: React.FC<TagPanelProps> = ({
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
   useEffect(() => () => clearTimeout(holdRef.current), []);
 

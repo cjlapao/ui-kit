@@ -442,7 +442,7 @@ export const Gantt: React.FC<GanttProps> = ({
   // resize moves the whole fixed block, grid lines and timeline origin.
   const sizedColumns = useMemo(
     () => resolvedColumns.map((c) => ({ ...c, width: `${effectiveColWidth(c)}px` })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [resolvedColumns, colWidths],
   );
   const effectiveWidthsRef = useRef<Record<string, number>>({});
@@ -452,7 +452,7 @@ export const Gantt: React.FC<GanttProps> = ({
 
   const leftWidth = useMemo(
     () => GRIP_WIDTH + resolvedColumns.reduce((sum, c) => sum + effectiveColWidth(c), 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [resolvedColumns, colWidths],
   );
 

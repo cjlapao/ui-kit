@@ -1031,7 +1031,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
             storageAdapter.getItem(fullStorageKey),
           ) as SmartGridLayoutState | null)
         : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [fullStorageKey, storageAdapter],
   );
   const effectivePersistedLayout = persistedLayout ?? restoredLayout;

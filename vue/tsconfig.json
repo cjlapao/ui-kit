@@ -6,6 +6,13 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    // ../common sources resolve node_modules by walking up from the importing
+    // file, which never reaches vue/node_modules (and CI only installs vue/).
+    // Map date-fns here so vue-tsc finds it in this package's install.
+    "paths": {
+      "date-fns": ["./node_modules/date-fns"],
+      "date-fns/*": ["./node_modules/date-fns/*"]
+    },
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
