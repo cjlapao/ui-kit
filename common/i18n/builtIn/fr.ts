@@ -157,13 +157,13 @@ export const FR_KIT_CATALOG: MessageCatalog = {
       toggleSubmenu: "{verb} le sous-menu {label}",
     },
     splitview: {
-      moreOptions: "Plus d'options",
+      moreOptions: "Plus d\\'options",
       retry: "Réessayer",
       search: "Rechercher...",
       loading: "Chargement...",
       pleaseWait: "Veuillez patienter...",
       errorTitle: "Une erreur est survenue",
-      errorSubtitle: "Une erreur inattendue s'est produite.",
+      errorSubtitle: "Une erreur inattendue s\\'est produite.",
       noItems: "Aucun élément",
       noItemsSubtitle: "Aucun élément à afficher.",
       expandList: "Développer la liste",
@@ -183,7 +183,7 @@ export const FR_KIT_CATALOG: MessageCatalog = {
       searchPlaceholder: "Rechercher des éléments",
       addItems: "Ajouter des éléments",
       close: "Fermer",
-      closeAria: "Fermer la palette d'éléments",
+      closeAria: "Fermer la palette d\\'éléments",
       editLayout: "Modifier la disposition",
       done: "Terminé",
       resetLayout: "Réinitialiser la disposition",
@@ -204,7 +204,7 @@ export const FR_KIT_CATALOG: MessageCatalog = {
       removeRow: "Retirer la ligne",
       emptyRow: "Ligne vide. Glissez une carte ici.",
       resizeColumnsAria:
-        "Redimensionner l'espacement — les flèches gauche/droite déplacent une colonne",
+        "Redimensionner l\\'espacement — les flèches gauche/droite déplacent une colonne",
       resizeItemAria:
         "Redimensionner {title} — les flèches gauche/droite déplacent une colonne",
       resizeRowHint:
@@ -263,7 +263,7 @@ export const FR_KIT_CATALOG: MessageCatalog = {
       clear: "Effacer",
       none: "Aucune",
       hidden: "masquée",
-      showGroupHeader: "Afficher l'en-tête de groupe",
+      showGroupHeader: "Afficher l\\'en-tête de groupe",
       stickyColumns: "Colonnes figées",
       configureSticky: "Configurer les colonnes figées",
       clearAll: "Tout réinitialiser",
@@ -356,7 +356,7 @@ export const FR_KIT_CATALOG: MessageCatalog = {
       close: "Fermer",
     },
     dynamicformfield: {
-      helpTitle: "Qu'est-ce que c'est ?",
+      helpTitle: "Qu\\'est-ce que c\\'est ?",
       selectPlaceholder: "Sélectionner…",
       listPlaceholder: "Une entrée par ligne",
     },
