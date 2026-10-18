@@ -55,7 +55,9 @@ const InteractiveTags = () => {
         <Pill tone="rose" variant="solid" dot label="Error" />
       </div>
       {clicked && (
-        <p className="text-xs opacity-70">Last clicked: {clicked} — a real button.</p>
+        <p className="text-xs opacity-70">
+          Last clicked: {clicked} — a real button.
+        </p>
       )}
     </div>
   );

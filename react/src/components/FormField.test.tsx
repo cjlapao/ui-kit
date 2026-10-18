@@ -92,18 +92,27 @@ describe("FormField — sizing", () => {
 });
 
 describe("FormLayout", () => {
-  it("aligns rows to the start by default", () => {
-    // It used to force items-center for any multi-column layout, dragging
-    // neighbouring labels out of line.
+  it("stretches rows so controls line up by default", () => {
+    // `start` aligned labels but let controls drift — a field with a
+    // description pushed its own input below the neighbour's. Stretch gives
+    // every field the row height, and FormField's spacer spends it above the
+    // control, so inputs start at one line across the row.
     const { container } = render(
       <FormLayout columns={2}>
-        <div />
+        <FormField label="Email" description="Notices.">
+          <input />
+        </FormField>
+        <FormField label="Role">
+          <input />
+        </FormField>
       </FormLayout>,
     );
-    const grid = container.firstElementChild as HTMLElement;
-
-    expect(grid.className).toContain("items-start");
-    expect(grid.className).toContain("sm:grid-cols-2");
+    expect((container.firstElementChild as HTMLElement).className).toContain(
+      "items-stretch",
+    );
+    // The stacked field carries the grow spacer between label and control.
+    const field = container.querySelectorAll(".grow.min-h-0");
+    expect(field.length).toBe(2);
   });
 
   it("supports four columns and the shared gap scale", () => {
@@ -123,7 +132,11 @@ describe("FormLayout", () => {
 describe("FormSection", () => {
   it("renders header, body and footer", () => {
     render(
-      <FormSection title="Account" description="Public" footer={<span>Save</span>}>
+      <FormSection
+        title="Account"
+        description="Public"
+        footer={<span>Save</span>}
+      >
         <span>body</span>
       </FormSection>,
     );
@@ -178,7 +191,9 @@ describe("Surface-aware text", () => {
         </FormField>
       </FormSection>,
     );
-    expect(screen.getByText("Optional").className).toContain("text-neutral-700");
+    expect(screen.getByText("Optional").className).toContain(
+      "text-neutral-700",
+    );
   });
 
   it("leaves fields on a solid surface alone", () => {
@@ -189,6 +204,35 @@ describe("Surface-aware text", () => {
         </FormField>
       </FormSection>,
     );
-    expect(screen.getByText("Optional").className).toContain("text-neutral-500");
+    expect(screen.getByText("Optional").className).toContain(
+      "text-neutral-500",
+    );
+  });
+
+  describe("FormField — state wiring", () => {
+    it("announces required on the control, not just the asterisk", () => {
+      // The asterisk is aria-hidden decoration; without the clone the required
+      // state was invisible to screen readers.
+      render(
+        <FormField label="Email" required>
+          <input type="email" />
+        </FormField>,
+      );
+      const control = screen.getByRole("textbox");
+      expect(control).toHaveAttribute("aria-required", "true");
+      expect(control.getAttribute("aria-required")).toBe("true");
+    });
+
+    it("sets aria-invalid whenever an error is present — even implicit", () => {
+      render(
+        <FormField label="Email" error="Required.">
+          <input type="email" />
+        </FormField>,
+      );
+      expect(screen.getByRole("textbox")).toHaveAttribute(
+        "aria-invalid",
+        "true",
+      );
+    });
   });
 });

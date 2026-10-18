@@ -1,10 +1,16 @@
 <script lang="ts">
 import type { VNode } from "vue";
-import { type TrueColor } from "../theme/Theme";
+import { TRUE_COLORS, type TrueColor } from "../theme/Theme";
 import type { PickerTag } from "./Picker.vue";
 
 // ── Tone tokens (mirrors Picker) ──────────────────────────────────────────────
 
+/**
+ * Generated from `TRUE_COLORS`, not hand-written — same drift as `Picker`:
+ * `red` spelled every class with **rose** and `green` with **emerald**. The
+ * literal strings were also what Tailwind scanned, so the correct classes for
+ * those tones had never been emitted. See `scripts/generate-safelist.mjs`.
+ */
 const toneTokens: Record<
   TrueColor,
   {
@@ -16,209 +22,31 @@ const toneTokens: Record<
     createRowIcon: string;
     createRowLabel: string;
   }
-> = {
-  red: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-    focusedBg: "bg-rose-50/60 dark:bg-rose-900/10",
-    createRowIcon: "text-rose-500 dark:text-rose-400",
-    createRowLabel: "text-rose-700 dark:text-rose-300",
-  },
-  orange: {
-    triggerOpen:
-      "border-orange-500 ring-2 ring-orange-500/20 dark:border-orange-400",
-    optionSelectedBg: "bg-orange-50 dark:bg-orange-900/20",
-    optionSelectedText: "text-orange-700 dark:text-orange-300",
-    optionSelectedIcon: "text-orange-500 dark:text-orange-400",
-    focusedBg: "bg-orange-50/60 dark:bg-orange-900/10",
-    createRowIcon: "text-orange-500 dark:text-orange-400",
-    createRowLabel: "text-orange-700 dark:text-orange-300",
-  },
-  amber: {
-    triggerOpen:
-      "border-amber-500 ring-2 ring-amber-500/20 dark:border-amber-400",
-    optionSelectedBg: "bg-amber-50 dark:bg-amber-900/20",
-    optionSelectedText: "text-amber-700 dark:text-amber-300",
-    optionSelectedIcon: "text-amber-500 dark:text-amber-400",
-    focusedBg: "bg-amber-50/60 dark:bg-amber-900/10",
-    createRowIcon: "text-amber-500 dark:text-amber-400",
-    createRowLabel: "text-amber-700 dark:text-amber-300",
-  },
-  yellow: {
-    triggerOpen:
-      "border-yellow-500 ring-2 ring-yellow-500/20 dark:border-yellow-400",
-    optionSelectedBg: "bg-yellow-50 dark:bg-yellow-900/20",
-    optionSelectedText: "text-yellow-700 dark:text-yellow-300",
-    optionSelectedIcon: "text-yellow-500 dark:text-yellow-400",
-    focusedBg: "bg-yellow-50/60 dark:bg-yellow-900/10",
-    createRowIcon: "text-yellow-500 dark:text-yellow-400",
-    createRowLabel: "text-yellow-700 dark:text-yellow-300",
-  },
-  lime: {
-    triggerOpen: "border-lime-500 ring-2 ring-lime-500/20 dark:border-lime-400",
-    optionSelectedBg: "bg-lime-50 dark:bg-lime-900/20",
-    optionSelectedText: "text-lime-700 dark:text-lime-300",
-    optionSelectedIcon: "text-lime-500 dark:text-lime-400",
-    focusedBg: "bg-lime-50/60 dark:bg-lime-900/10",
-    createRowIcon: "text-lime-500 dark:text-lime-400",
-    createRowLabel: "text-lime-700 dark:text-lime-300",
-  },
-  green: {
-    triggerOpen:
-      "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400",
-    optionSelectedBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    optionSelectedText: "text-emerald-700 dark:text-emerald-300",
-    optionSelectedIcon: "text-emerald-500 dark:text-emerald-400",
-    focusedBg: "bg-emerald-50/60 dark:bg-emerald-900/10",
-    createRowIcon: "text-emerald-500 dark:text-emerald-400",
-    createRowLabel: "text-emerald-700 dark:text-emerald-300",
-  },
-  emerald: {
-    triggerOpen:
-      "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400",
-    optionSelectedBg: "bg-emerald-50 dark:bg-emerald-900/20",
-    optionSelectedText: "text-emerald-700 dark:text-emerald-300",
-    optionSelectedIcon: "text-emerald-500 dark:text-emerald-400",
-    focusedBg: "bg-emerald-50/60 dark:bg-emerald-900/10",
-    createRowIcon: "text-emerald-500 dark:text-emerald-400",
-    createRowLabel: "text-emerald-700 dark:text-emerald-300",
-  },
-  teal: {
-    triggerOpen: "border-teal-500 ring-2 ring-teal-500/20 dark:border-teal-400",
-    optionSelectedBg: "bg-teal-50 dark:bg-teal-900/20",
-    optionSelectedText: "text-teal-700 dark:text-teal-300",
-    optionSelectedIcon: "text-teal-500 dark:text-teal-400",
-    focusedBg: "bg-teal-50/60 dark:bg-teal-900/10",
-    createRowIcon: "text-teal-500 dark:text-teal-400",
-    createRowLabel: "text-teal-700 dark:text-teal-300",
-  },
-  cyan: {
-    triggerOpen: "border-cyan-500 ring-2 ring-cyan-500/20 dark:border-cyan-400",
-    optionSelectedBg: "bg-cyan-50 dark:bg-cyan-900/20",
-    optionSelectedText: "text-cyan-700 dark:text-cyan-300",
-    optionSelectedIcon: "text-cyan-500 dark:text-cyan-400",
-    focusedBg: "bg-cyan-50/60 dark:bg-cyan-900/10",
-    createRowIcon: "text-cyan-500 dark:text-cyan-400",
-    createRowLabel: "text-cyan-700 dark:text-cyan-300",
-  },
-  sky: {
-    triggerOpen: "border-sky-500 ring-2 ring-sky-500/20 dark:border-sky-400",
-    optionSelectedBg: "bg-sky-50 dark:bg-sky-900/20",
-    optionSelectedText: "text-sky-700 dark:text-sky-300",
-    optionSelectedIcon: "text-sky-500 dark:text-sky-400",
-    focusedBg: "bg-sky-50/60 dark:bg-sky-900/10",
-    createRowIcon: "text-sky-500 dark:text-sky-400",
-    createRowLabel: "text-sky-700 dark:text-sky-300",
-  },
-  blue: {
-    triggerOpen: "border-blue-500 ring-2 ring-blue-500/20 dark:border-blue-400",
-    optionSelectedBg: "bg-blue-50 dark:bg-blue-900/20",
-    optionSelectedText: "text-blue-700 dark:text-blue-300",
-    optionSelectedIcon: "text-blue-500 dark:text-blue-400",
-    focusedBg: "bg-blue-50/60 dark:bg-blue-900/10",
-    createRowIcon: "text-blue-500 dark:text-blue-400",
-    createRowLabel: "text-blue-700 dark:text-blue-300",
-  },
-  indigo: {
-    triggerOpen:
-      "border-indigo-500 ring-2 ring-indigo-500/20 dark:border-indigo-400",
-    optionSelectedBg: "bg-indigo-50 dark:bg-indigo-900/20",
-    optionSelectedText: "text-indigo-700 dark:text-indigo-300",
-    optionSelectedIcon: "text-indigo-500 dark:text-indigo-400",
-    focusedBg: "bg-indigo-50/60 dark:bg-indigo-900/10",
-    createRowIcon: "text-indigo-500 dark:text-indigo-400",
-    createRowLabel: "text-indigo-700 dark:text-indigo-300",
-  },
-  violet: {
-    triggerOpen:
-      "border-violet-500 ring-2 ring-violet-500/20 dark:border-violet-400",
-    optionSelectedBg: "bg-violet-50 dark:bg-violet-900/20",
-    optionSelectedText: "text-violet-700 dark:text-violet-300",
-    optionSelectedIcon: "text-violet-500 dark:text-violet-400",
-    focusedBg: "bg-violet-50/60 dark:bg-violet-900/10",
-    createRowIcon: "text-violet-500 dark:text-violet-400",
-    createRowLabel: "text-violet-700 dark:text-violet-300",
-  },
-  purple: {
-    triggerOpen:
-      "border-purple-500 ring-2 ring-purple-500/20 dark:border-purple-400",
-    optionSelectedBg: "bg-purple-50 dark:bg-purple-900/20",
-    optionSelectedText: "text-purple-700 dark:text-purple-300",
-    optionSelectedIcon: "text-purple-500 dark:text-purple-400",
-    focusedBg: "bg-purple-50/60 dark:bg-purple-900/10",
-    createRowIcon: "text-purple-500 dark:text-purple-400",
-    createRowLabel: "text-purple-700 dark:text-purple-300",
-  },
-  fuchsia: {
-    triggerOpen:
-      "border-fuchsia-500 ring-2 ring-fuchsia-500/20 dark:border-fuchsia-400",
-    optionSelectedBg: "bg-fuchsia-50 dark:bg-fuchsia-900/20",
-    optionSelectedText: "text-fuchsia-700 dark:text-fuchsia-300",
-    optionSelectedIcon: "text-fuchsia-500 dark:text-fuchsia-400",
-    focusedBg: "bg-fuchsia-50/60 dark:bg-fuchsia-900/10",
-    createRowIcon: "text-fuchsia-500 dark:text-fuchsia-400",
-    createRowLabel: "text-fuchsia-700 dark:text-fuchsia-300",
-  },
-  rose: {
-    triggerOpen: "border-rose-500 ring-2 ring-rose-500/20 dark:border-rose-400",
-    optionSelectedBg: "bg-rose-50 dark:bg-rose-900/20",
-    optionSelectedText: "text-rose-700 dark:text-rose-300",
-    optionSelectedIcon: "text-rose-500 dark:text-rose-400",
-    focusedBg: "bg-rose-50/60 dark:bg-rose-900/10",
-    createRowIcon: "text-rose-500 dark:text-rose-400",
-    createRowLabel: "text-rose-700 dark:text-rose-300",
-  },
-  slate: {
-    triggerOpen:
-      "border-slate-500 ring-2 ring-slate-500/20 dark:border-slate-400",
-    optionSelectedBg: "bg-slate-50 dark:bg-slate-900/20",
-    optionSelectedText: "text-slate-700 dark:text-slate-300",
-    optionSelectedIcon: "text-slate-500 dark:text-slate-400",
-    focusedBg: "bg-slate-50/60 dark:bg-slate-900/10",
-    createRowIcon: "text-slate-500 dark:text-slate-400",
-    createRowLabel: "text-slate-700 dark:text-slate-300",
-  },
-  gray: {
-    triggerOpen: "border-gray-500 ring-2 ring-gray-500/20 dark:border-gray-400",
-    optionSelectedBg: "bg-gray-50 dark:bg-gray-900/20",
-    optionSelectedText: "text-gray-700 dark:text-gray-300",
-    optionSelectedIcon: "text-gray-500 dark:text-gray-400",
-    focusedBg: "bg-gray-50/60 dark:bg-gray-900/10",
-    createRowIcon: "text-gray-500 dark:text-gray-400",
-    createRowLabel: "text-gray-700 dark:text-gray-300",
-  },
-  zinc: {
-    triggerOpen: "border-zinc-500 ring-2 ring-zinc-500/20 dark:border-zinc-400",
-    optionSelectedBg: "bg-zinc-50 dark:bg-zinc-900/20",
-    optionSelectedText: "text-zinc-700 dark:text-zinc-300",
-    optionSelectedIcon: "text-zinc-500 dark:text-zinc-400",
-    focusedBg: "bg-zinc-50/60 dark:bg-zinc-900/10",
-    createRowIcon: "text-zinc-500 dark:text-zinc-400",
-    createRowLabel: "text-zinc-700 dark:text-zinc-300",
-  },
-  neutral: {
-    triggerOpen:
-      "border-neutral-500 ring-2 ring-neutral-500/20 dark:border-neutral-400",
-    optionSelectedBg: "bg-neutral-100 dark:bg-neutral-800",
-    optionSelectedText: "text-neutral-700 dark:text-neutral-300",
-    optionSelectedIcon: "text-neutral-500 dark:text-neutral-400",
-    focusedBg: "bg-neutral-50 dark:bg-neutral-800/60",
-    createRowIcon: "text-neutral-500 dark:text-neutral-400",
-    createRowLabel: "text-neutral-700 dark:text-neutral-300",
-  },
-  stone: {
-    triggerOpen:
-      "border-stone-500 ring-2 ring-stone-500/20 dark:border-stone-400",
-    optionSelectedBg: "bg-stone-50 dark:bg-stone-900/20",
-    optionSelectedText: "text-stone-700 dark:text-stone-300",
-    optionSelectedIcon: "text-stone-500 dark:text-stone-400",
-    focusedBg: "bg-stone-50/60 dark:bg-stone-900/10",
-    createRowIcon: "text-stone-500 dark:text-stone-400",
-    createRowLabel: "text-stone-700 dark:text-stone-300",
-  },
-};
+> = Object.fromEntries(
+  TRUE_COLORS.map((c) => [
+    c,
+    {
+      triggerOpen: `border-${c}-500 ring-2 ring-${c}-500/20 dark:border-${c}-400`,
+      optionSelectedBg: `bg-${c}-50 dark:bg-${c}-900/20`,
+      optionSelectedText: `text-${c}-700 dark:text-${c}-300`,
+      optionSelectedIcon: `text-${c}-500 dark:text-${c}-400`,
+      focusedBg: `bg-${c}-50/60 dark:bg-${c}-900/10`,
+      createRowIcon: `text-${c}-500 dark:text-${c}-400`,
+      createRowLabel: `text-${c}-700 dark:text-${c}-300`,
+    },
+  ]),
+) as Record<
+  TrueColor,
+  {
+    triggerOpen: string;
+    optionSelectedBg: string;
+    optionSelectedText: string;
+    optionSelectedIcon: string;
+    focusedBg: string;
+    createRowIcon: string;
+    createRowLabel: string;
+  }
+>;
 
 // ── Shared positioning helpers (mirrors Picker) ───────────────────────────────
 

@@ -23,7 +23,7 @@ const UncontrolledAndGlass = () => (
         name="uncontrolled"
         options={OPTIONS}
         defaultValue={["volumes"]}
-        color="blue"
+        tone="blue"
       />
     </div>
     <div className="flex flex-col gap-2">
@@ -35,7 +35,7 @@ const UncontrolledAndGlass = () => (
           defaultValue={["containers", "networks"]}
           variant="liquid-glass"
           unselectedVariant="glass"
-          color="blue"
+          tone="blue"
         />
       </Panel>
     </div>

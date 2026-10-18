@@ -6,13 +6,18 @@ import React, {
   useState,
 } from "react";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useKitT } from "../i18n";
 import {
-  TRUE_COLORS,
+  DEFAULT_GLOW_INTENSITY,
+  FIELD_STATUS_CLASSES,
+  VALIDATION_STATUSES,
+  getFieldSizeTokens,
+  getFieldToneTokens,
   getGlowTokens,
   getInputVariantTokens,
-  stripBorderColor,
   resolveGlowGradient,
-} from "../theme/Theme";
+  stripBorderColor,
+} from "../theme";
 import type {
   ControlSize,
   GlowIntensity,
@@ -20,9 +25,9 @@ import type {
   TrueColor,
 } from "../theme/Theme";
 
-export const INPUT_VALIDATION_STATUSES = ["none", "error", "success"] as const;
-export type InputValidationStatus =
-  (typeof INPUT_VALIDATION_STATUSES)[number];
+/** @deprecated Use `VALIDATION_STATUSES` from the theme. Kept as an alias. */
+export const INPUT_VALIDATION_STATUSES = VALIDATION_STATUSES;
+export type InputValidationStatus = (typeof INPUT_VALIDATION_STATUSES)[number];
 
 /**
  * The shared control scale, so an Input lines up with the Button, SearchBar and
@@ -37,125 +42,16 @@ export type InputSize = ControlSize;
  */
 export type { InputVariant };
 
-// ── Tone tokens ───────────────────────────────────────────────────────────────
-// Generated from the shared TrueColor list rather than hand-written. The map
-// this replaces had 21 entries typed out by hand and two of them were wrong:
-// `red` emitted `rose-400`/`rose-500` classes and `green` emitted `emerald-*`,
-// so those two tones silently rendered as a different colour.
-
-type InputToneTokens = {
-  /** Border colour while anything inside the field has focus. */
-  focusBorder: string;
-  /** Glow ring while anything inside the field has focus. */
-  focusRing: string;
-  /** Leading/trailing icon colour while the field has focus. */
-  icon: string;
-  /** Focus ring for the inline trailing button. */
-  buttonFocusRing: string;
-};
-
-const buildToneTokens = (color: TrueColor): InputToneTokens => ({
-  focusBorder: `focus-within:border-${color}-400`,
-  // Inset, matching SearchBar. An outer ring is painted outside the border box,
-  // so any ancestor with `overflow: auto|hidden` clips it — `Panel`'s body is
-  // `overflow-auto` by default, which shears the ring off and leaves hard
-  // square corners.
-  focusRing: `focus-within:ring-2 focus-within:ring-inset focus-within:ring-${color}-400/60`,
-  icon: `group-focus-within:text-${color}-500`,
-  buttonFocusRing: `focus-visible:ring-${color}-400/60`,
-});
-
-const TONE_TOKENS: Record<TrueColor, InputToneTokens> = Object.fromEntries(
-  TRUE_COLORS.map((color) => [color, buildToneTokens(color)]),
-) as Record<TrueColor, InputToneTokens>;
-
-const getToneTokens = (color: TrueColor): InputToneTokens =>
-  TONE_TOKENS[color] ?? TONE_TOKENS.blue;
-
-// ── Sizing ────────────────────────────────────────────────────────────────────
-
-/** Padding and type scale, mirroring `SearchBar` so the two line up stacked. */
-const SIZE_STYLES: Record<
-  ControlSize,
-  {
-    px: string;
-    py: string;
-    /** `underline` has no box to inset from, and needs room above the rule. */
-    underlinePy: string;
-    text: string;
-    icon: ControlSize;
-    /** Inline trailing button. */
-    button: string;
-  }
-> = {
-  xs: {
-    px: "px-2",
-    py: "py-1",
-    underlinePy: "pt-1 pb-2",
-    text: "text-xs",
-    icon: "xs",
-    button: "h-4 w-4",
-  },
-  sm: {
-    px: "px-2.5",
-    py: "py-1.5",
-    underlinePy: "pt-1.5 pb-2.5",
-    text: "text-xs",
-    icon: "xs",
-    button: "h-5 w-5",
-  },
-  md: {
-    px: "px-3",
-    py: "py-2",
-    underlinePy: "pt-2 pb-3",
-    text: "text-sm",
-    icon: "sm",
-    button: "h-5 w-5",
-  },
-  lg: {
-    px: "px-4",
-    py: "py-2.5",
-    underlinePy: "pt-2.5 pb-3.5",
-    text: "text-base",
-    icon: "sm",
-    button: "h-6 w-6",
-  },
-  xl: {
-    px: "px-5",
-    py: "py-3",
-    underlinePy: "pt-3 pb-4",
-    text: "text-base",
-    icon: "sm",
-    button: "h-6 w-6",
-  },
-};
-
-/**
- * Border only at rest; the ring is part of the focus state, exactly as it is
- * for the tone tokens. A status used to add a bare `ring-2 ring-inset` at rest
- * with no ring *colour* — an unset ring colour resolves to `currentColor`, so
- * every errored or successful field carried a near-black 2px halo inside its
- * coloured border.
- *
- * These also carry no copy colour. The old version forced
- * `text-neutral-900 dark:text-neutral-100` alongside the border, so an errored
- * `underline` or `glass` field lost the high-contrast pair it needs to stay
- * legible over a backdrop.
- */
-const STATUS_CLASSES: Record<Exclude<InputValidationStatus, "none">, string> = {
-  error:
-    "border-rose-500 dark:border-rose-400 focus-within:border-rose-500 dark:focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-rose-500/60 dark:focus-within:ring-rose-400/60",
-  success:
-    "border-emerald-500 dark:border-emerald-400 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-500/60 dark:focus-within:ring-emerald-400/60",
-};
+// The tone tokens, padding scale and validation surfaces all live in the theme
+// now, shared with `Select`, `SearchBar` and `Picker`. Each of those carried a
+// byte-for-byte copy, which is how fields drift apart one edit at a time.
 
 type InputVisual = string | React.ReactElement;
 
-export interface InputProps
-  extends Omit<
-    InputHTMLAttributes<HTMLInputElement>,
-    "size" | "color" | "className"
-  > {
+export interface InputProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "size" | "color" | "className"
+> {
   /** @default "md" */
   size?: InputSize;
   /** Accent colour for the focus border, ring and icon highlight. */
@@ -168,7 +64,7 @@ export interface InputProps
   gradientFrom?: string;
   /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
   gradientTo?: string;
-  /** How prominent the gradient glow is. @default "soft" */
+  /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
   glowIntensity?: GlowIntensity;
   /** @default "none" */
   validationStatus?: InputValidationStatus;
@@ -176,7 +72,10 @@ export interface InputProps
   trailingIcon?: InputVisual;
   /** Renders the trailing icon as a button rather than a static decoration. */
   onTrailingIconClick?: React.MouseEventHandler<HTMLButtonElement>;
-  /** Accessible name for that button. @default "Input action" */
+  /**
+   * Accessible name for that button.
+   * @default t("kit.input.trailingAction") — "Input action" in English
+   */
   trailingIconLabel?: string;
   /**
    * Classes for the field box. The surface moved from the `<input>` to its
@@ -201,14 +100,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     variant = "flat",
     gradientFrom,
     gradientTo,
-    glowIntensity = "soft",
+    glowIntensity = DEFAULT_GLOW_INTENSITY,
     onFocus,
     onBlur,
     validationStatus = "none",
     leadingIcon,
     trailingIcon,
     onTrailingIconClick,
-    trailingIconLabel = "Input action",
+    trailingIconLabel,
     className,
     wrapperClassName,
     inputClassName,
@@ -220,12 +119,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref: ForwardedRef<HTMLInputElement>,
 ) {
   const renderIcon = useIconRenderer();
+  const t = useKitT();
   const [focused, setFocused] = useState(false);
 
   const effectiveTone = tone ?? color ?? "blue";
-  const sizeToken = SIZE_STYLES[size] ?? SIZE_STYLES.md;
-  const tokens = getToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant);
+  const sizeToken = getFieldSizeTokens(size);
+  const tokens = getFieldToneTokens(effectiveTone);
+  const variantTokens = getInputVariantTokens(variant, effectiveTone);
   const isUnderline = variant === "underline";
   const hasStatus = validationStatus !== "none";
 
@@ -272,7 +172,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         type="button"
         onClick={onTrailingIconClick}
         disabled={disabled}
-        aria-label={trailingIconLabel}
+        aria-label={trailingIconLabel ?? t("kit.input.trailingAction")}
         className={classNames(
           "ml-2 inline-flex shrink-0 items-center justify-center rounded transition-colors",
           "focus-visible:outline-none focus-visible:ring-2",
@@ -317,7 +217,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         !unstyled && !hasStatus && tokens.focusBorder,
         // A ring around a borderless underline reads as a stray box.
         !unstyled && !isUnderline && !hasStatus && tokens.focusRing,
-        !unstyled && hasStatus && STATUS_CLASSES[validationStatus],
+        !unstyled && hasStatus && FIELD_STATUS_CLASSES[validationStatus],
         // Opacity, not a neutral fill: `disabled:bg-neutral-100` was a
         // same-specificity fight with every variant's own fill, and it turned a
         // glass or underline field into an opaque grey slab.
@@ -350,7 +250,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {...rest}
         // After the spread, so a caller cannot leave a field that reports
         // itself as valid while showing the error surface.
-        aria-invalid={validationStatus === "error" ? true : rest["aria-invalid"]}
+        aria-invalid={
+          validationStatus === "error" ? true : rest["aria-invalid"]
+        }
       />
       {trailing}
     </span>
@@ -363,19 +265,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     return (
       <span
         className={classNames(
-          "relative flex w-full",
+          "relative flex w-full overflow-hidden rounded-[28px]",
           glow.pad,
           fullHeight && "h-full",
         )}
       >
         <span
           className={classNames(
-            "absolute rounded-2xl leading-none transition-opacity duration-500",
+            "absolute rounded-2xl transition-opacity duration-500",
             glow.inset,
-            glow.blur,
           )}
           style={{
-            background: `linear-gradient(to right, ${glowFrom}, ${glowTo})`,
+            // Two lobes of the gradient, pushed apart on the shadow axis:
+            // start colour glows from the left, end colour from the right.
+            boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowTo}`,
             opacity: focused ? glow.focusOpacity : glow.idleOpacity,
           }}
           aria-hidden

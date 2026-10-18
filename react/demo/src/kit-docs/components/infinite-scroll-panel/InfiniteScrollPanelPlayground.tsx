@@ -22,6 +22,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   glassOpacityOptions,
@@ -91,120 +92,154 @@ export const InfiniteScrollPanelPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={infiniteScrollVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as InfiniteScrollPanelVariant)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Variant"
+                      options={infiniteScrollVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as InfiniteScrollPanelVariant)}
+                    />
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={tone}
+                      onChange={(v) => setTone(v as TrueColor)}
+                    />
+                    <SelectControl
+                      label="Corner"
+                      options={panelCornerOptions}
+                      value={corner}
+                      onChange={(v) => setCorner(v as PanelCorner)}
+                    />
+                    <Control label="Padding">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={panelPaddingOptions}
+                        value={padding}
+                        onChange={(v) => setPadding(v as PanelPadding)}
+                      />
+                    </Control>
+                    <Control label="Layout">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={infiniteScrollLayoutOptions}
+                        value={layout}
+                        onChange={(v) => setLayout(v as InfiniteScrollLayout)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "layout",
+                title: "Layout",
+                controls: (
+                  <>
+                    <Control label="Gap">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={gap}
+                        onChange={(v) => setGap(v as ControlSize)}
+                      />
+                    </Control>
+                    <Control label={`Max columns — ${maxColumns}`}>
+                      <input
+                        type="range"
+                        min={1}
+                        max={6}
+                        value={maxColumns}
+                        onChange={(event) => setMaxColumns(Number(event.target.value))}
+                        className="w-full accent-blue-500"
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow label="Empty" checked={empty} onChange={setEmpty} />
+                    <ToggleRow
+                      label="Next page fails"
+                      checked={failNext}
+                      onChange={setFailNext}
+                    />
+                    <Button
+                      size="xs"
+                      variant="soft"
+                      color={tone}
+                      onClick={() => {
+                        setItems(Array.from({ length: PAGE }, (_, i) => i));
+                        setEmpty(false);
+                        setFailNext(false);
+                      }}
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                ),
+              },
+              ...(isGlass
+                ? [
+                    {
+                      id: "glass",
+                      title: "Glass",
+                      controls: (
+                        <>
+                          <Control label="Specular">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={panelSpecularOptions}
+                              value={specularMode}
+                              onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
+                            />
+                          </Control>
+                          <Control label="Vibrancy">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassVibrancyOptions}
+                              value={vibrancy as string}
+                              onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                            />
+                          </Control>
+                          <Control label="Glass opacity">
+                            <MultiToggle
+                              fullWidth
+                              size="sm"
+                              options={glassOpacityOptions}
+                              value={glassOpacity as string}
+                              onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                            />
+                          </Control>
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
           />
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <SelectControl
-            label="Corner"
-            options={panelCornerOptions}
-            value={corner}
-            onChange={(v) => setCorner(v as PanelCorner)}
-          />
-          <Control label="Padding">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={panelPaddingOptions}
-              value={padding}
-              onChange={(v) => setPadding(v as PanelPadding)}
-            />
-          </Control>
-          <Control label="Layout">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={infiniteScrollLayoutOptions}
-              value={layout}
-              onChange={(v) => setLayout(v as InfiniteScrollLayout)}
-            />
-          </Control>
-          <Control label="Gap">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={gap}
-              onChange={(v) => setGap(v as ControlSize)}
-            />
-          </Control>
-          <Control label={`Max columns — ${maxColumns}`}>
-            <input
-              type="range"
-              min={1}
-              max={6}
-              value={maxColumns}
-              onChange={(event) => setMaxColumns(Number(event.target.value))}
-              className="w-full accent-blue-500"
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Empty" checked={empty} onChange={setEmpty} />
-            <ToggleRow
-              label="Next page fails"
-              checked={failNext}
-              onChange={setFailNext}
-            />
-            <Button
-              size="xs"
-              variant="soft"
-              color={tone}
-              onClick={() => {
-                setItems(Array.from({ length: PAGE }, (_, i) => i));
-                setEmpty(false);
-                setFailNext(false);
-              }}
-            >
-              Reset
-            </Button>
-          </div>
-          {isGlass && (
-            <>
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy as string}
-                  onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity as string}
-                  onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                />
-              </Control>
-            </>
-          )}
           <p className="text-xs opacity-70">
             {items.length} of {TOTAL} loaded. <strong>Columns</strong> fills
             each column top-to-bottom, so reading order runs down rather than
             across — <strong>grid</strong> keeps left-to-right order.{" "}
             <strong>Next page fails</strong> shows the retry state.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

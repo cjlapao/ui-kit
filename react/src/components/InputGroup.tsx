@@ -3,12 +3,23 @@ import React, {
   type ReactElement,
   type ReactNode,
   isValidElement,
+  useState,
 } from "react";
 import {
-  TRUE_COLORS,
+  DEFAULT_GLOW_INTENSITY,
+  getGlowTokens,
+  getFieldSizeTokens,
   getInputVariantTokens,
+  resolveGlowGradient,
+  TRUE_COLORS,
 } from "../theme/Theme";
-import type { ControlSize, InputVariant, TrueColor } from "../theme/Theme";
+import type {
+  ControlSize,
+  GlowIntensity,
+  InputVariant,
+  SurfaceCorner,
+  TrueColor,
+} from "../theme/Theme";
 
 export const INPUT_GROUP_VALIDATION_STATUSES = [
   "none",
@@ -58,6 +69,12 @@ type InputGroupToneTokens = {
   addon: string;
 };
 
+/**
+ * These are *not* the shared field tone tokens, and deliberately so: the group
+ * draws its edge with an `outline` rather than a `ring` (see the type above),
+ * and it owns addon fills that no other field has. Only `focusBorder` is the
+ * same idea, and it is spelled the same way.
+ */
 const buildToneTokens = (color: TrueColor): InputGroupToneTokens => ({
   ring: `outline-${color}-200/70 dark:outline-${color}-500/30`,
   focusRing: `focus-within:outline-${color}-400 dark:focus-within:outline-${color}-400`,
@@ -77,14 +94,9 @@ const getToneTokens = (color: TrueColor): InputGroupToneTokens =>
 
 // ── Sizing ────────────────────────────────────────────────────────────────────
 
-/** Addon padding and type, mirroring `Input`'s so the two halves line up. */
-const SIZE_STYLES: Record<ControlSize, { padding: string; text: string }> = {
-  xs: { padding: "px-2", text: "text-xs" },
-  sm: { padding: "px-2.5", text: "text-xs" },
-  md: { padding: "px-3", text: "text-sm" },
-  lg: { padding: "px-4", text: "text-base" },
-  xl: { padding: "px-5", text: "text-base" },
-};
+// The addon padding and type scale come from the theme's field table, so the
+// two halves of the group line up with the `Input` between them by
+// construction rather than by a copy that has to be kept in step.
 
 const STATUS_RING: Record<
   Exclude<InputGroupValidationStatus, "none">,
@@ -144,10 +156,27 @@ export interface InputGroupProps {
   children: ReactNode;
   /** @default "blue" */
   tone?: TrueColor;
-  /** Alias for `tone`, matching `Input` and `SearchBar`. */
+  /** Deprecated alias for `tone`. @deprecated */
   color?: TrueColor;
-  /** Surface treatment of the group box. @default "elevated" */
+  /**
+   * Surface treatment of the group box. The shared family: `ghost` reads
+   * the tone, and `gradient` carries one glow behind the group, like the
+   * fields inside it.
+   * @default "elevated"
+   */
   variant?: InputGroupVariant;
+  /**
+   * Group radius. `auto` keeps the control corner shared with every other
+   * field; an explicit token replaces it.
+   * @default "auto"
+   */
+  corner?: SurfaceCorner;
+  /** Gradient glow start. @default the tone's 600 shade */
+  gradientFrom?: string;
+  /** Gradient glow end. @default the tone's 400 shade */
+  gradientTo?: string;
+  /** Focus halo strength of the `gradient` variant. @default "subtle" */
+  glowIntensity?: GlowIntensity;
   /** @default "md" */
   size?: InputGroupSize;
   className?: string;
@@ -166,15 +195,30 @@ const InputGroup: React.FC<InputGroupProps> = ({
   tone,
   color,
   variant = "elevated",
+  corner = "auto",
+  gradientFrom,
+  gradientTo,
+  glowIntensity = DEFAULT_GLOW_INTENSITY,
   size = "md",
   className,
   validationStatus = "none",
   disabled = false,
 }) => {
+  const [focused, setFocused] = useState(false);
   const effectiveTone = tone ?? color ?? "blue";
   const toneToken = getToneTokens(effectiveTone);
-  const sizeToken = SIZE_STYLES[size] ?? SIZE_STYLES.md;
-  const variantTokens = getInputVariantTokens(variant);
+  const sizeToken = getFieldSizeTokens(size);
+  // The tone goes to the variant because the group IS the surface here —
+  // the children render unstyled, so a tone-reading surface (`ghost`) can
+  // only be tinted by the group. (This call used to be tone-blind: every
+  // ghost group stayed grey no matter what tone sat beside it.)
+  const variantTokens = getInputVariantTokens(variant, effectiveTone, corner);
+  const glow = getGlowTokens(glowIntensity);
+  const [glowFrom, glowTo] = resolveGlowGradient(
+    effectiveTone,
+    gradientFrom,
+    gradientTo,
+  );
   const hasStatus = validationStatus !== "none";
   const isUnderline = variant === "underline";
 
@@ -183,11 +227,11 @@ const InputGroup: React.FC<InputGroupProps> = ({
     // The base used to carry a fixed `text-sm` next to the size token's own
     // `text-*`, so which one applied at `lg` was decided by emission order.
     sizeToken.text,
-    sizeToken.padding,
+    sizeToken.px,
     toneToken.addon,
   );
 
-  return (
+  const box = (
     <div
       className={classNames(
         "flex w-full items-stretch overflow-hidden transition",
@@ -201,14 +245,23 @@ const InputGroup: React.FC<InputGroupProps> = ({
             ? STATUS_RING[validationStatus]
             : classNames(toneToken.ring, toneToken.focusRing)),
         isUnderline &&
-          (hasStatus
-            ? STATUS_BORDER[validationStatus]
-            : toneToken.focusBorder),
+          (hasStatus ? STATUS_BORDER[validationStatus] : toneToken.focusBorder),
         disabled && "cursor-not-allowed opacity-60",
         className,
       )}
       data-disabled={disabled}
       data-status={validationStatus}
+      // React's focus/blur events bubble, which is the focus-within signal
+      // the gradient halo needs — the CSS :focus-within does the edge, the
+      // state lights the glow.
+      onFocus={() => setFocused(true)}
+      onBlur={(event) => {
+        // Bubbling blur also fires when focus moves between two children;
+        // only go dark when focus is actually leaving the group.
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocused(false);
+        }
+      }}
     >
       {leadingAddon !== undefined && (
         <span className={classNames(addonClasses, "border-r")}>
@@ -227,6 +280,38 @@ const InputGroup: React.FC<InputGroupProps> = ({
       )}
     </div>
   );
+
+  // The gradient variant is the same group with a coloured glow behind it,
+  // matching `Input`, `Textarea` and `SearchBar`. `glow.pad` keeps the halo
+  // inside the component's own box, so a clipping ancestor cannot shear it
+  // off.
+  if (variant === "gradient") {
+    return (
+      <span
+        className={classNames(
+          "relative flex w-full overflow-hidden rounded-[28px]",
+          glow.pad,
+        )}
+      >
+        <span
+          className={classNames(
+            "absolute rounded-2xl transition-opacity duration-500",
+            glow.inset,
+          )}
+          style={{
+            // Two lobes of the gradient, pushed apart on the shadow axis:
+            // start colour glows from the left, end colour from the right.
+            boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowTo}`,
+            opacity: focused ? glow.focusOpacity : glow.idleOpacity,
+          }}
+          aria-hidden
+        />
+        {box}
+      </span>
+    );
+  }
+
+  return box;
 };
 
 export default InputGroup;

@@ -9,7 +9,9 @@ const TRIO_ITEMS: TabItem[] = [
 ];
 
 const Caption = ({ children }: { children: ReactNode }) => (
-  <span className="text-[10px] uppercase tracking-wide opacity-60">{children}</span>
+  <span className="text-[10px] uppercase tracking-wide opacity-60">
+    {children}
+  </span>
 );
 
 export default function Orientation() {

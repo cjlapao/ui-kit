@@ -4,6 +4,7 @@ import React, {
   forwardRef,
 } from "react";
 import classNames from "classnames";
+import { warnIfMissingName, warnIfAriaHiddenFocusable } from "../../../common/a11y/warn";
 import { type IconSize } from "../types/Icon";
 import { useIconRenderer } from "../contexts/IconContext";
 import {
@@ -32,6 +33,7 @@ import {
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import TooltipWrapper from "./TooltipWrapper";
 import type { TooltipPosition } from "./Tooltip";
+import { useKitT } from "../i18n";
 
 export type ButtonColor = TrueColor;
 export type { ButtonVariant };
@@ -130,6 +132,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const renderIcon = useIconRenderer();
+    const t = useKitT();
     const sizeConfig = getControlSizeTokens(size);
     const baseColorClasses = getButtonColorClasses(variant, color);
     const isIconMode = iconOnly || variant === "icon";
@@ -226,6 +229,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const isDisabled = disabled ?? false;
     const ariaLabel = (props as { "aria-label"?: string })["aria-label"];
+    // a11y (P1-2): the kit renders perfectly happily unlabeled — warn in dev.
+    warnIfMissingName("Button", ariaLabel, children);
+    warnIfAriaHiddenFocusable("Button", {
+      ariaHidden: (props as { "aria-hidden"?: boolean })["aria-hidden"],
+      interactive: !isDisabled,
+    });
     const srOnlyContent =
       typeof children === "string"
         ? children
@@ -278,7 +287,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           // `||`, not `??`: an empty-string `children` is a string, and
           // `"" ?? "Button"` is `""` — an sr-only span with no name, i.e. a
           // button a screen reader announces as just "button".
-          <span className="sr-only">{srOnlyContent || "Button"}</span>
+          // The last-resort name, spoken only when the author gave the
+          // button nothing else — and spoken in the user's language.
+          <span className="sr-only">{srOnlyContent || t("kit.button.name")}</span>
         ) : (
           children
         )}

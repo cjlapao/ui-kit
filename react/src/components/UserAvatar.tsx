@@ -1,5 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactElement, type ReactNode } from "react";
+import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useKitT } from "../i18n";
+import { type IconName } from "../icons/registry";
+import {
+  getPillColorClasses,
+  type ControlSize,
+  type TrueColor,
+} from "../theme/Theme";
+
+export const USER_AVATAR_SHAPES = ["circle", "rounded", "square"] as const;
+export type UserAvatarShape = (typeof USER_AVATAR_SHAPES)[number];
+
+/**
+ * PrimeVue Avatar's size names, accepted alongside the shared control ladder
+ * so a `size="large"` avatar drops straight in from a PrimeVue codebase.
+ */
+export const USER_AVATAR_PRESET_SIZES = ["normal", "large", "xlarge"] as const;
+export type UserAvatarPresetSize = (typeof USER_AVATAR_PRESET_SIZES)[number];
+
+/** Control ladder rung, PrimeVue preset name, or an exact pixel box. */
+export type UserAvatarSize = ControlSize | UserAvatarPresetSize | number;
 
 export interface UserAvatarUser {
   name?: string;
@@ -8,84 +29,244 @@ export interface UserAvatarUser {
   avatarUrl?: string;
 }
 
-export interface UserAvatarProps {
+export interface UserAvatarProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "color"
+> {
   user?: UserAvatarUser | null;
-  size?: number;
+  /**
+   * Scale on the shared control ladder. Was a bare pixel number, so an avatar
+   * could not be told to match the `sm` Button beside it. A number still
+   * works and wins, for the call sites that need an exact box; PrimeVue's
+   * `normal` / `large` / `xlarge` are mapped onto `md` / `lg` / `xl`.
+   * @default "md"
+   */
+  size?: UserAvatarSize;
+  /** Accent for the fallback chip. @default "neutral" */
+  tone?: TrueColor;
+  /** @default "circle" */
+  shape?: UserAvatarShape;
+  /** @deprecated Use `shape`. */
+  variant?: UserAvatarShape;
+  /**
+   * Text content, the PrimeVue `label` parity prop. Wins over `icon` and the
+   * image, exactly as it does there, and gives the avatar its accessible name
+   * when there is no user behind it.
+   */
+  label?: string;
+  /** Registry icon name or element, the PrimeVue `icon` parity prop. */
+  icon?: IconName | ReactElement;
+  /**
+   * With a handler, the avatar becomes a real button — Enter/Space and a
+   * tone focus ring included — instead of a div that only the mouse can
+   * reach. `onClick` otherwise rides the standard props spread.
+   */
+  onClick?: React.MouseEventHandler<HTMLElement>;
+  /** Disable the clickable avatar; no effect without `onClick`. @default false */
+  disabled?: boolean;
+  /**
+   * Direct image URL, the PrimeVue `image` parity prop. `user.avatarUrl`
+   * still resolves when this is absent; either way a broken URL falls back
+   * to the label, initial or glyph instead of breaking the layout.
+   */
+  image?: string;
+  /**
+   * Replaces the rendered content wholesale — the PrimeVue `template` slot.
+   * The wrapper keeps its box, shape and accessible name.
+   */
+  children?: ReactNode;
   className?: string;
-  variant?: "circle" | "rounded" | "square";
 }
+
+const SIZE_PX: Record<ControlSize, number> = {
+  xs: 20,
+  sm: 24,
+  md: 32,
+  lg: 40,
+  xl: 48,
+};
+
+const SIZE_TEXT: Record<ControlSize, string> = {
+  xs: "text-[10px]",
+  sm: "text-[11px]",
+  md: "text-xs",
+  lg: "text-sm",
+  xl: "text-base",
+};
+
+const SHAPE_CLASS: Record<UserAvatarShape, string> = {
+  circle: "rounded-full",
+  rounded: "rounded-md",
+  square: "rounded-none",
+};
+
+/** PrimeVue's size names, folded onto the shared ladder. */
+const PRESET_TO_CONTROL: Record<UserAvatarPresetSize, ControlSize> = {
+  normal: "md",
+  large: "lg",
+  xlarge: "xl",
+};
+
+/** The nearest control size for an explicit pixel box, for the type scale. */
+const sizeKeyFor = (px: number): ControlSize =>
+  (Object.keys(SIZE_PX) as ControlSize[]).reduce((best, key) =>
+    Math.abs(SIZE_PX[key] - px) < Math.abs(SIZE_PX[best] - px) ? key : best,
+  );
+
+/** Pixel box for any accepted size spelling. */
+const sizePx = (size: UserAvatarSize): number => {
+  if (typeof size === "number") return size;
+  if (size in PRESET_TO_CONTROL) {
+    return SIZE_PX[PRESET_TO_CONTROL[size as UserAvatarPresetSize]];
+  }
+  return SIZE_PX[size as ControlSize];
+};
+
+/** Ladder rung for any accepted size spelling, for the type and icon scale. */
+const sizeKey = (size: UserAvatarSize): ControlSize => {
+  if (typeof size === "number") return sizeKeyFor(size);
+  if (size in PRESET_TO_CONTROL) {
+    return PRESET_TO_CONTROL[size as UserAvatarPresetSize];
+  }
+  return size as ControlSize;
+};
 
 export const UserAvatar = ({
   user,
-  size = 32,
+  size = "md",
+  tone = "neutral",
+  shape,
+  variant,
+  label,
+  icon,
+  image,
+  children,
+  disabled = false,
   className = "",
-  variant = "circle",
+  ...rest
 }: UserAvatarProps) => {
   const renderIcon = useIconRenderer();
+  const t = useKitT();
   const [hasError, setHasError] = useState(false);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
 
+  // A direct `image` wins over `user.avatarUrl`, mirroring how PrimeVue's
+  // `image` prop is the one source there while our `user` object stays.
+  const src = image ?? user?.avatarUrl ?? null;
+
   useEffect(() => {
     setHasError(false);
-    if (user?.avatarUrl) {
-      setImgSrc(user.avatarUrl);
-    } else {
-      setImgSrc(null);
-    }
-  }, [user?.avatarUrl, size]);
+    setImgSrc(src);
+  }, [src]);
 
-  const roundedClass =
-    variant === "circle"
-      ? "rounded-full"
-      : variant === "rounded"
-        ? "rounded-md"
-        : "rounded-none";
-  const baseClasses = `flex items-center justify-center font-bold text-slate-600 overflow-hidden ${roundedClass} ${className}`;
+  const px = sizePx(size);
+  const key = sizeKey(size);
+  const resolvedShape = shape ?? variant ?? "circle";
+  const shapeClass = SHAPE_CLASS[resolvedShape];
+  // Was a hardcoded `bg-slate-200 text-slate-600` with a `dark:` partner only
+  // on the fallback — so the chip was slate whatever the app's palette, and
+  // there was no way to tone it.
+  const chip = getPillColorClasses(tone, "soft");
 
-  const renderFallback = () => {
-    const identifier = user?.name || user?.username || user?.email;
-    if (identifier) {
-      return (
-        <div
-          className={`w-full h-full bg-slate-200 flex items-center justify-center text-xs dark:bg-slate-700 dark:text-slate-300 ${roundedClass}`}
-        >
-          {identifier[0].toUpperCase()}
-        </div>
-      );
-    }
-    return (
-      <div
-        className={`w-full h-full bg-slate-200 flex items-center justify-center text-xs dark:bg-slate-700 dark:text-slate-300 ${roundedClass}`}
-      >
-        {renderIcon("User", "xs")}
-      </div>
+  const identifier = user?.name || user?.username || user?.email;
+
+  // Shared skin for everything that draws on the tone chip: label, icon and
+  // the initial/glyph fallback.
+  const chipInner = (node: ReactNode) => (
+    <div
+      className={classNames(
+        "flex h-full w-full items-center justify-center overflow-hidden font-bold",
+        SIZE_TEXT[key],
+        chip.base,
+        shapeClass,
+      )}
+    >
+      {node}
+    </div>
+  );
+
+  let content: ReactNode;
+  if (children != null) {
+    // The PrimeVue `template` slot: full control of the inside.
+    content = children;
+  } else if (label) {
+    // PrimeVue's own precedence: label over icon over image.
+    content = chipInner(
+      <span className="max-w-full truncate leading-none">{label}</span>,
     );
-  };
-
-  if (!user || !user.avatarUrl) {
-    return (
-      <div className={baseClasses} style={{ width: size, height: size }}>
-        {renderFallback()}
-      </div>
+  } else if (icon) {
+    content = chipInner(renderIcon(icon, key));
+  } else if (!hasError && imgSrc) {
+    content = (
+      <img
+        src={imgSrc}
+        // Decorative: the wrapper carries the accessible name, so the img
+        // must not announce the label twice.
+        alt=""
+        className={classNames("h-full w-full object-cover", shapeClass)}
+        // A DOM `onError` in `rest` lands on the wrapper and React bubbles
+        // the img error to it — the PrimeVue `@error` parity.
+        onError={() => setHasError(true)}
+      />
+    );
+  } else if (identifier) {
+    content = chipInner(identifier.trimStart()[0].toUpperCase());
+  } else {
+    content = chipInner(
+      // Decorative: the wrapper already carries the accessible name.
+      <span aria-hidden="true">{renderIcon("User", "xs")}</span>,
     );
   }
 
+  const name =
+    rest["aria-label"] ?? identifier ?? label ?? t("kit.useravatar.fallback");
+
+  const clickable = typeof rest.onClick === "function";
+  // The clickable variant is a real <button>: a div with onClick was a dead
+  // end for keyboards. Inside it the artwork is aria-hidden, so the button's
+  // name is just the person — not "Ada Lovelace Ada Lovelace".
+  const Wrapper = clickable ? "button" : "div";
+  // A disabled avatar is still a button — dimmed, inert, present in the tab
+  // order's memory (native disabled), never a mouse-creepable div.
+  const inert = clickable && disabled;
+
   return (
-    <div
-      className={`${baseClasses} bg-transparent`}
-      style={{ width: size, height: size }}
-    >
-      {!hasError && imgSrc ? (
-        <img
-          src={imgSrc}
-          alt={user?.name || user?.username || "User Avatar"}
-          className={`h-full w-full object-cover ${roundedClass}`}
-          onError={() => setHasError(true)}
-        />
-      ) : (
-        renderFallback()
+    <Wrapper
+      {...(rest as React.HTMLAttributes<HTMLElement>)}
+      {...(clickable
+        ? {
+            type: "button" as const,
+            disabled: disabled || undefined,
+            onClick: inert ? undefined : rest.onClick,
+          }
+        : { role: "img" as const })}
+      aria-label={name}
+      title={rest.title ?? identifier}
+      className={classNames(
+        "flex items-center justify-center overflow-hidden",
+        shapeClass,
+        clickable &&
+          classNames(
+            "appearance-none border-0 bg-transparent p-0 text-inherit",
+            inert
+              ? "cursor-default"
+              : "cursor-pointer transition-[filter] hover:brightness-95",
+            "focus-visible:ring-2 focus-visible:ring-offset-2",
+            `focus-visible:ring-${tone}-400`,
+            "disabled:pointer-events-none disabled:opacity-50",
+          ),
+        className,
       )}
-    </div>
+      style={{ width: px, height: px, ...rest.style }}
+    >
+      {clickable ? (
+        <span aria-hidden="true" className="contents">
+          {content}
+        </span>
+      ) : (
+        content
+      )}
+    </Wrapper>
   );
 };
 

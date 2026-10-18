@@ -83,7 +83,6 @@ export function GaugeSeries(props: GaugeSeriesProps) {
       cy,
       outerRadius,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d, area, outerRadius]);
 
   const p = animationsDisabled ? 1 : progress;
@@ -118,7 +117,6 @@ export function GaugeSeries(props: GaugeSeriesProps) {
         },
       ],
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d, final, value, max, min, baseColor]);
 
   useEffect(() => {
@@ -128,7 +126,6 @@ export function GaugeSeries(props: GaugeSeriesProps) {
     return () => {
       ctx.piePresentations.delete(seriesId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [presentation, seriesId]);
 
   // ── Canvas ──────────────────────────────────────────────────────────────
@@ -185,7 +182,6 @@ export function GaugeSeries(props: GaugeSeriesProps) {
     };
     registerDraw(id, fn);
     return () => unregisterDraw(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderer, final, hidden, seriesId, trackColor, tone, p, theme, registerDraw, unregisterDraw]);
 
   if (final === null) return null;

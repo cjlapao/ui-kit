@@ -15,7 +15,7 @@ const SAMPLES: { label: string; value: string; note: string }[] = [
     value: svg(
       '<path d="M4 12h16M12 4v16" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/>',
     ),
-    note: "fill=\"none\" is left alone, so the outline survives.",
+    note: 'fill="none" is left alone, so the outline survives.',
   },
   {
     label: "Gradient",

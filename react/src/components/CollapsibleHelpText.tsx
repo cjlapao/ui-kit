@@ -6,9 +6,8 @@ import { useSurfaceText } from "../contexts/SurfaceContext";
 import {
   DEFAULT_SURFACE_CORNER,
   SURFACE_VARIANTS,
-  TRUE_COLORS,
+  getCollapsibleHelpToneTokens,
   getSurfacePaddingClass,
-  getSurfaceTriggerTokens,
 } from "../theme/Theme";
 import type {
   PanelCorner,
@@ -17,7 +16,7 @@ import type {
   PanelVariant,
 } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
-import type { SurfaceTriggerTokens, TrueColor } from "../theme/Theme";
+import type { CollapsibleHelpToneTokens, TrueColor } from "../theme/Theme";
 
 // ── Variants ──────────────────────────────────────────────────────────────────
 
@@ -40,36 +39,6 @@ export type CollapsibleHelpTextVariant =
 const resolvePanelVariant = (
   variant: CollapsibleHelpTextVariant,
 ): PanelVariant => (variant === "card" ? "outlined" : (variant as PanelVariant));
-
-// ── Tone tokens ───────────────────────────────────────────────────────────────
-// Generated from the shared colour list. The hand-written map covered 6 of the
-// 21 TrueColors and fell back to `toneTokens.neutral`, which was not in it —
-// so every other tone dereferenced `undefined` and threw.
-
-type HelpToneTokens = SurfaceTriggerTokens & {
-  /** Chevron and icon glyph. */
-  accent: string;
-  /** Icon chip fill. */
-  iconBg: string;
-  /** Title line. */
-  title: string;
-};
-
-const buildToneTokens = (color: TrueColor): HelpToneTokens => ({
-  accent: `text-${color}-600 dark:text-${color}-300`,
-  iconBg: `bg-${color}-50 dark:bg-${color}-500/10`,
-  title: `text-${color}-700 dark:text-${color}-200`,
-  // Hover wash and focus ring are shared with every other full-bleed
-  // disclosure trigger, so they cannot drift apart.
-  ...getSurfaceTriggerTokens(color),
-});
-
-const TONE_TOKENS: Record<TrueColor, HelpToneTokens> = Object.fromEntries(
-  TRUE_COLORS.map((color) => [color, buildToneTokens(color)]),
-) as Record<TrueColor, HelpToneTokens>;
-
-const getToneTokens = (color: TrueColor): HelpToneTokens =>
-  TONE_TOKENS[color] ?? TONE_TOKENS.blue;
 
 // ── Truncation ────────────────────────────────────────────────────────────────
 
@@ -136,7 +105,7 @@ interface HelpBodyProps
     | "expandLabel"
     | "collapseLabel"
   > {
-  tone: HelpToneTokens;
+  tone: CollapsibleHelpToneTokens;
   padding: PanelPadding;
   displayText: string;
   expanded: boolean;
@@ -301,7 +270,7 @@ export const CollapsibleHelpText: React.FC<CollapsibleHelpTextProps> = ({
   const displayText =
     expanded || !needsTruncation ? sanitized : truncate(sanitized, maxLength);
 
-  const toneTokens = getToneTokens(tone);
+  const toneTokens = getCollapsibleHelpToneTokens(tone);
   const bare = variant === "plain";
 
   const body = (

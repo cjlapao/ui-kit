@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import { createPortal } from "react-dom";
+import classNames from "classnames";
 import {
   BarChart,
   Bar,
@@ -17,9 +18,12 @@ import {
   Line,
   Tooltip as RechartsTooltip,
 } from "recharts";
-import StatTile from "./StatTile";
-import type { StatTileProps } from "./StatTile";
-import type { TrueColor } from "../theme";
+import StatCard from "./StatCard";
+import type { StatCardProps } from "./StatCard";
+import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useIsDarkMode } from "../hooks/useIsDarkMode";
+import type { ControlSize, TrueColor } from "../theme";
+import type { PanelVariant } from "./Panel";
 import { getColorPaletteNames } from "../theme";
 
 export interface StatGraphSeries {
@@ -29,14 +33,32 @@ export interface StatGraphSeries {
   color?: TrueColor;
 }
 
-export interface StatGraphTileProps
-  extends Omit<
-    StatTileProps,
-    "body" | "progress" | "trend" | "meta" | "footer"
-  > {
+/** Which chart the tile draws. */
+export const STAT_GRAPH_CHART_TYPES = ["bar", "sparkline"] as const;
+export type StatGraphChartType = (typeof STAT_GRAPH_CHART_TYPES)[number];
+
+/**
+ * `StatCard` whose body is a chart. Every base prop applies unchanged —
+ * including `variant`, `progress`, `trend`, `meta` and `footer`, all of which
+ * this component used to strip off.
+ *
+ * `variant` here means the Panel surface, as it does on every other card. The
+ * chart kind moved to `chartType`, because the two had collided: this
+ * component declared `variant: "bar" | "sparkline"` and omitted the base
+ * card's `variant`, so a graph tile was the one Stat component that could not
+ * be given a surface.
+ */
+export interface StatGraphTileProps extends Omit<StatCardProps, "body" | "variant"> {
   data: any[];
-  variant: "bar" | "sparkline";
   series: StatGraphSeries[];
+  /** Which chart to draw. @default "bar" */
+  chartType?: StatGraphChartType;
+  /**
+   * The Panel surface, as on every other card. Still accepts `"bar"` and
+   * `"sparkline"` so existing call sites keep working — those are read as
+   * `chartType` and the surface falls back to its default.
+   */
+  variant?: PanelVariant | StatGraphChartType;
   height?: number;
   showLegend?: boolean;
   showAxes?: boolean;
@@ -50,7 +72,24 @@ export interface StatGraphTileProps
   chartAnimationDuration?: number;
   /** Optional cap for rendered data points to reduce chart redraw work. */
   maxDataPoints?: number;
+
+  /** @deprecated Use `label`. */
+  title?: React.ReactNode;
+  /** @deprecated Use `tone`. */
+  color?: TrueColor;
 }
+
+/** The sparkline's own readout scale, so it tracks the card's `size`. */
+const SPARK_VALUE: Record<ControlSize, string> = {
+  xs: "text-lg",
+  sm: "text-xl",
+  md: "text-3xl",
+  lg: "text-4xl",
+  xl: "text-5xl",
+};
+
+const isChartType = (value: unknown): value is StatGraphChartType =>
+  value === "bar" || value === "sparkline";
 
 // ── Portal tooltip (same approach as MultiProgressBar) ────────────────────────
 
@@ -126,7 +165,8 @@ function SilentTooltipContent() {
 
 const StatGraphTile: React.FC<StatGraphTileProps> = ({
   data,
-  variant = "bar",
+  variant,
+  chartType,
   series,
   height = 200,
   showLegend = true,
@@ -137,8 +177,24 @@ const StatGraphTile: React.FC<StatGraphTileProps> = ({
   chartAnimation = true,
   chartAnimationDuration = 250,
   maxDataPoints = 0,
+  title,
+  color,
+  label,
+  tone,
+  size = "md",
+  gradient = false,
+  actions,
   ...props
 }) => {
+  // `variant` used to *be* the chart kind. Read it as one when it holds one of
+  // those two values, so old call sites keep drawing the chart they asked for
+  // while the surface falls back to Panel's default.
+  const resolvedChartType: StatGraphChartType =
+    chartType ?? (isChartType(variant) ? variant : "bar");
+  const surfaceVariant = isChartType(variant) ? undefined : variant;
+  const resolvedTone = tone ?? color;
+  const text = useSurfaceText();
+  const isDark = useIsDarkMode();
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const tooltipFrameRef = useRef<number | null>(null);
@@ -262,7 +318,7 @@ const colorMap: Record<string, string> = {
 
   // Legend (bar only)
   const customActions = useMemo(() => {
-    if (!showLegend || variant !== "bar") return null;
+    if (!showLegend || resolvedChartType !== "bar") return null;
     return (
       <div className="flex items-center space-x-4">
         {resolvedSeries.map((s) => (
@@ -271,20 +327,36 @@ const colorMap: Record<string, string> = {
               className="w-2.5 h-2.5 rounded-full mr-2"
               style={{ backgroundColor: getColor(s.color) }}
             />
-            <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
+            <span
+              className={classNames(
+                "text-xs font-medium",
+                gradient ? "text-white/70" : text.muted,
+              )}
+            >
               {s.label}
             </span>
           </div>
         ))}
       </div>
     );
-  }, [showLegend, variant, resolvedSeries, getColor]);
+  }, [showLegend, resolvedChartType, resolvedSeries, getColor, gradient, text.muted]);
 
-  const textColor = "#64748b";
-  const gridColor = "#e2e8f0";
+  // Recharts writes these into presentation attributes, where a `dark:`
+  // utility has no effect — so both were light-mode values on every card,
+  // including dark ones and gradient washes.
+  const axisColor = gradient
+    ? "rgba(255,255,255,0.7)"
+    : isDark
+      ? "#94a3b8"
+      : "#64748b";
+  const gridColor = gradient
+    ? "rgba(255,255,255,0.2)"
+    : isDark
+      ? "#334155"
+      : "#e2e8f0";
 
   const renderChart = () => {
-    if (variant === "bar") {
+    if (resolvedChartType === "bar") {
       return (
         <div
           ref={wrapperRef}
@@ -311,13 +383,13 @@ const colorMap: Record<string, string> = {
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: textColor, fontSize: 12 }}
+                    tick={{ fill: axisColor, fontSize: 12 }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: textColor, fontSize: 12 }}
+                    tick={{ fill: axisColor, fontSize: 12 }}
                   />
                 </>
               )}
@@ -349,7 +421,7 @@ const colorMap: Record<string, string> = {
       );
     }
 
-    if (variant === "sparkline") {
+    if (resolvedChartType === "sparkline") {
       return (
         <div
           ref={wrapperRef}
@@ -390,31 +462,51 @@ const colorMap: Record<string, string> = {
   };
 
   return (
-    <StatTile
+    <StatCard
       {...props}
-      actions={customActions || props.actions}
+      label={label ?? title}
+      tone={resolvedTone}
+      size={size}
+      gradient={gradient}
+      variant={surfaceVariant}
+      actions={customActions ?? actions}
       body={
-        <div className="flex flex-col h-full w-full">
-          {variant === "sparkline" && (
+        <div className="flex h-full w-full flex-col">
+          {resolvedChartType === "sparkline" && (
             <div className="mt-2 mb-4 px-1">
               {renderChart()}
               <div className="mt-4">
-                <div className="text-3xl font-bold text-neutral-900 dark:text-white">
+                <div
+                  className={classNames(
+                    "font-bold",
+                    SPARK_VALUE[size] ?? SPARK_VALUE.md,
+                    gradient ? "text-white" : text.heading,
+                  )}
+                >
                   {props.value}
                 </div>
                 {props.subtitle && (
-                  <div className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+                  <div
+                    className={classNames(
+                      "mt-1 text-sm",
+                      gradient ? "text-white/70" : text.muted,
+                    )}
+                  >
                     {props.subtitle}
                   </div>
                 )}
               </div>
             </div>
           )}
-          {variant === "bar" && <div className="mt-4">{renderChart()}</div>}
+          {resolvedChartType === "bar" && (
+            <div className="mt-4">{renderChart()}</div>
+          )}
         </div>
       }
     />
   );
 };
+
+StatGraphTile.displayName = "StatGraphTile";
 
 export default StatGraphTile;

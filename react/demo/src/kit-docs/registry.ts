@@ -9,7 +9,7 @@ import type { IconName } from "@cjlapao/ui-kit";
  * the routes and the overview index all derive from this list.
  */
 export interface DocComponent {
-  /** URL segment and folder name: /docs/<slug> */
+  /** URL segment and folder name: /<slug> */
   slug: string;
   /** Display name in the menu and page header. */
   name: string;
@@ -30,7 +30,8 @@ export type DocCategory =
   | "Data"
   | "Charts"
   | "Feedback"
-  | "Overlays";
+  | "Overlays"
+  | "Utilities";
 
 export const DOC_CATEGORIES: DocCategory[] = [
   "Layout",
@@ -40,6 +41,7 @@ export const DOC_CATEGORIES: DocCategory[] = [
   "Charts",
   "Feedback",
   "Overlays",
+  "Utilities",
 ];
 
 export const DOC_COMPONENTS: DocComponent[] = [
@@ -161,6 +163,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/custom-icon/CustomIconPage")),
   },
   {
+    slug: "icons",
+    name: "Icon Registry",
+    description:
+      "Every shipped icon, discovered from the components directory — search, preview at each size, and copy the usage code.",
+    icon: "ViewGrid",
+    category: "Basics",
+    Page: lazy(() => import("./components/icons/IconsPage")),
+  },
+  {
     slug: "dynamic-img",
     name: "Dynamic Image",
     description:
@@ -240,6 +251,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "File",
     category: "Forms",
     Page: lazy(() => import("./components/form/FormPage")),
+  },
+  {
+    slug: "datepicker",
+    name: "Date Picker",
+    description:
+      "A date field that parses formatted dates plus a real Panel calendar — single and range selection, month/year views, constraints and keyboard navigation.",
+    icon: "Calendar",
+    category: "Forms",
+    Page: lazy(() => import("./components/datepicker/DatePickerPage")),
   },
   {
     slug: "key-value-array-field",
@@ -368,6 +388,51 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/workflow-tracker/WorkflowTrackerPage")),
   },
   {
+    slug: "gantt",
+    name: "Gantt Chart",
+    description:
+      "An interactive, drag-to-edit schedule: move and resize bars, draw finish/start dependencies, reorder rows within swimlanes, collapse parent groups with roll-up progress, and zoom day → quarter with a live today marker.",
+    icon: "ViewRows",
+    category: "Data",
+    Page: lazy(() => import("./components/gantt/GanttPage")),
+  },
+  {
+    slug: "color-swatches",
+    name: "Color Swatches",
+    description:
+      "Colours on display as a strip of dots — condensed into an overlapping stack behind a +N chip when count or width outgrows the row, expanding height-first with a staggered pop.",
+    icon: "Dots",
+    category: "Data",
+    Page: lazy(() => import("./components/color-swatches/ColorSwatchesPage")),
+  },
+  {
+    slug: "breakdown-card",
+    name: "Breakdown Card",
+    description:
+      "A whole split into parts — donut, labelled rows and a summary strip in one card, with shares computed from the values so the numbers never disagree with the picture.",
+    icon: "Scale",
+    category: "Data",
+    Page: lazy(() => import("./components/breakdown-card/BreakdownCardPage")),
+  },
+  {
+    slug: "chat",
+    name: "Chat",
+    description:
+      "A self-sustained chat: localStorage or REST (OData-paged, windowed in memory), folder management, OpenAI-compatible streaming, and seams left open for growth.",
+    icon: "Chat",
+    category: "Data",
+    Page: lazy(() => import("./components/chat/ChatPage")),
+  },
+  {
+    slug: "activity-feed",
+    name: "Activity Feed",
+    description:
+      "The audit log as a living feed — toned dots, a filter segment control, count badges for aggregated events and a load-more tail.",
+    icon: "Log",
+    category: "Data",
+    Page: lazy(() => import("./components/activity-feed/ActivityFeedPage")),
+  },
+  {
     slug: "charts",
     name: "Charts",
     description:
@@ -483,6 +548,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "ChartLine",
     category: "Charts",
     Page: lazy(() => import("./components/charts/TreemapChartPage")),
+  },
+  {
+    slug: "charts-funnel",
+    name: "Funnel",
+    description:
+      "Conversion funnel — up to 6 stages, width ∝ value: darker derived connectors, bottom arrow, conversion % between stages.",
+    icon: "ChartLine",
+    category: "Charts",
+    Page: lazy(() => import("./components/charts/FunnelChartPage")),
   },
   {
     slug: "charts-heatmap",
@@ -602,13 +676,13 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/ecg-monitor/EcgMonitorPage")),
   },
   {
-    slug: "hero",
-    name: "Hero",
+    slug: "panel-hero",
+    name: "Panel Hero",
     description:
       "A banner — icon, heading and supporting line — on a saturated tone gradient or on any Panel surface.",
     icon: "Rocket",
     category: "Layout",
-    Page: lazy(() => import("./components/hero/HeroPage")),
+    Page: lazy(() => import("./components/panel-hero/PanelHeroPage")),
   },
   {
     slug: "metric-bar",
@@ -632,10 +706,37 @@ export const DOC_COMPONENTS: DocComponent[] = [
     slug: "user-avatar",
     name: "User Avatar",
     description:
-      "A person's picture, with a toned initial or a glyph when there is none — named for assistive tech in every branch.",
+      "A person as image, icon, label or template — PrimeVue Avatar parity over a toned, named fallback in every branch.",
     icon: "User",
     category: "Basics",
     Page: lazy(() => import("./components/user-avatar/UserAvatarPage")),
+  },
+  {
+    slug: "toolbar",
+    name: "Toolbar",
+    description:
+      "A named row of actions with PrimeVue's start / center / end regions, wearing the shared Panel surface — variants, tones, corners, padding.",
+    icon: "ViewRows",
+    category: "Layout",
+    Page: lazy(() => import("./components/toolbar/ToolbarPage")),
+  },
+  {
+    slug: "page-header",
+    name: "Page Header",
+    description:
+      "The Toolbar's page-level sibling across the top of the main column — its seam with a SideMenu's logo header is painted from one source, so it always lines up.",
+    icon: "Windows",
+    category: "Layout",
+    Page: lazy(() => import("./components/page-header/PageHeaderPage")),
+  },
+  {
+    slug: "scroll-area",
+    name: "Scroll Area",
+    description:
+      "Native scrolling with drawn overlay scrollbars — PrimeVue's ScrollArea, so every browser scrolls alike and the bars show themselves only when wanted.",
+    icon: "ArrowDown",
+    category: "Layout",
+    Page: lazy(() => import("./components/scroll-area/ScrollAreaPage")),
   },
   {
     slug: "password-input",
@@ -717,6 +818,24 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Blueprint",
     category: "Forms",
     Page: lazy(() => import("./components/tag-picker/TagPickerPage")),
+  },
+  {
+    slug: "smart-grid-layout",
+    name: "Smart Grid Layout",
+    description:
+      "A drag-and-drop dashboard builder — sections, rows, resizable tiles, and a layout that saves itself.",
+    icon: "Dashboard",
+    category: "Layout",
+    Page: lazy(() => import("./components/smart-grid-layout/SmartGridLayoutPage")),
+  },
+  {
+    slug: "side-panel",
+    name: "Side Panel",
+    description:
+      "A panel docked to either edge of its container — overlaying rather than reflowing, optionally drag-resizable.",
+    icon: "Dashboard",
+    category: "Layout",
+    Page: lazy(() => import("./components/side-panel/SidePanelPage")),
   },
   {
     slug: "split-view",
@@ -838,6 +957,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/loader/LoaderPage")),
   },
   {
+    slug: "shimmer",
+    name: "Shimmer",
+    description:
+      "A light sweep across waiting text — the chat 'thinking…' effect, with speed presets and the full 21-tone scale.",
+    icon: "Sun",
+    category: "Feedback",
+    Page: lazy(() => import("./components/shimmer/ShimmerPage")),
+  },
+  {
     slug: "stepper",
     name: "Stepper",
     description:
@@ -845,6 +973,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "CheckCircle",
     category: "Feedback",
     Page: lazy(() => import("./components/stepper/StepperPage")),
+  },
+  {
+    slug: "toast",
+    name: "Toast",
+    description:
+      "Corner-pinned notification stacks: a clipped deck of glass cards that fans out on hover, with life timers that pause while engaged, swipe-to-dismiss and the full alert-intent scale.",
+    icon: "Notification",
+    category: "Feedback",
+    Page: lazy(() => import("./components/toast/ToastPage")),
   },
   {
     slug: "modal",
@@ -881,6 +1018,42 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Help",
     category: "Overlays",
     Page: lazy(() => import("./components/help-button/HelpButtonPage")),
+  },
+  {
+    slug: "popover",
+    name: "Popover",
+    description:
+      "A floating panel anchored to any trigger — an arrow that tracks the trigger, every container surface with glass and liquid-glass, flip-aware placement, dismissable/Escape control and the shared loader set.",
+    icon: "Chat",
+    category: "Overlays",
+    Page: lazy(() => import("./components/popover/PopoverPage")),
+  },
+  {
+    slug: "utilities",
+    name: "Utilities",
+    description:
+      "The pure helpers exported from the package root — number/byte/date/duration formatters, parsers, SVG sanitizers and form-visibility logic, with live outputs computed from the real implementation.",
+    icon: "Library",
+    category: "Utilities",
+    Page: lazy(() => import("./components/utilities/UtilitiesPage")),
+  },
+  {
+    slug: "i18n",
+    name: "I18n",
+    description:
+      "The kit's localization layer: a zero-dependency ICU-subset engine (interpolation, number/date, plural via Intl.PluralRules, select), built-in kit catalogs for en/fr/es/de/pt, detection + persistence, and byte-identical no-provider rendering.",
+    icon: "Globe",
+    category: "Utilities",
+    Page: lazy(() => import("./components/i18n/I18nPage")),
+  },
+  {
+    slug: "a11y",
+    name: "A11y",
+    description:
+      "The kit's accessibility support statement (WCAG 2.1 AA target), the per-widget keyboard model, known screen-reader behaviours, and the consumer labelling guide.",
+    icon: "EyeOpen",
+    category: "Utilities",
+    Page: lazy(() => import("./components/a11y/A11yPage")),
   },
 ];
 

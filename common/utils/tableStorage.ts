@@ -14,12 +14,20 @@ import type { TableSettings } from "../types/TableSettings";
  * test mock, an IndexedDB adapter) can be passed in its place.
  */
 
-/** Minimal `Storage` shape — the subset the table actually needs. */
-export interface TableStorageAdapter {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
-}
+import {
+  buildStorageKey,
+  createSafeLocalStorage,
+  isRecord,
+  type KitStorageAdapter,
+} from "./safeStorage";
+
+/**
+ * The storage backend and key builder now live in `safeStorage.ts`, shared
+ * with `SmartGridLayout`. Re-exported here under their original names so
+ * `Table` and its tests are untouched.
+ */
+export type TableStorageAdapter = KitStorageAdapter;
+export { createSafeLocalStorage };
 
 /** Default key prefix so table entries never collide with app keys. */
 export const TABLE_STORAGE_DEFAULT_PREFIX = "ui-kit:table";
@@ -35,50 +43,7 @@ export interface TableStoredSettings {
 export const buildTableStorageKey = (
   prefix: string,
   storageKey: string,
-): string => `${prefix}:${storageKey}`;
-
-/**
- * The default backend. Resolves `localStorage` lazily inside each call's
- * try/catch so access that throws (private mode, blocked storage) degrades
- * to a no-op instead of breaking the table.
- */
-export const createSafeLocalStorage = (): TableStorageAdapter => {
-  const resolve = (): Storage | null => {
-    try {
-      if (typeof window === "undefined" || !window.localStorage) return null;
-      return window.localStorage;
-    } catch {
-      return null;
-    }
-  };
-
-  return {
-    getItem: (key) => {
-      try {
-        return resolve()?.getItem(key) ?? null;
-      } catch {
-        return null;
-      }
-    },
-    setItem: (key, value) => {
-      try {
-        resolve()?.setItem(key, value);
-      } catch {
-        // Quota exceeded or storage blocked — persistence is best-effort.
-      }
-    },
-    removeItem: (key) => {
-      try {
-        resolve()?.removeItem(key);
-      } catch {
-        // Same as above.
-      }
-    },
-  };
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+): string => buildStorageKey(prefix, storageKey);
 
 const isBooleanMap = (
   value: unknown,

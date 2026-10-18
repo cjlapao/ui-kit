@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import IconButton from "./IconButton";
 
 // Mock the IconContext so useIconRenderer doesn't throw
@@ -26,17 +26,19 @@ describe("IconButton — glass variant", () => {
     const btn = container.querySelector("button");
     expect(btn).not.toBeNull();
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-100/30");
-    expect(btn!.className).toContain("dark:bg-blue-600/10");
+    expect(btn!.className).toContain("bg-blue-200/30");
+    expect(btn!.className).toContain("dark:bg-blue-500/10");
     expect(btn!.className).toContain("backdrop-saturate-[1.2]");
   });
 
   it('glassOpacity defaults to "clear" for IconButton', () => {
-    const { container } = render(<IconButton icon="Search" glass color="red" />);
+    const { container } = render(
+      <IconButton icon="Search" glass color="red" />,
+    );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-red-100/30");
-    expect(btn!.className).toContain("dark:bg-red-600/10");
+    expect(btn!.className).toContain("bg-red-200/30");
+    expect(btn!.className).toContain("dark:bg-red-500/10");
   });
 
   it('specularMode defaults to "none" for IconButton', () => {
@@ -56,8 +58,8 @@ describe("IconButton — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-green-100/65");
-    expect(btn!.className).toContain("dark:bg-green-600/25");
+    expect(btn!.className).toContain("bg-green-200/65");
+    expect(btn!.className).toContain("dark:bg-green-500/25");
   });
 
   it('glassOpacity="light" produces 85%/35% fill', () => {
@@ -66,8 +68,8 @@ describe("IconButton — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-purple-100/85");
-    expect(btn!.className).toContain("dark:bg-purple-600/35");
+    expect(btn!.className).toContain("bg-purple-200/85");
+    expect(btn!.className).toContain("dark:bg-purple-500/35");
   });
 
   it('vibrancy="high" produces backdrop-saturate-[1.4]', () => {
@@ -89,7 +91,9 @@ describe("IconButton — glass variant", () => {
   });
 
   it("vibrancy defaults to medium (1.2)", () => {
-    const { container } = render(<IconButton icon="Search" glass color="blue" />);
+    const { container } = render(
+      <IconButton icon="Search" glass color="blue" />,
+    );
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("backdrop-saturate-[1.2]");
@@ -133,7 +137,12 @@ describe("IconButton — glass variant", () => {
 
   it("renders no specular overlay when glass=false", () => {
     const { container } = render(
-      <IconButton icon="Search" glass={false} specularMode="classic" color="blue" />,
+      <IconButton
+        icon="Search"
+        glass={false}
+        specularMode="classic"
+        color="blue"
+      />,
     );
 
     const overlays = container.querySelectorAll(
@@ -143,7 +152,9 @@ describe("IconButton — glass variant", () => {
   });
 
   it("renders no glass classes when glass=false", () => {
-    const { container } = render(<IconButton icon="Search" glass={false} color="blue" />);
+    const { container } = render(
+      <IconButton icon="Search" glass={false} color="blue" />,
+    );
 
     const btn = container.querySelector("button");
     expect(btn!.className).not.toContain("backdrop-blur-sm");
@@ -151,7 +162,9 @@ describe("IconButton — glass variant", () => {
   });
 
   it("renders data-glass attribute when glass=true", () => {
-    const { container } = render(<IconButton icon="Search" glass color="blue" />);
+    const { container } = render(
+      <IconButton icon="Search" glass color="blue" />,
+    );
 
     const btn = container.querySelector("button");
     expect(btn!.getAttribute("data-glass")).toBe("true");
@@ -162,33 +175,39 @@ describe("IconButton — glass variant", () => {
       <IconButton icon="Search" glass={false} color="blue" />,
     );
 
-    expect(
-      container.querySelector("button")!.getAttribute("data-glass"),
-    ).toBe("false");
+    expect(container.querySelector("button")!.getAttribute("data-glass")).toBe(
+      "false",
+    );
   });
 
   it("builds the glass fill from the blue tone", () => {
-    const { container } = render(<IconButton icon="Search" glass color="blue" />);
+    const { container } = render(
+      <IconButton icon="Search" glass color="blue" />,
+    );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-blue-100/30");
-    expect(btn!.className).toContain("dark:bg-blue-600/10");
+    expect(btn!.className).toContain("bg-blue-200/30");
+    expect(btn!.className).toContain("dark:bg-blue-500/10");
   });
 
   it("builds the glass fill from the emerald tone", () => {
-    const { container } = render(<IconButton icon="Search" glass color="emerald" />);
+    const { container } = render(
+      <IconButton icon="Search" glass color="emerald" />,
+    );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-emerald-100/30");
-    expect(btn!.className).toContain("dark:bg-emerald-600/10");
+    expect(btn!.className).toContain("bg-emerald-200/30");
+    expect(btn!.className).toContain("dark:bg-emerald-500/10");
   });
 
   it("builds the glass fill from the rose tone", () => {
-    const { container } = render(<IconButton icon="Search" glass color="rose" />);
+    const { container } = render(
+      <IconButton icon="Search" glass color="rose" />,
+    );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-rose-100/30");
-    expect(btn!.className).toContain("dark:bg-rose-600/10");
+    expect(btn!.className).toContain("bg-rose-200/30");
+    expect(btn!.className).toContain("dark:bg-rose-500/10");
   });
 
   it("renders the icon inside the button with glass", () => {
@@ -216,7 +235,7 @@ describe("IconButton — glass variant", () => {
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-100/30");
+    expect(btn!.className).toContain("bg-blue-200/30");
   });
 
   it("renders with variant='solid' glass color='brand'", () => {
@@ -226,12 +245,14 @@ describe("IconButton — glass variant", () => {
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-100/30");
+    expect(btn!.className).toContain("bg-blue-200/30");
     expect(btn!.className).toContain("relative");
   });
 
   it("renders with relative positioning when glass=true", () => {
-    const { container } = render(<IconButton icon="Search" glass color="blue" />);
+    const { container } = render(
+      <IconButton icon="Search" glass color="blue" />,
+    );
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("relative");
@@ -256,8 +277,8 @@ describe("IconButton — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-blue-100/65");
-    expect(btn!.className).toContain("dark:bg-blue-600/25");
+    expect(btn!.className).toContain("bg-blue-200/65");
+    expect(btn!.className).toContain("dark:bg-blue-500/25");
 
     const overlays = container.querySelectorAll(
       'div[aria-hidden="true"].pointer-events-none.absolute',
@@ -272,17 +293,12 @@ describe("IconButton — glass variant", () => {
 
     const btn = container.querySelector("button");
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-100/30");
+    expect(btn!.className).toContain("bg-blue-200/30");
   });
 
   it("glass composes with custom className", () => {
     const { container } = render(
-      <IconButton
-        icon="Search"
-        glass
-        color="blue"
-        className="custom-margin"
-      />,
+      <IconButton icon="Search" glass color="blue" className="custom-margin" />,
     );
 
     const btn = container.querySelector("button");
@@ -291,7 +307,9 @@ describe("IconButton — glass variant", () => {
   });
 
   it("renders sr-only label with glass", () => {
-    render(<IconButton icon="Search" glass color="blue" srLabel="Open search" />);
+    render(
+      <IconButton icon="Search" glass color="blue" srLabel="Open search" />,
+    );
 
     expect(screen.getByText("Open search")).toHaveClass("sr-only");
   });
@@ -304,7 +322,92 @@ describe("IconButton — glass variant", () => {
     const btn = container.querySelector("button");
     expect(btn).not.toBeNull();
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-100/30");
+    expect(btn!.className).toContain("bg-blue-200/30");
+  });
+});
+
+describe("IconButton — the core contract", () => {
+  // No auto-cleanup in this config; without this, the 30 renders above
+  // stay in the DOM and stale buttons poison every query below.
+  afterEach(cleanup);
+
+  it("defaults to type button — never a sneaky form submit", () => {
+    render(<IconButton icon="Send" srLabel="Send" />);
+    expect(screen.getByRole("button")).toHaveAttribute("type", "button");
+  });
+
+  it("names itself from srLabel, with aria-label winning", () => {
+    render(<IconButton icon="Send" srLabel="Send message" />);
+    expect(screen.getByRole("button")).toHaveAccessibleName("Send message");
+
+    render(<IconButton icon="Send" srLabel="ignored" aria-label="Dismiss" />);
+    expect(screen.getAllByRole("button").pop()).toHaveAccessibleName("Dismiss");
+  });
+
+  it("the native title falls back to the accessible name — no doubling with a tooltip", () => {
+    const { unmount } = render(<IconButton icon="Send" srLabel="Send" />);
+    expect(screen.getByRole("button")).toHaveAttribute("title", "Send");
+    unmount();
+
+    render(<IconButton icon="Send" srLabel="Send" tooltip="Send message" />);
+    expect(screen.getByRole("button")).not.toHaveAttribute("title");
+  });
+
+  it("is never nameless: an sr-only span is the last resort", () => {
+    // A decorative element icon — this file's mock echoes string icons as
+    // raw text (which would leak the name); a real decorative glyph is
+    // aria-hidden, leaving only the sr-only fallback.
+    const { container } = render(
+      <IconButton icon={<svg aria-hidden="true" focusable="false" />} />,
+    );
+    expect(screen.getByRole("button")).toHaveAccessibleName("Icon button");
+    expect(container.querySelector(".sr-only")).toBeInTheDocument();
+  });
+
+  it("loading blocks clicks but stays fully visible", () => {
+    const onClick = vi.fn();
+    const { container } = render(
+      <IconButton icon="Send" srLabel="Send" loading onClick={onClick} />,
+    );
+    const button = screen.getByRole("button");
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+    // The dimming class is off while loading, or the spinner fades with it.
+    expect(button.className).not.toContain("disabled:opacity-50");
+    // The spinner is a styled span, and the glyph's svg is gone.
+    expect(
+      container.querySelector('[class*="animate-spin"], [class*="spin_"]'),
+    ).toBeInTheDocument();
+    expect(button.querySelector("svg")).not.toBeInTheDocument();
+  });
+
+  it("disabled dims and blocks", () => {
+    const onClick = vi.fn();
+    render(
+      <IconButton icon="Send" srLabel="Send" disabled onClick={onClick} />,
+    );
+    const button = screen.getByRole("button");
+    expect(button).toBeDisabled();
+    expect(button.className).toContain("disabled:opacity-50");
+    fireEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("fires and defaults to a circular control", () => {
+    const onClick = vi.fn();
+    render(<IconButton icon="Send" srLabel="Send" onClick={onClick} />);
+    const button = screen.getByRole("button");
+    expect(button.className).toContain("rounded-full");
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("warns about a focusable aria-hidden button", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<IconButton icon="Send" aria-hidden />);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
 

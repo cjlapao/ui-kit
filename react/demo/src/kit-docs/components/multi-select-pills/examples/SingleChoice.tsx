@@ -26,7 +26,7 @@ const SingleChoice = () => {
         onChange={setSelected}
         selectionMode="single"
         checkmark
-        color="violet"
+        tone="violet"
         legend="Target environment"
         description="Single choice — picking another swaps it."
       />

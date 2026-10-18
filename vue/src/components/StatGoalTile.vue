@@ -69,7 +69,14 @@ const offsetFor = (value: number) =>
               class="relative inline-flex items-center justify-center shrink-0"
               :style="{ width: `${size}px`, height: `${size}px` }"
             >
-              <svg class="transform -rotate-90 w-full h-full overflow-visible">
+              <!-- The ring carried no role and no name — the percentage
+                   beside it was the only thing a screen reader could reach,
+                   with nothing tying the two together. -->
+              <svg
+                role="img"
+                :aria-label="`${goal.label}: ${goal.value}%`"
+                class="transform -rotate-90 w-full h-full overflow-visible"
+              >
                 <!-- Background Circle -->
                 <circle
                   class="text-neutral-100 dark:text-neutral-800"
@@ -113,7 +120,7 @@ const offsetFor = (value: number) =>
           </div>
           <div
             v-if="idx < goals.length - 1"
-            class="h-px bg-neutral-100 dark:bg-neutral-800 my-1 w-full"
+            class="h-px bg-black/10 dark:bg-white/10 my-1 w-full"
           />
         </template>
       </div>

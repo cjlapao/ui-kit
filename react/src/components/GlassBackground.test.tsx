@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import GlassBackground from "./GlassBackground";
+import { TRUE_COLORS } from "../theme";
 
 const root = (c: HTMLElement) => c.firstElementChild as HTMLElement;
 
@@ -57,6 +58,52 @@ describe("GlassBackground — ambient glows", () => {
     );
     expect(glow.style.getPropertyValue("--glow-color-dark")).toBe(
       "var(--color-emerald-500)",
+    );
+  });
+});
+
+describe("GlassBackground — tone", () => {
+  it("paints the default gradient from the kit's default tone", () => {
+    const { container } = render(<GlassBackground />);
+    const gradient = container.querySelector(".glass-gradient") as HTMLElement;
+    // Tone default blue, stops derived: blue → indigo → violet.
+    expect(gradient.style.getPropertyValue("--glass-from")).toBe(
+      "var(--color-blue-300)",
+    );
+    expect(gradient.style.getPropertyValue("--glass-via")).toBe(
+      "var(--color-indigo-200)",
+    );
+    expect(gradient.style.getPropertyValue("--glass-to")).toBe(
+      "var(--color-violet-50)",
+    );
+  });
+
+  it("derives a real partner stop for every tone", () => {
+    // The hand-kept maps missed fuchsia, yellow and slate, whose gradients
+    // silently collapsed to two stops — no tone may fall through to itself.
+    for (const tone of TRUE_COLORS) {
+      const { container, unmount } = render(<GlassBackground color={tone} />);
+      const gradient = container.querySelector(".glass-gradient") as HTMLElement;
+      expect(gradient.style.getPropertyValue("--glass-via")).not.toBe(
+        `var(--color-${tone}-200)`,
+      );
+      expect(gradient.style.getPropertyValue("--glass-to")).not.toBe(
+        `var(--color-${tone}-50)`,
+      );
+      unmount();
+    }
+  });
+
+  it("honours explicit secondary and deep overrides", () => {
+    const { container } = render(
+      <GlassBackground color="lime" colorSecondary="rose" colorDeep="sky" />,
+    );
+    const gradient = container.querySelector(".glass-gradient") as HTMLElement;
+    expect(gradient.style.getPropertyValue("--glass-via")).toBe(
+      "var(--color-rose-200)",
+    );
+    expect(gradient.style.getPropertyValue("--glass-to")).toBe(
+      "var(--color-sky-50)",
     );
   });
 });

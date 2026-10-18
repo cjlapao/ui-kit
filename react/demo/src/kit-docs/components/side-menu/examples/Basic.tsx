@@ -3,7 +3,7 @@ import { DEMO_ITEMS } from "../demoData";
 
 export default function Basic() {
   return (
-    <div className="h-96 w-full max-w-2xl overflow-hidden rounded-xl bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
+    <div className="h-96 w-full max-w-2xl overflow-hidden bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
       <div className="flex h-full">
         <SideMenu fullHeight color="blue" title="Demo" items={DEMO_ITEMS} />
         <div className="flex-1 space-y-3 p-6">

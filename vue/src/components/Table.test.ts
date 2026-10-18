@@ -99,12 +99,13 @@ describe("Table — bordered", () => {
     // the rule carries its colour — a bare border-r paints currentColor
     expect(ths[0].classes()).toContain("border-neutral-200");
     expect(ths[0].classes()).toContain("dark:border-neutral-700");
-    // and a little extra room so cell text never sits on the line
-    expect(ths[0].classes()).toContain("pr-2");
-    expect(ths[2].classes()).not.toContain("pr-2");
+    // and enough room that cell text never sits on the line — header and body
+    // share the same density cell padding (px-6 at default density), so every
+    // column's text lines up under its header, bordered or not.
+    expect(ths[0].classes()).toContain("px-6");
     const tds = wrapper.findAll("tbody td");
-    expect(tds[0].classes()).toContain("pr-2");
-    expect(tds[2].classes()).not.toContain("pr-2");
+    expect(tds[0].classes()).toContain("pl-6");
+    expect(tds[0].classes()).toContain("pr-6");
   });
 
   it("lets noBorders win over bordered", () => {

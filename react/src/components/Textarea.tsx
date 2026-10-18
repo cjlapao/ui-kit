@@ -9,11 +9,15 @@ import {
   useState,
 } from "react";
 import {
+  DEFAULT_GLOW_INTENSITY,
+  FIELD_STATUS_CLASSES,
   TRUE_COLORS,
+  VALIDATION_STATUSES,
+  type ValidationStatus,
   getGlowTokens,
   getInputVariantTokens,
   resolveGlowGradient,
-} from "../theme/Theme";
+} from "../theme";
 import type {
   ControlSize,
   GlowIntensity,
@@ -24,7 +28,10 @@ import type {
 export type TextareaSize = ControlSize;
 /** The shared input variant set, including `glass` and `gradient`. */
 export type TextareaVariant = InputVariant;
-export type TextareaValidationStatus = "none" | "error" | "success";
+/** The shared field-status scale. Was a bare union with no runtime list, so
+ *  a demo could not enumerate it. */
+export const TEXTAREA_VALIDATION_STATUSES = VALIDATION_STATUSES;
+export type TextareaValidationStatus = ValidationStatus;
 export type TextareaResize = "none" | "vertical" | "horizontal" | "both";
 
 /** Padding, type scale and starting height, on the shared control scale. */
@@ -65,15 +72,12 @@ const focusBorders: Record<TrueColor, string> = Object.fromEntries(
   TRUE_COLORS.map((tone) => [tone, buildFocusBorder(tone)]),
 ) as Record<TrueColor, string>;
 
-const statusClasses: Record<
-  Exclude<TextareaValidationStatus, "none">,
-  string
-> = {
-  error:
-    "border-rose-500 focus:border-rose-500 focus:ring-rose-500/60 dark:border-rose-400 dark:focus:border-rose-400 dark:focus:ring-rose-400/60",
-  success:
-    "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500/60 dark:border-emerald-400 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/60",
-};
+/**
+ * The shared field-status surface — same bytes as Input, Select and Picker.
+ * This used to be a local copy of the error/success tints, which is exactly
+ * how a field ends up ring-less in focus while its sibling is ringed.
+ */
+const statusClasses = FIELD_STATUS_CLASSES;
 
 /** Help text colour follows the validation state. */
 const helpToneClasses: Record<TextareaValidationStatus, string> = {
@@ -92,8 +96,10 @@ const resizeClasses: Record<TextareaResize, string> = {
   both: "resize",
 };
 
-export interface TextareaProps
-  extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size" | "color"> {
+export interface TextareaProps extends Omit<
+  TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "size" | "color"
+> {
   size?: TextareaSize;
   /** Surface treatment, matching `Input`. @default "elevated" */
   variant?: TextareaVariant;
@@ -116,7 +122,7 @@ export interface TextareaProps
   gradientFrom?: string;
   /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
   gradientTo?: string;
-  /** How prominent the gradient glow is. @default "soft" */
+  /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
   glowIntensity?: GlowIntensity;
 }
 
@@ -136,7 +142,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       fullWidth = true,
       gradientFrom,
       gradientTo,
-      glowIntensity = "soft",
+      glowIntensity = DEFAULT_GLOW_INTENSITY,
       onFocus,
       onBlur,
       id,
@@ -153,7 +159,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const helpId = `${textareaId}-help`;
 
     const sizeToken = sizeTokens[size] ?? sizeTokens.md;
-    const variantTokens = getInputVariantTokens(variant);
+    const variantTokens = getInputVariantTokens(variant, tone);
     const resizeClass = resizeClasses[resize] ?? resizeClasses.vertical;
     const glow = getGlowTokens(glowIntensity);
     const [glowFrom, glowTo] = resolveGlowGradient(
@@ -203,7 +209,9 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const showFooter = Boolean(helpText) || (showCount && maxLength != null);
 
     return (
-      <div className={classNames("flex flex-col gap-1.5", fullWidth && "w-full")}>
+      <div
+        className={classNames("flex flex-col gap-1.5", fullWidth && "w-full")}
+      >
         {label && (
           <label
             htmlFor={textareaId}
@@ -217,44 +225,46 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         <div
           className={
             variant === "gradient"
-              ? classNames("relative", glow.pad)
+              ? classNames("relative overflow-hidden rounded-[28px]", glow.pad)
               : undefined
           }
         >
           {variant === "gradient" && (
             <div
               className={classNames(
-                "absolute rounded-2xl leading-none transition-opacity duration-500",
+                "absolute rounded-2xl transition-opacity duration-500",
                 glow.inset,
-                glow.blur,
               )}
               style={{
-                background: `linear-gradient(to right, ${glowFrom}, ${glowTo})`,
+                boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowTo}`,
                 opacity: focused ? glow.focusOpacity : glow.idleOpacity,
               }}
               aria-hidden
             />
           )}
-        <textarea
-          ref={ref}
-          id={textareaId}
-          className={classNames(classes, variant === "gradient" && "relative")}
-          disabled={disabled}
-          onFocus={(event) => {
-            setFocused(true);
-            onFocus?.(event);
-          }}
-          onBlur={(event) => {
-            setFocused(false);
-            onBlur?.(event);
-          }}
-          value={value}
-          defaultValue={defaultValue}
-          maxLength={maxLength}
-          aria-invalid={validationStatus === "error" || undefined}
-          aria-describedby={helpText ? helpId : undefined}
-          {...rest}
-        />
+          <textarea
+            ref={ref}
+            id={textareaId}
+            className={classNames(
+              classes,
+              variant === "gradient" && "relative",
+            )}
+            disabled={disabled}
+            onFocus={(event) => {
+              setFocused(true);
+              onFocus?.(event);
+            }}
+            onBlur={(event) => {
+              setFocused(false);
+              onBlur?.(event);
+            }}
+            value={value}
+            defaultValue={defaultValue}
+            maxLength={maxLength}
+            aria-invalid={validationStatus === "error" || undefined}
+            aria-describedby={helpText ? helpId : undefined}
+            {...rest}
+          />
         </div>
         {showFooter && (
           <div className="flex items-start justify-between gap-3 text-xs">

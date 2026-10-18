@@ -135,7 +135,7 @@ export const ChartsPage: React.FC = () => (
         {TYPE_LINKS.map((t) => (
           <Link
             key={t.slug}
-            to={`/docs/${t.slug}`}
+            to={`/${t.slug}`}
             className="block rounded-lg border border-neutral-200 bg-white p-4 transition-colors hover:border-blue-400/60 dark:border-neutral-800 dark:bg-slate-900 dark:hover:border-blue-500/50"
           >
             <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">

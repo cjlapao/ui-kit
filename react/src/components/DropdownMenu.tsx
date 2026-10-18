@@ -181,7 +181,6 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     return () => cancelAnimationFrame(frame);
     // `enabledIndices` derives from `items`, which is stable for the life of an
     // open menu; re-running only on `open` is intentional.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // On close: if the close was NOT an outside click and focus was left on
@@ -444,6 +443,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       style={resolvedStyle}
       role="menu"
       aria-orientation="vertical"
+      // Programmatic focus stop for the menu container (roving tabindex
+      // lives on the menuitems) — required so the container is focusable
+      // even though it is not in the tab order.
+      tabIndex={-1}
       onKeyDown={handleMenuKeyDown}
       className={classNames(
         "fixed min-w-[10rem] overflow-hidden rounded-lg border border-neutral-200 bg-white/95 p-1 text-sm shadow-xl ring-1 ring-black/5 backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/95",
@@ -451,6 +454,9 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         className,
       )}
     >
+      {/* Not a user interaction: this only stops click events inside the
+          menu from bubbling to the document-level outside-click handler. */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- propagation guard for the outside-click handler */}
       <ul
         className="overflow-auto"
         style={{ maxHeight: computedMaxHeight }}

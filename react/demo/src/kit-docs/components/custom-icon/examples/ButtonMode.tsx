@@ -39,7 +39,13 @@ export default function ButtonMode() {
             <span className="text-[11px] opacity-60">disabled</span>
           </div>
           <div className="flex flex-col items-center gap-2">
-            <CustomIcon icon="Refresh" size="lg" tone="blue" spin alt="Syncing" />
+            <CustomIcon
+              icon="Refresh"
+              size="lg"
+              tone="blue"
+              spin
+              alt="Syncing"
+            />
             <span className="text-[11px] opacity-60">spin</span>
           </div>
         </div>

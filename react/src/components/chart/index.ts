@@ -49,6 +49,7 @@ import { GaugeSeries } from "./react/series/GaugeSeries";
 import { WaterfallSeries } from "./react/series/WaterfallSeries";
 import { HeatmapSeries } from "./react/series/HeatmapSeries";
 import { TreemapSeries } from "./react/series/TreemapSeries";
+import { FunnelSeries } from "./react/series/FunnelSeries";
 
 // Register the concrete types so the root can split children without a
 // circular import.
@@ -68,6 +69,7 @@ setChartRegistry({
   Waterfall: WaterfallSeries,
   Heatmap: HeatmapSeries,
   Treemap: TreemapSeries,
+  Funnel: FunnelSeries,
   XAxis,
   YAxis,
   Legend,
@@ -102,6 +104,7 @@ export const Chart = {
   Waterfall: WaterfallSeries,
   Heatmap: HeatmapSeries,
   Treemap: TreemapSeries,
+  Funnel: FunnelSeries,
   XAxis,
   YAxis,
   Legend,
@@ -142,6 +145,7 @@ export type {
   HeatmapSeriesProps,
   HeatmapAnnotation,
   TreemapSeriesProps,
+  FunnelSeriesProps,
   XAxisProps,
   YAxisProps,
   TooltipProps,

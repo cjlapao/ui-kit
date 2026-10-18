@@ -6,16 +6,31 @@ import React, {
   forwardRef,
   useCallback,
   useRef,
+  useState,
 } from "react";
+import ScrollArea from "./ScrollArea";
 import { useIconRenderer } from "../contexts/IconContext";
 import {
-  TRUE_COLORS,
+  DEFAULT_GLOW_INTENSITY,
+  FIELD_STATUS_CLASSES,
+  getGlowTokens,
+  getFieldSizeTokens,
+  getFieldToneTokens,
   getInputVariantTokens,
+  resolveGlowGradient,
   stripBorderColor,
+  VALIDATION_STATUSES,
 } from "../theme/Theme";
-import type { ControlSize, InputVariant, TrueColor } from "../theme/Theme";
+import type {
+  ControlSize,
+  GlowIntensity,
+  InputVariant,
+  SurfaceCorner,
+  TrueColor,
+} from "../theme/Theme";
 
-export const SELECT_VALIDATION_STATUSES = ["none", "error", "success"] as const;
+/** @deprecated Use `VALIDATION_STATUSES` from the theme. Kept as an alias. */
+export const SELECT_VALIDATION_STATUSES = VALIDATION_STATUSES;
 export type SelectValidationStatus =
   (typeof SELECT_VALIDATION_STATUSES)[number];
 
@@ -37,100 +52,34 @@ export type SelectVariant = InputVariant;
 // pointed `gray`, `zinc` and `stone` at `neutral-500` classes, so three of the
 // five neutral tones silently rendered as a fourth.
 
-type SelectToneTokens = {
-  /** Border colour while the select has focus. */
-  focusBorder: string;
-  /** Glow ring while the select has focus. */
-  focusRing: string;
-  /** Caret and leading-icon colour while the select has focus. */
-  icon: string;
-};
-
-const buildToneTokens = (color: TrueColor): SelectToneTokens => ({
-  focusBorder: `focus-within:border-${color}-400`,
-  // Inset, matching Input and SearchBar. An outer ring is painted outside the
-  // border box, so any ancestor with `overflow: auto|hidden` clips it.
-  focusRing: `focus-within:ring-2 focus-within:ring-inset focus-within:ring-${color}-400/60`,
-  icon: `group-focus-within:text-${color}-500`,
-});
-
-const TONE_TOKENS: Record<TrueColor, SelectToneTokens> = Object.fromEntries(
-  TRUE_COLORS.map((color) => [color, buildToneTokens(color)]),
-) as Record<TrueColor, SelectToneTokens>;
-
-const getToneTokens = (color: TrueColor): SelectToneTokens =>
-  TONE_TOKENS[color] ?? TONE_TOKENS.blue;
-
-// ── Sizing ────────────────────────────────────────────────────────────────────
-
-/** Padding and type scale, mirroring `Input`'s so the two line up stacked. */
-const SIZE_STYLES: Record<
-  ControlSize,
-  {
-    px: string;
-    py: string;
-    /** `underline` has no box to inset from, and needs room above the rule. */
-    underlinePy: string;
-    text: string;
-    icon: ControlSize;
-    /**
-     * Line height the popup options keep, mirroring `text` above. The select
-     * itself is forced to `leading-6` (see `BOXED_VALUE_LEADING`) to center
-     * its value, and the options inherit — so they pin their own line height
-     * back to the natural one, or the dropdown rows would grow 4px.
-     */
-    optionLine: string;
-  }
-> = {
-  xs: { px: "px-2", py: "py-1", underlinePy: "pt-1 pb-2", text: "text-xs", icon: "xs", optionLine: "[&>option]:leading-4" },
-  sm: { px: "px-2.5", py: "py-1.5", underlinePy: "pt-1.5 pb-2.5", text: "text-xs", icon: "xs", optionLine: "[&>option]:leading-4" },
-  md: { px: "px-3", py: "py-2", underlinePy: "pt-2 pb-3", text: "text-sm", icon: "sm", optionLine: "[&>option]:leading-5" },
-  lg: { px: "px-4", py: "py-2.5", underlinePy: "pt-2.5 pb-3.5", text: "text-base", icon: "sm", optionLine: "[&>option]:leading-6" },
-  xl: { px: "px-5", py: "py-3", underlinePy: "pt-3 pb-4", text: "text-base", icon: "sm", optionLine: "[&>option]:leading-6" },
-};
-
 /**
- * The value of a single-choice select is drawn by the platform, centered
- * within the select's *intrinsic* content region — a 24px box at the kit's
- * font sizes — not within the CSS line box. With the natural line heights
- * (16–24px) the line box is shorter than that region, so the value sat 2.5px
- * high at `md` and 4px high at `xs`/`sm` (measured against the box centre;
- * an `Input` beside it sat dead-centre). Forcing the line box to the region's
- * height makes the platform centre the value in every size, and the control's
- * height is unchanged because the region — not the line box — drives it.
+ * Line height the popup options keep. The select itself is forced to
+ * `leading-6` (see `BOXED_VALUE_LEADING`) to centre its value, and the options
+ * inherit — so they pin their own line height back to the natural one, or the
+ * dropdown rows would grow 4px.
  *
- * Skipped for `underline` (the value intentionally sits clear of the rule,
- * not centred in a box) and `multiple` (a list, not a single value).
+ * Everything else about the field — tone tokens, padding, type scale,
+ * validation surfaces — comes from the theme, shared with `Input`,
+ * `SearchBar` and `Picker`.
  */
+const OPTION_LINE: Record<ControlSize, string> = {
+  xs: "[&>option]:leading-4",
+  sm: "[&>option]:leading-4",
+  md: "[&>option]:leading-5",
+  lg: "[&>option]:leading-6",
+  xl: "[&>option]:leading-6",
+};
+
 const BOXED_VALUE_LEADING = "leading-6";
 
 /**
- * Border only at rest; the ring is part of the focus state, exactly as it is
- * for the tone tokens. A status used to add a bare `ring-2 ring-inset` at rest
- * with no ring *colour* — an unset ring colour resolves to `currentColor`, so
- * every errored or successful field carried a near-black 2px halo inside its
- * coloured border.
- *
- * These also carry no copy colour. The old version forced
- * `text-neutral-900 dark:text-neutral-100` alongside the border, so an errored
- * `underline` or `glass` field lost the high-contrast pair it needs to stay
- * legible over a backdrop.
+ * The maximum height of a `multiple` list before the ScrollArea starts
+ * scrolling it — the same reach the styled popup gives itself, so a dropdown
+ * and a list cap consistently. The list itself grows to fit its rows (see
+ * `.ui-select[multiple]` in `styles.css`), which is what lets the frame, not
+ * the widget, own the scrollbar.
  */
-const STATUS_CLASSES: Record<Exclude<SelectValidationStatus, "none">, string> = {
-  error:
-    "border-rose-500 dark:border-rose-400 focus-within:border-rose-500 dark:focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-rose-500/60 dark:focus-within:ring-rose-400/60",
-  success:
-    "border-emerald-500 dark:border-emerald-400 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-500/60 dark:focus-within:ring-emerald-400/60",
-};
-
-/**
- * The dropdown itself is painted by the platform from the `<select>`'s own
- * background. Once the surface moves to the wrapper the select is transparent,
- * which would leave the open list white in dark mode — so the options carry
- * their own fill.
- */
-const OPTION_CLASSES =
-  "[&>option]:bg-white [&>option]:text-neutral-900 dark:[&>option]:bg-neutral-900 dark:[&>option]:text-neutral-100 [&>optgroup]:bg-white dark:[&>optgroup]:bg-neutral-900";
+const LIST_MAX_HEIGHT = "max-h-[18rem]";
 
 /**
  * Opts the control into a real, stylable dropdown where the browser supports
@@ -140,19 +89,34 @@ const OPTION_CLASSES =
  */
 const PICKER_CLASS = "ui-select";
 
-export interface SelectProps
-  extends Omit<
-    SelectHTMLAttributes<HTMLSelectElement>,
-    "size" | "color" | "className"
-  > {
+export interface SelectProps extends Omit<
+  SelectHTMLAttributes<HTMLSelectElement>,
+  "size" | "color" | "className"
+> {
   /** @default "md" */
   size?: SelectSize;
   /** Accent colour for the focus border, ring and icon highlight. */
   tone?: TrueColor;
-  /** Alias for `tone`, matching `Input` and `SearchBar`. */
+  /** Deprecated alias for `tone`. @deprecated */
   color?: TrueColor;
-  /** Visual surface style. @default "flat" */
+  /**
+   * Visual surface style. Cells of the shared family: `glass` really blurs
+   * and `gradient` carries one glow behind the field, like `Input`.
+   * @default "flat"
+   */
   variant?: SelectVariant;
+  /**
+   * Field radius. `auto` keeps the control corner shared with every other
+   * field; an explicit token replaces it.
+   * @default "auto"
+   */
+  corner?: SurfaceCorner;
+  /** Gradient glow start. @default the tone's 600 shade */
+  gradientFrom?: string;
+  /** Gradient glow end. @default the tone's 400 shade */
+  gradientTo?: string;
+  /** Focus halo strength of the `gradient` variant. @default "subtle" */
+  glowIntensity?: GlowIntensity;
   /** @default "none" */
   validationStatus?: SelectValidationStatus;
   placeholder?: ReactNode;
@@ -177,6 +141,10 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     tone,
     color,
     variant = "flat",
+    corner = "auto",
+    gradientFrom,
+    gradientTo,
+    glowIntensity = DEFAULT_GLOW_INTENSITY,
     validationStatus = "none",
     className,
     selectClassName,
@@ -188,6 +156,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     unstyled = false,
     multiple,
     style,
+    onFocus,
+    onBlur,
     ...rest
   },
   ref: ForwardedRef<HTMLSelectElement>,
@@ -207,10 +177,18 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     [ref],
   );
 
+  const [focused, setFocused] = useState(false);
   const effectiveTone = tone ?? color ?? "blue";
-  const sizeToken = SIZE_STYLES[size] ?? SIZE_STYLES.md;
-  const tokens = getToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant);
+  const sizeToken = getFieldSizeTokens(size);
+  const optionLine = OPTION_LINE[size] ?? OPTION_LINE.md;
+  const tokens = getFieldToneTokens(effectiveTone);
+  const variantTokens = getInputVariantTokens(variant, effectiveTone, corner);
+  const glow = getGlowTokens(glowIntensity);
+  const [glowFrom, glowTo] = resolveGlowGradient(
+    effectiveTone,
+    gradientFrom,
+    gradientTo,
+  );
   const isUnderline = variant === "underline";
   const hasStatus = validationStatus !== "none";
   const showCaret = !hideCaret && !multiple;
@@ -276,7 +254,54 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     return visual;
   };
 
-  return (
+  const selectEl = (
+    <select
+      ref={setSelectRef}
+      disabled={disabled}
+      multiple={multiple}
+      onFocus={(event) => {
+        setFocused(true);
+        onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setFocused(false);
+        onBlur?.(event);
+      }}
+      style={pickerAccent}
+      className={classNames(
+        // `appearance-none` hides the platform caret so ours is the only one.
+        "min-w-0 appearance-none border-none bg-transparent p-0 outline-none",
+        multiple ? "w-full" : "flex-1",
+        sizeToken.text,
+        // After `sizeToken.text` on purpose: it overrides that line height so
+        // the platform centres the value (see `BOXED_VALUE_LEADING`).
+        !isUnderline && !multiple && BOXED_VALUE_LEADING,
+        variantTokens.text,
+        optionLine,
+        PICKER_CLASS,
+        "disabled:cursor-not-allowed",
+        multiple && "min-h-[3.25rem]",
+        selectClassName,
+      )}
+      defaultValue={needsPlaceholderDefault ? "" : undefined}
+      {...rest}
+      // After the spread, so a caller cannot leave a select that reports
+      // itself as valid while showing the error surface.
+      aria-invalid={validationStatus === "error" ? true : rest["aria-invalid"]}
+    >
+      {placeholder !== undefined && (
+        <option value="" disabled hidden>
+          {placeholder}
+        </option>
+      )}
+      {children}
+    </select>
+  );
+
+  const field = (
+    // Larger hit area for the native <select> inside (the keyboard path is
+    // the select's own — arrows/Enter work on it directly).
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- wrapper delegates to the native select
     <span
       onClick={handleWrapperClick}
       className={classNames(
@@ -295,7 +320,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
         !unstyled && !hasStatus && tokens.focusBorder,
         // A ring around a borderless underline reads as a stray box.
         !unstyled && !isUnderline && !hasStatus && tokens.focusRing,
-        !unstyled && hasStatus && STATUS_CLASSES[validationStatus],
+        !unstyled && hasStatus && FIELD_STATUS_CLASSES[validationStatus],
         // Opacity, not a neutral fill: `disabled:bg-neutral-100` was a
         // same-specificity fight with every variant's own fill, and it turned a
         // glass or underline select into an opaque grey slab.
@@ -318,39 +343,17 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
         </span>
       )}
 
-      <select
-        ref={setSelectRef}
-        disabled={disabled}
-        multiple={multiple}
-        style={pickerAccent}
-        className={classNames(
-          // `appearance-none` hides the platform caret so ours is the only one.
-          "min-w-0 flex-1 appearance-none border-none bg-transparent p-0 outline-none",
-          sizeToken.text,
-          // After `sizeToken.text` on purpose: it overrides that line height so
-          // the platform centres the value (see `BOXED_VALUE_LEADING`).
-          !isUnderline && !multiple && BOXED_VALUE_LEADING,
-          variantTokens.text,
-          OPTION_CLASSES,
-          sizeToken.optionLine,
-          PICKER_CLASS,
-          "disabled:cursor-not-allowed",
-          multiple && "min-h-[3.25rem]",
-          selectClassName,
-        )}
-        defaultValue={needsPlaceholderDefault ? "" : undefined}
-        {...rest}
-        // After the spread, so a caller cannot leave a select that reports
-        // itself as valid while showing the error surface.
-        aria-invalid={validationStatus === "error" ? true : rest["aria-invalid"]}
-      >
-        {placeholder !== undefined && (
-          <option value="" disabled hidden>
-            {placeholder}
-          </option>
-        )}
-        {children}
-      </select>
+      {multiple && !unstyled ? (
+        <ScrollArea
+          tabIndex={-1}
+          className={classNames("min-w-0 flex-1", LIST_MAX_HEIGHT)}
+          contentClassName="px-1"
+        >
+          {selectEl}
+        </ScrollArea>
+      ) : (
+        selectEl
+      )}
 
       {showCaret && (
         <span
@@ -366,6 +369,37 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
       )}
     </span>
   );
+
+  // The gradient variant is the same field with a coloured glow behind it,
+  // matching `Input`, `Textarea` and `SearchBar` — one halo behind the box,
+  // not a ring. `glow.pad` keeps it inside the component's own box.
+  if (variant === "gradient" && !unstyled) {
+    return (
+      <span
+        className={classNames(
+          "relative flex w-full overflow-hidden rounded-[28px]",
+          glow.pad,
+        )}
+      >
+        <span
+          className={classNames(
+            "absolute rounded-2xl transition-opacity duration-500",
+            glow.inset,
+          )}
+          style={{
+            // Two lobes pushed apart on the shadow axis: start colour glows
+            // from the left, end colour from the right.
+            boxShadow: `-${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowFrom}, ${glow.offset}px 0 ${glow.blur}px ${glow.spread}px ${glowTo}`,
+            opacity: focused ? glow.focusOpacity : glow.idleOpacity,
+          }}
+          aria-hidden
+        />
+        {field}
+      </span>
+    );
+  }
+
+  return field;
 });
 
 Select.displayName = "Select";

@@ -1,8 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import KeyValueArrayField, { type KeyValuePair } from "./KeyValueArrayField";
 import { SURFACE_VARIANTS } from "../theme/Theme";
+import { I18nProvider } from "../i18n/I18nContext";
+
+afterEach(cleanup);
 
 const PAIRS: KeyValuePair[] = [
   { key: "ENV", value: "production" },
@@ -69,7 +73,10 @@ describe("KeyValueArrayField", () => {
 
       for (const char of ["A", "B", "C"]) {
         fireEvent.change(screen.getByLabelText("Key 1"), {
-          target: { value: (screen.getByLabelText("Key 1") as HTMLInputElement).value + char },
+          target: {
+            value:
+              (screen.getByLabelText("Key 1") as HTMLInputElement).value + char,
+          },
         });
         expect(document.activeElement).toBe(screen.getByLabelText("Key 1"));
       }
@@ -179,9 +186,9 @@ describe("KeyValueArrayField", () => {
       const group = container.querySelector('[role="group"]')!;
       const errorId = group.getAttribute("aria-describedby");
       expect(errorId).toBeTruthy();
-      expect(container.querySelector(`#${CSS.escape(errorId!)}`)?.textContent).toBe(
-        "At least one entry is required.",
-      );
+      expect(
+        container.querySelector(`#${CSS.escape(errorId!)}`)?.textContent,
+      ).toBe("At least one entry is required.");
     });
   });
 
@@ -190,7 +197,6 @@ describe("KeyValueArrayField", () => {
       render(
         <KeyValueArrayField label="Metadata" value={[]} onChange={() => {}} />,
       );
-      expect(screen.getByText("No entries yet.")).toBeTruthy();
     });
 
     it("stops adding at maxRows", () => {
@@ -240,8 +246,80 @@ describe("KeyValueArrayField", () => {
     );
     const group = container.querySelector('[role="group"]')!;
     const labelId = group.getAttribute("aria-labelledby")!;
-    expect(container.querySelector(`#${CSS.escape(labelId)}`)?.textContent).toBe(
-      "Metadata",
+    expect(
+      container.querySelector(`#${CSS.escape(labelId)}`)?.textContent,
+    ).toBe("Metadata");
+  });
+});
+
+describe("conventions", () => {
+  it("greys the copy into the active locale and follows the field's button scale", async () => {
+    const { rerender } = render(
+      <KeyValueArrayField
+        label="Vars"
+        value={[{ key: "a", value: "1" }]}
+        onChange={() => {}}
+      />,
     );
+    // English defaults, byte-identical to the old literals.
+    expect(screen.getByRole("button", { name: "Add entry" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove key 1" })).toBeTruthy();
+    // A flat field is a solid button…
+    expect(
+      screen.getByRole("button", { name: "Add entry" }).className,
+    ).toContain("bg-blue-700");
+    // …a glass container wins, and the German locale arrives whole.
+    rerender(
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        <KeyValueArrayField
+          label="Vars"
+          variant="glass"
+          inputVariant="glass"
+          value={[{ key: "region", value: "" }]}
+          onChange={() => {}}
+        />
+      </I18nProvider>,
+    );
+    expect(
+      screen.getByRole("button", { name: "Eintrag hinzufügen" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Schlüssel schlüssel 1 entfernen" }),
+    ).toBeTruthy();
+    const add = screen.getByRole("button", { name: "Eintrag hinzufügen" });
+    expect(add.className).toContain("backdrop-blur");
+    // auto row inputs: a glass card gives glass inputs, a tinted one ghost.
+    rerender(
+      <KeyValueArrayField
+        label="Vars"
+        variant="liquid-glass"
+        value={[{ key: "a", value: "" }]}
+        onChange={() => {}}
+      />,
+    );
+    expect(
+      (screen.getAllByRole("textbox")[0].closest("span") as HTMLElement)
+        .className,
+    ).toContain("backdrop-blur");
+    // glass cards also win the ADD button (the German block above); a
+    // tonal card takes ghost inputs and a solid button.
+    rerender(
+      <KeyValueArrayField
+        label="Vars"
+        variant="tonal"
+        value={[{ key: "a", value: "" }]}
+        onChange={() => {}}
+      />,
+    );
+    expect(
+      (screen.getAllByRole("textbox")[0].closest("span") as HTMLElement)
+        .className,
+    ).toContain("bg-blue-50"); // ghost, tone-tinted
+    rerender(
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        <KeyValueArrayField label="Vars" value={[]} onChange={() => {}} />
+      </I18nProvider>,
+    );
+    expect(screen.getByText("Noch keine Einträge.")).toBeTruthy();
   });
 });

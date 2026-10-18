@@ -122,7 +122,6 @@ export function ReferenceLine(props: ReferenceLineProps) {
     };
     ctx.registerDraw(id, fn);
     return () => ctx.unregisterDraw(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderer, area, color, dash, props.x, props.y, props.x2, props.y2, props.label, props.labelPosition, ctx.registerDraw, ctx.unregisterDraw]);
 
   if (renderer !== "svg") return null;
@@ -268,7 +267,6 @@ export function ReferenceBand(props: ReferenceBandProps) {
     };
     ctx.registerDraw(id, fn, "back");
     return () => ctx.unregisterDraw(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderer, rect, opacity, hex, ctx.registerDraw, ctx.unregisterDraw]);
 
   if (renderer !== "svg" || !rect) return null;

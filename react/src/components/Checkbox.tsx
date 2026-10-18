@@ -8,10 +8,12 @@ import React, {
   useRef,
 } from "react";
 import classNames from "classnames";
+import { warnIfMissingName } from "../../../common/a11y/warn";
 
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import {
   getCheckboxControlTokens,
+  getCheckboxGlassCheckedTokens,
   getCheckboxVariantTokens,
   type ControlSize,
   type InputVariant,
@@ -42,11 +44,10 @@ export type CheckboxSize = ControlSize;
  */
 export type CheckboxVariant = InputVariant;
 
-export interface CheckboxProps
-  extends Omit<
-    InputHTMLAttributes<HTMLInputElement>,
-    "size" | "color" | "children"
-  > {
+export interface CheckboxProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "size" | "color" | "children"
+> {
   /** Label rendered next to the control. */
   label?: ReactNode;
   /** Secondary copy, under the label or beside it. */
@@ -59,7 +60,14 @@ export interface CheckboxProps
    * Surface treatment of the box, on the shared input scale. @default "flat"
    */
   variant?: CheckboxVariant;
-  /** @default "blue" */
+  /**
+   * Accent colour. Every other control in the kit names this `tone` with
+   * `color` as the alias; `Checkbox` had only `color`, so a form written
+   * against the shared name silently fell back to blue.
+   * @default "blue"
+   */
+  tone?: TrueColor;
+  /** Alias for `tone`. */
   color?: TrueColor;
   /** Native tri-state. Also announced as `aria-checked="mixed"`. */
   indeterminate?: boolean;
@@ -184,7 +192,8 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       descriptionPlacement = "bottom",
       size = "md",
       variant = "flat",
-      color = "blue",
+      tone,
+      color,
       indeterminate = false,
       fullWidth = false,
       controlAlign = "left",
@@ -198,6 +207,16 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     },
     forwardedRef,
   ) => {
+    // a11y (P1-2): an unlabeled checkbox has no accessible name — but a
+    // `description` reaches the accessible-name computation through
+    // `aria-describedby`, so this row is named even without a `label`. The
+    // old check looked only at `label` and false-alarmed on description-only
+    // checkboxes.
+    warnIfMissingName(
+      "Checkbox",
+      (inputProps as { "aria-label"?: string })["aria-label"],
+      label ?? description,
+    );
     const generatedId = useId();
     const controlId = id ?? generatedId;
     const descriptionId = description ? `${controlId}-description` : undefined;
@@ -226,8 +245,20 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     );
 
     const sizeStyles = SIZE_STYLES[size] ?? SIZE_STYLES.md;
-    const tokens = getCheckboxControlTokens(color);
+    const accent = tone ?? color ?? "blue";
+    const tokens = getCheckboxControlTokens(accent);
     const surface = getCheckboxVariantTokens(variant);
+    // `glass` replaces the opaque tone fill (which would hide the frost) with
+    // a translucent tint of the tone, exactly like Toggle's glass track. The
+    // tick is white on a surface you can see *through*, so it carries a
+    // shadow rather than trusting the fill behind it.
+    const isGlassVariant = variant === "glass";
+    const checkedTokens = isGlassVariant
+      ? getCheckboxGlassCheckedTokens(accent)
+      : tokens.checked;
+    const glyphTone = isGlassVariant
+      ? "text-white drop-shadow-sm"
+      : tokens.glyph;
     const hasError = validationStatus === "error";
 
     const describedBy =
@@ -248,6 +279,13 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           // Visually hidden but still the real control: it keeps focus, keyboard
           // behaviour, form participation and the `:checked` /`:indeterminate`
           // state the box beside it is drawn from.
+          //
+          // It also carries no `pointer-events-none`, on purpose. `peer-hover`
+          // is the input's `:hover` seen from a sibling, and an invisible
+          // overlay cannot be hovered without receiving the pointer — so
+          // muting it here would have silently deadened every variant's hover
+          // border. (A sibling's `pointer-events-none` is not inherited, so
+          // the box behind still sees hovers too; both layers agree.)
           className="peer absolute inset-0 h-full w-full cursor-[inherit] appearance-none rounded-[inherit] opacity-0"
           aria-describedby={describedBy}
           aria-invalid={hasError || undefined}
@@ -270,7 +308,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             hasError
               ? "border-rose-400 dark:border-rose-500"
               : classNames(surface.border, surface.hover),
-            tokens.checked,
+            checkedTokens,
             tokens.ring,
             "peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 dark:peer-focus-visible:ring-offset-neutral-900",
             // Border only. A `peer-disabled:bg-neutral-100` here is a
@@ -288,7 +326,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             // Only one glyph is ever shown, and `indeterminate` wins — which is
             // what the native control does.
             "pointer-events-none absolute inset-0 grid place-items-center opacity-0 transition-opacity duration-150 peer-checked:opacity-100 peer-indeterminate:opacity-0",
-            tokens.glyph,
+            glyphTone,
           )}
         >
           <CheckGlyph className={sizeStyles.glyph} />
@@ -297,7 +335,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           aria-hidden="true"
           className={classNames(
             "pointer-events-none absolute inset-0 grid place-items-center opacity-0 transition-opacity duration-150 peer-indeterminate:opacity-100",
-            tokens.glyph,
+            glyphTone,
           )}
         >
           <DashGlyph className={sizeStyles.glyph} />

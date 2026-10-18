@@ -1,9 +1,15 @@
 import React, { useMemo, useState } from "react";
 import classNames from "classnames";
-import Table, { TableColumn } from "./Table";
+import Table, {
+  TableColumn,
+  getGroupHeaderClass,
+  getGroupHeaderBorderClass,
+  getGroupHeaderBaseBg,
+  getGroupRowHoverClass,
+} from "./Table";
 import Button from "./Button";
 import Badge from "./Badge";
-import type { TableVariant } from "./Table";
+import type { TableVariant, TableLoaderType } from "./Table";
 import type { PanelTone } from "./Panel";
 import type { TableDensity, SurfaceCorner } from "../theme";
 
@@ -34,10 +40,19 @@ export interface AccessMatrixProps {
   fullHeight?: boolean;
   className?: string;
   hoverable?: boolean;
-  /** Forwards to Table: show a loading skeleton shaped like the matrix. */
+  /** Forwards to Table: show the loading state. */
   loading?: boolean;
   /** Forwards to Table: the message shown while `loading`. */
   loadingMessage?: string;
+  /**
+   * Forwards to Table: how the loading state is shown — a `"spinner"` or
+   * `"progress"` overlay pinned to the card, or a `"skeleton"` of pulsing
+   * placeholders shaped like the matrix.
+   * @default "spinner"
+   */
+  loaderType?: TableLoaderType;
+  /** Forwards to Table: progress percentage for the `"progress"` loader. */
+  loaderProgress?: number;
   /**
    * Forwards to Table: the node shown when there are no permissions. Defaults to
    * `"No permissions to display"` when omitted.
@@ -134,6 +149,8 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
   hoverable = false,
   loading = false,
   loadingMessage,
+  loaderType,
+  loaderProgress,
   emptyState,
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -225,12 +242,8 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
     });
   };
 
-  // Group-header (collapsible) rows sit a shade darker than striped data rows
-  // so the headers stay distinguishable when striping is on.
-  const groupHeaderBaseBg = striped ? "bg-neutral-100" : "bg-neutral-50";
-  const groupHeaderBg = striped
-    ? "bg-neutral-100 hover:bg-neutral-200"
-    : "bg-neutral-50 hover:bg-neutral-100";
+  // Group-header (collapsible) rows are tone-tinted via the shared Table
+  // helpers so a tinted matrix matches its header band (see getGroupHeader*).
 
   const columns = useMemo((): TableColumn<MatrixRow>[] => {
     // Resource column — sticky left, no expand-spacer sibling so it lands at left-0
@@ -247,7 +260,12 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
       stickyBackground,
       stickyBackgroundFn: (row) =>
         row._isGroupHeader
-          ? `${groupHeaderBaseBg} dark:bg-neutral-800/40`
+          ? // The group row is a control (toggles collapse), so its hover must
+            // stay uniform even with `hoverable={false}`: the sticky cell's
+            // opaque base would otherwise block the tr's `hover:` fill that
+            // shows through the transparent cells to its right. The
+            // `group-hover:` variant fires on the tr's `group` class.
+            `${getGroupHeaderBaseBg(tone)} ${getGroupRowHoverClass(tone)}`
           : undefined,
       render: (row) => {
         if (row._isGroupHeader) {
@@ -285,7 +303,7 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
 
     return [resourceCol, ...actionCols];
     // collapsedGroups is needed so the chevron direction re-renders on toggle
-  }, [actions, stickyBackground, tone, collapsedGroups, groupHeaderBaseBg]);
+  }, [actions, stickyBackground, tone, collapsedGroups]);
 
   return (
     <div
@@ -308,14 +326,22 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
         stickyHeader
         loading={loading}
         loadingMessage={loadingMessage}
+        loaderType={loaderType}
+        loaderProgress={loaderProgress}
         emptyState={emptyState ?? "No permissions to display"}
         onRowClick={(row) => {
           if (row._isGroupHeader) toggleGroup(row._group);
         }}
         rowClassName={(row) =>
           row._isGroupHeader
-            ? `cursor-pointer select-none border-b border-neutral-100 ${groupHeaderBg} dark:border-neutral-800 dark:bg-neutral-800/40 dark:hover:bg-neutral-700/50`
+            ? `cursor-pointer select-none border-b ${getGroupHeaderBorderClass(tone)} ${getGroupHeaderClass(tone)}`
             : ""
+        }
+        // Group-header rows paint the bold group hover on every cell (sticky
+        // included) so the whole row shifts as one instead of a data-row hover
+        // covering the tr's group hover.
+        rowHoverClassName={(row) =>
+          row._isGroupHeader ? getGroupRowHoverClass(tone) : undefined
         }
       />
       {hiddenCount > 0 && (

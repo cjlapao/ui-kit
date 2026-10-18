@@ -164,6 +164,10 @@ describe("DropdownMenu — accessibility", () => {
     render(<Harness />);
     expect(menu()).toHaveAttribute("role", "menu");
     expect(menu()).toHaveAttribute("aria-orientation", "vertical");
+    // The container is a programmatic focus stop (roving tabindex lives on
+    // the menuitems) — tabIndex={-1} keeps it focusable without adding a
+    // second stop to the tab order.
+    expect(menu()).toHaveAttribute("tabindex", "-1");
     const items = itemEls();
     expect(items).toHaveLength(3);
     for (const item of items) {

@@ -17,13 +17,58 @@
  */
 
 // ── TrueColor values (must match common/theme/Theme.ts) ──────────
+// Note: the kit supports 21 of Tailwind's 22 palettes — `pink` is
+// deliberately NOT a TrueColor.
 const COLORS = [
-  "red","orange","amber","yellow","lime","green","emerald","teal",
-  "cyan","sky","blue","indigo","violet","purple","fuchsia","rose",
-  "slate","gray","zinc","neutral","stone",
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "rose",
+  "slate",
+  "gray",
+  "zinc",
+  "neutral",
+  "stone",
 ];
 
 const COLOR_LIST = COLORS.join(",");
+
+// Drift guard: this list is a hardcoded mirror of TRUE_COLORS because
+// Theme.ts is TypeScript and this script is plain node. When a colour is
+// added to TRUE_COLORS the mirror must be updated too — verify against the
+// source instead of trusting the mirror.
+{
+  const themeSrc = readFileSync(
+    fileURLToPath(new URL("../common/theme/Theme.ts", import.meta.url)),
+    "utf8",
+  );
+  const m = themeSrc.match(/export const TRUE_COLORS = \[([\s\S]*?)\];/);
+  if (!m) {
+    throw new Error("Could not find TRUE_COLORS in common/theme/Theme.ts");
+  }
+  const sourceColors = [...m[1].matchAll(/"([a-z]+)"/g)].map((x) => x[1]);
+  const a = [...COLORS].sort().join(",");
+  const b = [...sourceColors].sort().join(",");
+  if (a !== b) {
+    throw new Error(
+      `generate-safelist: COLORS drifted from TRUE_COLORS.\n` +
+        `  generator: ${a}\n  Theme.ts:  ${b}\n` +
+        `Update the COLORS array in scripts/generate-safelist.mjs and re-run.`,
+    );
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────
 function brace(pattern) {
@@ -80,13 +125,50 @@ src(`@source inline("border-{COLOR}-400");`);
 src(`@source inline("border-{COLOR}-500");`);
 L("");
 
+// stroke-/fill-{color}-{shade}
+// The ConnectionFlow terminal layer is SVG, and an SVG `stroke` or `fill`
+// attribute cannot carry a `dark:` variant — so the tones that have to follow
+// the scheme are applied as classes instead of values.
+src(`@source inline("stroke-{COLOR}-200");`);
+src(`@source inline("stroke-{COLOR}-300");`);
+src(`@source inline("stroke-{COLOR}-500");`);
+src(`@source inline("dark:stroke-{COLOR}-400");`);
+src(`@source inline("dark:stroke-{COLOR}-700");`);
+src(`@source inline("dark:stroke-{COLOR}-800");`);
+src(`@source inline("fill-{COLOR}-50");`);
+src(`@source inline("fill-{COLOR}-400");`);
+src(`@source inline("fill-{COLOR}-500");`);
+src(`@source inline("dark:fill-{COLOR}-400");`);
+src(`@source inline("dark:fill-{COLOR}-500");`);
+src(`@source inline("dark:fill-{COLOR}-950/40");`);
+// The node card's silhouette is an SVG path, so `Panel`'s surface variants
+// need SVG twins of the same shades: bg- becomes fill-, border- becomes
+// stroke-. Kept in step with getPanelToneStyles in common/theme/Theme.ts.
+src(`@source inline("fill-{COLOR}-50/80");`);
+src(`@source inline("fill-{COLOR}-50/50");`);
+src(`@source inline("fill-{COLOR}-50/30");`);
+src(`@source inline("fill-{COLOR}-100/80");`);
+src(`@source inline("dark:fill-{COLOR}-500/10");`);
+src(`@source inline("dark:fill-{COLOR}-500/15");`);
+src(`@source inline("stroke-{COLOR}-300/50");`);
+src(`@source inline("dark:stroke-{COLOR}-500/25");`);
+src(`@source inline("dark:stroke-{COLOR}-500/50");`);
+L("");
+
 // hover:bg-{color}-{shade}
 src(`@source inline("hover:bg-{COLOR}-100");`);
 src(`@source inline("hover:bg-{COLOR}-400");`);
+// The Combobox row wash follows the component's tone under the mouse -
+// emitted per tone, because that is exactly where a gap hides: the DOM
+// carries the right class and paints nothing.
+src(`@source inline("hover:bg-{COLOR}-50");`);
+src(`@source inline("dark:hover:bg-{COLOR}-500/15");`);
 L("");
 
 // hover:text-{color}-{shade}
 src(`@source inline("hover:text-{COLOR}-500");`);
+src(`@source inline("hover:text-{COLOR}-700");`);
+src(`@source inline("dark:hover:text-{COLOR}-200");`);
 L("");
 
 // hover:border-{color}-{shade}
@@ -129,6 +211,51 @@ src(`@source inline("dark:border-{COLOR}-500/25");`);
 src(`@source inline("bg-{COLOR}-500/{15,20}");`);
 src(`@source inline("dark:bg-{COLOR}-400/25");`);
 src(`@source inline("dark:bg-{COLOR}-500/40");`);
+L("");
+
+// The picker/split-view selection palettes. These were previously "safelisted"
+// only by accident: `Picker`, `TagPicker` and `SplitView` each hand-wrote a
+// 21-entry map, and the literal strings in those files were what Tailwind
+// scanned. The maps had drifted (`red` spelled rose, `green` spelled emerald,
+// `stone` spelled neutral), so the *correct* class for those tones had never
+// been emitted at all. Generating the maps from TRUE_COLORS means the shapes
+// have to be declared here instead.
+src(`@source inline("ring-{COLOR}-500/20");`);
+src(`@source inline("bg-{COLOR}-50/60");`);
+src(`@source inline("dark:bg-{COLOR}-900/{10,20,30,50}");`);
+src(`@source inline("border-l-{COLOR}-600");`);
+L("");
+
+// MultiToggle's `tonal` indicator. Three of its four shapes were never
+// emitted for any tone: the fill worked in light mode and nothing else did, so
+// `border` fell back to `currentColor` and painted a near-black rule around a
+// blue pill. The strings come from `theme.multiToggle[color].indicator`, so
+// they were generated correctly and simply had no CSS behind them.
+src(`@source inline("border-{COLOR}-400/40");`);
+src(`@source inline("dark:border-{COLOR}-300/20");`);
+src(`@source inline("dark:bg-{COLOR}-400/20");`);
+L("");
+
+// Generated theme tokens whose classes had no CSS behind them at all.
+// `Theme.ts` builds these with template literals, so Tailwind can never scan
+// them — they only exist if they are declared here, and none of them were.
+// Measured against the built stylesheet, every one was absent for all 21
+// tones, which means: Panel's `muted` copy fell back to inherited colour, its
+// overlay gradient and decoration painted nothing, StatCard's decoration
+// corner had no wash, and Tabs' segmented container had no dark fill.
+src(`@source inline("text-{COLOR}-600/90");`);
+src(`@source inline("dark:text-{COLOR}-200/85");`);
+src(`@source inline("from-{COLOR}-900/70");`);
+src(`@source inline("via-{COLOR}-900/40");`);
+src(`@source inline("to-{COLOR}-900/15");`);
+src(`@source inline("bg-{COLOR}-400/10");`);
+src(`@source inline("dark:bg-{COLOR}-300/5");`);
+src(`@source inline("from-{COLOR}-100/60");`);
+src(`@source inline("dark:from-{COLOR}-500/10");`);
+src(`@source inline("bg-{COLOR}-500/90");`);
+src(`@source inline("dark:bg-{COLOR}-400/90");`);
+src(`@source inline("bg-{COLOR}-300/40");`);
+src(`@source inline("dark:bg-{COLOR}-700/10");`);
 L("");
 
 // dark:border-{color}-{shade}
@@ -207,11 +334,12 @@ src(`@source inline("peer-checked:border-{COLOR}-400");`);
 src(`@source inline("dark:peer-checked:border-{COLOR}-400");`);
 src(`@source inline("peer-checked:bg-{COLOR}-500/20");`);
 src(`@source inline("dark:peer-checked:bg-{COLOR}-400/25");`);
-// The glass variant's on-state: the frosted fill (and its dark twin) only
-// while checked, plus the backdrop blur that composes it. Mirrors the plain
-// glass-fill steps above with a peer-checked prefix.
+// The glass variant's on-state: a translucent full-chroma tint (and its dark
+// twin) only while checked, plus the backdrop blur that composes it. The
+// light step is the 500 at /40 (clear: /20) — the big-surface `100` pastel
+// washes out at pill size; the dark step stays in the 600 family.
 src(`@source inline("peer-checked:backdrop-blur-sm");`);
-src(`@source inline("peer-checked:bg-{COLOR}-100/{30,55,65,75,85}");`);
+src(`@source inline("peer-checked:bg-{COLOR}-500/{20,40}");`);
 src(`@source inline("dark:peer-checked:bg-{COLOR}-600/{5,10,15,25,35}");`);
 src(`@source inline("peer-focus-visible:ring-{COLOR}-400");`);
 L("");
@@ -237,10 +365,18 @@ L(`/* ── Opacity-modified classes (variants compiled by Tailwind) ── */`
 L("");
 
 // Glass fills: bg-{color}-100/{opacity} and its hover step
-src(`@source inline("bg-{COLOR}-100/{30,55,65,75,85}");`);
+src(`@source inline("bg-{COLOR}-100/{30,55,65,75,80,85}");`);
 src(`@source inline("hover:bg-{COLOR}-100/{40,65,75,85,95}");`);
 src(`@source inline("dark:bg-{COLOR}-600/{5,10,15,25,35}");`);
 src(`@source inline("dark:hover:bg-{COLOR}-600/{15,20,25,35,45}");`);
+// The intensified glass tints: control fills moved to the `-200`/`-500`
+// shades, container fills to `-100` — a `-50`/`-100` wash at these alphas
+// read as disabled, not tinted. Same alpha ladder, one notch up in shade.
+src(`@source inline("bg-{COLOR}-200/{30,65,75,85,95}");`);
+src(`@source inline("hover:bg-{COLOR}-200/{40,75,85,95}");`);
+src(`@source inline("dark:bg-{COLOR}-500/{5,10,15,20,25,30,35}");`);
+src(`@source inline("dark:hover:bg-{COLOR}-500/{15,25,35,45}");`);
+src(`@source inline("bg-{COLOR}-100/{20,45,50}");`);
 L("");
 
 // Toggle focus ring
@@ -270,6 +406,10 @@ src(`@source inline("group-focus-within:ring-{COLOR}-400");`);
 src(`@source inline("hover:text-{COLOR}-600");`);
 src(`@source inline("dark:hover:bg-{COLOR}-900/40");`);
 src(`@source inline("dark:hover:text-{COLOR}-400");`);
+// Breadcrumb link tokens (getBreadcrumbToneTokens): the contrast-correct
+// text-hover pair — `{c}-700` light, `{c}-300` dark (the dark step and the
+// current crumb are already covered above).
+src(`@source inline("hover:text-{COLOR}-700");`);
 L("");
 
 // SideMenu row tokens. The icon's hover colour comes from the row's
@@ -316,6 +456,10 @@ src(`@source inline("dark:peer-checked:{bg,border}-{COLOR}-400");`);
 src(`@source inline("dark:peer-indeterminate:{bg,border}-{COLOR}-400");`);
 src(`@source inline("peer-focus-visible:ring-{COLOR}-500");`);
 src(`@source inline("dark:peer-focus-visible:ring-{COLOR}-400");`);
+// The glass variant's on-state mirrors Toggle's: the full-chroma 500 step at
+// a translucent alpha (600/35 in dark), for checked *and* indeterminate.
+src(`@source inline("peer-indeterminate:bg-{COLOR}-500/{20,40}");`);
+src(`@source inline("dark:peer-indeterminate:bg-{COLOR}-600/{15,35}");`);
 // The glyph colour `dark:text-{COLOR}-950` is already emitted above, for
 // Alert's solid variant.
 L("");
@@ -331,6 +475,12 @@ src(`@source inline("bg-{COLOR}-50/80");`);
 src(`@source inline("dark:border-{COLOR}-500/40");`);
 L("");
 
+// ConnectionFlow node cards (SVG renderer). Generated from the same shade
+// table the canvas painter reads, so the two renderers cannot drift.
+src(`@source inline("dark:bg-{COLOR}-950/40");`);
+src(`@source inline("dark:bg-{COLOR}-800/60");`);
+L("");
+
 // Spinner segment borders
 src(`@source inline("border-t-{COLOR}-500");`);
 src(`@source inline("dark:border-t-{COLOR}-300");`);
@@ -340,6 +490,20 @@ src(`@source inline("border-b-{COLOR}-200");`);
 src(`@source inline("dark:border-b-{COLOR}-100/60");`);
 src(`@source inline("border-l-{COLOR}-100");`);
 src(`@source inline("dark:border-l-{COLOR}-100/40");`);
+L("");
+
+// Stepper. The node fills, the pending border, the connector/underline base
+// and the progress track are all built per tone in common/theme/Theme.ts, so
+// the source scanner can never see the interpolated candidates. Before this
+// section the dark completed fill (`dark:bg-{c}-600/60`), the dark connector
+// base (`dark:bg-{c}-700/40`) and the dark pending border
+// (`dark:border-{c}-700/60`) existed for 0 of the 21 tones — in dark mode
+// completed nodes had no fill, connectors were invisible and pending nodes
+// had no border. The light progress track (`bg-{c}-100/60`) was missing too.
+src(`@source inline("dark:bg-{COLOR}-600/60");`);
+src(`@source inline("dark:bg-{COLOR}-700/40");`);
+src(`@source inline("dark:border-{COLOR}-700/60");`);
+src(`@source inline("bg-{COLOR}-100/60");`);
 L("");
 
 // Button (trigger family). The token table in common/theme/Theme.ts emits
@@ -384,10 +548,46 @@ src(`@source inline("dark:accent-{COLOR}-400");`);
 // The neutral tone's accent steps are two shades off the pattern above.
 src(`@source inline("accent-neutral-700");`);
 src(`@source inline("dark:accent-neutral-300");`);
+// Zebra + data-row hover (tone-tinted rows). The zebra is fainted
+// (`bg-{c}-50/55`) to open a band; each data row's hover sits inside it — a
+// light (non-striped) row gets the lighter step, a striped row the deeper
+// step — and both stay lighter than the group-header band. The group-header
+// fill (`bg-{c}-100`) and its border are already emitted above; its hover
+// (`hover:bg-{c}-300`) likewise.
+src(`@source inline("bg-{COLOR}-50/55");`);
+src(`@source inline("group-hover:bg-{COLOR}-100/{55,80}");`);
+src(`@source inline("dark:bg-{COLOR}-500/{8,20}");`);
+src(`@source inline("dark:group-hover:bg-{COLOR}-500/{13,17}");`);
+src(`@source inline("dark:hover:bg-{COLOR}-500/35");`);
+// Cell-level group hover for pseudo group rows (AccessMatrix) — the same bold
+// fill the group-header tr paints, so all cells of the row shift together.
+src(`@source inline("group-hover:bg-{COLOR}-300");`);
+src(`@source inline("dark:group-hover:bg-{COLOR}-500/35");`);
+src(`@source inline("border-{COLOR}-100");`);
+src(`@source inline("dark:border-{COLOR}-500/20");`);
+L("");
+
+// Gantt. The bar/lane/column/link tokens in common/gantt/tokens.ts emit
+// these per TrueColor. Before this section the progress overlay
+// (`bg-{c}-700/70`), the light bar base (`bg-{c}-300/70` + its hover step),
+// the dark lane band (`dark:bg-{c}-950/40`), the bar rim
+// (`border-{c}-600/40`), the dark lane accent
+// (`dark:border-{c}-500/50`) and the selection ring
+// (`ring-{c}-400/50`) existed for 0 of the 21 tones.
+src(`@source inline("bg-{COLOR}-700/70");`);
+src(`@source inline("bg-{COLOR}-300/70");`);
+src(`@source inline("dark:bg-{COLOR}-400/35");`);
+src(`@source inline("hover:bg-{COLOR}-400/70");`);
+src(`@source inline("dark:hover:bg-{COLOR}-400/55");`);
+src(`@source inline("dark:bg-{COLOR}-950");`);
+src(`@source inline("dark:bg-{COLOR}-950/40");`);
+src(`@source inline("border-{COLOR}-600/40");`);
+src(`@source inline("dark:border-{COLOR}-500/50");`);
+src(`@source inline("ring-{COLOR}-400/50");`);
 L("");
 
 // ── Write output ──────────────────────────────────────────────────
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 

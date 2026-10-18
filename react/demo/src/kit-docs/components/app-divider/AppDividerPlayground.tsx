@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import {
-  AppDivider,
-  MultiToggle,
-  Panel,
-} from "@cjlapao/ui-kit";
+import { AppDivider, ColorSwatches, Panel } from "@cjlapao/ui-kit";
 import type {
   AppDividerLabelPosition,
   AppDividerOrientation,
@@ -12,16 +8,16 @@ import type {
   TrueColor,
 } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
-  SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   appDividerSpacingOptions,
   appDividerVariantOptions,
   controlSizeOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const ORIENTATION_OPTIONS = [
@@ -80,77 +76,92 @@ export const AppDividerPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Orientation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={ORIENTATION_OPTIONS}
-              value={orientation}
-              onChange={(v) => setOrientation(v as AppDividerOrientation)}
-            />
-          </Control>
-          <Control label="Variant">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={appDividerVariantOptions}
-              value={variant}
-              onChange={(v) => setVariant(v as AppDividerVariant)}
-            />
-          </Control>
-          <Control label="Thickness">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as ControlSize)}
-            />
-          </Control>
-          <Control label="Spacing">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={appDividerSpacingOptions}
-              value={spacing}
-              onChange={(v) => setSpacing(v as "none" | ControlSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <ChoiceControl
+                      label="Orientation"
+                      options={ORIENTATION_OPTIONS}
+                      value={orientation}
+                      onChange={(v) =>
+                        setOrientation(v as AppDividerOrientation)
+                      }
+                    />
+                    <ChoiceControl
+                      label="Variant"
+                      options={appDividerVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as AppDividerVariant)}
+                    />
+                    <ChoiceControl
+                      label="Thickness"
+                      options={controlSizeOptions}
+                      value={size}
+                      onChange={(v) => setSize(v as ControlSize)}
+                    />
+                    <ChoiceControl
+                      label="Spacing"
+                      options={appDividerSpacingOptions}
+                      value={spacing}
+                      onChange={(v) => setSpacing(v as "none" | ControlSize)}
+                    />
+                  </>
+                ),
+              },
+              {
+                id: "layout",
+                title: "Layout",
+                controls: (
+                  <>
+                    <ChoiceControl
+                      label="Label position"
+                      options={LABEL_POSITION_OPTIONS}
+                      value={labelPosition}
+                      onChange={(v) =>
+                        setLabelPosition(v as AppDividerLabelPosition)
+                      }
+                    />
+                    <div className="grid grid-cols-1 gap-2">
+                      <ToggleRow
+                        label="Use tone"
+                        checked={useTone}
+                        onChange={setUseTone}
+                      />
+                      {/* Tone is a colour decision — pick it from colour
+                          swatches, not from a dropdown of words. Off means
+                          the rule follows the surface's divider token. */}
+                      {useTone && (
+                        <Control label="Tone">
+                          <ColorSwatches
+                            selectable
+                            size="sm"
+                            value={tone}
+                            onSelect={setTone}
+                            defaultExpanded
+                          />
+                        </Control>
+                      )}
+                      <ToggleRow
+                        label="Label"
+                        checked={withLabel}
+                        onChange={setWithLabel}
+                      />
+                      <ToggleRow
+                        label="On a glass panel"
+                        checked={onGlass}
+                        onChange={setOnGlass}
+                      />
+                    </div>
+                  </>
+                ),
+              },
+            ]}
           />
-          <Control label="Label position">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={LABEL_POSITION_OPTIONS}
-              value={labelPosition}
-              onChange={(v) =>
-                setLabelPosition(v as AppDividerLabelPosition)
-              }
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow
-              label="Use tone"
-              checked={useTone}
-              onChange={setUseTone}
-            />
-            <ToggleRow
-              label="Label"
-              checked={withLabel}
-              onChange={setWithLabel}
-            />
-            <ToggleRow
-              label="On a glass panel"
-              checked={onGlass}
-              onChange={setOnGlass}
-            />
-          </div>
           <p className="text-xs opacity-70">
             With <strong>Use tone</strong> off, the rule reads the surrounding
             surface's divider colour — switch <strong>On a glass panel</strong>{" "}
@@ -158,22 +169,18 @@ export const AppDividerPlayground: React.FC = () => {
             <code>separator</code>; an unlabelled one is decoration and hidden
             from assistive tech.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">
-          <div className="w-full rounded-lg bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 p-4 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
-            <Panel
+          <Panel
               variant={onGlass ? "liquid-glass" : "outlined"}
               tone="neutral"
-              padding="md"
-            >
-              {sample}
-            </Panel>
-          </div>
+          >
+            {sample}
+          </Panel>
         </div>
       }
-    >
-    </PlaygroundPanel>
+    ></PlaygroundPanel>
   );
 };

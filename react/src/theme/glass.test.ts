@@ -25,42 +25,42 @@ describe("getGlassFillClass", () => {
   it("returns frosted fill for blue with frosted opacity", () => {
     const result = getGlassFillClass("blue", "frosted");
     expect(result).toBe(
-      "bg-blue-100/65 hover:bg-blue-100/75 dark:bg-blue-600/25 dark:hover:bg-blue-600/35",
+      "bg-blue-200/65 hover:bg-blue-200/75 dark:bg-blue-500/25 dark:hover:bg-blue-500/35",
     );
   });
 
   it("returns light fill for red with light opacity", () => {
     const result = getGlassFillClass("red", "light");
     expect(result).toBe(
-      "bg-red-100/85 hover:bg-red-100/95 dark:bg-red-600/35 dark:hover:bg-red-600/45",
+      "bg-red-200/85 hover:bg-red-200/95 dark:bg-red-500/35 dark:hover:bg-red-500/45",
     );
   });
 
   it("returns clear fill for emerald with clear opacity", () => {
     const result = getGlassFillClass("emerald", "clear");
     expect(result).toBe(
-      "bg-emerald-100/30 hover:bg-emerald-100/40 dark:bg-emerald-600/10 dark:hover:bg-emerald-600/20",
+      "bg-emerald-200/30 hover:bg-emerald-200/40 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20",
     );
   });
 
   it("handles numeric opacity (0.6 → lit=60, drk=18)", () => {
     const result = getGlassFillClass("sky", 0.6);
     expect(result).toBe(
-      "bg-sky-100/60 hover:bg-sky-100/70 dark:bg-sky-600/18 dark:hover:bg-sky-600/28",
+      "bg-sky-200/60 hover:bg-sky-200/70 dark:bg-sky-500/18 dark:hover:bg-sky-500/28",
     );
   });
 
   it("handles numeric opacity (0.1 → lit=10, drk=3)", () => {
     const result = getGlassFillClass("violet", 0.1);
     expect(result).toBe(
-      "bg-violet-100/10 hover:bg-violet-100/20 dark:bg-violet-600/3 dark:hover:bg-violet-600/13",
+      "bg-violet-200/10 hover:bg-violet-200/20 dark:bg-violet-500/3 dark:hover:bg-violet-500/13",
     );
   });
 
   it("handles numeric opacity capping dark at 30 (0.99 → drk=min(30,30)=30)", () => {
     const result = getGlassFillClass("purple", 0.99);
     expect(result).toBe(
-      "bg-purple-100/99 hover:bg-purple-100/109 dark:bg-purple-600/30 dark:hover:bg-purple-600/40",
+      "bg-purple-200/99 hover:bg-purple-200/109 dark:bg-purple-500/30 dark:hover:bg-purple-500/40",
     );
   });
 
@@ -69,7 +69,7 @@ describe("getGlassFillClass", () => {
     // and exercises the `return 55` / `return 25` fallback at the end.
     const result = getGlassFillClass("amber", "bogus" as GlassOpacity);
     expect(result).toBe(
-      "bg-amber-100/65 hover:bg-amber-100/75 dark:bg-amber-600/25 dark:hover:bg-amber-600/35",
+      "bg-amber-200/65 hover:bg-amber-200/75 dark:bg-amber-500/25 dark:hover:bg-amber-500/35",
     );
   });
 
@@ -100,10 +100,10 @@ describe("getGlassFillClass", () => {
 
     trueColors.forEach((color) => {
       const result = getGlassFillClass(color as TrueColor, "frosted");
-      expect(result).toMatch(`bg-${color}-100/65`);
-      expect(result).toMatch(`hover:bg-${color}-100/75`);
-      expect(result).toMatch(`dark:bg-${color}-600/25`);
-      expect(result).toMatch(`dark:hover:bg-${color}-600/35`);
+      expect(result).toMatch(`bg-${color}-200/65`);
+      expect(result).toMatch(`hover:bg-${color}-200/75`);
+      expect(result).toMatch(`dark:bg-${color}-500/25`);
+      expect(result).toMatch(`dark:hover:bg-${color}-500/35`);
     });
   });
 
@@ -115,7 +115,7 @@ describe("getGlassFillClass", () => {
       "frosted",
     );
     expect(result).toBe(
-      "bg-neutral-100/65 hover:bg-neutral-100/75 dark:bg-neutral-600/25 dark:hover:bg-neutral-600/35",
+      "bg-neutral-200/65 hover:bg-neutral-200/75 dark:bg-neutral-500/25 dark:hover:bg-neutral-500/35",
     );
   });
 });

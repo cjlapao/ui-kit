@@ -19,6 +19,26 @@ describe("CollapsibleHelpText", () => {
         render(<CollapsibleHelpText text={SHORT} tone={tone} showIcon />),
       ).not.toThrow();
     });
+
+    // The accent sits on a same-hue `bg-{c}-50` chip, so it must sit at the
+    // 700 light shade — the 600 step stacked hue-on-hue dropped under the
+    // 3:1 non-text bar on the lightest colours.
+    it("accents the icon chip at the contrast-safe shade for every tone", () => {
+      for (const tone of TRUE_COLORS) {
+        const { container } = render(
+          <CollapsibleHelpText text={SHORT} tone={tone} showIcon />,
+        );
+        const chip = container.querySelector("span[class*='rounded-full']")!;
+        expect(chip.className).toContain(`bg-${tone}-50`);
+        expect(chip.className).toContain(`text-${tone}-700`);
+        expect(chip.className).not.toContain(`text-${tone}-600`);
+      }
+    });
+
+    it("defaults to the blue tone on the title line", () => {
+      render(<CollapsibleHelpText text={SHORT} title="Help" />);
+      expect(screen.getByText("Help").className).toContain("text-blue-700");
+    });
   });
 
   describe("surfaces", () => {

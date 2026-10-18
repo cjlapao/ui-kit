@@ -138,10 +138,30 @@ describe("Toggle — glass props", () => {
 
   it("handles all glass type combinations without error", () => {
     const combinations = [
-      { glass: true, vibrancy: "low" as const, glassOpacity: "frosted" as const, specularMode: "none" as const },
-      { glass: true, vibrancy: "medium" as const, glassOpacity: "light" as const, specularMode: "classic" as const },
-      { glass: true, vibrancy: "high" as const, glassOpacity: "clear" as const, specularMode: "halo" as const },
-      { glass: false, vibrancy: "low" as const, glassOpacity: "frosted" as const, specularMode: "none" as const },
+      {
+        glass: true,
+        vibrancy: "low" as const,
+        glassOpacity: "frosted" as const,
+        specularMode: "none" as const,
+      },
+      {
+        glass: true,
+        vibrancy: "medium" as const,
+        glassOpacity: "light" as const,
+        specularMode: "classic" as const,
+      },
+      {
+        glass: true,
+        vibrancy: "high" as const,
+        glassOpacity: "clear" as const,
+        specularMode: "halo" as const,
+      },
+      {
+        glass: false,
+        vibrancy: "low" as const,
+        glassOpacity: "frosted" as const,
+        specularMode: "none" as const,
+      },
     ];
 
     for (const combo of combinations) {
@@ -159,7 +179,13 @@ describe("Toggle — glass props", () => {
 describe("Toggle — glass class composition", () => {
   it("glass=true track includes backdrop-blur-sm", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, color: "blue", glassOpacity: "frosted", vibrancy: "medium" },
+      props: {
+        label: "Test",
+        glass: true,
+        color: "blue",
+        glassOpacity: "frosted",
+        vibrancy: "medium",
+      },
     });
     const track = wrapper.find("span[aria-hidden='true']");
     expect(track.classes()).toContain("backdrop-blur-sm");
@@ -167,25 +193,43 @@ describe("Toggle — glass class composition", () => {
 
   it("glass=true track includes glass fill class from color+opacity", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, color: "blue", glassOpacity: "frosted", vibrancy: "medium" },
+      props: {
+        label: "Test",
+        glass: true,
+        color: "blue",
+        glassOpacity: "frosted",
+        vibrancy: "medium",
+      },
     });
     const track = wrapper.find("span[aria-hidden='true']");
-    expect(track.classes()).toContain("bg-blue-100/65");
+    expect(track.classes()).toContain("bg-blue-200/65");
   });
 
   it("glass=true track includes glass fill class with hover and dark variants", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, color: "blue", glassOpacity: "frosted", vibrancy: "medium" },
+      props: {
+        label: "Test",
+        glass: true,
+        color: "blue",
+        glassOpacity: "frosted",
+        vibrancy: "medium",
+      },
     });
     const track = wrapper.find("span[aria-hidden='true']");
-    expect(track.classes()).toContain("hover:bg-blue-100/75");
-    expect(track.classes()).toContain("dark:bg-blue-600/25");
-    expect(track.classes()).toContain("dark:hover:bg-blue-600/35");
+    expect(track.classes()).toContain("hover:bg-blue-200/75");
+    expect(track.classes()).toContain("dark:bg-blue-500/25");
+    expect(track.classes()).toContain("dark:hover:bg-blue-500/35");
   });
 
   it("glass=true track includes vibrancy class", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, color: "green", glassOpacity: "light", vibrancy: "high" },
+      props: {
+        label: "Test",
+        glass: true,
+        color: "green",
+        glassOpacity: "light",
+        vibrancy: "high",
+      },
     });
     const track = wrapper.find("span[aria-hidden='true']");
     expect(track.classes()).toContain("backdrop-saturate-[1.4]");
@@ -202,10 +246,16 @@ describe("Toggle — glass class composition", () => {
 
   it("glass=false track has no glass fill or vibrancy classes", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: false, color: "rose", glassOpacity: "frosted", vibrancy: "high" },
+      props: {
+        label: "Test",
+        glass: false,
+        color: "rose",
+        glassOpacity: "frosted",
+        vibrancy: "high",
+      },
     });
     const track = wrapper.find("span[aria-hidden='true']");
-    expect(track.classes()).not.toContain("bg-rose-100/65");
+    expect(track.classes()).not.toContain("bg-rose-200/65");
     expect(track.classes()).not.toContain("backdrop-saturate");
   });
 
@@ -233,7 +283,12 @@ describe("Toggle — glass class composition", () => {
 describe("Toggle — specular overlay", () => {
   it("specular overlay div renders when glass=true and specularMode='classic'", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, specularMode: "classic", color: "blue" },
+      props: {
+        label: "Test",
+        glass: true,
+        specularMode: "classic",
+        color: "blue",
+      },
     });
     const overlays = wrapper.findAll("div[aria-hidden='true']");
     expect(overlays.length).toBeGreaterThan(0);
@@ -243,7 +298,12 @@ describe("Toggle — specular overlay", () => {
 
   it("specular overlay div renders when glass=true and specularMode='halo'", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, specularMode: "halo", color: "blue" },
+      props: {
+        label: "Test",
+        glass: true,
+        specularMode: "halo",
+        color: "blue",
+      },
     });
     const overlays = wrapper.findAll("div[aria-hidden='true']");
     expect(overlays.length).toBeGreaterThan(0);
@@ -252,7 +312,12 @@ describe("Toggle — specular overlay", () => {
 
   it("no specular overlay when specularMode='none'", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, specularMode: "none", color: "blue" },
+      props: {
+        label: "Test",
+        glass: true,
+        specularMode: "none",
+        color: "blue",
+      },
     });
     const overlays = wrapper.findAll("div[aria-hidden='true']");
     expect(overlays.length).toBe(0);
@@ -260,7 +325,12 @@ describe("Toggle — specular overlay", () => {
 
   it("no specular overlay when glass=false regardless of specularMode", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: false, specularMode: "classic", color: "blue" },
+      props: {
+        label: "Test",
+        glass: false,
+        specularMode: "classic",
+        color: "blue",
+      },
     });
     const overlays = wrapper.findAll("div[aria-hidden='true']");
     expect(overlays.length).toBe(0);
@@ -268,7 +338,13 @@ describe("Toggle — specular overlay", () => {
 
   it("specular overlay renders with tooltip wrapper when glass=true", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, specularMode: "classic", tooltip: "Tip", color: "blue" },
+      props: {
+        label: "Test",
+        glass: true,
+        specularMode: "classic",
+        tooltip: "Tip",
+        color: "blue",
+      },
     });
     const overlays = wrapper.findAll("div[aria-hidden='true']");
     // Specular overlay div renders inside the track wrapper (same as non-tooltip branch)
@@ -278,7 +354,12 @@ describe("Toggle — specular overlay", () => {
 
   it("specular overlay is full-bleed and takes the track's pill radius", () => {
     const wrapper = mount(Toggle, {
-      props: { label: "Test", glass: true, specularMode: "classic", color: "indigo" },
+      props: {
+        label: "Test",
+        glass: true,
+        specularMode: "classic",
+        color: "indigo",
+      },
     });
     const overlays = wrapper.findAll("div[aria-hidden='true']");
     expect(overlays.length).toBeGreaterThan(0);
@@ -360,7 +441,7 @@ describe("Toggle — click emits exactly once", () => {
     expect(input.checked).toBe(false);
 
     // A target that is neither the input nor its label: the row forwards it.
-    await wrapper.find('[data-glass]').trigger("click");
+    await wrapper.find("[data-glass]").trigger("click");
 
     expect(input.checked).toBe(true);
   });
@@ -369,13 +450,13 @@ describe("Toggle — click emits exactly once", () => {
     const disabled = mount(Toggle, {
       props: { modelValue: false, label: "X", disabled: true },
     });
-    await disabled.find('[data-glass]').trigger("click");
+    await disabled.find("[data-glass]").trigger("click");
     expect(disabled.emitted("update:modelValue")).toBeUndefined();
 
     const readonly = mount(Toggle, {
       props: { modelValue: false, label: "X", readonly: true },
     });
-    await readonly.find('[data-glass]').trigger("click");
+    await readonly.find("[data-glass]").trigger("click");
     expect(readonly.emitted("update:modelValue")).toBeUndefined();
   });
 });

@@ -11,12 +11,7 @@ export default function EveryTone() {
     <div className="flex flex-wrap items-end gap-4">
       {TRUE_COLORS.map((each) => (
         <div key={each} className="flex flex-col gap-1.5">
-          <Tabs
-            items={MINI_ITEMS}
-            variant="underline"
-            color={each}
-            size="sm"
-          />
+          <Tabs items={MINI_ITEMS} variant="underline" color={each} size="sm" />
           <span className="text-[10px] uppercase tracking-wide opacity-60">
             {each}
           </span>

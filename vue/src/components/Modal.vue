@@ -10,6 +10,7 @@ import {
   type Ref,
   type VNode,
 } from "vue";
+import { useKitT } from "../i18n";
 import classNames from "classnames";
 import Button from "./Button.vue";
 import type {
@@ -164,11 +165,11 @@ export const ConfirmModal = defineComponent({
   props: {
     confirmLabel: {
       type: [String, Object] as PropType<string | VNode>,
-      default: "Confirm",
+      default: undefined,
     },
     cancelLabel: {
       type: [String, Object] as PropType<string | VNode>,
-      default: "Cancel",
+      default: undefined,
     },
     confirmVariant: {
       type: String as PropType<ButtonVariant>,
@@ -190,6 +191,7 @@ export const ConfirmModal = defineComponent({
   },
   emits: ["close", "confirm"],
   setup(props, { attrs, slots, emit }) {
+    const t = useKitT();
     return () =>
       h(
         Modal as Component,
@@ -209,7 +211,7 @@ export const ConfirmModal = defineComponent({
                     onClick: () => emit("close"),
                     ...(props.cancelButtonProps ?? {}),
                   },
-                  { default: () => props.cancelLabel },
+                  { default: () => props.cancelLabel ?? t("kit.modal.cancel") },
                 ),
                 h(
                   Button,
@@ -220,7 +222,7 @@ export const ConfirmModal = defineComponent({
                     disabled: props.isConfirmDisabled,
                     ...(props.confirmButtonProps ?? {}),
                   },
-                  { default: () => props.confirmLabel },
+                  { default: () => props.confirmLabel ?? t("kit.modal.confirm") },
                 ),
               ],
             }),
@@ -249,7 +251,7 @@ export interface ApplyConfirmModalProps
 
 const createTypedConfirmModal = (options: {
   name: string;
-  defaultConfirmLabel: string;
+  confirmKey: string;
   confirmColor: ButtonColor;
   inputFocusClasses: string;
 }) =>
@@ -259,14 +261,14 @@ const createTypedConfirmModal = (options: {
     props: {
       isOpen: { type: Boolean, required: true },
       confirmValue: { type: String, required: true },
-      confirmValueLabel: { type: String, default: "name" },
+      confirmValueLabel: { type: String, default: undefined },
       confirmLabel: {
         type: [String, Object] as PropType<string | VNode>,
-        default: options.defaultConfirmLabel,
+        default: undefined,
       },
       cancelLabel: {
         type: [String, Object] as PropType<string | VNode>,
-        default: "Cancel",
+        default: undefined,
       },
       isConfirmDisabled: { type: Boolean, default: false },
       confirmButtonProps: {
@@ -280,6 +282,7 @@ const createTypedConfirmModal = (options: {
     },
     emits: ["close", "confirm"],
     setup(props, { attrs, slots, emit }) {
+      const t = useKitT();
       const inputValue = ref("");
       const inputRef: Ref<HTMLElement | null> = ref(null);
 
@@ -314,7 +317,7 @@ const createTypedConfirmModal = (options: {
                       onClick: () => emit("close"),
                       ...(props.cancelButtonProps ?? {}),
                     },
-                    { default: () => props.cancelLabel },
+                    { default: () => props.cancelLabel ?? t("kit.modal.cancel") },
                   ),
                   h(
                     Button,
@@ -325,7 +328,7 @@ const createTypedConfirmModal = (options: {
                       disabled: !isMatch || props.isConfirmDisabled,
                       ...(props.confirmButtonProps ?? {}),
                     },
-                    { default: () => props.confirmLabel },
+                    { default: () => props.confirmLabel ?? t(options.confirmKey) },
                   ),
                 ],
               }),
@@ -336,8 +339,9 @@ const createTypedConfirmModal = (options: {
                   "label",
                   { class: "text-sm text-neutral-600 dark:text-neutral-400" },
                   [
-                    "Type the ",
-                    props.confirmValueLabel,
+                    t("kit.modal.typeValuePrefix"),
+                    " ",
+                    props.confirmValueLabel ?? t("kit.modal.confirmValueLabel"),
                     " ",
                     h(
                       "span",
@@ -348,7 +352,7 @@ const createTypedConfirmModal = (options: {
                       props.confirmValue,
                     ),
                     " ",
-                    "to confirm:",
+                    t("kit.modal.typeValueSuffix"),
                   ],
                 ),
                 h("input", {
@@ -381,7 +385,7 @@ const createTypedConfirmModal = (options: {
 
 export const DeleteConfirmModal = createTypedConfirmModal({
   name: "DeleteConfirmModal",
-  defaultConfirmLabel: "Delete",
+  confirmKey: "kit.modal.delete",
   confirmColor: "rose",
   inputFocusClasses:
     "focus:border-rose-400 focus:ring-2 focus:ring-rose-400/30",
@@ -389,7 +393,7 @@ export const DeleteConfirmModal = createTypedConfirmModal({
 
 export const ApplyConfirmModal = createTypedConfirmModal({
   name: "ApplyConfirmModal",
-  defaultConfirmLabel: "Apply",
+  confirmKey: "kit.modal.apply",
   confirmColor: "blue",
   inputFocusClasses: "focus:border-sky-400 focus:ring-2 focus:ring-sky-400/30",
 });
@@ -414,13 +418,15 @@ import { useClassAttrs } from "../utils/attrsUtils";
 
 defineOptions({ name: "Modal", inheritAttrs: false });
 
+const t = useKitT();
+
 const props = withDefaults(defineProps<ModalProps>(), {
   size: "md",
   closeOnBackdropClick: true,
   closeOnEsc: true,
   preventScroll: true,
   hideCloseButton: false,
-  backTooltip: "Go back",
+
   role: "dialog",
 });
 
@@ -683,9 +689,9 @@ const headerActionBindings = (action: ModalHeaderAction) => {
               variant="ghost"
               color="slate"
               size="sm"
-              :tooltip="backTooltip"
+              :tooltip="backTooltip ?? t('kit.modal.back')"
               tooltip-position="bottom"
-              :aria-label="backTooltip"
+              :aria-label="backTooltip ?? t('kit.modal.back')"
               @click="emit('back')"
             />
           </div>
@@ -728,7 +734,7 @@ const headerActionBindings = (action: ModalHeaderAction) => {
               variant="ghost"
               color="slate"
               size="sm"
-              aria-label="Close dialog"
+              :aria-label="t('kit.modal.closeAria')"
               @click="emit('close')"
             />
           </div>

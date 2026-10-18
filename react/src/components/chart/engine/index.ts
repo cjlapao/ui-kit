@@ -23,5 +23,6 @@ export * from "./series/rangeArea";
 export * from "./series/scatter";
 export * from "./series/radar";
 export * from "./series/polar";
+export * from "./series/funnel";
 export * from "./grid";
 export * from "./annotation-layout";

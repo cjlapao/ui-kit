@@ -1,14 +1,25 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import IconButton from "./IconButton";
 import Panel from "./Panel";
 import SearchBar from "./SearchBar";
+import ScrollArea from "./ScrollArea";
 import Tabs, { type TabItem } from "./Tabs";
 import { SmartVariableBadge } from "./SmartVariableParts";
 import { useSurfaceText } from "../contexts/SurfaceContext";
-import { getSurfaceTriggerTokens } from "../theme/Theme";
+import { useKitT } from "../i18n";
+import {
+  PANEL_TONE_FOR_FIELD,
+  getSurfaceTriggerTokens,
+  isGlassSurface,
+} from "../theme/Theme";
 import { groupToVariables } from "../utils/smartVariables";
-import type { TrueColor } from "../theme/Theme";
+import type {
+  ControlSize,
+  SurfaceCorner,
+  SurfaceVariant,
+  TrueColor,
+} from "../theme/Theme";
 import type {
   SmartVariable,
   SmartVariableGroup,
@@ -27,9 +38,24 @@ export interface VariablePickerProps {
   /**
    * Scale of the search field, matched to the control that opened the picker
    * so the two do not look like different widgets stacked on each other.
-   * @default "md"
+   * Was a component-local `sm | md | lg`. @default "md"
    */
-  size?: "sm" | "md" | "lg";
+  size?: ControlSize;
+  /**
+   * The picker's own card surface. Standalone callers pick one directly;
+   * composites like `SmartInput` resolve their `"auto"` through
+   * `SURFACE_VARIANT_FOR_FIELD` and hand over the winner — a glass field
+   * gets a glass picker, a flat one an outlined card.
+   * @default "elevated"
+   */
+  variant?: SurfaceVariant;
+  /**
+   * The card's radius, on the shared corner scale — `"auto"` resolves to
+   * the theme's container corner through `Panel`; composites pass their
+   * `panelCorner` straight through.
+   * @default "auto"
+   */
+  corner?: SurfaceCorner;
   /** Pre-fills the search box — used when the picker is opened by typing. */
   initialSearch?: string;
   title?: string;
@@ -52,12 +78,22 @@ const VariableRow: React.FC<{
       onClick={() => onSelect(variable)}
       className={classNames(
         "flex w-full flex-col items-start gap-1 rounded-lg px-3 py-2.5 text-left transition",
-        trigger.hover,
+        // The list doctrine, not the surface-trigger family: option rows
+        // wash neutral on hover. A tone wash here - tinted per group, so
+        // one tab hovers green and the next purple - reads as selection
+        // across a menu. The colour identity already rides the badge, the
+        // tab and the focus ring.
+        "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
         trigger.focusRing,
       )}
     >
       <span className="flex w-full items-center gap-2">
-        <span className={classNames("truncate text-sm font-medium", surface.heading)}>
+        <span
+          className={classNames(
+            "truncate text-sm font-medium",
+            surface.heading,
+          )}
+        >
           {variable.label || variable.name}
         </span>
         {resolution && (
@@ -67,9 +103,7 @@ const VariableRow: React.FC<{
               resolution.state === "missing" ? "text-rose-500" : surface.muted,
             )}
           >
-            {variable.secret
-              ? "••••••"
-              : resolution.value || "—"}
+            {variable.secret ? "••••••" : resolution.value || "—"}
           </span>
         )}
       </span>
@@ -78,7 +112,11 @@ const VariableRow: React.FC<{
           {variable.description}
         </span>
       )}
-      <SmartVariableBadge variable={variable} mode="token" flagMissing={false} />
+      <SmartVariableBadge
+        variable={variable}
+        mode="token"
+        flagMissing={false}
+      />
     </button>
   );
 };
@@ -90,11 +128,18 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
   resolve,
   tone = "blue",
   size = "md",
+  variant = "elevated",
+  corner = "auto",
   initialSearch = "",
-  title = "Insert variable",
+  title,
   className,
 }) => {
+  const t = useKitT();
   const [search, setSearch] = useState(initialSearch);
+  const searchRef = useRef(search);
+  useEffect(() => {
+    searchRef.current = search;
+  }, [search]);
   const [activeTab, setActiveTab] = useState(groups[0]?.id ?? "");
 
   // Reopening with a typed filter has to replace the previous search, and the
@@ -125,13 +170,23 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
         icon: group.icon,
         badge: variables.length ? String(variables.length) : undefined,
         panel: (
-          <div className="max-h-64 overflow-y-auto p-2">
+          // The kit's own scroll area — the same virtual overlay bars the
+          // tab lanes get — capped at 16rem here, which a `max-h` frame
+          // only can because the ScrollArea viewport inherits the cap.
+          <ScrollArea
+            className="max-h-64"
+            variant="hover"
+            tabIndex={-1}
+            contentClassName="p-2"
+          >
             {variables.length === 0 ? (
               <EmptyRow>
                 {group.emptyMessage ??
                   (term
-                    ? `Nothing matches “${search}”.`
-                    : `No ${group.label.toLowerCase()} variables.`)}
+                    ? t("kit.variablepicker.noMatches", { term: search })
+                    : t("kit.variablepicker.noGroupVariables", {
+                        label: group.label.toLowerCase(),
+                      }))}
               </EmptyRow>
             ) : (
               <div className="flex flex-col gap-0.5">
@@ -146,38 +201,62 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
                 ))}
               </div>
             )}
-          </div>
+          </ScrollArea>
         ),
       };
     });
   }, [groups, search, resolve, tone, onSelect]);
 
+  // Escape closes - unless the search box still holds text, where the key
+  // belongs to SearchBar's clear. The ladder: first Escape empties the
+  // box (its handler runs first, no stopPropagation), the next closes.
+  // Inside SmartInput this stays inert - its own Escape handler closes
+  // the docked picker regardless.
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && onClose) {
+      if (searchRef.current) return;
+      e.preventDefault();
+      onClose();
+    }
+  };
+
   return (
     // A Panel, so the picker is a card from the kit rather than a hard-coded
-    // `bg-white border-slate-200` box with no dark mode.
+    // `bg-white border-slate-200` box with no dark mode — and it takes the
+    // container family's surfaces, so a composite can make it read as the
+    // field's own furniture.
     <Panel
-      variant="elevated"
-      tone="neutral"
+      variant={variant}
+      tone={PANEL_TONE_FOR_FIELD}
+      corner={corner}
       padding="none"
       scrollable={false}
       className={classNames("w-[26rem] max-w-[calc(100vw-2rem)]", className)}
+      onKeyDown={handleKeyDown}
     >
-      <Header title={title} onClose={onClose} />
+      <Header
+        title={title ?? t("kit.variablepicker.title")}
+        onClose={onClose}
+      />
 
       <div className="px-4 py-3">
         <SearchBar
           size={size}
           color={tone}
+          // The same pairing every composite observes from the other side:
+          // an input inside glass is glass, so the search box takes the
+          // glass treatment when the card it lives in is glass.
+          variant={isGlassSurface(variant) ? "glass" : undefined}
           autoSearch
           debounceMs={0}
           initialValue={initialSearch}
-          placeholder="Search variables..."
+          placeholder={t("kit.variablepicker.searchPlaceholder")}
           onSearch={setSearch}
         />
       </div>
 
       {groups.length === 0 ? (
-        <EmptyRow>No variables available.</EmptyRow>
+        <EmptyRow>{t("kit.variablepicker.noVariables")}</EmptyRow>
       ) : (
         <div className="px-2 pb-2">
           <Tabs
@@ -197,14 +276,10 @@ const Header: React.FC<{ title: string; onClose?: () => void }> = ({
   title,
   onClose,
 }) => {
+  const t = useKitT();
   const surface = useSurfaceText();
   return (
-    <div
-      className={classNames(
-        "flex items-center justify-between gap-2 border-b px-4 py-3",
-        surface.divider,
-      )}
-    >
+    <div className="flex items-center justify-between gap-2 border-b border-black/5 px-4 py-3 dark:border-white/10">
       <h3 className={classNames("text-sm font-semibold", surface.heading)}>
         {title}
       </h3>
@@ -215,7 +290,7 @@ const Header: React.FC<{ title: string; onClose?: () => void }> = ({
           variant="ghost"
           color="neutral"
           onClick={onClose}
-          srLabel="Close"
+          srLabel={t("kit.variablepicker.close")}
         />
       )}
     </div>

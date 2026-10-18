@@ -85,7 +85,12 @@ const GLASS_COLOR_SAFELIST: ReadonlySet<TrueColor> = new Set([
 /**
  * Compute the Tailwind fill classes for a glass surface.
  *
- * Returns a string like `"bg-blue-100/55 hover:bg-blue-100/65 dark:bg-blue-600/25 dark:hover:bg-blue-600/35"`.
+ * Returns a string like `"bg-blue-200/65 hover:bg-blue-200/75 dark:bg-blue-500/25 dark:hover:bg-blue-500/35"`.
+ *
+ * The tint rides the `-200`/`-500` shades: a `-100` wash at these alphas is
+ * nearly colourless over white — exactly the “looks disabled” read glass
+ * used to get. The alpha ladder is unchanged; only the shade’s chroma moved
+ * one notch up.
  *
  * @param color   - TrueColor token (e.g. `"blue"`, `"red"`, `"fuchsia"`)
  * @param opacity - Glass opacity preset or numeric fraction (0–1)
@@ -121,7 +126,7 @@ export const getGlassFillClass = (
     ? color
     : "neutral";
 
-  return `bg-${safeBase}-100/${litOpacity} hover:bg-${safeBase}-100/${litOpacity + 10} dark:bg-${safeBase}-600/${drkOpacity} dark:hover:bg-${safeBase}-600/${drkOpacity + 10}`;
+  return `bg-${safeBase}-200/${litOpacity} hover:bg-${safeBase}-200/${litOpacity + 10} dark:bg-${safeBase}-500/${drkOpacity} dark:hover:bg-${safeBase}-500/${drkOpacity + 10}`;
 };
 
 // ---------------------------------------------------------------------------
@@ -154,7 +159,8 @@ export const getSurfaceGlassFillClass = (
   })();
 
   const drkOpacity: number = (() => {
-    if (typeof opacity === "number") return Math.min(Math.round(opacity * 30), 30);
+    if (typeof opacity === "number")
+      return Math.min(Math.round(opacity * 30), 30);
     if (opacity === "frosted") return 15;
     if (opacity === "light") return 25;
     if (opacity === "clear") return 5;
@@ -165,7 +171,9 @@ export const getSurfaceGlassFillClass = (
     ? color
     : "neutral";
 
-  return `bg-${safeBase}-50/${litOpacity} dark:bg-${safeBase}-500/${drkOpacity}`;
+  // `-100`, not `-50`: the sheerest shade tinted at 45% is a grey whisper —
+  // the container sibling of the “looks disabled” control wash.
+  return `bg-${safeBase}-100/${litOpacity} dark:bg-${safeBase}-500/${drkOpacity}`;
 };
 
 // ---------------------------------------------------------------------------
@@ -339,3 +347,76 @@ export const getGlassChromeClasses = (
 
   return chrome.join(" ");
 };
+// ---------------------------------------------------------------------------
+// GlassBackground tone derivation
+// ---------------------------------------------------------------------------
+
+/**
+ * The secondary stop derived from a `GlassBackground` primary: a neighbouring
+ * hue, close enough to harmonise and far enough for the gradient to read as a
+ * blend rather than a fade of one colour.
+ *
+ * Typed as a full `Record` over `TrueColor`, so every tone must have a real
+ * partner — the maps this replaced were hand-kept and silently missed
+ * `fuchsia`, `yellow` and `slate`, whose gradients collapsed to two stops.
+ */
+export const GLASS_BACKGROUND_SECONDARY_TONES: Record<TrueColor, TrueColor> = {
+  red: "rose",
+  orange: "amber",
+  amber: "orange",
+  yellow: "lime",
+  lime: "green",
+  green: "lime",
+  emerald: "teal",
+  teal: "emerald",
+  cyan: "sky",
+  sky: "cyan",
+  blue: "indigo",
+  indigo: "violet",
+  violet: "purple",
+  purple: "blue",
+  fuchsia: "purple",
+  rose: "red",
+  slate: "gray",
+  gray: "zinc",
+  zinc: "stone",
+  neutral: "zinc",
+  stone: "neutral",
+};
+
+/**
+ * The deep stop derived from a `GlassBackground` primary: the far end of the
+ * blend — deeper or cooler than the primary so the gradient settles instead
+ * of just lightening. Same full-coverage rule as the secondary map.
+ */
+export const GLASS_BACKGROUND_DEEP_TONES: Record<TrueColor, TrueColor> = {
+  red: "rose",
+  orange: "amber",
+  amber: "red",
+  yellow: "amber",
+  lime: "emerald",
+  green: "emerald",
+  emerald: "green",
+  teal: "cyan",
+  cyan: "blue",
+  sky: "indigo",
+  blue: "violet",
+  indigo: "purple",
+  violet: "blue",
+  purple: "indigo",
+  fuchsia: "purple",
+  rose: "red",
+  slate: "zinc",
+  gray: "neutral",
+  zinc: "neutral",
+  neutral: "stone",
+  stone: "gray",
+};
+
+/** The secondary stop derived from a primary tone. */
+export const getGlassBackgroundSecondaryTone = (color: TrueColor): TrueColor =>
+  GLASS_BACKGROUND_SECONDARY_TONES[color];
+
+/** The deep stop derived from a primary tone. */
+export const getGlassBackgroundDeepTone = (color: TrueColor): TrueColor =>
+  GLASS_BACKGROUND_DEEP_TONES[color];

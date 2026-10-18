@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MultiToggle, Panel } from "@cjlapao/ui-kit";
+import { ColorSwatches, Panel } from "@cjlapao/ui-kit";
 import { DEFAULT_SURFACE_CORNER } from "@cjlapao/ui-kit";
 import type {
   GlassOpacity,
@@ -14,11 +14,12 @@ import type {
   TrueColor,
 } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
-  SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   glassOpacityOptions,
   glassVibrancyOptions,
@@ -29,7 +30,6 @@ import {
   panelPaddingOptions,
   panelSpecularOptions,
   surfaceVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 /** Variants whose surface is see-through, so the glass controls apply. */
@@ -37,13 +37,13 @@ const GLASS_VARIANTS: PanelVariant[] = ["glass", "liquid-glass", "default"];
 
 export const PanelPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("neutral");
+  const [tone, setTone] = useState<TrueColor>("blue");
   const [corner, setCorner] = useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
-  const [padding, setPadding] = useState<PanelPadding>("md");
+  const [padding, setPadding] = useState<PanelPadding>("sm");
   const [mediaPlacement, setMediaPlacement] =
     useState<PanelMediaPlacement>("top");
   const [decoration, setDecoration] = useState<PanelDecoration>("none");
-  const [loaderType, setLoaderType] = useState<PanelLoaderType>("spinner");
+  const [loaderType, setLoaderType] = useState<PanelLoaderType>("skeleton");
   const [hasMedia, setHasMedia] = useState(true);
   const [hasBadge, setHasBadge] = useState(true);
   const [hasActions, setHasActions] = useState(true);
@@ -60,115 +60,127 @@ export const PanelPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <SelectControl
-            label="Variant"
-            options={surfaceVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as PanelVariant)}
-          />
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <SelectControl
-            label="Corner"
-            options={panelCornerOptions}
-            value={corner}
-            onChange={(v) => setCorner(v as PanelCorner)}
-          />
-          <SelectControl
-            label="Padding"
-            options={panelPaddingOptions}
-            value={padding}
-            onChange={(v) => setPadding(v as PanelPadding)}
-          />
-          <Control label="Media placement">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={panelMediaPlacementOptions}
-              value={mediaPlacement}
-              onChange={(v) => setMediaPlacement(v as PanelMediaPlacement)}
-            />
-          </Control>
-          <Control label="Decoration">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={panelDecorationOptions}
-              value={decoration}
-              onChange={(v) => setDecoration(v as PanelDecoration)}
-            />
-          </Control>
-          <Control label="Loader type">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={panelLoaderTypeOptions}
-              value={loaderType}
-              onChange={(v) => setLoaderType(v as PanelLoaderType)}
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Media" checked={hasMedia} onChange={setHasMedia} />
-            <ToggleRow label="Badge" checked={hasBadge} onChange={setHasBadge} />
-            <ToggleRow
-              label="Actions"
-              checked={hasActions}
-              onChange={setHasActions}
-            />
-            <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
-            <ToggleRow
-              label="Hover shadow"
-              checked={hoverShadow}
-              onChange={setHoverShadow}
-            />
-            <ToggleRow
-              label="Hoverable"
-              checked={hoverable}
-              onChange={setHoverable}
-            />
-            <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
-          </div>
-          {isGlass && (
-            <>
-              <Control label="Specular">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={panelSpecularOptions}
-                  value={specularMode}
-                  onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
-                />
-              </Control>
-              <Control label="Vibrancy">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassVibrancyOptions}
-                  value={vibrancy as string}
-                  onChange={(v) => setVibrancy(v as GlassVibrancy)}
-                />
-              </Control>
-              <Control label="Glass opacity">
-                <MultiToggle
-                  fullWidth
-                  size="sm"
-                  options={glassOpacityOptions}
-                  value={glassOpacity as string}
-                  onChange={(v) => setGlassOpacity(v as GlassOpacity)}
-                />
-              </Control>
-            </>
-          )}
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <ChoiceControl
+                    label="Variant"
+                    options={surfaceVariantOptions}
+                    value={variant}
+                    onChange={(v) => setVariant(v as PanelVariant)}
+                  />
+                  {/* Tone is a colour decision — pick it from colour swatches,
+                      not from a dropdown of words. */}
+                  <Control label="Tone">
+                    <ColorSwatches
+                      selectable
+                      size="sm"
+                      value={tone}
+                      onSelect={setTone}
+                      defaultExpanded
+                    />
+                  </Control>
+                  <ChoiceControl
+                    label="Corner"
+                    options={panelCornerOptions}
+                    value={corner}
+                    onChange={(v) => setCorner(v as PanelCorner)}
+                  />
+                  <ChoiceControl
+                    label="Padding"
+                    options={panelPaddingOptions}
+                    value={padding}
+                    onChange={(v) => setPadding(v as PanelPadding)}
+                  />
+                  <ChoiceControl
+                    label="Media placement"
+                    options={panelMediaPlacementOptions}
+                    value={mediaPlacement}
+                    onChange={(v) => setMediaPlacement(v as PanelMediaPlacement)}
+                  />
+                  <ChoiceControl
+                    label="Decoration"
+                    options={panelDecorationOptions}
+                    value={decoration}
+                    onChange={(v) => setDecoration(v as PanelDecoration)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "states",
+              title: "States",
+              controls: (
+                <>
+                  <ChoiceControl
+                    label="Loader type"
+                    options={panelLoaderTypeOptions}
+                    value={loaderType}
+                    onChange={(v) => setLoaderType(v as PanelLoaderType)}
+                  />
+                  <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow label="Media" checked={hasMedia} onChange={setHasMedia} />
+                    <ToggleRow label="Badge" checked={hasBadge} onChange={setHasBadge} />
+                    <ToggleRow
+                      label="Actions"
+                      checked={hasActions}
+                      onChange={setHasActions}
+                    />
+                    <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
+                    <ToggleRow
+                      label="Hover shadow"
+                      checked={hoverShadow}
+                      onChange={setHoverShadow}
+                    />
+                    <ToggleRow
+                      label="Hoverable"
+                      checked={hoverable}
+                      onChange={setHoverable}
+                    />
+                    <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
+                  </div>
+                </>
+              ),
+            },
+            ...(isGlass
+              ? [
+                  {
+                    id: "glass",
+                    title: "Glass",
+                    controls: (
+                      <>
+                        <ChoiceControl
+                          label="Specular"
+                          options={panelSpecularOptions}
+                          value={specularMode}
+                          onChange={(v) => setSpecularMode(v as PanelSpecularMode)}
+                        />
+                        <ChoiceControl
+                          label="Vibrancy"
+                          options={glassVibrancyOptions}
+                          value={vibrancy as string}
+                          onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                        />
+                        <ChoiceControl
+                          label="Glass opacity"
+                          options={glassOpacityOptions}
+                          value={glassOpacity as string}
+                          onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                        />
+                      </>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+        />
       }
       preview={
         <div className="w-full">
-          <div className="w-full rounded-lg bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 p-4 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
             <Panel
               variant={variant}
               tone={tone}
@@ -225,7 +237,7 @@ export const PanelPlayground: React.FC = () => {
               {padding} padding.
             </Panel>
           </div>
-        </div>
+
       }
     >
     </PlaygroundPanel>

@@ -7,7 +7,7 @@ export default function Route() {
         ariaLabel="Docs breadcrumb"
         home={{ icon: "UX", to: "/", ariaLabel: "Home" }}
         items={[
-          { label: "React docs", to: "/docs/overview" },
+          { label: "React docs", to: "/overview" },
           { label: "Breadcrumb", current: true },
         ]}
       />

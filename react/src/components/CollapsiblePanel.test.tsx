@@ -29,6 +29,35 @@ describe("CollapsiblePanel", () => {
     });
   });
 
+  describe("common-property defaults", () => {
+    it("stands on the container standard: elevated, blue tone, sm inset", () => {
+      const { container } = render(
+        <CollapsiblePanel title="Logs">{body}</CollapsiblePanel>,
+      );
+      const section = container.querySelector("section[data-tone]")!;
+      expect(section.getAttribute("data-variant")).toBe("elevated");
+      expect(section.getAttribute("data-tone")).toBe("blue");
+      // The sm inset lives on the header — the Panel itself is padding-none.
+      const header = screen.getByRole("button", { name: /Logs/ });
+      expect(header.className).toContain("p-4 sm:p-5");
+    });
+
+    it("follows the deprecated `color` alias into the trigger chrome too", () => {
+      const { container } = render(
+        <CollapsiblePanel title="Logs" color="rose">
+          {body}
+        </CollapsiblePanel>,
+      );
+      expect(
+        container.querySelector("section[data-tone]")!.getAttribute("data-tone"),
+      ).toBe("rose");
+      // The hover wash resolves from the same tone as the card — not a blue
+      // default riding next to a rose surface.
+      const header = screen.getByRole("button", { name: /Logs/ });
+      expect(header.className).toContain("hover:bg-rose-100/40");
+    });
+  });
+
   describe("toggling", () => {
     it("is uncontrolled by default and follows defaultExpanded", () => {
       render(

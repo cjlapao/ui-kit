@@ -1,6 +1,7 @@
 import React from "react";
 import classNames from "classnames";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { getAppDividerToneTokens } from "../theme/Theme";
 import type { ControlSize, Orientation, TrueColor } from "../theme/Theme";
 
 export type AppDividerOrientation = Orientation;
@@ -31,7 +32,10 @@ const THICKNESS: Record<ControlSize, number> = {
 };
 
 /** Margin along the divider's cross axis. */
-const SPACING: Record<"none" | ControlSize, { vertical: string; horizontal: string }> = {
+const SPACING: Record<
+  "none" | ControlSize,
+  { vertical: string; horizontal: string }
+> = {
   none: { vertical: "", horizontal: "" },
   xs: { vertical: "mx-1", horizontal: "my-1" },
   sm: { vertical: "mx-2", horizontal: "my-2" },
@@ -40,8 +44,10 @@ const SPACING: Record<"none" | ControlSize, { vertical: string; horizontal: stri
   xl: { vertical: "mx-6", horizontal: "my-6" },
 };
 
-export interface AppDividerProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, "children" | "color"> {
+export interface AppDividerProps extends Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  "children" | "color"
+> {
   /**
    * Which way the rule runs. Stays `vertical` by default — this component was
    * written for header sections and every existing call site relies on it.
@@ -157,12 +163,11 @@ export const AppDivider: React.FC<AppDividerProps> = ({
           "shrink-0",
           isVertical ? "self-stretch" : "w-full",
           // Border colour classes, so an unlabelled rule can simply take the
-          // surface's own `divider` token and adapt on glass.
-          // A deliberately toned rule should be visible: `-300 / -500/25` was
-          // the *hairline outline* pairing and all but vanished on a dark card.
-          tone
-            ? `border-${tone}-400 dark:border-${tone}-500`
-            : surface.divider,
+          // surface's own `divider` token and adapt on glass. A deliberately
+          // toned rule uses the shared tone table — the `-300 / -500/25` pair
+          // was the *hairline outline* pairing and all but vanished on a dark
+          // card; `-400 / -500` reads as a real rule on either surface.
+          tone ? getAppDividerToneTokens(tone) : surface.divider,
         )}
         style={{
           borderStyle: variant,

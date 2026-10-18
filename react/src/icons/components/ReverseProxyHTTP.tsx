@@ -14,7 +14,7 @@ export const ReverseProxyHTTP = forwardRef<
     ref={ref}
   >
     <polygon
-      fill-opacity="0.5"
+      fillOpacity="0.5"
       fill="currentColor"
       points="13 5 13 3 3 3 3 5 2 5 2 2 14 2 14 6 3 6 3 13 7 13 7 14 2 14 2 5"
     ></polygon>

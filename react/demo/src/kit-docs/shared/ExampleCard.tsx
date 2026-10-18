@@ -28,7 +28,7 @@ export const ExampleCard: React.FC<ExampleCardProps> = ({
   children,
   previewClassName = "",
 }) => (
-  <Panel variant="outlined" padding="none" scrollable={false}>
+  <Panel variant="elevated" padding="none" scrollable={false}>
     <div className="border-b border-neutral-100 px-5 py-4 dark:border-neutral-800">
       <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
         {title}

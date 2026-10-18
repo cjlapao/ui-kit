@@ -37,7 +37,9 @@ describe("Loader", () => {
     });
 
     it("scales the title and label type with the same prop", () => {
-      const w = mount(Loader, { props: { size: "xs", title: "T", label: "L" } });
+      const w = mount(Loader, {
+        props: { size: "xs", title: "T", label: "L" },
+      });
       const [title, , label] = Array.from(root(w).children);
       expect((title as HTMLElement).className).toContain("text-xs");
       expect((label as HTMLElement).className).toContain("text-xs");
@@ -51,7 +53,9 @@ describe("Loader", () => {
     });
 
     it("indeterminate sweeps and omits aria-valuenow", () => {
-      const w = mount(Loader, { props: { variant: "progress", indeterminate: true } });
+      const w = mount(Loader, {
+        props: { variant: "progress", indeterminate: true },
+      });
       expect(bar(w).getAttribute("aria-valuenow")).toBeNull();
     });
   });
@@ -68,17 +72,21 @@ describe("Loader", () => {
     });
 
     it("takes its glass fill from the shared theme scale, tinted with its tone", () => {
-      const w = mount(Loader, { props: { overlay: true, glass: true, color: "blue", title: "Busy" } });
+      const w = mount(Loader, {
+        props: { overlay: true, glass: true, color: "blue", title: "Busy" },
+      });
       const cls = root(w).className;
-      expect(cls).toContain("bg-blue-50/70");
+      expect(cls).toContain("bg-blue-100/70");
       expect(cls).toContain("dark:bg-blue-500/25");
     });
 
     it("emits the glass fill for every one of the 21 tones", () => {
       for (const color of TRUE_COLORS) {
-        const w = mount(Loader, { props: { overlay: true, glass: true, color, title: "Busy" } });
+        const w = mount(Loader, {
+          props: { overlay: true, glass: true, color, title: "Busy" },
+        });
         const cls = root(w).className;
-        expect(cls).toContain(`bg-${color}-50/70`);
+        expect(cls).toContain(`bg-${color}-100/70`);
         expect(cls).toContain(`dark:bg-${color}-500/25`);
       }
     });
@@ -86,17 +94,32 @@ describe("Loader", () => {
     it("spells out the surface tokens it draws", () => {
       // Vue has no SurfaceProvider yet, so the overlay computes its own
       // surface tokens instead of reading a context.
-      const glass = mount(Loader, { props: { overlay: true, glass: true, title: "Busy", label: "Hang tight" } });
+      const glass = mount(Loader, {
+        props: {
+          overlay: true,
+          glass: true,
+          title: "Busy",
+          label: "Hang tight",
+        },
+      });
       const glassLabel = Array.from(root(glass).children).filter(
-        (el) => (el as HTMLElement).tagName === "DIV" && (el.textContent || "").includes("Hang tight"),
+        (el) =>
+          (el as HTMLElement).tagName === "DIV" &&
+          (el.textContent || "").includes("Hang tight"),
       )[0] as HTMLElement;
       expect(glassLabel.className).toContain("text-neutral-800");
 
-      const scrim = mount(Loader, { props: { overlay: true, title: "Busy", label: "Hang tight" } });
+      const scrim = mount(Loader, {
+        props: { overlay: true, title: "Busy", label: "Hang tight" },
+      });
       const scrimLabel = Array.from(root(scrim).children).filter(
-        (el) => (el as HTMLElement).tagName === "DIV" && (el.textContent || "").includes("Hang tight"),
+        (el) =>
+          (el as HTMLElement).tagName === "DIV" &&
+          (el.textContent || "").includes("Hang tight"),
       )[0] as HTMLElement;
-      expect(scrimLabel.className).toContain("text-neutral-600 dark:text-neutral-300");
+      expect(scrimLabel.className).toContain(
+        "text-neutral-600 dark:text-neutral-300",
+      );
     });
   });
 });

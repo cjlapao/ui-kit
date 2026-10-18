@@ -51,7 +51,7 @@ When you add a variant, extend the existing `variant`/`color`/`tone` enums and t
 - **Actions/inputs:** `Button`, `IconButton`, `DropdownButton`, `DropdownMenu`, `Input`, `InputGroup`, `PasswordInput`, `SmartInput`, `Textarea`, `Checkbox`, `Toggle`, `MultiToggle`, `Select`, `Combobox`, `MultiSelectPills`, `ButtonSelector`, `Picker`, `TagPicker`, `VariablePicker`, `SearchBar`, `KeyValueArrayField`.
 - **Forms:** `FormField`, `FormLayout`, `FormSection`, `DynamicFormField`, `SmartValue`.
 - **Surfaces/layout:** `GlassBackground`, `Panel`, `InlinePanel`, `CollapsiblePanel`, `SidePanel`, `PagedPanel`, `InfiniteScrollPanel`, `Section`, `SectionCard`, `DetailItemCard`, `SmartGridLayout`, `SplitView`, `SideMenu`, `SideMenuLayout`, `AppDivider`, `HeaderGroup`, `Hero`, `Tabs`, `Accordion`, `TagPanel`, `TimelinePanel`, `WorkflowTracker`.
-- **Data/stat:** `StatTile`, `StatCountTile`, `StatChartTile`, `StatGoalTile`, `StatGraphTile`, `MetricBar`, `Progress`, `MultiProgressBar`, `Table`, `AccessMatrix`, `InfoRow`.
+- **Data/stat:** `StatTile`, `StatCountTile`, `StatChartTile`, `StatGoalTile`, `StatGraphTile`, `MetricBar`, `Progress`, `MultiProgressBar`, `Table`, `AccessMatrix`, `InfoRow`, `Gantt`.
 - **Feedback/status:** `Alert`, `Badge`, `BadgeIcon`, `Pill`, `Loader`, `Spinner`, `StatusSpinner`, `Tooltip`, `TooltipWrapper`, `EmptyState`, `ApiErrorState`, `Modal`, `NotificationModal`, `Stepper`, `StartupStageStepper`, `CollapsibleHelpText`, `HelpButton`.
 - **Content/util:** `MarkdownEditor`, `TruncatedText`, `TreeView`, `UserAvatar`, `CustomIcon`, `DynamicImg`, `Toggle`, `ConnectionFlow`.
 
@@ -706,6 +706,91 @@ the generated safelist already covers.
 > fill at all. Those four patterns are now emitted from `scripts/generate-safelist.mjs`. Many other
 > dynamic opacity classes across the kit are still missing; see `Learnings.md`.
 
+
+## Component: `Gantt` — interactive schedule chart
+
+> **Purpose:** A feature-rich, fully interactive Gantt chart: swimlanes, task hierarchy with
+> roll-up progress, dependency arrows, milestones, per-task colours, drag-to-move / drag-to-resize /
+> drag-to-reorder / drag-to-create-dependency, a multi-scale zoomable time header and a today marker.
+>
+> **Import:** `import { Gantt, sampleGantt, type GanttTask, type GanttLane, type GanttLink } from "@cjlapao/ui-kit";`
+> (Vue: `@cjlapao/ui-kit-vue`.)
+>
+> **Source:** `react/src/components/Gantt/` (React) + `vue/src/components/Gantt/` (Vue), both built on
+> the shared framework-agnostic engine in `common/gantt/`.
+>
+> **Demo:** `Gantt Chart` section of the UI demo playground.
+
+### Architecture
+
+The Gantt is split so the hard part (all date/scale/layout/drag **math**) is **framework-agnostic** and
+lives in `common/gantt/`, imported verbatim by both kits. Only the React/Vue rendering + pointer wiring
+differs. This keeps the two ports behaviourally identical and means the engine is unit-testable with no
+DOM.
+
+| module | responsibility |
+|---|---|
+| `types.ts` | data model (`GanttTask`, `GanttLink`, `GanttLane`, `GanttColumn`, `GanttSnap`, `GanttLabels`) + zoom presets (`GANTT_ZOOM_PRESETS`, `GANTT_MIN_ZOOM`, `GANTT_MAX_ZOOM`) + `DEFAULT_GANTT_LABELS`. |
+| `time.ts` | pure date/scale math: `toMs`, `dateToX`/`xToDate`, `startOfDay/Week/Month/Quarter`, `addDays/Months`, `snapDate`, `computeViewRange`, `buildTimeScale` (multi-level header), `getIsoWeekNumber`, formatters. `MS_PER_DAY`, week starts Monday. |
+| `layout.ts` | row model: `buildRows` (flattens lanes + hierarchy into ordered rows with px geometry), `rollupProgress` / `rollupLaneProgress` (duration-weighted), `applyRowReorder`, `resolveDropBeforeId`, `topAncestorId`. `DEFAULT_ROW_HEIGHT=44`, `GROUP_ROW_HEIGHT=40`. |
+| `drag.ts` | interaction math: `applyDragDates` (move/resize with snap + min-duration clamp), `commitDragEdit` (no-op aware), `progressFromPointer`, `linkPath`/`computeLinkPaths`/`linkSourceAnchor` (FS/SS/FF/SF routing + arrowhead polygon), `todayX`, `dragDurationLabel`. |
+| `tokens.ts` | `TrueColor` → Tailwind class maps (`getGanttBarTokens`, `getGanttLaneTokens`, `getGanttColumnTokens`, `getGanttLinkTokens`, `getGanttTodayTokens`, `getGanttSelectionTokens`). No hand hex. |
+| `sample.ts` | `sampleGanttTasks/Lines/Links`, `sampleGantt` — a realistic project fixture (Design / Engineering / Launch lanes, groups, milestones, typed links). |
+
+### Data model (fully controlled)
+
+```ts
+interface GanttTask {
+  id: string; name: string;
+  start: GanttDate; end: GanttDate;          // string | Date | number (epoch ms)
+  progress?: number;                          // 0..1
+  type?: "task" | "milestone";
+  parent?: string;                            // hierarchy (flat list + parent pointer)
+  lane?: string;                              // swimlane id
+  owner?: string; color?: TrueColor;
+  open?: boolean;                             // default collapse state
+  locked?: boolean;                           // disables edits
+}
+```
+
+`links[]` (`{ source, target, type: "fs"|"ff"|"sf"|"ss" }`) and `lanes[]` are **separate** inputs, and
+`rowOrder` is a separate (optional) top-level order — so the component never reorders your source
+arrays. It is **controlled**: `tasks`/`links`/`rowOrder` come in; edits go out via `onTasksChange` /
+`onLinksChange` / `onReorder`. `editable` is derived from the presence of those callbacks unless set.
+
+### Interactions (all in the shared `drag.ts` engine)
+
+- **Move** — drag a bar; duration preserved, snapped to the configured unit.
+- **Resize** — drag the left/right edges; end clamps to a 1-hour minimum.
+- **Progress** — drag the knob on the bar to set `progress`.
+- **Reorder** — drag the row grip; drops resolve to a top-level target within the lane.
+- **Create dependency** — drag from a bar's right (or left) edge handle onto another bar.
+- **Select + Delete** — click a dependency arrow, then `Delete`/`Backspace` removes it.
+- **Keyboard** — focused bar: arrows nudge (snap unit), `Shift`+arrows resize, `Enter`/`Space` selects.
+
+### Time scale & zoom
+
+Zoom is `pxPerDay`. `GANTT_ZOOM_PRESETS` = Day 48 / Week 16 / Month 5 / Quarter 1.6; clamped to
+`GANTT_MIN_ZOOM=0.4`…`GANTT_MAX_ZOOM=96`. The **view range is zoom-independent**
+(`computeViewRange`, ±7-day padding) so zooming is anchored exactly. `pickBaseUnit(pxPerDay)` picks the
+fine header unit (≥24px day, ≥4px week, ≥0.8px month, else quarter); `buildTimeScale` emits a
+coarse→fine multi-level header whose columns align to the real calendar with true widths. A floating
+toolbar offers preset + fine `−`/`+` zoom; `Ctrl`/`Cmd`+scroll pinch-zooms at the cursor.
+
+### Styling & a11y
+
+- Colours flow through `TrueColor` → `tokens.ts` (bar fill/progress, lane band, link stroke/fill,
+  today line, selection ring). Dynamic classes are **safelisted** via `scripts/generate-safelist.mjs`
+  (a Gantt section emits `bg-*-700/70`, `dark:bg-*-950( /40)`, `border-*-600/40`,
+  `dark:border-*-500/50`, `ring-*-400/50`).
+- Bars are `role="button"` with descriptive `aria-label`s (`name, start–end`), `data-gantt-bar` /
+  `data-row-key` hooks, a visible selection ring, and a `motion-reduce`-safe today pulse.
+- Loading (`loading`) renders a skeleton (`aria-busy`); `tasks: []` renders a quiet empty state.
+
+### Known v1 scope
+
+Row reordering is within-lane only; no cross-lane drag. Virtualisation of rows/timeline is a v2
+candidate (the row model is already a flat, ordered list of px-geometric rows, so it drops in cleanly).
 
 ## Target design direction (Liquid Glass) — recipes to ADD
 

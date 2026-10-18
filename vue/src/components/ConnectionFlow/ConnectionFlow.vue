@@ -1,846 +1,688 @@
 <script lang="ts">
-import { onMounted, onUnmounted, ref, type Ref } from "vue";
-import type { ConnectionFlowItem } from "./types";
-import type { TreeTone } from "../TreeView/types";
+import {
+  CONNECTION_FLOW_EDGE_STYLES,
+  CONNECTION_FLOW_PROGRESS_TYPES,
+  CONNECTION_FLOW_ITEM_PROGRESS,
+  CONNECTION_FLOW_RING_SIZES,
+  CONNECTION_STATES,
+  type ConnectionFlowEdgeStyle,
+  type ConnectionFlowItemProgress,
+  type ConnectionFlowLoader,
+  type ConnectionFlowNode,
+  type ConnectionFlowProgressType,
+  type ConnectionFlowRingSize,
+  type ConnectionState,
+} from "../../connectionFlow";
+import type {
+  ControlSize,
+  PlainSurfaceVariant,
+  SurfaceCorner,
+  SurfaceVariant,
+  TrueColor,
+} from "../../theme/Theme";
+import type { PillVariant } from "../Pill.vue";
 
-// ── useIsDark (local copy — mirrors ConnectionFlowConnector's) ─────────────────
+export {
+  CONNECTION_FLOW_EDGE_STYLES,
+  CONNECTION_FLOW_ITEM_PROGRESS,
+  CONNECTION_FLOW_PROGRESS_TYPES,
+  CONNECTION_FLOW_RING_SIZES,
+  CONNECTION_STATES,
+};
 
-function detectDark(): boolean {
-  if (typeof document === "undefined") return false;
-  const probe = document.createElement("div");
-  probe.className = "hidden dark:block";
-  document.body.appendChild(probe);
-  const dark = window.getComputedStyle(probe).display === "block";
-  probe.remove();
-  return dark;
-}
-
-function useIsDark(): Ref<boolean> {
-  const isDark = ref<boolean>(detectDark());
-
-  const update = () => {
-    isDark.value = detectDark();
-  };
-  let obs: MutationObserver | null = null;
-  let media: MediaQueryList | null = null;
-
-  onMounted(() => {
-    obs = new MutationObserver(update);
-    obs.observe(document.documentElement, { attributeFilter: ["class"] });
-    media = window.matchMedia("(prefers-color-scheme: dark)");
-    media.addEventListener("change", update);
-    update();
-  });
-  onUnmounted(() => {
-    media?.removeEventListener("change", update);
-    obs?.disconnect();
-  });
-  return isDark;
-}
-
-// ── Bypass path data ──────────────────────────────────────────────────────────
-// The bypass travels from the top-right connection point of the source card
-// to the top-left connection point of the destination card using an orthogonal
-// stepped path with rounded corners, staying just above the card tops.
-
-interface BypassArcData {
-  /** top-right connection point of source card — inset from corner */
-  sx: number;
-  /** top edge of source card */
-  sy: number;
-  /** top-left connection point of destination card — inset from corner */
-  dx: number;
-  /** top edge of destination card */
-  dy: number;
-  sourceTone: TreeTone;
-  destTone: TreeTone;
-  /** True when at least one item in the destination group is currently active (running). */
-  destActive: boolean;
-}
-
-/** How many px above the card tops the bypass path travels. */
-const BYPASS_LIFT = 10;
-/** Radius of the rounded corners on the bypass path. */
-const BYPASS_CORNER_R = 6;
-/** Inset from card corners for the top-edge connection points (matches card border-radius). */
-const CARD_CORNER_INSET = 19;
-/** How many px the ring base overlaps into the card so the card border is fully covered. */
-const RING_OVERLAP = 1;
-
-// ── Column group — single item or parallel cluster ────────────────────────────
-
-type ColumnGroup =
-  | { kind: "single"; item: ConnectionFlowItem }
-  | { kind: "parallel"; items: ConnectionFlowItem[] };
-
-function buildGroups(items: ConnectionFlowItem[]): ColumnGroup[] {
-  const groups: ColumnGroup[] = [];
-  let i = 0;
-  while (i < items.length) {
-    if (items[i].parallel) {
-      const batch: ConnectionFlowItem[] = [];
-      while (i < items.length && items[i].parallel) {
-        batch.push(items[i]);
-        i++;
-      }
-      groups.push({ kind: "parallel", items: batch });
-    } else {
-      groups.push({ kind: "single", item: items[i] });
-      i++;
-    }
-  }
-  return groups;
-}
-
-/** Returns a stable key for a group */
-function groupKey(g: ColumnGroup): string {
-  return g.kind === "single" ? g.item.id : g.items.map((it) => it.id).join("|");
-}
-
-/** True when a group does NOT emit a right-side connector */
-function isTerminal(g: ColumnGroup): boolean {
-  return g.kind === "single"
-    ? (g.item.terminal ?? false)
-    : (g.items[g.items.length - 1]?.terminal ?? false);
-}
-
-/** True when every item in the group is flagged as skipped */
-function isGroupSkipped(g: ColumnGroup): boolean {
-  return g.kind === "single"
-    ? (g.item.skipped ?? false)
-    : g.items.every((it) => it.skipped ?? false);
-}
-
-/** Returns the effective tone of the first item in a group (neutral when unset). */
-function effectiveTone(g: ColumnGroup): TreeTone {
-  return (g.kind === "single" ? g.item.tone : g.items[0]?.tone) ?? "neutral";
+export interface ConnectionFlowProps {
+  /** The graph. */
+  nodes: ConnectionFlowNode[];
+  /** Surface treatment of the frame. @default "outlined" */
+  variant?: PlainSurfaceVariant;
+  /** @default "neutral" */
+  tone?: TrueColor;
+  /** Node box scale, on the shared control scale. @default "md" */
+  size?: ControlSize;
+  /** Node corner radius, on the shared container scale. */
+  corner?: SurfaceCorner;
+  /** Shape of the edges. @default "orthogonal" */
+  edgeStyle?: ConnectionFlowEdgeStyle;
+  /**
+   * Surface treatment for the node cards, on the same container scale `Panel`
+   * takes. A node's own `variant` overrides it. @default "subtle"
+   */
+  /**
+   * Rows a card shows before the rest collapse behind a "show more" row.
+   * A node's own `maxItems` overrides it. @default 2
+   */
+  maxVisibleItems?: number;
+  /**
+   * Where an item draws its progress: a bar under its text, or a spinner in
+   * place of its glyph. A node's `itemProgress`, then an item's
+   * `progressType`, override it. @default "bar"
+   */
+  itemProgress?: ConnectionFlowItemProgress;
+  /**
+   * Size of the ring drawn where an edge meets a node. `fit` collapses the
+   * ring onto its core dot. @default "md"
+   */
+  ringSize?: ConnectionFlowRingSize;
+  /** Fallback state for edges that do not declare one. @default "flowing" */
+  flowState?: ConnectionState;
+  /** Derive edge state and bypasses from each node's tone. @default false */
+  autoState?: boolean;
+  /** @default true */
+  animated?: boolean;
+  /** Target px between travelling dots. @default 40 */
+  /**
+   * How fast a travelling dot moves, in px per second. One speed for the whole
+   * graph: a dot's flight time comes from its route's own length, so a short
+   * hop and a long bypass arc move at the same pace. @default 120
+   */
+  dotSpeed?: number;
+  /**
+   * Milliseconds between one dot leaving a source and the next. A source
+   * releases one dot at a time, taking its outgoing edges in turn, so a fan
+   * reads as one source feeding its targets rather than as a swarm.
+   * @default 700
+   */
+  dotInterval?: number;
+  /** Which in-progress indicator nodes draw. Only one is ever shown. @default "bar" */
+  progressType?: ConnectionFlowProgressType;
+  /** Dim everything that is not on the path to the hovered node. @default true */
+  highlightPath?: boolean;
+  /** Show the zoom / fit toolbar. @default true */
+  showControls?: boolean;
+  /** Scale the graph to fit on mount and on resize. @default true */
+  fitOnLoad?: boolean;
+  /**
+   * Scale the graph to fit on first paint instead of opening at 100%.
+   *
+   * The viewport scrolls, so a graph larger than its frame is reachable
+   * without shrinking it to illegibility — which is what fitting a tall flow
+   * into a short frame does. @default false
+   */
+  /** Allow scroll-wheel and drag panning. @default true */
+  interactive?: boolean;
+  minZoom?: number;
+  maxZoom?: number;
+  /** Fixed height of the viewport. @default 320 */
+  height?: number | string;
+  /** Header title. Rendered by the flow, not by the wrapping Panel. */
+  title?: string;
+  subtitle?: string;
+  /** Small uppercase line above the title. */
+  eyebrow?: string;
+  /** Registry icon name for the chip beside the title. */
+  icon?: string;
+  /** Corner of that chip, on the shared container scale. */
+  iconCorner?: SurfaceCorner;
+  /** Pill at the right of the header. */
+  tag?: string;
+  tagTone?: TrueColor;
+  tagVariant?: PillVariant;
+  /** Draw the header at all. @default true */
+  showHeader?: boolean;
+  /**
+   * The flow's completion, 0–1. Defaults to the mean of whatever the nodes
+   * report — which a pipeline usually knows better than the average of its
+   * cards does.
+   */
+  progress?: number;
+  /**
+   * How `loading` is shown. `skeleton` is the default because it is the only
+   * one that holds the card's shape. @default "skeleton"
+   */
+  loaderType?: ConnectionFlowLoader;
+  loading?: boolean;
+  /** Message shown when `nodes` is empty. */
+  emptyMessage?: string;
 }
 </script>
 
 <script setup lang="ts">
-import { computed, watch, type CSSProperties } from "vue";
+import {
+  computed,
+  h,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import classNames from "classnames";
-import ConnectionFlowConnector, {
-  type ConnectionFlowConnectorProps,
-} from "./ConnectionFlowConnector.vue";
-import ConnectionFlowColumn, {
-  type ColumnGeometry,
-} from "./ConnectionFlowColumn.vue";
-import ConnectionFlowParallelGroup from "./ConnectionFlowParallelGroup.vue";
-import type { ConnectionFlowProps, ConnectionState } from "./types";
-import { getTreeColorTokens } from "../TreeView/toneColors";
-import VNodeRenderer from "../internal/VNodeRenderer";
+import Panel from "../Panel.vue";
+import IconButton from "../IconButton.vue";
+import EmptyState from "../EmptyState.vue";
+import Progress from "../Progress.vue";
+import ProgressSpinner from "../ProgressSpinner.vue";
+import ConnectionFlowSvg from "./ConnectionFlowSvg.vue";
+import ConnectionFlowHeader from "./ConnectionFlowHeader.vue";
+import ConnectionFlowSkeleton from "./ConnectionFlowSkeleton.vue";
+import {
+  DEFAULT_LAYOUT_OPTIONS,
+  NODE_CORNER_RADIUS,
+  NODE_METRICS,
+  fitToViewport,
+  flowProgress,
+  getHeaderSurface,
+  layoutConnectionFlow,
+  tracePathTo,
+  type LaidOutNode,
+} from "../../connectionFlow";
+import { DEFAULT_SURFACE_CORNER } from "../../theme/Theme";
 import { useClassAttrs } from "../../utils/attrsUtils";
-
-// ── ConnectionFlow ────────────────────────────────────────────────────────────
 
 defineOptions({ name: "ConnectionFlow", inheritAttrs: false });
 
 const props = withDefaults(defineProps<ConnectionFlowProps>(), {
+  variant: "outlined",
+  tone: "neutral",
+  size: "md",
+  corner: DEFAULT_SURFACE_CORNER,
+  edgeStyle: "orthogonal",
+  iconCorner: "rounded-md",
+  tagVariant: "soft",
+  showHeader: true,
+  loaderType: "skeleton",
+  maxVisibleItems: 2,
+  itemProgress: "bar",
+  ringSize: "md",
   flowState: "flowing",
-  connectorWidth: 56,
+  autoState: false,
   animated: true,
-  dotSpacing: 60,
-  connectorBorderSize: "xs",
-  connectorHalf: true,
-  showLine: true,
-  childIndent: "xs",
-  childRowGap: 8,
-  allowScroll: false,
-  autoScale: false,
-  minScale: 0.55,
-  hoverable: false,
-  autoConnectorState: false,
-  animateCompleted: false,
-  fullWidthConnectors: false,
+  dotSpeed: 120,
+  dotInterval: 700,
+  progressType: "bar",
+  highlightPath: true,
+  showControls: true,
+  fitOnLoad: false,
+  interactive: true,
+  minZoom: 0.25,
+  maxZoom: 2,
+  height: 320,
+  loading: false,
 });
+
+const emit = defineEmits<{
+  nodeClick: [node: ConnectionFlowNode];
+  nodeHover: [node: ConnectionFlowNode | null];
+  zoomChange: [scale: number];
+}>();
 
 const { classAttr, restAttrs } = useClassAttrs();
-const isDark = useIsDark();
 
-// Track geometry per column group
-const colGeo = ref<Record<number, ColumnGeometry>>({});
+const viewportRef = ref<HTMLDivElement | null>(null);
+const viewport = ref({ width: 0, height: 0 });
 
-const handleGeo = (idx: number, geo: ColumnGeometry) => {
-  const cur = colGeo.value[idx];
-  if (
-    cur &&
-    cur.totalHeight === geo.totalHeight &&
-    cur.isParallelGroup === geo.isParallelGroup &&
-    cur.anchors.length === geo.anchors.length &&
-    cur.anchors.every((a, i) => a === geo.anchors[i])
-  )
-    return;
-  colGeo.value = { ...colGeo.value, [idx]: geo };
-};
+const hoveredId = ref<string | null>(null);
+const selectedId = ref<string | null>(null);
 
-// ── Auto-scale ────────────────────────────────────────────────────────────
-const containerRef = ref<HTMLDivElement | null>(null);
-const contentRef = ref<HTMLDivElement | null>(null);
 const scale = ref(1);
-const scaledHeight = ref<number | undefined>(undefined);
 
-watch(
-  [
-    () => props.autoScale,
-    () => props.minScale,
-    () => props.items,
-    containerRef,
-    contentRef,
-  ],
-  (_values, _prev, onCleanup) => {
-    if (!props.autoScale) {
-      scale.value = 1;
-      scaledHeight.value = undefined;
-      return;
-    }
-
-    const container = containerRef.value;
-    const content = contentRef.value;
-    if (!container || !content) return;
-
-    const measure = () => {
-      // Temporarily reset transform so we read the natural (scale=1) dimensions
-      content.style.transform = "";
-      const containerW = container.offsetWidth;
-      const naturalW = content.scrollWidth;
-      const naturalH = content.scrollHeight;
-      if (!containerW || !naturalW) return;
-
-      const raw = containerW / naturalW;
-      const s = Math.min(1, Math.max(props.minScale, raw));
-      scale.value = s;
-      scaledHeight.value = s < 1 ? Math.ceil(naturalH * s) : undefined;
-      // Restore the transform immediately — the reactive style binding won't
-      // re-patch when the computed scale value is unchanged.
-      content.style.transform = s < 1 ? `scale(${s})` : "";
-    };
-
-    measure();
-
-    const ro = new ResizeObserver(measure);
-    ro.observe(container);
-    onCleanup(() => ro.disconnect());
-  },
-  { immediate: true, flush: "post" },
+const metrics = computed(() => NODE_METRICS[props.size] ?? NODE_METRICS.md);
+const radius = computed(
+  () => NODE_CORNER_RADIUS[props.corner] ?? NODE_CORNER_RADIUS["rounded-md"],
 );
 
-// ── Bypass arc state ──────────────────────────────────────────────────────
-// One element per group (index = group index); tracks only the card div, not the connector.
-const groupDivEls: (HTMLDivElement | null)[] = [];
-const bypassArcs = ref<BypassArcData[]>([]);
+const layoutOptions = computed(() => ({
+  ...DEFAULT_LAYOUT_OPTIONS,
+  metrics: metrics.value,
+  edgeStyle: props.edgeStyle,
+  ringSize: props.ringSize,
+  maxVisibleItems: props.maxVisibleItems,
+  itemProgress: props.itemProgress,
+  // The card silhouette is geometry, so the corner radius belongs to the
+  // layout rather than to the renderer that draws it.
+  nodeCornerRadius: radius.value,
+}));
 
-const setGroupDivEl = (gi: number, el: HTMLDivElement | null) => {
-  groupDivEls[gi] = el;
+/**
+ * Nodes whose item list is expanded. Held here rather than in the renderer
+ * because expanding changes a card's height, and so its ports, its silhouette
+ * and every route touching it.
+ */
+const expanded = ref<ReadonlySet<string>>(new Set<string>());
+
+const onToggleExpanded = (id: string) => {
+  const next = new Set(expanded.value);
+  if (!next.delete(id)) next.add(id);
+  expanded.value = next;
 };
 
-// ── Pre-process items into groups ─────────────────────────────────────────
-const groups = computed(() => buildGroups(props.items));
-
-// ── Auto-skipped set ──────────────────────────────────────────────────────
-// When autoConnectorState is on, derive which groups are "skipped" from their
-// tone alone (neutral tone with at least one non-neutral successor).
-// The result is stable across renders where items haven't changed.
-// Explicit skipped:false always takes precedence — an item that was executed
-// but happens to have a neutral tone must not be auto-treated as bypassed.
-const autoSkippedSet = computed(() => {
-  const set = new Set<number>();
-  if (!props.autoConnectorState) return set;
-  const grps = buildGroups(props.items);
-  grps.forEach((g, gi) => {
-    if (effectiveTone(g) !== "neutral") return;
-    // If any item in the group explicitly declares skipped:false it ran —
-    // honour that and skip the auto-detection for this group.
-    const explicitlyNotSkipped =
-      g.kind === "single"
-        ? g.item.skipped === false
-        : g.items.some((it) => it.skipped === false);
-    if (explicitlyNotSkipped) return;
-    const hasNonNeutralAfter = grps
-      .slice(gi + 1)
-      .some((sg) => effectiveTone(sg) !== "neutral");
-    if (hasNonNeutralAfter) set.add(gi);
-  });
-  return set;
-});
-
-// Compute bypass arc positions from DOM measurements.
-const computeBypassArcs = () => {
-  if (!contentRef.value) return;
-  const contentEl = contentRef.value;
-  const contentRect = contentEl.getBoundingClientRect();
-  if (!contentRect.width) return;
-
-  const grps = buildGroups(props.items);
-  const arcs: BypassArcData[] = [];
-  let skipStart = -1;
-
-  for (let gi = 0; gi <= grps.length; gi++) {
-    const skipped =
-      gi < grps.length &&
-      (isGroupSkipped(grps[gi]) || autoSkippedSet.value.has(gi));
-
-    if (skipped && skipStart === -1) {
-      skipStart = gi;
-    } else if (!skipped && skipStart !== -1) {
-      // Arc from group[skipStart-1] to group[gi]
-      const prevEl = groupDivEls[skipStart - 1];
-      const nextEl = groupDivEls[gi];
-
-      if (prevEl && nextEl) {
-        const prevRect = prevEl.getBoundingClientRect();
-        const nextRect = nextEl.getBoundingClientRect();
-        // Convert screen coords → content's natural (pre-scale) coordinate space.
-        // Connection points are on the TOP edge of each card, inset from the corners
-        // so they sit inside the rounded-corner border (not at the very tip).
-        const sx =
-          (prevRect.right - CARD_CORNER_INSET - contentRect.left) / scale.value;
-        const sy = (prevRect.top - contentRect.top) / scale.value;
-        const dx =
-          (nextRect.left + CARD_CORNER_INSET - contentRect.left) / scale.value;
-        const dy = (nextRect.top - contentRect.top) / scale.value;
-
-        const prevGroup = grps[skipStart - 1];
-        const srcTone: TreeTone = prevGroup
-          ? ((prevGroup.kind === "single"
-              ? prevGroup.item.tone
-              : prevGroup.items[0]?.tone) ?? "neutral")
-          : "neutral";
-        const dstGroup = grps[gi];
-        const dstTone: TreeTone = dstGroup
-          ? ((dstGroup.kind === "single"
-              ? dstGroup.item.tone
-              : dstGroup.items[0]?.tone) ?? "neutral")
-          : "neutral";
-        const destActive = dstGroup
-          ? dstGroup.kind === "single"
-            ? (dstGroup.item.active ?? false)
-            : dstGroup.items.some((it) => it.active ?? false)
-          : false;
-
-        arcs.push({
-          sx,
-          sy,
-          dx,
-          dy,
-          sourceTone: srcTone,
-          destTone: dstTone,
-          destActive,
-        });
-      }
-      skipStart = -1;
-    }
-  }
-
-  bypassArcs.value = arcs;
-};
-
-watch(
-  [() => props.items, scale, autoSkippedSet, contentRef],
-  (_values, _prev, onCleanup) => {
-    computeBypassArcs();
-    const ro = new ResizeObserver(computeBypassArcs);
-    if (contentRef.value) ro.observe(contentRef.value);
-    onCleanup(() => ro.disconnect());
-  },
-  { immediate: true, flush: "post" },
-);
-
-// Which groups emit a right-side connector
-const emitsConnector = computed(() =>
-  groups.value.map((g, gi) => !isTerminal(g) && gi < groups.value.length - 1),
-);
-
-// When autoScale is active and scale < 1 the content must overflow the clipped
-// outer div — we allow horizontal scroll only if scale is pinned at minScale.
-const needsScroll = computed(
-  () => props.autoScale && scale.value <= props.minScale,
-);
-
-const outerClass = computed(() =>
-  classNames(
-    props.autoScale ? "relative w-full" : "flex items-start",
-    !props.autoScale && props.fullWidthConnectors && "w-full",
-    !props.autoScale && props.allowScroll && "overflow-auto max-w-full",
-    needsScroll.value && "overflow-x-auto",
-    !props.autoScale &&
-      !props.allowScroll &&
-      !needsScroll.value &&
-      "overflow-hidden",
-    classAttr.value,
-  ),
-);
-
-const outerStyle = computed<CSSProperties | undefined>(() =>
-  props.autoScale && scaledHeight.value !== undefined
-    ? { height: `${scaledHeight.value}px` }
-    : undefined,
-);
-
-const contentStyle = computed<CSSProperties | undefined>(() =>
-  props.autoScale && scale.value < 1
-    ? { transform: `scale(${scale.value})`, transformOrigin: "left top" }
-    : undefined,
-);
-
-const contentClass = computed(() =>
-  classNames(
-    "relative flex items-start",
-    props.fullWidthConnectors && "w-full",
-  ),
-);
-
-const groupWrapClass = computed(() =>
-  props.itemWidth || props.fullWidthConnectors ? "shrink-0" : "flex-1 min-w-0",
-);
-const groupWrapStyle = computed<CSSProperties | undefined>(() =>
-  props.itemWidth
-    ? {
-        width:
-          typeof props.itemWidth === "number"
-            ? `${props.itemWidth}px`
-            : props.itemWidth,
-      }
-    : undefined,
-);
-
-// ── Per-group render data ─────────────────────────────────────────────────
-
-interface GroupRenderData {
-  key: string;
-  renderConnector: boolean;
-  connectorProps: ConnectionFlowConnectorProps;
-  state: ConnectionState;
-  singleItem: ConnectionFlowItem | null;
-  parallelItems: ConnectionFlowItem[] | null;
-}
-
-const groupRenders = computed<GroupRenderData[]>(() => {
-  const grps = groups.value;
-  const geo = colGeo.value;
-
-  return grps.map((group, gi) => {
-    const prevGroup = grps[gi - 1];
-    const isFirst = gi === 0;
-    const renderConnector =
-      !isFirst && (prevGroup ? emitsConnector.value[gi - 1] : false);
-
-    // Resolve connector config — from the group's "first receiver" item
-    const receiverItem = group.kind === "single" ? group.item : group.items[0];
-    const connCfg = receiverItem.connector;
-
-    // Connector state: explicit override → auto-derived (if autoConnectorState) → global flowState
-    const state: ConnectionState =
-      connCfg?.state ??
-      (props.autoConnectorState && prevGroup
-        ? effectiveTone(prevGroup) !== "neutral"
-          ? "stopped"
-          : "disabled"
-        : props.flowState);
-    const icon = connCfg?.icon ?? props.flowIcon;
-    const cWidth = connCfg?.width ?? props.connectorWidth;
-    const cAnimated = connCfg?.animated ?? props.animated;
-    const cDotSpace = connCfg?.dotSpacing ?? props.dotSpacing;
-    const cBorder = connCfg?.borderSize ?? props.connectorBorderSize;
-    const cHalf = connCfg?.halfRing ?? props.connectorHalf;
-    const cShowLine = connCfg?.showLine ?? props.showLine;
-
-    // Suppress animateCompleted on connectors adjacent to skipped groups —
-    // the bypass arc already carries the animated flow over those steps.
-    const thisGroupSkipped =
-      isGroupSkipped(group) || autoSkippedSet.value.has(gi);
-    const prevGroupSkipped =
-      gi > 0 &&
-      (isGroupSkipped(grps[gi - 1]) || autoSkippedSet.value.has(gi - 1));
-    const cAnimateCompleted =
-      thisGroupSkipped || prevGroupSkipped
-        ? false
-        : (connCfg?.animateCompleted ?? props.animateCompleted);
-
-    // Source tone (from the outgoing / previous group)
-    const prevFirstItem = prevGroup
-      ? prevGroup.kind === "single"
-        ? prevGroup.item
-        : prevGroup.items[0]
-      : undefined;
-    const srcTone: TreeTone =
-      connCfg?.sourceTone ?? prevFirstItem?.tone ?? "neutral";
-
-    // Target tone (from this group's first item)
-    const dstTone: TreeTone =
-      connCfg?.targetTone ?? receiverItem.tone ?? "neutral";
-
-    const prevGeo = geo[gi - 1];
-    const curGeo = geo[gi];
-
-    // Left anchors — all prev anchors (handles both single and parallel source)
-    const leftAnchors = prevGeo?.anchors;
-
-    // Right anchors — for fan-out into a parallel group
-    const rightAnchors =
-      curGeo?.isParallelGroup && curGeo.anchors.length > 1
-        ? curGeo.anchors
-        : undefined;
-
-    // Right anchor Y for single target (not fan-out)
-    const rightAnchorY = rightAnchors ? undefined : curGeo?.anchors[0];
-
-    // Connector height: span the taller of the two adjacent groups
-    const connectorHeight =
-      prevGeo && curGeo
-        ? Math.max(prevGeo.totalHeight, curGeo.totalHeight)
-        : (prevGeo?.totalHeight ?? curGeo?.totalHeight);
-
-    // Extra source tones for multi-source rings (fan-in from prev parallel group, or children)
-    const extraSourceTones: TreeTone[] =
-      prevGroup?.kind === "parallel"
-        ? prevGroup.items.slice(1).map((it) => it.tone ?? "neutral")
-        : prevGroup?.kind === "single"
-          ? (prevGroup.item.children?.map(
-              (c) => c.connector?.sourceTone ?? c.tone ?? "neutral",
-            ) ?? [])
-          : [];
-
-    // Right anchor tones for fan-out rings
-    const rightAnchorTones: TreeTone[] =
-      rightAnchors && group.kind === "parallel"
-        ? group.items.map((it) => it.tone ?? "neutral")
-        : [];
-
-    // Right anchor states for per-lane animation in fan-out
-    const rightAnchorStates: ConnectionState[] =
-      rightAnchors && group.kind === "parallel"
-        ? group.items.map((it): ConnectionState => {
-            if (it.connector?.state !== undefined) return it.connector.state;
-            if (props.autoConnectorState) {
-              if (it.active) return "flowing";
-              const tone = it.tone ?? "neutral";
-              return tone !== "neutral" ? "stopped" : "disabled";
-            }
-            return state;
-          })
-        : [];
-
-    const connectorProps: ConnectionFlowConnectorProps = {
-      state,
-      sourceTone: srcTone,
-      targetTone: dstTone,
-      middleIcon: icon,
-      width: cWidth,
-      halfRing: cHalf,
-      showLine: cShowLine,
-      animated: cAnimated,
-      dotSpacing: cDotSpace,
-      borderSize: cBorder,
-      sourceFill: connCfg?.sourceFill,
-      sourceBorder: connCfg?.sourceBorder,
-      sourceDot: connCfg?.sourceDot,
-      targetFill: connCfg?.targetFill,
-      targetBorder: connCfg?.targetBorder,
-      targetDot: connCfg?.targetDot,
-      dotColor: connCfg?.dotColor,
-      leftAnchors,
-      connectorHeight,
-      rightAnchorY,
-      extraSourceTones,
-      rightAnchors,
-      rightAnchorTones,
-      rightAnchorStates,
-      animateCompleted: cAnimateCompleted,
-      fullWidth: props.fullWidthConnectors,
-    };
-
-    return {
-      key: groupKey(group),
-      renderConnector,
-      connectorProps,
-      state,
-      singleItem: group.kind === "single" ? group.item : null,
-      parallelItems: group.kind === "parallel" ? group.items : null,
-    };
-  });
-});
-
-// ── Bypass arc render data ────────────────────────────────────────────────
-
-interface BypassArcDot {
-  key: string;
-  fill: string;
-  path: string;
-  dur: string;
-  begin: string;
-  opTimes: string;
-}
-
-interface BypassArcRender {
-  key: number;
-  d: string;
-  lineColor: string;
-  srcArcD: string;
-  srcFill: string;
-  srcBorder: string;
-  srcDot: string;
-  sx: number;
-  sBase: number;
-  dstArcD: string;
-  dstFill: string;
-  dstBorder: string;
-  dstDot: string;
-  dx: number;
-  dBase: number;
-  dots: BypassArcDot[];
-}
-
-// Ring visual constants (match ConnectionFlowConnector)
-const BYPASS_RING_R = 5.5;
-const BYPASS_RING_BW = 1.5;
-
-const bypassArcRenders = computed<BypassArcRender[]>(() =>
-  bypassArcs.value.map((arc, i) => {
-    const ci = isDark.value ? 1 : 0;
-    const srcTokens = getTreeColorTokens(arc.sourceTone);
-    const dstTokens = getTreeColorTokens(arc.destTone);
-    const lineColor = srcTokens.connBorder[ci];
-    const dotFill = srcTokens.connDot[ci];
-
-    // Path starts/ends RING_OVERLAP px inside the card top edge so the
-    // ring fill covers the card border (same technique as left/right rings).
-    const sBase = arc.sy + RING_OVERLAP;
-    const dBase = arc.dy + RING_OVERLAP;
-
-    // Orthogonal stepped path with rounded corners:
-    //  (sx, sBase) → up → rounded bend → right → rounded bend → down to (dx, dBase)
-    const aboveY = Math.min(arc.sy, arc.dy) - BYPASS_LIFT;
-    const CR = BYPASS_CORNER_R;
-    const d = [
-      `M ${arc.sx} ${sBase}`,
-      `V ${aboveY + CR}`,
-      `Q ${arc.sx} ${aboveY} ${arc.sx + CR} ${aboveY}`,
-      `H ${arc.dx - CR}`,
-      `Q ${arc.dx} ${aboveY} ${arc.dx} ${aboveY + CR}`,
-      `V ${dBase}`,
-    ].join(" ");
-
-    // Approximate path length for dot timing
-    const legV1 = Math.abs(sBase - aboveY - CR);
-    const legH = Math.max(0, arc.dx - arc.sx - 2 * CR);
-    const legV2 = Math.abs(dBase - aboveY - CR);
-    const corners = Math.PI * 0.5 * CR * 2; // two quarter-circle corners
-    const pathLen = legV1 + legH + legV2 + corners;
-
-    const DOT_VELOCITY = 35;
-    const DOT_GAP = props.dotSpacing / DOT_VELOCITY;
-    const numDots = Math.max(1, Math.ceil(pathLen / props.dotSpacing));
-    const virtualLen = numDots * props.dotSpacing;
-    const dur = numDots * DOT_GAP;
-
-    // Add overflow extension AFTER the destination so dots follow the correct
-    // arc shape (including the destination corner and descent) before the
-    // invisible loop-back segment begins. Extending the H segment rightward
-    // (old approach) caused dots to travel past the destination horizontally
-    // and miss the descent curve entirely.
-    const overflow = Math.max(0, virtualLen - pathLen);
-    const dMotion =
-      overflow > 0
-        ? [
-            `M ${arc.sx} ${sBase}`,
-            `V ${aboveY + CR}`,
-            `Q ${arc.sx} ${aboveY} ${arc.sx + CR} ${aboveY}`,
-            `H ${arc.dx - CR}`,
-            `Q ${arc.dx} ${aboveY} ${arc.dx} ${aboveY + CR}`,
-            `V ${dBase}`,
-            `v ${overflow}`,
-          ].join(" ")
-        : d;
-
-    const fadeOutEnd = pathLen / virtualLen;
-    const fadeOutStart = Math.max(0, fadeOutEnd - 10 / virtualLen);
-    const fadeInEnd = Math.min(fadeOutStart, 4 / virtualLen);
-    const opTimes = `0;${fadeInEnd.toFixed(4)};${fadeOutStart.toFixed(4)};${fadeOutEnd.toFixed(4)};1`;
-
-    const ringR = BYPASS_RING_R;
-
-    // Source ring — half-circle bumping upward, base sits RING_OVERLAP px
-    // inside the card so the fill covers the card's top border.
-    const srcFill = srcTokens.connFill[ci];
-    const srcBorder = srcTokens.connBorder[ci];
-    const srcDot = srcTokens.connDot[ci];
-    const srcArcD = `M ${arc.sx - ringR} ${sBase} A ${ringR} ${ringR} 0 0 1 ${arc.sx + ringR} ${sBase}`;
-
-    // Destination ring — same treatment.
-    const dstFill = dstTokens.connFill[ci];
-    const dstBorder = dstTokens.connBorder[ci];
-    const dstDot = dstTokens.connDot[ci];
-    const dstArcD = `M ${arc.dx - ringR} ${dBase} A ${ringR} ${ringR} 0 0 1 ${arc.dx + ringR} ${dBase}`;
-
-    // Animated dots — only when bypass is actively being traversed
-    // (source done, destination not yet reached), or when
-    // animateCompleted is on (completed arcs also animate).
-    // Animate when source is done AND destination is either
-    // not yet reached (neutral) or currently running (destActive).
-    const arcActive =
-      arc.sourceTone !== "neutral" &&
-      (arc.destTone === "neutral" || arc.destActive);
-    const arcCompleted =
-      arc.sourceTone !== "neutral" &&
-      arc.destTone !== "neutral" &&
-      !arc.destActive;
-    const showDots =
-      props.animated && (arcActive || (props.animateCompleted && arcCompleted));
-
-    const dots: BypassArcDot[] = showDots
-      ? Array.from({ length: numDots }, (_, di) => ({
-          key: `${i}-${di}`,
-          fill: dotFill,
-          path: dMotion,
-          dur: `${dur}s`,
-          begin: `${(-di * DOT_GAP).toFixed(3)}s`,
-          opTimes,
-        }))
-      : [];
-
-    return {
-      key: i,
-      d,
-      lineColor,
-      srcArcD,
-      srcFill,
-      srcBorder,
-      srcDot,
-      sx: arc.sx,
-      sBase,
-      dstArcD,
-      dstFill,
-      dstBorder,
-      dstDot,
-      dx: arc.dx,
-      dBase,
-      dots,
-    };
+const layout = computed(() =>
+  layoutConnectionFlow({
+    nodes: props.nodes,
+    flowState: props.flowState,
+    autoState: props.autoState,
+    animated: props.animated,
+    expanded: expanded.value,
+    options: layoutOptions.value,
   }),
 );
+
+// ── Path highlight ─────────────────────────────────────────────────────────
+// The lit set is the ancestry of whatever the pointer is on: everything that
+// had to happen for that node to be reached. Empty means "no highlight", which
+// the renderers read as "draw everything at full opacity" — so the default
+// state costs nothing.
+const highlight = computed(() => {
+  const focus = hoveredId.value ?? selectedId.value;
+  if (!props.highlightPath || !focus) {
+    return { nodes: new Set<string>(), edges: new Set<string>() };
+  }
+  return tracePathTo(layout.value, focus);
+});
+
+// ── Zoom and pan ───────────────────────────────────────────────────────────
+const clampZoom = (value: number) =>
+  Math.min(props.maxZoom, Math.max(props.minZoom, value));
+
+/**
+ * A scroll position to apply once the canvas has been re-sized for the new
+ * scale. Setting `scrollLeft` before the content grows just clamps against the
+ * old extent, so the adjustment waits for the next tick.
+ */
+const applyPendingScroll = (apply: (el: HTMLElement) => void) => {
+  nextTick(() => {
+    const el = viewportRef.value;
+    if (el) apply(el);
+  });
+};
+
+const setZoom = (value: number, anchor?: { x: number; y: number }) => {
+  const next = clampZoom(value);
+  if (next === scale.value) return;
+  const el = viewportRef.value;
+  if (el) {
+    // Zoom about a point, so the graph does not slide away from the cursor.
+    // The canvas grows by `ratio`, so the distance from the scroll origin to
+    // that point grows by the same factor.
+    const point = anchor ?? {
+      x: el.clientWidth / 2,
+      y: el.clientHeight / 2,
+    };
+    const ratio = next / scale.value;
+    const { scrollLeft, scrollTop } = el;
+    applyPendingScroll((element) => {
+      element.scrollLeft = (scrollLeft + point.x) * ratio - point.x;
+      element.scrollTop = (scrollTop + point.y) * ratio - point.y;
+    });
+  }
+  scale.value = next;
+  emit("zoomChange", next);
+};
+
+const zoomIn = () => setZoom(scale.value * 1.2);
+const zoomOut = () => setZoom(scale.value / 1.2);
+
+const fit = () => {
+  const el = viewportRef.value;
+  if (!el || !el.clientWidth || !el.clientHeight) return;
+  scale.value = clampZoom(
+    fitToViewport(layout.value, el.clientWidth, el.clientHeight, props.maxZoom)
+      .scale,
+  );
+  // Everything is visible at this scale, so the origin is the right place to
+  // be looking.
+  applyPendingScroll((element) => {
+    element.scrollLeft = 0;
+    element.scrollTop = 0;
+  });
+  emit("zoomChange", scale.value);
+};
+
+const onWheel = (event: WheelEvent) => {
+  if (!props.interactive) return;
+  // A card that scrolls its own body keeps its wheel: without this the canvas
+  // zooms and the card can never be scrolled.
+  if ((event.target as HTMLElement).closest("[data-scrolls]")) return;
+  event.preventDefault();
+  const rect = viewportRef.value?.getBoundingClientRect();
+  const anchor = rect
+    ? { x: event.clientX - rect.left, y: event.clientY - rect.top }
+    : undefined;
+  setZoom(scale.value * (event.deltaY < 0 ? 1.1 : 1 / 1.1), anchor);
+};
+
+// Drag to pan. Pointer capture rather than a document-level listener so the
+// gesture survives the pointer leaving the viewport mid-drag.
+const panning = ref(false);
+let panStart = { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 };
+
+const onPointerDown = (event: PointerEvent) => {
+  if (!props.interactive || event.button !== 0) return;
+  // A press that starts on a control belongs to the control. Capturing the
+  // pointer here redirects its `pointerup` to the viewport, so the control
+  // never sees a click at all — which is why the zoom buttons and "show more"
+  // did nothing.
+  if (
+    (event.target as HTMLElement).closest(
+      "button, a, input, select, textarea, [data-no-pan]",
+    )
+  ) {
+    return;
+  }
+  const el = viewportRef.value;
+  if (!el) return;
+  panning.value = true;
+  panStart = {
+    x: event.clientX,
+    y: event.clientY,
+    scrollLeft: el.scrollLeft,
+    scrollTop: el.scrollTop,
+  };
+  el.setPointerCapture(event.pointerId);
+};
+
+const onPointerMove = (event: PointerEvent) => {
+  if (!panning.value) return;
+  const el = viewportRef.value;
+  if (!el) return;
+  el.scrollLeft = panStart.scrollLeft - (event.clientX - panStart.x);
+  el.scrollTop = panStart.scrollTop - (event.clientY - panStart.y);
+};
+
+const onPointerUp = (event: PointerEvent) => {
+  if (!panning.value) return;
+  panning.value = false;
+  (event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId);
+};
+
+// ── Wiring ─────────────────────────────────────────────────────────────────
+const onHover = (node: LaidOutNode | null) => {
+  hoveredId.value = node?.id ?? null;
+  emit("nodeHover", node?.node ?? null);
+};
+
+const onSelect = (node: LaidOutNode) => {
+  selectedId.value = selectedId.value === node.id ? null : node.id;
+  emit("nodeClick", node.node);
+};
+
+let observer: ResizeObserver | null = null;
+
+onMounted(() => {
+  observer = new ResizeObserver((entries) => {
+    const box = entries[0]?.contentRect;
+    if (!box) return;
+    const first = viewport.value.width === 0;
+    viewport.value = { width: box.width, height: box.height };
+    if (first && props.fitOnLoad) fit();
+  });
+  if (viewportRef.value) observer.observe(viewportRef.value);
+});
+
+onBeforeUnmount(() => {
+  observer?.disconnect();
+});
+
+watch(
+  () => props.nodes,
+  () => {
+    if (props.fitOnLoad) fit();
+  },
+);
+
+// ── Overall progress ───────────────────────────────────────────────────────
+// The mean of every node that declares one. Shown on the frame, not per node.
+// Stated outright if the caller says so, else the mean of what the nodes
+// report — including cards built from items, which have no `progress` of their
+// own and used not to count at all.
+const overallProgress = computed(() =>
+  flowProgress(props.nodes, props.progress),
+);
+
+// `plain` draws no Panel, so the cards and the header take the nearest real
+// surface rather than inventing a second scale of their own.
+const surfaceVariant = computed<SurfaceVariant>(() =>
+  props.variant === "plain" ? "simple" : (props.variant as SurfaceVariant),
+);
+const headerSurface = computed(() => getHeaderSurface(surfaceVariant.value));
+const showHeaderBlock = computed(
+  () =>
+    props.showHeader &&
+    Boolean(
+      props.eyebrow ||
+        props.title ||
+        props.subtitle ||
+        props.icon ||
+        props.tag ||
+        props.progressType !== "none",
+    ),
+);
+
+const isEmpty = computed(() => props.nodes.length === 0);
+const isPlain = computed(() => props.variant === "plain");
+
+const frameStyle = computed(() => ({
+  height:
+    typeof props.height === "number" ? `${props.height}px` : props.height,
+}));
+
+const viewportStyle = computed(() => ({
+  cursor: panning.value ? "grabbing" : undefined,
+}));
+
+/** What the scroll area contains, including anything overhanging the origin. */
+const canvasStyle = computed(() => ({
+  width: `${(layout.value.width - layout.value.offsetX) * scale.value}px`,
+  height: `${(layout.value.height - layout.value.offsetY) * scale.value}px`,
+}));
+
+const zoomLabel = computed(() => `${Math.round(scale.value * 100)}%`);
+
+const resetZoom = () => setZoom(1);
+
+/**
+ * The registry has no "fit to view" or "minus" glyph. Rather than press a
+ * wrong-but-present icon into service — a balance-scale for "fit" and an
+ * equals sign for "zoom out" both read as something else entirely — these two
+ * are inline paths. `IconButton` takes a node as readily as a name, so the
+ * buttons keep the kit's sizing, hover and focus treatment.
+ */
+const FIT_ICON = h(
+  "svg",
+  { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" },
+  [
+    h("path", { d: "M4 9V5a1 1 0 0 1 1-1h4" }),
+    h("path", { d: "M15 4h4a1 1 0 0 1 1 1v4" }),
+    h("path", { d: "M20 15v4a1 1 0 0 1-1 1h-4" }),
+    h("path", { d: "M9 20H5a1 1 0 0 1-1-1v-4" }),
+  ],
+);
+
+const MINUS_ICON = h(
+  "svg",
+  { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round" },
+  [h("path", { d: "M6 12h12" })],
+);
+
+defineExpose({ zoomIn, zoomOut, fit, setZoom });
 </script>
 
 <template>
-  <div
-    v-if="groups.length > 0"
-    ref="containerRef"
-    :class="outerClass"
-    :style="outerStyle"
-    v-bind="restAttrs"
+  <component
+    :is="isPlain ? 'div' : Panel"
+    v-bind="
+      isPlain
+        ? { class: classNames('w-full', classAttr) }
+        : {
+            class: classNames('w-full', classAttr),
+            variant,
+            tone,
+            corner,
+            padding: 'none',
+            // Title, subtitle and loading are drawn by the flow's own header
+            // (Panel's carries no icon chip and no progress, and the plain
+            // variant renders no Panel at all), and the graph manages its own
+            // scrolling — Panel's body scroller would sit outside it and take
+            // the gesture first.
+            scrollable: false,
+          }
+    "
+    v-bind:="restAttrs"
   >
-    <div ref="contentRef" :class="contentClass" :style="contentStyle">
-      <template v-for="(gr, gi) in groupRenders" :key="gr.key">
-        <!-- Connector leading INTO this group -->
-        <ConnectionFlowConnector
-          v-if="gr.renderConnector"
-          v-bind="gr.connectorProps"
-        />
-
-        <!-- Column or parallel group — wrapped in a ref div for bypass arc measurement -->
-        <div
-          :ref="(el: unknown) => setGroupDivEl(gi, el as HTMLDivElement | null)"
-          :class="groupWrapClass"
-          :style="groupWrapStyle"
-        >
-          <ConnectionFlowColumn
-            v-if="gr.singleItem"
-            :item="gr.singleItem"
-            :child-indent="childIndent"
-            :child-row-gap="childRowGap"
+    <div class="relative w-full">
+      <template v-if="showHeaderBlock">
+        <div class="px-4 pt-4 pb-3">
+          <ConnectionFlowHeader
+            :variant="surfaceVariant"
+            :tone="tone"
+            :eyebrow="eyebrow"
+            :title="title"
+            :subtitle="subtitle"
+            :icon="icon"
+            :icon-corner="iconCorner"
+            :tag="tag"
+            :tag-tone="tagTone"
+            :tag-variant="tagVariant"
+            :progress="overallProgress"
+            :progress-type="progressType"
             :animated="animated"
-            :show-line="showLine"
-            :connector-half="connectorHalf"
-            :connector-border-size="connectorBorderSize"
-            :dot-spacing="dotSpacing"
-            :flow-active="gr.state === 'flowing'"
-            :item-width="itemWidth"
-            :hoverable="hoverable"
-            @geometry-change="(geo: ColumnGeometry) => handleGeo(gi, geo)"
-          />
-          <ConnectionFlowParallelGroup
-            v-else-if="gr.parallelItems"
-            :items="gr.parallelItems"
-            :item-width="itemWidth"
-            :hoverable="hoverable"
-            @geometry-change="(geo: ColumnGeometry) => handleGeo(gi, geo)"
+            :loading="loading"
           />
         </div>
+        <div class="border-b" :class="headerSurface.divider" />
       </template>
 
+      <!-- The graph frame, or whichever loader is standing in for it. -->
       <div
-        v-if="rightAction || $slots.rightAction"
-        class="flex items-center shrink-0 ml-3 self-start"
+        v-if="loading && loaderType !== 'skeleton'"
+        class="flex w-full items-center justify-center"
+        :style="frameStyle"
       >
-        <slot name="rightAction"><VNodeRenderer :nodes="rightAction" /></slot>
+        <ProgressSpinner
+          v-if="loaderType === 'spinner'"
+          size="xl"
+          :color="tone === 'neutral' ? 'blue' : tone"
+          aria-label="Loading flow"
+        />
+        <div v-else class="w-1/2 max-w-sm">
+          <Progress
+            size="sm"
+            :color="tone === 'neutral' ? 'blue' : tone"
+            indeterminate
+            label="Loading flow"
+          />
+        </div>
       </div>
 
-      <!-- ── Bypass arc overlay ────────────────────────────────────────── -->
-      <svg
-        v-if="bypassArcRenders.length > 0"
-        class="absolute inset-0 pointer-events-none z-20"
-        :style="{ width: '100%', height: '100%', overflow: 'visible' }"
+      <div
+        v-else-if="loading"
+        class="w-full overflow-hidden"
+        :style="frameStyle"
       >
-        <g v-for="arc in bypassArcRenders" :key="arc.key">
-          <!-- Bypass path -->
-          <path
-            :d="arc.d"
-            fill="none"
-            :stroke="arc.lineColor"
-            :stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
+        <ConnectionFlowSkeleton :variant="surfaceVariant" :metrics="metrics" />
+      </div>
 
-          <!-- Source ring endpoint -->
-          <path :d="arc.srcArcD" :fill="arc.srcFill" />
-          <path
-            :d="arc.srcArcD"
-            :stroke="arc.srcBorder"
-            :stroke-width="BYPASS_RING_BW"
-            fill="none"
-            stroke-linecap="round"
-          />
-          <circle :cx="arc.sx" :cy="arc.sBase" r="2" :fill="arc.srcDot" />
+      <EmptyState
+        v-else-if="isEmpty"
+        variant="plain"
+        size="sm"
+        icon="ViewGrid"
+        :title="emptyMessage ?? 'Nothing to show'"
+        subtitle="No steps have been reported for this flow."
+      />
 
-          <!-- Destination ring endpoint -->
-          <path :d="arc.dstArcD" :fill="arc.dstFill" />
-          <path
-            :d="arc.dstArcD"
-            :stroke="arc.dstBorder"
-            :stroke-width="BYPASS_RING_BW"
-            fill="none"
-            stroke-linecap="round"
-          />
-          <circle :cx="arc.dx" :cy="arc.dBase" r="2" :fill="arc.dstDot" />
+      <div v-else class="relative w-full" :style="frameStyle">
+      <div
+        ref="viewportRef"
+        class="h-full w-full select-none overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent"
+        :style="viewportStyle"
+        @wheel="onWheel"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @pointercancel="onPointerUp"
+      >
+        <!-- Sized to the content so the viewport can scroll to it natively.
+             The renderers draw into this, not into the viewport. -->
+        <div class="relative" :style="canvasStyle">
+        <ConnectionFlowSvg
+          :layout="layout"
+          :dot-speed="dotSpeed"
+          :dot-interval="dotInterval"
+          :metrics="metrics"
+          :options="layoutOptions"
+          :expanded="expanded"
+          @toggle-expanded="onToggleExpanded"
+          :variant="surfaceVariant"
+          :show-progress="progressType !== 'none'"
+          :animated="animated"
+          :highlight-nodes="highlight.nodes"
+          :highlight-edges="highlight.edges"
+          :hovered-id="hoveredId"
+          :selected-id="selectedId"
+          :scale="scale"
+          :offset-x="-layout.offsetX * scale"
+          :offset-y="-layout.offsetY * scale"
+          @hover="onHover"
+          @select="onSelect"
+        >
+          <template v-if="$slots.node" #node="slotProps">
+            <slot name="node" v-bind="slotProps" />
+          </template>
+        </ConnectionFlowSvg>
+        </div>
+      </div>
 
-          <!-- Animated dots — only when bypass is actively being traversed
-                              (source done, destination not yet reached), or when
-                              animateCompleted is on (completed arcs also animate). -->
-          <circle
-            v-for="dot in arc.dots"
-            :key="dot.key"
-            r="3"
-            :fill="dot.fill"
-            opacity="0"
+        <!-- Zoom controls, bottom-right, matching the placement GitHub Actions
+             uses for the same job. The registry has no "fit" or "minus" glyph,
+             so those two are inline paths handed to `IconButton` — the button
+             keeps the kit's sizing, hover and focus ring either way, which a
+             hand-rolled <button> would not. -->
+        <div
+          v-if="showControls"
+          data-no-pan
+          class="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90"
+        >
+          <IconButton
+            :icon="FIT_ICON"
+            size="xs"
+            variant="ghost"
+            color="slate"
+            sr-label="Fit to view"
+            tooltip="Fit to view"
+            @click="fit"
+          />
+          <IconButton
+            :icon="MINUS_ICON"
+            size="xs"
+            variant="ghost"
+            color="slate"
+            sr-label="Zoom out"
+            tooltip="Zoom out"
+            :disabled="scale <= minZoom"
+            @click="zoomOut"
+          />
+          <!-- A readout, not a control. The reset it used to carry was
+               invisible — nothing about a percentage says "click me" — so it
+               is a button of its own now. -->
+          <span
+            class="min-w-[3.5ch] px-1 text-center text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400"
+            title="Zoom level"
           >
-            <animateMotion
-              :path="dot.path"
-              :dur="dot.dur"
-              :begin="dot.begin"
-              repeatCount="indefinite"
-            />
-            <animate
-              attributeName="opacity"
-              values="0;0.9;0.9;0;0"
-              :keyTimes="dot.opTimes"
-              :dur="dot.dur"
-              :begin="dot.begin"
-              repeatCount="indefinite"
-            />
-          </circle>
-        </g>
-      </svg>
+            {{ zoomLabel }}
+          </span>
+          <IconButton
+            icon="Add"
+            size="xs"
+            variant="ghost"
+            color="slate"
+            sr-label="Zoom in"
+            tooltip="Zoom in"
+            :disabled="scale >= maxZoom"
+            @click="zoomIn"
+          />
+          <IconButton
+            icon="Reset"
+            size="xs"
+            variant="ghost"
+            color="slate"
+            sr-label="Reset zoom to 100%"
+            tooltip="Reset zoom"
+            :disabled="scale === 1"
+            @click="resetZoom"
+          />
+        </div>
+      </div>
     </div>
-  </div>
+  </component>
 </template>

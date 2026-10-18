@@ -225,7 +225,13 @@ const stripesStyle = {
     :class="classNames('w-full', classAttr)"
     v-bind="restAttrs"
   >
-    <div class="mb-1.5 flex items-baseline justify-between gap-3">
+    <!-- `justify-end` with no label: `justify-between` has a single child
+         there, which parks a lone percentage at the *start* of the row instead
+         of over the end of the bar it describes. -->
+    <div
+      class="mb-1.5 flex items-baseline gap-3"
+      :class="label === undefined ? 'justify-end' : 'justify-between'"
+    >
       <span
         v-if="hasLabel"
         :id="labelId"

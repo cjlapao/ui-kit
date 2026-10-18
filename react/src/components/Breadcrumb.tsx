@@ -8,7 +8,12 @@ import {
   forwardRef,
 } from "react";
 import { useIconRenderer } from "../contexts/IconContext";
-import type { TrueColor } from "../theme/Theme";
+import {
+  getBreadcrumbSizeTokens,
+  getBreadcrumbToneTokens,
+  type ControlSize,
+  type TrueColor,
+} from "../theme/Theme";
 
 /**
  * One crumb in the trail.
@@ -47,15 +52,17 @@ export interface BreadcrumbProps
   separator?: ReactNode;
   /** Tints link hover/focus and the current crumb. @default "blue" */
   color?: TrueColor;
+  /** Text, icon and chip geometry, on the shared control scale. @default "md" */
+  size?: ControlSize;
   /** Accessible name for the navigation landmark. @default "Breadcrumb" */
   ariaLabel?: string;
 }
 
-const ICON_CLASS = "h-4 w-4 flex-shrink-0";
-const SEPARATOR_ICON_CLASS = "h-3.5 w-3.5";
-
-const CRUMB_BASE =
-  "inline-flex max-w-56 items-center gap-1.5 rounded-md px-1.5 py-1";
+/**
+ * The crumb chip. `rounded-md` rather than the trigger family's `rounded-lg`
+ * on purpose: a crumb sits in the page's text flow, not beside its controls.
+ */
+const CRUMB_BASE = "inline-flex max-w-56 items-center rounded-md";
 
 const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
   {
@@ -63,6 +70,7 @@ const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
     home,
     separator,
     color = "blue",
+    size = "md",
     ariaLabel = "Breadcrumb",
     className,
     ...rest
@@ -73,18 +81,24 @@ const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
 
   const crumbs: BreadcrumbItem[] = home ? [home, ...items] : items;
 
+  const scale = getBreadcrumbSizeTokens(size);
+  const tone = getBreadcrumbToneTokens(color);
+
   const linkClasses = (item: BreadcrumbItem) =>
     classNames(
       CRUMB_BASE,
+      scale.chip,
+      scale.gap,
       "text-neutral-500 transition-colors focus-visible:outline-none focus-visible:ring-2 dark:text-neutral-400",
-      `hover:text-${color}-600 focus-visible:ring-${color}-400 dark:hover:text-${color}-400`,
-      item.current &&
-        `font-medium text-${color}-700 dark:text-${color}-300`,
+      tone.hover,
+      tone.focusRing,
+      item.current && classNames("font-medium", tone.current),
     );
 
   const content = (item: BreadcrumbItem) => (
     <>
-      {item.icon && renderIcon(item.icon, "sm", ICON_CLASS)}
+      {item.icon &&
+        renderIcon(item.icon, size, classNames(scale.icon, "flex-shrink-0"))}
       {item.label != null && <span className="truncate">{item.label}</span>}
       {item.badge}
     </>
@@ -134,13 +148,13 @@ const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
   };
 
   const separatorNode =
-    separator ?? renderIcon("ChevronRight", "sm", SEPARATOR_ICON_CLASS);
+    separator ?? renderIcon("ChevronRight", size, scale.separator);
 
   return (
     <nav
       ref={ref}
       aria-label={ariaLabel}
-      className={classNames("text-sm", className)}
+      className={classNames(scale.text, className)}
       {...rest}
     >
       <ol className="flex flex-wrap items-center gap-1">

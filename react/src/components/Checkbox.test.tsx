@@ -156,7 +156,9 @@ describe("Checkbox", () => {
       // `peer-disabled:bg-neutral-100` beat `peer-checked:bg-{tone}-700` on
       // emission order, so a disabled checked box lost its fill and its white
       // tick disappeared into the grey.
-      const { container } = render(<Checkbox label="t" disabled defaultChecked />);
+      const { container } = render(
+        <Checkbox label="t" disabled defaultChecked />,
+      );
       const classes = box(container);
       expect(classes).toContain("peer-checked:bg-blue-700");
       expect(classes).not.toContain("peer-disabled:bg-");
@@ -166,7 +168,11 @@ describe("Checkbox", () => {
   describe("validation", () => {
     it("marks an error on the input and the box", () => {
       const { container } = render(
-        <Checkbox label="t" validationStatus="error" validationMessage="Nope" />,
+        <Checkbox
+          label="t"
+          validationStatus="error"
+          validationMessage="Nope"
+        />,
       );
       expect(
         container.querySelector("input")!.getAttribute("aria-invalid"),
@@ -222,5 +228,83 @@ describe("Checkbox", () => {
       render(<Checkbox label="Accept terms" />);
       expect(screen.getByLabelText("Accept terms")).toBeTruthy();
     });
+  });
+});
+
+describe("variants", () => {
+  const boxOf = (container: HTMLElement) => {
+    const input = container.querySelector("input")!;
+    // The box is the first *sibling* of the input, not some fixed index in the
+    // tree — the wrapper span and the box are both spans.
+    return [...input.parentElement!.children].filter(
+      (node) => node !== input,
+    )[0] as HTMLElement;
+  };
+
+  it("the input stays pointer-enabled — the peer every peer-hover reads", () => {
+    const { container } = render(<Checkbox label="T" />);
+    const input = container.querySelector("input")!;
+    expect(input.className).not.toContain("pointer-events-none");
+  });
+
+  it("every variant paints a distinguishable rest surface", () => {
+    const boxes = new Map<string, string>();
+    for (const variant of [
+      "flat",
+      "elevated",
+      "ghost",
+      "underline",
+      "glass",
+      "gradient",
+    ] as const) {
+      const { container, unmount } = render(
+        <Checkbox label="T" variant={variant} />,
+      );
+      boxes.set(variant, boxOf(container).className);
+      unmount();
+    }
+    // flat vs elevated is the one pair that differs by a single token; every
+    // other pair must differ in fill or border, not just decoration.
+    expect(boxes.get("elevated")).toContain("shadow-sm");
+    expect(boxes.get("flat")).not.toContain("shadow-sm");
+    expect(boxes.get("ghost")).toContain("bg-neutral-100/80");
+    expect(boxes.get("underline")).toContain("bg-transparent");
+    expect(boxes.get("glass")).toContain("backdrop-blur-md");
+    expect(boxes.get("gradient")).toContain("backdrop-blur-xl");
+    expect(boxes.get("ghost")).not.toBe(boxes.get("underline"));
+    expect(boxes.get("glass")).not.toBe(boxes.get("gradient"));
+  });
+
+  it("opaque variants replace the rest fill with the tone", () => {
+    for (const variant of ["flat", "elevated", "ghost", "underline"] as const) {
+      const { container, unmount } = render(
+        <Checkbox label="T" variant={variant} />,
+      );
+      const cls = boxOf(container).className;
+      expect(cls).toContain("peer-checked:bg-blue-700");
+      expect(cls).toContain("peer-indeterminate:bg-blue-700");
+      unmount();
+    }
+  });
+
+  it("glass tints like Toggle's glass track — never paints over the frost", () => {
+    const { container } = render(<Checkbox label="T" variant="glass" />);
+    const cls = boxOf(container).className;
+    expect(cls).toContain("peer-checked:bg-blue-500/40");
+    expect(cls).toContain("peer-indeterminate:bg-blue-500/40");
+    expect(cls).toContain("dark:peer-checked:bg-blue-600/35");
+    // The frost chrome is always on, not only while checked.
+    expect(cls).toContain("backdrop-blur-md");
+    expect(cls).toContain("backdrop-saturate-[1.2]");
+    // The opaque tone fill must be gone — it would hide the blur.
+    expect(cls).not.toMatch(/peer-checked:bg-blue-700(\s|$)/);
+    // The tick is white on a see-through surface: it carries its shadow.
+    const glyph = container.querySelector(
+      "span[class*='peer-checked:opacity-100']",
+    );
+    expect(glyph?.className).toContain("drop-shadow-sm");
+    expect(glyph?.className).toContain(
+      "dark:text-blue-950".replace("dark:text-blue-950", "text-white"),
+    );
   });
 });

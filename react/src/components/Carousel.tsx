@@ -324,7 +324,6 @@ export function Carousel<T = ReactNode>({
     setWrap(null);
     setAnimated(false);
     setPhysical(pageToShift(safePage));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geometryKey]);
 
   // An external (controlled) page change animates to the new page.
@@ -336,7 +335,6 @@ export function Carousel<T = ReactNode>({
     setWrap(null);
     setPhysical(pageToShift(clampInt(page, 0, Math.max(0, totalPages - 1))));
     setAnimated(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   // ── Autoplay ──────────────────────────────────────────────────────────────
@@ -482,7 +480,7 @@ export function Carousel<T = ReactNode>({
           animated &&
             "transition-transform duration-500 ease-in-out motion-reduce:transition-none",
         )}
-        style={{ transform }}
+        style={{ transform, ...(isVertical ? { height: "100%" } : {}) }}
         aria-live={autoplayInterval > 0 ? "polite" : "off"}
       >
         {isCircular &&
@@ -596,7 +594,7 @@ export function Carousel<T = ReactNode>({
                 {skeletonChip}
               </div>
             )}
-            <div className="flex">
+            <div className="flex w-full">
               {Array.from({ length: nv }, (_, i) => (
                 <div
                   key={i}
@@ -695,6 +693,9 @@ export function Carousel<T = ReactNode>({
           )}
 
           {showIndicators && (
+            // The list itself is not focusable — the dot buttons carry the
+            // roving tabindex; this handler just receives their key events.
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- delegated key handling for the dot buttons
             <ul
               aria-label="Slides"
               onKeyDown={onIndicatorKeyDown}

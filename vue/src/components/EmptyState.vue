@@ -2,7 +2,7 @@
 import type { VNode } from "vue";
 import type { ButtonVariant, ButtonSize, ButtonColor } from "./Button.vue";
 import {
-  SURFACE_VARIANTS,
+  PLAIN_SURFACE_VARIANTS,
   type ControlSize,
   type SurfaceCorner,
   type SurfacePadding,
@@ -15,7 +15,7 @@ import type { GlassOpacity, GlassVibrancy, SpecularMode } from "../theme/glass";
  * card the app already owns — the common case, and previously only reachable
  * by setting `disableBorder` *and* `transparentBackground` together.
  */
-export const EMPTY_STATE_VARIANTS = [...SURFACE_VARIANTS, "plain"] as const;
+export const EMPTY_STATE_VARIANTS = PLAIN_SURFACE_VARIANTS;
 export type EmptyStateVariant = (typeof EMPTY_STATE_VARIANTS)[number];
 
 export type EmptyStateTone = TrueColor;
@@ -141,6 +141,13 @@ export interface EmptyStateProps {
   actionColor?: ButtonColor;
   actionSize?: ButtonSize;
   actionLeadingIcon?: string | VNode;
+  /**
+   * The action is in flight. `Button` swaps its leading icon for a spinner and
+   * blocks the press, so a retry cannot be fired twice while the first one is
+   * still running.
+   */
+  actionLoading?: boolean;
+  actionDisabled?: boolean;
 
   fullWidth?: boolean;
   fullHeight?: boolean;
@@ -183,6 +190,10 @@ const props = withDefaults(defineProps<EmptyStateProps>(), {
   iconBackground: true,
   fullWidth: false,
   fullHeight: false,
+  // `withDefaults` casts an absent boolean prop to `false`, so these have to
+  // be named even to keep them unset — an unnamed one silently becomes `false`.
+  actionLoading: false,
+  actionDisabled: false,
   disableBorder: false,
   transparentBackground: false,
 });
@@ -347,6 +358,8 @@ const handleAction = () => {
             :variant="actionVariant ?? 'soft'"
             :color="actionColor ?? effectiveTone"
             :leading-icon="actionLeadingIcon"
+            :loading="actionLoading"
+            :disabled="actionDisabled"
             @click="handleAction"
           >
             {{ actionLabel }}

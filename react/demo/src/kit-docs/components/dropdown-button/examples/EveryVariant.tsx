@@ -21,7 +21,7 @@ const OPTIONS: DropdownButtonOption[] = [
 
 const EveryVariant = () => (
   <div className="grid w-full gap-3 sm:grid-cols-2">
-    {BUTTON_VARIANTS.map((variant) => (
+    {BUTTON_VARIANTS.filter((variant) => variant !== "clear").map((variant) => (
       <DropdownButton
         key={variant}
         label={variant}

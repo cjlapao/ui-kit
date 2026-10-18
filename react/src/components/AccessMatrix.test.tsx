@@ -46,6 +46,52 @@ describe("AccessMatrix", () => {
     );
   });
 
+  it("tints the group-header row and sticky cell in the table tone", () => {
+    const { container } = render(
+      <AccessMatrix permissions={PERMS} tone="rose" hoverable />,
+    );
+    const headerRow = Array.from(
+      container.querySelectorAll("tbody tr"),
+    ).find((t) => t.textContent?.includes("G1"))!;
+    // group header sits darker than the zebra wash, hover sits darkest
+    expect(headerRow.className).toContain("bg-rose-100");
+    expect(headerRow.className).toContain("hover:bg-rose-300");
+    expect(headerRow.className).toContain("border-rose-100");
+    expect(headerRow.className).toContain("dark:border-rose-500/20");
+    // the sticky Resource cell keeps the same tone base fill (opaque enough to scroll under)
+    const headerCell = Array.from(container.querySelectorAll("td")).find(
+      (td) => td.textContent?.includes("G1"),
+    )!;
+    expect(headerCell.className).toContain("bg-rose-100");
+    expect(headerCell.className).toContain("dark:bg-rose-500/20");
+    // and paints the bold GROUP hover (not a data-row hover) so the whole
+    // row shifts as one
+    expect(headerCell.className).toContain("group-hover:bg-rose-300");
+    expect(headerCell.className).toContain(
+      "dark:group-hover:bg-rose-500/35",
+    );
+  });
+
+  it("keeps the group-row hover uniform on the sticky cell even when not hoverable", () => {
+    // hoverable defaults to false: data rows get no hover fill, but the
+    // group row is a control and must still shift as one — its sticky cell
+    // carries the group-hover fill so the tr's hover doesn't only show
+    // through the transparent cells to its right.
+    const { container } = render(
+      <AccessMatrix permissions={PERMS} tone="rose" />,
+    );
+    const headerCell = Array.from(container.querySelectorAll("td")).find(
+      (td) => td.textContent?.includes("G1"),
+    )!;
+    expect(headerCell.className).toContain("bg-rose-100");
+    expect(headerCell.className).toContain("group-hover:bg-rose-300");
+    expect(headerCell.className).toContain("dark:group-hover:bg-rose-500/35");
+    // the cell must transition in lockstep with the row (same class the tr
+    // uses) or the two paint layers tear during the 150ms hover fill
+    expect(headerCell.className).toContain("transition-colors");
+    expect(headerCell.className).toContain("ease-out");
+  });
+
   it("collapses a group when its header is clicked, and expands again", () => {
     render(<AccessMatrix permissions={PERMS} />);
     expect(resACount()).toBe(2); // G1::ResA + G2::ResA
@@ -98,5 +144,26 @@ describe("AccessMatrix", () => {
     );
     expect(container.querySelector("section")).not.toBeNull();
     expect(screen.getByText("Loading matrix…")).toBeTruthy();
+  });
+
+  it("forwards loaderType=progress with loaderProgress to the table", () => {
+    const { container } = render(
+      <AccessMatrix
+        permissions={PERMS}
+        loading
+        loaderType="progress"
+        loaderProgress={42}
+      />,
+    );
+    // the progress bar reports its value to the accessibility tree
+    expect(container.querySelector('[aria-valuenow="42"]')).toBeTruthy();
+  });
+
+  it("forwards loaderType=skeleton and renders the matrix-shaped skeleton", () => {
+    const { container } = render(
+      <AccessMatrix permissions={PERMS} loading loaderType="skeleton" />,
+    );
+    expect(container.querySelector("table")).toBeNull();
+    expect(container.querySelector(".animate-pulse")).toBeTruthy();
   });
 });

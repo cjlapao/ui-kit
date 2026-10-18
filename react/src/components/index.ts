@@ -56,10 +56,32 @@ export {
   type ProgressSize,
 } from "./Progress";
 export {
+  default as ProgressSpinner,
+  type ProgressSpinnerProps,
+  type ProgressSpinnerSize,
+  type ProgressSpinnerColor,
+} from "./ProgressSpinner";
+export {
+  default as MeterGroup,
+  METERGROUP_ORIENTATIONS,
+  type MeterGroupProps,
+  type MeterItem,
+  type MeterGroupOrientation,
+  type MeterGroupLabelPosition,
+} from "./MeterGroup";
+export {
   default as MultiProgressBar,
   type MultiProgressBarProps,
   type MultiProgressBarSeries,
 } from "./MultiProgressBar";
+export {
+  default as Shimmer,
+  SHIMMER_SPEEDS,
+  SHIMMER_TONES,
+  type ShimmerProps,
+  type ShimmerSpeed,
+  type ShimmerTone,
+} from "./Shimmer";
 export {
   default as Spinner,
   SPINNER_THICKNESSES,
@@ -102,12 +124,28 @@ export {
   type EmptyStateVariant,
 } from "./EmptyState";
 export {
-  default as Hero,
+  default as PanelHero,
+  PANEL_HERO_VARIANTS,
+  PANEL_HERO_TITLE_ELEMENTS,
+  type PanelHeroProps,
+  type PanelHeroVariant,
+  type PanelHeroTitleElement,
+  type PanelHeroTitleSize,
+  type PanelHeroSubtitleSize,
+  type PanelHeroPadding,
+} from "./PanelHero";
+/** @deprecated Renamed to `PanelHero`; aliases are kept for one cycle. */
+export {
+  Hero,
+  HERO_VARIANTS,
+  HERO_TITLE_ELEMENTS,
   type HeroProps,
+  type HeroVariant,
+  type HeroTitleElement,
   type HeroTitleSize,
   type HeroSubtitleSize,
   type HeroPadding,
-} from "./Hero";
+} from "./PanelHero";
 export {
   default as DynamicImg,
   type DynamicImgProps,
@@ -139,13 +177,22 @@ export {
 } from "./DropdownButton";
 export {
   default as Tooltip,
+  TOOLTIP_POSITIONS,
+  TOOLTIP_VARIANTS,
   type TooltipProps,
   type TooltipPosition,
+  type TooltipVariant,
 } from "./Tooltip";
 export {
   default as TooltipWrapper,
   type TooltipWrapperProps,
 } from "./TooltipWrapper";
+export {
+  resolveTooltipPlacement,
+  resolveTooltipSide,
+  type TooltipPlacement,
+} from "../../../common/tooltip/placement";
+export { getTooltipVariantTokens } from "../../../common/tooltip/tokens";
 
 // Form Controls
 export {
@@ -199,7 +246,20 @@ export {
   type SelectValidationStatus,
   type SelectVariant,
 } from "./Select";
-export { default as Combobox, type ComboboxProps } from "./Combobox";
+export {
+  default as Combobox,
+  COMBOBOX_VALIDATION_STATUSES,
+  COMBOBOX_TONE_CLASSES,
+  getComboboxToneClasses,
+  normaliseOption as normaliseComboboxOption,
+  type ComboboxProps,
+  type ComboboxOption,
+  type ComboboxOptionInput,
+  type ComboboxSize,
+  type ComboboxToneClasses,
+  type ComboboxValidationStatus,
+  type ComboboxVariant,
+} from "./Combobox";
 export {
   default as Picker,
   type PickerProps,
@@ -236,12 +296,26 @@ export {
   type CarouselOrientation,
   type CarouselResponsiveOption,
 } from "./Carousel";
-export { default as Toggle, TOGGLE_VARIANTS, type ToggleProps, type ToggleVariant, type ToggleSize, type ToggleAlign, type ToggleDescriptionPlacement, type TogglePadding } from "./Toggle";
+export {
+  default as Toggle,
+  TOGGLE_VARIANTS,
+  type ToggleProps,
+  type ToggleVariant,
+  type ToggleSize,
+  type ToggleAlign,
+  type ToggleDescriptionPlacement,
+  type TogglePadding,
+} from "./Toggle";
 export {
   default as MultiToggle,
+  MULTI_TOGGLE_VARIANTS,
+  MULTI_TOGGLE_INDICATORS,
   type MultiToggleProps,
   type MultiToggleOption,
   type MultiToggleVariant,
+  type MultiToggleIndicator,
+  // `rounded` is public, so its type has to be reachable too.
+  type MultiToggleShape,
 } from "./MultiToggle";
 export {
   default as ButtonSelector,
@@ -288,6 +362,45 @@ export {
 } from "./SearchBar";
 
 // Layout
+export { default as Toolbar, type ToolbarProps } from "./Toolbar";
+export { default as PageHeader, type PageHeaderProps } from "./PageHeader";
+export {
+  default as ScrollArea,
+  type ScrollAreaProps,
+  type ScrollAreaVariant,
+} from "./ScrollArea";
+export {
+  default as ColorSwatches,
+  type ColorSwatchesProps,
+} from "./ColorSwatches";
+export { default as Chat, type ChatProps } from "./Chat";
+export {
+  createLocalChatStorage,
+  createRestChatStorage,
+  usageTotals,
+  type ChatEvent,
+  type ChatFolder,
+  type ChatListQuery,
+  type ChatMessage,
+  type ChatMeta,
+  type ChatModel,
+  type ChatPage,
+  type ChatRecord,
+  type ChatStorage,
+  type ChatUsage,
+} from "../chat";
+export {
+  default as ActivityFeed,
+  type ActivityFeedProps,
+  type ActivityFeedItem,
+  type ActivityFeedFilter,
+} from "./ActivityFeed";
+export {
+  default as BreakdownCard,
+  type BreakdownCardProps,
+  type BreakdownItem,
+  type BreakdownStat,
+} from "./BreakdownCard";
 export {
   default as GlassBackground,
   type GlassBackgroundProps,
@@ -300,9 +413,13 @@ export {
 } from "./TruncatedText";
 export {
   default as InfoRow,
+  INFO_ROW_VARIANTS,
+  INFO_ROW_LOADERS,
   type InfoRowProps,
   type InfoRowSize,
   type InfoRowPadding,
+  type InfoRowVariant,
+  type InfoRowLoader,
 } from "./InfoRow";
 export {
   default as SectionCard,
@@ -316,7 +433,12 @@ export {
   type SectionSize,
   type SectionVariant,
 } from "./Section";
-export { default as PagedPanel, type PagedPanelProps } from "./PagedPanel";
+export {
+  default as PagedPanel,
+  PAGED_PANEL_LOADERS,
+  type PagedPanelProps,
+  type PagedPanelLoader,
+} from "./PagedPanel";
 export {
   default as Panel,
   type PanelProps,
@@ -355,6 +477,24 @@ export {
   COLLAPSIBLE_HELP_VARIANTS,
 } from "./CollapsibleHelpText";
 
+// Help
+export {
+  default as HelpButton,
+  type HelpButtonProps,
+  type HelpButtonPlacement,
+} from "./HelpButton";
+
+// Date
+export {
+  DatePicker,
+  DATEPICKER_APPEND_TO,
+  DATEPICKER_SELECTION_MODES,
+  type DatePickerAppendTo,
+  type DatePickerProps,
+  type DatePickerSelectionMode,
+  type DatePickerValue,
+} from "./DatePicker";
+
 // Dropdown
 export {
   default as DropdownMenu,
@@ -362,11 +502,55 @@ export {
   type DropdownMenuOption,
 } from "./DropdownMenu";
 
+// Popover
+export {
+  default as Popover,
+  POPOVER_PLACEMENTS,
+  type PopoverLoaderType,
+  type PopoverPlacement,
+  type PopoverProps,
+} from "./Popover";
+
+// Toast (PrimeVue's stacked toast — provider + service hook + viewports)
+export {
+  ToastProvider,
+  ToastViewport,
+  ToastMessageCard,
+  makeToast,
+  useToast,
+  useToastStore,
+  ToastContext,
+  createToastStore,
+  TOAST_EXIT_MS,
+  type ToastApi,
+  type ToastProviderProps,
+  type ToastViewportProps,
+  type ToastBreakpoints,
+  type ToastMessageCardProps,
+  type ToastStore,
+  type ToastMessageAction,
+  type ToastInput,
+  type ToastMessage,
+  type ToastSeverity,
+  type ToastUpdate,
+  type ToastEvent,
+  type ToastCloseHandler,
+  type ToastLifeEndHandler,
+} from "./Toast";
+
+// Panel edge chrome (the Popover arrow's source of edge paint)
+export { getPanelEdgeChrome, type PanelEdgeChrome } from "./Panel";
+
 // User
 export {
   default as UserAvatar,
+  USER_AVATAR_SHAPES,
+  USER_AVATAR_PRESET_SIZES,
   type UserAvatarProps,
   type UserAvatarUser,
+  type UserAvatarShape,
+  type UserAvatarPresetSize,
+  type UserAvatarSize,
 } from "./UserAvatar";
 
 // Complex
@@ -374,6 +558,8 @@ export {
   default as Accordion,
   type AccordionProps,
   type AccordionItem,
+  type AccordionIndicator,
+  type AccordionIndicatorPlacement,
 } from "./Accordion";
 export {
   default as Tabs,
@@ -412,6 +598,7 @@ export {
   useSidebarIsMobile,
   type SideMenuProps,
   type SideMenuSettings,
+  type SideMenuLoaderType,
   type SideMenuItem,
   type SideMenuItemLink,
   type SideMenuItemGroup,
@@ -432,6 +619,27 @@ export {
   default as SideMenuLayout,
   type SideMenuLayoutProps,
 } from "./SideMenuLayout";
+export { default as SmartGridTileBoundary } from "./SmartGridTileBoundary";
+export {
+  default as SmartGridItemPalette,
+  PALETTE_MIME as SMART_GRID_PALETTE_MIME,
+  type SmartGridItemPaletteProps,
+} from "./SmartGridItemPalette";
+export {
+  SmartGridLayout,
+  SMART_GRID_VARIANTS,
+  SMART_GRID_SIZES,
+  type SmartGridVariant,
+  type SmartGridSize,
+  type SmartGridLayoutProps,
+  type SmartGridLayoutState,
+  type SmartGridItem,
+  type SmartGridItemDefinition,
+  type SmartGridSection,
+  type SmartGridSectionDefinition,
+  type SmartGridRow,
+  type SmartGridRowDefinition,
+} from "./SmartGridLayout";
 export {
   default as SplitView,
   type SplitViewProps,
@@ -441,6 +649,10 @@ export {
   type SplitViewHeaderSlot,
   type SplitViewHeaderDetails,
   type SplitViewPanelHeaderProps,
+  SPLIT_VIEW_LOADERS,
+  SPLIT_VIEW_VARIANTS,
+  type SplitViewLoader,
+  type SplitViewVariant,
 } from "./SplitView";
 export {
   default as SmartInput,
@@ -477,16 +689,42 @@ export {
 } from "./StatGoalTile";
 export {
   default as StatGraphTile,
+  STAT_GRAPH_CHART_TYPES,
   type StatGraphTileProps,
   type StatGraphSeries,
+  type StatGraphChartType,
 } from "./StatGraphTile";
-export { default as StatTile, type StatTileProps } from "./StatTile";
+export {
+  default as StatTile,
+  type StatTileProps,
+  type StatTileTrend,
+  type StatTileError,
+  type StatTileMeta,
+  type StatTileProgress,
+} from "./StatTile";
+export {
+  default as StatPager,
+  STAT_PAGER_PLACEMENTS,
+  type StatPagerProps,
+  type StatPagerPlacement,
+} from "./StatPager";
 export {
   default as StatCard,
+  STAT_CARD_LOADERS,
+  STAT_CARD_PROGRESS_TYPES,
   type StatCardProps,
   type StatCardTrend,
   type StatCardSize,
+  type StatCardMeta,
+  type StatCardError,
+  type StatCardPage,
+  type StatCardLoader,
+  type StatCardProgressType,
 } from "./StatCard";
+export {
+  default as StatHealthCard,
+  type StatHealthCardProps,
+} from "./StatHealthCard";
 export { default as Stepper, type StepperProps, type Step } from "./Stepper";
 export {
   default as Table,
@@ -496,6 +734,7 @@ export {
   type TablePaginationState,
   type Column,
   type TableVariant,
+  type TableLoaderType,
 } from "./Table";
 export {
   default as AccessMatrix,
@@ -516,18 +755,33 @@ export {
 export {
   default as ApiErrorState,
   type ApiErrorStateProps,
+  type ApiErrorKind,
 } from "./ApiErrorState";
 export { default as CustomIcon, type CustomIconProps } from "./CustomIcon";
 export {
   default as DynamicFormField,
+  DYNAMIC_FORM_FIELD_VARIANTS,
+  normalizeOptions as normalizeDynamicFormFieldOptions,
   type DynamicFormFieldProps,
+  type DynamicFormFieldOption,
+  type DynamicFormFieldValue,
+  type DynamicFormFieldVariant,
 } from "./DynamicFormField";
 export {
   default as NotificationModal,
+  NOTIFICATION_TYPES,
   type NotificationModalProps,
   type NotificationType,
 } from "./NotificationModal";
-export { default as SidePanel, type SidePanelProps } from "./SidePanel";
+export {
+  default as SidePanel,
+  SIDE_PANEL_VARIANTS,
+  SIDE_PANEL_SIDES,
+  getSidePanelTextTokens,
+  type SidePanelProps,
+  type SidePanelVariant,
+  type SidePanelSide,
+} from "./SidePanel";
 
 // TimelinePanel
 export {
@@ -585,6 +839,9 @@ export {
 
 // WorkflowTracker
 export * from "./WorkflowTracker";
+
+// Gantt (editable timeline: drag/resize/reorder, lanes, groups, dependencies)
+export * from "./Gantt";
 
 // Chart (PrimeUI-style compound charts — SVG + Canvas)
 export * from "./chart";

@@ -1,5 +1,9 @@
 import React from "react";
 import classNames from "classnames";
+import {
+  getGlassBackgroundDeepTone,
+  getGlassBackgroundSecondaryTone,
+} from "../theme/glass";
 import type { TrueColor } from "../theme/Theme";
 
 export type GradientDirection =
@@ -23,7 +27,7 @@ export interface GlassBackgroundProps
    *  inside a scrolled container it escapes its parent and covers the page.
    */
   position?: GlassBackgroundPosition;
-  /** Primary theme color driving the gradient (default: "purple"). */
+  /** Primary theme color driving the gradient (default: "blue"). */
   color?: TrueColor;
   /** Secondary color for the middle gradient stop. Derived from color if omitted. */
   colorSecondary?: TrueColor;
@@ -44,7 +48,7 @@ export interface GlassBackgroundProps
  */
 const GlassBackground: React.FC<GlassBackgroundProps> = ({
   position = "absolute",
-  color = "purple",
+  color = "blue",
   colorSecondary,
   colorDeep,
   direction = "br",
@@ -55,10 +59,9 @@ const GlassBackground: React.FC<GlassBackgroundProps> = ({
   children,
   ...rest
 }) => {
-  // Colors are already TrueColor — no resolution needed
   const c = color;
-  const s = colorSecondary ?? getFallbackSecondary(color);
-  const d = colorDeep ?? getFallbackDeep(color);
+  const s = colorSecondary ?? getGlassBackgroundSecondaryTone(color);
+  const d = colorDeep ?? getGlassBackgroundDeepTone(color);
 
   // Map direction codes to CSS gradient angle strings
   const directionArg: Record<GradientDirection, string> = {
@@ -149,65 +152,5 @@ const GlassBackground: React.FC<GlassBackgroundProps> = ({
     </div>
   );
 };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Derive a sensible secondary color based on the primary.
- */
-function getFallbackSecondary(color: TrueColor): TrueColor {
-  // Color is already TrueColor — no resolution needed
-  // Neighboring hues on the color wheel tend to look good
-  const neighbors: Record<string, TrueColor> = {
-    purple: "blue",
-    blue: "indigo",
-    indigo: "violet",
-    violet: "purple",
-    rose: "red",
-    emerald: "teal",
-    teal: "emerald",
-    amber: "orange",
-    orange: "amber",
-    red: "rose",
-    cyan: "sky",
-    sky: "cyan",
-    lime: "green",
-    green: "lime",
-    neutral: "zinc",
-    zinc: "stone",
-    stone: "neutral",
-    gray: "zinc",
-  };
-  return neighbors[color] ?? color;
-}
-
-/**
- * Derive a deep color for the final gradient stop.
- */
-function getFallbackDeep(color: TrueColor): TrueColor {
-  const deepMap: Record<string, TrueColor> = {
-    purple: "indigo",
-    blue: "violet",
-    indigo: "purple",
-    violet: "blue",
-    rose: "red",
-    emerald: "green",
-    teal: "cyan",
-    amber: "red",
-    orange: "amber",
-    red: "rose",
-    cyan: "blue",
-    sky: "indigo",
-    lime: "emerald",
-    green: "emerald",
-    neutral: "stone",
-    zinc: "neutral",
-    stone: "gray",
-    gray: "neutral",
-  };
-  return deepMap[color] ?? color;
-}
 
 export default GlassBackground;

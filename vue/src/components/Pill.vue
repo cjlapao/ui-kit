@@ -107,6 +107,7 @@ export interface PillProps {
 <script setup lang="ts">
 import { computed } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import CustomIcon from "./CustomIcon.vue";
 import { getPillColorClasses } from "../theme/Theme";
 import {
@@ -129,10 +130,11 @@ const props = withDefaults(defineProps<PillProps>(), {
   vibrancy: "medium",
   dot: false,
   removable: false,
-  removeLabel: "Remove",
   clickable: false,
   disabled: false,
 });
+
+const t = useKitT();
 
 const emit = defineEmits<{
   (event: "remove"): void;
@@ -281,7 +283,7 @@ const pillStyle = computed(() =>
       v-if="removable"
       type="button"
       :disabled="disabled"
-      :aria-label="removeLabel"
+      :aria-label="removeLabel ?? t('kit.pill.remove')"
       class="-mr-1 flex shrink-0 items-center rounded-full p-0.5 opacity-70 transition hover:bg-black/10 hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current disabled:pointer-events-none dark:hover:bg-white/20"
       @click.stop="emit('remove')"
     >

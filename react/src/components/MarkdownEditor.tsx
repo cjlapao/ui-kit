@@ -18,6 +18,28 @@ import {
  * Wraps @uiw/react-md-editor and adds Smart Variable support.
  */
 
+/**
+ * A11y (audit P1-3): the @uiw toolbar icons are decorative — every button
+ * carries its own aria-label/title — but seven of the shipped icons set
+ * `role="img"` with no text alternative, which axe flags as `svg-img-alt`
+ * (serious). Re-clone each icon as `aria-hidden` so the button name is the
+ * only thing screen readers hear. (node_modules is never patched; this is
+ * the declarative equivalent.)
+ */
+const withHiddenIcon = <T extends { icon?: React.ReactElement }>(command: T): T =>
+  command.icon
+    ? {
+        ...command,
+        icon: React.cloneElement(
+          command.icon as React.ReactElement<React.SVGProps<SVGSVGElement>>,
+          {
+            role: undefined,
+            "aria-hidden": true,
+          },
+        ),
+      }
+    : command;
+
 interface MarkdownEditorProps {
   value?: string;
   onChange?: (value: string | undefined) => void;
@@ -415,7 +437,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           commands.checkedListCommand,
           commands.divider,
           variableCommand, // Plug our custom command here
-        ]}
+        ].map(withHiddenIcon)}
         textareaProps={{
           placeholder: placeholder,
           disabled: readOnly,

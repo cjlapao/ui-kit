@@ -1,13 +1,15 @@
 import React, { useId, useState } from "react";
 import classNames from "classnames";
-import Panel, { type PanelProps } from "./Panel";
+import Panel, { resolvePanelTone, type PanelProps } from "./Panel";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import {
   DEFAULT_SURFACE_CORNER,
+  DEFAULT_SURFACE_PADDING,
   getSurfacePaddingClass,
   getSurfaceTriggerTokens,
 } from "../theme/Theme";
+import { THIN_SCROLLBAR } from "../theme/Theme";
 
 export interface CollapsiblePanelProps
   extends Omit<
@@ -37,8 +39,7 @@ export interface CollapsiblePanelProps
   headerLabel?: string;
 }
 
-const SCROLLBAR =
-  "overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent";
+const SCROLLBAR = `overflow-y-auto ${THIN_SCROLLBAR}`;
 
 interface CollapsibleBodyProps
   extends Pick<
@@ -155,6 +156,7 @@ const CollapsibleBody: React.FC<CollapsibleBodyProps> = ({
         <div className="flex h-5 shrink-0 items-center gap-2">
           {actions && (
             // Stops both activation paths, not just the pointer one.
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- propagation guard for nested actions, not an interactive element
             <div
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
@@ -246,12 +248,18 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   className,
   disabled,
   variant = "elevated",
-  tone = "neutral",
-  padding = "md",
+  tone,
+  padding,
   corner = DEFAULT_SURFACE_CORNER,
+  color,
   hoverable = false,
   ...panelProps
 }) => {
+  // The surface defaults are Panel's own — resolved here, once, so the header
+  // chrome (hover wash, focus ring) and the card can never disagree, including
+  // when the deprecated `color` alias supplies the tone.
+  const resolvedTone = resolvePanelTone(tone, color);
+  const resolvedPadding = padding ?? DEFAULT_SURFACE_PADDING;
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isControlled = typeof expanded === "boolean";
   const isExpanded = isControlled ? expanded : internalExpanded;
@@ -278,7 +286,7 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         className,
       )}
       variant={variant}
-      tone={tone}
+      tone={resolvedTone}
       padding="none"
       corner={corner}
       disabled={disabled}
@@ -296,8 +304,8 @@ const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
         fillHeight={fillHeight}
         disabled={disabled}
         headerLabel={headerLabel}
-        tone={tone}
-        padding={padding}
+        tone={resolvedTone}
+        padding={resolvedPadding}
         isExpanded={isExpanded}
         onToggle={handleToggle}
         contentId={contentId}

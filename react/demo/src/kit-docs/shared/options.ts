@@ -13,6 +13,7 @@ import {
   ECG_STATE_COLORS,
   COLLAPSIBLE_HELP_VARIANTS,
   CONTROL_SIZES,
+  DATEPICKER_SELECTION_MODES,
   GLOW_INTENSITIES,
   INPUT_VALIDATION_STATUSES,
   INPUT_VARIANTS,
@@ -25,6 +26,7 @@ import {
   PROGRESS_MOTIONS,
   PILL_CORNERS,
   PILL_VARIANTS,
+  POPOVER_PLACEMENTS,
   SURFACE_CORNERS,
   SURFACE_PADDINGS,
   OTP_VARIANTS,
@@ -32,6 +34,7 @@ import {
   SIDEBAR_COLLAPSIBLE_MODES,
   SIDEBAR_SIDES,
   SIDEBAR_VARIANTS,
+  SHIMMER_SPEEDS,
   SLIDER_ORIENTATIONS,
   SLIDER_VARIANTS,
   SPINNER_THICKNESSES,
@@ -42,10 +45,10 @@ import {
   CONNECTION_FLOW_EDGE_STYLES,
   CONNECTION_FLOW_PROGRESS_TYPES,
   API_ERROR_KINDS,
-  HERO_VARIANTS,
+  PANEL_HERO_VARIANTS,
   INFO_ROW_VARIANTS,
   INFO_ROW_LOADERS,
-  HERO_TITLE_ELEMENTS,
+  PANEL_HERO_TITLE_ELEMENTS,
   DYNAMIC_FORM_FIELD_VARIANTS,
   VALIDATION_STATUSES,
   CONNECTION_FLOW_ITEM_PROGRESS,
@@ -54,6 +57,8 @@ import {
   CONNECTION_STATES,
   TRUE_COLORS,
   TREE_SIZES,
+  TOAST_POSITIONS,
+  TOAST_MODES,
   type GradientDirection,
   type MultiToggleOption,
   type EcgMonitorState,
@@ -73,16 +78,25 @@ const titleCase = (value: string): string =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
-const toOptions = <T extends string>(values: readonly T[]): MultiToggleOption[] =>
+const toOptions = <T extends string>(
+  values: readonly T[],
+): MultiToggleOption[] =>
   values.map((value) => ({ label: titleCase(value), value }));
 
 // All derived from the kit's own runtime lists so a new variant/size/colour
 // in the kit shows up in every playground automatically.
 export const buttonVariantOptions = toOptions(BUTTON_VARIANTS);
+// DropdownButton takes the Button vocabulary minus `clear` — a borderless
+// trigger has no surface for the caret seam. Mirrors the type in the kit.
+export const dropdownButtonVariantOptions = toOptions(
+  BUTTON_VARIANTS.filter((v) => v !== "clear"),
+);
 export const buttonSizeOptions = toOptions(BUTTON_SIZES);
 export const buttonWeightOptions = toOptions(BUTTON_WEIGHTS);
 export const alertIntentOptions = toOptions(ALERT_INTENTS);
 export const alertVariantOptions = toOptions(ALERT_VARIANTS);
+export const toastPositionOptions = toOptions(TOAST_POSITIONS);
+export const toastModeOptions = toOptions(TOAST_MODES);
 export const inputVariantOptions = toOptions(INPUT_VARIANTS);
 export const glowIntensityOptions = toOptions(GLOW_INTENSITIES);
 export const otpVariantOptions = toOptions(OTP_VARIANTS);
@@ -106,9 +120,8 @@ export const alertIconSizeOptions: MultiToggleOption[] = [
 ];
 
 // ── Checkbox ─────────────────────────────────────────────────────────────────
-export const checkboxAlignOptions: MultiToggleOption[] = toOptions(
-  CHECKBOX_ALIGNS,
-);
+export const checkboxAlignOptions: MultiToggleOption[] =
+  toOptions(CHECKBOX_ALIGNS);
 export const checkboxDescriptionPlacementOptions: MultiToggleOption[] =
   toOptions(CHECKBOX_DESCRIPTION_PLACEMENTS);
 export const checkboxValidationOptions: MultiToggleOption[] = toOptions(
@@ -130,7 +143,6 @@ export const keyValueVariantOptions: MultiToggleOption[] = [
 ];
 
 /** The input scale KeyValueArrayField runs on (Input's three steps). */
-export const keyValueSizeOptions = toOptions(["sm", "md", "lg"]);
 
 /** CollapsibleHelpText surfaces: every Panel variant plus `plain` and the
     `card` alias of `outlined`. */
@@ -198,6 +210,38 @@ export const glassOpacityOptions: { label: string; value: string }[] = [
 
 /** Every palette tone, for the tone selects (a MultiToggle row would overflow). */
 export const trueColorOptions = toOptions(TRUE_COLORS);
+
+// ── Shimmer ─────────────────────────────────────────────────────────────────
+/** Sweep period presets, derived from the kit's runtime list. */
+export const shimmerSpeedOptions = toOptions(SHIMMER_SPEEDS);
+/** Inherit the surrounding text color, or force one of the 21 tones. */
+export const shimmerToneOptions: MultiToggleOption[] = [
+  { label: "Inherit", value: "inherit" },
+  ...trueColorOptions,
+];
+
+// ── Popover ─────────────────────────────────────────────────────────────────
+/** Placement preference — derived from the kit's runtime list. */
+export const popoverPlacementOptions = toOptions(POPOVER_PLACEMENTS);
+
+// ── DatePicker ──────────────────────────────────────────────────────────────
+/** Single or range selection — derived from the kit's runtime list. */
+export const datePickerSelectionModeOptions: MultiToggleOption[] =
+  DATEPICKER_SELECTION_MODES.map((mode) => ({
+    label: mode === "single" ? "Single" : "Range",
+    value: mode,
+  }));
+/** Spinner, progress or the calendar-shaped skeleton. */
+/** Where the overlay mounts. */
+export const datePickerAppendToOptions: MultiToggleOption[] = [
+  { label: "Body (portal)", value: "body" },
+  { label: "Self (inline)", value: "self" },
+];
+/** First column of the weekday header — `getDay()` numbering. */
+export const weekStartsOnOptions: MultiToggleOption[] = [
+  { label: "Sunday", value: "0" },
+  { label: "Monday", value: "1" },
+];
 
 // ConnectionFlow — all from the kit's own runtime lists.
 export const connectionFlowEdgeStyleOptions = toOptions(
@@ -360,8 +404,18 @@ export const ORG_CHART_DEMO_NODES: OrgChartNode[] = [
         description: "Asiya Javayant",
         icon: "Users",
         children: [
-          { id: "ux", label: "UX Designer", description: "Anna Fali", icon: "Image" },
-          { id: "pm", label: "Product Manager", description: "Bernardo Dominic", icon: "Rocket" },
+          {
+            id: "ux",
+            label: "UX Designer",
+            description: "Anna Fali",
+            icon: "Image",
+          },
+          {
+            id: "pm",
+            label: "Product Manager",
+            description: "Bernardo Dominic",
+            icon: "Rocket",
+          },
         ],
       },
       {
@@ -370,8 +424,18 @@ export const ORG_CHART_DEMO_NODES: OrgChartNode[] = [
         description: "Onyama Limba",
         icon: "Users",
         children: [
-          { id: "fe", label: "Frontend Developer", description: "Elwin Sharvill", icon: "Script" },
-          { id: "be", label: "Backend Developer", description: "Stephen Shaw", icon: "Log" },
+          {
+            id: "fe",
+            label: "Frontend Developer",
+            description: "Elwin Sharvill",
+            icon: "Script",
+          },
+          {
+            id: "be",
+            label: "Backend Developer",
+            description: "Stephen Shaw",
+            icon: "Log",
+          },
         ],
       },
     ],
@@ -463,8 +527,8 @@ export const WORKFLOW_RELEASE_DATA: WorkflowData = {
 
 // ── Smart Input ──────────────────────────────────────────────────────────────
 
-/** The input scale SmartInput runs on (Input's three steps). */
-export const smartInputSizeOptions = toOptions(["sm", "md", "lg"]);
+// The size scale is the shared `controlSizeOptions` — `SmartInputSize` is
+// `ControlSize` now, so a bespoke three-step list would just be a lie.
 
 /**
  * The playground's variable taxonomy. The groups are entirely the caller's —
@@ -532,9 +596,21 @@ export const SMART_VARIABLE_GROUPS: SmartVariableGroup[] = [
     icon: "Container",
     tone: "emerald",
     variables: [
-      { key: "postgres", description: "Reference to service: postgres", value: "postgres" },
-      { key: "redis", description: "Reference to service: redis", value: "redis" },
-      { key: "caddy", description: "Reference to service: caddy", value: "caddy" },
+      {
+        key: "postgres",
+        description: "Reference to service: postgres",
+        value: "postgres",
+      },
+      {
+        key: "redis",
+        description: "Reference to service: redis",
+        value: "redis",
+      },
+      {
+        key: "caddy",
+        description: "Reference to service: caddy",
+        value: "caddy",
+      },
     ],
   },
 ];
@@ -564,10 +640,12 @@ export const detailItemCardVariantOptions: MultiToggleOption[] = [
 export const apiErrorKindOptions = toOptions(API_ERROR_KINDS);
 
 /** The one shared field-status list, no longer six copies of it. */
-export const heroVariantOptions = toOptions(HERO_VARIANTS);
+export const panelHeroVariantOptions = toOptions(PANEL_HERO_VARIANTS);
 export const infoRowVariantOptions = toOptions(INFO_ROW_VARIANTS);
 export const infoRowLoaderOptions = toOptions(INFO_ROW_LOADERS);
-export const heroTitleElementOptions = toOptions(HERO_TITLE_ELEMENTS);
+export const panelHeroTitleElementOptions = toOptions(
+  PANEL_HERO_TITLE_ELEMENTS,
+);
 export const validationStatusOptions = toOptions(VALIDATION_STATUSES);
 export const dynamicFormFieldVariantOptions = toOptions(
   DYNAMIC_FORM_FIELD_VARIANTS,
@@ -587,7 +665,9 @@ export const inputValidationOptions = toOptions(INPUT_VALIDATION_STATUSES);
 
 export const progressMotionOptions = toOptions(PROGRESS_MOTIONS);
 export const progressMotionSpeedOptions = toOptions(PROGRESS_MOTION_SPEEDS);
-export const progressMotionDirectionOptions = toOptions(PROGRESS_MOTION_DIRECTIONS);
+export const progressMotionDirectionOptions = toOptions(
+  PROGRESS_MOTION_DIRECTIONS,
+);
 export const progressCornerOptions = toOptions(PROGRESS_CORNERS);
 
 // ── Spinner ──────────────────────────────────────────────────────────────────
@@ -645,8 +725,9 @@ export const stepperLoaderTypeOptions: MultiToggleOption[] = toOptions([
   "skeleton",
 ]);
 /** Where the progress bar sits. Two — a MultiToggle. */
-export const stepperProgressBarPositionOptions: MultiToggleOption[] =
-  toOptions(["top", "bottom"]);
+export const stepperProgressBarPositionOptions: MultiToggleOption[] = toOptions(
+  ["top", "bottom"],
+);
 
 // ── Help Button ──────────────────────────────────────────────────────────────
 // Variant / tone / size / corner reuse the shared `surfaceVariantOptions`,
@@ -724,6 +805,7 @@ export const chartKindOptions: MultiToggleOption[] = [
   { label: "Combo", value: "combo" },
   { label: "Heatmap", value: "heatmap" },
   { label: "Treemap", value: "treemap" },
+  { label: "Funnel", value: "funnel" },
 ];
 
 /** Gauge arc spans (radians). */
@@ -1068,11 +1150,8 @@ export const tabsVariantOptions: MultiToggleOption[] = [
   { label: "Liquid glass", value: "liquid-glass" },
 ];
 
-export const tabsSizeOptions: MultiToggleOption[] = [
-  { label: "Small", value: "sm" },
-  { label: "Medium", value: "md" },
-  { label: "Large", value: "lg" },
-];
+// Tabs take the whole control scale — the same five steps as Button.
+export const tabsSizeOptions: MultiToggleOption[] = [...controlSizeOptions];
 
 export const tabsOrientationOptions: MultiToggleOption[] = [
   { label: "Horizontal", value: "horizontal" },
@@ -1096,5 +1175,16 @@ export const tabsRadiusOptions: MultiToggleOption[] = [
   { label: "Xl", value: "xl" },
   { label: "Full", value: "full" },
 ];
+
+// ── Scroll Area ────────────────────────────────────────────────────────────
+
+/** The five bar-visibility modes — a dropdown. */
+export const scrollAreaVariantOptions = toOptions([
+  "auto",
+  "hover",
+  "scroll",
+  "always",
+  "hidden",
+] as const);
 
 export { TRUE_COLORS };

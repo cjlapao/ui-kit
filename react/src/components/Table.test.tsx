@@ -14,6 +14,7 @@ import {
 } from "../utils/tableStorage";
 import type { TableSettings } from "../types/TableSettings";
 import { TRUE_COLORS, NEUTRAL_TONES } from "../theme";
+import { I18nProvider } from "../i18n";
 
 type Row = { id: number; name: string; role: string; age: number };
 
@@ -45,8 +46,7 @@ function memoryStorage(): TableStorageAdapter & { store: Map<string, string> } {
   };
 }
 
-const firstTh = (container: HTMLElement) =>
-  container.querySelector("th")!;
+const firstTh = (container: HTMLElement) => container.querySelector("th")!;
 const thByHeader = (container: HTMLElement, header: string) => {
   const ths = Array.from(container.querySelectorAll("th"));
   return ths.find((th) => th.textContent?.includes(header))!;
@@ -145,7 +145,9 @@ describe("tableStorage — safe adapter", () => {
 describe("Table — surface family", () => {
   it("defaults to the outlined panel surface", () => {
     const { container } = render(<Table columns={baseColumns} data={rows} />);
-    expect(container.querySelector("section[data-variant='outlined']")).not.toBeNull();
+    expect(
+      container.querySelector("section[data-variant='outlined']"),
+    ).not.toBeNull();
   });
 
   it("forwards the panel family variant and tone", () => {
@@ -208,11 +210,12 @@ describe("Table — bordered", () => {
     expect(ths[0].className).toContain("border-neutral-200");
     expect(ths[0].className).toContain("dark:border-neutral-700");
     expect(tds[0].className).toContain("border-neutral-200");
-    // and a little extra room so cell text never sits on the line
-    expect(ths[0].className).toContain("pr-2");
-    expect(tds[0].className).toContain("pr-2");
-    expect(ths[2].className).not.toContain("pr-2");
-    expect(tds[2].className).not.toContain("pr-2");
+    // and enough room that cell text never sits on the line — header and body
+    // share the same density cell padding (px-6 at default density), so every
+    // column's text lines up under its header, bordered or not.
+    expect(ths[0].className).toContain("px-6");
+    expect(tds[0].className).toContain("pl-6");
+    expect(tds[0].className).toContain("pr-6");
   });
 
   it("lets noBorders win over bordered", () => {
@@ -230,7 +233,12 @@ describe("Table — translucent surfaces", () => {
 
   it("keeps the header band and footer see-through on glass", () => {
     const { container } = render(
-      <Table columns={baseColumns} data={rows} variant="glass" footer={footer} />,
+      <Table
+        columns={baseColumns}
+        data={rows}
+        variant="glass"
+        footer={footer}
+      />,
     );
     // header band: the neutral tone steps down to a white veil, not paper-white
     expect(firstTh(container).className).toContain("bg-white/20");
@@ -361,6 +369,117 @@ describe("Table — tone treatment", () => {
   });
 });
 
+// ── Tone-tinted rows (zebra / hover / group header follow the table tone) ─────
+
+describe("Table — tone-tinted rows", () => {
+  const rowBy = (container: HTMLElement, name: string) =>
+    Array.from(container.querySelectorAll("tbody tr")).find((t) =>
+      t.textContent?.includes(name),
+    )!;
+
+  it("washes zebra stripes in the table tone for a tinted table", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} tone="indigo" striped />,
+    );
+    const stripedTr = rowBy(container, "Ava");
+    expect(stripedTr.className).toContain("bg-indigo-50/55");
+    expect(stripedTr.className).toContain("dark:bg-indigo-500/8");
+  });
+
+  it("keeps the grey zebra across the neutral tones", () => {
+    for (const tone of ["neutral", "slate", "gray", "zinc", "stone"] as const) {
+      const { container, unmount } = render(
+        <Table columns={baseColumns} data={rows} tone={tone} striped />,
+      );
+      expect(rowBy(container, "Ava").className).toContain("bg-neutral-50/55");
+      unmount();
+    }
+  });
+
+  it("gives a light row the lighter hover step in the table tone", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} tone="emerald" hoverable />,
+    );
+    const lightTd = rowBy(container, "Zoe").querySelector("td")!;
+    expect(lightTd.className).toContain("group-hover:bg-emerald-100/55");
+    expect(lightTd.className).toContain("dark:group-hover:bg-emerald-500/13");
+  });
+
+  it("gives a striped row the deeper hover step in the table tone", () => {
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        tone="emerald"
+        striped
+        hoverable
+      />,
+    );
+    const stripedTd = rowBy(container, "Ava").querySelector("td")!;
+    expect(stripedTd.className).toContain("group-hover:bg-emerald-100/80");
+    expect(stripedTd.className).toContain("dark:group-hover:bg-emerald-500/17");
+  });
+
+  it("keeps the grey hover for the neutral tone", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} tone="neutral" hoverable />,
+    );
+    const td = container.querySelector("tbody td")!;
+    expect(td.className).toContain("group-hover:bg-neutral-100/55");
+    expect(td.className).toContain("dark:group-hover:bg-neutral-800/25");
+  });
+
+  it("lets a per-row hover class override replace the default data-row hover", () => {
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        tone="rose"
+        hoverable
+        rowHoverClassName={(row) =>
+          row.name === "Ava" ? "group-hover:bg-rose-300" : undefined
+        }
+      />,
+    );
+    const overriddenTd = rowBy(container, "Ava").querySelector("td")!;
+    expect(overriddenTd.className).toContain("group-hover:bg-rose-300");
+    const defaultTd = rowBy(container, "Zoe").querySelector("td")!;
+    expect(defaultTd.className).toContain("group-hover:bg-rose-100/55");
+  });
+
+  it("tints the group-header row in the table tone", () => {
+    const grouped: Row[] = [
+      { id: 1, name: "Zoe", role: "Admin", age: 34 },
+      { id: 2, name: "Ava", role: "Admin", age: 29 },
+      { id: 3, name: "Leo", role: "Editor", age: 41 },
+    ];
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={grouped}
+        tone="rose"
+        groupBy="role"
+        showGroupHeader
+      />,
+    );
+    const groupHeaderTr = Array.from(
+      container.querySelectorAll("tbody tr"),
+    ).find((t) => t.querySelector("td[colspan]"))!;
+    // group header sits darker than the zebra wash (bg-*-50/55), and its
+    // hover step sits darkest — the contrast hierarchy.
+    expect(groupHeaderTr.className).toContain("bg-rose-100");
+    expect(groupHeaderTr.className).toContain("hover:bg-rose-300");
+    expect(groupHeaderTr.className).toContain("border-rose-100");
+    expect(groupHeaderTr.className).toContain("dark:border-rose-500/20");
+    // the spanning cell and the row must share the same transition so the
+    // hover fill paints as one layer instead of tearing mid-animation
+    const groupHeaderTd = groupHeaderTr.querySelector("td[colspan]")!;
+    expect(groupHeaderTr.className).toContain("ease-out");
+    expect(groupHeaderTd.className).toContain("transition-colors");
+    expect(groupHeaderTd.className).toContain("ease-out");
+  });
+});
+
 // ── Built-in persistence ───────────────────────────────────────────────────────
 
 describe("Table — built-in persistence", () => {
@@ -373,7 +492,12 @@ describe("Table — built-in persistence", () => {
       encodeStoredSettings({ columnVisibility: { role: false } }),
     );
     const { container } = render(
-      <Table columns={baseColumns} data={rows} storageKey="users" storage={storage} />,
+      <Table
+        columns={baseColumns}
+        data={rows}
+        storageKey="users"
+        storage={storage}
+      />,
     );
     expect(thByHeader(container, "Role")).toBeUndefined();
   });
@@ -399,7 +523,9 @@ describe("Table — built-in persistence", () => {
     const stored = decodeStoredSettings(storage.getItem(key));
     expect(stored?.columnVisibility?.role).toBe(false);
     expect(onSettings).toHaveBeenCalledWith(
-      expect.objectContaining({ columnVisibility: expect.objectContaining({ role: false }) }),
+      expect.objectContaining({
+        columnVisibility: expect.objectContaining({ role: false }),
+      }),
     );
     void container;
   });
@@ -461,7 +587,7 @@ describe("Table — built-in persistence", () => {
       screen.getByRole("button", { name: "Toggle column visibility" }),
     );
     fireEvent.click(screen.getByLabelText("Role"));
-    fireEvent.click(screen.getByRole("button", { name: "Reset to default" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
 
     const stored = decodeStoredSettings(storage.getItem(key));
     expect(stored?.columnVisibility?.role).toBe(true);
@@ -498,7 +624,9 @@ describe("Table — sorting", () => {
 
   it("marks sortable-but-unsorted columns with aria-sort=other", () => {
     const { container } = render(<Table columns={sortCols} data={rows} />);
-    expect(thByHeader(container, "Name").getAttribute("aria-sort")).toBe("other");
+    expect(thByHeader(container, "Name").getAttribute("aria-sort")).toBe(
+      "other",
+    );
     expect(thByHeader(container, "Age").getAttribute("aria-sort")).toBe("none");
   });
 
@@ -508,8 +636,7 @@ describe("Table — sorting", () => {
       <Table columns={sortCols} data={rows} onSortChange={onSort} />,
     );
     const th = thByHeader(container, "Name");
-    const button = () =>
-      screen.getByRole("button", { name: "Toggle sort" });
+    const button = () => screen.getByRole("button", { name: "Toggle sort" });
 
     fireEvent.click(button());
     expect(th.getAttribute("aria-sort")).toBe("ascending");
@@ -551,9 +678,7 @@ describe("Table — pagination", () => {
 
   it("offers the active page size even when it is not a preset", () => {
     render(<Table columns={baseColumns} data={rows} pagination={pagination} />);
-    const options = screen
-      .getAllByRole("option")
-      .map((o) => o.textContent);
+    const options = screen.getAllByRole("option").map((o) => o.textContent);
     expect(options).toContain("25 per page");
     expect(options).toContain("20 per page");
   });
@@ -627,5 +752,211 @@ describe("Table — grouping", () => {
     expect(onSettings).toHaveBeenCalledWith(
       expect.objectContaining({ showGroupHeader: false }),
     );
+  });
+});
+
+// The overlay Loader is itself `role="status"`, and the Spinner inside it
+// publishes one too — so pick the outer, absolutely-positioned one.
+const findOverlay = () =>
+  screen
+    .getAllByRole("status")
+    .find((el) => el.classList.contains("absolute"))!;
+
+describe("Table — loading", () => {
+  it("shows a Loader overlay (spinner by default) with the content still mounted", () => {
+    render(<Table columns={baseColumns} data={rows} loading />);
+    expect(findOverlay()).toBeTruthy();
+    expect(screen.getAllByText("Zoe")).toHaveLength(1);
+  });
+
+  it("pins the overlay to the card, not the scroll container", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} loading maxHeight={200} />,
+    );
+    const overlay = findOverlay();
+    const scrollContainer = container.querySelector(".overflow-x-auto");
+    expect(scrollContainer).toBeTruthy();
+    expect(scrollContainer!.contains(overlay)).toBe(false);
+  });
+
+  it("replaces the table with a pulsing skeleton when loaderType=skeleton", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} loading loaderType="skeleton" />,
+    );
+    expect(container.querySelector("table")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+    const skeleton = container.querySelector(".animate-pulse");
+    expect(skeleton).toBeTruthy();
+    // header row + one placeholder row per `skeletonRows` (default 6)
+    expect(skeleton!.children.length).toBe(1 + 6);
+  });
+
+  it("honours skeletonRows for the placeholder row count", () => {
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        loading
+        loaderType="skeleton"
+        skeletonRows={3}
+      />,
+    );
+    const skeleton = container.querySelector(".animate-pulse")!;
+    expect(skeleton.children.length).toBe(1 + 3);
+  });
+
+  it("marks the table wrapper aria-busy while loading", () => {
+    const { container } = render(
+      <Table columns={baseColumns} data={rows} loading />,
+    );
+    expect(container.querySelector("[aria-busy='true']")).toBeTruthy();
+  });
+});
+
+// ── Kit defaults & the i18n sweep ────────────────────────────────────────────
+
+describe("Table — kit voice", () => {
+  it("the plain table's accent is the kit default blue", () => {
+    const { container } = render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        rowKey={(r) => r.id}
+        selectedItems={[rows[0]]}
+      />,
+    );
+    const tr = Array.from(container.querySelectorAll("tbody tr")).find((t) =>
+      t.textContent?.includes("Zoe"),
+    )!;
+    expect(tr.className).toContain("bg-blue-50");
+    // ...while the chrome washes stay neutral: the header of a default
+    // table must not read as a blue table.
+    expect(firstTh(container).className).toContain("bg-neutral-50");
+  });
+
+  it("the settings menus sit on the table's own surface", () => {
+    const renderCols = (
+      props: {
+        variant?: "glass" | "outlined";
+        panelVariant?: "auto" | "glass" | "outlined";
+        panelTone?: "auto" | "violet";
+      } = {},
+    ) =>
+      render(
+        <Table<Row>
+          columns={baseColumns}
+          data={rows}
+          showColumnSelector
+          {...props}
+        />,
+      );
+    const openMenu = () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Toggle column visibility" }),
+      );
+      // The wrapper is the fixed-position portal shell; the surface lives
+      // on the Panel inside it.
+      return screen
+        .getByRole("button", { name: "Clear all" })
+        .closest('[data-slot="table-menu"]')!.firstElementChild as HTMLElement;
+    };
+
+    // Auto: the menu wears the table's surface family. A glass table
+    // lands on the frosted popup surface - glass chrome over a white page
+    // is a transparent sheet, and a menu must stay readable - while an
+    // outlined one opens outlined menus.
+    const utils = renderCols({ variant: "glass" });
+    const glassMenu = openMenu().className;
+    expect(glassMenu).toContain("backdrop-blur");
+    expect(glassMenu).toContain("bg-white/80");
+    expect(glassMenu).not.toContain("bg-neutral-50/50");
+    utils.unmount();
+
+    const plain = renderCols({ variant: "outlined" });
+    const plainMenu = openMenu();
+    expect(plainMenu.className).toContain("bg-white/90");
+    expect(plainMenu.className).not.toContain("backdrop-blur");
+    // The list scrolls with the kit's overlay bars, not a native gutter.
+    expect(plainMenu.querySelector('[data-slot="scrollarea"]')).not.toBeNull();
+    plain.unmount();
+
+    // And either channel can be pinned over the table's look.
+    const pinned = renderCols({
+      variant: "glass",
+      panelVariant: "outlined",
+      panelTone: "violet",
+    });
+    const pinnedCls = openMenu().className;
+    expect(pinnedCls).toContain("bg-white/90");
+    expect(pinnedCls).not.toContain("backdrop-blur");
+    pinned.unmount();
+
+    // Pinning glass is the opt-in to the literal chrome - frosted popup
+    // or full glass, the caller decides.
+    const glassed = renderCols({ variant: "glass", panelVariant: "glass" });
+    expect(openMenu().className).toContain("bg-neutral-50/50");
+    glassed.unmount();
+  });
+
+  it("the whole console speaks the locale", () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        {children}
+      </I18nProvider>
+    );
+    render(
+      <Table
+        columns={baseColumns}
+        data={rows}
+        pagination={{
+          page: 1,
+          pageSize: 2,
+          total: 3,
+          onPageChange: () => {},
+          onPageSizeChange: () => {},
+        }}
+      />,
+      { wrapper: Wrapper },
+    );
+    expect(
+      screen.getByText("Zeige 1 bis 2 von 3 Ergebnissen"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Seite 1 von 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Zurück" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Weiter" })).toBeEnabled();
+    expect(screen.getByRole("option", { name: "20 pro Seite" })).toBeTruthy();
+    expect(
+      screen.getAllByRole("button", { name: "Sortierung umschalten" }).length,
+    ).toBeGreaterThan(0);
+  });
+});
+
+describe("Table — menu dismissal", () => {
+  it("Escape closes the open settings menu before the host sees it", () => {
+    render(
+      <Table columns={baseColumns} data={rows} groupable showColumnSelector />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Toggle column visibility" }),
+    );
+    expect(screen.getByRole("button", { name: "Clear all" })).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull();
+  });
+});
+
+describe("Table — floating menus", () => {
+  it("the menus are portaled popups, not rows in the header", () => {
+    render(<Table columns={baseColumns} data={rows} showColumnSelector />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Toggle column visibility" }),
+    );
+    const popup = document.querySelector('[data-slot="table-menu"]')!;
+    expect(popup.parentElement).toBe(document.body);
+    expect(popup.className.split(" ")).toContain("fixed");
+    // And it still belongs to its button: clicking inside the popup must
+    // not count as clicking outside it.
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Clear all" }));
+    expect(document.querySelector('[data-slot="table-menu"]')).not.toBeNull();
   });
 });

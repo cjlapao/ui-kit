@@ -21,8 +21,8 @@ const StatusBoard = () => (
       </Pill>
     </div>
     <p className="text-xs opacity-70">
-      A row of service states: filled, icon-led, outlined and a bare status
-      dot. Each carries its own tone, so colour does the status work.
+      A row of service states: filled, icon-led, outlined and a bare status dot.
+      Each carries its own tone, so colour does the status work.
     </p>
   </div>
 );

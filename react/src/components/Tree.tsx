@@ -6,6 +6,7 @@ import React, {
   type ReactElement,
   type ReactNode,
 } from "react";
+import { warnIfMissingName } from "../../../common/a11y/warn";
 import classNames from "classnames";
 
 import { useIconRenderer } from "../contexts/IconContext";
@@ -153,6 +154,8 @@ export const Tree: React.FC<TreeProps> = ({
   style,
   ...rest
 }) => {
+  // a11y (P1-2): the role="tree" container needs an accessible name.
+  warnIfMissingName("Tree", ariaLabel);
   const renderIcon = useIconRenderer();
   const uid = useId().replace(/:/g, "");
   const sizeTokens = SIZES[size];
@@ -262,7 +265,6 @@ export const Tree: React.FC<TreeProps> = ({
     };
     walk(items, 0, null);
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, visibleIds, expandedSet, filterActive]);
 
   const focusNode = (id: string): void => {
@@ -475,6 +477,7 @@ export const Tree: React.FC<TreeProps> = ({
 
     return (
       <div key={node.id} role="presentation">
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events -- keyboard activation lives on the tree container (roving tabindex + arrow keys) */}
         <div
           ref={(el) => {
             if (el) {
@@ -517,6 +520,9 @@ export const Tree: React.FC<TreeProps> = ({
           onFocus={() => setFocusedId(node.id)}
         >
           {hasChildren ? (
+            // Pointer-only affordance: hidden from assistive tech and out of
+            // the tab order on purpose — the row exposes aria-expanded and
+            // arrow keys (Left/Right) toggle expansion for keyboard users.
             <button
               type="button"
               tabIndex={-1}
@@ -611,6 +617,9 @@ export const Tree: React.FC<TreeProps> = ({
           ? true
           : undefined
       }
+      // Programmatic focus stop for the tree (the treeitems carry the roving
+      // tabindex; the container is not a tab stop).
+      tabIndex={-1}
       onKeyDown={handleKeyDown}
       className={classNames("flex w-full flex-col", className)}
       style={style}

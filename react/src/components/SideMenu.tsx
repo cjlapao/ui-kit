@@ -7,12 +7,18 @@ import React, {
   useState,
 } from "react";
 import CustomIcon from "./CustomIcon";
+import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
 import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
 import Input from "./Input";
+import Loader, { type LoaderColor, type LoaderProps } from "./Loader";
+import { SkeletonBar } from "./Panel";
 import {
   SIDEBAR_IDLE_COPY,
   SIDEBAR_MOBILE_QUERY,
+  SIDE_MENU_HEADER_FILL,
+  SIDE_MENU_HEADER_HEIGHT,
+  SIDE_MENU_HEADER_SEAM,
   getSideMenuItemTokens,
   getSidebarSurfaceTokens,
   type SidebarCollapsible,
@@ -21,8 +27,18 @@ import {
   type SidebarVariant,
   TrueColor,
 } from "../theme";
+import { THIN_SCROLLBAR } from "../theme";
 
 export type SideMenuItemType = "link" | "group" | "divider";
+
+/**
+ * The loading treatments a `SideMenu` can show. The same set as `Panel`
+ * (`spinner` / `progress` from the shared `Loader`, plus a skeleton): a
+ * skeleton replaces the rows with a pulsing placeholder shaped like the menu,
+ * while spinner / progress overlay the loader on top of the (dimmed) content.
+ */
+export type SideMenuLoaderType = Exclude<LoaderProps["variant"], undefined> |
+  "skeleton";
 
 export interface SideMenuGuardClaim {
   type: "claim";
@@ -206,6 +222,37 @@ export interface SideMenuProps {
   topItem?: SideMenuDropdownItem;
   /** A row pinned above the collapse control with its own dropdown menu. */
   footerItem?: SideMenuDropdownItem;
+  /**
+   * Paint a subtle dither-noise (film-grain) texture over the panel
+   * background, behind the content. Reads best on dark surfaces.
+   * @default false
+   */
+  noise?: boolean;
+  /**
+   * Show a loading state in place of (or over) the content.
+   * @default false
+   */
+  loading?: boolean;
+  /**
+   * Which loader to show while `loading`. `skeleton` replaces the rows with a
+   * pulsing placeholder shaped like the menu; `spinner` and `progress` overlay
+   * the shared `Loader` on top of the content. The same set `Panel` offers.
+   * @default "skeleton"
+   */
+  loaderType?: SideMenuLoaderType;
+  /** Title line above the spinner / progress loader. */
+  loaderTitle?: React.ReactNode;
+  /** Message line under the spinner / progress loader. */
+  loaderMessage?: React.ReactNode;
+  /** Filled extent (0–100) for the progress loader. @default 0 */
+  loaderProgress?: number;
+  /** Tone of the spinner / progress loader. Defaults to the menu's `color`. */
+  loaderColor?: LoaderColor;
+  /**
+   * Navigation placeholder rows rendered by `loaderType="skeleton"`.
+   * @default 4
+   */
+  skeletonLines?: number;
   /** Show the item search (matches `label` and `description`) below `topItem`. */
   search?: boolean;
   /** Controlled value for the menu search. */
@@ -225,11 +272,129 @@ const NOISE_STYLE: React.CSSProperties = {
 const PANEL_WIDTH = "w-64";
 const RAIL_WIDTH = "w-[68px]";
 
+// The logo header below paints the shared `SIDE_MENU_HEADER_*` seam constants
+// (see `common/theme/Theme.ts`) — `PageHeader` continues the same line into
+// the main column, so the height and colour of the horizontal seam crossing
+// the shell are spelled once and cannot drift apart.
+
 /** Row indent per nesting depth. Capped so deeper trees do not run off-screen. */
 const ROW_INDENT = ["px-3", "pl-9 pr-3", "pl-14 pr-3", "pl-20 pr-3"];
 
 const indentClass = (depth: number): string =>
   ROW_INDENT[Math.min(depth, ROW_INDENT.length - 1)];
+
+interface SideMenuSkeletonProps {
+  /** Icon-rail state: only the icon placeholders show. */
+  collapsed: boolean;
+  hasLogo: boolean;
+  hasTopItem: boolean;
+  hasSearch: boolean;
+  hasTitle: boolean;
+  hasFooterItem: boolean;
+  showCollapse: boolean;
+  /** Number of navigation placeholder rows. */
+  lines: number;
+  /** The panel's surface-aware hairline. */
+  dividerClass: string;
+}
+
+/**
+ * Placeholder shaped like the menu's own chrome: only the slots the caller
+ * actually passed get a bar, so the skeleton keeps the panel's real height
+ * instead of collapsing or over-reserving. Mirrors `PanelSkeleton`.
+ */
+const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
+  collapsed,
+  hasLogo,
+  hasTopItem,
+  hasSearch,
+  hasTitle,
+  hasFooterItem,
+  showCollapse,
+  lines,
+  dividerClass,
+}) => (
+  <div
+    className="flex h-full w-full animate-pulse flex-col motion-reduce:animate-none"
+    aria-hidden="true"
+  >
+    {/* Logo header */}
+    {hasLogo && (
+      <div
+        className={`flex items-center gap-3 border-b px-4 py-4 ${dividerClass} ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
+        <SkeletonBar className="h-6 w-6 rounded-md" />
+        {!collapsed && <SkeletonBar width="8rem" className="h-3" />}
+      </div>
+    )}
+
+    {/* Top item */}
+    {hasTopItem && (
+      <div
+        className={`flex items-center gap-3 px-3 pt-2 ${collapsed ? "justify-center" : ""}`}
+      >
+        <SkeletonBar className="h-5 w-5 rounded-md" />
+        {!collapsed && <SkeletonBar width="9rem" className="h-3" />}
+      </div>
+    )}
+
+    {/* Search */}
+    {hasSearch && !collapsed && (
+      <div className="px-3 pb-1 pt-2">
+        <SkeletonBar width="100%" className="h-8 rounded-lg" />
+      </div>
+    )}
+
+    {/* Title */}
+    {hasTitle && !collapsed && (
+      <div className="px-6 pb-2 pt-4">
+        <SkeletonBar width="7rem" className="h-3" />
+      </div>
+    )}
+
+    {/* Navigation rows */}
+    <div className="flex-1 space-y-1 overflow-hidden px-3 py-1">
+      {Array.from({ length: lines }).map((_, index) => (
+        <div
+          key={index}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <SkeletonBar className="h-5 w-5 rounded-md" />
+          {!collapsed && (
+            <SkeletonBar
+              width={index === lines - 1 ? "55%" : index % 2 ? "72%" : "85%"}
+              className="h-3"
+            />
+          )}
+        </div>
+      ))}
+    </div>
+
+    {/* Footer item */}
+    {hasFooterItem && (
+      <div
+        className={`flex items-center gap-3 px-3 pb-1 ${collapsed ? "justify-center" : ""}`}
+      >
+        <SkeletonBar className="h-5 w-5 rounded-md" />
+        {!collapsed && <SkeletonBar width="8rem" className="h-3" />}
+      </div>
+    )}
+
+    {/* Collapse control */}
+    {showCollapse && !collapsed && (
+      <div className={`border-t px-3 py-3 ${dividerClass}`}>
+        <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+          <SkeletonBar className="h-4 w-4" />
+          <SkeletonBar width="6rem" className="h-3" />
+        </div>
+      </div>
+    )}
+  </div>
+);
 
 /**
  * Whether the responsive `SideMenu` is in its offcanvas (mobile) mode.
@@ -273,6 +438,8 @@ interface DropdownRowProps {
   collapsed: boolean;
   side: SidebarSide;
   idleCopy: SidebarIdleCopyKind;
+  /** Menu tone: the row hovers with the same tokens as the nav rows. */
+  color: TrueColor;
 }
 
 const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
@@ -281,10 +448,12 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
   collapsed,
   side,
   idleCopy,
+  color,
 }) => {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const idle = SIDEBAR_IDLE_COPY[idleCopy];
+  const tokens = getSideMenuItemTokens(color);
   const hasMenu = !!item.menu?.length;
 
   // A left sidebar's menus grow to the right (into the content), a right
@@ -308,9 +477,7 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
   } ${idle.text}`;
 
   if (!hasMenu) {
-    const hoverClasses =
-      item.path &&
-      "hover:bg-neutral-200/50 dark:hover:bg-neutral-700/40";
+    const hoverClasses = item.path && `${tokens.hoverBg} ${tokens.hoverText}`;
 
     const content = (
       <>
@@ -345,7 +512,7 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         title={collapsed ? item.label : undefined}
-        className={`${rowClasses} hover:bg-neutral-200/50 dark:hover:bg-neutral-700/40`}
+        className={`${rowClasses} ${tokens.hoverBg} ${tokens.hoverText}`}
       >
         {media}
         {!collapsed && (
@@ -356,7 +523,7 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
             )}
             <CustomIcon
               icon="ChevronRight"
-              className="h-4 w-4 shrink-0 rotate-90 text-neutral-400 dark:text-neutral-500"
+              className={`h-4 w-4 shrink-0 rotate-90 ${idle.icon}`}
             />
           </>
         )}
@@ -405,11 +572,20 @@ export const SideMenu = ({
   responsive = true,
   topItem,
   footerItem,
+  noise = false,
+  loading = false,
+  loaderType = "skeleton",
+  loaderTitle,
+  loaderMessage,
+  loaderProgress,
+  loaderColor,
+  skeletonLines = 4,
   search = false,
   searchValue,
   onSearchChange,
-  searchPlaceholder = "Search menu",
+  searchPlaceholder,
 }: SideMenuProps) => {
+  const t = useKitT();
   const location = useLocation();
   const panelId = useId();
   const isMobile = useSidebarIsMobile(responsive);
@@ -424,6 +600,18 @@ export const SideMenu = ({
       if (hoverTimer.current) clearTimeout(hoverTimer.current);
     };
   }, []);
+
+  // The mobile off-canvas dismisses the same way a dialog does: the
+  // backdrop click is a pointer-only extra, the labelled close button and
+  // Escape cover keyboard users.
+  useEffect(() => {
+    if (!isMobile || !mobileOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCloseMobile?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isMobile, mobileOpen, onCloseMobile]);
 
   const searchQuery = searchValue ?? internalSearch;
   const setSearchQuery = (value: string) => {
@@ -461,6 +649,33 @@ export const SideMenu = ({
 
   const surface = getSidebarSurfaceTokens(variant, color);
   const idle = SIDEBAR_IDLE_COPY[surface.idleCopy];
+  /** The menu's own tone row-tokens, for chrome that follows the tone. */
+  const toneTokens = getSideMenuItemTokens(color);
+
+  const showSkeleton = loading && loaderType === "skeleton";
+  const skeletonSlots = {
+    hasLogo: Boolean(logoIcon || logoText),
+    hasTopItem: Boolean(topItem),
+    hasSearch: search,
+    hasTitle: Boolean(title),
+    hasFooterItem: Boolean(footerItem),
+    showCollapse: showCollapseControl,
+    lines: skeletonLines,
+    dividerClass: surface.divider,
+  };
+  // Written as one expression so `loaderType` narrows to the Loader's own
+  // variants for the overlay (skeleton replaces the content instead).
+  const loaderOverlay =
+    loading && loaderType !== "skeleton" ? (
+      <Loader
+        overlay
+        variant={loaderType}
+        title={loaderTitle}
+        label={loaderMessage}
+        progress={loaderProgress}
+        color={loaderColor ?? color}
+      />
+    ) : null;
 
   // ── Hover overlay (openOnHover) ─────────────────────────────────────────
   const cancelHoverClose = () => {
@@ -609,7 +824,6 @@ export const SideMenu = ({
         return !item.groupName || groupsWithVisibleLinks.has(item.groupName);
       return true;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, guardEvaluator, activeModuleView, moduleViewOptions, query]);
 
   const hasVisibleLink = visibleItems.some(
@@ -685,9 +899,10 @@ export const SideMenu = ({
       ? `absolute inset-y-0 ${panelPosition} ${PANEL_WIDTH} flex flex-col`
       : "relative h-full w-full flex flex-col";
 
-  // Mobile drawer — always the standing translucent look.
+  // Mobile drawer — the panel's own surface treatment, carried into the
+  // offcanvas overlay instead of a hardcoded blur that ignored the variant.
   const mobileClasses = `
-    fixed inset-y-0 ${panelPosition} z-[60] w-64 bg-white/90 dark:bg-neutral-900/95 backdrop-blur-xl transition-transform duration-300 ease-in-out
+    fixed inset-y-0 ${panelPosition} z-[60] w-64 ${surface.fill} transition-transform duration-300 ease-in-out
     ${mobileOpen ? "translate-x-0" : isLeft ? "-translate-x-full" : "translate-x-full"}
     ${className}
   `;
@@ -697,10 +912,10 @@ export const SideMenu = ({
     logoIcon || logoText
       ? (contentCollapsed: boolean) => (
           <div
-            className={`relative z-50 flex h-15 items-center border-b px-4 py-4 ${
-              variant === "glass"
+            className={`relative z-50 flex items-center border-b px-4 py-4 ${SIDE_MENU_HEADER_HEIGHT} ${
+              variant === "glass" || variant === "floating-glass"
                 ? "bg-white/20 border-white/30 dark:bg-white/5 dark:border-white/10"
-                : "bg-white border-gray-200 dark:bg-neutral-900 dark:border-neutral-700"
+                : `${SIDE_MENU_HEADER_FILL} ${SIDE_MENU_HEADER_SEAM}`
             } ${contentCollapsed ? "justify-center" : ""}`}
           >
             {logoIcon && <div className="shrink-0">{logoIcon}</div>}
@@ -806,9 +1021,13 @@ export const SideMenu = ({
             <button
               type="button"
               aria-expanded={showChildren}
-              aria-label={`${showChildren ? "Collapse" : "Expand"} ${link.label} submenu`}
+              aria-label={t("kit.sidemenu.toggleSubmenu", {
+                verb:
+                  showChildren ? t("kit.sidemenu.verbCollapse") : t("kit.sidemenu.verbExpand"),
+                label: link.label,
+              })}
                 onClick={() => toggleSubmenu(link.slug)}
-                className="inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-200/60 hover:text-neutral-600 dark:text-neutral-500 dark:hover:bg-neutral-700/40 dark:hover:text-neutral-300"
+                className={`inline-flex shrink-0 items-center justify-center rounded-md p-1.5 transition-colors ${surface.muted} ${tokens.hoverBg} ${tokens.hoverText}`}
             >
               <CustomIcon
                 icon="ChevronRight"
@@ -853,6 +1072,7 @@ export const SideMenu = ({
             collapsed={contentCollapsed}
             side={side}
             idleCopy={surface.idleCopy}
+            color={color}
           />
         </div>
       )}
@@ -867,8 +1087,8 @@ export const SideMenu = ({
             leadingIcon="Search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label="Search menu items"
+            placeholder={searchPlaceholder ?? t("kit.sidemenu.searchPlaceholder")}
+            aria-label={t("kit.sidemenu.searchAria")}
             className="w-full"
           />
         </div>
@@ -884,7 +1104,7 @@ export const SideMenu = ({
           }`}
         >
           {title && !(contentCollapsed && !isMobileView) && (
-            <h2 className="text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider whitespace-nowrap">
+            <h2 className={`text-xs font-semibold uppercase tracking-wider whitespace-nowrap ${surface.muted}`}>
               {title}
             </h2>
           )}
@@ -892,8 +1112,8 @@ export const SideMenu = ({
           {isMobileView && (
             <button
               onClick={onCloseMobile}
-              className="p-1 rounded-lg hover:bg-white/50 dark:hover:bg-neutral-700/50 text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors ml-auto"
-              aria-label="Close menu"
+              className={`p-1 rounded-lg transition-colors ml-auto ${surface.muted} ${toneTokens.hoverBg} ${toneTokens.hoverText}`}
+              aria-label={t("kit.sidemenu.closeAria")}
             >
               <CustomIcon icon="Close" className="w-5 h-5" />
             </button>
@@ -902,7 +1122,7 @@ export const SideMenu = ({
       )}
 
       {/* Navigation Items */}
-      <div className="flex-1 px-3 py-1 overflow-y-auto w-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent">
+      <div className={`flex-1 px-3 py-1 overflow-y-auto w-full ${THIN_SCROLLBAR}`}>
         <nav aria-label={title || "Side menu"} className="space-y-1 w-full">
           {visibleItems.map((item, index) => {
             // Divider
@@ -910,7 +1130,7 @@ export const SideMenu = ({
               return (
                 <div
                   key={`divider-${index}-${item.slug}`}
-                  className={`my-2 border-t border-neutral-200/60 dark:border-neutral-700/60 ${
+                  className={`my-2 border-t ${surface.divider} ${
                     contentCollapsed && !isMobileView ? "mx-1" : "mx-0"
                   }`}
                 />
@@ -924,13 +1144,13 @@ export const SideMenu = ({
                 <React.Fragment key={`group-${index}-${item.slug}`}>
                   {item.hasDivider && (
                     <div
-                      className={`my-2 border-t border-neutral-200/60 dark:border-neutral-700/60 ${
+                      className={`my-2 border-t ${surface.divider} ${
                         contentCollapsed && !isMobileView ? "mx-1" : "mx-0"
                       }`}
                     />
                   )}
                   <div
-                    className={`px-3 py-1 mb-1 text-xs font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider ${
+                    className={`px-3 py-1 mb-1 text-xs font-semibold uppercase tracking-wider ${surface.muted} ${
                       index === 0 ? "mt-1" : "mt-4"
                     }`}
                   >
@@ -949,7 +1169,7 @@ export const SideMenu = ({
             );
           })}
           {searchActive && !hasVisibleLink && (
-            <p className="px-3 py-6 text-center text-xs text-neutral-500 dark:text-neutral-400">
+            <p className={`px-3 py-6 text-center text-xs ${surface.muted}`}>
               No results for "{searchQuery.trim()}"
             </p>
           )}
@@ -965,19 +1185,20 @@ export const SideMenu = ({
             collapsed={contentCollapsed}
             side={side}
             idleCopy={surface.idleCopy}
+            color={color}
           />
         </div>
       )}
 
       {/* Collapse Toggle (desktop only, hidden with openOnHover) */}
       {!isMobileView && showCollapseControl && (
-        <div className="shrink-0 border-t border-neutral-200/60 dark:border-neutral-700/60 px-3 py-3">
+        <div className={`shrink-0 border-t px-3 py-3 ${surface.divider}`}>
           <button
             type="button"
             onClick={toggleCollapse}
             aria-expanded={expanded}
             aria-controls={panelId}
-            className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700/50 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors ${
+            className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${surface.muted} ${toneTokens.hoverBg} ${toneTokens.hoverText} ${
               !expanded ? "justify-center" : ""
             }`}
             title={expanded ? "Collapse sidebar" : "Expand sidebar"}
@@ -995,7 +1216,9 @@ export const SideMenu = ({
               className="w-4 h-4 shrink-0"
             />
             {expanded && (
-              <span className="ml-3 whitespace-nowrap">Collapse</span>
+              <span className="ml-3 whitespace-nowrap">
+                {t("kit.sidemenu.collapse")}
+              </span>
             )}
           </button>
         </div>
@@ -1007,6 +1230,9 @@ export const SideMenu = ({
     <>
       {/* Mobile Backdrop */}
       {isMobile && mobileOpen && (
+        // Pointer-only dismiss affordance; keyboard users have the labelled
+        // close button and Escape (effect above).
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- backdrop click is pointer-only; Escape + close button cover keyboard
         <div
           className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
           onClick={onCloseMobile}
@@ -1015,13 +1241,21 @@ export const SideMenu = ({
 
       {isMobile ? (
         // Mobile Sidebar (offcanvas overlay)
-        <aside className={mobileClasses} inert={!mobileOpen}>
+        <aside className={mobileClasses} inert={!mobileOpen} aria-busy={loading}>
           <div className="relative h-full flex flex-col w-full">
-            {renderContent(false, true)}
+            {showSkeleton ? (
+              <SideMenuSkeleton collapsed={false} {...skeletonSlots} />
+            ) : (
+              renderContent(false, true)
+            )}
+            {loaderOverlay}
           </div>
         </aside>
       ) : (
         // Desktop Sidebar
+        // The Escape handler only clears the pointer-driven hover state;
+        // every control inside is a native, keyboard-operable element.
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- hover state is pointer-only; nav content is natively keyboard-accessible
         <div
           className={desktopClasses}
           onKeyDown={(event) => {
@@ -1035,9 +1269,12 @@ export const SideMenu = ({
               rail into the expanded part without leaving. */}
           <aside
             className={asideClasses}
+            aria-busy={loading}
             style={
               isHoverMode ? { transitionDuration: `${hoverTransitionMs}ms` } : undefined
             }
+            // Hover-rail expansion is a pointer-only enhancement; the nav
+            // content is native and fully keyboard-operable without it.
             onMouseEnter={handleRailEnter}
             onMouseLeave={handleRailLeave}
           >
@@ -1046,7 +1283,7 @@ export const SideMenu = ({
             <div
               className={`absolute inset-0 pointer-events-none ${panelFill} ${surface.radius}`}
             />
-            {surface.noise && (
+            {noise && (
               <div
                 className={`absolute inset-0 opacity-[0.4] pointer-events-none mix-blend-overlay ${surface.radius}`}
                 style={NOISE_STYLE}
@@ -1057,8 +1294,13 @@ export const SideMenu = ({
               inert={offcanvasHidden || undefined}
               className={contentClasses}
             >
-              {renderContent(contentCollapsed, false)}
+              {showSkeleton ? (
+                <SideMenuSkeleton collapsed={contentCollapsed} {...skeletonSlots} />
+              ) : (
+                renderContent(contentCollapsed, false)
+              )}
             </div>
+            {loaderOverlay}
           </aside>
           {/* Offcanvas handle — the way back in once the panel is hidden.
               Sibling of the (clipping) aside so it is not cut off at w-0. */}
@@ -1067,8 +1309,8 @@ export const SideMenu = ({
               type="button"
               onClick={toggleCollapse}
               aria-expanded={false}
-              aria-label="Open sidebar"
-              title="Open sidebar"
+              aria-label={t("kit.sidemenu.openSidebar")}
+              title={t("kit.sidemenu.openSidebar")}
               className={`absolute top-1/2 -translate-y-1/2 z-20 flex h-14 w-6 items-center justify-center border border-neutral-200 bg-white/95 text-neutral-500 shadow-md backdrop-blur transition-colors hover:text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900/95 dark:text-neutral-400 dark:hover:text-neutral-100 ${
                 isLeft ? "left-0 rounded-r-lg" : "right-0 rounded-l-lg"
               }`}

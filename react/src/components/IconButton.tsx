@@ -6,6 +6,7 @@ import {
   type ButtonVariant,
 } from "./Button";
 import Spinner, { type SpinnerColor } from "./Spinner";
+import { warnIfAriaHiddenFocusable } from "../../../common/a11y/warn";
 import { useIconRenderer } from "../contexts/IconContext";
 import { getButtonColorClasses, getControlSizeTokens } from "../theme/Theme";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
@@ -196,6 +197,12 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     const { "aria-label": ariaLabel, title, type = "button", ...restProps } = rest;
     const computedAriaLabel = ariaLabel ?? srLabel;
     const computedTitle = tooltip ? undefined : (title ?? computedAriaLabel);
+    // a11y (P1-2): the sr-only fallback always names the button, but a
+    // focusable node that is also aria-hidden is still a defect.
+    warnIfAriaHiddenFocusable("IconButton", {
+      ariaHidden: (rest as { "aria-hidden"?: boolean })["aria-hidden"],
+      interactive: !(disabled || loading),
+    });
 
     const button = (
       <button

@@ -160,3 +160,21 @@ describe("Progress", () => {
     });
   });
 });
+
+describe("Progress header row", () => {
+  it("parks a lone value over the end of the bar, not the start", () => {
+    // `justify-between` with a single child aligns it to the start, so a bar
+    // with a value and no label had its percentage stranded on the left.
+    const wrapper = mount(Progress, { props: { value: 40, showValue: true } });
+    expect(wrapper.get(".items-baseline").classes()).toContain("justify-end");
+  });
+
+  it("keeps label and value at opposite ends when both are shown", () => {
+    const wrapper = mount(Progress, {
+      props: { value: 40, showValue: true, label: "Uploading" },
+    });
+    expect(wrapper.get(".items-baseline").classes()).toContain(
+      "justify-between",
+    );
+  });
+});

@@ -2,6 +2,7 @@
 import type { VNode } from "vue";
 import {
   TRUE_COLORS,
+  VALIDATION_STATUSES,
   getGlowTokens,
   getInputVariantTokens,
   stripBorderColor,
@@ -14,7 +15,8 @@ import type {
   TrueColor,
 } from "../theme/Theme";
 
-export const INPUT_VALIDATION_STATUSES = ["none", "error", "success"] as const;
+/** @deprecated Use `VALIDATION_STATUSES` from the theme. Kept as an alias. */
+export const INPUT_VALIDATION_STATUSES = VALIDATION_STATUSES;
 export type InputValidationStatus =
   (typeof INPUT_VALIDATION_STATUSES)[number];
 export type InputValidationStatusType = InputValidationStatus;

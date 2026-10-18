@@ -11,7 +11,7 @@ export default function Variants() {
           <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
             {variant}
           </span>
-          <div className="h-80 overflow-hidden rounded-xl bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
+          <div className="h-80 overflow-hidden bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
             <div className="flex h-full">
               <SideMenu
                 fullHeight

@@ -1125,3 +1125,16 @@ export const syncedSolar = (() => {
   });
   return rows;
 })();
+
+
+// ── Funnel ───────────────────────────────────────────────────────────────────
+
+/** Marketing funnel stages (6 — exercises the min-width clamp). */
+export const funnelMarketing = [
+  { name: "Impressions", value: 3_600_000 },
+  { name: "Clicks", value: 83_100 },
+  { name: "Leads", value: 871 },
+  { name: "Trials", value: 342 },
+  { name: "Customers", value: 96 },
+  { name: "Renewals", value: 71 },
+];

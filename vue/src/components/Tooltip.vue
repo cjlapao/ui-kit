@@ -1,112 +1,83 @@
 <script lang="ts">
-export type TooltipPosition = "top" | "bottom";
+import type { TooltipPosition } from "../../../common/tooltip/placement";
+import type { TooltipVariant } from "../../../common/tooltip/tokens";
+
+export type { TooltipPosition, TooltipVariant };
 
 export interface TooltipProps {
   /** Text shown in the tooltip. When omitted the component renders children as-is. */
   text?: string;
-  /** How long to wait (ms) before showing the tooltip. Defaults to 500. */
+  /** How long to wait (ms) before showing the tooltip. @default 500 */
   delay?: number;
-  /** Where to place the tooltip relative to the trigger. Defaults to 'top'. */
+  /**
+   * Preferred side. The tooltip flips when there is no room, so this is a
+   * preference rather than a guarantee. @default "top"
+   */
   position?: TooltipPosition;
+  /** How the tooltip is painted. @default "surface" */
+  variant?: TooltipVariant;
+  /** Gap between trigger and tooltip, in px. @default 8 */
+  offset?: number;
+  /** Minimum distance kept from every viewport edge, in px. @default 8 */
+  margin?: number;
+  /**
+   * Keep the tooltip inside this element instead of the whole viewport — a
+   * scroll container, a panel, a modal.
+   */
+  boundary?: HTMLElement | null;
   /** Extra classes applied to the outer wrapper element. */
   wrapperClassName?: string;
 }
 </script>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from "vue";
 import classNames from "classnames";
+import TooltipWrapper from "./TooltipWrapper.vue";
 
+/**
+ * A tooltip attached to an inline wrapper element.
+ *
+ * The positioning lives in `TooltipWrapper` — this component is the variant
+ * that supplies its own wrapper element, for callers whose content is not a
+ * single handler-accepting element.
+ *
+ * It used to carry a second, simpler copy of the portal/positioning code with
+ * no viewport collision detection, so a tooltip near the right edge of the
+ * window ran off-screen here while the identical one on an `IconButton`
+ * shifted itself inward.
+ */
 defineOptions({ name: "Tooltip" });
 
-const props = withDefaults(defineProps<TooltipProps>(), {
+withDefaults(defineProps<TooltipProps>(), {
   delay: 500,
   position: "top",
+  variant: "surface",
 });
 
-let timer: ReturnType<typeof setTimeout> | null = null;
-const wrapperRef = ref<HTMLDivElement | null>(null);
-const visible = ref(false);
-const coords = ref<{ x: number; y: number } | null>(null);
-
-const show = () => {
-  timer = setTimeout(() => {
-    if (wrapperRef.value) {
-      const rect = wrapperRef.value.getBoundingClientRect();
-      coords.value = {
-        x: rect.left + rect.width / 2,
-        y: props.position === "top" ? rect.top : rect.bottom,
-      };
-    }
-    visible.value = true;
-  }, props.delay);
-};
-
-const hide = () => {
-  if (timer) {
-    clearTimeout(timer);
-    timer = null;
-  }
-  visible.value = false;
-  coords.value = null;
-};
-
-onUnmounted(() => {
-  if (timer) {
-    clearTimeout(timer);
-    timer = null;
-  }
-});
-
-const isTop = computed(() => props.position === "top");
-
-const wrapperClass = computed(() =>
-  classNames("relative inline-flex", props.wrapperClassName),
-);
-
-const tooltipStyle = computed(() =>
-  coords.value
-    ? {
-        left: `${coords.value.x}px`,
-        top: `${coords.value.y}px`,
-        transform: isTop.value
-          ? "translate(-50%, calc(-100% - 6px))"
-          : "translate(-50%, 6px)",
-      }
-    : undefined,
-);
-
-const caretClass = computed(() =>
+const wrapperClass = (extra?: string) =>
   classNames(
-    "absolute left-1/2 -translate-x-1/2 border-4 border-transparent",
-    isTop.value
-      ? "top-full border-t-neutral-900 dark:border-t-neutral-700"
-      : "bottom-full border-b-neutral-900 dark:border-b-neutral-700",
-  ),
-);
+    "relative inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
+    extra,
+  );
 </script>
 
 <template>
   <slot v-if="!text" />
-  <div
+  <TooltipWrapper
     v-else
-    ref="wrapperRef"
-    :class="wrapperClass"
-    @mouseenter="show"
-    @mouseleave="hide"
+    :text="text"
+    :delay="delay"
+    :position="position"
+    :variant="variant"
+    :offset="offset"
+    :margin="margin"
+    :boundary="boundary"
   >
-    <slot />
-    <Teleport to="body">
-      <div
-        v-if="visible && coords"
-        role="tooltip"
-        class="pointer-events-none fixed z-[9999] whitespace-nowrap rounded-md bg-neutral-900 px-2.5 py-1.5 text-xs leading-snug text-white shadow-lg dark:bg-neutral-700"
-        :style="tooltipStyle"
-      >
-        {{ text }}
-        <!-- caret -->
-        <span :class="caretClass" />
-      </div>
-    </Teleport>
-  </div>
+    <!-- `tabindex` so the focus path TooltipWrapper offers is reachable: the
+         wrapper is a plain div, so without it a keyboard user can never
+         surface the tooltip. -->
+    <div tabindex="0" :class="wrapperClass(wrapperClassName)">
+      <slot />
+    </div>
+  </TooltipWrapper>
 </template>

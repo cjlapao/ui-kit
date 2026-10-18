@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { Carousel } from "@cjlapao/ui-kit";
+import { Carousel, MultiToggle } from "@cjlapao/ui-kit";
 import type { CarouselOrientation, TrueColor } from "@cjlapao/ui-kit";
 import {
   Control,
-  MultiToggle,
   PlaygroundPanel,
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   carouselOrientationOptions,
   trueColorOptions,
@@ -46,53 +46,71 @@ export const CarouselPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Items visible">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={numVisibleOptions}
-              value={String(numVisible)}
-              onChange={(v) => setNumVisible(Number(v))}
-            />
-          </Control>
-          <Control label="Items per scroll">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={numScrollOptions}
-              value={String(numScroll)}
-              onChange={(v) => setNumScroll(Number(v))}
-            />
-          </Control>
-          <Control label="Orientation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={carouselOrientationOptions}
-              value={orientation}
-              onChange={(v) => setOrientation(v as CarouselOrientation)}
-            />
-          </Control>
-          <Control label="Autoplay">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={autoplayOptions}
-              value={String(autoplay)}
-              onChange={(v) => setAutoplay(Number(v))}
-            />
-          </Control>
-          <SelectControl
-            label="Color"
-            options={trueColorOptions}
-            value={color}
-            onChange={(v) => setColor(v as TrueColor)}
-          />
-          <ToggleRow label="Circular" checked={circular} onChange={setCircular} />
-          <ToggleRow label="Show navigators" checked={showNavigators} onChange={setShowNavigators} />
-          <ToggleRow label="Show indicators" checked={showIndicators} onChange={setShowIndicators} />
-        </>
+        <ControlAccordion
+          groups={[
+            {
+              id: "core",
+              title: "Core",
+              controls: (
+                <>
+                  <Control label="Items visible">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={numVisibleOptions}
+                      value={String(numVisible)}
+                      onChange={(v) => setNumVisible(Number(v))}
+                    />
+                  </Control>
+                  <Control label="Items per scroll">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={numScrollOptions}
+                      value={String(numScroll)}
+                      onChange={(v) => setNumScroll(Number(v))}
+                    />
+                  </Control>
+                  <Control label="Orientation">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={carouselOrientationOptions}
+                      value={orientation}
+                      onChange={(v) => setOrientation(v as CarouselOrientation)}
+                    />
+                  </Control>
+                  <Control label="Autoplay">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={autoplayOptions}
+                      value={String(autoplay)}
+                      onChange={(v) => setAutoplay(Number(v))}
+                    />
+                  </Control>
+                  <SelectControl
+                    label="Color"
+                    options={trueColorOptions}
+                    value={color}
+                    onChange={(v) => setColor(v as TrueColor)}
+                  />
+                </>
+              ),
+            },
+            {
+              id: "states",
+              title: "States",
+              controls: (
+                <>
+                  <ToggleRow label="Circular" checked={circular} onChange={setCircular} />
+                  <ToggleRow label="Show navigators" checked={showNavigators} onChange={setShowNavigators} />
+                  <ToggleRow label="Show indicators" checked={showIndicators} onChange={setShowIndicators} />
+                </>
+              ),
+            },
+          ]}
+        />
       }
       preview={
         <Carousel

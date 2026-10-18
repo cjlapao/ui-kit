@@ -6,6 +6,14 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    // ../common sources resolve node_modules by walking up from the importing
+    // file, which never reaches react/node_modules (and CI only installs
+    // react/). Map date-fns here so tsc and tsup's dts find it in this
+    // package's install. Mirrors the same fix in vue/tsconfig.json.
+    "paths": {
+      "date-fns": ["./node_modules/date-fns"],
+      "date-fns/*": ["./node_modules/date-fns/*"]
+    },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,

@@ -19,7 +19,7 @@ export const BreadcrumbPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Breadcrumb"
-      description="The page hierarchy as a trail of crumbs — items carry a router path, an href or a click handler, the current page gets aria-current, and the tone matches the rest of the UI."
+      description="The page hierarchy as a trail of crumbs — items carry a router path, an href or a click handler, the current page gets aria-current, the tone (default blue) tints link hover, focus and the current crumb with the kit's contrast-correct text pair, and size rides the shared control scale."
     />
     <BreadcrumbPlayground />
     <section className="flex flex-col gap-5">

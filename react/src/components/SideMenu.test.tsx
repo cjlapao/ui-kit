@@ -1,12 +1,11 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  afterEach,
-} from "vitest";
-import { fireEvent, render, screen, act, renderHook } from "@testing-library/react";
+  fireEvent,
+  render,
+  screen,
+  act,
+  renderHook,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SideMenu, {
   useSidebarIsMobile,
@@ -141,7 +140,11 @@ describe("SideMenu — collapse", () => {
     const onToggleCollapse = vi.fn();
     const { rerender } = render(
       <MemoryRouter initialEntries={["/"]}>
-        <SideMenu items={ITEMS} collapsed={false} onToggleCollapse={onToggleCollapse} />
+        <SideMenu
+          items={ITEMS}
+          collapsed={false}
+          onToggleCollapse={onToggleCollapse}
+        />
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByTitle("Collapse sidebar"));
@@ -257,9 +260,7 @@ describe("SideMenu — side and variant", () => {
   it("side=right mirrors the shadow toward the content", () => {
     renderMenu({ side: "right" });
     const aside = document.querySelector("aside") as HTMLElement;
-    expect(aside).toHaveClass(
-      "shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.1)]",
-    );
+    expect(aside).toHaveClass("shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.1)]");
   });
 
   it("side=right puts the inset hairline on the left edge", () => {
@@ -275,6 +276,20 @@ describe("SideMenu — side and variant", () => {
     // The margin lives on the layout wrapper, the radius and rim on the panel.
     expect(aside.parentElement).toHaveClass("m-2");
     expect(aside).toHaveClass("rounded-2xl", "border");
+  });
+
+  it("floating-glass is the glass treatment with the floating geometry", () => {
+    renderMenu({ variant: "floating-glass" });
+    const aside = document.querySelector("aside") as HTMLElement;
+    // The floating card's geometry: offset on the wrapper, radius and rim on
+    // the panel.
+    expect(aside.parentElement).toHaveClass("m-2");
+    expect(aside).toHaveClass("rounded-2xl", "border");
+    // The glass treatment: the tone-tinted frosted fill, not the opaque
+    // floating fill.
+    const fill = aside.querySelector("div") as HTMLElement;
+    expect(fill).toHaveClass("bg-blue-100/45", "dark:bg-blue-500/15");
+    expect(fill).not.toHaveClass("bg-white");
   });
 });
 
@@ -306,7 +321,9 @@ describe("SideMenu — topItem / footerItem", () => {
   });
 
   it("topItem without a menu navigates like a link", () => {
-    renderMenu({ topItem: { label: "Profile", icon: "User", path: "/profile" } });
+    renderMenu({
+      topItem: { label: "Profile", icon: "User", path: "/profile" },
+    });
     expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute(
       "href",
       "/profile",
@@ -381,9 +398,7 @@ describe("SideMenu — nested items", () => {
 
   it("renders the subtree initially when defaultOpen", () => {
     renderMenu({
-      items: [
-        { ...NESTED[0], defaultOpen: true } as (typeof NESTED)[number],
-      ],
+      items: [{ ...NESTED[0], defaultOpen: true } as (typeof NESTED)[number]],
     });
     expect(screen.getByText("Hosts")).toBeInTheDocument();
   });
@@ -415,7 +430,9 @@ describe("SideMenu — actions, badges", () => {
         <SideMenu items={actionItems} collapsed onToggleCollapse={() => {}} />
       </MemoryRouter>,
     );
-    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Edit" }),
+    ).not.toBeInTheDocument();
   });
 
   it("actionsOnHover keeps actions hidden until the row is hovered", () => {
@@ -427,8 +444,7 @@ describe("SideMenu — actions, badges", () => {
         } as (typeof actionItems)[number],
       ],
     });
-    const holder = screen
-      .getByRole("button", { name: "Edit" })
+    const holder = screen.getByRole("button", { name: "Edit" })
       .parentElement as HTMLElement;
     expect(holder).toHaveClass("opacity-0");
   });
@@ -472,8 +488,7 @@ describe("SideMenu — guards and module view", () => {
     ];
     renderMenu({
       items,
-      guardEvaluator: (guards) =>
-        guards.every((g) => g.type !== "claim"),
+      guardEvaluator: (guards) => guards.every((g) => g.type !== "claim"),
     });
     expect(screen.getByText("Visible")).toBeInTheDocument();
     expect(screen.queryByText("Hidden")).not.toBeInTheDocument();
@@ -568,9 +583,114 @@ describe("SideMenu — responsive", () => {
     expect(onCloseMobile).toHaveBeenCalledTimes(1);
   });
 
+  it("dismisses the open mobile drawer on Escape (keyboard parity with the backdrop)", () => {
+    setViewportMobile(true);
+    const onCloseMobile = vi.fn();
+    renderMenu({ mobileOpen: true, onCloseMobile });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onCloseMobile).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores Escape on desktop (no off-canvas to dismiss)", () => {
+    setViewportMobile(false);
+    const onCloseMobile = vi.fn();
+    renderMenu({ mobileOpen: true, onCloseMobile });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onCloseMobile).not.toHaveBeenCalled();
+  });
+
   it("a closed mobile drawer is inert (not focusable)", () => {
     setViewportMobile(true);
     renderMenu({ mobileOpen: false });
     expect(document.querySelector("aside")).toHaveAttribute("inert");
+  });
+});
+
+// ── Dither noise ────────────────────────────────────────────────────────────
+
+describe("SideMenu — dither noise", () => {
+  it("does not paint the noise layer by default (even on the sidebar variant)", () => {
+    const { container } = renderMenu({ variant: "sidebar" });
+    expect(container.querySelector(".mix-blend-overlay")).toBeNull();
+  });
+
+  it("paints a decorative noise layer when noise is enabled", () => {
+    const { container } = renderMenu({ variant: "sidebar", noise: true });
+    const layer = container.querySelector(".mix-blend-overlay") as HTMLElement;
+    expect(layer).toBeTruthy();
+    expect(layer.className).toContain("pointer-events-none");
+    expect(layer.className).toContain("opacity-[0.4]");
+    expect(layer.style.backgroundImage).toContain("feTurbulence");
+  });
+});
+
+// ── Loading ─────────────────────────────────────────────────────────────────
+
+describe("SideMenu — loading", () => {
+  it("renders its content normally when not loading", () => {
+    renderMenu();
+    expect(document.querySelector("aside")).toHaveAttribute(
+      "aria-busy",
+      "false",
+    );
+    expect(link("Dashboard")).toBeInTheDocument();
+    expect(document.querySelector(".animate-pulse")).toBeNull();
+  });
+
+  it("replaces the rows with a pulsing skeleton (the default loaderType)", () => {
+    const { container } = renderMenu({ loading: true });
+    expect(document.querySelector("aside")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    expect(screen.queryByRole("link", { name: "Dashboard" })).toBeNull();
+    const skeleton = container.querySelector(".animate-pulse") as HTMLElement;
+    expect(skeleton).toBeTruthy();
+    expect(skeleton).toHaveAttribute("aria-hidden", "true");
+    // No logo/top/search/title in this menu, so the first slot is the nav —
+    // four placeholder rows by default.
+    expect(skeleton.firstElementChild!.children.length).toBe(4);
+  });
+
+  it("the skeleton honours the chrome the menu actually renders", () => {
+    const { container } = renderMenu({
+      loading: true,
+      title: "Playground",
+      search: true,
+      topItem: { label: "Workspace", icon: "Users", path: "/ws" },
+      footerItem: { label: "Profile", icon: "User", path: "/me" },
+      skeletonLines: 2,
+    });
+    const skeleton = container.querySelector(".animate-pulse") as HTMLElement;
+    // top item, search, title, nav, footer, collapse control
+    expect(skeleton.children.length).toBe(6);
+    expect(skeleton.children[3].children.length).toBe(2);
+  });
+
+  it("spinner keeps the content and overlays the loader on top", () => {
+    const { container } = renderMenu({
+      loading: true,
+      loaderType: "spinner",
+      loaderMessage: "Loading menu…",
+    });
+    expect(link("Dashboard")).toBeInTheDocument();
+    const overlay = container.querySelector('[role="status"]') as HTMLElement;
+    expect(overlay).toBeTruthy();
+    expect(overlay.className).toContain("absolute inset-0");
+    expect(overlay).toHaveTextContent("Loading menu…");
+  });
+
+  it("progress overlays a progressbar carrying the progress value", () => {
+    const { container } = renderMenu({
+      loading: true,
+      loaderType: "progress",
+      loaderProgress: 40,
+    });
+    const overlay = container.querySelector('[role="status"]') as HTMLElement;
+    expect(overlay).toBeTruthy();
+    expect(overlay.querySelector('[role="progressbar"]')).toHaveAttribute(
+      "aria-valuenow",
+      "40",
+    );
   });
 });

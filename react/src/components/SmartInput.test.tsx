@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
+import { I18nProvider } from "../i18n/I18nContext";
 import SmartInput from "./SmartInput";
 import SmartValue from "./SmartValue";
 import {
@@ -77,20 +78,24 @@ describe("smartVariables", () => {
     const resolve = createDefaultResolver(GROUPS);
 
     it("prefers value, then defaultValue", () => {
-      expect(resolve(extractVariables("{{ var::global::APP_NAME }}")[0])).toEqual({
+      expect(
+        resolve(extractVariables("{{ var::global::APP_NAME }}")[0]),
+      ).toEqual({
         value: "orchestrator",
         state: "resolved",
       });
-      expect(resolve(extractVariables("{{ var::global::DB_HOST }}")[0])).toEqual({
+      expect(
+        resolve(extractVariables("{{ var::global::DB_HOST }}")[0]),
+      ).toEqual({
         value: "db.internal",
         state: "resolved",
       });
     });
 
     it("reports runtime variables as their own state", () => {
-      expect(resolve(extractVariables("{{ var::deploy::BUILD_ID }}")[0])).toEqual(
-        { value: "[BUILD_ID]", state: "runtime" },
-      );
+      expect(
+        resolve(extractVariables("{{ var::deploy::BUILD_ID }}")[0]),
+      ).toEqual({ value: "[BUILD_ID]", state: "runtime" });
     });
 
     it("reports unknown and valueless variables as missing", () => {
@@ -104,7 +109,10 @@ describe("smartVariables", () => {
 
     it("matches keys case-insensitively as a fallback", () => {
       expect(
-        findDefinition(GROUPS, extractVariables("{{ var::global::app_name }}")[0]),
+        findDefinition(
+          GROUPS,
+          extractVariables("{{ var::global::app_name }}")[0],
+        ),
       ).not.toBeNull();
     });
   });
@@ -176,7 +184,10 @@ describe("SmartInput", () => {
   });
 
   it("uses a caller-supplied resolver over the default lookup", () => {
-    const resolve = vi.fn(() => ({ value: "from-app", state: "resolved" as const }));
+    const resolve = vi.fn(() => ({
+      value: "from-app",
+      state: "resolved" as const,
+    }));
     render(
       <SmartInput
         value="{{ var::global::APP_NAME }}"
@@ -192,9 +203,7 @@ describe("SmartInput", () => {
 
   it("opens the picker and inserts at the caret", () => {
     const onChange = vi.fn();
-    render(
-      <SmartInput value="prefix " onChange={onChange} groups={GROUPS} />,
-    );
+    render(<SmartInput value="prefix " onChange={onChange} groups={GROUPS} />);
     fireEvent.click(screen.getByRole("button", { name: "Insert variable" }));
     expect(screen.getByPlaceholderText("Search variables...")).toBeTruthy();
 
@@ -264,7 +273,11 @@ describe("SmartInput", () => {
     it("inserts at the caret when opened from the button, leaving text alone", () => {
       const onChange = vi.fn();
       render(
-        <SmartInput value="a {{ unclosed " onChange={onChange} groups={GROUPS} />,
+        <SmartInput
+          value="a {{ unclosed "
+          onChange={onChange}
+          groups={GROUPS}
+        />,
       );
       fireEvent.click(screen.getByRole("button", { name: "Insert variable" }));
       fireEvent.click(screen.getByRole("button", { name: /APP_NAME/ }));
@@ -362,7 +375,9 @@ describe("SmartInput", () => {
   });
 
   it("shows no toggle when the value holds no tokens", () => {
-    render(<SmartInput value="plain text" onChange={() => {}} groups={GROUPS} />);
+    render(
+      <SmartInput value="plain text" onChange={() => {}} groups={GROUPS} />,
+    );
     expect(screen.queryByRole("button", { name: "Show values" })).toBeNull();
   });
 });
@@ -378,5 +393,150 @@ describe("SmartValue", () => {
     expect(screen.getByText("VAR:APP_NAME")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show values" }));
     expect(screen.getByText("orchestrator")).toBeTruthy();
+  });
+});
+
+describe("SmartInput (kit conventions)", () => {
+  afterEach(cleanup);
+
+  it("offers the full five-step control scale", () => {
+    // The scale was a local three-step table with its own padding; stacking
+    // this under an Input produced two visibly different boxes.
+    const { container } = render(
+      <SmartInput value="" onChange={() => {}} groups={GROUPS} size="xl" />,
+    );
+    expect((container.firstChild as HTMLElement).className).toContain(
+      "min-h-12",
+    );
+  });
+
+  it("focuses with the shared field tokens on every tone", () => {
+    // Was `ring-${tone}-400` template strings, which only survive Tailwind
+    // if a safelist happens to carry each of the 21 variants.
+    const { container } = render(
+      <SmartInput
+        value=""
+        onChange={() => {}}
+        groups={GROUPS}
+        tone="emerald"
+      />,
+    );
+    const classes = (container.firstChild as HTMLElement).className;
+    expect(classes).toContain("focus-within:border-emerald-400");
+    expect(classes).toContain("focus-within:ring-emerald-400/60");
+  });
+
+  it("glows on the gradient variant, like the fields beside it", () => {
+    const { container } = render(
+      <SmartInput
+        value=""
+        onChange={() => {}}
+        groups={GROUPS}
+        variant="gradient"
+      />,
+    );
+    const emitter = container.querySelector(
+      '[aria-hidden="true"]',
+    ) as HTMLElement;
+    expect(emitter.style.boxShadow).toContain("var(--color-blue-600)");
+    expect(emitter.style.boxShadow).toContain("var(--color-blue-400)");
+  });
+
+  it("gives the picker the field's own furniture", () => {
+    // `panelVariant="auto"` — the contract the `DatePicker` calendar makes:
+    // a glass field gets a glass picker. `blur-xl` is the card's weight; the
+    // glass field box itself only blurs `md`, so this counts the picker.
+    render(
+      <SmartInput
+        value=""
+        onChange={() => {}}
+        groups={GROUPS}
+        variant="glass"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Insert variable" }));
+    expect(
+      document.body.querySelectorAll('[class*="backdrop-blur-xl"]').length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it("lets panelVariant overrule the field's surface", () => {
+    render(
+      <SmartInput
+        value=""
+        onChange={() => {}}
+        groups={GROUPS}
+        variant="glass"
+        panelVariant="elevated"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Insert variable" }));
+    // Nothing blurs at card weight any more — the picker took the override.
+    expect(
+      document.body.querySelectorAll('[class*="backdrop-blur-xl"]').length,
+    ).toBe(0);
+  });
+
+  it("wears the theme's control corner, and lets one be pinned", () => {
+    // The corner ladder: a control tracks the CONTROL default (rounded-lg),
+    // one step looser than the container default.
+    const { container } = render(
+      <SmartInput value="" onChange={() => {}} groups={GROUPS} />,
+    );
+    expect((container.firstChild as HTMLElement).className).toContain(
+      "rounded-lg",
+    );
+  });
+
+  it("corner swaps the field's radius without losing the surface", () => {
+    const { container } = render(
+      <SmartInput
+        value=""
+        onChange={() => {}}
+        groups={GROUPS}
+        corner="rounded-md"
+      />,
+    );
+    const classes = (container.firstChild as HTMLElement).className;
+    // The corner token `rounded-md` is a scaled name — the class is
+    // rounded-2xl — and the rest of the flat surface survives the swap.
+    expect(classes).toContain("rounded-2xl");
+    expect(classes).not.toContain("rounded-lg");
+    expect(classes).toContain("border-neutral-300");
+  });
+
+  it("panelCorner overrides the picker card's radius", () => {
+    render(
+      <SmartInput
+        value=""
+        onChange={() => {}}
+        groups={GROUPS}
+        panelCorner="rounded-lg"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Insert variable" }));
+    // The card took the pinned corner; the field kept its own.
+    expect(
+      document.body.querySelector('[class*="rounded-3xl"]'),
+    ).not.toBeNull();
+  });
+
+  it("takes every string from the catalog", () => {
+    render(
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        <SmartInput
+          value="{{ var::global::NOPE }}"
+          onChange={() => {}}
+          groups={GROUPS}
+          aria-label="Smart value"
+        />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Werte anzeigen" }));
+    expect(screen.getByText("nicht gefunden")).toBeTruthy();
+    expect(screen.getByText("1 fehlt")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Variable einfügen" }),
+    ).toBeTruthy();
   });
 });

@@ -18,7 +18,5 @@ const STATE_ITEMS: TabItem[] = [
 ];
 
 export default function States() {
-  return (
-    <Tabs items={STATE_ITEMS} variant="soft" color="blue" size="md" />
-  );
+  return <Tabs items={STATE_ITEMS} variant="soft" color="blue" size="md" />;
 }

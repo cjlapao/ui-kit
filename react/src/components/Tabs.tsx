@@ -1,7 +1,20 @@
-import React, { type ReactNode, useEffect, useMemo, useState } from "react";
+import React, {
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getTabsColorTokens, type Orientation, type TrueColor } from "../theme/Theme";
+import {
+  type ControlSize,
+  getTabsColorTokens,
+  type Orientation,
+  type TrueColor,
+  getButtonActiveClasses,
+} from "../theme/Theme";
 import {
   getGlassChromeClasses,
   getGlassFillClass,
@@ -12,7 +25,7 @@ import {
   type SpecularMode,
 } from "../../../common/theme/glass";
 import IconButton from "./IconButton";
-import { iconAccentActive } from "../theme/ButtonTypes";
+import ScrollArea from "./ScrollArea";
 import Badge from "./Badge";
 
 export type TabsVariant =
@@ -23,7 +36,12 @@ export type TabsVariant =
   | "minimal"
   | "glass"
   | "liquid-glass";
-export type TabsSize = "sm" | "md" | "lg";
+/**
+ * The full shared control scale — xs through xl, the same five steps `Button`
+ * takes. Tabs used to stop at three, which meant no tab bar could go smaller
+ * than an md button or bigger without one-off class overrides.
+ */
+export type TabsSize = ControlSize;
 export type TabsOrientation = Orientation;
 export type TabsJustify = "start" | "center" | "end" | "between";
 export type TabsRadius = "none" | "xs" | "sm" | "md" | "lg" | "xl" | "full";
@@ -72,12 +90,16 @@ export interface TabsProps {
   containerClassName?: string;
   panelClassName?: string;
   /**
-   * When true, renders a gradient fade at the top of each panel's scroll area so
-   * content doesn't hard-clip against the tab bar when scrolled. Default: true.
-   * Pass a Tailwind `from-*` colour to match your panel background (default: white / neutral-900 dark).
+   * Colour of the active tab's action icons. `"auto"` (default) follows the
+   * tabs' own `color` — on glass or image hosts a neutral default would wash
+   * out, so the tone carries over. Pass a tone to override, or set `color`
+   * on an individual action to exempt just that one. Actions render as ghost
+   * `IconButton`s — the same shape SplitView uses for its collapse control,
+   * with the label as tooltip. `active` on an action marks it pressed and
+   * gives it the kit's ghost-active tone fill.
+   * @default "auto"
    */
-  scrollFade?: boolean;
-  scrollFadeFrom?: string;
+  actionsColor?: "auto" | TrueColor;
   /** Backdrop vibrancy level for the `glass` / `liquid-glass` variants. */
   vibrancy?: GlassVibrancy;
   /** Glass fill transparency level for the `glass` / `liquid-glass` variants. */
@@ -94,8 +116,12 @@ export interface TabsProps {
 const joinClasses = (...parts: Array<string | false | null | undefined>) =>
   parts.filter(Boolean).join(" ");
 
+// shrink-0 + nowrap: without them a crowded bar flex-shrinks the tabs by
+// their content widths, so each tab squashes into a different shape and the
+// descriptions wrap into ladders. Overflow is now the bar's job (scrolling),
+// not something each tab solves by shrinking unevenly.
 const baseTabClasses =
-  "group relative inline-flex items-center transition-all duration-150 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60";
+  "group relative inline-flex shrink-0 items-center whitespace-nowrap transition-all duration-150 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60";
 
 const focusOffset =
   "focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-0";
@@ -103,9 +129,18 @@ const focusOffset =
 const focusRing = (color: TrueColor) => getTabsColorTokens(color).focusRing;
 
 const sizeStyles: Record<
-  TabsSize,
+  ControlSize,
   { padding: string; text: string; gap: string; icon: string }
 > = {
+  // Stepping the theme's control scale at tab geometry: the text and icon
+  // steps follow `controlSizeTokens`; the paddings are the tab-bar versions,
+  // which stay roomier than a trigger's because the row is a bar, not a box.
+  xs: {
+    padding: "px-2 py-1",
+    text: "text-xs",
+    gap: "gap-1",
+    icon: "h-4 w-4",
+  },
   sm: {
     padding: "px-3 py-1.5",
     text: "text-sm font-medium",
@@ -125,6 +160,12 @@ const sizeStyles: Record<
     gap: "gap-2.5",
     icon: "h-5 w-5",
   },
+  xl: {
+    padding: "px-6 py-3",
+    text: "text-lg",
+    gap: "gap-3",
+    icon: "h-6 w-6",
+  },
 };
 
 type VariantConfig = {
@@ -139,6 +180,12 @@ type VariantConfig = {
   badgeInactive?: string;
 };
 
+// Inactive-tab copy. Deliberately NOT part of the variant bases: utility
+// rules sort alphabetically in the stylesheet, so a base `text-neutral-600`
+// would beat a tone `text-blue-600` on the active tab (and lose to
+// `text-orange-600`) - the selected tab text changed colour for roughly
+// half the palette and quietly not for the rest. It goes on the inactive
+// side only, where the active class cannot collide with it.
 const neutralTextInactive = "text-neutral-600 dark:text-neutral-300";
 
 // Corner radius for the `glass` / `liquid-glass` tab pills, mapped to the
@@ -186,12 +233,11 @@ const buildVariantConfig = (
         list: "gap-1",
         base: joinClasses(
           "rounded-lg font-medium",
-          neutralTextInactive,
           hoverAccentText,
           "hover:bg-white/70 dark:hover:bg-white/10",
         ),
         active: joinClasses("shadow-sm", accentBgStrong, activeOnAccent),
-        inactive: "",
+        inactive: neutralTextInactive,
         disabled: "text-slate-300 dark:text-slate-600",
         badge: badgeSubtle,
         badgeActive: badgeOnAccent,
@@ -203,7 +249,6 @@ const buildVariantConfig = (
         list: "gap-2",
         base: joinClasses(
           "rounded-full border border-transparent font-medium",
-          neutralTextInactive,
           hoverAccentText,
           "hover:border-current",
         ),
@@ -212,7 +257,10 @@ const buildVariantConfig = (
           activeOnAccent,
           "shadow-sm border-transparent",
         ),
-        inactive: "border-slate-200 dark:border-slate-700",
+        inactive: joinClasses(
+          neutralTextInactive,
+          "border-slate-200 dark:border-slate-700",
+        ),
         disabled: "text-slate-300 dark:text-slate-600 border-transparent",
         badge: badgeSubtle,
         badgeActive: badgeOnAccent,
@@ -227,7 +275,6 @@ const buildVariantConfig = (
         ),
         base: joinClasses(
           "font-medium border border-transparent first:rounded-l-lg last:rounded-r-lg first:rounded-t-lg last:rounded-b-lg",
-          neutralTextInactive,
           hoverAccentText,
           orientation === "horizontal"
             ? "-ml-px first:ml-0"
@@ -238,7 +285,11 @@ const buildVariantConfig = (
           activeOnAccent,
           "shadow-sm border-transparent dark:shadow-none",
         ),
-        inactive: joinClasses("bg-transparent", subtleHoverBg),
+        inactive: joinClasses(
+          neutralTextInactive,
+          "bg-transparent",
+          subtleHoverBg,
+        ),
         disabled: "text-slate-300 dark:text-slate-600 border-transparent",
         badge: badgeSubtle,
         badgeActive: badgeOnAccent,
@@ -250,13 +301,12 @@ const buildVariantConfig = (
         list: "gap-0",
         base: joinClasses(
           "font-medium rounded-lg",
-          neutralTextInactive,
           hoverAccentText,
           "hover:bg-neutral-900/5 dark:hover:bg-neutral-100/10",
           "px-2 py-1",
         ),
         active: joinClasses(activeAccentText, "font-medium "),
-        inactive: "text-neutral-900/20 dark:text-neutral-500",
+        inactive: neutralTextInactive,
         disabled: "text-slate-300 dark:text-slate-600",
         badge: badgeSubtle,
         badgeActive: badgeStrong,
@@ -271,9 +321,9 @@ const buildVariantConfig = (
       // in the control's own tone via `getGlassChromeClasses`.
       return {
         container: "gap-1",
-          list: orientation === "vertical" ? "gap-1.5" : "gap-1",
-          base: joinClasses(TAB_RADIUS[radius], "font-medium"),
-          active: "",
+        list: orientation === "vertical" ? "gap-1.5" : "gap-1",
+        base: joinClasses(TAB_RADIUS[radius], "font-medium"),
+        active: "",
         inactive: "",
         disabled: "opacity-50",
         badge: badgeSubtle,
@@ -292,7 +342,6 @@ const buildVariantConfig = (
           "after:absolute after:inset-x-1.5 after:bottom-0 after:h-[3px] after:rounded-full after:opacity-0 after:transition-all after:duration-200",
           tokens.underlineActive,
           "group-hover:after:opacity-100",
-          neutralTextInactive,
           hoverAccentText,
         ),
         active: joinClasses(
@@ -300,7 +349,7 @@ const buildVariantConfig = (
           underlineActive,
           "after:opacity-100",
         ),
-        inactive: "",
+        inactive: neutralTextInactive,
         disabled: "text-slate-300 dark:text-slate-600 border-transparent",
         badge: badgeSubtle,
         badgeActive: badgeStrong,
@@ -328,18 +377,105 @@ const Tabs: React.FC<TabsProps> = ({
   hideUnderlineContainer = false,
   containerClassName,
   panelClassName,
-  scrollFade = true,
-  scrollFadeFrom = "from-white dark:from-neutral-900",
   vibrancy = "medium",
   glassOpacity = "frosted",
   specularMode = "none",
   radius = "md",
+  actionsColor = "auto",
 }) => {
   const renderIcon = useIconRenderer();
+  // Actions follow the tabs' tone unless pinned; accent IconButtons inherit
+  // their glyph colour from the container, so the tone lives there.
+  const actionsTone: TrueColor = actionsColor === "auto" ? color : actionsColor;
   const [internalValue, setInternalValue] = useState<string | undefined>(
     defaultValue ?? items[0]?.id,
   );
   const activeId = value ?? internalValue;
+
+  // Keyboard navigation for the tablist. Roving tabindex without arrow keys
+  // is the half-finished version of the ARIA pattern: Tab can land on the
+  // selected tab, and then the control is a dead end. Arrow keys select
+  // (the APG's default "automatic activation"), skipping disabled tabs and
+  // wrapping at the ends; Home/End jump. Focus follows the selection — which
+  // in controlled mode only happens once the owner accepts the change, so
+  // the focus request is deferred to after the paint rather than forced.
+  const tabRefs = useRef(new Map<string, HTMLButtonElement | null>());
+  const pendingFocusRef = useRef(false);
+
+  const selectTab = (item: TabItem) => {
+    if (item.disabled) {
+      return;
+    }
+    if (!allowReselect && item.id === activeId) {
+      return;
+    }
+    if (value === undefined) {
+      setInternalValue(item.id);
+    }
+    onChange?.(item.id, item);
+  };
+
+  useEffect(() => {
+    if (pendingFocusRef.current) {
+      pendingFocusRef.current = false;
+      if (activeId) {
+        const node = tabRefs.current.get(activeId);
+        node?.focus();
+        // In a scrolled bar, focus must also bring the tab into view.
+        node?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+      }
+    }
+  }, [activeId]);
+
+  const handleTabListKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const nextKeys =
+      orientation === "vertical"
+        ? ["ArrowDown", "ArrowRight"]
+        : ["ArrowRight", "ArrowDown"];
+    const prevKeys =
+      orientation === "vertical"
+        ? ["ArrowUp", "ArrowLeft"]
+        : ["ArrowLeft", "ArrowUp"];
+    const dir = nextKeys.includes(event.key)
+      ? 1
+      : prevKeys.includes(event.key)
+        ? -1
+        : event.key === "Home"
+          ? "first"
+          : event.key === "End"
+            ? "last"
+            : 0;
+    if (!dir) {
+      return;
+    }
+    event.preventDefault();
+    const enabled = items.filter((item) => !item.disabled);
+    if (enabled.length === 0) {
+      return;
+    }
+    const currentIndex = enabled.findIndex((item) => item.id === activeId);
+    let target: TabItem | undefined;
+    if (dir === "first") {
+      target = enabled[0];
+    } else if (dir === "last") {
+      target = enabled[enabled.length - 1];
+    } else if (currentIndex === -1) {
+      // Active tab is disabled (or gone): step in from the near end.
+      target = enabled[0];
+    } else {
+      const step = dir === 1 ? 1 : -1;
+      target = enabled[(currentIndex + step + enabled.length) % enabled.length];
+    }
+    if (!target || target.id === activeId) {
+      // Wrap-around onto the same tab (a single enabled tab): keep focus.
+      if (target) {
+        tabRefs.current.get(target.id)?.focus();
+      }
+      return;
+    }
+    pendingFocusRef.current = true;
+    selectTab(target);
+  };
 
   useEffect(() => {
     if (value !== undefined) {
@@ -439,104 +575,192 @@ const Tabs: React.FC<TabsProps> = ({
     return <span className={iconClasses}>{icon}</span>;
   };
 
+  const renderTabButtons = () =>
+    items.map((item, index) => {
+      const isActive = item.id === activeId;
+      const isDisabled = item.disabled;
+      const controlsId = `${panelIdPrefix}-${item.id}`;
+      const baseClassesForItem = classNames(
+        baseTabClasses,
+        sizeConfig.padding,
+        sizeConfig.text,
+        sizeConfig.gap,
+        focusRing(color),
+        focusOffset,
+        config.base,
+        isActive ? config.active : config.inactive,
+        isDisabled && config.disabled,
+        fullWidth && "flex-1 justify-center",
+        isGlass && glassSurfaceClasses,
+        isGlass && isActive && glassActiveRing,
+      );
+      const showDividerAfter = shouldShowDividers && index < items.length - 1;
+
+      return (
+        <React.Fragment key={item.id}>
+          <button
+            type="button"
+            role="tab"
+            id={`tab-${item.id}`}
+            aria-selected={isActive}
+            aria-controls={item.panel !== undefined ? controlsId : undefined}
+            disabled={isDisabled}
+            className={baseClassesForItem}
+            onClick={() => selectTab(item)}
+            tabIndex={isActive ? 0 : -1}
+            ref={(node) => {
+              tabRefs.current.set(item.id, node);
+            }}
+          >
+            {isGlass && glassSpecular ? (
+              <div
+                aria-hidden="true"
+                className={classNames(
+                  "pointer-events-none absolute inset-0 rounded-[inherit]",
+                  glassSpecular,
+                )}
+              />
+            ) : null}
+            {renderTabIcon(item.icon)}
+            <span className="flex min-w-0 flex-col text-left">
+              <span className="truncate">{item.label}</span>
+              {item.description ? (
+                <span className="mt-1 text-xs opacity-70">
+                  {item.description}
+                </span>
+              ) : null}
+            </span>
+            {item.badge ? (
+              <Badge count={item.badge} tone={item.badgeColor} />
+            ) : null}
+          </button>
+          {showDividerAfter ? (
+            <span
+              aria-hidden="true"
+              className={classNames(
+                "pointer-events-none",
+                orientation === "vertical"
+                  ? "mx-0 my-2 h-[2px] rounded-full w-full bg-slate-200 dark:bg-neutral-100/2"
+                  : "mx-2 h-5 rounded-full w-[2px] bg-slate-300 dark:bg-neutral-400",
+              )}
+            />
+          ) : null}
+        </React.Fragment>
+      );
+    });
+
   return (
     <div className={rootClass}>
-      <div
-        role="tablist"
-        aria-orientation={orientation}
-        className={classNames(baseList, "flex-shrink-0 z-10")}
-      >
-        {items.map((item, index) => {
-          const isActive = item.id === activeId;
-          const isDisabled = item.disabled;
-          const controlsId = `${panelIdPrefix}-${item.id}`;
-          const baseClassesForItem = classNames(
-            baseTabClasses,
-            sizeConfig.padding,
-            sizeConfig.text,
-            sizeConfig.gap,
-            focusRing(color),
-            focusOffset,
-            config.base,
-            isActive ? config.active : config.inactive,
-            isDisabled && config.disabled,
-            fullWidth && "flex-1 justify-center",
-            isGlass && glassSurfaceClasses,
-            isGlass && isActive && glassActiveRing,
-          );
-          const showDividerAfter =
-            shouldShowDividers && index < items.length - 1;
-
-          return (
-            <React.Fragment key={item.id}>
-              <button
-                type="button"
-                role="tab"
-                id={`tab-${item.id}`}
-                aria-selected={isActive}
-                aria-controls={
-                  item.panel !== undefined ? controlsId : undefined
-                }
-                disabled={isDisabled}
-                className={baseClassesForItem}
-                onClick={() => {
-                  if (isDisabled) {
-                    return;
-                  }
-                  if (!allowReselect && item.id === activeId) {
-                    return;
-                  }
-                  if (value === undefined) {
-                    setInternalValue(item.id);
-                  }
-                  onChange?.(item.id, item);
-                }}
-                tabIndex={isActive ? 0 : -1}
+      {orientation === "horizontal" ? (
+        <div className={classNames(baseList, "min-w-0 flex-shrink-0 z-10")}>
+          {/*
+            The lanes are kit ScrollAreas with the `hover` variant — the same
+            virtual bars every other scrollable in the kit shows, instead of a
+            browser scrollbar only this one control grows. The viewport stays
+            out of the tab order (`tabIndex={-1}`): the tabs own keyboard
+            scrolling here (arrows + scrollIntoView), so a scroll stop between
+            the bar and the actions would only be friction.
+          */}
+          <ScrollArea
+            variant="hover"
+            tabIndex={-1}
+            className={classNames("min-w-0", hasActions ? "flex-1" : "w-full")}
+          >
+            <div
+              role="tablist"
+              tabIndex={0}
+              aria-orientation={orientation}
+              onKeyDown={handleTabListKeyDown}
+              className={classNames(
+                "flex min-w-full items-center",
+                config.list,
+                shouldShowDividers && "gap-0",
+              )}
+            >
+              {renderTabButtons()}
+            </div>
+          </ScrollArea>
+          {hasActions ? (
+            <ScrollArea
+              variant="hover"
+              tabIndex={-1}
+              className="max-w-tab-actions shrink-0"
+            >
+              <div
+                id="tab-item-actions-end"
+                className={classNames(
+                  "flex items-center gap-1 pr-2",
+                  `text-${actionsTone}-600 dark:text-${actionsTone}-400`,
+                )}
               >
-                {isGlass && glassSpecular ? (
-                  <div
-                    aria-hidden="true"
-                    className={classNames(
-                      "pointer-events-none absolute inset-0 rounded-[inherit]",
-                      glassSpecular,
-                    )}
-                  />
-                ) : null}
-                {renderTabIcon(item.icon)}
-                <span className="flex min-w-0 flex-col text-left">
-                  <span className="truncate">{item.label}</span>
-                  {item.description ? (
-                    <span className="mt-1 text-xs opacity-70">
-                      {item.description}
-                    </span>
-                  ) : null}
-                </span>
-                {item.badge ? (
-                  <Badge count={item.badge} tone={item.badgeColor} />
-                ) : null}
-              </button>
-              {showDividerAfter ? (
-                <span
-                  aria-hidden="true"
-                  className={classNames(
-                    "pointer-events-none",
-                    orientation === "vertical"
-                      ? "mx-0 my-2 h-[2px] rounded-full w-full bg-slate-200 dark:bg-neutral-100/2"
-                      : "mx-2 h-5 rounded-full w-[2px] bg-slate-300 dark:bg-neutral-400",
-                  )}
-                />
-              ) : null}
-            </React.Fragment>
-          );
-        })}
-        {hasActions ? (
-          <>
-            <div className="flex-grow" />
+                {activeActions?.map((action, idx) =>
+                  action.node ? (
+                    <React.Fragment key={action.id ?? `tab-action-${idx}`}>
+                      {action.node}
+                    </React.Fragment>
+                  ) : action.icon ? (
+                    <IconButton
+                      key={action.id ?? `tab-action-${idx}`}
+                      color={action.color ?? actionsTone}
+                      variant="ghost"
+                      tooltip={
+                        typeof action.label === "string"
+                          ? action.label
+                          : undefined
+                      }
+                      icon={action.icon}
+                      size={size}
+                      aria-pressed={action.active || undefined}
+                      aria-label={
+                        typeof action.label === "string"
+                          ? action.label
+                          : `Action ${idx + 1}`
+                      }
+                      onClick={action.onClick ?? (() => undefined)}
+                      className={classNames(
+                        action.active
+                          ? getButtonActiveClasses(
+                              "ghost",
+                              action.color ?? actionsTone,
+                            )
+                          : undefined,
+                      )}
+                    />
+                  ) : null,
+                )}
+              </div>
+            </ScrollArea>
+          ) : null}
+        </div>
+      ) : (
+        /*
+          Vertical: a column of its own — the tab lane scrolls (ScrollArea,
+          `hover` variant), and the actions sit OUTSIDE the scroll: always
+          visible below it, never cut at the fold. The panels keep the rest
+          of the height untouched.
+        */
+        <div className="flex h-full min-h-0 flex-shrink-0 flex-col">
+          <ScrollArea variant="hover" tabIndex={-1} className="min-h-0 flex-1">
+            <div
+              role="tablist"
+              tabIndex={0}
+              aria-orientation={orientation}
+              onKeyDown={handleTabListKeyDown}
+              className={classNames(
+                "flex min-h-full flex-col",
+                config.list,
+                shouldShowDividers && "gap-0",
+              )}
+            >
+              {renderTabButtons()}
+            </div>
+          </ScrollArea>
+          {hasActions ? (
             <div
               id="tab-item-actions-end"
               className={classNames(
-                "flex items-center gap-1 pr-2 text-neutral-400 dark:text-neutral-500",
-                orientation === "vertical" && "justify-end",
+                "flex flex-shrink-0 items-center justify-end gap-1 p-2",
+                `text-${actionsTone}-600 dark:text-${actionsTone}-400`,
               )}
             >
               {activeActions?.map((action, idx) =>
@@ -547,9 +771,13 @@ const Tabs: React.FC<TabsProps> = ({
                 ) : action.icon ? (
                   <IconButton
                     key={action.id ?? `tab-action-${idx}`}
-                    accent={true}
-                    color={action.color ?? color}
-                    accentColor={action.color ?? color}
+                    color={action.color ?? actionsTone}
+                    variant="ghost"
+                    tooltip={
+                      typeof action.label === "string"
+                        ? action.label
+                        : undefined
+                    }
                     icon={action.icon}
                     size={size}
                     aria-pressed={action.active || undefined}
@@ -560,15 +788,20 @@ const Tabs: React.FC<TabsProps> = ({
                     }
                     onClick={action.onClick ?? (() => undefined)}
                     className={classNames(
-                      `${action.active && iconAccentActive[action.color ?? color]}`,
+                      action.active
+                        ? getButtonActiveClasses(
+                            "ghost",
+                            action.color ?? actionsTone,
+                          )
+                        : undefined,
                     )}
                   />
                 ) : null,
               )}
             </div>
-          </>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      )}
       {items.map((item) => {
         if (item.panel === undefined) {
           return null;
@@ -584,29 +817,28 @@ const Tabs: React.FC<TabsProps> = ({
             hidden={!isActive}
             aria-hidden={!isActive}
             className={classNames(
-              "focus:outline-none flex-1 min-h-0",
-              scrollFade
-                ? "relative overflow-hidden"
-                : "overflow-auto scrollbar-thin",
+              // Panels scroll through the kit's own `ScrollArea` — the same
+              // virtual overlay bars the tab lanes get, identical on every
+              // browser. This replaces the old `-webkit-scrollbar` hope and
+              // the colour-gradient overlay that "faded" content under the
+              // tab bar: an opaque tint painted over the top edge, which
+              // matched only a literally-white panel and clipped the first
+              // row even when nothing could scroll above it.
+              "focus:outline-none flex flex-1 min-h-0 flex-col",
               isActive ? panelClassName : "hidden",
             )}
           >
-            {scrollFade ? (
-              <>
-                <div
-                  aria-hidden
-                  className={classNames(
-                    "pointer-events-none absolute inset-x-0 top-0 h-8 z-10 bg-gradient-to-b to-transparent",
-                    scrollFadeFrom,
-                  )}
-                />
-                <div className="overflow-auto h-full scrollbar-thin">
-                  {item.panel}
-                </div>
-              </>
-            ) : (
-              item.panel
-            )}
+            <ScrollArea
+              variant="hover"
+              tabIndex={-1}
+              className="min-h-0 flex-1"
+              // The content wrapper is `table` (auto-height) for horizontal
+              // overflow; `h-full` keeps the height chain unbroken for
+              // panels that fill their tab (Chat's message list, for one).
+              contentClassName="h-full"
+            >
+              {item.panel}
+            </ScrollArea>
           </div>
         );
       })}

@@ -1,6 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { cleanup } from "@testing-library/react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import SearchBar from "./SearchBar";
+import { I18nProvider } from "../i18n/I18nContext";
+
+afterEach(cleanup);
 import {
   CONTROL_SIZES,
   GLOW_INTENSITIES,
@@ -29,7 +33,9 @@ describe("SearchBar — tone tokens", () => {
   });
 
   it("gives the clear button a real focus-ring class", () => {
-    render(<SearchBar onSearch={() => {}} color="emerald" initialValue="abc" />);
+    render(
+      <SearchBar onSearch={() => {}} color="emerald" initialValue="abc" />,
+    );
     const clear = screen.getByLabelText("Clear search");
 
     // This used to be built at runtime with
@@ -82,7 +88,9 @@ describe("SearchBar — surfaces", () => {
 
     expect(cls).toContain("backdrop-blur-md");
     expect(cls).toContain("bg-white/45");
-    expect(cls).toContain("border-white/50");
+    // The rim must survive a plain light backdrop, which white/50 did not.
+    expect(cls).toContain("border-black/15");
+    expect(cls).toContain("dark:border-white/15");
   });
 
   it("supports the whole shared control scale", () => {
@@ -106,7 +114,11 @@ describe("SearchBar — surfaces", () => {
   it("accepts every glow intensity", () => {
     for (const glowIntensity of GLOW_INTENSITIES) {
       const { unmount } = render(
-        <SearchBar onSearch={() => {}} variant="gradient" glowIntensity={glowIntensity} />,
+        <SearchBar
+          onSearch={() => {}}
+          variant="gradient"
+          glowIntensity={glowIntensity}
+        />,
       );
       unmount();
     }
@@ -117,8 +129,8 @@ describe("SearchBar — surfaces", () => {
       <SearchBar onSearch={() => {}} variant="gradient" color="emerald" />,
     );
     const glow = container.querySelector("[aria-hidden]") as HTMLElement;
-    expect(glow.style.background).toContain("var(--color-emerald-600)");
-    expect(glow.style.background).toContain("var(--color-emerald-400)");
+    expect(glow.style.boxShadow).toContain("var(--color-emerald-600)");
+    expect(glow.style.boxShadow).toContain("var(--color-emerald-400)");
 
     const { container: custom } = render(
       <SearchBar
@@ -129,9 +141,10 @@ describe("SearchBar — surfaces", () => {
       />,
     );
     const customGlow = custom.querySelector("[aria-hidden]") as HTMLElement;
-    // jsdom normalises hex to rgb() in inline styles.
-    expect(customGlow.style.background).toContain("rgb(255, 0, 0)");
-    expect(customGlow.style.background).toContain("rgb(0, 255, 0)");
+    // The shadow carries the custom stops verbatim (jsdom keeps hex in
+    // `boxShadow`, unlike `background`).
+    expect(customGlow.style.boxShadow).toContain("#ff0000");
+    expect(customGlow.style.boxShadow).toContain("#00ff00");
   });
 });
 
@@ -166,5 +179,64 @@ describe("SearchBar — behaviour", () => {
     expect(onSearch).toHaveBeenCalled();
     const calls = onSearch.mock.calls;
     expect(calls[calls.length - 1][0]).toBe("widgets");
+  });
+});
+
+describe("SearchBar — loading", () => {
+  it("swaps the leading glyph for a spinner and reports busy", () => {
+    const { container, rerender } = render(
+      <SearchBar onSearch={() => {}} leadingIcon="Search" />,
+    );
+    const bar = () => container.querySelector("[aria-busy]");
+    expect(bar()).toBeNull();
+
+    rerender(<SearchBar onSearch={() => {}} leadingIcon="Search" loading />);
+    expect(bar()!.getAttribute("aria-busy")).toBe("true");
+    expect(
+      container.querySelector("span[class*='rounded-full']"),
+    ).not.toBeNull();
+  });
+
+  it("keeps the input typable while a search is in flight", () => {
+    // Unlike a Picker, which has nothing to offer until its list lands, the
+    // whole point of a search bar is that you keep typing — disabling it would
+    // swallow keystrokes and fight the debounce.
+    const onSearch = vi.fn();
+    render(<SearchBar onSearch={onSearch} loading autoSearch={false} />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input).not.toBeDisabled();
+    fireEvent.change(input, { target: { value: "abc" } });
+    expect(input.value).toBe("abc");
+  });
+
+  it("still lets the query be cleared while loading", () => {
+    render(<SearchBar onSearch={() => {}} initialValue="abc" loading />);
+    const clear = screen.getByRole("button", { name: "Clear search" });
+    fireEvent.click(clear);
+    expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("");
+  });
+});
+
+describe("i18n", () => {
+  it("names the clear button and the placeholder from the catalog", () => {
+    const { rerender } = render(
+      <SearchBar placeholder="Find capsules..." onSearch={() => {}} />,
+    );
+    // en renders the caller's placeholder and the byte-identical aria name.
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "x" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Clear search" }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
+        <SearchBar onSearch={() => {}} />
+      </I18nProvider>,
+    );
+    const input = screen.getByRole("textbox");
+    // de catalog: no caller placeholder — the translated default shows.
+    expect(input.getAttribute("placeholder")).toBe("Suchen...");
   });
 });

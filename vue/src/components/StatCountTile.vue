@@ -26,6 +26,10 @@ export interface StatCountTileProps {
     icon?: IconName;
     message?: string;
     onRetry?: () => void;
+    /**
+     * @deprecated Never read. The item renders as plain icon + text, so
+     * this was declared and ignored (§5.3).
+     */
     variant?: "text" | "badge";
   } | null;
 }
@@ -37,6 +41,7 @@ import classNames from "classnames";
 import Panel from "./Panel.vue";
 import Loader from "./Loader.vue";
 import CustomIcon from "./CustomIcon.vue";
+import Button from "./Button.vue";
 import { getStatTileColorClasses } from "../theme";
 import { useClassAttrs } from "../utils/attrsUtils";
 
@@ -171,13 +176,17 @@ const countClass = computed(() =>
         >
           {{ error.message || "Failed to load data" }}
         </p>
-        <button
+        <!-- Was a bare `<button class="text-blue-600 …">`: a hardcoded blue
+             with no dark-mode partner and no focus ring. -->
+        <Button
           v-if="error.onRetry"
-          class="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline focus:outline-none"
+          variant="link"
+          size="xs"
+          :color="color"
           @click.stop="error.onRetry?.()"
         >
           Try Again
-        </button>
+        </Button>
       </div>
       <template v-else>
         <div :class="countWrapperClass">

@@ -31,9 +31,12 @@ export interface SidePanelProps {
 <script setup lang="ts">
 import { computed, getCurrentInstance, ref, watch } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import IconButton from "./IconButton.vue";
 import VNodeRenderer from "./internal/VNodeRenderer";
 import { useClassAttrs } from "../utils/attrsUtils";
+
+const t = useKitT();
 
 /**
  * SidePanel — slides in from the right as a fixed overlay.
@@ -202,7 +205,7 @@ const innerClass = computed(() =>
             :size="closeIconSize"
             variant="ghost"
             color="slate"
-            aria-label="Close panel"
+            :aria-label="t('kit.sidepanel.closeAria')"
             @click="emit('close')"
           />
         </div>

@@ -1,46 +1,66 @@
 import React from "react";
 import classNames from "classnames";
-import { Progress, SpinnerColor } from "./index";
+import Progress, { type ProgressProps } from "./Progress";
+import type { ControlSize, TrueColor } from "../theme/Theme";
 
-export interface MetricBarProps extends React.HTMLAttributes<HTMLDivElement> {
-  label: string;
-  value: string;
+export interface MetricBarProps
+  extends Omit<
+    ProgressProps,
+    // Owned by this component: the caption is `label`, and the right-hand text
+    // is `value` (free-form, not a formatted percentage).
+    "label" | "formatValue" | "showValue" | "color" | "children" | "value"
+  > {
+  /** Caption on the left. Also becomes the bar's accessible name. */
+  label: React.ReactNode;
+  /**
+   * Free-form reading shown on the right — "12 / 20 GB", "4 runs", "87%".
+   * This is display text, not the bar's geometry: `percentage` drives the fill.
+   */
+  value?: React.ReactNode;
+  /** Fill percentage, 0–100. */
   percentage: number;
-  color?: SpinnerColor;
-  showShimmer?: boolean;
+  /** @default "blue" */
+  color?: TrueColor;
+  /** Alias for `color`, matching the rest of the kit. */
+  tone?: TrueColor;
+  /** @default "sm" */
+  size?: ControlSize;
 }
 
+/**
+ * A labelled progress row: caption on the left, reading on the right, bar
+ * underneath.
+ *
+ * It renders `Progress` rather than drawing its own header. The hand-rolled
+ * one published no accessible name, so the `role="progressbar"` underneath it
+ * was announced as just "progress bar" — `Progress` already wires its `label`
+ * as `aria-labelledby`. That also brings the whole size ladder, every tone and
+ * the motion props, none of which this component used to expose.
+ */
 export const MetricBar: React.FC<MetricBarProps> = ({
   label,
   value,
   percentage,
-  color = "blue",
-  showShimmer = false,
+  color,
+  tone,
+  size = "sm",
   className,
   ...rest
-}) => {
-  return (
-    <div
-      className={classNames("flex flex-col gap-1.5 w-full", className)}
-      {...rest}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-          {label}
-        </span>
-        <span className="text-xs text-neutral-600 dark:text-neutral-300">
-          {value}
-        </span>
-      </div>
-      <Progress
-        value={percentage}
-        size="sm"
-        color={color}
-        showShimmer={showShimmer}
-      />
-    </div>
-  );
-};
+}) => (
+  <Progress
+    {...rest}
+    value={percentage}
+    label={label}
+    // `showValue` puts the reading in Progress's own header row; `formatValue`
+    // replaces the computed percentage with the caller's text when they gave
+    // one, and falls back to the percentage when they did not.
+    showValue={value !== undefined}
+    formatValue={value !== undefined ? () => String(value) : undefined}
+    size={size}
+    color={tone ?? color ?? "blue"}
+    className={classNames("w-full", className)}
+  />
+);
 
 MetricBar.displayName = "MetricBar";
 export default MetricBar;

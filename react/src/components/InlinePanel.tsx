@@ -16,7 +16,9 @@ import {
   type ButtonVariant,
   type ButtonColor,
 } from ".";
+import { useKitT } from "../i18n";
 import type { Size } from "../theme";
+import { THIN_SCROLLBAR } from "../theme";
 import { type IconName } from "../icons/registry";
 import { renderIcon } from "../utils/renderIcon";
 
@@ -159,6 +161,7 @@ const InlinePanel: React.FC<InlinePanelProps> = ({
   style,
   ...rest
 }) => {
+  const t = useKitT();
   const contentRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -426,7 +429,7 @@ const InlinePanel: React.FC<InlinePanelProps> = ({
                 variant="ghost"
                 color="slate"
                 size="sm"
-                aria-label="Close"
+                aria-label={t("kit.inlinepanel.close")}
                 onClick={onClose}
               />
             )}
@@ -457,7 +460,7 @@ const InlinePanel: React.FC<InlinePanelProps> = ({
             id={bodyHeader ? undefined : bodyId}
             className={classNames(
               "relative flex-1 min-h-0 overflow-y-auto px-6 py-5",
-              "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700",
+              THIN_SCROLLBAR,
               bodyClassName,
               loading && "pointer-events-none",
             )}
@@ -500,8 +503,8 @@ export interface ConfirmInlinePanelProps
 export const ConfirmInlinePanel: React.FC<ConfirmInlinePanelProps> = ({
   onConfirm,
   onClose,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   confirmVariant = "solid",
   confirmColor = "blue",
   isConfirmDisabled = false,
@@ -510,7 +513,11 @@ export const ConfirmInlinePanel: React.FC<ConfirmInlinePanelProps> = ({
   size = "sm",
   children,
   ...props
-}) => (
+}) => {
+  const t = useKitT();
+  const resolvedConfirmLabel = confirmLabel ?? t("kit.inlinepanel.confirm");
+  const resolvedCancelLabel = cancelLabel ?? t("kit.inlinepanel.cancel");
+  return (
   <InlinePanel
     {...props}
     anchor={anchor}
@@ -521,7 +528,7 @@ export const ConfirmInlinePanel: React.FC<ConfirmInlinePanelProps> = ({
     actions={
       <>
         <Button variant="soft" color="slate" size="sm" onClick={onClose}>
-          {cancelLabel}
+          {resolvedCancelLabel}
         </Button>
         <Button
           variant={confirmVariant}
@@ -530,14 +537,15 @@ export const ConfirmInlinePanel: React.FC<ConfirmInlinePanelProps> = ({
           disabled={isConfirmDisabled}
           onClick={onConfirm}
         >
-          {confirmLabel}
+          {resolvedConfirmLabel}
         </Button>
       </>
     }
   >
     {children ?? null}
   </InlinePanel>
-);
+  );
+};
 
 ConfirmInlinePanel.displayName = "ConfirmInlinePanel";
 
@@ -559,15 +567,20 @@ export const DeleteConfirmInlinePanel: React.FC<
   DeleteConfirmInlinePanelProps
 > = ({
   confirmValue,
-  confirmValueLabel = "name",
-  confirmLabel = "Delete",
+  confirmValueLabel,
+  confirmLabel,
   onConfirm,
   onClose,
   isConfirmDisabled,
   children,
-  cancelLabel = "Cancel",
+  cancelLabel,
   ...props
 }) => {
+  const t = useKitT();
+  const resolvedConfirmLabel = confirmLabel ?? t("kit.inlinepanel.delete");
+  const resolvedCancelLabel = cancelLabel ?? t("kit.inlinepanel.cancel");
+  const resolvedConfirmValueLabel =
+    confirmValueLabel ?? t("kit.inlinepanel.confirmValueLabel");
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const isMatch = inputValue === confirmValue;
@@ -581,8 +594,8 @@ export const DeleteConfirmInlinePanel: React.FC<
       {...props}
       onClose={onClose}
       onConfirm={onConfirm}
-      confirmLabel={confirmLabel}
-      cancelLabel={cancelLabel}
+      confirmLabel={resolvedConfirmLabel}
+      cancelLabel={resolvedCancelLabel}
       confirmVariant="solid"
       confirmColor="rose"
       isConfirmDisabled={!isMatch || isConfirmDisabled}
@@ -591,11 +604,11 @@ export const DeleteConfirmInlinePanel: React.FC<
       {children}
       <div className="flex flex-col gap-2 pt-1">
         <label className="text-sm text-neutral-600 dark:text-neutral-400">
-          Type the {confirmValueLabel}{" "}
+          {t("kit.inlinepanel.typeValuePrefix")} {resolvedConfirmValueLabel}{" "}
           <span className="font-mono font-semibold text-neutral-800 dark:text-neutral-200">
             {confirmValue}
           </span>{" "}
-          to confirm:
+          {t("kit.inlinepanel.typeValueSuffix")}
         </label>
         <input
           ref={inputRef}

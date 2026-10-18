@@ -48,6 +48,14 @@ export interface CheckboxProps {
    */
   variant?: CheckboxVariant;
   /** @default "blue" */
+  /**
+   * Accent colour. Every other control in the kit names this `tone` with
+   * `color` as the alias; `Checkbox` had only `color`, so a form written
+   * against the shared name silently fell back to blue.
+   * @default "blue"
+   */
+  tone?: TrueColor;
+  /** Alias for `tone`. */
   color?: TrueColor;
   /** Native tri-state. Also announced as `aria-checked="mixed"`. */
   indeterminate?: boolean;
@@ -137,7 +145,8 @@ const props = withDefaults(defineProps<CheckboxProps>(), {
   descriptionPlacement: "bottom",
   size: "md",
   variant: "flat",
-  color: "blue",
+  // Left unset: `tone` is the primary and falls back to blue itself, so a
+  // default here would beat a caller who passed only `tone`.
   indeterminate: false,
   fullWidth: false,
   controlAlign: "left",
@@ -188,7 +197,8 @@ const describedBy = computed(
 );
 
 const sizeStyles = computed(() => SIZE_STYLES[props.size] ?? SIZE_STYLES.md);
-const tokens = computed(() => getCheckboxControlTokens(props.color));
+const accent = computed<TrueColor>(() => props.tone ?? props.color ?? "blue");
+const tokens = computed(() => getCheckboxControlTokens(accent.value));
 const surface = computed(() => getCheckboxVariantTokens(props.variant));
 const hasError = computed(() => props.validationStatus === "error");
 

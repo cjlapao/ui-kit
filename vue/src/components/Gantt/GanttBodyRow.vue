@@ -1,0 +1,272 @@
+<script lang="ts">
+import type {
+  GanttBarGeometry,
+  GanttColumn,
+  GanttLabels,
+  GanttRow,
+  GanttTask,
+  TrueColor,
+} from "../../../../common/gantt";
+import type { VNodeChild } from "vue";
+export interface GanttBodyRowProps {
+  row: GanttRow;
+  columns: GanttColumn[];
+  leftWidth: number;
+  timelineWidth: number;
+  rangeStart: number;
+  zoom: number;
+  color: TrueColor;
+  interactive: boolean;
+  /** Static port slots on this bar's edges (offsets from centre) — the
+   *  hover link handles avoid the fan and sit on the largest free slot. */
+  fanOut?: number[];
+  fanIn?: number[];
+  selected: boolean;
+  labels: GanttLabels;
+  /** Locale for date/aria strings. */
+  locale?: string;
+  renderCell?: (value: unknown, task: GanttTask, column: GanttColumn) => VNodeChild | null;
+  renderBar?: (task: GanttTask, geo: GanttBarGeometry) => VNodeChild;
+  drag: { taskId: string; kind: string } | null;
+  liveDates: { start: number; end: number } | null;
+  /** Live percent complete (0..1) while this row's progress knob is dragged. */
+  liveProgress?: number | null;
+  /** Live lane roll-up (0..1) while one of the lane's children is dragged. */
+  liveLane?: number | null;
+  /** Live group roll-up (0..1) while one of this row's descendants is dragged. */
+  liveRollup?: number | null;
+  selectionTokens: { ring: string; row: string };
+  /**
+   * Hairline divider classes (border colour) for row / cell edges — the
+   * Gantt passes its Panel surface divider so hairlines follow the variant.
+   */
+  dividerClass?: string;
+}
+export interface GanttBodyRowEmits {
+  (e: "grip-pointer-down", rowKey: string, task: GanttTask, ev: PointerEvent): void;
+  (e: "bar-pointer-down", task: GanttTask, ev: PointerEvent): void;
+  (e: "resize-pointer-down", task: GanttTask, edge: "start" | "end", ev: PointerEvent): void;
+  (e: "link-handle-pointer-down", task: GanttTask, side: 1 | -1, ev: PointerEvent, fromOffset?: number): void;
+  (e: "progress-pointer-down", task: GanttTask, ev: PointerEvent): void;
+  (e: "caret-click", taskId: string, isOpen: boolean): void;
+  (e: "lane-caret-click", laneId: string, isOpen: boolean): void;
+  (e: "select", id: string): void;
+  (e: "bar-keydown", ev: KeyboardEvent, task: GanttTask): void;
+}
+</script>
+
+<script setup lang="ts">
+import { computed } from "vue";
+import { useKitT } from "../../i18n";
+import classNames from "classnames";
+import { getGanttLaneTokens } from "../../../../common/gantt";
+import GanttCell from "./GanttCell.vue";
+import GanttTaskBar from "./GanttTaskBar.vue";
+import VNodeRenderer from "../internal/VNodeRenderer";
+import { useIconRenderer } from "../../contexts/IconContext";
+
+defineOptions({ name: "GanttBodyRow" });
+const props = defineProps<GanttBodyRowProps>();
+const emit = defineEmits<GanttBodyRowEmits>();
+const t = useKitT();
+const renderIcon = useIconRenderer();
+
+// Hairline colour following the Gantt's surface variant (solid → neutral,
+// translucent → the glass divider).
+const divider = computed(() => props.dividerClass ?? "border-neutral-100 dark:border-neutral-800");
+
+const isDraggingThis = computed(
+  () => props.row.task != null && props.drag?.taskId === props.row.task.id,
+);
+// While this row's reorder drag is live, the row sits in its previewed slot
+// (fully visible) with an accent cue on the grip and the row itself.
+const reorderDragging = computed(
+  () => isDraggingThis.value && props.drag?.kind === "reorder",
+);
+
+// Lane header derived values.
+const lane = computed(() => props.row.lane!);
+const laneColor = computed(() => lane.value.color ?? props.color);
+const laneTokens = computed(() => getGanttLaneTokens(laneColor.value));
+const laneIsOpen = computed(() => lane.value.open !== false);
+const lanePct = computed(
+  () => Math.round(((props.liveLane ?? props.row.progress) ?? 0) * 100),
+);
+</script>
+
+<template>
+  <div
+    :data-row-key="row.key"
+    :class="
+      classNames(
+        // No overflow here: an overflow-hidden row root would become the
+        // sticky halves' (non-scrolling) scrollport and stop them pinning to
+        // the left edge while the timeline scrolls. The halves pin the
+        // rendered row to its model height by clipping their own content
+        // (their `min-height: auto` content can exceed the row with roomier
+        // font metrics — zoom/DPI/fallback fonts).
+        'group/row relative flex',
+        selected && selectionTokens.row,
+      )
+    "
+    :style="{
+      height: row.height,
+      ...(reorderDragging
+        ? {
+            background: `color-mix(in srgb, var(--color-${color}-500) 7%, transparent)`,
+            boxShadow: `inset 2px 0 0 var(--color-${color}-500)`,
+          }
+        : {}),
+    }"
+  >
+    <!-- ── Lane header ──────────────────────────────────────────── -->
+    <!-- Left block zoned to the same column geometry as task rows so the
+         lane progress sits in the Progress column. The tint sits on an
+         opaque surface so the scrolling timeline never shows through the
+         fixed lane cells; border-b lives on the halves (full row height)
+         so nothing pokes through the bottom pixel row under the sticky. -->
+    <template v-if="row.task == null">
+      <div
+        :class="
+          classNames(
+            'sticky left-0 z-20 flex items-stretch overflow-hidden border-r border-b bg-white dark:bg-neutral-900',
+            divider,
+          )
+        "
+        :style="{ width: leftWidth }"
+      >
+        <div :class="classNames('pointer-events-none absolute inset-0', laneTokens.band)" />
+        <div class="relative flex w-9 shrink-0 items-center justify-center">
+          <button
+            type="button"
+            class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-neutral-500 hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-neutral-400 dark:text-neutral-400 dark:hover:bg-white/10"
+            :aria-label="t(laneIsOpen ? 'kit.gantt.collapse' : 'kit.gantt.expand', { name: lane.label })"
+            @click="emit('lane-caret-click', lane.id, laneIsOpen)"
+          >
+            <VNodeRenderer
+              :nodes="renderIcon('ChevronRight', undefined, classNames('h-3 w-3 transition-transform', laneIsOpen && 'rotate-90'))"
+            />
+          </button>
+        </div>
+        <div
+          v-for="(col, i) in columns"
+          :key="col.key"
+          :class="
+            classNames(
+              'relative flex shrink-0 items-center gap-2 overflow-hidden border-r px-2 last:border-r-0',
+              divider,
+            )
+          "
+          :style="{ width: col.width ?? '160px' }"
+        >
+          <template v-if="i === 0">
+            <span :class="classNames('truncate text-[13px] font-semibold', laneTokens.label)">
+              {{ lane.label }}
+            </span>
+            <span
+              v-if="lane.description"
+              class="hidden truncate text-[11px] text-neutral-500 dark:text-neutral-400 lg:inline"
+            >
+              {{ lane.description }}
+            </span>
+            <span
+              v-if="row.childCount > 0"
+              class="shrink-0 rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+            >
+              {{ row.childCount }}
+            </span>
+          </template>
+          <span v-else-if="col.key === 'progress'" class="flex w-full items-center gap-1.5">
+            <span class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-neutral-200/80 dark:bg-white/10">
+              <span :class="classNames('block h-full rounded-full', laneTokens.chip)" :style="{ width: `${lanePct}%` }" />
+            </span>
+            <span class="w-7 shrink-0 text-right text-[10px] font-semibold tabular-nums text-neutral-500 dark:text-neutral-400">
+              {{ lanePct }}%
+            </span>
+          </span>
+        </div>
+      </div>
+      <div :class="classNames('relative min-w-0 flex-1 border-b', divider)">
+        <div :class="classNames('absolute inset-0', laneTokens.band)" />
+      </div>
+    </template>
+
+    <!-- ── Task row ─────────────────────────────────────────────── -->
+    <template v-else>
+      <!-- Left cells (border-r keeps the fixed/timeline divider continuous
+           with the header and lane rows; border-b on the halves: see the
+           lane header note) -->
+      <div
+        :class="
+          classNames('sticky left-0 z-20 flex items-stretch overflow-hidden border-r border-b bg-white dark:bg-neutral-900', divider)
+        "
+        :style="{ width: leftWidth }"
+      >
+        <div class="flex w-9 shrink-0 items-center justify-center">
+          <span
+            v-if="interactive && !row.task.locked"
+            :class="
+              classNames(
+                'flex cursor-grab touch-none items-center text-neutral-300 transition-opacity active:cursor-grabbing dark:text-neutral-600',
+                reorderDragging
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover/row:opacity-100',
+              )
+            "
+            :style="reorderDragging ? { color: `var(--color-${color}-500)` } : undefined"
+            :title="t('kit.gantt.dragReorder')"
+            aria-hidden="true"
+            @pointerdown="emit('grip-pointer-down', row.key, row.task!, $event)"
+          >
+            <VNodeRenderer :nodes="renderIcon('Drag', undefined, 'h-3.5 w-3.5')" />
+          </span>
+        </div>
+        <GanttCell
+          v-for="(col, i) in columns"
+          :key="col.key"
+          :col="col"
+          :task="row.task!"
+          :depth="row.depth"
+          :is-group="row.isGroup"
+          :child-count="row.childCount"
+          :first="i === 0"
+          :render-cell="renderCell"
+          :live-progress="isDraggingThis ? liveProgress : null"
+          :live-rollup="row.isGroup ? liveRollup : null"
+          :row-progress="row.progress ?? null"
+          :divider-class="divider"
+          @caret-click="(id, open) => emit('caret-click', id, open)"
+        />
+      </div>
+
+      <!-- Timeline cell -->
+      <div :class="classNames('relative shrink-0 border-b', divider)" :style="{ width: timelineWidth }">
+        <GanttTaskBar
+          :task="row.task!"
+          :row="row"
+          :range-start="rangeStart"
+          :zoom="zoom"
+          :color="color"
+          :interactive="interactive"
+          :fan-out="fanOut"
+          :fan-in="fanIn"
+          :selected="selected"
+          :labels="labels"
+          :locale="locale"
+          :is-dragging-this="isDraggingThis"
+          :live-dates="isDraggingThis ? liveDates : null"
+          :live-progress="isDraggingThis ? liveProgress : null"
+          :live-rollup="row.isGroup ? liveRollup : null"
+          :render-bar="renderBar"
+          :selection-tokens="selectionTokens"
+          @bar-pointer-down="(t, ev) => emit('bar-pointer-down', t, ev)"
+          @resize-pointer-down="(t, edge, ev) => emit('resize-pointer-down', t, edge, ev)"
+          @link-handle-pointer-down="(t, side, ev, off) => emit('link-handle-pointer-down', t, side, ev, off)"
+          @progress-pointer-down="(t, ev) => emit('progress-pointer-down', t, ev)"
+          @select="(id) => emit('select', id)"
+          @bar-keydown="(ev, t) => emit('bar-keydown', ev, t)"
+        />
+      </div>
+    </template>
+  </div>
+</template>

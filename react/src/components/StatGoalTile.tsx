@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
 import classNames from "classnames";
-import StatTile from "./StatTile";
-import type { StatTileProps } from "./StatTile";
+import StatCard, { type StatCardProps } from "./StatCard";
 import { CustomIcon } from "./CustomIcon";
+import { useSurfaceText } from "../contexts/SurfaceContext";
 import { type IconName } from "../icons/registry";
-import type { TrueColor } from "../theme";
+import type { ControlSize, TrueColor } from "../theme";
 import { getColorPaletteNames } from "../theme";
 
 export interface StatGoalItem {
@@ -16,35 +16,73 @@ export interface StatGoalItem {
   tooltip?: string;
 }
 
+/**
+ * `StatCard` whose body is a stack of circular goal rings. Every base prop
+ * applies unchanged; `goals` is the only addition, and `ringSize` overrides
+ * what the card's `size` implies.
+ */
 export interface StatGoalTileProps
-  extends Omit<StatTileProps, "body" | "value" | "subtitle"> {
+  extends Omit<StatCardProps, "body" | "value" | "subtitle"> {
   goals: StatGoalItem[];
+  /** Overrides the ring diameter the card's `size` implies, in px. */
+  ringSize?: number;
+
+  /** @deprecated Use `label`. */
+  title?: React.ReactNode;
+  /** @deprecated Use `tone`. */
+  color?: TrueColor;
 }
+
+/**
+ * Ring diameter, stroke and copy scale per card size, so a goal tile in an
+ * `xs` grid is not the same physical size as one in an `xl` hero slot. The
+ * ring was a fixed 56px at every size before.
+ */
+const GOAL_TOKENS: Record<
+  ControlSize,
+  { ring: number; stroke: number; icon: ControlSize; value: string; label: string; gap: string }
+> = {
+  xs: { ring: 36, stroke: 3, icon: "xs", value: "text-base", label: "text-[10px]", gap: "gap-2 py-1.5" },
+  sm: { ring: 44, stroke: 3, icon: "sm", value: "text-lg", label: "text-[11px]", gap: "gap-3 py-2" },
+  md: { ring: 56, stroke: 4, icon: "md", value: "text-2xl", label: "text-xs", gap: "gap-4 py-3" },
+  lg: { ring: 68, stroke: 5, icon: "lg", value: "text-3xl", label: "text-sm", gap: "gap-4 py-3.5" },
+  xl: { ring: 80, stroke: 6, icon: "lg", value: "text-4xl", label: "text-sm", gap: "gap-5 py-4" },
+};
 
 const CircularProgress: React.FC<{
   value: number;
   color: TrueColor;
   icon: IconName;
-  size?: number;
-  strokeWidth?: number;
-}> = ({ value, color, icon, size = 56, strokeWidth = 4 }) => {
+  label: string;
+  size: number;
+  strokeWidth: number;
+  iconSize: ControlSize;
+  onGradient: boolean;
+}> = ({ value, color, icon, label, size, strokeWidth, iconSize, onGradient }) => {
   const radius = (size - strokeWidth) / 2 - 1;
   const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (value / 100) * circumference;
-
-  // Map theme colors to hex or specific tailwind classes for stroke
-  // Since we can't easily adhere to "stroke-current" with dynamic colors in SVG stroke attribute without complex mapping or specific classes
-  // We will use standard tailwind text classes on the SVG and use `stroke="currentColor"`
+  // A value outside 0–100 would draw a ring longer than its own circumference,
+  // which reads as a full ring with no way to tell it apart from exactly 100.
+  const clamped = Math.max(0, Math.min(100, value));
+  const offset = circumference - (clamped / 100) * circumference;
 
   return (
     <div
-      className="relative inline-flex items-center justify-center shrink-0"
+      className="relative inline-flex shrink-0 items-center justify-center"
       style={{ width: size, height: size }}
     >
-      <svg className="transform -rotate-90 w-full h-full overflow-visible">
-        {/* Background Circle */}
+      <svg
+        // The ring carried no role and no name — the percentage beside it was
+        // the only thing a screen reader could reach, with nothing tying the
+        // two together.
+        role="img"
+        aria-label={`${label}: ${clamped}%`}
+        className="h-full w-full -rotate-90 transform overflow-visible"
+      >
         <circle
-          className="text-neutral-100 dark:text-neutral-800"
+          className={
+            onGradient ? "text-white/20" : "text-neutral-100 dark:text-neutral-800"
+          }
           strokeWidth={strokeWidth}
           stroke="currentColor"
           fill="transparent"
@@ -52,11 +90,8 @@ const CircularProgress: React.FC<{
           cx={size / 2}
           cy={size / 2}
         />
-        {/* Progress Circle */}
         <circle
-          className={classNames(
-            `text-${color}-500 transition-all duration-1000 ease-out`,
-          )}
+          className={`text-${color}-500 transition-all duration-1000 ease-out`}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -68,56 +103,117 @@ const CircularProgress: React.FC<{
           cy={size / 2}
         />
       </svg>
-      <div className={classNames(`absolute text-${color}-500`)}>
-        <CustomIcon icon={icon} size="md" />
+      <div className={onGradient ? "absolute text-white" : `absolute text-${color}-500`}>
+        <CustomIcon icon={icon} size={iconSize} />
       </div>
     </div>
   );
 };
 
-const StatGoalTile: React.FC<StatGoalTileProps> = ({ goals, ...props }) => {
+/** The goal rows, split out so they can read the surrounding surface tokens. */
+const Goals: React.FC<{
+  goals: (StatGoalItem & { color: TrueColor })[];
+  tokens: (typeof GOAL_TOKENS)[ControlSize];
+  ringSize?: number;
+  onGradient: boolean;
+}> = ({ goals, tokens, ringSize, onGradient }) => {
+  const text = useSurfaceText();
+  return (
+    <div className="flex h-full flex-col justify-center">
+      {goals.map((goal, idx) => (
+        <React.Fragment key={idx}>
+          <div
+            className={classNames(
+              "flex items-center first:pt-0 last:pb-0",
+              tokens.gap,
+            )}
+            title={goal.tooltip}
+          >
+            <CircularProgress
+              value={goal.value}
+              color={goal.color}
+              icon={goal.icon}
+              label={goal.label}
+              size={ringSize ?? tokens.ring}
+              strokeWidth={tokens.stroke}
+              iconSize={tokens.icon}
+              onGradient={onGradient}
+            />
+            <div className="flex min-w-0 flex-col">
+              <span
+                className={classNames(
+                  "font-bold leading-none",
+                  tokens.value,
+                  onGradient ? "text-white" : text.heading,
+                )}
+              >
+                {goal.value}%
+              </span>
+              <span
+                className={classNames(
+                  "mt-1 font-medium",
+                  tokens.label,
+                  onGradient ? "text-white/70" : text.muted,
+                )}
+              >
+                {goal.label}
+              </span>
+            </div>
+          </div>
+          {idx < goals.length - 1 && (
+            <div
+              className={classNames(
+                "my-1 h-px w-full border-t",
+                onGradient ? "border-white/20" : text.divider,
+              )}
+            />
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+};
+
+const StatGoalTile: React.FC<StatGoalTileProps> = ({
+  goals,
+  ringSize,
+  title,
+  color,
+  label,
+  tone,
+  size = "md",
+  gradient = false,
+  ...rest
+}) => {
   const resolvedGoals = useMemo(() => {
     const palette = getColorPaletteNames(goals.length);
-    return goals.map((g, i) => ({
-      ...g,
-      color: (g.color ?? palette[i]) as TrueColor,
+    return goals.map((goal, i) => ({
+      ...goal,
+      color: (goal.color ?? palette[i]) as TrueColor,
     }));
   }, [goals]);
 
+  const tokens = GOAL_TOKENS[size] ?? GOAL_TOKENS.md;
+
   return (
-    <StatTile
-      {...props}
+    <StatCard
+      {...rest}
+      label={label ?? title}
+      tone={tone ?? color}
+      size={size}
+      gradient={gradient}
       body={
-        <div className="flex flex-col h-full justify-center">
-          {resolvedGoals.map((goal, idx) => (
-            <React.Fragment key={idx}>
-              <div
-                className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
-                title={goal.tooltip}
-              >
-                <CircularProgress
-                  value={goal.value}
-                  color={goal.color}
-                  icon={goal.icon}
-                />
-                <div className="flex flex-col">
-                  <span className="text-2xl font-bold text-neutral-900 dark:text-white leading-none">
-                    {goal.value}%
-                  </span>
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-1">
-                    {goal.label}
-                  </span>
-                </div>
-              </div>
-              {idx < goals.length - 1 && (
-                <div className="h-px bg-neutral-100 dark:bg-neutral-800 my-1 w-full" />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
+        <Goals
+          goals={resolvedGoals}
+          tokens={tokens}
+          ringSize={ringSize}
+          onGradient={gradient}
+        />
       }
     />
   );
 };
+
+StatGoalTile.displayName = "StatGoalTile";
 
 export default StatGoalTile;

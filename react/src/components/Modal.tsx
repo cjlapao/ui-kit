@@ -1,4 +1,5 @@
 import classNames from "classnames";
+import { devWarnA11yOnce } from "../../../common/a11y/warn";
 import React, {
   type ReactNode,
   useCallback,
@@ -9,6 +10,7 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useKitT } from "../i18n";
 import {
   Loader,
   Tabs,
@@ -21,7 +23,7 @@ import {
 } from ".";
 import Panel from "./Panel";
 import { type Size as ModalSize } from "../theme";
-import { DEFAULT_SURFACE_CORNER, getSurfaceTextTokens } from "../theme/Theme";
+import { DEFAULT_SURFACE_CORNER, getSurfaceTextTokens, THIN_SCROLLBAR } from "../theme/Theme";
 import type { TrueColor } from "../theme/Theme";
 import type { PanelCorner, PanelSpecularMode, PanelVariant } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
@@ -203,6 +205,19 @@ export interface ModalProps
   responsive?: boolean;
   /** Width below which `responsive` takes over, in pixels. @default 640 */
   responsiveBreakpoint?: number;
+  /**
+   * Render the dialog inside this element rather than at the top of the
+   * document.
+   *
+   * The overlay switches from `fixed` to `absolute`, so it fills the container
+   * instead of the viewport — for a dialog that belongs to one widget and
+   * should not escape it. The container needs a positioning context of its own
+   * (`relative`), which is the caller's job.
+   *
+   * Dragging is disabled when this is set: a dialog scoped to a box that can
+   * be dragged out of that box is a contradiction.
+   */
+  container?: HTMLElement | null;
 
   // ── Surface ───────────────────────────────────────────────────────────────
   /** Corner rounding. Defaults to the same scale the Panels use. */
@@ -265,6 +280,7 @@ const Modal: React.FC<ModalProps> = ({
   headless = false,
   responsive = true,
   responsiveBreakpoint = 640,
+  container,
   corner = DEFAULT_SURFACE_CORNER,
   variant = "elevated",
   tone = "neutral",
@@ -277,7 +293,16 @@ const Modal: React.FC<ModalProps> = ({
   onKeyDown,
   ...rest
 }) => {
+  const t = useKitT();
   const hasDom = isBrowser;
+  // a11y (P1-2): a headless modal drops the title heading, so it must still
+  // carry an explicit name or it is nameless in the dialog list.
+  if (headless && !ariaLabel) {
+    devWarnA11yOnce(
+      "Modal:headless-no-name",
+      "<Modal> is headless and has no ariaLabel — dialogs need an accessible name (WCAG 2.4.1).",
+    );
+  }
   const contentRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -310,7 +335,9 @@ const Modal: React.FC<ModalProps> = ({
 
   /** Narrow viewports fill the screen; a dialog dragged half off a phone is unusable. */
   const isFullScreen = maximized || isNarrow;
-  const canDrag = draggable && !isFullScreen;
+  // A dialog scoped to a container that can be dragged out of that container
+  // is a contradiction, so `container` disables it.
+  const canDrag = draggable && !isFullScreen && !container;
 
   const toggleMaximized = useCallback(() => {
     setMaximized((previous) => {
@@ -445,8 +472,11 @@ const Modal: React.FC<ModalProps> = ({
     ? surfaceTokens.divider
     : "border-neutral-200/70 dark:border-neutral-700/60";
 
+  const isContained = Boolean(container);
   const overlayClasses = classNames(
-    "fixed inset-0 z-[1600] flex min-h-full overflow-y-auto",
+    isContained
+      ? "absolute inset-0 z-40 flex overflow-y-auto"
+      : "fixed inset-0 z-[1600] flex min-h-full overflow-y-auto",
     isFullScreen ? "p-0 sm:p-4" : "px-4 py-6 sm:px-8 sm:py-12",
     // `position` decides where the dialog sits; it was hardcoded to
     // start-then-centre.
@@ -747,7 +777,7 @@ const Modal: React.FC<ModalProps> = ({
             variant="ghost"
             color="slate"
             size="sm"
-            aria-label="Close dialog"
+            aria-label={t("kit.modal.closeAria")}
             onClick={onClose}
           />
         )}
@@ -756,6 +786,9 @@ const Modal: React.FC<ModalProps> = ({
   );
 
   const content = (
+    // Backdrop press closes the dialog; Escape and the close button provide
+    // the keyboard path, so the overlay itself is not an interactive element.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- backdrop close affordance (Escape + close button cover keyboard)
     <div className={overlayClasses} onMouseDown={handleBackdropMouseDown}>
       <Panel
         // The dialog is a card, so it renders one — every surface, tone and
@@ -838,7 +871,7 @@ const Modal: React.FC<ModalProps> = ({
             id={bodyId}
             className={classNames(
               "relative min-h-0 flex-1 overflow-y-auto px-6 py-5",
-              "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent",
+              THIN_SCROLLBAR,
               bodyClassName,
               loading && "pointer-events-none",
             )}
@@ -861,7 +894,7 @@ const Modal: React.FC<ModalProps> = ({
     </div>
   );
 
-  return createPortal(content, document.body);
+  return createPortal(content, container ?? document.body);
 };
 
 interface ConfirmModalProps extends Omit<
@@ -883,8 +916,8 @@ interface ConfirmModalProps extends Omit<
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onClose,
   confirmVariant = "solid",
@@ -894,6 +927,9 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   children,
   ...props
 }) => {
+  const t = useKitT();
+  const resolvedConfirmLabel = confirmLabel ?? t("kit.modal.confirm");
+  const resolvedCancelLabel = cancelLabel ?? t("kit.modal.cancel");
   return (
     <Modal
       {...props}
@@ -906,7 +942,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             onClick={onClose}
             {...cancelButtonProps}
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </Button>
           <Button
             variant={confirmVariant}
@@ -915,7 +951,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             disabled={isConfirmDisabled}
             {...confirmButtonProps}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </Button>
         </ModalActions>
       }
@@ -939,16 +975,21 @@ interface DeleteConfirmModalProps extends Omit<
 const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   confirmValue,
   confirmValueLabel = "name",
-  confirmLabel = "Delete",
+  confirmLabel,
   onConfirm,
   onClose,
   isConfirmDisabled,
   children,
-  cancelLabel = "Cancel",
+  cancelLabel,
   cancelButtonProps,
   confirmButtonProps,
   ...props
 }) => {
+  const t = useKitT();
+  const resolvedConfirmLabel = confirmLabel ?? t("kit.modal.delete");
+  const resolvedCancelLabel = cancelLabel ?? t("kit.modal.cancel");
+  const resolvedConfirmValueLabel =
+    confirmValueLabel ?? t("kit.modal.confirmValueLabel");
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const isMatch = inputValue === confirmValue;
@@ -971,7 +1012,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             onClick={onClose}
             {...cancelButtonProps}
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </Button>
           <Button
             variant="solid"
@@ -980,7 +1021,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             disabled={!isMatch || isConfirmDisabled}
             {...confirmButtonProps}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </Button>
         </ModalActions>
       }
@@ -988,11 +1029,11 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       {children}
       <div className="flex flex-col gap-2 pt-1">
         <label className="text-sm text-neutral-600 dark:text-neutral-400">
-          Type the {confirmValueLabel}{" "}
+          {t("kit.modal.typeValuePrefix")} {resolvedConfirmValueLabel}{" "}
           <span className="font-mono font-semibold text-neutral-800 dark:text-neutral-200">
             {confirmValue}
           </span>{" "}
-          to confirm:
+          {t("kit.modal.typeValueSuffix")}
         </label>
         <input
           ref={inputRef}
@@ -1026,16 +1067,21 @@ interface ApplyConfirmModalProps extends Omit<
 const ApplyConfirmModal: React.FC<ApplyConfirmModalProps> = ({
   confirmValue,
   confirmValueLabel = "name",
-  confirmLabel = "Apply",
+  confirmLabel,
   onConfirm,
   onClose,
   isConfirmDisabled,
   children,
-  cancelLabel = "Cancel",
+  cancelLabel,
   cancelButtonProps,
   confirmButtonProps,
   ...props
 }) => {
+  const t = useKitT();
+  const resolvedConfirmLabel = confirmLabel ?? t("kit.modal.apply");
+  const resolvedCancelLabel = cancelLabel ?? t("kit.modal.cancel");
+  const resolvedConfirmValueLabel =
+    confirmValueLabel ?? t("kit.modal.confirmValueLabel");
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const isMatch = inputValue === confirmValue;
@@ -1058,7 +1104,7 @@ const ApplyConfirmModal: React.FC<ApplyConfirmModalProps> = ({
             onClick={onClose}
             {...cancelButtonProps}
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </Button>
           <Button
             variant="solid"
@@ -1067,7 +1113,7 @@ const ApplyConfirmModal: React.FC<ApplyConfirmModalProps> = ({
             disabled={!isMatch || isConfirmDisabled}
             {...confirmButtonProps}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </Button>
         </ModalActions>
       }
@@ -1075,11 +1121,11 @@ const ApplyConfirmModal: React.FC<ApplyConfirmModalProps> = ({
       {children}
       <div className="flex flex-col gap-2 pt-1">
         <label className="text-sm text-neutral-600 dark:text-neutral-400">
-          Type the {confirmValueLabel}{" "}
+          {t("kit.modal.typeValuePrefix")} {resolvedConfirmValueLabel}{" "}
           <span className="font-mono font-semibold text-neutral-800 dark:text-neutral-200">
             {confirmValue}
           </span>{" "}
-          to confirm:
+          {t("kit.modal.typeValueSuffix")}
         </label>
         <input
           ref={inputRef}

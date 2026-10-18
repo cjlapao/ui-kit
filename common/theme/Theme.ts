@@ -20,12 +20,7 @@ export const BUTTON_VARIANTS = [
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
 
 /** Label weight. Derived from the runtime list for the same reason. */
-export const BUTTON_WEIGHTS = [
-  "normal",
-  "medium",
-  "semibold",
-  "bold",
-] as const;
+export const BUTTON_WEIGHTS = ["normal", "medium", "semibold", "bold"] as const;
 export type ButtonWeight = (typeof BUTTON_WEIGHTS)[number];
 
 /**
@@ -64,6 +59,74 @@ export const TRUE_COLORS = [
  * All components, tokens, and utilities must use TrueColor exclusively.
  */
 export type TrueColor = (typeof TRUE_COLORS)[number];
+
+/**
+ * The fill class for a dot/swatch of each TrueColor: the 500 step in light
+ * mode, the 400 step in dark. Literal per colour — never interpolated — so
+ * Tailwind's scanner always sees them; the helper is what components share.
+ */
+export const TRUE_COLOR_DOT_CLASSES: Record<TrueColor, string> = {
+  red: "bg-red-500 dark:bg-red-400",
+  orange: "bg-orange-500 dark:bg-orange-400",
+  amber: "bg-amber-500 dark:bg-amber-400",
+  yellow: "bg-yellow-500 dark:bg-yellow-400",
+  lime: "bg-lime-500 dark:bg-lime-400",
+  green: "bg-green-500 dark:bg-green-400",
+  emerald: "bg-emerald-500 dark:bg-emerald-400",
+  teal: "bg-teal-500 dark:bg-teal-400",
+  cyan: "bg-cyan-500 dark:bg-cyan-400",
+  sky: "bg-sky-500 dark:bg-sky-400",
+  blue: "bg-blue-500 dark:bg-blue-400",
+  indigo: "bg-indigo-500 dark:bg-indigo-400",
+  violet: "bg-violet-500 dark:bg-violet-400",
+  purple: "bg-purple-500 dark:bg-purple-400",
+  fuchsia: "bg-fuchsia-500 dark:bg-fuchsia-400",
+  rose: "bg-rose-500 dark:bg-rose-400",
+  slate: "bg-slate-500 dark:bg-slate-400",
+  gray: "bg-gray-500 dark:bg-gray-400",
+  zinc: "bg-zinc-500 dark:bg-zinc-400",
+  neutral: "bg-neutral-500 dark:bg-neutral-400",
+  stone: "bg-stone-500 dark:bg-stone-400",
+};
+
+/** Dot/swatch fill for a TrueColor. */
+export function getTrueColorDotClass(tone: TrueColor): string {
+  return TRUE_COLOR_DOT_CLASSES[tone];
+}
+
+/**
+ * The ink class for a TrueColor: the 500 step in light mode, the 400 step
+ * in dark — what SVG strokes (`stroke-current`) and legends use where a
+ * fill class would not apply. Literal per colour, as above.
+ */
+export const TRUE_COLOR_TEXT_CLASSES: Record<TrueColor, string> = {
+  red: "text-red-500 dark:text-red-400",
+  orange: "text-orange-500 dark:text-orange-400",
+  amber: "text-amber-500 dark:text-amber-400",
+  yellow: "text-yellow-500 dark:text-yellow-400",
+  lime: "text-lime-500 dark:text-lime-400",
+  green: "text-green-500 dark:text-green-400",
+  emerald: "text-emerald-500 dark:text-emerald-400",
+  teal: "text-teal-500 dark:text-teal-400",
+  cyan: "text-cyan-500 dark:text-cyan-400",
+  sky: "text-sky-500 dark:text-sky-400",
+  blue: "text-blue-500 dark:text-blue-400",
+  indigo: "text-indigo-500 dark:text-indigo-400",
+  violet: "text-violet-500 dark:text-violet-400",
+  purple: "text-purple-500 dark:text-purple-400",
+  fuchsia: "text-fuchsia-500 dark:text-fuchsia-400",
+  rose: "text-rose-500 dark:text-rose-400",
+  slate: "text-slate-500 dark:text-slate-400",
+  gray: "text-gray-500 dark:text-gray-400",
+  zinc: "text-zinc-500 dark:text-zinc-400",
+  neutral: "text-neutral-500 dark:text-neutral-400",
+  stone: "text-stone-500 dark:text-stone-400",
+};
+
+/** Ink (stroke/text) class for a TrueColor. */
+export function getTrueColorTextClass(tone: TrueColor): string {
+  return TRUE_COLOR_TEXT_CLASSES[tone];
+}
 
 /**
  * Shared size type used across all frameworks and components.
@@ -192,6 +255,14 @@ export const GLOW_INTENSITIES = ["subtle", "soft", "medium", "strong"] as const;
 export type GlowIntensity = (typeof GLOW_INTENSITIES)[number];
 
 /**
+ * The kit's standing glow intensity: the tone reads as a hint at rest and
+ * the field itself brightens it on focus — the glow should never be the
+ * loudest thing in a form. Gradient fields destructure this as their prop
+ * default, and `getGlowTokens` falls back to it.
+ */
+export const DEFAULT_GLOW_INTENSITY: GlowIntensity = "subtle";
+
+/**
  * Surface treatments shared by every text-entry control — `Input`, `Textarea`,
  * `SearchBar`. Defined once here so the three are the same box when they sit
  * next to each other in a form.
@@ -264,8 +335,12 @@ const inputVariantTokens: Record<InputVariant, InputVariantTokens> = {
   // Panel shares its edge treatment. 45% fill, not less: the text is dark in
   // light mode and needs a substrate when the backdrop is not.
   glass: {
+    // The rim is toneless in both schemes — so on a plain light panel a
+    // white/50 edge was invisible and the field lost its shape entirely.
+    // A faint black rim in light mode survives any backdrop; glass on a
+    // glass host reads as the same soft edge.
     surface:
-      "rounded-lg border border-white/50 bg-white/45 backdrop-blur-md shadow-sm dark:border-white/10 dark:bg-white/10",
+      "rounded-lg border border-black/15 bg-white/45 backdrop-blur-md shadow-sm dark:border-white/15 dark:bg-white/10",
     text: INPUT_TEXT_GLASS,
     icon: INPUT_ICON_GLASS,
     translucent: true,
@@ -304,10 +379,184 @@ export const stripBorderColor = (surface: string): string =>
     .filter((token) => token !== "" && !BORDER_COLOR_CLASS.test(token))
     .join(" ");
 
+/**
+ * Matches a text *colour* utility and deliberately not a text *size* one:
+ * `text-sky-500`, `dark:text-white`, `text-black/40` yes; `text-sm`,
+ * `text-base`, `text-[10px]` no. The digit run is what separates them.
+ */
+const TEXT_COLOR_CLASS =
+  /^(?:dark:)?text-(?:[a-z]+-\d{2,3}(?:\/\d+)?|white(?:\/\d+)?|black(?:\/\d+)?|transparent|current|inherit)$/;
+
+/** True when a caller-supplied class string sets a text colour of its own. */
+export const hasTextColor = (className?: string): boolean =>
+  Boolean(className) &&
+  className!.split(/\s+/).some((token) => TEXT_COLOR_CLASS.test(token));
+
+/**
+ * A class string with its text colour removed.
+ *
+ * Same trap as `stripBorderColor`: a component's own `text-neutral-500` and a
+ * caller's `text-emerald-600` are the same specificity, so the winner is
+ * emission order in the built stylesheet — which means a documented override
+ * works for some colours and silently does nothing for others.
+ */
+export const stripTextColor = (className: string): string =>
+  className
+    .split(/\s+/)
+    .filter((token) => token !== "" && !TEXT_COLOR_CLASS.test(token))
+    .join(" ");
+
+/**
+ * The field surface tokens. `corner="auto"` (the default) leaves the radius
+ * baked into the surface in place — `rounded-lg`, the theme's control corner
+ * (`DEFAULT_CONTROL_CORNER`), one step looser than the container default so
+ * a field sits proud of the card it lives in. Any other corner token
+ * replaces it. (`underline` paints no box, so a corner there has nowhere
+ * to land — honestly no-op.)
+ */
 export const getInputVariantTokens = (
   variant: InputVariant,
-): InputVariantTokens =>
-  inputVariantTokens[variant] ?? inputVariantTokens.elevated;
+  tone: TrueColor = "neutral",
+  corner: SurfaceCorner = "auto",
+): InputVariantTokens => {
+  const tokens = inputVariantTokens[variant] ?? inputVariantTokens.elevated;
+  let resolved = tokens;
+  if (variant === "ghost") {
+    // Ghost's whole idea is a soft tonal fill — grey-only made it deaf to the
+    // field's tone, so a `ghost` + `tone="violet"` pair looked like `ghost` +
+    // nothing. Same soft fill, tinted through the tone in both schemes.
+    resolved = {
+      ...tokens,
+      surface: [
+        "rounded-lg border border-transparent",
+        `bg-${tone}-50`,
+        `hover:border-${tone}-200 hover:bg-${tone}-100`,
+        `dark:bg-${tone}-500/10 dark:hover:bg-${tone}-500/20`,
+      ].join(" "),
+    };
+  }
+  if (corner === "auto") return resolved;
+  return {
+    ...resolved,
+    surface: resolved.surface.replace(
+      /rounded-\S+/,
+      getSurfaceCornerClass(corner),
+    ),
+  };
+};
+
+// ── The shared field system ───────────────────────────────────────────────────
+//
+// Tone tokens, padding scale and validation surfaces for every control that
+// draws itself as a *field*: `Input`, `Select`, `SearchBar`, `Picker`. Each of
+// those had grown its own byte-for-byte copy of all three, which is how a
+// control ends up looking almost-but-not-quite like the one beside it — and
+// how `Picker` came to paint a non-inset focus ring and a hardcoded
+// `bg-white` while its siblings used the variant surfaces.
+
+export type FieldToneTokens = {
+  /** Border colour while anything inside the field has focus. */
+  focusBorder: string;
+  /** Glow ring while anything inside the field has focus. */
+  focusRing: string;
+  /** Leading/trailing icon colour while the field has focus. */
+  icon: string;
+  /** Focus ring for an inline trailing button. */
+  buttonFocusRing: string;
+};
+
+const buildFieldToneTokens = (color: TrueColor): FieldToneTokens => ({
+  focusBorder: `focus-within:border-${color}-400`,
+  // Inset. An outer ring is painted outside the border box, so any ancestor
+  // with `overflow: auto|hidden` clips it — `Panel`'s body is `overflow-auto`
+  // by default, which shears the ring off and leaves hard square corners.
+  focusRing: `focus-within:ring-2 focus-within:ring-inset focus-within:ring-${color}-400/60`,
+  icon: `group-focus-within:text-${color}-500`,
+  buttonFocusRing: `focus-visible:ring-${color}-400/60`,
+});
+
+const fieldToneTokens: Record<TrueColor, FieldToneTokens> = Object.fromEntries(
+  TRUE_COLORS.map((color) => [color, buildFieldToneTokens(color)]),
+) as Record<TrueColor, FieldToneTokens>;
+
+export const getFieldToneTokens = (color: TrueColor): FieldToneTokens =>
+  fieldToneTokens[color] ?? fieldToneTokens.blue;
+
+export type FieldSizeTokens = {
+  px: string;
+  py: string;
+  /** `underline` has no box to inset from, and needs room above the rule. */
+  underlinePy: string;
+  text: string;
+  icon: ControlSize;
+  /** Inline trailing button. */
+  button: string;
+};
+
+/** Padding and type scale, so any two fields line up when stacked. */
+export const FIELD_SIZE_STYLES: Record<ControlSize, FieldSizeTokens> = {
+  xs: {
+    px: "px-2",
+    py: "py-1",
+    underlinePy: "pt-1 pb-2",
+    text: "text-xs",
+    icon: "xs",
+    button: "h-4 w-4",
+  },
+  sm: {
+    px: "px-2.5",
+    py: "py-1.5",
+    underlinePy: "pt-1.5 pb-2.5",
+    text: "text-xs",
+    icon: "xs",
+    button: "h-5 w-5",
+  },
+  md: {
+    px: "px-3",
+    py: "py-2",
+    underlinePy: "pt-2 pb-3",
+    text: "text-sm",
+    icon: "sm",
+    button: "h-5 w-5",
+  },
+  lg: {
+    px: "px-4",
+    py: "py-2.5",
+    underlinePy: "pt-2.5 pb-3.5",
+    text: "text-base",
+    icon: "sm",
+    button: "h-6 w-6",
+  },
+  xl: {
+    px: "px-5",
+    py: "py-3",
+    underlinePy: "pt-3 pb-4",
+    text: "text-base",
+    icon: "sm",
+    button: "h-6 w-6",
+  },
+};
+
+export const getFieldSizeTokens = (size: ControlSize): FieldSizeTokens =>
+  FIELD_SIZE_STYLES[size] ?? FIELD_SIZE_STYLES.md;
+
+/**
+ * Border only at rest; the ring is part of the focus state, exactly as it is
+ * for the tone tokens. A status used to add a bare `ring-2 ring-inset` at rest
+ * with no ring *colour* — an unset ring colour resolves to `currentColor`, so
+ * every errored or successful field carried a near-black 2px halo inside its
+ * coloured border.
+ *
+ * These also carry no copy colour. Forcing `text-neutral-900 dark:text-neutral-100`
+ * alongside the border costs an errored `underline` or `glass` field the
+ * high-contrast pair it needs to stay legible over a backdrop.
+ */
+export const FIELD_STATUS_CLASSES: Record<"error" | "success", string> = {
+  error:
+    "border-rose-500 dark:border-rose-400 focus-within:border-rose-500 dark:focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-rose-500/60 dark:focus-within:ring-rose-400/60",
+  success:
+    "border-emerald-500 dark:border-emerald-400 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-500/60 dark:focus-within:ring-emerald-400/60",
+};
 
 /**
  * Surface treatments for containers — `Panel` and anything built on it
@@ -325,6 +574,35 @@ export const SURFACE_VARIANTS = [
   "liquid-glass",
 ] as const;
 export type SurfaceVariant = (typeof SURFACE_VARIANTS)[number];
+
+/**
+ * The button a card surface implies — what a card CTA wears when it is not
+ * given a variant of its own. An outlined card offers an outlined button.
+ */
+export const SURFACE_TO_BUTTON_VARIANT: Record<SurfaceVariant, ButtonVariant> =
+  {
+    elevated: "solid",
+    outlined: "outline",
+    subtle: "ghost",
+    tonal: "soft",
+    default: "solid",
+    glass: "glass",
+    simple: "link",
+    "liquid-glass": "glass",
+  };
+
+/**
+ * The surface family plus `plain` — "draw a card, or draw nothing at all".
+ *
+ * A control that may already sit inside a card the app owns needs a way to say
+ * "no surface of my own"; nine components had each spelled that out for
+ * themselves (`PanelVariant | "plain"` seven times, `[...SURFACE_VARIANTS,
+ * "plain"]` twice) and only one of them exported a runtime list, so demos could
+ * not enumerate the others. Same list, nine names: the day `SURFACE_VARIANTS`
+ * gains a member, eight of them keep working only by luck.
+ */
+export const PLAIN_SURFACE_VARIANTS = [...SURFACE_VARIANTS, "plain"] as const;
+export type PlainSurfaceVariant = (typeof PLAIN_SURFACE_VARIANTS)[number];
 
 /**
  * Surfaces you can see through, so content on them needs more contrast.
@@ -417,7 +695,59 @@ const surfaceTriggerTokens: Record<TrueColor, SurfaceTriggerTokens> =
 
 export const getSurfaceTriggerTokens = (
   color: TrueColor,
-): SurfaceTriggerTokens => surfaceTriggerTokens[color] ?? surfaceTriggerTokens.blue;
+): SurfaceTriggerTokens =>
+  surfaceTriggerTokens[color] ?? surfaceTriggerTokens.blue;
+
+/**
+ * The `CollapsibleHelpText` trigger — the shared surface-trigger tokens plus
+ * the accent glyph, icon chip and title line.
+ *
+ * The accent sits ON a same-hue `bg-{c}-50` chip, so it steps to the 700
+ * light shade rather than the usual 600: hue stacked on its own 50 shade is
+ * where 600 dropped under the 3:1 non-text bar (yellow landed ≈2.5:1).
+ */
+export type CollapsibleHelpToneTokens = SurfaceTriggerTokens & {
+  /** Chevron and icon glyph. */
+  accent: string;
+  /** Icon chip fill. */
+  iconBg: string;
+  /** Title line. */
+  title: string;
+};
+
+const collapsibleHelpToneTokens: Record<TrueColor, CollapsibleHelpToneTokens> =
+  Object.fromEntries(
+    TRUE_COLORS.map((color) => [
+      color,
+      {
+        accent: `text-${color}-700 dark:text-${color}-300`,
+        iconBg: `bg-${color}-50 dark:bg-${color}-500/10`,
+        title: `text-${color}-700 dark:text-${color}-200`,
+        ...getSurfaceTriggerTokens(color),
+      },
+    ]),
+  ) as Record<TrueColor, CollapsibleHelpToneTokens>;
+
+export const getCollapsibleHelpToneTokens = (
+  color: TrueColor,
+): CollapsibleHelpToneTokens =>
+  collapsibleHelpToneTokens[color] ?? collapsibleHelpToneTokens.blue;
+
+/**
+ * `AppDivider`'s deliberate tone — the solid rule's border pair. Kept as a
+ * table entry (not inline interpolation at the call site) so the safelist
+ * guard can tie these shapes to the emitted stylesheet, and so the divider's
+ * tone lives in the same file as every other tone table.
+ */
+const appDividerToneTokens: Record<TrueColor, string> = Object.fromEntries(
+  TRUE_COLORS.map((color) => [
+    color,
+    `border-${color}-400 dark:border-${color}-500`,
+  ]),
+) as Record<TrueColor, string>;
+
+export const getAppDividerToneTokens = (color: TrueColor): string =>
+  appDividerToneTokens[color] ?? appDividerToneTokens.blue;
 
 /**
  * Corner radius scale for container surfaces.
@@ -429,52 +759,157 @@ export const getSurfaceTriggerTokens = (
  * existing card. `getSurfaceCornerRem` exposes the real radius so a demo can
  * label them honestly.
  *
- * `pill` used to be a duplicate of `rounded-lg` (both `rounded-3xl`), which is
- * not what a pill is; it is now a true capsule.
+ * Capsule radii (`rounded-full` / `pill`) are not part of the container scale:
+ * a capsule is a shape, and the `Pill` component owns it. Containers that need
+ * one take a `rounded-full` class directly.
  */
 export const SURFACE_CORNERS = [
+  // Not a radius: a request to inherit the theme's container corner
+  // (`DEFAULT_SURFACE_CORNER`) — for components that should track the theme
+  // rather than pin one. Resolved by the accessors, never looked up.
+  "auto",
   "none",
   "rounded",
   "rounded-sm",
   "rounded-md",
   "rounded-lg",
   "rounded-xl",
-  "rounded-full",
-  "pill",
 ] as const;
 export type SurfaceCorner = (typeof SURFACE_CORNERS)[number];
 
-const surfaceCornerClasses: Record<SurfaceCorner, string> = {
+const surfaceCornerClasses: Record<Exclude<SurfaceCorner, "auto">, string> = {
   none: "rounded-none",
   rounded: "rounded-sm",
   "rounded-sm": "rounded-lg",
   "rounded-md": "rounded-2xl",
   "rounded-lg": "rounded-3xl",
   "rounded-xl": "rounded-4xl",
-  "rounded-full": "rounded-full",
-  pill: "rounded-full",
 };
 
 /** The radius each token actually produces, for labelling and docs. */
-const surfaceCornerRem: Record<SurfaceCorner, string> = {
+const surfaceCornerRem: Record<Exclude<SurfaceCorner, "auto">, string> = {
   none: "0",
   rounded: "0.125rem",
   "rounded-sm": "0.5rem",
   "rounded-md": "1rem",
   "rounded-lg": "1.5rem",
   "rounded-xl": "2rem",
-  "rounded-full": "9999px",
-  pill: "9999px",
 };
 
 /** The radius a container uses when the caller does not pick one. */
-export const DEFAULT_SURFACE_CORNER: SurfaceCorner = "rounded-md";
+export const DEFAULT_SURFACE_CORNER: Exclude<SurfaceCorner, "auto"> =
+  "rounded-md";
+
+/**
+ * The radius a control uses when the caller does not pick one — the
+ * input/button/segment scale, one step looser than the container default
+ * (`rounded-md` → `rounded-lg`) on purpose, so a control sits visibly proud
+ * of the card it lives in. Components whose docs say "the control corner
+ * from the theme" take this.
+ */
+export const DEFAULT_CONTROL_CORNER: Exclude<SurfaceCorner, "auto"> =
+  "rounded-lg";
+
+/**
+ * The container surface a field implies — used by composite controls (the
+ * `DatePicker` calendar's `panelVariant="auto"`) so their furniture reads as
+ * part of the field instead of a foreign surface dropped beside it. Field
+ * surfaces have no exact container twin, so this picks the nearest fit:
+ * `flat` is a bordered box → `outlined`; `elevated` and the lifted `gradient`
+ * → `elevated`; `ghost`/`underline` carry no box, so `subtle`; `glass` →
+ * `glass`. (Deliberately not `tonal`/`simple` — the hover-filled tints read
+ * as chrome, not as a floating calendar.)
+ */
+export const SURFACE_VARIANT_FOR_FIELD: Record<InputVariant, SurfaceVariant> = {
+  flat: "outlined",
+  elevated: "elevated",
+  gradient: "elevated",
+  ghost: "subtle",
+  underline: "subtle",
+  glass: "glass",
+};
+
+/**
+ * The surface variants that *are* glass — the ones where chrome has to sit
+ * *in* glass rather than on it. Every composite (calendar panels, array
+ * cards, the variable picker) used to keep its own copy of this two-item
+ * list, which is exactly how one of them ends up rendering a solid button
+ * on a blurred card.
+ */
+export const isGlassSurface = (variant: PlainSurfaceVariant): boolean =>
+  variant === "glass" || variant === "liquid-glass";
+
+/** The panel tone that follows a field: the field keeps its accent as the
+ *  selected-day tint either way, so the fill takes the neutral default. */
+export const PANEL_TONE_FOR_FIELD: "neutral" = "neutral";
+
+/**
+ * The field surface a container implies — the reverse pairing: composite
+ * controls whose rows of inputs sit *inside* a card (the `KeyValueArrayField`)
+ * take their inputs' variant from the card so nothing reads as slabs punched
+ * through it (`"auto"`). It is SplitView's search mapping, generalised: boxed
+ * surfaces carry bordered `flat` fields, tinted ones the boxless `ghost`,
+ * glass needs glass, and a plain (cardless) host gives the default field.
+ */
+export const INPUT_VARIANT_FOR_SURFACE: Record<
+  PlainSurfaceVariant,
+  InputVariant
+> = {
+  elevated: "flat",
+  outlined: "flat",
+  subtle: "ghost",
+  tonal: "ghost",
+  default: "flat",
+  glass: "glass",
+  simple: "ghost",
+  "liquid-glass": "glass",
+  plain: "flat",
+};
+
+/**
+ * The tone a surface takes when the caller does not pick one. Every surface
+ * component — `Panel` and its wrappers — resolves to this same constant, so a
+ * default cannot be restated wrongly in one of them.
+ */
+export const DEFAULT_SURFACE_TONE: TrueColor = "blue";
+
+/**
+ * The `EmptyState` size for a pane that has its own header — a `Panel`
+ * sibling like `PagedPanel` or `TagPanel`. `EmptyState`'s own scale is tuned
+ * for full-page views (its `md` is a text-lg title with an h-12 disc), so
+ * inside a pane the empty/error state must never outgrow the pane's header:
+ * pick it at least two steps under the pane's control size.
+ */
+/**
+ * The expand/retract cascade shared by the kit's unfolding collections —
+ * `ColorSwatches`, `TagPanel`: a left-to-right step per item opening, a
+ * swifter reverse ripple closing, and a hold long enough for the fade to
+ * finish before the condensed geometry commits.
+ */
+export const CASCADE_EXPAND = {
+  /** Per-item cascade step, expanding. */
+  stepMs: 20,
+  /** Per-item step, retracting — swift, right to left. */
+  retractStepMs: 8,
+  /** How long the expanded layout is held while items step away. */
+  holdMs: 300,
+  /** How long the clip takes to grow. */
+  growMs: 400,
+} as const;
+
+export const PANE_EMPTY_STATE_SIZE: Record<ControlSize, ControlSize> = {
+  xs: "xs",
+  sm: "xs",
+  md: "xs",
+  lg: "sm",
+  xl: "sm",
+};
 
 export const getSurfaceCornerClass = (corner: SurfaceCorner): string =>
-  surfaceCornerClasses[corner] ?? surfaceCornerClasses[DEFAULT_SURFACE_CORNER];
+  surfaceCornerClasses[corner === "auto" ? DEFAULT_SURFACE_CORNER : corner];
 
 export const getSurfaceCornerRem = (corner: SurfaceCorner): string =>
-  surfaceCornerRem[corner] ?? surfaceCornerRem[DEFAULT_SURFACE_CORNER];
+  surfaceCornerRem[corner === "auto" ? DEFAULT_SURFACE_CORNER : corner];
 
 /**
  * Container padding, on the same scale every control uses plus a `none` step,
@@ -482,6 +917,42 @@ export const getSurfaceCornerRem = (corner: SurfaceCorner): string =>
  */
 export const SURFACE_PADDINGS = ["none", ...CONTROL_SIZES] as const;
 export type SurfacePadding = "none" | ControlSize;
+
+/**
+ * The header seam. `SideMenu` draws it below its logo block, and `PageHeader`
+ * continues it into the main column; both paint these same classes on their
+ * facing edges, so the horizontal line the user sees crossing the shell is
+ * spelled exactly once. A component that rounded, padded or recoloured past
+ * these would visibly break the seam where the two meet.
+ */
+export const SIDE_MENU_HEADER_HEIGHT = "h-15";
+export const SIDE_MENU_HEADER_SEAM =
+  "border-neutral-200 dark:border-neutral-700";
+export const SIDE_MENU_HEADER_FILL = "bg-white dark:bg-neutral-900";
+
+/**
+ * The webkit scrollbar paint every native scroller in the kit shares — a thin
+ * rounded thumb on a transparent track. These live here as complete literals
+ * (Tailwind extracts them from this file) so no component re-derives the
+ * recipe and quietly drifts a shade.
+ *
+ * Two tiers, one shade apart:
+ * - `THIN_SCROLLBAR` for card and panel bodies, where the surface itself
+ *   frames the gutter.
+ * - `THIN_SCROLLBAR_FIELD` steps the thumb one shade darker for white
+ *   popovers, inputs and bare scroll regions, where the panel-tier thumb
+ *   disappears against the field.
+ *
+ * Scrollers that also scroll horizontally add their own
+ * `[&::-webkit-scrollbar]:h-*` alongside the constant. `ScrollArea`
+ * deliberately opts out — it hides the native scrollbar and paints its own
+ * overlay thumb.
+ */
+export const THIN_SCROLLBAR =
+  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent";
+
+export const THIN_SCROLLBAR_FIELD =
+  "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
 
 const surfacePaddingClasses: Record<SurfacePadding, string> = {
   none: "p-0",
@@ -492,8 +963,12 @@ const surfacePaddingClasses: Record<SurfacePadding, string> = {
   xl: "p-10 sm:p-12",
 };
 
+/** The padding a container uses when the caller does not pick one. */
+export const DEFAULT_SURFACE_PADDING: SurfacePadding = "sm";
+
 export const getSurfacePaddingClass = (padding: SurfacePadding): string =>
-  surfacePaddingClasses[padding] ?? surfacePaddingClasses.md;
+  surfacePaddingClasses[padding] ??
+  surfacePaddingClasses[DEFAULT_SURFACE_PADDING];
 
 /** Every padding token but `none`, for the callers that require a real inset. */
 export const getSurfacePaddingClasses = (): Record<SurfacePadding, string> => ({
@@ -571,24 +1046,75 @@ export const getTableDensityTokens = (
  * inset focus ring.
  */
 export type GlowTokens = {
-  /** Padding reserved on the wrapper to hold the halo. */
+  /**
+   * Padding on the wrapper — sized so the shadow's full reach (offset +
+   * spread + blur/2) lands inside the box, where no clipping ancestor can
+   * slice the glow.
+   */
   pad: string;
-  /** Glow position inside that padding. The gap left over absorbs the blur. */
+  /** Positions the emitter exactly over the field, inside the pad. */
   inset: string;
-  blur: string;
+  /** Shadow blur radius in px. */
+  blur: number;
+  /** Shadow spread in px. */
+  spread: number;
+  /** How far apart the two colour lobes sit, in px — the gradient axis. */
+  offset: number;
   idleOpacity: number;
   focusOpacity: number;
 };
 
+/**
+ * The gradient glow is a real glow, not a blurred rectangle: an emitter
+ * behind the field carries a two-lobe box-shadow — the gradient's start
+ * colour pushed left, its end colour pushed right — so the tone washes
+ * around the control like a light source, and the intensity is simply the
+ * shadow's geometry (bigger blur/spread/reach, brighter opacity). The reach
+ * is sized into the wrapper's padded, overflow-hidden box, so Panels and
+ * scroll containers can never slice it — and unlike an inset-blurred halo,
+ * a short field cannot collapse it.
+ */
 const glowTokens: Record<GlowIntensity, GlowTokens> = {
-  subtle: { pad: "p-1", inset: "inset-0.5", blur: "blur-sm", idleOpacity: 0.06, focusOpacity: 0.14 },
-  soft: { pad: "p-1.5", inset: "inset-0.5", blur: "blur-sm", idleOpacity: 0.1, focusOpacity: 0.22 },
-  medium: { pad: "p-2", inset: "inset-1", blur: "blur", idleOpacity: 0.2, focusOpacity: 0.4 },
-  strong: { pad: "p-3", inset: "inset-1", blur: "blur-md", idleOpacity: 0.3, focusOpacity: 0.55 },
+  subtle: {
+    pad: "p-4",
+    inset: "inset-4",
+    blur: 12,
+    spread: 0,
+    offset: 10,
+    idleOpacity: 0.1,
+    focusOpacity: 0.22,
+  },
+  soft: {
+    pad: "p-5",
+    inset: "inset-5",
+    blur: 16,
+    spread: 2,
+    offset: 10,
+    idleOpacity: 0.16,
+    focusOpacity: 0.34,
+  },
+  medium: {
+    pad: "p-7",
+    inset: "inset-7",
+    blur: 24,
+    spread: 4,
+    offset: 12,
+    idleOpacity: 0.3,
+    focusOpacity: 0.55,
+  },
+  strong: {
+    pad: "p-10",
+    inset: "inset-10",
+    blur: 32,
+    spread: 8,
+    offset: 16,
+    idleOpacity: 0.45,
+    focusOpacity: 0.8,
+  },
 };
 
 export const getGlowTokens = (intensity: GlowIntensity): GlowTokens =>
-  glowTokens[intensity] ?? glowTokens.soft;
+  glowTokens[intensity] ?? glowTokens[DEFAULT_GLOW_INTENSITY];
 
 /**
  * Glow gradient stops: the tone's 600 and 400 shades, read from Tailwind's own
@@ -612,14 +1138,16 @@ export const resolveGlowGradient = (
  *
  * `sidebar` is the kit's standing look (a translucent blur pushed into the
  * layout), `inset` is a flat panel with a hairline on the content edge,
- * `floating` is a detached rounded card, and `glass` is the kit's liquid-glass
- * language tinted with the menu's tone. The rows inside a menu take the
- * matching treatment automatically.
+ * `floating` is a detached rounded card, `floating-glass` is that card in the
+ * kit's liquid-glass language, and `glass` is the liquid-glass language flush
+ * in the layout — both glass treatments are tinted with the menu's tone. The
+ * rows inside a menu take the matching treatment automatically.
  */
 export const SIDEBAR_VARIANTS = [
   "sidebar",
   "inset",
   "floating",
+  "floating-glass",
   "glass",
 ] as const;
 export type SidebarVariant = (typeof SIDEBAR_VARIANTS)[number];
@@ -693,9 +1221,7 @@ sideMenuItemTokens.neutral = {
   iconHover: "group-hover:text-neutral-900 dark:group-hover:text-neutral-100",
 };
 
-export const getSideMenuItemTokens = (
-  color: TrueColor,
-): SideMenuItemTokens =>
+export const getSideMenuItemTokens = (color: TrueColor): SideMenuItemTokens =>
   sideMenuItemTokens[color] ?? sideMenuItemTokens.blue;
 
 /**
@@ -716,6 +1242,28 @@ export const SIDEBAR_IDLE_COPY = {
   },
 } as const;
 export type SidebarIdleCopyKind = keyof typeof SIDEBAR_IDLE_COPY;
+
+/**
+ * Hairlines and tertiary copy per surface context.
+ *
+ * The same two-step rule as `SIDEBAR_IDLE_COPY` and `getSurfaceTextTokens`:
+ * a translucent surface composites over unknown content, where the light end
+ * of the neutral scale disappears — so glass surfaces get a stronger pair.
+ * A divider that reads on the solid `sidebar` look is invisible on `glass`.
+ */
+const SIDEBAR_SURFACE_COPY: Record<
+  SidebarIdleCopyKind,
+  { divider: string; muted: string }
+> = {
+  solid: {
+    divider: "border-neutral-200/60 dark:border-neutral-700/60",
+    muted: "text-neutral-400 dark:text-neutral-500",
+  },
+  glass: {
+    divider: "border-white/30 dark:border-white/10",
+    muted: "text-neutral-700 dark:text-neutral-200",
+  },
+};
 
 export interface SidebarSurfaceTokens {
   /** Fill and blur of the layer painted behind the content. */
@@ -738,15 +1286,17 @@ export interface SidebarSurfaceTokens {
   radius: string;
   /** Offset from the layout edges ("" = flush, a margin when detached). */
   offset: string;
-  /** Whether to paint the dither-noise layer. */
-  noise: boolean;
   /** Whether the row copy needs the see-through contrast step. */
   idleCopy: SidebarIdleCopyKind;
+  /** Hairline between regions of the panel (dividers, section seams). */
+  divider: string;
+  /** Tertiary copy — section titles, the empty-search note, idle glyphs. */
+  muted: string;
 }
 
 const sidebarSurfaceTokens: Record<
-  Exclude<SidebarVariant, "glass">,
-  SidebarSurfaceTokens
+  Exclude<SidebarVariant, "glass" | "floating-glass">,
+  Omit<SidebarSurfaceTokens, "divider" | "muted">
 > = {
   sidebar: {
     fill: "backdrop-blur-2xl bg-white/70 dark:bg-neutral-900/90",
@@ -759,7 +1309,6 @@ const sidebarSurfaceTokens: Record<
       "shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.1)] dark:shadow-[-10px_0_30px_-10px_rgba(0,0,0,0.4)]",
     radius: "",
     offset: "",
-    noise: true,
     idleCopy: "solid",
   },
   inset: {
@@ -771,7 +1320,6 @@ const sidebarSurfaceTokens: Record<
     shadowRight: "",
     radius: "",
     offset: "",
-    noise: false,
     idleCopy: "solid",
   },
   floating: {
@@ -781,40 +1329,163 @@ const sidebarSurfaceTokens: Record<
     borderSides: "all",
     shadow: "shadow-xl",
     shadowRight: "shadow-xl",
-    radius: "rounded-2xl",
+    // The detached card's corner — the kit's medium container default.
+    radius: getSurfaceCornerClass(DEFAULT_SURFACE_CORNER),
     offset: "m-2",
-    noise: false,
     idleCopy: "solid",
   },
 };
 
 /**
- * The container treatment for a `SideMenu` variant. `glass` is resolved from
- * the shared glass module at the call site, so its fill is tinted with the
- * menu's tone and cannot drift from `Panel`'s glass.
+ * The container treatment for a `SideMenu` variant. The glass treatments are
+ * resolved from the shared glass module at the call site, so their fill is
+ * tinted with the menu's tone and cannot drift from `Panel`'s glass.
+ * `floating-glass` is the glass treatment with the floating card's geometry
+ * (offset, radius) layered on top.
  */
 export const getSidebarSurfaceTokens = (
   variant: SidebarVariant,
   color: TrueColor,
 ): SidebarSurfaceTokens => {
-  if (variant === "glass") {
-    return {
-      fill: `backdrop-blur-2xl ${getSurfaceGlassFillClass(color, "frosted")}`,
-      // Near-opaque so the hover-rail expansion does not show the rail or a
-      // sibling menu through the panel.
-      solidFill: "backdrop-blur-2xl bg-white/95 dark:bg-neutral-900/95",
-      border: "border-white/50 dark:border-white/10",
-      borderSides: "all",
-      shadow: "shadow-xl",
-      shadowRight: "shadow-xl",
-      radius: "",
-      offset: "",
-      noise: true,
-      idleCopy: "glass",
-    };
-  }
-  return sidebarSurfaceTokens[variant] ?? sidebarSurfaceTokens.sidebar;
+  const base =
+    variant === "glass" || variant === "floating-glass"
+      ? (() => {
+          const glassSurface: Omit<SidebarSurfaceTokens, "divider" | "muted"> =
+            {
+              fill: `backdrop-blur-2xl ${getSurfaceGlassFillClass(color, "frosted")}`,
+              // Near-opaque so the hover-rail expansion does not show the rail or
+              // a sibling menu through the panel.
+              solidFill: "backdrop-blur-2xl bg-white/95 dark:bg-neutral-900/95",
+              border: "border-white/50 dark:border-white/10",
+              borderSides: "all",
+              shadow: "shadow-xl",
+              shadowRight: "shadow-xl",
+              radius: "",
+              offset: "",
+              idleCopy: "glass",
+            };
+          return variant === "floating-glass"
+            ? {
+                ...glassSurface,
+                // The floating card's geometry — its corner is the kit's
+                // medium default, spelled once like every other detached
+                // container's.
+                radius: getSurfaceCornerClass(DEFAULT_SURFACE_CORNER),
+                offset: "m-2",
+              }
+            : glassSurface;
+        })()
+      : (sidebarSurfaceTokens[variant] ?? sidebarSurfaceTokens.sidebar);
+  return {
+    ...base,
+    ...SIDEBAR_SURFACE_COPY[base.idleCopy],
+  };
 };
+
+// ---------------------------------------------------------------------------
+// Breadcrumb
+// ---------------------------------------------------------------------------
+
+/**
+ * The tone of a `Breadcrumb` — what the links turn into under the cursor,
+ * what the current crumb is painted with, and the ring a crumb focuses with.
+ *
+ * The copy pair follows the kit's contrast rule for text on the page
+ * background (the one `Button`'s `link` treatment follows): `-700` light —
+ * measured min 4.93:1 across the 21 tones — and `-300` dark. The old inline
+ * `-600`/`-400` hover pair was the mid-luminance band that whole rule exists
+ * to leave: `{c}-600` on white measured 2.94:1 on yellow.
+ */
+export type BreadcrumbToneTokens = {
+  /** Copy of a crumb under the cursor. */
+  hover: string;
+  /** Copy of the crumb that *is* the current page. */
+  current: string;
+  /** Focus ring of a crumb link, including its `focus-visible:` prefix. */
+  focusRing: string;
+};
+
+const breadcrumbToneTokens: Record<TrueColor, BreadcrumbToneTokens> =
+  Object.fromEntries(
+    TRUE_COLORS.map((color) => [
+      color,
+      {
+        hover: `hover:text-${color}-700 dark:hover:text-${color}-300`,
+        current: `text-${color}-700 dark:text-${color}-300`,
+        focusRing: `focus-visible:ring-${color}-400`,
+      },
+    ]),
+  ) as Record<TrueColor, BreadcrumbToneTokens>;
+
+export const getBreadcrumbToneTokens = (
+  color: TrueColor,
+): BreadcrumbToneTokens =>
+  breadcrumbToneTokens[color] ?? breadcrumbToneTokens.blue;
+
+/**
+ * Geometry of a `Breadcrumb` at each shared control size.
+ *
+ * Anchored to the control scale — the text step is `getControlSizeTokens`'
+ * at every size — but the chip insets and icons are the compact versions of
+ * those steps, because a crumb is hierarchy copy that happens to be a link,
+ * not a control: the trigger-family paddings would space the trail wider
+ * than the sentence it sits in. Same precedent as the Toast size table.
+ */
+export type BreadcrumbSizeTokens = {
+  /** Crumb text size — the control scale's step. */
+  text: string;
+  /** Hit-area inset of the crumb chip. */
+  chip: string;
+  /** Space between a crumb's icon and its label. */
+  gap: string;
+  /** Icon dimensions. */
+  icon: string;
+  /** Separator glyph dimensions. */
+  separator: string;
+};
+
+const breadcrumbSizeTokens: Record<ControlSize, BreadcrumbSizeTokens> = {
+  xs: {
+    text: "text-xs",
+    chip: "px-1 py-0.5",
+    gap: "gap-1",
+    icon: "h-3.5 w-3.5",
+    separator: "h-3 w-3",
+  },
+  sm: {
+    text: "text-xs",
+    chip: "px-1.5 py-0.5",
+    gap: "gap-1",
+    icon: "h-4 w-4",
+    separator: "h-3 w-3",
+  },
+  md: {
+    text: "text-sm",
+    chip: "px-1.5 py-1",
+    gap: "gap-1.5",
+    icon: "h-4 w-4",
+    separator: "h-3.5 w-3.5",
+  },
+  lg: {
+    text: "text-base",
+    chip: "px-2 py-1",
+    gap: "gap-1.5",
+    icon: "h-5 w-5",
+    separator: "h-4 w-4",
+  },
+  xl: {
+    text: "text-base",
+    chip: "px-2 py-1.5",
+    gap: "gap-2",
+    icon: "h-6 w-6",
+    separator: "h-4 w-4",
+  },
+};
+
+export const getBreadcrumbSizeTokens = (
+  size: ControlSize,
+): BreadcrumbSizeTokens =>
+  breadcrumbSizeTokens[size] ?? breadcrumbSizeTokens.md;
 
 const colors: readonly TrueColor[] = TRUE_COLORS;
 
@@ -895,7 +1566,10 @@ type StepperTheme = Record<TrueColor, StepperToneConfig>;
 type BadgeTheme = Record<TrueColor, string>;
 type PillTheme = Record<
   TrueColor,
-  Record<"solid" | "soft" | "outline", { base: string; border?: string }>
+  Record<
+    "solid" | "soft" | "outline",
+    { base: string; border?: string; hover?: string }
+  >
 >;
 type AlertTheme = Record<
   TrueColor,
@@ -1030,20 +1704,29 @@ const createTheme = (): ThemeDefinition => {
     // Hover follows the same rule in the direction that *improves* contrast
     // (dark fills darken, light tints stay one step in), so no transient
     // state regresses below 4.5:1 either.
+    //
+    // Light-mode text on a *tinted* fill: -700 clears WCAG AA for 20 of the
+    // 21 tones, but green-700 on the green-100 hover/active tint measures
+    // 4.497:1 — 0.003 under 4.5 (the contrast gate in
+    // react/src/theme/contrast.test.ts asserts the whole matrix). Green
+    // takes -800 for the tinted-fill text variants (6.45:1 on green-100).
+    // link/clear sit on the page background, where green-700 passes, and
+    // are deliberately left at -700.
+    const lightText = color === "green" ? "green-800" : `${color}-700`;
     theme.button.solid[color] =
       `bg-${color}-700 text-white shadow-sm hover:bg-${color}-800 focus-visible:ring-2 focus-visible:ring-${color}-500 focus-visible:ring-offset-2 dark:bg-${color}-400 dark:text-${color}-950 dark:hover:bg-${color}-300`;
     theme.button.soft[color] =
-      `bg-${color}-50 text-${color}-700 ring-1 ring-inset ring-${color}-200 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:bg-${color}-500/10 dark:text-${color}-200 dark:ring-${color}-500/40 dark:hover:bg-${color}-500/20`;
+      `bg-${color}-50 text-${lightText} ring-1 ring-inset ring-${color}-200 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:bg-${color}-500/10 dark:text-${color}-200 dark:ring-${color}-500/40 dark:hover:bg-${color}-500/20`;
     theme.button.outline[color] =
-      `border border-${color}-200 text-${color}-700 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:border-${color}-500/50 dark:text-${color}-200 dark:hover:bg-${color}-500/10`;
+      `border border-${color}-200 text-${lightText} hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:border-${color}-500/50 dark:text-${color}-200 dark:hover:bg-${color}-500/10`;
     theme.button.ghost[color] =
-      `text-${color}-700 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:text-${color}-200 dark:hover:bg-${color}-500/10`;
+      `text-${lightText} hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:text-${color}-200 dark:hover:bg-${color}-500/10`;
     theme.button.link[color] =
       `text-${color}-700 hover:text-${color}-800 hover:underline dark:text-${color}-200 dark:hover:text-${color}-300`;
     theme.button.clear[color] =
       `text-${color}-700 hover:text-${color}-800 dark:text-${color}-200`;
     theme.button.icon[color] =
-      `text-${color}-700 bg-${color}-50 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:text-${color}-200 dark:bg-${color}-500/10 dark:hover:bg-${color}-500/20`;
+      `text-${lightText} bg-${color}-50 hover:bg-${color}-100 focus-visible:ring-2 focus-visible:ring-${color}-400 focus-visible:ring-offset-2 dark:text-${color}-200 dark:bg-${color}-500/10 dark:hover:bg-${color}-500/20`;
 
     // Button hover classes (accent override — matches the hover portion of each button variant above)
     theme.buttonHover.solid[color] =
@@ -1065,16 +1748,17 @@ const createTheme = (): ThemeDefinition => {
     theme.buttonActive.solid[color] =
       `bg-${color}-200 text-${color}-900 shadow-sm dark:bg-${color}-300 dark:text-${color}-900`;
     theme.buttonActive.soft[color] =
-      `bg-${color}-100 text-${color}-700 ring-1 ring-inset ring-${color}-300 dark:bg-${color}-500/20 dark:text-${color}-100 dark:ring-${color}-400/50`;
+      `bg-${color}-100 text-${lightText} ring-1 ring-inset ring-${color}-300 dark:bg-${color}-500/20 dark:text-${color}-100 dark:ring-${color}-400/50`;
     theme.buttonActive.outline[color] =
-      `border border-${color}-300 bg-${color}-50 text-${color}-700 dark:border-${color}-400/60 dark:bg-${color}-500/15 dark:text-${color}-100`;
+      `border border-${color}-300 bg-${color}-50 text-${lightText} dark:border-${color}-400/60 dark:bg-${color}-500/15 dark:text-${color}-100`;
     theme.buttonActive.ghost[color] =
-      `bg-${color}-100 text-${color}-700 dark:bg-${color}-500/15 dark:text-${color}-100`;
+      `bg-${color}-100 text-${lightText} dark:bg-${color}-500/15 dark:text-${color}-100`;
     theme.buttonActive.link[color] =
       `text-${color}-800 underline dark:text-${color}-300`;
-    theme.buttonActive.clear[color] = `text-${color}-800 dark:text-${color}-300`;
+    theme.buttonActive.clear[color] =
+      `text-${color}-800 dark:text-${color}-300`;
     theme.buttonActive.icon[color] =
-      `bg-${color}-100 text-${color}-700 dark:bg-${color}-500/20 dark:text-${color}-200`;
+      `bg-${color}-100 text-${lightText} dark:bg-${color}-500/20 dark:text-${color}-200`;
 
     // Button active-hover classes (hover within the active state).
     // Light-mode soft/ghost/icon step the *text* out to -800 because their
@@ -1168,14 +1852,19 @@ const createTheme = (): ThemeDefinition => {
       decorationGradient: `from-${color}-100/60 to-transparent dark:from-${color}-500/10 dark:to-transparent`,
     };
 
-    // Stepper
+    // Stepper. Fills that carry a glyph step to `-700` light / `-400` dark
+    // with a matched glyph (white / `-950`), the kit-wide rule for saturated
+    // fills: the old `bg-{c}-600` under white measured 2.94:1 on yellow, and
+    // white on the dark `{c}-400` step measured 1.53:1 on lime. The pending
+    // number is text, so it takes the `-700` / `-300` copy pair (the old
+    // `-500` was ~2.1:1 on yellow).
     theme.stepper[color] = {
-      activeBg: `bg-${color}-600 dark:bg-${color}-400`,
-      activeText: "text-white",
+      activeBg: `bg-${color}-700 dark:bg-${color}-400`,
+      activeText: `text-white dark:text-${color}-950`,
       completedBg: `bg-${color}-100 dark:bg-${color}-600/60`,
       completedText: `text-${color}-700 dark:text-${color}-100`,
       pendingBorder: `border-${color}-200 dark:border-${color}-700/60`,
-      pendingText: `text-${color}-500 dark:text-${color}-200`,
+      pendingText: `text-${color}-700 dark:text-${color}-300`,
       underlineBase: `bg-${color}-100 dark:bg-${color}-700/40`,
     };
 
@@ -1183,14 +1872,26 @@ const createTheme = (): ThemeDefinition => {
     theme.badge[color] = `bg-${color}-500 text-white dark:bg-${color}-400`;
 
     // Pill
+    // Pill. `hover` is the interactive step, applied by the component only
+    // when the pill is activatable (onClick) — it is the whole affordance,
+    // because a pill otherwise carries no button chrome at all. The formula
+    // mirrors Button's hover grammar at pill scale: solid darkens one step,
+    // soft and outline gain a translucent wash. (Soft's hover uses the /15
+    // fill step; dark lifts the /15 base to /20 — Button's step — so there is
+    // an actual change instead of a hover that repaints the same alpha.)
     theme.pill[color] = {
-      solid: { base: `bg-${color}-500 text-white` },
+      solid: {
+        base: `bg-${color}-500 text-white`,
+        hover: `hover:bg-${color}-400 dark:hover:bg-${color}-300`,
+      },
       soft: {
         base: `bg-${color}-50 text-${color}-700 dark:bg-${color}-500/15 dark:text-${color}-100`,
+        hover: `hover:bg-${color}-100 dark:hover:bg-${color}-500/20`,
       },
       outline: {
         base: `text-${color}-600 dark:text-${color}-200`,
         border: `border border-${color}-200 dark:border-${color}-500/40`,
+        hover: `hover:bg-${color}-100 dark:hover:bg-${color}-500/20`,
       },
     };
 
@@ -1508,8 +2209,18 @@ export const getToggleVariantTokens = (
   glassOpacity: GlassOpacity = "frosted",
 ): ToggleVariantTokens => {
   if (variant === "glass") {
+    // The tinted fill uses the full-chroma 500 step (600 in dark), not the
+    // `100` pastel that paints big glass surfaces: the sheer of a frosted
+    // panel averages a whole card, but a 20px pill has no area to average
+    // over — the pastel simply read as a washed-out sticker. The opacity
+    // presets step between the two existing strengths (frosted and light
+    // differ chiefly in their vibrancy chrome; `clear` steps back).
+    const fill =
+      glassOpacity === "clear"
+        ? `bg-${color}-500/20 dark:bg-${color}-600/15`
+        : `bg-${color}-500/40 dark:bg-${color}-600/35`;
     return {
-      track: toPeerCheckedFill(getGlassFillClass(color, glassOpacity)),
+      track: toPeerCheckedFill(fill),
       ring: `peer-focus-visible:ring-${color}-400`,
       translucent: true,
     };
@@ -1621,7 +2332,10 @@ const checkboxVariantTokens: Record<InputVariant, CheckboxVariantTokens> = {
     translucent: true,
   },
   glass: {
-    fill: "bg-white/45 backdrop-blur-md shadow-sm dark:bg-white/10",
+    // The Toggle's glass chrome at pill scale: frosted fill, vibrancy so the
+    // blur carries colour rather than grey, and an on-state tinted by the
+    // tone instead of painted over by it (see getCheckboxGlassCheckedTokens).
+    fill: "bg-white/45 backdrop-blur-md backdrop-saturate-[1.2] shadow-sm dark:bg-white/10",
     border: "border-white/50 dark:border-white/10",
     hover: "peer-hover:border-white/80 dark:peer-hover:border-white/30",
     translucent: true,
@@ -1638,6 +2352,22 @@ export const getCheckboxVariantTokens = (
   variant: InputVariant,
 ): CheckboxVariantTokens =>
   checkboxVariantTokens[variant] ?? checkboxVariantTokens.flat;
+
+/**
+ * The checked/indeterminate fill for the checkbox `glass` variant — Toggle's
+ * glass rule in miniature: the full-chroma 500 step at a translucent alpha
+ * (600 in dark), never the `100` pastel, so the box reads as *tinted glass*
+ * on any surface. The border is deliberately left out: unlike the opaque
+ * variants, glass keeps its frost edge in the on-state and lets the fill
+ * alone carry the tone.
+ */
+export const getCheckboxGlassCheckedTokens = (color: TrueColor): string =>
+  [
+    `peer-checked:bg-${color}-500/40`,
+    `peer-indeterminate:bg-${color}-500/40`,
+    `dark:peer-checked:bg-${color}-600/35`,
+    `dark:peer-indeterminate:bg-${color}-600/35`,
+  ].join(" ");
 
 export const getCheckboxControlTokens = (
   color: TrueColor,
@@ -1725,6 +2455,38 @@ export const getStatusSpinnerToneTokens = (
 ): StatusSpinnerToneTokens =>
   statusSpinnerToneTokens[tone] ?? statusSpinnerToneTokens.blue;
 
+/**
+ * The paint of a `ProgressSpinner` in one tone.
+ *
+ * The same generated-from-`TRUE_COLORS` approach as `StatusSpinner`: the arc
+ * reads the tone's own Tailwind variable and `color-mix` derives the idle
+ * track from it, so a tone can never render as another colour. The inline
+ * SVG cannot use `dark:` variants, which is why these are CSS colours rather
+ * than classes.
+ */
+export interface ProgressSpinnerToneTokens {
+  /** The moving arc (or the determinate range), as a CSS colour. */
+  arc: string;
+  /** The idle ring (30% of the tone), as a CSS colour. */
+  track: string;
+}
+
+const progressSpinnerToneTokens: Record<TrueColor, ProgressSpinnerToneTokens> =
+  Object.fromEntries(
+    TRUE_COLORS.map((color) => [
+      color,
+      {
+        arc: `var(--color-${color}-400)`,
+        track: `color-mix(in srgb, var(--color-${color}-400) 30%, transparent)`,
+      },
+    ]),
+  ) as Record<TrueColor, ProgressSpinnerToneTokens>;
+
+export const getProgressSpinnerToneTokens = (
+  tone: TrueColor,
+): ProgressSpinnerToneTokens =>
+  progressSpinnerToneTokens[tone] ?? progressSpinnerToneTokens.blue;
+
 export const getLoaderProgressColors = (
   color: TrueColor,
 ): { track: string; bar: string } =>
@@ -1744,6 +2506,101 @@ export const getMultiToggleVariantTokens = (
 export const getTabsColorTokens = (color: TrueColor): TabsColorTokens =>
   currentTheme.tabs[color] ?? currentTheme.tabs.blue;
 
+/**
+ * Base treatment per surface variant — the shadow, ring, blur and fill that do
+ * not depend on tone.
+ *
+ * Lifted out of `Panel` so any control that draws a *surface* can mirror it
+ * exactly rather than copying the switch. `MultiToggle`'s track is the first
+ * other consumer: a segmented control is a container holding segments, so it
+ * belongs to the same family and has to read identically beside a `Panel`.
+ */
+export const SURFACE_VARIANT_BASE: Record<SurfaceVariant, string> = {
+  elevated:
+    "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10",
+  // A real 1px border, not a ring. `ring-1` with no ring colour resolves to
+  // currentColor, which painted a near-black rule in light mode.
+  outlined: "border bg-white/90 dark:bg-neutral-900/80",
+  subtle: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
+  tonal: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
+  default:
+    "border bg-white/80 backdrop-blur-xl shadow-2xl dark:bg-neutral-900/70",
+  glass:
+    "border backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20",
+  "liquid-glass": "border backdrop-blur-2xl",
+  simple: "ring-transparent dark:ring-white/5",
+};
+
+/**
+ * Rim for the translucent variants. Deliberately tone-independent: a saturated
+ * `{tone}-500` edge fights the backdrop it is meant to sit over, so glass gets
+ * a light rim that reads as a bevel instead of an outline.
+ */
+export const SURFACE_GLASS_RIM = "border-white/50 dark:border-white/10";
+
+/** Variants whose surface is see-through. */
+export const TRANSLUCENT_SURFACE_VARIANTS: readonly SurfaceVariant[] = [
+  "glass",
+  "liquid-glass",
+  "default",
+];
+
+export interface SurfaceVariantOverrides {
+  /** Replaces the variant's own fill, keeping its shadow and ring. */
+  bgClass?: string;
+  /** Replaces the variant's own rim colour. */
+  borderClass?: string;
+  /** Extra classes folded in for `liquid-glass` (vibrancy, glass fill). */
+  liquidExtras?: string;
+}
+
+/**
+ * The full class set for a surface variant at a tone — the same combination
+ * `Panel` renders, so a control using this sits flush beside one.
+ */
+export const getSurfaceVariantClasses = (
+  variant: SurfaceVariant,
+  tone: TrueColor,
+  overrides: SurfaceVariantOverrides = {},
+): string => {
+  const palette = currentTheme.panel[tone] ?? currentTheme.panel.neutral;
+  const { bgClass, borderClass, liquidExtras } = overrides;
+  const base = SURFACE_VARIANT_BASE[variant] ?? SURFACE_VARIANT_BASE.elevated;
+
+  switch (variant) {
+    case "outlined":
+      return [base, borderClass ?? palette.outlineBorder].join(" ");
+    case "subtle":
+      return [
+        base,
+        borderClass ?? palette.border,
+        bgClass ?? palette.subtleBg,
+      ].join(" ");
+    case "tonal":
+      return [base, bgClass ?? palette.tonalBg, borderClass ?? ""].join(" ");
+    case "default":
+      return [base, borderClass ?? SURFACE_GLASS_RIM].join(" ");
+    case "glass":
+      return [
+        base,
+        borderClass ?? SURFACE_GLASS_RIM,
+        bgClass ?? palette.glassBg,
+      ].join(" ");
+    case "liquid-glass":
+      return [
+        base,
+        liquidExtras ?? "",
+        borderClass ?? palette.liquidBorder,
+        palette.liquidShadow,
+      ].join(" ");
+    case "simple":
+      return [base, bgClass ?? palette.tonalBg, borderClass ?? ""].join(" ");
+    case "elevated":
+    default:
+      return [bgClass ?? "", base].join(" ");
+  }
+};
+
 export const getPanelToneStyles = (tone: TrueColor): PanelToneConfig =>
   currentTheme.panel[tone] ?? currentTheme.panel.neutral;
 
@@ -1756,7 +2613,7 @@ export const getBadgeColorClasses = (color: TrueColor): string =>
 export const getPillColorClasses = (
   color: TrueColor,
   variant: "solid" | "soft" | "outline",
-): { base: string; border?: string } =>
+): { base: string; border?: string; hover?: string } =>
   currentTheme.pill[color]?.[variant] ?? currentTheme.pill.blue[variant];
 
 /**
@@ -1764,9 +2621,7 @@ export const getPillColorClasses = (
  * same icon/text/dismiss classes to every variant, which is unreadable on
  * `solid`. Kept so existing call sites keep compiling.
  */
-export const getAlertColorClasses = (
-  color: TrueColor,
-): AlertTheme[TrueColor] =>
+export const getAlertColorClasses = (color: TrueColor): AlertTheme[TrueColor] =>
   currentTheme.alert[color] ?? currentTheme.alert.blue;
 
 /**
@@ -1835,6 +2690,248 @@ export const ALERT_INTENT_CONFIG: Record<AlertIntent, AlertIntentConfig> = {
   neutral: { tone: "neutral", icon: "Info", live: "polite" },
 };
 
+/**
+ * Where a toast viewport sits on the screen — PrimeVue's seven anchor
+ * positions, kept as a runtime list so demos and docs enumerate the same
+ * seven. `center` is the only one without a corner.
+ */
+export const TOAST_POSITIONS = [
+  "top-left",
+  "top-center",
+  "top-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+  "center",
+] as const;
+export type ToastPosition = (typeof TOAST_POSITIONS)[number];
+
+/**
+ * How the stack reads: `stacked` (the PrimeVue 4.5.5 default — a deck of
+ * collapsed cards that fans out on hover) or `expanded` (always fanned out,
+ * the classic list).
+ */
+export const TOAST_MODES = ["stacked", "expanded"] as const;
+export type ToastMode = (typeof TOAST_MODES)[number];
+
+export const DEFAULT_TOAST_POSITION: ToastPosition = "top-right";
+export const DEFAULT_TOAST_MODE: ToastMode = "stacked";
+/** Distance the stack offsets each card (stacked peek and expanded seam). */
+export const DEFAULT_TOAST_GAP_PX = 12;
+/** How many newest toasts stay visible; older ones wait their turn. */
+export const DEFAULT_TOAST_LIMIT = 3;
+/**
+ * Kit default — PrimeVue has no default auto-dismiss, and a toast that never
+ * dies is a trap. `life: 0` or `sticky: true` for a persistent message.
+ */
+export const DEFAULT_TOAST_LIFE_MS = 5000;
+/** Above Modal's 1600: a toast raised while a modal is open sits above it. */
+export const DEFAULT_TOAST_Z_INDEX = 2000;
+/** PrimeVue's viewport width (18.75rem = 300px). */
+export const TOAST_DEFAULT_WIDTH = "18.75rem";
+
+/**
+ * The geometry of a toast card at each shared control size.
+ *
+ * Same reasoning as Alert's size table, promoted to the theme because the
+ * card lives in a different folder than the callout it shares its language
+ * with, and a second size table for the same scale would drift (brief §2).
+ * The close button and the action buttons sit on the trigger family's scale,
+ * so a toast and the Button beside it are described in the same language.
+ */
+export interface ToastSizeTokens {
+  /** The card's own padding. */
+  container: string;
+  /** Space between the leading glyph and the copy. */
+  gap: string;
+  /** Title type. */
+  title: string;
+  /** Detail type. */
+  detail: string;
+  /** The intent glyph, on the shared control scale. */
+  icon: ControlSize;
+  /**
+   * Height of the glyph's box: exactly the title's line box, so the glyph
+   * centres on the title's cap height at any size (Alert's calibration).
+   */
+  iconBox: string;
+  /** The close button's square box. */
+  close: string;
+  /** The close glyph's size. */
+  closeIcon: ControlSize;
+  /** The progress bar's height, on the shared scale. */
+  progress: ControlSize;
+  /** The action buttons' size (trigger family). */
+  action: ControlSize;
+  /** Space above the actions row. */
+  actions: string;
+}
+
+const toastSizeTokens: Record<ControlSize, ToastSizeTokens> = {
+  xs: {
+    container: "px-3 py-2",
+    gap: "gap-2",
+    title: "text-xs",
+    detail: "text-xs",
+    icon: "sm",
+    iconBox: "h-4",
+    close: "h-5 w-5",
+    closeIcon: "xs",
+    progress: "xs",
+    action: "xs",
+    actions: "pt-1.5",
+  },
+  sm: {
+    container: "px-3 py-2.5",
+    gap: "gap-2.5",
+    title: "text-xs",
+    detail: "text-xs",
+    icon: "sm",
+    iconBox: "h-4",
+    close: "h-6 w-6",
+    closeIcon: "xs",
+    progress: "sm",
+    action: "xs",
+    actions: "pt-2",
+  },
+  md: {
+    container: "px-4 py-3",
+    gap: "gap-3",
+    title: "text-sm",
+    detail: "text-sm",
+    icon: "md",
+    iconBox: "h-5",
+    close: "h-7 w-7",
+    closeIcon: "sm",
+    progress: "sm",
+    action: "sm",
+    actions: "pt-2",
+  },
+  lg: {
+    container: "px-4 py-3.5",
+    gap: "gap-3",
+    title: "text-base",
+    detail: "text-sm",
+    icon: "md",
+    iconBox: "h-6",
+    close: "h-8 w-8",
+    closeIcon: "sm",
+    progress: "md",
+    action: "sm",
+    actions: "pt-2.5",
+  },
+  xl: {
+    container: "px-5 py-4",
+    gap: "gap-3.5",
+    title: "text-base",
+    detail: "text-sm",
+    icon: "lg",
+    iconBox: "h-7",
+    close: "h-9 w-9",
+    closeIcon: "md",
+    progress: "md",
+    action: "md",
+    actions: "pt-3",
+  },
+};
+
+export const getToastSizeTokens = (size: ControlSize): ToastSizeTokens =>
+  toastSizeTokens[size] ?? toastSizeTokens.md;
+
+/**
+ * Whether a field is reporting a problem.
+ *
+ * One list, because it was six: `INPUT_`, `SELECT_`, `CHECKBOX_` and
+ * `INPUT_GROUP_VALIDATION_STATUSES` each declared it, and `Textarea` and
+ * `FormField` had bare unions exporting no runtime list at all — so their
+ * demos could not enumerate the states they support. Same three strings, six
+ * names: the day one changes, the other five will not.
+ */
+export const VALIDATION_STATUSES = ["none", "error", "success"] as const;
+export type ValidationStatus = (typeof VALIDATION_STATUSES)[number];
+
+/**
+ * What went wrong with a request, as opposed to what colour to paint it.
+ *
+ * The same reasoning as `ALERT_INTENTS`: a failing call already knows whether
+ * it was refused, throttled, or simply could not be reached, and every caller
+ * translating that into a tone *and* a glyph *and* two strings is how one
+ * screen ends up saying "Connection Error" for a 403. The kind resolves all
+ * four; anything the caller states explicitly still wins.
+ */
+export const API_ERROR_KINDS = [
+  "unknown",
+  "offline",
+  "server",
+  "forbidden",
+  "notFound",
+  "rateLimited",
+] as const;
+export type ApiErrorKind = (typeof API_ERROR_KINDS)[number];
+
+export interface ApiErrorKindConfig {
+  tone: TrueColor;
+  /** Registry icon name used when the caller does not supply one. */
+  icon: string;
+  title: string;
+  subtitle: string;
+  /**
+   * Whether retrying it stands a chance. A 403 does not get a "Try again"
+   * button by default — offering one for a failure the user cannot clear is
+   * how a dead end starts looking like a bug.
+   */
+  retryable: boolean;
+}
+
+export const API_ERROR_KIND_CONFIG: Record<ApiErrorKind, ApiErrorKindConfig> = {
+  unknown: {
+    tone: "rose",
+    icon: "CloudOff",
+    title: "Connection Error",
+    subtitle:
+      "We couldn't connect to the server. Please check your internet connection and try again.",
+    retryable: true,
+  },
+  offline: {
+    tone: "amber",
+    icon: "Offline",
+    title: "You're offline",
+    subtitle:
+      "Check your network connection — we'll pick up where you left off once you're back.",
+    retryable: true,
+  },
+  server: {
+    tone: "rose",
+    icon: "Error",
+    title: "Something went wrong",
+    subtitle:
+      "The server couldn't complete the request. This is usually temporary, so it is worth trying again.",
+    retryable: true,
+  },
+  forbidden: {
+    tone: "amber",
+    icon: "Revoke",
+    title: "You don't have access",
+    subtitle:
+      "Your session may have expired, or this account may not have permission to view it.",
+    retryable: false,
+  },
+  notFound: {
+    tone: "neutral",
+    icon: "Search",
+    title: "Nothing found",
+    subtitle: "We couldn't find what you were looking for.",
+    retryable: false,
+  },
+  rateLimited: {
+    tone: "amber",
+    icon: "Warning",
+    title: "Too many requests",
+    subtitle: "You've hit the rate limit. Wait a moment before trying again.",
+    retryable: true,
+  },
+};
+
 export interface AlertVariantTokens {
   /** Fill plus the callout's base copy colour. */
   surface: string;
@@ -1875,8 +2972,7 @@ export const getAlertVariantTokens = (
       border: "border-transparent",
       icon: `text-white dark:text-${color}-950`,
       text: `text-white/90 dark:text-${color}-950/90`,
-      dismiss:
-        `text-white/80 hover:bg-white/20 hover:text-white focus-visible:ring-white dark:text-${color}-950/80 dark:hover:bg-black/15 dark:hover:text-${color}-950`,
+      dismiss: `text-white/80 hover:bg-white/20 hover:text-white focus-visible:ring-white dark:text-${color}-950/80 dark:hover:bg-black/15 dark:hover:text-${color}-950`,
     };
   }
 

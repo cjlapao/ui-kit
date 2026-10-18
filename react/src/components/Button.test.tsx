@@ -36,7 +36,7 @@ describe("Button — glass variant", () => {
     const btn = container.querySelector("button");
     expect(btn).not.toBeNull();
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-100/65");
+    expect(btn!.className).toContain("bg-blue-200/65");
     expect(btn!.className).toContain("backdrop-saturate-[1.2]");
   });
 
@@ -50,7 +50,7 @@ describe("Button — glass variant", () => {
     const btn = container.querySelector("button");
     expect(btn).not.toBeNull();
     expect(btn!.className).toContain("backdrop-blur-sm");
-    expect(btn!.className).toContain("bg-blue-100/65");
+    expect(btn!.className).toContain("bg-blue-200/65");
     expect(btn!.className).toContain("relative");
   });
 
@@ -62,8 +62,8 @@ describe("Button — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-red-100/65");
-    expect(btn!.className).toContain("dark:bg-red-600/25");
+    expect(btn!.className).toContain("bg-red-200/65");
+    expect(btn!.className).toContain("dark:bg-red-500/25");
   });
 
   it('glassOpacity="light" produces 85% light / 35% dark fill', () => {
@@ -74,8 +74,8 @@ describe("Button — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-green-100/85");
-    expect(btn!.className).toContain("dark:bg-green-600/35");
+    expect(btn!.className).toContain("bg-green-200/85");
+    expect(btn!.className).toContain("dark:bg-green-500/35");
   });
 
   it('glassOpacity="clear" produces 30% light / 10% dark fill', () => {
@@ -86,8 +86,8 @@ describe("Button — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-purple-100/30");
-    expect(btn!.className).toContain("dark:bg-purple-600/10");
+    expect(btn!.className).toContain("bg-purple-200/30");
+    expect(btn!.className).toContain("dark:bg-purple-500/10");
   });
 
   it('vibrancy="high" produces backdrop-saturate-[1.4]', () => {
@@ -210,9 +210,9 @@ describe("Button — glass variant", () => {
       </Button>,
     );
 
-    expect(
-      container.querySelector("button")!.getAttribute("data-glass"),
-    ).toBe("false");
+    expect(container.querySelector("button")!.getAttribute("data-glass")).toBe(
+      "false",
+    );
   });
 
   it("builds the glass fill from the blue tone", () => {
@@ -223,8 +223,8 @@ describe("Button — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-blue-100/65");
-    expect(btn!.className).toContain("dark:bg-blue-600/25");
+    expect(btn!.className).toContain("bg-blue-200/65");
+    expect(btn!.className).toContain("dark:bg-blue-500/25");
   });
 
   it("builds the glass fill from the emerald tone", () => {
@@ -235,8 +235,8 @@ describe("Button — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-emerald-100/65");
-    expect(btn!.className).toContain("dark:bg-emerald-600/25");
+    expect(btn!.className).toContain("bg-emerald-200/65");
+    expect(btn!.className).toContain("dark:bg-emerald-500/25");
   });
 
   it("builds the glass fill from the rose tone", () => {
@@ -247,8 +247,8 @@ describe("Button — glass variant", () => {
     );
 
     const btn = container.querySelector("button");
-    expect(btn!.className).toContain("bg-rose-100/65");
-    expect(btn!.className).toContain("dark:bg-rose-600/25");
+    expect(btn!.className).toContain("bg-rose-200/65");
+    expect(btn!.className).toContain("dark:bg-rose-500/25");
   });
 
   it("renders children inside the button with glass", () => {
@@ -361,14 +361,21 @@ describe("Button — variant/tone matrix (every variant × every tone)", () => {
   // The signature of each variant at rest, per tone. A tone that is missing a
   // single safelisted class renders with a currentColor fallback — this is
   // what the per-tone loop is for (one representative colour is not enough).
+  //
+  // Green's tinted-fill text is -800, not -700: green-700 on the green-100
+  // hover/active tint measured 4.497:1 (0.003 under WCAG AA); the theme's
+  // `lightText` exception in common/theme/Theme.ts and the contrast gate
+  // (src/theme/contrast.test.ts) are the source of truth.
+  const lightText = (c: TrueColor) =>
+    c === "green" ? "text-green-800" : `text-${c}-700`;
   const signatures: Record<ButtonVariant, (c: TrueColor) => string[]> = {
     solid: (c) => [`bg-${c}-700`, "text-white"],
-    soft: (c) => [`bg-${c}-50`, `text-${c}-700`, `ring-${c}-200`],
-    outline: (c) => [`border-${c}-200`, `text-${c}-700`],
-    ghost: (c) => [`text-${c}-700`, `hover:bg-${c}-100`],
+    soft: (c) => [`bg-${c}-50`, lightText(c), `ring-${c}-200`],
+    outline: (c) => [`border-${c}-200`, lightText(c)],
+    ghost: (c) => [lightText(c), `hover:bg-${c}-100`],
     link: (c) => [`text-${c}-700`, "hover:underline"],
     clear: (c) => [`text-${c}-700`, `hover:text-${c}-800`],
-    icon: (c) => [`bg-${c}-50`, `text-${c}-700`],
+    icon: (c) => [`bg-${c}-50`, lightText(c)],
     glass: (_c) => ["backdrop-blur-sm"],
   };
 
@@ -383,7 +390,9 @@ describe("Button — variant/tone matrix (every variant × every tone)", () => {
         );
         const cls = container.querySelector("button")!.className;
         for (const signature of signatures[variant](color)) {
-          expect(cls, `${variant}/${color} → ${signature}`).toContain(signature);
+          expect(cls, `${variant}/${color} → ${signature}`).toContain(
+            signature,
+          );
         }
         // ghost/clear/link paint no rest fill.
         if (variant === "ghost" || variant === "clear" || variant === "link") {
@@ -468,7 +477,11 @@ describe("Button — icon colour", () => {
 
   it("tints the trailing icon with iconColor", () => {
     const { container } = render(
-      <Button trailingIcon="ArrowRight" iconColor="rgb(255, 0, 170)" color="blue">
+      <Button
+        trailingIcon="ArrowRight"
+        iconColor="rgb(255, 0, 170)"
+        color="blue"
+      >
         Label
       </Button>,
     );

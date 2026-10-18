@@ -1,5 +1,6 @@
 import React, { useId } from "react";
 import classNames from "classnames";
+import { hasTextColor } from "../theme/Theme";
 
 import { getLoaderProgressColors } from "../theme/Theme";
 import type { ControlSize, TrueColor } from "../theme/Theme";
@@ -71,6 +72,14 @@ export interface ProgressProps
   /** Classes for the filled bar. */
   barClassName?: string;
   /**
+   * Classes for the caption. The default is a neutral pair, which disappears
+   * on a saturated or gradient surface — pass the surface's own copy colour
+   * there.
+   */
+  labelClassName?: string;
+  /** Classes for the value readout. Same reasoning as `labelClassName`. */
+  valueClassName?: string;
+  /**
    * @deprecated Use `motion="shimmer"` or `motion="none"`.
    */
   showShimmer?: boolean;
@@ -122,6 +131,8 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
       formatValue,
       className,
       barClassName,
+      labelClassName,
+      valueClassName,
       showShimmer = true,
       ...rest
     },
@@ -229,17 +240,37 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
 
     return (
       <div ref={ref} className={classNames("w-full", className)} {...rest}>
-        <div className="mb-1.5 flex items-baseline justify-between gap-3">
+        {/* `justify-end` with no label: `justify-between` has a single child
+            there, which parks a lone percentage at the *start* of the row
+            instead of over the end of the bar it describes. */}
+        <div
+          className={classNames(
+            "mb-1.5 flex items-baseline gap-3",
+            label === undefined ? "justify-end" : "justify-between",
+          )}
+        >
           {label !== undefined && (
             <span
               id={labelId}
-              className="text-xs font-medium text-neutral-700 dark:text-neutral-200"
+              className={classNames(
+                "text-xs font-medium",
+                !hasTextColor(labelClassName) &&
+                  "text-neutral-700 dark:text-neutral-200",
+                labelClassName,
+              )}
             >
               {label}
             </span>
           )}
           {showValue && (
-            <span className="text-xs tabular-nums text-neutral-500 dark:text-neutral-400">
+            <span
+              className={classNames(
+                "text-xs tabular-nums",
+                !hasTextColor(valueClassName) &&
+                  "text-neutral-500 dark:text-neutral-400",
+                valueClassName,
+              )}
+            >
               {indeterminate ? "…" : display}
             </span>
           )}

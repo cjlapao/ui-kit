@@ -14,6 +14,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
   progressCornerOptions,
@@ -52,76 +53,94 @@ export const ProgressPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label={`Value — ${value}`}>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={value}
-              disabled={indeterminate}
-              onChange={(event) => setValue(Number(event.target.value))}
-              className="w-full accent-blue-500 disabled:opacity-50"
-              aria-label="Progress value"
-            />
-          </Control>
-          <Control label="Size">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={size}
-              onChange={(v) => setSize(v as ProgressSize)}
-            />
-          </Control>
-          <SelectControl
-            label="Tone"
-            options={trueColorOptions}
-            value={color}
-            onChange={(v) => setColor(v as TrueColor)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <Control label={`Value — ${value}`}>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={value}
+                        disabled={indeterminate}
+                        onChange={(event) => setValue(Number(event.target.value))}
+                        className="w-full accent-blue-500 disabled:opacity-50"
+                        aria-label="Progress value"
+                      />
+                    </Control>
+                    <Control label="Size">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={controlSizeOptions}
+                        value={size}
+                        onChange={(v) => setSize(v as ProgressSize)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Tone"
+                      options={trueColorOptions}
+                      value={color}
+                      onChange={(v) => setColor(v as TrueColor)}
+                    />
+                    <SelectControl
+                      label="Motion"
+                      options={progressMotionOptions}
+                      value={motion}
+                      onChange={(v) => setMotion(v as ProgressMotion)}
+                    />
+                    <Control label="Speed">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={progressMotionSpeedOptions}
+                        value={motionSpeed}
+                        onChange={(v) => setMotionSpeed(v as ProgressMotionSpeed)}
+                      />
+                    </Control>
+                    <Control label="Direction">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={progressMotionDirectionOptions}
+                        value={motionDirection}
+                        onChange={(v) =>
+                          setMotionDirection(v as ProgressMotionDirection)
+                        }
+                      />
+                    </Control>
+                    <Control label="Corner">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={progressCornerOptions}
+                        value={corner}
+                        onChange={(v) => setCorner(v as ProgressCorner)}
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <div className="grid grid-cols-2 gap-2">
+                    <ToggleRow label="Indeterminate" checked={indeterminate} onChange={setIndeterminate} />
+                    <ToggleRow label="Label" checked={showLabel} onChange={setShowLabel} />
+                    <ToggleRow label="Show value" checked={showValue} onChange={setShowValue} />
+                    <ToggleRow label="Animate the value" checked={running} onChange={setRunning} />
+                    <ToggleRow label="On a glass panel" checked={onGlass} onChange={setOnGlass} />
+                  </div>
+                ),
+              },
+            ]}
           />
-          <SelectControl
-            label="Motion"
-            options={progressMotionOptions}
-            value={motion}
-            onChange={(v) => setMotion(v as ProgressMotion)}
-          />
-          <Control label="Speed">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={progressMotionSpeedOptions}
-              value={motionSpeed}
-              onChange={(v) => setMotionSpeed(v as ProgressMotionSpeed)}
-            />
-          </Control>
-          <Control label="Direction">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={progressMotionDirectionOptions}
-              value={motionDirection}
-              onChange={(v) =>
-                setMotionDirection(v as ProgressMotionDirection)
-              }
-            />
-          </Control>
-          <Control label="Corner">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={progressCornerOptions}
-              value={corner}
-              onChange={(v) => setCorner(v as ProgressCorner)}
-            />
-          </Control>
-          <div className="grid grid-cols-2 gap-2">
-            <ToggleRow label="Indeterminate" checked={indeterminate} onChange={setIndeterminate} />
-            <ToggleRow label="Label" checked={showLabel} onChange={setShowLabel} />
-            <ToggleRow label="Show value" checked={showValue} onChange={setShowValue} />
-            <ToggleRow label="Animate the value" checked={running} onChange={setRunning} />
-            <ToggleRow label="On a glass panel" checked={onGlass} onChange={setOnGlass} />
-          </div>
           <p className="text-xs opacity-70">
             <strong>Indeterminate</strong> drops <code>aria-valuenow</code>{" "}
             entirely — that absence is what tells a screen reader the extent
@@ -129,7 +148,7 @@ export const ProgressPlayground: React.FC = () => {
             accessible name; without one, the progress bar is announced as
             just &ldquo;progress bar&rdquo;.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="w-full">

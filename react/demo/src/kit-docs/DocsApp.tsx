@@ -10,6 +10,7 @@ import {
 import {
   Breadcrumb,
   CustomIcon,
+  PageHeader,
   SideMenuLayout,
   Spinner,
   useTheme,
@@ -28,6 +29,7 @@ const scrollToTop = () => {
 
 const ComponentRoute: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { pathname } = useLocation();
   const entry = findDocComponent(slug);
 
   useEffect(() => {
@@ -41,10 +43,11 @@ const ComponentRoute: React.FC = () => {
           Page not found
         </h1>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          There is no docs page at <code className="font-mono">/docs/{slug}</code>.
+          There is no docs page at{" "}
+          <code className="font-mono">{pathname}</code>.
         </p>
         <Link
-          to="/docs/overview"
+          to="/overview"
           className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
         >
           Back to the overview
@@ -74,15 +77,15 @@ const ComponentRoute: React.FC = () => {
  */
 const DocsBreadcrumb: React.FC = () => {
   const { pathname } = useLocation();
-  const slug = pathname.split("/")[2];
+  const slug = pathname.split("/")[1];
   const entry = findDocComponent(slug);
 
   const items: BreadcrumbItem[] = entry
     ? [
-        { label: "React docs", to: "/docs/overview" },
+        { label: "React docs", to: "/overview" },
         { label: entry.name, current: true },
       ]
-    : [{ label: "React docs", to: "/docs/overview", current: true }];
+    : [{ label: "React docs", to: "/overview", current: true }];
 
   return <Breadcrumb items={items} ariaLabel="Docs breadcrumb" />;
 };
@@ -93,7 +96,7 @@ const buildMenuItems = (): SideMenuItem[] => {
       slug: "overview",
       type: "link",
       label: "Overview",
-      path: "/docs/overview",
+      path: "/overview",
       icon: "Dashboard",
     },
   ];
@@ -109,7 +112,7 @@ const buildMenuItems = (): SideMenuItem[] => {
         slug: component.slug,
         type: "link",
         label: component.name,
-        path: `/docs/${component.slug}`,
+        path: `/${component.slug}`,
         icon: component.icon,
         groupName: groupSlug,
       });
@@ -139,29 +142,24 @@ export const DocsApp: React.FC = () => {
           searchPlaceholder: "Search components",
         }}
         header={
-          <header className="flex h-14 items-center justify-between gap-4 border-b border-neutral-200/70 bg-white px-5 dark:border-neutral-800 dark:bg-slate-950">
-            <div className="flex min-w-0 items-center gap-3 text-sm">
-              <Link
-                to="/"
-                className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-              >
-                <CustomIcon icon="UX" className="h-4 w-4 text-blue-500" />
-                <span className="font-semibold text-neutral-900 dark:text-neutral-50">
-                  ui-kit
-                </span>
-              </Link>
-              <DocsBreadcrumb />
-            </div>
-            <div className="flex items-center gap-4">
-              <a
-                href="/"
-                className="text-xs font-medium text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
-              >
-                Legacy demo
-              </a>
-              <ThemeToggle theme={theme} onChange={setTheme} />
-            </div>
-          </header>
+          <PageHeader
+            aria-label="Docs header"
+            start={
+              <>
+                <Link
+                  to="/"
+                  className="flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                  <CustomIcon icon="UX" className="h-4 w-4 text-blue-500" />
+                  <span className="font-semibold text-neutral-900 dark:text-neutral-50">
+                    ui-kit
+                  </span>
+                </Link>
+                <DocsBreadcrumb />
+              </>
+            }
+            end={<ThemeToggle theme={theme} onChange={setTheme} />}
+          />
         }
         bodyClassName={`${SCROLL_CONTAINER_ID} bg-white dark:bg-slate-950`}
       >
@@ -169,7 +167,7 @@ export const DocsApp: React.FC = () => {
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<OverviewPage />} />
           {/* The charts section replaced the old single chart page. */}
-          <Route path="chart" element={<Navigate to="/docs/charts" replace />} />
+          <Route path="chart" element={<Navigate to="/charts" replace />} />
           <Route path=":slug" element={<ComponentRoute />} />
           <Route path="*" element={<ComponentRoute />} />
         </Routes>

@@ -7,6 +7,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import { trueColorOptions } from "../../shared/options";
 
 const iconOptions = [
@@ -37,61 +38,95 @@ export const BadgeIconPlayground: React.FC = () => {
   return (
     <PlaygroundPanel
       controls={
-        <>
-          <Control label="Icon">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={iconOptions}
-              value={icon}
-              onChange={(value) => setIcon(value as string)}
-            />
-          </Control>
-          <SelectControl
-            label="Badge tone"
-            options={trueColorOptions}
-            value={badgeTone}
-            onChange={(value) => setBadgeTone(value as TrueColor)}
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <Control label="Icon">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={iconOptions}
+                        value={icon}
+                        onChange={(value) => setIcon(value as string)}
+                      />
+                    </Control>
+                    <SelectControl
+                      label="Badge tone"
+                      options={trueColorOptions}
+                      value={badgeTone}
+                      onChange={(value) => setBadgeTone(value as TrueColor)}
+                    />
+                  </>
+                ),
+              },
+              {
+                id: "icons",
+                title: "Icons",
+                controls: (
+                  <SelectControl
+                    label="Icon color"
+                    options={trueColorOptions}
+                    value={iconColor}
+                    onChange={(value) => setIconColor(value as TrueColor)}
+                  />
+                ),
+              },
+              {
+                id: "content",
+                title: "Content",
+                controls: (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Control label="Count">
+                      <Input
+                        size="sm"
+                        type="number"
+                        value={count}
+                        onChange={(event) => setCount(Number(event.target.value))}
+                      />
+                    </Control>
+                    <Control label="Max count">
+                      <Input
+                        size="sm"
+                        type="number"
+                        value={maxCount}
+                        onChange={(event) => setMaxCount(Number(event.target.value))}
+                      />
+                    </Control>
+                  </div>
+                ),
+              },
+              {
+                id: "layout",
+                title: "Layout",
+                controls: (
+                  <Control label="Position">
+                    <MultiToggle
+                      fullWidth
+                      size="sm"
+                      options={positionOptions}
+                      value={position}
+                      onChange={(value) => setPosition(value as BadgePosition)}
+                    />
+                  </Control>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: <ToggleRow label="Dot only" checked={dot} onChange={setDot} />,
+              },
+            ]}
           />
-          <SelectControl
-            label="Icon color"
-            options={trueColorOptions}
-            value={iconColor}
-            onChange={(value) => setIconColor(value as TrueColor)}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Control label="Count">
-              <Input
-                size="sm"
-                type="number"
-                value={count}
-                onChange={(event) => setCount(Number(event.target.value))}
-              />
-            </Control>
-            <Control label="Max count">
-              <Input
-                size="sm"
-                type="number"
-                value={maxCount}
-                onChange={(event) => setMaxCount(Number(event.target.value))}
-              />
-            </Control>
-          </div>
-          <Control label="Position">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={positionOptions}
-              value={position}
-              onChange={(value) => setPosition(value as BadgePosition)}
-            />
-          </Control>
-          <ToggleRow label="Dot only" checked={dot} onChange={setDot} />
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             A count above max count renders as {maxCount}+. A count of 0 hides
             the badge unless Dot only is on.
           </p>
-        </>
+        </div>
       }
       preview={
         <div className="flex h-40 w-40 items-center justify-center">

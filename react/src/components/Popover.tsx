@@ -1,0 +1,898 @@
+import React, {
+  cloneElement,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type AnimationEvent,
+  type CSSProperties,
+  type ReactElement,
+  type ReactNode,
+  type Ref,
+} from "react";
+import { createPortal } from "react-dom";
+import classNames from "classnames";
+import Loader, { type LoaderProps } from "./Loader";
+import Panel, {
+  getPanelEdgeChrome,
+  SkeletonBar,
+  type PanelLoaderType,
+  type PanelSpecularMode,
+} from "./Panel";
+import {
+  DEFAULT_SURFACE_CORNER,
+  getSurfaceCornerClass,
+  getSurfaceCornerRem,
+  getSurfacePaddingClass,
+  type SurfaceCorner,
+  type SurfacePadding,
+  type SurfaceVariant,
+  type TrueColor,
+} from "../theme/Theme";
+import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
+import { resolveOverlayZIndex } from "../../../common/utils/overlayZIndex";
+import {
+  resolveTooltipPlacement,
+  type TooltipPlacement,
+  type TooltipPosition,
+} from "../../../common/tooltip/placement";
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                               */
+/* ------------------------------------------------------------------ */
+
+export const POPOVER_PLACEMENTS = [
+  "auto",
+  "top",
+  "bottom",
+  "left",
+  "right",
+] as const;
+export type PopoverPlacement = (typeof POPOVER_PLACEMENTS)[number];
+
+/**
+ * The shared loader language: `Panel`'s own loader types, so a popover and
+ * the card it sits beside load with the same chrome.
+ */
+export type PopoverLoaderType = PanelLoaderType;
+
+export interface PopoverProps {
+  /**
+   * The element to anchor the popover to. Cloned with the toggle `onClick`,
+   * a composed `ref` and `aria-haspopup` / `aria-expanded` / `aria-controls`
+   * — any DOM element works (`Button`, `IconButton`, a styled `<span>`).
+   */
+  trigger: ReactElement;
+  /** The popover's content. */
+  children?: ReactNode;
+  /**
+   * Preferred side. The preferred one if it fits, then its opposite, then the
+   * perpendiculars — the shared placement geometry, so the arrow keeps
+   * pointing at the trigger after any clamping. `auto` uses the canonical
+   * `bottom` side as the preference.
+   *
+   * The box grows away from the trigger toward the side that has room
+   * (`align: "grow"`): right, with its left edge on the trigger's left edge,
+   * or left, with its right edge on the trigger's right edge — a popover
+   * reads as anchored to the button it came from, not centred over it.
+   * @default "auto"
+   */
+  placement?: PopoverPlacement;
+  /** Surface treatment — the shared container family the `Panel` owns. @default "elevated" */
+  variant?: SurfaceVariant;
+  /** @default "neutral" */
+  tone?: TrueColor;
+  /** @default "rounded-md" */
+  corner?: SurfaceCorner;
+  /** Body inset, on the shared container scale. @default "sm" */
+  padding?: SurfacePadding;
+  /** Content-sized below this cap, which is itself capped at the viewport. @default 320 */
+  maxWidth?: number;
+  /**
+   * The indicator that connects the panel to the trigger:
+   * the classic rotated-square arrow, or the detached "thinking-bubble"
+   * dot that floats in the gap. `true` is the arrow (the default).
+   * @default true
+   */
+  arrow?: boolean | "bubble";
+  /** Close on a click outside the trigger and the popover. @default true */
+  dismissable?: boolean;
+  /** Close on Escape, returning focus to the trigger. @default true */
+  closeOnEscape?: boolean;
+  /**
+   * Controlled open state. Uncontrolled by default. In controlled mode the
+   * component never flips `visible` itself — it asks through `onOpenChange`.
+   */
+  visible?: boolean;
+  /**
+   * Fires on every intent change (trigger click, outside click, Escape) in
+   * both modes. In controlled mode this is the request the parent answers by
+   * updating `visible`.
+   */
+  onOpenChange?: (open: boolean) => void;
+  /** The overlay starts showing (the enter animation begins). */
+  onShow?: () => void;
+  /** The overlay actually hides (the leave animation completes). */
+  onHide?: () => void;
+  /** @default false */
+  loading?: boolean;
+  /** @default "spinner" */
+  loaderType?: PopoverLoaderType;
+  loaderTitle?: ReactNode;
+  loaderMessage?: ReactNode;
+  /** `loaderType="progress"` only. */
+  loaderProgress?: number;
+  loaderColor?: LoaderProps["color"];
+  /** Body placeholder lines for `loaderType="skeleton"`. @default 3 */
+  skeletonLines?: number;
+  /**
+   * Backdrop vibrancy for the liquid-glass variant — forwarded to the Panel.
+   * @default "medium"
+   */
+  vibrancy?: GlassVibrancy;
+  /**
+   * Glass fill opacity for the glass variants — forwarded to the Panel.
+   * @default "frosted"
+   */
+  glassOpacity?: GlassOpacity;
+  /** Specular highlight mode for the glass variants — forwarded to the Panel. */
+  specularMode?: PanelSpecularMode;
+  /** Extra classes for the overlay wrapper. */
+  className?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                           */
+/* ------------------------------------------------------------------ */
+
+const OVERLAY_ENTER_ANIMATION = "popover-overlay-enter";
+const OVERLAY_LEAVE_ANIMATION = "popover-overlay-leave";
+
+/** 16 px (w-4 h-4) rotated 45° — the diamond tip reaches ~11 px out. */
+const ARROW_SIZE = 16;
+const ARROW_HALF = ARROW_SIZE / 2;
+/**
+ * Half the rotated square's *visual* span (its bounding box is SIZE·√2).
+ * The arrow is clipped to the half of this diamond that sits OUTSIDE the
+ * panel: the inner half of a translucent fill would show through the panel
+ * as a rotated square (double opacity), so it must not be painted at all.
+ * Rounded to 0.01 px — the 0.004 px difference from the exact 16√2/2 is
+ * below one subpixel and keeps the style values (and tests) tidy.
+ */
+const ARROW_DIAMOND_HALF =
+  Math.round(((ARROW_SIZE * Math.SQRT2) / 2) * 100) / 100;
+/** Trigger ↔ popover gap. */
+const PLACEMENT_OFFSET = 8;
+/** Minimum distance to every viewport edge. */
+const VIEWPORT_MARGIN = 8;
+/**
+ * The edge-notch strip that erases the panel's border/ring segment behind
+ * the arrow, so the edge reads as *stopping* at the V instead of running on
+ * past it (a speech-bubble join). 24 px spans the diamond's full footprint
+ * at the edge line (16√2 ≈ 22.6 px) plus antialiasing slack; 2 px straddles
+ * the 1 px edge so both a real border and an outset ring are covered.
+ */
+const NOTCH_SPAN = 24;
+const NOTCH_HALF = NOTCH_SPAN / 2;
+const NOTCH_THICKNESS = 2;
+
+/* ------------------------------------------------------------------ */
+/*  Bubble (thinking-bubble) indicator                                  */
+/* ------------------------------------------------------------------ */
+
+/** Diameter of the detached dot. Smaller than the ~22 px arrow diamond. */
+const BUBBLE_SIZE = 12;
+/**
+ * Trigger↔panel gap in bubble mode, vs `PLACEMENT_OFFSET` (8 px) for the
+ * arrow. The extra room is what lets the dot float detached from both the
+ * panel edge and the trigger. Must equal BUBBLE_SIZE + 2·BUBBLE_CLEARANCE.
+ */
+const BUBBLE_OFFSET = 24;
+/** Free space kept around the dot on each side of the gap. */
+const BUBBLE_CLEARANCE = 6;
+/** The dot's floor when the gap is squeezed by clamping. */
+const BUBBLE_MIN = 4;
+
+type OverlayPhase = "closed" | "entering" | "open" | "leaving";
+
+/**
+ * The corner radius in px, so the caret inset can keep the arrow off the
+ * rounded part of the edge (the `resolveTooltipPlacement` `caretInset` rule).
+ */
+const cornerRadiusPx = (corner: SurfaceCorner): number =>
+  parseFloat(getSurfaceCornerRem(corner)) * 16;
+
+/**
+ * The two border sides that form the arrow's visible V, per the side the
+ * popover actually sits on. The hidden half has no border at all — a full
+ * border's far sides would show through a translucent panel.
+ */
+const ARROW_SIDE_BORDERS: Record<TooltipPosition, string> = {
+  bottom: "border-t border-l",
+  top: "border-b border-r",
+  left: "border-t border-r",
+  right: "border-b border-l",
+};
+
+/* ------------------------------------------------------------------ */
+/*  Skeleton                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Placeholder shaped like popover content: a short title bar over the body
+ * lines, in the shared skeleton ink so it pulses the same on glass and on a
+ * solid card.
+ */
+const PopoverSkeleton: React.FC<{ lines: number }> = ({ lines }) => (
+  <div className="space-y-3" aria-hidden="true">
+    <SkeletonBar width="55%" className="h-4" />
+    {Array.from({ length: lines }).map((_, index) => (
+      <SkeletonBar
+        key={index}
+        width={index === lines - 1 ? "70%" : "100%"}
+        className="h-2.5"
+      />
+    ))}
+  </div>
+);
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                           */
+/* ------------------------------------------------------------------ */
+
+const Popover: React.FC<PopoverProps> = ({
+  trigger,
+  children,
+  placement = "auto",
+  variant = "elevated",
+  tone = "neutral",
+  corner = DEFAULT_SURFACE_CORNER,
+  padding = "sm",
+  maxWidth = 320,
+  arrow = true,
+  dismissable = true,
+  closeOnEscape = true,
+  visible,
+  onOpenChange,
+  onShow,
+  onHide,
+  loading = false,
+  loaderType = "spinner",
+  loaderTitle,
+  loaderMessage,
+  loaderProgress,
+  loaderColor,
+  skeletonLines = 3,
+  vibrancy = "medium",
+  glassOpacity = "frosted",
+  specularMode,
+  className,
+}) => {
+  const popoverId = useId();
+
+  /** Normalise `arrow?: boolean | "bubble"` to a three-state mode. */
+  const arrowMode: "arrow" | "bubble" | "none" =
+    arrow === "bubble" ? "bubble" : arrow ? "arrow" : "none";
+
+  const isControlled = visible !== undefined;
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = isControlled ? visible : uncontrolledOpen;
+
+  const [phase, setPhase] = useState<OverlayPhase>("closed");
+  const phaseRef = useRef<OverlayPhase>("closed");
+  phaseRef.current = phase;
+
+  const [position, setPosition] = useState<{
+    style: CSSProperties;
+    placement: TooltipPlacement;
+    /** Trigger↔panel distance on the caret axis, for the bubble dot. */
+    bubbleGap: number;
+  } | null>(null);
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerWrapperRef = useRef<HTMLSpanElement>(null);
+  /** The anchor node — the trigger itself when it forwards a ref. */
+  const anchorRef = useRef<HTMLElement | null>(null);
+
+  // Latest-handler refs: the dismissal/escape listeners and the
+  // `animationend` handler must never see stale callbacks.
+  const onShowRef = useRef(onShow);
+  onShowRef.current = onShow;
+  const onHideRef = useRef(onHide);
+  onHideRef.current = onHide;
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+
+  const showFiredRef = useRef(false);
+  const hideFiredRef = useRef(false);
+
+  const overlayVisible = phase !== "closed";
+
+  /* ---------------------------------------------------------------- */
+  /*  Intent                                                            */
+  /* ---------------------------------------------------------------- */
+
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (!isControlled) setUncontrolledOpen(next);
+      onOpenChangeRef.current?.(next);
+    },
+    [isControlled],
+  );
+
+  /* ---------------------------------------------------------------- */
+  /*  Phase machine                                                     */
+  /* ---------------------------------------------------------------- */
+
+  useEffect(() => {
+    const p = phaseRef.current;
+    if (open) {
+      if (p === "closed") {
+        hideFiredRef.current = false;
+        setPhase("entering");
+      }
+    } else if (p === "entering" || p === "open") {
+      setPhase("leaving");
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (phase === "entering" && !showFiredRef.current) {
+      showFiredRef.current = true;
+      onShowRef.current?.();
+    }
+    if (phase === "closed") {
+      showFiredRef.current = false;
+    }
+  }, [phase]);
+
+  const handleOverlayAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
+    // Guard per Learnings: animation events bubble from every descendant —
+    // only the wrapper's own overlay animation ends the phase.
+    if (event.target !== event.currentTarget) return;
+    if (
+      event.animationName !== OVERLAY_ENTER_ANIMATION &&
+      event.animationName !== OVERLAY_LEAVE_ANIMATION
+    ) {
+      return;
+    }
+    if (phaseRef.current === "entering") {
+      setPhase("open");
+    } else if (phaseRef.current === "leaving") {
+      setPhase("closed");
+      setPosition(null);
+      if (!hideFiredRef.current) {
+        hideFiredRef.current = true;
+        onHideRef.current?.();
+      }
+    }
+  };
+
+  /* ---------------------------------------------------------------- */
+  /*  Placement — two-pass: mount hidden, measure, position, animate   */
+  /* ---------------------------------------------------------------- */
+
+  const computePosition = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    const anchor = anchorRef.current ?? triggerWrapperRef.current;
+    if (!wrapper || !anchor) return;
+    const anchorRect = anchor.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    // `getBoundingClientRect` reports the *transformed* box, and during
+    // enter/leave the overlay is scaled (0.93) — the first measurement would
+    // see a 7 %-smaller panel and every grow alignment would miss its edge.
+    // Read the layout size, which transforms don't touch; in jsdom there is
+    // no layout (offsets are 0), and the mocked bbox is already untransformed,
+    // so the fallback is exact there.
+    const wrapperWidth = wrapper.offsetWidth || wrapperRect.width;
+    const wrapperHeight = wrapper.offsetHeight || wrapperRect.height;
+    // Unlaid-out (jsdom) or zero-sized boxes would poison the maths.
+    if (wrapperWidth === 0 || wrapperHeight === 0) return;
+
+    const resolved = resolveTooltipPlacement({
+      trigger: {
+        top: anchorRect.top,
+        left: anchorRect.left,
+        width: anchorRect.width,
+        height: anchorRect.height,
+      },
+      tooltip: { width: wrapperWidth, height: wrapperHeight },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      preferred: placement === "auto" ? "bottom" : placement,
+      // The bubble needs its extra floating room, so the fit/flip maths must
+      // account for the wider gap or the panel would flip too late.
+      offset: arrowMode === "bubble" ? BUBBLE_OFFSET : PLACEMENT_OFFSET,
+      margin: VIEWPORT_MARGIN,
+      caretInset: cornerRadiusPx(corner) + 8,
+      // Edge-aligned growth, not centre-aligned: the panel anchors to the
+      // trigger's edge and grows toward the side with room.
+      align: "grow",
+    });
+
+    // The dot floats in the ACTUAL gap, not the nominal offset — clamping
+    // can squeeze the gap, so measure the distance between the trigger's
+    // facing edge and the box's facing edge after resolution.
+    const box = {
+      top: resolved.top,
+      left: resolved.left,
+      width: wrapperWidth,
+      height: wrapperHeight,
+    };
+    const bubbleGap = (() => {
+      switch (resolved.side) {
+        case "bottom":
+          return box.top - (anchorRect.top + anchorRect.height);
+        case "top":
+          return anchorRect.top - (box.top + box.height);
+        case "right":
+          return box.left - (anchorRect.left + anchorRect.width);
+        case "left":
+          return anchorRect.left - (box.left + box.width);
+      }
+    })();
+
+    setPosition({
+      style: {
+        position: "fixed",
+        top: resolved.top,
+        left: resolved.left,
+        zIndex: resolveOverlayZIndex(anchor),
+      },
+      placement: resolved,
+      bubbleGap,
+    });
+  }, [placement, corner, arrowMode]);
+
+  useLayoutEffect(() => {
+    if (!overlayVisible || position) return;
+    computePosition();
+  }, [overlayVisible, position, computePosition]);
+
+  // Land focus on `[autofocus]` once the panel has its final position —
+  // PrimeVue's on-open focus, minus the trap: this is a non-modal popover,
+  // and stealing focus into plain copy would be worse than keeping it on
+  // the trigger.
+  useLayoutEffect(() => {
+    if (phase !== "entering" || !position) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    wrapper.querySelector<HTMLElement>("[autofocus]")?.focus({
+      preventScroll: true,
+    });
+  }, [phase, position]);
+
+  // Return focus to the trigger when the close begins, while the panel is
+  // still visible — the HelpButton contract.
+  useEffect(() => {
+    if (phase !== "leaving") return;
+    const target =
+      anchorRef.current ??
+      triggerWrapperRef.current?.querySelector<HTMLElement>(
+        "button, [href], input, select, textarea, [tabindex]",
+      );
+    target?.focus({ preventScroll: true });
+  }, [phase]);
+
+  // Scroll and resize REPOSITION instead of closing — the kit's deliberate
+  // deviation from PrimeVue's close-on-scroll (see useOverlayPosition).
+  useEffect(() => {
+    if (!overlayVisible) return;
+    let frame = 0;
+    const schedule = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (phaseRef.current === "entering" || phaseRef.current === "open") {
+          computePosition();
+        }
+      });
+    };
+    window.addEventListener("scroll", schedule, {
+      passive: true,
+      capture: true,
+    });
+    window.addEventListener("resize", schedule, { passive: true });
+    const ro =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(schedule)
+        : undefined;
+    if (ro) {
+      if (triggerWrapperRef.current) ro.observe(triggerWrapperRef.current);
+      if (wrapperRef.current) ro.observe(wrapperRef.current);
+    }
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule, { capture: true });
+      window.removeEventListener("resize", schedule);
+      ro?.disconnect();
+    };
+  }, [overlayVisible, computePosition]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Dismissal                                                         */
+  /* ---------------------------------------------------------------- */
+
+  useEffect(() => {
+    if (!overlayVisible || !dismissable) return;
+    const onMousedown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (wrapperRef.current?.contains(target)) return;
+      // The trigger toggles on click, not mousedown — exclude it here so the
+      // click gets to run its own toggle (PrimeVue's isTargetClicked guard).
+      if (triggerWrapperRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onMousedown);
+    return () => document.removeEventListener("mousedown", onMousedown);
+  }, [overlayVisible, dismissable, setOpen]);
+
+  useEffect(() => {
+    if (!overlayVisible || !closeOnEscape) return;
+    const onKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKeydown);
+    return () => document.removeEventListener("keydown", onKeydown);
+  }, [overlayVisible, closeOnEscape, setOpen]);
+
+  /* ---------------------------------------------------------------- */
+  /*  Trigger                                                           */
+  /* ---------------------------------------------------------------- */
+
+  const existingRef = isValidElement(trigger)
+    ? ((trigger.props ?? {}) as { ref?: Ref<unknown> }).ref
+    : undefined;
+
+  // Composed ref: ours measures the anchor, the caller's still works. When
+  // the trigger does not forward a ref (plain span, non-forwarding component)
+  // `anchorRef` stays null and measurement falls back to the wrapper span.
+  const setAnchorNode = (node: HTMLElement | null) => {
+    anchorRef.current = node;
+    if (typeof existingRef === "function") existingRef(node);
+    else if (existingRef && typeof existingRef === "object") {
+      (existingRef as { current: unknown }).current = node;
+    }
+  };
+
+  const handleTriggerClick = (event: React.MouseEvent) => {
+    const existing = (
+      (trigger.props ?? {}) as {
+        onClick?: (e: React.MouseEvent) => void;
+      }
+    ).onClick;
+    existing?.(event);
+    setOpen(!open);
+  };
+
+  const renderedTrigger = isValidElement(trigger)
+    ? cloneElement(trigger as ReactElement<Record<string, unknown>>, {
+        ref: setAnchorNode,
+        onClick: handleTriggerClick,
+        "aria-haspopup": "dialog",
+        "aria-expanded": open,
+        "aria-controls": open ? popoverId : undefined,
+      })
+    : trigger;
+
+  /* ---------------------------------------------------------------- */
+  /*  Render                                                            */
+  /* ---------------------------------------------------------------- */
+
+  const chrome = getPanelEdgeChrome(variant, tone, glassOpacity, vibrancy);
+
+  const cappedMaxWidth =
+    typeof window === "undefined"
+      ? maxWidth
+      : Math.min(maxWidth, window.innerWidth - VIEWPORT_MARGIN * 2);
+
+  const overlayStyle: CSSProperties = position
+    ? { ...position.style, maxWidth: cappedMaxWidth }
+    : {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        visibility: "hidden",
+        maxWidth: cappedMaxWidth,
+      };
+
+  /**
+   * The clip window for the arrow: the outer half of the diamond's visual
+   * bounding box, with its inner edge exactly on the panel edge the arrow
+   * rides. `overflow: hidden` drops the inner half of the rotated square,
+   * which is what read as a "rotated rectangle" over translucent panels.
+   */
+  const arrowClipStyle: CSSProperties = (() => {
+    if (!position) return {};
+    const { side, caret } = position.placement;
+    const d = ARROW_DIAMOND_HALF;
+    switch (side) {
+      case "bottom":
+        return {
+          top: -d,
+          left: caret - d,
+          width: d * 2,
+          height: d,
+          overflow: "hidden",
+        };
+      case "top":
+        return {
+          bottom: -d,
+          left: caret - d,
+          width: d * 2,
+          height: d,
+          overflow: "hidden",
+        };
+      case "left":
+        return {
+          top: caret - d,
+          right: -d,
+          width: d,
+          height: d * 2,
+          overflow: "hidden",
+        };
+      case "right":
+        return {
+          top: caret - d,
+          left: -d,
+          width: d,
+          height: d * 2,
+          overflow: "hidden",
+        };
+    }
+  })();
+
+  /**
+   * The diamond inside its clip window, centred on the panel edge. In the
+   * window's local coordinates the edge point is a corner-centre: the
+   * square's centre lands d−8 px from that corner on each axis.
+   */
+  const arrowDiamondStyle: CSSProperties = (() => {
+    if (!position) return {};
+    const { side } = position.placement;
+    const s = ARROW_DIAMOND_HALF - ARROW_HALF;
+    switch (side) {
+      case "bottom":
+        return { left: s, top: s };
+      case "top":
+        return { left: s, top: -ARROW_HALF };
+      case "left":
+        return { left: -ARROW_HALF, top: s };
+      case "right":
+        return { left: s, top: s };
+    }
+  })();
+
+  /** The notch straddles the same edge the arrow rides, centred on the caret. */
+  const notchStyle: CSSProperties = (() => {
+    if (!position) return {};
+    const { side, caret } = position.placement;
+    switch (side) {
+      case "bottom":
+        return {
+          top: -(NOTCH_THICKNESS / 2),
+          left: caret - NOTCH_HALF,
+          width: NOTCH_SPAN,
+          height: NOTCH_THICKNESS,
+        };
+      case "top":
+        return {
+          bottom: -(NOTCH_THICKNESS / 2),
+          left: caret - NOTCH_HALF,
+          width: NOTCH_SPAN,
+          height: NOTCH_THICKNESS,
+        };
+      case "left":
+        return {
+          right: -(NOTCH_THICKNESS / 2),
+          top: caret - NOTCH_HALF,
+          width: NOTCH_THICKNESS,
+          height: NOTCH_SPAN,
+        };
+      case "right":
+        return {
+          left: -(NOTCH_THICKNESS / 2),
+          top: caret - NOTCH_HALF,
+          width: NOTCH_THICKNESS,
+          height: NOTCH_SPAN,
+        };
+    }
+  })();
+
+  /**
+   * The detached bubble dot: centred on the caret along the panel edge, and
+   * at the MIDPOINT of the actual gap across it. The shared geometry never
+   * clamps the pointing axis (it must stay adjacent to the trigger), so the
+   * gap is the offset in practice; the size clamp is defensive in case that
+   * ever changes, with a BUBBLE_MIN floor.
+   */
+  const bubbleStyle: CSSProperties = (() => {
+    if (!position) return {};
+    const { side, caret } = position.placement;
+    const dot = Math.min(
+      BUBBLE_SIZE,
+      Math.max(BUBBLE_MIN, position.bubbleGap - 2 * BUBBLE_CLEARANCE),
+    );
+    const half = dot / 2;
+    const base = { width: dot, height: dot };
+    switch (side) {
+      case "bottom":
+        return {
+          ...base,
+          left: caret - half,
+          top: -position.bubbleGap / 2 - half,
+        };
+      case "top":
+        return {
+          ...base,
+          left: caret - half,
+          top: position.bubbleGap / 2 - half,
+        };
+      case "right":
+        return {
+          ...base,
+          top: caret - half,
+          left: -position.bubbleGap / 2 - half,
+        };
+      case "left":
+        return {
+          ...base,
+          top: caret - half,
+          left: position.bubbleGap / 2 - half,
+        };
+    }
+  })();
+
+  const showSkeleton = loading && loaderType === "skeleton";
+
+  return (
+    <span ref={triggerWrapperRef} className="inline-flex">
+      {renderedTrigger}
+      {overlayVisible &&
+        createPortal(
+          <div
+            ref={wrapperRef}
+            id={popoverId}
+            role="dialog"
+            aria-modal="false"
+            tabIndex={-1}
+            data-variant={variant}
+            data-tone={tone}
+            data-placement={position?.placement.side}
+            aria-busy={loading}
+            onAnimationEnd={handleOverlayAnimationEnd}
+            className={classNames(
+              "popover-overlay outline-none",
+              phase === "entering" && "popover-overlay--enter",
+              phase === "leaving" && "popover-overlay--leave",
+              // The Loader overlay's `rounded-[inherit]` reads this.
+              getSurfaceCornerClass(corner),
+              className,
+            )}
+            style={overlayStyle}
+          >
+            {arrowMode === "arrow" && position && (
+              <>
+                {/*
+                  Edge notch, painted OVER the panel (z-10): it erases the
+                  border/ring segment the arrow would otherwise sit on, so the
+                  edge stops at the V — the speech-bubble join. It wears the
+                  panel's own fill (and, for glass, its backdrop — whose blur
+                  dissolves the 1 px line across the strip), so it melts into
+                  the surface instead of reading as a patch.
+                */}
+                <span
+                  aria-hidden="true"
+                  data-popover-notch
+                  className={classNames(
+                    "pointer-events-none absolute z-10",
+                    chrome.fill,
+                    chrome.backdrop,
+                  )}
+                  style={notchStyle}
+                />
+                {/*
+                  The arrow must paint over the panel (z-20) — as a DOM
+                  sibling it would sit *under* the panel's fill and border,
+                  and the edge would run straight through the V. Its two
+                  visible sides carry the panel's edge colour, so the join
+                  reads as one shape. (The Loader's z-50 stays above both.)
+
+                  The diamond sits in a clip window sized to its outer half
+                  so the inner half is never painted — on glass/liquid-glass
+                  that half would show through the panel as a rotated square
+                  (Learnings). The window's inner edge is exactly the panel
+                  edge, so the V still meets it without a gap.
+                */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute z-20 overflow-hidden"
+                  style={arrowClipStyle}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={classNames(
+                      "absolute block h-4 w-4 rotate-45",
+                      ARROW_SIDE_BORDERS[position.placement.side],
+                      chrome.border,
+                      chrome.fill,
+                      chrome.backdrop,
+                    )}
+                    style={arrowDiamondStyle}
+                  />
+                </span>
+              </>
+            )}
+            {arrowMode === "bubble" && position && (
+              /*
+                The detached "thinking-bubble" dot: a small circle floating in
+                the MIDDLE of the trigger↔panel gap, centred on the caret. It
+                wears the panel's edge chrome (fill + a full circular border +
+                backdrop) so it reads as a bead of the same surface. Being
+                detached it never touches the panel edge, so no notch is
+                needed — the border/ring runs unbroken. It shrinks to fit a
+                gap clamped smaller than the nominal offset.
+              */
+              <span
+                aria-hidden="true"
+                data-popover-bubble
+                className={classNames(
+                  "pointer-events-none absolute z-20 block rounded-full border",
+                  chrome.border,
+                  chrome.fill,
+                  chrome.backdrop,
+                )}
+                style={bubbleStyle}
+              />
+            )}
+            {/*
+              The surface is a real, PASSIVE `Panel`: `padding="none"` +
+              `scrollable={false}`, with the scroll moved to the inner
+              region — Panel's default padded `overflow-auto` body
+              double-scrolls and fights the fixed positioning (Learnings).
+            */}
+            <Panel
+              variant={variant}
+              tone={tone}
+              corner={corner}
+              padding="none"
+              scrollable={false}
+              vibrancy={vibrancy}
+              glassOpacity={glassOpacity}
+              specularMode={specularMode}
+            >
+              <div className="max-h-[55vh] overflow-y-auto">
+                <div className={getSurfacePaddingClass(padding)}>
+                  {showSkeleton ? (
+                    <PopoverSkeleton lines={skeletonLines} />
+                  ) : (
+                    children
+                  )}
+                </div>
+              </div>
+            </Panel>
+            {loading && !showSkeleton && (
+              <Loader
+                overlay
+                variant={
+                  loaderType as Exclude<LoaderProps["variant"], undefined>
+                }
+                title={loaderTitle}
+                label={loaderMessage}
+                progress={loaderProgress}
+                color={loaderColor}
+              />
+            )}
+          </div>,
+          document.body,
+        )}
+    </span>
+  );
+};
+
+Popover.displayName = "Popover";
+
+export default Popover;

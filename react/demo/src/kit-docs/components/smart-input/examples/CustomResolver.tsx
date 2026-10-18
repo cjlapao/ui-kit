@@ -54,7 +54,12 @@ export default function CustomResolver() {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide opacity-70">
           Default lookup over the groups
         </p>
-        <SmartValue value={VALUE} groups={GROUPS} tone="violet" alwaysShowToggle />
+        <SmartValue
+          value={VALUE}
+          groups={GROUPS}
+          tone="violet"
+          alwaysShowToggle
+        />
       </div>
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide opacity-70">

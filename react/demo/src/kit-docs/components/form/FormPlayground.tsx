@@ -1,33 +1,44 @@
 import React, { useState } from "react";
 import {
   Button,
+  ColorSwatches,
   FormField,
   FormLayout,
   FormSection,
   Input,
-  MultiToggle,
+  Panel,
   Select,
   Textarea,
 } from "@cjlapao/ui-kit";
 import type {
   ControlSize,
   FormFieldLayout,
+  InputVariant,
   FormFieldValidationStatus,
   FormLayoutAlign,
   FormLayoutColumns,
+  GlassOpacity,
+  GlassVibrancy,
+  PanelSpecularMode,
   PanelVariant,
   TrueColor,
 } from "@cjlapao/ui-kit";
 import {
+  ChoiceControl,
   Control,
   PlaygroundPanel,
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   controlSizeOptions,
+  glassOpacityOptions,
+  glassVibrancyOptions,
+  inputValidationOptions,
+  inputVariantOptions,
+  panelSpecularOptions,
   surfaceVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const columnOptions = [
@@ -48,12 +59,6 @@ const fieldLayoutOptions = [
   { label: "Inline", value: "inline" },
 ];
 
-const validationOptions = [
-  { label: "None", value: "none" },
-  { label: "Error", value: "error" },
-  { label: "Success", value: "success" },
-];
-
 export const FormPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
   const [tone, setTone] = useState<TrueColor>("neutral");
@@ -65,6 +70,16 @@ export const FormPlayground: React.FC = () => {
     useState<FormFieldValidationStatus>("none");
   const [required, setRequired] = useState(true);
   const [showHint, setShowHint] = useState(true);
+  const [controlVariant, setControlVariant] =
+    useState<InputVariant>("elevated");
+  const [inPanel, setInPanel] = useState(false);
+  const [onGlass, setOnGlass] = useState(false);
+  const [specularMode, setSpecularMode] =
+    useState<PanelSpecularMode>("classic");
+  const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
+  const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("frosted");
+
+  const isLiquidGlass = (inPanel && onGlass) || variant === "liquid-glass";
 
   const fieldCommon = {
     layout: fieldLayout,
@@ -76,139 +91,254 @@ export const FormPlayground: React.FC = () => {
       validationStatus === "error" ? "This field needs attention." : undefined,
   };
 
-  return (
-    <PlaygroundPanel
-      controls={
-        <>
-          <SelectControl
-            label="Section surface"
-            options={surfaceVariantOptions}
-            value={variant}
-            onChange={(v) => setVariant(v as PanelVariant)}
-          />
-          <SelectControl
-            label="Section tone"
-            options={trueColorOptions}
-            value={tone}
-            onChange={(v) => setTone(v as TrueColor)}
-          />
-          <Control label="Section padding">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={controlSizeOptions}
-              value={padding}
-              onChange={(v) => setPadding(v as ControlSize)}
-            />
-          </Control>
-          <Control label="Columns">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={columnOptions}
-              value={String(columns)}
-              onChange={(v) => setColumns(Number(v) as FormLayoutColumns)}
-            />
-          </Control>
-          <Control label="Row alignment">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={alignOptions}
-              value={align}
-              onChange={(v) => setAlign(v as FormLayoutAlign)}
-            />
-          </Control>
-          <Control label="Field layout">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={fieldLayoutOptions}
-              value={fieldLayout}
-              onChange={(v) => setFieldLayout(v as FormFieldLayout)}
-            />
-          </Control>
-          <Control label="Validation">
-            <MultiToggle
-              fullWidth
-              size="sm"
-              options={validationOptions}
-              value={validationStatus}
-              onChange={(v) =>
-                setValidationStatus(v as FormFieldValidationStatus)
-              }
-            />
-          </Control>
-          <div className="grid grid-cols-1 gap-2">
-            <ToggleRow label="Required" checked={required} onChange={setRequired} />
-            <ToggleRow label="Hints" checked={showHint} onChange={setShowHint} />
-          </div>
-        </>
-      }
-      preview={
-        <div className="w-full">
-          <div className="w-full rounded-lg bg-gradient-to-br from-indigo-100 via-neutral-50 to-rose-100 p-4 dark:from-slate-900 dark:via-neutral-950 dark:to-indigo-950">
-            <FormSection
-              variant={variant}
-              tone={tone}
-              padding={padding}
-              title="Account details"
-              description="These are shown on your public profile."
-              footer={
-                <div className="flex justify-end gap-3">
-                  <Button variant="outline" color="neutral" size="sm">
-                    Cancel
-                  </Button>
-                  <Button variant="solid" color="blue" size="sm">
-                    Save changes
-                  </Button>
-                </div>
-              }
-            >
-              <FormLayout columns={columns} align={align}>
-                <FormField {...fieldCommon} label="First name">
-                  <Input placeholder="Ada" />
-                </FormField>
-                <FormField {...fieldCommon} label="Last name">
-                  <Input placeholder="Lovelace" />
-                </FormField>
-                <FormField
-                  {...fieldCommon}
-                  label="Email"
-                  description="We only use this for account notices."
-                >
-                  <Input type="email" placeholder="ada@example.com" />
-                </FormField>
-                <FormField
-                  {...fieldCommon}
-                  label="Role"
-                  optionalLabel="Optional"
-                >
-                  <Select defaultValue="engineer">
-                    <option value="engineer">Engineer</option>
-                    <option value="designer">Designer</option>
-                    <option value="manager">Manager</option>
-                  </Select>
-                </FormField>
-              </FormLayout>
-              <FormLayout columns={1} align={align}>
-                <FormField
-                  {...fieldCommon}
-                  label="Bio"
-                  helpText="Markdown is supported."
-                >
-                  <Textarea
-                    resize="vertical"
-                    size="sm"
-                    placeholder="Tell us about yourself"
-                  />
-                </FormField>
-              </FormLayout>
-            </FormSection>
-          </div>
+  const section = (
+    <FormSection
+      variant={variant}
+      tone={tone}
+      padding={padding}
+      specularMode={isLiquidGlass ? specularMode : undefined}
+      vibrancy={isLiquidGlass ? vibrancy : undefined}
+      glassOpacity={isLiquidGlass ? glassOpacity : undefined}
+      title="Account details"
+      description="These are shown on your public profile."
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" color="neutral" size="sm">
+            Cancel
+          </Button>
+          <Button variant="solid" color="blue" size="sm">
+            Save changes
+          </Button>
         </div>
       }
     >
-    </PlaygroundPanel>
+      <FormLayout columns={columns} align={align}>
+        <FormField {...fieldCommon} label="First name">
+          <Input variant={controlVariant} placeholder="Ada" />
+        </FormField>
+        <FormField {...fieldCommon} label="Last name">
+          <Input variant={controlVariant} placeholder="Lovelace" />
+        </FormField>
+        <FormField
+          {...fieldCommon}
+          label="Email"
+          description="We only use this for account notices."
+        >
+          <Input
+            type="email"
+            variant={controlVariant}
+            placeholder="ada@example.com"
+          />
+        </FormField>
+        <FormField {...fieldCommon} label="Role" optionalLabel="Optional">
+          <Select variant={controlVariant} defaultValue="engineer">
+            <option value="engineer">Engineer</option>
+            <option value="designer">Designer</option>
+            <option value="manager">Manager</option>
+          </Select>
+        </FormField>
+      </FormLayout>
+      <FormLayout columns={1} align={align}>
+        <FormField
+          {...fieldCommon}
+          label="Bio"
+          helpText="Markdown is supported."
+        >
+          <Textarea
+            variant={controlVariant}
+            resize="vertical"
+            size="sm"
+            placeholder="Tell us about yourself"
+          />
+        </FormField>
+      </FormLayout>
+    </FormSection>
+  );
+
+  return (
+    <PlaygroundPanel
+      controls={
+        <div className="space-y-3">
+          <ControlAccordion
+            groups={[
+              {
+                id: "core",
+                title: "Core",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Section surface"
+                      options={surfaceVariantOptions}
+                      value={variant}
+                      onChange={(v) => setVariant(v as PanelVariant)}
+                    />
+                    {/* Colour is a palette, not a dropdown of colour names. */}
+                    <Control label="Section tone">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={tone}
+                        onSelect={setTone}
+                        defaultExpanded
+                      />
+                    </Control>
+                    <ChoiceControl
+                      label="Section padding"
+                      options={controlSizeOptions}
+                      value={padding}
+                      onChange={(v) => setPadding(v as ControlSize)}
+                    />
+                  </>
+                ),
+              },
+              ...(isLiquidGlass
+                ? [
+                    {
+                      id: "glass",
+                      title: "Glass",
+                      controls: (
+                        <>
+                          <ChoiceControl
+                            label="Specular"
+                            options={panelSpecularOptions}
+                            value={specularMode}
+                            onChange={(v) =>
+                              setSpecularMode(v as PanelSpecularMode)
+                            }
+                          />
+                          <ChoiceControl
+                            label="Vibrancy"
+                            options={glassVibrancyOptions}
+                            value={vibrancy as string}
+                            onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                          />
+                          <ChoiceControl
+                            label="Glass opacity"
+                            options={glassOpacityOptions}
+                            value={glassOpacity as string}
+                            onChange={(v) => setGlassOpacity(v as GlassOpacity)}
+                          />
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                id: "controls",
+                title: "Controls",
+                controls: (
+                  <SelectControl
+                    label="Field surface"
+                    options={inputVariantOptions}
+                    value={controlVariant}
+                    onChange={(v) => setControlVariant(v as InputVariant)}
+                  />
+                ),
+              },
+
+              {
+                id: "layout",
+                title: "Layout",
+                controls: (
+                  <>
+                    <ChoiceControl
+                      label="Columns"
+                      options={columnOptions}
+                      value={String(columns)}
+                      onChange={(v) =>
+                        setColumns(Number(v) as FormLayoutColumns)
+                      }
+                    />
+                    <ChoiceControl
+                      label="Row alignment"
+                      options={alignOptions}
+                      value={align}
+                      onChange={(v) => setAlign(v as FormLayoutAlign)}
+                    />
+                    <ChoiceControl
+                      label="Field layout"
+                      options={fieldLayoutOptions}
+                      value={fieldLayout}
+                      onChange={(v) => setFieldLayout(v as FormFieldLayout)}
+                    />
+                  </>
+                ),
+              },
+              {
+                id: "states",
+                title: "States",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Validation"
+                      options={inputValidationOptions}
+                      value={validationStatus}
+                      onChange={(v) =>
+                        setValidationStatus(v as FormFieldValidationStatus)
+                      }
+                    />
+                    <div className="grid grid-cols-1 gap-2">
+                      <ToggleRow
+                        label="Required"
+                        checked={required}
+                        onChange={setRequired}
+                      />
+                      <ToggleRow
+                        label="Hints"
+                        checked={showHint}
+                        onChange={setShowHint}
+                      />
+                      <ToggleRow
+                        label="In a panel"
+                        checked={inPanel}
+                        onChange={setInPanel}
+                      />
+                      {inPanel && (
+                        <ToggleRow
+                          label="On a glass panel"
+                          checked={onGlass}
+                          onChange={setOnGlass}
+                        />
+                      )}
+                    </div>
+                  </>
+                ),
+              },
+            ]}
+          />
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            No event log: the form primitives fire nothing — they are wiring,
+            not widgets. What they own is the <em>association</em>: the label
+            points at the control&rsquo;s id, and hint, description and error
+            ride along in <code>aria-describedby</code> (an <code>error</code>{" "}
+            also sets <code>aria-invalid</code> even if you forget to say{" "}
+            <code>validationStatus</code>). The <em>events</em> belong to
+            whichever control sits inside — see Input and Select.
+          </p>
+        </div>
+      }
+      preview={
+        <div className="w-full">
+          {inPanel ? (
+            <Panel
+              // Corner-free: the FormSection inside is the rounded card, and a
+              // rounded host hugging it with a double radius reads as a mistake.
+              corner="none"
+              variant={onGlass ? "liquid-glass" : "outlined"}
+              tone={onGlass ? tone : "neutral"}
+              specularMode={onGlass ? specularMode : "none"}
+              vibrancy={vibrancy}
+              glassOpacity={glassOpacity}
+              padding="md"
+              scrollable={false}
+            >
+              {section}
+            </Panel>
+          ) : (
+            <div className="flex w-full flex-col gap-6">{section}</div>
+          )}
+        </div>
+      }
+    />
   );
 };

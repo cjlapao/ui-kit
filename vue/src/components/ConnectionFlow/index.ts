@@ -1,10 +1,79 @@
 export { default as ConnectionFlow } from "./ConnectionFlow.vue";
-export { default as ConnectionFlowConnector } from "./ConnectionFlowConnector.vue";
-export { default as ConnectionFlowColumn } from "./ConnectionFlowColumn.vue";
-export { default as ConnectionFlowParallelGroup } from "./ConnectionFlowParallelGroup.vue";
-export type {
-  ConnectionFlowProps,
-  ConnectionFlowItem,
-  ConnectionFlowConnectorConfig,
-  ConnectionState,
-} from "./types";
+export { default as ConnectionFlowSvg } from "./ConnectionFlowSvg.vue";
+export { default as ConnectionFlowNodeBody } from "./ConnectionFlowNodeBody.vue";
+export { default as ConnectionFlowHeader } from "./ConnectionFlowHeader.vue";
+export { default as ConnectionFlowSkeleton } from "./ConnectionFlowSkeleton.vue";
+export type { ConnectionFlowProps } from "./ConnectionFlow.vue";
+
+/**
+ * The model, the layout engine and the painter are framework-agnostic and live
+ * in `common/connectionFlow`, so the React kit consumes exactly the same
+ * geometry rather than a second implementation of it.
+ */
+export {
+  CONNECTION_FLOW_EDGE_STYLES,
+  CONNECTION_FLOW_NODE_KINDS,
+  CONNECTION_FLOW_PROGRESS_TYPES,
+  CONNECTION_FLOW_ITEM_PROGRESS,
+  CONNECTION_FLOW_LOADERS,
+  CONNECTION_FLOW_RING_SIZES,
+  CONNECTION_FLOW_STATUSES,
+  CONNECTION_STATES,
+  CONNECTOR_RING_RADIUS,
+  STATUS_ICON,
+  STATUS_TONE,
+  DEFAULT_LAYOUT_OPTIONS,
+  NODE_CORNER_RADIUS,
+  NODE_METRICS,
+  itemGlyph,
+  itemHasBar,
+  itemTone,
+  itemsReserveGlyph,
+  measureBranch,
+  measureHeader,
+  measureItem,
+  measureItems,
+  measureNode,
+  visibleItems,
+  buildColumns,
+  connectorDotRadius,
+  connectorVisual,
+  fitToViewport,
+  flowProgress,
+  getHeaderSurface,
+  getNodeSurface,
+  headerGlyph,
+  headerReservesGlyph,
+  nodeProgress,
+  getToneClasses,
+  hitTestNode,
+  layoutConnectionFlow,
+  labelAnchor,
+  layoutIsAnimated,
+  nodeIcon,
+  nodeIsActive,
+  nodeIsSkipped,
+  nodeTone,
+  tracePathTo,
+  type ConnectionFlowEdgeStyle,
+  type ConnectionFlowLayout,
+  type ConnectionFlowNode,
+  type ConnectionFlowNodeKind,
+  type ConnectionFlowProgressType,
+  type ConnectionFlowStatus,
+  type ConnectionFlowRingSize,
+  type ConnectionFlowConnectorConfig,
+  type ConnectionState,
+  type ConnectorVisual,
+  type LaidOutConnector,
+  type NodeSurface,
+  type LaidOutEdge,
+  type LaidOutNode,
+  type ConnectionFlowItemProgress,
+  type ConnectionFlowLoader,
+  type ConnectionFlowNodeItem,
+  type ItemGlyph,
+  type HeaderGlyph,
+  type HeaderSurface,
+  type NodeMetrics,
+} from "../../connectionFlow";

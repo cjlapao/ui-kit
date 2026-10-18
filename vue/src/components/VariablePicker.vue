@@ -28,6 +28,7 @@ export interface VariablePickerProps {
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import classNames from "classnames";
+import { useKitT } from "../i18n";
 import IconButton from "./IconButton.vue";
 import Panel from "./Panel.vue";
 import SearchBar from "./SearchBar.vue";
@@ -39,11 +40,12 @@ import { useClassAttrs } from "../utils/attrsUtils";
 
 defineOptions({ name: "VariablePicker", inheritAttrs: false });
 
+const t = useKitT();
+
 const props = withDefaults(defineProps<VariablePickerProps>(), {
   tone: "blue",
   size: "md",
   initialSearch: "",
-  title: "Insert variable",
 });
 
 const emit = defineEmits<{
@@ -103,12 +105,14 @@ const active = computed(
 );
 
 const emptyMessage = computed(() => {
-  if (!active.value) return "No variables available.";
+  if (!active.value) return t("kit.variablepicker.noVariables");
   const { group } = active.value;
   if (group.emptyMessage) return group.emptyMessage;
   return term.value
-    ? `Nothing matches “${search.value}”.`
-    : `No ${group.label.toLowerCase()} variables.`;
+    ? t("kit.variablepicker.noMatches", { term: search.value })
+    : t("kit.variablepicker.noGroupVariables", {
+        label: group.label.toLowerCase(),
+      });
 });
 
 const rowClass = (groupTone?: TrueColor) => {
@@ -136,14 +140,14 @@ const rowClass = (groupTone?: TrueColor) => {
       class="flex items-center justify-between gap-2 border-b border-neutral-200 px-4 py-3 dark:border-neutral-700"
     >
       <h3 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-        {{ title }}
+        {{ title ?? t("kit.variablepicker.title") }}
       </h3>
       <IconButton
         icon="Close"
         size="xs"
         variant="ghost"
         color="neutral"
-        sr-label="Close"
+        :sr-label="t('kit.variablepicker.close')"
         @click="emit('close')"
       />
     </div>
@@ -154,7 +158,7 @@ const rowClass = (groupTone?: TrueColor) => {
         :color="tone"
         :debounce-ms="0"
         :initial-value="initialSearch"
-        placeholder="Search variables..."
+        :placeholder="t('kit.variablepicker.searchPlaceholder')"
         @search="(next: string) => (search = next)"
       />
     </div>

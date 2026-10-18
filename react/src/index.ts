@@ -9,6 +9,9 @@ export * from "./contexts/BottomSheetContext";
 // Hooks
 export * from "./hooks";
 
+// I18n (engine in common/i18n; the provider + hooks land in Phase 3)
+export * from "./i18n";
+
 // Theme
 export * from "./theme";
 
@@ -23,12 +26,12 @@ export * from "./components/MetricBar";
 export type { KeyValuePair } from "./components/KeyValueArrayField";
 export type {
   StepStatus,
-  StepperVariant,
   StepperOrientation,
-  StepperSize,
   StepperConnector,
   StepperConnectorAlign,
   StepperProgressBarPosition,
+  StepperNodeCorner,
+  StepperLoaderType,
 } from "./components/Stepper";
 
 // Icons — explicit re-exports of IconName type + iconRegistry (SVG components are re-exported via "./icons" above)
@@ -45,3 +48,4 @@ export { default as MultiToggle } from "./components/MultiToggle";
 export { Sun } from "./icons/components/Sun";
 export { Moon } from "./icons/components/Moon";
 export { ThemeAuto } from "./icons/components/ThemeAuto";
+export { Rocket } from "./icons/components/Rocket";

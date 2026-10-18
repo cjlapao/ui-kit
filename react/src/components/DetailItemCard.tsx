@@ -5,17 +5,16 @@ import Panel from "./Panel";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import { DEFAULT_SURFACE_CORNER, getSurfaceTriggerTokens } from "../theme/Theme";
-import type { TrueColor } from "../theme/Theme";
+import type { PlainSurfaceVariant, TrueColor } from "../theme/Theme";
 import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
-  PanelVariant,
 } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
 
 /** Every container surface, plus `plain` for a bare row inside a list. */
-export type DetailItemCardVariant = PanelVariant | "plain";
+export type DetailItemCardVariant = PlainSurfaceVariant;
 export type DetailItemCardBadgesAlignment = "right" | "bottom" | "bottom-end";
 
 export interface DetailItemCardProps
@@ -117,6 +116,10 @@ const DetailBody: React.FC<DetailBodyProps> = ({
   };
 
   return (
+    // Card-as-button: a native <button> cannot host the rich content
+    // (title row, details block, nested controls) this card carries, so the
+    // button role + tabindex + Enter/Space is the APG pattern; the focus
+    // ring is on the card (trigger.focusRing).
     <div
       className={classNames(
         "flex w-full flex-col gap-2.5 rounded-[inherit]",

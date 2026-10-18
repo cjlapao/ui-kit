@@ -9,7 +9,12 @@ const Caption = ({ children }: { children: ReactNode }) => (
 );
 
 const OPTIONS: MultiSelectPillOption[] = [
-  { value: "containers", label: "Containers", icon: "Container", description: "42" },
+  {
+    value: "containers",
+    label: "Containers",
+    icon: "Container",
+    description: "42",
+  },
   { value: "images", label: "Images", icon: "Docker", description: "17" },
   { value: "volumes", label: "Volumes", icon: "Save", description: "8" },
   { value: "networks", label: "Networks", icon: "Globe", description: "3" },
@@ -28,7 +33,7 @@ const ResourceFilter = () => {
         onChange={setSelected}
         legend="Resources to include"
         description="Pick what the backup job should snapshot."
-        color="blue"
+        tone="blue"
       />
       <Caption>Selected</Caption>
       <code className="rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/10">

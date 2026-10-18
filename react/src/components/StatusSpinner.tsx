@@ -7,6 +7,7 @@ import {
   type TrueColor,
 } from "../theme/Theme";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useKitT } from "../i18n";
 
 /**
  * The shared control scale, so the status circle lines up with the `Spinner`
@@ -52,6 +53,7 @@ const StatusSpinner = React.forwardRef<HTMLSpanElement, StatusSpinnerProps>(
     },
     ref,
   ) => {
+    const t = useKitT();
     const toneTokens = getStatusSpinnerToneTokens(tone);
     const sizeTokens = getStatusSpinnerSizeTokens(size);
 
@@ -105,7 +107,7 @@ const StatusSpinner = React.forwardRef<HTMLSpanElement, StatusSpinnerProps>(
         {label ? (
           <StatusSpinnerLabel text={label} />
         ) : (
-          <span className="sr-only">Loading</span>
+          <span className="sr-only">{t("kit.spinner.loading")}</span>
         )}
       </span>
     );
