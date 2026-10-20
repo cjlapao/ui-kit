@@ -2,6 +2,7 @@ import React from "react";
 import classNames from "classnames";
 
 import ConnectionFlowNodeBody from "./ConnectionFlowNodeBody";
+import ScrollArea from "../ScrollArea";
 import {
   connectorVisual,
   dotTiming,
@@ -17,7 +18,6 @@ import {
   type NodeMetrics,
 } from "../../connectionFlow";
 import type { SurfaceVariant } from "../../theme/Theme";
-import { THIN_SCROLLBAR_FIELD } from "../../theme/Theme";
 
 export interface ConnectionFlowSvgProps {
   layout: ConnectionFlowLayout;
@@ -92,6 +92,37 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
     connector.edgeIds.some((id) => highlightEdges.has(id))
       ? 1
       : 0.22;
+
+  // A capped card scrolls its body with the kit's ScrollArea (bars on hover
+  // or while scrolling, never a native bar). `block` on the content wrapper
+  // overrides its `table` display, which exists to let content grow past the
+  // frame sideways — a card body has a fixed width and scrolls only down.
+  const cardContent = (laid: LaidOutNode) => {
+    const content = renderNode ? (
+      renderNode(laid)
+    ) : (
+      <ConnectionFlowNodeBody
+        node={laid}
+        metrics={metrics}
+        showProgress={showProgress}
+        options={options}
+        scrollable={laid.scrollable}
+        expanded={expanded}
+        onToggleExpanded={onToggleExpanded}
+      />
+    );
+    return laid.scrollable ? (
+      <ScrollArea
+        variant="auto"
+        className="h-full w-full"
+        contentClassName="block w-full"
+      >
+        {content}
+      </ScrollArea>
+    ) : (
+      content
+    );
+  };
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -279,12 +310,10 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
             {/* The body is laid out at its natural size and scaled by one
                 transform, so type, padding, gaps and the progress bar zoom
                 together — and the height the DOM produces is the number
-                `measureNode` computed, at any zoom. */}
+                `measureNode` computed, at any zoom. A scrolling body is a
+                ScrollArea inside that transform, so its bars belong to the
+                card and zoom with it. */}
             <div
-              data-scrolls={laid.scrollable ? "" : undefined}
-              className={classNames(
-                laid.scrollable && `overflow-y-auto ${THIN_SCROLLBAR_FIELD}`,
-              )}
               style={{
                 width: laid.width,
                 height: laid.height,
@@ -292,27 +321,8 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",
               }}
-              // A scrolling body has to keep its wheel events: without this the
-              // canvas zooms instead, and the card can never be scrolled.
-              onWheel={
-                laid.scrollable
-                  ? (event) => event.stopPropagation()
-                  : undefined
-              }
             >
-              {renderNode ? (
-                renderNode(laid)
-              ) : (
-                <ConnectionFlowNodeBody
-                  node={laid}
-                  metrics={metrics}
-                  showProgress={showProgress}
-                  options={options}
-                  scrollable={laid.scrollable}
-                  expanded={expanded}
-                  onToggleExpanded={onToggleExpanded}
-                />
-              )}
+              {cardContent(laid)}
             </div>
           </div>
         ))}

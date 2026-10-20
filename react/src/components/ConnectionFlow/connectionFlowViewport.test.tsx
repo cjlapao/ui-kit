@@ -25,27 +25,86 @@ const NODES: ConnectionFlowNode[] = [
 describe("ConnectionFlow viewport", () => {
   const viewportOf = (container: HTMLElement) =>
     container.querySelector<HTMLElement>(".overscroll-contain")!;
+  const frameOf = (container: HTMLElement) =>
+    container.querySelector<HTMLElement>('[data-slot="scrollarea"]')!;
+
+  it("scrolls through the kit ScrollArea, not a native bar", () => {
+    const { container } = render(<ConnectionFlow nodes={NODES} />);
+    // One ScrollArea is the viewport itself…
+    expect(container.querySelector('[data-slot="scrollarea-viewport"]')).toBe(
+      viewportOf(container),
+    );
+    // …and its bars are virtual, shown per the variant.
+    expect(
+      frameOf(container).querySelector('[data-slot="scrollarea-scrollbar"]'),
+    ).toBeTruthy();
+  });
 
   it("does not start a pan from a control", () => {
     const { container } = render(<ConnectionFlow nodes={NODES} />);
-    const viewport = viewportOf(container);
     const capture = vi.fn();
-    viewport.setPointerCapture = capture;
+    frameOf(container).setPointerCapture = capture;
 
     const button = container.querySelector<HTMLElement>("button")!;
     fireEvent.pointerDown(button, { button: 0, pointerId: 1 });
     expect(capture).not.toHaveBeenCalled();
   });
 
+  it("does not start a pan from a scrollbar thumb", () => {
+    const { container } = render(<ConnectionFlow nodes={NODES} />);
+    const capture = vi.fn();
+    frameOf(container).setPointerCapture = capture;
+
+    const thumb = frameOf(container).querySelector<HTMLElement>(
+      '[data-slot="scrollarea-scrollbar"]',
+    )!;
+    fireEvent.pointerDown(thumb, { button: 0, pointerId: 1 });
+    expect(capture).not.toHaveBeenCalled();
+  });
+
   it("still pans from the canvas itself", () => {
     const { container } = render(<ConnectionFlow nodes={NODES} />);
-    const viewport = viewportOf(container);
     const capture = vi.fn();
-    viewport.setPointerCapture = capture;
-    viewport.releasePointerCapture = vi.fn();
+    frameOf(container).setPointerCapture = capture;
+    frameOf(container).releasePointerCapture = vi.fn();
 
-    fireEvent.pointerDown(viewport, { button: 0, pointerId: 1 });
+    fireEvent.pointerDown(viewportOf(container), { button: 0, pointerId: 1 });
     expect(capture).toHaveBeenCalled();
+  });
+
+  it("leaves a plain wheel to the scroll area", () => {
+    // The wheel pages through the flow — it is a wheel. Zooming asks first.
+    const onZoomChange = vi.fn();
+    const { container, getByTitle } = render(
+      <ConnectionFlow nodes={NODES} onZoomChange={onZoomChange} />,
+    );
+    const notCancelled = fireEvent.wheel(viewportOf(container), {
+      deltaY: -120,
+    });
+    expect(notCancelled).toBe(true);
+    expect(onZoomChange).not.toHaveBeenCalled();
+    expect(getByTitle("Zoom level").textContent).toBe("100%");
+  });
+
+  it("zooms on Ctrl- and Cmd-wheel, cancelling the browser gesture", () => {
+    // Trackpad pinch arrives as a Ctrl-wheel, so this is pinch-zoom too;
+    // cancelling it is what keeps the browser page from zooming as well.
+    const { container, getByTitle } = render(<ConnectionFlow nodes={NODES} />);
+    const viewport = viewportOf(container);
+    const cancelled = fireEvent.wheel(viewport, { deltaY: -120, ctrlKey: true });
+    expect(cancelled).toBe(false);
+    expect(getByTitle("Zoom level").textContent).toBe("110%");
+
+    fireEvent.wheel(viewport, { deltaY: -120, metaKey: true });
+    expect(getByTitle("Zoom level").textContent).toBe("121%");
+  });
+
+  it("ignores the wheel entirely when not interactive", () => {
+    const { container, getByTitle } = render(
+      <ConnectionFlow nodes={NODES} interactive={false} />,
+    );
+    fireEvent.wheel(viewportOf(container), { deltaY: -120, ctrlKey: true });
+    expect(getByTitle("Zoom level").textContent).toBe("100%");
   });
 
   it("opens at 100%, not at whatever fits", () => {
@@ -81,9 +140,26 @@ describe("ConnectionFlow viewport", () => {
 
   it("sizes the canvas to the content so the viewport can scroll to it", () => {
     const { container } = render(<ConnectionFlow nodes={NODES} />);
-    const canvas = viewportOf(container).firstElementChild as HTMLElement;
+    // One level in sits ScrollArea's content wrapper; the canvas is inside.
+    const content = viewportOf(container).firstElementChild as HTMLElement;
+    const canvas = content.firstElementChild as HTMLElement;
     expect(parseFloat(canvas.style.width)).toBeGreaterThan(0);
     expect(parseFloat(canvas.style.height)).toBeGreaterThan(0);
+  });
+
+  it("scrolls a capped card body with a ScrollArea of its own", () => {
+    // Nested bars: the card belongs to the area, so it gets the same hover
+    // behaviour as the viewport — never a native bar.
+    const nodes: ConnectionFlowNode[] = [
+      { id: "capped", title: "Capped", maxHeight: 80, items: [
+        ...Array.from({ length: 8 }, (_, i) => ({ id: `x${i}`, title: `Row ${i}` })),
+      ] },
+    ];
+    const { container } = render(<ConnectionFlow nodes={nodes} />);
+    // The viewport ScrollArea plus the card's own.
+    expect(
+      container.querySelectorAll('[data-slot="scrollarea"]').length,
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it("expands a card from the show-more button", () => {

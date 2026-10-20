@@ -318,8 +318,10 @@ export const ConnectionFlowPlayground: React.FC = () => {
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             Every edge — track, fan, child and bypass alike — is routed by one
             port-and-shape engine, so <strong>edge style</strong> applies to all
-            of them at once. Scroll to zoom, drag to pan, and hover a node to
-            light the path that reached it. <strong>Variant</strong> is one
+            of them at once. Scroll to move through the flow, <strong>Ctrl/⌘
+            -scroll</strong> (or a pinch) to zoom, drag to pan, and hover a
+            node to light the path that reached it.{" "}
+            <strong>Variant</strong> is one
             decision, not two: the cards take the surface of the panel they sit
             in rather than a scale of their own. Every dot moves at one{" "}
             <strong>speed</strong>, and each source releases one at a time —

@@ -172,4 +172,18 @@ describe("ScrollArea", () => {
     expect(screen.getByTestId("sa").id).toBe("sa");
     expect(screen.getByLabelText("Logs")).toBeTruthy();
   });
+
+  it("adds viewport classes and hands the viewport to a forwarded ref", () => {
+    // The caller that drives the scroll position itself — pan, zoom
+    // anchoring — needs the element that scrolls, not the frame, and the
+    // wheel policy that lives on it (`overscroll-contain`).
+    const ref = { current: null as HTMLDivElement | null };
+    render(
+      <ScrollArea viewportRef={ref} viewportClassName="overscroll-contain">
+        <p>content</p>
+      </ScrollArea>,
+    );
+    expect(viewport().className).toContain("overscroll-contain");
+    expect(ref.current).toBe(viewport());
+  });
 });

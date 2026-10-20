@@ -17,6 +17,7 @@ import IconButton from "../IconButton";
 import EmptyState from "../EmptyState";
 import Progress from "../Progress";
 import ProgressSpinner from "../ProgressSpinner";
+import ScrollArea from "../ScrollArea";
 import ConnectionFlowSvg from "./ConnectionFlowSvg";
 import {
   DEFAULT_LAYOUT_OPTIONS,
@@ -43,7 +44,6 @@ import {
   type SurfaceCorner,
   type SurfaceVariant,
   type TrueColor,
-  THIN_SCROLLBAR_FIELD,
 } from "../../theme/Theme";
 
 export interface ConnectionFlowProps {
@@ -103,6 +103,14 @@ export interface ConnectionFlowProps {
    * into a short frame does. @default false
    */
   fitOnLoad?: boolean;
+  /**
+   * Wheel and drag on the canvas.
+   *
+   * A plain wheel — and touch — scrolls the area, which is what the wheel
+   * is for; zooming takes the modifier: Ctrl (Cmd on macOS) with the wheel,
+   * or a trackpad pinch, which browsers report as a Ctrl wheel. Off removes
+   * both; the zoom buttons and `fit` work either way. @default true
+   */
   interactive?: boolean;
   minZoom?: number;
   maxZoom?: number;
@@ -376,6 +384,28 @@ const ConnectionFlow = React.forwardRef<
     return () => observer.disconnect();
   }, []);
 
+  // A plain wheel — and touch — belongs to the scroll area: on the canvas,
+  // and inside a scrolling card body alike. Zoom asks first: Ctrl (Cmd on
+  // macOS) with the wheel, or a trackpad pinch, which browsers report as a
+  // Ctrl wheel. Hence the native listener: React registers `wheel` passively
+  // at the root, where `preventDefault` is a no-op — and without it a
+  // Ctrl-wheel zoom would zoom the browser page along with the canvas.
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element || !interactive) return;
+    const onWheel = (event: WheelEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      setZoom(
+        scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1),
+        { x: event.clientX - rect.left, y: event.clientY - rect.top },
+      );
+    };
+    element.addEventListener("wheel", onWheel, { passive: false });
+    return () => element.removeEventListener("wheel", onWheel);
+  }, [interactive, scale, setZoom]);
+
   useEffect(() => {
     if (fitOnLoad && viewport.width) fit();
     // Keyed on the graph and the viewport, deliberately *not* on `layout`:
@@ -507,30 +537,22 @@ const ConnectionFlow = React.forwardRef<
           className="relative w-full"
           style={{ height: typeof height === "number" ? `${height}px` : height }}
         >
-        <div
-          ref={viewportRef}
-          className={`h-full w-full select-none overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-2 ${THIN_SCROLLBAR_FIELD}`}
+        <ScrollArea
+          variant="auto"
+          viewportRef={viewportRef}
+          viewportClassName="overscroll-contain"
+          className="h-full w-full select-none"
           style={{ cursor: panning ? "grabbing" : undefined }}
-          onWheel={(event) => {
-            if (!interactive) return;
-            // A card that scrolls its own body keeps its wheel: without this
-            // the canvas zooms and the card can never be scrolled.
-            if ((event.target as HTMLElement).closest("[data-scrolls]")) return;
-            const rect = viewportRef.current?.getBoundingClientRect();
-            const anchor = rect
-              ? { x: event.clientX - rect.left, y: event.clientY - rect.top }
-              : undefined;
-            setZoom(scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1), anchor);
-          }}
           onPointerDown={(event) => {
             if (!interactive || event.button !== 0) return;
-            // A press that starts on a control belongs to the control.
-            // Capturing the pointer here redirects its `pointerup` to the
-            // viewport, so the control never sees a click at all — which is
-            // why the zoom buttons and "show more" did nothing.
+            // A press that starts on a control belongs to the control —
+            // including ScrollArea's scrollbar thumbs, which steer their
+            // own drag. Capturing the pointer here redirects its `pointerup`
+            // to the viewport, so the control never sees a click at all —
+            // which is why the zoom buttons and "show more" did nothing.
             if (
               (event.target as HTMLElement).closest(
-                "button, a, input, select, textarea, [data-no-pan]",
+                'button, a, input, select, textarea, [data-no-pan], [data-slot="scrollarea-scrollbar"]',
               )
             ) {
               return;
@@ -544,7 +566,7 @@ const ConnectionFlow = React.forwardRef<
               scrollLeft: element.scrollLeft,
               scrollTop: element.scrollTop,
             };
-            element.setPointerCapture(event.pointerId);
+            event.currentTarget.setPointerCapture(event.pointerId);
           }}
           onPointerMove={(event) => {
             if (!panning) return;
@@ -569,7 +591,7 @@ const ConnectionFlow = React.forwardRef<
           >
             <ConnectionFlowSvg {...rendererProps} renderNode={renderNode} />
           </div>
-        </div>
+        </ScrollArea>
 
           {/* Zoom controls, bottom-right, matching the placement GitHub
               Actions uses for the same job. */}

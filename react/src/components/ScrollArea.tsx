@@ -46,6 +46,15 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Classes for the content wrapper, for the rare caller that needs the
    * scrolling box itself styled apart from the frame. */
   contentClassName?: string;
+  /** Classes for the scrolling viewport itself — the element that actually
+   * carries `overflow: auto`. For the caller that has to reach the scroller's
+   * behaviour (an `overscroll-contain`, say, so a wheel at the end of the
+   * content does not chain to the page). */
+  viewportClassName?: string;
+  /** Forwarded to the scrolling viewport, so a caller that drives the scroll
+   * position programmatically — pan, zoom anchoring, scroll-into-view — gets
+   * the element that scrolls, not the frame around it. */
+  viewportRef?: React.Ref<HTMLDivElement>;
   /** The scrollable content. Give the area a height — or a maximum height —
    * with `className`; a `max-h` frame works because the viewport inherits
    * that cap and scrolls inside it instead of silently growing past it. */
@@ -90,12 +99,26 @@ export const ScrollArea = ({
   mask = false,
   tabIndex = 0,
   contentClassName,
+  viewportClassName,
+  viewportRef: viewportRefProp,
   children,
   className = "",
   ...rest
 }: ScrollAreaProps) => {
   const viewportId = useId();
   const viewportRef = useRef<HTMLDivElement>(null);
+  // The internal ref drives the thumbs; a caller's ref has to see the same
+  // element, so both are attached — a forwarded ref of one's own would make
+  // the component lose its own scrollbars.
+  const setViewportRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      viewportRef.current = el;
+      if (typeof viewportRefProp === "function") viewportRefProp(el);
+      else if (viewportRefProp)
+        (viewportRefProp as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    },
+    [viewportRefProp],
+  );
   const contentRef = useRef<HTMLDivElement>(null);
   const yTrackRef = useRef<HTMLDivElement>(null);
   const xTrackRef = useRef<HTMLDivElement>(null);
@@ -272,7 +295,7 @@ export const ScrollArea = ({
       }}
     >
       <div
-        ref={viewportRef}
+        ref={setViewportRef}
         id={viewportId}
         data-slot="scrollarea-viewport"
         tabIndex={overflow.x || overflow.y ? tabIndex : -1}
@@ -288,6 +311,7 @@ export const ScrollArea = ({
           // clipped by `overflow-hidden` and never learn it was scrollable.
           "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
           "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400",
+          viewportClassName,
         )}
       >
         <div
