@@ -12,6 +12,7 @@ import { type IconName } from "../icons/registry";
 import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
 import Input from "./Input";
 import Loader, { type LoaderColor, type LoaderProps } from "./Loader";
+import ScrollArea from "./ScrollArea";
 import { SkeletonBar } from "./Panel";
 import {
   SIDEBAR_IDLE_COPY,
@@ -27,7 +28,6 @@ import {
   type SidebarVariant,
   TrueColor,
 } from "../theme";
-import { THIN_SCROLLBAR } from "../theme";
 
 export type SideMenuItemType = "link" | "group" | "divider";
 
@@ -1132,8 +1132,16 @@ export const SideMenu = ({
         </div>
       )}
 
-      {/* Navigation Items */}
-      <div className={`flex-1 px-3 py-1 overflow-y-auto w-full ${THIN_SCROLLBAR}`}>
+      {/* Navigation Items — ScrollArea keeps the bar identical on every
+          browser (the webkit pseudo paint was Chrome-only) and the
+          hover variant parks it out of sight until the list is entered. */}
+      <ScrollArea
+        variant="hover"
+        className="flex-1 w-full"
+        // Padding on the content wrapper scrolls with the rows, as the old
+        // scroll box's padding did, keeping the rows' inset from the edges.
+        contentClassName="px-3 py-1"
+      >
         <nav aria-label={title || "Side menu"} className="space-y-1 w-full">
           {visibleItems.map((item, index) => {
             // Divider
@@ -1185,7 +1193,7 @@ export const SideMenu = ({
             </p>
           )}
         </nav>
-      </div>
+      </ScrollArea>
 
       {/* Footer item (pinned above the collapse control) */}
       {footerItem && (

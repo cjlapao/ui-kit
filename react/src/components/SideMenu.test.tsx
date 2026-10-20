@@ -322,6 +322,44 @@ describe("SideMenu — side and variant", () => {
   });
 });
 
+// ── Nav scroller ────────────────────────────────────────────────────────────
+
+describe("SideMenu — nav scroller", () => {
+  it("scrolls the list through ScrollArea with the hover bar", () => {
+    renderMenu();
+    const nav = screen.getByRole("navigation", { name: "Side menu" });
+    const frame = nav.closest('[data-slot="scrollarea"]') as HTMLElement;
+    expect(frame).not.toBeNull();
+    expect(frame.dataset.variant).toBe("hover");
+    // The frame is the flex child; the padding rides the content wrapper so
+    // it scrolls with the rows, as the old scroll box's padding did.
+    expect(frame).toHaveClass("flex-1", "w-full");
+    const content = nav.parentElement as HTMLElement;
+    expect(content.dataset.slot).toBe("scrollarea-content");
+    expect(content).toHaveClass("px-3", "py-1");
+  });
+
+  it("leaves no native-scroller residue on the body", () => {
+    const { container } = renderMenu();
+    expect(container.querySelector(".overflow-y-auto")).toBeNull();
+    // THIN_SCROLLBAR's thumb/track paint — Chrome-only — must be gone.
+    // (ScrollArea legitimately keeps a bare `[&::-webkit-scrollbar]:hidden`
+    // utility to suppress the native bar under its overlay bars.)
+    expect(container.innerHTML).not.toContain("scrollbar-thumb");
+    expect(container.innerHTML).not.toContain("scrollbar-track");
+  });
+
+  it("keeps the viewport out of the tab order while the list fits", () => {
+    // jsdom reports no overflow, which is exactly the "fits" case: a region
+    // that fits has no business one tab deep.
+    renderMenu();
+    const viewport = document.querySelector(
+      '[data-slot="scrollarea-viewport"]',
+    ) as HTMLElement;
+    expect(viewport).toHaveAttribute("tabindex", "-1");
+  });
+});
+
 // ── Top / footer items ──────────────────────────────────────────────────────
 
 describe("SideMenu — topItem / footerItem", () => {
