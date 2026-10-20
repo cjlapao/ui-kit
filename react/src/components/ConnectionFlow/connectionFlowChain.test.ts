@@ -97,7 +97,7 @@ describe("ConnectionFlow chained grid", () => {
       };
       expect(measureBranch(parent, options)).toBe(
         measureNode(parent, options) +
-          options.childGap +
+          options.rowGap +
           Math.max(
             measureNode({ id: "a" }, options),
             measureNode({ id: "b", status: "running", subtitle: "x" }, options),

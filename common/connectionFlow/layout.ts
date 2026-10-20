@@ -252,7 +252,10 @@ export const layoutConnectionFlow = (
         if (rows.length > 0) {
           const cardWidth = options.metrics.width;
           const gridX = x + options.gridIndent;
-          let rowY = y + ownHeight + options.childGap;
+          // The parent→first-row seam carries a real connector with ports
+          // at both ends, exactly like a row handoff — so it hangs by the
+          // row gap, not by the fan children's gap.
+          let rowY = y + ownHeight + options.rowGap;
           const walk: ChainInfo["walk"] = [];
           let maxCols = 1;
           rows.forEach((row, rowIdx) => {

@@ -250,7 +250,7 @@ export const measureBranch = (
         (index > 0 ? options.rowGap : 0),
       0,
     );
-    return own + options.childGap + rowsHeight;
+    return own + options.rowGap + rowsHeight;
   }
   const children = node.children ?? [];
   if (children.length === 0) return own;

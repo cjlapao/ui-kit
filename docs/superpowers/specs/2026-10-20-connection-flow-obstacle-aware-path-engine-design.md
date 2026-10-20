@@ -145,7 +145,11 @@ them as over/under, and the chain rows get room to breathe.
 
 - **`rowGap` default 12 → 20.** The ladder rows sat too close at every
   zoom; the engine's lanes (12 px clearance) sit comfortably inside the
-  bigger gap. Callers that pass `rowGap` are untouched.
+  bigger gap. Callers that pass `rowGap` are untouched. The
+  parent→first-row seam follows the same gap, not the fan children's
+  `childGap`: it carries a real connector with ports and dots at both
+  ends, exactly like a row handoff, and at 12 px its two rings nearly
+  touched.
 - **Crossing detection** (`routeCrossings`, router.ts): a post-layout
   pass compares every pair of routed edges; a segment pair crosses when
   one runs horizontal and the other vertical through the other's
