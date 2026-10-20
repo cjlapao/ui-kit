@@ -901,3 +901,206 @@ export const routeBetween = (
     toPort: best.toPort,
   };
 };
+
+// ── Crossing hops ─────────────────────────────────────────────────────────
+//
+// Crossings between edges are legitimate graph topology — the engine is not
+// asked to avoid them — but a crossing that reads as a merge lies about the
+// graph. So where a vertical runs through a horizontal, the horizontal hops
+// over it: the PCB convention, drawn into the same path the travelling dots
+// follow, so the dots hop too.
+
+export interface RoutableEdge {
+  id: string;
+  points: { x: number; y: number }[];
+  style: ConnectionFlowEdgeStyle;
+}
+
+interface Jump {
+  /** Index of the (horizontal) segment the hop rides: points[segment]→[segment+1]. */
+  segment: number;
+  /** The crossing x on that segment. */
+  at: number;
+  /** Hop radius, after packing. */
+  r: number;
+}
+
+const JUMP_RADIUS = 6;
+
+/** Crossings where one edge runs horizontal and the other vertical through
+ *  its interior — a touch at a vertex or a collinear run is not a crossing. */
+const segmentCrossings = (
+  aId: string,
+  a: { x: number; y: number }[],
+  bId: string,
+  b: { x: number; y: number }[],
+  jumpRadius: number,
+  cornerRadius: number,
+): JumpEdge[] => {
+  const out: JumpEdge[] = [];
+  for (let i = 1; i < a.length; i += 1) {
+    const a1 = a[i - 1];
+    const a2 = a[i];
+    for (let j = 1; j < b.length; j += 1) {
+      const b1 = b[j - 1];
+      const b2 = b[j];
+      const aH = a1.y === a2.y && a1.x !== a2.x;
+      const bH = b1.y === b2.y && b1.x !== b2.x;
+      const aV = a1.x === a2.x && a1.y !== a2.y;
+      const bV = b1.x === b2.x && b1.y !== b2.y;
+      if (aH && bV) {
+        const lo = Math.min(a1.x, a2.x);
+        const hi = Math.max(a1.x, a2.x);
+        const vLo = Math.min(b1.y, b2.y);
+        const vHi = Math.max(b1.y, b2.y);
+        // The hop needs room from the segment's ends: its own radius, plus
+        // whatever the corner rounding will eat there.
+        const margin =
+          jumpRadius + Math.min(cornerRadius, (hi - lo) / 2) + 1;
+        if (
+          b1.x > lo + margin &&
+          b1.x < hi - margin &&
+          a1.y > vLo + jumpRadius + 2 &&
+          a1.y < vHi - (jumpRadius + 2)
+        ) {
+          out.push({ edgeId: aId, segment: i - 1, at: b1.x, r: jumpRadius });
+        }
+      } else if (bH && aV) {
+        const lo = Math.min(b1.x, b2.x);
+        const hi = Math.max(b1.x, b2.x);
+        const vLo = Math.min(a1.y, a2.y);
+        const vHi = Math.max(a1.y, a2.y);
+        const margin =
+          jumpRadius + Math.min(cornerRadius, (hi - lo) / 2) + 1;
+        if (
+          a1.x > lo + margin &&
+          a1.x < hi - margin &&
+          b1.y > vLo + jumpRadius + 2 &&
+          b1.y < vHi - (jumpRadius + 2)
+        ) {
+          out.push({ edgeId: bId, segment: j - 1, at: a1.x, r: jumpRadius });
+        }
+      }
+    }
+  }
+  return out;
+};
+
+interface JumpEdge {
+  edgeId: string;
+  segment: number;
+  at: number;
+  r: number;
+}
+
+/**
+ * The path of an edge, drawn like `roundedPath` would draw it — with
+ * semicircular hops (bulging up) inserted into its horizontal segments.
+ * `edgeStyle` governs the corners only; hops are round on every style.
+ */
+const jumpPath = (
+  points: { x: number; y: number }[],
+  style: ConnectionFlowEdgeStyle,
+  cornerRadius: number,
+  jumps: Jump[],
+): string => {
+  if (points.length < 2) return line(points);
+  const radius = CORNER[style](cornerRadius);
+  const bySeg = new Map<number, Jump[]>();
+  for (const j of jumps) (bySeg.get(j.segment) ?? bySeg.set(j.segment, []).get(j.segment)!).push(j);
+  const parts: string[] = [`M ${round(points[0].x)} ${round(points[0].y)}`];
+  for (let i = 1; i < points.length; i += 1) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    if (prev.y === curr.y) {
+      const dir = curr.x >= prev.x ? 1 : -1;
+      const on = (bySeg.get(i - 1) ?? []).slice().sort((a, b) => (a.at - b.at) * dir);
+      for (const j of on) {
+        parts.push(`L ${round(j.at - dir * j.r)} ${round(curr.y)}`);
+        // Bulge up either way: travelling left→right the arc sweeps
+        // anticlockwise, right→left it sweeps clockwise.
+        parts.push(
+          `A ${round(j.r)} ${round(j.r)} 0 0 ${dir === 1 ? 0 : 1} ${round(j.at + dir * j.r)} ${round(curr.y)}`,
+        );
+      }
+    }
+    if (i === points.length - 1) {
+      parts.push(`L ${round(curr.x)} ${round(curr.y)}`);
+      break;
+    }
+    // The corner at `curr`, exactly as `roundedPath` draws it.
+    const next = points[i + 1];
+    const inLen = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+    const outLen = Math.hypot(next.x - curr.x, next.y - curr.y);
+    const r = Math.min(radius, inLen / 2, outLen / 2);
+    if (r <= 0.5) {
+      parts.push(`L ${round(curr.x)} ${round(curr.y)}`);
+      continue;
+    }
+    const inX = curr.x - ((curr.x - prev.x) / inLen) * r;
+    const inY = curr.y - ((curr.y - prev.y) / inLen) * r;
+    const outX = curr.x + ((next.x - curr.x) / outLen) * r;
+    const outY = curr.y + ((next.y - curr.y) / outLen) * r;
+    parts.push(`L ${round(inX)} ${round(inY)}`);
+    parts.push(`Q ${round(curr.x)} ${round(curr.y)} ${round(outX)} ${round(outY)}`);
+  }
+  return parts.join(" ");
+};
+
+/**
+ * The crossing pass: compare every pair of routed edges and give the
+ * horizontal one of each crossing a hop. Returns the new `d` for the edges
+ * that gained hops — every other edge keeps its path byte-identical.
+ */
+export const routeCrossings = (
+  edges: RoutableEdge[],
+  options: { cornerRadius?: number; jumpRadius?: number } = {},
+): Map<string, string> => {
+  const cornerRadius = options.cornerRadius ?? 8;
+  const jumpRadius = options.jumpRadius ?? JUMP_RADIUS;
+  const found = new Map<string, Jump[]>();
+  for (let a = 0; a < edges.length; a += 1) {
+    for (let b = a + 1; b < edges.length; b += 1) {
+      for (const cross of segmentCrossings(
+        edges[a].id,
+        edges[a].points,
+        edges[b].id,
+        edges[b].points,
+        jumpRadius,
+        cornerRadius,
+      )) {
+        (found.get(cross.edgeId) ?? found.set(cross.edgeId, []).get(cross.edgeId)!).push({
+          segment: cross.segment,
+          at: cross.at,
+          r: cross.r,
+        });
+      }
+    }
+  }
+  const out = new Map<string, string>();
+  const byId = new Map(edges.map((e) => [e.id, e]));
+  for (const [id, list] of found) {
+    const edge = byId.get(id);
+    if (!edge) continue;
+    // Pack hops that share a segment: neighbours squeeze each other's
+    // radius, and one with no room left is dropped rather than flattened.
+    const perSegment = new Map<number, Jump[]>();
+    for (const j of list)
+      (perSegment.get(j.segment) ?? perSegment.set(j.segment, []).get(j.segment)!).push(j);
+    const packed: Jump[] = [];
+    for (const seg of perSegment.values()) {
+      seg.sort((x, y) => x.at - y.at);
+      let prevEnd = Number.NEGATIVE_INFINITY;
+      for (const j of seg) {
+        const room = (j.at - prevEnd) / 2;
+        const r = Math.min(j.r, room);
+        if (r < 2.5) continue;
+        packed.push({ ...j, r });
+        prevEnd = j.at + r;
+      }
+    }
+    if (packed.length === 0) continue;
+    out.set(id, jumpPath(edge.points, edge.style, cornerRadius, packed));
+  }
+  return out;
+};

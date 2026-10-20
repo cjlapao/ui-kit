@@ -81,7 +81,7 @@ export default function Pipeline() {
       fitOnLoad
       nodes={NODES}
       variant="outlined"
-      height={560}
+      height={600}
     />
   );
 }

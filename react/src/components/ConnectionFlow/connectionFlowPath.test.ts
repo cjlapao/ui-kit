@@ -3,6 +3,7 @@ import {
   createLaneUse,
   port,
   routeBetween,
+  routeCrossings,
   routePorts,
   segmentsCrossBoxes,
   type Box,
@@ -151,5 +152,47 @@ describe("routeBetween", () => {
     // The very same route twice must leave some segment charged twice —
     // that charge is what nudges a third loop onto the next lane.
     expect(Math.max(...laneUse.values())).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("routeCrossings", () => {
+  const line = (x1: number, y1: number, x2: number, y2: number) => [
+    { x: x1, y: y1 },
+    { x: x2, y: y2 },
+  ];
+
+  it("hops the horizontal over a vertical running through it", () => {
+    const h = { id: "h", points: line(0, 50, 100, 50), style: "orthogonal" as const };
+    const v = { id: "v", points: line(50, 40, 50, 60), style: "orthogonal" as const };
+    const out = routeCrossings([h, v]);
+    // The horizontal hops; the vertical is untouched — it stays byte-identical.
+    expect(out.has("h")).toBe(true);
+    expect(out.has("v")).toBe(false);
+    const d = out.get("h")!;
+    // A semicircle at the crossing, bulging up.
+    expect(d).toMatch(/L 44 50 A 6 6 0 0 0 56 50 L 100 50/);
+  });
+
+  it("counts neither parallels, vertex touches, nor crossings near the ends", () => {
+    const h = { id: "h", points: line(0, 50, 100, 50), style: "orthogonal" as const };
+    const parallel = { id: "p", points: line(0, 51, 100, 51), style: "orthogonal" as const };
+    const touch = { id: "t", points: line(0, 50, 0, 20), style: "orthogonal" as const };
+    const nearStart = { id: "n", points: line(2, 40, 2, 60), style: "orthogonal" as const };
+    const out = routeCrossings([h, parallel, touch, nearStart]);
+    expect(out.size).toBe(0);
+  });
+
+  it("packs hops too close to share their radius", () => {
+    const h = { id: "h", points: line(0, 50, 100, 50), style: "orthogonal" as const };
+    const close1 = { id: "a", points: line(48, 40, 48, 60), style: "orthogonal" as const };
+    const close2 = { id: "b", points: line(52, 40, 52, 60), style: "orthogonal" as const };
+    const out = routeCrossings([h, close1, close2]);
+    const d = out.get("h")!;
+    const arcs = d.match(/A /g)?.length ?? 0;
+    // 48 and 52 are four apart — two 6-px hops cannot fit; the packer
+    // shrinks or drops rather than flattening an arc into a bump.
+    expect(arcs).toBeGreaterThanOrEqual(1);
+    expect(arcs).toBeLessThanOrEqual(2);
+    expect(d).toMatch(/A (\d+(\.\d+)?) (\1) 0 0/);
   });
 });

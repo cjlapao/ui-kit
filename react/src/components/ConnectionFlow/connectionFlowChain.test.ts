@@ -212,20 +212,23 @@ describe("ConnectionFlow chained grid", () => {
   describe("outcome branches", () => {
     it("routes a failure loop-back clear of every card it passes", () => {
       const layout = layoutConnectionFlow({ nodes: pipeline() });
-      const createCode = node(layout, "create-code");
       const verify = node(layout, "verify");
       const loop = edge(layout, "verify~fail>create-code");
       expect(loop.kind).toBe("branch");
       expect(loop.branchKind).toBe("failure");
-      // Leaves the source…
-      expect(loop.points[0].x).toBeLessThanOrEqual(verify.x);
-      // …runs a lane clear of the cards…
-      expect(Math.min(...loop.points.map((p) => p.x))).toBeLessThan(createCode.x);
+      // Leaves the source at its outline — the engine picks the side, the
+      // route may only ever start on the source's boundary.
+      const offBox = (p: { x: number; y: number }) =>
+        Math.max(
+          Math.abs(p.x - (verify.x + verify.width / 2)) - verify.width / 2,
+          Math.abs(p.y - (verify.y + verify.height / 2)) - verify.height / 2,
+        );
+      expect(offBox(loop.points[0])).toBeLessThanOrEqual(24);
       // …and the one thing the old fixed turn could not promise: nothing it
-      // runs along is a card. The engine may meet the target from any side —
+      // runs along is a card. The engine chooses the side and the lane —
       // what it may never do is cross a face to get there.
       const others = layout.nodes
-        .filter((n) => n.id !== verify.id && n.id !== createCode.id)
+        .filter((n) => n.id !== verify.id && n.id !== "create-code")
         .map((n) => ({ x: n.x, y: n.y, width: n.width, height: n.height }));
       expect(segmentsCrossBoxes(loop.points, others)).toBe(false);
       expect(loop.label).toBe("retry");
@@ -407,6 +410,36 @@ describe("ConnectionFlow chained grid", () => {
           .map((n) => ({ x: n.x, y: n.y, width: n.width, height: n.height }));
         expect(segmentsCrossBoxes(e.points, others), `edge ${e.id}`).toBe(false);
       }
+    });
+
+    it("hops a horizontal line over a vertical one where they cross", () => {
+      // The ladder from the bug report, where the re-run lane and the
+      // handoffs genuinely cross. Crossings stay legal — but a crossing has
+      // to read as over-and-under: the horizontal carries semicircular
+      // hops, which only the hop pass ever puts into a path (rounded
+      // corners are quadratic, never arcs).
+      const nodes: ConnectionFlowNode[] = [
+        { id: "setup" },
+        {
+          id: "build",
+          childLayout: "chain",
+          rows: [
+            [{ id: "create-pr" }],
+            [{ id: "create-code" }, { id: "unit-tests" }, { id: "lint" }],
+            [{ id: "verify-code", status: "failed", failure: { to: "create-code", label: "re-run" } }],
+            [{ id: "secure-code" }, { id: "scan-deps" }],
+            [{ id: "review-code" }],
+            [{ id: "merge-code", success: { label: "ship" } }],
+          ],
+        },
+        { id: "deploy" },
+        { id: "done", terminal: true },
+      ];
+      const layout = layoutConnectionFlow({ nodes });
+      const hopped = layout.edges.filter((e) => / A /.test(e.d));
+      expect(hopped.length).toBeGreaterThan(0);
+      // And the hop is an actual semicircle, not a stray arc elsewhere.
+      for (const e of hopped) expect(e.d).toMatch(/A (\d+(\.\d+)?) (\1) 0 0 [01] /);
     });
   });
 

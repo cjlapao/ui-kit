@@ -367,6 +367,13 @@ export interface LaidOutEdge {
   /** A bypass arc travels *over* skipped nodes rather than between neighbours. */
   bypass: boolean;
   /**
+   * The style this edge's corners are drawn in. The crossing-hop pass
+   * rebuilds a crossing edge's path exactly as the router would have drawn
+   * it, which needs the style the edge was routed with — `edgeStyle`
+   * governs corners only, so hops are round on every style.
+   */
+  style?: ConnectionFlowEdgeStyle;
+  /**
    * Position in its source's emission round-robin, and how many edges share
    * that round-robin.
    *
@@ -532,7 +539,12 @@ export interface ConnectionFlowLayoutOptions {
   childGap: number;
   /** Horizontal indent for child nodes. */
   childIndent: number;
-  /** Vertical gap between the rows of a chained child grid. @default childGap */
+  /**
+   * Vertical gap between the rows of a chained child grid. Wider than the
+   * child gap on purpose: the ladder has to read as a ladder, and the
+   * engine's crossing hops need air in the corridors the rows define.
+   * @default 20
+   */
   rowGap: number;
   /** Left inset of a chained child grid under its parent. @default childIndent */
   gridIndent: number;
@@ -564,7 +576,7 @@ export const DEFAULT_LAYOUT_OPTIONS: ConnectionFlowLayoutOptions = {
   laneGap: 16,
   childGap: 12,
   childIndent: 28,
-  rowGap: 12,
+  rowGap: 20,
   gridIndent: 28,
   edgeStyle: "orthogonal",
   cornerRadius: 8,

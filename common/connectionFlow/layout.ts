@@ -8,6 +8,7 @@ import {
   routeBetween,
   segmentsCrossBoxes,
   createLaneUse,
+  routeCrossings,
   selectSides,
   type Box,
   type OutlineBulge,
@@ -635,6 +636,7 @@ export const layoutConnectionFlow = (
           emitSpan: 0,
           animated: edgeAnimated,
           label: takeLabel(cfg?.label),
+          style: styleFor(cfg),
         });
       });
     });
@@ -716,6 +718,7 @@ export const layoutConnectionFlow = (
         emitSpan: 0,
         animated: edgeAnimated,
         label: cfg?.label,
+        style: styleFor(cfg),
       });
       childEdges(child);
     });
@@ -780,6 +783,7 @@ export const layoutConnectionFlow = (
       label: o.label,
       kind: o.kind,
       branchKind: o.branchKind,
+      style: o.cfg?.edgeStyle ?? options.edgeStyle,
     });
   };
 
@@ -958,6 +962,24 @@ export const layoutConnectionFlow = (
     if (entry.node.success?.to) emitBranch(entry, entry.node.success, "success");
     if (entry.node.failure?.to) emitBranch(entry, entry.node.failure, "failure");
   });
+
+  // ── Crossing hops ─────────────────────────────────────────────────────
+  // Crossings are legal topology, but they have to read as crossings: where
+  // a vertical runs through a horizontal, the horizontal hops over it — and
+  // the travelling dots, which follow this same path, hop with it. Edges
+  // with nothing crossing them keep their path byte-identical.
+  const hopPaths = routeCrossings(
+    edges.map((e) => ({
+      id: e.id,
+      points: e.points,
+      style: e.style ?? options.edgeStyle,
+    })),
+    { cornerRadius: options.cornerRadius },
+  );
+  for (const e of edges) {
+    const d = hopPaths.get(e.id);
+    if (d) e.d = d;
+  }
 
   // ── Emission order ────────────────────────────────────────────────────
   // Each source releases one dot at a time, taking its outgoing edges in
