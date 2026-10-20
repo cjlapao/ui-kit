@@ -5,11 +5,15 @@ import {
   routeLength,
   portAt,
   routePorts,
+  routeBetween,
+  segmentsCrossBoxes,
+  createLaneUse,
   selectSides,
   type Box,
   type OutlineBulge,
   type Port,
   type PortSide,
+  type Route,
 } from "./router";
 import {
   CONNECTOR_BULGE_MIN,
@@ -24,6 +28,7 @@ import {
   toRows,
   type ConnectionFlowBranch,
   type ConnectionFlowConnectorConfig,
+  type ConnectionFlowEdgeStyle,
   type ConnectionFlowLayout,
   type ConnectionFlowLayoutOptions,
   type ConnectionFlowNode,
@@ -405,6 +410,70 @@ export const layoutConnectionFlow = (
   const styleFor = (config: ConnectionFlowConnectorConfig | undefined) =>
     config?.edgeStyle ?? options.edgeStyle;
 
+  /** The connection line a port sits on, as a fraction of its own card. */
+  const tOf = (box: Box, p: Port): number =>
+    p.side === "left" || p.side === "right"
+      ? box.height === 0
+        ? 0.5
+        : (p.y - box.y) / box.height
+      : box.width === 0
+        ? 0.5
+        : (p.x - box.x) / box.width;
+
+  // Everything the path engine needs about the board. The cards are fixed
+  // by this point — pass 1 measured and placed every one and nothing below
+  // moves them — so the obstacles are the real boxes, and one lane ledger
+  // is shared by every route this run asks the engine for: two retry loops
+  // into the same stack then land side by side instead of drawing one
+  // line twice.
+  const obstacles = laidOut.map(boxOf);
+  const laneUses = createLaneUse();
+
+  /**
+   * The naive route first; the engine only when it touches a card.
+   *
+   * This order is what keeps every existing route byte-identical: an edge
+   * the layout parks in a corridor — a track hop, a fan spine, a bypass
+   * lift — passes the check and keeps its exact points. Only edges that
+   * were cutting across card faces get re-routed, and then the engine
+   * chooses the sides as freely as the way.
+   */
+  const routeWithEngine = (o: {
+    fromPort: Port;
+    toPort: Port;
+    fromBox: Box;
+    toBox: Box;
+    style: ConnectionFlowEdgeStyle;
+    stub: number;
+    trim: number;
+    via?: { x?: number; y?: number };
+    prefer?: { from?: PortSide[]; to?: PortSide[] };
+  }): Route & { fromPort: Port; toPort: Port } => {
+    const naive = routePorts(o.fromPort, o.toPort, {
+      style: o.style,
+      stub: o.stub,
+      radius: options.cornerRadius,
+      trim: o.trim,
+      via: o.via,
+    });
+    const keep = { ...naive, fromPort: o.fromPort, toPort: o.toPort };
+    if (!segmentsCrossBoxes(naive.points, obstacles)) return keep;
+    const routed = routeBetween(
+      { box: o.fromBox, t: tOf(o.fromBox, o.fromPort), preferSides: o.prefer?.from },
+      { box: o.toBox, t: tOf(o.toBox, o.toPort), preferSides: o.prefer?.to },
+      obstacles,
+      {
+        style: o.style,
+        stub: o.stub,
+        radius: options.cornerRadius,
+        trim: o.trim,
+        clearance: options.pathClearance,
+        laneUse: laneUses,
+      },
+    );
+    return routed ?? keep;
+  };
+
   columns.forEach((column, columnIndex) => {
     if (columnIndex === 0) return;
     const sourceIndex = lastLiveBefore(columnIndex);
@@ -516,10 +585,13 @@ export const layoutConnectionFlow = (
           source.anchorY / source.height,
         );
         const toPort = port(targetBox, sides.to, target.anchorY / target.height);
-        const route = routePorts(fromPort, toPort, {
+        const route = routeWithEngine({
+          fromPort,
+          toPort,
+          fromBox: sourceBox,
+          toBox: targetBox,
           style: styleFor(cfg),
           stub: Math.min(18, options.connectorWidth / 3),
-          radius: options.cornerRadius,
           trim: trimFor(cfg),
           via,
         });
@@ -530,7 +602,7 @@ export const layoutConnectionFlow = (
         const targetTone = cfg?.targetTone ?? toneOf(targetNode);
         addConnector(
           sourceNode.id,
-          fromPort,
+          route.fromPort,
           sourceTone,
           edgeState,
           edgeAnimated,
@@ -539,7 +611,7 @@ export const layoutConnectionFlow = (
         );
         addConnector(
           targetNode.id,
-          toPort,
+          route.toPort,
           targetTone,
           edgeState,
           edgeAnimated,
@@ -597,10 +669,13 @@ export const layoutConnectionFlow = (
         "left",
         childEntry.anchorY / childEntry.height,
       );
-      const route = routePorts(fromPort, toPort, {
+      const route = routeWithEngine({
+        fromPort,
+        toPort,
+        fromBox: parentBox,
+        toBox: childBox,
         style: styleFor(cfg),
         stub: 10,
-        radius: options.cornerRadius,
         trim: trimFor(cfg),
       });
 
@@ -609,7 +684,7 @@ export const layoutConnectionFlow = (
         (cfg?.animated ?? input.animated ?? true) && nodeIsActive(child);
       addConnector(
         parent.id,
-        fromPort,
+        route.fromPort,
         toneOf(parent),
         edgeState,
         edgeAnimated,
@@ -618,7 +693,7 @@ export const layoutConnectionFlow = (
       );
       addConnector(
         child.id,
-        toPort,
+        route.toPort,
         toneOf(child),
         edgeState,
         edgeAnimated,
@@ -668,20 +743,26 @@ export const layoutConnectionFlow = (
     cfg?: ConnectionFlowConnectorConfig;
     kind?: "chain" | "branch";
     branchKind?: "success" | "failure";
+    /** Visual-idiom preference for the engine — see `PathEndpoint`. */
+    prefer?: { from?: PortSide[]; to?: PortSide[] };
   }) => {
-    const route = routePorts(o.fromPort, o.toPort, {
+    const route = routeWithEngine({
+      fromPort: o.fromPort,
+      toPort: o.toPort,
+      fromBox: boxOf(o.fromEntry),
+      toBox: boxOf(o.toEntry),
       style: o.cfg?.edgeStyle ?? options.edgeStyle,
       stub: Math.min(18, options.connectorWidth / 3),
-      radius: options.cornerRadius,
       trim: trimFor(o.cfg),
       via: o.via,
+      prefer: o.prefer,
     });
     const animated =
       (o.cfg?.animated ?? input.animated ?? true) &&
       (o.state === "flowing" ||
         (o.state === "stopped" && (o.cfg?.animateCompleted ?? false)));
-    addConnector(o.fromEntry.id, o.fromPort, o.sourceTone, o.state, animated, o.id, o.cfg);
-    addConnector(o.toEntry.id, o.toPort, o.targetTone, o.state, animated, o.id, o.cfg);
+    addConnector(o.fromEntry.id, route.fromPort, o.sourceTone, o.state, animated, o.id, o.cfg);
+    addConnector(o.toEntry.id, route.toPort, o.targetTone, o.state, animated, o.id, o.cfg);
     edges.push({
       id: o.id,
       fromId: o.fromEntry.id,
@@ -749,6 +830,7 @@ export const layoutConnectionFlow = (
         fromPort: port(srcBox, "left", fromEntry.anchorY / fromEntry.height),
         toPort: port(tgtBox, "top", 0.5),
         via: { x: Math.min(srcBox.x, tgtBox.x) - options.bypassLift },
+        prefer: { from: ["left"], to: ["top"] },
         state,
         sourceTone: tone,
         targetTone: tone,

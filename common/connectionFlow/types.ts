@@ -541,6 +541,12 @@ export interface ConnectionFlowLayoutOptions {
   cornerRadius: number;
   /** How far above everything in the way a bypass arc travels. */
   bypassLift: number;
+  /**
+   * How far outside a card the path engine will route. An edge whose naive
+   * route crosses a card is re-routed through lanes at least this far from
+   * every card face, so it clears the terminal bulges too. @default 12
+   */
+  pathClearance: number;
   /** Default size of the border bulge where an edge meets a node. */
   ringSize: ConnectionFlowRingSize;
   /** Rows a card shows before the rest collapse behind "show more". */
@@ -563,6 +569,7 @@ export const DEFAULT_LAYOUT_OPTIONS: ConnectionFlowLayoutOptions = {
   edgeStyle: "orthogonal",
   cornerRadius: 8,
   bypassLift: 18,
+  pathClearance: 12,
   ringSize: "md",
   maxVisibleItems: 2,
   itemProgress: "bar",

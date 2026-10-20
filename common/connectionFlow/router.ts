@@ -448,3 +448,456 @@ export const labelAnchor = (
     y: (points[best - 1].y + points[best].y) / 2,
   };
 };
+
+// ── The path engine ────────────────────────────────────────────────────────
+//
+// `routePorts` turns two ports into a path without knowing where anything
+// else is — which is exactly right for the edges the layout parks in
+// corridors by construction, and exactly wrong for an edge asked to find its
+// way back to a card upstream: the fixed single turn ran across whatever
+// cards stood between. The engine below answers that question honestly:
+// it routes around the cards.
+//
+// It is a deliberate second layer, not a replacement: callers first take the
+// `routePorts` route, check it with `segmentsCrossBoxes`, and consult
+// `routeBetween` only when that route touches something. Edges that already
+// run through gaps therefore keep byte-identical output — the engine cannot
+// change what was never broken, and cannot cost anything either.
+
+/** One end of a route, with the card it must connect to. */
+export interface PathEndpoint {
+  box: Box;
+  /**
+   * The connection line, as a fraction along the side. Callers pass the
+   * card's own `anchorY / height`; a side change simply slides the same
+   * fraction along the new side.
+   */
+  t: number;
+  /**
+   * The visual idiom, as a preference: these sides get a bonus, never a
+   * straitjacket — a card in the way always outranks the idiom.
+   */
+  preferSides?: PortSide[];
+}
+
+/**
+ * Shared lane accounting. Every route the engine returns charges its grid
+ * segments here, and later routes pay for reusing them — so two retry loops
+ * into the same card stack stack themselves side by side on adjacent
+ * clearance lines instead of drawing one line twice.
+ */
+export type LaneUse = Map<string, number>;
+export const createLaneUse = (): LaneUse => new Map();
+
+export interface PathOptions {
+  style: ConnectionFlowEdgeStyle;
+  /** How far a line must run out of a port before it may turn. */
+  stub?: number;
+  radius?: number;
+  trim?: number;
+  /**
+   * Obstacle inflation. A clean route passes at least this far outside every
+   * card — sized for the terminal rings, so a route that clears the inflated
+   * box also clears the bulges sticking out of the real one.
+   */
+  clearance?: number;
+  /** Extra cost per change of direction. */
+  bendPenalty?: number;
+  /** Cost per px travelled inside an inflated card. Finite on purpose. */
+  obstaclePenalty?: number;
+  /** Cost per prior use of the same grid segment. */
+  lanePenalty?: number;
+  /** Score taken off for connecting on a preferred side. */
+  preferBonus?: number;
+  /** Shared across one layout run — see `createLaneUse`. */
+  laneUse?: LaneUse;
+}
+
+const sameBox = (a: Box, b: Box) =>
+  a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+
+/** Does any segment of this waypoint list pass through the interior of a box? */
+export const segmentsCrossBoxes = (
+  points: { x: number; y: number }[],
+  boxes: Box[],
+): boolean => {
+  for (const b of boxes) {
+    const right = b.x + b.width;
+    const bottom = b.y + b.height;
+    for (let i = 1; i < points.length; i += 1) {
+      const a = points[i - 1];
+      const c = points[i];
+      if (a.x === c.x) {
+        const lo = Math.min(a.y, c.y);
+        const hi = Math.max(a.y, c.y);
+        if (a.x > b.x && a.x < right && hi > b.y && lo < bottom) return true;
+      } else if (a.y === c.y) {
+        const lo = Math.min(a.x, c.x);
+        const hi = Math.max(a.x, c.x);
+        if (a.y > b.y && a.y < bottom && hi > b.x && lo < right) return true;
+      }
+    }
+  }
+  return false;
+};
+
+const DIRS = [
+  { dx: 1, dy: 0 },
+  { dx: -1, dy: 0 },
+  { dx: 0, dy: 1 },
+  { dx: 0, dy: -1 },
+] as const;
+
+const dirOf = (dx: number, dy: number): number =>
+  DIRS.findIndex((d) => d.dx === dx && d.dy === dy);
+
+const SIDES: PortSide[] = ["top", "right", "bottom", "left"];
+
+/** Sorted, de-duplicated grid lines; near-coincident lines are one line. */
+const gridLines = (values: number[], low: number, high: number): number[] => {
+  const sorted = values
+    .filter((v) => Number.isFinite(v))
+    .sort((a, b) => a - b);
+  const out: number[] = [];
+  for (const v of sorted) {
+    if (out.length === 0 || v - out[out.length - 1] > 1) out.push(v);
+  }
+  // Ring roads: one line beyond everything on each side — cards included,
+  // not just the two ends — so a route can always go around the outside
+  // rather than through the middle.
+  const span = Math.max(1, high - low);
+  return [low - Math.min(60, span * 0.25), ...out, high + Math.min(60, span * 0.25)];
+};
+
+/**
+ * A grid segment identified by where it physically is, not by indices —
+ * every candidate side-pair builds its own grid, and a lane is the same
+ * lane in all of them.
+ */
+const segKey = (
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): string =>
+  x1 === x2
+    ? `v:${round(x1)}>${round(Math.min(y1, y2))}-${round(Math.max(y1, y2))}`
+    : `h:${round(y1)}>${round(Math.min(x1, x2))}-${round(Math.max(x1, x2))}`;
+
+/** Smallest binary heap over `f`; ties keep insertion order. */
+class Heap<T> {
+  private items: T[] = [];
+  constructor(private f: (t: T) => number) {}
+  get size() {
+    return this.items.length;
+  }
+  push(item: T) {
+    const items = this.items;
+    items.push(item);
+    let i = items.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (this.f(items[parent]) <= this.f(items[i])) break;
+      [items[parent], items[i]] = [items[i], items[parent]];
+      i = parent;
+    }
+  }
+  pop(): T {
+    const items = this.items;
+    const top = items[0];
+    const last = items.pop() as T;
+    if (items.length > 0) {
+      items[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = i * 2 + 1;
+        const r = l + 1;
+        let m = i;
+        if (l < items.length && this.f(items[l]) < this.f(items[m])) m = l;
+        if (r < items.length && this.f(items[r]) < this.f(items[m])) m = r;
+        if (m === i) break;
+        [items[m], items[i]] = [items[i], items[m]];
+        i = m;
+      }
+    }
+    return top;
+  }
+}
+
+export interface RoutedPath extends Route {
+  /** The ports the engine actually connected — the layout draws its
+   *  connectors here, wherever that turns out to be. */
+  fromPort: Port;
+  toPort: Port;
+}
+
+interface PairResult {
+  cost: number;
+  points: { x: number; y: number }[];
+  fromPort: Port;
+  toPort: Port;
+  segments: string[];
+}
+
+/**
+ * A* over the grid the cards define.
+ *
+ * Candidate lines come from the cards themselves — each inflated edge is a
+ * lane that provably clears the cards (a Hanan grid), plus ring roads beyond
+ * them all. Cost is length, plus a penalty per bend, plus a *large but
+ * finite* penalty per px inside an inflated card, plus a small one per reuse
+ * of an already-used lane. Finite obstacles are the important part: an edge
+ * boxed in by cards still draws its fewest-crossings route rather than
+ * vanishing, and a clean route always outranks any number of crossings.
+ *
+ * Returns `null` only when the grid would be too large to search — the
+ * caller then keeps its naive route. The engine never hangs and never blanks.
+ */
+export const routeBetween = (
+  from: PathEndpoint,
+  to: PathEndpoint,
+  obstacles: Box[],
+  options: PathOptions,
+): RoutedPath | null => {
+  const clearance = options.clearance ?? 12;
+  const stub = options.stub ?? 18;
+  const radius = options.radius ?? 8;
+  const trim = options.trim ?? 0;
+  const bendPenalty = options.bendPenalty ?? 18;
+  const obstaclePenalty = options.obstaclePenalty ?? 60;
+  const lanePenalty = options.lanePenalty ?? 12;
+  const preferBonus = options.preferBonus ?? 25;
+  const laneUse = options.laneUse;
+
+  const blocked = obstacles.filter(
+    (b) => !sameBox(b, from.box) && !sameBox(b, to.box),
+  );
+  const inflated: Box[] = blocked.map((b) => ({
+    x: b.x - clearance,
+    y: b.y - clearance,
+    width: b.width + clearance * 2,
+    height: b.height + clearance * 2,
+  }));
+
+  // Only cards the route could plausibly reach matter: anything further
+  // away than the detour budget can only add cost, never remove it.
+  const fx = from.box.x + from.box.width / 2;
+  const fy = from.box.y + from.box.height / 2;
+  const tx = to.box.x + to.box.width / 2;
+  const ty = to.box.y + to.box.height / 2;
+  const dist = Math.hypot(tx - fx, ty - fy);
+  const reachLimit = Math.max(from.box.width, from.box.height, to.box.width, to.box.height) + dist * 1.5 + 240;
+  const near = inflated.filter((b) => {
+    const cx = b.x + b.width / 2;
+    const cy = b.y + b.height / 2;
+    return Math.hypot(cx - fx, cy - fy) < reachLimit && Math.hypot(cx - tx, cy - ty) < reachLimit;
+  });
+
+  const lowX = Math.min(from.box.x, to.box.x) - reachLimit;
+  const highX = Math.max(from.box.x + from.box.width, to.box.x + to.box.width) + reachLimit;
+  const lowY = Math.min(from.box.y, to.box.y) - reachLimit;
+  const highY = Math.max(from.box.y + from.box.height, to.box.y + to.box.height) + reachLimit;
+
+  const baseXs: number[] = [];
+  const baseYs: number[] = [];
+  let ringLowX = Math.min(from.box.x, to.box.x);
+  let ringHighX = Math.max(from.box.x + from.box.width, to.box.x + to.box.width);
+  let ringLowY = Math.min(from.box.y, to.box.y);
+  let ringHighY = Math.max(from.box.y + from.box.height, to.box.y + to.box.height);
+  for (const b of near) {
+    baseXs.push(b.x, b.x + b.width);
+    baseYs.push(b.y, b.y + b.height);
+    ringLowX = Math.min(ringLowX, b.x);
+    ringHighX = Math.max(ringHighX, b.x + b.width);
+    ringLowY = Math.min(ringLowY, b.y);
+    ringHighY = Math.max(ringHighY, b.y + b.height);
+  }
+
+  let best: PairResult | null = null;
+
+  for (const fromSide of SIDES) {
+    for (const toSide of SIDES) {
+      const fromPort = port(from.box, fromSide, from.t);
+      const toPort = port(to.box, toSide, to.t);
+      const fromTrim = retreat(fromPort, trim);
+      const toTrim = retreat(toPort, trim);
+      const pairDist = Math.hypot(toTrim.x - fromTrim.x, toTrim.y - fromTrim.y);
+      const reach = Math.max(4, Math.min(stub, pairDist / 2));
+      const fromStub = {
+        x: fromTrim.x + fromPort.dx * reach,
+        y: fromTrim.y + fromPort.dy * reach,
+      };
+      const toStub = {
+        x: toTrim.x + toPort.dx * reach,
+        y: toTrim.y + toPort.dy * reach,
+      };
+
+      const xs = gridLines(
+        [...baseXs, fromStub.x, toStub.x],
+        Math.min(fromStub.x, toStub.x, ringLowX),
+        Math.max(fromStub.x, toStub.x, ringHighX),
+      ).filter((v) => v >= lowX && v <= highX);
+      const ys = gridLines(
+        [...baseYs, fromStub.y, toStub.y],
+        Math.min(fromStub.y, toStub.y, ringLowY),
+        Math.max(fromStub.y, toStub.y, ringHighY),
+      ).filter((v) => v >= lowY && v <= highY);
+      if (xs.length * ys.length > 65_536) return null; // keep the naive route
+
+      const xOf = new Map(xs.map((v, i) => [round(v), i]));
+      const yOf = new Map(ys.map((v, i) => [round(v), i]));
+      const si = xOf.get(round(fromStub.x));
+      const sj = yOf.get(round(fromStub.y));
+      const gi = xOf.get(round(toStub.x));
+      const gj = yOf.get(round(toStub.y));
+      if (si === undefined || sj === undefined || gi === undefined || gj === undefined) {
+        continue;
+      }
+
+      const startDir = dirOf(fromPort.dx, fromPort.dy);
+      const arriveDir = dirOf(-toPort.dx, -toPort.dy);
+      const W = xs.length;
+      const H = ys.length;
+      const stateCount = W * H * 4;
+      const gScore = new Float64Array(stateCount).fill(Number.POSITIVE_INFINITY);
+      const cameFrom = new Int32Array(stateCount).fill(-1);
+      const keyOf = (i: number, j: number, d: number) => (j * W + i) * 4 + d;
+      const heur = (i: number, j: number) =>
+        Math.abs(xs[i] - xs[gi]) + Math.abs(ys[j] - ys[gj]);
+
+      // Precompute what each grid line runs through: a horizontal move on
+      // row j only ever crosses the cards whose inflated box contains that
+      // line's y, and the same down the columns. The engine then scores a
+      // step against a handful of intervals instead of the whole board.
+      const rowXs: ([number, number][] | undefined)[] = new Array(H);
+      for (let j = 0; j < H; j += 1) {
+        const y = ys[j];
+        let list: [number, number][] | undefined;
+        for (const b of near) {
+          if (y > b.y && y < b.y + b.height) {
+            (list ??= []).push([b.x, b.x + b.width]);
+          }
+        }
+        rowXs[j] = list;
+      }
+      const colYs: ([number, number][] | undefined)[] = new Array(W);
+      for (let i = 0; i < W; i += 1) {
+        const x = xs[i];
+        let list: [number, number][] | undefined;
+        for (const b of near) {
+          if (x > b.x && x < b.x + b.width) {
+            (list ??= []).push([b.y, b.y + b.height]);
+          }
+        }
+        colYs[i] = list;
+      }
+      const penetration = (i: number, j: number, ni: number, nj: number) => {
+        let total = 0;
+        if (i === ni) {
+          const list = colYs[i];
+          if (!list) return 0;
+          const lo = Math.min(ys[j], ys[nj]);
+          const hi = Math.max(ys[j], ys[nj]);
+          for (const [l, r] of list) total += Math.max(0, Math.min(hi, r) - Math.max(lo, l));
+        } else {
+          const list = rowXs[j];
+          if (!list) return 0;
+          const lo = Math.min(xs[i], xs[ni]);
+          const hi = Math.max(xs[i], xs[ni]);
+          for (const [l, r] of list) total += Math.max(0, Math.min(hi, r) - Math.max(lo, l));
+        }
+        return total;
+      };
+
+      const heap = new Heap<{ i: number; j: number; d: number; g: number }>(
+        (s) => s.g + heur(s.i, s.j),
+      );
+      const startKey = keyOf(si, sj, startDir);
+      gScore[startKey] = 0;
+      heap.push({ i: si, j: sj, d: startDir, g: 0 });
+      // The line must leave along the port's normal; charge the stub, it is
+      // part of the route and can run through a card's clearance.
+      let found: { i: number; j: number; d: number; g: number } | null = null;
+      const cutoff = best ? best.cost + preferBonus * 2 : Number.POSITIVE_INFINITY;
+      let pops = 0;
+
+      while (heap.size > 0) {
+        const s = heap.pop();
+        if (++pops > 60_000) break; // bounded: this pair loses to whatever already won
+        const key = keyOf(s.i, s.j, s.d);
+        if (s.g > gScore[key]) continue;
+        if (s.g + heur(s.i, s.j) >= cutoff) break;
+        if (s.i === gi && s.j === gj && s.d === arriveDir) {
+          found = s;
+          break;
+        }
+        for (let d = 0; d < 4; d += 1) {
+          const { dx, dy } = DIRS[d];
+          const ni: number = s.i + dx;
+          const nj: number = s.j + dy;
+          if (ni < 0 || ni >= W || nj < 0 || nj >= H) continue;
+          // A port is a dead end, not a crossroads: its stub may only be
+          // entered and left along the port's own normal — anything else
+          // would sail across the card's face and call it a connection.
+          // The node decides, not the step count: re-reaching the start
+          // node from mid-search is the same physical stub.
+          if (s.i === si && s.j === sj && d !== startDir) continue;
+          if (ni === si && nj === sj && d !== startDir) continue;
+          if (ni === gi && nj === gj && d !== arriveDir) continue;
+          const dirPenalty = d === s.d ? 0 : bendPenalty;
+          const nx = xs[ni];
+          const ny = ys[nj];
+          let step = Math.abs(nx - xs[s.i]) + Math.abs(ny - ys[s.j]) + dirPenalty;
+          step += penetration(s.i, s.j, ni, nj) * obstaclePenalty;
+          const prior = laneUse?.get(segKey(xs[s.i], ys[s.j], nx, ny)) ?? 0;
+          if (prior > 0) step += prior * lanePenalty;
+          const nKey = keyOf(ni, nj, d);
+          const ng = s.g + step;
+          if (ng < gScore[nKey]) {
+            gScore[nKey] = ng;
+            cameFrom[nKey] = key;
+            heap.push({ i: ni, j: nj, d, g: ng });
+          }
+        }
+      }
+      if (!found) continue;
+
+      let bonus = 0;
+      if (from.preferSides?.includes(fromSide)) bonus += preferBonus;
+      if (to.preferSides?.includes(toSide)) bonus += preferBonus;
+      const cost = found.g - bonus;
+      if (best && cost >= best.cost) continue;
+
+      const chainKeys: number[] = [];
+      let k = keyOf(found.i, found.j, found.d);
+      while (k !== -1) {
+        chainKeys.push(k);
+        k = cameFrom[k];
+      }
+      chainKeys.reverse();
+      const nodes = chainKeys.map((key) => {
+        const st = Math.floor(key / 4);
+        return { x: xs[st % W], y: ys[Math.floor(st / W)] };
+      });
+      const segments: string[] = [];
+      for (let p = 1; p < nodes.length; p += 1) {
+        segments.push(
+          segKey(nodes[p - 1].x, nodes[p - 1].y, nodes[p].x, nodes[p].y),
+        );
+      }
+      const points = simplify([fromTrim, ...nodes, toTrim]);
+      best = { cost, points, fromPort, toPort, segments };
+    }
+  }
+
+  if (!best) return null;
+  if (laneUse) {
+    for (const seg of best.segments) laneUse.set(seg, (laneUse.get(seg) ?? 0) + 1);
+  }
+  return {
+    points: best.points,
+    d: roundedPath(best.points, CORNER[options.style](radius)),
+    fromPort: best.fromPort,
+    toPort: best.toPort,
+  };
+};

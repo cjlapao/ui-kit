@@ -3,6 +3,7 @@ import {
   layoutConnectionFlow,
   measureBranch,
   measureNode,
+  segmentsCrossBoxes,
   toRows,
   tracePathTo,
   DEFAULT_LAYOUT_OPTIONS,
@@ -209,19 +210,24 @@ describe("ConnectionFlow chained grid", () => {
   });
 
   describe("outcome branches", () => {
-    it("routes a failure loop-back into the target's top via a left lane", () => {
+    it("routes a failure loop-back clear of every card it passes", () => {
       const layout = layoutConnectionFlow({ nodes: pipeline() });
       const createCode = node(layout, "create-code");
       const verify = node(layout, "verify");
       const loop = edge(layout, "verify~fail>create-code");
       expect(loop.kind).toBe("branch");
       expect(loop.branchKind).toBe("failure");
-      // Leaves the source's left side…
+      // Leaves the source…
       expect(loop.points[0].x).toBeLessThanOrEqual(verify.x);
       // …runs a lane clear of the cards…
       expect(Math.min(...loop.points.map((p) => p.x))).toBeLessThan(createCode.x);
-      // …and re-enters through the target's top, the way a chain drop does.
-      expect(lastPoint(loop).y).toBeLessThanOrEqual(createCode.y);
+      // …and the one thing the old fixed turn could not promise: nothing it
+      // runs along is a card. The engine may meet the target from any side —
+      // what it may never do is cross a face to get there.
+      const others = layout.nodes
+        .filter((n) => n.id !== verify.id && n.id !== createCode.id)
+        .map((n) => ({ x: n.x, y: n.y, width: n.width, height: n.height }));
+      expect(segmentsCrossBoxes(loop.points, others)).toBe(false);
       expect(loop.label).toBe("retry");
     });
 
@@ -364,6 +370,43 @@ describe("ConnectionFlow chained grid", () => {
       const loop = edge(layout, "a~fail>b");
       expect(loop.branchKind).toBe("failure");
       expect(loop.state).toBe("flowing");
+    });
+  });
+
+  describe("the path engine", () => {
+    const devLoop = (): ConnectionFlowNode[] => [
+      { id: "setup", status: "succeeded" },
+      { id: "plan", status: "succeeded" },
+      { id: "plan-gate", status: "running", failure: { to: "plan", label: "max 2" } },
+      {
+        id: "build",
+        childLayout: "chain",
+        rows: [
+          [{ id: "issue" }],
+          [{ id: "implement" }, { id: "verify" }],
+          [{ id: "security" }],
+          [{ id: "commit-local" }, { id: "pr" }],
+          [{ id: "review", failure: { to: "implement", label: "max 2" } }],
+          [{ id: "merge" }, { id: "close-issue" }],
+        ],
+      },
+      { id: "qa", status: "failed", failure: { to: "plan", label: "max 2" } },
+      { id: "done", terminal: true },
+    ];
+
+    it("routes every edge without crossing a card that is not its own", () => {
+      // The one law of the engine, asserted over a whole board: gates
+      // loop back across columns, the grid's review card fails all the way
+      // up into `implement`, qa fails out of the grid back to `plan` — and
+      // nothing any of them travel along is a card face.
+      const layout = layoutConnectionFlow({ nodes: devLoop() });
+      expect(layout.edges.length).toBeGreaterThan(10);
+      for (const e of layout.edges) {
+        const others = layout.nodes
+          .filter((n) => n.id !== e.fromId && n.id !== e.toId)
+          .map((n) => ({ x: n.x, y: n.y, width: n.width, height: n.height }));
+        expect(segmentsCrossBoxes(e.points, others), `edge ${e.id}`).toBe(false);
+      }
     });
   });
 
