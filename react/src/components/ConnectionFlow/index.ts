@@ -12,6 +12,7 @@ export type { ConnectionFlowProps, ConnectionFlowHandle } from "./ConnectionFlow
  */
 export {
   CONNECTION_FLOW_EDGE_STYLES,
+  CONNECTION_FLOW_CHILD_LAYOUTS,
   CONNECTION_FLOW_NODE_KINDS,
   CONNECTION_FLOW_PROGRESS_TYPES,
   CONNECTION_FLOW_ITEM_PROGRESS,
@@ -53,9 +54,13 @@ export {
   nodeIcon,
   nodeIsActive,
   nodeIsSkipped,
+  nodeHasFailed,
   nodeTone,
+  toRows,
   tracePathTo,
   type ConnectionFlowEdgeStyle,
+  type ConnectionFlowChildLayout,
+  type ConnectionFlowBranch,
   type ConnectionFlowLayout,
   type ConnectionFlowNode,
   type ConnectionFlowNodeKind,

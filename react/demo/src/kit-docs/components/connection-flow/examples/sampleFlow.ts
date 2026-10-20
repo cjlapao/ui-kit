@@ -1,4 +1,4 @@
-import type { ConnectionFlowNode } from "@cjlapao/ui-kit";
+import type { ConnectionFlowNode, TrueColor } from "@cjlapao/ui-kit";
 
 /**
  * A release run, shared by the examples so they read as one story.
@@ -126,4 +126,40 @@ export const CI_FLOW: ConnectionFlowNode[] = [
     status: "pending",
     connector: { state: "disabled" },
   },
+];
+
+/**
+ * The `Build Docker Images` lane re-cast as a chained grid, for the
+ * playground's child-layout toggle: the flow enters the first card from the
+ * container's bottom, walks each row rightward, and hands off onward from
+ * the last card. When the smoke test fails, its rose edge flows back into
+ * `Compile` — the closed loop that runs the chain down again — while the
+ * way forward sits dim.
+ */
+export const DOCKER_ROWS = (
+  failed: boolean,
+  failureTone?: TrueColor,
+): ConnectionFlowNode[][] => [
+  [{ id: "dk-pull", title: "Pull base image", icon: "Download", status: "succeeded" }],
+  [
+    { id: "dk-compile", title: "Compile", icon: "Edit", status: "succeeded" },
+    { id: "dk-vendor", title: "Vendor deps", icon: "Clone", status: "succeeded" },
+  ],
+  [
+    {
+      id: "dk-test",
+      title: "Smoke test image",
+      icon: "Bug",
+      status: failed ? "failed" : "running",
+      failure: {
+        to: "dk-compile",
+        label: "rebuild",
+        ...(failureTone ? { tone: failureTone } : {}),
+      },
+    },
+  ],
+  [
+    { id: "dk-amd", title: "linux/amd64", subtitle: "pushing", progress: 0.8, icon: "Container" },
+    { id: "dk-arm", title: "linux/arm64", subtitle: "pushing", progress: 0.35, icon: "Container" },
+  ],
 ];

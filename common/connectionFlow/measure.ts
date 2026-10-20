@@ -1,6 +1,7 @@
 import {
   STATUS_ICON,
   STATUS_TONE,
+  toRows,
   type ConnectionFlowItemProgress,
   type ConnectionFlowLayoutOptions,
   type ConnectionFlowNode,
@@ -237,6 +238,20 @@ export const measureBranch = (
   expanded?: ReadonlySet<string>,
 ): number => {
   const own = measureNode(node, options, expanded);
+  if (node.childLayout === "chain") {
+    // A chained grid hangs below the card; each row is as tall as its
+    // tallest card — rows run sideways, so their heights never stack.
+    const rows = toRows(node);
+    if (rows.length === 0) return own;
+    const rowsHeight = rows.reduce(
+      (sum, row, index) =>
+        sum +
+        Math.max(0, ...row.map((c) => measureBranch(c, options, expanded))) +
+        (index > 0 ? options.rowGap : 0),
+      0,
+    );
+    return own + options.childGap + rowsHeight;
+  }
   const children = node.children ?? [];
   if (children.length === 0) return own;
   const childHeight = children.reduce(

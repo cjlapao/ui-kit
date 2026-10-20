@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ConnectionFlow } from "@cjlapao/ui-kit";
 import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import type {
+  ConnectionFlowChildLayout,
   ConnectionFlowEdgeStyle,
   ConnectionFlowItemProgress,
   ConnectionFlowLoader,
+  ConnectionFlowNode,
   ConnectionFlowProgressType,
   ConnectionFlowRingSize,
   ConnectionState,
@@ -33,7 +35,7 @@ import {
   connectionFlowVariantOptions,
   trueColorOptions,
 } from "../../shared/options";
-import { CI_FLOW } from "./examples/sampleFlow";
+import { CI_FLOW, DOCKER_ROWS } from "./examples/sampleFlow";
 
 export const ConnectionFlowPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
@@ -56,6 +58,11 @@ export const ConnectionFlowPlayground: React.FC = () => {
   const [dotSpeed, setDotSpeed] = useState(120);
   const [dotInterval, setDotInterval] = useState(700);
 
+  const [childLayout, setChildLayout] =
+    useState<ConnectionFlowChildLayout>("fan");
+  const [chainFailed, setChainFailed] = useState(true);
+  const [failureTone, setFailureTone] = useState("default");
+
   const [autoState, setAutoState] = useState(true);
   const [animated, setAnimated] = useState(true);
   const [highlightPath, setHighlightPath] = useState(true);
@@ -63,6 +70,34 @@ export const ConnectionFlowPlayground: React.FC = () => {
   const [interactive, setInteractive] = useState(true);
 
   const [selected, setSelected] = useState<string | null>(null);
+
+  // The chained grid re-casts the `Build Docker Images` lane as a container:
+  // the same story, walked as a grid of sub-steps with a failure loop back
+  // into `Compile`.
+  const nodes = useMemo<ConnectionFlowNode[]>(
+    () =>
+      childLayout === "chain"
+        ? CI_FLOW.map((n) =>
+            n.id === "docker"
+              ? {
+                  id: "docker",
+                  title: "Build Docker Images",
+                  subtitle: "13m 13s",
+                  icon: "Docker",
+                  status: chainFailed ? "failed" : "running",
+                  childLayout: "chain",
+                  rows: DOCKER_ROWS(
+                    chainFailed,
+                    failureTone === "default"
+                      ? undefined
+                      : (failureTone as TrueColor),
+                  ),
+                }
+              : n,
+          )
+        : CI_FLOW,
+    [childLayout, chainFailed, failureTone],
+  );
 
   return (
     <PlaygroundPanel
@@ -214,6 +249,39 @@ export const ConnectionFlowPlayground: React.FC = () => {
                 ),
               },
               {
+                id: "branching",
+                title: "Branching",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Child layout"
+                      options={[
+                        { label: "Fan (elbows)", value: "fan" },
+                        { label: "Chain (walked grid)", value: "chain" },
+                      ]}
+                      value={childLayout}
+                      onChange={(value) =>
+                        setChildLayout(value as ConnectionFlowChildLayout)
+                      }
+                    />
+                    <ToggleRow
+                      label="Sub-step failed"
+                      checked={chainFailed}
+                      onChange={setChainFailed}
+                    />
+                    <SelectControl
+                      label="Failure tone"
+                      options={[
+                        { label: "Default — rose", value: "default" },
+                        ...trueColorOptions,
+                      ]}
+                      value={failureTone}
+                      onChange={setFailureTone}
+                    />
+                  </>
+                ),
+              },
+              {
                 id: "motion",
                 title: "Motion",
                 controls: (
@@ -260,14 +328,19 @@ export const ConnectionFlowPlayground: React.FC = () => {
             cards are built from <strong>items</strong>: one runs past the cap
             so the rest fold behind “show more”, one shows a spinner in place of
             its glyph until it finishes, and “Announce on Discord” is capped
-            with <code>maxHeight</code> so its body scrolls.
+            with <code>maxHeight</code> so its body scrolls. Switching{" "}
+            <strong>child layout</strong> to chain re-casts the Docker build as
+            a container walked rightward and downward — and while the smoke
+            test is failed, its rose <strong>failure</strong> edge flows back
+            into “Compile”, the loop that runs the grid down again, while the
+            way forward sits dim.
           </p>
         </div>
       }
       preview={
         <div className="w-full space-y-2">
           <ConnectionFlow
-            nodes={CI_FLOW}
+            nodes={nodes}
             variant={variant}
             eyebrow="release_canary.yml"
             title="Release Canary version"

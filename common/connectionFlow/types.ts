@@ -19,6 +19,14 @@ export type ConnectionFlowEdgeStyle =
   (typeof CONNECTION_FLOW_EDGE_STYLES)[number];
 
 /**
+ * How a card's children attach — the elbow fan, or the walked grid.
+ * @see ConnectionFlowNode.childLayout
+ */
+export const CONNECTION_FLOW_CHILD_LAYOUTS = ["fan", "chain"] as const;
+export type ConnectionFlowChildLayout =
+  (typeof CONNECTION_FLOW_CHILD_LAYOUTS)[number];
+
+/**
  * How the whole component reports that it is loading.
  *
  * `skeleton` is the default because it is the only one that holds the card's
@@ -105,6 +113,20 @@ export interface ConnectionFlowConnectorConfig {
   /** Draw travelling dots on a `stopped` edge as well as a `flowing` one. */
   animateCompleted?: boolean;
   /** Caption rendered along the edge. */
+  label?: string;
+}
+
+/**
+ * One of a card's two outcomes, as an edge. `success` without a `to` is the
+ * implicit next step and draws nothing extra — it only restyles the walk
+ * edge. `failure` always names its target: there is no implicit failure.
+ */
+export interface ConnectionFlowBranch {
+  /** Target node id. */
+  to?: string;
+  /** @default emerald for success, rose for failure (`STATUS_TONE`). */
+  tone?: TrueColor;
+  /** Caption along the edge (no default text — the kit ships no strings). */
   label?: string;
 }
 
@@ -232,6 +254,39 @@ export interface ConnectionFlowNode {
   maxItems?: number;
   /** Nodes hanging vertically below this one. */
   children?: ConnectionFlowNode[];
+  /**
+   * How `children` attach.
+   *
+   * - `"fan"` (default) is today: every child gets its own elbow from the
+   *   parent, hanging below it, indented.
+   * - `"chain"` reads `rows` (or `children`, one card per row) as a grid:
+   *   the flow enters the first card, walks each row left→right, and drops
+   *   from the last card of a row into the first card of the next. The
+   *   parent becomes a pure container — it emits no edge onward; the grid's
+   *   last card carries the connection to the parent's next sibling.
+   *
+   * @default "fan"
+   */
+  childLayout?: ConnectionFlowChildLayout;
+  /**
+   * Rows for `childLayout: "chain"` — each row walks left→right, rows are
+   * walked top→bottom. Cards keep the standard size; a longer row widens
+   * the grid (longer connectors), never the cards.
+   */
+  rows?: ConnectionFlowNode[][];
+  /**
+   * Where this card goes when it succeeds. Without `to` it follows the
+   * implicit next step (the track, or the chain walk); with `to` the
+   * successor points there instead. Emerald unless `tone` says otherwise.
+   */
+  success?: ConnectionFlowBranch;
+  /**
+   * Where this card goes when it fails — usually upstream (a loop-back
+   * that re-enters the target from the top, so the flow can run the chain
+   * down again). Rose unless `tone` says otherwise. Always drawn: topology
+   * stays visible while the flow runs; only its liveliness follows status.
+   */
+  failure?: ConnectionFlowBranch;
   /** Config for the edge leading *into* this node. */
   connector?: ConnectionFlowConnectorConfig;
   /**
@@ -334,6 +389,14 @@ export interface LaidOutEdge {
   emitSpan: number;
   animated: boolean;
   label?: string;
+  /**
+   * What kind of connection this is. Optional for backward compatibility —
+   * renderers treat everything as the track edge it always drew; the tests
+   * and the chain/branch passes are explicit.
+   */
+  kind?: "track" | "chain" | "branch";
+  /** Set when `kind` is `"branch"`. */
+  branchKind?: "success" | "failure";
 }
 
 /**
@@ -469,6 +532,10 @@ export interface ConnectionFlowLayoutOptions {
   childGap: number;
   /** Horizontal indent for child nodes. */
   childIndent: number;
+  /** Vertical gap between the rows of a chained child grid. @default childGap */
+  rowGap: number;
+  /** Left inset of a chained child grid under its parent. @default childIndent */
+  gridIndent: number;
   edgeStyle: ConnectionFlowEdgeStyle;
   /** Corner radius on an orthogonal edge. */
   cornerRadius: number;
@@ -491,6 +558,8 @@ export const DEFAULT_LAYOUT_OPTIONS: ConnectionFlowLayoutOptions = {
   laneGap: 16,
   childGap: 12,
   childIndent: 28,
+  rowGap: 12,
+  gridIndent: 28,
   edgeStyle: "orthogonal",
   cornerRadius: 8,
   bypassLift: 18,
@@ -543,6 +612,18 @@ export const nodeIcon = (
 /** Whether the node is executing. `status: "running"` implies it. */
 export const nodeIsActive = (node: ConnectionFlowNode | undefined): boolean =>
   node?.active ?? node?.status === "running";
+
+/** Whether the node failed — what makes its failure edge the live one. */
+export const nodeHasFailed = (node: ConnectionFlowNode | undefined): boolean =>
+  node?.status === "failed";
+
+/**
+ * The chain grid's rows, however they were written: `rows` verbatim, or a
+ * flat `children` array promoted to one card per row. Fan callers never
+ * call this.
+ */
+export const toRows = (node: ConnectionFlowNode): ConnectionFlowNode[][] =>
+  node.rows ?? (node.children ?? []).map((child) => [child]);
 
 /**
  * Whether the node is bypassed. Tri-state on purpose: `undefined` means "no

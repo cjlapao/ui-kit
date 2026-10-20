@@ -9,15 +9,20 @@ import {
   type Box,
   type OutlineBulge,
   type Port,
+  type PortSide,
 } from "./router";
 import {
   CONNECTOR_BULGE_MIN,
   CONNECTOR_RING_RADIUS,
   DEFAULT_LAYOUT_OPTIONS,
+  STATUS_TONE,
   connectorDotRadius,
+  nodeHasFailed,
   nodeIsActive,
   nodeIsSkipped,
   nodeTone,
+  toRows,
+  type ConnectionFlowBranch,
   type ConnectionFlowConnectorConfig,
   type ConnectionFlowLayout,
   type ConnectionFlowLayoutOptions,
@@ -156,6 +161,23 @@ export const layoutConnectionFlow = (
   const laidOut: LaidOutNode[] = [];
   const byId = new Map<string, LaidOutNode>();
 
+  /**
+   * Chained child grids, keyed by parent id. Placed with the parent (their
+   * rows hang below its card), walked row-major by the chain pass, and read
+   * by the track pass so the grid's last card — not the parent — carries the
+   * connection onward.
+   */
+  interface ChainInfo {
+    parentNode: ConnectionFlowNode;
+    walk: { card: LaidOutNode; row: number }[];
+    /** Last non-skipped card of the grid — the onward connector. */
+    exitCard: LaidOutNode | null;
+    /** True when the exit card names its own successor. */
+    exitHasBranch: boolean;
+    gridWidth: number;
+  }
+  const chains = new Map<string, ChainInfo>();
+
   // ── Pass 1: place every node ──────────────────────────────────────────
   let x = options.padding;
   const columnBounds: { start: number; end: number; centre: number }[] = [];
@@ -188,7 +210,9 @@ export const layoutConnectionFlow = (
       laidOut.push(entry);
       byId.set(node.id, entry);
 
-      // Children hang below their parent, indented.
+      // Children hang below their parent, indented — unless the parent
+      // chains: then `rows` (or one card per row from `children`) form a
+      // grid under it, walked rightward and downward by the chain pass.
       let childY = y + ownHeight + options.childGap;
       const placeChildren = (
         parent: ConnectionFlowNode,
@@ -217,17 +241,77 @@ export const layoutConnectionFlow = (
           placeChildren(child, depth + 1, indentX + options.childIndent);
         });
       };
-      placeChildren(node, 1, x + options.childIndent);
+      if (node.childLayout === "chain") {
+        const rows = toRows(node);
+        if (rows.length > 0) {
+          const cardWidth = options.metrics.width;
+          const gridX = x + options.gridIndent;
+          let rowY = y + ownHeight + options.childGap;
+          const walk: ChainInfo["walk"] = [];
+          let maxCols = 1;
+          rows.forEach((row, rowIdx) => {
+            maxCols = Math.max(maxCols, row.length);
+            let rowBottom = rowY;
+            row.forEach((card, col) => {
+              const cardHeight = measureNode(card, options, input.expanded);
+              const cardEntry: LaidOutNode = {
+                id: card.id,
+                node: card,
+                outline: "",
+                x: gridX + col * (cardWidth + options.connectorWidth),
+                y: rowY,
+                width: cardWidth,
+                height: cardHeight,
+                anchorY: cardHeight / 2,
+                column: columnIndex,
+                depth: 1,
+                tone: toneOf(card),
+                scrollable: nodeScrolls(card, options, input.expanded),
+              };
+              laidOut.push(cardEntry);
+              byId.set(card.id, cardEntry);
+              walk.push({ card: cardEntry, row: rowIdx });
+              rowBottom = Math.max(rowBottom, rowY + cardHeight);
+            });
+            rowY = rowBottom + options.rowGap;
+          });
+          const live = walk.filter((w) => !nodeIsSkipped(w.card.node));
+          const exitCard = live.length > 0 ? live[live.length - 1].card : null;
+          chains.set(node.id, {
+            parentNode: node,
+            walk,
+            exitCard,
+            exitHasBranch: Boolean(exitCard?.node.success?.to),
+            gridWidth:
+              options.gridIndent +
+              maxCols * cardWidth +
+              (maxCols - 1) * options.connectorWidth,
+          });
+        } else {
+          placeChildren(node, 1, x + options.childIndent);
+        }
+      } else {
+        placeChildren(node, 1, x + options.childIndent);
+      }
 
       y += heights[laneIndex] + options.laneGap;
     });
 
+    // A chained column is as wide as its widest row, so the next top-level
+    // column starts clear of the grid rather than on top of it.
+    const chainInfo = column.parallel
+      ? undefined
+      : chains.get(column.nodes[0].id);
+    const columnWidth = Math.max(
+      options.metrics.width,
+      chainInfo?.gridWidth ?? 0,
+    );
     columnBounds.push({
       start: x,
-      end: x + options.metrics.width,
+      end: x + columnWidth,
       centre: options.padding + stackHeight / 2,
     });
-    x += options.metrics.width + options.connectorWidth;
+    x += columnWidth + options.connectorWidth;
   });
 
   // ── Pass 2: edges along the main track ────────────────────────────────
@@ -329,7 +413,18 @@ export const layoutConnectionFlow = (
     if (skipped.has(columnIndex)) return;
 
     const isBypass = sourceIndex !== columnIndex - 1;
-    const sourceNodes = columns[sourceIndex].nodes;
+    // The onward connector of a chained column is the grid's last live card,
+    // not the parent: the parent is a container the flow enters and leaves
+    // through its children. An exit card that names its own successor has
+    // that edge drawn by the branch pass instead.
+    const chainSrc = columns[sourceIndex].parallel
+      ? undefined
+      : chains.get(columns[sourceIndex].nodes[0].id);
+    if (chainSrc && (!chainSrc.exitCard || chainSrc.exitHasBranch)) return;
+    if (chainSrc?.exitCard?.node.terminal === true) return;
+    const sourceNodes = chainSrc?.exitCard
+      ? [chainSrc.exitCard.node]
+      : columns[sourceIndex].nodes;
     const targetNodes = column.nodes;
 
     const state = (
@@ -368,7 +463,9 @@ export const layoutConnectionFlow = (
     // the source than the next column was to its right — so that one edge
     // left the source's *bottom* while its siblings left the right, and one
     // card grew two source terminals for what is a single fan.
-    const sourceSpan = columnBox(sourceIndex);
+    const sourceSpan = chainSrc?.exitCard
+      ? boxOf(chainSrc.exitCard)
+      : columnBox(sourceIndex);
     const targetSpan = columnBox(columnIndex);
     if (!sourceSpan || !targetSpan) return;
     const sides = selectSides(sourceSpan, targetSpan);
@@ -475,7 +572,10 @@ export const layoutConnectionFlow = (
   // These used to be a hard-coded three-point L, which is precisely why
   // `edgeStyle: "curved"` curved the main track and left every child edge as
   // a square elbow. They go through the same router as everything else now.
+  // Chained parents opt out here — their children form a grid walked by the
+  // chain pass below rather than one elbow per child.
   const childEdges = (parent: ConnectionFlowNode) => {
+    if (parent.childLayout === "chain") return;
     const parentEntry = byId.get(parent.id);
     if (!parentEntry) return;
     (parent.children ?? []).forEach((child) => {
@@ -546,6 +646,236 @@ export const layoutConnectionFlow = (
     });
   };
   input.nodes.forEach(childEdges);
+
+  // ── Pass 3b: chain walks + outcome branches ───────────────────────────
+  // The chain reads a grid the way a runner reads a lane: in at the top,
+  // rightward along a row, down at its last card, onward from the grid's
+  // last card. Both outcome edges are always drawn — a retry loop you can
+  // only see when it fires is a topology diagram, not a flow. Which one is
+  // *alive* follows the source's status: a failed card lights its rose edge
+  // and dims its success, and the walk edges leading out of it stop.
+  const emitFlowEdge = (o: {
+    id: string;
+    fromEntry: LaidOutNode;
+    toEntry: LaidOutNode;
+    fromPort: Port;
+    toPort: Port;
+    via?: { x?: number; y?: number };
+    state: ConnectionState;
+    sourceTone: TrueColor;
+    targetTone: TrueColor;
+    label?: string;
+    cfg?: ConnectionFlowConnectorConfig;
+    kind?: "chain" | "branch";
+    branchKind?: "success" | "failure";
+  }) => {
+    const route = routePorts(o.fromPort, o.toPort, {
+      style: o.cfg?.edgeStyle ?? options.edgeStyle,
+      stub: Math.min(18, options.connectorWidth / 3),
+      radius: options.cornerRadius,
+      trim: trimFor(o.cfg),
+      via: o.via,
+    });
+    const animated =
+      (o.cfg?.animated ?? input.animated ?? true) &&
+      (o.state === "flowing" ||
+        (o.state === "stopped" && (o.cfg?.animateCompleted ?? false)));
+    addConnector(o.fromEntry.id, o.fromPort, o.sourceTone, o.state, animated, o.id, o.cfg);
+    addConnector(o.toEntry.id, o.toPort, o.targetTone, o.state, animated, o.id, o.cfg);
+    edges.push({
+      id: o.id,
+      fromId: o.fromEntry.id,
+      toId: o.toEntry.id,
+      state: o.state,
+      points: route.points,
+      d: route.d,
+      sourceTone: o.sourceTone,
+      targetTone: o.targetTone,
+      bypass: false,
+      emitIndex: 0,
+      emitCount: 1,
+      emitSpan: 0,
+      animated,
+      label: o.label,
+      kind: o.kind,
+      branchKind: o.branchKind,
+    });
+  };
+
+  /** A port at the card's connection line on the given side. */
+  const sidePort = (entry: LaidOutNode, side: PortSide): Port =>
+    port(boxOf(entry), side, entry.anchorY / entry.height);
+
+  const branchToneOf = (
+    branch: ConnectionFlowBranch,
+    kind: "success" | "failure",
+  ): TrueColor =>
+    branch.tone ?? (kind === "success" ? STATUS_TONE.succeeded : STATUS_TONE.failed);
+
+  /**
+   * One outcome edge. A target that sits upstream — above or left of the
+   * source, which is what a retry loop is — leaves the source's left side
+   * and runs down a lane clear of the cards before turning up into the
+   * target's top, so the loop visibly re-enters the way a chain drop does
+   * rather than cutting a diagonal through the grid.
+   */
+  const emitBranch = (
+    fromEntry: LaidOutNode,
+    branch: ConnectionFlowBranch,
+    kind: "success" | "failure",
+  ) => {
+    if (!branch.to) return;
+    const target = byId.get(branch.to);
+    if (!target || target.id === fromEntry.id) return;
+    const tone = branchToneOf(branch, kind);
+    const state: ConnectionState =
+      kind === "failure"
+        ? nodeHasFailed(fromEntry.node)
+          ? "flowing"
+          : "stopped"
+        : nodeHasFailed(fromEntry.node)
+          ? "stopped"
+          : "flowing";
+    const srcBox = boxOf(fromEntry);
+    const tgtBox = boxOf(target);
+    const upstream =
+      tgtBox.y + tgtBox.height <= srcBox.y + 1 ||
+      tgtBox.x + tgtBox.width <= srcBox.x + 1;
+    if (upstream && kind === "failure") {
+      emitFlowEdge({
+        id: `${fromEntry.id}~fail>${target.id}`,
+        fromEntry,
+        toEntry: target,
+        fromPort: port(srcBox, "left", fromEntry.anchorY / fromEntry.height),
+        toPort: port(tgtBox, "top", 0.5),
+        via: { x: Math.min(srcBox.x, tgtBox.x) - options.bypassLift },
+        state,
+        sourceTone: tone,
+        targetTone: tone,
+        label: branch.label,
+        kind: "branch",
+        branchKind: kind,
+      });
+      return;
+    }
+    const sides = selectSides(srcBox, tgtBox);
+    emitFlowEdge({
+      id: `${fromEntry.id}~${kind === "failure" ? "fail" : "ok"}>${target.id}`,
+      fromEntry,
+      toEntry: target,
+      fromPort: sidePort(fromEntry, sides.from),
+      toPort: sidePort(target, sides.to),
+      state,
+      sourceTone: tone,
+      targetTone: tone,
+      label: branch.label,
+      kind: "branch",
+      branchKind: kind,
+    });
+  };
+
+  chains.forEach((chain) => {
+    const parentEntry = byId.get(chain.parentNode.id);
+    if (!parentEntry) return;
+    if (nodeIsSkipped(chain.parentNode) === true) return;
+    const live = chain.walk.filter((w) => !nodeIsSkipped(w.card.node));
+    if (live.length === 0) return;
+
+    // In: the parent's bottom, above the first card, straight down into its
+    // top. The grid hangs under the parent, so this is the flow arriving.
+    const first = live[0].card;
+    const parentBox = boxOf(parentEntry);
+    const firstBox = boxOf(first);
+    emitFlowEdge({
+      id: `${parentEntry.id}~in>${first.id}`,
+      fromEntry: parentEntry,
+      toEntry: first,
+      fromPort: portAt(
+        parentBox,
+        "bottom",
+        firstBox.x + firstBox.width / 2 - parentBox.x,
+      ),
+      toPort: port(firstBox, "top", 0.5),
+      state:
+        first.node.connector?.state ??
+        (nodeHasFailed(parentEntry.node)
+          ? "stopped"
+          : nodeIsActive(first.node)
+            ? "flowing"
+            : "stopped"),
+      sourceTone: toneOf(parentEntry.node),
+      targetTone: toneOf(first.node),
+      cfg: first.node.connector,
+      kind: "chain",
+    });
+
+    // Along: rightward within a row with the track's own connector style,
+    // dropping from a row's last card into the next row's first. A card
+    // that names its own successor replaces the implicit step — the card
+    // it stepped over simply never gets an incoming edge.
+    live.forEach((w, i) => {
+      const src = w.card;
+      if (src.node.success?.to) {
+        emitBranch(src, src.node.success, "success");
+        return;
+      }
+      const next = live[i + 1];
+      if (!next) return; // the handoff onward is the track pass's job
+      const tgt = next.card;
+      const srcBox = boxOf(src);
+      const tgtBox = boxOf(tgt);
+      const sameRow = next.row === w.row;
+      const gapStart = srcBox.x + srcBox.width;
+      const gapEnd = tgtBox.x;
+      emitFlowEdge({
+        id: `${src.id}~walk>${tgt.id}`,
+        fromEntry: src,
+        toEntry: tgt,
+        fromPort: sameRow
+          ? port(srcBox, "right", src.anchorY / src.height)
+          : port(srcBox, "bottom", 0.5),
+        toPort: sameRow
+          ? port(tgtBox, "left", tgt.anchorY / tgt.height)
+          : port(tgtBox, "top", 0.5),
+        via:
+          sameRow && gapEnd > gapStart
+            ? { x: (gapStart + gapEnd) / 2 }
+            : undefined,
+        state:
+          tgt.node.connector?.state ??
+          (nodeHasFailed(src.node)
+            ? "stopped"
+            : nodeIsActive(tgt.node)
+              ? "flowing"
+              : "stopped"),
+        sourceTone: src.node.success
+          ? branchToneOf(src.node.success, "success")
+          : toneOf(src.node),
+        targetTone: toneOf(tgt.node),
+        cfg: tgt.node.connector,
+        label: src.node.success?.label ?? tgt.node.connector?.label,
+        kind: "chain",
+      });
+    });
+
+    // Out: the failure edges, drawn for every card that declares one —
+    // even a skipped card, whose loop is still part of the story.
+    chain.walk.forEach((w) => {
+      if (w.card.node.failure) emitBranch(w.card, w.card.node.failure, "failure");
+    });
+  });
+
+  // Outcome edges on cards outside any grid (track, parallel lanes, fan
+  // children) come through the same emitter.
+  const chainCardIds = new Set<string>();
+  chains.forEach((chain) =>
+    chain.walk.forEach((w) => chainCardIds.add(w.card.id)),
+  );
+  laidOut.forEach((entry) => {
+    if (chainCardIds.has(entry.id)) return;
+    if (entry.node.success?.to) emitBranch(entry, entry.node.success, "success");
+    if (entry.node.failure?.to) emitBranch(entry, entry.node.failure, "failure");
+  });
 
   // ── Emission order ────────────────────────────────────────────────────
   // Each source releases one dot at a time, taking its outgoing edges in

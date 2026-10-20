@@ -20,6 +20,8 @@ import ProgressExample from "./examples/Progress";
 import progressCode from "./examples/Progress.tsx?raw";
 import Skipped from "./examples/Skipped";
 import skippedCode from "./examples/Skipped.tsx?raw";
+import Pipeline from "./examples/Pipeline";
+import pipelineCode from "./examples/Pipeline.tsx?raw";
 
 export const ConnectionFlowPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -79,6 +81,14 @@ export const ConnectionFlowPage: React.FC = () => (
         filename="Structure.tsx"
       >
         <Structure />
+      </ExampleCard>
+      <ExampleCard
+        title="Chains & branches"
+        description="`childLayout: chain` turns a card's `rows` into a grid the flow walks rightward and downward — in from the parent's bottom, along each row with the track's own connectors, and onward from the grid's last card, so the parent reads as one container of sub-steps. Cards keep the standard size; a longer row only means longer connectors. Any card can carry `success` and `failure`, each with its own tone (emerald/rose by default) and label; both edges are always drawn, and which one flows follows the card's status — a failed step lights its rose edge into the card it retries and dims the way forward, the closed loop that runs the chain down again."
+        code={pipelineCode}
+        filename="Pipeline.tsx"
+      >
+        <Pipeline />
       </ExampleCard>
       <ExampleCard
         title="Path highlight"
