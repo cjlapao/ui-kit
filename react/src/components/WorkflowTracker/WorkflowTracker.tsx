@@ -1,20 +1,18 @@
 import React, { useMemo } from "react";
 import classNames from "classnames";
 
-import Panel from "../Panel";
 import {
   DEFAULT_SURFACE_CORNER,
   getSurfaceCornerClass,
 } from "../../theme/Theme";
 import Pill from "../Pill";
-import WorkflowSummaryCard from "./WorkflowSummaryCard";
 import WorkflowTrackerRail from "./WorkflowTrackerRail";
 import WorkflowTrackerStepDetails from "./WorkflowTrackerStepDetails";
 import WorkflowTrackerDetails from "./WorkflowTrackerDetails";
-import { buildCardProps, resolveLabels, useWorkflowChrome } from "./chrome";
+import WorkflowTrackerRollups from "./WorkflowTrackerRollups";
+import { resolveLabels, useWorkflowChrome } from "./chrome";
 import { sampleWorkflow } from "./sampleWorkflow";
 import { WorkflowHeaderSkeleton } from "./WorkflowSkeleton";
-import { getAttentionSteps, getSkippedSteps } from "./derive";
 import type { WorkflowTrackerProps } from "./types";
 
 /**
@@ -23,9 +21,9 @@ import type { WorkflowTrackerProps } from "./types";
  * cards for flagged and skipped steps underneath.
  *
  * A layout of the same standalone parts the kit exports individually —
- * `WorkflowTrackerRail`, `WorkflowTrackerStepDetails` and
- * `WorkflowTrackerDetails` — so using a part on its own renders identically
- * to the same panel here.
+ * `WorkflowTrackerRail`, `WorkflowTrackerStepDetails`, `WorkflowTrackerDetails`
+ * and `WorkflowTrackerRollups` — so using a part on its own renders
+ * identically to the same panel here.
  *
  * Everything is driven by `data` — progress, tallies, sub-step counters and the
  * two roll-up lists are derived, never passed in. Read-only unless
@@ -64,8 +62,6 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   style,
   ...rest
 }) => {
-  const steps = data?.steps ?? [];
-
   const styleProps = {
     accentColor,
     attentionColor,
@@ -81,14 +77,10 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
     translucentSurfaces,
   };
 
-  // The composite still owns its own chrome: the live pill and the roll-up
-  // cards sit outside the parts.
-  const { palette, surfaces } = useWorkflowChrome(styleProps);
+  // The composite still owns its own chrome: the page header and the live
+  // pill sit outside the parts.
+  const { surfaces } = useWorkflowChrome(styleProps);
   const labels = useMemo(() => resolveLabels(labelOverrides), [labelOverrides]);
-  const cardProps = buildCardProps(styleProps);
-
-  const attentionSteps = useMemo(() => getAttentionSteps(steps), [steps]);
-  const skippedSteps = useMemo(() => getSkippedSteps(steps), [steps]);
 
   const railStyle = {
     "--wt-rail-width":
@@ -218,30 +210,12 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
             labels={labelOverrides}
           />
 
-          {!loading && (attentionSteps.length > 0 || skippedSteps.length > 0) && (
-            <div className="grid grid-cols-1 gap-5 @xl:grid-cols-2">
-              {attentionSteps.length > 0 && (
-                <Panel {...cardProps}>
-                  <WorkflowSummaryCard
-                    title={labels.needsAttention}
-                    steps={attentionSteps}
-                    palette={palette}
-                    surfaces={surfaces}
-                  />
-                </Panel>
-              )}
-              {skippedSteps.length > 0 && (
-                <Panel {...cardProps}>
-                  <WorkflowSummaryCard
-                    title={labels.skippedSteps}
-                    steps={skippedSteps}
-                    palette={palette}
-                    surfaces={surfaces}
-                  />
-                </Panel>
-              )}
-            </div>
-          )}
+          <WorkflowTrackerRollups
+            {...styleProps}
+            data={data}
+            loading={loading}
+            labels={labelOverrides}
+          />
         </div>
       </div>
     </div>

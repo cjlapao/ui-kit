@@ -976,6 +976,39 @@ export const getSurfacePaddingClasses = (): Record<SurfacePadding, string> => ({
 });
 
 /**
+ * The gutter a detached card leaves OUTSIDE itself — the margin between the
+ * card and the edges of its container, controllable on every axis on its
+ * own. Spelled once here, in the same language as {@link surfacePaddingClasses}
+ * but one step smaller per token (`xs` is the `m-2` the floating `SideMenu`
+ * carries, and what a paired `PageHeader` leaves above and to its right),
+ * and deliberately without the `sm:` steps of the padding scale: a gutter
+ * must be one predictable number all the way down, or the menu and header
+ * cards stop aligning on the breakpoint.
+ */
+export const SURFACE_GUTTER_AXES = ["top", "right", "bottom", "left"] as const;
+export type SurfaceGutterAxis = (typeof SURFACE_GUTTER_AXES)[number];
+
+const surfaceGutterClasses: Record<
+  SurfaceGutterAxis,
+  Record<SurfacePadding, string>
+> = {
+  top: { none: "mt-0", xs: "mt-2", sm: "mt-4", md: "mt-6", lg: "mt-8", xl: "mt-10" },
+  right: { none: "mr-0", xs: "mr-2", sm: "mr-4", md: "mr-6", lg: "mr-8", xl: "mr-10" },
+  bottom: { none: "mb-0", xs: "mb-2", sm: "mb-4", md: "mb-6", lg: "mb-8", xl: "mb-10" },
+  left: { none: "ml-0", xs: "ml-2", sm: "ml-4", md: "ml-6", lg: "ml-8", xl: "ml-10" },
+};
+
+/** The gutter a detached card leaves when the caller does not pick one. */
+export const DEFAULT_SURFACE_GUTTER: SurfacePadding = "none";
+
+export const getSurfaceGutterClass = (
+  axis: SurfaceGutterAxis,
+  gutter: SurfacePadding,
+): string =>
+  surfaceGutterClasses[axis][gutter] ??
+  surfaceGutterClasses[axis][DEFAULT_SURFACE_GUTTER];
+
+/**
  * The tones that read as "no tint". Consumers that tint chrome per tone
  * (Table's header band, for instance) route these through the neutral
  * treatment instead of painting a grey-blue header.

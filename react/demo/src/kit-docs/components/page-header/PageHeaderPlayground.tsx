@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { Button, CustomIcon, PageHeader, SideMenu } from "@cjlapao/ui-kit";
-import type { PageHeaderVariant, TrueColor } from "@cjlapao/ui-kit";
+import type {
+  PageHeaderVariant,
+  PanelCorner,
+  PanelPadding,
+  TrueColor,
+} from "@cjlapao/ui-kit";
 import {
   PlaygroundPanel,
   Control,
@@ -29,6 +34,19 @@ const endGroup = (
   </Button>
 );
 
+/** `"default"` leaves the axis to the variant's own defaults. */
+type GutterChoice = PanelPadding | "default";
+
+const GUTTER_OPTIONS = [
+  { value: "default", label: "default — variant" },
+  { value: "none", label: "none — flush" },
+  { value: "xs", label: "xs — the menu's m-2" },
+  { value: "sm", label: "sm" },
+  { value: "md", label: "md" },
+  { value: "lg", label: "lg" },
+  { value: "xl", label: "xl" },
+];
+
 export const PageHeaderPlayground: React.FC = () => {
   const [hasStart, setHasStart] = useState(true);
   const [hasCenter, setHasCenter] = useState(false);
@@ -37,6 +55,17 @@ export const PageHeaderPlayground: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [variant, setVariant] = useState<PageHeaderVariant>("default");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // "default" hands the axis back to the variant: the floating card keeps
+  // the menu's m-2 above and right, flush left and bottom; the seam bar
+  // closes on every side. Corner starts on Panel's default (rounded-md →
+  // rounded-2xl).
+  const [gutterTop, setGutterTop] = useState<GutterChoice>("default");
+  const [gutterRight, setGutterRight] = useState<GutterChoice>("default");
+  const [gutterBottom, setGutterBottom] = useState<GutterChoice>("default");
+  const [gutterLeft, setGutterLeft] = useState<GutterChoice>("default");
+  const [corner, setCorner] = useState<PanelCorner>("rounded-md");
+  const asGutter = (choice: GutterChoice) =>
+    choice === "default" ? undefined : choice;
 
   return (
     <PlaygroundPanel
@@ -100,6 +129,44 @@ export const PageHeaderPlayground: React.FC = () => {
                         { value: "amber", label: "amber" },
                       ]}
                     />
+                    <ChoiceControl
+                      label="gutter — top"
+                      value={gutterTop}
+                      onChange={(v) => setGutterTop(v as GutterChoice)}
+                      options={GUTTER_OPTIONS}
+                    />
+                    <ChoiceControl
+                      label="gutter — right"
+                      value={gutterRight}
+                      onChange={(v) => setGutterRight(v as GutterChoice)}
+                      options={GUTTER_OPTIONS}
+                    />
+                    <ChoiceControl
+                      label="gutter — bottom"
+                      value={gutterBottom}
+                      onChange={(v) => setGutterBottom(v as GutterChoice)}
+                      options={GUTTER_OPTIONS}
+                    />
+                    <ChoiceControl
+                      label="gutter — left"
+                      value={gutterLeft}
+                      onChange={(v) => setGutterLeft(v as GutterChoice)}
+                      options={GUTTER_OPTIONS}
+                    />
+                    <ChoiceControl
+                      label="corner — Panel scale"
+                      value={corner}
+                      onChange={(v) => setCorner(v as PanelCorner)}
+                      options={[
+                        { value: "auto", label: "auto (theme)" },
+                        { value: "none", label: "none" },
+                        { value: "rounded", label: "rounded" },
+                        { value: "rounded-sm", label: "rounded-sm" },
+                        { value: "rounded-md", label: "rounded-md" },
+                        { value: "rounded-lg", label: "rounded-lg" },
+                        { value: "rounded-xl", label: "rounded-xl" },
+                      ]}
+                    />
                   </>
                 ),
               },
@@ -125,8 +192,14 @@ export const PageHeaderPlayground: React.FC = () => {
             nothing stretches) or emptying a region never breaks it. An empty
             region still holds its place, so an <em>end</em>-only header still
             parks right. The <em>floating</em> pairings borrow the menu&apos;s
-            card geometry from the shared sidebar tokens — both cards inset by
-            the same margin, and the frosted tint follows <em>accent</em>.
+            card chrome from the shared sidebar tokens — the frosted tint
+            follows <em>accent</em>. The <em>gutter</em> selects are the space
+            OUTSIDE the card, per axis — <em>default</em> lets the variant
+            decide (floating keeps the menu&apos;s <code>m-2</code> above and
+            right, flush left and bottom; the seam bar closes);
+            <em> corner</em> rides Panel&apos;s corner scale with
+            Panel&apos;s default. The bar&apos;s inner padding stays the
+            seam&apos;s own.
           </p>
         </div>
       }
@@ -154,6 +227,11 @@ export const PageHeaderPlayground: React.FC = () => {
                 aria-label="Preview header"
                 variant={variant}
                 accentColor={tone}
+                paddingTop={asGutter(gutterTop)}
+                paddingRight={asGutter(gutterRight)}
+                paddingBottom={asGutter(gutterBottom)}
+                paddingLeft={asGutter(gutterLeft)}
+                corner={corner}
                 start={hasStart ? startGroup : undefined}
                 center={hasCenter ? centerGroup : undefined}
                 end={hasEnd ? endGroup : undefined}

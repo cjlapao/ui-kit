@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { WorkflowTrackerRail } from "./WorkflowTrackerRail";
 import { WorkflowTrackerStepDetails } from "./WorkflowTrackerStepDetails";
 import { WorkflowTrackerDetails } from "./WorkflowTrackerDetails";
+import { WorkflowTrackerRollups } from "./WorkflowTrackerRollups";
 import { sampleWorkflow } from "./sampleWorkflow";
 import type { WorkflowData } from "./types";
 
@@ -145,5 +146,41 @@ describe("WorkflowTrackerDetails — standalone", () => {
   it("routes the copy override to the region label", () => {
     render(<WorkflowTrackerDetails labels={{ details: "Execution log" }} />);
     expect(screen.getByRole("region", { name: "Execution log" })).toBeInTheDocument();
+  });
+});
+
+describe("WorkflowTrackerRollups — standalone", () => {
+  it("renders both derived roll-up cards in the composite's grid", () => {
+    const { container } = render(<WorkflowTrackerRollups />);
+    expect(container.firstElementChild).toHaveClass("@xl:grid-cols-2");
+    expect(screen.getByText("Needs attention")).toBeInTheDocument();
+    expect(screen.getByText("Skipped steps")).toBeInTheDocument();
+    // Derived lists: attention = insurance_certificates/legal_review,
+    // skipped = duplicate_check/tax_documents — one row each.
+    expect(screen.getByText("Insurance certificates")).toBeInTheDocument();
+    expect(screen.getByText("Tax documents")).toBeInTheDocument();
+  });
+
+  it("renders nothing while loading or when no step qualifies", () => {
+    const loading = render(<WorkflowTrackerRollups loading />);
+    expect(loading.container.firstChild).toBeNull();
+
+    const clean = render(
+      <WorkflowTrackerRollups
+        data={{
+          title: "All clear",
+          steps: [{ id: "a", label: "A", status: "done" }],
+        }}
+      />,
+    );
+    expect(clean.container.firstChild).toBeNull();
+  });
+
+  it("routes the copy overrides to the card titles", () => {
+    render(
+      <WorkflowTrackerRollups labels={{ needsAttention: "Blocked on you" }} />,
+    );
+    expect(screen.getByText("Blocked on you")).toBeInTheDocument();
+    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
   });
 });

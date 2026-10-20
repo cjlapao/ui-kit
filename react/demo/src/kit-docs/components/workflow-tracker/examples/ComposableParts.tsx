@@ -3,15 +3,16 @@ import {
   sampleWorkflow,
   WorkflowTrackerDetails,
   WorkflowTrackerRail,
+  WorkflowTrackerRollups,
   WorkflowTrackerStepDetails,
 } from "@cjlapao/ui-kit";
 import type { WorkflowData } from "@cjlapao/ui-kit";
 
 /**
- * The composite is a layout of the same three parts exported individually:
- * the rail, the step details and the scrollable details body. They are
- * stateless — one `activeStepId` in the parent's state drives all three,
- * so they can be drawn wherever the page wants them.
+ * The composite is a layout of the same four parts exported individually:
+ * the rail, the step details, the scrollable details body and the roll-up
+ * grid. They are stateless — one `activeStepId` in the parent's state
+ * drives all of them, so they can be drawn wherever the page wants them.
  */
 export default function ComposableParts() {
   const [activeStepId, setActiveStepId] = useState<string | undefined>(
@@ -44,6 +45,7 @@ export default function ComposableParts() {
           }
         />
         <WorkflowTrackerDetails data={data} />
+        <WorkflowTrackerRollups data={data} />
         {lastAction && (
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             {lastAction}

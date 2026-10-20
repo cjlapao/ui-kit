@@ -63,7 +63,9 @@ function PairedShell({
 
 /**
  * The detached pairing: `SideMenu` and `PageHeader` set to the same
- * treatment read as one card system — both carry the shared `m-2` inset,
+ * treatment read as one card system — the menu carries the shared `m-2`
+ * inset and the header's gutter defaults decompose it (the same spacing
+ * above and to its right, flush left and bottom), and both draw the same
  * corner, rim and shadow. The header card matches the menu's logo-header
  * card height (`h-15`); in the glass pair the frosted tints match through
  * the shared tone.

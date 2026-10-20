@@ -107,10 +107,9 @@ export const PageHeaderPage: React.FC = () => (
               <em>default</em> paints the shared{" "}
               <C>SIDE_MENU_HEADER_HEIGHT / _FILL / _SEAM</C> constants so the
               seam never breaks — drift is a red test, not a visual bug. The
-              floating pair borrows the SideMenu&rsquo;s detached-card
-              geometry (margin, corner, rim, shadow) from the very{" "}
-              <C>getSidebarSurfaceTokens</C> the menu renders, so paired cards
-              can&rsquo;t drift either.
+              floating pair borrows the SideMenu&rsquo;s detached-card chrome
+              (rim, shadow) from the very <C>getSidebarSurfaceTokens</C> the
+              menu renders, so paired cards can&rsquo;t drift either.
             </>
           ),
         },
@@ -119,6 +118,45 @@ export const PageHeaderPage: React.FC = () => (
           type: "TrueColor",
           description:
             "Tone of the floating-glass frosted fill — same token, name and default as the SideMenu's color, so a menu and header on one tone read as one system. Ignored by the other variants.",
+        },
+        {
+          name: "padding",
+          type: `"none" | "xs" | "sm" | "md" | "lg" | "xl"`,
+          description: (
+            <>
+              The gutter <em>outside</em> the bar — the space the card leaves
+              around itself, on every axis at once; the per-axis props below
+              win where given. Same token names as <C>Panel</C>&rsquo;s
+              padding on a margin scale; <C>"xs"</C> is the floating
+              SideMenu&rsquo;s <C>m-2</C> on one side.
+            </>
+          ),
+        },
+        {
+          name: "paddingTop / paddingRight / paddingBottom / paddingLeft",
+          type: `"none" | "xs" | "sm" | "md" | "lg" | "xl"`,
+          description: (
+            <>
+              Each axis on its own. The defaults depend on the variant: the
+              floating card pairs with the menu — its <C>m-2</C> above and to
+              the right (<C>"xs"</C>) and flush (<C>"none"</C>) left and
+              bottom — while the seam bar closes on every side. The
+              bar&rsquo;s inner <C>px-5</C> and height stay the seam&rsquo;s,
+              pinned.
+            </>
+          ),
+        },
+        {
+          name: "corner",
+          type: `"auto" | "none" | "rounded" | "rounded-sm" | "rounded-md" | "rounded-lg" | "rounded-xl"`,
+          description: (
+            <>
+              Radius, on <C>Panel</C>&rsquo;s corner scale and with its default
+              (<C>rounded-md</C> &rarr; <C>rounded-2xl</C>) — the exact class
+              the floating cards&rsquo; token radius already produces, so a
+              paired menu/header set matches until you turn the knob.
+            </>
+          ),
         },
         {
           name: "…html props",
