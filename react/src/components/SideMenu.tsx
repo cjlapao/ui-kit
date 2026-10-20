@@ -831,7 +831,18 @@ export const SideMenu = ({
   );
 
   // ── Shell classes ───────────────────────────────────────────────────────
-  const heightClass = fullHeight ? "h-full" : "sticky top-16 h-[calc(100vh-64px)]";
+  // The detached card's `m-2` (floating variants only) sits outside the
+  // height, so the height must give up both 8px margins — otherwise sticky
+  // mode runs the card past the viewport bottom and fullHeight overflows
+  // its container, leaving the top gap but no bottom one.
+  const detached = Boolean(surface.offset);
+  const heightClass = fullHeight
+    ? detached
+      ? "h-[calc(100%-1rem)]"
+      : "h-full"
+    : detached
+      ? "sticky top-16 h-[calc(100vh-64px-1rem)]"
+      : "sticky top-16 h-[calc(100vh-64px)]";
   const isLeft = side === "left";
   // The hover-rail grows the panel itself — one solid div whose width
   // transitions 68px → 256px on hover (PrimeVue-style) — instead of a separate

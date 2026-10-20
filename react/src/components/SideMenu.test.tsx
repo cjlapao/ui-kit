@@ -291,6 +291,35 @@ describe("SideMenu — side and variant", () => {
     expect(fill).toHaveClass("bg-blue-100/45", "dark:bg-blue-500/15");
     expect(fill).not.toHaveClass("bg-white");
   });
+
+  const wrapperOf = () =>
+    (document.querySelector("aside") as HTMLElement).parentElement as HTMLElement;
+
+  it("floating reserves the bottom margin in the sticky layout", () => {
+    renderMenu({ variant: "floating" });
+    const wrapper = wrapperOf();
+    expect(wrapper).toHaveClass("m-2", "sticky", "top-16");
+    // The card height gives up both `m-2` margins, so the card ends 8px
+    // above the viewport bottom — mirroring the 8px gap under the header —
+    // instead of running past it.
+    expect(wrapper).toHaveClass("h-[calc(100vh-64px-1rem)]");
+    expect(wrapper).not.toHaveClass("h-[calc(100vh-64px)]");
+  });
+
+  it("floating-glass fullHeight keeps both gaps inside its container", () => {
+    renderMenu({ variant: "floating-glass", fullHeight: true });
+    const wrapper = wrapperOf();
+    expect(wrapper).toHaveClass("m-2", "h-[calc(100%-1rem)]");
+    expect(wrapper).not.toHaveClass("h-full");
+  });
+
+  it("flush variants keep the full-height sticky shell", () => {
+    renderMenu({ variant: "inset" });
+    const wrapper = wrapperOf();
+    expect(wrapper).not.toHaveClass("m-2");
+    expect(wrapper).toHaveClass("sticky", "h-[calc(100vh-64px)]");
+    expect(wrapper).not.toHaveClass("h-[calc(100vh-64px-1rem)]");
+  });
 });
 
 // ── Top / footer items ──────────────────────────────────────────────────────
