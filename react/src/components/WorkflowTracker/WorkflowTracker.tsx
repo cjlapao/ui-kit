@@ -46,6 +46,7 @@ const DEFAULT_LABELS: WorkflowTrackerLabels = {
   emptySubtitle: "Steps appear here as soon as the workflow starts.",
   noActiveStep: "No step selected",
   details: "Step details",
+  quickActions: "Quick actions",
   statuses: {
     done: "Done",
     in_progress: "In progress",
@@ -64,7 +65,7 @@ const DEFAULT_LABELS: WorkflowTrackerLabels = {
  *
  * Everything is driven by `data` — progress, tallies, sub-step counters and the
  * two roll-up lists are derived here, never passed in. Read-only unless
- * `onStepSelect` / `onSubStepSelect` are supplied.
+ * `onStepSelect` / `onSubStepSelect` / `onStepAction` are supplied.
  */
 export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   data = sampleWorkflow,
@@ -94,6 +95,7 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   labels: labelOverrides,
   onStepSelect,
   onSubStepSelect,
+  onStepAction,
   className,
   style,
   ...rest
@@ -267,6 +269,7 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
             emptyState={emptyState}
             onStepSelect={onStepSelect}
             onSubStepSelect={onSubStepSelect}
+            onStepAction={onStepAction}
           />
         </Panel>
 
@@ -285,6 +288,7 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
               labels={labels}
               loading={loading}
               onSubStepSelect={onSubStepSelect}
+              onStepAction={onStepAction}
             />
           </Panel>
 

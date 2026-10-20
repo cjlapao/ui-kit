@@ -4,6 +4,7 @@ import classNames from "classnames";
 import Progress from "../Progress";
 import { WorkflowRailSkeleton } from "./WorkflowSkeleton";
 import WorkflowStatusNode from "./WorkflowStatusNode";
+import WorkflowQuickActions from "./WorkflowQuickActions";
 import { SectionTitle, Tally, WorkflowBadge, WorkflowPlaceholder } from "./parts";
 import { getStatusTokens, normalizeStatus, type WorkflowPalette } from "./statusTokens";
 import type { WorkflowSurfaceTokens } from "./surfaces";
@@ -112,6 +113,7 @@ export interface WorkflowTimelineProps {
   emptyState?: React.ReactNode;
   onStepSelect?: (stepId: string) => void;
   onSubStepSelect?: (stepId: string, subStepId: string) => void;
+  onStepAction?: (stepId: string, actionId: string) => void;
 }
 
 /** Progress header, the vertical timeline, and the legend footer. */
@@ -129,6 +131,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   emptyState,
   onStepSelect,
   onSubStepSelect,
+  onStepAction,
 }) => {
   if (loading) {
     return <WorkflowRailSkeleton rows={loadingRows} />;
@@ -287,6 +290,19 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                   ) : (
                     <div className="flex items-start gap-3">{rowContent}</div>
                   )}
+                  {/* Quick actions live outside the row's <button> — they
+                      are siblings in the <li>, so a gate never nests a
+                      button inside a button and the label stays the row's
+                      click target. `ml-8` matches NESTED_INDENT, aligning
+                      them to the label's edge. */}
+                  <WorkflowQuickActions
+                    stepId={step.id}
+                    actions={step.actions ?? []}
+                    palette={palette}
+                    groupLabel={labels.quickActions}
+                    onAction={onStepAction}
+                    className="ml-8 mt-2"
+                  />
                   {nested && (
                     <NestedSubSteps
                       stepId={step.id}

@@ -57,32 +57,36 @@ const steps: WorkflowStep[] = [
   {
     id: "approve",
     label: "approve",
-    status: "done",
-    badge: "ok",
-    meta: "No model cost · Step time not measured",
-    description: "Human gate · Outcome: ok",
+    status: "attention",
+    badge: "Waiting",
+    meta: "No model cost · queued 40m",
+    elapsed: "40m",
+    description: "Human gate · Outcome: pending",
+    actions: [
+      { id: "approve", label: "Approve", tone: "emerald" },
+      { id: "decline", label: "Decline", tone: "rose" },
+    ],
     details: (
       <p className="px-5 py-4 text-sm leading-6 text-neutral-600 dark:text-neutral-300 sm:px-6">
-        Approved by the run owner with no edits. The gate carries no model
+        The run owner is deciding on the digest. The gate carries no model
         cost and its wall time is measured by the runner, not the step.
+        Approving releases the queued summarise step.
       </p>
     ),
   },
   {
     id: "summarise",
     label: "summarise",
-    status: "in_progress",
-    badge: "running",
-    meta: "Cost $0.00137 · Step time 11s",
-    elapsed: "11s",
-    description: "Model step · Outcome: pending · Produces: SUMMARY.md",
+    status: "not_started",
+    meta: "Queued behind the gate",
+    description: "Model step · Produces: SUMMARY.md",
     details: (
       <div className="space-y-4 px-5 py-4 sm:px-6">
         <p className="text-sm leading-6 text-neutral-600 dark:text-neutral-300">
-          Streaming the digest from SURVEY.md. The final artifact appears in
-          the list below when the model finishes.
+          Will stream the digest from SURVEY.md once the gate approves. The
+          final artifact appears in the list below when the model finishes.
         </p>
-        <Artifacts files={["SURVEY.md", "SUMMARY.md (pending)"]} />
+        <Artifacts files={["SURVEY.md", "SUMMARY.md (queued)"]} />
       </div>
     ),
   },
@@ -90,20 +94,33 @@ const steps: WorkflowStep[] = [
 
 export default function DetailsCard() {
   // The parent owns the active step; whichever one it picks shows its
-  // `details` node in the scrollable card below the step card.
-  const [activeStepId, setActiveStepId] = useState("summarise");
+  // `details` node in the scrollable card below the step card. The gate's
+  // quick actions come from `actions` + `onStepAction` — supplied here,
+  // so they render in the rail row and the step card header.
+  const [activeStepId, setActiveStepId] = useState("approve");
+  const [lastAction, setLastAction] = useState<string | null>(null);
 
   return (
-    <WorkflowTracker
-      data={{
-        eyebrow: "MODEL RUN · REQ-8841",
-        title: "Quarterly digest",
-        live: true,
-        activeStepId,
-        steps,
-      }}
-      accentColor="emerald"
-      onStepSelect={setActiveStepId}
-    />
+    <div className="w-full">
+      <WorkflowTracker
+        data={{
+          eyebrow: "MODEL RUN · REQ-8841",
+          title: "Quarterly digest",
+          live: true,
+          activeStepId,
+          steps,
+        }}
+        accentColor="emerald"
+        onStepSelect={setActiveStepId}
+        onStepAction={(stepId, actionId) =>
+          setLastAction(`"${actionId}" on step "${stepId}"`)
+        }
+      />
+      {lastAction && (
+        <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+          {lastAction}
+        </p>
+      )}
+    </div>
   );
 }

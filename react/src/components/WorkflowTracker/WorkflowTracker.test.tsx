@@ -348,6 +348,101 @@ describe("WorkflowTracker — step details card", () => {
   });
 });
 
+describe("WorkflowTracker — quick actions", () => {
+  const groups = () => screen.queryAllByRole("group", { name: "Quick actions" });
+
+  const gateData: WorkflowData = {
+    title: "Gate",
+    activeStepId: "gate",
+    steps: [
+      {
+        id: "gate",
+        label: "Approval gate",
+        status: "attention",
+        elapsed: "3h",
+        actions: [
+          { id: "accept", label: "Accept", tone: "emerald" },
+          { id: "reject", label: "Reject", tone: "rose" },
+        ],
+      },
+      { id: "publish", label: "Publish", status: "not_started" },
+    ],
+  };
+
+  it("stays invisible while the tracker is read-only", () => {
+    render(
+      <WorkflowTracker onStepSelect={vi.fn()} onSubStepSelect={vi.fn()} />,
+    );
+
+    expect(groups()).toHaveLength(0);
+    expect(screen.queryByText("Remind vendor")).not.toBeInTheDocument();
+  });
+
+  it("renders rail buttons and forwards both ids", () => {
+    const onStepAction = vi.fn();
+    render(<WorkflowTracker onStepAction={onStepAction} />);
+
+    // insurance_certificates is not the active step — its buttons can only
+    // be the rail's.
+    fireEvent.click(screen.getByRole("button", { name: "Remind vendor" }));
+    expect(onStepAction).toHaveBeenCalledWith("insurance_certificates", "remind");
+    // Rail groups: insurance (2 actions) + legal (1 action).
+    expect(groups()).toHaveLength(2);
+  });
+
+  it("renders the active step's buttons in the step detail card too", () => {
+    const onStepAction = vi.fn();
+    render(<WorkflowTracker data={gateData} onStepAction={onStepAction} />);
+
+    // One group in the rail row, one in the card header.
+    expect(groups()).toHaveLength(2);
+    const accepts = screen.getAllByRole("button", { name: "Accept" });
+    expect(accepts).toHaveLength(2);
+    fireEvent.click(accepts[1]); // the card's
+    expect(onStepAction).toHaveBeenCalledWith("gate", "accept");
+  });
+
+  it("never nests action buttons inside the step row button", () => {
+    const { container } = render(
+      <WorkflowTracker onStepSelect={vi.fn()} onStepAction={vi.fn()} />,
+    );
+
+    const action = screen.getByRole("button", { name: "Remind vendor" });
+    // `closest` on the action itself would match it; check its ancestors.
+    expect(action.parentElement?.closest("button")).toBeNull();
+    // Same row: the step's own button is a sibling in the same <li>.
+    const li = action.closest("li") as HTMLElement;
+    const rowButton = li.querySelector("button");
+    expect(rowButton).toBeTruthy();
+    expect(rowButton?.textContent).toContain("Insurance certificates");
+    expect(container.textContent).toContain("Remind vendor");
+  });
+
+  it("tints per action and falls back to the accent", () => {
+    const { container } = render(
+      <WorkflowTracker accentColor="teal" onStepAction={vi.fn()} />,
+    );
+
+    expect(container.innerHTML).toContain("bg-teal-50"); // "Review", default
+    expect(container.innerHTML).toContain("bg-amber-50"); // "Remind vendor"
+  });
+
+  it("renders no wrapper for an empty action list", () => {
+    render(
+      <WorkflowTracker
+        onStepAction={vi.fn()}
+        data={{
+          title: "Quiet",
+          activeStepId: "a",
+          steps: [{ id: "a", label: "A", status: "done", actions: [] }],
+        }}
+      />,
+    );
+
+    expect(groups()).toHaveLength(0);
+  });
+});
+
 describe("WorkflowTracker — translucent surfaces", () => {
   const railBox = (container: HTMLElement) =>
     container.querySelector<HTMLElement>('[style*="margin-left"]');

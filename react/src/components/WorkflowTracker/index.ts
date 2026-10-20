@@ -33,6 +33,7 @@ export type {
   WorkflowStatus,
   WorkflowStep,
   WorkflowSubStep,
+  WorkflowAction,
   WorkflowData,
   WorkflowTrackerProps,
   WorkflowTrackerLabels,

@@ -15,7 +15,7 @@ export const WorkflowTrackerPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Workflow Tracker"
-      description="A pipeline tracker driven by one data object: a status timeline rail, a detail panel for the active step with sub-steps, a scrollable details card under it for caller-supplied content, and roll-up cards for progress, flagged and skipped steps."
+      description="A pipeline tracker driven by one data object: a status timeline rail, a detail panel for the active step with sub-steps, a scrollable details card under it for caller-supplied content, quick-action buttons for gate-type steps, and roll-up cards for progress, flagged and skipped steps."
     />
     <WorkflowTrackerPlayground />
     <section className="flex flex-col gap-5">
@@ -40,7 +40,7 @@ export const WorkflowTrackerPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Step details card"
-        description="A step's `details` node renders in its own card below the step card, framed by the tracker and wrapped in a `ScrollArea`. The card only mounts for the active step that carries content; `fillHeight` (see the playground) stretches it to the viewport bottom so the page never scrolls."
+        description="A step's `details` node renders in its own card below the step card, framed by the tracker and wrapped in a `ScrollArea`. The `approve` gate uses `actions` + `onStepAction` for its Approve/Decline quick actions — quiet `xs` soft buttons in the rail row and the step card header. `fillHeight` (see the playground) stretches the details card to the viewport bottom so the page never scrolls."
         code={detailsCardCode}
         filename="DetailsCard.tsx"
       >

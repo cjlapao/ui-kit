@@ -293,6 +293,12 @@ export const WorkflowTrackerPlayground: React.FC = () => {
                       setLastAction(`sub-step "${subStepId}" of "${stepId}"`)
                   : undefined
               }
+              onStepAction={
+                interactive
+                  ? (stepId, actionId) =>
+                      setLastAction(`action "${actionId}" on step "${stepId}"`)
+                  : undefined
+              }
             />
             {lastAction && (
               <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">

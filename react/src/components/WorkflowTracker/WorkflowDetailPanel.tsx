@@ -2,6 +2,7 @@ import React from "react";
 import classNames from "classnames";
 
 import WorkflowStatusNode from "./WorkflowStatusNode";
+import WorkflowQuickActions from "./WorkflowQuickActions";
 import { WorkflowDetailSkeleton } from "./WorkflowSkeleton";
 import {
   MetaField,
@@ -23,6 +24,7 @@ export interface WorkflowDetailPanelProps {
   labels: WorkflowTrackerLabels;
   loading: boolean;
   onSubStepSelect?: (stepId: string, subStepId: string) => void;
+  onStepAction?: (stepId: string, actionId: string) => void;
 }
 
 /** Header, meta row and sub-step table for the resolved active step. */
@@ -34,6 +36,7 @@ export const WorkflowDetailPanel: React.FC<WorkflowDetailPanelProps> = ({
   labels,
   loading,
   onSubStepSelect,
+  onStepAction,
 }) => {
   if (loading) {
     return <WorkflowDetailSkeleton />;
@@ -77,11 +80,23 @@ export const WorkflowDetailPanel: React.FC<WorkflowDetailPanelProps> = ({
               </WorkflowBadge>
             )}
           </div>
-          {step.elapsed && (
-            <SectionMeta surfaces={surfaces}>
-              {labels.elapsed} {step.elapsed}
-            </SectionMeta>
-          )}
+          {/* Right cluster: the elapsed counter keeps its seat and the
+              quick actions join it — gate decisions are the first thing
+              you see when a step is selected. */}
+          <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+            {step.elapsed && (
+              <SectionMeta surfaces={surfaces}>
+                {labels.elapsed} {step.elapsed}
+              </SectionMeta>
+            )}
+            <WorkflowQuickActions
+              stepId={step.id}
+              actions={step.actions ?? []}
+              palette={palette}
+              groupLabel={labels.quickActions}
+              onAction={onStepAction}
+            />
+          </div>
         </div>
 
         <h3 className="mt-3 text-xl font-semibold tracking-tight text-neutral-900 dark:text-white sm:text-2xl">

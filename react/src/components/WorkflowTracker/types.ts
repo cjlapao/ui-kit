@@ -1,5 +1,5 @@
 import type React from "react";
-import type { TrueColor } from "../../theme/Theme";
+import type { TrueColor, ButtonVariant } from "../../theme/Theme";
 import type {
   PanelVariant,
   PanelCorner,
@@ -38,6 +38,27 @@ export interface WorkflowSubStep {
   duration?: React.ReactNode;
 }
 
+/**
+ * A quick action a step exposes — the kit `Button` row a gate-type step
+ * renders in the rail and in the step detail card. It renders only while
+ * the tracker is interactive through `onStepAction`.
+ */
+export interface WorkflowAction {
+  id: string;
+  label: React.ReactNode;
+  /** Button tint. @default the tracker's `accentColor` */
+  tone?: TrueColor;
+  /**
+   * Button treatment. The quiet `soft` default keeps the timeline calm;
+   * override per action when it must read stronger.
+   * @default "soft"
+   */
+  variant?: ButtonVariant;
+  /** Kit icon name or a custom element, forwarded to `Button` untouched. */
+  leadingIcon?: string | React.ReactElement;
+  disabled?: boolean;
+}
+
 export interface WorkflowStep {
   id: string;
   label: React.ReactNode;
@@ -64,6 +85,13 @@ export interface WorkflowStep {
    * `undefined` or `""`.
    */
   details?: React.ReactNode;
+  /**
+   * Quick actions (approve/decline/nudge…) for gate-type steps. Rendered as
+   * a wrapping row of `xs` soft buttons under the step's meta line in the
+   * rail, and in the step detail card's header — only while `onStepAction`
+   * is supplied.
+   */
+  actions?: WorkflowAction[];
 }
 
 export interface WorkflowData {
@@ -106,6 +134,8 @@ export interface WorkflowTrackerLabels {
   noActiveStep: string;
   /** Accessible name of the step-details card's scrollable region. */
   details: string;
+  /** Accessible name of a step's quick-actions group. */
+  quickActions: string;
   statuses: Record<WorkflowStatus, string>;
 }
 
@@ -198,4 +228,10 @@ export interface WorkflowTrackerProps
   onStepSelect?: (stepId: string) => void;
   /** When provided, sub-step rows become buttons. */
   onSubStepSelect?: (stepId: string, subStepId: string) => void;
+  /**
+   * When provided, steps' `actions` render as quick-action buttons in the
+   * rail and the step detail card. Without it the tracker stays read-only
+   * and no action buttons appear anywhere.
+   */
+  onStepAction?: (stepId: string, actionId: string) => void;
 }

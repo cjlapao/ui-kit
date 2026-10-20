@@ -67,6 +67,10 @@ export const sampleWorkflow: WorkflowData = {
           </ul>
         </div>
       ),
+      actions: [
+        { id: "review", label: "Review" },
+        { id: "remind", label: "Remind vendor", tone: "amber" },
+      ],
     },
     {
       id: "contract_drafting",
@@ -190,6 +194,7 @@ export const sampleWorkflow: WorkflowData = {
       status: "blocked",
       badge: "Blocked",
       meta: "Waiting on Legal · queued 2d",
+      actions: [{ id: "nudge", label: "Nudge Legal", tone: "violet" }],
     },
     {
       id: "banking_details",
