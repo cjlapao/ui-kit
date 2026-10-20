@@ -8,6 +8,8 @@ import ReleasePipeline from "./examples/ReleasePipeline";
 import releasePipelineCode from "./examples/ReleasePipeline.tsx?raw";
 import DetailsCard from "./examples/DetailsCard";
 import detailsCardCode from "./examples/DetailsCard.tsx?raw";
+import ComposableParts from "./examples/ComposableParts";
+import composablePartsCode from "./examples/ComposableParts.tsx?raw";
 import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
@@ -15,7 +17,7 @@ export const WorkflowTrackerPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Workflow Tracker"
-      description="A pipeline tracker driven by one data object: a status timeline rail, a detail panel for the active step with sub-steps, a scrollable details card under it for caller-supplied content, quick-action buttons for gate-type steps, and roll-up cards for progress, flagged and skipped steps."
+      description="A pipeline tracker driven by one data object: a status timeline rail, a detail panel for the active step with sub-steps, a scrollable details card under it for caller-supplied content, quick-action buttons for gate-type steps, and roll-up cards for progress, flagged and skipped steps. Usable as a whole or panel-by-panel through the standalone parts."
     />
     <WorkflowTrackerPlayground />
     <section className="flex flex-col gap-5">
@@ -45,6 +47,14 @@ export const WorkflowTrackerPage: React.FC = () => (
         filename="DetailsCard.tsx"
       >
         <DetailsCard />
+      </ExampleCard>
+      <ExampleCard
+        title="Composable parts"
+        description="The composite is a layout of three parts the kit also exports on its own: `WorkflowTrackerRail`, `WorkflowTrackerStepDetails` and `WorkflowTrackerDetails`. Each derives from the same `data` object and stays stateless — one parent-owned `activeStepId` keeps them in sync wherever they are drawn."
+        code={composablePartsCode}
+        filename="ComposableParts.tsx"
+      >
+        <ComposableParts />
       </ExampleCard>
       <ExampleCard
         title="States"

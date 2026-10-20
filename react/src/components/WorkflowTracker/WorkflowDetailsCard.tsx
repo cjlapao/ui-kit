@@ -13,6 +13,7 @@ export interface WorkflowDetailsCardProps {
   /** Shared card treatment, identical to the sibling cards. */
   cardProps: PanelProps;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -32,8 +33,14 @@ export const WorkflowDetailsCard: React.FC<WorkflowDetailsCardProps> = ({
   ariaLabel,
   cardProps,
   className,
+  style,
 }) => (
-  <Panel {...cardProps} flexBody className={classNames("flex-1", className)}>
+  <Panel
+    {...cardProps}
+    flexBody
+    className={classNames("flex-1", className)}
+    style={style}
+  >
     <ScrollArea className="h-full" mask role="region" aria-label={ariaLabel}>
       {details}
     </ScrollArea>

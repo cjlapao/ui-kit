@@ -7,64 +7,28 @@ import {
   getSurfaceCornerClass,
 } from "../../theme/Theme";
 import Pill from "../Pill";
-import WorkflowTimeline from "./WorkflowTimeline";
-import WorkflowDetailPanel from "./WorkflowDetailPanel";
-import WorkflowDetailsCard from "./WorkflowDetailsCard";
 import WorkflowSummaryCard from "./WorkflowSummaryCard";
+import WorkflowTrackerRail from "./WorkflowTrackerRail";
+import WorkflowTrackerStepDetails from "./WorkflowTrackerStepDetails";
+import WorkflowTrackerDetails from "./WorkflowTrackerDetails";
+import { buildCardProps, resolveLabels, useWorkflowChrome } from "./chrome";
 import { sampleWorkflow } from "./sampleWorkflow";
 import { WorkflowHeaderSkeleton } from "./WorkflowSkeleton";
-import type { WorkflowPalette } from "./statusTokens";
-import { getSurfaceTokens, isTranslucentVariant } from "./surfaces";
-import {
-  computeProgress,
-  computeTallies,
-  getAttentionSteps,
-  getSkippedSteps,
-  resolveActiveStep,
-} from "./derive";
-import type { WorkflowTrackerLabels, WorkflowTrackerProps } from "./types";
-
-const DEFAULT_LABELS: WorkflowTrackerLabels = {
-  progress: "Progress",
-  done: "done",
-  skipped: "skipped",
-  flagged: "flagged",
-  remaining: "remaining",
-  step: "Step",
-  of: "of",
-  elapsed: "Elapsed",
-  owner: "Owner",
-  started: "Started",
-  sla: "SLA",
-  subSteps: "Sub-steps",
-  accepted: "accepted",
-  open: "open",
-  needsAttention: "Needs attention",
-  skippedSteps: "Skipped steps",
-  live: "LIVE · read-only view",
-  empty: "No steps yet",
-  emptySubtitle: "Steps appear here as soon as the workflow starts.",
-  noActiveStep: "No step selected",
-  details: "Step details",
-  quickActions: "Quick actions",
-  statuses: {
-    done: "Done",
-    in_progress: "In progress",
-    running: "Running",
-    skipped: "Skipped",
-    blocked: "Blocked",
-    attention: "Attention",
-    not_started: "Not started",
-  },
-};
+import { getAttentionSteps, getSkippedSteps } from "./derive";
+import type { WorkflowTrackerProps } from "./types";
 
 /**
  * Multi-step workflow/pipeline status view: a vertical timeline of steps on the
  * left, the active step's detail (with sub-steps) on the right, and roll-up
  * cards for flagged and skipped steps underneath.
  *
+ * A layout of the same standalone parts the kit exports individually —
+ * `WorkflowTrackerRail`, `WorkflowTrackerStepDetails` and
+ * `WorkflowTrackerDetails` — so using a part on its own renders identically
+ * to the same panel here.
+ *
  * Everything is driven by `data` — progress, tallies, sub-step counters and the
- * two roll-up lists are derived here, never passed in. Read-only unless
+ * two roll-up lists are derived, never passed in. Read-only unless
  * `onStepSelect` / `onSubStepSelect` / `onStepAction` are supplied.
  */
 export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
@@ -102,62 +66,29 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
 }) => {
   const steps = data?.steps ?? [];
 
-  // Glass cards need translucent inner surfaces; anything opaque reads as a
-  // hole punched in the card. Derived from `variant` unless overridden.
-  const translucent = translucentSurfaces ?? isTranslucentVariant(variant);
-  const surfaces = useMemo(
-    () => getSurfaceTokens(translucent),
-    [translucent],
-  );
-
-  const palette = useMemo<WorkflowPalette>(
-    () => ({
-      accent: accentColor,
-      attention: attentionColor,
-      blocked: blockedColor,
-      muted: mutedColor,
-      translucent,
-    }),
-    [accentColor, attentionColor, blockedColor, mutedColor, translucent],
-  );
-
-  const labels = useMemo<WorkflowTrackerLabels>(
-    () => ({
-      ...DEFAULT_LABELS,
-      ...labelOverrides,
-      statuses: {
-        ...DEFAULT_LABELS.statuses,
-        ...labelOverrides?.statuses,
-      },
-    }),
-    [labelOverrides],
-  );
-
-  const progress = useMemo(() => computeProgress(steps), [steps]);
-  const tallies = useMemo(() => computeTallies(steps), [steps]);
-  const active = useMemo(
-    () => resolveActiveStep(steps, data?.activeStepId),
-    [steps, data?.activeStepId],
-  );
-  const attentionSteps = useMemo(() => getAttentionSteps(steps), [steps]);
-  const skippedSteps = useMemo(() => getSkippedSteps(steps), [steps]);
-
-  // The details card mounts only for a loaded active step that actually
-  // carries content — no empty shell, same rule as the roll-up cards.
-  const details = active?.step.details;
-  const showDetails =
-    !loading && active != null && details != null && details !== "";
-
-  const cardProps = {
+  const styleProps = {
+    accentColor,
+    attentionColor,
+    blockedColor,
+    mutedColor,
     variant,
-    tone: cardTone,
+    cardTone,
     corner,
     glassOpacity,
     vibrancy,
     specularMode,
     padding,
-    scrollable: false,
+    translucentSurfaces,
   };
+
+  // The composite still owns its own chrome: the live pill and the roll-up
+  // cards sit outside the parts.
+  const { palette, surfaces } = useWorkflowChrome(styleProps);
+  const labels = useMemo(() => resolveLabels(labelOverrides), [labelOverrides]);
+  const cardProps = buildCardProps(styleProps);
+
+  const attentionSteps = useMemo(() => getAttentionSteps(steps), [steps]);
+  const skippedSteps = useMemo(() => getSkippedSteps(steps), [steps]);
 
   const railStyle = {
     "--wt-rail-width":
@@ -244,34 +175,26 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
           fillHeight && "@4xl:h-[calc(100dvh-var(--wt-fill-offset))]",
         )}
       >
-        <Panel
-          {...cardProps}
+        <WorkflowTrackerRail
+          {...styleProps}
+          data={data}
+          loading={loading}
+          loadingRows={loadingRows}
+          showLegend={showLegend}
+          emptyState={emptyState}
+          labels={labelOverrides}
           // A scrollable rail body only matters once the column height is
           // fixed; stickiness and that fixed height are mutually exclusive,
           // so `stickyRail` stands down while the rail scrolls in place.
-          scrollable={fillHeight}
-          className={classNames(
+          cardScrollable={fillHeight}
+          cardClassName={classNames(
             stickyRail && !fillHeight && "@4xl:sticky @4xl:top-6",
             fillHeight && "@4xl:min-h-0 @4xl:self-stretch",
           )}
-        >
-          <WorkflowTimeline
-            steps={steps}
-            activeStepId={active?.step.id}
-            palette={palette}
-            surfaces={surfaces}
-            labels={labels}
-            progress={progress}
-            tallies={tallies}
-            showLegend={showLegend && !loading}
-            loading={loading}
-            loadingRows={loadingRows}
-            emptyState={emptyState}
-            onStepSelect={onStepSelect}
-            onSubStepSelect={onSubStepSelect}
-            onStepAction={onStepAction}
-          />
-        </Panel>
+          onStepSelect={onStepSelect}
+          onSubStepSelect={onSubStepSelect}
+          onStepAction={onStepAction}
+        />
 
         <div
           className={classNames(
@@ -279,26 +202,21 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
             fillHeight && "@4xl:min-h-0 @4xl:self-stretch",
           )}
         >
-          <Panel {...cardProps}>
-            <WorkflowDetailPanel
-              active={active}
-              totalSteps={steps.length}
-              palette={palette}
-              surfaces={surfaces}
-              labels={labels}
-              loading={loading}
-              onSubStepSelect={onSubStepSelect}
-              onStepAction={onStepAction}
-            />
-          </Panel>
+          <WorkflowTrackerStepDetails
+            {...styleProps}
+            data={data}
+            loading={loading}
+            labels={labelOverrides}
+            onSubStepSelect={onSubStepSelect}
+            onStepAction={onStepAction}
+          />
 
-          {showDetails && (
-            <WorkflowDetailsCard
-              details={details}
-              ariaLabel={labels.details}
-              cardProps={cardProps}
-            />
-          )}
+          <WorkflowTrackerDetails
+            {...styleProps}
+            data={data}
+            loading={loading}
+            labels={labelOverrides}
+          />
 
           {!loading && (attentionSteps.length > 0 || skippedSteps.length > 0) && (
             <div className="grid grid-cols-1 gap-5 @xl:grid-cols-2">

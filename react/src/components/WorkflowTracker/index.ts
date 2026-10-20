@@ -1,4 +1,9 @@
 export { default as WorkflowTracker } from "./WorkflowTracker";
+export { default as WorkflowTrackerRail } from "./WorkflowTrackerRail";
+export {
+  default as WorkflowTrackerStepDetails,
+} from "./WorkflowTrackerStepDetails";
+export { default as WorkflowTrackerDetails } from "./WorkflowTrackerDetails";
 export { default as WorkflowStatusNode } from "./WorkflowStatusNode";
 export {
   WorkflowHeaderSkeleton,
@@ -6,6 +11,9 @@ export {
   WorkflowDetailSkeleton,
 } from "./WorkflowSkeleton";
 export { sampleWorkflow } from "./sampleWorkflow";
+export type { WorkflowTrackerRailProps } from "./WorkflowTrackerRail";
+export type { WorkflowTrackerStepDetailsProps } from "./WorkflowTrackerStepDetails";
+export type { WorkflowTrackerDetailsProps } from "./WorkflowTrackerDetails";
 export {
   getSurfaceTokens,
   getRowHighlight,
