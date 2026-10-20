@@ -136,3 +136,34 @@ walks threading the gaps. Playground untouched (it inherits the fix).
 - Port-assignment net ordering / full Sugiyama; per-item port pinning
   (engine's free choice can grow a hint later if ever needed).
 - Anything Vue-side beyond reaping the shared geometry.
+
+## Addendum (same day, user-approved): row air and crossing hops
+
+Crossings stay legal (the non-goal above stands) — but a crossing that
+reads as a merge is a lie about the graph, so the engine now *draws*
+them as over/under, and the chain rows get room to breathe.
+
+- **`rowGap` default 12 → 20.** The ladder rows sat too close at every
+  zoom; the engine's lanes (12 px clearance) sit comfortably inside the
+  bigger gap. Callers that pass `rowGap` are untouched.
+- **Crossing detection** (`routeCrossings`, router.ts): a post-layout
+  pass compares every pair of routed edges; a segment pair crosses when
+  one runs horizontal and the other vertical through the other's
+  *interior* (strict inequality — a touch at a vertex or a collinear
+  run is not a crossing). The horizontal edge is the one that hops.
+- **The hop** is a semicircle (radius ~6, PCB convention) inserted into
+  the horizontal's path at the crossing point, bulging up — safe by
+  construction, since lanes keep 12 px clear of cards. A hop is skipped
+  when it would land within radius + corner-radius of a corner, or
+  within radius + 2 of a trimmed endpoint (ports own their neighbourhood);
+  hops closer than 2r + 2 on one segment share a shrunken radius or
+  drop the later one. `edgeStyle` governs corners only — hops are round
+  on every style, and since the travelling dots follow the same path,
+  they hop too.
+- Edges with no crossings keep their `d` byte-identical (untouched);
+  `LaidOutEdge` gains the edge's `style` so the post-pass can rebuild a
+  crossing edge's path exactly as the router would have drawn it.
+- Tests: a crossing pair gets the arc token and the untouched one does
+  not; parallel, vertex-touch and near-port crossings get nothing; a
+  whole layout (grid whose failure lane crosses the row-handoff
+  verticals) carries at least one arc.
