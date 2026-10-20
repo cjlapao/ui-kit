@@ -363,7 +363,11 @@ export {
 
 // Layout
 export { default as Toolbar, type ToolbarProps } from "./Toolbar";
-export { default as PageHeader, type PageHeaderProps } from "./PageHeader";
+export {
+  default as PageHeader,
+  type PageHeaderProps,
+  type PageHeaderVariant,
+} from "./PageHeader";
 export {
   default as ScrollArea,
   type ScrollAreaProps,

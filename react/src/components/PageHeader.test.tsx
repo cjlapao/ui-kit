@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import PageHeader from "./PageHeader";
 import {
+  getSidebarSurfaceTokens,
   SIDE_MENU_HEADER_FILL,
   SIDE_MENU_HEADER_HEIGHT,
   SIDE_MENU_HEADER_SEAM,
@@ -68,5 +69,81 @@ describe("PageHeader", () => {
   it("merges the caller's class", () => {
     render(<PageHeader className="shadow-sm" />);
     expect(header().className).toContain("shadow-sm");
+  });
+});
+
+describe("PageHeader — floating variants", () => {
+  // Some cases mount two headers, so scope each lookup to its own render.
+  const renderHeader = (props: Parameters<typeof PageHeader>[0]) =>
+    render(<PageHeader {...props} />).container.querySelector(
+      "header",
+    ) as HTMLElement;
+
+  it("floating renders the detached card — offset, corner, full rim, shadow", () => {
+    const root = renderHeader({ variant: "floating" });
+    expect(root.className).toContain("m-2");
+    expect(root.className).toContain("rounded-2xl");
+    expect(root.className).toContain("shadow-xl");
+    expect(root.className).toContain("border");
+    expect(root.className).toContain("border-neutral-200/80");
+    expect(root.className).toContain("dark:border-neutral-700/80");
+    expect(root.className).toContain("bg-white");
+    expect(root.className).toContain("dark:bg-neutral-900");
+    // A detached card has no seam to continue.
+    expect(root.className).not.toContain("border-b");
+    expect(root.className).not.toContain(SIDE_MENU_HEADER_SEAM);
+  });
+
+  it("floating-glass frosts the fill with the accent tone", () => {
+    const root = renderHeader({ variant: "floating-glass" });
+    expect(root.className).toContain("backdrop-blur-2xl");
+    expect(root.className).toContain("bg-blue-100/45");
+    expect(root.className).toContain("dark:bg-blue-500/15");
+    expect(root.className).toContain("border-white/50");
+    expect(root.className).toContain("dark:border-white/10");
+    expect(root.className).not.toContain("border-b");
+  });
+
+  it("accentColor retints only the frosted variant", () => {
+    const glass = renderHeader({ variant: "floating-glass", accentColor: "emerald" });
+    expect(glass.className).toContain("bg-emerald-100/45");
+    expect(glass.className).toContain("dark:bg-emerald-500/15");
+    expect(glass.className).not.toContain("bg-blue-100/45");
+
+    const opaque = renderHeader({ variant: "floating", accentColor: "emerald" });
+    // The opaque floating card keeps the neutral fill whatever the tone.
+    expect(opaque.className).not.toContain("bg-emerald-100/45");
+  });
+
+  it("borrows the menu's exact card geometry — the pairing drift guard", () => {
+    const surface = getSidebarSurfaceTokens("floating", "blue");
+    const root = renderHeader({ variant: "floating" });
+    for (const cls of [
+      surface.offset,
+      surface.radius,
+      surface.border,
+      surface.shadow,
+      surface.fill,
+    ]) {
+      expect(root.className).toContain(cls);
+    }
+
+    const glass = getSidebarSurfaceTokens("floating-glass", "violet");
+    const glassRoot = renderHeader({ variant: "floating-glass", accentColor: "violet" });
+    for (const cls of [
+      glass.offset,
+      glass.radius,
+      glass.border,
+      glass.shadow,
+      glass.fill,
+    ]) {
+      expect(glassRoot.className).toContain(cls);
+    }
+  });
+
+  it("keeps the seam height in the detached world", () => {
+    expect(renderHeader({ variant: "floating" }).className).toContain(
+      SIDE_MENU_HEADER_HEIGHT,
+    );
   });
 });

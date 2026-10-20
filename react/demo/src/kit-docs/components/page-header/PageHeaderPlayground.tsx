@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import { Button, CustomIcon, PageHeader, SideMenu } from "@cjlapao/ui-kit";
+import type { PageHeaderVariant, TrueColor } from "@cjlapao/ui-kit";
 import {
   PlaygroundPanel,
   Control,
+  ChoiceControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
@@ -33,6 +35,8 @@ export const PageHeaderPlayground: React.FC = () => {
   const [hasEnd, setHasEnd] = useState(true);
   const [hasExtra, setHasExtra] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [variant, setVariant] = useState<PageHeaderVariant>("default");
+  const [tone, setTone] = useState<TrueColor>("blue");
 
   return (
     <PlaygroundPanel
@@ -71,6 +75,35 @@ export const PageHeaderPlayground: React.FC = () => {
                 ),
               },
               {
+                id: "surface",
+                title: "Surface",
+                controls: (
+                  <>
+                    <ChoiceControl
+                      label="variant"
+                      value={variant}
+                      onChange={(v) => setVariant(v as PageHeaderVariant)}
+                      options={[
+                        { value: "default", label: "default" },
+                        { value: "floating", label: "floating" },
+                        { value: "floating-glass", label: "floating-glass" },
+                      ]}
+                    />
+                    <ChoiceControl
+                      label="accent — frosted tint"
+                      value={tone}
+                      onChange={(v) => setTone(v as TrueColor)}
+                      options={[
+                        { value: "blue", label: "blue" },
+                        { value: "emerald", label: "emerald" },
+                        { value: "violet", label: "violet" },
+                        { value: "amber", label: "amber" },
+                      ]}
+                    />
+                  </>
+                ),
+              },
+              {
                 id: "shell",
                 title: "Shell",
                 controls: (
@@ -86,22 +119,26 @@ export const PageHeaderPlayground: React.FC = () => {
             ]}
           />
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            The seam line — height, colour, fill — is shared with the sidebar
-            through the <code>SIDE_MENU_HEADER_*</code> constants, so collapsing
-            the menu (the whole bar shifts left, nothing stretches) or emptying
-            a region never breaks it. An empty region still holds its place, so
-            an <em>end</em>-only header still parks right.
+            In <em>default</em> the seam line — height, colour, fill — is
+            shared with the sidebar through the <code>SIDE_MENU_HEADER_*</code>{" "}
+            constants, so collapsing the menu (the whole bar shifts left,
+            nothing stretches) or emptying a region never breaks it. An empty
+            region still holds its place, so an <em>end</em>-only header still
+            parks right. The <em>floating</em> pairings borrow the menu&apos;s
+            card geometry from the shared sidebar tokens — both cards inset by
+            the same margin, and the frosted tint follows <em>accent</em>.
           </p>
         </div>
       }
       preview={
-        <div className="h-80 w-full overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
+        <div className="h-80 w-full overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950">
           <div className="flex h-full">
             <SideMenu
               fullHeight
-              color="blue"
+              variant={variant === "default" ? "sidebar" : variant}
+              color={tone}
               logoIcon={
-                <CustomIcon icon="UX" className="h-6 w-6 text-blue-500" />
+                <CustomIcon icon="UX" className="h-6 w-6 text-neutral-500 dark:text-neutral-300" />
               }
               logoText={
                 <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
@@ -115,6 +152,8 @@ export const PageHeaderPlayground: React.FC = () => {
             <div className="flex min-w-0 flex-1 flex-col">
               <PageHeader
                 aria-label="Preview header"
+                variant={variant}
+                accentColor={tone}
                 start={hasStart ? startGroup : undefined}
                 center={hasCenter ? centerGroup : undefined}
                 end={hasEnd ? endGroup : undefined}

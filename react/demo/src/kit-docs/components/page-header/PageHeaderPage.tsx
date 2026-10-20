@@ -13,12 +13,14 @@ import Basic from "./examples/Basic";
 import basicCode from "./examples/Basic.tsx?raw";
 import WithSideMenu from "./examples/WithSideMenu";
 import withSideMenuCode from "./examples/WithSideMenu.tsx?raw";
+import FloatingShell from "./examples/FloatingShell";
+import floatingShellCode from "./examples/FloatingShell.tsx?raw";
 
 export const PageHeaderPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Page Header"
-      description="The bar across the top of the main column — the Toolbar's page-level sibling. Same start / center / end regions, but the furniture of a page (brand, breadcrumb, controls) and the SideMenu's own header chrome, so the seam line runs across the shell unbroken. (Not to be confused with the docs' own page-title block, which shares the name locally.)"
+      description="The bar across the top of the main column — the Toolbar's page-level sibling. Same start / center / end regions, but the furniture of a page (brand, breadcrumb, controls) and the SideMenu's own header chrome, so the seam line runs across the shell unbroken. The floating variants pair with the floating SideMenu as one detached-card system. (Not to be confused with the docs' own page-title block, which shares the name locally.)"
     />
     <PageHeaderPlayground />
     <section className="flex flex-col gap-5">
@@ -40,6 +42,14 @@ export const PageHeaderPage: React.FC = () => (
         filename="WithSideMenu.tsx"
       >
         <WithSideMenu />
+      </ExampleCard>
+      <ExampleCard
+        title="Floating pairing"
+        description="Set to the same treatment as the SideMenu, the header becomes the menu's card twin: shared offset, corner, rim and shadow resolved from the same token function — the opaque pair above, the frosted tone-tinted pair below. The seam only belongs to the flush world; a detached card has none to continue."
+        code={floatingShellCode}
+        filename="FloatingShell.tsx"
+      >
+        <FloatingShell />
       </ExampleCard>
     </section>
     <A11ySection>
@@ -90,10 +100,25 @@ export const PageHeaderPage: React.FC = () => (
           description: "Extra group appended after the regions.",
         },
         {
-          name: "—",
-          type: "no surface props",
+          name: "variant",
+          type: `"default" | "floating" | "floating-glass"`,
+          description: (
+            <>
+              <em>default</em> paints the shared{" "}
+              <C>SIDE_MENU_HEADER_HEIGHT / _FILL / _SEAM</C> constants so the
+              seam never breaks — drift is a red test, not a visual bug. The
+              floating pair borrows the SideMenu&rsquo;s detached-card
+              geometry (margin, corner, rim, shadow) from the very{" "}
+              <C>getSidebarSurfaceTokens</C> the menu renders, so paired cards
+              can&rsquo;t drift either.
+            </>
+          ),
+        },
+        {
+          name: "accentColor",
+          type: "TrueColor",
           description:
-            "Deliberately no variant, tone, padding or corner: both this bar and the sidebar's logo header paint the shared SIDE_MENU_HEADER_HEIGHT / _FILL / _SEAM constants so the seam never breaks — drift is a red test, not a visual bug.",
+            "Tone of the floating-glass frosted fill — same token, name and default as the SideMenu's color, so a menu and header on one tone read as one system. Ignored by the other variants.",
         },
         {
           name: "…html props",
