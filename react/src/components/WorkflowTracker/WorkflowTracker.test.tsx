@@ -281,6 +281,73 @@ describe("WorkflowTracker — empty state", () => {
   });
 });
 
+describe("WorkflowTracker — step details card", () => {
+  const region = (name = "Step details") =>
+    screen.queryByRole("region", { name });
+
+  it("mounts under the step card when the active step has details", () => {
+    render(<WorkflowTracker />);
+
+    const card = region();
+    expect(card).toBeInTheDocument();
+    // Only the active step's details render, never another step's.
+    expect(card).toHaveTextContent("Review activity");
+    expect(screen.queryByText(/liability certificate expired on 12 Aug/i)).toBeNull();
+  });
+
+  it("does not mount when the active step has no details", () => {
+    render(
+      <WorkflowTracker
+        data={{
+          title: "No extras",
+          activeStepId: "a",
+          steps: [{ id: "a", label: "A", status: "in_progress" }],
+        }}
+      />,
+    );
+
+    expect(region()).toBeNull();
+  });
+
+  it("stays hidden while loading", () => {
+    render(<WorkflowTracker loading />);
+
+    expect(region()).toBeNull();
+  });
+
+  it("routes the copy override to the region label", () => {
+    render(<WorkflowTracker labels={{ details: "Execution log" }} />);
+
+    expect(region("Execution log")).toBeInTheDocument();
+    expect(region()).toBeNull();
+  });
+
+  it("fills the viewport height on request, with the chrome offset", () => {
+    const { container } = render(
+      <WorkflowTracker fillHeight fillHeightOffset={88} />,
+    );
+
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.style.getPropertyValue("--wt-fill-offset")).toBe("88px");
+
+    const grid = container.querySelector("div.grid") as HTMLElement;
+    expect(grid.className).toContain(
+      "@4xl:h-[calc(100dvh-var(--wt-fill-offset))]",
+    );
+    // Both columns stretch so the details card can absorb the leftover.
+    expect(
+      container.querySelectorAll("[class*='@4xl:self-stretch']").length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps plain flow — no fill classes — by default", () => {
+    const { container } = render(<WorkflowTracker />);
+
+    expect(container.innerHTML).not.toContain("100dvh");
+    expect(container.innerHTML).not.toContain("self-stretch");
+  });
+});
+
 describe("WorkflowTracker — translucent surfaces", () => {
   const railBox = (container: HTMLElement) =>
     container.querySelector<HTMLElement>('[style*="margin-left"]');

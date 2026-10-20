@@ -56,6 +56,14 @@ export interface WorkflowStep {
   sla?: React.ReactNode;
   /** Rendered as a table in the detail panel, and nested in the rail, when active. */
   subSteps?: WorkflowSubStep[];
+  /**
+   * Free-form content for the details card — a second card stacked below the
+   * step card while this step is the active one. The tracker only frames it
+   * (shared card surface, `ScrollArea`, accessible name); the node keeps its
+   * own headings and layout. The card is omitted when this is `null`,
+   * `undefined` or `""`.
+   */
+  details?: React.ReactNode;
 }
 
 export interface WorkflowData {
@@ -96,6 +104,8 @@ export interface WorkflowTrackerLabels {
   empty: string;
   emptySubtitle: string;
   noActiveStep: string;
+  /** Accessible name of the step-details card's scrollable region. */
+  details: string;
   statuses: Record<WorkflowStatus, string>;
 }
 
@@ -155,6 +165,23 @@ export interface WorkflowTrackerProps
   railWidth?: number | string;
   /** Stick the rail to the top of the viewport while the right column scrolls. */
   stickyRail?: boolean;
+  /**
+   * Fill the viewport height (from the tracker's own top to the viewport
+   * bottom) on wide containers, so the page itself never grows. The step
+   * details card absorbs the leftover space and scrolls internally through
+   * `ScrollArea`; the rail scrolls inside its own card, which makes
+   * `stickyRail` redundant while this is on. Drops away below the `@4xl`
+   * container breakpoint — stacked layouts keep scrolling with the page.
+   * @default false
+   */
+  fillHeight?: boolean;
+  /**
+   * Height reserved above the tracker by app chrome (a sticky page header,
+   * say), subtracted from `100dvh` while `fillHeight` is on. Numbers become
+   * `px`.
+   * @default 0
+   */
+  fillHeightOffset?: number | string;
   /** Swaps the rail and detail cards for skeleton placeholders. */
   loading?: boolean;
   /** Rows in the rail skeleton. @default 6 */

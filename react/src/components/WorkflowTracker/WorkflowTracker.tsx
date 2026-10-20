@@ -9,6 +9,7 @@ import {
 import Pill from "../Pill";
 import WorkflowTimeline from "./WorkflowTimeline";
 import WorkflowDetailPanel from "./WorkflowDetailPanel";
+import WorkflowDetailsCard from "./WorkflowDetailsCard";
 import WorkflowSummaryCard from "./WorkflowSummaryCard";
 import { sampleWorkflow } from "./sampleWorkflow";
 import { WorkflowHeaderSkeleton } from "./WorkflowSkeleton";
@@ -44,6 +45,7 @@ const DEFAULT_LABELS: WorkflowTrackerLabels = {
   empty: "No steps yet",
   emptySubtitle: "Steps appear here as soon as the workflow starts.",
   noActiveStep: "No step selected",
+  details: "Step details",
   statuses: {
     done: "Done",
     in_progress: "In progress",
@@ -82,6 +84,8 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   maxWidth = 1180,
   railWidth = 360,
   stickyRail = false,
+  fillHeight = false,
+  fillHeightOffset = 0,
   loading = false,
   loadingRows = 6,
   emptyState,
@@ -136,6 +140,12 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   const attentionSteps = useMemo(() => getAttentionSteps(steps), [steps]);
   const skippedSteps = useMemo(() => getSkippedSteps(steps), [steps]);
 
+  // The details card mounts only for a loaded active step that actually
+  // carries content — no empty shell, same rule as the roll-up cards.
+  const details = active?.step.details;
+  const showDetails =
+    !loading && active != null && details != null && details !== "";
+
   const cardProps = {
     variant,
     tone: cardTone,
@@ -150,6 +160,10 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   const railStyle = {
     "--wt-rail-width":
       typeof railWidth === "number" ? `${railWidth}px` : railWidth,
+    "--wt-fill-offset":
+      typeof fillHeightOffset === "number"
+        ? `${fillHeightOffset}px`
+        : fillHeightOffset,
   } as React.CSSProperties;
 
   return (
@@ -218,11 +232,26 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
       )}
 
       {/* Container queries, not viewport ones: the tracker is often dropped
-          into a column narrower than the page. */}
-      <div className="grid grid-cols-1 items-start gap-5 @4xl:grid-cols-[var(--wt-rail-width)_minmax(0,1fr)]">
+          into a column narrower than the page. In fill mode the grid claims
+          the viewport height from the `@4xl` breakpoint up (stacked layouts
+          keep scrolling with the page) and both columns stretch so the
+          details card can absorb the leftover space. */}
+      <div
+        className={classNames(
+          "grid grid-cols-1 items-start gap-5 @4xl:grid-cols-[var(--wt-rail-width)_minmax(0,1fr)]",
+          fillHeight && "@4xl:h-[calc(100dvh-var(--wt-fill-offset))]",
+        )}
+      >
         <Panel
           {...cardProps}
-          className={classNames(stickyRail && "@4xl:sticky @4xl:top-6")}
+          // A scrollable rail body only matters once the column height is
+          // fixed; stickiness and that fixed height are mutually exclusive,
+          // so `stickyRail` stands down while the rail scrolls in place.
+          scrollable={fillHeight}
+          className={classNames(
+            stickyRail && !fillHeight && "@4xl:sticky @4xl:top-6",
+            fillHeight && "@4xl:min-h-0 @4xl:self-stretch",
+          )}
         >
           <WorkflowTimeline
             steps={steps}
@@ -241,7 +270,12 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
           />
         </Panel>
 
-        <div className="@container flex min-w-0 flex-col gap-5">
+        <div
+          className={classNames(
+            "@container flex min-w-0 flex-col gap-5",
+            fillHeight && "@4xl:min-h-0 @4xl:self-stretch",
+          )}
+        >
           <Panel {...cardProps}>
             <WorkflowDetailPanel
               active={active}
@@ -253,6 +287,14 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
               onSubStepSelect={onSubStepSelect}
             />
           </Panel>
+
+          {showDetails && (
+            <WorkflowDetailsCard
+              details={details}
+              ariaLabel={labels.details}
+              cardProps={cardProps}
+            />
+          )}
 
           {!loading && (attentionSteps.length > 0 || skippedSteps.length > 0) && (
             <div className="grid grid-cols-1 gap-5 @xl:grid-cols-2">

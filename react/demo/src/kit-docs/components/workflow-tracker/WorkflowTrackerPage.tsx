@@ -6,6 +6,8 @@ import VendorOnboarding from "./examples/VendorOnboarding";
 import vendorOnboardingCode from "./examples/VendorOnboarding.tsx?raw";
 import ReleasePipeline from "./examples/ReleasePipeline";
 import releasePipelineCode from "./examples/ReleasePipeline.tsx?raw";
+import DetailsCard from "./examples/DetailsCard";
+import detailsCardCode from "./examples/DetailsCard.tsx?raw";
 import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
@@ -13,7 +15,7 @@ export const WorkflowTrackerPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Workflow Tracker"
-      description="A pipeline tracker driven by one data object: a status timeline rail, a detail panel for the active step with sub-steps, and roll-up cards for progress, flagged and skipped steps."
+      description="A pipeline tracker driven by one data object: a status timeline rail, a detail panel for the active step with sub-steps, a scrollable details card under it for caller-supplied content, and roll-up cards for progress, flagged and skipped steps."
     />
     <WorkflowTrackerPlayground />
     <section className="flex flex-col gap-5">
@@ -35,6 +37,14 @@ export const WorkflowTrackerPage: React.FC = () => (
         filename="ReleasePipeline.tsx"
       >
         <ReleasePipeline />
+      </ExampleCard>
+      <ExampleCard
+        title="Step details card"
+        description="A step's `details` node renders in its own card below the step card, framed by the tracker and wrapped in a `ScrollArea`. The card only mounts for the active step that carries content; `fillHeight` (see the playground) stretches it to the viewport bottom so the page never scrolls."
+        code={detailsCardCode}
+        filename="DetailsCard.tsx"
+      >
+        <DetailsCard />
       </ExampleCard>
       <ExampleCard
         title="States"

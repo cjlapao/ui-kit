@@ -55,6 +55,12 @@ const EMPTY_DATA: WorkflowData = {
   steps: [],
 };
 
+const fillHeightOffsetOptions = [
+  { label: "0", value: "0px" },
+  { label: "88px", value: "88px" },
+  { label: "10vh", value: "10vh" },
+];
+
 export const WorkflowTrackerPlayground: React.FC = () => {
   const [dataSet, setDataSet] = useState<DataSet>("vendor");
   const [variant, setVariant] = useState<WorkflowTrackerVariant>("outlined");
@@ -71,6 +77,8 @@ export const WorkflowTrackerPlayground: React.FC = () => {
   const [showLegend, setShowLegend] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
   const [stickyRail, setStickyRail] = useState(false);
+  const [fillHeight, setFillHeight] = useState(false);
+  const [fillHeightOffset, setFillHeightOffset] = useState("0px");
   const [specularMode, setSpecularMode] =
     useState<PanelSpecularMode>("classic");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
@@ -191,6 +199,19 @@ export const WorkflowTrackerPlayground: React.FC = () => {
                     checked={stickyRail}
                     onChange={setStickyRail}
                   />
+                  <ToggleRow
+                    label="Fill height"
+                    checked={fillHeight}
+                    onChange={setFillHeight}
+                  />
+                  {fillHeight && (
+                    <SelectControl
+                      label="Fill offset"
+                      options={fillHeightOffsetOptions}
+                      value={fillHeightOffset}
+                      onChange={setFillHeightOffset}
+                    />
+                  )}
                 </div>
               ),
             },
@@ -253,6 +274,8 @@ export const WorkflowTrackerPlayground: React.FC = () => {
               showLegend={showLegend}
               showHeader={showHeader}
               stickyRail={stickyRail}
+              fillHeight={fillHeight}
+              fillHeightOffset={fillHeightOffset}
               onStepSelect={
                 interactive
                   ? (stepId) => {

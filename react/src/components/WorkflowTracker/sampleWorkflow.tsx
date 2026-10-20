@@ -48,6 +48,25 @@ export const sampleWorkflow: WorkflowData = {
       status: "attention",
       badge: "Needs attention",
       meta: "1h 06m · Liability certificate expired 12 Aug",
+      details: (
+        <div className="space-y-3 px-5 py-4 sm:px-6">
+          <p className="text-sm leading-6 text-neutral-600 dark:text-neutral-300">
+            The liability certificate expired on 12 Aug. A reminder went to
+            the vendor&rsquo;s compliance contact; the underwriter quote is
+            still pending.
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {["reminder-12-aug.pdf", "underwriter-quote.pdf"].map((file) => (
+              <li
+                key={file}
+                className="rounded-full border border-neutral-200 px-2.5 py-0.5 text-xs text-neutral-500 dark:border-neutral-700 dark:text-neutral-400"
+              >
+                {file}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ),
     },
     {
       id: "contract_drafting",
@@ -67,6 +86,61 @@ export const sampleWorkflow: WorkflowData = {
       owner: "D. Okafor",
       startedAt: "19 Aug · 09:12",
       sla: "Due in 6h",
+      details: (
+        <div className="space-y-5 px-5 py-4 sm:px-6">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Review activity
+            </p>
+            <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
+              Reviewer A. Lindqvist is cross-checking the subprocessor list
+              against the master agreement. Uploads appear here as the vendor
+              submits them.
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Files received
+            </p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {[
+                "data-handling-v3.pdf",
+                "pentest-2026.pdf",
+                "soc2-typeii.pdf",
+              ].map((file) => (
+                <li
+                  key={file}
+                  className="rounded-full border border-neutral-200 px-2.5 py-0.5 text-xs text-neutral-500 dark:border-neutral-700 dark:text-neutral-400"
+                >
+                  {file}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
+              Open findings
+            </p>
+            <ul className="mt-2 space-y-2">
+              <li className="flex items-start gap-2 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
+                <span
+                  aria-hidden="true"
+                  className="mt-[9px] size-1.5 shrink-0 rounded-full bg-amber-400"
+                />
+                Subprocessor &ldquo;CloudDot BV&rdquo; is not covered by the
+                DPA yet
+              </li>
+              <li className="flex items-start gap-2 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
+                <span
+                  aria-hidden="true"
+                  className="mt-[9px] size-1.5 shrink-0 rounded-full bg-neutral-300 dark:bg-neutral-600"
+                />
+                Waiting on the incident-contact annex
+              </li>
+            </ul>
+          </div>
+        </div>
+      ),
       subSteps: [
         {
           id: "data_handling",
