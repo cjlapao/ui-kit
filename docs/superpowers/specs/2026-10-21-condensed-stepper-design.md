@@ -301,7 +301,17 @@ the interaction, nothing should bounce on top of it.
 **Digit centring** (same-day fix, two rounds): the badge digit and the
 title share **one explicit line box per size** (`badgeText` /
 `badgeTitle` — `text-[10px] leading-4` beside `text-xs leading-4` at
-md, and the matching pairs at the other sizes). The first attempt —
+md, and the matching pairs at the other sizes).
+
+The third round's real culprit was the **strut**: `leading-*` on the
+inline title shapes only its inline box — the BLOCK wrapper around it
+sizes its line box from the strut (the inherited font and line-height,
+~24px here), so the track stood strut-tall beside the digit's 16px and
+"centring" centred nothing. The line-height now sits on the
+strut-owning block (`badgeLeading`), where it actually dictates the
+line box. (And the safelist was never the problem — the classes were
+in `dist` all along, escaped as `.leading-3\.5`, which my grep pattern
+couldn't match.) The first attempt —
 dropping `leading-none` and letting the digit inherit — still read
 high: inherited `normal` gave the 10 px mono digit an ~11 px box
 against the title's 16 px one, and "centred" was centring two

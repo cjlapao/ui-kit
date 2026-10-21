@@ -365,9 +365,13 @@ describe("CondensedStepper", () => {
     const digit = container.querySelector<HTMLElement>(".cs-flank-past [data-step] span")!;
     expect(digit.className).not.toContain("leading-none");
     expect(digit.className).toContain("text-[10px] leading-4");
-    // …and the title shares that exact box — one baseline for both.
-    const title = digit.nextElementSibling!.querySelector(".truncate")!;
-    expect(title.className).toContain("text-xs leading-4");
+    // …and the title's BLOCK owns the line box its strut sizes — the
+    // digit and the folded title share 16px, not 16 vs strut-tall 24.
+    const wrapper = digit.nextElementSibling!.firstElementChild!;
+    expect(wrapper.className).toContain("min-w-0 overflow-hidden");
+    expect(wrapper.className).toContain("leading-4");
+    const title = wrapper.querySelector(".truncate")!;
+    expect(title.className).toContain("text-xs");
   });
 
   it("the anchor pill wears the tone and takes the row's height", () => {

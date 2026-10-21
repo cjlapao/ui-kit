@@ -139,6 +139,7 @@ const SIZE_TOKENS: Record<
     badge: string;
     badgeText: string;
     badgeTitle: string;
+    badgeLeading: string;
     discText: string;
     glyph: string;
     pill: string;
@@ -152,6 +153,7 @@ const SIZE_TOKENS: Record<
     badge: "h-4 min-w-4 px-1.5",
     badgeText: "text-[8px] leading-3.5",
     badgeTitle: "text-[10px] leading-3.5",
+    badgeLeading: "leading-3.5",
     discText: "text-[8px] leading-none",
     glyph: "h-2 w-2",
     pill: "gap-1 px-1.5",
@@ -164,6 +166,7 @@ const SIZE_TOKENS: Record<
     badge: "h-5 min-w-5 px-1.5",
     badgeText: "text-[9px] leading-4",
     badgeTitle: "text-[11px] leading-4",
+    badgeLeading: "leading-4",
     discText: "text-[9px] leading-none",
     glyph: "h-2.5 w-2.5",
     pill: "gap-1 px-2",
@@ -176,6 +179,7 @@ const SIZE_TOKENS: Record<
     badge: "h-6 min-w-6 px-1.5",
     badgeText: "text-[10px] leading-4",
     badgeTitle: "text-xs leading-4",
+    badgeLeading: "leading-4",
     discText: "text-[10px] leading-none",
     glyph: "h-3 w-3",
     pill: "gap-1.5 px-2.5",
@@ -188,6 +192,7 @@ const SIZE_TOKENS: Record<
     badge: "h-7 min-w-7 px-2",
     badgeText: "text-xs leading-5",
     badgeTitle: "text-sm leading-5",
+    badgeLeading: "leading-5",
     discText: "text-xs leading-none",
     glyph: "h-3.5 w-3.5",
     pill: "gap-1.5 px-3",
@@ -200,6 +205,7 @@ const SIZE_TOKENS: Record<
     badge: "h-8 min-w-8 px-2",
     badgeText: "text-sm leading-5",
     badgeTitle: "text-sm leading-5",
+    badgeLeading: "leading-5",
     discText: "text-sm leading-none",
     glyph: "h-4 w-4",
     pill: "gap-2 px-3.5",
@@ -493,7 +499,12 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             {index + 1}
           </span>
           <span className="cs-badge-track">
-            <span className="min-w-0 overflow-hidden">
+            {/* The leading lives on this block on purpose: its strut —
+                not the inline title's own line-height — sizes the line
+                box the track inherits. Leading on the inline title
+                alone left the track a strut-tall 24px against the
+                digit's 16px box, and "centred" meant nothing. */}
+            <span className={classNames("min-w-0 overflow-hidden", tokens.badgeLeading)}>
               <span
                 className={classNames("truncate font-medium pl-1.5", tokens.badgeTitle, tokens.labelMax)}
               >
