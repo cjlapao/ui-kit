@@ -213,12 +213,16 @@ Four corrections from the first demo pass, each committed with code:
 
 - **`stretch`** (default: panel `true`, card `false` — the panel's design
   is a ruler across its container; a card keeps its compact dashes):
-  the done flank pins to the left edge,
-  the queue to the right, the anchor stays dead centre (two equal
-  `basis-0` sides bracket it, so unequal flanks cannot push it off), and
-  the dashed lines carry the distance as the elastic: an expansion
-  collapses the dashes to their 16 px minimum first, and only then does
-  the centre compress.
+  the strip becomes a five-track grid — flank, dash, anchor, dash, flank
+  — and the squeeze is choreography, not mush, because the whole sequence
+  is ONE spring transition on `grid-template-columns`: opening the done
+  side drives its dash `1fr → 0fr` against a 15 px floor (the push,
+  stage one); the anchor's `minmax(0, auto)` track yields next — label
+  ellipsizes, chip fades, until the anchor is just its index (stage
+  two); the far dash, still `1fr`, gives way last (stage three). The
+  overshoot curve is clamped by the track floors, so the bounce settles
+  on 15 px instead of breathing through the layout. Hovering the queue
+  side mirrors it.
 - **`maxSteps`** (renamed from the interim `maxVisible`, default **6**):
   how many steps a flank may reveal when expanded on the panel; the
   remainder rides `+N`.

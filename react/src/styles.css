@@ -1143,6 +1143,51 @@
   --_cs-ease: var(--cs-spring-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
   --_cs-dur: var(--cs-spring-duration, 600ms);
 }
+/* ── The stretch ruler ───────────────────────────────────────────────────
+   The strip becomes a five-track grid — flank, dash, anchor, dash, flank
+   — and the squeeze choreography is ONE transition on the template
+   itself, because grid-template-columns is an animatable property:
+
+   open the done side and its dash runs 1fr → 0fr against its 15px floor
+   (the push, first stage); the anchor's track is next in line — minmax
+   (0, auto) lets the label yield, then the chip, until the anchor is
+   just its index (the squeeze, second stage); the far dash, still 1fr,
+   gives way last. Hovering the queue side mirrors it. The overshoot
+   curve is clamped by the track floors, so the bounce settles on 15px
+   instead of breathing through the layout.
+
+   Compact mode never sets these tracks: dashes keep their token width
+   and the row stays a quiet flex line.
+   ──────────────────────────────────────────────────────────────────────── */
+.cs-strip[data-stretch="true"] {
+  display: grid;
+  align-items: center;
+  grid-template-columns: auto minmax(15px, 1fr) minmax(0, auto) minmax(15px, 1fr) auto;
+  transition: grid-template-columns var(--_cs-dur) var(--_cs-ease);
+}
+.cs-strip[data-stretch="true"][data-open="past"] {
+  grid-template-columns: auto minmax(15px, 0fr) minmax(0, auto) minmax(15px, 1fr) auto;
+}
+.cs-strip[data-stretch="true"][data-open="future"] {
+  grid-template-columns: auto minmax(15px, 1fr) minmax(0, auto) minmax(15px, 0fr) auto;
+}
+.cs-strip[data-stretch="true"] > .cs-zone-l {
+  grid-column: 1;
+}
+.cs-strip[data-stretch="true"] > .cs-dash-l {
+  grid-column: 2;
+  width: auto;
+}
+.cs-strip[data-stretch="true"] > .cs-pill {
+  grid-column: 3;
+}
+.cs-strip[data-stretch="true"] > .cs-dash-r {
+  grid-column: 4;
+  width: auto;
+}
+.cs-strip[data-stretch="true"] > .cs-zone-r {
+  grid-column: 5;
+}
 .cs-flank {
   display: grid;
   grid-template-columns: 0fr;
@@ -1202,7 +1247,8 @@
 .cs-strip[data-animated="false"] .cs-flank,
 .cs-strip[data-animated="false"] .cs-chip,
 .cs-strip[data-animated="false"] .cs-label-track,
-.cs-strip[data-animated="false"] .cs-card-summary {
+.cs-strip[data-animated="false"] .cs-card-summary,
+.cs-strip[data-animated="false"][data-stretch="true"] {
   transition: none;
 }
 @media (prefers-reduced-motion: reduce) {

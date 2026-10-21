@@ -445,7 +445,10 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     return (
       <div
         key={zone}
-        className="flex min-w-0 shrink-0 items-center"
+        className={classNames(
+          "flex min-w-0 shrink-0 items-center",
+          isPast ? "cs-zone-l" : "cs-zone-r",
+        )}
         onMouseEnter={() => {
           (isPast ? onDoneHover : onNextHover)?.(true);
           enter(zone);
@@ -735,33 +738,17 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       onKeyDown={handleKeyDown}
       {...rest}
     >
-      {isStretch ? (
+      {plan.hasPast && (
         <>
-          <div className="flex min-w-0 basis-0 flex-1 items-center">
-            {plan.hasPast && renderFlank("past", plan.past)}
-            <Dash tokens={tokens} grow />
-          </div>
-          {anchor}
-          <div className="flex min-w-0 basis-0 flex-1 items-center justify-end">
-            <Dash tokens={tokens} grow />
-            {plan.hasFuture && renderFlank("future", plan.future)}
-          </div>
+          {renderFlank("past", plan.past)}
+          <Dash tokens={tokens} side="l" />
         </>
-      ) : (
+      )}
+      {anchor}
+      {plan.hasFuture && (
         <>
-          {plan.hasPast && (
-            <>
-              {renderFlank("past", plan.past)}
-              <Dash tokens={tokens} />
-            </>
-          )}
-          {anchor}
-          {plan.hasFuture && (
-            <>
-              <Dash tokens={tokens} />
-              {renderFlank("future", plan.future)}
-            </>
-          )}
+          <Dash tokens={tokens} side="r" />
+          {renderFlank("future", plan.future)}
         </>
       )}
     </div>
@@ -803,18 +790,20 @@ const QuietDiscs: React.FC<{
   );
 };
 
-const Dash: React.FC<{ tokens: (typeof SIZE_TOKENS)[ControlSize]; grow?: boolean }> = ({
+const Dash: React.FC<{ tokens: (typeof SIZE_TOKENS)[ControlSize]; side: "l" | "r" }> = ({
   tokens,
-  grow,
+  side,
 }) => (
-  /* Stretch mode hands the strip's slack to the dashes: they are the
-     elastic, collapsing to their minimum when a flank opens and only
-     then letting the anchor feel the squeeze. */
+  /* Compact: a token-width rule between neighbours. Stretch: the
+     connector track — it takes its width from the grid template, which
+     is the thing the spring animates (see .cs-strip[data-stretch]). */
   <span
     aria-hidden
     className={classNames(
       "border-t border-dashed border-neutral-300 dark:border-neutral-700",
-      grow ? "min-w-4 flex-1" : classNames("shrink-0", tokens.dash),
+      "shrink-0",
+      tokens.dash,
+      side === "l" ? "cs-dash-l" : "cs-dash-r",
     )}
   />
 );

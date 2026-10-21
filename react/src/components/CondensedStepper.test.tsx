@@ -371,28 +371,35 @@ describe("CondensedStepper", () => {
     expect(pill.getAttribute("style")).toContain("rgba(59,130,246");
   });
 
-  it("stretch pins the flanks to the edges and lets the dashes carry the width", () => {
-    const { container } = strip({ stretch: true });
+  it("stretch lays the ruler: flank, dash, anchor, dash, flank — one animated template", () => {
+    const { container } = strip();
     const stripEl = container.querySelector(".cs-strip")!;
+    // The panel is a ruler by default; the card is a chip unless told.
     expect(stripEl.getAttribute("data-stretch")).toBe("true");
-    // Two equal sides (basis-0 + grow) bracket the anchor — the geometry
-    // that keeps the centre dead centre whatever the flanks weigh.
-    const sides = stripEl.querySelectorAll(":scope > div.basis-0");
-    expect(sides).toHaveLength(2);
-    expect(stripEl.children[1]).toBe(container.querySelector(".cs-pill"));
-    // The dashes are the elastic: they grow across the slack.
-    expect(sides[0].querySelectorAll("span.flex-1.min-w-4")).toHaveLength(1);
-    expect(sides[1].querySelectorAll("span.flex-1.min-w-4")).toHaveLength(1);
-    // The panel is a ruler by default; opting out returns the compact
-    // token-width dashes — and so does the card variant, compact unless
-    // explicitly stretched.
+    // Five direct children in sequence — the grid places them by class
+    // (columns are the CSS's choreography; jsdom has no layout).
+    const kids = Array.from(stripEl.children);
+    expect(kids.map((el) => el.className)).toEqual([
+      expect.stringContaining("cs-zone-l"),
+      expect.stringContaining("cs-dash-l"),
+      expect.stringContaining("cs-pill"),
+      expect.stringContaining("cs-dash-r"),
+      expect.stringContaining("cs-zone-r"),
+    ]);
+    // The squeeze states ride data-open — the template transition is the animation.
+    const past = container.querySelector<HTMLButtonElement>('[data-zone="past"]')!;
+    fireEvent.click(past);
+    expect(stripEl.getAttribute("data-open")).toBe("past");
+    fireEvent.click(past);
+    fireEvent.click(container.querySelector<HTMLButtonElement>('[data-zone="future"]')!);
+    expect(stripEl.getAttribute("data-open")).toBe("future");
+    // Opting out, or a card, keeps the compact flex line (no ruler tracks).
     const { container: quiet } = strip({ stretch: false });
-    expect(quiet.querySelectorAll(".cs-strip span.flex-1.min-w-4")).toHaveLength(0);
+    expect(quiet.querySelector(".cs-strip")!.hasAttribute("data-stretch")).toBe(false);
     const { container: card } = strip({ variant: "card" });
-    expect(card.querySelectorAll(".cs-strip span.flex-1.min-w-4")).toHaveLength(0);
     expect(card.querySelector(".cs-strip")!.hasAttribute("data-stretch")).toBe(false);
     const { container: stretchedCard } = strip({ variant: "card", stretch: true });
-    expect(stretchedCard.querySelectorAll("span.flex-1.min-w-4")).toHaveLength(2);
+    expect(stretchedCard.querySelector(".cs-strip")!.getAttribute("data-stretch")).toBe("true");
   });
 
   it("reports zone hovers — done, current and next — as pure observation", () => {
