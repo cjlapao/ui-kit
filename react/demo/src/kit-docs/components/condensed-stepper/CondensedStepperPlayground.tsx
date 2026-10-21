@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import {
   CondensedStepper,
+  SURFACE_VARIANTS,
   TRUE_COLORS,
   type CondensedZone,
+  type SurfaceVariant,
   type TrueColor,
 } from "@cjlapao/ui-kit";
 import type { StepperStep } from "@cjlapao/ui-kit";
@@ -41,6 +43,7 @@ export const CondensedStepperPlayground: React.FC = () => {
   const [width, setWidth] = useState(860);
   const [lastHover, setLastHover] = useState<string | null>(null);
   const [stretch, setStretch] = useState(true);
+  const [surface, setSurface] = useState<SurfaceVariant>("outlined");
   const [doneColor, setDoneColor] = useState<TrueColor>("emerald");
   const [nextColor, setNextColor] = useState<TrueColor>("gray");
   const say = (zone: string) => (hovered: boolean) =>
@@ -124,6 +127,20 @@ export const CondensedStepperPlayground: React.FC = () => {
             </select>
           </label>
         ))}
+        <label className="ml-3 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
+          surface
+          <select
+            value={surface}
+            onChange={(e) => setSurface(e.target.value as SurfaceVariant)}
+            className="rounded-md border border-neutral-200 bg-transparent px-1.5 py-0.5 text-xs dark:border-neutral-700"
+          >
+            {SURFACE_VARIANTS.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div
         className="mx-auto overflow-x-auto rounded-lg border border-dashed border-neutral-300 px-4 py-6 transition-[width] duration-200 dark:border-neutral-700"
@@ -134,6 +151,7 @@ export const CondensedStepperPlayground: React.FC = () => {
           currentIndex={9}
           actionLabel="Action Required"
           stretch={stretch}
+          variant={surface}
           openZone={preset === "quiet" ? undefined : preset}
           doneColor={doneColor}
           nextColor={nextColor}

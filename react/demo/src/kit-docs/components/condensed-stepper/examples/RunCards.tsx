@@ -67,7 +67,7 @@ const RunCards: React.FC = () => (
         <CondensedStepper
           steps={card.steps}
           size="sm"
-          variant="card"
+          mode="card"
           actionLabel={card.actionLabel}
           pastSummary={card.pastSummary}
           maxSteps={3}

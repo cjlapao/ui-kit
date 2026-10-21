@@ -7,8 +7,10 @@ import {
 import { iconRegistry } from "../icons/registry";
 import {
   getStepperTonePalette,
+  getSurfaceVariantClasses,
   TRUE_COLOR_DOT_CLASSES,
   type ControlSize,
+  type SurfaceVariant,
   type TrueColor,
 } from "../theme/Theme";
 import type { StepperStep } from "./Stepper";
@@ -78,7 +80,13 @@ export interface CondensedStepperProps
    * to its index alone.
    * @default "panel"
    */
-  variant?: "panel" | "card";
+  mode?: "panel" | "card";
+  /**
+   * The surface dress for the centre pill and the revealed items — the
+   * kit's shared SurfaceVariant vocabulary, the same one Panel wears.
+   * @default "outlined"
+   */
+  variant?: SurfaceVariant;
   /**
    * Fill the parent: the done flank pins to the left edge, the queue to
    * the right, the anchor stays dead centre, and the dashed lines carry
@@ -132,7 +140,7 @@ const SIZE_TOKENS: Record<
   }
 > = {
   xs: {
-    disc: "h-4 w-4 border",
+    disc: "h-4 w-4",
     discText: "text-[8px] leading-none",
     glyph: "h-2 w-2",
     pill: "gap-1 px-1.5",
@@ -141,7 +149,7 @@ const SIZE_TOKENS: Record<
     dash: "w-3",
   },
   sm: {
-    disc: "h-5 w-5 border",
+    disc: "h-5 w-5",
     discText: "text-[9px] leading-none",
     glyph: "h-2.5 w-2.5",
     pill: "gap-1 px-2",
@@ -150,7 +158,7 @@ const SIZE_TOKENS: Record<
     dash: "w-4",
   },
   md: {
-    disc: "h-6 w-6 border",
+    disc: "h-6 w-6",
     discText: "text-[10px] leading-none",
     glyph: "h-3 w-3",
     pill: "gap-1.5 px-2.5",
@@ -159,7 +167,7 @@ const SIZE_TOKENS: Record<
     dash: "w-6",
   },
   lg: {
-    disc: "h-7 w-7 border-[1.5px]",
+    disc: "h-7 w-7",
     discText: "text-xs leading-none",
     glyph: "h-3.5 w-3.5",
     pill: "gap-1.5 px-3",
@@ -168,7 +176,7 @@ const SIZE_TOKENS: Record<
     dash: "w-8",
   },
   xl: {
-    disc: "h-8 w-8 border-2",
+    disc: "h-8 w-8",
     discText: "text-sm leading-none",
     glyph: "h-4 w-4",
     pill: "gap-2 px-3.5",
@@ -226,6 +234,7 @@ const Disc = ({
   label,
   check,
   toneClass,
+  surface,
   tokens,
   interactive,
   title,
@@ -235,6 +244,7 @@ const Disc = ({
   label: React.ReactNode;
   check?: boolean;
   toneClass: string;
+  surface: string;
   tokens: (typeof SIZE_TOKENS)[ControlSize];
   interactive: boolean;
   title?: string;
@@ -253,8 +263,9 @@ const Disc = ({
     </>
   );
   const circle = classNames(
-    "flex shrink-0 items-center justify-center rounded-full bg-background",
+    "flex shrink-0 items-center justify-center rounded-full",
     tokens.disc,
+    surface,
     toneClass,
   );
   if (!interactive) {
@@ -293,7 +304,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   doneColor = "emerald",
   nextColor = "gray",
   size = "md",
-  variant = "panel",
+  mode = "panel",
+  variant = "outlined",
   stretch,
   maxSteps,
   interactive = true,
@@ -314,13 +326,21 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   const uid = useId();
   const tokens = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
   const palette = getStepperTonePalette(tone);
+  /* The dress shared with Panel: the centre pill and every revealed
+     disc and queue pill wear it. The outlined default keeps the strip's
+     own background and the tone-soft border, so the default look is the
+     one the card mock established. */
+  const surface = getSurfaceVariantClasses(variant, tone, {
+    bgClass: "bg-background",
+    borderClass: palette.pendingBorder,
+  });
   const centreIndex = useMemo(
     () => resolveCentreIndex(steps, currentIndex, currentStepId),
     [steps, currentIndex, currentStepId],
   );
   const plan = useMemo(
-    () => condenseStepperPlan(steps, centreIndex, { maxSteps, variant }),
-    [steps, centreIndex, maxSteps, variant],
+    () => condenseStepperPlan(steps, centreIndex, { maxSteps, mode }),
+    [steps, centreIndex, maxSteps, mode],
   );
 
   const [hoverOpen, setHoverOpen] = useState<CondensedZone | null>(null);
@@ -419,7 +439,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   /* The panel is a ruler: by default it fills its container and lets
      the dashes carry the distance. The card is a chip: compact by
      default, stretch is opt-in. */
-  const isStretch = stretch ?? variant === "panel";
+  const isStretch = stretch ?? mode === "panel";
 
   const springConfig =
     EXPANDABLE_BUTTON_SPRING_TOKENS[spring] ??
@@ -476,7 +496,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             data-zone={zone}
           >
             <QuietDiscs zone={zone} flank={flank} tokens={tokens} color={isPast ? doneColor : nextColor} />
-            {!isPast && variant === "card" && open !== zone && (
+            {!isPast && mode === "card" && open !== zone && (
               <span
                 className={classNames(
                   "cs-short shrink-0 font-mono font-semibold",
@@ -507,7 +527,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
         ) : (
           <span className="flex min-w-0 items-center gap-1.5 px-1" data-zone={zone}>
             <QuietDiscs zone={zone} flank={flank} tokens={tokens} color={isPast ? doneColor : nextColor} />
-            {!isPast && variant === "card" && open !== zone && (
+            {!isPast && mode === "card" && open !== zone && (
               <span
                 className={classNames(
                   "cs-short shrink-0 font-mono font-semibold",
@@ -551,7 +571,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
               className="cs-flank-row flex w-max items-center gap-1.5 pl-1.5"
               inert={isOpen ? undefined : true}
             >
-            {variant === "panel" && (
+            {mode === "panel" && (
               <>
             {flank.revealedIndices.map((index) => {
               const step = steps[index];
@@ -569,6 +589,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                       label={index + 1}
                       check={false}
                       toneClass={toneClass}
+                      surface={surface}
                       tokens={tokens}
                       interactive={interactive && onStepSelect != null}
                       title={titleText(step.title)}
@@ -586,7 +607,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                     <button
                       type="button"
                       className={classNames(
-                        "flex cursor-pointer items-center gap-1 rounded-full border bg-background px-1.5 py-0.5 transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:focus-visible:outline-white",
+                        "flex cursor-pointer items-center gap-1 rounded-full px-1.5 py-0.5 transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:focus-visible:outline-white",
+                        surface,
                         toneClass,
                       )}
                       onClick={() => onStepSelect(step, index)}
@@ -610,7 +632,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                   ) : (
                     <span
                       className={classNames(
-                        "flex items-center gap-1 rounded-full border bg-background px-1.5 py-0.5",
+                        "flex items-center gap-1 rounded-full px-1.5 py-0.5",
+                        surface,
                         toneClass,
                       )}
                       data-step={index + 1}
@@ -658,9 +681,9 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   const anchor = (
       <div
         className={classNames(
-          "cs-pill flex min-w-0 self-stretch items-center rounded-full border bg-background",
+          "cs-pill flex min-w-0 self-stretch items-center rounded-full",
           tokens.pill,
-          palette.pendingBorder,
+          surface,
         )}
         /* The discs float on a diffusion; an anchor without one reads as
            short even when their boxes are the same height — light is the
@@ -733,7 +756,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       )}
       data-open={open ?? undefined}
       data-animated={animated ? "true" : "false"}
-      data-card={variant === "card" ? "true" : undefined}
+      data-card={mode === "card" ? "true" : undefined}
       data-stretch={isStretch ? "true" : undefined}
       role="group"
       aria-label={`Step progress — ${titleText(activeStep.title) ?? `step ${centre + 1}`}, step ${centre + 1} of ${steps.length}`}

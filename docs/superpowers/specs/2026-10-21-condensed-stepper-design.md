@@ -226,6 +226,17 @@ Four corrections from the first demo pass, each committed with code:
 - **`maxSteps`** (renamed from the interim `maxVisible`, default **6**):
   how many steps a flank may reveal when expanded on the panel; the
   remainder rides `+N`.
+- **Rename**: the condensation `variant` is now **`mode`**
+  (`"panel" | "card"` — panel is the full strip with the accordion
+  reveal, card the condensed chip), freeing **`variant?:
+  SurfaceVariant`** — the kit's shared surface vocabulary, the same one
+  Panel wears — to dress the centre pill and every revealed item (past
+  discs, future pills). The quiet discs keep their solid tone fills:
+  the variant speaks to dressed surfaces, not to signal dots. The
+  `outlined` default is Panel's own outlined base with the tone-soft
+  `pendingBorder` passed through, so the default look is the one the
+  mocks established; translucent variants take the strip's
+  `bg-background` via the helper's override.
 - The anchor pill wears its tone's diffusion (equal perceived height
   with the glowing discs), and items enter static — centred from the
   first frame, no scale/fade audition (the width spring is the motion).

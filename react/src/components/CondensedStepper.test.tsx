@@ -120,8 +120,8 @@ describe("condenseStepperPlan", () => {
 
   it("card variant: one solid disc per flank, panel keeps 3 + 2", () => {
     const steps = mockSteps();
-    expect(condenseStepperPlan(steps, 9, { variant: "card" }).past.quietDiscs).toBe(1);
-    expect(condenseStepperPlan(steps, 9, { variant: "card" }).future.quietDiscs).toBe(1);
+    expect(condenseStepperPlan(steps, 9, { mode: "card" }).past.quietDiscs).toBe(1);
+    expect(condenseStepperPlan(steps, 9, { mode: "card" }).future.quietDiscs).toBe(1);
     const panel = condenseStepperPlan(steps, 9);
     expect(panel.past.quietDiscs).toBe(3);
     expect(panel.future.quietDiscs).toBe(2);
@@ -294,7 +294,7 @@ describe("CondensedStepper", () => {
   });
 
   it("card variant: one solid disc per side, count on a track, no accordion", () => {
-    const { container } = strip({ variant: "card" });
+    const { container } = strip({ mode: "card" });
     const stripEl = container.querySelector(".cs-strip")!;
     expect(stripEl.getAttribute("data-card")).toBe("true");
     // One solid disc per flank — ColorSwatches fill, not rings.
@@ -326,7 +326,7 @@ describe("CondensedStepper", () => {
   });
 
   it("quiet discs take per-flank colours and diffuse them", () => {
-    const { container } = strip({ doneColor: "sky", nextColor: "rose", variant: "card" });
+    const { container } = strip({ doneColor: "sky", nextColor: "rose", mode: "card" });
     const past = container.querySelector('[data-zone="past"] .cs-quiet > span')!;
     const future = container.querySelector('[data-zone="future"] .cs-quiet > span')!;
     expect(past.className).toContain("bg-sky-500");
@@ -400,10 +400,30 @@ describe("CondensedStepper", () => {
     // Opting out, or a card, keeps the compact flex line (no ruler tracks).
     const { container: quiet } = strip({ stretch: false });
     expect(quiet.querySelector(".cs-strip")!.hasAttribute("data-stretch")).toBe(false);
-    const { container: card } = strip({ variant: "card" });
+    const { container: card } = strip({ mode: "card" });
     expect(card.querySelector(".cs-strip")!.hasAttribute("data-stretch")).toBe(false);
-    const { container: stretchedCard } = strip({ variant: "card", stretch: true });
+    const { container: stretchedCard } = strip({ mode: "card", stretch: true });
     expect(stretchedCard.querySelector(".cs-strip")!.getAttribute("data-stretch")).toBe("true");
+  });
+
+  it("variant dresses the pill and revealed items in the shared surface vocabulary", () => {
+    const { container } = strip({ variant: "elevated" });
+    const pill = container.querySelector(".cs-pill")!;
+    expect(pill.className).toContain("shadow-xl"); // elevated's Panel dress
+    const { container: open } = strip({ variant: "elevated" });
+    fireEvent.click(open.querySelector<HTMLButtonElement>('[data-zone="past"]')!);
+    expect(open.querySelector(".cs-flank-past [data-step]")!.className).toContain("shadow-xl");
+    // The default is Panel's own outlined dress, kept tone-soft: the
+    // helper's outlined base plus the strip's tone-soft border.
+    const { container: def } = strip();
+    const defPill = def.querySelector(".cs-pill")!;
+    expect(defPill.className).toContain("border-blue-200");
+    expect(defPill.className).toContain("bg-white/90");
+    // The quiet discs wear solid tone fills, never the surface — the
+    // variant speaks only to the pill and the revealed items.
+    expect(
+      def.querySelector('[data-zone="past"] .cs-quiet > span')!.className,
+    ).toContain("bg-emerald-500");
   });
 
   it("reports zone hovers — done, current and next — as pure observation", () => {

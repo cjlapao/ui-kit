@@ -51,7 +51,7 @@ export interface CondenseStepperPlanInput {
    * one solid disc per flank quiet, and expansion only reveals the count
    * while the anchor compresses to its index (no accordion).
    */
-  variant?: "panel" | "card";
+  mode?: "panel" | "card";
 }
 
 const EMPTY_FLANK: CondensedFlankPlan = {
@@ -101,8 +101,8 @@ export const condenseStepperPlan = (
   input: CondenseStepperPlanInput = {},
 ): CondenseStepperPlan => {
   const maxSteps = Math.max(0, input.maxSteps ?? 6);
-  const quietPast = input.variant === "card" ? 1 : QUIET_PAST_DISCS;
-  const quietFuture = input.variant === "card" ? 1 : QUIET_FUTURE_DISCS;
+  const quietPast = input.mode === "card" ? 1 : QUIET_PAST_DISCS;
+  const quietFuture = input.mode === "card" ? 1 : QUIET_FUTURE_DISCS;
   const n = steps.length;
   if (n === 0) {
     return {
