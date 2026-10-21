@@ -1207,6 +1207,16 @@
   min-width: 0;
   overflow: hidden;
 }
+.cs-flank-clip {
+  /* The clip exists to shear HORIZONTALLY — that is the reveal axis.
+     Vertically it was shearing the discs' 10px diffusion glow flat,
+     and a sheared glow reads as circles cut at the top and bottom.
+     Breathing room for the glow, bought back by the negative margin:
+     the strip's row height never notices, and a collapsed flank still
+     clips to a zero-width column. */
+  padding-block: 12px;
+  margin-block: -12px;
+}
 /* Revealed items are static by design: they are centred, fully-formed
    discs the moment their flank's track unfolds — the width spring is the
    animation, items drifting or scaling into place is lag, not motion. */
