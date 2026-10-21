@@ -13,19 +13,44 @@ import type { StepStatus, StepperStep } from "./Stepper";
 
 export type CondensedZone = "past" | "future";
 
-/** How many overlapping discs each flank shows while quiet. */
+/**
+ * A flank earns an expansion when it holds more than this many steps:
+ * with three or fewer, every step is already on show and there is
+ * nothing left to reveal — the quiet discs *are* the truth, not a
+ * teaser for it.
+ */
+export const QUIET_EXPAND_THRESHOLD = 3;
+
+/**
+ * The quiet motif — how many discs a flank shows while closed. Fixed,
+ * not the count: three ticks say "work is done here", two dots say
+ * "there is a queue", whatever the real numbers. The counts live in
+ * the summaries and the reveal; the motif only indicates.
+ */
 export const QUIET_PAST_DISCS = 3;
 export const QUIET_FUTURE_DISCS = 2;
 
 export interface CondensedFlankPlan {
   /** The flank's step indices, in display order (past: oldest first). */
   indices: number[];
-  /** Leading discs while quiet — never more than `indices.length`. */
-  quietDiscs: number;
-  /** The leading slice the reveal shows (capped by `maxSteps`). */
+  /**
+   * The discs shown while quiet, in display order. The honest flank: it
+   * mirrors the real count, capped at `maxSteps` — and it shows the
+   * *nearest* window: the last steps of the past (most recently done,
+   * closest to the anchor) and the first of the queue (next up).
+   */
+  quietIndices: number[];
+  /** The window the reveal shows (capped by `maxSteps`), nearest side. */
   revealedIndices: number[];
   /** How many `indices` the reveal leaves to the `+N` chip. */
   overflow: number;
+  /**
+   * Whether the flank has a reveal at all. A flank of three or fewer
+   * shows everything already — the accordion, its button and its
+   * tooltip are withheld, because promising to reveal what is already
+   * visible is the theatre the realistic strip killed.
+   */
+  expandable: boolean;
 }
 
 export interface CondenseStepperPlan {
@@ -46,8 +71,9 @@ export interface CondenseStepperPlanInput {
    * rest. @default 6 */
   maxSteps?: number;
   /**
-   * `panel` (default): the full strip — 3 past discs + 2 future discs
-   * quiet, the accordion reveal on hover. `card`: the condensed strip —
+   * `panel` (default): the full strip — quiet discs mirror the true
+   * count (nearest window, capped at `maxSteps`), and flanks of more
+   * than three earn the accordion reveal. `card`: the condensed strip —
    * one solid disc per flank quiet, and expansion only reveals the count
    * while the anchor compresses to its index (no accordion).
    */
@@ -56,21 +82,32 @@ export interface CondenseStepperPlanInput {
 
 const EMPTY_FLANK: CondensedFlankPlan = {
   indices: [],
-  quietDiscs: 0,
+  quietIndices: [],
   revealedIndices: [],
   overflow: 0,
+  expandable: false,
 };
 
 const flank = (
   indices: number[],
   quietCap: number,
   maxSteps: number,
-): CondensedFlankPlan => ({
-  indices,
-  quietDiscs: Math.min(indices.length, quietCap),
-  revealedIndices: indices.slice(0, maxSteps),
-  overflow: Math.max(0, indices.length - maxSteps),
-});
+  side: "past" | "future",
+  expandable: boolean,
+): CondensedFlankPlan => {
+  // The window is the NEAREST side: the past keeps its most recent
+  // steps (the ones just walked, closest to the anchor), the queue
+  // keeps its next-up steps. Both cap at `maxSteps`.
+  const nearest = (list: number[], cap: number) =>
+    side === "past" ? list.slice(Math.max(0, list.length - cap)) : list.slice(0, cap);
+  return {
+    indices,
+    quietIndices: nearest(indices, quietCap),
+    revealedIndices: nearest(indices, maxSteps),
+    overflow: Math.max(0, indices.length - maxSteps),
+    expandable,
+  };
+};
 
 /**
  * Where the anchor sits: `currentStepId` (matched by id) wins over
@@ -101,8 +138,7 @@ export const condenseStepperPlan = (
   input: CondenseStepperPlanInput = {},
 ): CondenseStepperPlan => {
   const maxSteps = Math.max(0, input.maxSteps ?? 6);
-  const quietPast = input.mode === "card" ? 1 : QUIET_PAST_DISCS;
-  const quietFuture = input.mode === "card" ? 1 : QUIET_FUTURE_DISCS;
+  const isCard = input.mode === "card";
   const n = steps.length;
   if (n === 0) {
     return {
@@ -133,7 +169,9 @@ export const condenseStepperPlan = (
     hasPast: hasZones && pastIndices.length > 0,
     hasFuture: hasZones && futureIndices.length > 0,
     statuses,
-    past: flank(pastIndices, quietPast, maxSteps),
-    future: flank(futureIndices, quietFuture, maxSteps),
+    past: flank(pastIndices, isCard ? 1 : QUIET_PAST_DISCS, maxSteps, "past",
+      isCard || pastIndices.length > QUIET_EXPAND_THRESHOLD),
+    future: flank(futureIndices, isCard ? 1 : QUIET_FUTURE_DISCS, maxSteps, "future",
+      isCard || futureIndices.length > QUIET_EXPAND_THRESHOLD),
   };
 };

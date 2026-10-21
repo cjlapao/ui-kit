@@ -1217,6 +1217,47 @@
   padding-block: 12px;
   margin-block: -12px;
 }
+/* The conveyor — the fido. The quiet motif (three ticks, two dots)
+   indicates and never moves; the REVEAL window — the six nearest the
+   anchor — is what slides when the run does. The newcomer springs in
+   from the centre side, the oldest drifts out left and fades as a
+   ghost taken out of flow the moment it is born, so the live six never
+   lurch. Both flanks drift LEFT: the past walks away from the anchor,
+   the queue is consumed by it. */
+@keyframes cs-disc-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px) scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cs-disc-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.5);
+  }
+}
+[data-animated="true"] .cs-disc-enter {
+  animation: cs-disc-in var(--_cs-dur) var(--_cs-ease) both;
+}
+[data-animated="true"] .cs-flank-row .cs-ghost {
+  position: absolute;
+  left: 0;
+  animation: cs-disc-out calc(var(--_cs-dur) * 0.8) ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-disc-enter,
+  .cs-flank-row .cs-ghost {
+    animation: none;
+  }
+}
 /* Revealed items are static by design: they are centred, fully-formed
    discs the moment their flank's track unfolds — the width spring is the
    animation, items drifting or scaling into place is lag, not motion. */

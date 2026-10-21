@@ -46,6 +46,9 @@ export const CondensedStepperPlayground: React.FC = () => {
   const [surface, setSurface] = useState<SurfaceVariant>("outlined");
   const [doneColor, setDoneColor] = useState<TrueColor>("emerald");
   const [nextColor, setNextColor] = useState<TrueColor>("gray");
+  // The run moves: the strip's flanks are honest, so advancing the
+  // anchor is how you watch the quiet six walk and the newcomer fido.
+  const [current, setCurrent] = useState(9);
   const say = (zone: string) => (hovered: boolean) =>
     setLastHover(`${zone}: ${hovered ? "hover in" : "hover out"}`);
   return (
@@ -127,6 +130,28 @@ export const CondensedStepperPlayground: React.FC = () => {
             </select>
           </label>
         ))}
+        <span className="ml-3 flex items-center gap-1 font-mono text-[11px] text-neutral-400">
+          run
+          <button
+            type="button"
+            aria-label="Undo one step"
+            onClick={() => setCurrent((c) => Math.max(0, c - 1))}
+            className="cursor-pointer rounded-md border border-neutral-200 px-1.5 py-0.5 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          >
+            ◀
+          </button>
+          <span className="w-14 text-center tabular-nums">
+            {current + 1} / {STEPS.length}
+          </span>
+          <button
+            type="button"
+            aria-label="Complete one step"
+            onClick={() => setCurrent((c) => Math.min(STEPS.length - 1, c + 1))}
+            className="cursor-pointer rounded-md border border-neutral-200 px-1.5 py-0.5 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          >
+            ▶
+          </button>
+        </span>
         <label className="ml-3 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
           surface
           <select
@@ -148,7 +173,7 @@ export const CondensedStepperPlayground: React.FC = () => {
       >
         <CondensedStepper
           steps={STEPS}
-          currentIndex={9}
+          currentIndex={current}
           actionLabel="Action Required"
           stretch={stretch}
           variant={surface}

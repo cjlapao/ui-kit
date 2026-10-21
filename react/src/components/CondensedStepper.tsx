@@ -1,4 +1,4 @@
-import React, { useCallback, useId, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import {
   EXPANDABLE_BUTTON_SPRING_TOKENS,
@@ -367,7 +367,15 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   // Hover wins while it lasts — pointing at a flank means you want to read
   // it — and falls back to the pin on leave. One value either way: the two
   // flanks are exclusive by construction.
-  const open = isControlled ? (openZone ?? null) : (hoverOpen ?? pinned);
+  const openRaw = isControlled ? (openZone ?? null) : (hoverOpen ?? pinned);
+  // The honest flank: a flank with three or fewer steps shows everything
+  // it has — there is nothing to reveal, so it cannot be open, not even
+  // on a controlled ask. The accordion, its button and its tooltip are
+  // withheld together.
+  const open =
+    openRaw && (openRaw === "past" ? plan.past.expandable : plan.future.expandable)
+      ? openRaw
+      : null;
 
   const report = useCallback(
     (next: CondensedZone | null) => onOpenChange?.(next),
@@ -378,8 +386,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     {},
   );
 
-  const enter = (zone: CondensedZone) => {
-    if (!interactive || expandOn !== "hover") return;
+  const enter = (zone: CondensedZone, canOpen = true) => {
+    if (!interactive || expandOn !== "hover" || !canOpen) return;
     if (isControlled) {
       report(zone);
       return;
@@ -387,8 +395,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     setHoverOpen(zone);
     report(zone);
   };
-  const leave = (zone: CondensedZone) => {
-    if (!interactive || expandOn !== "hover") return;
+  const leave = (zone: CondensedZone, canOpen = true) => {
+    if (!interactive || expandOn !== "hover" || !canOpen) return;
     if (isControlled) {
       report(null);
       return;
@@ -469,7 +477,20 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       } as React.CSSProperties)
     : undefined;
 
-  const renderFlank = (zone: CondensedZone, flank: CondensedFlankPlan) => {
+  const springDurationMs = springDuration ?? springConfig.duration;
+  /* The reveal window is the six nearest the anchor; when the run
+     moves, that window slides one notch and the six do a fido —
+     newcomer springs in from the centre side, oldest drifts out and
+     fades. The quiet motif (three ticks, two dots) never shifts:
+     it indicates, it does not enumerate. */
+  const pastShift = useWindowShift(plan.past.revealedIndices.join(","), animated, springDurationMs);
+  const futureShift = useWindowShift(plan.future.revealedIndices.join(","), animated, springDurationMs);
+
+  const renderFlank = (
+    zone: CondensedZone,
+    flank: CondensedFlankPlan,
+    shift: { enter: number[]; exit: number[] },
+  ) => {
     const isPast = zone === "past";
     const isOpen = open === zone;
     const count = flank.indices.length;
@@ -492,14 +513,14 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
         )}
         onMouseEnter={() => {
           (isPast ? onDoneHover : onNextHover)?.(true);
-          enter(zone);
+          enter(zone, flank.expandable);
         }}
         onMouseLeave={() => {
           (isPast ? onDoneHover : onNextHover)?.(false);
-          leave(zone);
+          leave(zone, flank.expandable);
         }}
       >
-        {interactive ? (
+        {interactive && flank.expandable ? (
           <button
             ref={(el) => {
               zoneButtonRefs.current[zone] = el;
@@ -602,7 +623,13 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                     : TONE_CLASSES.pending;
               if (isPast) {
                 return (
-                  <span key={step.id ?? index} className="cs-item">
+                  <span
+                    key={step.id ?? index}
+                    className={classNames(
+                      "cs-item",
+                      shift.enter.includes(index) && "cs-disc-enter",
+                    )}
+                  >
                     <Disc
                       label={index + 1}
                       check={false}
@@ -620,7 +647,13 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                 );
               }
               return (
-                <span key={step.id ?? index} className="cs-item">
+                <span
+                  key={step.id ?? index}
+                  className={classNames(
+                    "cs-item",
+                    shift.enter.includes(index) && "cs-disc-enter",
+                  )}
+                >
                   {interactive && onStepSelect != null ? (
                     <button
                       type="button"
@@ -684,6 +717,57 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                 +{flank.overflow}
               </span>
             )}
+            {/* The conveyor's departing items: out of flow the moment
+                they are born, drifting out left and fading, so the
+                live six never lurch when the window slides. */}
+            {shift.exit.map((index) => {
+              const step = steps[index];
+              const status = plan.statuses[index];
+              const toneClass =
+                status === "error"
+                  ? TONE_CLASSES.error
+                  : status === "completed"
+                    ? TONE_CLASSES.completed
+                    : TONE_CLASSES.pending;
+              return (
+                <span key={`ghost-${index}`} className="cs-item cs-ghost" aria-hidden>
+                  {isPast ? (
+                    <Disc
+                      label={index + 1}
+                      check={false}
+                      toneClass={toneClass}
+                      surface={surface}
+                      tokens={tokens}
+                      interactive={false}
+                      title={titleText(step.title)}
+                      stepNumber={index + 1}
+                    />
+                  ) : (
+                    <span
+                      className={classNames(
+                        "flex items-center gap-1 rounded-full px-1.5 py-0.5",
+                        surface,
+                        toneClass,
+                      )}
+                      data-step={index + 1}
+                    >
+                      <span className={classNames("font-mono font-semibold", tokens.discText)}>
+                        {index + 1}
+                      </span>
+                      <span
+                        className={classNames(
+                          "truncate font-medium",
+                          tokens.pillText,
+                          tokens.labelMax,
+                        )}
+                      >
+                        {step.title}
+                      </span>
+                    </span>
+                  )}
+                </span>
+              );
+            })}
               </>
             )}
             </div>
@@ -784,7 +868,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     >
       {plan.hasPast && (
         <>
-          {renderFlank("past", plan.past)}
+          {renderFlank("past", plan.past, pastShift)}
           <Dash tokens={tokens} side="l" />
         </>
       )}
@@ -792,11 +876,50 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       {plan.hasFuture && (
         <>
           <Dash tokens={tokens} side="r" />
-          {renderFlank("future", plan.future)}
+          {renderFlank("future", plan.future, futureShift)}
         </>
       )}
     </div>
   );
+};
+
+/* The reveal-window conveyor. Derived state adjusted during render
+   (the official pattern): when the nearest-six window changes, the
+   newcomer earns a spring entrance and the oldest becomes a fading
+   ghost; the effect schedules only the ghost's removal. `animated`
+   off collapses it all to nothing — no classes, no ghosts. */
+const useWindowShift = (
+  windowKey: string,
+  animated: boolean,
+  duration: number,
+): { enter: number[]; exit: number[] } => {
+  const [shift, setShift] = useState<{
+    prev: string;
+    enter: number[];
+    exit: number[];
+  }>({ prev: windowKey, enter: [], exit: [] });
+  if (shift.prev !== windowKey) {
+    const before = shift.prev === "" ? [] : shift.prev.split(",").map(Number);
+    const now = windowKey === "" ? [] : windowKey.split(",").map(Number);
+    setShift(
+      animated
+        ? {
+            prev: windowKey,
+            enter: now.filter((i) => !before.includes(i)),
+            exit: before.filter((i) => !now.includes(i)),
+          }
+        : { prev: windowKey, enter: [], exit: [] },
+    );
+  }
+  useEffect(() => {
+    if (shift.exit.length === 0) return;
+    const timer = setTimeout(
+      () => setShift((current) => ({ ...current, exit: [] })),
+      duration + 100,
+    );
+    return () => clearTimeout(timer);
+  }, [shift, duration]);
+  return shift;
 };
 
 const QuietDiscs: React.FC<{
@@ -810,11 +933,15 @@ const QuietDiscs: React.FC<{
     /* ColorSwatches' language: solid discs stacked on each other — no hard
        border (it reads as an outline on dark surfaces), just a lighter
        wash of the background separating them and a diffusion of their own
-       colour underneath. Done wears the ✓; the queue is a plain filled dot. */
+       colour underneath. Done wears the ✓; the queue is a plain filled
+       dot. The motif is fixed — three ticks say "done here", two dots say
+       "queued there" — the true counts live in the summary and the
+       reveal, and the six nearest the anchor are what walks and fidos. */
     <span className="cs-quiet flex shrink-0 items-center" aria-hidden>
-      {Array.from({ length: flank.quietDiscs }, (_, i) => (
+      {flank.quietIndices.map((index, i) => (
         <span
-          key={i}
+          key={index}
+          data-qstep={index + 1}
           className={classNames(
             "flex items-center justify-center rounded-full border-2 border-white/60 dark:border-white/15",
             tokens.disc,

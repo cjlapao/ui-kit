@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import CondensedStepper from "./CondensedStepper";
 import {
   condenseStepperPlan,
@@ -37,25 +37,36 @@ describe("condenseStepperPlan", () => {
     expect(plan.future.indices).toEqual([10, 11]);
   });
 
-  it("quiet caps at 3 past discs and 2 future discs", () => {
+  it("the quiet motif is fixed: three ticks, two dots — whatever the count", () => {
     const steps = mockSteps();
     const plan = condenseStepperPlan(steps, 9);
-    expect(plan.past.quietDiscs).toBe(3);
-    expect(plan.future.quietDiscs).toBe(2);
+    expect(plan.past.quietIndices).toEqual([6, 7, 8]); // the last three walked
+    expect(plan.future.quietIndices).toEqual([10, 11]); // two of the queue
+    expect(plan.past.expandable).toBe(true);
+    expect(plan.future.expandable).toBe(false); // two is all of them
+  });
+
+  it("three is all on show; the fourth earns the accordion", () => {
+    const plan3 = condenseStepperPlan(mockSteps(), 3);
+    expect(plan3.past.quietIndices).toEqual([0, 1, 2]);
+    expect(plan3.past.expandable).toBe(false);
+    expect(condenseStepperPlan(mockSteps(), 4).past.expandable).toBe(true);
+    expect(condenseStepperPlan(mockSteps(), 8).future.expandable).toBe(false);
+    expect(condenseStepperPlan(mockSteps(), 7).future.expandable).toBe(true);
   });
 
   it("caps the reveal at maxSteps and hands the rest to +N", () => {
     const steps = mockSteps();
     const plan = condenseStepperPlan(steps, 9, { maxSteps: 5 });
-    expect(plan.past.revealedIndices).toEqual([0, 1, 2, 3, 4]);
+    expect(plan.past.revealedIndices).toEqual([4, 5, 6, 7, 8]);
     expect(plan.past.overflow).toBe(4);
     expect(plan.future.revealedIndices).toEqual([10, 11]);
     expect(plan.future.overflow).toBe(0);
   });
 
-  it("defaults the reveal to six per flank", () => {
+  it("defaults the reveal to six per flank, nearest the anchor", () => {
     const plan = condenseStepperPlan(mockSteps(), 9);
-    expect(plan.past.revealedIndices).toHaveLength(6);
+    expect(plan.past.revealedIndices).toEqual([3, 4, 5, 6, 7, 8]);
     expect(plan.past.overflow).toBe(3);
     expect(plan.future.revealedIndices).toHaveLength(2);
     expect(plan.future.overflow).toBe(0);
@@ -118,13 +129,15 @@ describe("condenseStepperPlan", () => {
     ]);
   });
 
-  it("card variant: one solid disc per flank, panel keeps 3 + 2", () => {
+  it("card mode stays the chip: one disc per flank, expansion always available", () => {
     const steps = mockSteps();
-    expect(condenseStepperPlan(steps, 9, { mode: "card" }).past.quietDiscs).toBe(1);
-    expect(condenseStepperPlan(steps, 9, { mode: "card" }).future.quietDiscs).toBe(1);
+    const card = condenseStepperPlan(steps, 9, { mode: "card" });
+    expect(card.past.quietIndices).toEqual([8]);
+    expect(card.future.quietIndices).toEqual([10]);
+    expect(card.past.expandable).toBe(true);
     const panel = condenseStepperPlan(steps, 9);
-    expect(panel.past.quietDiscs).toBe(3);
-    expect(panel.future.quietDiscs).toBe(2);
+    expect(panel.past.quietIndices).toEqual([6, 7, 8]);
+    expect(panel.future.quietIndices).toEqual([10, 11]);
   });
 });
 
@@ -171,7 +184,7 @@ describe("CondensedStepper", () => {
   });
 
   it("is exclusive: opening the future closes the past", () => {
-    const { container } = strip();
+    const { container } = strip({ currentIndex: 7 });
     const past = container.querySelector<HTMLButtonElement>('[data-zone="past"]')!;
     const future = container.querySelector<HTMLButtonElement>('[data-zone="future"]')!;
     fireEvent.click(past);
@@ -194,28 +207,28 @@ describe("CondensedStepper", () => {
     const { container } = strip({ onStepSelect });
     const past = container.querySelector<HTMLButtonElement>('[data-zone="past"]')!;
     fireEvent.click(past);
-    // default maxSteps 6 of 9 — the rest is carried by +3.
-    expect(container.querySelectorAll('[data-step="1"]')).toHaveLength(1);
+    // The honest window: the LAST six walked — steps 4..9, nearest the
+    // anchor — and +3 carries the rest.
+    expect(container.querySelectorAll('[data-step="1"]')).toHaveLength(0);
     expect(container.querySelectorAll(".cs-flank-past button[data-step]")).toHaveLength(6);
     expect(container.querySelector(".cs-flank-past")!.textContent).toContain("+3");
-    fireEvent.click(container.querySelector<HTMLElement>(".cs-flank-past button[data-step='3']")!);
+    fireEvent.click(container.querySelector<HTMLElement>(".cs-flank-past button[data-step='4']")!);
     expect(onStepSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "s2" }),
-      2,
+      expect.objectContaining({ id: "s3" }),
+      3,
     );
   });
 
   it("the future flank shows numbered label pills", () => {
-    const { container } = strip();
+    const { container } = strip({ currentIndex: 7 });
     const future = container.querySelector<HTMLButtonElement>('[data-zone="future"]')!;
     fireEvent.click(future);
     expect(container.querySelector(".cs-flank-future")!.textContent).toContain("Sign Key");
-    expect(container.querySelector(".cs-flank-future")!.textContent).toContain("Deploy");
   });
 
   it("a controlled openZone owns the reveal; interactions only report", () => {
     const onOpenChange = vi.fn();
-    const { container } = strip({ openZone: "future", onOpenChange });
+    const { container } = strip({ currentIndex: 7, openZone: "future", onOpenChange });
     const past = container.querySelector<HTMLButtonElement>('[data-zone="past"]')!;
     const future = container.querySelector<HTMLButtonElement>('[data-zone="future"]')!;
     expect(future.getAttribute("aria-expanded")).toBe("true");
@@ -252,8 +265,8 @@ describe("CondensedStepper", () => {
   });
 
   it("revealed items are plain spans unless onStepSelect is wired", () => {
-    const { container } = strip({ openZone: "future" });
-    expect(container.querySelectorAll(".cs-flank-future button")).toHaveLength(0);
+    const { container } = strip({ openZone: "past" });
+    expect(container.querySelectorAll(".cs-flank-past button")).toHaveLength(0);
   });
 
   it("degenerates: no steps renders nothing, one step is just the pill", () => {
@@ -306,7 +319,7 @@ describe("CondensedStepper", () => {
     expect(
       container.querySelector('[data-zone="future"] .cs-quiet > span')!.className,
     ).toContain("bg-gray-500");
-    // Panel keeps three-and-two, also solid.
+    // Panel's motif: three ticks and two dots, solid.
     const { container: panel } = strip();
     expect(panel.querySelectorAll('[data-zone="past"] .cs-quiet > span')).toHaveLength(3);
     expect(panel.querySelectorAll('[data-zone="future"] .cs-quiet > span')).toHaveLength(2);
@@ -372,7 +385,9 @@ describe("CondensedStepper", () => {
   });
 
   it("stretch lays the ruler: flank, dash, anchor, dash, flank — one animated template", () => {
-    const { container } = strip();
+    // currentIndex 7: both flanks clear the three-step truth line and
+    // earn their buttons, so the retune can be exercised on both sides.
+    const { container } = strip({ currentIndex: 7 });
     const stripEl = container.querySelector(".cs-strip")!;
     // The panel is a ruler by default; the card is a chip unless told.
     expect(stripEl.getAttribute("data-stretch")).toBe("true");
@@ -404,6 +419,69 @@ describe("CondensedStepper", () => {
     expect(card.querySelector(".cs-strip")!.hasAttribute("data-stretch")).toBe(false);
     const { container: stretchedCard } = strip({ mode: "card", stretch: true });
     expect(stretchedCard.querySelector(".cs-strip")!.getAttribute("data-stretch")).toBe("true");
+  });
+
+  it("the quiet flank tells the truth: one done is one disc and no reveal", () => {
+    const onDoneHover = vi.fn();
+    const { container } = strip({ currentIndex: 1, onDoneHover });
+    expect(screen.getByText("✓ 1 done")).toBeTruthy();
+    // Everything visible: no button, nothing to ask a reveal for.
+    expect(container.querySelector('button[data-zone="past"]')).toBeNull();
+    expect(container.querySelector('[data-zone="past"]')!.tagName).toBe("SPAN");
+    expect(
+      container.querySelectorAll('[data-zone="past"] .cs-quiet > span[data-qstep]'),
+    ).toHaveLength(1);
+    // Pure observation survives the demotion: the hover callback still reads it.
+    fireEvent.mouseEnter(container.querySelector(".cs-zone-l")!);
+    expect(onDoneHover).toHaveBeenCalledWith(true);
+    expect(container.querySelector(".cs-strip")!.hasAttribute("data-open")).toBe(false);
+  });
+
+  it("the quiet motif never enumerates: three ticks and two dots, nine done or not", () => {
+    const { container } = strip();
+    const q = (zone: string) =>
+      Array.from(container.querySelectorAll(`[data-zone="${zone}"] .cs-quiet > span`)).map((el) =>
+        el.getAttribute("data-qstep"),
+      );
+    expect(q("past")).toEqual(["7", "8", "9"]); // ticks indicate; the summary counts
+    expect(q("future")).toEqual(["11", "12"]);
+    expect(screen.getByText("✓ 9 done")).toBeTruthy();
+  });
+
+  it("a controlled ask cannot force open a flank with nothing to reveal", () => {
+    const { container } = strip({ openZone: "future" });
+    expect(container.querySelector(".cs-strip")!.hasAttribute("data-open")).toBe(false);
+  });
+
+  it("the conveyor: a new completion slides the revealed six — newcomer springs in, oldest drifts out", () => {
+    vi.useFakeTimers();
+    try {
+      const view = () => (
+        <CondensedStepper steps={mockSteps()} currentIndex={current} actionLabel="Action Required" />
+      );
+      let current = 9;
+      const { container, rerender } = render(view());
+      // Pin the past flank — the revealed six are the ones walking.
+      fireEvent.click(container.querySelector<HTMLButtonElement>('button[data-zone="past"]')!);
+      current = 10;
+      rerender(view());
+      // The revealed window walked 4..9 → 5..10: step 10 springs in,
+      // step 4 is a fading ghost out of flow at the row's left edge.
+      const items = container.querySelectorAll(".cs-flank-past .cs-item:not(.cs-ghost)");
+      expect(items).toHaveLength(6);
+      expect(items[5].className).toContain("cs-disc-enter"); // the six, nearest last
+      expect(items[5].textContent).toContain("10");
+      const ghost = container.querySelector(".cs-ghost");
+      expect(ghost?.textContent).toContain("4");
+      // The motif stayed put through it all.
+      expect(container.querySelectorAll('[data-zone="past"] .cs-quiet > span')).toHaveLength(3);
+      act(() => {
+        vi.advanceTimersByTime(900);
+      });
+      expect(container.querySelector(".cs-ghost")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("variant dresses the pill and revealed items in the shared surface vocabulary", () => {

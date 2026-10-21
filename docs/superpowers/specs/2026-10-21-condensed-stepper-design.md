@@ -250,3 +250,33 @@ Four corrections from the first demo pass, each committed with code:
 - The anchor pill wears its tone's diffusion (equal perceived height
   with the glowing discs), and items enter static — centred from the
   first frame, no scale/fade audition (the width spring is the motion).
+
+### Round three (same day) — the motif indicates, the reveal walks
+
+An earlier reading of "make it realistic" made the quiet discs mirror
+the true count — seven ticks for nine done. Rejected: the quiet flank
+is a MOTIF, not an inventory. Corrected:
+
+- **The quiet motif is fixed: three ticks left, two dots right**, solid,
+  whatever the numbers — three ✓s say "work is done here", two dots say
+  "there is a queue". The true counts live in the summaries
+  (`✓ 9 done`, `+2 pending`) and in the reveal. With three or fewer
+  steps on a flank, the motif simply *is* the truth — one done is one
+  tick — and the reveal (button, tooltip, accordion) is withheld: with
+  nothing left to reveal, promising one is theatre. A `controlled`
+  `openZone` cannot force such a flank open; the demoted zone is a read
+  span and the pure-observation hover callbacks keep firing.
+- **The reveal window is the six nearest the anchor**: the past shows
+  the most recently walked steps (nine done → 4…9, the +N carries the
+  rest), the queue shows the next-up six. That window is the one that
+  walks.
+- **The conveyor — the fido — lives in the reveal.** When the run moves
+  (step 10 completes → the window slides 4…9 → 5…10), the six do a
+  fido: the newcomer springs in from the centre side on the shared
+  spring, the oldest becomes a ghost — out of flow the instant it is
+  born, drifting out left and fading at the row's edge — so the live
+  six never lurch. Both flanks drift LEFT: the past walks away from the
+  anchor, the queue is consumed by it. `animated={false}` and reduced
+  motion skip the animation and the ghost entirely.
+- The demo gained **◀ ▶ run stepper** buttons: pin a flank and advance
+  the run to watch the six walk.
