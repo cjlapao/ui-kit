@@ -484,6 +484,31 @@ describe("CondensedStepper", () => {
     }
   });
 
+  it("revealed items are hover-expand badges on both flanks — circle at rest, title on the spring", () => {
+    const { container } = strip({ openZone: "past" });
+    const badge = container.querySelector<HTMLElement>(".cs-flank-past [data-step]")!;
+    expect(badge.className).toContain("cs-badge");
+    expect(badge.className).toContain("min-w-6"); // circle at rest (md)
+    // The title lives on a 0fr track (the stylesheet opens it on hover);
+    // it is in the DOM, just folded.
+    expect(badge.querySelector(".cs-badge-track span span")!.textContent).toBe("Create PR");
+    // Same gesture on the queue: badges, not pre-expanded pills.
+    const { container: fut } = strip({ currentIndex: 7, openZone: "future" });
+    const qBadge = fut.querySelector<HTMLElement>(".cs-flank-future [data-step]")!;
+    expect(qBadge.className).toContain("cs-badge");
+    // Anchor at index 7 means the queue starts at step 9 ("Scan deps").
+    expect(qBadge.getAttribute("data-step")).toBe("9");
+    expect(qBadge.querySelector(".cs-badge-track span span")!.textContent).toBe("Scan deps");
+  });
+
+  it("the queue caps like the past: next six or whatever is left, +N carries the rest", () => {
+    const { container } = strip({ currentIndex: 3, openZone: "future" });
+    // Eight queued; the row shows 5..10 and +2, and never reaches Sign Key.
+    expect(container.querySelectorAll(".cs-flank-future [data-step]")).toHaveLength(6);
+    expect(container.querySelector(".cs-flank-future")!.textContent).toContain("+2");
+    expect(container.querySelector(".cs-flank-future")!.textContent).not.toContain("Sign Key");
+  });
+
   it("variant dresses the pill and revealed items in the shared surface vocabulary", () => {
     const { container } = strip({ variant: "elevated" });
     const pill = container.querySelector(".cs-pill")!;

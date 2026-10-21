@@ -136,6 +136,7 @@ const SIZE_TOKENS: Record<
   ControlSize,
   {
     disc: string;
+    badge: string;
     discText: string;
     glyph: string;
     pill: string;
@@ -146,6 +147,7 @@ const SIZE_TOKENS: Record<
 > = {
   xs: {
     disc: "h-4 w-4",
+    badge: "h-4 min-w-4 px-1",
     discText: "text-[8px] leading-none",
     glyph: "h-2 w-2",
     pill: "gap-1 px-1.5",
@@ -155,6 +157,7 @@ const SIZE_TOKENS: Record<
   },
   sm: {
     disc: "h-5 w-5",
+    badge: "h-5 min-w-5 px-1",
     discText: "text-[9px] leading-none",
     glyph: "h-2.5 w-2.5",
     pill: "gap-1 px-2",
@@ -164,6 +167,7 @@ const SIZE_TOKENS: Record<
   },
   md: {
     disc: "h-6 w-6",
+    badge: "h-6 min-w-6 px-1",
     discText: "text-[10px] leading-none",
     glyph: "h-3 w-3",
     pill: "gap-1.5 px-2.5",
@@ -173,6 +177,7 @@ const SIZE_TOKENS: Record<
   },
   lg: {
     disc: "h-7 w-7",
+    badge: "h-7 min-w-7 px-1.5",
     discText: "text-xs leading-none",
     glyph: "h-3.5 w-3.5",
     pill: "gap-1.5 px-3",
@@ -182,6 +187,7 @@ const SIZE_TOKENS: Record<
   },
   xl: {
     disc: "h-8 w-8",
+    badge: "h-8 min-w-8 px-1.5",
     discText: "text-sm leading-none",
     glyph: "h-4 w-4",
     pill: "gap-2 px-3.5",
@@ -234,68 +240,6 @@ const DISC_DIFFUSION: Record<TrueColor, string> = {
 const titleText = (title: React.ReactNode): string | undefined =>  typeof title === "string" || typeof title === "number"
     ? String(title)
     : undefined;
-
-const Disc = ({
-  label,
-  check,
-  toneClass,
-  surface,
-  tokens,
-  interactive,
-  title,
-  stepNumber,
-  onClick,
-}: {
-  label: React.ReactNode;
-  check?: boolean;
-  toneClass: string;
-  surface: string;
-  tokens: (typeof SIZE_TOKENS)[ControlSize];
-  interactive: boolean;
-  title?: string;
-  stepNumber: number;
-  onClick?: () => void;
-}) => {
-  const inner = (
-    <>
-      {check ? (
-        <CheckGlyph className={classNames(tokens.glyph, "stroke-[3]")} aria-hidden />
-      ) : (
-        <span className={classNames("font-mono font-semibold", tokens.discText)}>
-          {label}
-        </span>
-      )}
-    </>
-  );
-  const circle = classNames(
-    "flex shrink-0 items-center justify-center rounded-full",
-    tokens.disc,
-    surface,
-    toneClass,
-  );
-  if (!interactive) {
-    return (
-      <span className={circle} title={title} data-step={stepNumber}>
-        {inner}
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      className={classNames(
-        circle,
-        "cursor-pointer transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:focus-visible:outline-white",
-      )}
-      title={title ?? `Step ${stepNumber}`}
-      aria-label={`Step ${stepNumber}`}
-      onClick={onClick}
-      data-step={stepNumber}
-    >
-      {inner}
-    </button>
-  );
-};
 
 const CondensedStepper: React.FC<CondensedStepperProps> = ({
   steps,
@@ -501,6 +445,67 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     const tooltip = isPast
       ? `Hover to accordion reveal ${count} completed steps`
       : `Hover to accordion reveal ${count} upcoming steps`;
+
+    /* The revealed item — one gesture on both flanks, like the centre
+       pill: a circle at rest wearing the surface dress, and the title
+       on a 0fr grid track the spring opens on hover/focus. Opening an
+       item pushes its neighbours along the row; the ruler absorbs it
+       (dashes to their floors first, the anchor last). Past and future
+       differ only in which six are near. */
+    const renderBadge = (index: number, ghost = false) => {
+      const step = steps[index];
+      const status = plan.statuses[index];
+      const toneClass =
+        status === "error"
+          ? TONE_CLASSES.error
+          : status === "completed"
+            ? TONE_CLASSES.completed
+            : TONE_CLASSES.pending;
+      const dress = classNames(
+        "cs-badge flex items-center rounded-full",
+        tokens.badge,
+        surface,
+        toneClass,
+      );
+      const inner = (
+        <>
+          <span className={classNames("font-mono font-semibold", tokens.discText)}>
+            {index + 1}
+          </span>
+          <span className="cs-badge-track">
+            <span className="min-w-0 overflow-hidden">
+              <span
+                className={classNames("truncate font-medium pl-1", tokens.pillText, tokens.labelMax)}
+              >
+                {step.title}
+              </span>
+            </span>
+          </span>
+        </>
+      );
+      if (interactive && onStepSelect != null && !ghost) {
+        return (
+          <button
+            type="button"
+            className={classNames(
+              dress,
+              "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:focus-visible:outline-white",
+            )}
+            onClick={() => onStepSelect(step, index)}
+            title={titleText(step.title)}
+            aria-label={`Step ${index + 1}`}
+            data-step={index + 1}
+          >
+            {inner}
+          </button>
+        );
+      }
+      return (
+        <span className={dress} data-step={index + 1} title={titleText(step.title)}>
+          {inner}
+        </span>
+      );
+    };
     return (
       <div
         key={zone}
@@ -612,100 +617,14 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             >
             {mode === "panel" && (
               <>
-            {flank.revealedIndices.map((index) => {
-              const step = steps[index];
-              const status = plan.statuses[index];
-              const toneClass =
-                status === "error"
-                  ? TONE_CLASSES.error
-                  : status === "completed"
-                    ? TONE_CLASSES.completed
-                    : TONE_CLASSES.pending;
-              if (isPast) {
-                return (
-                  <span
-                    key={step.id ?? index}
-                    className={classNames(
-                      "cs-item",
-                      shift.enter.includes(index) && "cs-disc-enter",
-                    )}
-                  >
-                    <Disc
-                      label={index + 1}
-                      check={false}
-                      toneClass={toneClass}
-                      surface={surface}
-                      tokens={tokens}
-                      interactive={interactive && onStepSelect != null}
-                      title={titleText(step.title)}
-                      stepNumber={index + 1}
-                      onClick={
-                        onStepSelect ? () => onStepSelect(step, index) : undefined
-                      }
-                    />
-                  </span>
-                );
-              }
-              return (
-                <span
-                  key={step.id ?? index}
-                  className={classNames(
-                    "cs-item",
-                    shift.enter.includes(index) && "cs-disc-enter",
-                  )}
-                >
-                  {interactive && onStepSelect != null ? (
-                    <button
-                      type="button"
-                      className={classNames(
-                        "flex cursor-pointer items-center gap-1 rounded-full px-1.5 py-0.5 transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 dark:focus-visible:outline-white",
-                        surface,
-                        toneClass,
-                      )}
-                      onClick={() => onStepSelect(step, index)}
-                      title={titleText(step.title)}
-                      aria-label={`Step ${index + 1}`}
-                      data-step={index + 1}
-                    >
-                      <span className={classNames("font-mono font-semibold", tokens.discText)}>
-                        {index + 1}
-                      </span>
-                      <span
-                        className={classNames(
-                          "truncate font-medium",
-                          tokens.pillText,
-                          tokens.labelMax,
-                        )}
-                      >
-                        {step.title}
-                      </span>
-                    </button>
-                  ) : (
-                    <span
-                      className={classNames(
-                        "flex items-center gap-1 rounded-full px-1.5 py-0.5",
-                        surface,
-                        toneClass,
-                      )}
-                      data-step={index + 1}
-                    >
-                      <span className={classNames("font-mono font-semibold", tokens.discText)}>
-                        {index + 1}
-                      </span>
-                      <span
-                        className={classNames(
-                          "truncate font-medium",
-                          tokens.pillText,
-                          tokens.labelMax,
-                        )}
-                      >
-                        {step.title}
-                      </span>
-                    </span>
-                  )}
-                </span>
-              );
-            })}
+            {flank.revealedIndices.map((index) => (
+              <span
+                key={steps[index].id ?? index}
+                className={classNames("cs-item", shift.enter.includes(index) && "cs-disc-enter")}
+              >
+                {renderBadge(index)}
+              </span>
+            ))}
             {flank.overflow > 0 && (
               <span
                 className={classNames(
@@ -720,54 +639,11 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             {/* The conveyor's departing items: out of flow the moment
                 they are born, drifting out left and fading, so the
                 live six never lurch when the window slides. */}
-            {shift.exit.map((index) => {
-              const step = steps[index];
-              const status = plan.statuses[index];
-              const toneClass =
-                status === "error"
-                  ? TONE_CLASSES.error
-                  : status === "completed"
-                    ? TONE_CLASSES.completed
-                    : TONE_CLASSES.pending;
-              return (
-                <span key={`ghost-${index}`} className="cs-item cs-ghost" aria-hidden>
-                  {isPast ? (
-                    <Disc
-                      label={index + 1}
-                      check={false}
-                      toneClass={toneClass}
-                      surface={surface}
-                      tokens={tokens}
-                      interactive={false}
-                      title={titleText(step.title)}
-                      stepNumber={index + 1}
-                    />
-                  ) : (
-                    <span
-                      className={classNames(
-                        "flex items-center gap-1 rounded-full px-1.5 py-0.5",
-                        surface,
-                        toneClass,
-                      )}
-                      data-step={index + 1}
-                    >
-                      <span className={classNames("font-mono font-semibold", tokens.discText)}>
-                        {index + 1}
-                      </span>
-                      <span
-                        className={classNames(
-                          "truncate font-medium",
-                          tokens.pillText,
-                          tokens.labelMax,
-                        )}
-                      >
-                        {step.title}
-                      </span>
-                    </span>
-                  )}
-                </span>
-              );
-            })}
+            {shift.exit.map((index) => (
+              <span key={`ghost-${index}`} className="cs-item cs-ghost" aria-hidden>
+                {renderBadge(index, true)}
+              </span>
+            ))}
               </>
             )}
             </div>

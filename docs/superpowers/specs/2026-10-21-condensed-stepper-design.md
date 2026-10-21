@@ -280,3 +280,20 @@ is a MOTIF, not an inventory. Corrected:
   motion skip the animation and the ghost entirely.
 - The demo gained **◀ ▶ run stepper** buttons: pin a flank and advance
   the run to watch the six walk.
+
+### Round four (same day) — the revealed item is a hover-expand badge
+
+Both flanks' revealed items now share **one gesture, the centre pill's
+own, one notch smaller**: a circle at rest — the digit, wearing the
+surface `variant` dress — and the title on a `0fr → 1fr` grid track
+that the spring opens on hover/focus. The future stops showing
+pre-expanded pills; it starts as badges and expands on ask, exactly
+like the past. Opening a badge pushes its neighbours along the row,
+and the ruler absorbs it: the dashes toward their floors first, the
+anchor last. `Disc` retires; `renderBadge` dresses both flanks alike —
+past and future differ only in which six are near.
+
+The queue caps like the past: the **next six or whatever is left**,
+`+N` carrying the remainder — no revealed row longer than the six that
+walk. `hover:scale-105` is gone from revealed items: the expansion is
+the interaction, nothing should bounce on top of it.
