@@ -357,11 +357,14 @@ describe("CondensedStepper", () => {
     const discs = container.querySelectorAll('[data-zone="past"] .cs-quiet > span');
     expect(discs[0].className).not.toContain("-ml-");
     expect(discs[1].className).toContain("-ml-2");
-    // Mono digits need their own line box, or the flex centring lands
-    // against the tall mono ascent and reads off-centre.
+    // The digit rides the TITLE's line box, not its own: digits have no
+    // descenders, and a 1.0 (leading-none) box parks them above the
+    // optical centre — the expanded badge then reads high against the
+    // title next to it. Same line box, same centre.
     fireEvent.click(container.querySelector<HTMLButtonElement>('[data-zone="past"]')!);
     const digit = container.querySelector<HTMLElement>(".cs-flank-past [data-step] span")!;
-    expect(digit.className).toContain("leading-none");
+    expect(digit.className).not.toContain("leading-none");
+    expect(digit.className).toContain("text-[10px]");
   });
 
   it("the anchor pill wears the tone and takes the row's height", () => {

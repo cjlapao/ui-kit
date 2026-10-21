@@ -137,6 +137,7 @@ const SIZE_TOKENS: Record<
   {
     disc: string;
     badge: string;
+    badgeText: string;
     discText: string;
     glyph: string;
     pill: string;
@@ -148,6 +149,7 @@ const SIZE_TOKENS: Record<
   xs: {
     disc: "h-4 w-4",
     badge: "h-4 min-w-4 px-1.5",
+    badgeText: "text-[8px]",
     discText: "text-[8px] leading-none",
     glyph: "h-2 w-2",
     pill: "gap-1 px-1.5",
@@ -158,6 +160,7 @@ const SIZE_TOKENS: Record<
   sm: {
     disc: "h-5 w-5",
     badge: "h-5 min-w-5 px-1.5",
+    badgeText: "text-[9px]",
     discText: "text-[9px] leading-none",
     glyph: "h-2.5 w-2.5",
     pill: "gap-1 px-2",
@@ -168,6 +171,7 @@ const SIZE_TOKENS: Record<
   md: {
     disc: "h-6 w-6",
     badge: "h-6 min-w-6 px-1.5",
+    badgeText: "text-[10px]",
     discText: "text-[10px] leading-none",
     glyph: "h-3 w-3",
     pill: "gap-1.5 px-2.5",
@@ -178,6 +182,7 @@ const SIZE_TOKENS: Record<
   lg: {
     disc: "h-7 w-7",
     badge: "h-7 min-w-7 px-2",
+    badgeText: "text-xs",
     discText: "text-xs leading-none",
     glyph: "h-3.5 w-3.5",
     pill: "gap-1.5 px-3",
@@ -188,6 +193,7 @@ const SIZE_TOKENS: Record<
   xl: {
     disc: "h-8 w-8",
     badge: "h-8 min-w-8 px-2",
+    badgeText: "text-sm",
     discText: "text-sm leading-none",
     glyph: "h-4 w-4",
     pill: "gap-2 px-3.5",
@@ -472,7 +478,12 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       );
       const inner = (
         <>
-          <span className={classNames("font-mono font-semibold", tokens.discText)}>
+          {/* No leading-none: the digit rides the same line box as the
+              title, so the circle's centre, the digit's centre and the
+              text's centre are one and the same (the big Stepper's
+              recipe — digits have no descenders; a 1.0 line box lifts
+              them off the optical centre). */}
+          <span className={classNames("font-mono font-semibold", tokens.badgeText)}>
             {index + 1}
           </span>
           <span className="cs-badge-track">
