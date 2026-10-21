@@ -383,9 +383,16 @@ describe("CondensedStepper", () => {
     // The dashes are the elastic: they grow across the slack.
     expect(sides[0].querySelectorAll("span.flex-1.min-w-4")).toHaveLength(1);
     expect(sides[1].querySelectorAll("span.flex-1.min-w-4")).toHaveLength(1);
-    // Quiet (non-stretch) keeps its token-width shrink-0 dashes.
-    const { container: quiet } = strip();
+    // The panel is a ruler by default; opting out returns the compact
+    // token-width dashes — and so does the card variant, compact unless
+    // explicitly stretched.
+    const { container: quiet } = strip({ stretch: false });
     expect(quiet.querySelectorAll(".cs-strip span.flex-1.min-w-4")).toHaveLength(0);
+    const { container: card } = strip({ variant: "card" });
+    expect(card.querySelectorAll(".cs-strip span.flex-1.min-w-4")).toHaveLength(0);
+    expect(card.querySelector(".cs-strip")!.hasAttribute("data-stretch")).toBe(false);
+    const { container: stretchedCard } = strip({ variant: "card", stretch: true });
+    expect(stretchedCard.querySelectorAll("span.flex-1.min-w-4")).toHaveLength(2);
   });
 
   it("reports zone hovers — done, current and next — as pure observation", () => {

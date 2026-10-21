@@ -211,7 +211,9 @@ Four corrections from the first demo pass, each committed with code:
 
 ### Round two (same day)
 
-- **`stretch`**: fill the parent — the done flank pins to the left edge,
+- **`stretch`** (default: panel `true`, card `false` — the panel's design
+  is a ruler across its container; a card keeps its compact dashes):
+  the done flank pins to the left edge,
   the queue to the right, the anchor stays dead centre (two equal
   `basis-0` sides bracket it, so unequal flanks cannot push it off), and
   the dashed lines carry the distance as the elastic: an expansion

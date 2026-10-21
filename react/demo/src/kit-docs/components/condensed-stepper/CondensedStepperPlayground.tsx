@@ -40,7 +40,7 @@ export const CondensedStepperPlayground: React.FC = () => {
   const [preset, setPreset] = useState<"quiet" | CondensedZone>("quiet");
   const [width, setWidth] = useState(860);
   const [lastHover, setLastHover] = useState<string | null>(null);
-  const [stretch, setStretch] = useState(false);
+  const [stretch, setStretch] = useState(true);
   const [doneColor, setDoneColor] = useState<TrueColor>("emerald");
   const [nextColor, setNextColor] = useState<TrueColor>("gray");
   const say = (zone: string) => (hovered: boolean) =>

@@ -84,7 +84,8 @@ export interface CondensedStepperProps
    * the right, the anchor stays dead centre, and the dashed lines carry
    * the distance between. An expansion eats the dashes down to their
    * minimum first — and only then compresses the centre.
-   * @default false
+   * @default panel: true, card: false — the panel's design is a ruler
+   *   across its container; a card keeps its compact dashes.
    */
   stretch?: boolean;
   /** Revealed items per flank when expanded, before `+N` carries the
@@ -293,7 +294,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   nextColor = "gray",
   size = "md",
   variant = "panel",
-  stretch = false,
+  stretch,
   maxSteps,
   interactive = true,
   onStepSelect,
@@ -415,6 +416,11 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   // motion can zero them from styles.css, and no dynamic class needs a
   // safelist entry. `animated={false}` does not set them at all, and the
   // stylesheet's transitions hang off [data-animated].
+  /* The panel is a ruler: by default it fills its container and lets
+     the dashes carry the distance. The card is a chip: compact by
+     default, stretch is opt-in. */
+  const isStretch = stretch ?? variant === "panel";
+
   const springConfig =
     EXPANDABLE_BUTTON_SPRING_TOKENS[spring] ??
     EXPANDABLE_BUTTON_SPRING_TOKENS.bouncy;
@@ -722,14 +728,14 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       data-open={open ?? undefined}
       data-animated={animated ? "true" : "false"}
       data-card={variant === "card" ? "true" : undefined}
-      data-stretch={stretch ? "true" : undefined}
+      data-stretch={isStretch ? "true" : undefined}
       role="group"
       aria-label={`Step progress — ${titleText(activeStep.title) ?? `step ${centre + 1}`}, step ${centre + 1} of ${steps.length}`}
       style={{ ...springVars, ...style }}
       onKeyDown={handleKeyDown}
       {...rest}
     >
-      {stretch ? (
+      {isStretch ? (
         <>
           <div className="flex min-w-0 basis-0 flex-1 items-center">
             {plan.hasPast && renderFlank("past", plan.past)}
