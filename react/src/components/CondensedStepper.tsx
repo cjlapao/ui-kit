@@ -326,13 +326,14 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   const uid = useId();
   const tokens = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
   const palette = getStepperTonePalette(tone);
-  /* The dress shared with Panel: the centre pill and every revealed
-     disc and queue pill wear it. The outlined default keeps the strip's
-     own background and the tone-soft border, so the default look is the
-     one the card mock established. */
+  /* The dress shared with Panel and every surfaced control — so the
+     helper's own tone palette decides: tonal and simple get the tone
+     tint (bg-{tone}-100/80 on the light side, the exact fill a Pill or
+     Badge wears at the same variant), glass and subtle their tints and
+     rims. The only override is `outlined`, which keeps the strip's
+     tone-soft border; anything else passed here would stomp a standard. */
   const surface = getSurfaceVariantClasses(variant, tone, {
-    bgClass: "bg-background",
-    borderClass: palette.pendingBorder,
+    borderClass: variant === "outlined" ? palette.pendingBorder : undefined,
   });
   const centreIndex = useMemo(
     () => resolveCentreIndex(steps, currentIndex, currentStepId),

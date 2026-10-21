@@ -235,8 +235,13 @@ Four corrections from the first demo pass, each committed with code:
   the variant speaks to dressed surfaces, not to signal dots. The
   `outlined` default is Panel's own outlined base with the tone-soft
   `pendingBorder` passed through, so the default look is the one the
-  mocks established; translucent variants take the strip's
-  `bg-background` via the helper's override.
+  mocks established. Every other variant is the helper's own tone
+  palette, untouched — `tonal` is the kit-wide tone tint
+  (`bg-{tone}-100/80` light, `bg-{tone}-500/15` dark), the exact fill a
+  Pill or Badge wears at the same variant. A demo round caught the one
+  way to break this standard: a blanket `bgClass` override silences the
+  tint and renders tonal as a white slab. Overrides belong to a single
+  variant, never to the call.
 - The anchor pill wears its tone's diffusion (equal perceived height
   with the glowing discs), and items enter static — centred from the
   first frame, no scale/fade audition (the width spring is the motion).

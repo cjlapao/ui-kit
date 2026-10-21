@@ -424,6 +424,14 @@ describe("CondensedStepper", () => {
     expect(
       def.querySelector('[data-zone="past"] .cs-quiet > span')!.className,
     ).toContain("bg-emerald-500");
+    // tonal is the kit's tone tint, not a white slab: the same fill a
+    // Pill or Badge wears at the same variant (the helper's own palette,
+    // never a bgClass override stomping it).
+    const { container: tonal } = strip({ variant: "tonal" });
+    const tonalPill = tonal.querySelector(".cs-pill")!;
+    expect(tonalPill.className).toContain("bg-blue-100/80");
+    expect(tonalPill.className).toContain("dark:bg-blue-500/15");
+    expect(tonalPill.className).not.toContain("border-blue-200");
   });
 
   it("reports zone hovers — done, current and next — as pure observation", () => {
