@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { CondensedStepper, type CondensedZone } from "@cjlapao/ui-kit";
+import {
+  CondensedStepper,
+  TRUE_COLORS,
+  type CondensedZone,
+  type TrueColor,
+} from "@cjlapao/ui-kit";
 import type { StepperStep } from "@cjlapao/ui-kit";
 
 /** The twelve-step gate flow from the designer's mock. */
@@ -35,6 +40,8 @@ export const CondensedStepperPlayground: React.FC = () => {
   const [preset, setPreset] = useState<"quiet" | CondensedZone>("quiet");
   const [width, setWidth] = useState(860);
   const [lastHover, setLastHover] = useState<string | null>(null);
+  const [doneColor, setDoneColor] = useState<TrueColor>("emerald");
+  const [nextColor, setNextColor] = useState<TrueColor>("slate");
   const say = (zone: string) => (hovered: boolean) =>
     setLastHover(`${zone}: ${hovered ? "hover in" : "hover out"}`);
   return (
@@ -77,6 +84,30 @@ export const CondensedStepperPlayground: React.FC = () => {
           aria-label="Container width"
         />
         <span className="font-mono text-[11px] text-neutral-400">{width}px</span>
+        {(
+          [
+            { label: "done", value: doneColor, set: setDoneColor },
+            { label: "next", value: nextColor, set: setNextColor },
+          ] as const
+        ).map((pick) => (
+          <label
+            key={pick.label}
+            className="ml-3 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400"
+          >
+            {pick.label}
+            <select
+              value={pick.value}
+              onChange={(e) => pick.set(e.target.value as TrueColor)}
+              className="rounded-md border border-neutral-200 bg-transparent px-1.5 py-0.5 text-xs dark:border-neutral-700"
+            >
+              {TRUE_COLORS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
       </div>
       <div
         className="mx-auto overflow-x-auto rounded-lg border border-dashed border-neutral-300 px-4 py-6 transition-[width] duration-200 dark:border-neutral-700"
@@ -87,6 +118,8 @@ export const CondensedStepperPlayground: React.FC = () => {
           currentIndex={9}
           actionLabel="Action Required"
           openZone={preset === "quiet" ? undefined : preset}
+          doneColor={doneColor}
+          nextColor={nextColor}
           onDoneHover={say("done")}
           onCurrentHover={say("current")}
           onNextHover={say("next")}

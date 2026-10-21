@@ -5,7 +5,12 @@ import {
   type ExpandableButtonSpring,
 } from "./ExpandableButton";
 import { iconRegistry } from "../icons/registry";
-import { getStepperTonePalette, type ControlSize, type TrueColor } from "../theme/Theme";
+import {
+  getStepperTonePalette,
+  TRUE_COLOR_DOT_CLASSES,
+  type ControlSize,
+  type TrueColor,
+} from "../theme/Theme";
 import type { StepperStep } from "./Stepper";
 import {
   condenseStepperPlan,
@@ -58,6 +63,9 @@ export interface CondensedStepperProps
   /** Accent of the anchor. Completed reads emerald, error reads rose —
    * semantically, whatever the tone. @default "sky" */
   tone?: TrueColor;
+  /** The quiet disc colours, per flank. @default "emerald" / "slate" */
+  doneColor?: TrueColor;
+  nextColor?: TrueColor;
   /** Circle/pill density, shared control scale. @default "md" */
   size?: ControlSize;
   /**
@@ -170,8 +178,35 @@ const TONE_CLASSES = {
   chip: "border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400",
 };
 
-const titleText = (title: React.ReactNode): string | undefined =>
-  typeof title === "string" || typeof title === "number"
+/* The quiet discs float on a diffusion of their own colour — the 500 step
+   (500/400 in dark, per TRUE_COLOR_DOT_CLASSES) at a soft alpha. Inline
+   custom values, so the scanner never needs to see them; complete per-tone
+   literals, so the record can never drift from TrueColor. */
+const DISC_DIFFUSION: Record<TrueColor, string> = {
+  red: "rgba(239,68,68,0.38)",
+  orange: "rgba(249,115,22,0.38)",
+  amber: "rgba(245,158,11,0.38)",
+  yellow: "rgba(234,179,8,0.38)",
+  lime: "rgba(132,204,22,0.38)",
+  green: "rgba(34,197,94,0.38)",
+  emerald: "rgba(16,185,129,0.38)",
+  teal: "rgba(20,184,166,0.38)",
+  cyan: "rgba(6,182,212,0.38)",
+  sky: "rgba(14,165,233,0.38)",
+  blue: "rgba(59,130,246,0.38)",
+  indigo: "rgba(99,102,241,0.38)",
+  violet: "rgba(139,92,246,0.38)",
+  purple: "rgba(168,85,247,0.38)",
+  fuchsia: "rgba(217,70,239,0.38)",
+  rose: "rgba(244,63,94,0.38)",
+  slate: "rgba(100,116,139,0.38)",
+  gray: "rgba(107,114,128,0.38)",
+  zinc: "rgba(82,82,91,0.38)",
+  neutral: "rgba(64,64,64,0.38)",
+  stone: "rgba(120,113,108,0.38)",
+};
+
+const titleText = (title: React.ReactNode): string | undefined =>  typeof title === "string" || typeof title === "number"
     ? String(title)
     : undefined;
 
@@ -243,6 +278,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   futureSummary,
   actionLabel,
   tone = "sky",
+  doneColor = "emerald",
+  nextColor = "slate",
   size = "md",
   variant = "panel",
   maxVisible,
@@ -414,7 +451,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             onFocus={() => focusIn(zone)}
             data-zone={zone}
           >
-            <QuietDiscs zone={zone} flank={flank} tokens={tokens} />
+            <QuietDiscs zone={zone} flank={flank} tokens={tokens} color={isPast ? doneColor : nextColor} />
             {!isPast && variant === "card" && open !== zone && (
               <span
                 className={classNames(
@@ -445,7 +482,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
           </button>
         ) : (
           <span className="flex min-w-0 items-center gap-1.5 px-1" data-zone={zone}>
-            <QuietDiscs zone={zone} flank={flank} tokens={tokens} />
+            <QuietDiscs zone={zone} flank={flank} tokens={tokens} color={isPast ? doneColor : nextColor} />
             {!isPast && variant === "card" && open !== zone && (
               <span
                 className={classNames(
@@ -694,26 +731,31 @@ const QuietDiscs: React.FC<{
   zone: CondensedZone;
   flank: CondensedFlankPlan;
   tokens: (typeof SIZE_TOKENS)[ControlSize];
-}> = ({ zone, flank, tokens }) => {
+  color: TrueColor;
+}> = ({ zone, flank, tokens, color }) => {
   const isPast = zone === "past";
   return (
-    /* ColorSwatches' language: solid discs stacked on each other, the
-       background-coloured border doing the separating — not rings. Done
-       wears the ✓; the queue is a plain filled dot. */
+    /* ColorSwatches' language: solid discs stacked on each other — no hard
+       border (it reads as an outline on dark surfaces), just a lighter
+       wash of the background separating them and a diffusion of their own
+       colour underneath. Done wears the ✓; the queue is a plain filled dot. */
     <span className="cs-quiet flex shrink-0 items-center" aria-hidden>
       {Array.from({ length: flank.quietDiscs }, (_, i) => (
         <span
           key={i}
           className={classNames(
-            "flex items-center justify-center rounded-full border-2 border-background text-background dark:border-neutral-900",
+            "flex items-center justify-center rounded-full border-2 border-white/60 dark:border-white/15",
             tokens.disc,
             i > 0 && "-ml-1.5",
-            isPast
-              ? "bg-emerald-500"
-              : "bg-neutral-300 dark:bg-neutral-600",
+            TRUE_COLOR_DOT_CLASSES[color],
           )}
+          style={{ boxShadow: `0 0 10px 1px ${DISC_DIFFUSION[color]}` }}
         >
-          {isPast ? <CheckGlyph className={classNames(tokens.glyph, "stroke-[3]")} /> : null}
+          {isPast ? (
+            <CheckGlyph
+              className={classNames(tokens.glyph, "stroke-[3] text-white dark:text-neutral-900")}
+            />
+          ) : null}
         </span>
       ))}
     </span>

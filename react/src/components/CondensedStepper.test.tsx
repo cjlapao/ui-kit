@@ -297,7 +297,7 @@ describe("CondensedStepper", () => {
     ).toContain("bg-emerald-500");
     expect(
       container.querySelector('[data-zone="future"] .cs-quiet > span')!.className,
-    ).toContain("bg-neutral-300");
+    ).toContain("bg-slate-500");
     // Panel keeps three-and-two, also solid.
     const { container: panel } = strip();
     expect(panel.querySelectorAll('[data-zone="past"] .cs-quiet > span')).toHaveLength(3);
@@ -315,6 +315,20 @@ describe("CondensedStepper", () => {
     const past = container.querySelector<HTMLButtonElement>('[data-zone="past"]')!;
     fireEvent.click(past);
     expect(container.querySelectorAll(".cs-flank-past [data-step]")).toHaveLength(0);
+  });
+
+  it("quiet discs take per-flank colours and diffuse them", () => {
+    const { container } = strip({ doneColor: "sky", nextColor: "rose", variant: "card" });
+    const past = container.querySelector('[data-zone="past"] .cs-quiet > span')!;
+    const future = container.querySelector('[data-zone="future"] .cs-quiet > span')!;
+    expect(past.className).toContain("bg-sky-500");
+    expect(future.className).toContain("bg-rose-500");
+    // The diffusion is the disc's own colour at a soft alpha.
+    expect(past.getAttribute("style")).toContain("rgba(14,165,233");
+    expect(future.getAttribute("style")).toContain("rgba(244,63,94");
+    // No hard border — separation is a lighter wash of the background.
+    expect(past.className).toContain("border-white/60");
+    expect(past.className).not.toContain("border-background");
   });
 
   it("reports zone hovers — done, current and next — as pure observation", () => {    const onDoneHover = vi.fn();
