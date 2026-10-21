@@ -1154,7 +1154,11 @@
 }
 .cs-flank > * {
   /* A clipped item's automatic minimum size is 0 — this is what lets the
-     column really reach zero, and what makes 1fr the content's own width. */
+     column really reach zero, and what makes 1fr the content's own width.
+     The clip is its own element (.cs-flank-clip): the revealed row needs
+     `width: max-content` to keep the strip on one line, and an element
+     that declares its own width refuses to shrink to the zero track —
+     clip and content-width never share an element. */
   min-width: 0;
   overflow: hidden;
 }

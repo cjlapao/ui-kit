@@ -261,7 +261,39 @@ describe("CondensedStepper", () => {
 
   it("closed flanks are inert — their buttons never take focus", () => {
     const { container } = strip({ onStepSelect: vi.fn() });
-    const inner = container.querySelector(".cs-flank-past > div")!;
-    expect(inner.hasAttribute("inert")).toBe(true);
+    const row = container.querySelector(".cs-flank-past .cs-flank-row")!;
+    expect(row.hasAttribute("inert")).toBe(true);
+  });
+
+  it("clips the reveal through a wrapper — the content keeps its own width", () => {
+    // The 0fr clip must not share an element with `w-max`: an element that
+    // sets its own width refuses to shrink to the zero track, and the
+    // "quiet" strip leaks its whole revealed content (the first demo did).
+    const { container } = strip();
+    const clip = container.querySelector(".cs-flank-past > .cs-flank-clip")!;
+    const row = clip.querySelector(".cs-flank-row")!;
+    expect(row.className).toContain("w-max");
+    expect(clip.className).not.toContain("w-max");
+  });
+
+  it("reports zone hovers — done, current and next — as pure observation", () => {
+    const onDoneHover = vi.fn();
+    const onCurrentHover = vi.fn();
+    const onNextHover = vi.fn();
+    const { container } = strip({ onDoneHover, onCurrentHover, onNextHover, openZone: null });
+    // Handlers live on the zone wrappers (the parent of each zone button).
+    fireEvent.mouseEnter(container.querySelector('[data-zone="past"]')!.parentElement!);
+    expect(onDoneHover).toHaveBeenLastCalledWith(true);
+    fireEvent.mouseLeave(container.querySelector('[data-zone="past"]')!.parentElement!);
+    expect(onDoneHover).toHaveBeenLastCalledWith(false);
+    const pill = container.querySelector(".cs-pill")!;
+    fireEvent.mouseEnter(pill);
+    expect(onCurrentHover).toHaveBeenLastCalledWith(true);
+    fireEvent.mouseLeave(pill);
+    expect(onCurrentHover).toHaveBeenLastCalledWith(false);
+    fireEvent.mouseEnter(container.querySelector('[data-zone="future"]')!.parentElement!);
+    expect(onNextHover).toHaveBeenLastCalledWith(true);
+    // Even controlled-open (openZone: null above): the strip always knows
+    // who is being looked at.
   });
 });

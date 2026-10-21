@@ -66,6 +66,16 @@ export interface CondensedStepperProps
   interactive?: boolean;
   onStepSelect?: (step: StepperStep, index: number) => void;
   /**
+   * Zone hover, as pure observation — fired on pointer enter (`true`) and
+   * leave (`false`) of the completed cluster, the centre anchor, and the
+   * queued cluster. They report whether or not expansion is enabled, and
+   * even while `openZone` is controlled: the strip always knows who is
+   * being looked at.
+   */
+  onDoneHover?: (hovered: boolean) => void;
+  onCurrentHover?: (hovered: boolean) => void;
+  onNextHover?: (hovered: boolean) => void;
+  /**
    * Controlled reveal — when set, owns `open`; interactions stop mutating
    * it and report through `onOpenChange` instead. Lets a host (or a demo
    * playground's Expand Left/Right presets) force a flank open.
@@ -228,6 +238,9 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   maxVisible,
   interactive = true,
   onStepSelect,
+  onDoneHover,
+  onCurrentHover,
+  onNextHover,
   openZone,
   onOpenChange,
   animated = true,
@@ -368,8 +381,14 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       <div
         key={zone}
         className="flex min-w-0 shrink-0 items-center"
-        onMouseEnter={() => enter(zone)}
-        onMouseLeave={() => leave(zone)}
+        onMouseEnter={() => {
+          (isPast ? onDoneHover : onNextHover)?.(true);
+          enter(zone);
+        }}
+        onMouseLeave={() => {
+          (isPast ? onDoneHover : onNextHover)?.(false);
+          leave(zone);
+        }}
       >
         {interactive ? (
           <button
@@ -411,16 +430,20 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
           </span>
         )}
         {/* The accordion: ExpandableButton's own trick — a 0fr → 1fr grid
-            column on the spring, no measured pixels anywhere. */}
+            column on the spring, no measured pixels anywhere. The clip lives
+            on the grid child; the content inside it is what carries its own
+            width — an element that sets `width: max-content` and is clipped
+            at the same time refuses to shrink to the zero track. */}
         <div
           id={revealId}
           className={classNames("cs-flank", isPast ? "cs-flank-past" : "cs-flank-future")}
           aria-hidden={!isOpen}
         >
-          <div
-            className="cs-flank-inner flex w-max items-center gap-1.5 pl-1.5"
-            inert={isOpen ? undefined : true}
-          >
+          <div className="cs-flank-clip">
+            <div
+              className="cs-flank-row flex w-max items-center gap-1.5 pl-1.5"
+              inert={isOpen ? undefined : true}
+            >
             {flank.revealedIndices.map((index, i) => {
               const step = steps[index];
               const status = plan.statuses[index];
@@ -515,6 +538,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                 +{flank.overflow}
               </span>
             )}
+            </div>
           </div>
         </div>
       </div>
@@ -554,6 +578,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
         )}
         aria-current="step"
         data-status={activeStatus}
+        onMouseEnter={() => onCurrentHover?.(true)}
+        onMouseLeave={() => onCurrentHover?.(false)}
       >
         {activeStatus === "completed" ? (
           <CheckGlyph className={classNames(tokens.glyph, "stroke-[3]")} aria-hidden />

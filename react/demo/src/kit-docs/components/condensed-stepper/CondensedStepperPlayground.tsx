@@ -34,6 +34,9 @@ const PRESETS: { key: "quiet" | CondensedZone; label: string; hint: string }[] =
 export const CondensedStepperPlayground: React.FC = () => {
   const [preset, setPreset] = useState<"quiet" | CondensedZone>("quiet");
   const [width, setWidth] = useState(860);
+  const [lastHover, setLastHover] = useState<string | null>(null);
+  const say = (zone: string) => (hovered: boolean) =>
+    setLastHover(`${zone}: ${hovered ? "hover in" : "hover out"}`);
   return (
     <section className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -84,11 +87,17 @@ export const CondensedStepperPlayground: React.FC = () => {
           currentIndex={9}
           actionLabel="Action Required"
           openZone={preset === "quiet" ? undefined : preset}
+          onDoneHover={say("done")}
+          onCurrentHover={say("current")}
+          onNextHover={say("next")}
         />
       </div>
       <p className="text-center text-xs text-neutral-400 dark:text-neutral-500">
         Step 10 of 12 · <span className="text-rose-500">Gate Blocked</span> —
         awaiting a signature to unblock step 11 (Sign Key)
+        <span className="ml-3 font-mono text-neutral-500 dark:text-neutral-400">
+          {lastHover ?? "—"}
+        </span>
       </p>
     </section>
   );
