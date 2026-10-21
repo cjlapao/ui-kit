@@ -241,7 +241,12 @@ Four corrections from the first demo pass, each committed with code:
   Pill or Badge wears at the same variant. A demo round caught the one
   way to break this standard: a blanket `bgClass` override silences the
   tint and renders tonal as a white slab. Overrides belong to a single
-  variant, never to the call.
+  variant, never to the call. And the standard is per **family**:
+  `glass` and `liquid-glass` take the *Pill's* glass recipe —
+  `backdrop-blur-sm/md` (proportionate to a pill; Panel's xl/2xl are
+  for cards), `getGlassFillClass(tone, "frosted")` (the 65% fill tuned
+  to carry a control's label), vibrancy and the neutral white rim —
+  because the strip dresses pills, not panels.
 - The anchor pill wears its tone's diffusion (equal perceived height
   with the glowing discs), and items enter static — centred from the
   first frame, no scale/fade audition (the width spring is the motion).

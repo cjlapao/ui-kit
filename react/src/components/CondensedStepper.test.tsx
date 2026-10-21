@@ -432,6 +432,18 @@ describe("CondensedStepper", () => {
     expect(tonalPill.className).toContain("bg-blue-100/80");
     expect(tonalPill.className).toContain("dark:bg-blue-500/15");
     expect(tonalPill.className).not.toContain("border-blue-200");
+    // glass is the *Pill's* recipe, not Panel's: blur proportionate to
+    // a pill, the 65% frosted fill that carries a label, vibrancy, and
+    // the neutral white rim.
+    const { container: glass } = strip({ variant: "glass" });
+    const glassPill = glass.querySelector(".cs-pill")!;
+    expect(glassPill.className).toContain("backdrop-blur-sm");
+    expect(glassPill.className).toContain("bg-blue-200/65");
+    expect(glassPill.className).toContain("border-white/50");
+    expect(glassPill.className).toContain("backdrop-saturate");
+    expect(glassPill.className).not.toContain("backdrop-blur-xl");
+    const { container: liquid } = strip({ variant: "liquid-glass" });
+    expect(liquid.querySelector(".cs-pill")!.className).toContain("backdrop-blur-md");
   });
 
   it("reports zone hovers — done, current and next — as pure observation", () => {

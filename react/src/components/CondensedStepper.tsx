@@ -6,6 +6,11 @@ import {
 } from "./ExpandableButton";
 import { iconRegistry } from "../icons/registry";
 import {
+  getGlassChromeClasses,
+  getGlassFillClass,
+  getGlassVibrancyClass,
+} from "../theme/glass";
+import {
   getStepperTonePalette,
   getSurfaceVariantClasses,
   TRUE_COLOR_DOT_CLASSES,
@@ -326,15 +331,27 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   const uid = useId();
   const tokens = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
   const palette = getStepperTonePalette(tone);
-  /* The dress shared with Panel and every surfaced control — so the
-     helper's own tone palette decides: tonal and simple get the tone
-     tint (bg-{tone}-100/80 on the light side, the exact fill a Pill or
-     Badge wears at the same variant), glass and subtle their tints and
-     rims. The only override is `outlined`, which keeps the strip's
-     tone-soft border; anything else passed here would stomp a standard. */
-  const surface = getSurfaceVariantClasses(variant, tone, {
-    borderClass: variant === "outlined" ? palette.pendingBorder : undefined,
-  });
+  /* The dress shared with the kit's surfaced controls. Each variant
+     defers to whichever component family owns the standard: the strip
+     dresses real pills, so the glass pair takes the *Pill's* glass
+     recipe — blur proportionate to a pill (sm/md, not Panel's xl), the
+     65% frosted fill that carries a label, vibrancy and the neutral
+     white rim — while every other variant is the shared surface
+     helper's own tone palette (tonal and simple the tone tint, subtle
+     its whisper border). The one override is `outlined`, which keeps
+     the strip's tone-soft border; anything else passed here would
+     stomp a standard. */
+  const surface =
+    variant === "glass" || variant === "liquid-glass"
+      ? classNames(
+          variant === "liquid-glass" ? "backdrop-blur-md" : "backdrop-blur-sm",
+          getGlassFillClass(tone, "frosted"),
+          getGlassVibrancyClass("medium"),
+          getGlassChromeClasses(tone, { interactive: false }),
+        )
+      : getSurfaceVariantClasses(variant, tone, {
+          borderClass: variant === "outlined" ? palette.pendingBorder : undefined,
+        });
   const centreIndex = useMemo(
     () => resolveCentreIndex(steps, currentIndex, currentStepId),
     [steps, currentIndex, currentStepId],
