@@ -1182,9 +1182,38 @@
   /* The squish, second half: the chip yields to the opening flank. */
   opacity: 0.4;
 }
+/* Card variant: the quiet strip is discs and nothing else — the count
+   text waits on its flank's own grid track, and the anchor compresses
+   to its index the same way. One trick, three uses: 0fr ⇄ 1fr. */
+.cs-label-track,
+.cs-card-summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  transition: grid-template-columns var(--_cs-dur) var(--_cs-ease);
+}
+.cs-label-track > *,
+.cs-card-summary > * {
+  min-width: 0;
+  overflow: hidden;
+}
+.cs-strip[data-card="true"] .cs-card-summary {
+  grid-template-columns: 0fr;
+}
+.cs-strip[data-card="true"][data-open="past"] .cs-card-summary-past,
+.cs-strip[data-card="true"][data-open="future"] .cs-card-summary-future {
+  grid-template-columns: 1fr;
+}
+.cs-strip[data-card="true"][data-open] .cs-label-track {
+  /* Expansion on a card is not an accordion: the count arrives on the
+     flank and the anchor folds down to (n) alone. */
+  grid-template-columns: 0fr;
+}
 .cs-strip[data-animated="false"] .cs-flank,
 .cs-strip[data-animated="false"] .cs-item,
-.cs-strip[data-animated="false"] .cs-chip {
+.cs-strip[data-animated="false"] .cs-chip,
+.cs-strip[data-animated="false"] .cs-label-track,
+.cs-strip[data-animated="false"] .cs-card-summary {
   transition: none;
 }
 @media (prefers-reduced-motion: reduce) {

@@ -109,6 +109,15 @@ describe("condenseStepperPlan", () => {
       "active",
     ]);
   });
+
+  it("card variant: one solid disc per flank, panel keeps 3 + 2", () => {
+    const steps = mockSteps();
+    expect(condenseStepperPlan(steps, 9, { variant: "card" }).past.quietDiscs).toBe(1);
+    expect(condenseStepperPlan(steps, 9, { variant: "card" }).future.quietDiscs).toBe(1);
+    const panel = condenseStepperPlan(steps, 9);
+    expect(panel.past.quietDiscs).toBe(3);
+    expect(panel.future.quietDiscs).toBe(2);
+  });
 });
 
 describe("CondensedStepper", () => {
@@ -276,8 +285,39 @@ describe("CondensedStepper", () => {
     expect(clip.className).not.toContain("w-max");
   });
 
-  it("reports zone hovers — done, current and next — as pure observation", () => {
-    const onDoneHover = vi.fn();
+  it("card variant: one solid disc per side, count on a track, no accordion", () => {
+    const { container } = strip({ variant: "card" });
+    const stripEl = container.querySelector(".cs-strip")!;
+    expect(stripEl.getAttribute("data-card")).toBe("true");
+    // One solid disc per flank — ColorSwatches fill, not rings.
+    expect(container.querySelectorAll('[data-zone="past"] .cs-quiet > span')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-zone="future"] .cs-quiet > span')).toHaveLength(1);
+    expect(
+      container.querySelector('[data-zone="past"] .cs-quiet > span')!.className,
+    ).toContain("bg-emerald-500");
+    expect(
+      container.querySelector('[data-zone="future"] .cs-quiet > span')!.className,
+    ).toContain("bg-neutral-300");
+    // Panel keeps three-and-two, also solid.
+    const { container: panel } = strip();
+    expect(panel.querySelectorAll('[data-zone="past"] .cs-quiet > span')).toHaveLength(3);
+    expect(panel.querySelectorAll('[data-zone="future"] .cs-quiet > span')).toHaveLength(2);
+    // Quiet card counts ride tracks (CSS folds them); the queue keeps its
+    // short +N until its flank opens; the anchor owns a label track.
+    expect(container.querySelector(".cs-card-summary-past")).toBeTruthy();
+    expect(container.querySelector(".cs-short")!.textContent).toBe("+2");
+    expect(container.querySelector(".cs-label-track")).toBeTruthy();
+    const future = container.querySelector<HTMLButtonElement>('[data-zone="future"]')!;
+    fireEvent.click(future);
+    expect(container.querySelector(".cs-short")).toBeNull();
+    expect(container.querySelector(".cs-card-summary-future")).toBeTruthy();
+    // And expansion on a card is never an accordion.
+    const past = container.querySelector<HTMLButtonElement>('[data-zone="past"]')!;
+    fireEvent.click(past);
+    expect(container.querySelectorAll(".cs-flank-past [data-step]")).toHaveLength(0);
+  });
+
+  it("reports zone hovers — done, current and next — as pure observation", () => {    const onDoneHover = vi.fn();
     const onCurrentHover = vi.fn();
     const onNextHover = vi.fn();
     const { container } = strip({ onDoneHover, onCurrentHover, onNextHover, openZone: null });

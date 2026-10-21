@@ -60,6 +60,15 @@ export interface CondensedStepperProps
   tone?: TrueColor;
   /** Circle/pill density, shared control scale. @default "md" */
   size?: ControlSize;
+  /**
+   * How much condenses — and what "expanded" means. `panel` (default):
+   * three solid past discs + two future discs quiet, hover accordion-
+   * reveals the numbered items. `card`: one solid disc per flank quiet,
+   * no accordion — expansion reveals the count and compresses the anchor
+   * to its index alone.
+   * @default "panel"
+   */
+  variant?: "panel" | "card";
   /** Revealed items per flank before `+N` carries the rest. @default 5 */
   maxVisible?: number;
   /** @default true */
@@ -235,6 +244,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   actionLabel,
   tone = "sky",
   size = "md",
+  variant = "panel",
   maxVisible,
   interactive = true,
   onStepSelect,
@@ -259,8 +269,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     [steps, currentIndex, currentStepId],
   );
   const plan = useMemo(
-    () => condenseStepperPlan(steps, centreIndex, { maxVisible }),
-    [steps, centreIndex, maxVisible],
+    () => condenseStepperPlan(steps, centreIndex, { maxVisible, variant }),
+    [steps, centreIndex, maxVisible, variant],
   );
 
   const [hoverOpen, setHoverOpen] = useState<CondensedZone | null>(null);
@@ -405,27 +415,63 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             data-zone={zone}
           >
             <QuietDiscs zone={zone} flank={flank} tokens={tokens} />
+            {!isPast && variant === "card" && open !== zone && (
+              <span
+                className={classNames(
+                  "cs-short shrink-0 font-mono font-semibold",
+                  tokens.discText,
+                  TONE_CLASSES.pending,
+                )}
+              >
+                +{count}
+              </span>
+            )}
             <span
               className={classNames(
-                "truncate font-mono font-semibold whitespace-nowrap",
-                tokens.pillText,
-                isPast ? TONE_CLASSES.completed : TONE_CLASSES.pending,
+                "cs-card-summary",
+                isPast ? "cs-card-summary-past" : "cs-card-summary-future",
               )}
             >
-              {summary}
+              <span
+                className={classNames(
+                  "truncate font-mono font-semibold whitespace-nowrap",
+                  tokens.pillText,
+                  isPast ? TONE_CLASSES.completed : TONE_CLASSES.pending,
+                )}
+              >
+                {summary}
+              </span>
             </span>
           </button>
         ) : (
           <span className="flex min-w-0 items-center gap-1.5 px-1" data-zone={zone}>
             <QuietDiscs zone={zone} flank={flank} tokens={tokens} />
+            {!isPast && variant === "card" && open !== zone && (
+              <span
+                className={classNames(
+                  "cs-short shrink-0 font-mono font-semibold",
+                  tokens.discText,
+                  TONE_CLASSES.pending,
+                )}
+              >
+                +{count}
+              </span>
+            )}
             <span
               className={classNames(
-                "truncate font-mono font-semibold whitespace-nowrap",
-                tokens.pillText,
-                isPast ? TONE_CLASSES.completed : TONE_CLASSES.pending,
+                "cs-card-summary",
+                isPast ? "cs-card-summary-past" : "cs-card-summary-future",
               )}
             >
-              {summary}
+              <span
+                className={classNames(
+                  "truncate font-mono font-semibold whitespace-nowrap",
+                  tokens.pillText,
+                  isPast ? TONE_CLASSES.completed : TONE_CLASSES.pending,
+                )}
+              >
+                {summary}
+              </span>
             </span>
           </span>
         )}
@@ -444,6 +490,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
               className="cs-flank-row flex w-max items-center gap-1.5 pl-1.5"
               inert={isOpen ? undefined : true}
             >
+            {variant === "panel" && (
+              <>
             {flank.revealedIndices.map((index, i) => {
               const step = steps[index];
               const status = plan.statuses[index];
@@ -538,6 +586,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                 +{flank.overflow}
               </span>
             )}
+              </>
+            )}
             </div>
           </div>
         </div>
@@ -554,6 +604,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       )}
       data-open={open ?? undefined}
       data-animated={animated ? "true" : "false"}
+      data-card={variant === "card" ? "true" : undefined}
       role="group"
       aria-label={`Step progress — ${titleText(activeStep.title) ?? `step ${centre + 1}`}, step ${centre + 1} of ${steps.length}`}
       style={{ ...springVars, ...style }}
@@ -605,25 +656,29 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
         >
           ({centre + 1})
         </span>
-        <span
-          className={classNames(
-            "min-w-0 truncate font-semibold",
-            tokens.pillText,
-            tokens.labelMax,
-          )}
-        >
-          {activeStep.title}
-        </span>
-        {actionLabel != null && activeStatus !== "completed" && (
-          <span
-            className={classNames(
-              "cs-chip shrink-0 rounded-full border px-1.5 text-[9px] font-bold tracking-wider uppercase",
-              TONE_CLASSES.chip,
+        <span className="cs-label-track min-w-0">
+          <span className="flex min-w-0 items-center">
+            <span
+              className={classNames(
+                "min-w-0 truncate font-semibold",
+                tokens.pillText,
+                tokens.labelMax,
+              )}
+            >
+              {activeStep.title}
+            </span>
+            {actionLabel != null && activeStatus !== "completed" && (
+              <span
+                className={classNames(
+                  "cs-chip shrink-0 rounded-full border px-1.5 text-[9px] font-bold tracking-wider uppercase",
+                  TONE_CLASSES.chip,
+                )}
+              >
+                {actionLabel}
+              </span>
             )}
-          >
-            {actionLabel}
           </span>
-        )}
+        </span>
       </div>
       {plan.hasFuture && (
         <>
@@ -639,23 +694,31 @@ const QuietDiscs: React.FC<{
   zone: CondensedZone;
   flank: CondensedFlankPlan;
   tokens: (typeof SIZE_TOKENS)[ControlSize];
-}> = ({ flank, tokens }) => (
-  <span className="flex shrink-0 items-center" aria-hidden>
-    {Array.from({ length: flank.quietDiscs }, (_, i) => (
-      <span
-        key={i}
-        className={classNames(
-          "flex items-center justify-center rounded-full border bg-background",
-          tokens.disc,
-          i > 0 && "-ml-1.5",
-          TONE_CLASSES.completed,
-        )}
-      >
-        <CheckGlyph className={classNames(tokens.glyph, "stroke-[3]")} />
-      </span>
-    ))}
-  </span>
-);
+}> = ({ zone, flank, tokens }) => {
+  const isPast = zone === "past";
+  return (
+    /* ColorSwatches' language: solid discs stacked on each other, the
+       background-coloured border doing the separating — not rings. Done
+       wears the ✓; the queue is a plain filled dot. */
+    <span className="cs-quiet flex shrink-0 items-center" aria-hidden>
+      {Array.from({ length: flank.quietDiscs }, (_, i) => (
+        <span
+          key={i}
+          className={classNames(
+            "flex items-center justify-center rounded-full border-2 border-background text-background dark:border-neutral-900",
+            tokens.disc,
+            i > 0 && "-ml-1.5",
+            isPast
+              ? "bg-emerald-500"
+              : "bg-neutral-300 dark:bg-neutral-600",
+          )}
+        >
+          {isPast ? <CheckGlyph className={classNames(tokens.glyph, "stroke-[3]")} /> : null}
+        </span>
+      ))}
+    </span>
+  );
+};
 
 const Dash: React.FC<{ tokens: (typeof SIZE_TOKENS)[ControlSize] }> = ({ tokens }) => (
   <span

@@ -33,6 +33,7 @@ const RunCards: React.FC = () => (
           meta: "saved project",
           steps: strip(1, 4, "Verify Tests"),
           actionLabel: undefined,
+          pastSummary: undefined,
           foot: "idle · ready",
         },
         {
@@ -40,6 +41,7 @@ const RunCards: React.FC = () => (
           meta: "recorded workspace",
           steps: strip(8, 11, "Approve Gate", { error: true }),
           actionLabel: "Action Required",
+          pastSummary: "8 passed · 1m",
           foot: "1 loop · 1 blocked",
         },
         {
@@ -47,6 +49,7 @@ const RunCards: React.FC = () => (
           meta: "recorded workspace",
           steps: strip(3, 9, "Process Batch"),
           actionLabel: undefined,
+          pastSummary: undefined,
           foot: "2 loops · daemon linked",
         },
       ] as const
@@ -64,7 +67,9 @@ const RunCards: React.FC = () => (
         <CondensedStepper
           steps={card.steps}
           size="sm"
+          variant="card"
           actionLabel={card.actionLabel}
+          pastSummary={card.pastSummary}
           maxVisible={3}
         />
         <p className="font-mono text-[11px] text-neutral-400 dark:text-neutral-500">

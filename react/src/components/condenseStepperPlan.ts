@@ -44,6 +44,13 @@ export interface CondenseStepperPlan {
 export interface CondenseStepperPlanInput {
   /** Revealed items per flank before `+N` carries the rest. @default 5 */
   maxVisible?: number;
+  /**
+   * `panel` (default): the full strip — 3 past discs + 2 future discs
+   * quiet, the accordion reveal on hover. `card`: the condensed strip —
+   * one solid disc per flank quiet, and expansion only reveals the count
+   * while the anchor compresses to its index (no accordion).
+   */
+  variant?: "panel" | "card";
 }
 
 const EMPTY_FLANK: CondensedFlankPlan = {
@@ -93,6 +100,8 @@ export const condenseStepperPlan = (
   input: CondenseStepperPlanInput = {},
 ): CondenseStepperPlan => {
   const maxVisible = Math.max(0, input.maxVisible ?? 5);
+  const quietPast = input.variant === "card" ? 1 : QUIET_PAST_DISCS;
+  const quietFuture = input.variant === "card" ? 1 : QUIET_FUTURE_DISCS;
   const n = steps.length;
   if (n === 0) {
     return {
@@ -123,7 +132,7 @@ export const condenseStepperPlan = (
     hasPast: hasZones && pastIndices.length > 0,
     hasFuture: hasZones && futureIndices.length > 0,
     statuses,
-    past: flank(pastIndices, QUIET_PAST_DISCS, maxVisible),
-    future: flank(futureIndices, QUIET_FUTURE_DISCS, maxVisible),
+    past: flank(pastIndices, quietPast, maxVisible),
+    future: flank(futureIndices, quietFuture, maxVisible),
   };
 };
