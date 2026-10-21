@@ -79,8 +79,17 @@ export interface CondensedStepperProps
    * @default "panel"
    */
   variant?: "panel" | "card";
-  /** Revealed items per flank before `+N` carries the rest. @default 5 */
-  maxVisible?: number;
+  /**
+   * Fill the parent: the done flank pins to the left edge, the queue to
+   * the right, the anchor stays dead centre, and the dashed lines carry
+   * the distance between. An expansion eats the dashes down to their
+   * minimum first — and only then compresses the centre.
+   * @default false
+   */
+  stretch?: boolean;
+  /** Revealed items per flank when expanded, before `+N` carries the
+   * rest. @default 6 */
+  maxSteps?: number;
   /** @default true */
   interactive?: boolean;
   onStepSelect?: (step: StepperStep, index: number) => void;
@@ -284,7 +293,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   nextColor = "gray",
   size = "md",
   variant = "panel",
-  maxVisible,
+  stretch = false,
+  maxSteps,
   interactive = true,
   onStepSelect,
   onDoneHover,
@@ -308,8 +318,8 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     [steps, currentIndex, currentStepId],
   );
   const plan = useMemo(
-    () => condenseStepperPlan(steps, centreIndex, { maxVisible, variant }),
-    [steps, centreIndex, maxVisible, variant],
+    () => condenseStepperPlan(steps, centreIndex, { maxSteps, variant }),
+    [steps, centreIndex, maxSteps, variant],
   );
 
   const [hoverOpen, setHoverOpen] = useState<CondensedZone | null>(null);
@@ -630,31 +640,10 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     );
   };
 
-  return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- delegated Esc/arrow handling for the flank and item buttons (the group itself is not a control)
-    <div
-      className={classNames(
-        "cs-strip relative flex w-full items-center justify-center gap-1.5 font-sans",
-        className,
-      )}
-      data-open={open ?? undefined}
-      data-animated={animated ? "true" : "false"}
-      data-card={variant === "card" ? "true" : undefined}
-      role="group"
-      aria-label={`Step progress — ${titleText(activeStep.title) ?? `step ${centre + 1}`}, step ${centre + 1} of ${steps.length}`}
-      style={{ ...springVars, ...style }}
-      onKeyDown={handleKeyDown}
-      {...rest}
-    >
-      {plan.hasPast && (
-        <>
-          {renderFlank("past", plan.past)}
-          <Dash tokens={tokens} />
-        </>
-      )}
-      {/* The anchor. The only shrinkable thing in the row — that is the whole
-          squish: as a flank grows the label ellipsizes by itself, and the
-          chip fades via [data-open] in the stylesheet. */}
+  /* The anchor. The only shrinkable thing in the row — that is the whole
+     squish: as a flank grows the label ellipsizes by itself, and the
+     chip fades via [data-open] in the stylesheet. */
+  const anchor = (
       <div
         className={classNames(
           "cs-pill flex min-w-0 self-stretch items-center rounded-full border bg-background",
@@ -721,10 +710,52 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
           </span>
         </span>
       </div>
-      {plan.hasFuture && (
+  );
+
+  return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- delegated Esc/arrow handling for the flank and item buttons (the group itself is not a control)
+    <div
+      className={classNames(
+        "cs-strip relative flex w-full items-center justify-center gap-1.5 font-sans",
+        className,
+      )}
+      data-open={open ?? undefined}
+      data-animated={animated ? "true" : "false"}
+      data-card={variant === "card" ? "true" : undefined}
+      data-stretch={stretch ? "true" : undefined}
+      role="group"
+      aria-label={`Step progress — ${titleText(activeStep.title) ?? `step ${centre + 1}`}, step ${centre + 1} of ${steps.length}`}
+      style={{ ...springVars, ...style }}
+      onKeyDown={handleKeyDown}
+      {...rest}
+    >
+      {stretch ? (
         <>
-          <Dash tokens={tokens} />
-          {renderFlank("future", plan.future)}
+          <div className="flex min-w-0 basis-0 flex-1 items-center">
+            {plan.hasPast && renderFlank("past", plan.past)}
+            <Dash tokens={tokens} grow />
+          </div>
+          {anchor}
+          <div className="flex min-w-0 basis-0 flex-1 items-center justify-end">
+            <Dash tokens={tokens} grow />
+            {plan.hasFuture && renderFlank("future", plan.future)}
+          </div>
+        </>
+      ) : (
+        <>
+          {plan.hasPast && (
+            <>
+              {renderFlank("past", plan.past)}
+              <Dash tokens={tokens} />
+            </>
+          )}
+          {anchor}
+          {plan.hasFuture && (
+            <>
+              <Dash tokens={tokens} />
+              {renderFlank("future", plan.future)}
+            </>
+          )}
         </>
       )}
     </div>
@@ -766,12 +797,18 @@ const QuietDiscs: React.FC<{
   );
 };
 
-const Dash: React.FC<{ tokens: (typeof SIZE_TOKENS)[ControlSize] }> = ({ tokens }) => (
+const Dash: React.FC<{ tokens: (typeof SIZE_TOKENS)[ControlSize]; grow?: boolean }> = ({
+  tokens,
+  grow,
+}) => (
+  /* Stretch mode hands the strip's slack to the dashes: they are the
+     elastic, collapsing to their minimum when a flank opens and only
+     then letting the anchor feel the squeeze. */
   <span
     aria-hidden
     className={classNames(
-      "shrink-0 border-t border-dashed border-neutral-300 dark:border-neutral-700",
-      tokens.dash,
+      "border-t border-dashed border-neutral-300 dark:border-neutral-700",
+      grow ? "min-w-4 flex-1" : classNames("shrink-0", tokens.dash),
     )}
   />
 );

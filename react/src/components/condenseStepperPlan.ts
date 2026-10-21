@@ -22,7 +22,7 @@ export interface CondensedFlankPlan {
   indices: number[];
   /** Leading discs while quiet — never more than `indices.length`. */
   quietDiscs: number;
-  /** The leading slice the reveal shows (capped by `maxVisible`). */
+  /** The leading slice the reveal shows (capped by `maxSteps`). */
   revealedIndices: number[];
   /** How many `indices` the reveal leaves to the `+N` chip. */
   overflow: number;
@@ -42,8 +42,9 @@ export interface CondenseStepperPlan {
 }
 
 export interface CondenseStepperPlanInput {
-  /** Revealed items per flank before `+N` carries the rest. @default 5 */
-  maxVisible?: number;
+  /** Revealed items per flank when expanded, before `+N` carries the
+   * rest. @default 6 */
+  maxSteps?: number;
   /**
    * `panel` (default): the full strip — 3 past discs + 2 future discs
    * quiet, the accordion reveal on hover. `card`: the condensed strip —
@@ -63,12 +64,12 @@ const EMPTY_FLANK: CondensedFlankPlan = {
 const flank = (
   indices: number[],
   quietCap: number,
-  maxVisible: number,
+  maxSteps: number,
 ): CondensedFlankPlan => ({
   indices,
   quietDiscs: Math.min(indices.length, quietCap),
-  revealedIndices: indices.slice(0, maxVisible),
-  overflow: Math.max(0, indices.length - maxVisible),
+  revealedIndices: indices.slice(0, maxSteps),
+  overflow: Math.max(0, indices.length - maxSteps),
 });
 
 /**
@@ -99,7 +100,7 @@ export const condenseStepperPlan = (
   centreIndex: number,
   input: CondenseStepperPlanInput = {},
 ): CondenseStepperPlan => {
-  const maxVisible = Math.max(0, input.maxVisible ?? 5);
+  const maxSteps = Math.max(0, input.maxSteps ?? 6);
   const quietPast = input.variant === "card" ? 1 : QUIET_PAST_DISCS;
   const quietFuture = input.variant === "card" ? 1 : QUIET_FUTURE_DISCS;
   const n = steps.length;
@@ -132,7 +133,7 @@ export const condenseStepperPlan = (
     hasPast: hasZones && pastIndices.length > 0,
     hasFuture: hasZones && futureIndices.length > 0,
     statuses,
-    past: flank(pastIndices, quietPast, maxVisible),
-    future: flank(futureIndices, quietFuture, maxVisible),
+    past: flank(pastIndices, quietPast, maxSteps),
+    future: flank(futureIndices, quietFuture, maxSteps),
   };
 };

@@ -70,7 +70,7 @@ const RunCards: React.FC = () => (
           variant="card"
           actionLabel={card.actionLabel}
           pastSummary={card.pastSummary}
-          maxVisible={3}
+          maxSteps={3}
         />
         <p className="font-mono text-[11px] text-neutral-400 dark:text-neutral-500">
           {card.foot}

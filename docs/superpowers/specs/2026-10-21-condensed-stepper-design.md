@@ -208,3 +208,18 @@ Four corrections from the first demo pass, each committed with code:
   `onNextHover`, `(hovered: boolean) => void`, fire on pointer enter/leave
   whether or not expansion is enabled and even while `openZone` is
   controlled — the strip always knows who is being looked at.
+
+### Round two (same day)
+
+- **`stretch`**: fill the parent — the done flank pins to the left edge,
+  the queue to the right, the anchor stays dead centre (two equal
+  `basis-0` sides bracket it, so unequal flanks cannot push it off), and
+  the dashed lines carry the distance as the elastic: an expansion
+  collapses the dashes to their 16 px minimum first, and only then does
+  the centre compress.
+- **`maxSteps`** (renamed from the interim `maxVisible`, default **6**):
+  how many steps a flank may reveal when expanded on the panel; the
+  remainder rides `+N`.
+- The anchor pill wears its tone's diffusion (equal perceived height
+  with the glowing discs), and items enter static — centred from the
+  first frame, no scale/fade audition (the width spring is the motion).

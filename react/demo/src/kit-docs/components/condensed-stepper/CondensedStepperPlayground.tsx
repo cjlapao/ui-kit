@@ -40,6 +40,7 @@ export const CondensedStepperPlayground: React.FC = () => {
   const [preset, setPreset] = useState<"quiet" | CondensedZone>("quiet");
   const [width, setWidth] = useState(860);
   const [lastHover, setLastHover] = useState<string | null>(null);
+  const [stretch, setStretch] = useState(false);
   const [doneColor, setDoneColor] = useState<TrueColor>("emerald");
   const [nextColor, setNextColor] = useState<TrueColor>("gray");
   const say = (zone: string) => (hovered: boolean) =>
@@ -70,6 +71,21 @@ export const CondensedStepperPlayground: React.FC = () => {
               <span className="ml-1 opacity-60">({p.hint})</span>
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setStretch((v) => !v)}
+            aria-pressed={stretch}
+            className={
+              stretch
+                ? "rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-neutral-900"
+                : "rounded-md px-3 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100"
+            }
+          >
+            Stretch
+            <span className="ml-1 opacity-60">
+              ({stretch ? "full width" : "centred"})
+            </span>
+          </button>
         </div>
       </div>
       <div className="flex items-center gap-3">
@@ -117,6 +133,7 @@ export const CondensedStepperPlayground: React.FC = () => {
           steps={STEPS}
           currentIndex={9}
           actionLabel="Action Required"
+          stretch={stretch}
           openZone={preset === "quiet" ? undefined : preset}
           doneColor={doneColor}
           nextColor={nextColor}

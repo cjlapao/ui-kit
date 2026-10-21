@@ -44,12 +44,20 @@ describe("condenseStepperPlan", () => {
     expect(plan.future.quietDiscs).toBe(2);
   });
 
-  it("caps the reveal at maxVisible and hands the rest to +N", () => {
+  it("caps the reveal at maxSteps and hands the rest to +N", () => {
     const steps = mockSteps();
-    const plan = condenseStepperPlan(steps, 9, { maxVisible: 5 });
+    const plan = condenseStepperPlan(steps, 9, { maxSteps: 5 });
     expect(plan.past.revealedIndices).toEqual([0, 1, 2, 3, 4]);
     expect(plan.past.overflow).toBe(4);
     expect(plan.future.revealedIndices).toEqual([10, 11]);
+    expect(plan.future.overflow).toBe(0);
+  });
+
+  it("defaults the reveal to six per flank", () => {
+    const plan = condenseStepperPlan(mockSteps(), 9);
+    expect(plan.past.revealedIndices).toHaveLength(6);
+    expect(plan.past.overflow).toBe(3);
+    expect(plan.future.revealedIndices).toHaveLength(2);
     expect(plan.future.overflow).toBe(0);
   });
 
@@ -186,10 +194,10 @@ describe("CondensedStepper", () => {
     const { container } = strip({ onStepSelect });
     const past = container.querySelector<HTMLButtonElement>('[data-zone="past"]')!;
     fireEvent.click(past);
-    // maxVisible 5 of 9 — the sixth is carried by +4.
+    // default maxSteps 6 of 9 — the rest is carried by +3.
     expect(container.querySelectorAll('[data-step="1"]')).toHaveLength(1);
-    expect(container.querySelectorAll(".cs-flank-past button[data-step]")).toHaveLength(5);
-    expect(container.querySelector(".cs-flank-past")!.textContent).toContain("+4");
+    expect(container.querySelectorAll(".cs-flank-past button[data-step]")).toHaveLength(6);
+    expect(container.querySelector(".cs-flank-past")!.textContent).toContain("+3");
     fireEvent.click(container.querySelector<HTMLElement>(".cs-flank-past button[data-step='3']")!);
     expect(onStepSelect).toHaveBeenCalledWith(
       expect.objectContaining({ id: "s2" }),
@@ -361,6 +369,23 @@ describe("CondensedStepper", () => {
     // the eye uses for height, and a plain pill beside glowing discs
     // reads short even at equal boxes.
     expect(pill.getAttribute("style")).toContain("rgba(59,130,246");
+  });
+
+  it("stretch pins the flanks to the edges and lets the dashes carry the width", () => {
+    const { container } = strip({ stretch: true });
+    const stripEl = container.querySelector(".cs-strip")!;
+    expect(stripEl.getAttribute("data-stretch")).toBe("true");
+    // Two equal sides (basis-0 + grow) bracket the anchor — the geometry
+    // that keeps the centre dead centre whatever the flanks weigh.
+    const sides = stripEl.querySelectorAll(":scope > div.basis-0");
+    expect(sides).toHaveLength(2);
+    expect(stripEl.children[1]).toBe(container.querySelector(".cs-pill"));
+    // The dashes are the elastic: they grow across the slack.
+    expect(sides[0].querySelectorAll("span.flex-1.min-w-4")).toHaveLength(1);
+    expect(sides[1].querySelectorAll("span.flex-1.min-w-4")).toHaveLength(1);
+    // Quiet (non-stretch) keeps its token-width shrink-0 dashes.
+    const { container: quiet } = strip();
+    expect(quiet.querySelectorAll(".cs-strip span.flex-1.min-w-4")).toHaveLength(0);
   });
 
   it("reports zone hovers — done, current and next — as pure observation", () => {
