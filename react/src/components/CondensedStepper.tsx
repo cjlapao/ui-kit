@@ -60,8 +60,10 @@ export interface CondensedStepperProps
   futureSummary?: React.ReactNode;
   /** The chip on the active pill — "ACTION REQUIRED" in the mock. */
   actionLabel?: React.ReactNode;
-  /** Accent of the anchor. Completed reads emerald, error reads rose —
-   * semantically, whatever the tone. @default "sky" */
+  /** The anchor's dress: the pill's border, digits and pulse dot wear
+   * the tone. Status still speaks semantically through what carries it —
+   * the completed ✓ is emerald, the error dot is rose.
+   * @default "blue" */
   tone?: TrueColor;
   /** The quiet disc colours, per flank. @default "emerald" / "gray" */
   doneColor?: TrueColor;
@@ -123,7 +125,7 @@ const SIZE_TOKENS: Record<
     disc: "h-4 w-4 border",
     discText: "text-[8px] leading-none",
     glyph: "h-2 w-2",
-    pill: "h-5 gap-1 px-1.5",
+    pill: "gap-1 px-1.5",
     pillText: "text-[10px]",
     labelMax: "max-w-[6rem]",
     dash: "w-3",
@@ -132,7 +134,7 @@ const SIZE_TOKENS: Record<
     disc: "h-5 w-5 border",
     discText: "text-[9px] leading-none",
     glyph: "h-2.5 w-2.5",
-    pill: "h-6 gap-1 px-2",
+    pill: "gap-1 px-2",
     pillText: "text-[11px]",
     labelMax: "max-w-[7rem]",
     dash: "w-4",
@@ -141,7 +143,7 @@ const SIZE_TOKENS: Record<
     disc: "h-6 w-6 border",
     discText: "text-[10px] leading-none",
     glyph: "h-3 w-3",
-    pill: "h-7 gap-1.5 px-2.5",
+    pill: "gap-1.5 px-2.5",
     pillText: "text-xs",
     labelMax: "max-w-[10rem]",
     dash: "w-6",
@@ -150,7 +152,7 @@ const SIZE_TOKENS: Record<
     disc: "h-7 w-7 border-[1.5px]",
     discText: "text-xs leading-none",
     glyph: "h-3.5 w-3.5",
-    pill: "h-8 gap-1.5 px-3",
+    pill: "gap-1.5 px-3",
     pillText: "text-sm",
     labelMax: "max-w-[14rem]",
     dash: "w-8",
@@ -159,7 +161,7 @@ const SIZE_TOKENS: Record<
     disc: "h-8 w-8 border-2",
     discText: "text-sm leading-none",
     glyph: "h-4 w-4",
-    pill: "h-9 gap-2 px-3.5",
+    pill: "gap-2 px-3.5",
     pillText: "text-sm",
     labelMax: "max-w-[18rem]",
     dash: "w-10",
@@ -277,7 +279,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   pastSummary,
   futureSummary,
   actionLabel,
-  tone = "sky",
+  tone = "blue",
   doneColor = "emerald",
   nextColor = "gray",
   size = "md",
@@ -655,10 +657,9 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
           chip fades via [data-open] in the stylesheet. */}
       <div
         className={classNames(
-          "cs-pill flex h-min min-w-0 items-center rounded-full border bg-background",
+          "cs-pill flex min-w-0 self-stretch items-center rounded-full border bg-background",
           tokens.pill,
-          activeStatus === "error" ? TONE_CLASSES.error : TONE_CLASSES.pending,
-          activeStatus === "completed" && TONE_CLASSES.completed,
+          palette.pendingBorder,
         )}
         aria-current="step"
         data-status={activeStatus}
@@ -666,7 +667,10 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
         onMouseLeave={() => onCurrentHover?.(false)}
       >
         {activeStatus === "completed" ? (
-          <CheckGlyph className={classNames(tokens.glyph, "stroke-[3]")} aria-hidden />
+          <CheckGlyph
+            className={classNames(tokens.glyph, "stroke-[3] text-emerald-600 dark:text-emerald-400")}
+            aria-hidden
+          />
         ) : (
           <span
             aria-hidden
@@ -684,7 +688,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
           className={classNames(
             "shrink-0 font-mono font-semibold",
             tokens.pillText,
-            activeStatus === "error" ? TONE_CLASSES.error.split(" ")[1] : palette.activeText,
+            palette.pendingText,
           )}
         >
           ({centre + 1})

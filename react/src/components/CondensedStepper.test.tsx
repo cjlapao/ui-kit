@@ -343,7 +343,24 @@ describe("CondensedStepper", () => {
     expect(digit.className).toContain("leading-none");
   });
 
-  it("reports zone hovers — done, current and next — as pure observation", () => {    const onDoneHover = vi.fn();
+  it("the anchor pill wears the tone and takes the row's height", () => {
+    const { container } = strip();
+    const pill = container.querySelector(".cs-pill")!;
+    expect(pill.className).toContain("self-stretch");
+    expect(pill.className).not.toContain("h-");
+    // tone is the dress: border and digits, default blue.
+    expect(pill.className).toContain("border-blue-200");
+    expect(pill.querySelector("span.font-mono")!.className).toContain("text-blue-700");
+    const { container: sea } = strip({ tone: "teal" });
+    expect(sea.querySelector(".cs-pill")!.className).toContain("border-teal-200");
+    // Status stays semantic: the error dot is rose whatever the tone.
+    expect(
+      container.querySelector('[data-status="error"] [aria-hidden]')!.className,
+    ).toContain("bg-rose-500");
+  });
+
+  it("reports zone hovers — done, current and next — as pure observation", () => {
+    const onDoneHover = vi.fn();
     const onCurrentHover = vi.fn();
     const onNextHover = vi.fn();
     const { container } = strip({ onDoneHover, onCurrentHover, onNextHover, openZone: null });
