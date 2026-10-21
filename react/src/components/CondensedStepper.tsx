@@ -529,7 +529,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             >
             {variant === "panel" && (
               <>
-            {flank.revealedIndices.map((index, i) => {
+            {flank.revealedIndices.map((index) => {
               const step = steps[index];
               const status = plan.statuses[index];
               const toneClass =
@@ -538,12 +538,9 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                   : status === "completed"
                     ? TONE_CLASSES.completed
                     : TONE_CLASSES.pending;
-              const stagger = {
-                transitionDelay: isOpen ? `${i * 30}ms` : "0ms",
-              };
               if (isPast) {
                 return (
-                  <span key={step.id ?? index} className="cs-item" style={stagger}>
+                  <span key={step.id ?? index} className="cs-item">
                     <Disc
                       label={index + 1}
                       check={false}
@@ -560,7 +557,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                 );
               }
               return (
-                <span key={step.id ?? index} className="cs-item" style={stagger}>
+                <span key={step.id ?? index} className="cs-item">
                   {interactive && onStepSelect != null ? (
                     <button
                       type="button"
@@ -614,11 +611,10 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             {flank.overflow > 0 && (
               <span
                 className={classNames(
-                  "cs-item font-mono font-semibold",
+                  "font-mono font-semibold",
                   tokens.discText,
                   TONE_CLASSES.pending,
                 )}
-                style={{ transitionDelay: isOpen ? `${flank.revealedIndices.length * 30}ms` : "0ms" }}
               >
                 +{flank.overflow}
               </span>

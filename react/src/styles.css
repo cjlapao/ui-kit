@@ -1162,19 +1162,9 @@
   min-width: 0;
   overflow: hidden;
 }
-/* Items ride the same curve out of the fold: they arrive scaled up and
-   faded in, staggered by the component's transition-delay. */
-.cs-item {
-  transform: scale(0.8);
-  opacity: 0;
-  transition:
-    transform var(--_cs-dur) var(--_cs-ease),
-    opacity var(--_cs-dur) var(--_cs-ease);
-}
-.cs-strip[data-open] .cs-item {
-  transform: scale(1);
-  opacity: 1;
-}
+/* Revealed items are static by design: they are centred, fully-formed
+   discs the moment their flank's track unfolds — the width spring is the
+   animation, items drifting or scaling into place is lag, not motion. */
 .cs-chip {
   transition: opacity var(--_cs-dur) var(--_cs-ease);
 }
@@ -1210,7 +1200,6 @@
   grid-template-columns: 0fr;
 }
 .cs-strip[data-animated="false"] .cs-flank,
-.cs-strip[data-animated="false"] .cs-item,
 .cs-strip[data-animated="false"] .cs-chip,
 .cs-strip[data-animated="false"] .cs-label-track,
 .cs-strip[data-animated="false"] .cs-card-summary {
