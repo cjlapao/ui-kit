@@ -121,7 +121,7 @@ const SIZE_TOKENS: Record<
 > = {
   xs: {
     disc: "h-4 w-4 border",
-    discText: "text-[8px]",
+    discText: "text-[8px] leading-none",
     glyph: "h-2 w-2",
     pill: "h-5 gap-1 px-1.5",
     pillText: "text-[10px]",
@@ -130,7 +130,7 @@ const SIZE_TOKENS: Record<
   },
   sm: {
     disc: "h-5 w-5 border",
-    discText: "text-[9px]",
+    discText: "text-[9px] leading-none",
     glyph: "h-2.5 w-2.5",
     pill: "h-6 gap-1 px-2",
     pillText: "text-[11px]",
@@ -139,7 +139,7 @@ const SIZE_TOKENS: Record<
   },
   md: {
     disc: "h-6 w-6 border",
-    discText: "text-[10px]",
+    discText: "text-[10px] leading-none",
     glyph: "h-3 w-3",
     pill: "h-7 gap-1.5 px-2.5",
     pillText: "text-xs",
@@ -148,7 +148,7 @@ const SIZE_TOKENS: Record<
   },
   lg: {
     disc: "h-7 w-7 border-[1.5px]",
-    discText: "text-xs",
+    discText: "text-xs leading-none",
     glyph: "h-3.5 w-3.5",
     pill: "h-8 gap-1.5 px-3",
     pillText: "text-sm",
@@ -157,7 +157,7 @@ const SIZE_TOKENS: Record<
   },
   xl: {
     disc: "h-8 w-8 border-2",
-    discText: "text-sm",
+    discText: "text-sm leading-none",
     glyph: "h-4 w-4",
     pill: "h-9 gap-2 px-3.5",
     pillText: "text-sm",
@@ -746,7 +746,7 @@ const QuietDiscs: React.FC<{
           className={classNames(
             "flex items-center justify-center rounded-full border-2 border-white/60 dark:border-white/15",
             tokens.disc,
-            i > 0 && "-ml-1.5",
+            i > 0 && "-ml-2",
             TRUE_COLOR_DOT_CLASSES[color],
           )}
           style={{ boxShadow: `0 0 10px 1px ${DISC_DIFFUSION[color]}` }}
