@@ -661,6 +661,10 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
           tokens.pill,
           palette.pendingBorder,
         )}
+        /* The discs float on a diffusion; an anchor without one reads as
+           short even when their boxes are the same height — light is the
+           measure the eye uses. The pill wears its tone's glow too. */
+        style={{ boxShadow: `0 0 10px 1px ${DISC_DIFFUSION[tone]}` }}
         aria-current="step"
         data-status={activeStatus}
         onMouseEnter={() => onCurrentHover?.(true)}

@@ -357,6 +357,10 @@ describe("CondensedStepper", () => {
     expect(
       container.querySelector('[data-status="error"] [aria-hidden]')!.className,
     ).toContain("bg-rose-500");
+    // And the anchor carries its tone's diffusion — light is the measure
+    // the eye uses for height, and a plain pill beside glowing discs
+    // reads short even at equal boxes.
+    expect(pill.getAttribute("style")).toContain("rgba(59,130,246");
   });
 
   it("reports zone hovers — done, current and next — as pure observation", () => {
