@@ -446,7 +446,10 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       <div
         key={zone}
         className={classNames(
-          "flex min-w-0 shrink-0 items-center",
+          // select-none inherits into every disc, summary and revealed
+          // item: the flanks are read and clicked, never dragged — the
+          // cursor stays the strip's, not the page's text arrow.
+          "flex min-w-0 shrink-0 select-none items-center",
           isPast ? "cs-zone-l" : "cs-zone-r",
         )}
         onMouseEnter={() => {

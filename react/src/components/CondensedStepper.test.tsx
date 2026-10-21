@@ -386,6 +386,10 @@ describe("CondensedStepper", () => {
       expect.stringContaining("cs-dash-r"),
       expect.stringContaining("cs-zone-r"),
     ]);
+    // Flanks are read and clicked, never dragged: selection is off, so
+    // the cursor stays the strip's across the whole cluster.
+    expect(kids[0].className).toContain("select-none");
+    expect(kids[4].className).toContain("select-none");
     // The squeeze states ride data-open — the template transition is the animation.
     const past = container.querySelector<HTMLButtonElement>('[data-zone="past"]')!;
     fireEvent.click(past);
