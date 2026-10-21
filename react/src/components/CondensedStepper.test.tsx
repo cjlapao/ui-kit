@@ -489,6 +489,7 @@ describe("CondensedStepper", () => {
     const badge = container.querySelector<HTMLElement>(".cs-flank-past [data-step]")!;
     expect(badge.className).toContain("cs-badge");
     expect(badge.className).toContain("min-w-6"); // circle at rest (md)
+    expect(badge.className).toContain("justify-center"); // digit dead centre
     // The title lives on a 0fr track (the stylesheet opens it on hover);
     // it is in the DOM, just folded.
     expect(badge.querySelector(".cs-badge-track span span")!.textContent).toBe("Create PR");
