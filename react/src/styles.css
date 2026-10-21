@@ -1121,3 +1121,71 @@
     transform: none;
   }
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   CondensedStepper — the flank accordions on the shared springs
+   (components/CondensedStepper.tsx).
+
+   The strip is one line; each flank is a clipped grid column that springs
+   open exactly like ExpandableButton's label — 0fr → 1fr on the overshoot
+   curve, no measured pixels anywhere (the physics is the same trick, not a
+   copy of it). The centre pill carries no squish logic either: it is the
+   row's only shrinkable child, so as a flank grows the label ellipsizes on
+   its own and the action chip fades through [data-open].
+
+   The spring arrives inline as --cs-spring-* custom properties, resolved by
+   the component from the shared token table — so a caller can retune the
+   physics without a safelist entry, `data-animated="false"` drops the
+   transitions entirely, and reduced motion trades the overshoot for a short
+   Material settle.
+   ──────────────────────────────────────────────────────────────────────────── */
+.cs-strip {
+  --_cs-ease: var(--cs-spring-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+  --_cs-dur: var(--cs-spring-duration, 600ms);
+}
+.cs-flank {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns var(--_cs-dur) var(--_cs-ease);
+}
+.cs-strip[data-open="past"] .cs-flank-past,
+.cs-strip[data-open="future"] .cs-flank-future {
+  grid-template-columns: 1fr;
+}
+.cs-flank > * {
+  /* A clipped item's automatic minimum size is 0 — this is what lets the
+     column really reach zero, and what makes 1fr the content's own width. */
+  min-width: 0;
+  overflow: hidden;
+}
+/* Items ride the same curve out of the fold: they arrive scaled up and
+   faded in, staggered by the component's transition-delay. */
+.cs-item {
+  transform: scale(0.8);
+  opacity: 0;
+  transition:
+    transform var(--_cs-dur) var(--_cs-ease),
+    opacity var(--_cs-dur) var(--_cs-ease);
+}
+.cs-strip[data-open] .cs-item {
+  transform: scale(1);
+  opacity: 1;
+}
+.cs-chip {
+  transition: opacity var(--_cs-dur) var(--_cs-ease);
+}
+.cs-strip[data-open] .cs-chip {
+  /* The squish, second half: the chip yields to the opening flank. */
+  opacity: 0.4;
+}
+.cs-strip[data-animated="false"] .cs-flank,
+.cs-strip[data-animated="false"] .cs-item,
+.cs-strip[data-animated="false"] .cs-chip {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cs-strip {
+    --_cs-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --_cs-dur: 200ms;
+  }
+}

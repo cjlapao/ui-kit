@@ -986,6 +986,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/stepper/StepperPage")),
   },
   {
+    slug: "condensed-stepper",
+    name: "CondensedStepper",
+    description:
+      "The stepper that fits on one line: the current step anchored in the middle, walked steps compressed left, the queue right — each flank an accordion on the shared spring table. Hover to peek, click to pin; card and panel are the same component.",
+    icon: "Complete",
+    category: "Feedback",
+    Page: lazy(() => import("./components/condensed-stepper/CondensedStepperPage")),
+  },
+  {
     slug: "toast",
     name: "Toast",
     description:

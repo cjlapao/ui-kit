@@ -739,7 +739,17 @@ export {
   default as StatHealthCard,
   type StatHealthCardProps,
 } from "./StatHealthCard";
-export { default as Stepper, type StepperProps, type Step } from "./Stepper";
+export {
+  default as Stepper,
+  type StepperProps,
+  type Step,
+  type StepperStep,
+} from "./Stepper";
+export {
+  default as CondensedStepper,
+  type CondensedStepperProps,
+} from "./CondensedStepper";
+export type { CondensedZone } from "./condenseStepperPlan";
 export {
   default as Table,
   type TableProps,

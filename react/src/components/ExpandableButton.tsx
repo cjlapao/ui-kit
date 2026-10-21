@@ -75,7 +75,11 @@ export const EXPANDABLE_BUTTON_SPRINGS = [
 export type ExpandableButtonSpring =
   (typeof EXPANDABLE_BUTTON_SPRINGS)[number];
 
-const springTokens: Record<
+/**
+ * Exported so any component that moves on the kit's physics rides *this*
+ * table — one set of curves for the whole kit, never a copied bezier.
+ */
+export const EXPANDABLE_BUTTON_SPRING_TOKENS: Record<
   ExpandableButtonSpring,
   { easing: string; duration: number }
 > = {
@@ -373,7 +377,9 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
     // The spring lives in custom properties rather than class strings so a
     // caller can tune the physics without a Tailwind safelist entry — and so
     // `prefers-reduced-motion` can zero the durations from the stylesheet.
-    const springConfig = springTokens[spring] ?? springTokens.bouncy;
+    const springConfig =
+      EXPANDABLE_BUTTON_SPRING_TOKENS[spring] ??
+      EXPANDABLE_BUTTON_SPRING_TOKENS.bouncy;
     const springVars = {
       "--eb-spring-easing": springConfig.easing,
       "--eb-spring-duration": `${springDuration ?? springConfig.duration}ms`,
