@@ -298,10 +298,14 @@ The queue caps like the past: the **next six or whatever is left**,
 walk. `hover:scale-105` is gone from revealed items: the expansion is
 the interaction, nothing should bounce on top of it.
 
-**Digit centring** (same-day fix): the badge digit rides the **title's
-line box** — no `leading-none`. Digits have no descenders; a 1.0 line
-box parks them a hair above the optical centre, and the expanded badge
-then reads high beside its title. Same line box, same centre — the big
-Stepper's recipe. The circle at rest centres with `justify-center`
-(the quiet discs' trick), and padding settled at `px-1.5`/`px-2` per
-size with `pl-1.5` between digit and title.
+**Digit centring** (same-day fix, two rounds): the badge digit and the
+title share **one explicit line box per size** (`badgeText` /
+`badgeTitle` — `text-[10px] leading-4` beside `text-xs leading-4` at
+md, and the matching pairs at the other sizes). The first attempt —
+dropping `leading-none` and letting the digit inherit — still read
+high: inherited `normal` gave the 10 px mono digit an ~11 px box
+against the title's 16 px one, and "centred" was centring two
+different baselines. Same pixels, same baseline, both states. The
+circle at rest centres with `justify-center` (the quiet discs' trick),
+and padding settled at `px-1.5`/`px-2` per size with `pl-1.5` between
+digit and title.

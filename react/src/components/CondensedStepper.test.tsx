@@ -364,7 +364,10 @@ describe("CondensedStepper", () => {
     fireEvent.click(container.querySelector<HTMLButtonElement>('[data-zone="past"]')!);
     const digit = container.querySelector<HTMLElement>(".cs-flank-past [data-step] span")!;
     expect(digit.className).not.toContain("leading-none");
-    expect(digit.className).toContain("text-[10px]");
+    expect(digit.className).toContain("text-[10px] leading-4");
+    // …and the title shares that exact box — one baseline for both.
+    const title = digit.nextElementSibling!.querySelector(".truncate")!;
+    expect(title.className).toContain("text-xs leading-4");
   });
 
   it("the anchor pill wears the tone and takes the row's height", () => {
