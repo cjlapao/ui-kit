@@ -183,3 +183,28 @@ zero-width container falls back to dots + `+N` without crashing.
 - Touch gestures beyond click — hover-only refinements stay optional via
   `expandOn: "click"`.
 - Vue port until `springTokens` crosses to a shared module.
+
+## Addendum — demo round (2026-10-21, post-implementation)
+
+Four corrections from the first demo pass, each committed with code:
+
+- **The quiet state leaked the whole reveal.** The `0fr→1fr` clip shared an
+  element with `width: max-content` — and an element that declares its own
+  width refuses to shrink to the zero track. The clip (`.cs-flank-clip`) and
+  the content row (`.cs-flank-row`) are now separate elements, exactly as in
+  ExpandableButton; a structure test pins it.
+- **`variant: "panel" | "card"`.** The spec's promise that "the card and the
+  panel are the same component" was wrong about *expansion meaning*, not just
+  width. Panel keeps the 3+2 quiet discs and the accordion reveal; the card's
+  mock shows one solid disc per flank quiet, and expansion there reveals only
+  the count — while the anchor compresses to `(n)` alone (its label and chip
+  on a third `0fr→1fr` track; one trick, three uses, one shared curve).
+- **Quiet discs are ColorSwatches**: solid `TRUE_COLOR_DOT_CLASSES` fills,
+  stacked on `-ml`, separated by a lighter wash of the background (the dark
+  border read as black), each diffusing its own colour (per-tone inline
+  `box-shadow`, `DISC_DIFFUSION`). `doneColor` / `nextColor` take the flanks
+  individually — `emerald` left, `slate` right by default.
+- **Zone hover as observation**: `onDoneHover` / `onCurrentHover` /
+  `onNextHover`, `(hovered: boolean) => void`, fire on pointer enter/leave
+  whether or not expansion is enabled and even while `openZone` is
+  controlled — the strip always knows who is being looked at.
