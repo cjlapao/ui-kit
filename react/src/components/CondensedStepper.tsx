@@ -63,7 +63,7 @@ export interface CondensedStepperProps
   /** Accent of the anchor. Completed reads emerald, error reads rose —
    * semantically, whatever the tone. @default "sky" */
   tone?: TrueColor;
-  /** The quiet disc colours, per flank. @default "emerald" / "slate" */
+  /** The quiet disc colours, per flank. @default "emerald" / "gray" */
   doneColor?: TrueColor;
   nextColor?: TrueColor;
   /** Circle/pill density, shared control scale. @default "md" */
@@ -279,7 +279,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   actionLabel,
   tone = "sky",
   doneColor = "emerald",
-  nextColor = "slate",
+  nextColor = "gray",
   size = "md",
   variant = "panel",
   maxVisible,

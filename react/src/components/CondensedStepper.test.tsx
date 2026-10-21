@@ -297,7 +297,7 @@ describe("CondensedStepper", () => {
     ).toContain("bg-emerald-500");
     expect(
       container.querySelector('[data-zone="future"] .cs-quiet > span')!.className,
-    ).toContain("bg-slate-500");
+    ).toContain("bg-gray-500");
     // Panel keeps three-and-two, also solid.
     const { container: panel } = strip();
     expect(panel.querySelectorAll('[data-zone="past"] .cs-quiet > span')).toHaveLength(3);

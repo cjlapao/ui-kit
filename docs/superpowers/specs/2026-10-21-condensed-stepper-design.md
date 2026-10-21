@@ -203,7 +203,7 @@ Four corrections from the first demo pass, each committed with code:
   stacked on `-ml`, separated by a lighter wash of the background (the dark
   border read as black), each diffusing its own colour (per-tone inline
   `box-shadow`, `DISC_DIFFUSION`). `doneColor` / `nextColor` take the flanks
-  individually — `emerald` left, `slate` right by default.
+  individually — `emerald` left, `gray` right by default.
 - **Zone hover as observation**: `onDoneHover` / `onCurrentHover` /
   `onNextHover`, `(hovered: boolean) => void`, fire on pointer enter/leave
   whether or not expansion is enabled and even while `openZone` is
