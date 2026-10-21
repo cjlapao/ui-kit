@@ -164,6 +164,16 @@ export {
 export type { GlassVibrancy, GlassOpacity, SpecularMode } from "../theme/glass";
 export { default as IconButton, type IconButtonProps } from "./IconButton";
 export {
+  default as ExpandableButton,
+  EXPAND_TRIGGERS,
+  EXPANDABLE_BUTTON_SPRINGS,
+  EXPANDABLE_BUTTON_ICON_MOTIONS,
+  type ExpandableButtonProps,
+  type ExpandTrigger,
+  type ExpandableButtonSpring,
+  type ExpandableButtonIconMotion,
+} from "./ExpandableButton";
+export {
   default as SpeedDial,
   type SpeedDialProps,
   type SpeedDialItem,

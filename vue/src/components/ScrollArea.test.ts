@@ -15,6 +15,14 @@ const overflowY = (w: ReturnType<typeof mount>, height: number) => {
   return w.find('[data-slot="scrollarea-viewport"]').trigger("scroll");
 };
 
+/** The same, sideways — the axis a nav list must never answer to. */
+const overflowX = (w: ReturnType<typeof mount>, width: number) => {
+  const el = viewportEl(w);
+  Object.defineProperty(el, "scrollWidth", { configurable: true, value: width });
+  Object.defineProperty(el, "clientWidth", { configurable: true, value: 100 });
+  return w.find('[data-slot="scrollarea-viewport"]').trigger("scroll");
+};
+
 describe("ScrollArea", () => {
   it("renders viewport, content, both bars, handles and the corner", () => {
     const w = mount(ScrollArea, { slots: { default: "<p>content</p>" } });
@@ -84,5 +92,55 @@ describe("ScrollArea", () => {
     expect(bar.attributes("role")).toBe("scrollbar");
     expect(bar.attributes("aria-controls")).toBe(viewportEl(w).id);
     expect(bar.attributes("aria-orientation")).toBe("vertical");
+  });
+
+  describe("horizontal=false — a region with one axis", () => {
+    it("draws no sideways bar at all, even when the content is wider", async () => {
+      // `scrollWidth` reports content clipped by `overflow-x: hidden` as
+      // loudly as content that scrolls, so the bar has to be ruled out at the
+      // source: a SideMenu badge too wide for the panel must clip, not grow a
+      // scrollbar nobody asked for.
+      const w = mount(ScrollArea, {
+        props: { variant: "always", horizontal: false },
+        slots: { default: "<p/>" },
+      });
+      await overflowX(w, 1000);
+      const bars = tracks(w);
+      expect(bars).toHaveLength(1);
+      expect(bars[0].attributes("data-orientation")).toBe("vertical");
+      expect(viewportEl(w).getAttribute("data-overflow-x")).toBeNull();
+      expect(viewportEl(w).tabIndex).toBe(-1);
+    });
+
+    it("clamps the axis on the scroller, where a class could lose the cascade", () => {
+      const w = mount(ScrollArea, {
+        props: { horizontal: false },
+        slots: { default: "<p/>" },
+      });
+      expect(viewportEl(w).style.overflowX).toBe("hidden");
+    });
+
+    it("still scrolls, and still shows the bar, vertically", async () => {
+      const w = mount(ScrollArea, {
+        props: { variant: "always", horizontal: false },
+        slots: { default: "<p/>" },
+      });
+      await overflowY(w, 1000);
+      expect(tracks(w)).toHaveLength(1);
+      expect(tracks(w)[0].attributes("data-state")).toBe("visible");
+      expect(viewportEl(w).style.overflowY).not.toBe("hidden");
+      expect(viewportEl(w).tabIndex).toBe(0);
+    });
+
+    it("keeps both axes by default", async () => {
+      const w = mount(ScrollArea, {
+        props: { variant: "always" },
+        slots: { default: "<p/>" },
+      });
+      await overflowX(w, 1000);
+      expect(tracks(w)).toHaveLength(2);
+      expect(tracks(w)[1].attributes("data-state")).toBe("visible");
+      expect(viewportEl(w).style.overflowX).toBe("");
+    });
   });
 });

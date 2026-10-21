@@ -37,6 +37,14 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
    */
   mask?: boolean;
   /**
+   * Whether the region can scroll sideways. A region that scrolls on one
+   * axis only — a nav list, a text column — should say so: content wider
+   * than the viewport is then clipped instead of reachable, and `scrollWidth`
+   * still reports it either way, so a bar drawn for it would scroll nothing.
+   * @default true
+   */
+  horizontal?: boolean;
+  /**
    * Tab order entry for the scrollable viewport — keyboard users scroll the
    * focused area with the arrows / Page / Home / End keys natively. Ignored
    * (the viewport leaves the tab order) when the content fits.
@@ -97,6 +105,7 @@ const FITTING_THUMB: ThumbMetrics = { size: 0, offset: 0, ratio: 0 };
 export const ScrollArea = ({
   variant = "auto",
   mask = false,
+  horizontal = true,
   tabIndex = 0,
   contentClassName,
   viewportClassName,
@@ -171,13 +180,19 @@ export const ScrollArea = ({
   const update = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    // `scrollWidth` reports content clipped by `overflow-x: hidden` just as
+    // loudly as content that can actually be scrolled to, so a sideways-locked
+    // region has to be told off here: measuring it would draw a bar over an
+    // axis with nothing to scroll.
     setOverflow({
-      x: viewport.scrollWidth - viewport.clientWidth > 1,
+      x: horizontal && viewport.scrollWidth - viewport.clientWidth > 1,
       y: viewport.scrollHeight - viewport.clientHeight > 1,
     });
     setThumbY(thumb(viewport, yTrackRef.current, "y"));
-    setThumbX(thumb(viewport, xTrackRef.current, "x"));
-  }, [thumb]);
+    setThumbX(
+      horizontal ? thumb(viewport, xTrackRef.current, "x") : FITTING_THUMB,
+    );
+  }, [thumb, horizontal]);
 
   // Re-measure on any size change, of the frame or of the content inside it.
   // No ResizeObserver (jsdom, old engines) means falling back to window
@@ -302,7 +317,13 @@ export const ScrollArea = ({
         data-overflow-x={overflow.x ? "" : undefined}
         data-overflow-y={overflow.y ? "" : undefined}
         onScroll={handleScroll}
-        style={maskStyle()}
+        // The clamp is inline, not a class: the viewport's own
+        // `overflow-auto` would otherwise compete with it in the cascade,
+        // and a lost contest would leave an axis that scrolls with no bar.
+        style={{
+          ...maskStyle(),
+          ...(horizontal ? null : { overflowX: "hidden" as const }),
+        }}
         className={classNames(
           "h-full w-full max-h-[inherit] overflow-auto rounded-[inherit] outline-none",
           // `max-height: inherit` is what makes a `max-h-*` frame work: a
@@ -353,35 +374,40 @@ export const ScrollArea = ({
         </div>
       </div>
 
-      <div
-        data-slot="scrollarea-scrollbar"
-        data-orientation="horizontal"
-        data-state={xVisible ? "visible" : "hidden"}
-        role="scrollbar"
-        aria-controls={viewportId}
-        aria-orientation="horizontal"
-        aria-label="Horizontal scroll"
-        aria-valuenow={Math.round(thumbX.ratio * 100)}
-        className={classNames(
-          BAR_BASE,
-          "bottom-0 left-0 h-2.5 w-full flex-row border-y border-transparent p-[3px]",
-        )}
-      >
-        <div ref={xTrackRef} className="relative h-full w-full">
-          <div
-            data-slot="scrollarea-handle"
-            style={{
-              width: thumbX.size,
-              transform: `translateX(${thumbX.offset}px)`,
-            }}
-            onPointerDown={startDrag("x")}
-            onPointerMove={moveDrag}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            className={classNames(THUMB_BASE, "h-full")}
-          />
+      {/* The sideways bar is not there at all when the axis is locked — a
+          `role="scrollbar"` that scrolls nothing is a promise the region
+          cannot keep, for the pointer and for a screen reader alike. */}
+      {horizontal && (
+        <div
+          data-slot="scrollarea-scrollbar"
+          data-orientation="horizontal"
+          data-state={xVisible ? "visible" : "hidden"}
+          role="scrollbar"
+          aria-controls={viewportId}
+          aria-orientation="horizontal"
+          aria-label="Horizontal scroll"
+          aria-valuenow={Math.round(thumbX.ratio * 100)}
+          className={classNames(
+            BAR_BASE,
+            "bottom-0 left-0 h-2.5 w-full flex-row border-y border-transparent p-[3px]",
+          )}
+        >
+          <div ref={xTrackRef} className="relative h-full w-full">
+            <div
+              data-slot="scrollarea-handle"
+              style={{
+                width: thumbX.size,
+                transform: `translateX(${thumbX.offset}px)`,
+              }}
+              onPointerDown={startDrag("x")}
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              className={classNames(THUMB_BASE, "h-full")}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* The square where two bars meet — only there when both are. */}
       <div

@@ -20,6 +20,19 @@ const overflowY = (element: HTMLElement, height: number) => {
   fireEvent.scroll(element);
 };
 
+/** The same, sideways — the axis a nav list must never answer to. */
+const overflowX = (element: HTMLElement, width: number) => {
+  Object.defineProperty(element, "scrollWidth", {
+    configurable: true,
+    value: width,
+  });
+  Object.defineProperty(element, "clientWidth", {
+    configurable: true,
+    value: 100,
+  });
+  fireEvent.scroll(element);
+};
+
 describe("ScrollArea", () => {
   it("renders viewport, content, both bars, handles and the corner", () => {
     render(
@@ -185,5 +198,61 @@ describe("ScrollArea", () => {
     );
     expect(viewport().className).toContain("overscroll-contain");
     expect(ref.current).toBe(viewport());
+  });
+
+  describe("horizontal={false} — a region with one axis", () => {
+    it("draws no sideways bar at all, even when the content is wider", () => {
+      // `scrollWidth` reports content clipped by `overflow-x: hidden` as
+      // loudly as content that scrolls, so the bar has to be ruled out at
+      // the source: the SideMenu's badge that is too wide for the panel
+      // must clip, not grow a scrollbar nobody asked for.
+      render(
+        <ScrollArea variant="always" horizontal={false}>
+          <p>content</p>
+        </ScrollArea>,
+      );
+      overflowX(viewport(), 1000);
+      expect(bars().map((b) => b.getAttribute("data-orientation"))).toEqual([
+        "vertical",
+      ]);
+      expect(viewport().dataset.overflowX).toBeUndefined();
+      expect(viewport().tabIndex).toBe(-1);
+    });
+
+    it("clamps the axis on the scroller, where a class could lose the cascade", () => {
+      // An `overflow-x-hidden` class competes with the viewport's own
+      // `overflow-auto` and the cascade, not the class order, decides.
+      render(
+        <ScrollArea horizontal={false}>
+          <p>content</p>
+        </ScrollArea>,
+      );
+      expect(viewport().style.overflowX).toBe("hidden");
+    });
+
+    it("still scrolls, and still shows the bar, vertically", () => {
+      render(
+        <ScrollArea variant="always" horizontal={false}>
+          <p>content</p>
+        </ScrollArea>,
+      );
+      overflowY(viewport(), 1000);
+      expect(bars()).toHaveLength(1);
+      expect(bars()[0].getAttribute("data-state")).toBe("visible");
+      expect(viewport().style.overflowY).not.toBe("hidden");
+      expect(viewport().tabIndex).toBe(0);
+    });
+
+    it("keeps both axes by default", () => {
+      render(
+        <ScrollArea variant="always">
+          <p>content</p>
+        </ScrollArea>,
+      );
+      overflowX(viewport(), 1000);
+      expect(bars()).toHaveLength(2);
+      expect(bars()[1].getAttribute("data-state")).toBe("visible");
+      expect(viewport().style.overflowX).toBe("");
+    });
   });
 });

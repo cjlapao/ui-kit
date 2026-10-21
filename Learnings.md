@@ -958,3 +958,25 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
 - Rule: any new `palette.*` shade/alpha used by a component must land in
   the safelist script + regenerated + `npx @tailwindcss/cli -i src/styles.css
   -o dist/index.css`, or it does not exist.
+
+## A virtual scrollbar must follow what can scroll, not the overflow area
+- `ScrollArea` hides the native bar and draws its own from
+  `scrollWidth - clientWidth`. A `SideMenu` grew a thin horizontal bar inside
+  its item list — and only in `floating`/`floating-glass`, because
+  `borderSides: "all"` leaves the panel 2px narrower than the flush variants
+  while the list's content box (`table min-w-full`) honours the widest row's
+  min-content: a `shrink-0` nowrap badge, a nested row without `w-full`.
+- `overflow-x: hidden` on the viewport does **not** fix it: `scrollWidth`
+  reports content clipped by `hidden` exactly as loudly as content that
+  scrolls, so the bar keeps drawing over an axis with nothing to scroll.
+  `table-layout: fixed` fails for the same reason — both measured live in
+  headless Chrome, where the overflow stayed at 190px with the bar still up.
+- Fix: the region declares its axes. `horizontal={false}` clamps `overflow-x`
+  **inline** (a class would fight the viewport's own `overflow-auto` in the
+  cascade and could lose, leaving an axis that scrolls with no bar on it),
+  skips the x measurement, and renders no bar at all — a `role="scrollbar"`
+  that scrolls nothing is a lie to the pointer and to a screen reader alike.
+- Rule: a one-axis scroll region passes `horizontal={false}`. Proving it needs
+  real layout: assert the overflow is still there (`scrollWidth - clientWidth
+  > 1`) while the bar element is absent. jsdom reports no overflow at all, so
+  a green test there proves nothing about this class of bug.

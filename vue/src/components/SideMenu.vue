@@ -552,9 +552,12 @@ const handleLinkClick = () => {
         </button>
       </div>
 
-      <!-- Navigation Items -->
+      <!-- Navigation Items. `overflow-x-hidden` is not decoration: with one
+           axis `auto`, CSS computes the other — `visible` included — to `auto`
+           too, so a row wider than the panel (a `shrink-0` badge, say) grew a
+           native sideways bar. A nav list has one axis. -->
       <div
-        class="flex-1 px-3 py-1 overflow-y-auto w-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
+        class="flex-1 px-3 py-1 overflow-y-auto overflow-x-hidden w-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
       >
         <nav class="space-y-1 w-full">
           <template v-for="entry in renderEntries" :key="entry.key">

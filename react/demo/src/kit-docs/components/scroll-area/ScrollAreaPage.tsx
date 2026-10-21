@@ -63,8 +63,14 @@ export const ScrollAreaPage: React.FC = () => (
         <p>
           Props are <code>variant</code> (<code>auto</code> by default —{" "}
           <code>hover</code> / <code>scroll</code> / <code>always</code> /{" "}
-          <code>hidden</code>), <code>mask</code> for the edge fade, and{" "}
-          <code>contentClassName</code> for the scrolling box; the height is
+          <code>hidden</code>), <code>mask</code> for the edge fade,{" "}
+          <code>horizontal=&#123;false&#125;</code> for a region with one axis,
+          and <code>contentClassName</code> for the scrolling box. Say so when
+          the region has one axis: <code>scrollWidth</code> reports content
+          clipped by <code>overflow-x: hidden</code> as loudly as content that
+          really scrolls, so a <code>SideMenu</code> badge too wide for its
+          panel would otherwise grow a bar over an axis with nothing to scroll
+          (it clips instead). The height is
           just <code>className</code>, like <code>Panel</code> scrollables — a{" "}
           <code>max-h-*</code> counts too, since the viewport inherits the cap
           and scrolls inside it rather than growing past it and silently

@@ -1134,9 +1134,15 @@ export const SideMenu = ({
 
       {/* Navigation Items — ScrollArea keeps the bar identical on every
           browser (the webkit pseudo paint was Chrome-only) and the
-          hover variant parks it out of sight until the list is entered. */}
+          hover variant parks it out of sight until the list is entered.
+          `horizontal={false}`: a nav list has one axis. Its rows are flex
+          with a truncating label, but a `shrink-0` badge (or any nowrap
+          content a caller passes) still has a minimum width the list's
+          content box will honour — and sideways, that is not a scroll the
+          user asked for, it is the menu escaping its own panel. */}
       <ScrollArea
         variant="hover"
+        horizontal={false}
         className="flex-1 w-full"
         // Padding on the content wrapper scrolls with the rows, as the old
         // scroll box's padding did, keeping the rows' inset from the edges.

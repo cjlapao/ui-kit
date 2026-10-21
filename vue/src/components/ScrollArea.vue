@@ -35,6 +35,13 @@ interface ScrollAreaProps {
   /** Fade the content at the edges it can scroll toward. @default false */
   mask?: boolean;
   /**
+   * Whether the region can scroll sideways. A one-axis region — a nav list,
+   * a text column — should say so: `scrollWidth` reports content clipped by
+   * `overflow-x: hidden` as loudly as content that actually scrolls, so the
+   * bar would be drawn for an axis with nothing to scroll. @default true
+   */
+  horizontal?: boolean;
+  /**
    * Tab order entry for the viewport while overflowing; the viewport leaves
    * the tab order when the content fits. @default 0
    */
@@ -46,6 +53,7 @@ interface ScrollAreaProps {
 const props = withDefaults(defineProps<ScrollAreaProps>(), {
   variant: "auto",
   mask: false,
+  horizontal: true,
   tabIndex: 0,
   contentClassName: "",
 });
@@ -101,12 +109,18 @@ function metrics(
 function update() {
   const viewport = viewportRef.value;
   if (!viewport) return;
+  // `scrollWidth` reports content clipped by `overflow-x: hidden` just as
+  // loudly as content that can actually be scrolled to, so a sideways-locked
+  // region has to be ruled out here: measuring it would draw a bar over an
+  // axis with nothing to scroll.
   overflow.value = {
-    x: viewport.scrollWidth - viewport.clientWidth > 1,
+    x: props.horizontal && viewport.scrollWidth - viewport.clientWidth > 1,
     y: viewport.scrollHeight - viewport.clientHeight > 1,
   };
   thumbY.value = metrics(viewport, yTrackRef.value, "y");
-  thumbX.value = metrics(viewport, xTrackRef.value, "x");
+  thumbX.value = props.horizontal
+    ? metrics(viewport, xTrackRef.value, "x")
+    : { size: 0, offset: 0, ratio: 0 };
 }
 
 onMounted(() => {
@@ -205,6 +219,14 @@ const maskStyle = computed(() => {
   return style;
 });
 
+// The clamp is inline, not a class: the viewport's own `overflow-auto` would
+// otherwise compete with it in the cascade, and a lost contest would leave an
+// axis that scrolls with no bar on it.
+const viewportStyle = computed(() => ({
+  ...maskStyle.value,
+  ...(props.horizontal ? null : { overflowX: "hidden" as const }),
+}));
+
 const rootClass = computed(() => classNames("relative overflow-hidden", classAttr.value));
 
 // Pointer enter/leave drives hover; a caller's own listeners (inherited via
@@ -237,7 +259,7 @@ function onRootPointerLeave(event: PointerEvent) {
       :tabindex="overflow.x || overflow.y ? props.tabIndex : -1"
       :data-overflow-x="overflow.x ? '' : undefined"
       :data-overflow-y="overflow.y ? '' : undefined"
-      :style="maskStyle"
+      :style="viewportStyle"
       class="h-full w-full overflow-auto rounded-[inherit] outline-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400"
       @scroll="onScroll"
     >
@@ -277,7 +299,11 @@ function onRootPointerLeave(event: PointerEvent) {
       </div>
     </div>
 
+    <!-- The sideways bar is not there at all when the axis is locked: a
+         `role="scrollbar"` that scrolls nothing is a promise the region
+         cannot keep, for the pointer and for a screen reader alike. -->
     <div
+      v-if="props.horizontal"
       data-slot="scrollarea-scrollbar"
       data-orientation="horizontal"
       :data-state="xVisible ? 'visible' : 'hidden'"

@@ -11,6 +11,9 @@ import {
   CHECKBOX_DESCRIPTION_PLACEMENTS,
   CHECKBOX_VALIDATION_STATUSES,
   ECG_STATE_COLORS,
+  EXPAND_TRIGGERS,
+  EXPANDABLE_BUTTON_SPRINGS,
+  EXPANDABLE_BUTTON_ICON_MOTIONS,
   COLLAPSIBLE_HELP_VARIANTS,
   CONTROL_SIZES,
   DATEPICKER_SELECTION_MODES,
@@ -1111,6 +1114,30 @@ export const iconButtonRoundedOptions: MultiToggleOption[] = [
   { label: "Xl", value: "xl" },
   { label: "Full", value: "full" },
 ];
+
+// ── Expandable Button ────────────────────────────────────────────────────────
+
+/** What reveals the label. Five — a dropdown. */
+export const expandableButtonExpandOnOptions: MultiToggleOption[] =
+  EXPAND_TRIGGERS.map((value) => ({
+    label: value === "hover+focus" ? "Hover + focus" : titleCase(value),
+    value,
+  }));
+
+/** The four spring presets, in overshoot order. Four — the ChoiceControl
+    segment cap is `length < 4`, so this lands as a dropdown. */
+export const expandableButtonSpringOptions: MultiToggleOption[] = toOptions(
+  EXPANDABLE_BUTTON_SPRINGS,
+);
+
+/** What the glyph does while the label slides out. Five — a dropdown. */
+export const expandableButtonIconMotionOptions: MultiToggleOption[] = toOptions(
+  EXPANDABLE_BUTTON_ICON_MOTIONS,
+);
+
+/** Which side of the glyph the label sits on. Two — a segmented row. */
+export const expandableButtonLabelPlacementOptions: MultiToggleOption[] =
+  toOptions(["after", "before"] as const);
 
 // ── App Divider ──────────────────────────────────────────────────────────────
 

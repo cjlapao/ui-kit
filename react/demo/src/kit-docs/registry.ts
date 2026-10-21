@@ -208,6 +208,17 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/icon-button/IconButtonPage")),
   },
   {
+    slug: "expandable-button",
+    name: "Expandable Button",
+    description:
+      "A circle at rest that springs its label out on hover, focus or click — the full IconButton palette plus five triggers, four elastic spring curves, glyph motion and press squish.",
+    icon: "ArrowRight",
+    category: "Basics",
+    Page: lazy(
+      () => import("./components/expandable-button/ExpandableButtonPage"),
+    ),
+  },
+  {
     slug: "tabs",
     name: "Tabs",
     description:

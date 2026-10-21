@@ -941,3 +941,183 @@
 @utility tab-actions-cap {
   max-width: 20%;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   ExpandableButton — the elastic label reveal (components/ExpandableButton.tsx).
+
+   The control is a circle with a glyph in it. Something — a hover, a focus, a
+   click — pulls a label out from behind the glyph, and it comes out *elastic*:
+   overshooting past its final width and settling back, the way a thing with
+   mass would.
+
+   Three ideas carry it:
+
+   1. The reveal is `grid-template-columns: 0fr → 1fr`. A fr column holding a
+      clipped item has no intrinsic width of its own, so it interpolates all
+      the way to the label's natural width. No measured pixels, no `max-width`
+      guess that clips a long label or leaves a short one stranded.
+   2. The easing overshoots — a control point above 1 (`0.34, 1.56, 0.64, 1`)
+      drives the interpolated value past its target and settles it back. That
+      past-the-target instant is the entire illusion of a spring.
+   3. One switch, `--_eb-open`, flips 0 → 1 on the button and every part
+      derives its opened value from it: the label's width, fade, slide and the
+      gap it pushes the glyph with, the glyph's pop/tilt/lift, the raised
+      shadow. The alternative is one selector list per animated property; this
+      way the open state is written once and the physics cannot desync.
+
+   The curve and the duration are custom properties set inline by the
+   component (a preset, or a caller's own), so no dynamic class ever needs a
+   safelist entry — and `prefers-reduced-motion` can zero them from here.
+   ──────────────────────────────────────────────────────────────────────────── */
+.eb-btn {
+  --_eb-ease: var(--eb-spring-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+  --_eb-dur: var(--eb-spring-duration, 600ms);
+  --_eb-fade: var(--eb-fade-duration, 300ms);
+  /* Relative to the label's own font-size, so the gap and the run-up scale
+     with the control instead of staying 12px at every size. */
+  --_eb-gap: var(--eb-label-gap, 0.6em);
+  --_eb-slide: var(--eb-label-slide, 0.8em);
+  --_eb-open: 0;
+  /* The track's column, switched with the rest. Declared on the button, not
+     on the track: a local declaration on the track would beat the inherited
+     opened value and the label would never come out. */
+  --_eb-cols: 0fr;
+  --_eb-shadow-1: rgb(15 23 42 / 0.12);
+  --_eb-shadow-2: rgb(15 23 42 / 0.07);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Colour keeps the button family's 150ms vocabulary; shape and depth follow
+     the spring, which is the whole point of the control. */
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow var(--_eb-dur) var(--_eb-ease),
+    transform 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+:where(.dark) .eb-btn {
+  --_eb-shadow-1: rgb(0 0 0 / 0.45);
+  --_eb-shadow-2: rgb(0 0 0 / 0.6);
+}
+
+/* The glyph leans as the label leaves — the icon reads as the thing doing the
+   pulling. Which parts of the move a given `iconMotion` uses is decided by the
+   multipliers, so one transform declaration serves all of them. */
+.eb-icon {
+  --_eb-pop: 0;
+  --_eb-tilt: 0;
+  --_eb-lift: 0;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  transform:
+    scale(calc(1 + var(--_eb-pop) * var(--_eb-open) * 0.15))
+    rotate(calc(var(--_eb-tilt) * var(--_eb-open) * -8deg))
+    translateY(calc(var(--_eb-lift) * var(--_eb-open) * -2px));
+  transition: transform var(--_eb-dur) var(--_eb-ease);
+}
+.eb-btn[data-icon-motion="pop-tilt"] .eb-icon {
+  --_eb-pop: 1;
+  --_eb-tilt: 1;
+}
+.eb-btn[data-icon-motion="pop"] .eb-icon {
+  --_eb-pop: 1;
+}
+.eb-btn[data-icon-motion="tilt"] .eb-icon {
+  --_eb-tilt: 1;
+}
+.eb-btn[data-icon-motion="lift"] .eb-icon {
+  --_eb-lift: 1;
+}
+
+/* The grid trick. `0fr` really is zero — a clipped item's automatic minimum
+   size is 0 — and `1fr` is the label's natural width, with everything between
+   them interpolated by the spring. */
+.eb-label-track {
+  display: grid;
+  grid-template-columns: var(--_eb-cols);
+  align-items: center;
+  transition: grid-template-columns var(--_eb-dur) var(--_eb-ease);
+}
+.eb-label {
+  /* Which side the label lives on decides both the direction it runs up from
+     and the side its gap sits on, so both are switched here rather than in an
+     extra copy of the open-state selector list. */
+  --_eb-run-up: calc(-1 * var(--_eb-slide));
+  --_eb-gap-after: var(--_eb-gap);
+  --_eb-gap-before: 0px;
+  overflow: hidden;
+  white-space: nowrap;
+  /* Every opened value is a function of the same switch — `opacity: 0` would
+     have been a label that never arrives. */
+  opacity: var(--_eb-open);
+  padding-inline-start: calc(var(--_eb-open) * var(--_eb-gap-after));
+  padding-inline-end: calc(var(--_eb-open) * var(--_eb-gap-before));
+  transform: translateX(calc(var(--_eb-run-up) * (1 - var(--_eb-open))));
+  transition:
+    opacity var(--_eb-fade) ease,
+    transform var(--_eb-dur) var(--_eb-ease),
+    padding-inline-start var(--_eb-dur) var(--_eb-ease),
+    padding-inline-end var(--_eb-dur) var(--_eb-ease);
+}
+.eb-btn[data-label-placement="before"] {
+  flex-direction: row-reverse;
+}
+.eb-btn[data-label-placement="before"] .eb-label {
+  --_eb-run-up: var(--_eb-slide);
+  --_eb-gap-after: 0px;
+  --_eb-gap-before: var(--_eb-gap);
+}
+
+/* Resting depth, and the deeper hover state: both derived from the same
+   declaration through `--_eb-open`, so the raise rides the spring too. */
+.eb-btn[data-elevate="true"] {
+  box-shadow:
+    0 calc(4px + var(--_eb-open) * 6px) calc(6px + var(--_eb-open) * 9px)
+      calc(-1px - var(--_eb-open) * 2px) var(--_eb-shadow-1),
+    0 calc(2px + var(--_eb-open) * 2px) calc(4px + var(--_eb-open) * 2px)
+      calc(-1px - var(--_eb-open) * 1px) var(--_eb-shadow-2);
+}
+
+/* The press: a satisfying squish, quick enough not to read as lag. */
+.eb-btn[data-squish="true"]:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+/* THE open state, spelled once. `focus-visible` rides along with hover so a
+   keyboard user is never handed a name they cannot see; a control that owns
+   its open state (`data-expanded`) ignores the pointer entirely. */
+.eb-btn:is(
+    [data-expanded="true"],
+    [data-expand-hover="true"]:hover:not(:disabled),
+    [data-expand-hover="true"]:focus-visible:not(:disabled),
+    [data-expand-focus="true"]:focus:not(:disabled)
+  ) {
+  --_eb-open: 1;
+  --_eb-cols: 1fr;
+}
+
+/* On a touchscreen there is no hover to earn: a tap focuses the control, so
+   that is what opens it. */
+@media (hover: none) {
+  .eb-btn[data-expand-hover="true"]:focus:not(:disabled) {
+    --_eb-open: 1;
+    --_eb-cols: 1fr;
+  }
+}
+
+/* Reduced motion: the label still opens — it carries the control's meaning —
+   it simply arrives. */
+@media (prefers-reduced-motion: reduce) {
+  .eb-btn {
+    --_eb-dur: 1ms;
+    --_eb-fade: 1ms;
+  }
+  .eb-btn[data-squish="true"]:active:not(:disabled) {
+    transform: none;
+  }
+}
