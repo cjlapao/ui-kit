@@ -319,3 +319,23 @@ different baselines. Same pixels, same baseline, both states. The
 circle at rest centres with `justify-center` (the quiet discs' trick),
 and padding settled at `px-1.5`/`px-2` per size with `pl-1.5` between
 digit and title.
+
+### Round five (next day) — the width veto
+
+The revealed six were a promise the room might not keep: narrow the
+container and the badges spilled past the strip. The flanks now
+measure rather than guess — **while a flank is open the strip watches
+itself on every frame, and every time it overflows its own box the
+row sheds the badge farthest from the anchor** (past drops its oldest,
+future its latest). The `+N` recounts the whole hidden remainder, so
+the count stays true as the row shrinks. Shed to zero and the flank
+becomes what the card always was — **quiet, read-only, nothing worth
+hiding**: no button, no tooltip, no open state the strip could not
+honour, exactly the ≤3 rule's width-driven twin.
+
+Notes from the making: one decrement per measurement run (frames
+between the call and the commit would otherwise each shed a badge); a
+stale hover is cleared when the flank loses its veto mid-hover, so a
+later resize cannot pop an old hover open; a resize or plan change
+forgets what fit and lets the next open re-ask; and `slice(-0)` is
+the whole array, not empty — the zero case needs its own branch.

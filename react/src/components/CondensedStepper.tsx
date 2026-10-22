@@ -325,6 +325,18 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
 
   const [hoverOpen, setHoverOpen] = useState<CondensedZone | null>(null);
   const [pinned, setPinned] = useState<CondensedZone | null>(null);
+
+  /* The width veto: a revealed row the room cannot hold is not a
+     reveal — it is the screenshot where six badges spill over the
+     strip. Measured, never guessed: while a flank is open the strip
+     watches itself on every frame, and every time it overflows its
+     own box the row sheds the badge farthest from the anchor. Shed to
+     zero and the flank becomes what the card always was — quiet,
+     read-only, nothing worth hiding. A resize or a plan change
+     re-measures from scratch; the first open pays for the knowledge
+     the rest of the session spends. */
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [fit, setFit] = useState<Partial<Record<CondensedZone, number>>>({});
   const isControlled = openZone !== undefined;
   // Hover wins while it lasts — pointing at a flank means you want to read
   // it — and falls back to the pin on leave. One value either way: the two
@@ -334,10 +346,55 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   // it has — there is nothing to reveal, so it cannot be open, not even
   // on a controlled ask. The accordion, its button and its tooltip are
   // withheld together.
+  const pastExpandable =
+    plan.past.expandable && (fit.past === undefined || fit.past > 0);
+  const futureExpandable =
+    plan.future.expandable && (fit.future === undefined || fit.future > 0);
   const open =
-    openRaw && (openRaw === "past" ? plan.past.expandable : plan.future.expandable)
+    openRaw && (openRaw === "past" ? pastExpandable : futureExpandable)
       ? openRaw
       : null;
+
+  // One decrement per measurement run: without it the frames between
+  // the call and the commit would each shed a badge.
+  useEffect(() => {
+    if (!open || mode !== "panel") return;
+    const el = rootRef.current;
+    if (!el) return;
+    const zone = open;
+    const revealed = (zone === "past" ? plan.past : plan.future).revealedIndices.length;
+    if ((fit[zone] ?? revealed) <= 0) return;
+    let raf = 0;
+    let shed = false;
+    const tick = () => {
+      if (!shed && el.scrollWidth > el.clientWidth + 1) {
+        shed = true;
+        setFit((f) => ({ ...f, [zone]: Math.max(0, (f[zone] ?? revealed) - 1) }));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [open, fit, plan, mode]);
+
+  // The room changed: forget what fit, and let the next open re-ask.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let last = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth !== last) {
+        last = el.clientWidth;
+        setFit({});
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setFit({});
+  }, [steps.length, centreIndex, maxSteps, mode, size, variant]);
 
   const report = useCallback(
     (next: CondensedZone | null) => onOpenChange?.(next),
@@ -358,7 +415,14 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     report(zone);
   };
   const leave = (zone: CondensedZone, canOpen = true) => {
-    if (!interactive || expandOn !== "hover" || !canOpen) return;
+    if (!interactive || expandOn !== "hover") return;
+    if (!canOpen) {
+      // The flank may have lost its veto (fit → 0) while the cursor sat
+      // on it: clear the stale hover so the knowledge survives the
+      // mouse, and a later resize cannot pop an old hover open.
+      if (!isControlled && hoverOpen === zone) setHoverOpen(null);
+      return;
+    }
     if (isControlled) {
       report(null);
       return;
@@ -456,6 +520,18 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     const isPast = zone === "past";
     const isOpen = open === zone;
     const count = flank.indices.length;
+    // The width veto's slice: keep the items nearest the anchor, shed
+    // from the far end — past drops its oldest, future its latest.
+    const cap = fit[zone];
+    const revealed =
+      cap === undefined
+        ? flank.revealedIndices
+        : cap === 0
+          ? []
+          : isPast
+            ? flank.revealedIndices.slice(-cap)
+            : flank.revealedIndices.slice(0, cap);
+    const expandable = zone === "past" ? pastExpandable : futureExpandable;
     const summary =
       (isPast ? pastSummary : futureSummary) ??
       (isPast ? `✓ ${count} done` : `+${count} pending`);
@@ -549,14 +625,14 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
         )}
         onMouseEnter={() => {
           (isPast ? onDoneHover : onNextHover)?.(true);
-          enter(zone, flank.expandable);
+          enter(zone, expandable);
         }}
         onMouseLeave={() => {
           (isPast ? onDoneHover : onNextHover)?.(false);
-          leave(zone, flank.expandable);
+          leave(zone, expandable);
         }}
       >
-        {interactive && flank.expandable ? (
+        {interactive && expandable ? (
           <button
             ref={(el) => {
               zoneButtonRefs.current[zone] = el;
@@ -648,7 +724,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             >
             {mode === "panel" && (
               <>
-            {flank.revealedIndices.map((index) => (
+            {revealed.map((index) => (
               <span
                 key={steps[index].id ?? index}
                 className={classNames("cs-item", shift.enter.includes(index) && "cs-disc-enter")}
@@ -656,7 +732,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                 {renderBadge(index)}
               </span>
             ))}
-            {flank.overflow > 0 && (
+            {count - revealed.length > 0 && (
               <span
                 className={classNames(
                   "font-mono font-semibold",
@@ -664,7 +740,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
                   TONE_CLASSES.pending,
                 )}
               >
-                +{flank.overflow}
+                +{count - revealed.length}
               </span>
             )}
             {/* The conveyor's departing items: out of flow the moment
@@ -759,6 +835,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- delegated Esc/arrow handling for the flank and item buttons (the group itself is not a control)
     <div
+      ref={rootRef}
       className={classNames(
         "cs-strip relative flex w-full items-center justify-center gap-1.5 font-sans",
         className,

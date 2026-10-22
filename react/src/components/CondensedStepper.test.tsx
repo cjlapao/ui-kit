@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CondensedStepper from "./CondensedStepper";
 import {
   condenseStepperPlan,
@@ -518,6 +518,40 @@ describe("CondensedStepper", () => {
     expect(container.querySelectorAll(".cs-flank-future [data-step]")).toHaveLength(6);
     expect(container.querySelector(".cs-flank-future")!.textContent).toContain("+2");
     expect(container.querySelector(".cs-flank-future")!.textContent).not.toContain("Sign Key");
+  });
+
+  it("the width veto sheds the revealed row until the strip fits, and the +N recounts", async () => {
+    const { container } = strip({ openZone: "past" });
+    const root = container.firstElementChild as HTMLElement;
+    const shown = () =>
+      root.querySelectorAll(".cs-flank-past .cs-item:not(.cs-ghost)").length;
+    // jsdom has no layout: fake the strip's own measures. Base chrome
+    // 120px + 60px per badge; 240px of room fits two, not six.
+    Object.defineProperty(root, "clientWidth", { configurable: true, value: 240 });
+    Object.defineProperty(root, "scrollWidth", {
+      configurable: true,
+      get: () => 120 + shown() * 60,
+    });
+    await waitFor(() => expect(shown()).toBe(2), { timeout: 3000 });
+    // Nine done, two shown: the chip counts the whole hidden remainder.
+    expect(root.querySelector(".cs-flank-past")!.textContent).toContain("+7");
+  });
+
+  it("when nothing fits, the flank goes quiet and read-only — the card's answer", async () => {
+    const { container } = strip({ openZone: "past" });
+    const root = container.firstElementChild as HTMLElement;
+    Object.defineProperty(root, "clientWidth", { configurable: true, value: 80 });
+    Object.defineProperty(root, "scrollWidth", { configurable: true, get: () => 480 });
+    await waitFor(
+      () => expect(container.querySelector('button[data-zone="past"]')).toBeNull(),
+      { timeout: 3000 },
+    );
+    // Quiet motif stands, revealed row is gone, and the strip never
+    // claims an open state it cannot honour.
+    expect(root.querySelectorAll(".cs-flank-past .cs-item:not(.cs-ghost)")).toHaveLength(0);
+    expect(root.querySelector('[data-zone="past"]')!.tagName).toBe("SPAN");
+    expect(root.getAttribute("data-open")).toBeNull();
+    expect(container.querySelectorAll('[data-qstep="past"], .cs-quiet > span').length).toBeGreaterThan(0);
   });
 
   it("variant dresses the pill and revealed items in the shared surface vocabulary", () => {
