@@ -22,7 +22,13 @@ import {
   sidebarSideOptions,
   sidebarVariantOptions,
 } from "../../shared/options";
-import { DEMO_ITEMS, USER_MENU, WORKSPACE_MENU } from "./demoData";
+import {
+  DEMO_CTAS,
+  DEMO_DETAILS,
+  DEMO_ITEMS,
+  USER_MENU,
+  WORKSPACE_MENU,
+} from "./demoData";
 
 export const SideMenuPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SidebarVariant>("sidebar");
@@ -34,6 +40,24 @@ export const SideMenuPlayground: React.FC = () => {
   const [search, setSearch] = useState(false);
   const [topItem, setTopItem] = useState(true);
   const [footerItem, setFooterItem] = useState(false);
+  const [showCtas, setShowCtas] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  // The capacity card's ✕ reports through onDismiss — the playground owns
+  // the set of dismissed slugs, the way an app would own localStorage.
+  const [dismissedCtas, setDismissedCtas] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const visibleCtas = showCtas
+    ? DEMO_CTAS.filter((cta) => !dismissedCtas.has(cta.slug)).map((cta) =>
+        cta.onDismiss
+          ? {
+              ...cta,
+              onDismiss: () =>
+                setDismissedCtas((prev) => new Set(prev).add(cta.slug)),
+            }
+          : cta,
+      )
+    : undefined;
   const [noise, setNoise] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loaderType, setLoaderType] = useState<SideMenuLoaderType>("skeleton");
@@ -59,6 +83,8 @@ export const SideMenuPlayground: React.FC = () => {
       footerItem={
         footerItem ? { label: "Ada Lovelace", icon: "User", menu: USER_MENU } : undefined
       }
+      ctas={visibleCtas}
+      footerDetails={showDetails ? DEMO_DETAILS : undefined}
       items={DEMO_ITEMS}
     />
   );
@@ -195,6 +221,16 @@ export const SideMenuPlayground: React.FC = () => {
                     label="Footer item (user menu)"
                     checked={footerItem}
                     onChange={setFooterItem}
+                  />
+                  <ToggleRow
+                    label="Call-to-action cards"
+                    checked={showCtas}
+                    onChange={setShowCtas}
+                  />
+                  <ToggleRow
+                    label="Detail footer"
+                    checked={showDetails}
+                    onChange={setShowDetails}
                   />
                 </>
               ),

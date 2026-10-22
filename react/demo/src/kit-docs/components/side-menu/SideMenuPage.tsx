@@ -18,6 +18,10 @@ import Search from "./examples/Search";
 import searchCode from "./examples/Search.tsx?raw";
 import TopFooter from "./examples/TopFooter";
 import topFooterCode from "./examples/TopFooter.tsx?raw";
+import CallToActions from "./examples/CallToActions";
+import callToActionsCode from "./examples/CallToActions.tsx?raw";
+import DetailFooter from "./examples/DetailFooter";
+import detailFooterCode from "./examples/DetailFooter.tsx?raw";
 import Actions from "./examples/Actions";
 import actionsCode from "./examples/Actions.tsx?raw";
 import DualLayout from "./examples/DualLayout";
@@ -31,7 +35,7 @@ export const SideMenuPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Side Menu"
-      description="App navigation with five surface treatments (sidebar, inset, floating, floating-glass, glass), icon-rail and offcanvas collapse, hover-to-expand rails, nested items, item search and top/footer dropdown menus. SideMenuLayout composes it into dual and multi-sidebar app shells, and both stay responsive — below 1024px the panel becomes an offcanvas drawer. Everything inside follows the kit's scales: the tone (default blue) paints rows, hovers and loaders, and every hairline and label takes the surface treatment."
+      description="App navigation with five surface treatments (sidebar, inset, floating, floating-glass, glass), icon-rail and offcanvas collapse, hover-to-expand rails, nested items, item search and top/footer dropdown menus. Pinned call-to-action cards — media, title, one action, and a scroll of their own when the stack overflows — and a tone-washed detail footer fill the space under the navigation. SideMenuLayout composes it into dual and multi-sidebar app shells, and both stay responsive — below 1024px the panel becomes an offcanvas drawer. Everything inside follows the kit's scales: the tone (default blue) paints rows, hovers and loaders, and every hairline and label takes the surface treatment."
     />
     <SideMenuPlayground />
     <section className="flex flex-col gap-5">
@@ -101,6 +105,22 @@ export const SideMenuPage: React.FC = () => (
         filename="TopFooter.tsx"
       >
         <TopFooter />
+      </ExampleCard>
+      <ExampleCard
+        title="Call-to-action cards"
+        description="Structured pitch cards pinned between the navigation and the footer — media, title, description and one action (router path or callback). More cards than the zone's cap leaves for and the stack scrolls on its own, independently of the nav; the ✕ on the capacity card is opt-in through onDismiss, with dismissed slugs kept in component state."
+        code={callToActionsCode}
+        filename="CallToActions.tsx"
+      >
+        <CallToActions />
+      </ExampleCard>
+      <ExampleCard
+        title="Detail footer"
+        description="A tone-washed status box above the collapse control: rows of wrapping text with a soft Pill or tinted value on the right. footerDetailsTone tints the box independently of the menu tone; nothing is removable — the array is the whole contract."
+        code={detailFooterCode}
+        filename="DetailFooter.tsx"
+      >
+        <DetailFooter />
       </ExampleCard>
       <ExampleCard
         title="Row actions and badges"
