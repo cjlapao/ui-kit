@@ -339,3 +339,17 @@ stale hover is cleared when the flank loses its veto mid-hover, so a
 later resize cannot pop an old hover open; a resize or plan change
 forgets what fit and lets the next open re-ask; and `slice(-0)` is
 the whole array, not empty — the zero case needs its own branch.
+
+**Amendment — the veto measures the clip, not the spill** (same day):
+in stretch mode the strip never overflows when the room runs out — the
+flank's 1fr track simply hands out a narrower slice, and the veto's
+`scrollWidth > clientWidth` sat out while a badge showed in halves.
+The check now compares the **row's natural width against the clip's
+allotment** (the strip's own overflow still covers the centred,
+non-stretch variant) — and only **after the opening settles**
+(`transitionend` on the flank, `duration + 150ms` as fallback,
+instant when `animated={false}`): mid-transition the clip is too
+narrow by definition, and checking against it would shed the whole
+row at the start of every open. One settled episode is remembered per
+open, so a cascade of sheds measures on the next frame instead of
+re-waiting for a transition that already happened.

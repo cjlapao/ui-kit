@@ -337,6 +337,14 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
      the rest of the session spends. */
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [fit, setFit] = useState<Partial<Record<CondensedZone, number>>>({});
+  const flankRefs = useRef<
+    Partial<
+      Record<
+        CondensedZone,
+        { flank: HTMLDivElement | null; clip: HTMLDivElement | null; row: HTMLDivElement | null }
+      >
+    >
+  >({});
   const isControlled = openZone !== undefined;
   // Hover wins while it lasts — pointing at a flank means you want to read
   // it — and falls back to the pin on leave. One value either way: the two
@@ -354,28 +362,6 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     openRaw && (openRaw === "past" ? pastExpandable : futureExpandable)
       ? openRaw
       : null;
-
-  // One decrement per measurement run: without it the frames between
-  // the call and the commit would each shed a badge.
-  useEffect(() => {
-    if (!open || mode !== "panel") return;
-    const el = rootRef.current;
-    if (!el) return;
-    const zone = open;
-    const revealed = (zone === "past" ? plan.past : plan.future).revealedIndices.length;
-    if ((fit[zone] ?? revealed) <= 0) return;
-    let raf = 0;
-    let shed = false;
-    const tick = () => {
-      if (!shed && el.scrollWidth > el.clientWidth + 1) {
-        shed = true;
-        setFit((f) => ({ ...f, [zone]: Math.max(0, (f[zone] ?? revealed) - 1) }));
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [open, fit, plan, mode]);
 
   // The room changed: forget what fit, and let the next open re-ask.
   useEffect(() => {
@@ -504,6 +490,63 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     : undefined;
 
   const springDurationMs = springDuration ?? springConfig.duration;
+
+  // One decrement per measurement run: without it the frames between
+  // the call and the commit would each shed a badge. And measured only
+  // after the open settles: mid-transition the clip is by definition
+  // too narrow — that is what a transition is — and checking against
+  // it would shed the whole row at the start of every open. The strip
+  // does not overflow when the room runs out in stretch mode: the
+  // flank's 1fr track simply hands out a narrower slice (the
+  // half-shown badge). So the veto asks the row's natural width
+  // against the clip's allotment — plus the strip's own overflow for
+  // the centred (non-stretch) variant, which really does spill.
+  const episodeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) {
+      episodeRef.current = null;
+      return;
+    }
+    if (mode !== "panel") return;
+    const el = rootRef.current;
+    if (!el) return;
+    const zone = open;
+    const revealed = (zone === "past" ? plan.past : plan.future).revealedIndices.length;
+    if ((fit[zone] ?? revealed) <= 0) return;
+    const parts = flankRefs.current[zone];
+    const flankEl = parts?.flank ?? null;
+    const key = `${zone}:${centreIndex}:${plan.past.indices.join(",")}:${plan.future.indices.join(",")}`;
+    let settled = !animated || episodeRef.current === key;
+    let shed = false;
+    let raf = 0;
+    const finish = () => {
+      settled = true;
+      episodeRef.current = key;
+    };
+    const timer = window.setTimeout(finish, springDurationMs + 150);
+    const onEnd = (event: TransitionEvent) => {
+      if (event.target === flankEl) finish();
+    };
+    flankEl?.addEventListener("transitionend", onEnd);
+    const tick = () => {
+      if (settled && !shed) {
+        const row = parts?.row;
+        const clip = parts?.clip;
+        const clipped = !!row && !!clip && row.scrollWidth > clip.clientWidth + 1;
+        if (clipped || el.scrollWidth > el.clientWidth + 1) {
+          shed = true;
+          setFit((f) => ({ ...f, [zone]: Math.max(0, (f[zone] ?? revealed) - 1) }));
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      window.clearTimeout(timer);
+      cancelAnimationFrame(raf);
+      flankEl?.removeEventListener("transitionend", onEnd);
+    };
+  }, [open, fit, plan, mode, centreIndex, springDurationMs, animated]);
   /* The reveal window is the six nearest the anchor; when the run
      moves, that window slides one notch and the six do a fido —
      newcomer springs in from the centre side, oldest drifts out and
@@ -716,11 +759,22 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
           id={revealId}
           className={classNames("cs-flank", isPast ? "cs-flank-past" : "cs-flank-future")}
           aria-hidden={!isOpen}
+          ref={(el) => {
+            (flankRefs.current[zone] ??= { flank: null, clip: null, row: null }).flank = el;
+          }}
         >
-          <div className="cs-flank-clip">
+          <div
+            className="cs-flank-clip"
+            ref={(el) => {
+              (flankRefs.current[zone] ??= { flank: null, clip: null, row: null }).clip = el;
+            }}
+          >
             <div
               className="cs-flank-row flex w-max items-center gap-1.5 pl-1.5"
               inert={isOpen ? undefined : true}
+              ref={(el) => {
+                (flankRefs.current[zone] ??= { flank: null, clip: null, row: null }).row = el;
+              }}
             >
             {mode === "panel" && (
               <>

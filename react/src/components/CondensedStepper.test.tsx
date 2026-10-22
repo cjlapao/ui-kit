@@ -537,6 +537,24 @@ describe("CondensedStepper", () => {
     expect(root.querySelector(".cs-flank-past")!.textContent).toContain("+7");
   });
 
+  it("the veto reads the clip's allotment — a half-shown badge is overflow, not spill", async () => {
+    // Stretch mode never spills: the 1fr track hands out a narrower
+    // slice and clips. The veto must measure the row's natural width
+    // against the clip, or half a badge passes as "fits".
+    const { container } = strip({ openZone: "past" });
+    const root = container.firstElementChild as HTMLElement;
+    const row = root.querySelector(".cs-flank-past .cs-flank-row") as HTMLElement;
+    const clip = root.querySelector(".cs-flank-past .cs-flank-clip") as HTMLElement;
+    const shown = () =>
+      root.querySelectorAll(".cs-flank-past .cs-item:not(.cs-ghost)").length;
+    Object.defineProperty(row, "scrollWidth", {
+      configurable: true,
+      get: () => shown() * 60,
+    });
+    Object.defineProperty(clip, "clientWidth", { configurable: true, value: 150 });
+    await waitFor(() => expect(shown()).toBe(2), { timeout: 3000 });
+  });
+
   it("when nothing fits, the flank goes quiet and read-only — the card's answer", async () => {
     const { container } = strip({ openZone: "past" });
     const root = container.firstElementChild as HTMLElement;
