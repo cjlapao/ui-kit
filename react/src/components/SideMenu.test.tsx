@@ -978,8 +978,8 @@ describe("SideMenu — skeleton slots", () => {
     expect(skeleton).toBeTruthy();
     // nav, CTA box, detail box, collapse control — the chrome the menu has.
     expect(skeleton.children.length).toBe(4);
-    // The CTA placeholder carries a button bar; the detail box a pill bar.
+    // The CTA placeholder carries a button bar; the detail box a squared bar.
     expect(skeleton.children[1].querySelector(".rounded-lg")).toBeTruthy();
-    expect(skeleton.children[2].querySelector(".rounded-full")).toBeTruthy();
+    expect(skeleton.children[2].querySelector(".rounded-md")).toBeTruthy();
   });
 });

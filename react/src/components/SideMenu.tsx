@@ -498,10 +498,11 @@ const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
     {/* Detail footer */}
     {hasFooterDetails && !collapsed && (
       <div className="shrink-0 px-3 pb-1">
-        <div className={`space-y-2 rounded-xl border p-3 ${dividerClass}`}>
+        {/* Flat wash placeholder — the box itself has no edge. */}
+        <div className="space-y-2 rounded-lg bg-black/5 p-3 dark:bg-white/5">
           <div className="flex items-center justify-between gap-2">
             <SkeletonBar width="50%" className="h-3" />
-            <SkeletonBar className="h-4 w-14 rounded-full" />
+            <SkeletonBar className="h-4 w-14 rounded-md" />
           </div>
           <div className="flex items-center justify-between gap-2">
             <SkeletonBar width="40%" className="h-3" />

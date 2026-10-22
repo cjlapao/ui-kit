@@ -256,3 +256,28 @@ the visual pass.
 Vue sibling (deferred by user; port later against this spec — the structured
 API and shared helpers are deliberately framework-portable), CTA analytics
 hooks, auto-dismiss timers, per-CTA custom rendering.
+
+## Amendments
+
+**2026-10-22 — the detail box is flat, not a card** (user review against the
+terminal-dock reference). The original §Internals reused `Panel
+variant="subtle"`; its base carries `shadow-sm` + `ring-1`, so the box read
+as a card with an edge, and the row hairline split a two-row box into two.
+Current contract, superseding the detail-panel paragraph above:
+
+- Solid state is a plain `overflow-hidden rounded-lg` div painted with
+  `getPanelToneStyles(tone).subtleBg` — the *same* wash classes Panel subtle
+  paints, so the theme stays the single source, minus the edge. No border,
+  no hairline, no ring, no shadow. The see-through surface keeps the `Panel`
+  glass treatment: a translucent box earns the blur and rim.
+- Radius is the shared `rounded-lg` step (cards round generously; status
+  strips do not).
+- Rows are flush: `px-3 py-2`, no separators — the wash and the right-hand
+  elements carry the reading.
+- The badge squares off: `Pill corner="md"` by default (overridable per
+  item via `pill.corner`); full-round pills on a square-cornered strip read
+  as pills.
+
+Tests moved with it: badge shape `rounded-md`, flat-box anatomy (wash pair
+present, no `border*`/`shadow*` classes, flush rows).
+
