@@ -311,4 +311,25 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
 Button.displayName = "Button";
 
+/**
+ * The class recipe `Button` assembles for a solid control at a given size,
+ * so a router link styled as a button (`SideMenu`'s CTA `path` actions) is
+ * byte-identical to a real `Button`. Composed from the very same constants
+ * the component uses — one source, no drift.
+ */
+export const getButtonLinkClasses = (
+  color: TrueColor,
+  size: ButtonSize = "md",
+): string => {
+  const sizeConfig = getControlSizeTokens(size);
+  return classNames(
+    baseClasses,
+    sizeConfig.gap,
+    sizeConfig.text,
+    getButtonBaseClasses("solid", color),
+    getButtonHoverClasses("solid", color),
+    weightClasses.normal,
+  );
+};
+
 export default Button;

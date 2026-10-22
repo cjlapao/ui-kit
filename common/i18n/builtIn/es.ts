@@ -152,6 +152,7 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       verbCollapse: "Contraer",
       verbExpand: "Expandir",
       toggleSubmenu: "{verb} el submenú {label}",
+      dismissCta: "Descartar",
     },
     splitview: {
       moreOptions: "Más opciones",

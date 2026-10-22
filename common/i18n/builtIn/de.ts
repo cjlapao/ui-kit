@@ -153,6 +153,7 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       verbCollapse: "Einklappen",
       verbExpand: "Auskklappen",
       toggleSubmenu: "{verb} Untermenü {label}",
+      dismissCta: "Ausblenden",
     },
     splitview: {
       moreOptions: "Weitere Optionen",

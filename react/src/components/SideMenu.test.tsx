@@ -11,6 +11,8 @@ import SideMenu, {
   useSidebarIsMobile,
   type SideMenuItem,
   type SideMenuProps,
+  type SideMenuCta,
+  type SideMenuDetailItem,
 } from "./SideMenu";
 
 // DropdownMenu (topItem/footerItem) and Input (search) resolve icons through
@@ -759,5 +761,216 @@ describe("SideMenu — loading", () => {
       "aria-valuenow",
       "40",
     );
+  });
+});
+
+// ── Call-to-action cards & detail footer ────────────────────────────────────
+
+const CTA_ON_CLICK = vi.fn();
+
+const CTAS: SideMenuCta[] = [
+  {
+    slug: "waitlist",
+    title: "Fresh content",
+    description: "Portfolio courses will be released soon!",
+    media: <span data-testid="cta-media" />,
+    action: { label: "Join Waitlist", onClick: CTA_ON_CLICK },
+  },
+  {
+    slug: "capacity",
+    title: "Used capacity",
+    description: "You are already using 60% of your capacity.",
+    // Both action flavours set: `path` must win, and the handler stay quiet.
+    action: { label: "Upgrade plan", path: "/upgrade", onClick: CTA_ON_CLICK },
+    onDismiss: () => {},
+  },
+];
+
+const DETAILS: SideMenuDetailItem[] = [
+  {
+    slug: "engine",
+    text: "ENGINE V2.4",
+    pill: { label: "SYNCED", tone: "green", uppercase: true },
+  },
+  { slug: "daemon", text: "daemon:8088", value: { label: "0.4 ms", color: "blue" } },
+];
+
+describe("SideMenu — call-to-action cards", () => {
+  it("renders cards with media, title, description and action while expanded", () => {
+    renderMenu({ ctas: CTAS });
+    expect(screen.getByTestId("cta-media")).toBeInTheDocument();
+    expect(screen.getByText("Fresh content")).toBeInTheDocument();
+    expect(
+      screen.getByText("Portfolio courses will be released soon!"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Join Waitlist" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a path action as a router link with Button's recipe — path wins, onClick stays quiet", () => {
+    renderMenu({ ctas: CTAS });
+    const upgrade = screen.getByRole("link", { name: "Upgrade plan" });
+    expect(upgrade).toHaveAttribute("href", "/upgrade");
+    // getButtonLinkClasses: base recipe (rounded-lg) + the zone's full width.
+    expect(upgrade).toHaveClass("rounded-lg", "w-full");
+    fireEvent.click(upgrade);
+    expect(CTA_ON_CLICK).not.toHaveBeenCalled();
+  });
+
+  it("fires the handler for an onClick action", () => {
+    CTA_ON_CLICK.mockClear();
+    renderMenu({ ctas: CTAS });
+    fireEvent.click(screen.getByRole("button", { name: "Join Waitlist" }));
+    expect(CTA_ON_CLICK).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the dismiss ✕ only when onDismiss is set — labelled, and calling it", () => {
+    const dismissed: string[] = [];
+    renderMenu({
+      ctas: [
+        // CTAS[0] gains a handler; CTAS[1] loses its default one: one ✕ only.
+        { ...CTAS[0], onDismiss: () => dismissed.push("waitlist") },
+        { ...CTAS[1], onDismiss: undefined },
+      ],
+    });
+    const dismiss = screen.getAllByRole("button", { name: "Dismiss" });
+    expect(dismiss).toHaveLength(1);
+    fireEvent.click(dismiss[0]);
+    expect(dismissed).toEqual(["waitlist"]);
+  });
+
+  it("hides both zones in the icon rail and shows them in the mobile drawer", () => {
+    const rail = renderMenu({
+      ctas: CTAS,
+      footerDetails: DETAILS,
+      collapsed: true,
+      onToggleCollapse: () => {},
+    });
+    expect(screen.queryByText("Fresh content")).toBeNull();
+    expect(screen.queryByText("ENGINE V2.4")).toBeNull();
+    rail.unmount();
+
+    setViewportMobile(true);
+    renderMenu({ ctas: CTAS, footerDetails: DETAILS, mobileOpen: true });
+    expect(screen.getByText("Fresh content")).toBeInTheDocument();
+    expect(screen.getByText("ENGINE V2.4")).toBeInTheDocument();
+  });
+
+  it("caps the CTA zone and contains the wheel (structural overflow)", () => {
+    const { container } = renderMenu({ ctas: CTAS });
+    const frame = container.querySelector(".max-h-64") as HTMLElement;
+    expect(frame).toBeTruthy();
+    expect(frame.parentElement).toHaveClass("shrink-0", "px-3");
+    // The viewport, not the frame, holds the wheel containment.
+    expect(frame.querySelector(".overscroll-contain")).toBeTruthy();
+    expect(screen.getByText("Fresh content")).toBeInTheDocument();
+    expect(screen.getByText("Used capacity")).toBeInTheDocument();
+  });
+
+  it("guards cards like links — the zone unmounts entirely when none survive", () => {
+    // Same semantics as items: `hidden` always gates; the app's evaluator
+    // gates the declared guards. With nothing left, the whole zone goes.
+    const { container } = renderMenu({
+      ctas: [
+        { slug: "a", title: "Alpha", hidden: true },
+        { slug: "b", title: "Beta", guards: [{ type: "claim", claim: "pro" }] },
+      ],
+      guardEvaluator: () => false,
+    });
+    expect(screen.queryByText("Alpha")).toBeNull();
+    expect(screen.queryByText("Beta")).toBeNull();
+    expect(container.querySelector(".max-h-64")).toBeNull();
+
+    const pass = renderMenu({
+      ctas: [{ slug: "c", title: "Guarded", guards: [{ type: "claim", claim: "pro" }] }],
+      guardEvaluator: () => true,
+    });
+    expect(screen.getByText("Guarded")).toBeInTheDocument();
+    pass.unmount();
+
+    renderMenu({
+      ctas: [{ slug: "c", title: "Guarded", guards: [{ type: "claim", claim: "pro" }] }],
+      guardEvaluator: () => false,
+    });
+    expect(screen.queryByText("Guarded")).toBeNull();
+  });
+});
+
+describe("SideMenu — detail footer", () => {
+  it("renders rows: wrapping left copy, a tone pill, tinted value text", () => {
+    renderMenu({ footerDetails: DETAILS });
+    expect(screen.getByText("ENGINE V2.4")).toBeInTheDocument();
+    const label = screen.getByText("SYNCED");
+    // getByText matches the innermost element (the label span); one up is
+    // the Pill root.
+    const pillRoot = label.parentElement as HTMLElement;
+    expect(pillRoot).toHaveClass("rounded-full", "uppercase");
+    // Soft green from the Pill tone map — the class must carry the tone.
+    expect(pillRoot.className).toContain("green");
+    expect(screen.getByText("daemon:8088")).toBeInTheDocument();
+    expect(screen.getByText("0.4 ms")).toHaveClass(
+      "text-blue-500",
+      "dark:text-blue-400",
+    );
+  });
+
+  it("separates rows with the surface hairline — never before the first", () => {
+    renderMenu({ footerDetails: DETAILS });
+    const firstRow = screen.getByText("ENGINE V2.4").parentElement as HTMLElement;
+    const secondRow = screen.getByText("daemon:8088").parentElement as HTMLElement;
+    expect(firstRow).not.toHaveClass("border-t");
+    expect(secondRow).toHaveClass("border-t");
+  });
+
+  it("renders nothing when the prop is absent or empty — no stray box", () => {
+    const { container } = renderMenu({ footerDetails: [] });
+    expect(screen.queryByText("ENGINE V2.4")).toBeNull();
+    expect(container.querySelector("aside")!.textContent).not.toContain("ENGINE");
+  });
+
+  it("prefers the pill when an item carries both right-hand elements", () => {
+    renderMenu({
+      footerDetails: [
+        { slug: "both", text: "Dual", pill: { label: "PILL" }, value: { label: "VALUE" } },
+      ],
+    });
+    expect(screen.getByText("PILL")).toBeInTheDocument();
+    expect(screen.queryByText("VALUE")).toBeNull();
+  });
+
+  it("tints the box with footerDetailsTone, not the menu tone", () => {
+    const { container } = renderMenu({
+      footerDetails: DETAILS,
+      color: "blue",
+      footerDetailsTone: "green",
+    });
+    // Panel publishes its resolved tone/variant; the subtle wash and hairline
+    // are the theme's panel pair for that tone.
+    const box = container.querySelector(
+      'section[data-variant="subtle"][data-tone="green"]',
+    ) as HTMLElement;
+    expect(box).toBeTruthy();
+    expect(box.className).toContain("bg-green-50");
+    expect(box.className).toContain("border-green");
+  });
+});
+
+describe("SideMenu — skeleton slots", () => {
+  it("placeholders stand in for the CTA cards and the detail box while loading", () => {
+    const { container } = renderMenu({
+      loading: true,
+      ctas: CTAS,
+      footerDetails: DETAILS,
+    });
+    expect(screen.queryByText("Fresh content")).toBeNull();
+    expect(screen.queryByText("ENGINE V2.4")).toBeNull();
+    const skeleton = container.querySelector(".animate-pulse") as HTMLElement;
+    expect(skeleton).toBeTruthy();
+    // nav, CTA box, detail box, collapse control — the chrome the menu has.
+    expect(skeleton.children.length).toBe(4);
+    // The CTA placeholder carries a button bar; the detail box a pill bar.
+    expect(skeleton.children[1].querySelector(".rounded-lg")).toBeTruthy();
+    expect(skeleton.children[2].querySelector(".rounded-full")).toBeTruthy();
   });
 });

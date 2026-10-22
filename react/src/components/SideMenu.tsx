@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import React, {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -13,7 +14,9 @@ import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
 import Input from "./Input";
 import Loader, { type LoaderColor, type LoaderProps } from "./Loader";
 import ScrollArea from "./ScrollArea";
-import { SkeletonBar } from "./Panel";
+import Panel, { SkeletonBar } from "./Panel";
+import Pill, { type PillVariant } from "./Pill";
+import Button, { getButtonLinkClasses } from "./Button";
 import {
   SIDEBAR_IDLE_COPY,
   SIDEBAR_MOBILE_QUERY,
@@ -22,6 +25,7 @@ import {
   SIDE_MENU_HEADER_SEAM,
   getSideMenuItemTokens,
   getSidebarSurfaceTokens,
+  getTrueColorTextClass,
   type SidebarCollapsible,
   type SidebarIdleCopyKind,
   type SidebarSide,
@@ -155,6 +159,74 @@ export interface SideMenuDropdownItem {
   badge?: React.ReactNode;
 }
 
+/**
+ * A CTA card's single action. `path` and `onClick` are alternatives — the
+ * route wins when both are set, since it's the stronger promise.
+ */
+export interface SideMenuCtaAction {
+  label: string;
+  /** Route — rendered as a router link carrying `Button`'s class recipe. */
+  path?: string;
+  /** Otherwise a solid `Button` of the card's tone calling this. */
+  onClick?: () => void;
+  /** Registry icon name shown before the label. */
+  icon?: IconName;
+}
+
+/**
+ * A promo/upsell card pinned between the navigation and the footer rows —
+ * media, title, description and one action, built on `Panel`. Only rendered
+ * while the panel is expanded; a stack taller than the (capped) zone
+ * scrolls inside it, the nav keeping its own scroll.
+ */
+export interface SideMenuCta {
+  slug: string;
+  title: string;
+  description?: string;
+  /** Rendered above the title; any node (image, illustration, icon). */
+  media?: React.ReactNode;
+  action?: SideMenuCtaAction;
+  /** Accent tone. @default the menu's `color`. */
+  tone?: TrueColor;
+  /** When true, the card is not rendered */
+  hidden?: boolean;
+  /** Guard rules — ALL must pass (AND logic), as with nav items. */
+  guards?: SideMenuItemGuard[];
+  /**
+   * When set, the card gets a corner ✕ calling this — the app owns
+   * persistence (dismissed slugs, localStorage…). The ✕ renders iff this
+   * is provided: a dismiss button without a handler is a dead control.
+   */
+  onDismiss?: () => void;
+}
+
+/**
+ * One row of the detail footer: left-hand copy (wraps freely) with a
+ * right-hand pill or tinted value. `pill` wins when both are set.
+ */
+export interface SideMenuDetailItem {
+  slug: string;
+  /** Left-hand copy — wraps onto as many lines as it needs. */
+  text: React.ReactNode;
+  /** Right-hand pill, rendered through the kit `Pill`. */
+  pill?: {
+    label: React.ReactNode;
+    /** @default the menu's `color` */
+    tone?: TrueColor;
+    /** @default "soft" */
+    variant?: PillVariant;
+    uppercase?: boolean;
+    /** Registry icon name. */
+    icon?: IconName;
+  };
+  /** Right-hand tinted text, used when `pill` is absent. */
+  value?: {
+    label: React.ReactNode;
+    /** @default the menu's `color` */
+    color?: TrueColor;
+  };
+}
+
 export interface SideMenuProps {
   color?: TrueColor;
   title?: string;
@@ -222,6 +294,21 @@ export interface SideMenuProps {
   topItem?: SideMenuDropdownItem;
   /** A row pinned above the collapse control with its own dropdown menu. */
   footerItem?: SideMenuDropdownItem;
+  /**
+   * Call-to-action cards pinned between the navigation and the footer rows.
+   * Expanded-only; when the stack is taller than the (capped) zone, the
+   * zone itself scrolls while the nav keeps its own scroll.
+   */
+  ctas?: SideMenuCta[];
+  /**
+   * Status rows in a tone-washed panel pinned above the collapse control —
+   * rows of left copy with a pill or tinted value on the right. Expanded-
+   * only, and there is no per-row dismissal: the array is the whole
+   * contract.
+   */
+  footerDetails?: SideMenuDetailItem[];
+  /** Tone of the detail panel's wash and hairline. @default the menu's `color` */
+  footerDetailsTone?: TrueColor;
   /**
    * Paint a subtle dither-noise (film-grain) texture over the panel
    * background, behind the content. Reads best on dark surfaces.
@@ -291,6 +378,8 @@ interface SideMenuSkeletonProps {
   hasSearch: boolean;
   hasTitle: boolean;
   hasFooterItem: boolean;
+  hasCtas: boolean;
+  hasFooterDetails: boolean;
   showCollapse: boolean;
   /** Number of navigation placeholder rows. */
   lines: number;
@@ -310,6 +399,8 @@ const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
   hasSearch,
   hasTitle,
   hasFooterItem,
+  hasCtas,
+  hasFooterDetails,
   showCollapse,
   lines,
   dividerClass,
@@ -374,6 +465,19 @@ const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
       ))}
     </div>
 
+    {/* Call-to-action cards */}
+    {hasCtas && !collapsed && (
+      <div className="shrink-0 px-3 pb-1 pt-1">
+        <div className={`space-y-2 rounded-xl border p-3 ${dividerClass}`}>
+          <SkeletonBar className="mx-auto h-14 w-24 rounded-lg" />
+          <SkeletonBar width="55%" className="mx-auto h-3" />
+          <SkeletonBar width="100%" className="h-2.5" />
+          <SkeletonBar width="75%" className="h-2.5" />
+          <SkeletonBar className="h-7 w-full rounded-lg" />
+        </div>
+      </div>
+    )}
+
     {/* Footer item */}
     {hasFooterItem && (
       <div
@@ -381,6 +485,22 @@ const SideMenuSkeleton: React.FC<SideMenuSkeletonProps> = ({
       >
         <SkeletonBar className="h-5 w-5 rounded-md" />
         {!collapsed && <SkeletonBar width="8rem" className="h-3" />}
+      </div>
+    )}
+
+    {/* Detail footer */}
+    {hasFooterDetails && !collapsed && (
+      <div className="shrink-0 px-3 pb-1">
+        <div className={`space-y-2 rounded-xl border p-3 ${dividerClass}`}>
+          <div className="flex items-center justify-between gap-2">
+            <SkeletonBar width="50%" className="h-3" />
+            <SkeletonBar className="h-4 w-14 rounded-full" />
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <SkeletonBar width="40%" className="h-3" />
+            <SkeletonBar width="15%" className="h-3" />
+          </div>
+        </div>
       </div>
     )}
 
@@ -546,6 +666,172 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
 };
 
 // ---------------------------------------------------------------------------
+// Call-to-action card
+// ---------------------------------------------------------------------------
+
+interface SideMenuCtaCardProps {
+  cta: SideMenuCta;
+  /** Tone the card takes when it does not carry one of its own. */
+  menuTone: TrueColor;
+  /** The sidebar surface is see-through: the card takes the glass look. */
+  glass: boolean;
+  /** Resting copy for the dismiss glyph (surface-aware). */
+  idleCopy: SidebarIdleCopyKind;
+  /** Accessible name for the dismiss button. */
+  dismissLabel: string;
+}
+
+/**
+ * A promo/upsell card: media, title, description and one action, rendered
+ * as a real `Panel` — tone, hairline, padding scale and the glass
+ * treatments all come from the shared card definition (third copy of a
+ * card is the third set of bugs). The action is the card's only
+ * interaction, so the Panel itself stays inert.
+ */
+const SideMenuCtaCard: React.FC<SideMenuCtaCardProps> = ({
+  cta,
+  menuTone,
+  glass,
+  idleCopy,
+  dismissLabel,
+}) => {
+  const tone = cta.tone ?? menuTone;
+  const idle = SIDEBAR_IDLE_COPY[idleCopy];
+  const tokens = getSideMenuItemTokens(tone);
+
+  let action: React.ReactNode = null;
+  if (cta.action) {
+    const { label, path, onClick, icon } = cta.action;
+    // `path` wins over `onClick`: the link carries the same class recipe
+    // the solid Button assembles (getButtonLinkClasses), so the two are
+    // indistinguishable; the handler is not also invoked.
+    action = path ? (
+      <Link to={path} className={`${getButtonLinkClasses(tone, "sm")} w-full`}>
+        {icon && <CustomIcon icon={icon} className="h-4 w-4 shrink-0" />}
+        {label}
+      </Link>
+    ) : (
+      <Button
+        variant="solid"
+        color={tone}
+        size="sm"
+        fullWidth
+        leadingIcon={icon}
+        onClick={onClick}
+      >
+        {label}
+      </Button>
+    );
+  }
+
+  return (
+    <Panel
+      className={cta.onDismiss ? "relative" : undefined}
+      variant={glass ? "glass" : "outlined"}
+      tone={tone}
+      padding="sm"
+      mediaPlacement="top"
+      media={cta.media}
+      title={cta.title}
+      description={cta.description}
+      clickable={false}
+      scrollable={false}
+    >
+      {action && <div className="mt-3">{action}</div>}
+      {cta.onDismiss && (
+        <button
+          type="button"
+          onClick={cta.onDismiss}
+          aria-label={dismissLabel}
+          className={`absolute right-1.5 top-1.5 z-10 rounded-md p-1 transition-colors ${idle.icon} ${tokens.hoverBg} ${tokens.hoverText}`}
+        >
+          <CustomIcon icon="Close" className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </Panel>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Detail footer
+// ---------------------------------------------------------------------------
+
+interface SideMenuDetailPanelProps {
+  items: SideMenuDetailItem[];
+  /** Tone of the box's wash and hairline. */
+  tone: TrueColor;
+  /** Fallback tone for pills/values that do not carry one. */
+  menuTone: TrueColor;
+  /** Surface-aware hairline between rows. */
+  divider: string;
+  /** The sidebar surface is see-through: the box takes the glass look. */
+  glass: boolean;
+  /** Resting copy for the left-hand labels (surface-aware). */
+  idleCopy: SidebarIdleCopyKind;
+}
+
+/**
+ * The status box pinned above the collapse control. `Panel variant="subtle"`
+ * already paints the tone's light wash and hairline — the "lighter colour
+ * based on the tone" — so the box adds rows, nothing else. Left copy wraps
+ * freely; the right element never shrinks, so a long label cannot push a
+ * pill out of the panel. Deliberately inert: no dismissal affordance by
+ * design, the caller's array is the whole contract.
+ */
+const SideMenuDetailPanel: React.FC<SideMenuDetailPanelProps> = ({
+  items,
+  tone,
+  menuTone,
+  divider,
+  glass,
+  idleCopy,
+}) => {
+  const idle = SIDEBAR_IDLE_COPY[idleCopy];
+  return (
+    <Panel
+      variant={glass ? "glass" : "subtle"}
+      tone={tone}
+      padding="none"
+      clickable={false}
+      scrollable={false}
+    >
+      {items.map((item, index) => (
+        <div
+          key={item.slug}
+          className={`flex items-start justify-between gap-2 px-3 py-2 text-sm ${
+            index > 0 ? `border-t ${divider}` : ""
+          }`}
+        >
+          <span className={`min-w-0 break-words leading-snug ${idle.text}`}>
+            {item.text}
+          </span>
+          {item.pill ? (
+            <Pill
+              className="shrink-0"
+              tone={item.pill.tone ?? menuTone}
+              variant={item.pill.variant ?? "soft"}
+              size="sm"
+              uppercase={item.pill.uppercase}
+              icon={item.pill.icon}
+            >
+              {item.pill.label}
+            </Pill>
+          ) : item.value ? (
+            <span
+              className={`shrink-0 text-right text-xs font-medium ${getTrueColorTextClass(
+                item.value.color ?? menuTone,
+              )}`}
+            >
+              {item.value.label}
+            </span>
+          ) : null}
+        </div>
+      ))}
+    </Panel>
+  );
+};
+
+// ---------------------------------------------------------------------------
 // SideMenu
 // ---------------------------------------------------------------------------
 
@@ -572,6 +858,9 @@ export const SideMenu = ({
   responsive = true,
   topItem,
   footerItem,
+  ctas,
+  footerDetails,
+  footerDetailsTone,
   noise = false,
   loading = false,
   loaderType = "skeleton",
@@ -659,6 +948,8 @@ export const SideMenu = ({
     hasSearch: search,
     hasTitle: Boolean(title),
     hasFooterItem: Boolean(footerItem),
+    hasCtas: Boolean(ctas?.length),
+    hasFooterDetails: Boolean(footerDetails?.length),
     showCollapse: showCollapseControl,
     lines: skeletonLines,
     dividerClass: surface.divider,
@@ -763,43 +1054,46 @@ export const SideMenu = ({
   const matchesSubtree = (item: SideMenuItemLink): boolean =>
     matchesItem(item) || (item.children ?? []).some(matchesSubtree);
 
-  const visibleItems = useMemo(() => {
-    const isViewFiltered = !!activeModuleView && activeModuleView !== "all";
+  // Guard + module-view gate shared by the navigation items and the CTA
+  // cards: one definition, so a card guarded like a link behaves exactly
+  // like that link. `hidden` wins first; the module-view filter is a hard
+  // veto; the app's evaluator judges what guards remain.
+  const passesGuard = useCallback(
+    (item: { hidden?: boolean; guards?: SideMenuItemGuard[] }): boolean => {
+      if (item.hidden) return false;
+      if (!item.guards?.length) return true;
 
-    const passesModuleViewFilter = (guards: SideMenuItemGuard[]): boolean => {
-      if (!isViewFiltered || moduleViewOptions.length === 0) return true;
-      for (const guard of guards) {
-        if (guard.type === "module") {
-          // Only view-filter this guard if the module is a known view option
-          if (
-            moduleViewOptions.includes(guard.module) &&
-            guard.module !== activeModuleView
-          )
-            return false;
-        } else if (guard.type === "anyModule") {
-          // Only look at the subset of modules that are view options
-          const viewModulesInGuard = guard.modules.filter((m) =>
-            moduleViewOptions.includes(m),
-          );
-          if (
-            viewModulesInGuard.length > 0 &&
-            !viewModulesInGuard.includes(activeModuleView!)
-          )
-            return false;
+      const isViewFiltered = !!activeModuleView && activeModuleView !== "all";
+      if (isViewFiltered && moduleViewOptions.length > 0) {
+        for (const guard of item.guards) {
+          if (guard.type === "module") {
+            // Only view-filter this guard if the module is a known view option
+            if (
+              moduleViewOptions.includes(guard.module) &&
+              guard.module !== activeModuleView
+            )
+              return false;
+          } else if (guard.type === "anyModule") {
+            // Only look at the subset of modules that are view options
+            const viewModulesInGuard = guard.modules.filter((m) =>
+              moduleViewOptions.includes(m),
+            );
+            if (
+              viewModulesInGuard.length > 0 &&
+              !viewModulesInGuard.includes(activeModuleView!)
+            )
+              return false;
+          }
         }
       }
-      return true;
-    };
 
-    const passesGuard = (item: SideMenuItem): boolean => {
-      if (item.hidden) return false;
-      if (item.guards?.length) {
-        if (!passesModuleViewFilter(item.guards)) return false;
-        if (guardEvaluator) return guardEvaluator(item.guards);
-      }
+      if (guardEvaluator) return guardEvaluator(item.guards);
       return true;
-    };
+    },
+    [guardEvaluator, activeModuleView, moduleViewOptions],
+  );
 
+  const visibleItems = useMemo(() => {
     // Which group slugs have ≥1 visible link?
     const groupsWithVisibleLinks = new Set<string>();
     items.forEach((item) => {
@@ -824,7 +1118,12 @@ export const SideMenu = ({
         return !item.groupName || groupsWithVisibleLinks.has(item.groupName);
       return true;
     });
-  }, [items, guardEvaluator, activeModuleView, moduleViewOptions, query]);
+  }, [items, passesGuard, query]);
+
+  const visibleCtas = useMemo(
+    () => (ctas ? ctas.filter(passesGuard) : []),
+    [ctas, passesGuard],
+  );
 
   const hasVisibleLink = visibleItems.some(
     (item) => item.type !== "group" && item.type !== "divider",
@@ -1201,6 +1500,33 @@ export const SideMenu = ({
         </nav>
       </ScrollArea>
 
+      {/* Call-to-action cards — pinned between the nav and the footer rows
+          (expanded only; the rail has no room for a pitch). The zone owns
+          its scroll, so the nav keeps its own and the card stays visible:
+          past the cap the stack scrolls, never the menu. */}
+      {!contentCollapsed && visibleCtas.length > 0 && (
+        <div className="shrink-0 px-3 pb-1 pt-1">
+          <ScrollArea
+            variant="hover"
+            horizontal={false}
+            className="max-h-64"
+            viewportClassName="overscroll-contain"
+            contentClassName="space-y-2"
+          >
+            {visibleCtas.map((cta) => (
+              <SideMenuCtaCard
+                key={cta.slug}
+                cta={cta}
+                menuTone={color}
+                glass={surface.idleCopy === "glass"}
+                idleCopy={surface.idleCopy}
+                dismissLabel={t("kit.sidemenu.dismissCta")}
+              />
+            ))}
+          </ScrollArea>
+        </div>
+      )}
+
       {/* Footer item (pinned above the collapse control) */}
       {footerItem && (
         <div className="shrink-0 px-3 pb-1">
@@ -1211,6 +1537,23 @@ export const SideMenu = ({
             side={side}
             idleCopy={surface.idleCopy}
             color={color}
+          />
+        </div>
+      )}
+
+      {/* Detail footer — a tone-washed status box directly above the
+          collapse control, like the dock's ENGINE block over "Collapse
+          Dock". No scroll region: status copy, and the menu has already
+          scrolled to reach this far. */}
+      {!contentCollapsed && footerDetails && footerDetails.length > 0 && (
+        <div className="shrink-0 px-3 pb-1">
+          <SideMenuDetailPanel
+            items={footerDetails}
+            tone={footerDetailsTone ?? color}
+            menuTone={color}
+            divider={surface.divider}
+            glass={surface.idleCopy === "glass"}
+            idleCopy={surface.idleCopy}
           />
         </div>
       )}
