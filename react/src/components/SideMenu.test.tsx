@@ -905,7 +905,8 @@ describe("SideMenu — detail footer", () => {
     // getByText matches the innermost element (the label span); one up is
     // the Pill root.
     const pillRoot = label.parentElement as HTMLElement;
-    expect(pillRoot).toHaveClass("rounded-full", "uppercase");
+    // The box reads as a flat status strip, so the badge squares off too.
+    expect(pillRoot).toHaveClass("rounded-md", "uppercase");
     // Soft green from the Pill tone map — the class must carry the tone.
     expect(pillRoot.className).toContain("green");
     expect(screen.getByText("daemon:8088")).toBeInTheDocument();
@@ -915,12 +916,20 @@ describe("SideMenu — detail footer", () => {
     );
   });
 
-  it("separates rows with the surface hairline — never before the first", () => {
+  it("keeps rows flush — the box is flat: no separators, border or shadow", () => {
     renderMenu({ footerDetails: DETAILS });
     const firstRow = screen.getByText("ENGINE V2.4").parentElement as HTMLElement;
     const secondRow = screen.getByText("daemon:8088").parentElement as HTMLElement;
     expect(firstRow).not.toHaveClass("border-t");
-    expect(secondRow).toHaveClass("border-t");
+    expect(secondRow).not.toHaveClass("border-t");
+    // The rows' shared parent is the flat wash box itself (menu tone blue).
+    const box = secondRow.parentElement as HTMLElement;
+    expect(box.tagName).toBe("DIV");
+    expect(box.className).toContain("bg-blue-50/80");
+    expect(box.className).not.toMatch(/(^| )border(-|\/|\b)/);
+    expect(box.className).not.toMatch(/(^| )shadow(-|\/|\b)/);
+    // Slightly square shell, not the Panel card radius.
+    expect(box).toHaveClass("rounded-lg");
   });
 
   it("renders nothing when the prop is absent or empty — no stray box", () => {
@@ -945,14 +954,14 @@ describe("SideMenu — detail footer", () => {
       color: "blue",
       footerDetailsTone: "green",
     });
-    // Panel publishes its resolved tone/variant; the subtle wash and hairline
-    // are the theme's panel pair for that tone.
+    // The wash is the theme's panel pair for the requested tone — light and
+    // dark halves both — while the menu itself stayed blue.
     const box = container.querySelector(
-      'section[data-variant="subtle"][data-tone="green"]',
+      'div[class*="bg-green-50"]',
     ) as HTMLElement;
     expect(box).toBeTruthy();
-    expect(box.className).toContain("bg-green-50");
-    expect(box.className).toContain("border-green");
+    expect(box.className).toContain("bg-green-50/80");
+    expect(box.className).toContain("dark:bg-green-500/10");
   });
 });
 

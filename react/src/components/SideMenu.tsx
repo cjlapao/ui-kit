@@ -15,7 +15,7 @@ import Input from "./Input";
 import Loader, { type LoaderColor, type LoaderProps } from "./Loader";
 import ScrollArea from "./ScrollArea";
 import Panel, { SkeletonBar } from "./Panel";
-import Pill, { type PillVariant } from "./Pill";
+import Pill, { type PillCorner, type PillVariant } from "./Pill";
 import Button, { getButtonLinkClasses } from "./Button";
 import {
   SIDEBAR_IDLE_COPY,
@@ -23,6 +23,7 @@ import {
   SIDE_MENU_HEADER_FILL,
   SIDE_MENU_HEADER_HEIGHT,
   SIDE_MENU_HEADER_SEAM,
+  getPanelToneStyles,
   getSideMenuItemTokens,
   getSidebarSurfaceTokens,
   getTrueColorTextClass,
@@ -215,6 +216,12 @@ export interface SideMenuDetailItem {
     tone?: TrueColor;
     /** @default "soft" */
     variant?: PillVariant;
+    /**
+     * Badge shape. The flat status box reads best with the squarer badge,
+     * which is why this departs from `Pill`'s own full-round default.
+     * @default "md"
+     */
+    corner?: PillCorner;
     uppercase?: boolean;
     /** Registry icon name. */
     icon?: IconName;
@@ -758,12 +765,10 @@ const SideMenuCtaCard: React.FC<SideMenuCtaCardProps> = ({
 
 interface SideMenuDetailPanelProps {
   items: SideMenuDetailItem[];
-  /** Tone of the box's wash and hairline. */
+  /** Tone of the box's wash. */
   tone: TrueColor;
   /** Fallback tone for pills/values that do not carry one. */
   menuTone: TrueColor;
-  /** Surface-aware hairline between rows. */
-  divider: string;
   /** The sidebar surface is see-through: the box takes the glass look. */
   glass: boolean;
   /** Resting copy for the left-hand labels (surface-aware). */
@@ -771,63 +776,78 @@ interface SideMenuDetailPanelProps {
 }
 
 /**
- * The status box pinned above the collapse control. `Panel variant="subtle"`
- * already paints the tone's light wash and hairline — the "lighter colour
- * based on the tone" — so the box adds rows, nothing else. Left copy wraps
+ * The status box pinned above the collapse control — the dock's ENGINE
+ * block. A flat surface: the tone's wash from the panel theme (`subtleBg`,
+ * the same classes `Panel variant="subtle"` paints) on a slightly square
+ * `rounded-lg` shell, deliberately with no border, hairline, ring or
+ * shadow, and rows flush against each other — the tone reads from the
+ * wash and the right-hand elements, not from an edge. Left copy wraps
  * freely; the right element never shrinks, so a long label cannot push a
- * pill out of the panel. Deliberately inert: no dismissal affordance by
- * design, the caller's array is the whole contract.
+ * pill out of the box. The see-through surface still earns `Panel`'s
+ * glass treatment — a translucent box needs the blur and rim.
+ * Deliberately inert: no dismissal affordance by design, the caller's
+ * array is the whole contract.
  */
 const SideMenuDetailPanel: React.FC<SideMenuDetailPanelProps> = ({
   items,
   tone,
   menuTone,
-  divider,
   glass,
   idleCopy,
 }) => {
   const idle = SIDEBAR_IDLE_COPY[idleCopy];
-  return (
-    <Panel
-      variant={glass ? "glass" : "subtle"}
-      tone={tone}
-      padding="none"
-      clickable={false}
-      scrollable={false}
+  const rows = items.map((item) => (
+    <div
+      key={item.slug}
+      className="flex items-start justify-between gap-2 px-3 py-2 text-sm"
     >
-      {items.map((item, index) => (
-        <div
-          key={item.slug}
-          className={`flex items-start justify-between gap-2 px-3 py-2 text-sm ${
-            index > 0 ? `border-t ${divider}` : ""
-          }`}
+      <span className={`min-w-0 break-words leading-snug ${idle.text}`}>
+        {item.text}
+      </span>
+      {item.pill ? (
+        <Pill
+          className="shrink-0"
+          tone={item.pill.tone ?? menuTone}
+          variant={item.pill.variant ?? "soft"}
+          corner={item.pill.corner ?? "md"}
+          size="sm"
+          uppercase={item.pill.uppercase}
+          icon={item.pill.icon}
         >
-          <span className={`min-w-0 break-words leading-snug ${idle.text}`}>
-            {item.text}
-          </span>
-          {item.pill ? (
-            <Pill
-              className="shrink-0"
-              tone={item.pill.tone ?? menuTone}
-              variant={item.pill.variant ?? "soft"}
-              size="sm"
-              uppercase={item.pill.uppercase}
-              icon={item.pill.icon}
-            >
-              {item.pill.label}
-            </Pill>
-          ) : item.value ? (
-            <span
-              className={`shrink-0 text-right text-xs font-medium ${getTrueColorTextClass(
-                item.value.color ?? menuTone,
-              )}`}
-            >
-              {item.value.label}
-            </span>
-          ) : null}
-        </div>
-      ))}
-    </Panel>
+          {item.pill.label}
+        </Pill>
+      ) : item.value ? (
+        <span
+          className={`shrink-0 text-right text-xs font-medium ${getTrueColorTextClass(
+            item.value.color ?? menuTone,
+          )}`}
+        >
+          {item.value.label}
+        </span>
+      ) : null}
+    </div>
+  ));
+  if (glass) {
+    return (
+      <Panel
+        variant="glass"
+        tone={tone}
+        padding="none"
+        clickable={false}
+        scrollable={false}
+      >
+        {rows}
+      </Panel>
+    );
+  }
+  return (
+    <div
+      className={`overflow-hidden rounded-lg ${
+        getPanelToneStyles(tone).subtleBg
+      }`}
+    >
+      {rows}
+    </div>
   );
 };
 
@@ -1551,7 +1571,6 @@ export const SideMenu = ({
             items={footerDetails}
             tone={footerDetailsTone ?? color}
             menuTone={color}
-            divider={surface.divider}
             glass={surface.idleCopy === "glass"}
             idleCopy={surface.idleCopy}
           />
