@@ -363,7 +363,15 @@ measurable), so a **layout effect measures on mount** — reserving the
 other flank, both dashes, the anchor, the flank's own quiet half and
 the strip gaps, then accumulating badges from the end nearest the
 anchor until the room runs out, the `+N` chip booking a seat before
-the badges do (it must never be the thing that spills). Opening
+the badges do (it must never be the thing that spills).
+
+And a lesson in measuring lazy elements: the mount arithmetic first
+reserved the dashes at what they measure while everyone is quiet — in
+stretch mode they are the 1fr tracks, splitting the whole free width
+(150px of dash each), so every mount declared nothing fits and the
+flanks refused to open at all. A 1fr track measures its laziness, not
+its need; reserve it at its floor (the 15px the template promises),
+and reserve measured widths only for things that really are fixed. Opening
 simply shows the n already known; the post-settle rAF check stays as
 the backstop for what mount could not see — late fonts (`fonts.ready`
 triggers a re-measure), late layout (`ResizeObserver` re-measures from

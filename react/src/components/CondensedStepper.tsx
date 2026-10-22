@@ -410,7 +410,16 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       const quietHalf = wrapper.firstElementChild as HTMLElement | null;
       let reserved = (quietHalf?.offsetWidth ?? 0) + 4 * GAP;
       Array.from(root.children).forEach((child) => {
-        if (child !== wrapper) reserved += (child as HTMLElement).offsetWidth;
+        if (child === wrapper) return;
+        const el = child as HTMLElement;
+        // The dashes must not be reserved at what they measure while
+        // everyone is quiet: in stretch mode they are the 1fr tracks,
+        // splitting the whole free width while nobody needs it — 150px
+        // of dash each is a lie about what they will ask for when this
+        // flank opens. Their honest ask is the template floor (15px);
+        // outside stretch they are fixed little rules and measure true.
+        reserved +=
+          stretch && el.className.includes("cs-dash") ? 15 : el.offsetWidth;
       });
       const available = root.clientWidth - reserved;
       // Newest (past) or next (future) first — the far end sheds.
@@ -438,7 +447,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       const changed = Object.keys(next).some((k) => prev[k as CondensedZone] !== next[k as CondensedZone]);
       return changed ? { ...prev, ...next } : prev;
     });
-  }, [mode, plan]);
+  }, [mode, plan, stretch]);
   useLayoutEffect(() => {
     measureFits();
   }, [measureSeq, measureFits]);
