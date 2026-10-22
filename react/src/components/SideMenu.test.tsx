@@ -922,10 +922,12 @@ describe("SideMenu — detail footer", () => {
     const secondRow = screen.getByText("daemon:8088").parentElement as HTMLElement;
     expect(firstRow).not.toHaveClass("border-t");
     expect(secondRow).not.toHaveClass("border-t");
-    // The rows' shared parent is the flat wash box itself (menu tone blue).
+    // The rows' shared parent is the flat wash box itself.
     const box = secondRow.parentElement as HTMLElement;
     expect(box.tagName).toBe("DIV");
-    expect(box.className).toContain("bg-blue-50/80");
+    // Solid variants stay neutral grey — no tone wash.
+    expect(box).toHaveClass("bg-neutral-100", "dark:bg-neutral-800/80");
+    expect(box.className).not.toMatch(/bg-blue-50/);
     expect(box.className).not.toMatch(/(^| )border(-|\/|\b)/);
     expect(box.className).not.toMatch(/(^| )shadow(-|\/|\b)/);
     // Slightly square shell, not the Panel card radius.
@@ -948,20 +950,29 @@ describe("SideMenu — detail footer", () => {
     expect(screen.queryByText("VALUE")).toBeNull();
   });
 
-  it("tints the box with footerDetailsTone, not the menu tone", () => {
-    const { container } = renderMenu({
+  it("keeps the box neutral grey on solid variants; only the glass ones tint", () => {
+    const solid = renderMenu({
       footerDetails: DETAILS,
       color: "blue",
       footerDetailsTone: "green",
     });
-    // The wash is the theme's panel pair for the requested tone — light and
-    // dark halves both — while the menu itself stayed blue.
-    const box = container.querySelector(
-      'div[class*="bg-green-50"]',
-    ) as HTMLElement;
-    expect(box).toBeTruthy();
-    expect(box.className).toContain("bg-green-50/80");
-    expect(box.className).toContain("dark:bg-green-500/10");
+    const box = screen.getByText("daemon:8088").parentElement!
+      .parentElement as HTMLElement;
+    expect(box).toHaveClass("bg-neutral-100", "dark:bg-neutral-800/80");
+    expect(box.className).not.toMatch(/bg-green-50/);
+    solid.unmount();
+
+    // Over a blur the tone wash is what holds the box together.
+    renderMenu({
+      variant: "glass",
+      footerDetails: DETAILS,
+      footerDetailsTone: "green",
+    });
+    expect(
+      document.querySelector(
+        'section[data-variant="glass"][data-tone="green"]',
+      ),
+    ).toBeTruthy();
   });
 });
 

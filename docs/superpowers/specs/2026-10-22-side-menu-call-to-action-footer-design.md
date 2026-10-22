@@ -265,11 +265,15 @@ variant="subtle"`; its base carries `shadow-sm` + `ring-1`, so the box read
 as a card with an edge, and the row hairline split a two-row box into two.
 Current contract, superseding the detail-panel paragraph above:
 
-- Solid state is a plain `overflow-hidden rounded-lg` div painted with
-  `getPanelToneStyles(tone).subtleBg` — the *same* wash classes Panel subtle
-  paints, so the theme stays the single source, minus the edge. No border,
-  no hairline, no ring, no shadow. The see-through surface keeps the `Panel`
-  glass treatment: a translucent box earns the blur and rim.
+- Solid state is a plain `overflow-hidden rounded-lg` div painted with a
+  neutral grey pair — `bg-neutral-100 dark:bg-neutral-800/80` — a step off
+  the sidebar's own fill (darker grey on light, lighter grey on dark, just
+  enough to read as its own region). A tone wash over the solid grey sidebar
+  was decoration, not information. No border, no hairline, no ring, no
+  shadow. Only the see-through variants (`glass`, `floating-glass`) tint
+  with `footerDetailsTone` — over a blur the tone wash is what holds the
+  box together — and they keep `Panel`'s glass treatment for the same
+  reason.
 - Radius is the shared `rounded-lg` step (cards round generously; status
   strips do not).
 - Rows are flush: `px-3 py-2`, no separators — the wash and the right-hand

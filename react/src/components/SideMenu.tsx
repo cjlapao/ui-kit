@@ -23,7 +23,6 @@ import {
   SIDE_MENU_HEADER_FILL,
   SIDE_MENU_HEADER_HEIGHT,
   SIDE_MENU_HEADER_SEAM,
-  getPanelToneStyles,
   getSideMenuItemTokens,
   getSidebarSurfaceTokens,
   getTrueColorTextClass,
@@ -314,7 +313,11 @@ export interface SideMenuProps {
    * contract.
    */
   footerDetails?: SideMenuDetailItem[];
-  /** Tone of the detail panel's wash and hairline. @default the menu's `color` */
+  /**
+   * Tone of the detail panel. Only the see-through variants tint with it —
+   * the solid ones keep the neutral grey box, where a tone wash fought the
+   * sidebar. @default the menu's `color`
+   */
   footerDetailsTone?: TrueColor;
   /**
    * Paint a subtle dither-noise (film-grain) texture over the panel
@@ -778,13 +781,14 @@ interface SideMenuDetailPanelProps {
 
 /**
  * The status box pinned above the collapse control — the dock's ENGINE
- * block. A flat surface: the tone's wash from the panel theme (`subtleBg`,
- * the same classes `Panel variant="subtle"` paints) on a slightly square
- * `rounded-lg` shell, deliberately with no border, hairline, ring or
- * shadow, and rows flush against each other — the tone reads from the
- * wash and the right-hand elements, not from an edge. Left copy wraps
+ * block. A flat surface: no border, hairline, ring or shadow, and rows
+ * flush against each other. The solid variants keep it neutral — a grey
+ * step off the sidebar's own fill (darker grey on the light surface,
+ * lighter grey on the dark one, just enough to read as a distinct
+ * region); only the see-through variants tint, where the tone wash is
+ * what makes the box hold together over the blur. Left copy wraps
  * freely; the right element never shrinks, so a long label cannot push a
- * pill out of the box. The see-through surface still earns `Panel`'s
+ * pill out of the box. The see-through surface also earns `Panel`'s
  * glass treatment — a translucent box needs the blur and rim.
  * Deliberately inert: no dismissal affordance by design, the caller's
  * array is the whole contract.
@@ -842,11 +846,7 @@ const SideMenuDetailPanel: React.FC<SideMenuDetailPanelProps> = ({
     );
   }
   return (
-    <div
-      className={`overflow-hidden rounded-lg ${
-        getPanelToneStyles(tone).subtleBg
-      }`}
-    >
+    <div className="overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800/80">
       {rows}
     </div>
   );
