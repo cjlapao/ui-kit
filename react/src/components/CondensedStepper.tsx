@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import classNames from "classnames";
 import {
   EXPANDABLE_BUTTON_SPRING_TOKENS,
@@ -363,7 +371,79 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
       ? openRaw
       : null;
 
-  // The room changed: forget what fit, and let the next open re-ask.
+  /* Measure on mount, not on open: the w-max row lays out its full
+     natural width even folded inside the closed 0fr clip — invisible,
+     un-painted, measurable. A layout effect therefore counts how many
+     badges the room can hold before the first paint, and opening
+     simply shows the n we already know. (The post-settle rAF check
+     stays as the backstop for widths the mount could not see: fonts
+     that load late, containers that never rendered.)
+     The arithmetic is the ruler seen from the flank's side: everything
+     the strip must keep — the other flank, both dashes, the anchor,
+     this flank's own quiet half, the strip gaps — is reserved, and the
+     badges accumulate from the end nearest the anchor (past counts
+     back from its newest, future forward from its next) until the
+     room runs out; the +N chip books a seat before the badges do, so
+     it is never the thing that spills. */
+  const [measureSeq, setMeasureSeq] = useState(0);
+  const remeasure = useCallback(() => {
+    setFit({});
+    setMeasureSeq((n) => n + 1);
+  }, []);
+  const measureFits = useCallback(() => {
+    const root = rootRef.current;
+    if (!root || mode !== "panel" || root.clientWidth === 0) return;
+    const GAP = 6; // gap-1.5, twice: inside the row and across the strip
+    const CHIP_FALLBACK = 26;
+    const next: Partial<Record<CondensedZone, number>> = {};
+    (["past", "future"] as const).forEach((zone) => {
+      const flankPlan = zone === "past" ? plan.past : plan.future;
+      if (!flankPlan.expandable) return;
+      const parts = flankRefs.current[zone];
+      const row = parts?.row;
+      const wrapper = parts?.flank?.parentElement;
+      if (!row || !wrapper) return;
+      const items = Array.from(
+        row.querySelectorAll<HTMLElement>(".cs-item:not(.cs-ghost)"),
+      );
+      if (items.length === 0) return;
+      const quietHalf = wrapper.firstElementChild as HTMLElement | null;
+      let reserved = (quietHalf?.offsetWidth ?? 0) + 4 * GAP;
+      Array.from(root.children).forEach((child) => {
+        if (child !== wrapper) reserved += (child as HTMLElement).offsetWidth;
+      });
+      const available = root.clientWidth - reserved;
+      // Newest (past) or next (future) first — the far end sheds.
+      const widths = (
+        zone === "past" ? items.slice().reverse() : items
+      ).map((el) => el.offsetWidth);
+      for (let n = widths.length; n >= 0; n--) {
+        const rowWidth =
+          widths.slice(0, n).reduce((sum, w) => sum + w, 0) +
+          Math.max(0, n - 1) * GAP;
+        const hidden = flankPlan.indices.length > n;
+        const chip = hidden
+          ? (row.querySelector<HTMLElement>("[data-chip]")?.offsetWidth ??
+              CHIP_FALLBACK) +
+            (n > 0 ? GAP : 0)
+          : 0;
+        if (rowWidth + chip <= available) {
+          next[zone] = n;
+          break;
+        }
+      }
+      next[zone] = next[zone] ?? 0;
+    });
+    setFit((prev) => {
+      const changed = Object.keys(next).some((k) => prev[k as CondensedZone] !== next[k as CondensedZone]);
+      return changed ? { ...prev, ...next } : prev;
+    });
+  }, [mode, plan]);
+  useLayoutEffect(() => {
+    measureFits();
+  }, [measureSeq, measureFits]);
+
+  // The room changed: re-ask, from a full row, before the next paint.
   useEffect(() => {
     const el = rootRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -371,16 +451,30 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
     const ro = new ResizeObserver(() => {
       if (el.clientWidth !== last) {
         last = el.clientWidth;
-        setFit({});
+        remeasure();
       }
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [remeasure]);
 
   useEffect(() => {
-    setFit({});
-  }, [steps.length, centreIndex, maxSteps, mode, size, variant]);
+    remeasure();
+  }, [steps.length, centreIndex, maxSteps, mode, size, variant, remeasure]);
+
+  // Late-loading fonts retune every measure on the page; once they
+  // settle, so do the flanks.
+  useEffect(() => {
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+    if (!fonts) return;
+    let live = true;
+    fonts.ready.then(() => {
+      if (live) remeasure();
+    });
+    return () => {
+      live = false;
+    };
+  }, [remeasure]);
 
   const report = useCallback(
     (next: CondensedZone | null) => onOpenChange?.(next),
@@ -788,6 +882,7 @@ const CondensedStepper: React.FC<CondensedStepperProps> = ({
             ))}
             {count - revealed.length > 0 && (
               <span
+                data-chip
                 className={classNames(
                   "font-mono font-semibold",
                   tokens.discText,

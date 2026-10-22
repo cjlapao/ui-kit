@@ -537,6 +537,65 @@ describe("CondensedStepper", () => {
     expect(root.querySelector(".cs-flank-past")!.textContent).toContain("+7");
   });
 
+  it("the fit is measured on mount — the first open shows n, never the full six", async () => {
+    // jsdom lays out nothing, so the strip's geometry is mocked through
+    // data-w: root 600, quiet halves 120, anchor 160, dashes 12, badges
+    // 60, chip 26. Reserved: 120 + (12+160+12+120) + 4×6 = 436 → the
+    // room holds one badge plus the chip — and the mount must know it
+    // before the open, not a second after.
+    const odw = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
+    const cdw = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+      configurable: true,
+      get() {
+        return Number((this as HTMLElement).dataset.w ?? 0);
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get() {
+        return Number((this as HTMLElement).dataset.w ?? 0);
+      },
+    });
+    try {
+      const steps = mockSteps();
+      const { container, rerender } = render(
+        <CondensedStepper steps={steps} currentIndex={9} actionLabel="Action Required" />,
+      );
+      const root = container.firstElementChild as HTMLElement;
+      root.dataset.w = "600";
+      const [wrapPast, dashL, anchorEl, dashR, wrapFuture] = Array.from(root.children) as HTMLElement[];
+      wrapPast.dataset.w = "120";
+      (wrapPast.firstElementChild as HTMLElement).dataset.w = "120";
+      wrapFuture.dataset.w = "120";
+      dashL.dataset.w = "12";
+      dashR.dataset.w = "12";
+      anchorEl.dataset.w = "160";
+      root.querySelectorAll<HTMLElement>(".cs-flank-past .cs-item:not(.cs-ghost)").forEach((el) => {
+        el.dataset.w = "60";
+      });
+      const chip = root.querySelector<HTMLElement>(".cs-flank-past [data-chip]");
+      if (chip) chip.dataset.w = "26";
+      // A plan change re-measures from a full row, pre-paint.
+      rerender(
+        <CondensedStepper steps={steps} currentIndex={8} actionLabel="Action Required" />,
+      );
+      await waitFor(
+        () =>
+          expect(
+            root.querySelectorAll(".cs-flank-past .cs-item:not(.cs-ghost)"),
+          ).toHaveLength(1),
+        { timeout: 3000 },
+      );
+      expect(root.querySelector(".cs-flank-past")!.textContent).toContain("+7");
+    } finally {
+      if (odw) Object.defineProperty(HTMLElement.prototype, "offsetWidth", odw);
+      else delete (HTMLElement.prototype as unknown as Record<string, unknown>).offsetWidth;
+      if (cdw) Object.defineProperty(HTMLElement.prototype, "clientWidth", cdw);
+      else delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientWidth;
+    }
+  });
+
   it("the veto reads the clip's allotment — a half-shown badge is overflow, not spill", async () => {
     // Stretch mode never spills: the 1fr track hands out a narrower
     // slice and clips. The veto must measure the row's natural width

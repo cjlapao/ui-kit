@@ -353,3 +353,18 @@ narrow by definition, and checking against it would shed the whole
 row at the start of every open. One settled episode is remembered per
 open, so a cascade of sheds measures on the next frame instead of
 re-waiting for a transition that already happened.
+
+**Amendment — measured on mount, not on open** (same day): waiting for
+the first open to settle made the strip show the full six and shed
+them a second later — the first open paid full tuition for knowledge
+the rest of the session spends. The `w-max` row lays out its natural
+width even folded inside the closed 0fr clip (invisible, un-painted,
+measurable), so a **layout effect measures on mount** — reserving the
+other flank, both dashes, the anchor, the flank's own quiet half and
+the strip gaps, then accumulating badges from the end nearest the
+anchor until the room runs out, the `+N` chip booking a seat before
+the badges do (it must never be the thing that spills). Opening
+simply shows the n already known; the post-settle rAF check stays as
+the backstop for what mount could not see — late fonts (`fonts.ready`
+triggers a re-measure), late layout (`ResizeObserver` re-measures from
+a full row, before the next paint).
