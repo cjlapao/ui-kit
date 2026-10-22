@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ColorSwatches,
   CondensedStepper,
+  Slider,
   type CondensedZone,
   type ControlSize,
   type ExpandableButtonSpring,
@@ -171,6 +172,22 @@ export const CondensedStepperPlayground: React.FC = () => {
                       checked={stretch}
                       onChange={setStretch}
                     />
+                    <Control label="Container width">
+                      <div className="flex items-center gap-3">
+                        <Slider
+                          min={300}
+                          max={1080}
+                          step={10}
+                          value={width}
+                          onChange={(value) => setWidth(value as number)}
+                          color={tone}
+                          className="min-w-0 flex-1"
+                        />
+                        <span className="w-12 shrink-0 text-right font-mono text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400">
+                          {width}px
+                        </span>
+                      </div>
+                    </Control>
                     <ToggleRow
                       label="Interactive"
                       checked={interactive}
@@ -258,22 +275,6 @@ export const CondensedStepperPlayground: React.FC = () => {
               },
             ]}
           />
-          <Control label="Container width">
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min={300}
-                max={1080}
-                value={width}
-                onChange={(e) => setWidth(Number(e.target.value))}
-                className="w-full accent-sky-500"
-                aria-label="Container width"
-              />
-              <span className="w-12 shrink-0 text-right font-mono text-[11px] text-neutral-400">
-                {width}px
-              </span>
-            </div>
-          </Control>
         </div>
       }
       preview={
