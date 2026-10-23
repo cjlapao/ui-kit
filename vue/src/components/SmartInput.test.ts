@@ -1,15 +1,23 @@
 import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
-import SmartInput from "./SmartInput.vue";
+import SmartInput, { type SmartInputProps } from "./SmartInput.vue";
 
 /**
  * The first tests this component had, and they are narrow on purpose: they
  * cover the shared-surface wiring that was changed when `tone` lost its
  * `withDefaults` entry, so the fallback it used to get from Vue is now pinned
  * here rather than by Vue's parameter default.
+ *
+ * Unlike the sibling tests' `Record<string, unknown>` helpers, this one is
+ * typed against `SmartInputProps`: `value` is a required prop, so `mount`
+ * will not accept a props bag that omits it even though `withDefaults`
+ * supplies `""` at runtime — the helper provides that default itself.
  */
-const mountInput = (props: Record<string, unknown> = {}) =>
-  mount(SmartInput, { props });
+const mountInput = ({
+  value = "",
+  ...props
+}: Partial<SmartInputProps> = {}) =>
+  mount(SmartInput, { props: { ...props, value } });
 
 const field = (wrapper: ReturnType<typeof mountInput>) =>
   wrapper.find("div.group").classes().join(" ");
