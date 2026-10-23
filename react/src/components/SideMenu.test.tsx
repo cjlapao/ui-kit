@@ -962,17 +962,19 @@ describe("SideMenu — detail footer", () => {
     expect(box.className).not.toMatch(/bg-green-50/);
     solid.unmount();
 
-    // Over a blur the tone wash is what holds the box together.
+    // Over a blur the tone wash is what holds the box together — and it
+    // keeps the same corner as the flat box (container step "rounded-sm"
+    // emits rounded-lg, not the card-default rounded-2xl).
     renderMenu({
       variant: "glass",
       footerDetails: DETAILS,
       footerDetailsTone: "green",
     });
-    expect(
-      document.querySelector(
-        'section[data-variant="glass"][data-tone="green"]',
-      ),
-    ).toBeTruthy();
+    const glassBox = document.querySelector(
+      'section[data-variant="glass"][data-tone="green"]',
+    ) as HTMLElement;
+    expect(glassBox).toBeTruthy();
+    expect(glassBox).toHaveClass("rounded-lg");
   });
 });
 

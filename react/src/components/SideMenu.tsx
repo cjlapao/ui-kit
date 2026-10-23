@@ -837,6 +837,10 @@ const SideMenuDetailPanel: React.FC<SideMenuDetailPanelProps> = ({
       <Panel
         variant="glass"
         tone={tone}
+        // The container corner scale is historical, not Tailwind's: this
+        // step emits `rounded-lg` — the same 0.5rem the flat solid box
+        // carries — instead of the card-default `rounded-2xl`.
+        corner="rounded-sm"
         padding="none"
         clickable={false}
         scrollable={false}

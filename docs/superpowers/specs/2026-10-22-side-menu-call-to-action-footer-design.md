@@ -274,8 +274,11 @@ Current contract, superseding the detail-panel paragraph above:
   with `footerDetailsTone` — over a blur the tone wash is what holds the
   box together — and they keep `Panel`'s glass treatment for the same
   reason.
-- Radius is the shared `rounded-lg` step (cards round generously; status
-  strips do not).
+- Both boxes carry the same corner: `rounded-lg` (0.5rem) on the flat div;
+  the glass `Panel` pins `corner="rounded-sm"` — the container scale is
+  historical, not Tailwind's, and that step is the one that emits
+  `rounded-lg`, instead of the card-default `rounded-2xl`. Status strips do
+  not round like cards.
 - Rows are flush: `px-3 py-2`, no separators — the wash and the right-hand
   elements carry the reading.
 - The badge squares off: `Pill corner="md"` by default (overridable per
