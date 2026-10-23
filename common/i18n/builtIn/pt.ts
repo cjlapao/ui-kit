@@ -4,6 +4,16 @@ import type { MessageCatalog } from "../types";
 
 export const PT_KIT_CATALOG: MessageCatalog = {
   kit: {
+    connectionFlowEdit: {
+      connected: "Ligação solicitada",
+      add: "Adicionar um nó {side} de {label}",
+      top: "acima",
+      right: "à direita",
+      bottom: "abaixo",
+      left: "à esquerda",
+      canceled: "Criação do nó cancelada",
+      created: "Nó provisório adicionado. Configure-o ou descarte-o.",
+    },
     networkGraph: {
       name: "Grafo de rede",
       zoomIn: "Ampliar",

@@ -156,7 +156,7 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
                   : null;
                 const edgeTone = getToneClasses(edge.targetTone);
                 return (
-                  <g key={edge.id}>
+                  <g key={edge.id} data-flow-edge={edge.id} data-flow-from={edge.fromId} data-flow-to={edge.toId}>
                     <path
                       d={edge.d}
                       fill="none"
@@ -301,6 +301,7 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
         {layout.nodes.map((laid) => (
           <div
             key={laid.id}
+            data-flow-node={laid.id}
             role="button"
             tabIndex={laid.node.disabled ? -1 : 0}
             className={classNames(

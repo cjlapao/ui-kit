@@ -37,6 +37,16 @@ import type { MessageCatalog } from "../types";
 
 export const EN_KIT_CATALOG: MessageCatalog = {
   kit: {
+    connectionFlowEdit: {
+      connected: "Connection requested",
+      add: "Add a node {side} {label}",
+      top: "above",
+      right: "to the right of",
+      bottom: "below",
+      left: "to the left of",
+      canceled: "Node creation canceled",
+      created: "Draft node added. Configure or dismiss it.",
+    },
     networkGraph: {
       name: "Network graph",
       zoomIn: "Zoom in",

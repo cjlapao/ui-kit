@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, fireEvent, screen, within } from "@testing-library/react";
 import { TaskBoard, sampleTaskBoard, type TaskBoardColumn, type TaskBoardProps } from "./index";
 
@@ -19,6 +19,15 @@ async function openEditor(name: string) {
 }
 const edited = (fn: ReturnType<typeof vi.fn>, id: string) =>
   (fn.mock.calls[0][0] as TaskBoardColumn[]).find((c) => c.id === id)!;
+
+// Popover stays hidden until it can position itself, and jsdom reports every
+// box as 0×0 — give elements a size, as Popover's own tests do.
+beforeEach(() => {
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+    top: 100, left: 100, right: 400, bottom: 260, width: 300, height: 160, x: 100, y: 100, toJSON: () => ({}),
+  } as DOMRect);
+});
+afterEach(() => vi.restoreAllMocks());
 
 describe("TaskBoard column editor", () => {
   it("there is no edit button outside edit mode", () => {
@@ -75,7 +84,8 @@ describe("TaskBoard column editor", () => {
     });
     // Other columns untouched, order kept.
     expect((onColumnsChange.mock.calls[0][0] as TaskBoardColumn[]).map((c) => c.id)).toEqual(roadmap.columns.map((c) => c.id));
-    expect(screen.queryByRole("dialog")).toBeNull();
+    // Closing (the overlay then plays its leave animation).
+    expect(screen.getByRole("button", { name: "Edit Ideas" })).toHaveAttribute("aria-expanded", "false");
   });
 
   it("clearing the limit and unticking every source removes those properties", async () => {
@@ -105,7 +115,7 @@ describe("TaskBoard column editor", () => {
     fireEvent.change(within(dialog).getByRole("textbox", { name: "Column name" }), { target: { value: "Nope" } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(onColumnsChange).not.toHaveBeenCalled();
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: "Edit Ideas" })).toHaveAttribute("aria-expanded", "false");
   });
 
   it("a blank name or a limit below 1 cannot be saved", async () => {

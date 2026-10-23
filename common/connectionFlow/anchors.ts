@@ -51,7 +51,7 @@ export function separateAnchors(
         edgeIds: group.map((e) => e.id),
         radius:
           CONNECTOR_RING_RADIUS[
-            (first.kind === "branch"
+            first.ringSize ?? (first.kind === "branch"
               ? undefined
               : byId.get(first.toId)?.node.connector?.ringSize) ??
               options.ringSize

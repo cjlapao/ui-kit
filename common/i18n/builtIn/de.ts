@@ -4,6 +4,16 @@ import type { MessageCatalog } from "../types";
 
 export const DE_KIT_CATALOG: MessageCatalog = {
   kit: {
+    connectionFlowEdit: {
+      connected: "Verbindung angefordert",
+      add: "Knoten {side} von {label} hinzufügen",
+      top: "oberhalb",
+      right: "rechts",
+      bottom: "unterhalb",
+      left: "links",
+      canceled: "Knotenerstellung abgebrochen",
+      created: "Knotenentwurf hinzugefügt. Konfigurieren oder verwerfen.",
+    },
     networkGraph: {
       name: "Netzwerkgraph",
       zoomIn: "Vergrößern",

@@ -19,6 +19,9 @@ import Progress from "../Progress";
 import ProgressSpinner from "../ProgressSpinner";
 import ScrollArea from "../ScrollArea";
 import ConnectionFlowSvg from "./ConnectionFlowSvg";
+import ConnectionFlowEditor, { type ConnectionFlowEditorHandle } from "./ConnectionFlowEditor";
+import type { ConnectionFlowConnectRequest, ConnectionFlowPlacement } from "./editGeometry";
+import type { Box } from "../../../../common/connectionFlow/router";
 import {
   DEFAULT_LAYOUT_OPTIONS,
   NODE_CORNER_RADIUS,
@@ -28,6 +31,7 @@ import {
   getHeaderSurface,
   layoutConnectionFlow,
   tracePathTo,
+  type ConnectionFlowConnection,
   type ConnectionFlowEdgeStyle,
   type ConnectionFlowItemProgress,
   type ConnectionFlowLoader,
@@ -48,6 +52,14 @@ import {
 
 export interface ConnectionFlowProps {
   nodes: ConnectionFlowNode[];
+  /** Draw only these links; omit to retain inferred workflow connections. */
+  connections?: readonly ConnectionFlowConnection[];
+  /** Request a link by dropping an edit connector on an existing node. */
+  onConnect?: (connection: ConnectionFlowConnectRequest) => void;
+  /** Reveal side connectors for creating draft nodes. @default false */
+  editMode?: boolean;
+  /** Open your editor. Supplying a real node with ghostId resolves the draft. */
+  onNodeCreate?: (ghostId: string, placement: ConnectionFlowPlacement) => void;
   variant?: PlainSurfaceVariant;
   tone?: TrueColor;
   size?: ControlSize;
@@ -153,6 +165,8 @@ export interface ConnectionFlowProps {
 }
 
 export interface ConnectionFlowHandle {
+  /** Remove an unresolved draft, for example when its configuration is canceled. */
+  dismissGhost: (ghostId: string) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   fit: () => void;
@@ -199,6 +213,10 @@ const ConnectionFlow = React.forwardRef<
 >(function ConnectionFlow(
   {
     nodes,
+    connections,
+    onConnect,
+    editMode = false,
+    onNodeCreate,
     variant = "outlined",
     tone = "neutral",
     size = "md",
@@ -241,6 +259,12 @@ const ConnectionFlow = React.forwardRef<
   },
   ref,
 ) {
+  const editorRef = useRef<ConnectionFlowEditorHandle>(null);
+  const [editBounds, setEditBounds] = useState<Box | null>(null);
+  const onEditBounds = useCallback((next: Box | null) => setEditBounds(current =>
+    current?.x === next?.x && current?.y === next?.y &&
+    current?.width === next?.width && current?.height === next?.height ? current : next,
+  ), []);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const wheelAreaRef = useRef<HTMLDivElement | null>(null);
   const manuallyNavigated = useRef(false);
@@ -276,14 +300,33 @@ const ConnectionFlow = React.forwardRef<
     () =>
       layoutConnectionFlow({
         nodes,
+        connections,
         flowState,
         autoState,
         animated,
         expanded,
         options: layoutOptions,
       }),
-    [nodes, flowState, autoState, animated, expanded, layoutOptions],
+    [nodes, connections, flowState, autoState, animated, expanded, layoutOptions],
   );
+
+  const drawing = {
+    offsetX: Math.min(layout.offsetX, editBounds?.x ?? layout.offsetX),
+    offsetY: Math.min(layout.offsetY, editBounds?.y ?? layout.offsetY),
+    width: Math.max(layout.width, editBounds ? editBounds.x + editBounds.width : layout.width),
+    height: Math.max(layout.height, editBounds ? editBounds.y + editBounds.height : layout.height),
+  };
+  const hasDraftBounds = editBounds !== null;
+  const previousOrigin = useRef({ x: drawing.offsetX, y: drawing.offsetY, drafts: hasDraftBounds });
+  useLayoutEffect(() => {
+    const previous = previousOrigin.current;
+    const element = viewportRef.current;
+    if (element && (previous.drafts || hasDraftBounds)) {
+      element.scrollLeft += (previous.x - drawing.offsetX) * scale;
+      element.scrollTop += (previous.y - drawing.offsetY) * scale;
+    }
+    previousOrigin.current = { x: drawing.offsetX, y: drawing.offsetY, drafts: hasDraftBounds };
+  }, [drawing.offsetX, drawing.offsetY, scale, hasDraftBounds]);
 
   const onToggleExpanded = useCallback((id: string) => {
     setExpanded((current) => {
@@ -357,7 +400,7 @@ const ConnectionFlow = React.forwardRef<
     const { clientWidth, clientHeight } = element;
     if (!clientWidth || !clientHeight) return;
     const next = clampZoom(
-      fitToViewport(layout, clientWidth, clientHeight, maxZoom).scale,
+      fitToViewport({ ...layout, ...drawing }, clientWidth, clientHeight, maxZoom).scale,
     );
     // Everything is visible at this scale, so the origin is the right place
     // to be looking.
@@ -367,9 +410,10 @@ const ConnectionFlow = React.forwardRef<
     };
     setScale(next);
     onZoomChange?.(next);
-  }, [layout, maxZoom, clampZoom, onZoomChange]);
+  }, [layout, drawing.offsetX, drawing.offsetY, drawing.width, drawing.height, maxZoom, clampZoom, onZoomChange]);
 
   useImperativeHandle(ref, () => ({
+    dismissGhost: (id: string) => editorRef.current?.dismissGhost(id),
     zoomIn: () => setZoom(scale * 1.2),
     zoomOut: () => setZoom(scale / 1.2),
     fit: () => { manuallyNavigated.current = true; fit(); },
@@ -460,16 +504,16 @@ const ConnectionFlow = React.forwardRef<
     // The canvas is sized to the content and scrolled natively, so the only
     // offset the renderers need is the overhang: a bypass arc lifts above the
     // origin, and its share of the canvas sits before the first card.
-    offsetX: -layout.offsetX * scale,
-    offsetY: -layout.offsetY * scale,
+    offsetX: -drawing.offsetX * scale,
+    offsetY: -drawing.offsetY * scale,
     onHover,
     onSelect,
   };
 
   // What the scroll area contains, including anything overhanging the origin.
   const canvas = {
-    width: (layout.width - layout.offsetX) * scale,
-    height: (layout.height - layout.offsetY) * scale,
+    width: (drawing.width - drawing.offsetX) * scale,
+    height: (drawing.height - drawing.offsetY) * scale,
   };
 
   const body = (
@@ -550,6 +594,9 @@ const ConnectionFlow = React.forwardRef<
           style={{ cursor: panning ? "grabbing" : undefined }}
           onPointerDown={(event) => {
             if (!interactive || event.button !== 0) return;
+            // In edit mode a card's centre belongs to selection. Capturing
+            // it for pan retargets the click away from the node's editor.
+            if (editMode && (event.target as HTMLElement).closest('[data-flow-node]')) return;
             // A press that starts on a control belongs to the control —
             // including ScrollArea's scrollbar thumbs, which steer their
             // own drag. Capturing the pointer here redirects its `pointerup`
@@ -595,9 +642,22 @@ const ConnectionFlow = React.forwardRef<
               The renderers draw into this, not into the viewport. */}
           <div
             className="relative"
+            onPointerDownCapture={event => {
+              if (editorRef.current?.beginAt(event)) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+            }}
+            onPointerMove={event => editorRef.current?.hoverAt(event.clientX, event.clientY, event.target)}
+            onPointerLeave={() => editorRef.current?.hoverAt(-Infinity, -Infinity, document.body)}
             style={{ width: canvas.width, height: canvas.height }}
           >
             <ConnectionFlowSvg {...rendererProps} renderNode={renderNode} />
+            <ConnectionFlowEditor ref={editorRef} enabled={editMode} layout={layout}
+              scale={scale} offsetX={rendererProps.offsetX} offsetY={rendererProps.offsetY}
+              tone={tone} variant={surfaceVariant} edgeStyle={edgeStyle}
+              onCreate={onNodeCreate} onConnect={onConnect} onBounds={onEditBounds}
+              onStart={() => { manuallyNavigated.current = true; }} />
           </div>
         </ScrollArea>
 

@@ -82,3 +82,7 @@ export {
   type HeaderSurface,
   type NodeMetrics,
 } from "../../connectionFlow";
+
+export type { ConnectionFlowConnectRequest, ConnectionFlowPlacement } from "./editGeometry";
+
+export type { ConnectionFlowConnection } from "../../connectionFlow";

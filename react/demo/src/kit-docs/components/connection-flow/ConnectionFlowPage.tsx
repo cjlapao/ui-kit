@@ -1,7 +1,10 @@
 import React from "react";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
+import { ConnectionFlowEditGuide, ConnectionFlowReference } from "./ConnectionFlowReference";
 import { ConnectionFlowPlayground } from "./ConnectionFlowPlayground";
+import EditMode from "./examples/EditMode";
+import editModeCode from "./examples/EditMode.tsx?raw";
 import EdgeStyles from "./examples/EdgeStyles";
 import edgeStylesCode from "./examples/EdgeStyles.tsx?raw";
 import Items from "./examples/Items";
@@ -34,10 +37,12 @@ export const ConnectionFlowPage: React.FC = () => (
       description="A pipeline graph: steps along a track, parallel lanes that fan out and back in, children hanging below their parent, and arcs over the steps that were skipped. Every edge comes from one port-and-route engine — each connection has its own anchors and corridor, and the edge style changes only how the corners are drawn. Drag to move through it (bars appear on hover); plain scrolling continues through the page, Ctrl/⌘-scroll or pinch to zoom, and hover any node to light the path that reached it."
     />
     <ConnectionFlowPlayground />
+    <ConnectionFlowEditGuide />
     <section className="flex flex-col gap-5">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
         Examples
       </h2>
+      <ExampleCard title="Edit mode" description="Drag from a card’s edge into empty space to add a node, or onto another card to connect it. Click the middle to edit. This example supplies its own SidePanel, fields and save/cancel handlers; the component supplies the ghost previews and requests. See Building an editor above for the data model and creation lifecycle." code={editModeCode} filename="EditMode.tsx"><EditMode /></ExampleCard>
       <ExampleCard title="Wrapped captions" description="Connector captions wrap inside their route with margins on both sides. Each card gap and row boundary grows independently when needed; shorter captions reserve less space than longer captions. Measured caption bounds reserve corridor space; other paths avoid the caption, and fit includes its full bounds. Solid surfaces use a neutral gray treatment for contrast." code={captionsCode} filename="Captions.tsx"><Captions /></ExampleCard>
       <ExampleCard title="Separate retry anchors" description="Failure paths and normal handoffs use separate anchors. Full sides spill onto the nearest available adjacent side; independent return paths use separate lanes. Direct handoffs stay in the gap between their cards. Drag to pan; plain wheel scrolling stays with the page." code={retryPathsCode} filename="RetryPaths.tsx"><RetryPaths /></ExampleCard>
       <ExampleCard
@@ -121,6 +126,7 @@ export const ConnectionFlowPage: React.FC = () => (
         <Skipped />
       </ExampleCard>
     </section>
+    <ConnectionFlowReference />
   </div>
 );
 

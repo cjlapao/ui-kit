@@ -97,6 +97,12 @@ export const TaskBoardColumnEditButton: React.FC<{ column: TaskBoardColumn }> = 
           placeholder={text("columnName")}
           value={draft.title}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              save();
+            }
+          }}
         />
         <div className="flex flex-col gap-1.5">
           <span className={classNames("text-xs font-semibold", surface.muted)}>{text("columnColor")}</span>

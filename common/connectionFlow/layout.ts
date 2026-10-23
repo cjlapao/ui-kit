@@ -31,6 +31,7 @@ import {
   nodeTone,
   toRows,
   type ConnectionFlowBranch,
+  type ConnectionFlowConnection,
   type ConnectionFlowConnectorConfig,
   type ConnectionFlowEdgeStyle,
   type ConnectionFlowLayout,
@@ -78,6 +79,18 @@ const toneOf = nodeTone;
  * here and the result is threaded through.
  */
 export const buildColumns = (nodes: ConnectionFlowNode[]): Column[] => {
+  if (nodes.length && nodes.every(n => n.gridPosition &&
+    Number.isInteger(n.gridPosition.column) && Number.isInteger(n.gridPosition.row))) {
+    const cells = new Map<number, ConnectionFlowNode[]>();
+    for (const node of nodes) {
+      const column = node.gridPosition!.column;
+      cells.set(column, [...(cells.get(column) ?? []), node]);
+    }
+    return [...cells].sort(([a], [b]) => a - b).map(([, entries]) => ({
+      nodes: entries.sort((a, b) => a.gridPosition!.row - b.gridPosition!.row),
+      parallel: entries.length > 1,
+    }));
+  }
   const columns: Column[] = [];
   let i = 0;
   while (i < nodes.length) {
@@ -135,6 +148,8 @@ export const resolveSkipped = (
 
 export interface LayoutInput {
   nodes: ConnectionFlowNode[];
+  /** When supplied, draw only these connections, including an empty array. */
+  connections?: readonly ConnectionFlowConnection[];
   options?: Partial<ConnectionFlowLayoutOptions>;
   /** Fallback state for edges that do not declare one. */
   flowState?: ConnectionState;
@@ -185,14 +200,19 @@ const layoutWithRowSpace = (
     minimum: number,
   ) => {
     const key = JSON.stringify([before.map((n) => n.id), after.map((n) => n.id)]);
+    const beforeIds = new Set(before.map(n => n.id));
+    const afterIds = new Set(after.map(n => n.id));
+    const laneCount = input.connections === undefined ? before.length * after.length :
+      input.connections.filter(c => (beforeIds.has(c.fromId) && afterIds.has(c.toId)) ||
+        (afterIds.has(c.fromId) && beforeIds.has(c.toId))).length;
     const size = Math.max(
       minimum,
       axis === "vertical" ? rowSpace.get(key) ?? 0 : 0,
       // Pack lane centres between the two terminal runs. N lanes need
       // N - 1 spacers; counting both outer margins as lanes wastes two slots.
-      axis === "horizontal" && before.length * after.length > 1
+      axis === "horizontal" && laneCount > 1
         ? 48 +
-          (before.length * after.length - 1) *
+          (laneCount - 1) *
             routingLaneSpacing(options.pathClearance, options.cornerRadius)
         : 0,
       ...before.map((n) => spacing.after.get(n.id)?.[axis] ?? 0),
@@ -204,6 +224,24 @@ const layoutWithRowSpace = (
   };
   const columns = buildColumns(input.nodes);
   const skipped = resolveSkipped(columns, input.autoState ?? false);
+  // Explicit cells share row baselines across columns. Keep the same caption
+  // and terminal feedback budgets as automatic rows, including uneven gaps.
+  const gridRows = new Map<number, number>();
+  if (input.nodes.length && input.nodes.every(n => n.gridPosition &&
+    Number.isInteger(n.gridPosition.column) && Number.isInteger(n.gridPosition.row))) {
+    const rows = new Map<number, ConnectionFlowNode[]>();
+    for (const node of input.nodes) {
+      const row = node.gridPosition!.row;
+      rows.set(row, [...(rows.get(row) ?? []), node]);
+    }
+    const ordered = [...rows].sort(([a], [b]) => a - b);
+    let rowY = options.padding;
+    ordered.forEach(([index, nodes], i) => {
+      gridRows.set(index, rowY);
+      rowY += Math.max(...nodes.map(n => measureNode(n, options, input.expanded))) +
+        gap(nodes, ordered[i + 1]?.[1] ?? [], "vertical", Math.max(72, options.laneGap));
+    });
+  }
 
   const laidOut: LaidOutNode[] = [];
   const byId = new Map<string, LaidOutNode>();
@@ -232,6 +270,7 @@ const layoutWithRowSpace = (
   columns.forEach((column, columnIndex) => {
     let y = options.padding;
     column.nodes.forEach((node, laneIndex) => {
+      y = gridRows.get(node.gridPosition?.row ?? NaN) ?? y;
       const branchStart = laidOut.length;
       const ownHeight = measureNode(node, options, input.expanded);
       const entry: LaidOutNode = {
@@ -365,7 +404,7 @@ const layoutWithRowSpace = (
       const branchBottom = Math.max(
         ...laidOut.slice(branchStart).map((n) => n.y + n.height),
       );
-      y =
+      y = gridRows.size ? branchBottom :
         branchBottom +
         gap(
           [node],
@@ -566,6 +605,7 @@ const layoutWithRowSpace = (
   };
 
   columns.forEach((column, columnIndex) => {
+    if (input.connections !== undefined) return;
     if (columnIndex === 0) return;
     const sourceIndex = lastLiveBefore(columnIndex);
     if (sourceIndex < 0) return;
@@ -817,7 +857,7 @@ const layoutWithRowSpace = (
       childEdges(child);
     });
   };
-  input.nodes.forEach(childEdges);
+  if (input.connections === undefined) input.nodes.forEach(childEdges);
 
   // ── Pass 3b: chain walks + outcome branches ───────────────────────────
   // The chain reads a grid the way a runner reads a lane: in at the top,
@@ -890,6 +930,7 @@ const layoutWithRowSpace = (
       emitCount: 1,
       emitSpan: 0,
       animated,
+      ringSize: o.cfg?.ringSize,
       label: o.label,
       kind: o.kind,
       branchKind: o.branchKind,
@@ -972,6 +1013,7 @@ const layoutWithRowSpace = (
   };
 
   chains.forEach((chain) => {
+    if (input.connections !== undefined) return;
     const parentEntry = byId.get(chain.parentNode.id);
     if (!parentEntry) return;
     if (nodeIsSkipped(chain.parentNode) === true) return;
@@ -1070,12 +1112,38 @@ const layoutWithRowSpace = (
     chain.walk.forEach((w) => chainCardIds.add(w.card.id)),
   );
   laidOut.forEach((entry) => {
+    if (input.connections !== undefined) return;
     if (chainCardIds.has(entry.id)) return;
     if (entry.node.success?.to)
       emitBranch(entry, entry.node.success, "success");
     if (entry.node.failure?.to)
       emitBranch(entry, entry.node.failure, "failure");
   });
+
+  const connectionIds = new Set<string>();
+  const connectionPairs = new Set<string>();
+  for (const connection of input.connections ?? []) {
+    const from = byId.get(connection.fromId), to = byId.get(connection.toId);
+    const pair = JSON.stringify([connection.fromId, connection.toId]);
+    if (!from || !to || from === to || !connection.id ||
+      connectionIds.has(connection.id) || connectionPairs.has(pair)) continue;
+    connectionIds.add(connection.id);
+    connectionPairs.add(pair);
+    const sides = selectSides(boxOf(from), boxOf(to));
+    const fromSide = connection.fromSide ?? sides.from;
+    const toSide = connection.toSide ?? sides.to;
+    emitFlowEdge({
+      id: connection.id, fromEntry: from, toEntry: to,
+      fromPort: sidePort(from, fromSide), toPort: sidePort(to, toSide),
+      prefer: { from: [fromSide], to: [toSide] },
+      state: connection.state ?? (input.autoState
+        ? toneOf(from.node) !== "neutral" ? nodeIsActive(to.node) ? "flowing" : "stopped" : "disabled"
+        : input.flowState ?? "flowing"),
+      sourceTone: connection.sourceTone ?? toneOf(from.node),
+      targetTone: connection.targetTone ?? toneOf(to.node),
+      label: connection.label, cfg: connection,
+    });
+  }
 
   separateAnchors(laidOut, edges, connectors, options);
   if (pass < 4 && rowSeams.length) {

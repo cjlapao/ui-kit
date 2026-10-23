@@ -116,6 +116,15 @@ export interface ConnectionFlowConnectorConfig {
   label?: string;
 }
 
+/** Explicit topology. Supplying a connections array disables inferred edges. */
+export interface ConnectionFlowConnection extends ConnectionFlowConnectorConfig {
+  id: string;
+  fromId: string;
+  toId: string;
+  fromSide?: PortSide;
+  toSide?: PortSide;
+}
+
 /**
  * One of a card's two outcomes, as an edge. `success` without a `to` is the
  * implicit next step and draws nothing extra — it only restyles the walk
@@ -203,6 +212,10 @@ export interface ConnectionFlowNodeItem {
 
 export interface ConnectionFlowNode {
   id: string;
+  /** Optional logical cell for top-level editor nodes. Supply on every top-level
+   * node to align rows across columns. Signed integer indices allow adding to
+   * any side. Placement does not create connections; use explicit connections. */
+  gridPosition?: { column: number; row: number };
   title?: string;
   subtitle?: string;
   description?: string;
@@ -352,6 +365,7 @@ export interface LaidOutNode {
 
 export interface LaidOutEdge {
   id: string;
+  ringSize?: ConnectionFlowRingSize;
   fromId: string | null;
   toId: string;
   state: ConnectionState;
