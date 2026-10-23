@@ -336,7 +336,14 @@ const TagPicker: React.FC<TagPickerProps> = ({
   // The field system, shared with Input, Select, SearchBar and Picker.
   const sizeToken = getFieldSizeTokens(size);
   const fieldTokens = getFieldToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant, tone ?? color ?? "blue");
+  const variantTokens = getInputVariantTokens(
+    variant,
+    tone ?? color ?? "blue",
+    "auto",
+    {
+      explicitTone: tone ?? color,
+    },
+  );
   const hasStatus = validationStatus !== "none";
   const isUnderline = variant === "underline";
   const resolvedPanelVariant =
@@ -542,7 +549,6 @@ const TagPicker: React.FC<TagPickerProps> = ({
     // selection (or the first row) so aria-activedescendant announces it.
     const idx = filtered.findIndex((item) => selectedSet.has(item.id));
     setFocusedIndex(idx >= 0 ? idx : multi || filtered.length === 0 ? -1 : 0);
-     
   }, [open]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────

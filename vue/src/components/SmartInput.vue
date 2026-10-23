@@ -99,7 +99,6 @@ const props = withDefaults(defineProps<SmartInputProps>(), {
   disabled: false,
   size: "md",
   variant: "flat",
-  tone: "blue",
   defaultViewMode: "token",
   autocomplete: true,
   flagMissing: true,
@@ -131,7 +130,12 @@ const caret = ref<number | null>(null);
 const autoTriggered = ref(false);
 
 const sizeToken = computed(() => SIZE_STYLES[props.size] ?? SIZE_STYLES.md);
-const surface = computed(() => getInputVariantTokens(props.variant));
+// `tone` has no withDefaults entry: `explicitTone` must stay undefined when
+// the caller said nothing, and a defaulted prop never is.
+const tone = computed(() => props.tone ?? "blue");
+const surface = computed(() => getInputVariantTokens(props.variant, tone.value, "auto", {
+    explicitTone: props.tone,
+  }));
 
 const resolver = computed<SmartVariableResolver>(
   () => props.resolve ?? createDefaultResolver(props.groups),
@@ -339,7 +343,7 @@ const containerClass = computed(() =>
     // `bg-white border-slate-300` with no dark-mode partner at all.
     surface.value.surface,
     isEditing.value &&
-      `ring-2 ring-inset ring-${props.tone}-400/60 border-${props.tone}-400`,
+      `ring-2 ring-inset ring-${tone.value}-400/60 border-${tone.value}-400`,
     props.disabled && "opacity-60",
     classAttr.value,
   ),

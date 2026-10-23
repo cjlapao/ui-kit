@@ -192,7 +192,9 @@ defineExpose({ el });
 const effectiveTone = computed(() => props.tone ?? props.color ?? "blue");
 const sizeToken = computed(() => SIZE_STYLES[props.size] ?? SIZE_STYLES.md);
 const tokens = computed(() => getToneTokens(effectiveTone.value));
-const variantTokens = computed(() => getInputVariantTokens(props.variant));
+const variantTokens = computed(() => getInputVariantTokens(props.variant, effectiveTone.value, "auto", {
+    explicitTone: props.tone ?? props.color,
+  }));
 const isUnderline = computed(() => props.variant === "underline");
 const hasStatus = computed(() => props.validationStatus !== "none");
 const showCaret = computed(() => !props.hideCaret && !props.multiple);

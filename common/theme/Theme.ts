@@ -288,6 +288,24 @@ export type InputVariantTokens = {
   translucent: boolean;
 };
 
+/**
+ * Extras for `getInputVariantTokens`.
+ */
+export type InputVariantOptions = {
+  /**
+   * The tone the caller *chose*, as opposed to the one the component resolved.
+   *
+   * `glass` tints its fill from this alone. Every field resolves a missing
+   * tone to `blue` (`tone ?? color ?? "blue"`), so tinting from the resolved
+   * value would repaint every bare `<Input variant="glass">` in the product
+   * pale blue — which is what `ghost` does, and why the distinction has to be
+   * carried from the call site rather than inferred here. A field nobody ever
+   * tinted keeps the white wash it has always had; a field whose caller asked
+   * for violet gets violet glass.
+   */
+  explicitTone?: TrueColor;
+};
+
 const INPUT_TEXT_SOLID =
   "text-neutral-900 placeholder:text-neutral-400 dark:text-neutral-100 dark:placeholder:text-neutral-500";
 /** Glass needs more contrast: the fill may be composited over anything. */
@@ -380,6 +398,32 @@ export const stripBorderColor = (surface: string): string =>
     .join(" ");
 
 /**
+ * A background *colour* utility: `bg-white/45`, `dark:bg-blue-500/10`,
+ * `bg-transparent`. Shaped like `BORDER_COLOR_CLASS` for the same reason — it
+ * must not match the background *keywords* (`bg-cover`, `bg-center`,
+ * `bg-no-repeat`) or the gradient direction (`bg-gradient-to-r`), none of
+ * which are fills and all of which would be destroyed by a naive `bg-` prefix
+ * match.
+ */
+const FILL_CLASS =
+  /^(?:dark:)?bg-(?:[a-z]+-\d{2,3}(?:\/\d+)?|white(?:\/\d+)?|black(?:\/\d+)?|transparent|current|inherit)$/;
+
+/**
+ * A surface with its background colour removed, keeping the rest.
+ *
+ * Used where a component paints a *second* fill over the variant's own. The
+ * alternative — replacing the expected literal, `surface.replace("bg-white/45",
+ * …)` — goes silently stale the moment anyone edits the token table: the
+ * replace finds nothing, the old fill survives underneath, and the field is
+ * untinted again with nothing said about it. Stripping cannot fail that way.
+ */
+export const stripFillClass = (surface: string): string =>
+  surface
+    .split(/\s+/)
+    .filter((token) => token !== "" && !FILL_CLASS.test(token))
+    .join(" ");
+
+/**
  * Matches a text *colour* utility and deliberately not a text *size* one:
  * `text-sky-500`, `dark:text-white`, `text-black/40` yes; `text-sm`,
  * `text-base`, `text-[10px]` no. The digit run is what separates them.
@@ -418,6 +462,7 @@ export const getInputVariantTokens = (
   variant: InputVariant,
   tone: TrueColor = "neutral",
   corner: SurfaceCorner = "auto",
+  options?: InputVariantOptions,
 ): InputVariantTokens => {
   const tokens = inputVariantTokens[variant] ?? inputVariantTokens.elevated;
   let resolved = tokens;
@@ -433,6 +478,22 @@ export const getInputVariantTokens = (
         `hover:border-${tone}-200 hover:bg-${tone}-100`,
         `dark:bg-${tone}-500/10 dark:hover:bg-${tone}-500/20`,
       ].join(" "),
+    };
+  }
+  if (variant === "glass" && options?.explicitTone) {
+    // Glass was a white slab whatever the caller passed: `tone` arrived here
+    // from every field and was used by the ghost branch alone, so a
+    // `glass` + `tone="blue"` pair painted `bg-white/45` and read as
+    // `elevated` dropped on the backdrop. The rim, the blur and the shadow
+    // stay — they are what separates glass from ghost; only the fill follows
+    // the tone. Sheerer than Button's control glass on purpose: a field spans
+    // a row, which puts it nearer a container than a button. Both alpha steps
+    // are the ones `scripts/generate-safelist.mjs` already emits for every
+    // tone, so this adds no arbitrary values to the build.
+    const tint = options.explicitTone;
+    resolved = {
+      ...resolved,
+      surface: `${stripFillClass(resolved.surface)} bg-${tint}-100/45 dark:bg-${tint}-500/10`,
     };
   }
   if (corner === "auto") return resolved;

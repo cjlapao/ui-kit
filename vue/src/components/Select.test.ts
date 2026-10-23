@@ -28,7 +28,11 @@ describe("Select", () => {
   describe("variant tokens", () => {
     it.each(INPUT_VARIANTS)("applies the %s surface and copy", (variant) => {
       const wrapper = mountSelect({ variant });
-      const tokens = getInputVariantTokens(variant);
+      // The field resolves an absent tone to `blue`, so the expectation has to
+      // resolve it the same way. Comparing against the token's own `neutral`
+      // default made this pass vacuously: the component ignored the tone and so
+      // did the expectation, and they agreed while both were wrong.
+      const tokens = getInputVariantTokens(variant, "blue");
       for (const expected of tokens.surface.split(/\s+/)) {
         expect(field(wrapper)).toContain(expected);
       }

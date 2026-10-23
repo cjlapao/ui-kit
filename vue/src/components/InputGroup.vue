@@ -142,7 +142,9 @@ const slots = useSlots();
 const effectiveTone = computed(() => props.tone ?? props.color ?? "blue");
 const toneToken = computed(() => getToneTokens(effectiveTone.value));
 const sizeToken = computed(() => SIZE_STYLES[props.size] ?? SIZE_STYLES.md);
-const variantTokens = computed(() => getInputVariantTokens(props.variant));
+const variantTokens = computed(() => getInputVariantTokens(props.variant, effectiveTone.value, "auto", {
+    explicitTone: props.tone ?? props.color,
+  }));
 const hasStatus = computed(() => props.validationStatus !== "none");
 const isUnderline = computed(() => props.variant === "underline");
 

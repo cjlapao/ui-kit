@@ -131,7 +131,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     {
       size = "md",
       variant = "elevated",
-      tone = "blue",
+      tone: toneProp,
       validationStatus = "none",
       className,
       resize = "vertical",
@@ -153,13 +153,18 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     },
     ref: ForwardedRef<HTMLTextAreaElement>,
   ) {
+    // The fallback, kept out of the parameter list so `explicitTone` below
+    // can tell a caller who chose blue from a caller who said nothing.
+    const tone = toneProp ?? "blue";
     const [focused, setFocused] = useState(false);
     const generatedId = useId();
     const textareaId = id ?? generatedId;
     const helpId = `${textareaId}-help`;
 
     const sizeToken = sizeTokens[size] ?? sizeTokens.md;
-    const variantTokens = getInputVariantTokens(variant, tone);
+    const variantTokens = getInputVariantTokens(variant, tone, "auto", {
+      explicitTone: toneProp,
+    });
     const resizeClass = resizeClasses[resize] ?? resizeClasses.vertical;
     const glow = getGlowTokens(glowIntensity);
     const [glowFrom, glowTo] = resolveGlowGradient(

@@ -512,7 +512,14 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone;
     const sizeToken = getFieldSizeTokens(size);
     const tokens = getFieldToneTokens(effectiveTone);
-    const variantTokens = getInputVariantTokens(variant);
+    const variantTokens = getInputVariantTokens(
+      variant,
+      effectiveTone,
+      "auto",
+      {
+        explicitTone: tone ?? color,
+      },
+    );
     const isUnderline = variant === "underline";
     const hasStatus = validationStatus !== "none";
     const glow = getGlowTokens(glowIntensity);

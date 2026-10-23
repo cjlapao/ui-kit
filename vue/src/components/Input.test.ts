@@ -21,7 +21,11 @@ describe("Input", () => {
   describe("variant tokens", () => {
     it.each(INPUT_VARIANTS)("applies the %s surface and copy", (variant) => {
       const wrapper = mountInput({ variant });
-      const tokens = getInputVariantTokens(variant);
+      // The field resolves an absent tone to `blue`, so the expectation has to
+      // resolve it the same way. Comparing against the token's own `neutral`
+      // default made this pass vacuously: the component ignored the tone and so
+      // did the expectation, and they agreed while both were wrong.
+      const tokens = getInputVariantTokens(variant, "blue");
       for (const expected of tokens.surface.split(/\s+/)) {
         expect(field(wrapper)).toContain(expected);
       }
@@ -57,6 +61,40 @@ describe("Input", () => {
       expect(
         mountInput({ variant: "flat" }).find('[aria-hidden="true"]').exists(),
       ).toBe(false);
+    });
+  });
+
+  /**
+   * Vue's fields computed `effectiveTone` and then called
+   * `getInputVariantTokens(props.variant)` without it — so `ghost` was grey
+   * whatever the caller passed, the defect React had already fixed and
+   * documented, and `glass` had no tint to lose because it never asked. Both
+   * are wired up now, and these are the first assertions any of it had.
+   */
+  describe("a field given a tone", () => {
+    it("tints a glass field's fill in both schemes", () => {
+      const classes = field(mountInput({ variant: "glass", tone: "blue" }));
+      expect(classes).toContain("bg-blue-100/45");
+      expect(classes).toContain("dark:bg-blue-500/10");
+      expect(classes).not.toContain("bg-white/45");
+    });
+
+    it("leaves a glass field nobody tinted exactly as it was", () => {
+      const classes = field(mountInput({ variant: "glass" }));
+      expect(classes).toContain("bg-white/45");
+      expect(classes).not.toContain("bg-blue-100/45");
+    });
+
+    it("tints a ghost field, which used to be grey whatever the caller said", () => {
+      const classes = field(mountInput({ variant: "ghost", tone: "violet" }));
+      expect(classes).toContain("bg-violet-50");
+      expect(classes).not.toContain("bg-neutral-50");
+    });
+
+    it("tints from the deprecated color alias too", () => {
+      expect(field(mountInput({ variant: "glass", color: "rose" }))).toContain(
+        "bg-rose-100/45",
+      );
     });
   });
 

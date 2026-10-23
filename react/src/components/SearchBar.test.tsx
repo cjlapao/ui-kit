@@ -93,6 +93,19 @@ describe("SearchBar — surfaces", () => {
     expect(cls).toContain("dark:border-white/15");
   });
 
+  it("takes the glass tint from its color without touching its own classes", () => {
+    // The point of the shared field tokens: this component passes its tone to
+    // `getInputVariantTokens` and inherits the look, so the glass fix landed
+    // here with no change to this file. If this fails, the inheritance broke.
+    const { container } = render(
+      <SearchBar onSearch={() => {}} variant="glass" color="emerald" />,
+    );
+    const cls = bar(container).className;
+    expect(cls).toContain("bg-emerald-100/45");
+    expect(cls).toContain("dark:bg-emerald-500/10");
+    expect(cls).not.toContain("bg-white/45");
+  });
+
   it("supports the whole shared control scale", () => {
     // Five steps, not the three it used to define locally.
     for (const size of CONTROL_SIZES) {

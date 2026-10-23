@@ -212,7 +212,9 @@ const InputGroup: React.FC<InputGroupProps> = ({
   // the children render unstyled, so a tone-reading surface (`ghost`) can
   // only be tinted by the group. (This call used to be tone-blind: every
   // ghost group stayed grey no matter what tone sat beside it.)
-  const variantTokens = getInputVariantTokens(variant, effectiveTone, corner);
+  const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
+    explicitTone: tone ?? color,
+  });
   const glow = getGlowTokens(glowIntensity);
   const [glowFrom, glowTo] = resolveGlowGradient(
     effectiveTone,

@@ -312,7 +312,9 @@ const Picker: React.FC<PickerProps> = ({
   // stacked beside any of them lines up and focuses identically.
   const sizeToken = getFieldSizeTokens(size);
   const fieldTokens = getFieldToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant, effectiveTone);
+  const variantTokens = getInputVariantTokens(variant, effectiveTone, "auto", {
+    explicitTone: tone ?? color,
+  });
   const hasStatus = validationStatus !== "none";
   // The dropdown is a surface from the container family, following the
   // field's variant the way SmartInput's suggestion card does. It used to

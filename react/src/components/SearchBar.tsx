@@ -128,12 +128,15 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   leadingIcon = "Search",
   variant = "elevated",
   size = "md",
-  color = "blue",
+  color: colorProp,
   gradientFrom,
   gradientTo,
   glowIntensity = DEFAULT_GLOW_INTENSITY,
   loading = false,
 }) => {
+  // Not a parameter default: `explicitTone` has to be able to tell a
+  // caller who chose blue from one who said nothing.
+  const color = colorProp ?? "blue";
   const t = useKitT();
   const [resolvedFrom, resolvedTo] = resolveGlowGradient(
     color,
@@ -262,7 +265,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   ) : null;
 
   const sizeToken = getFieldSizeTokens(size);
-  const variantTokens = getInputVariantTokens(variant, color);
+  const variantTokens = getInputVariantTokens(variant, color, "auto", {
+    explicitTone: colorProp,
+  });
 
   const bar = (
     <div

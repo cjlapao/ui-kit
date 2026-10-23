@@ -125,7 +125,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   const effectiveTone = tone ?? color ?? "blue";
   const sizeToken = getFieldSizeTokens(size);
   const tokens = getFieldToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant, effectiveTone);
+  const variantTokens = getInputVariantTokens(variant, effectiveTone, "auto", {
+    explicitTone: tone ?? color,
+  });
   const isUnderline = variant === "underline";
   const hasStatus = validationStatus !== "none";
 

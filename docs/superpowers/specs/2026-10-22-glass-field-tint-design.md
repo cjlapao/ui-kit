@@ -207,7 +207,11 @@ looped over an empty tone list and cheerfully reported no missing tones for zero
 acceptance 13 is the same check done to the browser rather than to the file, and it is
 stayed.)
 
-## Behaviour change to note in the changelog
+## Behaviour change to record
+
+The repo has no CHANGELOG.md — the convention here is a detailed commit body, a
+Learnings.md rule section, and the docs page that demonstrates the behaviour. All
+three carry these two lines:
 
 - A `variant="glass"` field now tints its fill from an explicitly chosen `tone` (or the
   deprecated `color`). A glass field with no tone is unchanged. To keep the old neutral

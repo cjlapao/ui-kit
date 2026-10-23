@@ -53,7 +53,11 @@ describe("InputGroup", () => {
     it("offers the same surfaces as Input and SearchBar", () => {
       for (const variant of INPUT_VARIANTS) {
         const classes = group(mountGroup({ variant }));
-        for (const expected of getInputVariantTokens(variant).surface.split(
+        // The field resolves an absent tone to `blue`, so the expectation has to
+        // resolve it the same way. Comparing against the token's own `neutral`
+        // default made this pass vacuously: the component ignored the tone and so
+        // did the expectation, and they agreed while both were wrong.
+        for (const expected of getInputVariantTokens(variant, "blue").surface.split(
           /\s+/,
         )) {
           expect(classes).toContain(expected);

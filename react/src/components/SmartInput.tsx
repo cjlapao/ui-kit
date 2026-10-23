@@ -145,7 +145,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   disabled = false,
   size = "md",
   variant = "flat",
-  tone = "blue",
+  tone: toneProp,
   corner = "auto",
   gradientFrom,
   gradientTo,
@@ -157,6 +157,9 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   flagMissing = true,
   "aria-label": ariaLabel,
 }) => {
+  // Not a parameter default: `explicitTone` has to be able to tell a
+  // caller who chose blue from one who said nothing.
+  const tone = toneProp ?? "blue";
   const t = useKitT();
   const [isEditing, setIsEditing] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -179,7 +182,9 @@ export const SmartInput: React.FC<SmartInputProps> = ({
 
   const pickerId = useId();
   const sizeToken = getFieldSizeTokens(size);
-  const surface = getInputVariantTokens(variant, tone, corner);
+  const surface = getInputVariantTokens(variant, tone, corner, {
+    explicitTone: toneProp,
+  });
   // Tone goes through the shared field tokens — the `ring-${tone}-400`
   // template strings this used to build only reach Tailwind if a safelist
   // happens to carry them, which is how a colour sweep silently loses its

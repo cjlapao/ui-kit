@@ -68,6 +68,16 @@ describe("Textarea — surfaces", () => {
     expect(field().className).toContain("focus:border-emerald-400");
     expect(field().className).not.toContain("focus:ring-2");
   });
+
+  it("inherits the glass tint through the shared tokens", () => {
+    // No change in this component's own classes — proof the fix lives in the
+    // token and not in whichever file was open at the time.
+    render(<Textarea variant="glass" tone="amber" />);
+    const cls = field().className;
+    expect(cls).toContain("bg-amber-100/45");
+    expect(cls).toContain("dark:bg-amber-500/10");
+    expect(cls).not.toContain("bg-white/45");
+  });
 });
 
 describe("Textarea — label, help text and counter", () => {

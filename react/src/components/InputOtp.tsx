@@ -193,7 +193,7 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     variant = "flat",
     size = "md",
     corner = "auto",
-    tone = "blue",
+    tone: toneProp,
     gradientFrom,
     gradientTo,
     glowIntensity = DEFAULT_GLOW_INTENSITY,
@@ -208,6 +208,9 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
   },
   ref: ForwardedRef<HTMLDivElement>,
 ) {
+  // The fallback lives here, not in the parameter list, so `explicitTone`
+  // still means *the caller chose this*.
+  const tone = toneProp ?? "blue";
   const t = useKitT();
   const groupLabel = ariaLabel ?? t("kit.inputotp.label");
   const clampedLength = Math.min(
@@ -363,6 +366,7 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     // The family's corner scale is the card one; `corner` (below) overrides
     // the radius on the pill scale, so the tokens stay on `auto`.
     "auto",
+    { explicitTone: toneProp },
   );
   const fieldTone = getFieldToneTokens(tone);
   const glow = getGlowTokens(glowIntensity);

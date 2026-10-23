@@ -36,7 +36,7 @@ export const InputPage: React.FC = () => (
       </h2>
       <ExampleCard
         title="Variants"
-        description="Six surfaces for the same control — from a flat field in a dense form to a glowing gradient on a landing page."
+        description="Six surfaces for the same control — from a flat field in a dense form to a glowing gradient on a landing page. Glass is shown twice: it keeps its white wash until a tone is asked for."
         code={variantsCode}
         filename="Variants.tsx"
       >

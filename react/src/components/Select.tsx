@@ -182,7 +182,9 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   const sizeToken = getFieldSizeTokens(size);
   const optionLine = OPTION_LINE[size] ?? OPTION_LINE.md;
   const tokens = getFieldToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant, effectiveTone, corner);
+  const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
+    explicitTone: tone ?? color,
+  });
   const glow = getGlowTokens(glowIntensity);
   const [glowFrom, glowTo] = resolveGlowGradient(
     effectiveTone,

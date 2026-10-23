@@ -1,7 +1,7 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Input from "./Input";
-import { getInputVariantTokens } from "../theme/Theme";
+import { getInputVariantTokens, stripFillClass } from "../theme/Theme";
 import {
   CONTROL_SIZES,
   INPUT_VARIANTS,
@@ -75,6 +75,102 @@ describe("Input", () => {
     expect(box).toContain("hover:bg-violet-100");
     expect(box).toContain("dark:bg-violet-500/10");
     expect(box).not.toContain("bg-neutral-100");
+  });
+
+  /**
+   * `getInputVariantTokens` took a tone and spent it in the ghost branch
+   * alone, so a `glass` + `tone="blue"` pair painted `bg-white/45` and read as
+   * an `elevated` box dropped onto the backdrop — measured in the browser, its
+   * computed fill was `oklab(1 0 0 / 0.1)`, white with no hue at all. The fill
+   * now follows a tone the caller *chose*, and only one: every field resolves a
+   * missing tone to `blue`, so tinting from the resolved value would repaint
+   * every bare glass field in the product.
+   */
+  describe("a glass field given a tone", () => {
+    it("tints the fill in both schemes", () => {
+      const { container } = render(<Input variant="glass" tone="blue" />);
+      const cls = field(container);
+      expect(cls).toContain("bg-blue-100/45");
+      expect(cls).toContain("dark:bg-blue-500/10");
+      expect(cls).not.toContain("bg-white/45");
+    });
+
+    it("keeps the trim that makes it glass rather than ghost", () => {
+      // The strip that removes the white fill must not take the rim, the blur
+      // or the shadow with it — they are the whole difference between the two.
+      const { container } = render(<Input variant="glass" tone="violet" />);
+      const cls = field(container);
+      expect(cls).toContain("border-black/15");
+      expect(cls).toContain("dark:border-white/15");
+      expect(cls).toContain("backdrop-blur-md");
+      expect(cls).toContain("shadow-sm");
+      expect(cls).toContain("rounded-lg");
+    });
+
+    it("tints from the deprecated color alias as well", () => {
+      // `effectiveTone` honours `color`; a glass field reading only `tone`
+      // would support half of the field's own colour API.
+      const { container } = render(<Input variant="glass" color="violet" />);
+      expect(field(container)).toContain("bg-violet-100/45");
+    });
+
+    it("leaves a field nobody tinted exactly as it was", () => {
+      const { container } = render(<Input variant="glass" />);
+      const cls = field(container);
+      expect(cls).toContain("bg-white/45");
+      expect(cls).not.toContain("bg-blue-100/45");
+    });
+
+    it("keeps the tint when a status strips the border from the same string", () => {
+      // `stripBorderColor` edits this very class string. Two strippers over one
+      // string, and the failure mode is a field that quietly stops being
+      // tinted — the bug this branch exists to fix, so it gets its own guard.
+      const { container } = render(
+        <Input variant="glass" tone="blue" validationStatus="error" />,
+      );
+      const cls = field(container);
+      expect(cls).toContain("bg-blue-100/45");
+      expect(cls).toContain("border-rose-500");
+    });
+
+    it("is the token's doing, not the component's", () => {
+      // The contract all nine fields inherit, asserted at its source so no
+      // component can be fixed by a local patch that leaves the others broken.
+      expect(
+        getInputVariantTokens("glass", "blue", "auto", {
+          explicitTone: "blue",
+        }).surface,
+      ).toContain("bg-blue-100/45");
+      expect(getInputVariantTokens("glass", "blue", "auto").surface).toContain(
+        "bg-white/45",
+      );
+    });
+
+    it("tints in every tone the palette offers", () => {
+      // A dynamic class is only real if the built stylesheet carries it. This
+      // is the source half of that check; the browser probe is the other.
+      for (const tone of TRUE_COLORS) {
+        const { container, unmount } = render(
+          <Input variant="glass" tone={tone} />,
+        );
+        const cls = field(container);
+        expect(cls).toContain(`bg-${tone}-100/45`);
+        expect(cls).toContain(`dark:bg-${tone}-500/10`);
+        unmount();
+      }
+    });
+
+    it("strips fills and nothing else", () => {
+      // Too wide and it eats the gradient variant's direction; too narrow and
+      // the white fill survives under the tint, which makes the tint invisible.
+      expect(
+        stripFillClass(
+          "bg-gradient-to-r bg-white/80 dark:bg-neutral-900/70 bg-cover border-white/40 backdrop-blur-xl rounded-xl",
+        ),
+      ).toBe(
+        "bg-gradient-to-r bg-cover border-white/40 backdrop-blur-xl rounded-xl",
+      );
+    });
   });
 
   describe("tones", () => {
