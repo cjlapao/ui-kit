@@ -532,6 +532,35 @@ describe("SideMenu — actions, badges", () => {
     });
     expect(screen.getByText("3")).toBeInTheDocument();
   });
+
+  it("separates badge from actions when both share the row — and only then", () => {
+    renderMenu({
+      items: [
+        {
+          slug: "jobs",
+          label: "Jobs",
+          path: "/jobs",
+          badge: <span>4</span>,
+          actions: <button type="button">Edit</button>,
+        },
+        {
+          slug: "hosts",
+          label: "Hosts",
+          path: "/hosts",
+          actions: <button type="button">Delete</button>,
+        },
+      ],
+    });
+    const both = screen.getByRole("button", {
+      name: "Edit",
+    }).parentElement as HTMLElement;
+    expect(both).toHaveClass("ml-3");
+    // Actions alone keep the layout they have always had.
+    const actionsOnly = screen.getByRole("button", {
+      name: "Delete",
+    }).parentElement as HTMLElement;
+    expect(actionsOnly).not.toHaveClass("ml-3");
+  });
 });
 
 // ── Guards & module view ────────────────────────────────────────────────────

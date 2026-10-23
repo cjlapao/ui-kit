@@ -1343,6 +1343,11 @@ export const SideMenu = ({
           {!contentCollapsed && link.actions && (
             <span
               className={`flex shrink-0 items-center gap-1 ${
+                // Badge + actions share the row end: the badge's `pl-2`
+                // only separates it from the label, so the pair needs its
+                // own gap — and only when both are actually there.
+                link.badge ? "ml-3" : ""
+              } ${
                 link.actionsOnHover
                   ? "opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
                   : ""
