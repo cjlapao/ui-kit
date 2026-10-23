@@ -980,3 +980,99 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   real layout: assert the overflow is still there (`scrollWidth - clientWidth
   > 1`) while the bar element is absent. jsdom reports no overflow at all, so
   a green test there proves nothing about this class of bug.
+
+## A clickable container has to decide whose click it is
+
+- `Panel` already took `onClick` and already auto-lit `hoverable` from it, so
+  the gap was never the handler: it was that the click was wrong in **both**
+  directions. No `role`, no tab stop, no Enter/Space — and every click inside
+  the card bubbled into the `<section>`, so pressing one of the panel's *own*
+  `actions` fired the card's handler too. A card that opens something and also
+  holds a Delete button was doing both.
+- The kit already had every piece, and looking for them first is what made
+  this small: `getSurfaceTriggerTokens(tone)` ships the hover wash and a
+  complete **inset** focus ring (inset because an outer ring is clipped by any
+  `overflow: hidden` ancestor — "which every `Panel` has"), and
+  `CollapsiblePanel` carries the reason a card is a `div`/`section` with
+  `role="button"` and never a native `<button>`: the actions render buttons,
+  and a button inside a button is invalid.
+- Keyboard activation goes through `sectionRef.current.click()`, not a direct
+  call to `onClick`. A native button turns Enter and Space into a *click*;
+  doing the same keeps pointer and keyboard on one guarded path and hands
+  callers the `MouseEvent` their `onClick` is typed for. Two handlers that can
+  drift beat one that cannot.
+- **Ignore a click when the pointer was dragged — not when text is selected.**
+  The first cut asked `window.getSelection()?.isCollapsed`. Headless Chrome
+  showed the cost: after the user drag-selected any copy, the selection stayed
+  live and Enter on the focused card then did *nothing* — a stale selection
+  anywhere on the page had quietly disabled the card's keyboard. Record the
+  press point on `mouseDown`, compare on `mouseUp` (≈4px slop), and the drag is
+  attributed to the card actually dragged; keyboard activation has no preceding
+  press, so it is untouched.
+- `role="button"` around arbitrary content is a real defect, not a style
+  choice: a card named after all of its text swallows the controls inside it.
+  The demo proved it without trying to — a card holding a button labelled
+  "Delete" is announced as *two* buttons both named "Delete", and the jsdom
+  test had to drop to `querySelector` because `getByRole` could not tell them
+  apart. Warn once, name both ways out (`clickable={false}`, or a real
+  `Button`/`Link`), and scope the check to the body so the component's own
+  chrome never triggers it.
+- Rule: a container that becomes a control must answer three questions — what
+  is it to a screen reader, can the keyboard activate it, and whose click was
+  that. Answering only the third (or only the first) is how both bugs above
+  shipped. Verify with real input: `Input.dispatchMouseEvent` needs
+  `buttons: 1` on the press and `text` on key events, and the target must be
+  inside the viewport, or the click lands on nothing and the probe still looks
+  green.
+
+## A glass field that ignores its tone is just an elevated box
+
+- `variant="glass"` accepted `tone` on nine React fields and four Vue ones and
+  then threw it away: `getInputVariantTokens` reads its `tone` argument in the
+  `ghost` branch **only**, so every other variant took its `surface` verbatim
+  from the token table, where glass is hard-coded `bg-white/45 dark:bg-white/10`
+  — white, no hue, in both schemes. Measured in the browser the computed fill
+  was `oklab(1 0 0 / 0.1)`, which is why a "glass" field reads as `elevated`
+  dropped onto a photo. The fix belongs in the token, not in whichever component
+  was open at the time: the same branch repairs all thirteen call sites at once.
+- A **resolved** value is not a **chosen** one. Every field does
+  `tone ?? color ?? "blue"`, so tinting glass from the resolved tone would
+  silently repaint every bare `<Input variant="glass">` in the product. The
+  distinction has to be carried from the call site (`explicitTone`) because a
+  function handed `"blue"` cannot reconstruct it.
+- And a **destructuring default destroys that distinction outright**: four of
+  the fourteen sites defaulted `tone = "blue"` (or `color = "blue"`) in the
+  parameter list, where the local is indistinguishable from a caller's choice.
+  The default has to move out of the parameter into the body
+  (`const tone = toneProp ?? "blue"`) so `explicitTone` can still be undefined.
+  Vue's `withDefaults` is the same trap wearing a different hat. The suite found
+  this, not the review — `SearchBar` came out blue with no tone passed.
+- Strip, then paint — never `surface.replace("bg-white/45", …)`. A literal
+  replace goes silently stale the day someone edits the token table: it finds
+  nothing, the old fill survives underneath, and the field is untinted again
+  with nothing said about it. Follow `stripBorderColor`/`stripTextColor` and
+  anchor the regex, because a naive `bg-` match also eats `bg-gradient-to-r`,
+  `bg-cover` and `bg-center`. Two strippers over one string is its own hazard —
+  `stripBorderColor` edits the same `surface` when a validation status is set.
+- Choose a *look* on rendered pixels, not on class strings. Five candidate fills
+  were cloned onto the live field and screenshotted over the demo photo **and**
+  over a plain background: the photo made a sheer fill look decisive, and a
+  `bg-{tone}-100/45` that reads clearly over a photo is a whisper over a plain
+  app surface. Button's control-glass fill (`bg-{tone}-200/65`) was rejected for
+  a field — its own docstring says that opacity is tuned for a small target
+  that has to stay legible against its own label; a field spans a row.
+- Safelist checks must fail loudly. Verifying all 21 tones against
+  `dist/index.css` first reported "no missing tones" for **zero** colours,
+  because the palette extraction had silently produced an empty list. Assert the
+  count you expect, and assert the browser's computed style too — a class can be
+  written correctly in source and simply not exist in the stylesheet.
+- A test that compares a component to a function the component does not call
+  passes vacuously. Three Vue matrix tests did `getInputVariantTokens(variant)`
+  — no tone — and compared it to a component that also ignored the tone: green
+  while both sides were wrong. The first honest assertion this area had was
+  written today, in a `SmartInput.test.ts` that did not exist before.
+- `Page.captureScreenshot` wants **document** coordinates with
+  `captureBeyondViewport` and **viewport** coordinates without it. Handing it
+  `getBoundingClientRect()` output with the flag set produces a pristine white
+  PNG that looks exactly like a passing screenshot; `scale` belongs inside
+  `clip`, and leaving it out yields no data at all.

@@ -12,6 +12,8 @@ import Loaders from "./examples/Loaders";
 import loadersCode from "./examples/Loaders.tsx?raw";
 import Glass from "./examples/Glass";
 import glassCode from "./examples/Glass.tsx?raw";
+import Clickable from "./examples/Clickable";
+import clickableCode from "./examples/Clickable.tsx?raw";
 
 export const PanelPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -55,6 +57,14 @@ export const PanelPage: React.FC = () => (
         filename="Loaders.tsx"
       >
         <Loaders />
+      </ExampleCard>
+      <ExampleCard
+        title="A clickable card"
+        description={`Pass an \`onClick\` and the card becomes a real control: \`role="button"\`, a tab stop, Enter and Space, and a tone-coloured inset focus ring. A click that lands on a control inside the card — the card's own \`actions\`, a button, a link, a field — belongs to that control and never activates the card; \`data-panel-no-click\` extends that to widgets with no semantics of their own. \`clickable={false}\` keeps the click and the guard but drops the button, which is what a card whose body owns the interaction wants.`}
+        code={clickableCode}
+        filename="Clickable.tsx"
+      >
+        <Clickable />
       </ExampleCard>
       <ExampleCard
         title="Liquid glass"

@@ -11,11 +11,17 @@ import {
   getSurfacePaddingClass,
   getSurfacePaddingClasses,
   getSurfaceTextTokens,
+  getSurfaceTriggerTokens,
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
   type TrueColor,
 } from "../theme/Theme";
+import {
+  isClickOwnedByDescendant,
+  hasInteractiveDescendant,
+} from "../../../common/a11y/interactive";
+import { devWarnA11yOnce } from "../../../common/a11y/warn";
 import { THIN_SCROLLBAR } from "../theme/Theme";
 import {
   SURFACE_HALO_DARK,
@@ -132,6 +138,17 @@ export interface PanelProps extends Omit<
    * Defaults to `true` when an `onClick` handler is present, otherwise `false`.
    */
   hoverable?: boolean;
+  /**
+   * Whether the card behaves as a single action: focusable, `role="button"`,
+   * Enter and Space activate it, and it draws a tone-coloured inset focus
+   * ring. Defaults to true when an `onClick` handler is present.
+   *
+   * Pass `false` for a card whose *body* owns the interaction — a form, a
+   * list of links — where announcing the whole card as one button would be
+   * wrong. The click guard applies either way: a click on a control inside
+   * the card never activates the card.
+   */
+  clickable?: boolean;
   /**
    * @deprecated Renamed to `tone`. Still honoured as an alias — when `tone`
    * is absent it becomes the tone — so `color="rose"` finally does what it
@@ -356,7 +373,12 @@ export const SkeletonBar: React.FC<{
    */
   ink?: string;
   className?: string;
-}> = ({ width, height = "h-3", ink = "bg-black/10 dark:bg-white/10", className }) => (
+}> = ({
+  width,
+  height = "h-3",
+  ink = "bg-black/10 dark:bg-white/10",
+  className,
+}) => (
   <span
     className={classNames("block rounded-full", ink, height, className)}
     style={width ? { width } : undefined}
@@ -493,6 +515,19 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     hoverShadow = false,
     decoration = "none",
     hoverable,
+    clickable,
+    // Pulled out of `rest` so the card can wrap them. `onClick` becomes the
+    // guarded handler below; `role`, `tabIndex` and `onKeyDown` are the
+    // caller's overrides, and they win over what a clickable card would have
+    // set for itself.
+    onClick,
+    role,
+    tabIndex,
+    onKeyDown,
+    // Chained, not replaced: the drag measurement has to see the press and
+    // the release, and the caller still gets both.
+    onMouseDown,
+    onMouseUp,
     titleClassName,
     subtitleClassName,
     descriptionClassName,
@@ -517,7 +552,99 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   // a glass Panel over a photo were effectively invisible while the title
   // still read. These tokens step the copy two shades in the right direction.
   const surfaceText = getSurfaceTextTokens(variant);
-  const isHoverable = hoverable ?? Boolean(rest.onClick);
+  const isHoverable = hoverable ?? Boolean(onClick);
+  /**
+   * Clickable is its own switch, not a synonym for hoverable: `hoverable` is
+   * the tint and the decoration fade, `clickable` is activation. An `onClick`
+   * turns both on, and either can still be switched off on its own.
+   */
+  const isClickable = clickable ?? Boolean(onClick);
+  const trigger = getSurfaceTriggerTokens(resolvedTone);
+
+  // The card needs a handle on its own element: the guard asks whether a
+  // click landed inside it, the keyboard path asks whether the key came from
+  // it. The caller's forwarded ref is filled from the same callback — Modal
+  // reads this element for its focus trap, so an internal-only ref would
+  // silently break that.
+  const sectionRef = React.useRef<HTMLElement | null>(null);
+  const bodyRef = React.useRef<HTMLDivElement | null>(null);
+  const setSectionRef = React.useCallback(
+    (node: HTMLElement | null) => {
+      sectionRef.current = node;
+      if (typeof ref === "function") ref(node);
+      else if (ref)
+        (ref as React.MutableRefObject<HTMLElement | null>).current = node;
+    },
+    [ref],
+  );
+
+  // Was the pointer dragged across the card — selecting text — rather than
+  // clicked on it? A click ends where it started; a drag-select travels, and
+  // still ends in a `click` on the card all the same. Measuring the pointer
+  // rather than asking `window.getSelection()` is what keeps this safe for
+  // the keyboard: a selection made earlier, or somewhere else on the page,
+  // would otherwise swallow Enter and Space indefinitely.
+  const pressRef = React.useRef<{ x: number; y: number } | null>(null);
+  const draggedRef = React.useRef(false);
+
+  const handleCardMouseDown = (event: React.MouseEvent<HTMLElement>) => {
+    pressRef.current = { x: event.clientX, y: event.clientY };
+    draggedRef.current = false;
+  };
+
+  const handleCardMouseUp = (event: React.MouseEvent<HTMLElement>) => {
+    const press = pressRef.current;
+    if (!press) return;
+    // Selecting a word by double-click moves the pointer nothing at all and
+    // must still count as a click, so the slop is a real travel distance.
+    draggedRef.current =
+      Math.abs(event.clientX - press.x) > 4 ||
+      Math.abs(event.clientY - press.y) > 4;
+  };
+
+  const handleCardClick = (event: React.MouseEvent<HTMLElement>) => {
+    // A click that lands on a control in the card is that control's click.
+    // Without this the panel's own `actions` buttons fire the card too.
+    if (isClickOwnedByDescendant(sectionRef.current, event.target)) return;
+    if (draggedRef.current) {
+      draggedRef.current = false;
+      return;
+    }
+    onClick?.(event);
+  };
+
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    // Only keys that came from the card itself: Enter typed into a nested
+    // textarea has to stay in that textarea.
+    if (event.target !== sectionRef.current) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    // Without this Space scrolls the page instead of pressing the card.
+    event.preventDefault();
+    // A native button turns Enter and Space into a *click*, and so does this:
+    // activating through `click()` runs the guarded path, hands callers the
+    // mouse event their `onClick` is typed for, and keeps pointer and
+    // keyboard activation on one code path instead of two that can drift.
+    sectionRef.current?.click();
+  };
+
+  // A control nested inside `role="button"` is announced as part of the
+  // button's name, not as a control — legal-looking, and wrong on a screen
+  // reader. Checked on the body rather than the section so the header
+  // `actions`, which are the component's own chrome and already guarded,
+  // never trigger it.
+  React.useEffect(() => {
+    if (!isClickable) return;
+    if (hasInteractiveDescendant(bodyRef.current)) {
+      devWarnA11yOnce(
+        "Panel:clickable-nested-interactive",
+        "Panel: a clickable Panel whose body contains controls is announced " +
+          "as a single button named after all of its text, with those " +
+          "controls nested inside it. Pass clickable={false} when the body " +
+          "owns the interaction, or render the card's primary action as a " +
+          "real Button/Link.",
+      );
+    }
+  }, [isClickable, loading]);
   const isGlass = GLASS_VARIANTS.includes(variant);
 
   const resolvedSpecularMode: PanelSpecularMode = (() => {
@@ -727,6 +854,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
 
   const bodyContent = children ? (
     <div
+      ref={bodyRef}
       className={classNames(
         padding === "none" ? "" : "space-y-3 leading-6",
         // min-h-0 lets this flex item shrink below its content height, so
@@ -747,9 +875,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
       className={classNames(
         flexBody ? "flex-1 flex flex-col w-full" : "",
         "min-h-0 flex-1",
-        scrollable
-          ? `overflow-auto ${THIN_SCROLLBAR}`
-          : "",
+        scrollable ? `overflow-auto ${THIN_SCROLLBAR}` : "",
         padding === "none" ? "" : "pr-1",
       )}
     >
@@ -861,7 +987,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   return (
     <SurfaceProvider variant={variant}>
       <section
-        ref={ref}
+        ref={setSectionRef}
         className={classNames(
           "relative flex w-full min-h-0 flex-col overflow-hidden shrink-0",
           !isOverlay && surfaceText.body,
@@ -872,7 +998,16 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           isOverlay ? overlayClasses : undefined,
           hoverShadow &&
             "transition-shadow duration-200 hover:shadow-xl hover:-translate-y-[1px]",
-          isHoverable && "group cursor-pointer",
+          isHoverable && "group",
+          // Additive, not moved. A hoverable-only panel has shown a pointer
+          // cursor as long as it has existed, so callers must keep it; a
+          // clickable one now gets it even with `hoverable={false}`.
+          (isHoverable || isClickable) &&
+            (disabled ? "cursor-not-allowed" : "cursor-pointer"),
+          // The ring is the shared trigger token, whose inset exists precisely
+          // because an outer ring is clipped by `overflow: hidden` — which
+          // every Panel has.
+          isClickable && !disabled && trigger.focusRing,
           isHoverable &&
             hoverColorName &&
             `hover:bg-${hoverColorName}-50 dark:hover:bg-${hoverColorName}-900/20`,
@@ -883,6 +1018,34 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
         data-tone={resolvedTone}
         aria-busy={loading}
         {...rest}
+        role={role ?? (isClickable ? "button" : undefined)}
+        tabIndex={tabIndex ?? (isClickable ? (disabled ? -1 : 0) : undefined)}
+        aria-disabled={isClickable && disabled ? true : undefined}
+        onClick={disabled || !onClick ? undefined : handleCardClick}
+        // Only a card with a handler needs to know where its presses start.
+        onMouseDown={
+          disabled || !onClick
+            ? undefined
+            : (event) => {
+                onMouseDown?.(event);
+                handleCardMouseDown(event);
+              }
+        }
+        onMouseUp={
+          disabled || !onClick
+            ? undefined
+            : (event) => {
+                onMouseUp?.(event);
+                handleCardMouseUp(event);
+              }
+        }
+        // A caller's own key handling wins outright; ours is only attached to
+        // a card that is actually a button, so a plain click surface does not
+        // carry a keyboard handler nobody can reach.
+        onKeyDown={
+          onKeyDown ??
+          (isClickable && !disabled && onClick ? handleCardKeyDown : undefined)
+        }
       >
         {isOverlay && !showSkeleton && (
           <>

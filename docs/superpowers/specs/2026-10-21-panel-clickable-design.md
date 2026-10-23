@@ -138,24 +138,41 @@ the pattern `ScrollArea` already uses in `setViewportRef`, for the same
 reason: one ref of its own would make the component lose the caller's.
 
 ```tsx
-const handleClick = (event: MouseEvent<HTMLElement>) => {
+const handleCardClick = (event: MouseEvent<HTMLElement>) => {
   if (isClickOwnedByDescendant(sectionRef.current, event.target)) return;
-  if (window.getSelection()?.isCollapsed === false) return;  // dragging copy out is not a click
+  if (draggedRef.current) {
+    draggedRef.current = false;
+    return;                                   // the pointer was dragged: a selection, not a click
+  }
   onClick?.(event);
 };
 
-const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>) => {
   if (event.target !== sectionRef.current) return;  // Enter stays in a nested textarea
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();                            // otherwise Space scrolls the page
-  onClick?.(event);
+  sectionRef.current?.click();                       // a native button makes a *click*, so we do too
 };
 ```
 
+- **The drag check measures the pointer, not the selection.** The first cut
+  asked `window.getSelection()?.isCollapsed`, and headless Chrome showed what
+  that cost: after the user drag-selected any text, the selection stayed
+  live, and Enter on the focused card then did *nothing* — a stale selection
+  anywhere on the page had silently disabled the card's keyboard. Recording
+  the press point on `mouseDown` and comparing on `mouseUp` (a slop of 4px)
+  attributes the drag to the card that was actually dragged. Keyboard
+  activation goes through `click()` with no preceding press, so it is never
+  affected.
+- Activating through `sectionRef.current.click()` rather than calling `onClick`
+  from the keydown keeps pointer and keyboard on one code path — and hands
+  callers the `MouseEvent` their `onClick` is typed for, which is also what a
+  native button does with Enter and Space.
 - The guard runs **whenever Panel owns the handler**, not only when
   `clickable` is on: `clickable={false}` removes the role and the tab stop,
   but clicking a button inside the card must still not fire the card.
-- `window.getSelection` is optional-chained — it does not exist during SSR.
+- `onMouseDown` / `onMouseUp` are **chained**, not replaced — the caller's
+  handlers run first, then the measurement.
 - Nothing to write for press-in-card-release-outside: the browser does not
   fire `click` across differing down/up targets.
 
@@ -229,7 +246,11 @@ Guard
 10. Click plain body text → the card fires.
 11. Click inside a `[data-panel-no-click]` wrapper → the card does not.
 12. Click an `a[href]` → the card does not.
-13. With `window.getSelection()` stubbed non-collapsed → the card does not.
+13. A press and release far apart (a drag-select) → the card does not fire;
+    a press and release in place → it does.
+13b. Enter while `window.getSelection()` reports a live selection → the card
+    **still** activates. The regression the browser found; the selection
+    check must not come back.
 
 Keyboard
 
@@ -268,13 +289,38 @@ wants both invokes the card's handler from the action.
 
 ## Risks
 
-- **Selection suppression could be over-eager**: a programmatic non-collapsed
-  selection elsewhere on the page would suppress a genuine card click. A real
-  click collapses the selection on `mousedown`, so it is collapsed by the time
-  `click` fires; the case that survives is a host holding a selection open
-  deliberately. Guarded by test 13, and the escape hatch is a normal click.
+- **A 4px slop is a judgement call.** A drag that travels less than 4px and
+  still selects (a double-click word-select travels nothing at all) counts as
+  a click and activates the card. Deliberate: the alternative is that
+  ordinary clicks stop working, which is the worse failure.
 - **`role="button"` around content is only as good as the caller's intent.**
   The warning is advisory; a caller can ignore it. The alternative (surface
   only) was rejected for the keyboard cost.
 - **A11y name from content** can produce a long button name on a text-heavy
-  card. Accepted: documented, and the fix is `clickable={false}`.
+  card. Accepted: documented, and the fix is `clickable={false}`. Measured in
+  the demo: a card titled "Deploy queue" holding a button labelled "Delete"
+  is announced as *two* buttons both named "Delete" — the jsdom test for that
+  case had to query the inner element because `getByRole` could not tell them
+  apart, which is the defect demonstrating itself.
+- **The dev warning does not reach a browser app today.** `isDev()` in
+  `common/i18n/warn.ts` reads `process.env.NODE_ENV` and returns false when
+  `process` is undefined, which is every Vite bundle — confirmed: the
+  warning never appeared in the running docs site. Pre-existing kit-wide
+  behaviour, out of scope here (it would change every component's console
+  output at once), but it means this warning is currently only visible under
+  vitest. Worth its own ticket.
+
+## What the browser verification found
+
+Recorded because two of these were invisible to the test suite:
+
+1. **The selection rule had to become a pointer rule** — see the guard
+   section. jsdom has no selection, so only a real browser could show Enter
+   being held hostage by a stale selection.
+2. `Input.dispatchMouseEvent` needs `buttons: 1` on the press and `text` on
+   key events, or nothing reaches React at all — and the target must be
+   inside the viewport, or the click silently lands on nothing. Three probes
+   produced green-looking runs before those were right.
+3. The docs `ExampleCard` *is* a `Panel`, so a `section[data-variant]`
+   selector picks up the frame as well as the card under test; match the
+   innermost.

@@ -170,6 +170,13 @@ export const panelLoaderTypeOptions = toOptions([
   "skeleton",
 ]);
 
+/**
+ * `clickable` is three-state: `auto` leaves it undefined so it follows
+ * `onClick`, and `on`/`off` pin it. Only worth showing as three because the
+ * difference between `off` and `auto` is whether the card is a button at all.
+ */
+export const panelClickableOptions = toOptions(["auto", "on", "off"]);
+
 export const panelMediaPlacementOptions: {
   label: string;
   value: "top" | "start" | "end" | "overlay";
