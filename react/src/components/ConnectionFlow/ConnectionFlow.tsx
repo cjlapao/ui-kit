@@ -242,6 +242,8 @@ const ConnectionFlow = React.forwardRef<
   ref,
 ) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const wheelAreaRef = useRef<HTMLDivElement | null>(null);
+  const manuallyNavigated = useRef(false);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -324,6 +326,7 @@ const ConnectionFlow = React.forwardRef<
 
   const setZoom = useCallback(
     (value: number, anchor?: { x: number; y: number }) => {
+      manuallyNavigated.current = true;
       const next = clampZoom(value);
       if (next === scale) return;
       const element = viewportRef.current;
@@ -369,7 +372,7 @@ const ConnectionFlow = React.forwardRef<
   useImperativeHandle(ref, () => ({
     zoomIn: () => setZoom(scale * 1.2),
     zoomOut: () => setZoom(scale / 1.2),
-    fit,
+    fit: () => { manuallyNavigated.current = true; fit(); },
     setZoom: (value: number) => setZoom(value),
   }));
 
@@ -382,21 +385,21 @@ const ConnectionFlow = React.forwardRef<
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [loading, nodes.length > 0]);
 
-  // A plain wheel — and touch — belongs to the scroll area: on the canvas,
-  // and inside a scrolling card body alike. Zoom asks first: Ctrl (Cmd on
+  // A plain wheel belongs to the page. Viewports use overflow:hidden so
+  // only pointer dragging or scrollbar controls pan the flow. Zoom asks first: Ctrl (Cmd on
   // macOS) with the wheel, or a trackpad pinch, which browsers report as a
   // Ctrl wheel. Hence the native listener: React registers `wheel` passively
   // at the root, where `preventDefault` is a no-op — and without it a
   // Ctrl-wheel zoom would zoom the browser page along with the canvas.
   useEffect(() => {
-    const element = viewportRef.current;
+    const element = wheelAreaRef.current;
     if (!element || !interactive) return;
     const onWheel = (event: WheelEvent) => {
       if (!(event.ctrlKey || event.metaKey)) return;
       event.preventDefault();
-      const rect = element.getBoundingClientRect();
+      const rect = (viewportRef.current ?? element).getBoundingClientRect();
       setZoom(
         scale * (event.deltaY < 0 ? 1.1 : 1 / 1.1),
         { x: event.clientX - rect.left, y: event.clientY - rect.top },
@@ -404,12 +407,13 @@ const ConnectionFlow = React.forwardRef<
     };
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => element.removeEventListener("wheel", onWheel);
-  }, [interactive, scale, setZoom]);
+  }, [interactive, scale, setZoom, loading, nodes.length > 0]);
 
   useEffect(() => {
-    if (fitOnLoad && viewport.width) fit();
+    if (fitOnLoad && viewport.width && !manuallyNavigated.current) fit();
     // Keyed on the graph and the viewport, deliberately *not* on `layout`:
-    // expanding a card's item list changes the layout, and refitting on that
+    // Manual navigation owns the view after the first user gesture.
+    // Expanding a card's item list changes the layout, and refitting on that
     // would slide the whole graph out from under the pointer that opened it.
   }, [fitOnLoad, nodes, viewport.width, viewport.height]);
 
@@ -469,7 +473,7 @@ const ConnectionFlow = React.forwardRef<
   };
 
   const body = (
-    <div className="relative w-full">
+    <div className="relative w-full min-w-0">
       {showHeader &&
         (eyebrow || title || subtitle || icon || tag || progressType !== "none") && (
           <>
@@ -534,14 +538,15 @@ const ConnectionFlow = React.forwardRef<
         />
       ) : (
         <div
-          className="relative w-full"
+          ref={wheelAreaRef}
+          className="relative w-full min-w-0 overflow-hidden"
           style={{ height: typeof height === "number" ? `${height}px` : height }}
         >
         <ScrollArea
           variant="auto"
           viewportRef={viewportRef}
-          viewportClassName="overscroll-contain"
-          className="h-full w-full select-none"
+          viewportClassName="!overflow-hidden"
+          className="h-full w-full min-w-0 select-none"
           style={{ cursor: panning ? "grabbing" : undefined }}
           onPointerDown={(event) => {
             if (!interactive || event.button !== 0) return;
@@ -559,6 +564,7 @@ const ConnectionFlow = React.forwardRef<
             }
             const element = viewportRef.current;
             if (!element) return;
+            manuallyNavigated.current = true;
             setPanning(true);
             panStart.current = {
               x: event.clientX,
@@ -577,6 +583,8 @@ const ConnectionFlow = React.forwardRef<
             element.scrollTop =
               panStart.current.scrollTop - (event.clientY - panStart.current.y);
           }}
+          onPointerCancel={() => setPanning(false)}
+          onLostPointerCapture={() => setPanning(false)}
           onPointerUp={(event) => {
             if (!panning) return;
             setPanning(false);
@@ -606,7 +614,7 @@ const ConnectionFlow = React.forwardRef<
                 color="slate"
                 srLabel="Fit to view"
                 tooltip="Fit to view"
-                onClick={fit}
+                onClick={() => { manuallyNavigated.current = true; fit(); }}
               />
               <IconButton
                 icon={MINUS_ICON}
@@ -655,12 +663,12 @@ const ConnectionFlow = React.forwardRef<
   );
 
   if (variant === "plain") {
-    return <div className={classNames("w-full", className)}>{body}</div>;
+    return <div className={classNames("w-full min-w-0", className)}>{body}</div>;
   }
 
   return (
     <Panel
-      className={classNames("w-full", className)}
+      className={classNames("w-full min-w-0", className)}
       variant={variant}
       tone={tone}
       corner={corner}

@@ -44,7 +44,7 @@ describe("ConnectionFlow header", () => {
     expect(
       heading.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(container.querySelector(".overscroll-contain")!.contains(bar)).toBe(
+    expect(container.querySelector('[data-slot="scrollarea-viewport"]')!.contains(bar)).toBe(
       false,
     );
   });
@@ -157,7 +157,7 @@ describe("ConnectionFlow header", () => {
         <ConnectionFlow nodes={NODES} title="Flow" loading />,
       );
       // A skeleton, not the graph.
-      expect(container.querySelector(".overscroll-contain")).toBeNull();
+      expect(container.querySelector('[data-slot="scrollarea-viewport"]')).toBeNull();
       expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(
         0,
       );

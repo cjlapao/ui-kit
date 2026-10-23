@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi } from "vitest";
+import { act, fireEvent, render } from "@testing-library/react";
 
 import ConnectionFlow from "./ConnectionFlow";
 import type { ConnectionFlowNode } from "../../connectionFlow";
@@ -24,7 +24,7 @@ const NODES: ConnectionFlowNode[] = [
  */
 describe("ConnectionFlow viewport", () => {
   const viewportOf = (container: HTMLElement) =>
-    container.querySelector<HTMLElement>(".overscroll-contain")!;
+    container.querySelector<HTMLElement>('[data-slot="scrollarea-viewport"]')!;
   const frameOf = (container: HTMLElement) =>
     container.querySelector<HTMLElement>('[data-slot="scrollarea"]')!;
 
@@ -72,8 +72,8 @@ describe("ConnectionFlow viewport", () => {
     expect(capture).toHaveBeenCalled();
   });
 
-  it("leaves a plain wheel to the scroll area", () => {
-    // The wheel pages through the flow — it is a wheel. Zooming asks first.
+  it("leaves a plain wheel to the page", () => {
+    // Only dragging pans the flow. Its viewport cannot consume a native wheel.
     const onZoomChange = vi.fn();
     const { container, getByTitle } = render(
       <ConnectionFlow nodes={NODES} onZoomChange={onZoomChange} />,
@@ -81,6 +81,8 @@ describe("ConnectionFlow viewport", () => {
     const notCancelled = fireEvent.wheel(viewportOf(container), {
       deltaY: -120,
     });
+    expect(viewportOf(container)).toHaveClass("!overflow-hidden");
+    expect(viewportOf(container)).not.toHaveClass("overscroll-contain");
     expect(notCancelled).toBe(true);
     expect(onZoomChange).not.toHaveBeenCalled();
     expect(getByTitle("Zoom level").textContent).toBe("100%");
@@ -91,7 +93,10 @@ describe("ConnectionFlow viewport", () => {
     // cancelling it is what keeps the browser page from zooming as well.
     const { container, getByTitle } = render(<ConnectionFlow nodes={NODES} />);
     const viewport = viewportOf(container);
-    const cancelled = fireEvent.wheel(viewport, { deltaY: -120, ctrlKey: true });
+    const cancelled = fireEvent.wheel(viewport, {
+      deltaY: -120,
+      ctrlKey: true,
+    });
     expect(cancelled).toBe(false);
     expect(getByTitle("Zoom level").textContent).toBe("110%");
 
@@ -130,7 +135,9 @@ describe("ConnectionFlow viewport", () => {
   it("resets the zoom from its own button", () => {
     // The percentage used to carry the reset, which nothing about a readout
     // announces.
-    const { getByLabelText, getByTitle } = render(<ConnectionFlow nodes={NODES} />);
+    const { getByLabelText, getByTitle } = render(
+      <ConnectionFlow nodes={NODES} />,
+    );
     fireEvent.click(getByLabelText("Zoom in"));
     fireEvent.click(getByLabelText("Zoom in"));
     expect(getByTitle("Zoom level").textContent).not.toBe("100%");
@@ -151,11 +158,24 @@ describe("ConnectionFlow viewport", () => {
     // Nested bars: the card belongs to the area, so it gets the same hover
     // behaviour as the viewport — never a native bar.
     const nodes: ConnectionFlowNode[] = [
-      { id: "capped", title: "Capped", maxHeight: 80, items: [
-        ...Array.from({ length: 8 }, (_, i) => ({ id: `x${i}`, title: `Row ${i}` })),
-      ] },
+      {
+        id: "capped",
+        title: "Capped",
+        maxHeight: 80,
+        items: [
+          ...Array.from({ length: 8 }, (_, i) => ({
+            id: `x${i}`,
+            title: `Row ${i}`,
+          })),
+        ],
+      },
     ];
     const { container } = render(<ConnectionFlow nodes={nodes} />);
+    // Both viewports leave native wheel scrolling to the page.
+    for (const viewport of container.querySelectorAll(
+      '[data-slot="scrollarea-viewport"]',
+    ))
+      expect(viewport).toHaveClass("!overflow-hidden");
     // The viewport ScrollArea plus the card's own.
     expect(
       container.querySelectorAll('[data-slot="scrollarea"]').length,
@@ -167,5 +187,73 @@ describe("ConnectionFlow viewport", () => {
     expect(queryByText("Item 4")).toBeNull();
     fireEvent.click(getByText("Show 3 more"));
     expect(queryByText("Item 4")).toBeTruthy();
+  });
+});
+
+describe("ConnectionFlow manual zoom ownership", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+  it("does not auto-fit over manual zoom after a viewport resize", () => {
+    let width = 700;
+    const observers: { callback: ResizeObserverCallback; target?: Element }[] =
+      [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        entry: { callback: ResizeObserverCallback; target?: Element };
+        constructor(callback: ResizeObserverCallback) {
+          this.entry = { callback };
+          observers.push(this.entry);
+        }
+        observe(target: Element) {
+          this.entry.target = target;
+        }
+        disconnect() {}
+      },
+    );
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(
+      () => width,
+    );
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(260);
+    const { container, getByTitle, getByLabelText } = render(
+      <ConnectionFlow nodes={NODES} fitOnLoad />,
+    );
+    const viewport = container.querySelector(
+      '[data-slot="scrollarea-viewport"]',
+    )!;
+    const resize = () =>
+      act(() => {
+        for (const observer of observers)
+          if (observer.target === viewport)
+            observer.callback(
+              [
+                {
+                  target: viewport,
+                  contentRect: { width, height: 260 },
+                } as ResizeObserverEntry,
+              ],
+              {} as ResizeObserver,
+            );
+      });
+    resize();
+    fireEvent.click(getByLabelText("Zoom in"));
+    const zoom = getByTitle("Zoom level").textContent;
+    width = 600;
+    resize();
+    expect(getByTitle("Zoom level").textContent).toBe(zoom);
+  });
+  it("captures Ctrl-wheel over the floating toolbar without capturing plain scrolling", () => {
+    const { getByLabelText, getByTitle } = render(
+      <ConnectionFlow nodes={NODES} />,
+    );
+    const toolbar = getByLabelText("Zoom in").parentElement!;
+    expect(fireEvent.wheel(toolbar, { deltaY: -120 })).toBe(true);
+    expect(getByTitle("Zoom level")).toHaveTextContent("100%");
+    expect(fireEvent.wheel(toolbar, { deltaY: -120, ctrlKey: true })).toBe(
+      false,
+    );
+    expect(getByTitle("Zoom level")).toHaveTextContent("110%");
   });
 });

@@ -597,6 +597,15 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
       <CustomIcon icon={item.icon} className={`h-5 w-5 shrink-0 ${idle.icon}`} />
     ) : null);
 
+  // Custom `media` is the caller's markup, and a collapsed rail leaves the
+  // trigger only ~20px of content box — a plain `w-8` flex child without
+  // `shrink-0` gets squashed to that width (the icon renders at ~24px),
+  // while kit icons survive because `CustomIcon` ships `shrink-0`. The
+  // wrapper keeps every caller's media square at its intended size.
+  const mediaEl = media ? (
+    <span className="flex shrink-0 items-center justify-center">{media}</span>
+  ) : null;
+
   const labelSpan = (
     <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
       {item.label}
@@ -612,7 +621,7 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
 
     const content = (
       <>
-        {media}
+        {mediaEl}
         {!collapsed && labelSpan}
         {!collapsed && item.badge && (
           <span className="ml-auto shrink-0 pl-2">{item.badge}</span>
@@ -645,7 +654,7 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
         title={collapsed ? item.label : undefined}
         className={`${rowClasses} ${tokens.hoverBg} ${tokens.hoverText}`}
       >
-        {media}
+        {mediaEl}
         {!collapsed && (
           <>
             {labelSpan}

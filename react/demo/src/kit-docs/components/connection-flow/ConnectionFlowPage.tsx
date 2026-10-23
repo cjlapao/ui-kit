@@ -20,6 +20,10 @@ import ProgressExample from "./examples/Progress";
 import progressCode from "./examples/Progress.tsx?raw";
 import Skipped from "./examples/Skipped";
 import skippedCode from "./examples/Skipped.tsx?raw";
+import Captions from "./examples/Captions";
+import captionsCode from "./examples/Captions.tsx?raw";
+import RetryPaths from "./examples/RetryPaths";
+import retryPathsCode from "./examples/RetryPaths.tsx?raw";
 import Pipeline from "./examples/Pipeline";
 import pipelineCode from "./examples/Pipeline.tsx?raw";
 
@@ -27,16 +31,18 @@ export const ConnectionFlowPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Connection Flow"
-      description="A pipeline graph: steps along a track, parallel lanes that fan out and back in, children hanging below their parent, and arcs over the steps that were skipped. Every edge comes from one port-and-route engine — a fan shares a single spine, and the edge style changes only how the corners are drawn. Scroll to move through it (bars appear on hover), Ctrl/⌘-scroll or pinch to zoom, and hover any node to light the path that reached it."
+      description="A pipeline graph: steps along a track, parallel lanes that fan out and back in, children hanging below their parent, and arcs over the steps that were skipped. Every edge comes from one port-and-route engine — each connection has its own anchors and corridor, and the edge style changes only how the corners are drawn. Drag to move through it (bars appear on hover); plain scrolling continues through the page, Ctrl/⌘-scroll or pinch to zoom, and hover any node to light the path that reached it."
     />
     <ConnectionFlowPlayground />
     <section className="flex flex-col gap-5">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
         Examples
       </h2>
+      <ExampleCard title="Wrapped captions" description="Connector captions wrap inside their route with margins on both sides. Each card gap and row boundary grows independently when needed; shorter captions reserve less space than longer captions. Measured caption bounds reserve corridor space; other paths avoid the caption, and fit includes its full bounds. Solid surfaces use a neutral gray treatment for contrast." code={captionsCode} filename="Captions.tsx"><Captions /></ExampleCard>
+      <ExampleCard title="Separate retry anchors" description="Failure paths and normal handoffs use separate anchors. Full sides spill onto the nearest available adjacent side; independent return paths use separate lanes. Direct handoffs stay in the gap between their cards. Drag to pan; plain wheel scrolling stays with the page." code={retryPathsCode} filename="RetryPaths.tsx"><RetryPaths /></ExampleCard>
       <ExampleCard
         title="Edge styles"
-        description="All three styles route the same way — out along each port's normal, then an axis-aligned turn, with a whole fan sharing one spine. They differ only at the corners: `straight` mitres them, `orthogonal` rounds them by a fixed radius, `curved` rounds them as far as the segments allow. Routing and corner treatment are separate concerns, so a bypass arcs over the skipped step in every style."
+        description="All three styles route the same way — out along each port's normal, then an axis-aligned turn, with separate anchors and corridors for each edge. They differ only at the corners: `straight` mitres them, `orthogonal` rounds them by a fixed radius, `curved` rounds them as far as the segments allow. Routing and corner treatment are separate concerns, so a bypass arcs over the skipped step in every style."
         code={edgeStylesCode}
         filename="EdgeStyles.tsx"
       >

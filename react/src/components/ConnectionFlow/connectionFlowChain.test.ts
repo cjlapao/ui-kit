@@ -464,3 +464,39 @@ describe("ConnectionFlow chained grid", () => {
     });
   });
 });
+
+
+describe("separate outcome anchors", () => {
+  it("separates retry arrivals and exits from the normal path on the same side", () => {
+    const nodes: ConnectionFlowNode[] = [
+      {id:"implement", title:"Implement"},
+      {id:"offer-review",title:"Offer review"},
+      {id:"review",title:"Review",failure:{to:"implement"}},
+      {id:"offer-security",title:"Offer security"},
+      {id:"security",title:"Security",failure:{to:"implement"}},
+    ];
+    const layout=layoutConnectionFlow({nodes});
+    for (const connector of layout.connectors) {
+      const attached=layout.edges.filter(e=>connector.edgeIds.includes(e.id));
+      expect(new Set(attached.map(e=>e.branchKind === "failure")).size).toBe(1);
+      expect(new Set(attached.map(e=>e.fromId === connector.nodeId)).size).toBe(1);
+    }
+    const review=layout.nodes.find(n=>n.id === "review")!;
+    const left=layout.connectors.filter(c=>c.nodeId === "review" && c.side === "left");
+    expect(left).toHaveLength(2);
+    expect((left[0].y+left[1].y)/2).toBeCloseTo(review.y+review.anchorY);
+    expect(Math.abs(left[0].y-left[1].y)).toBeGreaterThan(left[0].radius+left[1].radius);
+    for (const edge of layout.edges) {
+      const from=layout.connectors.find(c=>c.nodeId === edge.fromId && c.edgeIds.includes(edge.id));
+      const to=layout.connectors.find(c=>c.nodeId === edge.toId && c.edgeIds.includes(edge.id));
+      for (const [connector,point] of [[from,edge.points[0]],[to,edge.points[edge.points.length-1]]] as const) {
+        if (!connector) continue;
+        if (connector.side === "left" || connector.side === "right") expect(point.y).toBeCloseTo(connector.y);
+        else expect(point.x).toBeCloseTo(connector.x);
+      }
+      const others=layout.nodes.filter(n=>n.id!==edge.fromId && n.id!==edge.toId);
+      expect(segmentsCrossBoxes(edge.points,others),edge.id).toBe(false);
+      for (let i=1;i<edge.points.length;i++) expect(edge.points[i].x === edge.points[i-1].x || edge.points[i].y === edge.points[i-1].y).toBe(true);
+    }
+  });
+});

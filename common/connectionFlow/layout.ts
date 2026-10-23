@@ -1,3 +1,5 @@
+import { layoutCaptions, captionSpacing } from "./captions";
+import { separateAnchors } from "./anchors";
 import type { TrueColor } from "../theme/Theme";
 import {
   nodeOutline,
@@ -10,6 +12,7 @@ import {
   createLaneUse,
   routeCrossings,
   selectSides,
+  routingLaneSpacing,
   type Box,
   type OutlineBulge,
   type Port,
@@ -38,7 +41,7 @@ import {
   type LaidOutEdge,
   type LaidOutNode,
 } from "./types";
-import { measureBranch, measureNode, nodeScrolls } from "./measure";
+import { measureNode, nodeScrolls } from "./measure";
 
 /**
  * How lively a state is. Where several edges meet at one terminal the
@@ -157,10 +160,48 @@ export interface LayoutInput {
  * paint, needed a second paint to appear, and were re-measured on every
  * scroll. Geometry that can be computed should not be measured.
  */
-export const layoutConnectionFlow = (
+export const layoutConnectionFlow = (input: LayoutInput): ConnectionFlowLayout =>
+  layoutWithRowSpace(input, new Map(), 0);
+
+/** Anchor overflow is known only after routing. Reflow affected seams using
+ * those real terminals, retaining per-row budgets until the layout settles. */
+const layoutWithRowSpace = (
   input: LayoutInput,
+  rowSpace: ReadonlyMap<string, number>,
+  pass: number,
 ): ConnectionFlowLayout => {
   const options = { ...DEFAULT_LAYOUT_OPTIONS, ...input.options };
+  const spacing = captionSpacing(input.nodes, options);
+  const rowSeams: {
+    key: string;
+    before: readonly ConnectionFlowNode[];
+    after: readonly ConnectionFlowNode[];
+    size: number;
+  }[] = [];
+  const gap = (
+    before: readonly ConnectionFlowNode[],
+    after: readonly ConnectionFlowNode[],
+    axis: "horizontal" | "vertical",
+    minimum: number,
+  ) => {
+    const key = JSON.stringify([before.map((n) => n.id), after.map((n) => n.id)]);
+    const size = Math.max(
+      minimum,
+      axis === "vertical" ? rowSpace.get(key) ?? 0 : 0,
+      // Pack lane centres between the two terminal runs. N lanes need
+      // N - 1 spacers; counting both outer margins as lanes wastes two slots.
+      axis === "horizontal" && before.length * after.length > 1
+        ? 48 +
+          (before.length * after.length - 1) *
+            routingLaneSpacing(options.pathClearance, options.cornerRadius)
+        : 0,
+      ...before.map((n) => spacing.after.get(n.id)?.[axis] ?? 0),
+      ...after.map((n) => spacing.before.get(n.id)?.[axis] ?? 0),
+    );
+    if (axis === "vertical" && before.length && after.length)
+      rowSeams.push({ key, before, after, size });
+    return size;
+  };
   const columns = buildColumns(input.nodes);
   const skipped = resolveSkipped(columns, input.autoState ?? false);
 
@@ -189,15 +230,9 @@ export const layoutConnectionFlow = (
   const columnBounds: { start: number; end: number; centre: number }[] = [];
 
   columns.forEach((column, columnIndex) => {
-    const heights = column.nodes.map((n) =>
-      measureBranch(n, options, input.expanded),
-    );
-    const stackHeight =
-      heights.reduce((a, b) => a + b, 0) +
-      options.laneGap * Math.max(0, column.nodes.length - 1);
-
     let y = options.padding;
     column.nodes.forEach((node, laneIndex) => {
+      const branchStart = laidOut.length;
       const ownHeight = measureNode(node, options, input.expanded);
       const entry: LaidOutNode = {
         id: node.id,
@@ -219,13 +254,21 @@ export const layoutConnectionFlow = (
       // Children hang below their parent, indented — unless the parent
       // chains: then `rows` (or one card per row from `children`) form a
       // grid under it, walked rightward and downward by the chain pass.
-      let childY = y + ownHeight + options.childGap;
+      let childY =
+        y +
+        ownHeight +
+        gap(
+          [node],
+          node.children?.slice(0, 1) ?? [],
+          "vertical",
+          options.childGap,
+        );
       const placeChildren = (
         parent: ConnectionFlowNode,
         depth: number,
         indentX: number,
       ) => {
-        (parent.children ?? []).forEach((child) => {
+        (parent.children ?? []).forEach((child, childIndex) => {
           const childHeight = measureNode(child, options, input.expanded);
           const childEntry: LaidOutNode = {
             id: child.id,
@@ -243,7 +286,14 @@ export const layoutConnectionFlow = (
           };
           laidOut.push(childEntry);
           byId.set(child.id, childEntry);
-          childY += childHeight + options.childGap;
+          childY +=
+            childHeight +
+            gap(
+              [child],
+              parent.children?.slice(childIndex + 1, childIndex + 2) ?? [],
+              "vertical",
+              options.childGap,
+            );
           placeChildren(child, depth + 1, indentX + options.childIndent);
         });
       };
@@ -255,19 +305,20 @@ export const layoutConnectionFlow = (
           // The parent→first-row seam carries a real connector with ports
           // at both ends, exactly like a row handoff — so it hangs by the
           // row gap, not by the fan children's gap.
-          let rowY = y + ownHeight + options.rowGap;
+          let rowY =
+            y + ownHeight + gap([node], rows[0], "vertical", options.rowGap);
           const walk: ChainInfo["walk"] = [];
-          let maxCols = 1;
+          let gridWidth = cardWidth;
           rows.forEach((row, rowIdx) => {
-            maxCols = Math.max(maxCols, row.length);
             let rowBottom = rowY;
+            let cardX = gridX;
             row.forEach((card, col) => {
               const cardHeight = measureNode(card, options, input.expanded);
               const cardEntry: LaidOutNode = {
                 id: card.id,
                 node: card,
                 outline: "",
-                x: gridX + col * (cardWidth + options.connectorWidth),
+                x: cardX,
                 y: rowY,
                 width: cardWidth,
                 height: cardHeight,
@@ -281,8 +332,19 @@ export const layoutConnectionFlow = (
               byId.set(card.id, cardEntry);
               walk.push({ card: cardEntry, row: rowIdx });
               rowBottom = Math.max(rowBottom, rowY + cardHeight);
+              gridWidth = Math.max(gridWidth, cardX - gridX + cardWidth);
+              cardX +=
+                cardWidth +
+                gap(
+                  [card],
+                  row.slice(col + 1, col + 2),
+                  "horizontal",
+                  options.connectorWidth,
+                );
             });
-            rowY = rowBottom + options.rowGap;
+            rowY =
+              rowBottom +
+              gap(row, rows[rowIdx + 1] ?? [], "vertical", options.rowGap);
           });
           const live = walk.filter((w) => !nodeIsSkipped(w.card.node));
           const exitCard = live.length > 0 ? live[live.length - 1].card : null;
@@ -291,10 +353,7 @@ export const layoutConnectionFlow = (
             walk,
             exitCard,
             exitHasBranch: Boolean(exitCard?.node.success?.to),
-            gridWidth:
-              options.gridIndent +
-              maxCols * cardWidth +
-              (maxCols - 1) * options.connectorWidth,
+            gridWidth: options.gridIndent + gridWidth,
           });
         } else {
           placeChildren(node, 1, x + options.childIndent);
@@ -303,7 +362,17 @@ export const layoutConnectionFlow = (
         placeChildren(node, 1, x + options.childIndent);
       }
 
-      y += heights[laneIndex] + options.laneGap;
+      const branchBottom = Math.max(
+        ...laidOut.slice(branchStart).map((n) => n.y + n.height),
+      );
+      y =
+        branchBottom +
+        gap(
+          [node],
+          column.nodes.slice(laneIndex + 1, laneIndex + 2),
+          "vertical",
+          options.laneGap,
+        );
     });
 
     // A chained column is as wide as its widest row, so the next top-level
@@ -318,9 +387,23 @@ export const layoutConnectionFlow = (
     columnBounds.push({
       start: x,
       end: x + columnWidth,
-      centre: options.padding + stackHeight / 2,
+      centre:
+        (options.padding +
+          Math.max(
+            ...laidOut
+              .filter((n) => n.column === columnIndex)
+              .map((n) => n.y + n.height),
+          )) /
+        2,
     });
-    x += columnWidth + options.connectorWidth;
+    x +=
+      columnWidth +
+      gap(
+        column.nodes,
+        columns[columnIndex + 1]?.nodes ?? [],
+        "horizontal",
+        options.connectorWidth,
+      );
   });
 
   // ── Pass 2: edges along the main track ────────────────────────────────
@@ -329,9 +412,8 @@ export const layoutConnectionFlow = (
   /**
    * Terminals, collected as edges are routed and keyed by position.
    *
-   * A fan-out shares one source port between every edge that leaves it, so
-   * this is a map rather than a list: three edges arriving at the same point
-   * describe one connector that three edges meet, not three connectors.
+   * Initial routes may request the same position. Collect those requests
+   * here; separateAnchors allocates independent endpoints before rendering.
    */
   const connectors = new Map<string, LaidOutConnector>();
 
@@ -363,7 +445,8 @@ export const layoutConnectionFlow = (
     const existing = connectors.get(key);
     if (existing) {
       existing.edgeIds.push(edgeId);
-      if (STATE_RANK[state] > STATE_RANK[existing.state]) existing.state = state;
+      if (STATE_RANK[state] > STATE_RANK[existing.state])
+        existing.state = state;
       if (active) existing.active = true;
       if (radius > existing.radius) existing.radius = radius;
       return;
@@ -463,7 +546,11 @@ export const layoutConnectionFlow = (
     const keep = { ...naive, fromPort: o.fromPort, toPort: o.toPort };
     if (!segmentsCrossBoxes(naive.points, obstacles)) return keep;
     const routed = routeBetween(
-      { box: o.fromBox, t: tOf(o.fromBox, o.fromPort), preferSides: o.prefer?.from },
+      {
+        box: o.fromBox,
+        t: tOf(o.fromBox, o.fromPort),
+        preferSides: o.prefer?.from,
+      },
       { box: o.toBox, t: tOf(o.toBox, o.toPort), preferSides: o.prefer?.to },
       obstacles,
       {
@@ -588,7 +675,11 @@ export const layoutConnectionFlow = (
           sides.from,
           source.anchorY / source.height,
         );
-        const toPort = port(targetBox, sides.to, target.anchorY / target.height);
+        const toPort = port(
+          targetBox,
+          sides.to,
+          target.anchorY / target.height,
+        );
         const route = routeWithEngine({
           fromPort,
           toPort,
@@ -767,8 +858,24 @@ export const layoutConnectionFlow = (
       (o.cfg?.animated ?? input.animated ?? true) &&
       (o.state === "flowing" ||
         (o.state === "stopped" && (o.cfg?.animateCompleted ?? false)));
-    addConnector(o.fromEntry.id, route.fromPort, o.sourceTone, o.state, animated, o.id, o.cfg);
-    addConnector(o.toEntry.id, route.toPort, o.targetTone, o.state, animated, o.id, o.cfg);
+    addConnector(
+      o.fromEntry.id,
+      route.fromPort,
+      o.sourceTone,
+      o.state,
+      animated,
+      o.id,
+      o.cfg,
+    );
+    addConnector(
+      o.toEntry.id,
+      route.toPort,
+      o.targetTone,
+      o.state,
+      animated,
+      o.id,
+      o.cfg,
+    );
     edges.push({
       id: o.id,
       fromId: o.fromEntry.id,
@@ -798,7 +905,8 @@ export const layoutConnectionFlow = (
     branch: ConnectionFlowBranch,
     kind: "success" | "failure",
   ): TrueColor =>
-    branch.tone ?? (kind === "success" ? STATUS_TONE.succeeded : STATUS_TONE.failed);
+    branch.tone ??
+    (kind === "success" ? STATUS_TONE.succeeded : STATUS_TONE.failed);
 
   /**
    * One outcome edge. A target that sits upstream — above or left of the
@@ -950,7 +1058,8 @@ export const layoutConnectionFlow = (
     // Out: the failure edges, drawn for every card that declares one —
     // even a skipped card, whose loop is still part of the story.
     chain.walk.forEach((w) => {
-      if (w.card.node.failure) emitBranch(w.card, w.card.node.failure, "failure");
+      if (w.card.node.failure)
+        emitBranch(w.card, w.card.node.failure, "failure");
     });
   });
 
@@ -962,9 +1071,43 @@ export const layoutConnectionFlow = (
   );
   laidOut.forEach((entry) => {
     if (chainCardIds.has(entry.id)) return;
-    if (entry.node.success?.to) emitBranch(entry, entry.node.success, "success");
-    if (entry.node.failure?.to) emitBranch(entry, entry.node.failure, "failure");
+    if (entry.node.success?.to)
+      emitBranch(entry, entry.node.success, "success");
+    if (entry.node.failure?.to)
+      emitBranch(entry, entry.node.failure, "failure");
   });
+
+  separateAnchors(laidOut, edges, connectors, options);
+  if (pass < 4 && rowSeams.length) {
+    const nextSpace = new Map(rowSpace);
+    for (const seam of rowSeams) {
+      const above = new Set(seam.before.map((n) => n.id));
+      const below = new Set(seam.after.map((n) => n.id));
+      const terminals = [...connectors.values()].filter(
+        (c) => (c.side === "bottom" && above.has(c.nodeId)) ||
+          (c.side === "top" && below.has(c.nodeId)),
+      );
+      if (!terminals.length) continue;
+      const lanes = new Set(terminals.flatMap((c) => c.edgeIds)).size;
+      // Room for the terminal runs, corner rounding and each additional lane.
+      const required =
+        48 + (lanes - 1) *
+          routingLaneSpacing(options.pathClearance, options.cornerRadius);
+      const top = Math.min(...seam.after.map((n) => byId.get(n.id)!.y));
+      const bottom = top - seam.size;
+      const missing = Math.max(
+        0,
+        ...terminals.map((c) =>
+          required - (c.side === "bottom" ? top - c.y : c.y - bottom),
+        ),
+      );
+      if (missing > 0.01)
+        nextSpace.set(seam.key, seam.size + missing);
+    }
+    if ([...nextSpace].some(([key, size]) => size > (rowSpace.get(key) ?? 0)))
+      return layoutWithRowSpace(input, nextSpace, pass + 1);
+  }
+  layoutCaptions(laidOut, edges, connectors, options);
 
   // ── Crossing hops ─────────────────────────────────────────────────────
   // Crossings are legal topology, but they have to read as crossings: where
@@ -1044,6 +1187,12 @@ export const layoutConnectionFlow = (
     cover(n.x + n.width, n.y + n.height);
   });
   edges.forEach((e) => e.points.forEach((p) => cover(p.x, p.y)));
+  edges.forEach((e) => {
+    if (e.caption) {
+      cover(e.caption.x, e.caption.y);
+      cover(e.caption.x + e.caption.width, e.caption.y + e.caption.height);
+    }
+  });
   // A ring straddles its node's border, so half of it hangs outside the box
   // the node reported. Left out, `fit` clips the outer half of every terminal
   // on the leftmost and topmost cards.

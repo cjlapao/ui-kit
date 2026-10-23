@@ -362,6 +362,8 @@ export interface LaidOutEdge {
    * and the line they sit on can never disagree about the route.
    */
   d: string;
+  /** Measured, collision-free caption bounds in layout coordinates. */
+  caption?: { x: number; y: number; width: number; height: number; lines: string[]; lineHeight: number };
   sourceTone: TrueColor;
   targetTone: TrueColor;
   /** A bypass arc travels *over* skipped nodes rather than between neighbours. */
@@ -406,14 +408,8 @@ export interface LaidOutEdge {
   branchKind?: "success" | "failure";
 }
 
-/**
- * A terminal where one or more edges meet a node.
- *
- * These are layout output rather than something each edge draws for itself.
- * When three edges fan out of one card they share a single port, and an edge
- * that painted its own endpoints stamped three identical rings on that one
- * spot — which the highlight then dimmed three times over, so a "dimmed"
- * connector came out darker than a lit one.
+/** A distinct terminal for one edge endpoint, allocated on a node border.
+ * Fan-in and fan-out edges retain independent anchors and highlight states.
  */
 export interface LaidOutConnector {
   id: string;
@@ -424,11 +420,11 @@ export interface LaidOutConnector {
   /** Which border of the node it sits on. */
   side: PortSide;
   tone: TrueColor;
-  /** The liveliest state among the edges meeting here. */
+  /** State of the edge attached to this terminal. */
   state: ConnectionState;
   /** Something is flowing through this terminal. */
   active: boolean;
-  /** Edges meeting here, so the path highlight dims a connector with them. */
+  /** The single edge attached here; retained as an array for API compatibility. */
   edgeIds: string[];
   /** Radius of the border's bulge, in px. */
   radius: number;

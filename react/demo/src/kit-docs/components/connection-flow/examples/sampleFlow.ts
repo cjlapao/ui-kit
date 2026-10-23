@@ -7,10 +7,10 @@ import type { ConnectionFlowNode, TrueColor } from "@cjlapao/ui-kit";
  * the edge styles are only worth comparing on a graph that has all of them:
  *
  *  - a plain one-to-one hop (`release` → the matrix column)
- *  - a fan-out, one source to three lanes, sharing a single spine
+ *  - a fan-out, one source to three independent lanes
  *  - two lanes carrying children of their own, hanging below
  *  - two adjacent multi-node columns: `staging` and `announce` each depend on
- *    all three lanes before them, so six edges gather onto one spine
+ *    all three lanes before them, so six edges need separate corridors
  *  - a bypass arcing over a skipped step
  *  - two cards built from `items`, one of them past the cap so the rest fold
  *    behind "show more", and one showing a spinner in place of its glyph

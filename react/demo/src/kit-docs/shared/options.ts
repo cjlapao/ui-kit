@@ -43,6 +43,9 @@ import {
   SPINNER_THICKNESSES,
   SPINNER_VARIANTS,
   SURFACE_VARIANTS,
+  PLAIN_SURFACE_VARIANTS,
+  TASKBOARD_LAYOUTS,
+  TASKBOARD_CARD_LAYOUTS,
   TABLE_DENSITIES,
   TOGGLE_VARIANTS,
   CONNECTION_FLOW_EDGE_STYLES,
@@ -132,6 +135,9 @@ export const checkboxValidationOptions: MultiToggleOption[] = toOptions(
 );
 /** Panel surfaces — the full set a FormSection offers. */
 export const surfaceVariantOptions = toOptions(SURFACE_VARIANTS);
+export const plainSurfaceVariantOptions = toOptions(PLAIN_SURFACE_VARIANTS);
+export const taskBoardLayoutOptions = toOptions(TASKBOARD_LAYOUTS);
+export const taskBoardCardLayoutOptions = toOptions(TASKBOARD_CARD_LAYOUTS);
 /** Pill surfaces: the three opaque treatments plus the two glass ones. */
 export const pillVariantOptions = toOptions(PILL_VARIANTS);
 /** Pill corner scale — deliberately not the card corner scale. */

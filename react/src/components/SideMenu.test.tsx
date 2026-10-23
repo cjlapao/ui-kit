@@ -412,6 +412,35 @@ describe("SideMenu — topItem / footerItem", () => {
       screen.getByRole("menuitem", { name: "Sign out" }),
     ).toBeInTheDocument();
   });
+
+  it("wraps custom media in a shrink-proof box", () => {
+    // A collapsed rail gives the trigger ~20px of content box; caller
+    // markup without `shrink-0` used to squash (w-8 rendering at ~24px).
+    const { container } = renderMenu({
+      collapsed: true,
+      onToggleCollapse: () => {},
+      topItem: {
+        label: "ACME",
+        media: <span className="grid h-8 w-8 place-items-center">A</span>,
+        menu: [{ value: "x", label: "One" }],
+      },
+      footerItem: {
+        label: "Ada",
+        media: <span className="grid h-8 w-8 place-items-center">AL</span>,
+        menu: [{ value: "y", label: "Two" }],
+      },
+    });
+    // Collapsed triggers carry the label as `title`; the accessible name
+    // would be the media's own text.
+    for (const label of ["ACME", "Ada"]) {
+      const trigger = container.querySelector(
+        `button[title="${label}"]`,
+      ) as HTMLElement;
+      expect(trigger).toBeTruthy();
+      const holder = trigger.firstElementChild as HTMLElement;
+      expect(holder).toHaveClass("shrink-0");
+    }
+  });
 });
 
 // ── Search ──────────────────────────────────────────────────────────────────

@@ -8,7 +8,6 @@ import {
   dotTiming,
   getNodeSurface,
   getToneClasses,
-  labelAnchor,
   routeLength,
   type ConnectionFlowLayout,
   type LaidOutConnector,
@@ -116,6 +115,7 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
         variant="auto"
         className="h-full w-full"
         contentClassName="block w-full"
+        viewportClassName="!overflow-hidden"
       >
         {content}
       </ScrollArea>
@@ -209,27 +209,51 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
             from the one carrying the label. */}
         <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
           {layout.edges.map((edge) => {
-            if (!edge.label) return null;
-            const at = labelAnchor(edge.points);
-            const width = edge.label.length * 6.8 + 16;
+            if (!edge.label || !edge.caption) return null;
+            const caption = edge.caption;
+            const glass =
+              variant === "glass" ||
+              variant === "liquid-glass" ||
+              variant === "default";
             return (
-              <g key={edge.id} opacity={isLit(edge) ? 1 : 0.22}>
+              <g
+                key={edge.id}
+                opacity={isLit(edge) ? 1 : 0.22}
+                data-edge-caption={edge.id}
+              >
                 <rect
-                  x={at.x - width / 2}
-                  y={at.y - 9}
-                  width={width}
-                  height={18}
+                  x={caption.x}
+                  y={caption.y}
+                  width={caption.width}
+                  height={caption.height}
                   rx={4}
-                  className="fill-white dark:fill-neutral-900"
+                  className={
+                    glass
+                      ? "fill-white dark:fill-neutral-900"
+                      : "fill-neutral-100 dark:fill-neutral-800"
+                  }
                 />
                 <text
-                  x={at.x}
-                  y={at.y}
+                  x={caption.x + caption.width / 2}
+                  y={caption.y + 4 + caption.lineHeight / 2}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  className="fill-neutral-500 text-[10px] dark:fill-neutral-400"
+                  aria-label={edge.label}
+                  className={
+                    glass
+                      ? "fill-neutral-500 text-[10px] dark:fill-neutral-400"
+                      : "fill-neutral-700 text-[10px] dark:fill-neutral-200"
+                  }
                 >
-                  {edge.label}
+                  {caption.lines.map((line, index) => (
+                    <tspan
+                      key={index}
+                      x={caption.x + caption.width / 2}
+                      dy={index === 0 ? 0 : caption.lineHeight}
+                    >
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
               </g>
             );

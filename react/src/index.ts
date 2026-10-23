@@ -49,3 +49,8 @@ export { Sun } from "./icons/components/Sun";
 export { Moon } from "./icons/components/Moon";
 export { ThemeAuto } from "./icons/components/ThemeAuto";
 export { Rocket } from "./icons/components/Rocket";
+export { ViewGrid } from "./icons/components/ViewGrid";
+export { Globe } from "./icons/components/Globe";
+
+export { NetworkGraph, findNetworkPath } from "./components/NetworkGraph";
+export type { NetworkGraphNode, NetworkGraphEdge, NetworkGraphCommunity, NetworkGraphViewport, NetworkGraphProps } from "./components/NetworkGraph";

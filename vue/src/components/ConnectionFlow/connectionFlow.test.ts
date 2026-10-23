@@ -12,6 +12,7 @@ import {
   getNodeSurface,
   nodeIcon,
   labelAnchor,
+  parallelOverlap,
   tracePathTo,
   CONNECTION_FLOW_EDGE_STYLES,
   CONNECTION_FLOW_STATUSES,
@@ -351,10 +352,8 @@ describe("ConnectionFlow layout", () => {
       }
     });
 
-    it("gives a whole fan one spine", () => {
-      // Turning at each pair's own midpoint put a wide card's elbow at a
-      // different x from its narrower sibling's, so a single branch point in
-      // the graph was drawn as several.
+    it("gives every fan edge its own corridor", () => {
+      // Parallel destinations remain separate connections, including their lanes.
       const layout = layoutConnectionFlow({
         options: { edgeStyle: "straight" },
         nodes: flow(
@@ -371,7 +370,8 @@ describe("ConnectionFlow layout", () => {
       const turning = fan.filter((e) => e.points.length > 2);
       expect(turning.length).toBeGreaterThan(1);
       const turns = turning.map((e) => e.points[1].x.toFixed(3));
-      expect(new Set(turns).size).toBe(1);
+      expect(new Set(turns).size).toBeGreaterThan(1);
+      for(let i=0;i<fan.length;i++) for(let j=i+1;j<fan.length;j++) expect(parallelOverlap(fan[i].points,fan[j].points)).toBeLessThanOrEqual(1);
     });
 
     it("gives every edge a path the dots can follow", () => {
@@ -407,12 +407,11 @@ describe("ConnectionFlow layout", () => {
   });
 
   describe("bypass routing", () => {
-    it("connects every lane across a skipped run, on one shared line", () => {
+    it("connects every lane across a skipped run on separate paths", () => {
       // A single arc between the column bounding boxes left every lane but the
       // first with no edge at all — they looked orphaned, and `tracePathTo`
       // reported no ancestry for them because there was genuinely none. Each
-      // lane gets its own edge; they share the clearance line, and the overlap
-      // is the merge.
+      // lane gets its own edge, anchor and clearance line.
       const layout = layoutConnectionFlow({
         nodes: flow(
           { id: "a", kind: "parallel" },
@@ -425,11 +424,12 @@ describe("ConnectionFlow layout", () => {
       expect(arcs.map((e) => e.fromId).sort()).toEqual(["a", "b"]);
       expect(arcs.every((e) => e.toId === "c")).toBe(true);
 
-      // One clearance line, and one riser, so the two read as a single path.
+      // Each bypass keeps an independent clearance lane and riser.
       const tops = arcs.map((e) => Math.min(...e.points.map((p) => p.y)));
-      expect(new Set(tops.map((t) => t.toFixed(3))).size).toBe(1);
+      expect(new Set(tops.map((t) => t.toFixed(3))).size).toBe(arcs.length);
       const risers = arcs.map((e) => e.points[1].x.toFixed(3));
-      expect(new Set(risers).size).toBe(1);
+      expect(new Set(risers).size).toBe(arcs.length);
+      expect(parallelOverlap(arcs[0].points,arcs[1].points)).toBeLessThanOrEqual(1);
 
       // Neither riser crosses the card in the lane above it.
       const cards = layout.nodes.filter((n) => n.id === "a" || n.id === "b");
@@ -641,11 +641,8 @@ describe("ConnectionFlow layout", () => {
       expect(edge.points[0].x).not.toBeCloseTo(near(edge.points[0])!.x, 3);
     });
 
-    it("shares one terminal between every edge of a fan-out", () => {
-      // Three edges leaving one card meet at one port. An edge that painted
-      // its own endpoints stamped three rings on that spot, which the
-      // highlight then dimmed three times over — so a "dimmed" connector came
-      // out darker than a lit one.
+    it("gives each fan-out edge a distinct source terminal", () => {
+      // Every outgoing edge has its own anchor and highlight state.
       const layout = layoutConnectionFlow({
         nodes: flow(
           { id: "a" },
@@ -655,8 +652,9 @@ describe("ConnectionFlow layout", () => {
         ),
       });
       const onA = layout.connectors.filter((c) => c.nodeId === "a");
-      expect(onA).toHaveLength(1);
-      expect(onA[0].edgeIds).toHaveLength(3);
+      expect(onA).toHaveLength(3);
+      expect(onA.every(c=>c.edgeIds.length===1)).toBe(true);
+      expect(new Set(onA.map(c=>`${c.x}:${c.y}`)).size).toBe(3);
     });
 
     it("gives a node one terminal per side it connects on", () => {
@@ -669,7 +667,7 @@ describe("ConnectionFlow layout", () => {
       expect(new Set(onB.map((c) => c.side))).toEqual(new Set(["left", "right"]));
     });
 
-    it("takes the liveliest state of the edges meeting it", () => {
+    it("keeps each terminal state tied to its own edge", () => {
       const layout = layoutConnectionFlow({
         nodes: flow(
           { id: "a" },
@@ -677,8 +675,8 @@ describe("ConnectionFlow layout", () => {
           { id: "c", kind: "parallel", connector: { state: "flowing" } },
         ),
       });
-      const onA = layout.connectors.find((c) => c.nodeId === "a")!;
-      expect(onA.state).toBe("flowing");
+      const onA = layout.connectors.filter((c) => c.nodeId === "a");
+      expect(onA.map(c=>c.state).sort()).toEqual(["disabled","flowing"]);
     });
 
     it("sizes the ring from the shared scale", () => {
@@ -823,13 +821,13 @@ describe("ConnectionFlow layout", () => {
       expect(layout.connectors.some((c) => c.nodeId === "a")).toBe(true);
     });
 
-    it("shares the parent terminal between all its children", () => {
+    it("gives each child edge a distinct parent terminal", () => {
       const layout = layoutConnectionFlow({
         nodes: flow({ id: "a", children: [{ id: "a1" }, { id: "a2" }] }),
       });
       const onA = layout.connectors.filter((c) => c.nodeId === "a");
-      expect(onA).toHaveLength(1);
-      expect(onA[0].edgeIds).toHaveLength(2);
+      expect(onA).toHaveLength(2);
+      expect(onA.every(c=>c.edgeIds.length===1)).toBe(true);
     });
   });
 

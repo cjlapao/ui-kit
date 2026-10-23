@@ -408,6 +408,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/gantt/GanttPage")),
   },
   {
+    slug: "task-board",
+    name: "Task Board",
+    description:
+      "A kanban board with columns or swimlanes: real-time drag by pointer, touch and keyboard, WIP limits, transition rules and guarded moves, and a collaboration channel that shows teammates' drags live.",
+    icon: "ViewGrid",
+    category: "Data",
+    Page: lazy(() => import("./components/task-board/TaskBoardPage")),
+  },
+  {
     slug: "color-swatches",
     name: "Color Swatches",
     description:
@@ -894,6 +903,14 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(
       () => import("./components/dynamic-form-field/DynamicFormFieldPage"),
     ),
+  },
+  {
+    slug: "network-graph",
+    name: "Network Graph",
+    description: "Canvas networks with zoom, pan, community filters and path highlighting on shared Panel surfaces.",
+    icon: "Share2",
+    category: "Data",
+    Page: lazy(() => import("./components/network-graph/NetworkGraphPage")),
   },
   {
     slug: "combobox",

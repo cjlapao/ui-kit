@@ -870,5 +870,8 @@ export * from "./WorkflowTracker";
 // Gantt (editable timeline: drag/resize/reorder, lanes, groups, dependencies)
 export * from "./Gantt";
 
+// TaskBoard (kanban columns + swimlanes, real-time drag, collaboration)
+export * from "./TaskBoard";
+
 // Chart (PrimeUI-style compound charts — SVG + Canvas)
 export * from "./chart";

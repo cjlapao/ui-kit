@@ -74,11 +74,7 @@ export const port = (box: Box, side: PortSide, t = 0.5): Port => {
 };
 
 /** A port at an absolute offset along a side rather than a fraction of it. */
-export const portAt = (
-  box: Box,
-  side: PortSide,
-  offset: number,
-): Port => {
+export const portAt = (box: Box, side: PortSide, offset: number): Port => {
   const span = side === "top" || side === "bottom" ? box.width : box.height;
   return port(box, side, span === 0 ? 0.5 : offset / span);
 };
@@ -121,9 +117,13 @@ export const selectSides = (
   const dx = target.x - source.x;
   const dy = target.y - source.y;
   if (Math.abs(dx) >= Math.abs(dy)) {
-    return dx >= 0 ? { from: "right", to: "left" } : { from: "left", to: "right" };
+    return dx >= 0
+      ? { from: "right", to: "left" }
+      : { from: "left", to: "right" };
   }
-  return dy >= 0 ? { from: "bottom", to: "top" } : { from: "top", to: "bottom" };
+  return dy >= 0
+    ? { from: "bottom", to: "top" }
+    : { from: "top", to: "bottom" };
 };
 
 export interface RouteOptions {
@@ -170,7 +170,9 @@ export interface Route {
 }
 
 const line = (points: { x: number; y: number }[]) =>
-  points.map((p, i) => `${i === 0 ? "M" : "L"} ${round(p.x)} ${round(p.y)}`).join(" ");
+  points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${round(p.x)} ${round(p.y)}`)
+    .join(" ");
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
@@ -180,7 +182,11 @@ const simplify = (points: { x: number; y: number }[]) => {
   for (const p of points) {
     const a = out[out.length - 2];
     const b = out[out.length - 1];
-    if (a && b && ((a.x === b.x && b.x === p.x) || (a.y === b.y && b.y === p.y))) {
+    if (
+      a &&
+      b &&
+      ((a.x === b.x && b.x === p.x) || (a.y === b.y && b.y === p.y))
+    ) {
       out[out.length - 1] = p;
       continue;
     }
@@ -217,7 +223,9 @@ const roundedPath = (points: { x: number; y: number }[], radius: number) => {
     const outX = curr.x + ((next.x - curr.x) / outLen) * r;
     const outY = curr.y + ((next.y - curr.y) / outLen) * r;
     parts.push(`L ${round(inX)} ${round(inY)}`);
-    parts.push(`Q ${round(curr.x)} ${round(curr.y)} ${round(outX)} ${round(outY)}`);
+    parts.push(
+      `Q ${round(curr.x)} ${round(curr.y)} ${round(outX)} ${round(outY)}`,
+    );
   }
   const last = points[points.length - 1];
   parts.push(`L ${round(last.x)} ${round(last.y)}`);
@@ -316,15 +324,24 @@ export const routePorts = (
   return { points, d: roundedPath(points, CORNER[style](radius)) };
 };
 
+/** Rebuild an existing corridor after moving a terminal along its side. */
+export const routePolyline = (
+  points: { x: number; y: number }[],
+  style: ConnectionFlowEdgeStyle,
+  radius: number,
+): Route => ({ points, d: roundedPath(points, CORNER[style](radius)) });
+
 /** Total length of a waypoint list. */
 export const routeLength = (points: { x: number; y: number }[]): number => {
   let total = 0;
   for (let i = 1; i < points.length; i += 1) {
-    total += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+    total += Math.hypot(
+      points[i].x - points[i - 1].x,
+      points[i].y - points[i - 1].y,
+    );
   }
   return total;
 };
-
 
 /** A port the node's outline detours around. */
 export interface OutlineBulge {
@@ -363,9 +380,10 @@ export const nodeOutline = (
   let cr = Math.max(0, Math.min(cornerRadius, w / 2, h / 2));
   for (const bulge of bulges) {
     const [start, end] =
-      bulge.side === "top" || bulge.side === "bottom" ? [x, right] : [y, bottom];
-    const room =
-      Math.min(bulge.at - start, end - bulge.at) - bulge.radius;
+      bulge.side === "top" || bulge.side === "bottom"
+        ? [x, right]
+        : [y, bottom];
+    const room = Math.min(bulge.at - start, end - bulge.at) - bulge.radius;
     cr = Math.min(cr, Math.max(0, room));
   }
 
@@ -478,6 +496,8 @@ export interface PathEndpoint {
    * straitjacket — a card in the way always outranks the idiom.
    */
   preferSides?: PortSide[];
+  /** Optional hard constraint for already allocated terminal sides. */
+  sides?: PortSide[];
 }
 
 /**
@@ -490,6 +510,8 @@ export type LaneUse = Map<string, number>;
 export const createLaneUse = (): LaneUse => new Map();
 
 export interface PathOptions {
+  /** Require all obstacle interiors to remain clear (caption corridor routing). */
+  strictObstacles?: boolean;
   style: ConnectionFlowEdgeStyle;
   /** How far a line must run out of a port before it may turn. */
   stub?: number;
@@ -511,7 +533,44 @@ export interface PathOptions {
   preferBonus?: number;
   /** Shared across one layout run — see `createLaneUse`. */
   laneUse?: LaneUse;
+  /** Minimum distance between parallel independent lanes. */
+  laneSpacing?: number;
+  /** Existing routes: charge crowding and expose adjacent lanes. */
+  occupied?: readonly (readonly { x: number; y: number }[])[];
 }
+
+/** Minimum centre-to-centre lane distance, including room for a 6px hop. */
+export const routingLaneSpacing = (clearance: number, cornerRadius: number) =>
+  Math.max(16, clearance, 2 * cornerRadius + 8);
+
+/** Length of parallel overlap within a lane; perpendicular crossings use bridges. */
+export const parallelOverlap = (
+  a: readonly { x: number; y: number }[],
+  b: readonly { x: number; y: number }[],
+  spacing = 0.01,
+): number => {
+  let total = 0;
+  for (let i = 1; i < a.length; i++)
+    for (let j = 1; j < b.length; j++) {
+      const p = a[i - 1],
+        q = a[i],
+        r = b[j - 1],
+        s = b[j];
+      if (p.y === q.y && r.y === s.y && Math.abs(p.y - r.y) < spacing - 0.0001)
+        total += Math.max(
+          0,
+          Math.min(Math.max(p.x, q.x), Math.max(r.x, s.x)) -
+            Math.max(Math.min(p.x, q.x), Math.min(r.x, s.x)),
+        );
+      else if (p.x === q.x && r.x === s.x && Math.abs(p.x - r.x) < spacing - 0.0001)
+        total += Math.max(
+          0,
+          Math.min(Math.max(p.y, q.y), Math.max(r.y, s.y)) -
+            Math.max(Math.min(p.y, q.y), Math.min(r.y, s.y)),
+        );
+    }
+  return total;
+};
 
 const sameBox = (a: Box, b: Box) =>
   a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
@@ -555,9 +614,7 @@ const SIDES: PortSide[] = ["top", "right", "bottom", "left"];
 
 /** Sorted, de-duplicated grid lines; near-coincident lines are one line. */
 const gridLines = (values: number[], low: number, high: number): number[] => {
-  const sorted = values
-    .filter((v) => Number.isFinite(v))
-    .sort((a, b) => a - b);
+  const sorted = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
   const out: number[] = [];
   for (const v of sorted) {
     if (out.length === 0 || v - out[out.length - 1] > 1) out.push(v);
@@ -566,7 +623,11 @@ const gridLines = (values: number[], low: number, high: number): number[] => {
   // not just the two ends — so a route can always go around the outside
   // rather than through the middle.
   const span = Math.max(1, high - low);
-  return [low - Math.min(60, span * 0.25), ...out, high + Math.min(60, span * 0.25)];
+  return [
+    low - Math.min(60, span * 0.25),
+    ...out,
+    high + Math.min(60, span * 0.25),
+  ];
 };
 
 /**
@@ -574,12 +635,7 @@ const gridLines = (values: number[], low: number, high: number): number[] => {
  * every candidate side-pair builds its own grid, and a lane is the same
  * lane in all of them.
  */
-const segKey = (
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-): string =>
+const segKey = (x1: number, y1: number, x2: number, y2: number): string =>
   x1 === x2
     ? `v:${round(x1)}>${round(Math.min(y1, y2))}-${round(Math.max(y1, y2))}`
     : `h:${round(y1)}>${round(Math.min(x1, x2))}-${round(Math.max(x1, x2))}`;
@@ -686,24 +742,39 @@ export const routeBetween = (
   const tx = to.box.x + to.box.width / 2;
   const ty = to.box.y + to.box.height / 2;
   const dist = Math.hypot(tx - fx, ty - fy);
-  const reachLimit = Math.max(from.box.width, from.box.height, to.box.width, to.box.height) + dist * 1.5 + 240;
+  const reachLimit =
+    Math.max(from.box.width, from.box.height, to.box.width, to.box.height) +
+    dist * 1.5 +
+    240;
   const near = inflated.filter((b) => {
     const cx = b.x + b.width / 2;
     const cy = b.y + b.height / 2;
-    return Math.hypot(cx - fx, cy - fy) < reachLimit && Math.hypot(cx - tx, cy - ty) < reachLimit;
+    return (
+      Math.hypot(cx - fx, cy - fy) < reachLimit &&
+      Math.hypot(cx - tx, cy - ty) < reachLimit
+    );
   });
 
   const lowX = Math.min(from.box.x, to.box.x) - reachLimit;
-  const highX = Math.max(from.box.x + from.box.width, to.box.x + to.box.width) + reachLimit;
+  const highX =
+    Math.max(from.box.x + from.box.width, to.box.x + to.box.width) + reachLimit;
   const lowY = Math.min(from.box.y, to.box.y) - reachLimit;
-  const highY = Math.max(from.box.y + from.box.height, to.box.y + to.box.height) + reachLimit;
+  const highY =
+    Math.max(from.box.y + from.box.height, to.box.y + to.box.height) +
+    reachLimit;
 
   const baseXs: number[] = [];
   const baseYs: number[] = [];
   let ringLowX = Math.min(from.box.x, to.box.x);
-  let ringHighX = Math.max(from.box.x + from.box.width, to.box.x + to.box.width);
+  let ringHighX = Math.max(
+    from.box.x + from.box.width,
+    to.box.x + to.box.width,
+  );
   let ringLowY = Math.min(from.box.y, to.box.y);
-  let ringHighY = Math.max(from.box.y + from.box.height, to.box.y + to.box.height);
+  let ringHighY = Math.max(
+    from.box.y + from.box.height,
+    to.box.y + to.box.height,
+  );
   for (const b of near) {
     baseXs.push(b.x, b.x + b.width);
     baseYs.push(b.y, b.y + b.height);
@@ -713,35 +784,64 @@ export const routeBetween = (
     ringHighY = Math.max(ringHighY, b.y + b.height);
   }
 
+  const laneSpacing = options.laneSpacing ?? routingLaneSpacing(clearance, radius);
+  for (const path of options.occupied ?? [])
+    for (const p of path) {
+      baseXs.push(p.x - laneSpacing, p.x, p.x + laneSpacing);
+      baseYs.push(p.y - laneSpacing, p.y, p.y + laneSpacing);
+    }
   let best: PairResult | null = null;
 
-  for (const fromSide of SIDES) {
-    for (const toSide of SIDES) {
+  for (const fromSide of from.sides ?? SIDES) {
+    for (const toSide of to.sides ?? SIDES) {
       const fromPort = port(from.box, fromSide, from.t);
       const toPort = port(to.box, toSide, to.t);
       const fromTrim = retreat(fromPort, trim);
       const toTrim = retreat(toPort, trim);
       const pairDist = Math.hypot(toTrim.x - fromTrim.x, toTrim.y - fromTrim.y);
       const reach = Math.max(4, Math.min(stub, pairDist / 2));
+      const safeReach = (p: Port) => {
+        let available = reach;
+        for (const b of [...obstacles, from.box, to.box]) {
+          let distance = Infinity;
+          if (p.dx && p.y > b.y && p.y < b.y + b.height)
+            distance = p.dx > 0 ? b.x - p.x : p.x - b.x - b.width;
+          if (p.dy && p.x > b.x && p.x < b.x + b.width)
+            distance = p.dy > 0 ? b.y - p.y : p.y - b.y - b.height;
+          if (distance >= 0) available = Math.min(available, distance / 2);
+        }
+        return Math.max(0.5, available);
+      };
+      const fromReach = safeReach(fromTrim),
+        toReach = safeReach(toTrim);
       const fromStub = {
-        x: fromTrim.x + fromPort.dx * reach,
-        y: fromTrim.y + fromPort.dy * reach,
+        x: fromTrim.x + fromPort.dx * fromReach,
+        y: fromTrim.y + fromPort.dy * fromReach,
       };
       const toStub = {
-        x: toTrim.x + toPort.dx * reach,
-        y: toTrim.y + toPort.dy * reach,
+        x: toTrim.x + toPort.dx * toReach,
+        y: toTrim.y + toPort.dy * toReach,
       };
 
-      const xs = gridLines(
+      const gridXs = gridLines(
         [...baseXs, fromStub.x, toStub.x],
         Math.min(fromStub.x, toStub.x, ringLowX),
         Math.max(fromStub.x, toStub.x, ringHighX),
       ).filter((v) => v >= lowX && v <= highX);
-      const ys = gridLines(
+      const gridYs = gridLines(
         [...baseYs, fromStub.y, toStub.y],
         Math.min(fromStub.y, toStub.y, ringLowY),
         Math.max(fromStub.y, toStub.y, ringHighY),
       ).filter((v) => v >= lowY && v <= highY);
+      // Near-coincident corridor lines may be coalesced, but endpoint stubs
+      // must survive exactly. A 1px anchor offset otherwise removes a start
+      // or goal from the grid and silently disables the collision engine.
+      const xs = [...new Set([...gridXs, fromStub.x, toStub.x])].sort(
+        (a, b) => a - b,
+      );
+      const ys = [...new Set([...gridYs, fromStub.y, toStub.y])].sort(
+        (a, b) => a - b,
+      );
       if (xs.length * ys.length > 65_536) return null; // keep the naive route
 
       const xOf = new Map(xs.map((v, i) => [round(v), i]));
@@ -750,16 +850,22 @@ export const routeBetween = (
       const sj = yOf.get(round(fromStub.y));
       const gi = xOf.get(round(toStub.x));
       const gj = yOf.get(round(toStub.y));
-      if (si === undefined || sj === undefined || gi === undefined || gj === undefined) {
+      if (
+        si === undefined ||
+        sj === undefined ||
+        gi === undefined ||
+        gj === undefined
+      ) {
         continue;
       }
 
       const startDir = dirOf(fromPort.dx, fromPort.dy);
-      const arriveDir = dirOf(-toPort.dx, -toPort.dy);
       const W = xs.length;
       const H = ys.length;
       const stateCount = W * H * 4;
-      const gScore = new Float64Array(stateCount).fill(Number.POSITIVE_INFINITY);
+      const gScore = new Float64Array(stateCount).fill(
+        Number.POSITIVE_INFINITY,
+      );
       const cameFrom = new Int32Array(stateCount).fill(-1);
       const keyOf = (i: number, j: number, d: number) => (j * W + i) * 4 + d;
       const heur = (i: number, j: number) =>
@@ -798,13 +904,15 @@ export const routeBetween = (
           if (!list) return 0;
           const lo = Math.min(ys[j], ys[nj]);
           const hi = Math.max(ys[j], ys[nj]);
-          for (const [l, r] of list) total += Math.max(0, Math.min(hi, r) - Math.max(lo, l));
+          for (const [l, r] of list)
+            total += Math.max(0, Math.min(hi, r) - Math.max(lo, l));
         } else {
           const list = rowXs[j];
           if (!list) return 0;
           const lo = Math.min(xs[i], xs[ni]);
           const hi = Math.max(xs[i], xs[ni]);
-          for (const [l, r] of list) total += Math.max(0, Math.min(hi, r) - Math.max(lo, l));
+          for (const [l, r] of list)
+            total += Math.max(0, Math.min(hi, r) - Math.max(lo, l));
         }
         return total;
       };
@@ -818,7 +926,9 @@ export const routeBetween = (
       // The line must leave along the port's normal; charge the stub, it is
       // part of the route and can run through a card's clearance.
       let found: { i: number; j: number; d: number; g: number } | null = null;
-      const cutoff = best ? best.cost + preferBonus * 2 : Number.POSITIVE_INFINITY;
+      const cutoff = best
+        ? best.cost + preferBonus * 2
+        : Number.POSITIVE_INFINITY;
       let pops = 0;
 
       while (heap.size > 0) {
@@ -827,7 +937,7 @@ export const routeBetween = (
         const key = keyOf(s.i, s.j, s.d);
         if (s.g > gScore[key]) continue;
         if (s.g + heur(s.i, s.j) >= cutoff) break;
-        if (s.i === gi && s.j === gj && s.d === arriveDir) {
+        if (s.i === gi && s.j === gj) {
           found = s;
           break;
         }
@@ -836,21 +946,50 @@ export const routeBetween = (
           const ni: number = s.i + dx;
           const nj: number = s.j + dy;
           if (ni < 0 || ni >= W || nj < 0 || nj >= H) continue;
-          // A port is a dead end, not a crossroads: its stub may only be
-          // entered and left along the port's own normal — anything else
-          // would sail across the card's face and call it a connection.
-          // The node decides, not the step count: re-reaching the start
-          // node from mid-search is the same physical stub.
-          if (s.i === si && s.j === sj && d !== startDir) continue;
-          if (ni === si && nj === sj && d !== startDir) continue;
-          if (ni === gi && nj === gj && d !== arriveDir) continue;
+          // The port-to-stub segment already supplies the normal approach.
+          // Turning at a stub is legal, but immediately reversing along it
+          // would fold the path back over itself. Card interiors stay blocked.
+          if (
+            s.i === si &&
+            s.j === sj &&
+            DIRS[d].dx === -fromPort.dx &&
+            DIRS[d].dy === -fromPort.dy
+          )
+            continue;
+          if (
+            ni === gi &&
+            nj === gj &&
+            DIRS[d].dx === toPort.dx &&
+            DIRS[d].dy === toPort.dy
+          )
+            continue;
           const dirPenalty = d === s.d ? 0 : bendPenalty;
           const nx = xs[ni];
           const ny = ys[nj];
-          let step = Math.abs(nx - xs[s.i]) + Math.abs(ny - ys[s.j]) + dirPenalty;
+          const segment = [
+            { x: xs[s.i], y: ys[s.j] },
+            { x: nx, y: ny },
+          ];
+          // Endpoint cards remain solid. Excluding them allowed an approach
+          // to pass through its own target and masquerade as another edge.
+          if (
+            segmentsCrossBoxes(
+              segment,
+              options.strictObstacles
+                ? [...obstacles, from.box, to.box]
+                : [from.box, to.box],
+            )
+          )
+            continue;
+          let step =
+            Math.abs(nx - xs[s.i]) + Math.abs(ny - ys[s.j]) + dirPenalty;
           step += penetration(s.i, s.j, ni, nj) * obstaclePenalty;
           const prior = laneUse?.get(segKey(xs[s.i], ys[s.j], nx, ny)) ?? 0;
           if (prior > 0) step += prior * lanePenalty;
+          for (const occupied of options.occupied ?? [])
+            step +=
+              (parallelOverlap(segment, occupied, laneSpacing) +
+                100 * parallelOverlap(segment, occupied)) * lanePenalty;
           const nKey = keyOf(ni, nj, d);
           const ng = s.g + step;
           if (ng < gScore[nKey]) {
@@ -892,7 +1031,8 @@ export const routeBetween = (
 
   if (!best) return null;
   if (laneUse) {
-    for (const seg of best.segments) laneUse.set(seg, (laneUse.get(seg) ?? 0) + 1);
+    for (const seg of best.segments)
+      laneUse.set(seg, (laneUse.get(seg) ?? 0) + 1);
   }
   return {
     points: best.points,
@@ -935,54 +1075,51 @@ const segmentCrossings = (
   bId: string,
   b: { x: number; y: number }[],
   jumpRadius: number,
-  cornerRadius: number,
+  aRadius: number[],
+  bRadius: number[],
 ): JumpEdge[] => {
   const out: JumpEdge[] = [];
-  for (let i = 1; i < a.length; i += 1) {
-    const a1 = a[i - 1];
-    const a2 = a[i];
-    for (let j = 1; j < b.length; j += 1) {
-      const b1 = b[j - 1];
-      const b2 = b[j];
-      const aH = a1.y === a2.y && a1.x !== a2.x;
-      const bH = b1.y === b2.y && b1.x !== b2.x;
-      const aV = a1.x === a2.x && a1.y !== a2.y;
-      const bV = b1.x === b2.x && b1.y !== b2.y;
-      if (aH && bV) {
-        const lo = Math.min(a1.x, a2.x);
-        const hi = Math.max(a1.x, a2.x);
-        const vLo = Math.min(b1.y, b2.y);
-        const vHi = Math.max(b1.y, b2.y);
-        // The hop needs room from the segment's ends: its own radius, plus
-        // whatever the corner rounding will eat there.
-        const margin =
-          jumpRadius + Math.min(cornerRadius, (hi - lo) / 2) + 1;
-        if (
-          b1.x > lo + margin &&
-          b1.x < hi - margin &&
-          a1.y > vLo + jumpRadius + 2 &&
-          a1.y < vHi - (jumpRadius + 2)
-        ) {
-          out.push({ edgeId: aId, segment: i - 1, at: b1.x, r: jumpRadius });
-        }
-      } else if (bH && aV) {
-        const lo = Math.min(b1.x, b2.x);
-        const hi = Math.max(b1.x, b2.x);
-        const vLo = Math.min(a1.y, a2.y);
-        const vHi = Math.max(a1.y, a2.y);
-        const margin =
-          jumpRadius + Math.min(cornerRadius, (hi - lo) / 2) + 1;
-        if (
-          a1.x > lo + margin &&
-          a1.x < hi - margin &&
-          b1.y > vLo + jumpRadius + 2 &&
-          b1.y < vHi - (jumpRadius + 2)
-        ) {
-          out.push({ edgeId: bId, segment: j - 1, at: a1.x, r: jumpRadius });
-        }
-      }
+  const corner = (_p: typeof a, i: number, radii: number[]) => radii[i];
+  const check = (
+    id: string,
+    h: typeof a,
+    i: number,
+    v: typeof a,
+    j: number,
+    hr: number[],
+    vr: number[],
+  ) => {
+    const h1 = h[i],
+      h2 = h[i + 1],
+      v1 = v[j],
+      v2 = v[j + 1];
+    if (h1.y !== h2.y || h1.x === h2.x || v1.x !== v2.x || v1.y === v2.y)
+      return;
+    const hdir = Math.sign(h2.x - h1.x),
+      vdir = Math.sign(v2.y - v1.y);
+    const alongH = (v1.x - h1.x) * hdir,
+      alongV = (h1.y - v1.y) * vdir;
+    const hlen = Math.abs(h2.x - h1.x),
+      vlen = Math.abs(v2.y - v1.y);
+    // Reserve only the corners actually painted, not a full extra jump on
+    // the vertical line. Short risers can still pass through a horizontal.
+    if (
+      alongV <= corner(v, j, vr) + 0.01 ||
+      alongV >= vlen - corner(v, j + 1, vr) - 0.01
+    )
+      return;
+    const r = Math.min(
+      jumpRadius,
+      alongH - corner(h, i, hr) - 1,
+      hlen - alongH - corner(h, i + 1, hr) - 1,
+    );
+    if (r >= 2.5) out.push({ edgeId: id, segment: i, at: v1.x, r });
+  };
+  for (let i = 0; i < a.length - 1; i++)
+    for (let j = 0; j < b.length - 1; j++) {
+      check(aId, a, i, b, j, aRadius, bRadius);
+      check(bId, b, j, a, i, bRadius, aRadius);
     }
-  }
   return out;
 };
 
@@ -1003,18 +1140,22 @@ const jumpPath = (
   style: ConnectionFlowEdgeStyle,
   cornerRadius: number,
   jumps: Jump[],
+  corners?: number[],
 ): string => {
   if (points.length < 2) return line(points);
   const radius = CORNER[style](cornerRadius);
   const bySeg = new Map<number, Jump[]>();
-  for (const j of jumps) (bySeg.get(j.segment) ?? bySeg.set(j.segment, []).get(j.segment)!).push(j);
+  for (const j of jumps)
+    (bySeg.get(j.segment) ?? bySeg.set(j.segment, []).get(j.segment)!).push(j);
   const parts: string[] = [`M ${round(points[0].x)} ${round(points[0].y)}`];
   for (let i = 1; i < points.length; i += 1) {
     const prev = points[i - 1];
     const curr = points[i];
     if (prev.y === curr.y) {
       const dir = curr.x >= prev.x ? 1 : -1;
-      const on = (bySeg.get(i - 1) ?? []).slice().sort((a, b) => (a.at - b.at) * dir);
+      const on = (bySeg.get(i - 1) ?? [])
+        .slice()
+        .sort((a, b) => (a.at - b.at) * dir);
       for (const j of on) {
         parts.push(`L ${round(j.at - dir * j.r)} ${round(curr.y)}`);
         // Bulge up either way: travelling left→right the arc sweeps
@@ -1032,7 +1173,7 @@ const jumpPath = (
     const next = points[i + 1];
     const inLen = Math.hypot(curr.x - prev.x, curr.y - prev.y);
     const outLen = Math.hypot(next.x - curr.x, next.y - curr.y);
-    const r = Math.min(radius, inLen / 2, outLen / 2);
+    const r = corners?.[i] ?? Math.min(radius, inLen / 2, outLen / 2);
     if (r <= 0.5) {
       parts.push(`L ${round(curr.x)} ${round(curr.y)}`);
       continue;
@@ -1042,7 +1183,9 @@ const jumpPath = (
     const outX = curr.x + ((next.x - curr.x) / outLen) * r;
     const outY = curr.y + ((next.y - curr.y) / outLen) * r;
     parts.push(`L ${round(inX)} ${round(inY)}`);
-    parts.push(`Q ${round(curr.x)} ${round(curr.y)} ${round(outX)} ${round(outY)}`);
+    parts.push(
+      `Q ${round(curr.x)} ${round(curr.y)} ${round(outX)} ${round(outY)}`,
+    );
   }
   return parts.join(" ");
 };
@@ -1050,7 +1193,7 @@ const jumpPath = (
 /**
  * The crossing pass: compare every pair of routed edges and give the
  * horizontal one of each crossing a hop. Returns the new `d` for the edges
- * that gained hops — every other edge keeps its path byte-identical.
+ * that gained hops or needed a tighter corner to preserve a crossing.
  */
 export const routeCrossings = (
   edges: RoutableEdge[],
@@ -1058,6 +1201,51 @@ export const routeCrossings = (
 ): Map<string, string> => {
   const cornerRadius = options.cornerRadius ?? 8;
   const jumpRadius = options.jumpRadius ?? JUMP_RADIUS;
+  // Preserve a straight crossing even when a large curved corner would
+  // otherwise sweep over it. Both participants use these exact corner limits.
+  const corners = edges.map((edge) =>
+    edge.points.map((p, i, points) =>
+      !i || i === points.length - 1
+        ? 0
+        : Math.min(
+            CORNER[edge.style](cornerRadius),
+            Math.hypot(p.x - points[i - 1].x, p.y - points[i - 1].y) / 2,
+            Math.hypot(p.x - points[i + 1].x, p.y - points[i + 1].y) / 2,
+          ),
+    ),
+  );
+  const changed = new Set<number>();
+  const protect = (h: number, i: number, v: number, j: number) => {
+    const [a, b] = edges[h].points.slice(i, i + 2);
+    const [c, d] = edges[v].points.slice(j, j + 2);
+    if (a.y !== b.y || a.x === b.x || c.x !== d.x || c.y === d.y) return;
+    const left = Math.min(a.x, b.x),
+      right = Math.max(a.x, b.x);
+    const top = Math.min(c.y, d.y),
+      bottom = Math.max(c.y, d.y);
+    if (c.x <= left || c.x >= right || a.y <= top || a.y >= bottom) return;
+    const hop = Math.min(jumpRadius, c.x - left - 1, right - c.x - 1);
+    if (hop < 2.5) return;
+    for (const [index, vertex, room] of [
+      [h, i, Math.abs(c.x - a.x) - hop - 1],
+      [h, i + 1, Math.abs(c.x - b.x) - hop - 1],
+      [v, j, Math.abs(a.y - c.y) - 1],
+      [v, j + 1, Math.abs(a.y - d.y) - 1],
+    ]) {
+      const limit = Math.max(0, room);
+      if (corners[index][vertex] > limit) {
+        corners[index][vertex] = limit;
+        changed.add(index);
+      }
+    }
+  };
+  for (let a = 0; a < edges.length; a++)
+    for (let b = a + 1; b < edges.length; b++)
+      for (let i = 0; i < edges[a].points.length - 1; i++)
+        for (let j = 0; j < edges[b].points.length - 1; j++) {
+          protect(a, i, b, j);
+          protect(b, j, a, i);
+        }
   const found = new Map<string, Jump[]>();
   for (let a = 0; a < edges.length; a += 1) {
     for (let b = a + 1; b < edges.length; b += 1) {
@@ -1067,9 +1255,13 @@ export const routeCrossings = (
         edges[b].id,
         edges[b].points,
         jumpRadius,
-        cornerRadius,
+        corners[a],
+        corners[b],
       )) {
-        (found.get(cross.edgeId) ?? found.set(cross.edgeId, []).get(cross.edgeId)!).push({
+        (
+          found.get(cross.edgeId) ??
+          found.set(cross.edgeId, []).get(cross.edgeId)!
+        ).push({
           segment: cross.segment,
           at: cross.at,
           r: cross.r,
@@ -1079,28 +1271,42 @@ export const routeCrossings = (
   }
   const out = new Map<string, string>();
   const byId = new Map(edges.map((e) => [e.id, e]));
+  for (const index of changed)
+    out.set(
+      edges[index].id,
+      jumpPath(edges[index].points, edges[index].style, cornerRadius, [], corners[index]),
+    );
   for (const [id, list] of found) {
     const edge = byId.get(id);
     if (!edge) continue;
-    // Pack hops that share a segment: neighbours squeeze each other's
-    // radius, and one with no room left is dropped rather than flattened.
+    // Share the available space symmetrically so a preceding hop cannot
+    // consume the room needed to render the next crossing.
     const perSegment = new Map<number, Jump[]>();
     for (const j of list)
-      (perSegment.get(j.segment) ?? perSegment.set(j.segment, []).get(j.segment)!).push(j);
+      (
+        perSegment.get(j.segment) ??
+        perSegment.set(j.segment, []).get(j.segment)!
+      ).push(j);
     const packed: Jump[] = [];
     for (const seg of perSegment.values()) {
       seg.sort((x, y) => x.at - y.at);
-      let prevEnd = Number.NEGATIVE_INFINITY;
-      for (const j of seg) {
-        const room = (j.at - prevEnd) / 2;
-        const r = Math.min(j.r, room);
-        if (r < 2.5) continue;
+      const unique = seg.filter((j, i) => !i || j.at !== seg[i - 1].at);
+      for (let i = 0; i < unique.length; i++) {
+        const j = unique[i];
+        const before = i ? (j.at - unique[i - 1].at) / 2 - 0.5 : Infinity;
+        const after = i + 1 < unique.length
+          ? (unique[i + 1].at - j.at) / 2 - 0.5
+          : Infinity;
+        const r = Math.min(j.r, before, after);
+        if (r < 1) continue;
         packed.push({ ...j, r });
-        prevEnd = j.at + r;
       }
     }
     if (packed.length === 0) continue;
-    out.set(id, jumpPath(edge.points, edge.style, cornerRadius, packed));
+    out.set(
+      id,
+      jumpPath(edge.points, edge.style, cornerRadius, packed, corners[edges.indexOf(edge)]),
+    );
   }
   return out;
 };

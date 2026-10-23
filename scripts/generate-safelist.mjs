@@ -586,6 +586,32 @@ src(`@source inline("dark:border-{COLOR}-500/50");`);
 src(`@source inline("ring-{COLOR}-400/50");`);
 L("");
 
+// TaskBoard. common/taskboard/tokens.ts emits these per TrueColor: the
+// column top edge, the full-WIP readout, priority/tag chips, the peer ring /
+// ghost / name tag of the collaboration layer, and the selection + drop line.
+src(`@source inline("border-t-{COLOR}-500");`);
+src(`@source inline("text-{COLOR}-600");`);
+src(`@source inline("dark:text-{COLOR}-400");`);
+src(`@source inline("bg-{COLOR}-100");`);
+src(`@source inline("text-{COLOR}-700");`);
+src(`@source inline("dark:bg-{COLOR}-500/20");`);
+src(`@source inline("dark:text-{COLOR}-300");`);
+src(`@source inline("ring-{COLOR}-500");`);
+src(`@source inline("border-{COLOR}-500");`);
+src(`@source inline("bg-{COLOR}-500/10");`);
+src(`@source inline("bg-{COLOR}-500");`);
+src(`@source inline("ring-{COLOR}-400/50");`);
+// Card tones (getTaskBoardCardToneTokens): solid + glass tints.
+src(`@source inline("bg-{COLOR}-50");`);
+src(`@source inline("ring-{COLOR}-200");`);
+src(`@source inline("dark:bg-{COLOR}-950");`);
+src(`@source inline("dark:ring-{COLOR}-500/30");`);
+src(`@source inline("bg-{COLOR}-100/60");`);
+src(`@source inline("ring-{COLOR}-300/50");`);
+src(`@source inline("dark:bg-{COLOR}-500/15");`);
+src(`@source inline("dark:ring-{COLOR}-400/30");`);
+L("");
+
 // ── Write output ──────────────────────────────────────────────────
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

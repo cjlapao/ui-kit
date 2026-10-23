@@ -196,3 +196,58 @@ describe("routeCrossings", () => {
     expect(d).toMatch(/A (\d+(\.\d+)?) (\1) 0 0/);
   });
 });
+
+
+describe("short crossing corridors", () => {
+  it("draws a bridge across a short vertical riser instead of reserving a jump on both axes", () => {
+    const paths = routeCrossings([
+      {id:"h",points:[{x:0,y:50},{x:100,y:50}],style:"orthogonal"},
+      {id:"v",points:[{x:50,y:46},{x:50,y:54}],style:"orthogonal"},
+    ]);
+    expect(paths.get("h")).toContain("A 6 6");
+    expect(paths.has("v")).toBe(false);
+  });
+  it("shrinks a bridge to the available horizontal space", () => {
+    const paths = routeCrossings([
+      {id:"h",points:[{x:0,y:50},{x:20,y:50}],style:"straight"},
+      {id:"v",points:[{x:5,y:40},{x:5,y:60}],style:"straight"},
+    ]);
+    expect(paths.get("h")).toContain("A 4 4");
+  });
+  it("does not bridge an intersection removed by corner rounding", () => {
+    const paths = routeCrossings([
+      {id:"h",points:[{x:0,y:50},{x:50,y:50},{x:50,y:80}],style:"orthogonal"},
+      {id:"v",points:[{x:48,y:40},{x:48,y:60}],style:"orthogonal"},
+    ]);
+    expect(paths.size).toBe(0);
+  });
+});
+
+
+describe("crowded crossing lanes", () => {
+  it.each(["orthogonal", "curved", "straight"] as const)(
+    "draws a separate hop for every neighbouring lane (%s)",
+    (style) => {
+      const h = { id: "h", points: [{ x: 0, y: 50 }, { x: 160, y: 50 }], style };
+      const verticals = [48, 72, 96].map((x, i) => ({
+        id: `v${i}`, points: [{ x, y: 0 }, { x, y: 100 }], style,
+      }));
+      const d = routeCrossings([h, ...verticals]).get("h")!;
+      expect(d.match(/A 6 6 /g)).toHaveLength(3);
+    },
+  );
+  it("limits curved corners to keep a crossing straight and leave room for its hop", () => {
+    const paths = routeCrossings([
+      { id: "h", points: [{ x: 0, y: 50 }, { x: 100, y: 50 }, { x: 100, y: 150 }], style: "curved" },
+      { id: "v", points: [{ x: 70, y: 0 }, { x: 70, y: 100 }], style: "curved" },
+    ]);
+    expect(paths.get("h")).toContain("L 64 50 A 6 6 0 0 0 76 50");
+  });
+  it("shares space between close hops instead of letting the first one hide the next", () => {
+    const paths = routeCrossings([
+      { id: "h", points: [{ x: 0, y: 50 }, { x: 100, y: 50 }], style: "straight" },
+      ...[48, 56, 64].map((x, i) => ({ id: `v${i}`, points: [{ x, y: 0 }, { x, y: 100 }], style: "straight" as const })),
+    ]);
+    expect(paths.get("h")!.match(/A /g)).toHaveLength(3);
+  });
+});

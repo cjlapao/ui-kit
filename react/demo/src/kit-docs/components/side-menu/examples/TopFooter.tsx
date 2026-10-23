@@ -1,4 +1,4 @@
-import { SideMenu } from "@cjlapao/ui-kit";
+import { CustomIcon, SideMenu } from "@cjlapao/ui-kit";
 import { MINI_ITEMS, USER_MENU, WORKSPACE_MENU } from "../demoData";
 
 export default function TopFooter() {
@@ -9,8 +9,20 @@ export default function TopFooter() {
           fullHeight
           color="indigo"
           title="Menus"
-          topItem={{ label: "ACME Corp", icon: "Users", menu: WORKSPACE_MENU }}
-          footerItem={{ label: "Ada Lovelace", icon: "User", menu: USER_MENU }}
+          topItem={{
+            label: "ACME Corp",
+            media: <CustomIcon icon="Users" size="xl" className="text-indigo-500" />,
+            menu: WORKSPACE_MENU,
+          }}
+          footerItem={{
+            label: "Ada Lovelace",
+            media: (
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-200">
+                AL
+              </span>
+            ),
+            menu: USER_MENU,
+          }}
           items={MINI_ITEMS}
         />
         <div className="flex-1 space-y-3 p-6">

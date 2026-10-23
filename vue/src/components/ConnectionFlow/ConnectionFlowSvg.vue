@@ -7,7 +7,6 @@ import {
   dotTiming,
   getNodeSurface,
   getToneClasses,
-  labelAnchor,
   routeLength,
 } from "../../connectionFlow";
 import type {
@@ -153,7 +152,6 @@ const edgeDot = (edge: LaidOutEdge) => {
  * against a card — because a route's midpoint has nothing to do with where
  * there is room to write.
  */
-const labelPoint = (edge: LaidOutEdge) => labelAnchor(edge.points);
 
 const transform = computed(
   () => `translate(${props.offsetX}, ${props.offsetY}) scale(${props.scale})`,
@@ -233,23 +231,12 @@ const nodeClasses = (laid: LaidOutNode) =>
            from the one carrying the label. -->
       <g :transform="transform">
         <template v-for="edge in layout.edges" :key="`label-${edge.id}`">
-          <g v-if="edge.label" :opacity="isLit(edge) ? 1 : 0.22">
-            <rect
-              :x="labelPoint(edge).x - (edge.label.length * 3.4 + 8)"
-              :y="labelPoint(edge).y - 9"
-              :width="edge.label.length * 6.8 + 16"
-              :height="18"
-              rx="4"
-              class="fill-white dark:fill-neutral-900"
-            />
-            <text
-              :x="labelPoint(edge).x"
-              :y="labelPoint(edge).y"
-              text-anchor="middle"
-              dominant-baseline="central"
-              class="fill-neutral-500 text-[10px] dark:fill-neutral-400"
-            >
-              {{ edge.label }}
+          <g v-if="edge.label && edge.caption" :opacity="isLit(edge) ? 1 : 0.22" :data-edge-caption="edge.id">
+            <rect :x="edge.caption.x" :y="edge.caption.y" :width="edge.caption.width" :height="edge.caption.height" rx="4"
+              :class="['glass','liquid-glass','default'].includes(variant) ? 'fill-white dark:fill-neutral-900' : 'fill-neutral-100 dark:fill-neutral-800'" />
+            <text :x="edge.caption.x + edge.caption.width / 2" :y="edge.caption.y + 4 + edge.caption.lineHeight / 2" text-anchor="middle" dominant-baseline="central" :aria-label="edge.label"
+              :class="['glass','liquid-glass','default'].includes(variant) ? 'fill-neutral-500 text-[10px] dark:fill-neutral-400' : 'fill-neutral-700 text-[10px] dark:fill-neutral-200'">
+              <tspan v-for="(line,index) in edge.caption.lines" :key="index" :x="edge.caption.x + edge.caption.width / 2" :dy="index === 0 ? 0 : edge.caption.lineHeight">{{ line }}</tspan>
             </text>
           </g>
         </template>

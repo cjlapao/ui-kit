@@ -1076,3 +1076,53 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   `getBoundingClientRect()` output with the flag set produces a pristine white
   PNG that looks exactly like a passing screenshot; `scale` belongs inside
   `clip`, and leaving it out yields no data at all.
+
+## A collaboration channel carries intent, never data
+
+- `TaskBoard`'s `transport` publishes only presence, `grab`, `hover` and
+  `release`. Card data never rides it: after a drop the app commits through its
+  own backend and every client gets the new `cards` prop. Mixing the two makes
+  the board a sync engine with conflict rules it cannot know; keeping them
+  apart lets any pub/sub room plug in with a few lines. The docs' live example
+  needs a *second* BroadcastChannel standing in for the backend — without it
+  the other tab sees the drag but never sees the drop land.
+- Lock arbitration has to be a pure reducer every client runs over the same
+  events: the earliest `grab` wins (`at`, ties by `userId`), so two people
+  grabbing at once agree on the winner without a server. The loser's drag is
+  cancelled by an effect that watches holds against the active drag — pointer
+  and keyboard alike, because both run through the same drag state.
+- Expire holds on the **local** receive clock (`seen`), not on the peer's `at`
+  — peer clocks drift. And apply your own heartbeat locally too, or your own
+  hold expires under a pointer that is simply holding still.
+- Answer a newcomer's `presence` immediately (once per unknown peer). With
+  heartbeat-only presence a fresh tab showed "1 online" for up to five seconds.
+  Closing a tab mid-drag frees its card at once through `pagehide → leave`; the
+  8 s TTL is only the fallback for a laptop lid.
+- Remote ghosts render in a portaled, fixed overlay measured against the
+  buckets, never inside them — a peer's drag must not move a pixel of your own
+  layout or your own drop target.
+- jsdom cannot show it, a real browser does: a pointer drag sweeps a text
+  selection across every card it crosses. Set `body.style.userSelect = "none"`
+  for the life of the drag (restore the previous value) and clear the selection
+  on lift. Found by driving headless Chrome over CDP with
+  `Input.dispatchMouseEvent`, not by the unit suite.
+- TaskBoard is React-only for now: **Vue is a step behind.** The engine lives in
+  `common/taskboard` so the Vue port renders against the same logic.
+
+## ScrollArea content is a table — full-height children need `flex!`
+
+- `ScrollArea` wraps its children in a `display: table` box (`table min-w-full`)
+  so wide content can widen it. A child that must fill the area's height — a
+  kanban row whose columns stretch to the tallest — gets no definite height
+  through an anonymous table cell, so `h-full` / stretch quietly do nothing.
+  Pass `contentClassName="flex! h-full"`: the Tailwind v4 important suffix beats
+  `table` regardless of stylesheet order, and the row inside then stretches
+  (default `align-items: stretch`) without any percentage height.
+- Drag auto-scroll that looks for its scrollers by attribute has to resolve a
+  ScrollArea frame to its `[data-slot="scrollarea-viewport"]` — the frame is
+  `overflow: hidden` and never scrolls.
+- Collapse animations that unmount content: keep the region mounted and
+  `inert` for the transition (`usePresence`), then unmount. `inert` keeps focus,
+  arrow-key navigation and drop targets out of a region that is still visible
+  while it closes. Mount the other state's layer only during the transition
+  too, or the steady state carries a hidden duplicate of every label.
