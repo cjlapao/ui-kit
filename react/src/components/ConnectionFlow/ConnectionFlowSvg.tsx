@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useId, useState } from "react";
+import { useKitT } from "../../i18n";
 import classNames from "classnames";
 
 import ConnectionFlowNodeBody from "./ConnectionFlowNodeBody";
@@ -10,6 +11,7 @@ import {
   getToneClasses,
   routeLength,
   type ConnectionFlowLayout,
+  type ConnectionFlowConnection,
   type LaidOutConnector,
   type LaidOutEdge,
   type LaidOutNode,
@@ -43,6 +45,11 @@ export interface ConnectionFlowSvgProps {
   highlightEdges: Set<string>;
   hoveredId: string | null;
   selectedId: string | null;
+  editableConnections?: readonly ConnectionFlowConnection[];
+  selectedConnectionId?: string | null;
+  onSelectConnection?: (connection: ConnectionFlowConnection | null) => void;
+  onEditConnection?: (connection: ConnectionFlowConnection) => void;
+  onRemoveConnection?: (connection: ConnectionFlowConnection) => void;
   scale: number;
   offsetX: number;
   offsetY: number;
@@ -67,6 +74,11 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
   highlightEdges,
   hoveredId,
   selectedId,
+  editableConnections,
+  selectedConnectionId,
+  onSelectConnection,
+  onEditConnection,
+  onRemoveConnection,
   scale,
   offsetX,
   offsetY,
@@ -74,6 +86,12 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
   onSelect,
   renderNode,
 }) => {
+  const t = useKitT();
+  const descriptionPrefix = useId();
+  const [focusedConnectionId, setFocusedConnectionId] = useState<string | null>(null);
+  const emphasized = (id: string) => !!editableConnections && (id === selectedConnectionId || id === focusedConnectionId);
+  const connectionById = new Map(editableConnections?.map(c => [c.id, c]));
+  const nodeById = new Map(layout.nodes.map(n => [n.id, n]));
   // Dimming is by opacity so the tone classes stay untouched. The dimmed
   // edges go in a group of their own rather than carrying the opacity each:
   // a fan's lines overlap on the run they share, and six translucent strokes
@@ -81,7 +99,7 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
   // spine came out barely darker than a lit one. One group, one opacity, and
   // it also puts the dimmed edges behind the lit ones where they belong.
   const isLit = (edge: LaidOutEdge) =>
-    highlightEdges.size === 0 || highlightEdges.has(edge.id);
+    emphasized(edge.id) || highlightEdges.size === 0 || highlightEdges.has(edge.id);
   const nodeOpacity = (node: LaidOutNode) =>
     highlightNodes.size === 0 || highlightNodes.has(node.id) ? 1 : 0.22;
   // A terminal is lit when any edge meeting it is, so a connector never
@@ -157,11 +175,13 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
                 const edgeTone = getToneClasses(edge.targetTone);
                 return (
                   <g key={edge.id} data-flow-edge={edge.id} data-flow-from={edge.fromId} data-flow-to={edge.toId}>
+                    {emphasized(edge.id) && <path d={edge.d} fill="none" className={edgeTone.line}
+                      strokeWidth={8} opacity={0.22} strokeLinecap="round" strokeLinejoin="round" />}
                     <path
                       d={edge.d}
                       fill="none"
                       className={edgeTone.line}
-                      strokeWidth={edge.state === "disabled" ? 1 : 1.75}
+                      strokeWidth={emphasized(edge.id) ? 3 : edge.state === "disabled" ? 1 : 1.75}
                       strokeDasharray={
                         edge.state === "disabled" ? "4 4" : undefined
                       }
@@ -294,10 +314,55 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
         </g>
       </svg>
 
+      {/* A separate, stable hit layer keeps keyboard focus when highlighting
+          moves the visual path between dimmed and lit groups. Cards sit above it. */}
+      {!!editableConnections?.length && <svg className="pointer-events-none absolute inset-0 h-full w-full" style={{ overflow: 'visible' }}>
+        <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
+          {layout.edges.map(edge => {
+            const connection = connectionById.get(edge.id);
+            if (!connection) return null;
+            const source = nodeById.get(connection.fromId);
+            const target = nodeById.get(connection.toId);
+            const name = t('kit.connectionFlowConnection.label', {
+              source: source?.node.title || connection.fromId,
+              target: target?.node.title || connection.toId,
+            });
+            const descriptionId = `${descriptionPrefix}-${encodeURIComponent(connection.id)}`;
+            return <g key={edge.id} data-flow-connection-hit={edge.id} data-no-pan data-no-edit
+              role="button" tabIndex={0} aria-pressed={selectedConnectionId === edge.id}
+              aria-label={[name, connection.label, connection.type].filter(Boolean).join(' · ')}
+              aria-describedby={connection.description ? descriptionId : undefined}
+              className="cursor-pointer outline-none"
+              onFocus={() => setFocusedConnectionId(edge.id)}
+              onBlur={() => setFocusedConnectionId(null)}
+              onClick={event => { event.stopPropagation(); onSelectConnection?.(connection); }}
+              onDoubleClick={event => { event.stopPropagation(); if (connection.editable !== false) onEditConnection?.(connection); }}
+              onKeyDown={event => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault(); event.stopPropagation();
+                  if (event.key === 'Enter' && connection.editable !== false && onEditConnection) onEditConnection(connection);
+                  else onSelectConnection?.(connection);
+                } else if (event.key === 'Escape') {
+                  event.preventDefault(); event.stopPropagation(); onSelectConnection?.(null);
+                } else if ((event.key === 'Delete' || event.key === 'Backspace') && connection.deletable !== false && onRemoveConnection) {
+                  event.preventDefault(); event.stopPropagation(); onRemoveConnection(connection);
+                }
+              }}>
+              {connection.description && <desc id={descriptionId}>{connection.description}</desc>}
+              <path d={edge.d} fill="none" stroke="transparent" strokeWidth={14} vectorEffect="non-scaling-stroke"
+                style={{ pointerEvents: 'stroke' }} />
+              {edge.caption && <rect x={edge.caption.x} y={edge.caption.y} width={edge.caption.width} height={edge.caption.height}
+                fill="transparent" style={{ pointerEvents: 'all' }} />}
+            </g>;
+          })}
+        </g>
+      </svg>}
+
       {/* Card content. The silhouette above owns fill, border and selection,
           so this element is transparent and exists for the text, the slot and
           the hit target. */}
-      <div className="absolute inset-0">
+      <div className="pointer-events-none absolute inset-0">
         {layout.nodes.map((laid) => (
           <div
             key={laid.id}

@@ -87,7 +87,7 @@ export const TaskBoardPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Edit the board"
-        description="`editMode` unlocks the layout: every column header gets a grip to drag it to a new position (or Space, arrows, Space from the keyboard) and an edit button for its properties — name, colour, WIP limit, lock, and which columns it accepts cards from — and an Add column slot follows the last column. Both report through `onColumnsChange`. Outside edit mode the layout is fixed — cards still move as usual."
+        description="`editMode` unlocks the layout: every column header gets a grip to drag it to a new position (or Space, arrows, Space from the keyboard) and an edit button for its properties — name, colour, WIP limit, max items, lock, and which columns it accepts cards from — and an Add column slot follows the last column. Both report through `onColumnsChange`. Outside edit mode the layout is fixed — cards still move as usual."
         code={editModeCode}
         filename="EditMode.tsx"
       >
@@ -171,6 +171,8 @@ export const TaskBoardPage: React.FC = () => (
         { name: "cards / columns / lanes", type: "TaskBoardCard[] / TaskBoardColumn[] / TaskBoardLane[]", description: "The data, controlled. Order inside a column × lane is the order of the cards array — there is no second ordering to keep in sync." },
         { name: "onCardsChange", type: "(next, move) => void", description: "The single commit event: the next cards array, and the move that produced it (ready for your undo history or your API)." },
         { name: "onColumnsChange / onLanesChange", type: "(next) => void", description: "Collapse changes — and, in edit mode, column reorders and added columns. Omit one and its carets disappear." },
+        { name: "maxItems", type: "number", description: "Board-wide hard cap on cards per column; a column's own `maxItems` overrides it. At the cap the column's Add card button disappears and drops into it are refused (the header reads count / max when there is no WIP limit)." },
+        { name: "column.maxItems", type: "number", description: "Per column: overrides the board's maxItems. Editable in edit mode's column editor; empty falls back to the board default." },
         { name: "editMode", type: "boolean", default: "false", description: "Layout editing: a drag grip and an edit button (name, colour, WIP limit, lock, accepted sources) on every column header, and an Add column slot after the last column (columns and lanes layouts). Needs onColumnsChange; the new column's id is slugged from its name and kept unique." },
         { name: "onBeforeMove", type: "(move) => boolean | Promise<boolean>", description: "Guard a move after the engine rules pass. While it is pending the card waits in its new slot; false or a throw puts it back." },
         { name: "editable", type: "boolean", default: "!!onCardsChange", description: "Pointer and keyboard moves. Selection, focus and opening still work on a read-only board." },

@@ -59,11 +59,16 @@ export const ConnectionFlowEditGuide: React.FC = () => (
       <p>The live Edit mode example below includes the complete SidePanel and form. This save-handler excerpt shows where the application commits the new node and its link.</p>
       <A11yCode code={commitCode} filename="SaveDraft.tsx" />
     </A11yTopic>
+    <A11yTopic title="Selecting, editing and removing a connection">
+      <p>In edit mode, click an explicit connection or its caption to select it. Bind <C>selectedConnectionId</C> and <C>onConnectionSelect</C> for controlled selection; omit the ID prop to use internal selection. The callback receives the original connection, including your metadata, or <C>null</C> when a selection is cleared.</p>
+      <p>Double-click a line or press Enter while it is focused to request <C>onConnectionEdit(connection)</C>. Your application opens its form, then replaces that connection in <C>connections</C> when saved. Delete or Backspace on a focused line requests <C>onConnectionRemove(connection)</C>; filter that ID out of your state to commit removal. These callbacks never modify the arrays automatically. Removing a link does not remove either endpoint node.</p>
+      <p>Use <C>tone</C> for a connection color; it inherits the source node’s tone when omitted. <C>sourceTone</C> and <C>targetTone</C> override individual endpoints. <C>type</C> is a free-text category, <C>description</C> explains the link and <C>data</C> carries your condition or rule model. None of these metadata fields executes a rule. Compose any condition builder from your application schema and existing kit form controls. Set <C>editable=false</C> or <C>deletable=false</C> to suppress the corresponding interaction request.</p>
+    </A11yTopic>
     <A11yTopic title="What the component supplies">
-      <p>The component supplies card layout, free connector anchors, routing, crossing hops, captions, path highlighting, pan and zoom. In edit mode it also supplies side actions, drag previews, a dashed destination card, existing-card targeting and creation/connection callbacks. It does not mutate your node or connection arrays.</p>
+      <p>The component supplies card layout, free connector anchors, routing, crossing hops, captions, path highlighting, pan and zoom. In edit mode it also supplies side actions, drag previews, a dashed destination card, existing-card targeting, connection selection and creation/edit/removal requests. It does not mutate your node or connection arrays.</p>
     </A11yTopic>
     <A11yTopic title="What your application supplies">
-      <p>You supply the editing toggle, SidePanel or Modal, fields, validation, save/cancel actions and persistence. Use <C>onNodeClick</C> to open an existing card’s editor. The demo’s title, subtitle, tone, height and connection selector are application UI; the component does not create that form for you. Deletion, permissions, undo/redo, server requests and domain rules also belong to your application. Use your chosen panel or dialog’s focus management when opening it and returning to the flow.</p>
+      <p>You supply the editing toggle, SidePanel or Modal, fields, validation, save/cancel actions and persistence. Use <C>onNodeClick</C> to open an existing card’s editor. The demo’s title, subtitle, tone, height and connection selector are application UI; the component does not create that form for you. Committing deletion, permissions, undo/redo, server requests and domain rules also belong to your application. Use your chosen panel or dialog’s focus management when opening it and returning to the flow.</p>
       <p>Card content comes from <C>title</C>, <C>subtitle</C>, <C>description</C>, <C>icon</C>, <C>status</C>, <C>progress</C> and <C>items</C>. Item rows are content inside one card, not separate graph nodes. Put your domain record or identifier in <C>data</C>; the component returns it with click and hover callbacks.</p>
       <p>Use <C>renderNode(laidOutNode)</C> for a custom React body and declare an appropriate node <C>height</C>, since the routing engine does not measure arbitrary DOM content. It replaces the body; the component still draws the card surface and connections. Use buttons and inputs for actions, label them, and keep their events from activating the surrounding card when needed.</p>
     </A11yTopic>
@@ -74,7 +79,7 @@ export const ConnectionFlowReference: React.FC = () => (
   <>
     <A11ySection>
       <A11yTopic title="Screen reader">
-        <p>Cards expose <C>role="button"</C>, take their accessible name from their rendered content, and show a focus ring. Disabled cards are excluded from the tab order. Focusing a card highlights its incoming path, as hovering does. Edit side actions are named buttons describing the direction and source card; a polite live region announces draft creation, cancellation and connection requests.</p>
+        <p>Cards expose <C>role="button"</C>, take their accessible name from their rendered content, and show a focus ring. Disabled cards are excluded from the tab order. Focusing a card highlights its incoming path, as hovering does. In edit mode explicit connections are focusable buttons with endpoint names, label/type text, an optional accessible description and aria-pressed selection state. Edit side actions are named buttons describing the direction and source card; a polite live region announces draft creation, cancellation and connection requests.</p>
         <p>The visual routes do not provide a complete spoken graph description. Wrap the flow in a named section and supply a text description or connection list when relationships matter to the task. Custom card bodies and your configuration form need their own meaningful labels.</p>
         <A11yCode filename="LabelledFlow.tsx" code={`<section aria-labelledby="workflow-title" aria-describedby="workflow-summary">
   <h2 id="workflow-title">Release workflow</h2>
@@ -84,16 +89,17 @@ export const ConnectionFlowReference: React.FC = () => (
       </A11yTopic>
       <A11yTopic title="Keyboard support">
         <KeyboardSupportTable bindings={[
-          { keys: ["Tab"], action: "Move through enabled cards, edit side actions, item expansion buttons and visible zoom controls. Shift + Tab moves backward." },
-          { keys: ["Enter"], action: "Activate a focused card through onNodeClick, or request a draft from a focused edit side action. Native buttons also support Space." },
-          { keys: ["Space"], action: "Activate a focused card. Focused native buttons perform their own action." },
-          { keys: ["Escape"], action: "Cancel an active connector drag. Closing a configuration panel or dismissing an already-created draft is handled by your application." },
+          { keys: ["Tab"], action: "Move through enabled cards, explicit connection targets in edit mode, edit side actions, item expansion buttons and visible zoom controls. Shift + Tab moves backward." },
+          { keys: ["Enter"], action: "Activate a card, request a draft from a side action, or select and request editing of a focused connection. Native buttons also support Space." },
+          { keys: ["Space"], action: "Activate a focused card or select a focused connection. Focused native buttons perform their own action." },
+          { keys: ["Delete"], action: "Request removal of the focused connection in edit mode (Backspace also works), when onConnectionRemove is supplied and deletable is not false. Keys typed in your form do not remove links." },
+          { keys: ["Escape"], action: "Clear selection on a focused connection, or cancel an active connector drag. Closing a configuration panel or dismissing an already-created draft is handled by your application." },
         ]} />
         <p>There is no arrow-key graph navigation or keyboard drag mode. Existing-card connections use pointer dragging; supply a keyboard-accessible alternative such as the demo’s “Add connection to” Select. The focusable Fit, Zoom in, Zoom out and Reset buttons are the keyboard alternative to canvas gestures.</p>
         <p>Drag the background to pan. Plain wheel scrolling stays with the page; Ctrl/⌘ + wheel or a trackpad pinch zooms when <C>interactive</C> is enabled. Set <C>animated=false</C> when your application’s motion preference requires still paths.</p>
       </A11yTopic>
       <A11yTopic title="Internationalization">
-        <p>Translate the header, node and item text, edge captions, custom bodies and application form yourself. <C>I18nProvider</C> resolves edit-mode side labels and live announcements through <C>kit.connectionFlowEdit</C>: <C>add</C>, <C>top</C>, <C>right</C>, <C>bottom</C>, <C>left</C>, <C>created</C>, <C>canceled</C> and <C>connected</C>. The add message accepts <C>{"{side}"}</C> and <C>{"{label}"}</C>. Built-in catalogs cover English, French, Spanish, German and Portuguese; application catalogs can override these keys.</p>
+        <p>Translate the header, node and item text, edge captions, custom bodies and application form yourself. <C>I18nProvider</C> resolves edit-mode side labels and live announcements through <C>kit.connectionFlowEdit</C>: <C>add</C>, <C>top</C>, <C>right</C>, <C>bottom</C>, <C>left</C>, <C>created</C>, <C>canceled</C> and <C>connected</C>. The add message accepts <C>{"{side}"}</C> and <C>{"{label}"}</C>. Connection target names use <C>kit.connectionFlowConnection.label</C> with <C>{"{source}"}</C> and <C>{"{target}"}</C>. Built-in catalogs cover English, French, Spanish, German and Portuguese; application catalogs can override these keys.</p>
         <p>Localization is currently partial: zoom control labels, loading text, item “Show more / Show less” labels and default empty-state copy are English literals. <C>emptyMessage</C> overrides the empty title, but not its subtitle. The zoom percentage uses a rounded number with a literal percent sign. RTL does not mirror graph coordinates or connector sides: <C>left</C> and <C>right</C> remain physical directions.</p>
         <A11yCode filename="LocalizedFlow.tsx" code={`<I18nProvider locale="fr" locales={{
   fr: { kit: { connectionFlowEdit: {
@@ -108,6 +114,8 @@ export const ConnectionFlowReference: React.FC = () => (
     <PropsTable title="ConnectionFlow" props={[
       { name: "nodes", type: "ConnectionFlowNode[]", description: "Required graph data. Node IDs must be unique, including nested children and rows." },
       { name: "connections", type: "readonly ConnectionFlowConnection[]", description: "Complete explicit topology when supplied, including []. Omit to infer workflow links from node structure." },
+      { name: "selectedConnectionId / onConnectionSelect", type: "string | null / (connection: ConnectionFlowConnection | null) => void", default: "internal selection", description: "Control edit-mode connection selection by ID, or omit the ID for internal state. Click a line/caption to select; Escape on it, card selection or a background click clears it." },
+      { name: "onConnectionEdit / onConnectionRemove", type: "(connection: ConnectionFlowConnection) => void", description: "Edit requests on double-click/Enter and removal requests on Delete/Backspace while a connection is focused in edit mode. Your app supplies the form and updates connections; endpoint nodes remain unchanged." },
       { name: "editMode", type: "boolean", default: "false", description: "Enable side actions, ghost creation and dragging onto existing cards. Your application commits all data changes." },
       { name: "onNodeCreate", type: "(ghostId: string, placement: ConnectionFlowPlacement) => void", description: "Request a new node after an empty-space drop or keyboard side action. Placement contains sourceId, side and optional gridPosition." },
       { name: "onConnect", type: "(request: ConnectionFlowConnectRequest) => void", description: "Existing-card drop request: sourceId, targetId, sourceSide and targetSide. Append the desired connection yourself." },
@@ -152,10 +160,13 @@ export const ConnectionFlowReference: React.FC = () => (
     <PropsTable title="ConnectionFlowConnection" props={[
       { name: "id / fromId / toId", type: "string", description: "Required stable edge ID and source/target node IDs. Missing endpoints, duplicate IDs, duplicate directed pairs and self-links are ignored." },
       { name: "fromSide / toSide", type: '"top" | "right" | "bottom" | "left"', default: "automatic", description: "Preferred source and target sides. The shared anchor allocator can use an adjacent side when a side is full." },
+      { name: "tone", type: "TrueColor", default: "source node tone", description: "Color for the complete explicit connection and its terminals. Per-endpoint sourceTone/targetTone overrides take precedence. Does not recolor either node." },
+      { name: "type / description / data", type: "string / string / unknown", description: "Application-owned category, accessible supporting text and arbitrary condition/rule payload. Returned unchanged in selection/edit/removal callbacks; never interpreted as execution rules." },
+      { name: "editable / deletable", type: "boolean / boolean", default: "true / true", description: "Allow edit/removal requests from connection interactions. A locked connection remains selectable. Your application still owns persistence and permission enforcement." },
       { name: "label", type: "string", description: "Caption along the route. Wraps with padding and reserves space in routing and fit bounds." },
       { name: "state / animated / animateCompleted", type: "ConnectionState / boolean / boolean", description: "Override edge state/animation; animateCompleted permits travelling dots on stopped edges." },
       { name: "edgeStyle / ringSize", type: "ConnectionFlowEdgeStyle / ConnectionFlowRingSize", default: "flow defaults", description: "Per-edge corner treatment and connector-ring size." },
-      { name: "sourceTone / targetTone", type: "TrueColor", default: "endpoint tones", description: "Override the source and target colors along this connection." },
+      { name: "sourceTone / targetTone", type: "TrueColor", default: "tone or source node tone", description: "Override the source and target colors individually along this connection." },
     ]} />
     <PropsTable title="ConnectionFlowHandle (ref)" props={[
       { name: "dismissGhost(ghostId)", type: "(string) => void", description: "Remove an unresolved draft, for example when your configuration form is canceled. Does not delete real nodes." },

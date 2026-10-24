@@ -117,6 +117,23 @@ describe("TaskBoard pointer drag", () => {
     expect(onCardsChange).not.toHaveBeenCalled();
   });
 
+  it("a refused column is tinted red as a whole — the well, not the card list inside it", () => {
+    const columns = roadmap.columns.map((c) => (c.id === "discovery" ? { ...c, maxItems: 3 } : c));
+    renderBoard({}, roadmap.cards, columns);
+    drag("r1", COLUMN_PITCH + 10, 10, false);
+    const col = document.querySelector('[data-column-id="discovery"]') as HTMLElement;
+    expect(col.getAttribute("data-drop")).toBe("invalid");
+    expect(col.className).toContain("bg-red-500/10");
+    // The normal well fill gives way to the tint instead of fighting it.
+    expect(col.className).not.toContain("bg-black/[0.03]");
+    const bucket = document.querySelector('[data-bucket="discovery::"]') as HTMLElement;
+    expect(bucket.className).not.toContain("bg-red-500");
+    // Other columns stay as they were.
+    expect(document.querySelector('[data-column-id="ready"]')!.hasAttribute("data-drop")).toBe(false);
+    pointer("pointerup", COLUMN_PITCH + 10, 10);
+    expect(col.hasAttribute("data-drop")).toBe(false);
+  });
+
   it("onBeforeMove resolving false restores the original index and never emits", async () => {
     let resolve!: (v: boolean) => void;
     const onBeforeMove = vi.fn(() => new Promise<boolean>((r) => (resolve = r)));

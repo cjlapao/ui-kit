@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   applyMove,
+  columnAtMax,
+  effectiveMaxItems,
   bucketCards,
   bucketKey,
   keyboardTarget,
@@ -139,5 +141,32 @@ describe("keyboardTarget", () => {
   it("lane-down moves to the next lane", () => {
     const cards = CARDS.map((c) => ({ ...c, lane: "l1" }));
     expect(keyboardTarget(ctx({ cards, lanes: LANES }), slot("a", 1, "l1"), "a2", "lane-down")).toEqual(slot("a", 0, "l2"));
+  });
+});
+
+describe("max items", () => {
+  const ctx = (o: Partial<MoveContext> = {}): MoveContext => ({ cards: CARDS, columns: cols(), ...o });
+  const toB = { cardId: "a1", from: slot("a", 0), to: slot("b", 0) };
+  it("a column at its maxItems refuses a newcomer", () => {
+    expect(validateMove(ctx({ columns: cols({ b: { maxItems: 1 } }) }), toB)).toEqual({ ok: false, reason: "max-items" });
+  });
+  it("the board-wide maxItems applies to every column", () => {
+    expect(validateMove(ctx({ maxItems: 1 }), toB)).toEqual({ ok: false, reason: "max-items" });
+  });
+  it("a column's own maxItems overrides the board default", () => {
+    expect(validateMove(ctx({ maxItems: 1, columns: cols({ b: { maxItems: 5 } }) }), toB)).toEqual({ ok: true });
+  });
+  it("reordering inside a full column is still allowed", () => {
+    expect(validateMove(ctx({ columns: cols({ a: { maxItems: 3 } }) }), { cardId: "a1", from: slot("a", 0), to: slot("a", 2) })).toEqual({ ok: true });
+  });
+  it("keyboard moves skip a column at its max", () => {
+    expect(keyboardTarget(ctx({ columns: cols({ b: { maxItems: 1 } }) }), slot("a", 0), "a1", "right")).toEqual(slot("c", 0));
+  });
+  it("columnAtMax / effectiveMaxItems", () => {
+    expect(effectiveMaxItems({ id: "b", title: "B" }, 4)).toBe(4);
+    expect(effectiveMaxItems({ id: "b", title: "B", maxItems: 2 }, 4)).toBe(2);
+    expect(effectiveMaxItems({ id: "b", title: "B" })).toBeUndefined();
+    expect(columnAtMax(CARDS, { id: "a", title: "A", maxItems: 3 })).toBe(true);
+    expect(columnAtMax(CARDS, { id: "a", title: "A" }, 4)).toBe(false);
   });
 });

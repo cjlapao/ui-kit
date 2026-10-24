@@ -63,6 +63,12 @@ export interface TaskBoardColumn {
   color?: TrueColor;
   /** Work-in-progress limit — a full column refuses new cards. */
   wipLimit?: number;
+  /**
+   * Hard cap on the cards this column may hold. At the cap its Add card
+   * button disappears and drops are refused. Overrides the board's
+   * `maxItems` default.
+   */
+  maxItems?: number;
   /** A locked column accepts no drops and lets no card leave. */
   locked?: boolean;
   collapsed?: boolean;
@@ -141,6 +147,8 @@ export interface TaskBoardLabels {
   acceptsAny: string;
   save: string;
   cancel: string;
+  maxItems: string;
+  maxItemsHint: string;
 }
 
 export const DEFAULT_TASKBOARD_LABELS: TaskBoardLabels = {
@@ -182,4 +190,6 @@ export const DEFAULT_TASKBOARD_LABELS: TaskBoardLabels = {
   acceptsAny: "None ticked: any column.",
   save: "Save",
   cancel: "Cancel",
+  maxItems: "Max items",
+  maxItemsHint: "Empty uses the board default.",
 };

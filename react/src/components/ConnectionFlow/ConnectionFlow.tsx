@@ -54,6 +54,14 @@ export interface ConnectionFlowProps {
   nodes: ConnectionFlowNode[];
   /** Draw only these links; omit to retain inferred workflow connections. */
   connections?: readonly ConnectionFlowConnection[];
+  /** Controlled selection of an explicit connection. Omit for internal selection. */
+  selectedConnectionId?: string | null;
+  /** Selection changed through an edit-mode interaction; null clears it. */
+  onConnectionSelect?: (connection: ConnectionFlowConnection | null) => void;
+  /** Request editing on double-click or Enter. Your app supplies the editor. */
+  onConnectionEdit?: (connection: ConnectionFlowConnection) => void;
+  /** Request removal on Delete/Backspace. Your app removes it from connections. */
+  onConnectionRemove?: (connection: ConnectionFlowConnection) => void;
   /** Request a link by dropping an edit connector on an existing node. */
   onConnect?: (connection: ConnectionFlowConnectRequest) => void;
   /** Reveal side connectors for creating draft nodes. @default false */
@@ -214,6 +222,10 @@ const ConnectionFlow = React.forwardRef<
   {
     nodes,
     connections,
+    selectedConnectionId,
+    onConnectionSelect,
+    onConnectionEdit,
+    onConnectionRemove,
     onConnect,
     editMode = false,
     onNodeCreate,
@@ -271,6 +283,22 @@ const ConnectionFlow = React.forwardRef<
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [internalConnectionId, setInternalConnectionId] = useState<string | null>(null);
+  const connectionId = selectedConnectionId === undefined ? internalConnectionId : selectedConnectionId;
+  const selectedConnection = connections?.find(c => c.id === connectionId) ?? null;
+  useEffect(() => {
+    if (internalConnectionId && !connections?.some(c => c.id === internalConnectionId)) setInternalConnectionId(null);
+  }, [connections, internalConnectionId]);
+  const selectConnection = (connection: ConnectionFlowConnection | null) => {
+    if (selectedConnectionId === undefined) setInternalConnectionId(connection?.id ?? null);
+    if (connection) { setSelectedId(null); setHoveredId(null); }
+    if (selectedConnection?.id !== connection?.id) onConnectionSelect?.(connection);
+  };
+  const editConnection = (connection: ConnectionFlowConnection) => {
+    selectConnection(connection);
+    if (connection.editable !== false) onConnectionEdit?.(connection);
+  };
+
   const [scale, setScale] = useState(1);
   const [panning, setPanning] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(
@@ -467,6 +495,7 @@ const ConnectionFlow = React.forwardRef<
   };
 
   const onSelect = (node: LaidOutNode) => {
+    if (editMode) selectConnection(null);
     setSelectedId((current) => (current === node.id ? null : node.id));
     onNodeClick?.(node.node);
   };
@@ -500,6 +529,11 @@ const ConnectionFlow = React.forwardRef<
     highlightEdges: highlight.edges,
     hoveredId,
     selectedId,
+    editableConnections: editMode ? connections : undefined,
+    selectedConnectionId: editMode ? selectedConnection?.id ?? null : null,
+    onSelectConnection: selectConnection,
+    onEditConnection: onConnectionEdit ? editConnection : undefined,
+    onRemoveConnection: onConnectionRemove,
     scale,
     // The canvas is sized to the content and scrolled natively, so the only
     // offset the renderers need is the overhang: a bypass arc lifts above the
@@ -593,6 +627,7 @@ const ConnectionFlow = React.forwardRef<
           className="h-full w-full min-w-0 select-none"
           style={{ cursor: panning ? "grabbing" : undefined }}
           onPointerDown={(event) => {
+            if (event.button === 0 && editMode && !(event.target as Element).closest('[data-flow-node], [data-flow-connection-hit], button, input, select, textarea')) selectConnection(null);
             if (!interactive || event.button !== 0) return;
             // In edit mode a card's centre belongs to selection. Capturing
             // it for pan retargets the click away from the node's editor.
@@ -656,7 +691,7 @@ const ConnectionFlow = React.forwardRef<
             <ConnectionFlowEditor ref={editorRef} enabled={editMode} layout={layout}
               scale={scale} offsetX={rendererProps.offsetX} offsetY={rendererProps.offsetY}
               tone={tone} variant={surfaceVariant} edgeStyle={edgeStyle}
-              onCreate={onNodeCreate} onConnect={onConnect} onBounds={onEditBounds}
+              onCreate={(id, placement) => { selectConnection(null); onNodeCreate?.(id, placement); }} onConnect={onConnect} onBounds={onEditBounds}
               onStart={() => { manuallyNavigated.current = true; }} />
           </div>
         </ScrollArea>

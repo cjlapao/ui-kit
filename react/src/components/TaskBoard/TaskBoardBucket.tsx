@@ -37,7 +37,7 @@ export const TaskBoardBucket: React.FC<TaskBoardBucketProps> = ({ column, lane, 
       className={classNames(
         "flex min-h-12 flex-col rounded-lg transition-colors",
         size.gap,
-        target && !target.valid && "cursor-not-allowed bg-red-500/5 ring-1 ring-inset ring-red-500/30",
+        // The refused tint is painted by the column / lane cell around this list.
         className,
       )}
     >

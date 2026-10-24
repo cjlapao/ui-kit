@@ -48,6 +48,12 @@ function toneFor(card: TaskBoardCard): TrueColor | undefined {
   return label ? (TAG_TONES[label] ?? "emerald") : undefined;
 }
 
+/** Board-wide caps worth trying against the samples (3–4 cards per column). */
+const MAX_ITEMS_OPTIONS = [
+  { label: "No limit", value: "none" },
+  ...[3, 4, 5, 6].map((n) => ({ label: String(n), value: String(n) })),
+];
+
 /** Ready accepts only Discovery; Blocked is locked. */
 function withRules(columns: TaskBoardColumn[], wip: boolean, rules: boolean): TaskBoardColumn[] {
   return columns.map((c) => ({
@@ -67,6 +73,7 @@ export const TaskBoardPlayground: React.FC = () => {
   const [columnCorner, setColumnCorner] = useState<SurfaceCorner>("rounded-md");
   const [toned, setToned] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [maxItems, setMaxItems] = useState("none");
   const [padding, setPadding] = useState<SurfacePadding>("none");
   const [color, setColor] = useState<TrueColor>("blue");
   const [size, setSize] = useState<ControlSize>("md");
@@ -163,6 +170,12 @@ export const TaskBoardPlayground: React.FC = () => {
                       <ToggleRow label="Edit mode (columns)" checked={editMode} onChange={setEditMode} />
                       <ToggleRow label="WIP limits" checked={wip} onChange={setWip} />
                       <ToggleRow label="Transition rules + locks" checked={rules} onChange={setRules} />
+                      <SelectControl
+                        label="Max items per column"
+                        options={MAX_ITEMS_OPTIONS}
+                        value={maxItems}
+                        onChange={setMaxItems}
+                      />
                     </div>
                   </Control>
                 ),
@@ -204,6 +217,7 @@ export const TaskBoardPlayground: React.FC = () => {
             priorities={source.priorities}
             editable={editable}
             editMode={editMode}
+            maxItems={maxItems === "none" ? undefined : Number(maxItems)}
             onCardsChange={(next, move) => {
               setCards(next);
               history.push(move);

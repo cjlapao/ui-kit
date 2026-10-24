@@ -59,3 +59,12 @@ For a graph using these cells, the ghost snaps to an existing row/column when it
 
 
 Dragging into empty space snaps the two grid axes independently, including one new row or column at the outer boundaries. A lower-row source can create a card in the row beside Review without adding a link to Review. Source-side switching still follows the drag direction, while the target cell follows the pointer. Pending ghosts retain their requested cell during reflow; pointer release emits that same placement.
+
+
+## Existing connection editing (2026-10-24)
+
+Explicit connections support an optional tone (source-node tone by default), a free-text type, accessible description, arbitrary data, and editable/deletable flags. These values are application-owned metadata, not an execution schema. Endpoint color overrides remain available; inferred workflow connections retain their existing appearance.
+
+In edit mode each explicit rendered edge has a stable focusable hit target along its actual routed path and caption. Click/Space selects; double-click/Enter requests editing; Delete/Backspace on the focused target requests removal; Escape clears selection. Form keystrokes never delete connections. Read-only graphs retain their existing pointer/pan behavior. Selection has optional controlled selectedConnectionId plus onConnectionSelect, or internal state when the prop is omitted. Editing/removal callbacks receive the original ConnectionFlowConnection and never mutate controlled data. editable/deletable false suppress the corresponding request. Removing a connection leaves nodes intact.
+
+The demo owns its connection SidePanel, label/type/description/tone fields, save/cancel/delete actions and immutable state updates. The API and accessibility documentation show these responsibilities and a separate green/red connection tone example. No generic condition builder is added.

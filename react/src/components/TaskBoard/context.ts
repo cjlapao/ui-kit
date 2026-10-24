@@ -88,6 +88,8 @@ export interface TaskBoardContextValue {
   onEditColumn?: (next: TaskBoardColumn) => void;
   /** Every column, for editors that refer to the others (transition rules). */
   allColumns?: TaskBoardColumn[];
+  /** Board-wide default for `column.maxItems`. */
+  boardMaxItems?: number;
   /** Opaque-enough fill for sticky headers that cards scroll under. */
   stickySurface: string;
   /** Live state of a card (drag / hold / selection / pending). */
@@ -97,6 +99,13 @@ export interface TaskBoardContextValue {
   /** Per-bucket drop feedback: the insertion index and whether the drop is allowed. */
   dropTarget?: { bucket: string; index: number; valid: boolean } | null;
 }
+
+/**
+ * A refused drop target — painted on the whole column well (or lane cell),
+ * replacing its fill, so "not here" reads as one block, not as a red band
+ * between the cards.
+ */
+export const REFUSED_DROP = "cursor-not-allowed bg-red-500/10 ring-2 ring-inset ring-red-500/40 dark:bg-red-500/15";
 
 export const TaskBoardContext = createContext<TaskBoardContextValue | null>(null);
 

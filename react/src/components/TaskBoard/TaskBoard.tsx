@@ -105,6 +105,12 @@ export interface TaskBoardProps {
   /** Pointer / keyboard moves. Defaults to `true` when `onCardsChange` is set. */
   editable?: boolean;
   /**
+   * Board-wide cap on cards per column; a column's own `maxItems` overrides
+   * it. At the cap the column's Add card button disappears and drops into it
+   * are refused.
+   */
+  maxItems?: number;
+  /**
    * Board layout editing: an "Add column" slot after the last column and a
    * drag grip on every column header (pointer and keyboard). Needs
    * `onColumnsChange`, which receives the new order / the added column.
@@ -192,6 +198,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
     onBeforeMove,
     editable,
     editMode = false,
+    maxItems,
     onCardOpen,
     onCardContextMenu,
     onAddCard,
@@ -238,6 +245,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
     editable: isEditable,
     heldBy: collab.heldBy,
     selfId,
+    maxItems,
     onBeforeMove,
     onCommit: commitMove,
     onDragStart: collab.grab,
@@ -275,6 +283,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
     cancel,
     heldBy: collab.heldBy,
     selfId,
+    maxItems,
     onCardContextMenu,
     selectedIds,
     onSelectionChange,
@@ -327,6 +336,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
       draggingColumnId: columnDrag.drag?.id ?? null,
       onEditColumn: columnEditing ? editColumn : undefined,
       allColumns: columns,
+      boardMaxItems: maxItems,
       stickySurface: surface.translucent ? GLASS_STICKY : SOLID_STICKY,
       cardState: (card) => ({
         held: heldPeer(card.id),
@@ -343,7 +353,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
           ? { bucket: bucketKey(drag.to.column, drag.to.lane), index: drag.to.index, valid: false }
           : null,
     }),
-    [text, surface, color, sizeTokens, cardLayout, priorities, locale, isEditable, renderCard, onCardOpen, onCardContextMenu, onAddCard, wellSurface, columnCornerClass, columnEditing, columnDrag.gripProps, columnDrag.drag, editColumn, columns, selected, drag, pending, cardHandlers, keyboardProps, heldPeer, notice],
+    [text, surface, color, sizeTokens, cardLayout, priorities, locale, isEditable, renderCard, onCardOpen, onCardContextMenu, onAddCard, wellSurface, columnCornerClass, columnEditing, columnDrag.gripProps, columnDrag.drag, editColumn, columns, maxItems, selected, drag, pending, cardHandlers, keyboardProps, heldPeer, notice],
   );
 
   // Buckets and counts follow the live preview, so WIP readouts move with the card.

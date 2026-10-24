@@ -1139,8 +1139,8 @@ const layoutWithRowSpace = (
       state: connection.state ?? (input.autoState
         ? toneOf(from.node) !== "neutral" ? nodeIsActive(to.node) ? "flowing" : "stopped" : "disabled"
         : input.flowState ?? "flowing"),
-      sourceTone: connection.sourceTone ?? toneOf(from.node),
-      targetTone: connection.targetTone ?? toneOf(to.node),
+      sourceTone: connection.sourceTone ?? connection.tone ?? toneOf(from.node),
+      targetTone: connection.targetTone ?? connection.tone ?? toneOf(from.node),
       label: connection.label, cfg: connection,
     });
   }

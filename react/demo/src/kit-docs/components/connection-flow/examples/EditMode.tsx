@@ -18,9 +18,31 @@ export default function EditMode() {
     { id: "start-review", fromId: "start", toId: "review" },
   ]);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
+  const [connectionEditor, setConnectionEditor] = useState<ConnectionFlowConnection | null>(null);
+  const selectedConnection = connections.find(c => c.id === selectedConnectionId);
   const close = () => {
     if (editor?.placement) flow.current?.dismissGhost(editor.id);
     setEditor(null);
+  };
+  const openConnection = (connection: ConnectionFlowConnection | null) => {
+    close();
+    setSelectedConnectionId(connection?.id ?? null);
+    setConnectionEditor(connection ? { ...connection } : null);
+  };
+  const closeConnection = () => { setConnectionEditor(null); setSelectedConnectionId(null); };
+  const removeConnection = (connection: ConnectionFlowConnection) => {
+    if (connection.deletable === false) return;
+    setConnections(current => current.filter(c => c.id !== connection.id));
+    closeConnection();
+  };
+  const saveConnection = () => {
+    if (!connectionEditor || connectionEditor.editable === false) return;
+    setConnections(current => current.map(c => c.id === connectionEditor.id ? {
+      ...connectionEditor, label: connectionEditor.label?.trim(), type: connectionEditor.type?.trim(),
+      description: connectionEditor.description?.trim(),
+    } : c));
+    setConnectionEditor(null);
   };
   const valid = !!editor?.title.trim() && Number.isFinite(editor.height) && editor.height >= 72 && editor.height <= 240;
   const save = () => {
@@ -49,14 +71,20 @@ export default function EditMode() {
   };
   return <div className="relative w-full min-w-0 space-y-3 overflow-hidden rounded-xl">
     <div className="flex flex-wrap items-center gap-2">
-      <Button variant="outline" color="blue" size="sm" onClick={() => setEditing(value => !value)}>
+      <Button variant="outline" color="blue" size="sm" onClick={() => { close(); closeConnection(); setEditing(value => !value); }}>
         {editing ? "Finish editing" : "Edit flow"}
       </Button>
-      <Button variant="ghost" size="sm" onClick={() => { close(); setNodes(INITIAL_NODES); setConnections([{ id: "start-review", fromId: "start", toId: "review" }]); }}>Reset example</Button>
-      <p className="text-sm text-neutral-500 dark:text-neutral-400">Drag from an edge into empty space to add a node, or onto another card to connect it. Click the middle to edit.</p>
+      <Button variant="ghost" size="sm" onClick={() => { close(); closeConnection(); setNodes(INITIAL_NODES); setConnections([{ id: "start-review", fromId: "start", toId: "review" }]); }}>Reset example</Button>
+      {editing && selectedConnection && <>
+        <Button variant="outline" size="sm" disabled={selectedConnection.editable === false} onClick={() => openConnection(selectedConnection)}>Edit connection</Button>
+        <Button variant="ghost" color="rose" size="sm" disabled={selectedConnection.deletable === false} onClick={() => removeConnection(selectedConnection)}>Delete connection</Button>
+      </>}
+      <p className="text-sm text-neutral-500 dark:text-neutral-400">Drag from an edge into empty space to add a node, or onto another card to connect it. Click a card’s middle to edit it. Click a line to select it; double-click or press Enter to edit. Delete removes a focused connection.</p>
     </div>
     <ConnectionFlow ref={flow} nodes={nodes} connections={connections} editMode={editing} tone="blue" height={460}
       title="Build your flow" progressType="none"
+      selectedConnectionId={selectedConnectionId}
+      onConnectionSelect={openConnection} onConnectionEdit={openConnection} onConnectionRemove={removeConnection}
       onConnect={({ sourceId, targetId, sourceSide, targetSide }) => setConnections(current =>
         current.some(c => c.fromId === sourceId && c.toId === targetId) ? current : [...current, {
           id: `${sourceId}->${targetId}`, fromId: sourceId, toId: targetId, fromSide: sourceSide, toSide: targetSide,
@@ -93,6 +121,30 @@ export default function EditMode() {
         </div>}
         {editor.placement && <p className="text-xs text-neutral-500 dark:text-neutral-400">The dashed node remains a draft until you create it. Cancel removes it.</p>}
         <button type="submit" className="sr-only" tabIndex={-1}>Save node</button>
+      </form>}
+    </SidePanel>
+    <SidePanel isOpen={!!connectionEditor} onClose={closeConnection} title="Edit connection"
+      subtitle={connectionEditor ? `${nodes.find(n => n.id === connectionEditor.fromId)?.title ?? connectionEditor.fromId} → ${nodes.find(n => n.id === connectionEditor.toId)?.title ?? connectionEditor.toId}` : undefined}
+      width={340} overlay tone={connectionEditor?.tone ?? "blue"} variant="floating"
+      onKeyDown={event => { if (event.key === "Escape") closeConnection(); }}
+      footer={<div className="flex flex-wrap justify-end gap-2">
+        <Button color="rose" variant="ghost" disabled={connectionEditor?.deletable === false} onClick={() => { if (connectionEditor) removeConnection(connectionEditor); }}>Delete connection</Button>
+        <Button variant="ghost" onClick={closeConnection}>Cancel</Button>
+        <Button color="blue" disabled={connectionEditor?.editable === false} onClick={saveConnection}>Save connection</Button>
+      </div>}>
+      {connectionEditor && <form onSubmit={event => { event.preventDefault(); saveConnection(); }} className="space-y-4 p-4">
+        <div className="space-y-1"><label htmlFor={`${fieldId}-connection-label`} className="text-sm font-medium">Connection label</label>
+          <Input id={`${fieldId}-connection-label`} value={connectionEditor.label ?? ""} onChange={event => setConnectionEditor({ ...connectionEditor, label: event.target.value })} /></div>
+        <div className="space-y-1"><label htmlFor={`${fieldId}-connection-type`} className="text-sm font-medium">Connection type</label>
+          <Input id={`${fieldId}-connection-type`} placeholder="success, failure, condition…" value={connectionEditor.type ?? ""} onChange={event => setConnectionEditor({ ...connectionEditor, type: event.target.value })} /></div>
+        <div className="space-y-1"><label htmlFor={`${fieldId}-connection-description`} className="text-sm font-medium">Connection description</label>
+          <Input id={`${fieldId}-connection-description`} value={connectionEditor.description ?? ""} onChange={event => setConnectionEditor({ ...connectionEditor, description: event.target.value })} /></div>
+        <div className="space-y-1"><label htmlFor={`${fieldId}-connection-tone`} className="text-sm font-medium">Connection tone</label>
+          <Select id={`${fieldId}-connection-tone`} value={connectionEditor.tone ?? ""} onChange={event => setConnectionEditor({ ...connectionEditor, tone: event.target.value ? event.target.value as TrueColor : undefined })}>
+            <option value="">Inherit source node</option>{TONES.map(tone => <option key={tone} value={tone}>{tone}</option>)}
+          </Select></div>
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">Type and data are application metadata. Your app can compose condition fields here using kit controls; the graph does not execute them.</p>
+        <button type="submit" className="sr-only" tabIndex={-1}>Save connection</button>
       </form>}
     </SidePanel>
   </div>;

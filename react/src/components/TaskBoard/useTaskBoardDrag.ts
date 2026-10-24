@@ -56,6 +56,8 @@ export interface UseTaskBoardDragOptions {
   editable: boolean;
   heldBy?: Map<string, string>;
   selfId?: string;
+  /** Board-wide default for `column.maxItems`. */
+  maxItems?: number;
   onBeforeMove?: (move: TaskBoardMove) => boolean | Promise<boolean>;
   onCommit: (move: TaskBoardMove) => void;
   /** Fired when a drag lifts, before any target is resolved. */
@@ -116,7 +118,7 @@ export function useTaskBoardDrag(opts: UseTaskBoardDragOptions) {
 
   const ctxFor = () => {
     const o = optsRef.current;
-    return { cards: o.cards, columns: o.columns, lanes: o.lanes, heldBy: o.heldBy, selfId: o.selfId };
+    return { cards: o.cards, columns: o.columns, lanes: o.lanes, heldBy: o.heldBy, selfId: o.selfId, maxItems: o.maxItems };
   };
 
   const resolveTarget = useCallback((x: number, y: number) => {

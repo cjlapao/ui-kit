@@ -47,6 +47,8 @@ const KEYS: Record<keyof TaskBoardLabels, string> = {
   acceptsAny: "kit.taskboard.acceptsAny",
   save: "kit.taskboard.save",
   cancel: "kit.taskboard.cancel",
+  maxItems: "kit.taskboard.maxItems",
+  maxItemsHint: "kit.taskboard.maxItemsHint",
 };
 
 export type TaskBoardText = (key: keyof TaskBoardLabels, values?: Record<string, unknown>) => string;

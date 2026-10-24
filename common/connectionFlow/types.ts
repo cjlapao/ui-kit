@@ -121,6 +121,18 @@ export interface ConnectionFlowConnection extends ConnectionFlowConnectorConfig 
   id: string;
   fromId: string;
   toId: string;
+  /** Overall connection color. Defaults to the source node's tone. */
+  tone?: TrueColor;
+  /** Application-defined category (for example success, failure or condition). */
+  type?: string;
+  /** Supporting text for connection editors and accessible descriptions. */
+  description?: string;
+  /** Application-owned condition, rule or other metadata; never executed by the kit. */
+  data?: unknown;
+  /** Allow edit requests for this connection. @default true */
+  editable?: boolean;
+  /** Allow removal requests for this connection. @default true */
+  deletable?: boolean;
   fromSide?: PortSide;
   toSide?: PortSide;
 }

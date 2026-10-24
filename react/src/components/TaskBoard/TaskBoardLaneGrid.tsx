@@ -9,7 +9,9 @@ import React from "react";
 import classNames from "classnames";
 import {
   bucketKey,
+  columnAtMax,
   columnCount,
+  effectiveMaxItems,
   laneCount,
   wipState,
   getTaskBoardColumnTokens,
@@ -23,7 +25,7 @@ import { Add } from "../../icons/components/Add";
 import { ChevronRight } from "../../icons/components/ChevronRight";
 import { TaskBoardBucket } from "./TaskBoardBucket";
 import { COLLAPSED_WIDTH, columnCountLabel } from "./TaskBoardColumn";
-import { useTaskBoard } from "./context";
+import { REFUSED_DROP, useTaskBoard } from "./context";
 import { usePresence } from "./usePresence";
 import { TaskBoardAddColumn, TaskBoardColumnGrip } from "./TaskBoardColumnEdit";
 import { TaskBoardColumnEditButton } from "./TaskBoardColumnEditor";
@@ -53,7 +55,9 @@ export const TaskBoardLaneGrid: React.FC<TaskBoardLaneGridProps> = ({
   onToggleColumn,
   onAddColumn,
 }) => {
-  const { surface, text, color, size, stickySurface, draggingColumnId } = useTaskBoard();
+  const { surface, text, color, size, stickySurface, draggingColumnId, boardMaxItems } = useTaskBoard();
+  // Columns at their cap: no Add card in any of their lane cells.
+  const fullColumns = new Set(columns.filter((c) => columnAtMax(cards, c, boardMaxItems)).map((c) => c.id));
   const trigger = getSurfaceTriggerTokens(color);
   const template = [
     `${LANE_LABEL_WIDTH}px`,
@@ -116,12 +120,12 @@ export const TaskBoardLaneGrid: React.FC<TaskBoardLaneGridProps> = ({
                 data-column-count
                 className={classNames(
                   "rounded-full bg-black/5 px-1.5 text-[11px] font-semibold tabular-nums dark:bg-white/10",
-                  wip === "full" || wip === "over"
+                  wip === "full" || wip === "over" || fullColumns.has(col.id)
                     ? getTaskBoardColumnTokens(col.color ?? color).wipFull
                     : surface.muted,
                 )}
               >
-                {columnCountLabel(count, col.wipLimit)}
+                {columnCountLabel(count, col.wipLimit ?? effectiveMaxItems(col, boardMaxItems))}
               </span>
               <TaskBoardColumnEditButton column={col} />
               {onToggleColumn && caret(col.collapsed, col.title, () => onToggleColumn(col.id))}
@@ -143,6 +147,7 @@ export const TaskBoardLaneGrid: React.FC<TaskBoardLaneGridProps> = ({
             buckets={buckets}
             cellBorder={cellBorder}
             trailingCell={Boolean(onAddColumn)}
+            fullColumns={fullColumns}
             caret={onToggleLane && caret(lane.collapsed, lane.title, () => onToggleLane(lane.id))}
           />
         ))}
@@ -160,6 +165,8 @@ interface TaskBoardLaneRowProps {
   caret?: React.ReactNode;
   /** An empty cell under the edit-mode "Add column" track, keeping the grid aligned. */
   trailingCell?: boolean;
+  /** Columns at their max items — their cells show no Add card button. */
+  fullColumns: Set<string>;
 }
 
 /**
@@ -175,8 +182,10 @@ const TaskBoardLaneRow: React.FC<TaskBoardLaneRowProps> = ({
   cellBorder,
   caret,
   trailingCell,
+  fullColumns,
 }) => {
-  const { surface, text, color, stickySurface, onAddCard } = useTaskBoard();
+  const { surface, text, color, stickySurface, onAddCard, dropTarget } = useTaskBoard();
+  const refusedBucket = dropTarget && !dropTarget.valid ? dropTarget.bucket : null;
   const trigger = getSurfaceTriggerTokens(color);
   const open = !lane.collapsed;
   const bodyMounted = usePresence(open);
@@ -202,7 +211,8 @@ const TaskBoardLaneRow: React.FC<TaskBoardLaneRowProps> = ({
           key={col.id}
           data-flip-key={`${col.id}:${lane.id}`}
           data-drop-zone={open && !col.collapsed ? true : undefined}
-          className={cellBorder}
+          data-drop={refusedBucket === bucketKey(col.id, lane.id) ? "invalid" : undefined}
+          className={classNames(cellBorder, refusedBucket === bucketKey(col.id, lane.id) && REFUSED_DROP)}
         >
           <div
             data-lane-cell
@@ -220,7 +230,7 @@ const TaskBoardLaneRow: React.FC<TaskBoardLaneRowProps> = ({
                     cards={buckets.get(bucketKey(col.id, lane.id)) ?? []}
                     label={`${col.title}, ${lane.title}`}
                   />
-                  {onAddCard && (
+                  {onAddCard && !fullColumns.has(col.id) && (
                     <button
                       type="button"
                       onClick={() => onAddCard({ column: col.id, lane: lane.id })}

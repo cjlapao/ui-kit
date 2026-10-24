@@ -37,6 +37,9 @@ import type { MessageCatalog } from "../types";
 
 export const EN_KIT_CATALOG: MessageCatalog = {
   kit: {
+    connectionFlowConnection: {
+      label: "Connection from {source} to {target}",
+    },
     connectionFlowEdit: {
       connected: "Connection requested",
       add: "Add a node {side} {label}",
@@ -165,6 +168,8 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       acceptsAny: "None ticked: any column.",
       save: "Save",
       cancel: "Cancel",
+      maxItems: "Max items",
+      maxItemsHint: "Empty uses the board default.",
     },
     help: {
       show: "Show help",

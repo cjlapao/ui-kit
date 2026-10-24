@@ -36,6 +36,8 @@ export interface UseTaskBoardKeyboardOptions {
   lanes?: TaskBoardLane[];
   heldBy?: Map<string, string>;
   selfId?: string;
+  /** Board-wide default for `column.maxItems`. */
+  maxItems?: number;
   text: TaskBoardText;
   drag: TaskBoardDragState | null;
   keyboardGrab: (card: TaskBoardCard, from: TaskBoardSlot) => boolean;
@@ -176,7 +178,7 @@ export function useTaskBoardKeyboard(o: UseTaskBoardKeyboardOptions) {
           if (dir) {
             e.preventDefault();
             const to = keyboardTarget(
-              { cards, columns, lanes, heldBy: o.heldBy, selfId: o.selfId },
+              { cards, columns, lanes, heldBy: o.heldBy, selfId: o.selfId, maxItems: o.maxItems },
               drag.to ?? drag.from,
               card.id,
               dir,

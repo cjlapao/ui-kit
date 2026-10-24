@@ -24,6 +24,8 @@ export interface MoveContext {
   heldBy?: Map<string, string>;
   /** The local user's id — a hold by yourself does not block you. */
   selfId?: string;
+  /** Board-wide default for `column.maxItems`. */
+  maxItems?: number;
 }
 
 export type MoveBlockReason =
@@ -33,6 +35,7 @@ export type MoveBlockReason =
   | "not-accepted"
   | "wip-column"
   | "wip-lane"
+  | "max-items"
   | "held";
 
 export type MoveVerdict = { ok: true } | { ok: false; reason: MoveBlockReason };
@@ -59,6 +62,11 @@ export function validateMove(ctx: MoveContext, move: TaskBoardMove): MoveVerdict
   if (changesColumn && toCol.accepts && !toCol.accepts.includes(move.from.column)) {
     return no("not-accepted");
   }
+  const max = effectiveMaxItems(toCol, ctx.maxItems);
+  if (changesColumn && max !== undefined) {
+    const others = ctx.cards.filter((c) => c.column === toCol.id && c.id !== card.id).length;
+    if (others >= max) return no("max-items");
+  }
   if (changesColumn && toCol.wipLimit !== undefined) {
     const others = ctx.cards.filter((c) => c.column === toCol.id && c.id !== card.id).length;
     if (others >= toCol.wipLimit) return no("wip-column");
@@ -70,6 +78,20 @@ export function validateMove(ctx: MoveContext, move: TaskBoardMove): MoveVerdict
     if (others >= toLane.wipLimit) return no("wip-lane");
   }
   return OK;
+}
+
+/** A column's cap: its own `maxItems`, else the board default. */
+export function effectiveMaxItems(column: TaskBoardColumn, boardMax?: number): number | undefined {
+  return column.maxItems ?? boardMax;
+}
+
+/** The column holds as many cards as it may — no add, no drops in. */
+export function columnAtMax(cards: TaskBoardCard[], column: TaskBoardColumn, boardMax?: number): boolean {
+  const max = effectiveMaxItems(column, boardMax);
+  if (max === undefined) return false;
+  let n = 0;
+  for (const c of cards) if (c.column === column.id) n++;
+  return n >= max;
 }
 
 /**

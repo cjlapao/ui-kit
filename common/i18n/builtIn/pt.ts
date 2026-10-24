@@ -4,6 +4,9 @@ import type { MessageCatalog } from "../types";
 
 export const PT_KIT_CATALOG: MessageCatalog = {
   kit: {
+    connectionFlowConnection: {
+      label: "Ligação de {source} para {target}",
+    },
     connectionFlowEdit: {
       connected: "Ligação solicitada",
       add: "Adicionar um nó {side} de {label}",
@@ -133,6 +136,8 @@ export const PT_KIT_CATALOG: MessageCatalog = {
       acceptsAny: "Nenhuma marcada: qualquer coluna.",
       save: "Salvar",
       cancel: "Cancelar",
+      maxItems: "M\u00e1x. de cart\u00f5es",
+      maxItemsHint: "Vazio usa o padr\u00e3o do quadro.",
     },
     help: {
       show: "Mostrar ajuda",

@@ -23,6 +23,7 @@ interface Draft {
   title: string;
   color?: TaskBoardColumn["color"];
   wip: string;
+  max: string;
   locked: boolean;
   accepts: string[];
 }
@@ -31,22 +32,25 @@ const toDraft = (c: TaskBoardColumn): Draft => ({
   title: c.title,
   color: c.color,
   wip: c.wipLimit === undefined ? "" : String(c.wipLimit),
+  max: c.maxItems === undefined ? "" : String(c.maxItems),
   locked: Boolean(c.locked),
   accepts: c.accepts ?? [],
 });
 
 /** Build the saved column; unset properties are removed, not left undefined. */
 function fromDraft(column: TaskBoardColumn, d: Draft): TaskBoardColumn {
-  const { wipLimit: _w, locked: _l, accepts: _a, color: _c, ...rest } = column;
+  const { wipLimit: _w, maxItems: _m, locked: _l, accepts: _a, color: _c, ...rest } = column;
   const next: TaskBoardColumn = { ...rest, title: d.title.trim() };
   if (d.color) next.color = d.color;
   if (d.wip.trim() !== "") next.wipLimit = Number(d.wip);
+  if (d.max.trim() !== "") next.maxItems = Number(d.max);
   if (d.locked) next.locked = true;
   if (d.accepts.length) next.accepts = d.accepts;
   return next;
 }
 
-const wipValid = (wip: string) => wip.trim() === "" || (Number.isInteger(Number(wip)) && Number(wip) >= 1);
+/** Empty, or a whole number of at least 1 — WIP limit and max items alike. */
+const limitValid = (wip: string) => wip.trim() === "" || (Number.isInteger(Number(wip)) && Number(wip) >= 1);
 
 export const TaskBoardColumnEditButton: React.FC<{ column: TaskBoardColumn }> = ({ column }) => {
   const { onEditColumn, allColumns, text, surface, color } = useTaskBoard();
@@ -55,7 +59,7 @@ export const TaskBoardColumnEditButton: React.FC<{ column: TaskBoardColumn }> = 
   const id = useId();
   if (!onEditColumn) return null;
   const trigger = getSurfaceTriggerTokens(color);
-  const valid = draft.title.trim() !== "" && wipValid(draft.wip);
+  const valid = draft.title.trim() !== "" && limitValid(draft.wip) && limitValid(draft.max);
   const others = (allColumns ?? []).filter((c) => c.id !== column.id);
 
   const save = () => {
@@ -127,7 +131,23 @@ export const TaskBoardColumnEditButton: React.FC<{ column: TaskBoardColumn }> = 
             placeholder={text("wipLimitHint")}
             value={draft.wip}
             onChange={(e) => setDraft({ ...draft, wip: e.target.value })}
-            aria-invalid={!wipValid(draft.wip) || undefined}
+            aria-invalid={!limitValid(draft.wip) || undefined}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor={`${id}-max`} className={classNames("text-xs font-semibold", surface.muted)}>
+            {text("maxItems")}
+          </label>
+          <Input
+            id={`${id}-max`}
+            size="sm"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            placeholder={text("maxItemsHint")}
+            value={draft.max}
+            onChange={(e) => setDraft({ ...draft, max: e.target.value })}
+            aria-invalid={!limitValid(draft.max) || undefined}
           />
         </div>
         <Toggle

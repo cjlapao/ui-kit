@@ -4,6 +4,9 @@ import type { MessageCatalog } from "../types";
 
 export const DE_KIT_CATALOG: MessageCatalog = {
   kit: {
+    connectionFlowConnection: {
+      label: "Verbindung von {source} zu {target}",
+    },
     connectionFlowEdit: {
       connected: "Verbindung angefordert",
       add: "Knoten {side} von {label} hinzufügen",
@@ -134,6 +137,8 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       acceptsAny: "Nichts ausgew\u00e4hlt: jede Spalte.",
       save: "Speichern",
       cancel: "Abbrechen",
+      maxItems: "Max. Karten",
+      maxItemsHint: "Leer nutzt den Board-Standard.",
     },
     help: {
       show: "Hilfe anzeigen",

@@ -4,6 +4,9 @@ import type { MessageCatalog } from "../types";
 
 export const ES_KIT_CATALOG: MessageCatalog = {
   kit: {
+    connectionFlowConnection: {
+      label: "Conexión de {source} a {target}",
+    },
     connectionFlowEdit: {
       connected: "Conexión solicitada",
       add: "Añadir un nodo {side} de {label}",
@@ -133,6 +136,8 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       acceptsAny: "Ninguna marcada: cualquier columna.",
       save: "Guardar",
       cancel: "Cancelar",
+      maxItems: "M\u00e1x. tarjetas",
+      maxItemsHint: "Vac\u00edo usa el valor del tablero.",
     },
     help: {
       show: "Mostrar ayuda",

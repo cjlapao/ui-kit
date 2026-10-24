@@ -8,6 +8,8 @@
 import React from "react";
 import classNames from "classnames";
 import {
+  bucketKey,
+  effectiveMaxItems,
   getTaskBoardColumnTokens,
   wipState,
   type TaskBoardCard as Card,
@@ -18,7 +20,7 @@ import { ScrollArea } from "../ScrollArea";
 import { Add } from "../../icons/components/Add";
 import { ChevronRight } from "../../icons/components/ChevronRight";
 import { TaskBoardBucket } from "./TaskBoardBucket";
-import { useTaskBoard } from "./context";
+import { REFUSED_DROP, useTaskBoard } from "./context";
 import { usePresence } from "./usePresence";
 import { TaskBoardColumnGrip } from "./TaskBoardColumnEdit";
 import { TaskBoardColumnEditButton } from "./TaskBoardColumnEditor";
@@ -47,7 +49,12 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
   index = 0,
   onToggle,
 }) => {
-  const { surface, text, color, size, wellSurface, columnCornerClass, onAddCard, draggingColumnId } = useTaskBoard();
+  const { surface, text, color, size, wellSurface, columnCornerClass, onAddCard, draggingColumnId, boardMaxItems, dropTarget } =
+    useTaskBoard();
+  const refused = Boolean(dropTarget && !dropTarget.valid && dropTarget.bucket === bucketKey(column.id, null));
+  const max = effectiveMaxItems(column, boardMaxItems);
+  // At its cap the column takes no new cards — by Add card or by drop.
+  const full = max !== undefined && count >= max;
   const dragging = draggingColumnId === column.id;
   const tone = column.color ?? color;
   const tokens = getTaskBoardColumnTokens(tone);
@@ -90,10 +97,10 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
       }
       className={classNames(
         "text-xs font-semibold tabular-nums",
-        wip === "full" || wip === "over" ? tokens.wipFull : surface.muted,
+        wip === "full" || wip === "over" || full ? tokens.wipFull : surface.muted,
       )}
     >
-      {columnCountLabel(count, column.wipLimit)}
+      {columnCountLabel(count, column.wipLimit ?? max)}
     </span>
   );
 
@@ -103,6 +110,8 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
       data-column-target={column.id}
       data-flip-key={column.id}
       data-column-dragging={dragging || undefined}
+      data-full={full || undefined}
+      data-drop={refused ? "invalid" : undefined}
       data-collapsed={column.collapsed ? "true" : undefined}
       data-wip={wip}
       data-drop-zone={column.collapsed ? undefined : true}
@@ -114,7 +123,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
         columnCornerClass,
         "transition-[width] duration-200 ease-out motion-reduce:transition-none",
         tokens.edge,
-        wellSurface,
+        refused ? REFUSED_DROP : wellSurface,
         // Edit-mode drag: the column's slot holds as a dashed placeholder.
         dragging && "opacity-50 outline-2 -outline-offset-2 outline-dashed outline-black/25 dark:outline-white/30",
       )}
@@ -188,7 +197,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
               label={`${column.title}, ${text("cardCount", { count: cards.length })}`}
             />
           </ScrollArea>
-          {onAddCard && (
+          {onAddCard && !full && (
             <button
               type="button"
               onClick={() => onAddCard({ column: column.id, lane: null })}
