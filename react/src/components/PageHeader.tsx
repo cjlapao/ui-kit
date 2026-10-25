@@ -1,5 +1,7 @@
 import { type ReactNode } from "react";
 import classNames from "classnames";
+import Panel, { type PanelProps } from "./Panel";
+import type { SurfaceVariant } from "../theme/Theme";
 import {
   DEFAULT_SURFACE_CORNER,
   getSidebarSurfaceTokens,
@@ -13,8 +15,10 @@ import {
   type TrueColor,
 } from "../theme";
 
-/** The page-level surface treatments. */
-export type PageHeaderVariant = "default" | "floating" | "floating-glass";
+/** Shared Panel surfaces plus the existing floating compatibility names.
+ * The default keeps the original sidebar-aligned header seam. */
+export { SURFACE_VARIANTS as PAGE_HEADER_VARIANTS } from "../theme/Theme";
+export type PageHeaderVariant = SurfaceVariant | "floating" | "floating-glass";
 
 export interface PageHeaderProps extends React.HTMLAttributes<HTMLElement> {
   /**
@@ -49,6 +53,11 @@ export interface PageHeaderProps extends React.HTMLAttributes<HTMLElement> {
    * @default "default"
    */
   variant?: PageHeaderVariant;
+  /** Shared panel surface tone. */
+  tone?: PanelProps["tone"];
+  glassOpacity?: PanelProps["glassOpacity"];
+  vibrancy?: PanelProps["vibrancy"];
+  specularMode?: PanelProps["specularMode"];
   /**
    * Tone of the `floating-glass` frosted fill — the same token, name and
    * default as the `SideMenu`'s `color`, so a paired menu and header set to
@@ -95,29 +104,9 @@ export interface PageHeaderProps extends React.HTMLAttributes<HTMLElement> {
 
 const GROUP_CLASS = "flex min-w-0 flex-wrap items-center gap-3";
 
-/**
- * The bar across the top of the main column, beside a `SideMenu` — the
- * Toolbar's page-level sibling. Same region anatomy (`start` / `center` /
- * `end`, empty regions hold their place), but its furniture is a brand, a
- * breadcrumb and page controls rather than a row of commands, and it paints
- * the SideMenu's own header chrome instead of the Panel surface variants.
- *
- * The `variant` prop exists for the detached world the floating `SideMenu`
- * variants created: `"default"` keeps the seam, and the two floating values
- * borrow the menu's exact card chrome from the shared sidebar tokens.
- * The seam itself stays pinned — fill, height, the `border-b` and the
- * bar's inner `px-5` are the SideMenu's own language — while the outer
- * gutter is caller-controlled per axis (`padding` uniformly,
- * `paddingTop/Right/Bottom/Left` per side; the floating card defaults to
- * the menu's `m-2` on top and right, flush left and bottom) and the
- * `corner` (Panel's scale and default) is a knob. Anything else the caller
- * wants to add can ride in on `className` or the region props; anything
- * that would move the seam cannot.
- *
- * It renders a `<header>` element — the banner landmark when placed at page
- * top level — so screen readers find it by name of the element, not by a
- * toolbar role it does not fulfil.
- */
+/** Page header with start, centre and end groups. Shared Panel variants use
+ * the Panel renderer; default and floating names retain their original chrome.
+ * The padding props control outer gutters rather than inner content padding. */
 export const PageHeader = ({
   start,
   center,
@@ -125,6 +114,10 @@ export const PageHeader = ({
   children,
   variant = "default",
   accentColor = "blue",
+  tone = "neutral",
+  glassOpacity,
+  vibrancy,
+  specularMode,
   padding,
   paddingTop,
   paddingRight,
@@ -140,8 +133,9 @@ export const PageHeader = ({
   // axis reproduces the menu's `m-2` on that side exactly — and the corner
   // leaves it only when the caller turns that knob; the default produces
   // the same class.
-  const surface =
-    variant === "default" ? null : getSidebarSurfaceTokens(variant, accentColor);
+  const sharedSurface = variant !== "default" && variant !== "floating" && variant !== "floating-glass";
+  const surface = variant === "floating" || variant === "floating-glass"
+    ? getSidebarSurfaceTokens(variant, accentColor) : null;
 
   // Per axis: the explicit axis prop, else the uniform `padding`, else the
   // variant's default — the floating card pairs with the menu (the menu's
@@ -159,7 +153,7 @@ export const PageHeader = ({
     <header
       {...rest}
       className={classNames(
-        "flex w-full items-center justify-between gap-4 px-5",
+        "relative isolate flex w-full shrink-0 items-center justify-between gap-4 px-5",
         SIDE_MENU_HEADER_HEIGHT,
         getSurfaceGutterClass("top", gutter.top),
         getSurfaceGutterClass("right", gutter.right),
@@ -173,10 +167,16 @@ export const PageHeader = ({
               surface.shadow,
               surface.fill,
             )
-          : classNames("border-b", SIDE_MENU_HEADER_FILL, SIDE_MENU_HEADER_SEAM),
+          : !sharedSurface && classNames("border-b", SIDE_MENU_HEADER_FILL, SIDE_MENU_HEADER_SEAM),
         className,
       )}
     >
+      {sharedSurface && (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ borderRadius: "inherit" }}>
+          <Panel variant={variant as SurfaceVariant} tone={tone} glassOpacity={glassOpacity} vibrancy={vibrancy} specularMode={specularMode}
+            padding="none" corner="none" className="h-full w-full" style={{ borderRadius: "inherit" }} />
+        </div>
+      )}
       <div className={GROUP_CLASS}>{start}</div>
       <div className={GROUP_CLASS}>{center}</div>
       <div className={GROUP_CLASS}>{end}</div>

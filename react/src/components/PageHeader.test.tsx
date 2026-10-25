@@ -218,3 +218,15 @@ describe("PageHeader — padding and corner props", () => {
     expect(square.className).not.toContain("rounded-2xl");
   });
 });
+
+
+it("renders shared panel variants while preserving the header regions", async () => {
+  const { PAGE_HEADER_VARIANTS } = await import("./PageHeader");
+  for (const variant of PAGE_HEADER_VARIANTS) {
+    const { container, unmount } = render(<PageHeader variant={variant} start="Title" end="Actions" />);
+    expect(screen.getByText("Title")).toBeInTheDocument();
+    expect(screen.getByText("Actions")).toBeInTheDocument();
+    if (variant !== "default") expect(container.querySelector(`[data-variant="${variant}"]`)).not.toBeNull();
+    unmount();
+  }
+});

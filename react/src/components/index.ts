@@ -380,6 +380,7 @@ export {
 export { default as Toolbar, type ToolbarProps } from "./Toolbar";
 export {
   default as PageHeader,
+  PAGE_HEADER_VARIANTS,
   type PageHeaderProps,
   type PageHeaderVariant,
 } from "./PageHeader";
@@ -887,3 +888,5 @@ export * from "./chart";
 
 // Terminal
 export * from "./Terminal";
+
+export { PageBodyLayout, type PageBodyLayoutProps, type PageBodyRegion, type PageBodyRegionContext, type PageBodyRegionSide } from "./PageBodyLayout";

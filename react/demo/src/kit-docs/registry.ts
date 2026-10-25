@@ -46,6 +46,14 @@ export const DOC_CATEGORIES: DocCategory[] = [
 
 export const DOC_COMPONENTS: DocComponent[] = [
   {
+    slug: "page-body-layout",
+    name: "Page Body Layout",
+    description: "A header and centre with collapsible side regions and resizable right/bottom panels.",
+    icon: "ViewRows",
+    category: "Layout",
+    Page: lazy(() => import("./components/page-body-layout/PageBodyLayoutPage")),
+  },
+  {
     slug: "side-menu",
     name: "Side Menu",
     description:

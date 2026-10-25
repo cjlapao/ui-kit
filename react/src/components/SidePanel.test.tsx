@@ -811,3 +811,15 @@ describe("SidePanel handle while collapsing", () => {
     expect(handle().className).not.toContain("opacity-0 ");
   });
 });
+
+
+it("fills a docked layout region and immediately unmounts when closed", () => {
+  const { container, rerender } = render(<SidePanel docked isOpen overlay resizable title="Docked">Content</SidePanel>);
+  const shell = container.querySelector("[data-sp-shell]")!;
+  expect(shell).toHaveStyle({ width: "100%" });
+  expect(shell).toHaveClass("relative");
+  expect(container.querySelector("[data-sp-handle]")).toBeNull();
+  expect(container.querySelector("[data-sp-content]")).toHaveStyle({ width: "100%" });
+  rerender(<SidePanel docked isOpen={false} title="Docked" />);
+  expect(container.firstChild).toBeNull();
+});

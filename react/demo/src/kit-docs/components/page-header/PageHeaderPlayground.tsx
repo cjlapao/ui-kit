@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, CustomIcon, PageHeader, SideMenu } from "@cjlapao/ui-kit";
+import { Button, CustomIcon, PageHeader, SideMenu, PAGE_HEADER_VARIANTS } from "@cjlapao/ui-kit";
 import type {
   PageHeaderVariant,
   PanelCorner,
@@ -113,7 +113,7 @@ export const PageHeaderPlayground: React.FC = () => {
                       value={variant}
                       onChange={(v) => setVariant(v as PageHeaderVariant)}
                       options={[
-                        { value: "default", label: "default" },
+                        ...PAGE_HEADER_VARIANTS.map(value => ({ value, label: value })),
                         { value: "floating", label: "floating" },
                         { value: "floating-glass", label: "floating-glass" },
                       ]}
@@ -209,7 +209,7 @@ export const PageHeaderPlayground: React.FC = () => {
             <SideMenu
               fullHeight
               collapsible
-              variant={variant === "default" ? "sidebar" : variant}
+              variant={variant === "floating" || variant === "floating-glass" || variant === "glass" ? variant : "sidebar"}
               color={tone}
               logoIcon={
                 <CustomIcon icon="UX" className="h-6 w-6 text-neutral-500 dark:text-neutral-300" />
@@ -227,6 +227,7 @@ export const PageHeaderPlayground: React.FC = () => {
               <PageHeader
                 aria-label="Preview header"
                 variant={variant}
+                tone={tone}
                 accentColor={tone}
                 paddingTop={asGutter(gutterTop)}
                 paddingRight={asGutter(gutterRight)}

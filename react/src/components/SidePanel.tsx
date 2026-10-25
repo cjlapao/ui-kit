@@ -144,6 +144,8 @@ const SIZE_TOKENS: Record<
 export interface SidePanelProps {
   /** Whether the panel is open */
   isOpen: boolean;
+  /** Fill a layout region in normal flow. The parent owns resizing and space. */
+  docked?: boolean;
   /**
    * Called when the user clicks the close button (or the overlay scrim). A
    * `collapsible` panel shows no close button — it collapses and expands
@@ -269,6 +271,7 @@ export interface SidePanelProps {
  */
 export const SidePanel: React.FC<SidePanelProps> = ({
   isOpen,
+  docked = false,
   onClose,
   title,
   subtitle,
@@ -524,7 +527,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     [resizable, side, currentWidth, minWidth, maxWidth],
   );
 
-  if (!mounted) return null;
+  if (!mounted || (docked && !isOpen)) return null;
 
   // The handle rides the panel's outer edge, so it tracks the same value the
   // width animates to — and carries the same transition, or it would jump to
@@ -559,15 +562,15 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         data-sp-shell
         data-collapsed={collapsible ? isCollapsed : undefined}
         className={classNames(
-          "absolute z-40 overflow-hidden",
-          isInset ? INSET_GAP_Y_CLASS : "top-0 h-full",
+          docked ? "relative h-full w-full overflow-hidden" : "absolute z-40 overflow-hidden",
+          !docked && (isInset ? INSET_GAP_Y_CLASS : "top-0 h-full"),
           side === "right" ? "right-0" : "left-0",
           cornerClass,
           legacyVariant && borderClass,
           legacyVariant ? shadowClass : panelOuterChrome,
         )}
         style={{
-          width: entered ? shellWidth : 0,
+          width: docked ? "100%" : entered ? shellWidth : 0,
           // Inline rather than `transition-[width] duration-… ease-…`: an
           // arbitrary easing utility would have to survive the safelist, and
           // this curve is not themeable anyway. It decelerates hard at the end,
@@ -652,7 +655,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             isCollapsed && "opacity-0",
             className,
           )}
-          style={{ width: resolvedWidth }}
+          style={{ width: docked ? "100%" : resolvedWidth }}
           onKeyDown={onKeyDown}
         >
           {/* ── Header ─────────────────────────────────────────────── */}
@@ -750,7 +753,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         close, mirroring the panel's close button so the pointer and keyboard
         stories agree.
       */}
-      {overlay && (
+      {overlay && !docked && (
         <div
           aria-hidden="true"
           onClick={onClose}
@@ -775,7 +778,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           area with a `rounded-full` pill inside. The pill runs nearly the full
           height because the edge is grabbed at whatever point the pointer
           happens to be at, so the affordance has to be visible there too. */}
-      {resizable && (
+      {resizable && !docked && (
         // ARIA 1.2 resizable separator: focusable (tabIndex), arrow keys /
         // Home / End resize, aria-valuenow|min|max report the width. Parked
         // (collapsed), it drops the role and every aria-* and leaves the tab
