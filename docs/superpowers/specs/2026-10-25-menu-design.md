@@ -1,0 +1,13 @@
+# Menu
+
+Approved scope: one Menu component supports inline and tiered expansion, both static and positioned popup rendering. Existing DropdownMenu remains compatible. The component reuses the kit's shared viewport placement and overlay stacking helpers, and Panel renders the shared variants, tone, corner, padding and glass settings.
+
+The item model uses globally unique ids and supports labelled groups, separators, command/navigation rows, checkboxes, radios and expandable custom sections. Rows accept icons, description, badge, shortcut hints and trailing content, hidden/disabled/danger states, commands, router links or external links. Check/radio state and radio exclusivity belong to the consumer. Checkable rows stay open by default; closeOnSelect overrides that behavior. Shortcut strings are hints, not registered global shortcuts.
+
+Inline expanded ids and popup open state support controlled or internal state. A trigger or anchor reference enables popup behavior. The trigger preserves its original ref and handlers, and gains menu accessibility state. Inline is the default expansion mode; tiered children open in portals on hover or keyboard navigation. Per-item expansion mode allows inline usage details alongside cascading Help menus. Headers, footers, custom row content and custom expandable sections allow account and workspace menus.
+
+Menu lists use roving focus, arrows, Home/End, typeahead, Enter/Space activation and Escape. Left Arrow closes a child and restores its parent. Popups focus the first enabled command and return focus on Escape/action, while outside pointer dismissal preserves the outside target's focus. Portalled descendants count as inside the same menu. Hover dismissal delays permit moving through submenu gaps. Popups observe anchor/content sizes, update during scrolling/resizing and clamp/flip at viewport edges.
+
+Radio exclusivity, checked-state persistence, routing context and application commands remain consumer responsibilities. Custom row content must not nest interactive controls inside the row target; header/footer and expandable content are available for richer controls. Default style: outlined surface, neutral tone, theme corners, xs panel padding, md rows and 256px width.
+
+Validation: grouped keyboard traversal, disabled/hidden rows, inline back navigation, controlled expansion, check/radio callbacks, popup keyboard dismissal, tiered portals and hover gaps, commands and links, plus existing DropdownMenu regression tests. The docs demonstrate inline groups, cascading commands, preference selections and an account popup with inline usage details.

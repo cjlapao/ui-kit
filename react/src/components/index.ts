@@ -891,3 +891,4 @@ export * from "./chart";
 export * from "./Terminal";
 
 export { PageBodyLayout, PAGE_BODY_LAYOUT_VARIANTS, type PageBodyLayoutProps, type PageBodyLayoutVariant, type PageBodyRegionSide } from "./PageBodyLayout";
+export { Menu, MENU_VARIANTS, type MenuItem, type MenuProps } from "./Menu";

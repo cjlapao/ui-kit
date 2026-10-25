@@ -45,6 +45,7 @@ export const DOC_CATEGORIES: DocCategory[] = [
 ];
 
 export const DOC_COMPONENTS: DocComponent[] = [
+  { slug: "menu", name: "Menu", description: "Inline and tiered command menus, selections, and positioned account popups.", icon: "ViewRows", category: "Overlays", Page: lazy(() => import("./components/menu/MenuPage")) },
   {
     slug: "page-body-layout",
     name: "Page Body Layout",
