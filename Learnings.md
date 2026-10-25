@@ -1126,3 +1126,22 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   arrow-key navigation and drop targets out of a region that is still visible
   while it closes. Mount the other state's layer only during the transition
   too, or the steady state carries a hidden duplicate of every label.
+
+## Derive a dark theme from a fit, not from a guess
+
+- `GradientBackdrop` derives a missing light or dark side. The formula is a
+  least-squares fit of OKLCH lightness over the 24 hand-picked light/dark pairs
+  of the six templates — not an inverted-lightness rule of thumb. A single
+  global line (`L_dark = 1.04 − 0.84·L_light`) missed the glow colours by 0.11:
+  the six glows share one light value but use different darks. Fitting **per
+  colour role** (glow / from / via / to) halved the worst error (0.079).
+- Fit each direction separately. Inverting the near-flat `from` line
+  (`L_dark = 0.33 − 0.14·L_light`) multiplies every difference by ~7, so a
+  mid-tone dark colour would come back pure black. The regression of light on
+  dark is its own line.
+- Keep the hue, scale chroma (×2 going dark, median of the pairs) and cap it —
+  near-grey pairs make the chroma ratio swing from 0.6 to 3.1, so the ratio is
+  only a guide. Out-of-gamut results keep L and H and give up chroma (binary
+  search), the CSS Color 4 way.
+- Lock the templates with golden strings: the generator must reproduce every
+  original hand-written CSS string byte for byte before anything consumes it.

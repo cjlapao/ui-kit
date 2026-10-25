@@ -1,7 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useId, useMemo, useState } from "react";
 import classNames from "classnames";
 
 import Panel from "../Panel";
+import IconButton from "../IconButton";
+import { ChevronRight } from "../../icons/components/ChevronRight";
+import { SURFACE_TO_BUTTON_VARIANT } from "../../theme/Theme";
+import type { PopoverProps } from "../Popover";
 import WorkflowTimeline from "./WorkflowTimeline";
 import {
   buildCardProps,
@@ -11,9 +15,52 @@ import {
 } from "./chrome";
 import { computeProgress, computeTallies, resolveActiveStep } from "./derive";
 import { sampleWorkflow } from "./sampleWorkflow";
-import type { WorkflowData, WorkflowTrackerLabels } from "./types";
+import type {
+  WorkflowData,
+  WorkflowStep,
+  WorkflowTrackerLabels,
+} from "./types";
+
+export interface WorkflowTrackerRailControlsContext {
+  /** Effective rail state, including internally managed collapse state. */
+  collapsed: boolean;
+}
 
 export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
+  /** Content below the steps, inside the rail's scroll area. Render a component
+   * here to preserve its local state as `collapsed` changes. The consumer owns
+   * its expanded/compact layout and accessible labels. Also available while loading. */
+  renderControls?: (
+    context: WorkflowTrackerRailControlsContext,
+  ) => React.ReactNode;
+  /** Enables the animated collapse toggle. Expanded width defaults to 360px;
+   * override it with `style.width`. @default false */
+  collapsible?: boolean;
+  /** Controlled collapse state; only applies when `collapsible` is true. */
+  collapsed?: boolean;
+  /** Initial uncontrolled collapse state. @default false */
+  defaultCollapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  /** Fills a parent with a defined height and scrolls the timeline internally. */
+  fillHeight?: boolean;
+  /** Accessible toggle copy. @default "Expand workflow rail" */
+  expandLabel?: string;
+  /** Accessible toggle copy. @default "Collapse workflow rail" */
+  collapseLabel?: string;
+  /** Custom hover/focus popup content for collapsed steps only. Return null to omit. */
+  renderStepPopover?: (step: WorkflowStep) => React.ReactNode;
+  /** Popup presentation overrides. Defaults to the rail's surface and right placement. */
+  stepPopoverProps?: Pick<
+    PopoverProps,
+    | "placement"
+    | "variant"
+    | "tone"
+    | "corner"
+    | "padding"
+    | "maxWidth"
+    | "arrow"
+    | "className"
+  >;
   /** The whole view. Defaults to the bundled `sampleWorkflow` fixture. */
   data?: WorkflowData;
   /** Swaps the rail for its skeleton placeholder. */
@@ -50,10 +97,20 @@ export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
  * The tracker's "main" panel — progress header, vertical timeline with the
  * active step's nested sub-steps, and the legend — as a standalone
  * consumable. It derives progress, tallies and the active step (with the
- * same fallback rule as the composite) from `data`, and stays stateless:
- * the parent owns `data.activeStepId`.
+ * same fallback rule as the composite) from `data`. The parent owns
+ * `data.activeStepId`; collapse state can be internal or controlled.
  */
 export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
+  collapsible = false,
+  collapsed,
+  defaultCollapsed = false,
+  onCollapsedChange,
+  fillHeight = false,
+  expandLabel = "Expand workflow rail",
+  collapseLabel = "Collapse workflow rail",
+  renderStepPopover,
+  renderControls,
+  stepPopoverProps,
   data = sampleWorkflow,
   loading = false,
   loadingRows = 6,
@@ -69,6 +126,10 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   style,
   ...styleProps
 }) => {
+  const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
+  const isCollapsed = collapsible && (collapsed ?? internalCollapsed);
+  const timelineId = useId();
+  const scrollBody = fillHeight || (cardScrollable ?? false);
   const steps = data?.steps ?? [];
   const { palette, surfaces } = useWorkflowChrome(styleProps);
   const labels = useMemo(() => resolveLabels(labelOverrides), [labelOverrides]);
@@ -84,26 +145,98 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   return (
     <Panel
       {...cardProps}
-      scrollable={cardScrollable ?? false}
-      className={classNames(className, cardClassName)}
-      style={style}
+      padding={isCollapsed ? "none" : cardProps.padding}
+      scrollable={false}
+      flexBody={scrollBody}
+      className={classNames(
+        collapsible &&
+          "max-w-full shrink-0 transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
+        fillHeight && "h-full min-h-0 self-stretch",
+        className,
+        cardClassName,
+      )}
+      style={
+        collapsible
+          ? { ...style, width: isCollapsed ? 56 : (style?.width ?? 360) }
+          : style
+      }
+      aria-busy={loading || undefined}
+      data-collapsed={collapsible ? isCollapsed : undefined}
     >
-      <WorkflowTimeline
-        steps={steps}
-        activeStepId={active?.step.id}
-        palette={palette}
-        surfaces={surfaces}
-        labels={labels}
-        progress={progress}
-        tallies={tallies}
-        showLegend={showLegend && !loading}
-        loading={loading}
-        loadingRows={loadingRows}
-        emptyState={emptyState}
-        onStepSelect={onStepSelect}
-        onSubStepSelect={onSubStepSelect}
-        onStepAction={onStepAction}
-      />
+      {collapsible && (
+        <div
+          className={classNames(
+            "absolute z-20 flex",
+            isCollapsed ? "inset-x-0 top-2 justify-center" : "right-4 top-4",
+          )}
+        >
+          <IconButton
+            icon={
+              <ChevronRight
+                className={classNames(
+                  "transition-transform duration-200 motion-reduce:transition-none",
+                  !isCollapsed && "rotate-180",
+                )}
+              />
+            }
+            size="xs"
+            rounded="md"
+            variant={SURFACE_TO_BUTTON_VARIANT[cardProps.variant ?? "outlined"]}
+            color={styleProps.cardTone ?? "neutral"}
+            glassOpacity={styleProps.glassOpacity}
+            vibrancy={styleProps.vibrancy}
+            specularMode={styleProps.specularMode}
+            srLabel={isCollapsed ? expandLabel : collapseLabel}
+            tooltip={isCollapsed ? expandLabel : collapseLabel}
+            tooltipPosition="right"
+            aria-expanded={!isCollapsed}
+            aria-controls={timelineId}
+            onClick={() => {
+              const next = !isCollapsed;
+              if (collapsed === undefined) setInternalCollapsed(next);
+              onCollapsedChange?.(next);
+            }}
+          />
+        </div>
+      )}
+      {collapsible && (isCollapsed || loading || steps.length === 0) && (
+        <div className="h-10 shrink-0" />
+      )}
+      <div
+        id={timelineId}
+        className={scrollBody ? "flex min-h-0 flex-1 flex-col" : undefined}
+      >
+        <WorkflowTimeline
+          controls={renderControls?.({ collapsed: isCollapsed })}
+          collapsed={isCollapsed}
+          hasCollapseToggle={collapsible}
+          renderStepPopover={renderStepPopover}
+          stepPopoverProps={{
+            variant: cardProps.variant,
+            tone: cardProps.tone,
+            corner: cardProps.corner,
+            glassOpacity: cardProps.glassOpacity,
+            vibrancy: cardProps.vibrancy,
+            specularMode: cardProps.specularMode,
+            ...stepPopoverProps,
+          }}
+          fillHeight={scrollBody}
+          steps={steps}
+          activeStepId={active?.step.id}
+          palette={palette}
+          surfaces={surfaces}
+          labels={labels}
+          progress={progress}
+          tallies={tallies}
+          showLegend={showLegend && !loading}
+          loading={loading}
+          loadingRows={loadingRows}
+          emptyState={emptyState}
+          onStepSelect={onStepSelect}
+          onSubStepSelect={onSubStepSelect}
+          onStepAction={onStepAction}
+        />
+      </div>
     </Panel>
   );
 };

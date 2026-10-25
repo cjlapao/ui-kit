@@ -66,6 +66,10 @@ export interface PopoverProps {
    * — any DOM element works (`Button`, `IconButton`, a styled `<span>`).
    */
   trigger: ReactElement;
+  /** Hover also opens on keyboard focus; the pointer can move into the popup. @default "click" */
+  triggerMode?: "click" | "hover";
+  /** Dismiss after the trigger's own action runs (for selectable hover previews). */
+  closeOnTriggerClick?: boolean;
   /** The popover's content. */
   children?: ReactNode;
   /**
@@ -245,6 +249,8 @@ const PopoverSkeleton: React.FC<{ lines: number }> = ({ lines }) => (
 
 const Popover: React.FC<PopoverProps> = ({
   trigger,
+  triggerMode = "click",
+  closeOnTriggerClick = false,
   children,
   placement = "auto",
   variant = "elevated",
@@ -296,6 +302,13 @@ const Popover: React.FC<PopoverProps> = ({
   const triggerWrapperRef = useRef<HTMLSpanElement>(null);
   /** The anchor node — the trigger itself when it forwards a ref. */
   const anchorRef = useRef<HTMLElement | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const suppressFocusOpen = useRef(false);
+  const pointerInside = useRef(false);
+  const clearHoverTimer = () => clearTimeout(hoverTimer.current);
+  useEffect(() => () => clearTimeout(hoverTimer.current), []);
 
   // Latest-handler refs: the dismissal/escape listeners and the
   // `animationend` handler must never see stale callbacks.
@@ -323,6 +336,34 @@ const Popover: React.FC<PopoverProps> = ({
     [isControlled],
   );
 
+  const enterHover = () => {
+    pointerInside.current = true;
+    clearHoverTimer();
+    setOpen(true);
+  };
+  const leaveHover = () => {
+    pointerInside.current = false;
+    clearHoverTimer();
+    hoverTimer.current = setTimeout(() => {
+      // A previous selection can leave focus on the trigger. That focus
+      // must not pin a pointer-opened preview after the pointer leaves.
+      if (!pointerInside.current) setOpen(false);
+    }, 150);
+  };
+  const focusHover = () => {
+    clearHoverTimer();
+    if (!suppressFocusOpen.current) setOpen(true);
+  };
+  const blurHover = (event: React.FocusEvent) => {
+    const next = event.relatedTarget as Node | null;
+    if (
+      !pointerInside.current &&
+      !triggerWrapperRef.current?.contains(next) &&
+      !wrapperRef.current?.contains(next)
+    )
+      setOpen(false);
+  };
+
   /* ---------------------------------------------------------------- */
   /*  Phase machine                                                     */
   /* ---------------------------------------------------------------- */
@@ -330,7 +371,7 @@ const Popover: React.FC<PopoverProps> = ({
   useEffect(() => {
     const p = phaseRef.current;
     if (open) {
-      if (p === "closed") {
+      if (p === "closed" || p === "leaving") {
         hideFiredRef.current = false;
         setPhase("entering");
       }
@@ -473,8 +514,15 @@ const Popover: React.FC<PopoverProps> = ({
       triggerWrapperRef.current?.querySelector<HTMLElement>(
         "button, [href], input, select, textarea, [tabindex]",
       );
-    target?.focus({ preventScroll: true });
-  }, [phase]);
+    if (
+      triggerMode === "click" ||
+      wrapperRef.current?.contains(document.activeElement)
+    ) {
+      suppressFocusOpen.current = true;
+      target?.focus({ preventScroll: true });
+      suppressFocusOpen.current = false;
+    }
+  }, [phase, triggerMode]);
 
   // Scroll and resize REPOSITION instead of closing — the kit's deliberate
   // deviation from PrimeVue's close-on-scroll (see useOverlayPosition).
@@ -565,7 +613,8 @@ const Popover: React.FC<PopoverProps> = ({
       }
     ).onClick;
     existing?.(event);
-    setOpen(!open);
+    clearHoverTimer();
+    setOpen(closeOnTriggerClick ? false : triggerMode === "hover" ? true : !open);
   };
 
   const renderedTrigger = isValidElement(trigger)
@@ -749,7 +798,14 @@ const Popover: React.FC<PopoverProps> = ({
   const showSkeleton = loading && loaderType === "skeleton";
 
   return (
-    <span ref={triggerWrapperRef} className="inline-flex">
+    <span
+      ref={triggerWrapperRef}
+      className="inline-flex"
+      onMouseEnter={triggerMode === "hover" ? enterHover : undefined}
+      onMouseLeave={triggerMode === "hover" ? leaveHover : undefined}
+      onFocus={triggerMode === "hover" ? focusHover : undefined}
+      onBlur={triggerMode === "hover" ? blurHover : undefined}
+    >
       {renderedTrigger}
       {overlayVisible &&
         createPortal(
@@ -764,6 +820,8 @@ const Popover: React.FC<PopoverProps> = ({
             data-placement={position?.placement.side}
             aria-busy={loading}
             onAnimationEnd={handleOverlayAnimationEnd}
+            onMouseEnter={triggerMode === "hover" ? enterHover : undefined}
+            onMouseLeave={triggerMode === "hover" ? leaveHover : undefined}
             className={classNames(
               "popover-overlay outline-none",
               phase === "entering" && "popover-overlay--enter",

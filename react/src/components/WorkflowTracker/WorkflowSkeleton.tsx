@@ -49,26 +49,39 @@ export const WorkflowHeaderSkeleton: React.FC<{
 );
 
 /** Placeholder timeline: progress header plus `rows` step rows. */
-export const WorkflowRailSkeleton: React.FC<{ rows?: number }> = ({
-  rows = 6,
-}) => (
-  <div className="animate-pulse motion-reduce:animate-none">
-    <div className="border-b border-neutral-200 px-5 pb-4 pt-5 dark:border-neutral-800">
-      <div className="flex items-center justify-between">
-        <Bar width="4.5rem" />
-        <Bar width="2rem" />
+export const WorkflowRailSkeleton: React.FC<{
+  rows?: number;
+  collapsed?: boolean;
+}> = ({ rows = 6, collapsed = false }) => (
+  <div
+    className="min-h-0 overflow-hidden animate-pulse motion-reduce:animate-none"
+    aria-hidden="true"
+  >
+    {!collapsed && (
+      <div className="border-b border-neutral-200 px-5 pb-4 pt-5 dark:border-neutral-800">
+        <div className="flex items-center justify-between">
+          <Bar width="4.5rem" />
+          <Bar width="2rem" />
+        </div>
+        <span className="mt-3 block h-1 w-full rounded-full bg-neutral-200 dark:bg-neutral-800" />
+        <Bar width="80%" className="mt-3" />
       </div>
-      <span className="mt-3 block h-1 w-full rounded-full bg-neutral-200 dark:bg-neutral-800" />
-      <Bar width="80%" className="mt-3" />
-    </div>
-    <div className="space-y-5 px-5 py-5">
+    )}
+    <div className={collapsed ? "space-y-6 px-2 py-6" : "space-y-5 px-5 py-5"}>
       {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="flex items-start gap-3">
+        <div
+          key={index}
+          className={
+            collapsed ? "flex justify-center" : "flex items-start gap-3"
+          }
+        >
           <Dot />
-          <div className="flex-1 space-y-2">
-            <Bar width={index % 2 === 0 ? "62%" : "48%"} />
-            <Bar width="34%" className="h-2" />
-          </div>
+          {!collapsed && (
+            <div className="flex-1 space-y-2">
+              <Bar width={index % 2 === 0 ? "62%" : "48%"} />
+              <Bar width="34%" className="h-2" />
+            </div>
+          )}
         </div>
       ))}
     </div>

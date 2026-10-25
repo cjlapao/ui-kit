@@ -1,4 +1,10 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Popover, { POPOVER_PLACEMENTS } from "./Popover";
 import { SURFACE_VARIANTS, TRUE_COLORS } from "../theme/Theme";
@@ -27,8 +33,7 @@ const completeOverlayPhase = (
     await new Promise((resolve) => setTimeout(resolve, 25));
   });
 
-const overlay = () =>
-  document.querySelector<HTMLElement>(".popover-overlay");
+const overlay = () => document.querySelector<HTMLElement>(".popover-overlay");
 
 const openPopover = async () => {
   fireEvent.click(screen.getByRole("button", { name: /Toggle/ }));
@@ -81,7 +86,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const renderPopover = (props: Partial<React.ComponentProps<typeof Popover>> = {}) =>
+const renderPopover = (
+  props: Partial<React.ComponentProps<typeof Popover>> = {},
+) =>
   render(
     <Popover trigger={<button type="button">Toggle</button>} {...props}>
       <span data-testid="popover-content">content</span>
@@ -89,8 +96,104 @@ const renderPopover = (props: Partial<React.ComponentProps<typeof Popover>> = {}
   );
 
 describe("Popover", () => {
+  it("dismisses a selectable hover preview on click without reopening on retained focus", async () => {
+    const select = vi.fn();
+    render(
+      <Popover
+        triggerMode="hover"
+        closeOnTriggerClick
+        trigger={<button onClick={select}>Select step</button>}
+      >
+        Step preview
+      </Popover>,
+    );
+    const trigger = screen.getByRole("button", { name: "Select step" });
+    fireEvent.mouseEnter(trigger);
+    const popup = overlay()!;
+    await completeOverlayPhase(popup, "entering");
+    act(() => trigger.focus());
+    fireEvent.click(trigger);
+    expect(select).toHaveBeenCalledOnce();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await completeOverlayPhase(popup, "leaving");
+    expect(overlay()).toBeNull();
+    expect(trigger).toHaveFocus();
+    fireEvent.mouseLeave(trigger);
+    fireEvent.mouseEnter(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("keeps hover content open across the trigger gap, then closes without stealing focus", async () => {
+    renderPopover({ triggerMode: "hover" });
+    const trigger = screen.getByRole("button", { name: /Toggle/ });
+    fireEvent.mouseEnter(trigger);
+    const popup = overlay()!;
+    await completeOverlayPhase(popup, "entering");
+    fireEvent.mouseLeave(trigger);
+    fireEvent.mouseEnter(popup);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.mouseLeave(popup);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger).not.toHaveFocus();
+    await completeOverlayPhase(popup, "leaving");
+    expect(overlay()).toBeNull();
+  });
+
+  it("opens hover content on focus and Escape dismisses it without reopening", async () => {
+    renderPopover({ triggerMode: "hover" });
+    const trigger = screen.getByRole("button", { name: /Toggle/ });
+    act(() => trigger.focus());
+    const popup = overlay()!;
+    await completeOverlayPhase(popup, "entering");
+    fireEvent.keyDown(document, { key: "Escape" });
+    await completeOverlayPhase(popup, "leaving");
+    expect(overlay()).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("closes after leaving the popup even when selection left focus on its trigger", async () => {
+    renderPopover({ triggerMode: "hover", closeOnTriggerClick: true });
+    const trigger = screen.getByRole("button", { name: /Toggle/ });
+    act(() => trigger.focus());
+    let popup = overlay()!;
+    await completeOverlayPhase(popup, "entering");
+    fireEvent.click(trigger);
+    await completeOverlayPhase(popup, "leaving");
+    expect(trigger).toHaveFocus();
+
+    fireEvent.mouseEnter(trigger);
+    popup = overlay()!;
+    await completeOverlayPhase(popup, "entering");
+    fireEvent.mouseLeave(trigger);
+    fireEvent.mouseEnter(popup);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.mouseLeave(popup);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 180));
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await completeOverlayPhase(popup, "leaving");
+    expect(overlay()).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
   it("exports the runtime placement list", () => {
-    expect(POPOVER_PLACEMENTS).toEqual(["auto", "top", "bottom", "left", "right"]);
+    expect(POPOVER_PLACEMENTS).toEqual([
+      "auto",
+      "top",
+      "bottom",
+      "left",
+      "right",
+    ]);
   });
 
   it("starts closed: no overlay, trigger advertises the dialog", () => {
@@ -193,7 +296,10 @@ describe("Popover", () => {
     // A 100 px trigger at (400, 400) with the default 300 px box: centre
     // alignment would land at x=300; grow alignment lands at x=400 (the
     // trigger's left edge), because the box fits on the right.
-    rects.set(trigger, makeRect({ top: 400, left: 400, width: 100, height: 40 }));
+    rects.set(
+      trigger,
+      makeRect({ top: 400, left: 400, width: 100, height: 40 }),
+    );
     fireEvent.click(trigger);
     const w = overlay();
     expect(w).not.toBeNull();
@@ -203,7 +309,8 @@ describe("Popover", () => {
     expect(positioned.style.left).toBe("400px");
     // Caret tracks the trigger centre (450): 450 − 400 = 50 → the clip
     // window's left edge is at 50 − 11.31.
-    const clip = positioned.querySelector<HTMLElement>(".rotate-45")!.parentElement as HTMLElement;
+    const clip = positioned.querySelector<HTMLElement>(".rotate-45")!
+      .parentElement as HTMLElement;
     expect(clip.style.left).toBe("38.69px");
     expect(container).toBeDefined();
   });
@@ -214,7 +321,10 @@ describe("Popover", () => {
     // Trigger at (800, 400)–(900, 440): a 300 px box to the right would
     // cross the 1024 px viewport, so it grows left — right edge on the
     // trigger's right edge → left = 900 − 300 = 600 (centre would be 700).
-    rects.set(trigger, makeRect({ top: 400, left: 800, width: 100, height: 40 }));
+    rects.set(
+      trigger,
+      makeRect({ top: 400, left: 800, width: 100, height: 40 }),
+    );
     fireEvent.click(trigger);
     const w = overlay();
     expect(w).not.toBeNull();
@@ -223,7 +333,8 @@ describe("Popover", () => {
     expect(positioned.style.left).toBe("600px");
     // Caret still on the trigger centre (850) → 850 − 600 = 250 → clip
     // window at 250 − 11.31.
-    const clip = positioned.querySelector<HTMLElement>(".rotate-45")!.parentElement as HTMLElement;
+    const clip = positioned.querySelector<HTMLElement>(".rotate-45")!
+      .parentElement as HTMLElement;
     expect(clip.style.left).toBe("238.69px");
     expect(container).toBeDefined();
   });
@@ -337,7 +448,10 @@ describe("Popover", () => {
     const trigger = screen.getByRole("button", { name: /Toggle/ });
     // 40 px tall, 38 px above the 768 px viewport bottom: a 160 px popover
     // does not fit below (38 − 8 < 168), so the shared geometry flips up.
-    rects.set(trigger, makeRect({ top: 720, left: 400, width: 300, height: 40 }));
+    rects.set(
+      trigger,
+      makeRect({ top: 720, left: 400, width: 300, height: 40 }),
+    );
     fireEvent.click(trigger);
     const w = overlay();
     expect(w).not.toBeNull();
@@ -428,7 +542,7 @@ describe("Popover", () => {
     await closePopover();
   });
 
-  describe("bubble indicator (arrow=\"bubble\")", () => {
+  describe('bubble indicator (arrow="bubble")', () => {
     it("floats a detached dot in the gap, with the panel at the bubble offset", async () => {
       renderPopover({ arrow: "bubble" });
       await openPopover();
@@ -461,14 +575,19 @@ describe("Popover", () => {
       // pins the box's left edge to the trigger's left edge (400), so the box
       // centre (550) is far from the trigger centre (450). The dot must sit on
       // the trigger centre — caret 50 → dot left 44 — not on the box centre.
-      rects.set(trigger, makeRect({ top: 400, left: 400, width: 100, height: 40 }));
+      rects.set(
+        trigger,
+        makeRect({ top: 400, left: 400, width: 100, height: 40 }),
+      );
       fireEvent.click(trigger);
       const w = overlay();
       expect(w).not.toBeNull();
       await completeOverlayPhase(w as Element, "entering");
       const positioned = overlay() as HTMLElement;
       expect(positioned.style.left).toBe("400px");
-      const dot = positioned.querySelector<HTMLElement>("[data-popover-bubble]");
+      const dot = positioned.querySelector<HTMLElement>(
+        "[data-popover-bubble]",
+      );
       expect(dot!.style.left).toBe("44px");
       expect(dot!.style.top).toBe("-18px");
       expect(container).toBeDefined();
@@ -479,7 +598,10 @@ describe("Popover", () => {
       const trigger = screen.getByRole("button", { name: /Toggle/ });
       // Near the viewport bottom: the bubble gap doesn't fit below, so the
       // panel flips up and the dot rides the bottom-edge gap.
-      rects.set(trigger, makeRect({ top: 720, left: 400, width: 300, height: 40 }));
+      rects.set(
+        trigger,
+        makeRect({ top: 720, left: 400, width: 300, height: 40 }),
+      );
       fireEvent.click(trigger);
       const w = overlay();
       expect(w).not.toBeNull();
@@ -488,7 +610,9 @@ describe("Popover", () => {
       expect(positioned).toHaveAttribute("data-placement", "top");
       // Box top = 720 − 24 − 160 = 536; gap below the box = 720 − (536+160) = 24.
       expect(positioned.style.top).toBe("536px");
-      const dot = positioned.querySelector<HTMLElement>("[data-popover-bubble]");
+      const dot = positioned.querySelector<HTMLElement>(
+        "[data-popover-bubble]",
+      );
       // Top side: the dot sits BELOW the panel edge, at +gap/2 − half.
       expect(dot!.style.top).toBe("6px");
       expect(container).toBeDefined();
@@ -505,7 +629,11 @@ describe("Popover", () => {
   });
 
   it("shows the progress loader with its progress value", async () => {
-    renderPopover({ loading: true, loaderType: "progress", loaderProgress: 42 });
+    renderPopover({
+      loading: true,
+      loaderType: "progress",
+      loaderProgress: 42,
+    });
     await openPopover();
     const w = overlay() as HTMLElement;
     const bar = w.querySelector<HTMLElement>('[role="progressbar"]');

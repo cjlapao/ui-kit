@@ -12,6 +12,8 @@ import ComposableParts from "./examples/ComposableParts";
 import composablePartsCode from "./examples/ComposableParts.tsx?raw";
 import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
+import CollapsibleRail from "./examples/CollapsibleRail";
+import collapsibleRailCode from "./examples/CollapsibleRail.tsx?raw";
 
 export const WorkflowTrackerPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -55,6 +57,14 @@ export const WorkflowTrackerPage: React.FC = () => (
         filename="ComposableParts.tsx"
       >
         <ComposableParts />
+      </ExampleCard>
+      <ExampleCard
+        title="Collapsible standalone rail"
+        description="Use `collapsible` for an animated compact rail, with `defaultCollapsed` for internal state or `collapsed` + `onCollapsedChange` for controlled state. `fillHeight` fills a parent with a defined height and scrolls the timeline internally. Set `style.width` to customize the expanded width. Select a status node in either mode to update the details. `renderStepPopover(step)` supplies custom hover/focus content when collapsed; `stepPopoverProps` customizes its presentation. `renderControls={({ collapsed }) => ...}` adds consumer-owned controls below the steps, with compact and expanded layouts. The compact header retains the progress percentage."
+        code={collapsibleRailCode}
+        filename="CollapsibleRail.tsx"
+      >
+        <CollapsibleRail />
       </ExampleCard>
       <ExampleCard
         title="States"

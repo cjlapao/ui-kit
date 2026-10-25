@@ -1,8 +1,6 @@
 export { default as WorkflowTracker } from "./WorkflowTracker";
 export { default as WorkflowTrackerRail } from "./WorkflowTrackerRail";
-export {
-  default as WorkflowTrackerStepDetails,
-} from "./WorkflowTrackerStepDetails";
+export { default as WorkflowTrackerStepDetails } from "./WorkflowTrackerStepDetails";
 export { default as WorkflowTrackerDetails } from "./WorkflowTrackerDetails";
 export { default as WorkflowTrackerRollups } from "./WorkflowTrackerRollups";
 export { default as WorkflowStatusNode } from "./WorkflowStatusNode";
@@ -12,7 +10,10 @@ export {
   WorkflowDetailSkeleton,
 } from "./WorkflowSkeleton";
 export { sampleWorkflow } from "./sampleWorkflow";
-export type { WorkflowTrackerRailProps } from "./WorkflowTrackerRail";
+export type {
+  WorkflowTrackerRailProps,
+  WorkflowTrackerRailControlsContext,
+} from "./WorkflowTrackerRail";
 export type { WorkflowTrackerStepDetailsProps } from "./WorkflowTrackerStepDetails";
 export type { WorkflowTrackerDetailsProps } from "./WorkflowTrackerDetails";
 export type { WorkflowTrackerRollupsProps } from "./WorkflowTrackerRollups";

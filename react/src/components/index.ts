@@ -381,6 +381,7 @@ export {
 export {
   default as ScrollArea,
   type ScrollAreaProps,
+  type ScrollAreaVirtualScroll,
   type ScrollAreaVariant,
 } from "./ScrollArea";
 export {
@@ -873,5 +874,11 @@ export * from "./Gantt";
 // TaskBoard (kanban columns + swimlanes, real-time drag, collaboration)
 export * from "./TaskBoard";
 
+// GradientBackdrop (soft gradient backdrops: templates + custom themes, light/dark derived)
+export * from "./GradientBackdrop";
+
 // Chart (PrimeUI-style compound charts — SVG + Canvas)
 export * from "./chart";
+
+// Terminal
+export * from "./Terminal";

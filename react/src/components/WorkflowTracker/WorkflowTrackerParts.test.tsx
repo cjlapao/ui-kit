@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import { WorkflowTrackerRail } from "./WorkflowTrackerRail";
@@ -27,6 +28,157 @@ const gateData: WorkflowData = {
 };
 
 describe("WorkflowTrackerRail — standalone", () => {
+  it("lets controls adapt to collapse without losing their own state", () => {
+    function Controls({ collapsed }: { collapsed: boolean }) {
+      const [count, setCount] = useState(0);
+      return (
+        <button onClick={() => setCount(count + 1)}>
+          {collapsed ? "Compact" : "Expanded"} controls: {count}
+        </button>
+      );
+    }
+    const { container } = render(
+      <WorkflowTrackerRail
+        collapsible
+        fillHeight
+        renderControls={({ collapsed }) => <Controls collapsed={collapsed} />}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expanded controls: 0" }),
+    );
+    const control = screen.getByRole("button", {
+      name: "Expanded controls: 1",
+    });
+    expect(container.querySelector("ol")!.parentElement).toContainElement(
+      control,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse workflow rail" }),
+    );
+    expect(screen.getByRole("button", { name: "Compact controls: 1" })).toBe(
+      control,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand workflow rail" }),
+    );
+    expect(screen.getByRole("button", { name: "Expanded controls: 1" })).toBe(
+      control,
+    );
+  });
+
+  it("passes the effective collapse state to controls and keeps them available while loading", () => {
+    const renderControls = vi.fn(({ collapsed }) => (
+      <button>{collapsed ? "Compact agents" : "Agents"}</button>
+    ));
+    const { rerender } = render(
+      <WorkflowTrackerRail collapsed loading renderControls={renderControls} />,
+    );
+    expect(renderControls).toHaveBeenLastCalledWith({ collapsed: false });
+    expect(screen.getByRole("button", { name: "Agents" })).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    rerender(
+      <WorkflowTrackerRail
+        collapsible
+        collapsed
+        data={{ title: "Empty", steps: [] }}
+        renderControls={renderControls}
+      />,
+    );
+    expect(renderControls).toHaveBeenLastCalledWith({ collapsed: true });
+    expect(
+      screen.getByRole("button", { name: "Compact agents" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+
+  it("shows derived progress in the compact header, including zero and complete", () => {
+    const { rerender } = render(<WorkflowTrackerRail collapsible collapsed />);
+    expect(
+      screen.getByRole("progressbar", { name: "Progress" }),
+    ).toHaveAttribute("aria-valuenow", "33");
+    expect(screen.getByText("33%")).toBeInTheDocument();
+    rerender(<WorkflowTrackerRail collapsible collapsed data={gateData} />);
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
+    rerender(
+      <WorkflowTrackerRail
+        collapsible
+        collapsed
+        data={{
+          title: "Done",
+          steps: [{ id: "done", label: "Done", status: "done" }],
+        }}
+        labels={{ progress: "Completion" }}
+      />,
+    );
+    expect(
+      screen.getByRole("progressbar", { name: "Completion" }),
+    ).toHaveAttribute("aria-valuenow", "100");
+  });
+
+  it("offers consumer popover content only on collapsed steps", () => {
+    const renderStepPopover = vi.fn((step) => <div>Preview: {step.id}</div>);
+    const select = vi.fn();
+    render(
+      <WorkflowTrackerRail
+        data={gateData}
+        collapsible
+        defaultCollapsed
+        renderStepPopover={renderStepPopover}
+        onStepSelect={select}
+      />,
+    );
+    const step = screen.getByRole("button", {
+      name: "Approval gate — Attention",
+    });
+    fireEvent.mouseEnter(step);
+    expect(screen.getByRole("dialog", { hidden: true })).toHaveTextContent(
+      "Preview: gate",
+    );
+    fireEvent.click(step);
+    expect(select).toHaveBeenCalledWith("gate");
+    expect(step).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("dialog", { hidden: true })).toHaveClass(
+      "popover-overlay--leave",
+    );
+    renderStepPopover.mockClear();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand workflow rail" }),
+    );
+    expect(
+      screen.queryByRole("dialog", { hidden: true }),
+    ).not.toBeInTheDocument();
+    expect(renderStepPopover).not.toHaveBeenCalled();
+    fireEvent.mouseEnter(screen.getByRole("button", { name: "Approval gate" }));
+    expect(
+      screen.queryByRole("dialog", { hidden: true }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("preserves the selected status circle inside a neutral rounded highlight", () => {
+    render(
+      <WorkflowTrackerRail
+        data={gateData}
+        collapsible
+        defaultCollapsed
+        onStepSelect={vi.fn()}
+      />,
+    );
+    const step = screen.getByRole("button", {
+      name: "Approval gate — Attention",
+    });
+    expect(step).toHaveClass(
+      "bg-neutral-200",
+      "dark:bg-neutral-700",
+      "rounded-xl",
+    );
+    expect(step.querySelector(".rounded-full.border-2")).not.toBeNull();
+    expect(step.querySelector(".ring-offset-2")).toBeNull();
+  });
+
   it("derives progress, tallies and the legend from data", () => {
     render(<WorkflowTrackerRail />);
 
@@ -59,14 +211,154 @@ describe("WorkflowTrackerRail — standalone", () => {
     const { container } = render(<WorkflowTrackerRail loading />);
 
     expect(container.textContent).not.toContain("Insurance certificates");
-    expect(
-      container.querySelectorAll(".animate-pulse").length,
-    ).toBeGreaterThan(0);
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("hides the legend on request", () => {
     render(<WorkflowTrackerRail showLegend={false} />);
     expect(screen.queryByText("Not started")).not.toBeInTheDocument();
+  });
+
+  it("opts in to collapse and toggles internal state without losing focus", () => {
+    const onCollapsedChange = vi.fn();
+    const { container } = render(
+      <WorkflowTrackerRail collapsible onCollapsedChange={onCollapsedChange} />,
+    );
+    const toggle = screen.getByRole("button", {
+      name: "Collapse workflow rail",
+    });
+    toggle.focus();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveFocus();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(container.firstElementChild).toHaveStyle({ width: "56px" });
+    expect(
+      document.getElementById(toggle.getAttribute("aria-controls")!),
+    ).toBeInTheDocument();
+    expect(onCollapsedChange).toHaveBeenLastCalledWith(true);
+    expect(screen.queryByText("Progress")).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(onCollapsedChange).toHaveBeenLastCalledWith(false);
+    expect(screen.getByText("Progress")).toBeInTheDocument();
+  });
+
+  it("leaves controlled state with the parent and restores the expanded width", () => {
+    const onCollapsedChange = vi.fn();
+    const props = {
+      collapsible: true,
+      onCollapsedChange,
+      style: { width: 280 },
+    };
+    const { container, rerender } = render(
+      <WorkflowTrackerRail {...props} collapsed />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand workflow rail" }),
+    );
+    expect(onCollapsedChange).toHaveBeenCalledWith(false);
+    expect(
+      screen.getByRole("button", { name: "Expand workflow rail" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    rerender(<WorkflowTrackerRail {...props} collapsed={false} />);
+    expect(container.firstElementChild).toHaveStyle({ width: "280px" });
+  });
+
+  it("ignores collapse state when collapsing is disabled", () => {
+    render(<WorkflowTrackerRail collapsed defaultCollapsed />);
+    expect(
+      screen.queryByRole("button", { name: /workflow rail/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Progress")).toBeInTheDocument();
+  });
+
+  it("keeps compact steps accessible and selectable while hiding expanded actions", () => {
+    const onStepSelect = vi.fn();
+    render(
+      <WorkflowTrackerRail
+        data={gateData}
+        collapsible
+        defaultCollapsed
+        onStepSelect={onStepSelect}
+        onStepAction={vi.fn()}
+      />,
+    );
+    const step = screen.getByRole("button", {
+      name: "Approval gate — Attention",
+    });
+    expect(step.closest("li")).toHaveAttribute("aria-current", "step");
+    fireEvent.click(step);
+    expect(onStepSelect).toHaveBeenCalledWith("gate");
+    expect(
+      screen.queryByRole("button", { name: "Accept" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand workflow rail" }),
+    );
+    expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
+  });
+
+  it("handles loading and empty compact rails with custom toggle labels", () => {
+    const { container, rerender } = render(
+      <WorkflowTrackerRail
+        collapsible
+        defaultCollapsed
+        loading
+        loadingRows={3}
+        expandLabel="Open pipeline"
+      />,
+    );
+    expect(container.firstElementChild).toHaveAttribute("aria-busy", "true");
+    expect(
+      screen.getByRole("button", { name: "Open pipeline" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Progress")).not.toBeInTheDocument();
+    rerender(
+      <WorkflowTrackerRail
+        collapsible
+        defaultCollapsed
+        data={{ title: "Empty", steps: [] }}
+      />,
+    );
+    expect(screen.getByText("No steps yet")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand workflow rail" }),
+    );
+    expect(
+      screen.getByText("Steps appear here as soon as the workflow starts."),
+    ).toBeInTheDocument();
+  });
+
+  it("fills the parent and confines scrolling to the timeline in both modes", () => {
+    const { container } = render(
+      <WorkflowTrackerRail collapsible fillHeight />,
+    );
+    expect(container.firstElementChild).toHaveClass("h-full", "min-h-0");
+    const list = container.querySelector("ol")!;
+    const area = list.closest('[data-slot="scrollarea"]')!;
+    const viewport = area.querySelector('[data-slot="scrollarea-viewport"]')!;
+    expect(area).toHaveClass("min-h-0", "flex-1");
+    expect(viewport).toHaveClass("overflow-auto");
+    Object.defineProperties(viewport, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 300 },
+    });
+    fireEvent.scroll(viewport);
+    const scrollbar = area.querySelector('[data-orientation="vertical"]')!;
+    expect(scrollbar).toHaveAttribute("data-state", "hidden");
+    fireEvent.pointerEnter(area);
+    expect(scrollbar).toHaveAttribute("data-state", "visible");
+    fireEvent.pointerLeave(area);
+    expect(scrollbar).toHaveAttribute("data-state", "hidden");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Collapse workflow rail" }),
+    );
+    expect(container.firstElementChild).toHaveClass("h-full");
+    expect(screen.getByRole("list").closest('[data-slot="scrollarea"]')).toBe(
+      area,
+    );
   });
 });
 
@@ -91,7 +383,9 @@ describe("WorkflowTrackerStepDetails — standalone", () => {
 
     const onSubStepSelect = vi.fn();
     render(<WorkflowTrackerStepDetails onSubStepSelect={onSubStepSelect} />);
-    fireEvent.click(screen.getAllByRole("button", { name: /Subprocessor list/ })[0]);
+    fireEvent.click(
+      screen.getAllByRole("button", { name: /Subprocessor list/ })[0],
+    );
     expect(onSubStepSelect).toHaveBeenCalledWith(
       "security_questionnaire",
       "subprocessor_list",
@@ -101,7 +395,10 @@ describe("WorkflowTrackerStepDetails — standalone", () => {
   it("renders quick actions and forwards both ids", () => {
     const onStepAction = vi.fn();
     render(
-      <WorkflowTrackerStepDetails data={gateData} onStepAction={onStepAction} />,
+      <WorkflowTrackerStepDetails
+        data={gateData}
+        onStepAction={onStepAction}
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Accept" }));
@@ -145,7 +442,9 @@ describe("WorkflowTrackerDetails — standalone", () => {
 
   it("routes the copy override to the region label", () => {
     render(<WorkflowTrackerDetails labels={{ details: "Execution log" }} />);
-    expect(screen.getByRole("region", { name: "Execution log" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Execution log" }),
+    ).toBeInTheDocument();
   });
 });
 

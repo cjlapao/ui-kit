@@ -90,7 +90,9 @@ export const WorkflowStatusNode: React.FC<WorkflowStatusNodeProps> = ({
           <AlertGlyph className={classNames(glyph, tokens.glyphClass)} />
         )}
         {tokens.glyph === "dashed" && (
-          <DashedRing className={classNames("h-full w-full", tokens.glyphClass)} />
+          <DashedRing
+            className={classNames("h-full w-full", tokens.glyphClass)}
+          />
         )}
       </span>
     </span>

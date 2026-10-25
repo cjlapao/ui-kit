@@ -41,7 +41,13 @@ export const WorkflowDetailsCard: React.FC<WorkflowDetailsCardProps> = ({
     className={classNames("flex-1", className)}
     style={style}
   >
-    <ScrollArea className="h-full" mask role="region" aria-label={ariaLabel}>
+    <ScrollArea
+      variant="hover"
+      className="h-full"
+      mask
+      role="region"
+      aria-label={ariaLabel}
+    >
       {details}
     </ScrollArea>
   </Panel>

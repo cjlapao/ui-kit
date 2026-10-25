@@ -34,6 +34,47 @@ const overflowX = (element: HTMLElement, width: number) => {
 };
 
 describe("ScrollArea", () => {
+  it("controls a virtual viewport in logical units with hover-only bars", () => {
+    const onScroll = vi.fn();
+    render(
+      <ScrollArea
+        variant="hover"
+        virtualScroll={{
+          contentSize: 100,
+          viewportSize: 10,
+          offset: 0,
+          onScroll,
+        }}
+      >
+        <div>Virtual engine</div>
+      </ScrollArea>,
+    );
+    expect(bars()).toHaveLength(1);
+    const bar = bars()[0];
+    const handle = bar.querySelector(
+      '[data-slot="scrollarea-handle"]',
+    ) as HTMLElement;
+    Object.defineProperty(handle.parentElement, "clientHeight", {
+      configurable: true,
+      value: 100,
+    });
+    handle.setPointerCapture = vi.fn();
+    fireEvent.scroll(viewport());
+    expect(bar).toHaveAttribute("data-state", "hidden");
+    fireEvent.pointerEnter(document.querySelector('[data-slot="scrollarea"]')!);
+    expect(bar).toHaveAttribute("data-state", "visible");
+    fireEvent(
+      handle,
+      new MouseEvent("pointerdown", { bubbles: true, clientY: 0 }),
+    );
+    fireEvent(
+      handle,
+      new MouseEvent("pointermove", { bubbles: true, clientY: 38 }),
+    );
+    expect(onScroll).toHaveBeenCalledWith(45);
+    expect(viewport()).toHaveStyle({ overflow: "hidden" });
+  });
+
   it("renders viewport, content, both bars, handles and the corner", () => {
     render(
       <ScrollArea className="h-40">

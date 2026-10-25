@@ -73,6 +73,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/glass-background/GlassBackgroundPage")),
   },
   {
+    slug: "gradient-backdrop",
+    name: "Gradient Backdrop",
+    description:
+      "Soft gradient backdrops to put glass on: six muted templates or your own theme, with the missing light or dark side derived for you.",
+    icon: "Image",
+    category: "Layout",
+    Page: lazy(() => import("./components/gradient-backdrop/GradientBackdropPage")),
+  },
+  {
     slug: "panel",
     name: "Panel",
     description:
@@ -388,6 +397,14 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Calendar",
     category: "Data",
     Page: lazy(() => import("./components/timeline-panel/TimelinePanelPage")),
+  },
+  {
+    slug: "terminal",
+    name: "Terminal",
+    description: "ANSI terminal with tabbed sessions, streaming output, and Panel surfaces.",
+    icon: "Code",
+    category: "Data",
+    Page: lazy(() => import("./components/terminal/TerminalPage")),
   },
   {
     slug: "workflow-tracker",

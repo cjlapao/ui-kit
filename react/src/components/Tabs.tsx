@@ -58,6 +58,8 @@ export interface TabItemAction {
 }
 
 export interface TabItem {
+  /** Action beside this tab, e.g. a close button. Rendered outside the tab button. */
+  trailingAction?: ReactNode;
   id: string;
   label: ReactNode;
   icon?: string | React.ReactElement;
@@ -596,44 +598,64 @@ const Tabs: React.FC<TabsProps> = ({
       );
       const showDividerAfter = shouldShowDividers && index < items.length - 1;
 
+      const tabButton = (
+        <button
+          type="button"
+          role="tab"
+          id={`tab-${item.id}`}
+          aria-selected={isActive}
+          aria-controls={item.panel !== undefined ? controlsId : undefined}
+          disabled={isDisabled}
+          className={classNames(
+            baseClassesForItem,
+            Boolean(item.trailingAction) && "pr-10",
+          )}
+          onClick={() => selectTab(item)}
+          tabIndex={isActive ? 0 : -1}
+          ref={(node) => {
+            tabRefs.current.set(item.id, node);
+          }}
+        >
+          {isGlass && glassSpecular ? (
+            <div
+              aria-hidden="true"
+              className={classNames(
+                "pointer-events-none absolute inset-0 rounded-[inherit]",
+                glassSpecular,
+              )}
+            />
+          ) : null}
+          {renderTabIcon(item.icon)}
+          <span className="flex min-w-0 flex-col text-left">
+            <span className="truncate">{item.label}</span>
+            {item.description ? (
+              <span className="mt-1 text-xs opacity-70">
+                {item.description}
+              </span>
+            ) : null}
+          </span>
+          {item.badge ? (
+            <Badge count={item.badge} tone={item.badgeColor} />
+          ) : null}
+        </button>
+      );
       return (
         <React.Fragment key={item.id}>
-          <button
-            type="button"
-            role="tab"
-            id={`tab-${item.id}`}
-            aria-selected={isActive}
-            aria-controls={item.panel !== undefined ? controlsId : undefined}
-            disabled={isDisabled}
-            className={baseClassesForItem}
-            onClick={() => selectTab(item)}
-            tabIndex={isActive ? 0 : -1}
-            ref={(node) => {
-              tabRefs.current.set(item.id, node);
-            }}
-          >
-            {isGlass && glassSpecular ? (
-              <div
-                aria-hidden="true"
-                className={classNames(
-                  "pointer-events-none absolute inset-0 rounded-[inherit]",
-                  glassSpecular,
-                )}
-              />
-            ) : null}
-            {renderTabIcon(item.icon)}
-            <span className="flex min-w-0 flex-col text-left">
-              <span className="truncate">{item.label}</span>
-              {item.description ? (
-                <span className="mt-1 text-xs opacity-70">
-                  {item.description}
-                </span>
-              ) : null}
-            </span>
-            {item.badge ? (
-              <Badge count={item.badge} tone={item.badgeColor} />
-            ) : null}
-          </button>
+          {item.trailingAction ? (
+            <div
+              className={classNames(
+                "relative inline-flex shrink-0",
+                fullWidth && "flex-1",
+              )}
+            >
+              {tabButton}
+              <span className="absolute right-1 top-1/2 -translate-y-1/2">
+                {item.trailingAction}
+              </span>
+            </div>
+          ) : (
+            tabButton
+          )}
           {showDividerAfter ? (
             <span
               aria-hidden="true"

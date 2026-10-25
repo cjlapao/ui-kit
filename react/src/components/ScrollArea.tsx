@@ -24,7 +24,19 @@ export type ScrollAreaVariant =
   | "always"
   | "hidden";
 
+/** Controlled vertical scrolling for an engine that renders its own viewport.
+ * Sizes and offset may use pixels or logical units (e.g. terminal rows). */
+export interface ScrollAreaVirtualScroll {
+  contentSize: number;
+  viewportSize: number;
+  offset: number;
+  onScroll: (offset: number) => void;
+}
+
 export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Use the kit's scrollbar to control a virtual viewport. Horizontal scrolling
+   * is disabled; the child engine owns wheel/keyboard handling and rendering. */
+  virtualScroll?: ScrollAreaVirtualScroll;
   /**
    * Bar visibility behaviour.
    * @default "auto"
@@ -103,6 +115,7 @@ const FITTING_THUMB: ThumbMetrics = { size: 0, offset: 0, ratio: 0 };
  * overflows — a region that fits has no business one tab deep.
  */
 export const ScrollArea = ({
+  virtualScroll,
   variant = "auto",
   mask = false,
   horizontal = true,
@@ -114,6 +127,7 @@ export const ScrollArea = ({
   className = "",
   ...rest
 }: ScrollAreaProps) => {
+  horizontal = horizontal && !virtualScroll;
   const viewportId = useId();
   const viewportRef = useRef<HTMLDivElement>(null);
   // The internal ref drives the thumbs; a caller's ref has to see the same
@@ -124,7 +138,9 @@ export const ScrollArea = ({
       viewportRef.current = el;
       if (typeof viewportRefProp === "function") viewportRefProp(el);
       else if (viewportRefProp)
-        (viewportRefProp as React.MutableRefObject<HTMLDivElement | null>).current = el;
+        (
+          viewportRefProp as React.MutableRefObject<HTMLDivElement | null>
+        ).current = el;
     },
     [viewportRefProp],
   );
@@ -152,9 +168,17 @@ export const ScrollArea = ({
       axis: "x" | "y",
     ): ThumbMetrics => {
       const viewportSize =
-        axis === "y" ? viewport.clientHeight : viewport.clientWidth;
+        axis === "y" && virtualScroll
+          ? virtualScroll.viewportSize
+          : axis === "y"
+            ? viewport.clientHeight
+            : viewport.clientWidth;
       const contentSize =
-        axis === "y" ? viewport.scrollHeight : viewport.scrollWidth;
+        axis === "y" && virtualScroll
+          ? virtualScroll.contentSize
+          : axis === "y"
+            ? viewport.scrollHeight
+            : viewport.scrollWidth;
       const trackSize =
         (track
           ? axis === "y"
@@ -162,19 +186,24 @@ export const ScrollArea = ({
             : track.clientWidth
           : viewportSize) || 1;
       const scrollable = contentSize - viewportSize;
-      if (scrollable <= 1) return FITTING_THUMB;
+      if (scrollable <= (virtualScroll ? 0 : 1)) return FITTING_THUMB;
       const size = Math.max(
         MIN_THUMB,
         (viewportSize / contentSize) * trackSize,
       );
-      const position = axis === "y" ? viewport.scrollTop : viewport.scrollLeft;
+      const position =
+        axis === "y" && virtualScroll
+          ? virtualScroll.offset
+          : axis === "y"
+            ? viewport.scrollTop
+            : viewport.scrollLeft;
       return {
         size,
         offset: (position / scrollable) * (trackSize - size),
         ratio: position / scrollable,
       };
     },
-    [],
+    [virtualScroll],
   );
 
   const update = useCallback(() => {
@@ -186,13 +215,15 @@ export const ScrollArea = ({
     // axis with nothing to scroll.
     setOverflow({
       x: horizontal && viewport.scrollWidth - viewport.clientWidth > 1,
-      y: viewport.scrollHeight - viewport.clientHeight > 1,
+      y: virtualScroll
+        ? virtualScroll.contentSize > virtualScroll.viewportSize
+        : viewport.scrollHeight - viewport.clientHeight > 1,
     });
     setThumbY(thumb(viewport, yTrackRef.current, "y"));
     setThumbX(
       horizontal ? thumb(viewport, xTrackRef.current, "x") : FITTING_THUMB,
     );
-  }, [thumb, horizontal]);
+  }, [thumb, horizontal, virtualScroll]);
 
   // Re-measure on any size change, of the frame or of the content inside it.
   // No ResizeObserver (jsdom, old engines) means falling back to window
@@ -225,6 +256,19 @@ export const ScrollArea = ({
     );
   };
 
+  const previousVirtualOffset = useRef(virtualScroll?.offset);
+  useEffect(() => {
+    if (previousVirtualOffset.current === virtualScroll?.offset) return;
+    previousVirtualOffset.current = virtualScroll?.offset;
+    if (!virtualScroll) return;
+    setScrolling(true);
+    window.clearTimeout(lingerTimer.current);
+    lingerTimer.current = window.setTimeout(
+      () => setScrolling(false),
+      SCROLL_LINGER_MS,
+    );
+  }, [virtualScroll]);
+
   const visible = (overflows: boolean) => {
     if (!overflows || variant === "hidden") return false;
     if (variant === "always") return true;
@@ -247,12 +291,19 @@ export const ScrollArea = ({
         (track ? (axis === "y" ? track.clientHeight : track.clientWidth) : 0) -
         metrics.size;
       const scrollable =
-        (axis === "y" ? viewport.scrollHeight : viewport.scrollWidth) -
-        (axis === "y" ? viewport.clientHeight : viewport.clientWidth);
+        axis === "y" && virtualScroll
+          ? virtualScroll.contentSize - virtualScroll.viewportSize
+          : (axis === "y" ? viewport.scrollHeight : viewport.scrollWidth) -
+            (axis === "y" ? viewport.clientHeight : viewport.clientWidth);
       dragging.current = {
         axis,
         pointer: axis === "y" ? event.clientY : event.clientX,
-        scroll: axis === "y" ? viewport.scrollTop : viewport.scrollLeft,
+        scroll:
+          axis === "y" && virtualScroll
+            ? virtualScroll.offset
+            : axis === "y"
+              ? viewport.scrollTop
+              : viewport.scrollLeft,
         ratio: travel > 0 ? scrollable / travel : 0,
       };
     };
@@ -263,7 +314,17 @@ export const ScrollArea = ({
     if (!drag || !viewport) return;
     const pointer = drag.axis === "y" ? event.clientY : event.clientX;
     const delta = (pointer - drag.pointer) * drag.ratio;
-    if (drag.axis === "y") viewport.scrollTop = drag.scroll + delta;
+    if (drag.axis === "y" && virtualScroll)
+      virtualScroll.onScroll(
+        Math.max(
+          0,
+          Math.min(
+            virtualScroll.contentSize - virtualScroll.viewportSize,
+            drag.scroll + delta,
+          ),
+        ),
+      );
+    else if (drag.axis === "y") viewport.scrollTop = drag.scroll + delta;
     else viewport.scrollLeft = drag.scroll + delta;
   };
 
@@ -322,6 +383,7 @@ export const ScrollArea = ({
         // and a lost contest would leave an axis that scrolls with no bar.
         style={{
           ...maskStyle(),
+          ...(virtualScroll ? { overflow: "hidden" } : null),
           ...(horizontal ? null : { overflowX: "hidden" as const }),
         }}
         className={classNames(
@@ -338,7 +400,10 @@ export const ScrollArea = ({
         <div
           ref={contentRef}
           data-slot="scrollarea-content"
-          className={classNames("table min-w-full", contentClassName)}
+          className={classNames(
+            virtualScroll ? "h-full min-w-full" : "table min-w-full",
+            contentClassName,
+          )}
         >
           {children}
         </div>

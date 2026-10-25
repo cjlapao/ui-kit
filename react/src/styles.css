@@ -5,6 +5,7 @@
    dynamic class names Theme.ts builds in template literals. Imports must
    precede all non-import statements. */
 @import "../../common/safelist.css";
+@import "@xterm/xterm/css/xterm.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -1328,3 +1329,61 @@
     --_cs-dur: 200ms;
   }
 }
+
+/* xterm owns scrollback and measurement; ScrollArea provides its scrollbar. */
+.kit-terminal-viewport .xterm { height: 100%; }
+.kit-terminal-viewport .xterm-scrollable-element > .scrollbar {
+  display: none;
+}
+.kit-terminal-viewport .xterm-viewport {
+  background-color: transparent;
+  overflow: hidden;
+  pointer-events: none;
+  scrollbar-width: none;
+}
+.kit-terminal-viewport .xterm-viewport::-webkit-scrollbar { display: none; }
+
+/* Terminal tab states are independent from the general Tabs accent-hover
+   treatment: a tab's close control must match the surface behind it. */
+.kit-terminal-tabs {
+  --terminal-tab-active: var(--terminal-tab-text);
+  --terminal-tab-foreground: #525252;
+  --terminal-tab-hover: #171717;
+  --terminal-tab-hover-background: #f5f5f5;
+}
+.dark .kit-terminal-tabs {
+  --terminal-tab-active: var(--terminal-tab-text-dark);
+  --terminal-tab-foreground: #a3a3a3;
+  --terminal-tab-hover: #f5f5f5;
+  --terminal-tab-hover-background: #262626;
+}
+.kit-terminal-tabs [role="tablist"] { gap: 8px; }
+.kit-terminal-tabs [role="tab"] {
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--terminal-tab-foreground);
+}
+.kit-terminal-tabs [role="tab"]:hover {
+  background: var(--terminal-tab-hover-background);
+  color: var(--terminal-tab-hover);
+}
+.kit-terminal-tabs [role="tab"][aria-selected="true"] {
+  background: color-mix(in srgb, var(--terminal-tab-color) 16%, transparent);
+  color: var(--terminal-tab-active);
+}
+.kit-terminal-tabs [role="tab"]:has(+ span) { padding-right: 2rem; }
+/* The action is a sibling of the tab button so keyboard controls never nest. */
+.kit-terminal-tabs .kit-terminal-tab-close {
+  background: transparent;
+  color: var(--terminal-tab-foreground);
+}
+.kit-terminal-tabs .kit-terminal-tab-close[data-selected="true"] {
+  color: var(--terminal-tab-active);
+}
+.kit-terminal-tabs .kit-terminal-tab-close:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  color: var(--terminal-tab-hover);
+}
+/* Scrollbar gets a dedicated lane below the tab hit targets. The terminal
+   supplies no tab panels here, so only the tab-strip content is affected. */
+.kit-terminal-tabs [data-slot="scrollarea-content"] { padding-bottom: 12px; }

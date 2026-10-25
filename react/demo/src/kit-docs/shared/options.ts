@@ -46,6 +46,9 @@ import {
   PLAIN_SURFACE_VARIANTS,
   TASKBOARD_LAYOUTS,
   TASKBOARD_CARD_LAYOUTS,
+  GRADIENT_BACKDROP_TEMPLATE_IDS,
+  GRADIENT_BACKDROP_TEMPLATES,
+  GRADIENT_BACKDROP_SCHEMES,
   TABLE_DENSITIES,
   TOGGLE_VARIANTS,
   CONNECTION_FLOW_EDGE_STYLES,
@@ -138,6 +141,11 @@ export const surfaceVariantOptions = toOptions(SURFACE_VARIANTS);
 export const plainSurfaceVariantOptions = toOptions(PLAIN_SURFACE_VARIANTS);
 export const taskBoardLayoutOptions = toOptions(TASKBOARD_LAYOUTS);
 export const taskBoardCardLayoutOptions = toOptions(TASKBOARD_CARD_LAYOUTS);
+export const gradientBackdropTemplateOptions: MultiToggleOption[] = GRADIENT_BACKDROP_TEMPLATE_IDS.map((id) => ({
+  label: GRADIENT_BACKDROP_TEMPLATES[id].label ?? id,
+  value: id,
+}));
+export const gradientBackdropSchemeOptions = toOptions(GRADIENT_BACKDROP_SCHEMES);
 /** Pill surfaces: the three opaque treatments plus the two glass ones. */
 export const pillVariantOptions = toOptions(PILL_VARIANTS);
 /** Pill corner scale — deliberately not the card corner scale. */
