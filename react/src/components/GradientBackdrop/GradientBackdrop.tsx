@@ -27,7 +27,7 @@ import {
   type GradientBackdropTemplateId,
   type GradientBackdropTheme,
 } from "../../../../common/backdrop";
-import { NOISE_BACKGROUND_IMAGE, getNoiseBlendClasses } from "../../../../common/theme/noise";
+import { NOISE_BACKGROUND_IMAGE, getNoiseBlendClasses, getNoiseBackgroundSize } from "../../../../common/theme/noise";
 
 /** Which scheme to draw: follow the kit's dark mode, or pin one. */
 export type GradientBackdropScheme = "auto" | "light" | "dark";
@@ -45,11 +45,14 @@ export interface GradientBackdropProps extends React.HTMLAttributes<HTMLDivEleme
    * @default false
    */
   noise?: boolean;
+  /** Grain scale relative to a 200px texture tile: 0.5 is finer, 2 is coarser.
+   * Positive finite values only. Omit to preserve the original automatic sizing. */
+  noiseScale?: number;
   children?: React.ReactNode;
 }
 
 export const GradientBackdrop = React.forwardRef<HTMLDivElement, GradientBackdropProps>(
-  ({ theme = "slate", scheme = "auto", noise = false, className, style, children, ...rest }, ref) => {
+  ({ theme = "slate", scheme = "auto", noise = false, noiseScale, className, style, children, ...rest }, ref) => {
     // A theme object literal changes identity every render; key the memo on
     // its content so the gradients are only rebuilt when the colours change.
     const themeKey = typeof theme === "string" ? theme : JSON.stringify(theme);
@@ -89,7 +92,11 @@ export const GradientBackdrop = React.forwardRef<HTMLDivElement, GradientBackdro
               "pointer-events-none absolute inset-0 -z-10 rounded-[inherit]",
               getNoiseBlendClasses(scheme),
             )}
-            style={{ backgroundImage: NOISE_BACKGROUND_IMAGE }}
+            style={{
+              backgroundImage: NOISE_BACKGROUND_IMAGE,
+              backgroundSize: getNoiseBackgroundSize(noiseScale),
+              backgroundRepeat: "repeat",
+            }}
           />
         )}
         {children}

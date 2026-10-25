@@ -34,6 +34,7 @@ export const SidePanelPlayground: React.FC = () => {
   const [resizable, setResizable] = useState(true);
   const [collapsible, setCollapsible] = useState(true);
   const [noise, setNoise] = useState(false);
+  const [noiseScale, setNoiseScale] = useState("auto");
   const [overlay, setOverlay] = useState(false);
   const [withFooter, setWithFooter] = useState(true);
   /**
@@ -154,6 +155,14 @@ export const SidePanelPlayground: React.FC = () => {
                         checked={noise}
                         onChange={setNoise}
                       />
+                  <ChoiceControl label="Grain scale" value={noiseScale} onChange={setNoiseScale}
+                    options={[
+                      { value: "auto", label: "Auto (original)" },
+                      { value: "0.25", label: "0.25 — very fine" },
+                      { value: "0.5", label: "0.5 — fine" },
+                      { value: "1", label: "1 — 200px tile" },
+                      { value: "2", label: "2 — coarse" },
+                    ]} />
                     </div>
                   </Control>
                 ),
@@ -211,6 +220,7 @@ export const SidePanelPlayground: React.FC = () => {
             collapsible={collapsible}
             collapsedLabel="Inspector"
             noise={noise}
+            noiseScale={noiseScale === "auto" ? undefined : Number(noiseScale)}
             inset={inset === "auto" ? undefined : inset}
             corner={corner}
             width={280}

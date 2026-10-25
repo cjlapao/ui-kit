@@ -225,6 +225,11 @@ export const SidePanelPage: React.FC = () => (
           description: "The vertical text of the collapsed rail.",
         },
         {
+          name: "noiseScale",
+          type: "number",
+          description: "Positive grain scale based on a repeating 200px tile: 0.25 very fine, 0.5 fine, 2 coarse. Omit to preserve automatic sizing. Requires noise.",
+        },
+        {
           name: "noise",
           type: "boolean",
           default: "false",

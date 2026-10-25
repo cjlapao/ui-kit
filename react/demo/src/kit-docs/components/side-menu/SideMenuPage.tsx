@@ -244,6 +244,7 @@ export const SideMenuPage: React.FC = () => (
         { name: "topItem / footerItem", type: "SideMenuDropdownItem", description: "Rows above the navigation and above the collapse control, each with its own dropdown menu." },
         { name: "ctas / footerDetails / footerDetailsTone", type: "SideMenuCta[] / SideMenuDetailItem[] / TrueColor", description: "Pinned call-to-action cards and the status detail footer." },
         { name: "loading / loaderType / skeletonLines", type: "boolean / SideMenuLoaderType / number", default: 'false / "skeleton" / 4', description: "The whole menu's loading state — a skeleton shaped like the rows, or the shared Loader over them." },
+        { name: "noiseScale", type: "number", description: "Positive grain scale based on a repeating 200px tile: 0.25 very fine, 0.5 fine, 2 coarse. Omit to preserve automatic sizing. Requires noise." },
         { name: "noise", type: "boolean", default: "false", description: "A dither-grain texture over the panel background." },
         { name: "title / logoIcon / logoText / fullHeight / className", type: "string / ReactNode / ReactNode / boolean / string", description: "Header and sizing." },
       ]}

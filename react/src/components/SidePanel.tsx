@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import classNames from "classnames";
 import { warnIfMissingTitle } from "../../../common/a11y/warn";
-import { NOISE_BACKGROUND_IMAGE, getNoiseBlendClasses } from "../../../common/theme/noise";
+import { NOISE_BACKGROUND_IMAGE, getNoiseBlendClasses, getNoiseBackgroundSize } from "../../../common/theme/noise";
 import IconButton from "./IconButton";
 import Panel, {
   type PanelProps,
@@ -292,6 +292,9 @@ export interface SidePanelProps {
    * paints). @default false
    */
   noise?: boolean;
+  /** Grain scale: 0.5 is fine, 2 is coarse (200px tile at 1).
+   * Omit to preserve automatic sizing. Requires noise. */
+  noiseScale?: number;
   /**
    * Let the user fold the panel to a rail: a chevron in the header collapses
    * it to `COLLAPSED_RAIL_WIDTH` (the WorkflowTracker rail's width), showing
@@ -360,6 +363,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   side = "right",
   overlay = false,
   noise = false,
+  noiseScale,
   inset,
   corner = DEFAULT_SURFACE_CORNER,
   collapsible = false,
@@ -731,7 +735,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               getNoiseBlendClasses(),
               cornerClass,
             )}
-            style={{ backgroundImage: NOISE_BACKGROUND_IMAGE }}
+            style={{ backgroundImage: NOISE_BACKGROUND_IMAGE, backgroundSize: getNoiseBackgroundSize(noiseScale) }}
           />
         )}
 

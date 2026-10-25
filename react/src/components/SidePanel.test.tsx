@@ -967,3 +967,11 @@ describe("SidePanel — inset", () => {
     expect(container.querySelector("[data-sp-dock]")).toHaveClass("px-6");
   });
 });
+
+
+it("scales side panel grain while retaining automatic sizing by default", () => {
+  const { container, rerender } = render(<SidePanel isOpen title="Details" noise noiseScale={0.25} />);
+  expect(container.querySelector("[data-sp-noise]")).toHaveStyle({ backgroundSize: "50px 50px" });
+  rerender(<SidePanel isOpen title="Details" noise />);
+  expect((container.querySelector("[data-sp-noise]") as HTMLElement).style.backgroundSize).toBe("");
+});

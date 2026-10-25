@@ -1387,3 +1387,11 @@ describe("SideMenu — collapsing is opt-in", () => {
     expect(src).not.toContain('"Expand sidebar" : "Collapse sidebar"');
   });
 });
+
+
+it("scales menu grain only when noise is enabled", () => {
+  const { container, rerender } = renderMenu({ noise: true, noiseScale: 0.5 });
+  expect(container.querySelector("[data-sidemenu-noise]")).toHaveStyle({ backgroundSize: "100px 100px" });
+  rerender(<MemoryRouter><SideMenu items={[]} noiseScale={0.5} /></MemoryRouter>);
+  expect(container.querySelector("[data-sidemenu-noise]")).toBeNull();
+});

@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import CustomIcon from "./CustomIcon";
+import { getNoiseBackgroundSize } from "../../../common/theme/noise";
 import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
 import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
@@ -381,6 +382,9 @@ export interface SideMenuProps {
    * @default false
    */
   noise?: boolean;
+  /** Grain scale: 0.5 is fine, 2 is coarse (200px tile at 1).
+   * Omit to preserve automatic sizing. Requires noise. */
+  noiseScale?: number;
   /**
    * Show a loading state in place of (or over) the content.
    * @default false
@@ -970,6 +974,7 @@ export const SideMenu = ({
   footerDetails,
   footerDetailsTone,
   noise = false,
+  noiseScale,
   loading = false,
   loaderType = "skeleton",
   loaderTitle,
@@ -1928,7 +1933,8 @@ export const SideMenu = ({
             {noise && (
               <div
                 className={`absolute inset-0 opacity-[0.4] pointer-events-none mix-blend-overlay ${surface.radius}`}
-                style={NOISE_STYLE}
+                data-sidemenu-noise
+                style={{ ...NOISE_STYLE, backgroundSize: getNoiseBackgroundSize(noiseScale) }}
               />
             )}
             <div

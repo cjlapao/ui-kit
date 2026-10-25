@@ -70,6 +70,8 @@ export const GradientBackdropPlayground: React.FC = () => {
   const [templateId, setTemplateId] = useState<GradientBackdropTemplateId>("mist");
   const [scheme, setScheme] = useState<GradientBackdropScheme>("auto");
   const [noise, setNoise] = useState(true);
+  const [noiseScale, setNoiseScale] = useState("auto");
+  const grainScale = noiseScale === "auto" ? undefined : Number(noiseScale);
   const [sides, setSides] = useState<"light" | "dark" | "both">("light");
   const [light, setLight] = useState<GradientBackdropColors>({
     glow: "#fde68a",
@@ -158,6 +160,14 @@ export const GradientBackdropPlayground: React.FC = () => {
                     onChange={(v) => setScheme(v as GradientBackdropScheme)}
                   />
                   <ToggleRow label="Noise (film grain)" checked={noise} onChange={setNoise} />
+                  <ChoiceControl label="Grain scale" value={noiseScale} onChange={setNoiseScale}
+                    options={[
+                      { value: "auto", label: "Auto (original)" },
+                      { value: "0.25", label: "0.25 — very fine" },
+                      { value: "0.5", label: "0.5 — fine" },
+                      { value: "1", label: "1 — 200px tile" },
+                      { value: "2", label: "2 — coarse" },
+                    ]} />
                 </>
               ),
             },
@@ -166,14 +176,14 @@ export const GradientBackdropPlayground: React.FC = () => {
       }
       preview={
         <div className="flex w-full flex-col gap-4">
-          <GradientBackdrop theme={theme} scheme={scheme} noise={noise} className="flex min-h-64 items-center justify-center rounded-xl p-8">
+          <GradientBackdrop theme={theme} scheme={scheme} noise={noise} noiseScale={grainScale} className="flex min-h-64 items-center justify-center rounded-xl p-8">
             <Panel variant="glass" title="Glass over the backdrop" subtitle="The theme follows the page's light / dark mode">
               <p className="text-sm">Switch the docs theme in the header — the backdrop swaps with no JavaScript.</p>
             </Panel>
           </GradientBackdrop>
           <div className="grid grid-cols-2 gap-3">
-            <GradientBackdrop theme={theme} scheme="light" noise={noise} className="h-24 rounded-lg" aria-label="Light scheme" />
-            <GradientBackdrop theme={theme} scheme="dark" noise={noise} className="h-24 rounded-lg" aria-label="Dark scheme" />
+            <GradientBackdrop theme={theme} scheme="light" noise={noise} noiseScale={grainScale} className="h-24 rounded-lg" aria-label="Light scheme" />
+            <GradientBackdrop theme={theme} scheme="dark" noise={noise} noiseScale={grainScale} className="h-24 rounded-lg" aria-label="Dark scheme" />
           </div>
           <div className="flex flex-wrap gap-6">
             <Swatches title="Light" colors={resolved.light} derived={source === "custom" && sides === "dark"} />

@@ -93,6 +93,21 @@ describe("GradientBackdrop", () => {
       expect(screen.getByText("Content").parentElement).toBe(root(container));
     });
 
+    it("scales a repeating tile without changing the backdrop or forwarding the prop", () => {
+      const { container, rerender } = render(<GradientBackdrop noise noiseScale={0.5} />);
+      expect(noise(container)!.style.backgroundSize).toBe("100px 100px");
+      expect(noise(container)!.style.backgroundRepeat).toBe("repeat");
+      expect(root(container).hasAttribute("noiseScale")).toBe(false);
+      rerender(<GradientBackdrop noise noiseScale={2} />);
+      expect(noise(container)!.style.backgroundSize).toBe("400px 400px");
+      rerender(<GradientBackdrop noise />);
+      expect(noise(container)!.style.backgroundSize).toBe("");
+      for (const value of [0, -1, NaN, Infinity]) {
+        rerender(<GradientBackdrop noise noiseScale={value} />);
+        expect(noise(container)!.style.backgroundSize).toBe("");
+      }
+    });
+
     it("auto: multiply in light, overlay in dark (overlay is a no-op on a light base)", () => {
       const { container } = render(<GradientBackdrop noise />);
       const cls = noise(container)!.className;

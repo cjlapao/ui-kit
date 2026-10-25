@@ -60,6 +60,7 @@ export const SideMenuPlayground: React.FC = () => {
       )
     : undefined;
   const [noise, setNoise] = useState(false);
+  const [noiseScale, setNoiseScale] = useState("auto");
   const [workspaces, setWorkspaces] = useState(true);
   const [groupActions, setGroupActions] = useState(true);
   const [actionsOnHover, setActionsOnHover] = useState(false);
@@ -80,6 +81,7 @@ export const SideMenuPlayground: React.FC = () => {
       openOnHover={openOnHover}
       hoverTransitionMs={hoverTransitionMs}
       noise={noise}
+            noiseScale={noiseScale === "auto" ? undefined : Number(noiseScale)}
       loading={loading}
       loaderType={loaderType}
       search={search}
@@ -206,6 +208,14 @@ export const SideMenuPlayground: React.FC = () => {
                     checked={noise}
                     onChange={setNoise}
                   />
+                  <ChoiceControl label="Grain scale" value={noiseScale} onChange={setNoiseScale}
+                    options={[
+                      { value: "auto", label: "Auto (original)" },
+                      { value: "0.25", label: "0.25 — very fine" },
+                      { value: "0.5", label: "0.5 — fine" },
+                      { value: "1", label: "1 — 200px tile" },
+                      { value: "2", label: "2 — coarse" },
+                    ]} />
                 </>
               ),
             },

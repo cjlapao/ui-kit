@@ -23,3 +23,10 @@ export function getNoiseBlendClasses(scheme: NoiseScheme = "auto"): string {
   if (scheme === "dark") return DARK;
   return `${LIGHT} dark:mix-blend-overlay dark:opacity-[0.4]`;
 }
+
+/** Positive scale of a repeating 200px grain tile; omitted/invalid keeps auto sizing. */
+export function getNoiseBackgroundSize(scale?: number): string | undefined {
+  return scale !== undefined && Number.isFinite(scale) && scale > 0
+    ? `${200 * scale}px ${200 * scale}px`
+    : undefined;
+}
