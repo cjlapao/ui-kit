@@ -18,7 +18,7 @@ export const SidePanelPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Side Panel"
-      description="A panel docked to either edge of its container. It overlays rather than occupying a column, so opening it never reflows the content beside it, and it can be drag-resized. `overlay` dims the rest of the container behind a click-to-close scrim. Takes SideMenu's surface family — a docked panel and a docked menu are the same object — plus the kit's tone and size scales."
+      description="A panel docked to either edge of its container. It overlays rather than occupying a column, so opening it never reflows the content beside it, and it can be drag-resized. `overlay` dims the rest of the container behind a click-to-close scrim. Uses the same surface variants as Panel and the workflow rail, plus the kit's tone and size scales."
     />
     <SidePanelPlayground />
     <section className="flex flex-col gap-5">
@@ -153,10 +153,16 @@ export const SidePanelPage: React.FC = () => (
         },
         {
           name: "variant",
-          type: "SideMenu variant",
-          default: "sidebar",
+          type: "PanelVariant | legacy sidebar variant",
+          default: "outlined",
           description:
-            "The SideMenu surface family — a docked panel and a docked menu are the same object.",
+            "The shared Panel surface family. Legacy sidebar, inset, floating, and floating-glass names remain accepted.",
+        },
+        {
+          name: "glassOpacity / vibrancy / specularMode",
+          type: "Panel glass options",
+          description:
+            "Glass fill opacity, backdrop vibrancy, and specular highlight mode, matching Panel and the workflow rail.",
         },
         {
           name: "surfaceTone",

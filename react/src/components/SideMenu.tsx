@@ -283,7 +283,17 @@ export interface SideMenuProps {
   /** Text element shown next to the logoIcon when expanded */
   logoText?: React.ReactNode;
   items: SideMenuItem[];
+  /** Optional selection override for menus whose items switch local content. */
+  activeItemSlug?: string;
+  /** Runs before link navigation; preventDefault to switch local content instead. */
+  onItemSelect?: (
+    item: SideMenuItemLink,
+    event: React.MouseEvent<HTMLAnchorElement>,
+  ) => void;
   className?: string;
+  /** Layout composition: pins the rail closed or the adjoining panel open.
+   * SideMenuLayout sets this for its joined multi-menu mode. */
+  joinedRole?: "rail" | "panel";
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   mobileOpen?: boolean;
@@ -935,7 +945,10 @@ export const SideMenu = ({
   logoIcon,
   logoText,
   items,
+  activeItemSlug,
+  onItemSelect,
   className = "",
+  joinedRole,
   collapsed = false,
   onToggleCollapse,
   mobileOpen = false,
@@ -981,7 +994,7 @@ export const SideMenu = ({
   // menu that may collapse in the first place.
   const collapseMode: SidebarCollapsible =
     collapsible === true ? "icon" : collapsible === false ? "none" : collapsible;
-  const hoverRail = openOnHover && collapseMode !== "none";
+  const hoverRail = !joinedRole && openOnHover && collapseMode !== "none";
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -1022,21 +1035,43 @@ export const SideMenu = ({
 
   // `openOnHover` owns the desktop state: the rail is always collapsed and the
   // full panel is a hover overlay, so `collapsible` no longer applies.
-  const effectiveMode: SidebarCollapsible = hoverRail ? "icon" : collapseMode;
+  const effectiveMode: SidebarCollapsible = joinedRole === "rail"
+    ? "icon"
+    : joinedRole === "panel"
+      ? "none"
+      : hoverRail ? "icon" : collapseMode;
   const expanded = isMobile
     ? true
-    : hoverRail
-      ? false
-      : effectiveMode === "none"
-        ? true
-        : !collapsedState;
+    : joinedRole
+      ? joinedRole === "panel"
+      : hoverRail
+        ? false
+        : effectiveMode === "none"
+          ? true
+          : !collapsedState;
 
   const showCollapseControl =
-    !isMobile && !hoverRail && effectiveMode !== "none";
+    !isMobile && !joinedRole && !hoverRail && effectiveMode !== "none";
   const showOffcanvasHandle =
-    !isMobile && effectiveMode === "offcanvas" && !expanded;
+    !isMobile && !joinedRole && effectiveMode === "offcanvas" && !expanded;
 
-  const surface = getSidebarSurfaceTokens(variant, color);
+  const baseSurface = getSidebarSurfaceTokens(variant, color);
+  // SideMenuLayout paints one continuous surface behind the panel and body.
+  // These menus only own content clipping, never a second outline or fill.
+  const surface = joinedRole && !isMobile
+    ? {
+        ...baseSurface,
+        fill: joinedRole === "rail"
+          ? "bg-neutral-100 dark:bg-neutral-950"
+          : "bg-transparent",
+        offset: joinedRole === "panel" ? "my-2" : "",
+        radius: joinedRole === "panel" ? "rounded-l-2xl" : "",
+        border: "",
+        borderSides: "all" as const,
+        shadow: "",
+        shadowRight: "",
+      }
+    : baseSurface;
   const idle = SIDEBAR_IDLE_COPY[surface.idleCopy];
   /** The menu's own tone row-tokens, for chrome that follows the tone. */
   const toneTokens = getSideMenuItemTokens(color);
@@ -1106,9 +1141,14 @@ export const SideMenu = ({
     );
   };
 
+  const isActiveItem = (link: SideMenuItemLink): boolean =>
+    activeItemSlug !== undefined
+      ? link.slug === activeItemSlug
+      : isActivePath(link.path);
+
   const hasActiveDescendant = (link: SideMenuItemLink): boolean =>
     !!link.children?.some(
-      (child) => isActivePath(child.path) || hasActiveDescendant(child),
+      (child) => isActiveItem(child) || hasActiveDescendant(child),
     );
 
   // ── Nested submenus ─────────────────────────────────────────────────────
@@ -1284,7 +1324,7 @@ export const SideMenu = ({
   // In hover mode the wrapper keeps a fixed 68px in-flow footprint so the main
   // content does not shift; the aside grows over it (absolute) instead.
   const desktopClasses = `
-    relative flex-shrink-0 ${heightClass} ${isHoverMode ? RAIL_WIDTH : ""} ${surface.offset}
+    relative ${joinedRole === "panel" ? "min-w-0 flex-1" : "flex-shrink-0"} ${heightClass} ${isHoverMode ? RAIL_WIDTH : ""} ${surface.offset}
   `;
 
   const asideClasses = isHoverMode
@@ -1294,7 +1334,7 @@ export const SideMenu = ({
       ${className}
     `
     : `
-      relative h-full overflow-hidden transition-all duration-300 ${asideWidth}
+      relative h-full overflow-hidden transition-all duration-300 ${joinedRole === "panel" ? "w-full" : asideWidth}
       ${surface.radius} ${borderClasses} ${isLeft ? surface.shadow : surface.shadowRight}
       ${className}
     `;
@@ -1325,10 +1365,12 @@ export const SideMenu = ({
     logoIcon || logoText
       ? (contentCollapsed: boolean) => (
           <div
-            className={`relative z-50 flex items-center border-b px-4 py-4 ${SIDE_MENU_HEADER_HEIGHT} ${
-              variant === "glass" || variant === "floating-glass"
-                ? "bg-white/20 border-white/30 dark:bg-white/5 dark:border-white/10"
-                : `${SIDE_MENU_HEADER_FILL} ${SIDE_MENU_HEADER_SEAM}`
+            className={`relative z-50 flex items-center px-4 py-4 ${SIDE_MENU_HEADER_HEIGHT} ${
+              joinedRole && !isMobile
+                ? ""
+                : variant === "glass" || variant === "floating-glass"
+                ? "border-b bg-white/20 border-white/30 dark:bg-white/5 dark:border-white/10"
+                : `border-b ${SIDE_MENU_HEADER_FILL} ${SIDE_MENU_HEADER_SEAM}`
             } ${contentCollapsed ? "justify-center" : ""}`}
           >
             {logoIcon && <div className="shrink-0">{logoIcon}</div>}
@@ -1352,7 +1394,7 @@ export const SideMenu = ({
     contentCollapsed: boolean,
   ): React.ReactNode => {
     const hasChildren = !!link.children?.length;
-    const selfActive = isActivePath(link.path);
+    const selfActive = isActiveItem(link);
     const childActive = hasChildren ? hasActiveDescendant(link) : false;
     // While searching, only matching branches stay visible under a parent.
     const visibleChildren = searchActive
@@ -1369,7 +1411,7 @@ export const SideMenu = ({
     let revealLimit = paged ? (childReveal[link.slug] ?? pageSize) : visibleChildren.length;
     if (paged) {
       const activeIndex = visibleChildren.findIndex(
-        (child) => isActivePath(child.path) || hasActiveDescendant(child),
+        (child) => isActiveItem(child) || hasActiveDescendant(child),
       );
       if (activeIndex >= revealLimit) revealLimit = activeIndex + 1;
     }
@@ -1407,7 +1449,8 @@ export const SideMenu = ({
         <div className={rowClasses}>
           <Link
             to={link.path}
-            onClick={() => {
+            onClick={(event) => {
+              onItemSelect?.(link, event);
               if (mobileOpen) onCloseMobile?.();
               if (hoverOpen) closeHover();
             }}
@@ -1856,6 +1899,7 @@ export const SideMenu = ({
         // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- hover state is pointer-only; nav content is natively keyboard-accessible
         <div
           className={desktopClasses}
+          data-joined-role={joinedRole}
           onKeyDown={(event) => {
             if (event.key === "Escape" && hoverOpen) closeHover();
           }}

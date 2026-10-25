@@ -113,6 +113,7 @@ export interface WorkflowTimelineProps {
   renderStepPopover?: (step: WorkflowStep) => React.ReactNode;
   stepPopoverProps?: Omit<PopoverProps, "trigger" | "children">;
   collapsed?: boolean;
+  side?: "left" | "right";
   fillHeight?: boolean;
   steps: WorkflowStep[];
   activeStepId?: string;
@@ -137,6 +138,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   renderStepPopover,
   stepPopoverProps,
   collapsed = false,
+  side = "left",
   fillHeight = false,
   steps,
   activeStepId,
@@ -279,6 +281,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                   <WorkflowStatusNode
                     status={status}
                     palette={palette}
+                    size={collapsed ? "sm" : "md"}
                     className={collapsed ? undefined : "mt-0.5"}
                   />
                   {collapsed && (
@@ -338,13 +341,12 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                   type="button"
                   onClick={() => onStepSelect(step.id)}
                   className={classNames(
-                    "relative flex text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 dark:focus-visible:ring-neutral-500",
+                    "relative flex text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
+                    collapsed ? "focus-visible:ring-inset" : "focus-visible:ring-offset-2",
                     collapsed
                       ? "h-9 w-9 items-center justify-center rounded-xl"
                       : "w-full items-start gap-3 rounded-sm",
-                    collapsed &&
-                      isActive &&
-                      "bg-neutral-200 dark:bg-neutral-700",
+                    collapsed && "transition-colors hover:bg-neutral-100 dark:hover:bg-white/5",
                   )}
                 >
                   {rowContent}
@@ -355,13 +357,12 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                   // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
                   tabIndex={collapsed ? 0 : undefined}
                   className={classNames(
-                    "relative flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400",
+                    "relative flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
+                    collapsed && "focus-visible:ring-inset",
                     collapsed
                       ? "h-9 w-9 items-center justify-center rounded-xl"
                       : "w-full items-start gap-3 rounded-sm",
-                    collapsed &&
-                      isActive &&
-                      "bg-neutral-200 dark:bg-neutral-700",
+                    collapsed && "transition-colors hover:bg-neutral-100 dark:hover:bg-white/5",
                   )}
                 >
                   {rowContent}
@@ -380,7 +381,12 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                   {collapsed && isActive && (
                     <span
                       aria-hidden="true"
-                      className={`absolute -left-2 top-1.5 h-6 w-1 rounded-r-full bg-${palette.accent}-600`}
+                      data-workflow-selection-marker
+                      style={{ position: "absolute", pointerEvents: "none" }}
+                      className={classNames(
+                        `absolute top-1.5 h-6 w-1 bg-${palette.accent}-600`,
+                        side === "left" ? "-left-2 rounded-r-full" : "-right-2 rounded-l-full",
+                      )}
                     />
                   )}
                   {!isLast && (

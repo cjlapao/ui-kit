@@ -33,6 +33,8 @@ import Actions from "./examples/Actions";
 import actionsCode from "./examples/Actions.tsx?raw";
 import DualLayout from "./examples/DualLayout";
 import dualLayoutCode from "./examples/DualLayout.tsx?raw";
+import JoinedLayout from "./examples/JoinedLayout";
+import joinedLayoutCode from "./examples/JoinedLayout.tsx?raw";
 import MultiLayout from "./examples/MultiLayout";
 import multiLayoutCode from "./examples/MultiLayout.tsx?raw";
 import Workspaces from "./examples/Workspaces";
@@ -148,6 +150,14 @@ export const SideMenuPage: React.FC = () => (
         <DualLayout />
       </ExampleCard>
       <ExampleCard
+        title="Joined navigation rail and panel"
+        description='multiMenuMode="joined" pairs a permanent icon rail with an expanded contextual menu. Shared edges and inset corners unite the surfaces; on mobile, both levels open in one drawer. Select a rail icon to switch the adjoining menu.'
+        code={joinedLayoutCode}
+        filename="JoinedLayout.tsx"
+      >
+        <JoinedLayout />
+      </ExampleCard>
+      <ExampleCard
         title="Multi sidebars (layout)"
         description="With a secondarySideMenuProps the primary is pinned to the hover rail — always collapsed, expanding on hover — so the pair reads as one multi-sidebar rail."
         code={multiLayoutCode}
@@ -208,6 +218,9 @@ export const SideMenuPage: React.FC = () => (
 
     <PropsTable
       props={[
+        { name: "layout: secondarySideMenuProps / multiMenuMode", type: 'SideMenuProps / "hover" | "joined"', default: '— / "hover"', description: "Adds an adjacent secondary menu. Joined mode pins the primary compact and the secondary expanded, shares surface geometry, and opens both levels in one mobile drawer. The primary variant sets the pair's surface family." },
+        { name: "activeItemSlug / onItemSelect", type: "string / (item, event) => void", description: "Optional local selection. activeItemSlug overrides route-based highlighting; onItemSelect runs before navigation. Prevent the event's default action to switch contextual menu content without navigating." },
+        { name: "joinedRole", type: '"rail" | "panel"', description: "Advanced composition prop set by SideMenuLayout in joined mode. Pins the desktop width and removes hover expansion and collapse controls." },
         { name: "items", type: "SideMenuItem[]", description: "A flat list of links, group headers and dividers. A link joins a group with groupName; a group with no visible link hides itself." },
         { name: "link: label / path / icon / color / description", type: "string / string / IconName / TrueColor / string", description: "The row; description is matched by search. A long label ends in an ellipsis, with the full name on hover. In the icon rail an icon-less row shows its initials (\"Simple Greeting\" → SG)." },
         { name: "link: badge", type: "ReactNode", description: "A badge at the row end — a count, a status dot. In the icon rail it rides the icon's corner." },

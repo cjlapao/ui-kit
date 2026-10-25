@@ -24,7 +24,7 @@ import { controlSizeOptions } from "../../shared/options";
 
 export const SidePanelPlayground: React.FC = () => {
   const [open, setOpen] = useState(true);
-  const [variant, setVariant] = useState<SidePanelVariant>("sidebar");
+  const [variant, setVariant] = useState<SidePanelVariant>("outlined");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [surfaceTone, setSurfaceTone] = useState<TrueColor>("neutral");
   const [size, setSize] = useState<ControlSize>("md");
@@ -169,15 +169,11 @@ export const SidePanelPlayground: React.FC = () => {
             column means opening it never reflows the content beside it.
           </p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            The variants are <code>SideMenu</code>&rsquo;s, not{" "}
-            <code>Panel</code>&rsquo;s — a docked panel and a docked menu are
-            the same object. <strong>Inset</strong> floats it off the top and
-            bottom while it stays flush to its own edge — the corners that meet
-            the container have nothing to round against, so only the two facing
-            the content are rounded, on the same <code>SurfaceCorner</code>{" "}
-            scale <code>Panel</code> takes. <code>floating</code> and{" "}
-            <code>floating-glass</code> inset themselves, and the toggle
-            overrides them either way.
+            Uses the same surface variants as <code>Panel</code> and the workflow
+            rail. <strong>Inset</strong> adds a top and bottom gap while keeping
+            the panel docked to its edge. Corner sizing, resizing, and collapse
+            controls work with every variant. Legacy <code>floating</code> and
+            <code>floating-glass</code> names still imply inset positioning.
           </p>
         </>
       }

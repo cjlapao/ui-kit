@@ -64,19 +64,20 @@ export const WorkflowStatusNode: React.FC<WorkflowStatusNodeProps> = ({
   return (
     <span
       aria-hidden="true"
+      data-workflow-status-node
       className={classNames("relative inline-flex shrink-0", node, className)}
     >
       {tokens.pulse && (
         <span
           className={classNames(
-            "absolute inset-0 animate-ping rounded-full opacity-60 motion-reduce:hidden",
-            `bg-${tokens.tone}-300 dark:bg-${tokens.tone}-500`,
+            "absolute inset-0 origin-center animate-ping rounded-full opacity-60 motion-reduce:hidden",
+            `bg-${tokens.tone}-300 dark:bg-${tokens.tone}-400`,
           )}
         />
       )}
       <span
         className={classNames(
-          "relative inline-flex h-full w-full items-center justify-center rounded-full",
+          "absolute inset-0 inline-flex h-full w-full items-center justify-center rounded-full",
           tokens.node,
         )}
       >

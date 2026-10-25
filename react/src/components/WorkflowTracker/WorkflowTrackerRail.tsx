@@ -26,6 +26,9 @@ export interface WorkflowTrackerRailControlsContext {
 }
 
 export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
+  /** Docked edge. Collapsed corners face the content; expanded corners keep
+   * the shared corner scale. Also mirrors the toggle and step popovers. */
+  side?: "left" | "right";
   /** Content below the steps, inside the rail's scroll area. Render a component
    * here to preserve its local state as `collapsed` changes. The consumer owns
    * its expanded/compact layout and accessible labels. Also available while loading. */
@@ -100,6 +103,7 @@ export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
  * `data.activeStepId`; collapse state can be internal or controlled.
  */
 export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
+  side = "left",
   collapsible = false,
   collapsed,
   defaultCollapsed = false,
@@ -156,7 +160,14 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
       )}
       style={
         collapsible
-          ? { ...style, width: isCollapsed ? COLLAPSED_RAIL_WIDTH : (style?.width ?? 360) }
+          ? {
+              ...style,
+              width: isCollapsed ? COLLAPSED_RAIL_WIDTH : (style?.width ?? 360),
+              ...(isCollapsed ? side === "left"
+                ? { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
+                : { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
+                : {}),
+            }
           : style
       }
       aria-busy={loading || undefined}
@@ -166,17 +177,17 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
         <div
           className={classNames(
             "absolute z-20 flex",
-            isCollapsed ? "inset-x-0 top-2 justify-center" : "right-4 top-4",
+            isCollapsed ? "inset-x-0 top-2 justify-center" : side === "left" ? "right-4 top-4" : "left-4 top-4",
           )}
         >
           {/* The kit's one collapse toggle — the same button and chevron as
               SidePanel's. The rail folds toward its left edge. */}
           <CollapseToggleButton
             collapsed={isCollapsed}
-            edge="left"
+            edge={side}
             srLabel={isCollapsed ? expandLabel : collapseLabel}
             tooltip={isCollapsed ? expandLabel : collapseLabel}
-            tooltipPosition="right"
+            tooltipPosition={side === "left" ? "right" : "left"}
             aria-controls={timelineId}
             onClick={() => {
               const next = !isCollapsed;
@@ -196,9 +207,11 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
         <WorkflowTimeline
           controls={renderControls?.({ collapsed: isCollapsed })}
           collapsed={isCollapsed}
+          side={side}
           hasCollapseToggle={collapsible}
           renderStepPopover={renderStepPopover}
           stepPopoverProps={{
+            placement: side === "left" ? "right" : "left",
             variant: cardProps.variant,
             tone: cardProps.tone,
             corner: cardProps.corner,

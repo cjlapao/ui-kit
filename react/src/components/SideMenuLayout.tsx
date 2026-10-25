@@ -5,6 +5,8 @@ import SideMenu, {
   type SideMenuProps,
 } from "./SideMenu";
 import CustomIcon from "./CustomIcon";
+import { useKitT } from "../i18n";
+import { getSidebarSurfaceTokens } from "../theme/Theme";
 import { SideMenuActionsProvider } from "../contexts/SideMenuActionsContext";
 
 export interface SideMenuLayoutProps {
@@ -17,10 +19,14 @@ export interface SideMenuLayoutProps {
   rightSideMenuProps?: SideMenuProps;
   /**
    * Multi sidebars: an extra menu rendered next to the primary. While this is
-   * set, the primary is pinned to the hover rail (always collapsed, expands on
-   * hover) so the pair reads as one multi-sidebar rail.
+   * set, the primary defaults to a hover rail. Use multiMenuMode="joined"
+   * for a permanent icon rail next to a permanently expanded panel.
    */
   secondarySideMenuProps?: SideMenuProps;
+  /** Multi-menu presentation. Joined pins the primary to an icon rail and
+   * the secondary expanded, combining both in one responsive shell.
+   * @default "hover" */
+  multiMenuMode?: "hover" | "joined";
   /** Content rendered in the fixed header bar at the top of the main area */
   header?: React.ReactNode;
   /** Main scrollable body content */
@@ -47,6 +53,7 @@ export const SideMenuLayout = ({
   sideMenuProps,
   rightSideMenuProps,
   secondarySideMenuProps,
+  multiMenuMode = "hover",
   header,
   children,
   className,
@@ -55,8 +62,10 @@ export const SideMenuLayout = ({
   sideItemActions,
   sidePanelActions,
 }: SideMenuLayoutProps) => {
+  const t = useKitT();
   const isMobile = useSidebarIsMobile(sideMenuProps.responsive ?? true);
   const isMulti = !!secondarySideMenuProps;
+  const isJoined = isMulti && multiMenuMode === "joined";
 
   const [collapsed, setCollapsed] = useState(sideMenuProps.collapsed ?? false);
   const [rightCollapsed, setRightCollapsed] = useState(
@@ -140,12 +149,14 @@ export const SideMenuLayout = ({
     // expanding as an overlay on hover. `openOnHover` owns that state, so the
     // collapse wiring is not passed through — and since collapsing is opt-in
     // on SideMenu, the layout opts the rail in itself.
-    ...(isMulti
-      ? { collapsible: "icon" as const, openOnHover: true }
-      : {
-          collapsed: isCollapsed,
-          onToggleCollapse: handleToggleCollapse,
-        }),
+    ...(isJoined
+      ? { joinedRole: "rail" as const, responsive: false, mobileOpen: false }
+      : isMulti
+        ? { collapsible: "icon" as const, openOnHover: true }
+        : {
+            collapsed: isCollapsed,
+            onToggleCollapse: handleToggleCollapse,
+          }),
   };
 
   const rightProps: SideMenuProps = {
@@ -164,7 +175,26 @@ export const SideMenuLayout = ({
     collapsed: isSecondaryCollapsed,
     onToggleCollapse: handleSecondaryToggleCollapse,
     fullHeight: true,
+    ...(isJoined ? {
+      joinedRole: "panel" as const,
+      responsive: false,
+      mobileOpen: isMobileOpen,
+      onCloseMobile: handleCloseMobile,
+      // Surface family comes from the primary; content/accent remain independent.
+      variant: sideMenuProps.variant,
+    } : {}),
   };
+
+  const joinedSurface = isJoined && (
+    <div
+      aria-hidden="true"
+      data-joined-surface
+      className={classNames(
+        "pointer-events-none absolute inset-y-2 left-[68px] right-0 rounded-l-2xl",
+        getSidebarSurfaceTokens(sideMenuProps.variant ?? "sidebar", sideMenuProps.color ?? "blue").fill,
+      )}
+    />
+  );
 
   return (
     <SideMenuActionsProvider
@@ -173,18 +203,62 @@ export const SideMenuLayout = ({
     >
       <div
         className={classNames(
-          "flex h-full w-full overflow-hidden bg-neutral-50 dark:bg-neutral-950",
+          "relative flex h-full w-full overflow-hidden",
+          isJoined ? "bg-neutral-100 dark:bg-neutral-950" : "bg-neutral-50 dark:bg-neutral-950",
           className,
         )}
       >
-        {/* Side Menu (primary) */}
-        <SideMenu {...primaryProps} />
-
-        {/* Secondary menu (multi sidebars) */}
-        {secondarySideMenuProps && <SideMenu {...secondaryProps} />}
+        {isJoined && !isMobile && joinedSurface}
+        {isJoined ? (
+          <>
+            {isMobile && isMobileOpen && (
+              // Pointer backdrop; the close button and Escape provide keyboard dismissal.
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+              <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm" onClick={handleCloseMobile} />
+            )}
+            {/* One drawer on mobile keeps both navigation levels reachable. */}
+            {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- Escape dismissal for native controls inside */}
+            <div
+              data-joined-menu
+              inert={(isMobile && !isMobileOpen) || undefined}
+              onKeyDown={(event) => {
+                if (isMobile && event.key === "Escape") handleCloseMobile();
+              }}
+              className={classNames(
+                "flex w-[324px] max-w-[calc(100vw-1rem)] shrink-0",
+                isMobile
+                  ? "fixed inset-y-0 left-0 z-[60] flex-col bg-neutral-100 transition-transform duration-300 dark:bg-neutral-950"
+                  : "h-full",
+                isMobile && !isMobileOpen && "-translate-x-full",
+              )}
+            >
+              {isMobile && (
+                <div className="flex shrink-0 justify-end px-3 pt-2">
+                  <button type="button" onClick={handleCloseMobile} aria-label={t("kit.sidemenu.closeAria")}
+                    className="rounded-lg p-2 text-neutral-600 hover:bg-neutral-200 dark:text-neutral-300 dark:hover:bg-neutral-800">
+                    <CustomIcon icon="Close" className="h-5 w-5" />
+                  </button>
+                </div>
+              )}
+              <div className="relative flex h-full min-h-0 min-w-0 flex-1">
+                {isMobile && joinedSurface}
+                <SideMenu {...primaryProps} />
+                <SideMenu {...secondaryProps} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <SideMenu {...primaryProps} />
+            {secondarySideMenuProps && <SideMenu {...secondaryProps} />}
+          </>
+        )}
 
         {/* Main Content Area */}
-        <div className="flex flex-1 flex-col min-w-0 h-full">
+        <div className={classNames(
+          "relative flex min-w-0 flex-1 flex-col",
+          isJoined && !isMobile ? "my-2 h-[calc(100%-1rem)]" : "h-full",
+        )}>
           {/* Mobile menu toggle — same breakpoint as the menu's offcanvas mode */}
           {isMobile && (
             <div className="flex items-center gap-1 border-b border-neutral-200 bg-white px-4 py-2 dark:border-neutral-800 dark:bg-neutral-900">

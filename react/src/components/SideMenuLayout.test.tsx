@@ -110,6 +110,90 @@ describe("SideMenuLayout", () => {
     expect(screen.getByText("Second")).toBeInTheDocument();
   });
 
+  it("joined: pins both widths, suppresses collapse controls and ignores hover", () => {
+    const onToggleCollapse = vi.fn();
+    renderLayout({
+      multiMenuMode: "joined",
+      sideMenuProps: { ...MENU_PROPS, title: "Primary", openOnHover: true, collapsible: "offcanvas", collapsed: false, onToggleCollapse },
+      secondarySideMenuProps: { ...SECONDARY_PROPS, collapsed: true, openOnHover: true },
+    });
+    const rail = document.querySelector('[data-joined-role="rail"] aside')!;
+    const panel = document.querySelector('[data-joined-role="panel"] aside')!;
+    expect(rail).toHaveClass("w-[68px]");
+    expect(panel).toHaveClass("w-full", "rounded-l-2xl");
+    expect(screen.queryByTitle("Collapse sidebar")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Expand sidebar")).not.toBeInTheDocument();
+    expect(screen.getByTitle("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Second")).toBeVisible();
+    fireEvent.mouseEnter(rail);
+    expect(rail).toHaveClass("w-[68px]");
+    expect(onToggleCollapse).not.toHaveBeenCalled();
+  });
+
+  it("joined: routes selection through consumer callbacks and honors active slugs", () => {
+    const onItemSelect = vi.fn((_, event) => event.preventDefault());
+    renderLayout({
+      multiMenuMode: "joined",
+      sideMenuProps: { ...MENU_PROPS, activeItemSlug: "dash", onItemSelect },
+      secondarySideMenuProps: SECONDARY_PROPS,
+    });
+    const link = screen.getByTitle("Dashboard");
+    expect(link).toHaveAttribute("aria-current", "page");
+    fireEvent.click(link);
+    expect(onItemSelect).toHaveBeenCalledWith(expect.objectContaining({ slug: "dash" }), expect.anything());
+  });
+
+  it("joined: keeps the rail account dropdown interactive", () => {
+    const onSelect = vi.fn();
+    renderLayout({
+      multiMenuMode: "joined",
+      sideMenuProps: {
+        ...MENU_PROPS,
+        footerItem: {
+          label: "Account",
+          icon: "User",
+          menu: [{ label: "Settings", value: "settings" }],
+          onSelect,
+        },
+      },
+      secondarySideMenuProps: SECONDARY_PROPS,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Account" }));
+    fireEvent.click(screen.getByText("Settings"));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ value: "settings" }));
+    expect(document.querySelector('[data-joined-role="rail"] aside')).toHaveClass("w-[68px]");
+  });
+
+  it("joined mobile: both levels share one drawer; rail selection stays open and secondary selection dismisses", () => {
+    setViewportMobile(true);
+    renderLayout({ multiMenuMode: "joined", secondarySideMenuProps: SECONDARY_PROPS });
+    const drawer = document.querySelector("[data-joined-menu]")!;
+    expect(drawer).toHaveAttribute("inert");
+    fireEvent.click(screen.getByLabelText("Open menu"));
+    expect(drawer).not.toHaveAttribute("inert");
+    expect(drawer.querySelectorAll("aside")).toHaveLength(2);
+    fireEvent.click(screen.getByTitle("Dashboard"));
+    expect(drawer).not.toHaveAttribute("inert");
+    fireEvent.click(screen.getByText("Second"));
+    expect(drawer).toHaveAttribute("inert");
+  });
+
+  it("joined mobile: closes with Escape or the close button and restores desktop composition", () => {
+    setViewportMobile(true);
+    renderLayout({ multiMenuMode: "joined", secondarySideMenuProps: SECONDARY_PROPS });
+    const drawer = document.querySelector("[data-joined-menu]")!;
+    fireEvent.click(screen.getByLabelText("Open menu"));
+    fireEvent.keyDown(drawer, { key: "Escape" });
+    expect(drawer).toHaveAttribute("inert");
+    fireEvent.click(screen.getByLabelText("Open menu"));
+    fireEvent.click(screen.getByLabelText("Close menu"));
+    expect(drawer).toHaveAttribute("inert");
+    setViewportMobile(false);
+    expect(drawer).not.toHaveAttribute("inert");
+    expect(screen.queryByLabelText("Open menu")).not.toBeInTheDocument();
+    expect(document.querySelector('[data-joined-role="rail"] aside')).toHaveClass("w-[68px]");
+  });
+
   it("mobile: the toggle bar appears and opens the primary drawer", () => {
     setViewportMobile(true);
     renderLayout();

@@ -18,7 +18,7 @@ const workflow: WorkflowData = {
     {
       id: "test",
       label: "Tests",
-      status: "in_progress",
+      status: "running",
       description: "Integration tests are running.",
     },
     {
@@ -165,9 +165,11 @@ export default function CollapsibleRail() {
   const data = { ...workflow, activeStepId };
 
   return (
-    <div className="flex h-[480px] gap-4">
+    <div className="flex h-[480px] w-full min-w-0 gap-4">
       <WorkflowTrackerRail
         data={data}
+        side="left"
+        corner="rounded-lg"
         collapsible
         collapsed={collapsed}
         onCollapsedChange={setCollapsed}

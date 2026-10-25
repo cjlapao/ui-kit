@@ -9,42 +9,45 @@ import classNames from "classnames";
 import { warnIfMissingTitle } from "../../../common/a11y/warn";
 import { NOISE_BACKGROUND_IMAGE, getNoiseBlendClasses } from "../../../common/theme/noise";
 import IconButton from "./IconButton";
+import Panel, {
+  type PanelProps,
+  type PanelSpecularMode,
+  variantBaseStyles,
+} from "./Panel";
 import { CollapseToggleButton } from "./CollapseToggleButton";
 import { IconSize } from "../types";
 import { useKitT } from "../i18n";
 import {
   COLLAPSED_RAIL_WIDTH,
   DEFAULT_SURFACE_CORNER,
-  SIDEBAR_VARIANTS,
   getSidebarSurfaceTokens,
+  getPanelToneStyles,
   getSurfaceTextTokens,
   type ControlSize,
   type SidebarVariant,
+  type SurfaceVariant,
   type SurfaceCorner,
   type TrueColor,
 } from "../theme/Theme";
 
-/**
- * The sidebar surface family, shared with `SideMenu` — not `Panel`'s.
- *
- * A docked panel and a docked menu are the same object with different content,
- * and they were drawn from different vocabularies: `elevated`/`tonal` cards on
- * one side, `sidebar`/`floating` shells on the other. `floating` and
- * `floating-glass` bring the detached card geometry (radius + offset) that
- * makes this read as SideMenu's sibling rather than a card wedged against an
- * edge.
- */
-export { SIDEBAR_VARIANTS as SIDE_PANEL_VARIANTS };
-export type SidePanelVariant = SidebarVariant;
+/** Shared with Panel and WorkflowTrackerRail. Legacy sidebar names remain accepted. */
+export { SURFACE_VARIANTS as SIDE_PANEL_VARIANTS } from "../theme/Theme";
+export type SidePanelVariant = SurfaceVariant | SidebarVariant;
 
-/**
- * Heading / muted copy for a sidebar variant. The glass surfaces need the
- * higher-contrast step; the rest read as solid panels.
- */
+const LEGACY_PANEL_VARIANTS = {
+  sidebar: "elevated",
+  inset: "tonal",
+  floating: "elevated",
+  "floating-glass": "glass",
+} as const;
+
+const resolvePanelVariant = (variant: SidePanelVariant): SurfaceVariant =>
+  variant in LEGACY_PANEL_VARIANTS
+    ? LEGACY_PANEL_VARIANTS[variant as keyof typeof LEGACY_PANEL_VARIANTS]
+    : (variant as SurfaceVariant);
+
 export const getSidePanelTextTokens = (variant: SidePanelVariant) =>
-  getSurfaceTextTokens(
-    variant === "glass" || variant === "floating-glass" ? "glass" : "elevated",
-  );
+  getSurfaceTextTokens(resolvePanelVariant(variant));
 
 /**
  * Vertical gap for an inset panel. All of the float comes from here: the panel
@@ -175,11 +178,17 @@ export interface SidePanelProps {
   tone?: TrueColor;
   /** @deprecated Use `tone`, which is what every other component calls it. */
   color?: TrueColor;
-  /** The surface family, shared with `SideMenu`. @default "sidebar" */
+  /** Shared Panel surfaces; legacy sidebar names also accepted. @default "outlined" */
   variant?: SidePanelVariant;
+  /** Glass fill opacity, matching Panel. @default "frosted" */
+  glassOpacity?: PanelProps["glassOpacity"];
+  /** Backdrop vibrancy, matching Panel. */
+  vibrancy?: PanelProps["vibrancy"];
+  /** Highlight treatment for translucent surfaces. */
+  specularMode?: PanelSpecularMode;
   /**
    * Detach the panel from its container's edges, so it reads as a floating
-   * card rather than a wall: a gap on all four sides and rounded corners.
+   * card rather than a wall: top/bottom gaps and content-facing rounded corners.
    *
    * Defaults to whatever the variant implies — `floating` and `floating-glass`
    * carry an offset in their own tokens, exactly as they do on `SideMenu`, so
@@ -275,7 +284,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   maxWidth = 900,
   tone,
   color,
-  variant = "sidebar",
+  variant = "outlined",
+  glassOpacity,
+  vibrancy,
+  specularMode,
   surfaceTone = "neutral",
   size = "md",
   side = "right",
@@ -295,7 +307,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   warnIfMissingTitle("SidePanel", title);
   const effectiveTone = tone ?? color ?? "neutral";
   const sizeToken = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
-  const surface = getSidebarSurfaceTokens(variant, surfaceTone);
+  const legacyVariant = variant in LEGACY_PANEL_VARIANTS;
+  const panelVariant = resolvePanelVariant(variant);
+  // Shadows/rings belong outside the clipping shell; the decorative Panel
+  // supplies the fill, border, blur and highlights inside its rounded bounds.
+  const panelOuterChrome = classNames(
+    variantBaseStyles[panelVariant]
+      .split(" ")
+      .filter((token) => /^(dark:)?(shadow|ring)-/.test(token)),
+    panelVariant === "liquid-glass" && getPanelToneStyles(surfaceTone).liquidShadow,
+  );
+  const surface = getSidebarSurfaceTokens(
+    legacyVariant ? (variant as SidebarVariant) : "sidebar",
+    surfaceTone,
+  );
   const surfaceText = getSidePanelTextTokens(variant);
   // `offset` is how SideMenu marks a detached variant, so it is the honest
   // default for "should this float?" rather than a second list to keep in sync.
@@ -538,8 +563,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           isInset ? INSET_GAP_Y_CLASS : "top-0 h-full",
           side === "right" ? "right-0" : "left-0",
           cornerClass,
-          borderClass,
-          shadowClass,
+          legacyVariant && borderClass,
+          legacyVariant ? shadowClass : panelOuterChrome,
         )}
         style={{
           width: entered ? shellWidth : 0,
@@ -570,10 +595,24 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           data-sp-fill="true"
           className={classNames(
             "pointer-events-none absolute inset-0",
-            surface.fill,
+            legacyVariant && surface.fill,
             cornerClass,
           )}
-        />
+        >
+          {!legacyVariant && (
+            <Panel
+              variant={panelVariant}
+              tone={surfaceTone}
+              glassOpacity={glassOpacity}
+              vibrancy={vibrancy}
+              specularMode={specularMode}
+              padding="none"
+              corner="none"
+              className="h-full w-full"
+              style={{ borderRadius: "inherit" }}
+            />
+          )}
+        </div>
         {/* Dither-noise layer — over the fill, under the content (which is
           `relative`), so it reads as a background grain. Multiply in light
           (overlay is a no-op on a white base), overlay in dark — the same

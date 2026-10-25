@@ -8,6 +8,7 @@ import { WorkflowTrackerDetails } from "./WorkflowTrackerDetails";
 import { WorkflowTrackerRollups } from "./WorkflowTrackerRollups";
 import { sampleWorkflow } from "./sampleWorkflow";
 import SidePanel from "../SidePanel";
+import WorkflowStatusNode from "./WorkflowStatusNode";
 import type { WorkflowData } from "./types";
 
 const gateData: WorkflowData = {
@@ -159,7 +160,7 @@ describe("WorkflowTrackerRail — standalone", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("preserves the selected status circle inside a neutral rounded highlight", () => {
+  it("uses a light hover-only tile around the compact status circle", () => {
     render(
       <WorkflowTrackerRail
         data={gateData}
@@ -172,12 +173,25 @@ describe("WorkflowTrackerRail — standalone", () => {
       name: "Approval gate — Attention",
     });
     expect(step).toHaveClass(
-      "bg-neutral-200",
-      "dark:bg-neutral-700",
+      "hover:bg-neutral-100",
+      "dark:hover:bg-white/5",
       "rounded-xl",
     );
+    expect(step).not.toHaveClass("bg-neutral-200", "dark:bg-neutral-700");
     expect(step.querySelector(".rounded-full.border-2")).not.toBeNull();
     expect(step.querySelector(".ring-offset-2")).toBeNull();
+  });
+
+  it.each(["left", "right"] as const)("rounds content-facing corners on the %s edge and restores expanded geometry", (side) => {
+    const { container, rerender } = render(
+      <WorkflowTrackerRail collapsible collapsed side={side} corner="rounded-lg" />,
+    );
+    const panel = container.querySelector("section")!;
+    expect(panel.style[side === "left" ? "borderTopLeftRadius" : "borderTopRightRadius"]).toBe("0px");
+    expect(panel).toHaveClass("rounded-3xl");
+    rerender(<WorkflowTrackerRail collapsible collapsed={false} side={side} corner="rounded-lg" />);
+    expect(panel.style.borderTopLeftRadius).toBe("");
+    expect(panel.style.borderTopRightRadius).toBe("");
   });
 
   it("derives progress, tallies and the legend from data", () => {
@@ -506,5 +520,18 @@ describe("WorkflowTrackerRail — collapse toggle matches SidePanel's", () => {
     expect(chevron().getAttribute("class")).toContain("rotate-180");
     fireEvent.click(screen.getByRole("button", { name: "Collapse workflow rail" }));
     expect(chevron().getAttribute("class")).not.toContain("rotate-180");
+  });
+});
+
+
+describe("Workflow status pulse", () => {
+  it.each([true, false])("animates only running steps with compact=%s", (compact) => {
+    const palette = { accent: "blue", attention: "rose", blocked: "amber", muted: "neutral", translucent: false } as const;
+    const { container, rerender } = render(<WorkflowStatusNode status="running" palette={palette} size={compact ? "sm" : "md"} />);
+    expect(container.querySelector(".animate-ping")).toHaveClass("dark:bg-blue-400", "motion-reduce:hidden");
+    for (const status of ["done", "in_progress", "blocked", "attention", "skipped", "not_started"] as const) {
+      rerender(<WorkflowStatusNode status={status} palette={palette} size={compact ? "sm" : "md"} />);
+      expect(container.querySelector(".animate-ping")).toBeNull();
+    }
   });
 });

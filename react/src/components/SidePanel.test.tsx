@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import SidePanel from "./SidePanel";
+import SidePanel, { SIDE_PANEL_VARIANTS } from "./SidePanel";
 import { COLLAPSED_RAIL_WIDTH } from "../theme/Theme";
 
 describe("SidePanel", () => {
@@ -57,7 +57,7 @@ describe("SidePanel", () => {
       </SidePanel>,
     );
     const fill = container.querySelector("[data-sp-fill]") as HTMLElement;
-    expect(fill.className).toContain("backdrop-blur");
+    expect(fill.innerHTML).toContain("backdrop-blur");
     expect(fill.className).toContain("rounded-l-");
 
     // …and the content sits above it, transparent, so header/body/footer are
@@ -91,12 +91,33 @@ describe("SidePanel — the shared design language", () => {
     expect(container.innerHTML).toContain("shadow");
   });
 
-  it("draws from SideMenu's surface family, not Panel's", async () => {
-    // A docked panel and a docked menu are the same object; they used to be
-    // dressed from different vocabularies.
+  it("shares the Panel and workflow rail variant family", async () => {
     const { SIDE_PANEL_VARIANTS } = await import("./SidePanel");
-    const { SIDEBAR_VARIANTS } = await import("../theme/Theme");
-    expect([...SIDE_PANEL_VARIANTS]).toEqual([...SIDEBAR_VARIANTS]);
+    const { SURFACE_VARIANTS } = await import("../theme/Theme");
+    expect(SIDE_PANEL_VARIANTS).toBe(SURFACE_VARIANTS);
+  });
+
+  it.each(SIDE_PANEL_VARIANTS)("keeps docking, resizing and collapse behavior with %s", (variant) => {
+    const { container } = render(
+      <SidePanel isOpen title="Details" variant={variant} side="left"
+        inset corner="rounded-lg" collapsible resizable width={420}>
+        <input aria-label="Draft" defaultValue="Keep me" />
+      </SidePanel>,
+    );
+    const shell = container.querySelector("[data-sp-shell]") as HTMLElement;
+    expect(shell.className).toContain("left-0");
+    expect(shell.className).toContain("inset-y-4");
+    expect(shell.className).toContain("rounded-r-3xl");
+    expect(container.querySelector("[data-sp-fill] section")?.getAttribute("data-variant")).toBe(variant);
+    const separator = screen.getByRole("separator");
+    fireEvent.keyDown(separator, { key: "ArrowRight" });
+    expect(separator.getAttribute("aria-valuenow")).toBe("440");
+    fireEvent.click(screen.getByRole("button", { name: /collapse/i }));
+    expect(shell.style.width).toBe(`${COLLAPSED_RAIL_WIDTH}px`);
+    expect(screen.queryByRole("separator")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /expand/i }));
+    expect(shell.style.width).toBe("440px");
+    expect((screen.getByRole("textbox", { name: "Draft" }) as HTMLInputElement).value).toBe("Keep me");
   });
 
   // ── Inset ──────────────────────────────────────────────────────────────

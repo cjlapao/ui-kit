@@ -81,7 +81,7 @@ export const getStatusTokens = (
   const STATUS_STYLES: Record<WorkflowStatus, WorkflowStatusTokens> = {
     done: {
       tone: accent,
-      node: `bg-${accent}-500 dark:bg-${accent}-400 border-2 border-${accent}-500 dark:border-${accent}-500`,
+      node: `bg-${accent}-500 border-2 border-${accent}-500`,
       glyph: "check",
       glyphClass: "text-white",
       connector: `bg-${accent}-500 dark:bg-${accent}-500`,
