@@ -874,6 +874,22 @@ export const DEFAULT_SURFACE_CORNER: Exclude<SurfaceCorner, "auto"> =
  */
 export const COLLAPSED_RAIL_WIDTH = 56;
 
+/**
+ * Timing for a panel opening, collapsing or expanding along its docked axis —
+ * SidePanel and the WorkflowTracker rail share it so they move as one family.
+ * 300ms `ease-in-out` read as a snap: ease-in-out spends its speed in the
+ * middle and arrives abruptly. This curve front-loads the motion and settles
+ * slowly, which is what reads as smooth. Applied inline (the easing would
+ * otherwise have to survive the safelist).
+ */
+export const PANEL_SLIDE_DURATION_MS = 450;
+export const PANEL_SLIDE_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
+/** `transition` value for the given properties on the shared panel curve. */
+export const panelSlideTransition = (...properties: string[]): string =>
+  properties
+    .map((property) => `${property} ${PANEL_SLIDE_DURATION_MS}ms ${PANEL_SLIDE_EASING}`)
+    .join(", ");
+
 export const DEFAULT_CONTROL_CORNER: Exclude<SurfaceCorner, "auto"> =
   "rounded-lg";
 

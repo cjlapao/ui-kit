@@ -18,7 +18,8 @@ import {
 /** Shared Panel surfaces plus the existing floating compatibility names.
  * The default keeps the original sidebar-aligned header seam. */
 export { SURFACE_VARIANTS as PAGE_HEADER_VARIANTS } from "../theme/Theme";
-export type PageHeaderVariant = SurfaceVariant | "floating" | "floating-glass";
+/** `none` (alias `plain`) paints nothing — the groups sit on whatever is behind. */
+export type PageHeaderVariant = SurfaceVariant | "floating" | "floating-glass" | "none" | "plain";
 
 export interface PageHeaderProps extends React.HTMLAttributes<HTMLElement> {
   /**
@@ -133,7 +134,8 @@ export const PageHeader = ({
   // axis reproduces the menu's `m-2` on that side exactly — and the corner
   // leaves it only when the caller turns that knob; the default produces
   // the same class.
-  const sharedSurface = variant !== "default" && variant !== "floating" && variant !== "floating-glass";
+  const plain = variant === "none" || variant === "plain";
+  const sharedSurface = !plain && variant !== "default" && variant !== "floating" && variant !== "floating-glass";
   const surface = variant === "floating" || variant === "floating-glass"
     ? getSidebarSurfaceTokens(variant, accentColor) : null;
 
@@ -167,7 +169,7 @@ export const PageHeader = ({
               surface.shadow,
               surface.fill,
             )
-          : !sharedSurface && classNames("border-b", SIDE_MENU_HEADER_FILL, SIDE_MENU_HEADER_SEAM),
+          : !sharedSurface && !plain && classNames("border-b", SIDE_MENU_HEADER_FILL, SIDE_MENU_HEADER_SEAM),
         className,
       )}
     >

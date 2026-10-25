@@ -815,6 +815,7 @@ export {
   type SidePanelProps,
   type SidePanelVariant,
   type SidePanelSide,
+  type SidePanelDockSide,
 } from "./SidePanel";
 
 // TimelinePanel
@@ -889,4 +890,4 @@ export * from "./chart";
 // Terminal
 export * from "./Terminal";
 
-export { PageBodyLayout, type PageBodyLayoutProps, type PageBodyRegion, type PageBodyRegionContext, type PageBodyRegionSide } from "./PageBodyLayout";
+export { PageBodyLayout, PAGE_BODY_LAYOUT_VARIANTS, type PageBodyLayoutProps, type PageBodyLayoutVariant, type PageBodyRegionSide } from "./PageBodyLayout";

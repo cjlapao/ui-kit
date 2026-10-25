@@ -38,8 +38,10 @@ export interface CollapseToggleButtonProps
   /**
    * The edge the region folds toward. The chevron points the way the region
    * will move: toward this edge to collapse, away from it to expand.
+   * `top` / `bottom` are for regions that fold vertically (a docked
+   * bottom panel collapsing to its header).
    */
-  edge: "left" | "right";
+  edge: "left" | "right" | "top" | "bottom";
 }
 
 /**
@@ -54,14 +56,22 @@ export const CollapseToggleButton: React.FC<CollapseToggleButtonProps> = ({
   size = "sm",
   ...rest
 }) => {
-  const flipped = edge === "right" ? collapsed : !collapsed;
+  // The glyph points right at rest; each edge is a quarter turn of it.
+  // Pointing toward the edge collapses, pointing away expands.
+  const towardEdge = !collapsed;
+  const rotation = {
+    right: towardEdge ? "" : "rotate-180",
+    left: towardEdge ? "rotate-180" : "",
+    bottom: towardEdge ? "rotate-90" : "-rotate-90",
+    top: towardEdge ? "-rotate-90" : "rotate-90",
+  }[edge];
   return (
     <IconButton
       icon={
         <CollapseChevron
           className={classNames(
             "transition-transform duration-200 motion-reduce:transition-none",
-            flipped && "rotate-180",
+            rotation,
           )}
         />
       }

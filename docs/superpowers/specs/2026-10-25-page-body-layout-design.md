@@ -1,13 +1,13 @@
 # Page body layout
 
-Approved arrangement: header above a body with full-height left/right regions, a centre, and a bottom region beneath only the centre. Regions reserve space in normal flow. Each collapses independently; the right and bottom resize by pointer and keyboard by default. The left may opt into resizing.
+Approved arrangement: header above a body with full-height left/right zones, a centre, and a bottom zone beneath only the centre.
 
-PageBodyLayout accepts header/left/right/bottom/children. Region configuration provides an accessible label, node or render function, initial or controlled size/collapse, bounds, collapsed dimension, resize option and toggle visibility. Render functions receive collapsed/setCollapsed/size to integrate the workflow rail's existing control. Static content remains mounted but hidden/inert when collapsed. Expanded dimensions survive collapse. Optional slots may be omitted.
+**The layout is zones only.** `left`, `right` and `bottom` are plain nodes. The layout holds no state: no collapse, no sizes, no toggles, no resize handles. Each zone is a `shrink-0` flex item sized by its content; the centre is `flex-1` and takes the rest. Left/right zones stretch content to the body's height, the bottom zone to the centre's width. `false`/`null` omit a zone. A `gap` (default 8px) separates zones as cards.
 
-The layout uses the shared Panel surface variants. Consumers give it a bounded height; centre and regions scroll independently. Minimum centre dimensions are preserved by allowing the workspace to scroll when the container cannot fit all regions. Right arrows and bottom arrows mirror pointer motion; Home/End choose limits. Drag completion, cancellation and unmount restore document cursor and selection styles.
+Controls own their behaviour. `WorkflowTrackerRail` collapses and animates its own width. `SidePanel` with `docked` sits in flow at its own `width` (or `height` for `side="bottom"`, docked-only), animates its own collapse, and renders its own resize handle on the edge facing the content. A docked bottom panel folds to its measured header height and expands upward.
 
-SidePanel's new docked option fills its assigned region in flow and suppresses its own overlay/resize handle. The layout owns dimensions and collapse controls for these docked panels. Existing overlay usage retains its behavior.
+The layout uses the shared Panel surface variants. Consumers give it a bounded height; centre and zones scroll independently. The row is floored at `min-width: fit-content` so the centre's minimum width makes a tight container scroll rather than overlap a zone.
 
-PageHeader gains the shared surface family, tone and glass options using Panel for surface rendering. Existing default/floating/floating-glass treatments retain compatibility. Existing start/center/end and gutter APIs remain available. Shared variant names are exported through PAGE_HEADER_VARIANTS.
+PageHeader gains the shared surface family, tone and glass options using Panel for surface rendering.
 
-A documentation page demonstrates a real collapsible workflow rail, centre activity, a resizable Files panel and a resizable Terminal beneath the centre, with shared variant selection. Tests cover structure, pointer/keyboard resize, controlled state, mounted child preservation, shared header variants and docked panel semantics.
+A documentation page demonstrates a collapsible workflow rail, centre activity, a resizable docked Files SidePanel and a resizable bottom-docked Terminal SidePanel, with shared variant selection.

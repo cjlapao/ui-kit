@@ -498,9 +498,27 @@ describe("SidePanel — the resize handle", () => {
     // there too — a short centred pill was only visible in the middle.
     expect(handle.className).toContain("inset-y-0");
     const pill = handle.firstElementChild as HTMLElement;
-    expect(pill.className).toContain("inset-y-2");
+    // Default corner is rounded-md (2xl, 16px): the line stops where it curves.
+    expect(pill.className).toContain("inset-y-4");
     expect(pill.className).toContain("rounded-full");
     expect(pill.className).toContain("group-hover:opacity-70");
+  });
+
+  it("insets the resize line by the corner radius on every side", () => {
+    const cases = [
+      ["right", "none", "inset-y-0"],
+      ["left", "rounded-sm", "inset-y-2"],
+      ["top", "rounded-lg", "inset-x-6"],
+      ["bottom", "rounded-xl", "inset-x-8"],
+    ] as const;
+    for (const [side, corner, inset] of cases) {
+      const { container, unmount } = render(
+        <SidePanel isOpen resizable side={side} corner={corner} title="D" />,
+      );
+      const line = container.querySelector("[data-sp-handle]")!.firstElementChild as HTMLElement;
+      expect(line.className).toContain(inset);
+      unmount();
+    }
   });
 
   it("deepens the grip while it is being dragged", () => {
@@ -616,12 +634,12 @@ describe("SidePanel resize grip", () => {
     );
     const { grip, rest } = parts(container);
     expect(grip.getAttribute("aria-hidden")).toBe("true");
-    // Barely there: a short pill, centred vertically, neutral and faint at rest.
+    // A short pill, centred vertically: a quiet neutral at rest, but solid.
     expect(grip.className).toContain("top-1/2");
     expect(grip.className).toContain("-translate-y-1/2");
     expect(grip.className).toContain("h-10");
-    expect(rest.className).toContain("bg-neutral-400");
-    expect(rest.className).toContain("opacity-40");
+    expect(rest.className).toContain("bg-neutral-300");
+    expect(rest.className).toContain("opacity-100");
   });
 
   it("the bar is thinner than the grip, and both are centred on the panel edge", () => {
@@ -642,12 +660,16 @@ describe("SidePanel resize grip", () => {
   it("on hover the grip stays, taking the bar's colour — a bulge on the line", () => {
     const { container } = render(<SidePanel isOpen resizable tone="violet" title="V" />);
     const { bar, rest, active } = parts(container);
-    // The neutral layer hands over to a layer painted exactly like the bar.
+    // The neutral layer hands over to one in the bar's colour — but solid,
+    // where the bar itself is a 70% line.
     expect(rest.className).toContain("group-hover:opacity-0");
-    for (const cls of ["bg-violet-400", "opacity-0", "group-hover:opacity-70", "group-active:opacity-100"]) {
+    for (const cls of ["bg-violet-400", "opacity-0", "group-hover:opacity-70"]) {
       expect(bar.className).toContain(cls);
+    }
+    for (const cls of ["bg-violet-400", "opacity-0", "group-hover:opacity-100"]) {
       expect(active.className).toContain(cls);
     }
+    expect(active.className).not.toContain("opacity-70");
   });
 
   it("while dragging the grip deepens with the bar", () => {
@@ -813,13 +835,135 @@ describe("SidePanel handle while collapsing", () => {
 });
 
 
-it("fills a docked layout region and immediately unmounts when closed", () => {
-  const { container, rerender } = render(<SidePanel docked isOpen overlay resizable title="Docked">Content</SidePanel>);
-  const shell = container.querySelector("[data-sp-shell]")!;
-  expect(shell).toHaveStyle({ width: "100%" });
-  expect(shell).toHaveClass("relative");
-  expect(container.querySelector("[data-sp-handle]")).toBeNull();
-  expect(container.querySelector("[data-sp-content]")).toHaveStyle({ width: "100%" });
+it("sits in flow when docked, at its own width, and unmounts when closed", () => {
+  const { container, rerender } = render(<SidePanel docked isOpen overlay width={300} title="Docked">Content</SidePanel>);
+  const shell = container.querySelector("[data-sp-shell]") as HTMLElement;
+  expect(container.firstChild).toHaveAttribute("data-sp-dock");
+  expect(shell).toHaveClass("relative", "h-full", "shrink-0");
+  expect(shell.style.width).toBe("300px");
+  // No scrim in flow: there is nothing to cover.
+  expect(container.querySelector(".bg-black\\/20")).toBeNull();
   rerender(<SidePanel docked isOpen={false} title="Docked" />);
   expect(container.firstChild).toBeNull();
+});
+
+it("resizes a docked panel with its own handle, on the edge facing the content", () => {
+  render(<SidePanel docked isOpen resizable width={300} minWidth={200} maxWidth={400} title="Files">Content</SidePanel>);
+  const handle = screen.getByRole("separator", { name: "Resize panel" });
+  expect(handle.style.right).toBe("300px");
+  fireEvent.keyDown(handle, { key: "ArrowLeft" });
+  expect(handle).toHaveAttribute("aria-valuenow", "320");
+  fireEvent.mouseDown(handle, { clientX: 500 });
+  fireEvent.mouseMove(window, { clientX: 460 });
+  fireEvent.mouseUp(window);
+  expect(handle).toHaveAttribute("aria-valuenow", "360");
+  expect(document.body.style.cursor).toBe("");
+});
+
+it("resizes a docked bottom panel upward by its top edge", () => {
+  const { container } = render(<SidePanel docked side="bottom" isOpen resizable height={200} minHeight={120} maxHeight={300} title="Terminal">Out</SidePanel>);
+  const shell = container.querySelector("[data-sp-shell]") as HTMLElement;
+  expect(shell).toHaveClass("w-full");
+  expect(shell.style.height).toBe("200px");
+  const handle = screen.getByRole("separator", { name: "Resize panel" });
+  expect(handle).toHaveAttribute("aria-orientation", "horizontal");
+  expect(handle.style.bottom).toBe("200px");
+  fireEvent.keyDown(handle, { key: "ArrowUp" });
+  expect(shell.style.height).toBe("220px");
+  fireEvent.mouseDown(handle, { clientY: 400 });
+  fireEvent.mouseMove(window, { clientY: 300 });
+  fireEvent.mouseUp(window);
+  expect(handle).toHaveAttribute("aria-valuenow", "300");
+  fireEvent.keyDown(handle, { key: "Home" });
+  expect(shell.style.height).toBe("120px");
+});
+
+it("rounds every corner when docked, like the workflow rail", () => {
+  const { container } = render(<SidePanel docked isOpen side="left" corner="rounded-md" title="Docked">Content</SidePanel>);
+  expect(container.querySelector("[data-sp-shell]")).toHaveClass("rounded-2xl");
+});
+
+it("folds a docked bottom panel to a labelled strip and expands it upward", () => {
+  const onCollapsedChange = vi.fn();
+  const { container, rerender } = render(
+    <SidePanel docked side="bottom" isOpen collapsible collapsed={false} onCollapsedChange={onCollapsedChange} title="Terminal"><p>Output</p></SidePanel>,
+  );
+  const toggle = screen.getByRole("button", { name: "Collapse panel" });
+  expect(toggle.querySelector("[data-collapse-chevron]")).toHaveClass("rotate-90");
+  fireEvent.click(toggle);
+  expect(onCollapsedChange).toHaveBeenCalledWith(true);
+  rerender(<SidePanel docked side="bottom" isOpen collapsible collapsed onCollapsedChange={onCollapsedChange} title="Terminal"><p>Output</p></SidePanel>);
+  // Like the side rail: only the expand chevron and the label, laid along a
+  // strip as tall as the rail is wide; the full panel stays mounted but inert.
+  const shell = container.querySelector("[data-sp-shell]") as HTMLElement;
+  expect(shell.style.height).toBe(`${COLLAPSED_RAIL_WIDTH}px`);
+  const strip = container.querySelector("[data-sp-collapsed]") as HTMLElement;
+  expect(strip).toHaveClass("flex-row");
+  expect(strip.querySelector("[data-sp-collapsed-label]")).toHaveTextContent("Terminal");
+  expect(strip.querySelector("[data-sp-collapsed-label]")?.className).not.toContain("vertical-rl");
+  const expand = screen.getByRole("button", { name: "Expand panel" });
+  expect(expand).toHaveAttribute("aria-expanded", "false");
+  expect(expand.querySelector("[data-collapse-chevron]")).toHaveClass("-rotate-90");
+  expect(container.querySelector("[data-sp-content]")).toHaveAttribute("inert");
+  expect(screen.getByText("Output")).toBeInTheDocument();
+});
+
+describe("SidePanel — top and bottom", () => {
+  it("slides a bottom overlay up from its edge at its own height", () => {
+    const { container } = render(<SidePanel isOpen side="bottom" height={180} title="Logs">Out</SidePanel>);
+    const shell = container.querySelector("[data-sp-shell]") as HTMLElement;
+    expect(shell).toHaveClass("absolute", "bottom-0", "left-0", "w-full", "rounded-t-2xl");
+    expect(shell.style.height).toBe("180px");
+    expect(shell.style.transition).toContain("height");
+  });
+
+  it("floats an inset top overlay off its side edges", () => {
+    const { container } = render(<SidePanel isOpen side="top" inset title="Search">Out</SidePanel>);
+    expect(container.querySelector("[data-sp-shell]")).toHaveClass("top-0", "inset-x-4", "rounded-b-2xl");
+  });
+
+  it("folds a top panel to a labelled strip with an upward chevron, and grows it downward", () => {
+    const { container } = render(<SidePanel docked side="top" isOpen collapsible resizable height={200} minHeight={100} maxHeight={300} title="Filters">Body</SidePanel>);
+    const handle = screen.getByRole("separator", { name: "Resize panel" });
+    expect(handle.style.top).toBe("200px");
+    fireEvent.keyDown(handle, { key: "ArrowDown" });
+    expect(handle).toHaveAttribute("aria-valuenow", "220");
+    fireEvent.mouseDown(handle, { clientY: 300 });
+    fireEvent.mouseMove(window, { clientY: 340 });
+    fireEvent.mouseUp(window);
+    expect(handle).toHaveAttribute("aria-valuenow", "260");
+    const toggle = screen.getByRole("button", { name: "Collapse panel" });
+    expect(toggle.querySelector("[data-collapse-chevron]")).toHaveClass("-rotate-90");
+    fireEvent.click(toggle);
+    expect(container.querySelector("[data-sp-collapsed-label]")).toHaveTextContent("Filters");
+    expect(screen.getByRole("button", { name: "Expand panel" })).toBeInTheDocument();
+    // A top panel's content hangs off its bottom edge, so opening slides it down.
+    expect(container.querySelector("[data-sp-content]")).toHaveClass("absolute", "bottom-0");
+  });
+});
+
+describe("SidePanel — inset", () => {
+  it("keeps inset={true} at the original 16px gap", () => {
+    const { container } = render(<SidePanel isOpen inset title="D">Out</SidePanel>);
+    expect(container.querySelector("[data-sp-shell]")).toHaveClass("inset-y-4");
+  });
+
+  it("takes a size from the padding scale, on the axis beside the docked edge", () => {
+    const { container, rerender } = render(<SidePanel isOpen resizable inset="sm" title="D">Out</SidePanel>);
+    expect(container.querySelector("[data-sp-shell]")).toHaveClass("inset-y-2");
+    expect(container.querySelector("[data-sp-handle]")).toHaveClass("inset-y-2");
+    rerender(<SidePanel isOpen resizable side="bottom" inset="xl" title="D">Out</SidePanel>);
+    expect(container.querySelector("[data-sp-shell]")).toHaveClass("inset-x-8");
+    expect(container.querySelector("[data-sp-handle]")).toHaveClass("inset-x-8");
+    rerender(<SidePanel isOpen inset="none" title="D">Out</SidePanel>);
+    expect(container.querySelector("[data-sp-shell]")).toHaveClass("top-0", "h-full");
+  });
+
+  it("pads a docked panel's wrapper, so it is shorter than its zone", () => {
+    const { container, rerender } = render(<SidePanel docked isOpen resizable inset="md" title="D">Out</SidePanel>);
+    expect(container.querySelector("[data-sp-dock]")).toHaveClass("py-4");
+    expect(container.querySelector("[data-sp-handle]")).toHaveClass("inset-y-4");
+    rerender(<SidePanel docked isOpen side="bottom" inset="lg" title="D">Out</SidePanel>);
+    expect(container.querySelector("[data-sp-dock]")).toHaveClass("px-6");
+  });
 });

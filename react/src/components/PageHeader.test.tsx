@@ -230,3 +230,11 @@ it("renders shared panel variants while preserving the header regions", async ()
     unmount();
   }
 });
+
+it.each(["none", "plain"] as const)("paints nothing in the %s variant", (variant) => {
+  const { container } = render(<PageHeader variant={variant} start="Title" />);
+  const header = container.querySelector("header")!;
+  expect(header.className).not.toMatch(/border-b|bg-/);
+  expect(container.querySelector("[data-variant]")).toBeNull();
+  expect(screen.getByText("Title")).toBeInTheDocument();
+});

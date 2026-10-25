@@ -3,6 +3,7 @@ import {
   Button,
   ColorSwatches,
   SidePanel,
+  SIDE_PANEL_SIDES,
   SIDE_PANEL_VARIANTS,
   SURFACE_CORNERS,
 } from "@cjlapao/ui-kit";
@@ -11,6 +12,7 @@ import type {
   SidePanelSide,
   SidePanelVariant,
   SurfaceCorner,
+  SurfacePadding,
   TrueColor,
 } from "@cjlapao/ui-kit";
 import {
@@ -20,7 +22,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
-import { controlSizeOptions } from "../../shared/options";
+import { controlSizeOptions, panelPaddingOptions } from "../../shared/options";
 
 export const SidePanelPlayground: React.FC = () => {
   const [open, setOpen] = useState(true);
@@ -35,12 +37,12 @@ export const SidePanelPlayground: React.FC = () => {
   const [overlay, setOverlay] = useState(false);
   const [withFooter, setWithFooter] = useState(true);
   /**
-   * Tri-state, not a toggle. `inset` is optional and defaults from the
-   * variant — `floating` and `floating-glass` float on their own — so a
-   * boolean here would send `false` forever and no variant would ever reach
+   * "auto" plus the padding scale, not a toggle. `inset` is optional and
+   * defaults from the variant — `floating` and `floating-glass` float on
+   * their own — so always sending a value would mean no variant ever reached
    * its own default. That is exactly what made `floating` look unpadded.
    */
-  const [inset, setInset] = useState<"auto" | "on" | "off">("auto");
+  const [inset, setInset] = useState<"auto" | SurfacePadding>("auto");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
 
   return (
@@ -102,18 +104,14 @@ export const SidePanelPlayground: React.FC = () => {
                       label="Inset"
                       options={[
                         { label: "auto (from variant)", value: "auto" },
-                        { label: "on", value: "on" },
-                        { label: "off", value: "off" },
+                        ...panelPaddingOptions,
                       ]}
                       value={inset}
-                      onChange={(v) => setInset(v as "auto" | "on" | "off")}
+                      onChange={(v) => setInset(v as "auto" | SurfacePadding)}
                     />
                     <ChoiceControl
                       label="Side"
-                      options={[
-                        { label: "right", value: "right" },
-                        { label: "left", value: "left" },
-                      ]}
+                      options={SIDE_PANEL_SIDES.map((v) => ({ label: v, value: v }))}
                       value={side}
                       onChange={(v) => setSide(v as SidePanelSide)}
                     />
@@ -170,8 +168,11 @@ export const SidePanelPlayground: React.FC = () => {
           </p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
             Uses the same surface variants as <code>Panel</code> and the workflow
-            rail. <strong>Inset</strong> adds a top and bottom gap while keeping
-            the panel docked to its edge. Corner sizing, resizing, and collapse
+            rail. <strong>Inset</strong> adds a gap from the padding scale on the
+            two edges beside the docked one, so the panel is a little shorter
+            (or narrower) than its container — docked or overlaid. <strong>Top</strong> and <strong>bottom</strong> run the
+            same open, collapse and resize motion on the height axis, folding to
+            the header when collapsed. Corner sizing, resizing, and collapse
             controls work with every variant. Legacy <code>floating</code> and
             <code>floating-glass</code> names still imply inset positioning.
           </p>
@@ -210,9 +211,10 @@ export const SidePanelPlayground: React.FC = () => {
             collapsible={collapsible}
             collapsedLabel="Inspector"
             noise={noise}
-            inset={inset === "auto" ? undefined : inset === "on"}
+            inset={inset === "auto" ? undefined : inset}
             corner={corner}
             width={280}
+            height={200}
             footer={
               withFooter ? (
                 <div className="flex justify-end gap-2">

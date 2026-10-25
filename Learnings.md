@@ -1145,3 +1145,23 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   search), the CSS Color 4 way.
 - Lock the templates with golden strings: the generator must reproduce every
   original hand-written CSS string byte for byte before anything consumes it.
+
+## PageBodyLayout / docked SidePanel (2026-10-25)
+
+- A layout must not own behaviour its children already have. Giving the
+  layout collapse state, toggles and resize handles duplicated what the rail
+  and SidePanel do themselves (two expand icons, a toggle outside the panel).
+  Rule: the layout is zones sized by content; collapsible/resizable controls
+  animate and resize themselves in flow and the centre follows.
+- A flex column with `min-w-0` lets its child's inline `minWidth` overflow
+  into the neighbouring zone instead of scrolling. Put the minimum on the
+  flex item itself and floor the row at `min-width: fit-content`.
+- The react demo imports the built `react/dist/index.css`, not the kit
+  sources. A utility class new to the kit renders as nothing until
+  `npm run build` in `react/`, while classes that already existed keep
+  working — so the failure looks geometric (0px-wide line, square corners, a
+  grip fallen to the top of its box), not like missing styles. Rebuild before
+  judging the demo, and measure with getComputedStyle when it looks half-styled.
+- A resize line on a rounded panel must inset by the corner radius on the
+  edge it runs along, or it runs past the curve. Map it from the same corner
+  scale (`BAR_INSET` beside `INNER_CORNER`), never a fixed inset.

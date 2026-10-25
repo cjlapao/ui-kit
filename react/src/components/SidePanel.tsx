@@ -20,6 +20,9 @@ import { useKitT } from "../i18n";
 import {
   COLLAPSED_RAIL_WIDTH,
   DEFAULT_SURFACE_CORNER,
+  PANEL_SLIDE_DURATION_MS,
+  PANEL_SLIDE_EASING,
+  getSurfaceCornerClass,
   getSidebarSurfaceTokens,
   getPanelToneStyles,
   getSurfaceTextTokens,
@@ -27,6 +30,7 @@ import {
   type SidebarVariant,
   type SurfaceVariant,
   type SurfaceCorner,
+  type SurfacePadding,
   type TrueColor,
 } from "../theme/Theme";
 
@@ -55,8 +59,32 @@ export const getSidePanelTextTokens = (variant: SidePanelVariant) =>
  * reads as the panel having come loose rather than as a card lifting off the
  * container. A first attempt split the gap across both and the edge side was
  * simply too small to notice.
+ *
+ * Per `inset` size: `y` for a left/right overlay, `x` for a top/bottom one,
+ * and the matching padding for a docked panel's wrapper. `md` (16px) is what
+ * `inset={true}` and the floating variants have always used.
  */
-const INSET_GAP_Y_CLASS = "inset-y-4";
+const INSET_GAP: Record<ControlSize, { x: string; y: string; px: string; py: string }> = {
+  xs: { x: "inset-x-1", y: "inset-y-1", px: "px-1", py: "py-1" },
+  sm: { x: "inset-x-2", y: "inset-y-2", px: "px-2", py: "py-2" },
+  md: { x: "inset-x-4", y: "inset-y-4", px: "px-4", py: "py-4" },
+  lg: { x: "inset-x-6", y: "inset-y-6", px: "px-6", py: "py-6" },
+  xl: { x: "inset-x-8", y: "inset-y-8", px: "px-8", py: "py-8" },
+};
+
+/** Rules on the edges you can see — never the one against the container. */
+const INSET_BORDER = {
+  right: "border-y border-l",
+  left: "border-y border-r",
+  top: "border-x border-b",
+  bottom: "border-x border-t",
+} as const;
+const FLUSH_BORDER = {
+  right: "border-l",
+  left: "border-r",
+  top: "border-b",
+  bottom: "border-t",
+} as const;
 
 /**
  * Only the corners facing the content are rounded — the two on the docked edge
@@ -68,36 +96,52 @@ const INSET_GAP_Y_CLASS = "inset-y-4";
  * written out per side rather than composed because Tailwind only sees class
  * names it can read literally in the source.
  */
+/**
+ * The resize line's inset along its edge — each corner's radius (sm 4px, lg
+ * 8px, 2xl 16px, 3xl 24px, 4xl 32px), so the line meets the corner where its
+ * curve begins. `y` for left/right panels, `x` for top/bottom.
+ */
+const BAR_INSET: Record<Exclude<SurfaceCorner, "auto">, { x: string; y: string }> = {
+  none: { x: "inset-x-0", y: "inset-y-0" },
+  rounded: { x: "inset-x-1", y: "inset-y-1" },
+  "rounded-sm": { x: "inset-x-2", y: "inset-y-2" },
+  "rounded-md": { x: "inset-x-4", y: "inset-y-4" },
+  "rounded-lg": { x: "inset-x-6", y: "inset-y-6" },
+  "rounded-xl": { x: "inset-x-8", y: "inset-y-8" },
+};
+
 const INNER_CORNER: Record<
   Exclude<SurfaceCorner, "auto">,
   Record<SidePanelSide, string>
 > = {
   // (`"auto"` is absent by design: SidePanel's own default is `rounded`, and
   // corner lookups below resolve it to the theme default.)
-  none: { right: "", left: "" },
-  rounded: { right: "rounded-l-sm", left: "rounded-r-sm" },
-  "rounded-sm": { right: "rounded-l-lg", left: "rounded-r-lg" },
-  "rounded-md": { right: "rounded-l-2xl", left: "rounded-r-2xl" },
-  "rounded-lg": { right: "rounded-l-3xl", left: "rounded-r-3xl" },
-  "rounded-xl": { right: "rounded-l-4xl", left: "rounded-r-4xl" },
+  none: { right: "", left: "", top: "", bottom: "" },
+  rounded: { right: "rounded-l-sm", left: "rounded-r-sm", top: "rounded-b-sm", bottom: "rounded-t-sm" },
+  "rounded-sm": { right: "rounded-l-lg", left: "rounded-r-lg", top: "rounded-b-lg", bottom: "rounded-t-lg" },
+  "rounded-md": { right: "rounded-l-2xl", left: "rounded-r-2xl", top: "rounded-b-2xl", bottom: "rounded-t-2xl" },
+  "rounded-lg": { right: "rounded-l-3xl", left: "rounded-r-3xl", top: "rounded-b-3xl", bottom: "rounded-t-3xl" },
+  "rounded-xl": { right: "rounded-l-4xl", left: "rounded-r-4xl", top: "rounded-b-4xl", bottom: "rounded-t-4xl" },
 };
 
-/** Which edge the panel is docked to. */
-export const SIDE_PANEL_SIDES = ["left", "right"] as const;
+/**
+ * Which edge the panel is docked to. `top` and `bottom` run the same motion on
+ * the height axis: they open from the edge, fold to their header when
+ * collapsed, and resize from the edge facing the content.
+ */
+export const SIDE_PANEL_SIDES = ["left", "right", "top", "bottom"] as const;
 export type SidePanelSide = (typeof SIDE_PANEL_SIDES)[number];
+/** @deprecated Every side now works docked and as an overlay; use `SidePanelSide`. */
+export type SidePanelDockSide = SidePanelSide;
 
 /**
  * Header padding and type scale, from the shared control scale. Both were
  * fixed at the `md` values, so a compact panel and a roomy one were the same
  * panel.
  */
-/**
- * Width animation. 300ms with `ease-in-out` still read as a snap, because
- * ease-in-out spends its speed in the middle and arrives abruptly; this curve
- * front-loads the motion and settles slowly, which is what reads as "smooth".
- */
-const OPEN_DURATION_MS = 450;
-const OPEN_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
+/** Open/collapse timing — the kit's shared panel curve (see `PANEL_SLIDE_EASING`). */
+const OPEN_DURATION_MS = PANEL_SLIDE_DURATION_MS;
+const OPEN_EASING = PANEL_SLIDE_EASING;
 
 const SIZE_TOKENS: Record<
   ControlSize,
@@ -144,7 +188,12 @@ const SIZE_TOKENS: Record<
 export interface SidePanelProps {
   /** Whether the panel is open */
   isOpen: boolean;
-  /** Fill a layout region in normal flow. The parent owns resizing and space. */
+  /**
+   * Sit in normal flow (for example a `PageBodyLayout` zone) instead of
+   * overlaying the container. The panel keeps its own size, collapse
+   * animation and resize handle; the space around it follows. Left/right
+   * fill the parent's height, `bottom` its width.
+   */
   docked?: boolean;
   /**
    * Called when the user clicks the close button (or the overlay scrim). A
@@ -158,6 +207,12 @@ export interface SidePanelProps {
   subtitle?: React.ReactNode;
   /** Width of the panel in px (default: 420) */
   width?: number;
+  /** Height in px of a `top` / `bottom` panel. @default 240 */
+  height?: number;
+  /** Minimum height in px of a resizable `top` / `bottom` panel. @default 120 */
+  minHeight?: number;
+  /** Maximum height in px of a resizable `top` / `bottom` panel. @default 600 */
+  maxHeight?: number;
   /** Optional icon rendered to the left of the title */
   icon?: React.ReactNode;
   /** Extra nodes rendered in the header next to the close button */
@@ -190,13 +245,17 @@ export interface SidePanelProps {
   specularMode?: PanelSpecularMode;
   /**
    * Detach the panel from its container's edges, so it reads as a floating
-   * card rather than a wall: top/bottom gaps and content-facing rounded corners.
+   * card rather than a wall: a gap on the two edges beside the docked one —
+   * top/bottom for a left/right panel, left/right for a top/bottom one — so
+   * the panel is a little shorter (or narrower) than its container. Works
+   * docked and as an overlay. `true` is `md` (16px); a size picks the gap
+   * from the shared padding scale; `false` / `"none"` sits flush.
    *
    * Defaults to whatever the variant implies — `floating` and `floating-glass`
    * carry an offset in their own tokens, exactly as they do on `SideMenu`, so
    * they are inset unless you say otherwise. Everything else sits flush.
    */
-  inset?: boolean;
+  inset?: boolean | SurfacePadding;
   /**
    * Corner size, applied to the two corners facing the content. The shared
    * `SurfaceCorner` scale `Panel` takes, so the two land on the same radii.
@@ -236,7 +295,9 @@ export interface SidePanelProps {
   /**
    * Let the user fold the panel to a rail: a chevron in the header collapses
    * it to `COLLAPSED_RAIL_WIDTH` (the WorkflowTracker rail's width), showing
-   * an expand chevron and the title running vertically. @default false
+   * an expand chevron and the title running vertically. A `top` / `bottom`
+   * panel folds to a strip that tall, with the chevron and title laid along
+   * it. @default false
    */
   collapsible?: boolean;
   /** Controlled collapse state; only applies when `collapsible`. */
@@ -256,7 +317,7 @@ export interface SidePanelProps {
 }
 
 /**
- * SidePanel — slides in from either edge as an overlay inside its container.
+ * SidePanel — slides in from any edge as an overlay inside its container.
  *
  * It is `position: absolute`, so it needs a positioned ancestor and fills that
  * box rather than the viewport. (The docstring used to claim `fixed`, which it
@@ -277,6 +338,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   subtitle,
   icon,
   width = 420,
+  height = 240,
+  minHeight = 120,
+  maxHeight = 600,
   headerActions,
   footer,
   children,
@@ -308,6 +372,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const t = useKitT();
   // a11y (P1-2): an unnamed panel is an unidentifiable landmark/region.
   warnIfMissingTitle("SidePanel", title);
+  // Top and bottom panels animate, collapse and resize on the height axis.
+  const vertical = side === "top" || side === "bottom";
   const effectiveTone = tone ?? color ?? "neutral";
   const sizeToken = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
   const legacyVariant = variant in LEGACY_PANEL_VARIANTS;
@@ -327,26 +393,31 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const surfaceText = getSidePanelTextTokens(variant);
   // `offset` is how SideMenu marks a detached variant, so it is the honest
   // default for "should this float?" rather than a second list to keep in sync.
-  const isInset = inset ?? surface.offset !== "";
-  const cornerClass =
-    INNER_CORNER[corner === "auto" ? DEFAULT_SURFACE_CORNER : corner][side];
+  const insetValue = inset ?? surface.offset !== "";
+  const insetSize: ControlSize | null =
+    insetValue === true ? "md" : insetValue === false || insetValue === "none" ? null : insetValue;
+  const isInset = insetSize !== null;
+  const insetGap = insetSize ? INSET_GAP[insetSize] : null;
+  // Docked, the panel is a card in its own region with nothing flush against
+  // it, so every corner rounds — the same shape as the WorkflowTracker rail.
+  const cornerClass = docked
+    ? getSurfaceCornerClass(corner)
+    : INNER_CORNER[corner === "auto" ? DEFAULT_SURFACE_CORNER : corner][side];
   // Inset outlines the three edges you can actually see; the docked one is
   // still flush against the container, so a rule there would double up with
   // whatever the container draws.
   const borderClass = surface.border
     ? `${surface.border} ${
-        isInset
-          ? side === "right"
-            ? "border-y border-l"
-            : "border-y border-r"
+        docked
+          ? "border"
+          : isInset
+          ? INSET_BORDER[side]
           : surface.borderSides === "all"
             ? "border"
-            : side === "right"
-              ? "border-l"
-              : "border-r"
+            : FLUSH_BORDER[side]
       }`
     : "";
-  const shadowClass = side === "left" ? surface.shadow : surface.shadowRight;
+  const shadowClass = side === "right" ? surface.shadowRight : surface.shadow;
   // Mount immediately on open so the opening animation can play.
   // Unmount only after the closing animation finishes (onTransitionEnd).
   const [mounted, setMounted] = useState(isOpen);
@@ -409,12 +480,13 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     // transitionend bubbles: the resize handle's opacity fade would otherwise
     // unmount the panel mid-close.
     if (event.target !== event.currentTarget) return;
-    if (event.propertyName !== "width") return;
+    if (event.propertyName !== (vertical ? "height" : "width")) return;
     if (!isOpen) setMounted(false);
   };
 
   // ── Resizing ──────────────────────────────────────────────────────────────
   const [currentWidth, setCurrentWidth] = useState(width);
+  const [currentHeight, setCurrentHeight] = useState(height);
   const isDraggingRef = useRef(false);
   /**
    * Mirrors `isDraggingRef` for rendering. The ref is what the mouse handlers
@@ -430,6 +502,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   useEffect(() => {
     if (!isDraggingRef.current) setCurrentWidth(width);
   }, [width]);
+  useEffect(() => {
+    if (!isDraggingRef.current) setCurrentHeight(height);
+  }, [height]);
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -437,10 +512,21 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       e.preventDefault();
       isDraggingRef.current = true;
       setIsDragging(true);
-      startXRef.current = e.clientX;
-      startWidthRef.current = currentWidth;
+      startXRef.current = vertical ? e.clientY : e.clientX;
+      startWidthRef.current = vertical ? currentHeight : currentWidth;
 
       const onMouseMove = (ev: MouseEvent) => {
+        // A bottom panel grows as the pointer moves up, a top one as it moves down.
+        if (vertical) {
+          const delta =
+            side === "bottom"
+              ? startXRef.current - ev.clientY
+              : ev.clientY - startXRef.current;
+          setCurrentHeight(
+            Math.min(maxHeight, Math.max(minHeight, startWidthRef.current + delta)),
+          );
+          return;
+        }
         // A right-docked panel grows as the pointer moves left; a left-docked
         // one grows as it moves right. The delta was hardcoded for the right,
         // so resizing a left panel ran backwards.
@@ -455,7 +541,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         setCurrentWidth(next);
       };
       document.body.style.userSelect = "none";
-      document.body.style.cursor = "col-resize";
+      document.body.style.cursor = vertical ? "row-resize" : "col-resize";
       const onMouseUp = () => {
         isDraggingRef.current = false;
         setIsDragging(false);
@@ -467,10 +553,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
     },
-    [resizable, currentWidth, minWidth, maxWidth, side],
+    [resizable, vertical, currentWidth, currentHeight, minWidth, maxWidth, minHeight, maxHeight, side],
   );
 
   const resolvedWidth = resizable ? currentWidth : width;
+  const resolvedHeight = resizable ? currentHeight : height;
 
   // ── Collapsing ────────────────────────────────────────────────────────────
   const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
@@ -482,6 +569,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   };
   // What the shell is drawn at once open: the rail, or the panel's width.
   const shellWidth = isCollapsed ? COLLAPSED_RAIL_WIDTH : resolvedWidth;
+  // Top/bottom fold to a strip as tall as the side rail is wide.
+  const shellHeight = isCollapsed ? COLLAPSED_RAIL_WIDTH : resolvedHeight;
   // The kit's one collapse toggle (shared with the WorkflowTracker rail), at
   // the close button's size so it takes its place exactly.
   const collapseButton = (label: string) => (
@@ -501,30 +590,30 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     (e: React.KeyboardEvent) => {
       if (!resizable) return;
       const step = 20;
-      const grow =
-        side === "right" ? e.key === "ArrowLeft" : e.key === "ArrowRight";
-      const shrink =
-        side === "right" ? e.key === "ArrowRight" : e.key === "ArrowLeft";
+      // Arrows mirror the pointer: the key pointing away from the docked
+      // edge grows the panel.
+      const growKey = { right: "ArrowLeft", left: "ArrowRight", bottom: "ArrowUp", top: "ArrowDown" }[side];
+      const shrinkKey = { right: "ArrowRight", left: "ArrowLeft", bottom: "ArrowDown", top: "ArrowUp" }[side];
+      const grow = e.key === growKey;
+      const shrink = e.key === shrinkKey;
+      const [min, max, current, set] = vertical
+        ? [minHeight, maxHeight, currentHeight, setCurrentHeight]
+        : [minWidth, maxWidth, currentWidth, setCurrentWidth];
       if (e.key === "Home") {
         e.preventDefault();
-        setCurrentWidth(minWidth);
+        set(min);
         return;
       }
       if (e.key === "End") {
         e.preventDefault();
-        setCurrentWidth(maxWidth);
+        set(max);
         return;
       }
       if (!grow && !shrink) return;
       e.preventDefault();
-      setCurrentWidth(
-        Math.min(
-          maxWidth,
-          Math.max(minWidth, currentWidth + (grow ? step : -step)),
-        ),
-      );
+      set(Math.min(max, Math.max(min, current + (grow ? step : -step))));
     },
-    [resizable, side, currentWidth, minWidth, maxWidth],
+    [resizable, vertical, side, currentWidth, currentHeight, minWidth, maxWidth, minHeight, maxHeight],
   );
 
   if (!mounted || (docked && !isOpen)) return null;
@@ -532,14 +621,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // The handle rides the panel's outer edge, so it tracks the same value the
   // width animates to — and carries the same transition, or it would jump to
   // its final position while the panel was still opening.
-  const edgeOffset = entered ? shellWidth : 0;
+  const edgeOffset = entered ? (vertical ? shellHeight : shellWidth) : 0;
   // The resize bar and the grip's active layer share one paint: hover reveals
   // it, dragging deepens the tone as well as the opacity, so "grabbed" reads
   // differently from "pointer happens to be here".
   const barTone = isDragging
     ? `opacity-100 bg-${effectiveTone}-500`
     : `bg-${effectiveTone}-400 opacity-0 group-hover:opacity-70 group-active:opacity-100`;
-  const edgeProperty = side === "right" ? "right" : "left";
+  // The grip is solid in every state: same paint as the bar, at full strength.
+  const gripTone = isDragging
+    ? `opacity-100 bg-${effectiveTone}-500`
+    : `bg-${effectiveTone}-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100`;
+  // The handle sits on the panel's inner edge: offset from the docked edge by
+  // the panel's own size, so the CSS property is simply the side.
+  const edgeProperty = side;
   const handleStyle: React.CSSProperties = {
     [edgeProperty]: edgeOffset,
     transition: isDragging
@@ -555,22 +650,29 @@ export const SidePanel: React.FC<SidePanelProps> = ({
    */
   const handleParked = isCollapsed;
 
-  return (
+  const panel = (
     <>
       <div
         ref={shellRef}
         data-sp-shell
         data-collapsed={collapsible ? isCollapsed : undefined}
         className={classNames(
-          docked ? "relative h-full w-full overflow-hidden" : "absolute z-40 overflow-hidden",
-          !docked && (isInset ? INSET_GAP_Y_CLASS : "top-0 h-full"),
-          side === "right" ? "right-0" : "left-0",
+          docked
+            ? classNames("relative shrink-0 overflow-hidden", vertical ? "w-full" : "h-full")
+            : "absolute z-40 overflow-hidden",
+          !docked &&
+            (vertical
+              ? insetGap ? insetGap.x : "left-0 w-full"
+              : insetGap ? insetGap.y : "top-0 h-full"),
+          !docked && { right: "right-0", left: "left-0", top: "top-0", bottom: "bottom-0" }[side],
           cornerClass,
           legacyVariant && borderClass,
           legacyVariant ? shadowClass : panelOuterChrome,
         )}
         style={{
-          width: docked ? "100%" : entered ? shellWidth : 0,
+          ...(vertical
+            ? { height: entered ? shellHeight : 0 }
+            : { width: entered ? shellWidth : 0 }),
           // Inline rather than `transition-[width] duration-… ease-…`: an
           // arbitrary easing utility would have to survive the safelist, and
           // this curve is not themeable anyway. It decelerates hard at the end,
@@ -579,7 +681,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           // rather than lagging a third of a second behind it.
           transition: isDragging
             ? undefined
-            : `width ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+            : `${vertical ? "height" : "width"} ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
         }}
         onTransitionEnd={handleTransitionEnd}
       >
@@ -637,7 +739,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           width animation, it just gets clipped. Anchoring it to the edge the
           panel is docked against turns that clip into a slide: a left panel
           must hang off its own right edge, a right panel off its left (the
-          default), or the reveal reads as a wipe. Transparent: the fill is the
+          default), or the reveal reads as a wipe. The same on the height
+          axis: a top panel hangs off its bottom edge, a bottom panel off its
+          top (the default). Transparent: the fill is the
           layer above, so header, body and footer are all rounded by one
           container instead of each having to know about corners. */}
         {/* Consumer passthrough (React.KeyboardEventHandler), not the
@@ -650,12 +754,16 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           inert={isCollapsed || undefined}
           aria-hidden={isCollapsed || undefined}
           className={classNames(
-            "relative flex h-full flex-col transition-opacity duration-200 motion-reduce:transition-none",
+            "flex flex-col transition-opacity duration-200 motion-reduce:transition-none",
+            side === "top" ? "absolute inset-x-0 bottom-0" : "relative h-full",
             side === "left" && "ml-auto",
             isCollapsed && "opacity-0",
             className,
           )}
-          style={{ width: docked ? "100%" : resolvedWidth }}
+          // Fixed at the target size so the content clips rather than
+          // squishing while the shell animates; a bottom panel keeps its
+          // header at the top as it folds.
+          style={vertical ? { height: resolvedHeight } : { width: resolvedWidth }}
           onKeyDown={onKeyDown}
         >
           {/* ── Header ─────────────────────────────────────────────── */}
@@ -691,7 +799,10 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               )}
             </div>
             <div className="flex shrink-0 items-center gap-1 pt-0.5">
-              {collapsible && collapseButton(t("kit.sidepanel.collapse"))}
+              {collapsible &&
+                collapseButton(
+                  t("kit.sidepanel.collapse"),
+                )}
               {headerActions}
               {onClose && !collapsible && (
                 <IconButton
@@ -719,22 +830,27 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           )}
         </div>
 
-        {/* ── Collapsed rail — the expand chevron and the label, vertical ── */}
+        {/* ── Collapsed rail — the expand chevron and the label. A side
+            panel's runs down the rail with vertical text; a top/bottom
+            panel's is the same pair laid along a strip. ── */}
         {isCollapsed && (
           <div
             data-sp-collapsed
             className={classNames(
-              "absolute inset-y-0 flex flex-col items-center gap-3 py-3",
-              side === "right" ? "left-0" : "right-0",
+              "absolute flex items-center gap-3",
+              vertical
+                ? "inset-x-0 top-0 flex-row px-3"
+                : classNames("inset-y-0 flex-col py-3", side === "right" ? "left-0" : "right-0"),
             )}
-            style={{ width: COLLAPSED_RAIL_WIDTH }}
+            style={vertical ? { height: COLLAPSED_RAIL_WIDTH } : { width: COLLAPSED_RAIL_WIDTH }}
           >
             {collapseButton(t("kit.sidepanel.expand"))}
             {(collapsedLabel ?? title) && (
               <span
                 data-sp-collapsed-label
                 className={classNames(
-                  "min-h-0 truncate text-xs font-semibold uppercase tracking-[0.2em] [writing-mode:vertical-rl]",
+                  "truncate text-xs font-semibold uppercase tracking-[0.2em]",
+                  vertical ? "min-w-0" : "min-h-0 [writing-mode:vertical-rl]",
                   surfaceText.muted,
                 )}
               >
@@ -778,7 +894,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           area with a `rounded-full` pill inside. The pill runs nearly the full
           height because the edge is grabbed at whatever point the pointer
           happens to be at, so the affordance has to be visible there too. */}
-      {resizable && !docked && (
+      {resizable && (
         // ARIA 1.2 resizable separator: focusable (tabIndex), arrow keys /
         // Home / End resize, aria-valuenow|min|max report the width. Parked
         // (collapsed), it drops the role and every aria-* and leaves the tab
@@ -789,15 +905,18 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           onKeyDown={handleParked ? undefined : onSeparatorKeyDown}
           role={handleParked ? undefined : "separator"}
           aria-hidden={handleParked || undefined}
-          aria-orientation={handleParked ? undefined : "vertical"}
+          aria-orientation={handleParked ? undefined : vertical ? "horizontal" : "vertical"}
           aria-label={handleParked ? undefined : t("kit.sidepanel.resize")}
-          aria-valuenow={handleParked ? undefined : resolvedWidth}
-          aria-valuemin={handleParked ? undefined : minWidth}
-          aria-valuemax={handleParked ? undefined : maxWidth}
+          aria-valuenow={handleParked ? undefined : vertical ? resolvedHeight : resolvedWidth}
+          aria-valuemin={handleParked ? undefined : vertical ? minHeight : minWidth}
+          aria-valuemax={handleParked ? undefined : vertical ? maxHeight : maxWidth}
           tabIndex={handleParked ? -1 : 0}
           className={classNames(
-            "group absolute z-40 w-3 cursor-col-resize bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500",
-            isInset ? INSET_GAP_Y_CLASS : "inset-y-0",
+            "group absolute z-40 bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500",
+            vertical ? "h-3 cursor-row-resize" : "w-3 cursor-col-resize",
+            vertical
+              ? insetGap ? insetGap.x : "inset-x-0"
+              : insetGap ? insetGap.y : "inset-y-0",
             handleParked && "pointer-events-none opacity-0",
           )}
           style={handleStyle}
@@ -812,8 +931,16 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             className={classNames(
               // A hairline bar, centred on the panel edge (2px wide at -1px),
               // so the grip below sits on it as a bulge on one centre line.
-              "absolute inset-y-2 w-0.5 rounded-full transition duration-150",
-              side === "right" ? "-right-px" : "-left-px",
+              // Inset by the corner radius, so the line stops where the
+              // rounded corner starts instead of running past the curve.
+              "absolute rounded-full transition duration-150",
+              BAR_INSET[corner === "auto" ? DEFAULT_SURFACE_CORNER : corner][vertical ? "x" : "y"],
+              {
+                right: "w-0.5 -right-px",
+                left: "w-0.5 -left-px",
+                bottom: "h-0.5 -bottom-px",
+                top: "h-0.5 -top-px",
+              }[side],
               barTone,
             )}
           />
@@ -829,25 +956,47 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             aria-hidden="true"
             data-sp-grip
             className={classNames(
-              "pointer-events-none absolute top-1/2 h-10 w-1 -translate-y-1/2",
-              side === "right" ? "-right-0.5" : "-left-0.5",
+              "pointer-events-none absolute",
+              vertical
+                ? classNames("left-1/2 h-1 w-10 -translate-x-1/2", side === "bottom" ? "-bottom-0.5" : "-top-0.5")
+                : classNames("top-1/2 h-10 w-1 -translate-y-1/2", side === "right" ? "-right-0.5" : "-left-0.5"),
             )}
           >
             <span
               data-sp-grip-rest
               className={classNames(
-                "absolute inset-0 rounded-full bg-neutral-400 transition-opacity duration-150 dark:bg-neutral-500",
-                isDragging ? "opacity-0" : "opacity-40 group-hover:opacity-0 group-focus-visible:opacity-0",
+                "absolute inset-0 rounded-full bg-neutral-300 transition-opacity duration-150 dark:bg-neutral-600",
+                isDragging ? "opacity-0" : "opacity-100 group-hover:opacity-0 group-focus-visible:opacity-0",
               )}
             />
             <span
               data-sp-grip-active
-              className={classNames("absolute inset-0 rounded-full transition duration-150", barTone)}
+              className={classNames("absolute inset-0 rounded-full transition duration-150", gripTone)}
             />
           </span>
         </div>
       )}
     </>
+  );
+
+  // Docked, the shell and its handle share a positioned box the size of the
+  // panel, so the handle rides the panel's inner edge exactly as it rides the
+  // container's in the overlay case — and the zone around it sizes to it.
+  return docked ? (
+    <div
+      data-sp-dock
+      className={classNames(
+        "relative flex shrink-0",
+        vertical ? "w-full flex-col" : "h-full",
+        // Inset docked: the gap is padding on the wrapper, so the panel is
+        // shorter (narrower) than its zone; the handle matches it above.
+        insetGap && (vertical ? insetGap.px : insetGap.py),
+      )}
+    >
+      {panel}
+    </div>
+  ) : (
+    panel
   );
 };
 

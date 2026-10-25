@@ -3,7 +3,7 @@ import classNames from "classnames";
 
 import Panel from "../Panel";
 import { CollapseToggleButton } from "../CollapseToggleButton";
-import { COLLAPSED_RAIL_WIDTH } from "../../theme/Theme";
+import { COLLAPSED_RAIL_WIDTH, panelSlideTransition } from "../../theme/Theme";
 import type { PopoverProps } from "../Popover";
 import WorkflowTimeline from "./WorkflowTimeline";
 import {
@@ -26,8 +26,8 @@ export interface WorkflowTrackerRailControlsContext {
 }
 
 export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
-  /** Docked edge. Collapsed corners face the content; expanded corners keep
-   * the shared corner scale. Also mirrors the toggle and step popovers. */
+  /** Docked edge. With `collapsible` (and `flush`), only the corners facing
+   * the content round. Also mirrors the toggle and step popovers. */
   side?: "left" | "right";
   /** Content below the steps, inside the rail's scroll area. Render a component
    * here to preserve its local state as `collapsed` changes. The consumer owns
@@ -45,6 +45,14 @@ export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
   onCollapsedChange?: (collapsed: boolean) => void;
   /** Fills a parent with a defined height and scrolls the timeline internally. */
   fillHeight?: boolean;
+  /**
+   * A `collapsible` rail is docked to `side`: square the corners on that edge,
+   * expanded and collapsed, so only the corners facing the content round —
+   * the same shape as an overlay `SidePanel`. Turn off when the rail is a
+   * free-standing card (for example in `PageBodyLayout`'s gutter, beside
+   * docked SidePanels that round every corner). @default true
+   */
+  flush?: boolean;
   /** Accessible toggle copy. @default "Expand workflow rail" */
   expandLabel?: string;
   /** Accessible toggle copy. @default "Collapse workflow rail" */
@@ -109,6 +117,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   defaultCollapsed = false,
   onCollapsedChange,
   fillHeight = false,
+  flush = true,
   expandLabel = "Expand workflow rail",
   collapseLabel = "Collapse workflow rail",
   renderStepPopover,
@@ -152,8 +161,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
       scrollable={false}
       flexBody={scrollBody}
       className={classNames(
-        collapsible &&
-          "max-w-full shrink-0 transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
+        collapsible && "max-w-full shrink-0",
         fillHeight && "h-full min-h-0 self-stretch",
         className,
         cardClassName,
@@ -161,9 +169,13 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
       style={
         collapsible
           ? {
+              // SidePanel's curve, not `duration-200 ease-in-out` (which read
+              // as a snap). Padding rides it too: collapsing drops it to none,
+              // and snapping it mid-sweep was a visible jump.
+              transition: panelSlideTransition("width", "padding"),
               ...style,
               width: isCollapsed ? COLLAPSED_RAIL_WIDTH : (style?.width ?? 360),
-              ...(isCollapsed ? side === "left"
+              ...(flush ? side === "left"
                 ? { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
                 : { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
                 : {}),

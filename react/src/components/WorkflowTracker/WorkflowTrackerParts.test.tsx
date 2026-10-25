@@ -8,6 +8,7 @@ import { WorkflowTrackerDetails } from "./WorkflowTrackerDetails";
 import { WorkflowTrackerRollups } from "./WorkflowTrackerRollups";
 import { sampleWorkflow } from "./sampleWorkflow";
 import SidePanel from "../SidePanel";
+import { PANEL_SLIDE_DURATION_MS, PANEL_SLIDE_EASING } from "../../theme/Theme";
 import WorkflowStatusNode from "./WorkflowStatusNode";
 import type { WorkflowData } from "./types";
 
@@ -182,16 +183,25 @@ describe("WorkflowTrackerRail — standalone", () => {
     expect(step.querySelector(".ring-offset-2")).toBeNull();
   });
 
-  it.each(["left", "right"] as const)("rounds content-facing corners on the %s edge and restores expanded geometry", (side) => {
+  it.each(["left", "right"] as const)("rounds only the content-facing corners on the %s edge, expanded and collapsed", (side) => {
+    const docked = side === "left" ? "borderTopLeftRadius" : "borderTopRightRadius";
+    const facing = side === "left" ? "borderTopRightRadius" : "borderTopLeftRadius";
     const { container, rerender } = render(
       <WorkflowTrackerRail collapsible collapsed side={side} corner="rounded-lg" />,
     );
     const panel = container.querySelector("section")!;
-    expect(panel.style[side === "left" ? "borderTopLeftRadius" : "borderTopRightRadius"]).toBe("0px");
+    expect(panel.style[docked]).toBe("0px");
+    expect(panel.style[facing]).toBe("");
     expect(panel).toHaveClass("rounded-3xl");
+    // Like an overlay SidePanel: the docked edge stays square when expanded too.
     rerender(<WorkflowTrackerRail collapsible collapsed={false} side={side} corner="rounded-lg" />);
-    expect(panel.style.borderTopLeftRadius).toBe("");
-    expect(panel.style.borderTopRightRadius).toBe("");
+    expect(panel.style[docked]).toBe("0px");
+    expect(panel.style[facing]).toBe("");
+  });
+
+  it("keeps every corner when not collapsible — it is not docked to an edge", () => {
+    const { container } = render(<WorkflowTrackerRail side="left" corner="rounded-lg" />);
+    expect(container.querySelector("section")!.style.borderTopLeftRadius).toBe("");
   });
 
   it("derives progress, tallies and the legend from data", () => {
@@ -533,5 +543,28 @@ describe("Workflow status pulse", () => {
       rerender(<WorkflowStatusNode status={status} palette={palette} size={compact ? "sm" : "md"} />);
       expect(container.querySelector(".animate-ping")).toBeNull();
     }
+  });
+});
+
+describe("WorkflowTrackerRail — flush", () => {
+  it("squares the docked-edge corners unless flush is off", () => {
+    const { container, rerender } = render(<WorkflowTrackerRail collapsible />);
+    const card = () => container.querySelector("[data-collapsed]") as HTMLElement;
+    expect(card().style.borderTopLeftRadius).toBe("0px");
+    rerender(<WorkflowTrackerRail collapsible defaultCollapsed flush={false} />);
+    expect(card().style.borderTopLeftRadius).toBe("");
+  });
+});
+
+describe("WorkflowTrackerRail — motion", () => {
+  it("collapses on SidePanel's curve, with padding riding the same transition", () => {
+    const { container } = render(<WorkflowTrackerRail collapsible />);
+    const rail = container.querySelector("[data-collapsed]") as HTMLElement;
+    const panel = render(<SidePanel isOpen title="P" />).container.querySelector("[data-sp-shell]") as HTMLElement;
+    expect(rail.style.transition).toContain(PANEL_SLIDE_EASING);
+    expect(rail.style.transition).toContain(`width ${PANEL_SLIDE_DURATION_MS}ms`);
+    expect(rail.style.transition).toContain(`padding ${PANEL_SLIDE_DURATION_MS}ms`);
+    expect(panel.style.transition).toBe(`width ${PANEL_SLIDE_DURATION_MS}ms ${PANEL_SLIDE_EASING}`);
+    expect(rail.className).not.toContain("duration-200");
   });
 });
