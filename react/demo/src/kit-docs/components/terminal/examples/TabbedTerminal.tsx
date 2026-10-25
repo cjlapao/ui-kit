@@ -4,6 +4,7 @@ import {
   type TerminalSession,
   type TerminalTabsHandle,
   type TerminalSurfaceProps,
+  type TerminalScheme,
 } from "@cjlapao/ui-kit";
 
 const prompt = "\x1b[90m~/code/workspace\x1b[0m \x1b[33m(main)\x1b[0m $ ";
@@ -11,7 +12,9 @@ const welcome =
   "\x1b[36mTab · terminal\x1b[0m\r\nLocal echo demo. Try help, colors, pwd or clear.\r\n\r\n";
 
 /** Replace onData with your transport's send(), and stream received bytes via getSession(id).write(). */
-export default function TabbedTerminal(props: TerminalSurfaceProps) {
+export default function TabbedTerminal(
+  props: TerminalSurfaceProps & { scheme?: TerminalScheme },
+) {
   const terminal = useRef<TerminalTabsHandle>(null);
   const counter = useRef(2);
   const lines = useRef(new Map<string, string>());

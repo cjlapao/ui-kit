@@ -6,5 +6,5 @@
    matches either an element with .dark itself or a descendant of .dark,
    so dark: classes cascade through the whole app when <html class="dark">.
    Kit CSS (dist/index.css) already provides .dark classes via
-   @custom-variant dark (&:where(.dark, .dark *)); */
-@custom-variant dark (&:where(.dark, .dark *));
+   @custom-variant dark (&:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *))); */
+@custom-variant dark (&:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *)));

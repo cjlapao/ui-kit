@@ -1,3 +1,4 @@
+import classNames from "classnames";
 import {
   forwardRef,
   useEffect,
@@ -69,11 +70,14 @@ export const TerminalTabs = forwardRef<TerminalTabsHandle, TerminalTabsProps>(
     return (
       <Panel
         {...surface}
+        data-color-scheme={scheme ?? "auto"}
+        className={classNames(surface.className, scheme === "dark" && "dark")}
         {...{ variant, tone, padding }}
         flexBody
         scrollable={false}
         style={{
           height,
+          colorScheme: scheme === "auto" ? undefined : scheme,
           ...({
             "--terminal-tab-color": `var(--color-${tone}-600)`,
             "--terminal-tab-text": `var(--color-${tone}-800)`,

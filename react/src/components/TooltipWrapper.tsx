@@ -77,6 +77,7 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
   const triggerRectRef = useRef<DOMRect | null>(null);
 
   const [visible, setVisible] = useState(false);
+  const [colorScheme, setColorScheme] = useState<string | null>(null);
   // `null` until the tooltip has been measured, which is also the "not yet
   // positioned, keep it hidden" signal — otherwise there is a one-frame flash
   // at the wrong place near a viewport edge.
@@ -155,6 +156,11 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
     (e: React.MouseEvent | React.FocusEvent) => {
       // No text → no tooltip; still forward the original handler.
       if (text) {
+        setColorScheme(
+          (e.currentTarget as Element)
+            .closest("[data-color-scheme]")
+            ?.getAttribute("data-color-scheme") ?? null,
+        );
         triggerRectRef.current = (
           e.currentTarget as Element
         ).getBoundingClientRect();
@@ -217,6 +223,7 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
             ref={tooltipRef}
             id={tooltipId}
             role="tooltip"
+            data-color-scheme={colorScheme ?? undefined}
             data-side={side}
             style={{
               position: "fixed",
@@ -228,6 +235,7 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
             className={classNames(
               "pointer-events-none max-w-xs rounded-md px-2.5 py-1.5 text-xs leading-snug",
               tokens.box,
+              colorScheme === "dark" && "dark",
             )}
           >
             {text}

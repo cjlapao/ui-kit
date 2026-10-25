@@ -63,6 +63,15 @@ beforeEach(() => {
 });
 
 describe("Terminal", () => {
+  it.each(["light", "dark"] as const)("scopes the %s scheme to the standalone surface", async scheme => {
+    const { container } = render(<Terminal scheme={scheme} className="consumer-class" />);
+    expect(container.firstChild).toHaveAttribute("data-color-scheme", scheme);
+    expect(container.firstChild).toHaveClass("consumer-class");
+    if (scheme === "dark") expect(container.firstChild).toHaveClass("dark");
+    expect(container.firstChild).toHaveStyle({ colorScheme: scheme });
+    await waitFor(() => expect(mock.instances).toHaveLength(1));
+  });
+
   it("queues early output, initializes once in StrictMode, and disposes the transport", async () => {
     const ref = createRef<TerminalHandle>();
     const ready = vi.fn();

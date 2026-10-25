@@ -7,7 +7,7 @@
 @import "../../common/safelist.css";
 @import "@xterm/xterm/css/xterm.css";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *)));
 
 /* Scan the React sources plus the shared (framework-agnostic) TS in common/.
    @source paths are relative to this file (react/src/). */
@@ -1351,7 +1351,7 @@
   --terminal-tab-hover: #171717;
   --terminal-tab-hover-background: #f5f5f5;
 }
-.dark .kit-terminal-tabs {
+.dark .kit-terminal-tabs:not(:where([data-color-scheme="light"] *)) {
   --terminal-tab-active: var(--terminal-tab-text-dark);
   --terminal-tab-foreground: #a3a3a3;
   --terminal-tab-hover: #f5f5f5;

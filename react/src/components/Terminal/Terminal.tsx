@@ -1,3 +1,4 @@
+import classNames from "classnames";
 import { forwardRef } from "react";
 import Panel from "../Panel";
 import { TerminalViewport } from "./TerminalViewport";
@@ -29,12 +30,18 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
     return (
       <Panel
         {...surface}
+        data-color-scheme={scheme ?? "auto"}
+        className={classNames(surface.className, scheme === "dark" && "dark")}
         variant={variant}
         tone={tone}
         padding={padding}
         flexBody
         scrollable={false}
-        style={{ height, ...style }}
+        style={{
+          height,
+          colorScheme: scheme === "auto" ? undefined : scheme,
+          ...style,
+        }}
       >
         <TerminalViewport
           ref={ref}

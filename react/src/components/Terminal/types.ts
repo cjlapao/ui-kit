@@ -37,7 +37,8 @@ export interface TerminalConnectionProps {
   /** Written once per mounted session. Stream subsequent output through the ref. */
   initialData?: string | Uint8Array;
   readOnly?: boolean;
-  /** Terminal palette follows the page by default. */
+  /** Scheme for the whole terminal surface, tabs, controls and ANSI palette.
+   * auto follows the page; light/dark pin this component independently. */
   scheme?: TerminalScheme;
   /** Overrides individual ANSI colors, foreground, cursor and selection colors. */
   terminalTheme?: TerminalTheme;

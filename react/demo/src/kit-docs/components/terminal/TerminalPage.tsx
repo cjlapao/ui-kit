@@ -4,6 +4,7 @@ import {
   type PanelCorner,
   type PanelPadding,
   type PanelVariant,
+  type TerminalScheme,
   type TrueColor,
   type GlassOpacity,
   type GlassVibrancy,
@@ -25,6 +26,7 @@ import TabbedTerminal from "./examples/TabbedTerminal";
 import tabbedCode from "./examples/TabbedTerminal.tsx?raw";
 
 export default function TerminalPage() {
+  const [scheme, setScheme] = useState<TerminalScheme>("auto");
   const [variant, setVariant] = useState<PanelVariant>("outlined");
   const [tone, setTone] = useState<TrueColor>("neutral");
   const [corner, setCorner] = useState<PanelCorner>("rounded-md");
@@ -42,6 +44,16 @@ export default function TerminalPage() {
       <PlaygroundPanel
         controls={
           <div className="flex flex-col gap-4">
+            <SelectControl
+              label="Scheme"
+              value={scheme}
+              options={[
+                { label: "Auto (follow page)", value: "auto" },
+                { label: "Light", value: "light" },
+                { label: "Dark", value: "dark" },
+              ]}
+              onChange={(value) => setScheme(value as TerminalScheme)}
+            />
             <SelectControl
               label="Variant"
               options={surfaceVariantOptions}
@@ -89,6 +101,7 @@ export default function TerminalPage() {
         preview={
           <TabbedTerminal
             {...{
+              scheme,
               variant,
               tone,
               corner,
