@@ -30,6 +30,7 @@ export const SidePanelPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
   const [side, setSide] = useState<SidePanelSide>("right");
   const [resizable, setResizable] = useState(true);
+  const [collapsible, setCollapsible] = useState(true);
   const [noise, setNoise] = useState(false);
   const [overlay, setOverlay] = useState(false);
   const [withFooter, setWithFooter] = useState(true);
@@ -136,6 +137,11 @@ export const SidePanelPlayground: React.FC = () => {
                         onChange={setResizable}
                       />
                       <ToggleRow
+                        label="Collapsible (rail)"
+                        checked={collapsible}
+                        onChange={setCollapsible}
+                      />
+                      <ToggleRow
                         label="Overlay"
                         checked={overlay}
                         onChange={setOverlay}
@@ -205,6 +211,8 @@ export const SidePanelPlayground: React.FC = () => {
             side={side}
             overlay={overlay}
             resizable={resizable}
+            collapsible={collapsible}
+            collapsedLabel="Inspector"
             noise={noise}
             inset={inset === "auto" ? undefined : inset === "on"}
             corner={corner}

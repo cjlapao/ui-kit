@@ -164,6 +164,11 @@ export {
 export type { GlassVibrancy, GlassOpacity, SpecularMode } from "../theme/glass";
 export { default as IconButton, type IconButtonProps } from "./IconButton";
 export {
+  CollapseToggleButton,
+  CollapseChevron,
+  type CollapseToggleButtonProps,
+} from "./CollapseToggleButton";
+export {
   default as ExpandableButton,
   EXPAND_TRIGGERS,
   EXPANDABLE_BUTTON_SPRINGS,

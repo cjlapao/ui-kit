@@ -223,6 +223,10 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       verbExpand: "Expandir",
       toggleSubmenu: "{verb} el submenú {label}",
       dismissCta: "Descartar",
+      showMore: "Mostrar {count} m\u00e1s",
+      noResults: "Sin resultados para \u00ab{query}\u00bb",
+      submenuAria: "Submen\u00fa de {label}",
+      navAria: "Men\u00fa lateral",
     },
     splitview: {
       moreOptions: "Más opciones",
@@ -245,6 +249,8 @@ export const ES_KIT_CATALOG: MessageCatalog = {
     sidepanel: {
       closeAria: "Cerrar panel",
       resize: "Redimensionar panel",
+      collapse: "Contraer panel",
+      expand: "Expandir panel",
     },
     smartgrid: {
       searchAria: "Buscar elementos",

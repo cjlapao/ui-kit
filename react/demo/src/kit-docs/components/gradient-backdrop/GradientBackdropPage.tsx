@@ -48,7 +48,7 @@ export const GradientBackdropPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Behind glass"
-        description="What it is for: a backdrop glass surfaces can be judged against. It is a plain container — children render on top."
+        description="What it is for: a backdrop glass surfaces can be judged against, with `noise` adding a film grain so the large gradient does not band. It is a plain container — children render on top."
         code={behindGlassCode}
         filename="BehindGlass.tsx"
       >
@@ -78,6 +78,7 @@ export const GradientBackdropPage: React.FC = () => (
         { name: "theme.light / theme.dark", type: "{ glow, from, via, to }", description: "Hex colours (#rgb or #rrggbb): the radial highlight and the three linear stops." },
         { name: "theme.shape", type: "Partial<GradientBackdropShape>", default: "Slate's", description: "angle (deg), viaStop (%), glowWidth / glowHeight (px), glowX / glowY (%), glowFade (%). Only what you name is overridden." },
         { name: "scheme", type: '"auto" | "light" | "dark"', default: '"auto"', description: "auto follows the kit's dark class through CSS variables; light / dark pin one scheme with an inline background." },
+        { name: "noise", type: "boolean", default: "false", description: "Paint the kit's dither-noise (film grain) over the gradient, under the children — the texture SidePanel uses, desaturated so it never casts colour. Multiply at 8% in light (overlay is a no-op on a light base), overlay at 40% in dark; follows `scheme` when it is pinned." },
         { name: "children / className / style / …", type: "div props", description: "Spread onto the root div. Give it a size with className; children render on top." },
         { name: "resolveGradientBackdropTheme(theme)", type: "→ { light, dark, shape }", description: "The complete theme the component draws — use it to show or store the derived colours." },
         { name: "deriveDarkColor(hex, role) / deriveLightColor(hex, role)", type: "→ hex", description: "One colour's partner in the other scheme. The coefficients are exported as GRADIENT_BACKDROP_DERIVATION." },

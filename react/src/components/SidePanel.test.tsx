@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SidePanel from "./SidePanel";
+import { COLLAPSED_RAIL_WIDTH } from "../theme/Theme";
 
 describe("SidePanel", () => {
   it("renders title and children when open", () => {
@@ -461,8 +462,9 @@ describe("SidePanel — the resize handle", () => {
     const handle = container.querySelector('[role="separator"]') as HTMLElement;
     expect(handle.style.left).toBe("320px");
     expect(handle.style.right).toBe("");
+    // The bar sits on the panel's edge line (centred: 2px at -1px).
     expect((handle.firstElementChild as HTMLElement).className).toContain(
-      "left-0.5",
+      "-left-px",
     );
   });
 
@@ -571,5 +573,220 @@ describe("SidePanel — the overlay", () => {
     expect(container.querySelector('[class*="bg-black"]')).not.toBeNull();
     fireEvent.transitionEnd(panelOf(container), { propertyName: "width" });
     expect(container.firstChild).toBeNull();
+  });
+});
+
+describe("SidePanel resize grip", () => {
+  const parts = (c: HTMLElement) => {
+    const handle = c.querySelector('[role="separator"]') as HTMLElement;
+    return {
+      bar: handle.firstElementChild as HTMLElement,
+      grip: handle.querySelector("[data-sp-grip]") as HTMLElement,
+      rest: handle.querySelector("[data-sp-grip-rest]") as HTMLElement,
+      active: handle.querySelector("[data-sp-grip-active]") as HTMLElement,
+    };
+  };
+
+  it("a resizable panel shows a faint grip centred on its edge", () => {
+    const { container } = render(
+      <SidePanel isOpen resizable title="Details">
+        <p>Body</p>
+      </SidePanel>,
+    );
+    const { grip, rest } = parts(container);
+    expect(grip.getAttribute("aria-hidden")).toBe("true");
+    // Barely there: a short pill, centred vertically, neutral and faint at rest.
+    expect(grip.className).toContain("top-1/2");
+    expect(grip.className).toContain("-translate-y-1/2");
+    expect(grip.className).toContain("h-10");
+    expect(rest.className).toContain("bg-neutral-400");
+    expect(rest.className).toContain("opacity-40");
+  });
+
+  it("the bar is thinner than the grip, and both are centred on the panel edge", () => {
+    const right = render(<SidePanel isOpen resizable title="R" />);
+    let p = parts(right.container);
+    // 2px bar at right:-1px and 4px grip at right:-2px share one centre: the edge.
+    expect(p.bar.className).toContain("w-0.5");
+    expect(p.bar.className).toContain("-right-px");
+    expect(p.grip.className).toContain("w-1");
+    expect(p.grip.className).toContain("-right-0.5");
+    right.unmount();
+    const left = render(<SidePanel isOpen resizable side="left" title="L" />);
+    p = parts(left.container);
+    expect(p.bar.className).toContain("-left-px");
+    expect(p.grip.className).toContain("-left-0.5");
+  });
+
+  it("on hover the grip stays, taking the bar's colour — a bulge on the line", () => {
+    const { container } = render(<SidePanel isOpen resizable tone="violet" title="V" />);
+    const { bar, rest, active } = parts(container);
+    // The neutral layer hands over to a layer painted exactly like the bar.
+    expect(rest.className).toContain("group-hover:opacity-0");
+    for (const cls of ["bg-violet-400", "opacity-0", "group-hover:opacity-70", "group-active:opacity-100"]) {
+      expect(bar.className).toContain(cls);
+      expect(active.className).toContain(cls);
+    }
+  });
+
+  it("while dragging the grip deepens with the bar", () => {
+    const { container } = render(<SidePanel isOpen resizable tone="blue" title="D" />);
+    fireEvent.mouseDown(container.querySelector('[role="separator"]')!, { clientX: 100 });
+    const { bar, rest, active } = parts(container);
+    expect(bar.className).toContain("bg-blue-500");
+    expect(active.className).toContain("bg-blue-500");
+    expect(active.className).toContain("opacity-100");
+    expect(rest.className).toContain("opacity-0");
+    fireEvent.mouseUp(window);
+  });
+
+  it("a fixed-width panel has no grip", () => {
+    const { container } = render(<SidePanel isOpen title="Details" />);
+    expect(container.querySelector("[data-sp-grip]")).toBeNull();
+  });
+});
+
+describe("SidePanel collapse", () => {
+  const shell = (c: HTMLElement) => c.querySelector("[data-sp-shell]") as HTMLElement;
+
+  it("is not collapsible by default", () => {
+    render(<SidePanel isOpen title="Inspector" />);
+    expect(screen.queryByRole("button", { name: "Collapse panel" })).toBeNull();
+  });
+
+  it("collapses to the workflow rail's width with an expand button and the title running vertically", () => {
+    const onCollapsedChange = vi.fn();
+    const { container } = render(
+      <SidePanel isOpen collapsible title="Inspector" onCollapsedChange={onCollapsedChange}>
+        <p>Body</p>
+      </SidePanel>,
+    );
+    const collapse = screen.getByRole("button", { name: "Collapse panel" });
+    expect(collapse.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(collapse);
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
+    expect(shell(container).getAttribute("data-collapsed")).toBe("true");
+    expect(shell(container).style.width).toBe(`${COLLAPSED_RAIL_WIDTH}px`);
+    const expand = screen.getByRole("button", { name: "Expand panel" });
+    expect(expand.getAttribute("aria-expanded")).toBe("false");
+    const label = container.querySelector("[data-sp-collapsed-label]") as HTMLElement;
+    expect(label.textContent).toBe("Inspector");
+    expect(label.className).toContain("[writing-mode:vertical-rl]");
+    // The full content stays mounted but out of reach while collapsed.
+    expect(container.querySelector("[data-sp-content]")!.hasAttribute("inert")).toBe(true);
+    fireEvent.click(expand);
+    expect(onCollapsedChange).toHaveBeenLastCalledWith(false);
+    expect(shell(container).style.width).toBe("420px");
+  });
+
+  it("the collapsed width is the workflow rail's (56px)", () => {
+    expect(COLLAPSED_RAIL_WIDTH).toBe(56);
+  });
+
+  it("controlled collapsed wins over clicks", () => {
+    const { container } = render(<SidePanel isOpen collapsible collapsed title="Inspector" onCollapsedChange={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Expand panel" }));
+    expect(shell(container).getAttribute("data-collapsed")).toBe("true");
+  });
+
+  it("defaultCollapsed starts collapsed", () => {
+    const { container } = render(<SidePanel isOpen collapsible defaultCollapsed title="Inspector" />);
+    expect(shell(container).getAttribute("data-collapsed")).toBe("true");
+  });
+
+  it("a collapsed panel cannot be resized and its scrim steps back", () => {
+    const { container } = render(<SidePanel isOpen collapsible defaultCollapsed resizable overlay title="Inspector" />);
+    expect(container.querySelector('[role="separator"]')).toBeNull();
+    const scrim = container.querySelector(".bg-black\\/20") as HTMLElement;
+    expect(scrim.style.pointerEvents).toBe("none");
+  });
+
+  it("a collapsed label can be set apart from the title", () => {
+    const { container } = render(
+      <SidePanel isOpen collapsible defaultCollapsed title={<span>Inspector</span>} collapsedLabel="Props" />,
+    );
+    expect(container.querySelector("[data-sp-collapsed-label]")!.textContent).toBe("Props");
+  });
+});
+
+describe("SidePanel collapse replaces close", () => {
+  it("a collapsible panel has no close button — it collapses and expands instead", () => {
+    render(<SidePanel isOpen collapsible onClose={() => {}} title="Inspector" />);
+    expect(screen.queryByRole("button", { name: "Close panel" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Collapse panel" })).toBeTruthy();
+  });
+
+  it("a panel that is not collapsible keeps its close button", () => {
+    render(<SidePanel isOpen onClose={() => {}} title="Details" />);
+    expect(screen.getByRole("button", { name: "Close panel" })).toBeTruthy();
+  });
+
+  it("the chevron is drawn on the close glyph's geometry, so the two buttons match", () => {
+    // Close: 24-unit box, arms spanning 6.97→17.03 at 45°, 1.5 units thick.
+    const { container } = render(<SidePanel isOpen collapsible title="Inspector" />);
+    const svg = container.querySelector("[data-collapse-chevron]") as SVGElement;
+    expect(svg.getAttribute("viewBox")).toBe("0 0 24 24");
+    const path = svg.querySelector("path")!;
+    expect(path.getAttribute("stroke-width")).toBe("1.5");
+    expect(path.getAttribute("d")).toBe("M9.5 6.97 14.53 12 9.5 17.03");
+  });
+
+  it("the collapse button is the same size as the close button would be", () => {
+    const { container: a } = render(<SidePanel isOpen onClose={() => {}} title="A" size="lg" />);
+    const close = a.querySelector('button[aria-label="Close panel"]') as HTMLElement;
+    const { container: b } = render(<SidePanel isOpen collapsible title="B" size="lg" />);
+    const collapse = b.querySelector('button[aria-label="Collapse panel"]') as HTMLElement;
+    expect(collapse.className).toBe(close.className);
+    // The glyph box: Close sizes a wrapper span around a full-size svg, the
+    // chevron sizes its svg — compare the h-/w- tokens of whichever is sized.
+    const box = (el: Element | null) =>
+      (el?.getAttribute("class") ?? "").split(" ").filter((c) => /^[hw]-\d/.test(c)).sort();
+    const closeBox = box(close.querySelector("[class*='h-']:not(svg)") ?? close.querySelector("svg"));
+    expect(closeBox.length).toBe(2);
+    expect(box(collapse.querySelector("svg"))).toEqual(closeBox);
+  });
+
+  it("the chevron is decorative — the button carries the name", () => {
+    const { container } = render(<SidePanel isOpen collapsible title="Inspector" />);
+    const svg = container.querySelector("[data-collapse-chevron]") as SVGElement;
+    expect(svg.getAttribute("aria-hidden")).toBe("true");
+    expect(svg.getAttribute("focusable")).toBe("false");
+  });
+});
+
+describe("SidePanel header buttons stay neutral", () => {
+  it("close and collapse ignore the accent — it belongs to the resize handle", () => {
+    const { container: a } = render(<SidePanel isOpen onClose={() => {}} tone="violet" title="A" />);
+    const close = a.querySelector('button[aria-label="Close panel"]') as HTMLElement;
+    const { container: b } = render(<SidePanel isOpen collapsible tone="violet" title="B" />);
+    const collapse = b.querySelector('button[aria-label="Collapse panel"]') as HTMLElement;
+    for (const btn of [close, collapse]) {
+      expect(btn.className).not.toContain("violet");
+      expect(btn.className).toContain("neutral");
+    }
+  });
+});
+
+describe("SidePanel handle while collapsing", () => {
+  it("stays mounted, parked on the rail edge and hidden, so expanding animates it with the panel", () => {
+    const { container } = render(<SidePanel isOpen collapsible resizable width={320} title="Inspector" />);
+    const handle = () => container.querySelector("[data-sp-handle]") as HTMLElement;
+    const open = handle();
+    expect(open.getAttribute("role")).toBe("separator");
+    fireEvent.click(screen.getByRole("button", { name: "Collapse panel" }));
+    const parked = handle();
+    // Same node: a fresh mount would appear at its final spot with nothing to animate from.
+    expect(parked).toBe(open);
+    expect(parked.style.right).toBe(`${COLLAPSED_RAIL_WIDTH}px`);
+    expect(parked.getAttribute("role")).toBeNull();
+    expect(parked.getAttribute("aria-hidden")).toBe("true");
+    expect(parked.getAttribute("tabindex")).toBe("-1");
+    expect(parked.className).toContain("pointer-events-none");
+    expect(parked.className).toContain("opacity-0");
+    fireEvent.click(screen.getByRole("button", { name: "Expand panel" }));
+    expect(handle()).toBe(open);
+    expect(handle().style.right).toBe("320px");
+    expect(handle().style.transition).toContain("right");
+    expect(handle().className).not.toContain("opacity-0 ");
   });
 });

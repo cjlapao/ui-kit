@@ -65,4 +65,51 @@ describe("GradientBackdrop", () => {
     expect(root(container).style.borderRadius).toBe("12px");
     expect(root(container).style.getPropertyValue("--gradient-backdrop-light")).not.toBe("");
   });
+
+  describe("noise", () => {
+    const noise = (c: HTMLElement) => c.querySelector("[data-gradient-backdrop-noise]") as HTMLElement | null;
+
+    it("is off by default", () => {
+      const { container } = render(<GradientBackdrop />);
+      expect(noise(container)).toBeNull();
+    });
+
+    it("paints a desaturated fractal-noise layer: decorative, behind the content", () => {
+      const { container } = render(
+        <GradientBackdrop noise>
+          <p>Content</p>
+        </GradientBackdrop>,
+      );
+      const layer = noise(container)!;
+      expect(layer).toBeTruthy();
+      expect(layer.getAttribute("aria-hidden")).toBe("true");
+      expect(layer.className).toContain("pointer-events-none");
+      expect(layer.style.backgroundImage).toContain("feTurbulence");
+      expect(layer.style.backgroundImage).toContain("saturate");
+      // Below the children without wrapping them: a negative z-index inside
+      // the root's own stacking context.
+      expect(layer.className).toContain("-z-10");
+      expect(root(container).className).toContain("isolate");
+      expect(screen.getByText("Content").parentElement).toBe(root(container));
+    });
+
+    it("auto: multiply in light, overlay in dark (overlay is a no-op on a light base)", () => {
+      const { container } = render(<GradientBackdrop noise />);
+      const cls = noise(container)!.className;
+      expect(cls).toContain("mix-blend-multiply");
+      expect(cls).toContain("opacity-[0.08]");
+      expect(cls).toContain("dark:mix-blend-overlay");
+      expect(cls).toContain("dark:opacity-[0.4]");
+    });
+
+    it("follows a pinned scheme, not the page", () => {
+      const { container: d } = render(<GradientBackdrop noise scheme="dark" />);
+      expect(noise(d)!.className).toContain("mix-blend-overlay");
+      expect(noise(d)!.className).not.toContain("mix-blend-multiply");
+      const { container: l } = render(<GradientBackdrop noise scheme="light" />);
+      expect(noise(l)!.className).toContain("mix-blend-multiply");
+      expect(noise(l)!.className).not.toContain("dark:");
+    });
+  });
 });
+

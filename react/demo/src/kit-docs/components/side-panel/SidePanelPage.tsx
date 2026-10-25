@@ -76,9 +76,11 @@ export const SidePanelPage: React.FC = () => (
 
       <A11yTopic title="Internationalization">
         <p>
-          The two strings the panel speaks — the close button&rsquo;s name and
-          the separator&rsquo;s — are catalog keys (
-          <C>kit.sidepanel.closeAria</C>, <C>kit.sidepanel.resize</C>) shipped
+          The strings the panel speaks — the close button&rsquo;s name, the
+          separator&rsquo;s, and the collapse / expand chevron&rsquo;s — are
+          catalog keys (<C>kit.sidepanel.closeAria</C>,{" "}
+          <C>kit.sidepanel.resize</C>, <C>kit.sidepanel.collapse</C>,{" "}
+          <C>kit.sidepanel.expand</C>) shipped
           in all five locales; everything else, title and body included, is the
           caller&rsquo;s content and passes through untouched. Docking is
           physical, not logical: <code>side</code> names an edge, so mirrored
@@ -103,7 +105,7 @@ export const SidePanelPage: React.FC = () => (
           name: "onClose",
           type: "() => void",
           description:
-            "Fired by the close button — and by the overlay scrim when overlay is on.",
+            "Fired by the close button — and by the overlay scrim when overlay is on. A collapsible panel has no close button (it collapses instead); the scrim still calls it.",
         },
         {
           name: "title / subtitle / icon",
@@ -136,7 +138,9 @@ export const SidePanelPage: React.FC = () => (
           description: (
             <>
               Drag (or keyboard-resize) the outer edge. Adds the{" "}
-              <C>role="separator"</C> grip to the tab order.
+              <C>role="separator"</C> grip to the tab order, and a faint pill
+              centred on the edge that says it moves before the pointer finds
+              it (it hands over to the full-height pill on hover).
             </>
           ),
         },
@@ -170,8 +174,9 @@ export const SidePanelPage: React.FC = () => (
           type: "TrueColor",
           description: (
             <>
-              Accent for the resize grip and close button. <C>color</C> is its
-              deprecated alias.
+              Accent for the resize grip. The header&rsquo;s close and collapse
+              buttons stay neutral — chrome, not a call to action. <C>color</C>{" "}
+              is its deprecated alias.
             </>
           ),
         },
@@ -199,6 +204,19 @@ export const SidePanelPage: React.FC = () => (
           default: '"right"',
           description:
             "Which physical edge to dock to; keyboard resize directions mirror it.",
+        },
+        {
+          name: "collapsible / collapsed / defaultCollapsed / onCollapsedChange",
+          type: "boolean / boolean / boolean / (collapsed) => void",
+          default: "false / — / false / —",
+          description:
+            "Replaces the close button: a chevron (drawn on the close glyph's geometry, so it is the same size) folds the panel to a rail as wide as the collapsed WorkflowTracker rail (COLLAPSED_RAIL_WIDTH, 56px): the expand chevron on top, the label running vertically. The content stays mounted but inert; resizing and the overlay scrim step back while collapsed. Controlled when `collapsed` is set.",
+        },
+        {
+          name: "collapsedLabel",
+          type: "ReactNode",
+          default: "title",
+          description: "The vertical text of the collapsed rail.",
         },
         {
           name: "noise",

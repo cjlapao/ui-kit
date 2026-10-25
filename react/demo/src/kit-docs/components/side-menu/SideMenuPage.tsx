@@ -1,4 +1,11 @@
 import React from "react";
+import {
+  A11ySection,
+  A11yTopic,
+  C,
+  KeyboardSupportTable,
+  PropsTable,
+} from "../../shared/A11ySections";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
 import { SideMenuPlayground } from "./SideMenuPlayground";
@@ -28,6 +35,8 @@ import DualLayout from "./examples/DualLayout";
 import dualLayoutCode from "./examples/DualLayout.tsx?raw";
 import MultiLayout from "./examples/MultiLayout";
 import multiLayoutCode from "./examples/MultiLayout.tsx?raw";
+import Workspaces from "./examples/Workspaces";
+import workspacesCode from "./examples/Workspaces.tsx?raw";
 import Chat from "./examples/Chat";
 import chatCode from "./examples/Chat.tsx?raw";
 
@@ -147,6 +156,14 @@ export const SideMenuPage: React.FC = () => (
         <MultiLayout />
       </ExampleCard>
       <ExampleCard
+        title="Workspaces (group actions, tag, loading rows, lazy children)"
+        description="A workspace navigator from the kit's own props — collapse it to see the rail: session times (`meta`) hide, and icon-less sessions show their initials. The group header carries `actions` (here only on hover) and a tone `tag`; a running session swaps its icon for a spinner with `loading`; each workspace shows its sessions a page at a time with `childrenPageSize`, and asks a (fake) server for the next page through `childrenTotal` + `onLoadMoreChildren` + `loadingChildren`."
+        code={workspacesCode}
+        filename="Workspaces.tsx"
+      >
+        <Workspaces />
+      </ExampleCard>
+      <ExampleCard
         title="Chat layout"
         description="The building blocks composed into a chat shell: conversation list with search, a user menu in the footer and the message pane in the layout body."
         code={chatCode}
@@ -155,6 +172,68 @@ export const SideMenuPage: React.FC = () => (
         <Chat />
       </ExampleCard>
     </section>
+
+    <A11ySection>
+      <A11yTopic title="Screen reader">
+        <p>
+          The rows live in a <C>nav</C> landmark named by <C>title</C> (or <C>kit.sidemenu.navAria</C>). Every row is a
+          real router link; the current one carries <C>aria-current="page"</C>, and a <C>loading</C> row carries{" "}
+          <C>aria-busy</C> — its spinner is hidden from assistive tech so a list of running rows does not chatter. A
+          parent&rsquo;s chevron is a separate button with <C>aria-expanded</C> and a name built from the label
+          (&ldquo;Expand new_agents submenu&rdquo;); its children sit in a <C>role="group"</C> named after the parent.
+        </p>
+        <p>
+          &ldquo;Show N more&rdquo; is a button, <C>aria-busy</C> and disabled while <C>loadingChildren</C> fetches.
+          Group <C>actions</C> are your own controls — give icon-only ones an <C>aria-label</C>; with{" "}
+          <C>actionsOnHover</C> they also appear when focus enters the header, so keyboard users can reach them.
+        </p>
+      </A11yTopic>
+      <KeyboardSupportTable
+        bindings={[
+          { keys: ["Tab"], action: "Moves through the top item, search, rows, submenu chevrons, group actions, Show more and the footer controls in document order." },
+          { keys: ["Enter"], action: "Follows a row's link; on a chevron, Show more or a group action, activates it." },
+          { keys: ["Space"], action: "Activates a focused button — chevron, Show more, group action, collapse control." },
+          { keys: ["Esc"], action: "Closes the mobile drawer; in hover-rail mode, closes the hovered panel." },
+        ]}
+      />
+      <A11yTopic title="Internationalization">
+        <p>
+          The menu&rsquo;s own words are <C>kit.sidemenu.*</C> catalog keys in all five locales: search placeholder and
+          name, collapse / expand / close controls, the submenu toggle and group names, &ldquo;Show {"{count}"}{" "}
+          more&rdquo;, the no-results line and the navigation&rsquo;s fallback name. Labels, badges and{" "}
+          <C>moreChildrenLabel</C> are yours. <C>side="right"</C> docks it on the other edge.
+        </p>
+      </A11yTopic>
+    </A11ySection>
+
+    <PropsTable
+      props={[
+        { name: "items", type: "SideMenuItem[]", description: "A flat list of links, group headers and dividers. A link joins a group with groupName; a group with no visible link hides itself." },
+        { name: "link: label / path / icon / color / description", type: "string / string / IconName / TrueColor / string", description: "The row; description is matched by search. A long label ends in an ellipsis, with the full name on hover. In the icon rail an icon-less row shows its initials (\"Simple Greeting\" → SG)." },
+        { name: "link: badge", type: "ReactNode", description: "A badge at the row end — a count, a status dot. In the icon rail it rides the icon's corner." },
+        { name: "link: meta", type: "ReactNode", description: "Trailing metadata — \"38min\", \"4h\", a size. Muted at the row end when expanded; hidden in the icon rail, where it is copy, not a badge." },
+        { name: "link: actions / actionsOnHover", type: "ReactNode / boolean", description: "Controls at the row end; hover-only when actionsOnHover. Hidden in the icon rail." },
+        { name: "link: children / defaultOpen", type: "SideMenuItemLink[] / boolean", description: "Nested rows make the row collapsible; defaultOpen opens it at first." },
+        { name: "link: loading", type: "boolean", default: "false", description: "A spinner takes the icon's place (in the rail too) and the link is aria-busy." },
+        { name: "link: childrenPageSize", type: "number", description: "Show the children a page at a time with a \"Show N more\" row. Search shows every match; an active child past the page is always revealed." },
+        { name: "link: childrenTotal / onLoadMoreChildren / loadingChildren", type: "number / () => void / boolean", description: "Lazy children: the total that exists, the fetch for the next page (called when paging passes the loaded ones), and its in-flight state (the Show more row spins and waits)." },
+        { name: "link: moreChildrenLabel", type: "(remaining) => ReactNode", default: '"Show {count} more"', description: "Name what is being loaded — \"Show 15 more sessions\"." },
+        { name: "group: label / hasDivider", type: "string / boolean", description: "A section header; hasDivider draws a rule above it." },
+        { name: "group: actions / actionsOnHover", type: "ReactNode / boolean", description: "Controls at the end of the header — search, filter, add. Hover-only reveals on hover or when focus enters the header." },
+        { name: "group: tag", type: "TrueColor", description: "A coloured vertical line before the group label, tagging the section with a tone." },
+        { name: "guards / hidden", type: "SideMenuItemGuard[] / boolean", description: "Per item: guard rules (all must pass, evaluated by guardEvaluator) or a plain hide." },
+        { name: "variant / side / color", type: "SidebarVariant / SidebarSide / TrueColor", default: '"sidebar" / "left" / "blue"', description: "Surface treatment, docked edge and accent." },
+        { name: "collapsed / onToggleCollapse / collapsible", type: "boolean / () => void / SidebarCollapsible", default: '— / — / "icon"', description: "Icon rail, offcanvas or none." },
+        { name: "openOnHover / hoverTransitionMs", type: "boolean / number", default: "false / 250", description: "Keep a rail that grows into the full panel on hover." },
+        { name: "mobileOpen / onCloseMobile / responsive", type: "boolean / () => void / boolean", default: "— / — / true", description: "Below 1024px the panel is an offcanvas drawer with a backdrop; Esc closes it." },
+        { name: "search / searchValue / onSearchChange / searchPlaceholder", type: "boolean / string / (v) => void / string", description: "An item search over labels and descriptions; controlled or not." },
+        { name: "topItem / footerItem", type: "SideMenuDropdownItem", description: "Rows above the navigation and above the collapse control, each with its own dropdown menu." },
+        { name: "ctas / footerDetails / footerDetailsTone", type: "SideMenuCta[] / SideMenuDetailItem[] / TrueColor", description: "Pinned call-to-action cards and the status detail footer." },
+        { name: "loading / loaderType / skeletonLines", type: "boolean / SideMenuLoaderType / number", default: 'false / "skeleton" / 4', description: "The whole menu's loading state — a skeleton shaped like the rows, or the shared Loader over them." },
+        { name: "noise", type: "boolean", default: "false", description: "A dither-grain texture over the panel background." },
+        { name: "title / logoIcon / logoText / fullHeight / className", type: "string / ReactNode / ReactNode / boolean / string", description: "Header and sizing." },
+      ]}
+    />
   </div>
 );
 

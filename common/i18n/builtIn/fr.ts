@@ -226,6 +226,10 @@ export const FR_KIT_CATALOG: MessageCatalog = {
       verbExpand: "Déployer",
       toggleSubmenu: "{verb} le sous-menu {label}",
       dismissCta: "Ignorer",
+      showMore: "Afficher {count} de plus",
+      noResults: "Aucun r\u00e9sultat pour \u00ab {query} \u00bb",
+      submenuAria: "Sous-menu {label}",
+      navAria: "Menu lat\u00e9ral",
     },
     splitview: {
       moreOptions: "Plus d\\'options",
@@ -248,6 +252,8 @@ export const FR_KIT_CATALOG: MessageCatalog = {
     sidepanel: {
       closeAria: "Fermer le panneau",
       resize: "Redimensionner le panneau",
+      collapse: "R\u00e9duire le panneau",
+      expand: "D\u00e9velopper le panneau",
     },
     smartgrid: {
       searchAria: "Rechercher des éléments",

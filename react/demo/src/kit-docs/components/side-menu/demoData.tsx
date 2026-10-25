@@ -1,8 +1,11 @@
+import React from "react";
 import { CustomIcon } from "@cjlapao/ui-kit";
 import type {
+  IconName,
   SideMenuCta,
   SideMenuDetailItem,
   SideMenuItem,
+  TrueColor,
 } from "@cjlapao/ui-kit";
 
 export const demoBadge = (value: string) => (
@@ -174,3 +177,81 @@ export const DEMO_DETAILS: SideMenuDetailItem[] = [
     value: { label: "0.4 ms", color: "blue" },
   },
 ];
+
+// ── Workspaces section (group actions, tag, loading rows, paged children) ────
+
+/** A quiet icon button for group headers — the search / filter / add row. */
+export const GroupAction: React.FC<{ icon: IconName; label: string }> = ({ icon, label }) => (
+  <button
+    type="button"
+    aria-label={label}
+    title={label}
+    className="inline-flex items-center justify-center rounded-md p-1 text-neutral-400 transition-colors hover:bg-neutral-200/60 hover:text-neutral-700 dark:hover:bg-neutral-700/40 dark:hover:text-neutral-200"
+  >
+    <CustomIcon icon={icon} className="h-3.5 w-3.5" />
+  </button>
+);
+
+const AGES = ["38min", "4h", "7d", "2d", "2d", "2d", "2d", "7d", "9d", "12d", "2w", "3w"];
+
+export const sessionsFor = (workspace: string, count: number, from = 0) =>
+  Array.from({ length: count }, (_, i) => ({
+    slug: `${workspace}-s${from + i + 1}`,
+    label: `${workspace} session ${from + i + 1}`,
+    path: `/ws/${workspace}/${from + i + 1}`,
+    // Trailing "38min" / "4h" / "7d": `meta`, not a badge — it hides in the rail.
+    meta: AGES[(from + i) % AGES.length],
+  }));
+
+export interface WorkspaceSectionOptions {
+  actions?: boolean;
+  actionsOnHover?: boolean;
+  tag?: TrueColor;
+  /** First session of the open workspace is running. */
+  loadingSession?: boolean;
+  /** Children per page; undefined shows them all. */
+  pageSize?: number;
+}
+
+/** The screenshot's Workspaces section, built from the kit's own props. */
+export const buildWorkspaceSection = (o: WorkspaceSectionOptions = {}): SideMenuItem[] => {
+  const agents = sessionsFor("new_agents", 10);
+  if (o.loadingSession) agents[0] = { ...agents[0], loading: true } as (typeof agents)[number];
+  return [
+    {
+      slug: "workspaces",
+      type: "group",
+      label: "Workspaces",
+      tag: o.tag,
+      actionsOnHover: o.actionsOnHover,
+      actions: o.actions ? (
+        <>
+          <GroupAction icon="Search" label="Search workspaces" />
+          <GroupAction icon="Settings" label="Filter workspaces" />
+          <GroupAction icon="Add" label="New workspace" />
+        </>
+      ) : undefined,
+    },
+    {
+      slug: "new-agents",
+      label: "new_agents",
+      path: "/ws/new_agents",
+      icon: "Folder",
+      groupName: "workspaces",
+      defaultOpen: true,
+      children: agents,
+      childrenPageSize: o.pageSize,
+      moreChildrenLabel: (n: number) => `Show ${n} more sessions`,
+    },
+    {
+      slug: "ui-kit",
+      label: "ui-kit",
+      path: "/ws/ui-kit",
+      icon: "Folder",
+      groupName: "workspaces",
+      children: sessionsFor("ui-kit", 20),
+      childrenPageSize: o.pageSize,
+      moreChildrenLabel: (n: number) => `Show ${n} more sessions`,
+    },
+  ];
+};

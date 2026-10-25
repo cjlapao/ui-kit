@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   fireEvent,
   render,
@@ -1052,5 +1055,290 @@ describe("SideMenu — skeleton slots", () => {
     // The CTA placeholder carries a button bar; the detail box a squared bar.
     expect(skeleton.children[1].querySelector(".rounded-lg")).toBeTruthy();
     expect(skeleton.children[2].querySelector(".rounded-md")).toBeTruthy();
+  });
+});
+
+// ── Workspace-style menus: group actions & tag, loading rows, paged children ──
+
+const SESSIONS = Array.from({ length: 10 }, (_, i) => ({
+  slug: `s${i + 1}`,
+  label: `Session ${i + 1}`,
+  path: `/sessions/${i + 1}`,
+}));
+
+const WORKSPACE_ITEMS = (over: Partial<SideMenuItem & Record<string, unknown>> = {}, linkOver: Record<string, unknown> = {}): SideMenuItem[] => [
+  {
+    type: "group",
+    slug: "workspaces",
+    label: "Workspaces",
+    actions: (
+      <>
+        <button type="button">Search workspaces</button>
+        <button type="button">New workspace</button>
+      </>
+    ),
+    ...over,
+  } as SideMenuItem,
+  {
+    slug: "new-agents",
+    label: "new_agents",
+    path: "/ws/new-agents",
+    icon: "Folder",
+    groupName: "workspaces",
+    defaultOpen: true,
+    children: SESSIONS,
+    ...linkOver,
+  } as SideMenuItem,
+];
+
+describe("SideMenu — group actions and tag", () => {
+  it("renders a group's actions at the end of its header", () => {
+    renderMenu({ items: WORKSPACE_ITEMS() });
+    const header = screen.getByText("Workspaces").closest("[data-sidemenu-group]") as HTMLElement;
+    expect(header).toBeTruthy();
+    expect(header.querySelector("button")!.textContent).toBe("Search workspaces");
+    expect(screen.getByRole("button", { name: "New workspace" })).toBeTruthy();
+  });
+
+  it("actionsOnHover hides them until the header is hovered or focused", () => {
+    renderMenu({ items: WORKSPACE_ITEMS({ actionsOnHover: true }) });
+    const actions = screen.getByRole("button", { name: "New workspace" }).parentElement as HTMLElement;
+    expect(actions.className).toContain("opacity-0");
+    expect(actions.className).toContain("group-hover/sm-group:opacity-100");
+    expect(actions.className).toContain("group-focus-within/sm-group:opacity-100");
+  });
+
+  it("tag paints a coloured vertical line before the group label", () => {
+    renderMenu({ items: WORKSPACE_ITEMS({ tag: "violet" }) });
+    const tag = document.querySelector("[data-sidemenu-group-tag]") as HTMLElement;
+    expect(tag).toBeTruthy();
+    expect(tag.getAttribute("aria-hidden")).toBe("true");
+    expect(tag.className).toContain("bg-violet-500");
+    expect(tag.className).toContain("w-0.5");
+  });
+
+  it("no tag, no line", () => {
+    renderMenu({ items: WORKSPACE_ITEMS() });
+    expect(document.querySelector("[data-sidemenu-group-tag]")).toBeNull();
+  });
+});
+
+describe("SideMenu — loading rows", () => {
+  it("a loading link shows a spinner in place of its icon and is marked busy", () => {
+    renderMenu({
+      items: [{ slug: "s", label: "S31: Workspace", path: "/s", icon: "Folder", loading: true } as SideMenuItem],
+    });
+    const row = link("S31: Workspace");
+    expect(row.getAttribute("aria-busy")).toBe("true");
+    const slot = row.querySelector("[data-sidemenu-loading]") as HTMLElement;
+    expect(slot).toBeTruthy();
+    expect(slot.getAttribute("aria-hidden")).toBe("true");
+    // The spinner takes the icon's place — not beside it.
+    expect(row.querySelectorAll("svg").length).toBe(0);
+  });
+
+  it("an icon-less nested row hangs its spinner in the indent, so its label lines up with its siblings", () => {
+    renderMenu({
+      items: [
+        {
+          slug: "ws",
+          label: "new_agents",
+          path: "/ws",
+          icon: "Folder",
+          defaultOpen: true,
+          children: [
+            { slug: "a", label: "Running", path: "/ws/a", loading: true },
+            { slug: "b", label: "Idle", path: "/ws/b" },
+          ],
+        } as SideMenuItem,
+      ],
+    });
+    const slot = link("Running").querySelector("[data-sidemenu-loading]") as HTMLElement;
+    // 16px spinner + the row's 12px gap, pulled back into the indent: the
+    // label starts where "Idle" starts.
+    expect(slot.getAttribute("data-hanging")).toBe("true");
+    // On the flex item itself (the icon slot), so the row's gap is absorbed
+    // too — on the inner span the slot just collapsed to 0 and the gap stayed.
+    expect((slot.parentElement as HTMLElement).className).toContain("-ml-7");
+  });
+
+  it("a loading link without an icon still gets the spinner slot", () => {
+    renderMenu({ items: [{ slug: "s", label: "Running", path: "/s", loading: true } as SideMenuItem] });
+    expect(link("Running").querySelector("[data-sidemenu-loading]")).toBeTruthy();
+  });
+});
+
+describe("SideMenu — paged children", () => {
+  const shown = () => SESSIONS.filter((s) => screen.queryByRole("link", { name: s.label })).length;
+
+  it("shows the first page and a 'Show N more' row that reveals the next", () => {
+    renderMenu({ items: WORKSPACE_ITEMS({}, { childrenPageSize: 3 }) });
+    expect(shown()).toBe(3);
+    fireEvent.click(screen.getByRole("button", { name: "Show 7 more" }));
+    expect(shown()).toBe(6);
+    fireEvent.click(screen.getByRole("button", { name: "Show 4 more" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 more" }));
+    expect(shown()).toBe(10);
+    expect(screen.queryByRole("button", { name: /^Show \d+ more$/ })).toBeNull();
+  });
+
+  it("lazy: with more on the server than loaded, Show more asks for them", () => {
+    const onLoadMoreChildren = vi.fn();
+    renderMenu({
+      items: WORKSPACE_ITEMS({}, { children: SESSIONS.slice(0, 3), childrenPageSize: 3, childrenTotal: 18, onLoadMoreChildren }),
+    });
+    expect(shown()).toBe(3);
+    fireEvent.click(screen.getByRole("button", { name: "Show 15 more" }));
+    expect(onLoadMoreChildren).toHaveBeenCalledTimes(1);
+  });
+
+  it("while the next page loads the row is busy and cannot be pressed again", () => {
+    const onLoadMoreChildren = vi.fn();
+    renderMenu({
+      items: WORKSPACE_ITEMS({}, {
+        children: SESSIONS.slice(0, 3),
+        childrenPageSize: 3,
+        childrenTotal: 18,
+        onLoadMoreChildren,
+        loadingChildren: true,
+      }),
+    });
+    const more = screen.getByRole("button", { name: "Show 15 more" });
+    expect(more).toBeDisabled();
+    expect(more.getAttribute("aria-busy")).toBe("true");
+    expect(more.querySelector("[data-sidemenu-loading]")).toBeTruthy();
+    fireEvent.click(more);
+    expect(onLoadMoreChildren).not.toHaveBeenCalled();
+  });
+
+  it("a custom label can name the things being loaded", () => {
+    renderMenu({
+      items: WORKSPACE_ITEMS({}, { childrenPageSize: 3, moreChildrenLabel: (n: number) => `Show ${n} more sessions` }),
+    });
+    expect(screen.getByRole("button", { name: "Show 7 more sessions" })).toBeTruthy();
+  });
+
+  it("the active child is shown even when it sits past the first page", () => {
+    renderMenu({ items: WORKSPACE_ITEMS({}, { childrenPageSize: 3 }) }, "/sessions/8");
+    expect(screen.getByRole("link", { name: "Session 8" })).toBeTruthy();
+  });
+
+  it("search shows every match regardless of the page size", () => {
+    renderMenu({ items: WORKSPACE_ITEMS({}, { childrenPageSize: 3 }), search: true });
+    fireEvent.change(screen.getByRole("textbox", { name: "Search menu items" }), { target: { value: "Session" } });
+    expect(shown()).toBe(10);
+  });
+});
+
+describe("SideMenu — copy goes through the catalog", () => {
+  it("the no-results line and the submenu group name are not hardcoded English", () => {
+    const dir = path.dirname(fileURLToPath(new URL(import.meta.url)));
+    const src = fs.readFileSync(path.join(dir, "SideMenu.tsx"), "utf8");
+    expect(src).not.toContain("No results for");
+    expect(src).not.toMatch(/`\$\{link\.label\} submenu`/);
+    expect(src).not.toContain('|| "Side menu"');
+  });
+});
+
+describe("SideMenu — long labels truncate", () => {
+  const LONG = "S31: Workspace Implementation and a lot more words that never fit";
+
+  it("a link label can shrink and ends in an ellipsis, with the full name on hover", () => {
+    renderMenu({ items: [{ slug: "l", label: LONG, path: "/l", icon: "Folder" } as SideMenuItem] });
+    const label = screen.getByText(LONG);
+    // min-w-0: a flex item will not shrink below its text without it, so the
+    // ellipsis never kicks in and the text runs past the panel.
+    for (const cls of ["min-w-0", "truncate"]) expect(label.className).toContain(cls);
+    expect(label.getAttribute("title")).toBe(LONG);
+  });
+
+  it("nested rows truncate the same way", () => {
+    renderMenu({
+      items: [
+        { slug: "p", label: "ws", path: "/ws", icon: "Folder", defaultOpen: true, children: [{ slug: "c", label: LONG, path: "/ws/c" }] } as SideMenuItem,
+      ],
+    });
+    expect(screen.getByText(LONG).className).toContain("min-w-0");
+  });
+
+  it("the top / footer dropdown rows truncate too", () => {
+    renderMenu({ topItem: { label: LONG, icon: "Users", menu: [{ label: "x", value: "x" }] } });
+    const label = screen.getByText(LONG);
+    for (const cls of ["min-w-0", "truncate"]) expect(label.className).toContain(cls);
+    expect(label.getAttribute("title")).toBe(LONG);
+  });
+});
+
+describe("SideMenu — the nav is as wide as the panel", () => {
+  it("pins the scroll content to the panel width so labels shrink and badges stay visible", () => {
+    renderMenu();
+    const content = document.querySelector('nav')!.closest('[data-slot="scrollarea-content"]') as HTMLElement;
+    // ScrollArea's content box is a table, which widens to fit its widest
+    // row — a long nowrap label then never shrinks, and its badge is pushed
+    // past the edge and clipped. A fixed layout at full width pins it.
+    expect(content.className).toContain("table-fixed");
+    expect(content.className).toContain("w-full");
+  });
+});
+
+describe("SideMenu — the collapsed rail", () => {
+  const RAIL_ITEMS: SideMenuItem[] = [
+    {
+      slug: "ws",
+      label: "new_agents",
+      path: "/ws",
+      icon: "Folder",
+      defaultOpen: true,
+      children: [
+        { slug: "run", label: "S31: Workspace Implementation", path: "/ws/run", loading: true, meta: "38min" },
+        { slug: "greet", label: "Simple Greeting", path: "/ws/greet", meta: "7d" },
+        { slug: "one", label: "solo", path: "/ws/solo" },
+      ],
+    } as SideMenuItem,
+    { slug: "jobs", label: "Jobs", path: "/jobs", icon: "Jobs", badge: <span>4</span> } as SideMenuItem,
+  ];
+
+  it("meta (a trailing time) shows at the row end when expanded", () => {
+    renderMenu({ items: RAIL_ITEMS });
+    expect(screen.getByText("7d")).toBeTruthy();
+    expect(screen.getByText("38min")).toBeTruthy();
+  });
+
+  it("meta is hidden in the rail — it is copy, not a badge", () => {
+    renderMenu({ items: RAIL_ITEMS, collapsed: true, onToggleCollapse: () => {} });
+    expect(screen.queryByText("38min")).toBeNull();
+    expect(screen.queryByText("7d")).toBeNull();
+    // A real badge still rides the icon in the rail.
+    expect(screen.getByText("4")).toBeTruthy();
+  });
+
+  it("an icon-less row shows its initials in the rail, so it can be seen and clicked", () => {
+    renderMenu({ items: RAIL_ITEMS, collapsed: true, onToggleCollapse: () => {} });
+    const greet = link("Simple Greeting");
+    const tile = greet.querySelector("[data-sidemenu-initials]") as HTMLElement;
+    expect(tile.textContent).toBe("SG");
+    expect(tile.getAttribute("aria-hidden")).toBe("true");
+    // The name is still the label (title + accessible name), not the letters.
+    expect(greet.getAttribute("title")).toBe("Simple Greeting");
+    expect(link("solo").querySelector("[data-sidemenu-initials]")!.textContent).toBe("S");
+  });
+
+  it("a loading icon-less row shows the spinner in the rail, not initials", () => {
+    renderMenu({ items: RAIL_ITEMS, collapsed: true, onToggleCollapse: () => {} });
+    const run = link("S31: Workspace Implementation");
+    expect(run.querySelector("[data-sidemenu-loading]")).toBeTruthy();
+    expect(run.querySelector("[data-sidemenu-initials]")).toBeNull();
+  });
+
+  it("the rail drops the nesting indent, so nested tiles centre like icons", () => {
+    renderMenu({ items: RAIL_ITEMS, collapsed: true, onToggleCollapse: () => {} });
+    const row = rowOf("Simple Greeting");
+    expect(row.className).not.toContain("pl-9");
+    expect(row.className).toContain("px-3");
+  });
+
+  it("expanded rows without an icon get no initials tile", () => {
+    renderMenu({ items: RAIL_ITEMS });
+    expect(document.querySelector("[data-sidemenu-initials]")).toBeNull();
   });
 });

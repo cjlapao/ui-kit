@@ -7,6 +7,7 @@ import { WorkflowTrackerStepDetails } from "./WorkflowTrackerStepDetails";
 import { WorkflowTrackerDetails } from "./WorkflowTrackerDetails";
 import { WorkflowTrackerRollups } from "./WorkflowTrackerRollups";
 import { sampleWorkflow } from "./sampleWorkflow";
+import SidePanel from "../SidePanel";
 import type { WorkflowData } from "./types";
 
 const gateData: WorkflowData = {
@@ -481,5 +482,29 @@ describe("WorkflowTrackerRollups — standalone", () => {
     );
     expect(screen.getByText("Blocked on you")).toBeInTheDocument();
     expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+  });
+});
+
+describe("WorkflowTrackerRail — collapse toggle matches SidePanel's", () => {
+  it("uses the same ghost, neutral button and the same chevron as SidePanel", () => {
+    const { container: rail } = render(<WorkflowTrackerRail collapsible variant="glass" cardTone="violet" />);
+    const railBtn = screen.getByRole("button", { name: "Collapse workflow rail" });
+    const { container: panel } = render(<SidePanel isOpen collapsible title="Inspector" />);
+    const panelBtn = panel.querySelector('button[aria-label="Collapse panel"]') as HTMLElement;
+    // Same button: identical classes whatever the rail's surface or tone.
+    expect(railBtn.className).toBe(panelBtn.className);
+    expect(railBtn.className).not.toContain("violet");
+    // Same caret: the close-matched chevron glyph.
+    const chevron = rail.querySelector("[data-collapse-chevron]") as SVGElement;
+    expect(chevron).toBeTruthy();
+    expect(chevron.querySelector("path")!.getAttribute("d")).toBe("M9.5 6.97 14.53 12 9.5 17.03");
+  });
+
+  it("points left to collapse (the rail folds toward its left edge) and right to expand", () => {
+    const { container } = render(<WorkflowTrackerRail collapsible />);
+    const chevron = () => container.querySelector("[data-collapse-chevron]") as SVGElement;
+    expect(chevron().getAttribute("class")).toContain("rotate-180");
+    fireEvent.click(screen.getByRole("button", { name: "Collapse workflow rail" }));
+    expect(chevron().getAttribute("class")).not.toContain("rotate-180");
   });
 });

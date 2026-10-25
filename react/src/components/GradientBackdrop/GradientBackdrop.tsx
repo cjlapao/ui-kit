@@ -27,6 +27,7 @@ import {
   type GradientBackdropTemplateId,
   type GradientBackdropTheme,
 } from "../../../../common/backdrop";
+import { NOISE_BACKGROUND_IMAGE, getNoiseBlendClasses } from "../../../../common/theme/noise";
 
 /** Which scheme to draw: follow the kit's dark mode, or pin one. */
 export type GradientBackdropScheme = "auto" | "light" | "dark";
@@ -37,11 +38,18 @@ export interface GradientBackdropProps extends React.HTMLAttributes<HTMLDivEleme
   theme?: GradientBackdropTemplateId | GradientBackdropTheme;
   /** `auto` follows the kit's `dark` class; `light` / `dark` pin one. @default "auto" */
   scheme?: GradientBackdropScheme;
+  /**
+   * Paint a dither-noise (film-grain) texture over the gradient, under the
+   * content — the grain SidePanel and SideMenu use, so large flat gradients
+   * do not band. Blended per scheme (multiply in light, overlay in dark).
+   * @default false
+   */
+  noise?: boolean;
   children?: React.ReactNode;
 }
 
 export const GradientBackdrop = React.forwardRef<HTMLDivElement, GradientBackdropProps>(
-  ({ theme = "slate", scheme = "auto", className, style, children, ...rest }, ref) => {
+  ({ theme = "slate", scheme = "auto", noise = false, className, style, children, ...rest }, ref) => {
     // A theme object literal changes identity every render; key the memo on
     // its content so the gradients are only rebuilt when the colours change.
     const themeKey = typeof theme === "string" ? theme : JSON.stringify(theme);
@@ -63,13 +71,27 @@ export const GradientBackdrop = React.forwardRef<HTMLDivElement, GradientBackdro
         data-theme={typeof theme === "string" ? theme : "custom"}
         data-scheme={scheme}
         className={classNames(
+          // isolate: the noise layer's negative z-index stays inside this box
+          // — above the gradient, below the children, without wrapping them.
           "relative",
+          noise && "isolate",
           scheme === "auto" &&
             "[background:var(--gradient-backdrop-light)] dark:[background:var(--gradient-backdrop-dark)]",
           className,
         )}
         style={{ ...backdropStyle, ...style }}
       >
+        {noise && (
+          <div
+            aria-hidden="true"
+            data-gradient-backdrop-noise
+            className={classNames(
+              "pointer-events-none absolute inset-0 -z-10 rounded-[inherit]",
+              getNoiseBlendClasses(scheme),
+            )}
+            style={{ backgroundImage: NOISE_BACKGROUND_IMAGE }}
+          />
+        )}
         {children}
       </div>
     );

@@ -2,9 +2,8 @@ import React, { useId, useMemo, useState } from "react";
 import classNames from "classnames";
 
 import Panel from "../Panel";
-import IconButton from "../IconButton";
-import { ChevronRight } from "../../icons/components/ChevronRight";
-import { SURFACE_TO_BUTTON_VARIANT } from "../../theme/Theme";
+import { CollapseToggleButton } from "../CollapseToggleButton";
+import { COLLAPSED_RAIL_WIDTH } from "../../theme/Theme";
 import type { PopoverProps } from "../Popover";
 import WorkflowTimeline from "./WorkflowTimeline";
 import {
@@ -157,7 +156,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
       )}
       style={
         collapsible
-          ? { ...style, width: isCollapsed ? 56 : (style?.width ?? 360) }
+          ? { ...style, width: isCollapsed ? COLLAPSED_RAIL_WIDTH : (style?.width ?? 360) }
           : style
       }
       aria-busy={loading || undefined}
@@ -170,26 +169,14 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
             isCollapsed ? "inset-x-0 top-2 justify-center" : "right-4 top-4",
           )}
         >
-          <IconButton
-            icon={
-              <ChevronRight
-                className={classNames(
-                  "transition-transform duration-200 motion-reduce:transition-none",
-                  !isCollapsed && "rotate-180",
-                )}
-              />
-            }
-            size="xs"
-            rounded="md"
-            variant={SURFACE_TO_BUTTON_VARIANT[cardProps.variant ?? "outlined"]}
-            color={styleProps.cardTone ?? "neutral"}
-            glassOpacity={styleProps.glassOpacity}
-            vibrancy={styleProps.vibrancy}
-            specularMode={styleProps.specularMode}
+          {/* The kit's one collapse toggle — the same button and chevron as
+              SidePanel's. The rail folds toward its left edge. */}
+          <CollapseToggleButton
+            collapsed={isCollapsed}
+            edge="left"
             srLabel={isCollapsed ? expandLabel : collapseLabel}
             tooltip={isCollapsed ? expandLabel : collapseLabel}
             tooltipPosition="right"
-            aria-expanded={!isCollapsed}
             aria-controls={timelineId}
             onClick={() => {
               const next = !isCollapsed;

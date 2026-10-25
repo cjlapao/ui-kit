@@ -255,6 +255,10 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       verbExpand: "Expand",
       toggleSubmenu: "{verb} {label} submenu",
       dismissCta: "Dismiss",
+      showMore: "Show {count} more",
+      noResults: "No results for \"{query}\"",
+      submenuAria: "{label} submenu",
+      navAria: "Side menu",
     },
     splitview: {
       moreOptions: "More options",
@@ -276,6 +280,8 @@ export const EN_KIT_CATALOG: MessageCatalog = {
     sidepanel: {
       closeAria: "Close panel",
       resize: "Resize panel",
+      collapse: "Collapse panel",
+      expand: "Expand panel",
     },
     smartgrid: {
       searchAria: "Search items",

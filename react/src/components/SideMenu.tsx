@@ -14,6 +14,7 @@ import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
 import Input from "./Input";
 import Loader, { type LoaderColor, type LoaderProps } from "./Loader";
 import ScrollArea from "./ScrollArea";
+import Spinner from "./Spinner";
 import Panel, { SkeletonBar } from "./Panel";
 import Pill, { type PillCorner, type PillVariant } from "./Pill";
 import Button, { getButtonLinkClasses } from "./Button";
@@ -107,8 +108,17 @@ export interface SideMenuItemLink extends SideMenuItemBase {
   path: string;
   icon?: IconName;
   groupName?: string;
-  /** Optional badge rendered to the right of the label (e.g. active job count). */
+  /**
+   * Optional badge rendered to the right of the label (e.g. active job count).
+   * In the icon rail it rides the icon's corner.
+   */
   badge?: React.ReactNode;
+  /**
+   * Trailing metadata — a time ("38min"), a size, a status word. Muted at the
+   * row end when expanded; hidden in the icon rail, where it is not a badge
+   * and has no room.
+   */
+  meta?: React.ReactNode;
   /** Short copy, matched alongside `label` by the menu search. */
   description?: string;
   /** Actions rendered at the end of the row (e.g. edit / delete buttons). */
@@ -119,6 +129,32 @@ export interface SideMenuItemLink extends SideMenuItemBase {
   children?: SideMenuItemLink[];
   /** Open the sub-tree initially. */
   defaultOpen?: boolean;
+  /**
+   * Work in progress on this row: a spinner takes the icon's place (in the
+   * rail too) and the link is marked `aria-busy`.
+   */
+  loading?: boolean;
+  /**
+   * Show the children a page at a time: this many at first, then a
+   * "Show N more" row reveals the next page. Searching shows every match, and
+   * an active child past the page is always revealed.
+   */
+  childrenPageSize?: number;
+  /**
+   * How many children exist in all, when only some are loaded (lazy). The
+   * "Show N more" count uses it, and paging past the loaded ones calls
+   * `onLoadMoreChildren`.
+   */
+  childrenTotal?: number;
+  /** Fetch the next children — called when "Show more" needs ones not loaded yet. */
+  onLoadMoreChildren?: () => void;
+  /** The next children are being fetched: the "Show more" row spins and waits. */
+  loadingChildren?: boolean;
+  /**
+   * The "Show more" row's text — name what is being loaded, e.g.
+   * `(n) => "Show " + n + " more sessions"`. @default "Show {count} more"
+   */
+  moreChildrenLabel?: (remaining: number) => React.ReactNode;
 }
 
 export interface SideMenuItemGroup extends SideMenuItemBase {
@@ -126,6 +162,12 @@ export interface SideMenuItemGroup extends SideMenuItemBase {
   label: string;
   /** When true, renders a divider line immediately before the group header. */
   hasDivider?: boolean;
+  /** Controls at the end of the group header — search, filter, add… */
+  actions?: React.ReactNode;
+  /** Show `actions` only while the header is hovered or holds focus. */
+  actionsOnHover?: boolean;
+  /** A coloured vertical line before the label — tags the section with a tone. */
+  tag?: TrueColor;
 }
 
 export interface SideMenuItemDivider extends SideMenuItemBase {
@@ -377,6 +419,19 @@ const RAIL_WIDTH = "w-[68px]";
 /** Row indent per nesting depth. Capped so deeper trees do not run off-screen. */
 const ROW_INDENT = ["px-3", "pl-9 pr-3", "pl-14 pr-3", "pl-20 pr-3"];
 
+/**
+ * Initials for an icon-less row in the icon rail: the first letter of the
+ * label's first two words ("Simple Greeting" → "SG", "S31: Workspace…" → "SW").
+ */
+export const sideMenuInitials = (label: string): string =>
+  label
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+
 const indentClass = (depth: number): string =>
   ROW_INDENT[Math.min(depth, ROW_INDENT.length - 1)];
 
@@ -606,8 +661,10 @@ const SideMenuDropdownRow: React.FC<DropdownRowProps> = ({
     <span className="flex shrink-0 items-center justify-center">{media}</span>
   ) : null;
 
+  // min-w-0: a flex item will not shrink below its text without it, so the
+  // ellipsis never kicks in and a long label runs past the panel.
   const labelSpan = (
-    <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
+    <span className="min-w-0 flex-1 truncate" title={item.label}>
       {item.label}
     </span>
   );
@@ -1065,6 +1122,9 @@ export const SideMenu = ({
     return initial;
   });
 
+  // ── Paged children: how many of each link's children are revealed ────────
+  const [childReveal, setChildReveal] = useState<Record<string, number>>({});
+
   const toggleSubmenu = (slug: string) => {
     setOpenSubmenus((prev) => {
       const next = new Set(prev);
@@ -1293,9 +1353,39 @@ export const SideMenu = ({
       hasChildren &&
       (searchActive || openSubmenus.has(link.slug)) &&
       visibleChildren.length > 0;
+    // Paging: a page at a time, never while searching, and never hiding the
+    // active row — it is revealed even when it sits past the page.
+    const pageSize = link.childrenPageSize;
+    const paged = !searchActive && pageSize !== undefined && pageSize > 0;
+    let revealLimit = paged ? (childReveal[link.slug] ?? pageSize) : visibleChildren.length;
+    if (paged) {
+      const activeIndex = visibleChildren.findIndex(
+        (child) => isActivePath(child.path) || hasActiveDescendant(child),
+      );
+      if (activeIndex >= revealLimit) revealLimit = activeIndex + 1;
+    }
+    const renderedChildren = visibleChildren.slice(0, revealLimit);
+    const totalChildren = paged
+      ? Math.max(link.childrenTotal ?? 0, visibleChildren.length)
+      : visibleChildren.length;
+    const remainingChildren = totalChildren - renderedChildren.length;
+    const showMore = () => {
+      if (!paged || link.loadingChildren) return;
+      const next = renderedChildren.length + pageSize;
+      setChildReveal((prev) => ({ ...prev, [link.slug]: next }));
+      // Past what is loaded but not past what exists: ask for the rest.
+      if (next > visibleChildren.length && (link.childrenTotal ?? 0) > visibleChildren.length) {
+        link.onLoadMoreChildren?.();
+      }
+    };
     const tokens = getSideMenuItemTokens(link.color || color);
+    // A loading row with no icon, nested deep enough to have an indent to
+    // hang its spinner in (depth 0 has only the row's own 12px padding).
+    const hangingSpinner = Boolean(link.loading && !link.icon && depth > 0 && !contentCollapsed);
 
-    const rowClasses = `group relative flex items-center rounded-lg transition-all duration-150 ${indentClass(depth)} ${
+    // The rail has no room for nesting: every row centres its icon (or
+    // initials) at depth 0, or nested tiles would sit off the rail's axis.
+    const rowClasses = `group relative flex items-center rounded-lg transition-all duration-150 ${indentClass(contentCollapsed ? 0 : depth)} ${
       selfActive
         ? `${tokens.bg} ${tokens.text} shadow-sm`
         : childActive
@@ -1313,21 +1403,58 @@ export const SideMenu = ({
               if (hoverOpen) closeHover();
             }}
             aria-current={selfActive ? "page" : undefined}
+            aria-busy={link.loading || undefined}
             title={contentCollapsed ? link.label : undefined}
             className={`flex min-w-0 flex-1 items-center gap-3 py-2.5 text-sm font-medium ${
               contentCollapsed ? "justify-center" : ""
             }`}
           >
-            {link.icon && (
-              <div className="flex items-center justify-center relative shrink-0">
-                <CustomIcon
-                  icon={link.icon}
-                  className={`h-5 w-5 transition-colors duration-150 ${
-                    selfActive
-                      ? tokens.iconActive
-                      : `${idle.icon} ${tokens.iconHover}`
-                  }`}
-                />
+            {(link.icon || link.loading || contentCollapsed) && (
+              <div
+                className={`flex items-center justify-center relative shrink-0 ${
+                  hangingSpinner ? "-ml-7" : ""
+                }`}
+              >
+                {link.loading ? (
+                  // The spinner takes the icon's slot. Hidden from assistive
+                  // tech: the link's aria-busy says it, once, instead of a
+                  // live region per loading row.
+                  //
+                  // An icon-less nested row has no slot to take: its spinner
+                  // hangs in the indent instead (16px + the row's 12px gap
+                  // pulled back), so its label stays aligned with its siblings.
+                  <span
+                    data-sidemenu-loading
+                    data-hanging={hangingSpinner || undefined}
+                    aria-hidden="true"
+                    className={`inline-flex items-center justify-center ${
+                      hangingSpinner ? "h-4 w-4" : "h-5 w-5"
+                    }`}
+                  >
+                    <Spinner size={hangingSpinner ? "xs" : "sm"} color={link.color || color} />
+                  </span>
+                ) : !link.icon ? (
+                  // Icon-less row in the rail: initials keep it visible and
+                  // clickable. Decorative — the link's name is its label.
+                  <span
+                    data-sidemenu-initials
+                    aria-hidden="true"
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded-md bg-black/5 text-[10px] font-semibold leading-none dark:bg-white/10 ${
+                      selfActive ? tokens.iconActive : idle.icon
+                    }`}
+                  >
+                    {sideMenuInitials(link.label)}
+                  </span>
+                ) : (
+                  <CustomIcon
+                    icon={link.icon!}
+                    className={`h-5 w-5 transition-colors duration-150 ${
+                      selfActive
+                        ? tokens.iconActive
+                        : `${idle.icon} ${tokens.iconHover}`
+                    }`}
+                  />
+                )}
                 {/* Badge in collapsed mode: small dot over the icon */}
                 {contentCollapsed && link.badge && (
                   <span className="absolute -top-1 -right-1">{link.badge}</span>
@@ -1336,9 +1463,20 @@ export const SideMenu = ({
             )}
             {!contentCollapsed && (
               <>
-                <span className="whitespace-nowrap overflow-hidden text-ellipsis flex-1">
+                {/* min-w-0 lets the label shrink so the ellipsis can kick
+                    in; the title carries the full name. */}
+                <span className="min-w-0 flex-1 truncate" title={link.label}>
                   {link.label}
                 </span>
+                {/* Meta (a time, a size): muted at the row end. */}
+                {link.meta != null && link.meta !== false && (
+                  <span
+                    data-sidemenu-meta
+                    className={`ml-auto shrink-0 pl-2 text-[11px] tabular-nums ${surface.muted}`}
+                  >
+                    {link.meta}
+                  </span>
+                )}
                 {/* Badge in expanded mode: right-aligned next to label */}
                 {link.badge && (
                   <span className="ml-auto flex shrink-0 items-center pl-2">
@@ -1391,15 +1529,32 @@ export const SideMenu = ({
           <div
             className="space-y-1"
             role="group"
-            aria-label={`${link.label} submenu`}
+            aria-label={t("kit.sidemenu.submenuAria", { label: link.label })}
           >
-            {visibleChildren.map((child, index) =>
+            {renderedChildren.map((child, index) =>
               renderLinkRow(
                 child,
                 depth + 1,
                 `${key}-child-${index}`,
                 contentCollapsed,
               ),
+            )}
+            {paged && remainingChildren > 0 && !contentCollapsed && (
+              <button
+                type="button"
+                onClick={showMore}
+                disabled={link.loadingChildren}
+                aria-busy={link.loadingChildren || undefined}
+                className={`flex w-full items-center gap-2 rounded-lg py-2 text-left text-xs font-medium transition-colors disabled:cursor-wait ${indentClass(depth + 1)} ${surface.muted} ${tokens.hoverBg} ${tokens.hoverText}`}
+              >
+                {link.loadingChildren && (
+                  <span data-sidemenu-loading aria-hidden="true" className="inline-flex">
+                    <Spinner size="xs" color={link.color || color} />
+                  </span>
+                )}
+                {link.moreChildrenLabel?.(remainingChildren) ??
+                  t("kit.sidemenu.showMore", { count: remainingChildren })}
+              </button>
             )}
           </div>
         )}
@@ -1484,9 +1639,14 @@ export const SideMenu = ({
         className="flex-1 w-full"
         // Padding on the content wrapper scrolls with the rows, as the old
         // scroll box's padding did, keeping the rows' inset from the edges.
-        contentClassName="px-3 py-1"
+        //
+        // `table-fixed w-full`: the content box is a table, which widens to
+        // fit its widest row. A long nowrap label then never shrank — no
+        // ellipsis — and its badge was pushed past the panel and clipped.
+        // A fixed layout at full width pins the rows to the panel.
+        contentClassName="w-full table-fixed px-3 py-1"
       >
-        <nav aria-label={title || "Side menu"} className="space-y-1 w-full">
+        <nav aria-label={title || t("kit.sidemenu.navAria")} className="space-y-1 w-full">
           {visibleItems.map((item, index) => {
             // Divider
             if (item.type === "divider") {
@@ -1513,11 +1673,34 @@ export const SideMenu = ({
                     />
                   )}
                   <div
-                    className={`px-3 py-1 mb-1 text-xs font-semibold uppercase tracking-wider ${surface.muted} ${
+                    data-sidemenu-group={item.slug}
+                    className={`group/sm-group flex items-center gap-2 px-3 py-1 mb-1 ${
                       index === 0 ? "mt-1" : "mt-4"
                     }`}
                   >
-                    {item.label}
+                    {item.tag && (
+                      <span
+                        aria-hidden="true"
+                        data-sidemenu-group-tag
+                        className={`h-3.5 w-0.5 shrink-0 rounded-full bg-${item.tag}-500`}
+                      />
+                    )}
+                    <span
+                      className={`min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wider ${surface.muted}`}
+                    >
+                      {item.label}
+                    </span>
+                    {item.actions && (
+                      <span
+                        className={`flex shrink-0 items-center gap-0.5 ${
+                          item.actionsOnHover
+                            ? "opacity-0 transition-opacity duration-150 group-hover/sm-group:opacity-100 group-focus-within/sm-group:opacity-100"
+                            : ""
+                        }`}
+                      >
+                        {item.actions}
+                      </span>
+                    )}
                   </div>
                 </React.Fragment>
               );
@@ -1533,7 +1716,7 @@ export const SideMenu = ({
           })}
           {searchActive && !hasVisibleLink && (
             <p className={`px-3 py-6 text-center text-xs ${surface.muted}`}>
-              No results for "{searchQuery.trim()}"
+              {t("kit.sidemenu.noResults", { query: searchQuery.trim() })}
             </p>
           )}
         </nav>

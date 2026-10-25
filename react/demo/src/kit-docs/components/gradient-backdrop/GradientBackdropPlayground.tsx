@@ -10,7 +10,7 @@ import {
   type GradientBackdropTemplateId,
   type GradientBackdropTheme,
 } from "@cjlapao/ui-kit";
-import { ChoiceControl, Control, PlaygroundPanel, SelectControl } from "../../shared/PlaygroundPanel";
+import { ChoiceControl, Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { gradientBackdropSchemeOptions, gradientBackdropTemplateOptions } from "../../shared/options";
 
@@ -69,6 +69,7 @@ export const GradientBackdropPlayground: React.FC = () => {
   const [source, setSource] = useState<"template" | "custom">("template");
   const [templateId, setTemplateId] = useState<GradientBackdropTemplateId>("mist");
   const [scheme, setScheme] = useState<GradientBackdropScheme>("auto");
+  const [noise, setNoise] = useState(true);
   const [sides, setSides] = useState<"light" | "dark" | "both">("light");
   const [light, setLight] = useState<GradientBackdropColors>({
     glow: "#fde68a",
@@ -147,14 +148,17 @@ export const GradientBackdropPlayground: React.FC = () => {
             },
             {
               id: "scheme",
-              title: "Scheme",
+              title: "Scheme & texture",
               controls: (
-                <ChoiceControl
-                  label="Scheme"
-                  options={gradientBackdropSchemeOptions}
-                  value={scheme}
-                  onChange={(v) => setScheme(v as GradientBackdropScheme)}
-                />
+                <>
+                  <ChoiceControl
+                    label="Scheme"
+                    options={gradientBackdropSchemeOptions}
+                    value={scheme}
+                    onChange={(v) => setScheme(v as GradientBackdropScheme)}
+                  />
+                  <ToggleRow label="Noise (film grain)" checked={noise} onChange={setNoise} />
+                </>
               ),
             },
           ]}
@@ -162,14 +166,14 @@ export const GradientBackdropPlayground: React.FC = () => {
       }
       preview={
         <div className="flex w-full flex-col gap-4">
-          <GradientBackdrop theme={theme} scheme={scheme} className="flex min-h-64 items-center justify-center rounded-xl p-8">
+          <GradientBackdrop theme={theme} scheme={scheme} noise={noise} className="flex min-h-64 items-center justify-center rounded-xl p-8">
             <Panel variant="glass" title="Glass over the backdrop" subtitle="The theme follows the page's light / dark mode">
               <p className="text-sm">Switch the docs theme in the header — the backdrop swaps with no JavaScript.</p>
             </Panel>
           </GradientBackdrop>
           <div className="grid grid-cols-2 gap-3">
-            <GradientBackdrop theme={theme} scheme="light" className="h-24 rounded-lg" aria-label="Light scheme" />
-            <GradientBackdrop theme={theme} scheme="dark" className="h-24 rounded-lg" aria-label="Dark scheme" />
+            <GradientBackdrop theme={theme} scheme="light" noise={noise} className="h-24 rounded-lg" aria-label="Light scheme" />
+            <GradientBackdrop theme={theme} scheme="dark" noise={noise} className="h-24 rounded-lg" aria-label="Dark scheme" />
           </div>
           <div className="flex flex-wrap gap-6">
             <Swatches title="Light" colors={resolved.light} derived={source === "custom" && sides === "dark"} />

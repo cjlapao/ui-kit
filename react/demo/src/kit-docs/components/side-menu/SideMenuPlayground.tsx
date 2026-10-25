@@ -23,6 +23,7 @@ import {
   sidebarVariantOptions,
 } from "../../shared/options";
 import {
+  buildWorkspaceSection,
   DEMO_CTAS,
   DEMO_DETAILS,
   DEMO_ITEMS,
@@ -59,6 +60,12 @@ export const SideMenuPlayground: React.FC = () => {
       )
     : undefined;
   const [noise, setNoise] = useState(false);
+  const [workspaces, setWorkspaces] = useState(true);
+  const [groupActions, setGroupActions] = useState(true);
+  const [actionsOnHover, setActionsOnHover] = useState(false);
+  const [groupTag, setGroupTag] = useState(true);
+  const [loadingSession, setLoadingSession] = useState(true);
+  const [pageSize, setPageSize] = useState("3");
   const [loading, setLoading] = useState(false);
   const [loaderType, setLoaderType] = useState<SideMenuLoaderType>("skeleton");
 
@@ -85,7 +92,20 @@ export const SideMenuPlayground: React.FC = () => {
       }
       ctas={visibleCtas}
       footerDetails={showDetails ? DEMO_DETAILS : undefined}
-      items={DEMO_ITEMS}
+      items={
+        workspaces
+          ? [
+              ...DEMO_ITEMS,
+              ...buildWorkspaceSection({
+                actions: groupActions,
+                actionsOnHover,
+                tag: groupTag ? tone : undefined,
+                loadingSession,
+                pageSize: pageSize === "all" ? undefined : Number(pageSize),
+              }),
+            ]
+          : DEMO_ITEMS
+      }
     />
   );
 
@@ -203,6 +223,33 @@ export const SideMenuPlayground: React.FC = () => {
                         setLoaderType(value as SideMenuLoaderType)
                       }
                     />
+                  )}
+                </>
+              ),
+            },
+            {
+              id: "workspaces",
+              title: "Workspaces section",
+              controls: (
+                <>
+                  <ToggleRow label="Show workspaces" checked={workspaces} onChange={setWorkspaces} />
+                  {workspaces && (
+                    <>
+                      <ToggleRow label="Group actions" checked={groupActions} onChange={setGroupActions} />
+                      <ToggleRow label="Actions on hover" checked={actionsOnHover} onChange={setActionsOnHover} />
+                      <ToggleRow label="Group tag (tone line)" checked={groupTag} onChange={setGroupTag} />
+                      <ToggleRow label="Loading session" checked={loadingSession} onChange={setLoadingSession} />
+                      <ChoiceControl
+                        label="Children per page"
+                        options={[
+                          { label: "3", value: "3" },
+                          { label: "5", value: "5" },
+                          { label: "All", value: "all" },
+                        ]}
+                        value={pageSize}
+                        onChange={setPageSize}
+                      />
+                    </>
                   )}
                 </>
               ),

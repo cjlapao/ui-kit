@@ -7,10 +7,13 @@ import React, {
 } from "react";
 import classNames from "classnames";
 import { warnIfMissingTitle } from "../../../common/a11y/warn";
+import { NOISE_BACKGROUND_IMAGE, getNoiseBlendClasses } from "../../../common/theme/noise";
 import IconButton from "./IconButton";
+import { CollapseToggleButton } from "./CollapseToggleButton";
 import { IconSize } from "../types";
 import { useKitT } from "../i18n";
 import {
+  COLLAPSED_RAIL_WIDTH,
   DEFAULT_SURFACE_CORNER,
   SIDEBAR_VARIANTS,
   getSidebarSurfaceTokens,
@@ -134,19 +137,15 @@ const SIZE_TOKENS: Record<
   },
 };
 
-/**
- * Dither-noise fill — the same fractal turbulence SideMenu paints, desaturated
- * to grey so the light-mode `mix-blend-multiply` pass cannot cast color.
- * (Overlay blend on a pure-white base is a no-op, hence the per-theme blend.)
- */
-const NOISE_STYLE: React.CSSProperties = {
-  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-};
 
 export interface SidePanelProps {
   /** Whether the panel is open */
   isOpen: boolean;
-  /** Called when the user clicks the close button */
+  /**
+   * Called when the user clicks the close button (or the overlay scrim). A
+   * `collapsible` panel shows no close button — it collapses and expands
+   * instead.
+   */
   onClose?: () => void;
   /** Panel title */
   title?: React.ReactNode;
@@ -169,7 +168,10 @@ export interface SidePanelProps {
   minWidth?: number;
   /** Maximum width in px when resizable. @default 900 */
   maxWidth?: number;
-  /** Accent for the resize handle and the close button. */
+  /**
+   * Accent for the resize handle. The header's close / collapse buttons stay
+   * neutral — chrome, not a call to action.
+   */
   tone?: TrueColor;
   /** @deprecated Use `tone`, which is what every other component calls it. */
   color?: TrueColor;
@@ -221,6 +223,19 @@ export interface SidePanelProps {
    */
   noise?: boolean;
   /**
+   * Let the user fold the panel to a rail: a chevron in the header collapses
+   * it to `COLLAPSED_RAIL_WIDTH` (the WorkflowTracker rail's width), showing
+   * an expand chevron and the title running vertically. @default false
+   */
+  collapsible?: boolean;
+  /** Controlled collapse state; only applies when `collapsible`. */
+  collapsed?: boolean;
+  /** Initial uncontrolled collapse state. @default false */
+  defaultCollapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  /** The vertical text of the collapsed rail. @default the `title` */
+  collapsedLabel?: React.ReactNode;
+  /**
    * Key handler on the panel body. Exists so a consumer can add Escape-to-close
    * without wrapping the content in another element — the header sits inside
    * the panel, so a wrapper around `children` alone would miss keys pressed
@@ -268,6 +283,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   noise = false,
   inset,
   corner = DEFAULT_SURFACE_CORNER,
+  collapsible = false,
+  collapsed,
+  defaultCollapsed = false,
+  onCollapsedChange,
+  collapsedLabel,
   onKeyDown,
 }) => {
   const t = useKitT();
@@ -424,6 +444,28 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   const resolvedWidth = resizable ? currentWidth : width;
 
+  // ── Collapsing ────────────────────────────────────────────────────────────
+  const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
+  const isCollapsed = collapsible && (collapsed ?? internalCollapsed);
+  const toggleCollapsed = () => {
+    const next = !isCollapsed;
+    if (collapsed === undefined) setInternalCollapsed(next);
+    onCollapsedChange?.(next);
+  };
+  // What the shell is drawn at once open: the rail, or the panel's width.
+  const shellWidth = isCollapsed ? COLLAPSED_RAIL_WIDTH : resolvedWidth;
+  // The kit's one collapse toggle (shared with the WorkflowTracker rail), at
+  // the close button's size so it takes its place exactly.
+  const collapseButton = (label: string) => (
+    <CollapseToggleButton
+      collapsed={isCollapsed}
+      edge={side}
+      size={closeIconSize ?? sizeToken.icon}
+      onClick={toggleCollapsed}
+      aria-label={label}
+    />
+  );
+
   // Keyboard resize (WCAG 2.1.1) so the separator is not pointer-only. The
   // directions mirror the mouse drag: a right-docked panel grows on
   // ArrowLeft (pointer moves left), a left-docked one grows on ArrowRight.
@@ -462,19 +504,35 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // The handle rides the panel's outer edge, so it tracks the same value the
   // width animates to — and carries the same transition, or it would jump to
   // its final position while the panel was still opening.
-  const edgeOffset = entered ? resolvedWidth : 0;
+  const edgeOffset = entered ? shellWidth : 0;
+  // The resize bar and the grip's active layer share one paint: hover reveals
+  // it, dragging deepens the tone as well as the opacity, so "grabbed" reads
+  // differently from "pointer happens to be here".
+  const barTone = isDragging
+    ? `opacity-100 bg-${effectiveTone}-500`
+    : `bg-${effectiveTone}-400 opacity-0 group-hover:opacity-70 group-active:opacity-100`;
   const edgeProperty = side === "right" ? "right" : "left";
   const handleStyle: React.CSSProperties = {
     [edgeProperty]: edgeOffset,
     transition: isDragging
       ? undefined
-      : `${edgeProperty} ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+      : `${edgeProperty} ${OPEN_DURATION_MS}ms ${OPEN_EASING}, opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
   };
+  /*
+   * Collapsed, the handle is not removed but parked: on the rail's edge,
+   * invisible, out of the tab order and the accessibility tree, click-through.
+   * Unmounting it made expanding look broken — the handle re-mounted already
+   * at its final position (a fresh element has no earlier style to transition
+   * from) while the panel edge was still sweeping out from the rail.
+   */
+  const handleParked = isCollapsed;
 
   return (
     <>
       <div
         ref={shellRef}
+        data-sp-shell
+        data-collapsed={collapsible ? isCollapsed : undefined}
         className={classNames(
           "absolute z-40 overflow-hidden",
           isInset ? INSET_GAP_Y_CLASS : "top-0 h-full",
@@ -484,7 +542,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           shadowClass,
         )}
         style={{
-          width: entered ? resolvedWidth : 0,
+          width: entered ? shellWidth : 0,
           // Inline rather than `transition-[width] duration-… ease-…`: an
           // arbitrary easing utility would have to survive the safelist, and
           // this curve is not themeable anyway. It decelerates hard at the end,
@@ -525,10 +583,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             aria-hidden="true"
             data-sp-noise="true"
             className={classNames(
-              "pointer-events-none absolute inset-0 mix-blend-multiply opacity-[0.08] dark:mix-blend-overlay dark:opacity-[0.4]",
+              "pointer-events-none absolute inset-0",
+              getNoiseBlendClasses(),
               cornerClass,
             )}
-            style={NOISE_STYLE}
+            style={{ backgroundImage: NOISE_BACKGROUND_IMAGE }}
           />
         )}
 
@@ -543,9 +602,15 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               panel's own interaction. */}
         {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- passthrough keyboard prop */}
         <div
+          data-sp-content
+          // Collapsed, the full panel stays mounted (its state survives) but
+          // out of reach: inert, faded, clipped by the rail-width shell.
+          inert={isCollapsed || undefined}
+          aria-hidden={isCollapsed || undefined}
           className={classNames(
-            "relative flex h-full flex-col",
+            "relative flex h-full flex-col transition-opacity duration-200 motion-reduce:transition-none",
             side === "left" && "ml-auto",
+            isCollapsed && "opacity-0",
             className,
           )}
           style={{ width: resolvedWidth }}
@@ -584,13 +649,14 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               )}
             </div>
             <div className="flex shrink-0 items-center gap-1 pt-0.5">
+              {collapsible && collapseButton(t("kit.sidepanel.collapse"))}
               {headerActions}
-              {onClose && (
+              {onClose && !collapsible && (
                 <IconButton
                   icon="Close"
                   size={closeIconSize ?? sizeToken.icon}
                   variant="ghost"
-                  color={effectiveTone}
+                  color="neutral"
                   onClick={onClose}
                   aria-label={t("kit.sidepanel.closeAria")}
                 />
@@ -610,6 +676,31 @@ export const SidePanel: React.FC<SidePanelProps> = ({
             </div>
           )}
         </div>
+
+        {/* ── Collapsed rail — the expand chevron and the label, vertical ── */}
+        {isCollapsed && (
+          <div
+            data-sp-collapsed
+            className={classNames(
+              "absolute inset-y-0 flex flex-col items-center gap-3 py-3",
+              side === "right" ? "left-0" : "right-0",
+            )}
+            style={{ width: COLLAPSED_RAIL_WIDTH }}
+          >
+            {collapseButton(t("kit.sidepanel.expand"))}
+            {(collapsedLabel ?? title) && (
+              <span
+                data-sp-collapsed-label
+                className={classNames(
+                  "min-h-0 truncate text-xs font-semibold uppercase tracking-[0.2em] [writing-mode:vertical-rl]",
+                  surfaceText.muted,
+                )}
+              >
+                {collapsedLabel ?? title}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/*
@@ -626,10 +717,12 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           onClick={onClose}
           className="absolute inset-0 z-30 bg-black/20 backdrop-blur-sm"
           style={{
-            opacity: entered ? 1 : 0,
+            // A collapsed panel is a rail beside the content, not a sheet
+            // over it — the scrim steps back with it.
+            opacity: entered && !isCollapsed ? 1 : 0,
             // Not clickable until it has faded in: a double-click-open
             // gesture must not have its second click eaten by the scrim.
-            pointerEvents: isOpen && entered ? "auto" : "none",
+            pointerEvents: isOpen && entered && !isCollapsed ? "auto" : "none",
             transition: `opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
           }}
         />
@@ -645,23 +738,25 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           happens to be at, so the affordance has to be visible there too. */}
       {resizable && (
         // ARIA 1.2 resizable separator: focusable (tabIndex), arrow keys /
-        // Home / End resize, aria-valuenow|min|max report the width. The
-        // rule does not model the valuenow-bearing separator as a widget.
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- resizable separator (WCAG 2.1.1 keyboard resize below)
+        // Home / End resize, aria-valuenow|min|max report the width. Parked
+        // (collapsed), it drops the role and every aria-* and leaves the tab
+        // order — see `handleParked`.
         <div
-          onMouseDown={onMouseDown}
-          onKeyDown={onSeparatorKeyDown}
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={t("kit.sidepanel.resize")}
-          aria-valuenow={resolvedWidth}
-          aria-valuemin={minWidth}
-          aria-valuemax={maxWidth}
-          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- resizable separator (ARIA 1.2 widget with valuenow)
-          tabIndex={0}
+          data-sp-handle
+          onMouseDown={handleParked ? undefined : onMouseDown}
+          onKeyDown={handleParked ? undefined : onSeparatorKeyDown}
+          role={handleParked ? undefined : "separator"}
+          aria-hidden={handleParked || undefined}
+          aria-orientation={handleParked ? undefined : "vertical"}
+          aria-label={handleParked ? undefined : t("kit.sidepanel.resize")}
+          aria-valuenow={handleParked ? undefined : resolvedWidth}
+          aria-valuemin={handleParked ? undefined : minWidth}
+          aria-valuemax={handleParked ? undefined : maxWidth}
+          tabIndex={handleParked ? -1 : 0}
           className={classNames(
             "group absolute z-40 w-3 cursor-col-resize bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:focus-visible:ring-blue-500",
             isInset ? INSET_GAP_Y_CLASS : "inset-y-0",
+            handleParked && "pointer-events-none opacity-0",
           )}
           style={handleStyle}
         >
@@ -673,18 +768,41 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           */}
           <span
             className={classNames(
-              "absolute inset-y-2 w-1 rounded-full transition duration-150",
-              // Against the panel-facing end of the hit area, held a couple of
-              // pixels clear so the panel's own border still reads as a line.
-              side === "right" ? "right-0.5" : "left-0.5",
-              // Hover reveals it as an affordance; dragging deepens the tone
-              // as well as the opacity, so "grabbed" is distinct from
-              // "pointer happens to be here".
-              isDragging
-                ? `opacity-100 bg-${effectiveTone}-500`
-                : `bg-${effectiveTone}-400 opacity-0 group-hover:opacity-70 group-active:opacity-100`,
+              // A hairline bar, centred on the panel edge (2px wide at -1px),
+              // so the grip below sits on it as a bulge on one centre line.
+              "absolute inset-y-2 w-0.5 rounded-full transition duration-150",
+              side === "right" ? "-right-px" : "-left-px",
+              barTone,
             )}
           />
+          {/*
+            The grip — a short pill centred on the edge, also centred on the
+            bar: wider than it, so on hover it reads as a bulge on the line.
+            Two stacked layers rather than hover colour classes (which would
+            need safelisting per tone): a faint neutral one at rest that fades
+            out, and one painted exactly like the bar that fades in with it —
+            so the bulge always takes the bar's colour, and deepens with it.
+          */}
+          <span
+            aria-hidden="true"
+            data-sp-grip
+            className={classNames(
+              "pointer-events-none absolute top-1/2 h-10 w-1 -translate-y-1/2",
+              side === "right" ? "-right-0.5" : "-left-0.5",
+            )}
+          >
+            <span
+              data-sp-grip-rest
+              className={classNames(
+                "absolute inset-0 rounded-full bg-neutral-400 transition-opacity duration-150 dark:bg-neutral-500",
+                isDragging ? "opacity-0" : "opacity-40 group-hover:opacity-0 group-focus-visible:opacity-0",
+              )}
+            />
+            <span
+              data-sp-grip-active
+              className={classNames("absolute inset-0 rounded-full transition duration-150", barTone)}
+            />
+          </span>
         </div>
       )}
     </>

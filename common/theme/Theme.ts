@@ -868,6 +868,12 @@ export const DEFAULT_SURFACE_CORNER: Exclude<SurfaceCorner, "auto"> =
  * of the card it lives in. Components whose docs say "the control corner
  * from the theme" take this.
  */
+/**
+ * Width of a collapsed side rail — the WorkflowTracker rail and a collapsed
+ * SidePanel share it, so a page with both reads as one column of rails.
+ */
+export const COLLAPSED_RAIL_WIDTH = 56;
+
 export const DEFAULT_CONTROL_CORNER: Exclude<SurfaceCorner, "auto"> =
   "rounded-lg";
 

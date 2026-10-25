@@ -224,6 +224,10 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       verbExpand: "Auskklappen",
       toggleSubmenu: "{verb} Untermenü {label}",
       dismissCta: "Ausblenden",
+      showMore: "{count} weitere anzeigen",
+      noResults: "Keine Ergebnisse f\u00fcr \u201e{query}\u201c",
+      submenuAria: "Untermen\u00fc {label}",
+      navAria: "Seitenmen\u00fc",
     },
     splitview: {
       moreOptions: "Weitere Optionen",
@@ -246,6 +250,8 @@ export const DE_KIT_CATALOG: MessageCatalog = {
     sidepanel: {
       closeAria: "Panel schließen",
       resize: "Panelgröße ändern",
+      collapse: "Panel einklappen",
+      expand: "Panel ausklappen",
     },
     smartgrid: {
       searchAria: "Elemente durchsuchen",
