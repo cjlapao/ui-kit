@@ -19,11 +19,13 @@ export default function DualLayout() {
         sideMenuProps={{
           title: "Workspace",
           color: "blue",
+          collapsible: true,
           items: LEFT_ITEMS,
         }}
         rightSideMenuProps={{
           title: "Filters",
           color: "emerald",
+          collapsible: true,
           items: RIGHT_ITEMS,
         }}
       >

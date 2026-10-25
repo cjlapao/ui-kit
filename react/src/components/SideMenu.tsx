@@ -317,14 +317,18 @@ export interface SideMenuProps {
   /** Which edge of the layout the panel sits on. @default "left" */
   side?: SidebarSide;
   /**
-   * How the desktop panel collapses: `icon` (rail), `offcanvas` (hidden, a
-   * handle at the edge opens it) or `none`. Ignored while `openOnHover` is on.
-   * @default "icon"
+   * Whether — and how — the desktop panel may collapse. Opt-in: without it
+   * the panel stays expanded, shows no collapse control, ignores `collapsed`
+   * and does not open on hover. `true` is the icon rail (`"icon"`);
+   * `"offcanvas"` hides the panel behind a handle at the edge. The mobile
+   * drawer (`responsive`) is separate and unaffected.
+   * @default "none"
    */
-  collapsible?: SidebarCollapsible;
+  collapsible?: SidebarCollapsible | boolean;
   /**
    * The desktop panel stays a collapsed icon rail; hovering the rail opens the
    * full menu as an overlay. The collapse control is hidden while this is on.
+   * Needs `collapsible` — a menu that may not collapse has no rail to hover.
    * @default false
    */
   openOnHover?: boolean;
@@ -943,7 +947,7 @@ export const SideMenu = ({
   color = "blue",
   variant = "sidebar",
   side = "left",
-  collapsible = "icon",
+  collapsible = "none",
   openOnHover = false,
   hoverTransitionMs = 250,
   responsive = true,
@@ -973,6 +977,11 @@ export const SideMenu = ({
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [internalSearch, setInternalSearch] = useState("");
   const [hoverOpen, setHoverOpen] = useState(false);
+  // Collapsing is opt-in: `true` is the icon rail, and the hover rail needs a
+  // menu that may collapse in the first place.
+  const collapseMode: SidebarCollapsible =
+    collapsible === true ? "icon" : collapsible === false ? "none" : collapsible;
+  const hoverRail = openOnHover && collapseMode !== "none";
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -1013,17 +1022,17 @@ export const SideMenu = ({
 
   // `openOnHover` owns the desktop state: the rail is always collapsed and the
   // full panel is a hover overlay, so `collapsible` no longer applies.
-  const effectiveMode: SidebarCollapsible = openOnHover ? "icon" : collapsible;
+  const effectiveMode: SidebarCollapsible = hoverRail ? "icon" : collapseMode;
   const expanded = isMobile
     ? true
-    : openOnHover
+    : hoverRail
       ? false
       : effectiveMode === "none"
         ? true
         : !collapsedState;
 
   const showCollapseControl =
-    !isMobile && !openOnHover && effectiveMode !== "none";
+    !isMobile && !hoverRail && effectiveMode !== "none";
   const showOffcanvasHandle =
     !isMobile && effectiveMode === "offcanvas" && !expanded;
 
@@ -1075,17 +1084,17 @@ export const SideMenu = ({
     setHoverOpen(false);
   };
   const handleRailEnter = () => {
-    if (!openOnHover || isMobile) return;
+    if (!hoverRail || isMobile) return;
     cancelHoverClose();
     setHoverOpen(true);
   };
   const handleRailLeave = () => {
-    if (!openOnHover || isMobile) return;
+    if (!hoverRail || isMobile) return;
     scheduleHoverClose();
   };
   useEffect(() => {
-    if (!openOnHover) setHoverOpen(false);
-  }, [openOnHover]);
+    if (!hoverRail) setHoverOpen(false);
+  }, [hoverRail]);
 
   // ── Active path ─────────────────────────────────────────────────────────
   // Exact match or a descendant: "/dashboard" must not light up on
@@ -1240,7 +1249,7 @@ export const SideMenu = ({
   // The hover-rail grows the panel itself — one solid div whose width
   // transitions 68px → 256px on hover (PrimeVue-style) — instead of a separate
   // overlay fading in over the rail, which read as a second, see-through layer.
-  const isHoverMode = openOnHover && !isMobile;
+  const isHoverMode = hoverRail && !isMobile;
 
   const borderClasses = surface.border
     ? `${surface.border} ${
@@ -1790,7 +1799,7 @@ export const SideMenu = ({
             className={`flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${surface.muted} ${toneTokens.hoverBg} ${toneTokens.hoverText} ${
               !expanded ? "justify-center" : ""
             }`}
-            title={expanded ? "Collapse sidebar" : "Expand sidebar"}
+            title={expanded ? t("kit.sidemenu.collapseSidebar") : t("kit.sidemenu.expandSidebar")}
           >
             <CustomIcon
               icon={

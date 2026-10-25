@@ -25,6 +25,7 @@ export default function MultiLayout() {
         secondarySideMenuProps={{
           title: "Secondary",
           color: "violet",
+          collapsible: true,
           items: SECONDARY_ITEMS,
         }}
       >

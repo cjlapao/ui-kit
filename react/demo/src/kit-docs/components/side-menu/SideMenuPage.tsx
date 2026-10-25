@@ -85,7 +85,7 @@ export const SideMenuPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Collapse modes"
-        description="icon shrinks to an icon rail, offcanvas removes the panel entirely (a handle at the edge opens it again) and openOnHover keeps a rail that expands as an overlay on hover — with no collapse control at all."
+        description={'Collapsing is opt-in: without collapsible the menu stays expanded, shows no collapse control and ignores openOnHover. collapsible (or "icon") shrinks to an icon rail, "offcanvas" removes the panel entirely (a handle at the edge opens it again), and collapsible + openOnHover keeps a rail that expands as an overlay on hover — with no collapse control at all.'}
         code={collapseCode}
         filename="Collapse.tsx"
       >
@@ -223,8 +223,9 @@ export const SideMenuPage: React.FC = () => (
         { name: "group: tag", type: "TrueColor", description: "A coloured vertical line before the group label, tagging the section with a tone." },
         { name: "guards / hidden", type: "SideMenuItemGuard[] / boolean", description: "Per item: guard rules (all must pass, evaluated by guardEvaluator) or a plain hide." },
         { name: "variant / side / color", type: "SidebarVariant / SidebarSide / TrueColor", default: '"sidebar" / "left" / "blue"', description: "Surface treatment, docked edge and accent." },
-        { name: "collapsed / onToggleCollapse / collapsible", type: "boolean / () => void / SidebarCollapsible", default: '— / — / "icon"', description: "Icon rail, offcanvas or none." },
-        { name: "openOnHover / hoverTransitionMs", type: "boolean / number", default: "false / 250", description: "Keep a rail that grows into the full panel on hover." },
+        { name: "collapsible", type: "SidebarCollapsible | boolean", default: '"none"', description: "Opt-in collapsing. Without it the panel stays expanded, shows no collapse control, ignores collapsed and does not open on hover. true / \"icon\" is the icon rail; \"offcanvas\" hides the panel behind an edge handle. The mobile drawer (responsive) is separate." },
+        { name: "collapsed / onToggleCollapse", type: "boolean / () => void", description: "Controlled collapse state, when the menu is collapsible." },
+        { name: "openOnHover / hoverTransitionMs", type: "boolean / number", default: "false / 250", description: "Keep a rail that grows into the full panel on hover. Needs collapsible." },
         { name: "mobileOpen / onCloseMobile / responsive", type: "boolean / () => void / boolean", default: "— / — / true", description: "Below 1024px the panel is an offcanvas drawer with a backdrop; Esc closes it." },
         { name: "search / searchValue / onSearchChange / searchPlaceholder", type: "boolean / string / (v) => void / string", description: "An item search over labels and descriptions; controlled or not." },
         { name: "topItem / footerItem", type: "SideMenuDropdownItem", description: "Rows above the navigation and above the collapse control, each with its own dropdown menu." },

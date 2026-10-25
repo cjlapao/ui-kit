@@ -24,6 +24,7 @@ export default function Chat() {
         sideMenuProps={{
           title: "Chats",
           color: "violet",
+          collapsible: true,
           search: true,
           searchPlaceholder: "Search chats",
           items: CONVERSATIONS,

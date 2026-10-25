@@ -163,6 +163,11 @@ export const SideMenuPlayground: React.FC = () => {
                     checked={openOnHover}
                     onChange={setOpenOnHover}
                   />
+                  {openOnHover && collapsible === "none" && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      The hover rail needs a collapsible mode — pick one under Core.
+                    </p>
+                  )}
                   {openOnHover && (
                     <Control label="Hover transition">
                       <div className="flex items-center gap-3">

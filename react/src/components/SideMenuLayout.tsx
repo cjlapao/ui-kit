@@ -138,9 +138,10 @@ export const SideMenuLayout = ({
     fullHeight: true,
     // Multi mode pins the primary to the hover rail: always collapsed,
     // expanding as an overlay on hover. `openOnHover` owns that state, so the
-    // collapse wiring is not passed through.
+    // collapse wiring is not passed through — and since collapsing is opt-in
+    // on SideMenu, the layout opts the rail in itself.
     ...(isMulti
-      ? { openOnHover: true }
+      ? { collapsible: "icon" as const, openOnHover: true }
       : {
           collapsed: isCollapsed,
           onToggleCollapse: handleToggleCollapse,

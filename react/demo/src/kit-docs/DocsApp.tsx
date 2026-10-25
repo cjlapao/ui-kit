@@ -131,6 +131,7 @@ export const DocsApp: React.FC = () => {
         sideMenuProps={{
           title: "Components",
           color: "blue",
+          collapsible: true,
           logoIcon: <CustomIcon icon="UX" className="h-6 w-6 text-blue-500" />,
           logoText: (
             <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">

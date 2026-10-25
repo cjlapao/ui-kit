@@ -55,10 +55,12 @@ const MENU_PROPS: SideMenuProps = {
 };
 
 const RIGHT_PROPS: SideMenuProps = {
+  collapsible: true,
   items: [{ slug: "r1", label: "Right one", path: "/r1", icon: "Info" }],
 };
 
 const SECONDARY_PROPS: SideMenuProps = {
+  collapsible: true,
   items: [{ slug: "s1", label: "Second", path: "/s1", icon: "Info" }],
 };
 
@@ -66,7 +68,7 @@ function renderLayout(props: Partial<SideMenuLayoutProps> = {}) {
   return render(
     <MemoryRouter initialEntries={["/"]}>
       <SideMenuLayout
-        sideMenuProps={{ ...MENU_PROPS, title: "Primary" }}
+        sideMenuProps={{ ...MENU_PROPS, collapsible: true, title: "Primary" }}
         {...props}
       >
         <p>Body content</p>

@@ -208,6 +208,7 @@ export const PageHeaderPlayground: React.FC = () => {
           <div className="flex h-full">
             <SideMenu
               fullHeight
+              collapsible
               variant={variant === "default" ? "sidebar" : variant}
               color={tone}
               logoIcon={

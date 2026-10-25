@@ -130,7 +130,7 @@ describe("SideMenu — active state", () => {
 
 describe("SideMenu — collapse", () => {
   it("collapses to the icon rail and back (uncontrolled)", () => {
-    renderMenu();
+    renderMenu({ collapsible: true });
     expect(link("Dashboard")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTitle("Collapse sidebar"));
@@ -147,6 +147,7 @@ describe("SideMenu — collapse", () => {
       <MemoryRouter initialEntries={["/"]}>
         <SideMenu
           items={ITEMS}
+          collapsible
           collapsed={false}
           onToggleCollapse={onToggleCollapse}
         />
@@ -159,7 +160,7 @@ describe("SideMenu — collapse", () => {
 
     rerender(
       <MemoryRouter initialEntries={["/"]}>
-        <SideMenu items={ITEMS} collapsed onToggleCollapse={onToggleCollapse} />
+        <SideMenu items={ITEMS} collapsible collapsed onToggleCollapse={onToggleCollapse} />
       </MemoryRouter>,
     );
     expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
@@ -199,7 +200,7 @@ describe("SideMenu — openOnHover", () => {
     (container.firstElementChild as HTMLElement).querySelector("aside")!;
 
   it("keeps the rail collapsed and grows the panel to the full menu on hover", () => {
-    const { container } = renderMenu({ openOnHover: true });
+    const { container } = renderMenu({ collapsible: true, openOnHover: true });
     expect(screen.queryByTitle("Collapse sidebar")).not.toBeInTheDocument();
 
     const aside = asideOf(container);
@@ -215,7 +216,7 @@ describe("SideMenu — openOnHover", () => {
 
   it("debounces leave so the pointer can travel rail → expanded panel", async () => {
     vi.useFakeTimers();
-    const { container } = renderMenu({ openOnHover: true });
+    const { container } = renderMenu({ collapsible: true, openOnHover: true });
     const aside = asideOf(container);
 
     fireEvent.mouseEnter(aside);
@@ -232,7 +233,7 @@ describe("SideMenu — openOnHover", () => {
   });
 
   it("grows one solid panel over the content, without shifting it", () => {
-    const { container } = renderMenu({ openOnHover: true });
+    const { container } = renderMenu({ collapsible: true, openOnHover: true });
     const wrapper = container.firstElementChild as HTMLElement;
     const aside = asideOf(container);
 
@@ -251,6 +252,7 @@ describe("SideMenu — openOnHover", () => {
 
   it("applies hoverTransitionMs to the panel width transition", () => {
     const { container } = renderMenu({
+      collapsible: true,
       openOnHover: true,
       hoverTransitionMs: 500,
     });
@@ -420,7 +422,7 @@ describe("SideMenu — topItem / footerItem", () => {
     // A collapsed rail gives the trigger ~20px of content box; caller
     // markup without `shrink-0` used to squash (w-8 rendering at ~24px).
     const { container } = renderMenu({
-      collapsed: true,
+      collapsible: true, collapsed: true,
       onToggleCollapse: () => {},
       topItem: {
         label: "ACME",
@@ -528,7 +530,7 @@ describe("SideMenu — actions, badges", () => {
 
     rerender(
       <MemoryRouter initialEntries={["/"]}>
-        <SideMenu items={actionItems} collapsed onToggleCollapse={() => {}} />
+        <SideMenu items={actionItems} collapsible collapsed onToggleCollapse={() => {}} />
       </MemoryRouter>,
     );
     expect(
@@ -784,6 +786,7 @@ describe("SideMenu — loading", () => {
 
   it("the skeleton honours the chrome the menu actually renders", () => {
     const { container } = renderMenu({
+      collapsible: true,
       loading: true,
       title: "Playground",
       search: true,
@@ -905,7 +908,7 @@ describe("SideMenu — call-to-action cards", () => {
     const rail = renderMenu({
       ctas: CTAS,
       footerDetails: DETAILS,
-      collapsed: true,
+      collapsible: true, collapsed: true,
       onToggleCollapse: () => {},
     });
     expect(screen.queryByText("Fresh content")).toBeNull();
@@ -1042,6 +1045,7 @@ describe("SideMenu — detail footer", () => {
 describe("SideMenu — skeleton slots", () => {
   it("placeholders stand in for the CTA cards and the detail box while loading", () => {
     const { container } = renderMenu({
+      collapsible: true,
       loading: true,
       ctas: CTAS,
       footerDetails: DETAILS,
@@ -1305,7 +1309,7 @@ describe("SideMenu — the collapsed rail", () => {
   });
 
   it("meta is hidden in the rail — it is copy, not a badge", () => {
-    renderMenu({ items: RAIL_ITEMS, collapsed: true, onToggleCollapse: () => {} });
+    renderMenu({ items: RAIL_ITEMS, collapsible: true, collapsed: true, onToggleCollapse: () => {} });
     expect(screen.queryByText("38min")).toBeNull();
     expect(screen.queryByText("7d")).toBeNull();
     // A real badge still rides the icon in the rail.
@@ -1313,7 +1317,7 @@ describe("SideMenu — the collapsed rail", () => {
   });
 
   it("an icon-less row shows its initials in the rail, so it can be seen and clicked", () => {
-    renderMenu({ items: RAIL_ITEMS, collapsed: true, onToggleCollapse: () => {} });
+    renderMenu({ items: RAIL_ITEMS, collapsible: true, collapsed: true, onToggleCollapse: () => {} });
     const greet = link("Simple Greeting");
     const tile = greet.querySelector("[data-sidemenu-initials]") as HTMLElement;
     expect(tile.textContent).toBe("SG");
@@ -1324,14 +1328,14 @@ describe("SideMenu — the collapsed rail", () => {
   });
 
   it("a loading icon-less row shows the spinner in the rail, not initials", () => {
-    renderMenu({ items: RAIL_ITEMS, collapsed: true, onToggleCollapse: () => {} });
+    renderMenu({ items: RAIL_ITEMS, collapsible: true, collapsed: true, onToggleCollapse: () => {} });
     const run = link("S31: Workspace Implementation");
     expect(run.querySelector("[data-sidemenu-loading]")).toBeTruthy();
     expect(run.querySelector("[data-sidemenu-initials]")).toBeNull();
   });
 
   it("the rail drops the nesting indent, so nested tiles centre like icons", () => {
-    renderMenu({ items: RAIL_ITEMS, collapsed: true, onToggleCollapse: () => {} });
+    renderMenu({ items: RAIL_ITEMS, collapsible: true, collapsed: true, onToggleCollapse: () => {} });
     const row = rowOf("Simple Greeting");
     expect(row.className).not.toContain("pl-9");
     expect(row.className).toContain("px-3");
@@ -1340,5 +1344,46 @@ describe("SideMenu — the collapsed rail", () => {
   it("expanded rows without an icon get no initials tile", () => {
     renderMenu({ items: RAIL_ITEMS });
     expect(document.querySelector("[data-sidemenu-initials]")).toBeNull();
+  });
+});
+
+describe("SideMenu — collapsing is opt-in", () => {
+  const collapseControl = () => screen.queryByRole("button", { name: /^(Collapse|Expand)( sidebar)?$/ });
+
+  it("by default there is no collapse control and the menu stays expanded", () => {
+    renderMenu({ collapsed: true, onToggleCollapse: () => {} });
+    expect(collapseControl()).toBeNull();
+    // `collapsed` has nothing to act on: labels are still there.
+    expect(screen.getByText("Dashboard")).toBeTruthy();
+  });
+
+  it("openOnHover alone does not turn the menu into a hover rail", () => {
+    const { container } = renderMenu({ openOnHover: true });
+    expect(screen.getByText("Dashboard")).toBeTruthy();
+    expect(container.querySelector("aside")!.className).not.toContain("w-[68px]");
+  });
+
+  it("collapsible (true) enables the icon rail and its control", () => {
+    renderMenu({ collapsible: true, collapsed: true, onToggleCollapse: () => {} });
+    expect(collapseControl()).toBeTruthy();
+    expect(screen.queryByText("Dashboard")).toBeNull();
+  });
+
+  it('collapsible="icon" behaves the same as true', () => {
+    renderMenu({ collapsible: "icon" });
+    expect(collapseControl()).toBeTruthy();
+  });
+
+  it("collapsible + openOnHover makes the hover rail", () => {
+    const { container } = renderMenu({ collapsible: true, openOnHover: true });
+    expect(collapseControl()).toBeNull();
+    expect(container.querySelector("aside")!.className).toContain("w-[68px]");
+  });
+
+  it("the control's tooltip goes through the catalog, not hardcoded English", () => {
+    const dir = path.dirname(fileURLToPath(new URL(import.meta.url)));
+    const src = fs.readFileSync(path.join(dir, "SideMenu.tsx"), "utf8");
+    expect(src).not.toContain('"Collapse sidebar" : "Expand sidebar"');
+    expect(src).not.toContain('"Expand sidebar" : "Collapse sidebar"');
   });
 });

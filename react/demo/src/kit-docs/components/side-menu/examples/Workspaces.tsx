@@ -83,6 +83,7 @@ export default function Workspaces() {
           color="violet"
           title="Claude"
           items={items}
+          collapsible
           collapsed={collapsed}
           onToggleCollapse={() => setCollapsed((c) => !c)}
         />

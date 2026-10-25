@@ -28,6 +28,7 @@ const RailDemo: React.FC = () => {
     <SideMenu
       fullHeight
       color="blue"
+      collapsible
       collapsed={collapsed}
       onToggleCollapse={() => setCollapsed((value) => !value)}
       items={MINI_ITEMS}
@@ -59,7 +60,7 @@ export default function Collapse() {
         <OffcanvasDemo />
       </Panel>
       <Panel label="Hover — openOnHover, the rail expands on hover" wide>
-        <SideMenu fullHeight color="violet" openOnHover items={MINI_ITEMS} />
+        <SideMenu fullHeight color="violet" collapsible openOnHover items={MINI_ITEMS} />
       </Panel>
     </div>
   );
