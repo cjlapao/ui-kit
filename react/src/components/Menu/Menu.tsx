@@ -4,12 +4,21 @@ import classNames from "classnames";
 import Panel from "../Panel";
 import CustomIcon from "../CustomIcon";
 import { CollapseChevron } from "../CollapseToggleButton";
-import { getSideMenuItemTokens, getSurfaceTriggerTokens, getSurfaceCornerClass, getSurfacePaddingClass, THIN_SCROLLBAR } from "../../theme/Theme";
+import { getSideMenuItemTokens, getSurfaceTriggerTokens, getSurfaceCornerClass, THIN_SCROLLBAR } from "../../theme/Theme";
 import { MenuPopup } from "./MenuPopup";
 import type { MenuItem, MenuProps } from "./types";
 
 export { SURFACE_VARIANTS as MENU_VARIANTS } from "../../theme/Theme";
 export type { MenuItem, MenuProps } from "./types";
+// Menus use a compact inset scale rather than the roomier card scale.
+const menuPadding = {
+  none: "p-0",
+  xs: "p-1 sm:p-1.5",
+  sm: "p-2 sm:p-2.5",
+  md: "p-3 sm:p-4",
+  lg: "p-4 sm:p-5",
+  xl: "p-5 sm:p-6",
+};
 const rowSizes = { xs: "px-2 py-1 text-xs", sm: "px-2.5 py-1.5 text-xs", md: "px-3 py-2 text-sm", lg: "px-4 py-2.5 text-base", xl: "px-5 py-3 text-lg" };
 interface State {
   owner: string;
@@ -129,7 +138,7 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
     "aria-expanded": nested ? expanded : undefined, "aria-haspopup": nested && tiered ? "menu" as const : undefined,
     "aria-controls": nested && expanded ? `${id}-submenu` : undefined,
     "data-menu-action": "", "data-menu-text": label, tabIndex: -1,
-    className: classNames("flex w-full items-center gap-2 text-left font-medium outline-none transition-colors", itemPadding === undefined ? rowSizes[props.size ?? "md"] : [rowSizes[props.size ?? "md"].split(" ").filter(token => token.startsWith("text-")), getSurfacePaddingClass(itemPadding)],
+    className: classNames("flex w-full items-center gap-2 text-left font-medium outline-none transition-colors", itemPadding === undefined ? rowSizes[props.size ?? "md"] : [rowSizes[props.size ?? "md"].split(" ").filter(token => token.startsWith("text-")), menuPadding[itemPadding]],
       getSurfaceCornerClass(item.corner ?? props.itemCorner ?? "rounded-sm"),
       getSurfaceTriggerTokens(itemTone).focusRing,
       item.disabled ? "cursor-not-allowed opacity-40" : item.danger ? "text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10" : [tokens.hoverBg, tokens.hoverText],
@@ -158,13 +167,15 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
 function MenuSurface({ state, children, root = false }: { state: State; children: React.ReactNode; root?: boolean }) {
   const { props } = state;
   return <div data-menu-owner={state.owner} onMouseEnter={state.cancelLeave} onMouseLeave={state.scheduleLeave}>
-    <Panel variant={props.variant ?? "outlined"} tone={props.tone ?? "neutral"} corner={props.corner} padding={props.padding ?? "xs"}
+    <Panel variant={props.variant ?? "outlined"} tone={props.tone ?? "neutral"} corner={props.corner} padding="none"
       glassOpacity={props.glassOpacity} vibrancy={props.vibrancy} specularMode={props.specularMode}
       className={classNames(root ? props.className : undefined,
         (!root || props.popup || props.trigger || props.anchorRef) && "backdrop-blur-xl")}>
+      <div data-menu-padding className={menuPadding[props.padding ?? "xs"]}>
       {root && props.header && <div className="mb-2 border-b border-neutral-200 pb-2 dark:border-white/10">{props.header}</div>}
       <div className={classNames("overflow-auto", THIN_SCROLLBAR)} style={{ maxHeight: `min(${props.maxHeight ?? 400}px, calc(100dvh - 32px))` }}>{children}</div>
       {root && props.footer && <div className="mt-2 border-t border-neutral-200 pt-2 dark:border-white/10">{props.footer}</div>}
+      </div>
     </Panel>
   </div>;
 }

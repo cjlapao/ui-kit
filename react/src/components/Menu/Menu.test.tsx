@@ -33,8 +33,14 @@ describe("Menu", () => {
     const row = screen.getByRole("menuitem", { name: "Default row" });
     expect(row).toHaveClass("p-0", "rounded-none", "hover:bg-blue-100");
     expect(row).not.toHaveClass("px-3", "py-2", "rounded-lg");
-    expect(screen.getByRole("menuitem", { name: "Custom row" })).toHaveClass("p-2", "rounded-3xl", "hover:bg-rose-100");
+    expect(screen.getByRole("menuitem", { name: "Custom row" })).toHaveClass("p-1", "sm:p-1.5", "rounded-3xl", "hover:bg-rose-100");
     expect(container.querySelector("section")).toHaveClass("rounded-4xl");
+    expect(container.querySelector("[data-menu-padding]")).toHaveClass("p-4", "sm:p-5");
+  });
+  it("uses compact xs padding by default", () => {
+    const { container } = render(<Menu items={items} />);
+    expect(container.querySelector("[data-menu-padding]")).toHaveClass("p-1", "sm:p-1.5");
+    expect(container.querySelector("[data-menu-padding]")).not.toHaveClass("p-2", "sm:p-3");
   });
   it("navigates across groups, skips disabled items, and supports typeahead", () => {
     render(<Menu items={items} />);

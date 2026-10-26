@@ -56,7 +56,8 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
   size?: ControlSize;
   /** Row tone; defaults to the surface tone. Individual items may override it. */
   itemTone?: PanelProps["tone"];
-  /** Row inset; omitted follows size. Separate from the menu surface padding. */
+  /** Compact menu inset scale (xs: p-1 sm:p-1.5); omitted follows size.
+   * Separate from the menu surface padding. */
   itemPadding?: PanelProps["padding"];
   /** Row corners. @default "rounded-sm" (rounded-lg) */
   itemCorner?: PanelProps["corner"];

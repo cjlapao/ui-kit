@@ -130,6 +130,7 @@ export const DocsApp: React.FC = () => {
       <SideMenuLayout
         sideMenuProps={{
           title: "Components",
+          variant: "inset",
           color: "blue",
           collapsible: true,
           logoIcon: <CustomIcon icon="UX" className="h-6 w-6 text-blue-500" />,
@@ -144,6 +145,8 @@ export const DocsApp: React.FC = () => {
         }}
         header={
           <PageHeader
+            variant="default"
+            corner="none"
             aria-label="Docs header"
             start={
               <>
