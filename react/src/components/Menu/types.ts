@@ -18,6 +18,10 @@ export interface MenuItem {
   disabled?: boolean;
   hidden?: boolean;
   danger?: boolean;
+  /** Per-row overrides of the menu item defaults. */
+  tone?: PanelProps["tone"];
+  padding?: PanelProps["padding"];
+  corner?: PanelProps["corner"];
   items?: MenuItem[];
   /** Override the menu-level expansion mode for this parent. */
   submenuMode?: "inline" | "tiered";
@@ -50,6 +54,12 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
   onExpandedKeysChange?: (keys: string[]) => void;
   placement?: "top" | "bottom" | "left" | "right";
   size?: ControlSize;
+  /** Row tone; defaults to the surface tone. Individual items may override it. */
+  itemTone?: PanelProps["tone"];
+  /** Row inset; omitted follows size. Separate from the menu surface padding. */
+  itemPadding?: PanelProps["padding"];
+  /** Row corners. @default "rounded-sm" (rounded-lg) */
+  itemCorner?: PanelProps["corner"];
   width?: number | string;
   maxHeight?: number;
   header?: React.ReactNode;

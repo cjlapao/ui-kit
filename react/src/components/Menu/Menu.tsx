@@ -4,7 +4,7 @@ import classNames from "classnames";
 import Panel from "../Panel";
 import CustomIcon from "../CustomIcon";
 import { CollapseChevron } from "../CollapseToggleButton";
-import { getSideMenuItemTokens, getSurfaceTriggerTokens, THIN_SCROLLBAR } from "../../theme/Theme";
+import { getSideMenuItemTokens, getSurfaceTriggerTokens, getSurfaceCornerClass, getSurfacePaddingClass, THIN_SCROLLBAR } from "../../theme/Theme";
 import { MenuPopup } from "./MenuPopup";
 import type { MenuItem, MenuProps } from "./types";
 
@@ -100,7 +100,9 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
     {item.label && <div className="px-3 pb-1 pt-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400">{item.label}</div>}
     {item.items && <MenuList items={item.disabled ? item.items.map(child => ({ ...child, disabled: true })) : item.items} state={state} depth={depth} parentLabel={label} grouped />}
   </li>;
-  const tokens = getSideMenuItemTokens(props.tone ?? "neutral");
+  const itemTone = item.tone ?? props.itemTone ?? props.tone ?? "neutral";
+  const itemPadding = item.padding ?? props.itemPadding;
+  const tokens = getSideMenuItemTokens(itemTone);
   const checkable = item.type === "checkbox" || item.type === "radio";
   const activate = (event: React.MouseEvent<HTMLElement>) => {
     if (item.disabled) { event.preventDefault(); return; }
@@ -127,7 +129,9 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
     "aria-expanded": nested ? expanded : undefined, "aria-haspopup": nested && tiered ? "menu" as const : undefined,
     "aria-controls": nested && expanded ? `${id}-submenu` : undefined,
     "data-menu-action": "", "data-menu-text": label, tabIndex: -1,
-    className: classNames("flex w-full items-center gap-2 rounded-lg text-left font-medium outline-none transition-colors", rowSizes[props.size ?? "md"], getSurfaceTriggerTokens(props.tone ?? "neutral").focusRing,
+    className: classNames("flex w-full items-center gap-2 text-left font-medium outline-none transition-colors", itemPadding === undefined ? rowSizes[props.size ?? "md"] : [rowSizes[props.size ?? "md"].split(" ").filter(token => token.startsWith("text-")), getSurfacePaddingClass(itemPadding)],
+      getSurfaceCornerClass(item.corner ?? props.itemCorner ?? "rounded-sm"),
+      getSurfaceTriggerTokens(itemTone).focusRing,
       item.disabled ? "cursor-not-allowed opacity-40" : item.danger ? "text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10" : [tokens.hoverBg, tokens.hoverText],
       expanded && !item.disabled && tokens.bg),
     onClick: activate,

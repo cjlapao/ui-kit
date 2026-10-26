@@ -24,6 +24,18 @@ describe("Menu", () => {
     expect(screen.getByText("Account")).toBeInTheDocument();
     expect(screen.getByText("Footer")).toBeInTheDocument();
   });
+  it("styles rows independently from their surface and honors individual overrides", () => {
+    const { container } = render(<Menu tone="neutral" padding="lg" corner="rounded-xl"
+      itemTone="blue" itemPadding="none" itemCorner="none" items={[
+        { id: "default", label: "Default row" },
+        { id: "override", label: "Custom row", tone: "rose", padding: "xs", corner: "rounded-lg" },
+      ]} />);
+    const row = screen.getByRole("menuitem", { name: "Default row" });
+    expect(row).toHaveClass("p-0", "rounded-none", "hover:bg-blue-100");
+    expect(row).not.toHaveClass("px-3", "py-2", "rounded-lg");
+    expect(screen.getByRole("menuitem", { name: "Custom row" })).toHaveClass("p-2", "rounded-3xl", "hover:bg-rose-100");
+    expect(container.querySelector("section")).toHaveClass("rounded-4xl");
+  });
   it("navigates across groups, skips disabled items, and supports typeahead", () => {
     render(<Menu items={items} />);
     const first = screen.getByRole("menuitem", { name: "New" });
