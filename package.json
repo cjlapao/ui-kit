@@ -1,7 +1,7 @@
 {
   "name": "ui-kit-monorepo",
   "private": true,
-  "version": "0.2.17",
+  "version": "0.2.18",
   "type": "module",
   "description": "Meta root for @cjlapao/ui-kit (react/), @cjlapao/ui-kit-vue (vue/) and the shared framework-agnostic source (common/).",
   "scripts": {
