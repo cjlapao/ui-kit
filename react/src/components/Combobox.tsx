@@ -422,7 +422,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
                   id={listId}
                   role="listbox"
                   aria-label={rest["aria-label"] ?? placeholder ?? "Options"}
-                  className="py-1"
+                  className="px-1 py-1"
                 >
                   {loading ? (
                     <li
@@ -471,7 +471,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
                             setActiveIndex(index);
                           }}
                           className={classNames(
-                            "flex items-center gap-2",
+                            "flex items-center gap-2 rounded-[2px]",
                             rowClass,
                             option.disabled
                               ? "cursor-not-allowed opacity-50"

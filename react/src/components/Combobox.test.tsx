@@ -275,6 +275,16 @@ describe("Combobox - the popup", () => {
     ).toBe(0);
   });
 
+  it("insets popup rows and rounds option highlights by 2px", () => {
+    const utils = setup();
+    openList(utils);
+
+    expect(utils.getByRole("listbox")).toHaveClass("px-1");
+    expect(utils.getByRole("option", { name: "Apple" })).toHaveClass(
+      "rounded-[2px]",
+    );
+  });
+
   it("the keyboard cursor washes, in tone on the selected row and neutral elsewhere", () => {
     // The typed query narrows the list, so drive the cursor with a
     // committed value: the one row visible is the selected one.

@@ -1441,12 +1441,19 @@ export const SideMenu = ({
 
     // The rail has no room for nesting: every row centres its icon (or
     // initials) at depth 0, or nested tiles would sit off the rail's axis.
-    const rowClasses = `group relative flex items-center rounded-lg transition-all duration-150 ${indentClass(contentCollapsed ? 0 : depth)} ${
-      selfActive
-        ? `${tokens.bg} ${tokens.text} shadow-sm`
-        : childActive
-          ? tokens.text
-          : `${idle.text} ${tokens.hoverBg} ${tokens.hoverText}`
+    const rowStateClasses = selfActive
+      ? `${tokens.bg} ${tokens.text} shadow-sm`
+      : childActive
+        ? tokens.text
+        : `${idle.text} ${tokens.hoverBg} ${tokens.hoverText}`;
+    // In the icon rail, the link owns the complete rounded tile. Keeping the
+    // padding and hover surface on its parent left a visible part of the tile
+    // outside the link's hit target. Expanded rows still keep their state on
+    // the wrapper because trailing actions and submenu controls share it.
+    const rowClasses = `group relative flex items-center ${
+      contentCollapsed
+        ? ""
+        : `rounded-lg transition-all duration-150 ${indentClass(depth)} ${rowStateClasses}`
     }`;
 
     return (
@@ -1463,7 +1470,9 @@ export const SideMenu = ({
             aria-busy={link.loading || undefined}
             title={contentCollapsed ? link.label : undefined}
             className={`flex min-w-0 flex-1 items-center gap-3 py-2.5 text-sm font-medium ${
-              contentCollapsed ? "justify-center" : ""
+              contentCollapsed
+                ? `w-full justify-center rounded-lg transition-all duration-150 ${indentClass(0)} ${rowStateClasses}`
+                : ""
             }`}
           >
             {(link.icon || link.loading || contentCollapsed) && (

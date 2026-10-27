@@ -77,6 +77,7 @@ import {
 export type TaskBoardVariant = PlainSurfaceVariant;
 export type TaskBoardCorner = PanelCorner;
 export type TaskBoardPadding = PanelPadding;
+export type TaskBoardColumnWidth = number | string;
 
 export interface TaskBoardProps {
   /** The cards (controlled). Order inside a column × lane is array order. */
@@ -165,6 +166,8 @@ export interface TaskBoardProps {
   color?: TrueColor;
   /** Column width and card density. @default "md" */
   size?: ControlSize;
+  /** Shared expanded-column width. `auto` keeps the width from `size`. @default "auto" */
+  columnWidth?: TaskBoardColumnWidth;
   labels?: Partial<TaskBoardLabels>;
   className?: string;
   /** Board height (the columns scroll inside it). */
@@ -218,6 +221,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
     emptyState,
     color = "blue",
     size = "md",
+    columnWidth = "auto",
     labels,
     columnCorner = "rounded-md",
     surfaceVariant,
@@ -226,6 +230,14 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
   const text = useTaskBoardText(labels);
   const { locale } = useKitEngine();
   const sizeTokens = TASKBOARD_SIZES[size] ?? TASKBOARD_SIZES.md;
+  const normalizedColumnWidth =
+    typeof columnWidth === "string" ? columnWidth.trim() : columnWidth;
+  const resolvedColumnWidth =
+    normalizedColumnWidth === "auto" || normalizedColumnWidth === "" ||
+    (typeof normalizedColumnWidth === "number" &&
+      (!Number.isFinite(normalizedColumnWidth) || normalizedColumnWidth <= 0))
+      ? sizeTokens.columnWidth
+      : normalizedColumnWidth;
   const wellSurface = surface.translucent ? GLASS_WELL : SOLID_WELL;
   const columnCornerClass = getSurfaceCornerClass(columnCorner);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -321,6 +333,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
       surface,
       color,
       size: sizeTokens,
+      columnWidth: resolvedColumnWidth,
       cardLayout,
       priorities: new Map((priorities ?? []).map((p) => [p.id, p])),
       locale,
@@ -353,7 +366,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
           ? { bucket: bucketKey(drag.to.column, drag.to.lane), index: drag.to.index, valid: false }
           : null,
     }),
-    [text, surface, color, sizeTokens, cardLayout, priorities, locale, isEditable, renderCard, onCardOpen, onCardContextMenu, onAddCard, wellSurface, columnCornerClass, columnEditing, columnDrag.gripProps, columnDrag.drag, editColumn, columns, maxItems, selected, drag, pending, cardHandlers, keyboardProps, heldPeer, notice],
+    [text, surface, color, sizeTokens, resolvedColumnWidth, cardLayout, priorities, locale, isEditable, renderCard, onCardOpen, onCardContextMenu, onAddCard, wellSurface, columnCornerClass, columnEditing, columnDrag.gripProps, columnDrag.drag, editColumn, columns, maxItems, selected, drag, pending, cardHandlers, keyboardProps, heldPeer, notice],
   );
 
   // Buckets and counts follow the live preview, so WIP readouts move with the card.
@@ -375,7 +388,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
     content = (
       <TaskBoardSkeleton
         columns={columns.length || 4}
-        columnWidth={sizeTokens.columnWidth}
+        columnWidth={resolvedColumnWidth}
         wellSurface={wellSurface}
         cornerClass={columnCornerClass}
       />

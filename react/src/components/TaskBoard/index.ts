@@ -11,7 +11,13 @@
  */
 
 export { TaskBoard } from "./TaskBoard";
-export type { TaskBoardProps, TaskBoardVariant, TaskBoardCorner, TaskBoardPadding } from "./TaskBoard";
+export type {
+  TaskBoardProps,
+  TaskBoardVariant,
+  TaskBoardCorner,
+  TaskBoardPadding,
+  TaskBoardColumnWidth,
+} from "./TaskBoard";
 export type { TaskBoardCardState, TaskBoardContextMenuPayload } from "./context";
 
 export {

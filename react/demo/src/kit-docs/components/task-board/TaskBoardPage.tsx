@@ -191,6 +191,7 @@ export const TaskBoardPage: React.FC = () => (
         { name: "tone / corner / padding / glassOpacity / vibrancy / specularMode", type: "Panel props", default: 'corner "rounded-md", padding "none"', description: "Passed to the Panel the board renders." },
         { name: "color", type: "TrueColor", default: '"blue"', description: "Accent for focus, selection, the drag clone, and the column edge when a column has no colour of its own." },
         { name: "size", type: "ControlSize", default: '"md"', description: "Column width and card density, from xs (232 px) to xl (352 px)." },
+        { name: "columnWidth", type: 'number | string', default: '"auto"', description: "Overrides the shared expanded-column width. Numbers are pixels; CSS lengths such as `20rem` are accepted. `auto` keeps the width from size without changing card density." },
         { name: "labels", type: "Partial<TaskBoardLabels>", description: "Per-board overrides of the kit.taskboard strings." },
         { name: "height / className", type: "number | string / string", description: "The columns scroll inside the height." },
       ]}

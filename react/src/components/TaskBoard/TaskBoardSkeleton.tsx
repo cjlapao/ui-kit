@@ -10,7 +10,7 @@ const CARD_HEIGHTS = [[72, 96, 64], [88, 64], [64, 104, 72], [96, 72, 88, 64], [
 
 export const TaskBoardSkeleton: React.FC<{
   columns: number;
-  columnWidth: number;
+  columnWidth: number | string;
   wellSurface: string;
   cornerClass: string;
 }> = ({ columns, columnWidth, wellSurface, cornerClass }) => (

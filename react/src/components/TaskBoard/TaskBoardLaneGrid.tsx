@@ -55,13 +55,16 @@ export const TaskBoardLaneGrid: React.FC<TaskBoardLaneGridProps> = ({
   onToggleColumn,
   onAddColumn,
 }) => {
-  const { surface, text, color, size, stickySurface, draggingColumnId, boardMaxItems } = useTaskBoard();
+  const { surface, text, color, columnWidth, stickySurface, draggingColumnId, boardMaxItems } = useTaskBoard();
   // Columns at their cap: no Add card in any of their lane cells.
   const fullColumns = new Set(columns.filter((c) => columnAtMax(cards, c, boardMaxItems)).map((c) => c.id));
   const trigger = getSurfaceTriggerTokens(color);
   const template = [
     `${LANE_LABEL_WIDTH}px`,
-    ...columns.map((c) => `${c.collapsed ? COLLAPSED_WIDTH : size.columnWidth}px`),
+    ...columns.map((c) => {
+      const width = c.collapsed ? COLLAPSED_WIDTH : columnWidth;
+      return typeof width === "number" ? `${width}px` : width;
+    }),
     ...(onAddColumn ? [`${ADD_COLUMN_WIDTH}px`] : []),
   ].join(" ");
   const cellBorder = classNames("border-b border-r", surface.divider);

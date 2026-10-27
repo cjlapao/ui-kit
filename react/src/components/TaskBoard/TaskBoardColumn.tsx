@@ -49,7 +49,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
   index = 0,
   onToggle,
 }) => {
-  const { surface, text, color, size, wellSurface, columnCornerClass, onAddCard, draggingColumnId, boardMaxItems, dropTarget } =
+  const { surface, text, color, columnWidth, wellSurface, columnCornerClass, onAddCard, draggingColumnId, boardMaxItems, dropTarget } =
     useTaskBoard();
   const refused = Boolean(dropTarget && !dropTarget.valid && dropTarget.bucket === bucketKey(column.id, null));
   const max = effectiveMaxItems(column, boardMaxItems);
@@ -117,7 +117,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
       data-drop-zone={column.collapsed ? undefined : true}
       // One element for both states, so the width can animate between the
       // strip and the full column. Height comes from the row (stretch).
-      style={{ width: column.collapsed ? COLLAPSED_WIDTH : size.columnWidth }}
+      style={{ width: column.collapsed ? COLLAPSED_WIDTH : columnWidth }}
       className={classNames(
         "relative flex min-h-40 shrink-0 flex-col overflow-hidden border-t-[3px]",
         columnCornerClass,
@@ -161,7 +161,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
           data-column-body
           aria-hidden={column.collapsed || undefined}
           inert={column.collapsed}
-          style={{ width: size.columnWidth }}
+          style={{ width: columnWidth }}
           className={classNames(
             "flex min-h-0 flex-1 flex-col transition-opacity duration-200 motion-reduce:transition-none",
             column.collapsed && "opacity-0",
@@ -188,7 +188,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
             horizontal={false}
             tabIndex={-1}
             className="min-h-0 flex-1"
-            contentClassName="px-2 pb-2"
+            contentClassName="px-2 pt-1 pb-2"
           >
             <TaskBoardBucket
               column={column.id}

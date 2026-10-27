@@ -54,6 +54,13 @@ const MAX_ITEMS_OPTIONS = [
   ...[3, 4, 5, 6].map((n) => ({ label: String(n), value: String(n) })),
 ];
 
+const COLUMN_WIDTH_OPTIONS = [
+  { label: "Auto (from size)", value: "auto" },
+  { label: "240 px", value: "240" },
+  { label: "320 px", value: "320" },
+  { label: "400 px", value: "400" },
+];
+
 /** Ready accepts only Discovery; Blocked is locked. */
 function withRules(columns: TaskBoardColumn[], wip: boolean, rules: boolean): TaskBoardColumn[] {
   return columns.map((c) => ({
@@ -77,6 +84,7 @@ export const TaskBoardPlayground: React.FC = () => {
   const [padding, setPadding] = useState<SurfacePadding>("none");
   const [color, setColor] = useState<TrueColor>("blue");
   const [size, setSize] = useState<ControlSize>("md");
+  const [columnWidth, setColumnWidth] = useState("auto");
   const [editable, setEditable] = useState(true);
   const [wip, setWip] = useState(true);
   const [rules, setRules] = useState(false);
@@ -141,6 +149,7 @@ export const TaskBoardPlayground: React.FC = () => {
                     <ChoiceControl label="Layout" options={taskBoardLayoutOptions} value={layout} onChange={(v) => setLayout(v as TaskBoardLayout)} />
                     <ChoiceControl label="Cards" options={taskBoardCardLayoutOptions} value={cardLayout} onChange={(v) => setCardLayout(v as TaskBoardCardLayout)} />
                     <SelectControl label="Size" options={controlSizeOptions} value={size} onChange={(v) => setSize(v as ControlSize)} />
+                    <SelectControl label="Column width" options={COLUMN_WIDTH_OPTIONS} value={columnWidth} onChange={setColumnWidth} />
                   </>
                 ),
               },
@@ -246,6 +255,7 @@ export const TaskBoardPlayground: React.FC = () => {
             padding={padding}
             color={color}
             size={size}
+            columnWidth={columnWidth === "auto" ? "auto" : Number(columnWidth)}
             icon={<ViewGrid className="h-5 w-5" />}
             title={layout === "lanes" ? "FieldOps Dispatch" : "Horizon Roadmap"}
             subtitle={layout === "lanes" ? "Regional service lanes · Today" : "Q3 launch command center"}

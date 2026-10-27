@@ -129,6 +129,27 @@ describe("SideMenu — active state", () => {
 // ── Collapse modes ──────────────────────────────────────────────────────────
 
 describe("SideMenu — collapse", () => {
+  it("makes the entire collapsed hover tile the navigation hit target", () => {
+    const { container } = renderMenu(
+      { collapsible: true, collapsed: true, onToggleCollapse: vi.fn() },
+      "/elsewhere",
+    );
+    const dashboard = container.querySelector(
+      'a[title="Dashboard"]',
+    ) as HTMLAnchorElement;
+    const row = dashboard.parentElement as HTMLElement;
+
+    expect(dashboard).toHaveClass("w-full", "px-3", "rounded-lg");
+    expect(row).not.toHaveClass("px-3", "rounded-lg");
+  });
+
+  it("keeps expanded row padding on the shared row wrapper", () => {
+    renderMenu({}, "/elsewhere");
+
+    expect(rowOf("Dashboard")).toHaveClass("px-3", "rounded-lg");
+    expect(link("Dashboard")).not.toHaveClass("w-full", "px-3");
+  });
+
   it("collapses to the icon rail and back (uncontrolled)", () => {
     renderMenu({ collapsible: true });
     expect(link("Dashboard")).toBeInTheDocument();
@@ -1336,9 +1357,9 @@ describe("SideMenu — the collapsed rail", () => {
 
   it("the rail drops the nesting indent, so nested tiles centre like icons", () => {
     renderMenu({ items: RAIL_ITEMS, collapsible: true, collapsed: true, onToggleCollapse: () => {} });
-    const row = rowOf("Simple Greeting");
-    expect(row.className).not.toContain("pl-9");
-    expect(row.className).toContain("px-3");
+    const tile = link("Simple Greeting");
+    expect(tile.className).not.toContain("pl-9");
+    expect(tile.className).toContain("px-3");
   });
 
   it("expanded rows without an icon get no initials tile", () => {

@@ -64,6 +64,8 @@ export interface TaskBoardContextValue {
   surface: SurfaceTextTokens;
   color: TrueColor;
   size: TaskBoardSizeTokens;
+  /** Resolved expanded-column width; `auto` has already fallen back to size. */
+  columnWidth: number | string;
   cardLayout: TaskBoardCardLayout;
   priorities: Map<string, TaskBoardPriority>;
   locale: string;

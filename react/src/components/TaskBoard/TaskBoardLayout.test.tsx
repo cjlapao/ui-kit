@@ -19,6 +19,51 @@ describe("TaskBoard layout — equal columns", () => {
       expect(column(col.id).className).not.toMatch(/\bmax-h-full\b|\bself-start\b/);
     }
   });
+
+  it("uses the size width by default and accepts numeric or CSS column widths", () => {
+    const { rerender } = render(<TaskBoard cards={roadmap.cards} columns={roadmap.columns} size="sm" />);
+    expect(column("ideas").style.width).toBe("248px");
+
+    rerender(<TaskBoard cards={roadmap.cards} columns={roadmap.columns} columnWidth={336} />);
+    expect(column("ideas").style.width).toBe("336px");
+    expect((column("ideas").querySelector("[data-column-body]") as HTMLElement).style.width).toBe("336px");
+
+    rerender(<TaskBoard cards={roadmap.cards} columns={roadmap.columns} columnWidth="21rem" />);
+    expect(column("ideas").style.width).toBe("21rem");
+  });
+
+  it("falls back to the size width for auto and invalid numeric widths", () => {
+    const { rerender } = render(
+      <TaskBoard cards={roadmap.cards} columns={roadmap.columns} size="lg" columnWidth="auto" />,
+    );
+    expect(column("ideas").style.width).toBe("320px");
+
+    rerender(<TaskBoard cards={roadmap.cards} columns={roadmap.columns} size="lg" columnWidth={0} />);
+    expect(column("ideas").style.width).toBe("320px");
+
+    rerender(<TaskBoard cards={roadmap.cards} columns={roadmap.columns} size="lg" columnWidth="  " />);
+    expect(column("ideas").style.width).toBe("320px");
+  });
+
+  it("adds breathing room above the first card inside each column scroller", () => {
+    render(<TaskBoard cards={roadmap.cards} columns={roadmap.columns} />);
+    const content = column("ideas").querySelector('[data-slot="scrollarea-content"]') as HTMLElement;
+    expect(content).toHaveClass("pt-1");
+  });
+
+  it("uses the column width override for the loading skeleton", () => {
+    render(
+      <TaskBoard
+        cards={roadmap.cards}
+        columns={roadmap.columns}
+        loading
+        loaderType="skeleton"
+        columnWidth="19rem"
+      />,
+    );
+    const skeleton = document.querySelector("[data-taskboard-skeleton]") as HTMLElement;
+    expect((skeleton.firstElementChild as HTMLElement).style.width).toBe("19rem");
+  });
 });
 
 describe("TaskBoard layout — ScrollArea", () => {
@@ -109,5 +154,21 @@ describe("TaskBoard layout — collapse animation", () => {
   it("the lane grid animates column widths when a column collapses", () => {
     render(<TaskBoard layout="lanes" cards={fieldOps.cards} columns={fieldOps.columns} lanes={fieldOps.lanes} />);
     expect((document.querySelector("[data-lane-grid]") as HTMLElement).className).toContain("transition-[grid-template-columns]");
+  });
+
+  it("uses the column width override for lane tracks while keeping collapsed tracks narrow", () => {
+    const columns = collapse(fieldOps.columns, fieldOps.columns[0].id);
+    render(
+      <TaskBoard
+        layout="lanes"
+        cards={fieldOps.cards}
+        columns={columns}
+        lanes={fieldOps.lanes}
+        columnWidth="22rem"
+      />,
+    );
+    const grid = document.querySelector("[data-lane-grid]") as HTMLElement;
+    expect(grid.style.gridTemplateColumns).toContain("44px");
+    expect(grid.style.gridTemplateColumns).toContain("22rem");
   });
 });
