@@ -43,6 +43,7 @@ export function ActionPanelPlayground() {
   const [actionLayout, setActionLayout] =
     useState<ActionPanelActionLayout>("inline");
   const [accent, setAccent] = useState(true);
+  const [animateAccent, setAnimateAccent] = useState(false);
   const [showIcon, setShowIcon] = useState(true);
   const [showTitle, setShowTitle] = useState(true);
   const [showSubtitle, setShowSubtitle] = useState(true);
@@ -129,6 +130,11 @@ export function ActionPanelPlayground() {
                         onChange={setAccent}
                       />
                       <ToggleRow
+                        label="Animate accent on hover"
+                        checked={animateAccent}
+                        onChange={setAnimateAccent}
+                      />
+                      <ToggleRow
                         label="Icon"
                         checked={showIcon}
                         onChange={setShowIcon}
@@ -167,6 +173,7 @@ export function ActionPanelPlayground() {
           variant={variant}
           tone={tone}
           accent={accent}
+          animateAccent={animateAccent}
           accentColor={accentColor}
           size={size}
           iconSize={iconSize}

@@ -28,7 +28,18 @@ spacing; `iconSize` is independent and uses the same box and glyph tokens as
 
 An optional leading accent edge is absolutely positioned, so enabling it does
 not change the measured surface width. `accentColor` controls both that edge
-and the quiet icon chip, defaulting to the Panel tone.
+and the quiet icon chip, defaulting to the Panel tone. Its width follows the
+corner scale: 2px for square/tight corners, 3px for the 8px corner, 4px for
+the 16px default, 6px for 24px, and 8px for 32px. The content inset follows
+the same geometry, including when the panel padding is `none`.
+
+`animateAccent` keeps that full-height edge hidden at rest and grows it to the
+right from the panel's leading edge on hover or focus-within. At the same time,
+the content translates right by the resolved edge width, producing a
+peeling-open motion. Space is reserved at the end of the content row so that
+translation cannot clip trailing actions. It defaults to `false`, preserving
+the standing accent appearance. Reduced-motion preferences keep the state
+change but remove the transition.
 
 ## Accessibility
 

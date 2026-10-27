@@ -28,6 +28,7 @@ import axe from "axe-core";
 import type { AxeResults, RunOptions } from "axe-core";
 import {
   Accordion,
+  ActionPanel,
   Alert,
   Badge,
   Breadcrumb,
@@ -110,6 +111,18 @@ const noop = () => {};
 
 const FIXTURES: Fixture[] = [
   { name: "Button (primary, labeled)", render: () => <Button>Save</Button> },
+  {
+    name: "ActionPanel (warning with actions)",
+    render: () => (
+      <ActionPanel
+        role="status"
+        icon="Warning"
+        title="Review required"
+        description="Approve the pending change."
+        actions={[<Button key="review">Review</Button>]}
+      />
+    ),
+  },
   { name: "IconButton (labelled)", render: () => <IconButton icon="Host" aria-label="Open host" /> },
   { name: "Toggle (labelled, checked)", render: () => <Toggle label="Enable notifications" checked onChange={noop} /> },
   { name: "Checkbox (labelled, checked)", render: () => <Checkbox label="Subscribe" checked onChange={noop} /> },

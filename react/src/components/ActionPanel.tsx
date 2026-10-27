@@ -58,6 +58,8 @@ export interface ActionPanelProps extends Omit<
   padding?: SurfacePadding;
   /** Paint a non-layout-shifting accent at the leading edge. @default true */
   accent?: boolean;
+  /** Reveal the accent edge on hover or focus-within. @default false */
+  animateAccent?: boolean;
   /** Accent edge and icon-chip colour. Defaults to `tone`. */
   accentColor?: TrueColor;
   /** Consumer-owned controls, links, menus, or compact list items. */
@@ -80,6 +82,64 @@ type ActionPanelSizeTokens = {
   subtitle: string;
   description: string;
   actionGap: string;
+};
+
+type AccentGeometry = {
+  width: string;
+  inset: string;
+  reserve: string;
+  peel: string;
+};
+
+/**
+ * The accent is a piece of the panel's edge, so its weight follows the real
+ * radius rather than staying a fixed 4px beside every corner. The two largest
+ * container radii need enough colour to remain visible after the rounded
+ * clipping removes the top and bottom of the strip.
+ */
+const ACCENT_GEOMETRY: Record<SurfaceCorner, AccentGeometry> = {
+  auto: {
+    width: "w-1",
+    inset: "ml-1",
+    reserve: "mr-1",
+    peel: "group-hover/action-panel:translate-x-1 group-focus-within/action-panel:translate-x-1",
+  },
+  none: {
+    width: "w-0.5",
+    inset: "ml-0.5",
+    reserve: "mr-0.5",
+    peel: "group-hover/action-panel:translate-x-0.5 group-focus-within/action-panel:translate-x-0.5",
+  },
+  rounded: {
+    width: "w-0.5",
+    inset: "ml-0.5",
+    reserve: "mr-0.5",
+    peel: "group-hover/action-panel:translate-x-0.5 group-focus-within/action-panel:translate-x-0.5",
+  },
+  "rounded-sm": {
+    width: "w-[3px]",
+    inset: "ml-[3px]",
+    reserve: "mr-[3px]",
+    peel: "group-hover/action-panel:translate-x-[3px] group-focus-within/action-panel:translate-x-[3px]",
+  },
+  "rounded-md": {
+    width: "w-1",
+    inset: "ml-1",
+    reserve: "mr-1",
+    peel: "group-hover/action-panel:translate-x-1 group-focus-within/action-panel:translate-x-1",
+  },
+  "rounded-lg": {
+    width: "w-1.5",
+    inset: "ml-1.5",
+    reserve: "mr-1.5",
+    peel: "group-hover/action-panel:translate-x-1.5 group-focus-within/action-panel:translate-x-1.5",
+  },
+  "rounded-xl": {
+    width: "w-2",
+    inset: "ml-2",
+    reserve: "mr-2",
+    peel: "group-hover/action-panel:translate-x-2 group-focus-within/action-panel:translate-x-2",
+  },
 };
 
 const SIZE_TOKENS: Record<ControlSize, ActionPanelSizeTokens> = {
@@ -153,13 +213,15 @@ const ActionPanel = React.forwardRef<HTMLElement, ActionPanelProps>(
       size = "sm",
       padding = "xs",
       accent = true,
+      animateAccent = false,
       accentColor,
       actions = [],
       actionLayout = "inline",
       actionClassName,
       contentClassName,
       variant = "elevated",
-      tone = "neutral",
+      tone,
+      color,
       corner = DEFAULT_SURFACE_CORNER,
       scrollable = false,
       className,
@@ -170,28 +232,35 @@ const ActionPanel = React.forwardRef<HTMLElement, ActionPanelProps>(
   ) {
     const renderIcon = useIconRenderer();
     const generatedTitleId = useId();
-    const resolvedAccent = accentColor ?? tone;
+    const resolvedTone = tone ?? color ?? "neutral";
+    const resolvedAccent = accentColor ?? resolvedTone;
     const palette = getPanelToneStyles(resolvedAccent);
     const surfaceText = getSurfaceTextTokens(variant);
     const sizeTokens = SIZE_TOKENS[size] ?? SIZE_TOKENS.sm;
     const iconTokens = getControlSizeTokens(iconSize);
+    const accentGeometry =
+      ACCENT_GEOMETRY[corner] ?? ACCENT_GEOMETRY[DEFAULT_SURFACE_CORNER];
     const actionNodes = React.Children.toArray(actions);
     const showsTitle = hasContent(title);
     const showsSubtitle = hasContent(subtitle);
     const showsDescription = hasContent(description);
-    const titleId =
-      ariaLabelledBy ?? (showsTitle ? generatedTitleId : undefined);
+    const titleId = showsTitle ? generatedTitleId : undefined;
+    const rootLabelledBy = ariaLabelledBy ?? titleId;
 
     return (
       <Panel
         ref={ref}
         variant={variant}
-        tone={tone}
+        tone={resolvedTone}
         padding="none"
         corner={corner}
         scrollable={scrollable}
-        className={classNames("isolate", className)}
-        aria-labelledby={titleId}
+        className={classNames(
+          "isolate",
+          animateAccent && "group/action-panel",
+          className,
+        )}
+        aria-labelledby={rootLabelledBy}
         {...panelProps}
       >
         {accent && (
@@ -199,8 +268,11 @@ const ActionPanel = React.forwardRef<HTMLElement, ActionPanelProps>(
             aria-hidden="true"
             data-action-panel-part="accent"
             className={classNames(
-              "pointer-events-none absolute inset-y-0 left-0 z-10 w-1 rounded-l-[inherit]",
+              "pointer-events-none absolute inset-y-0 left-0 z-10 rounded-l-[inherit]",
+              accentGeometry.width,
               TRUE_COLOR_DOT_CLASSES[resolvedAccent],
+              animateAccent &&
+                "origin-left scale-x-0 opacity-0 transition-[transform,opacity] duration-300 ease-out group-hover/action-panel:scale-x-100 group-hover/action-panel:opacity-100 group-focus-within/action-panel:scale-x-100 group-focus-within/action-panel:opacity-100 motion-reduce:transition-none",
             )}
           />
         )}
@@ -210,7 +282,14 @@ const ActionPanel = React.forwardRef<HTMLElement, ActionPanelProps>(
             "relative z-0 flex min-w-0 flex-col sm:flex-row sm:items-start",
             getCompactSurfacePaddingClass(padding),
             sizeTokens.layoutGap,
-            accent && "ml-1",
+            accent &&
+              (animateAccent
+                ? classNames(
+                    accentGeometry.reserve,
+                    accentGeometry.peel,
+                    "transition-transform duration-300 ease-out motion-reduce:transition-none",
+                  )
+                : accentGeometry.inset),
           )}
         >
           <div
@@ -291,7 +370,7 @@ const ActionPanel = React.forwardRef<HTMLElement, ActionPanelProps>(
             <div
               data-action-panel-part="actions"
               className={classNames(
-                "flex shrink-0",
+                "flex shrink-0 sm:self-center",
                 actionLayout === "stacked"
                   ? "w-full flex-col items-stretch sm:w-auto"
                   : "flex-wrap items-center sm:justify-end",

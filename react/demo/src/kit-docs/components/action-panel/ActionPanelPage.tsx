@@ -64,7 +64,7 @@ export default function ActionPanelPage() {
           description={
             <span>
               Agent <strong>surveyor</strong> proposed{" "}
-                <Pill size="xs" tone="emerald">
+              <Pill size="xs" tone="emerald">
                 +18 lines
               </Pill>{" "}
               in <code>SURVEY.md</code>.
@@ -161,7 +161,14 @@ export default function ActionPanelPage() {
             type: "boolean / TrueColor",
             default: "true / tone",
             description:
-              "Optional leading edge and icon-chip colour. The edge is absolutely painted and never changes layout size.",
+              "Optional leading edge and icon-chip colour. The edge is absolutely painted and never changes layout size; its 2–8px width follows the selected corner radius.",
+          },
+          {
+            name: "animateAccent",
+            type: "boolean",
+            default: "false",
+            description:
+              "Hides the accent at rest, grows it rightward from the leading edge, and pushes the content by the resolved edge width on hover or focus-within. Reduced-motion preferences remove the transition.",
           },
           {
             name: "size / padding",
