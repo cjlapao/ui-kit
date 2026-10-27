@@ -165,7 +165,8 @@ describe("Panel — glass variants", () => {
 
   it("gives the default variant a dark-mode background", () => {
     const { container } = render(<Panel variant="default">Body</Panel>);
-    expect(panelOf(container).className).toContain("dark:bg-neutral-900/70");
+    expect(panelOf(container)).toHaveClass("ui-surface-transparency-none");
+    expect(panelOf(container).className).toContain("dark:[--ui-surface-color:var(--color-neutral-900)]");
   });
 });
 

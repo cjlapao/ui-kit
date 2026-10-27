@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useId, useMemo } from "react";
 import classNames from "classnames";
 
@@ -102,6 +103,7 @@ export interface DynamicFormFieldProps {
   className?: string;
   /** Glass fill transparency, for the see-through variants. */
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   /** Backdrop vibrancy, for the see-through variants. */
   vibrancy?: GlassVibrancy;
   /** Specular highlight, for the see-through variants. */
@@ -174,6 +176,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   listRows = 4,
   className,
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
 }) => {
@@ -381,6 +384,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
       corner={corner}
       padding={padding}
       glassOpacity={glassOpacity}
+        transparency={transparency}
       vibrancy={vibrancy}
       specularMode={specularMode}
       bodyClassName="flex flex-col gap-2"

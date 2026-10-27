@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import React, {
   useCallback,
   useEffect,
@@ -116,6 +117,7 @@ export interface InfiniteScrollPanelProps<T> {
   corner?: PanelCorner;
   padding?: PanelPadding;
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
   /** Fixed height for the scroll area. Otherwise it fills its parent. */
@@ -458,6 +460,7 @@ export function InfiniteScrollPanel<T>({
   corner = DEFAULT_SURFACE_CORNER,
   padding = "none",
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
   className,
@@ -475,6 +478,7 @@ export function InfiniteScrollPanel<T>({
       tone={tone}
       corner={corner}
       glassOpacity={glassOpacity}
+        transparency={transparency}
       vibrancy={vibrancy}
       specularMode={specularMode}
       // No inset here: the scrolling body owns it, so its scrollbar reaches

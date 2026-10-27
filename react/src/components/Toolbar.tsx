@@ -13,6 +13,8 @@ import {
   getPanelToneStyles,
   getSurfaceCornerClass,
   getSurfacePaddingClass,
+  getSurfaceTransparencyClasses,
+  type SurfaceTransparency,
   type TrueColor,
 } from "../theme/Theme";
 import {
@@ -66,6 +68,7 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
   vibrancy?: GlassVibrancy;
   /** Glass fill opacity for the `liquid-glass` variant. @default "frosted" */
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   className?: string;
 }
 
@@ -92,6 +95,7 @@ export const Toolbar = ({
   corner = DEFAULT_SURFACE_CORNER,
   vibrancy = "medium",
   glassOpacity = "frosted",
+  transparency,
   className = "",
   ...rest
 }: ToolbarProps) => {
@@ -99,7 +103,7 @@ export const Toolbar = ({
 
   // Panel's per-variant chrome, minus its `borderColor` / `backgroundColor`
   // overrides — the parts of the switch every surface shares.
-  const variantClasses = (() => {
+  const variantClasses = getSurfaceTransparencyClasses((() => {
     switch (variant) {
       case "outlined":
         return classNames(variantBaseStyles.outlined, palette.outlineBorder);
@@ -130,7 +134,7 @@ export const Toolbar = ({
       default:
         return variantBaseStyles.elevated;
     }
-  })();
+  })(), variant, transparency);
 
   return (
     <div

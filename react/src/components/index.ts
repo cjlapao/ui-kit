@@ -12,6 +12,12 @@ export {
   type AlertVariant,
 } from "./Alert";
 export {
+  default as ActionPanel,
+  ACTION_PANEL_ACTION_LAYOUTS,
+  type ActionPanelProps,
+  type ActionPanelActionLayout,
+} from "./ActionPanel";
+export {
   default as AppDivider,
   APP_DIVIDER_VARIANTS,
   type AppDividerProps,
@@ -892,3 +898,6 @@ export * from "./Terminal";
 
 export { PageBodyLayout, PAGE_BODY_LAYOUT_VARIANTS, type PageBodyLayoutProps, type PageBodyLayoutVariant, type PageBodyRegionSide } from "./PageBodyLayout";
 export { Menu, MENU_VARIANTS, type MenuItem, type MenuProps } from "./Menu";
+export { FileUpload, type FileUploadProps, type FileUploadLabels, type FileRejection } from "./FileUpload";
+export { IdentityPicker, IDENTITY_EMOJIS, type IdentityPickerProps, type IdentityPickerLabels, type IdentityValue, type IdentityEmoji } from "./IdentityPicker";
+export { DotStepper, type DotStepperProps, type DotStepperStep } from "./DotStepper";

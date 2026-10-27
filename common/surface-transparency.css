@@ -1,0 +1,15 @@
+/* Only background paint changes. Each surface sets its own variables, so a
+   nested opaque panel never inherits a parent's transparency level. */
+@layer utilities {
+  .ui-surface-transparency-none { --ui-surface-transparency: 0%; }
+  .ui-surface-transparency-low { --ui-surface-transparency: 33.333333%; }
+  .ui-surface-transparency-medium { --ui-surface-transparency: 66.666667%; }
+  .ui-surface-transparency-high { --ui-surface-transparency: 100%; }
+  .ui-surface-fill {
+    --ui-surface-opaque: color-mix(in srgb, var(--ui-surface-color) var(--ui-surface-alpha), var(--ui-surface-base));
+    --ui-surface-original: color-mix(in srgb, var(--ui-surface-color) var(--ui-surface-alpha), transparent);
+    background-color: color-mix(in srgb,
+      var(--ui-surface-opaque) calc(100% - var(--ui-surface-transparency)),
+      var(--ui-surface-original) var(--ui-surface-transparency));
+  }
+}

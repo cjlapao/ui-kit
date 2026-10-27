@@ -57,6 +57,7 @@ export interface PageHeaderProps extends React.HTMLAttributes<HTMLElement> {
   /** Shared panel surface tone. */
   tone?: PanelProps["tone"];
   glassOpacity?: PanelProps["glassOpacity"];
+  transparency?: PanelProps["transparency"];
   vibrancy?: PanelProps["vibrancy"];
   specularMode?: PanelProps["specularMode"];
   /**
@@ -117,6 +118,7 @@ export const PageHeader = ({
   accentColor = "blue",
   tone = "neutral",
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
   padding,
@@ -175,7 +177,7 @@ export const PageHeader = ({
     >
       {sharedSurface && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ borderRadius: "inherit" }}>
-          <Panel variant={variant as SurfaceVariant} tone={tone} glassOpacity={glassOpacity} vibrancy={vibrancy} specularMode={specularMode}
+          <Panel variant={variant as SurfaceVariant} tone={tone} glassOpacity={glassOpacity} transparency={transparency} vibrancy={vibrancy} specularMode={specularMode}
             padding="none" corner="none" className="h-full w-full" style={{ borderRadius: "inherit" }} />
         </div>
       )}

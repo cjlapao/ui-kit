@@ -5,6 +5,7 @@
    dynamic class names Theme.ts builds in template literals. Imports must
    precede all non-import statements. */
 @import "../../common/safelist.css";
+@import "../../common/surface-transparency.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

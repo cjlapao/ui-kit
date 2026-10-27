@@ -38,7 +38,7 @@ export interface MenuItem {
   /** Checkbox/radio items stay open by default; commands close by default. */
   closeOnSelect?: boolean;
 }
-export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner" | "padding" | "glassOpacity" | "vibrancy" | "specularMode"> {
+export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner" | "padding" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode"> {
   items: MenuItem[];
   /** Inline by default. Supplying trigger or anchorRef makes it a popup. */
   popup?: boolean;

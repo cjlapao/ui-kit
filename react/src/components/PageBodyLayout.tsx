@@ -7,7 +7,7 @@ export type PageBodyRegionSide = "left" | "right" | "bottom";
 /** The shared surfaces plus `none` (draw nothing); `plain` is its kit-wide alias. */
 export const PAGE_BODY_LAYOUT_VARIANTS = ["none", ...SURFACE_VARIANTS] as const;
 export type PageBodyLayoutVariant = (typeof PAGE_BODY_LAYOUT_VARIANTS)[number] | PlainSurfaceVariant;
-export interface PageBodyLayoutProps extends Pick<PanelProps, "tone" | "corner" | "glassOpacity" | "vibrancy" | "specularMode"> {
+export interface PageBodyLayoutProps extends Pick<PanelProps, "tone" | "corner" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode"> {
   /**
    * The layout's own surface. `none` draws nothing — transparent, no border,
    * shadow or outer padding — leaving only the zones and the gaps between

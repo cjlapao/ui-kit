@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useId } from "react";
 import classNames from "classnames";
 
@@ -179,6 +180,7 @@ export interface EmptyStateProps
 
   /** Glass fill transparency, for the see-through variants. */
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   /** Backdrop vibrancy, for the see-through variants. */
   vibrancy?: GlassVibrancy;
   /** Specular highlight, for the see-through variants. */
@@ -354,6 +356,7 @@ const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
       disableBorder = false,
       transparentBackground = false,
       glassOpacity,
+      transparency,
       vibrancy,
       specularMode,
       className,
@@ -445,6 +448,7 @@ const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
         padding={padding}
         fullWidth={fullWidth}
         glassOpacity={glassOpacity}
+        transparency={transparency}
         vibrancy={vibrancy}
         specularMode={specularMode}
         scrollable={false}

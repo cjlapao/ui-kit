@@ -6,6 +6,8 @@ import {
   getSurfaceGlassFillClass,
   type GlassOpacity,
 } from "./glass";
+import { getSurfaceTransparencyClasses, type SurfaceTransparency } from "./surfaceTransparency";
+export { SURFACE_TRANSPARENCIES, resolveSurfaceTransparency, getSurfaceTransparencyClasses, type SurfaceTransparency } from "./surfaceTransparency";
 
 export const BUTTON_VARIANTS = [
   "solid",
@@ -1056,6 +1058,28 @@ export const getSurfacePaddingClass = (padding: SurfacePadding): string =>
 /** Every padding token but `none`, for the callers that require a real inset. */
 export const getSurfacePaddingClasses = (): Record<SurfacePadding, string> => ({
   ...surfacePaddingClasses,
+});
+
+/** Compact controls keep the shared token names at half the container inset.
+ * Opt in for small surfaces such as DotStepper; Panel's scale stays unchanged. */
+const compactSurfacePaddingClasses: Record<SurfacePadding, string> = {
+  none: "p-0",
+  xs: "p-1 sm:p-1.5",
+  sm: "p-2 sm:p-2.5",
+  md: "p-3 sm:p-4",
+  lg: "p-4 sm:p-5",
+  xl: "p-5 sm:p-6",
+};
+
+export const DEFAULT_COMPACT_SURFACE_PADDING: SurfacePadding = "xs";
+
+/** Shared smaller-component inset scale, independent of the component's size. */
+export const getCompactSurfacePaddingClass = (
+  padding: SurfacePadding = DEFAULT_COMPACT_SURFACE_PADDING,
+): string => compactSurfacePaddingClasses[padding] ?? compactSurfacePaddingClasses[DEFAULT_COMPACT_SURFACE_PADDING];
+
+export const getCompactSurfacePaddingClasses = (): Record<SurfacePadding, string> => ({
+  ...compactSurfacePaddingClasses,
 });
 
 /**
@@ -2662,6 +2686,8 @@ export const TRANSLUCENT_SURFACE_VARIANTS: readonly SurfaceVariant[] = [
 ];
 
 export interface SurfaceVariantOverrides {
+  /** Defaults to opaque except glass, liquid-glass and subtle. High keeps the existing alpha. */
+  transparency?: SurfaceTransparency;
   /** Replaces the variant's own fill, keeping its shadow and ring. */
   bgClass?: string;
   /** Replaces the variant's own rim colour. */
@@ -2674,7 +2700,7 @@ export interface SurfaceVariantOverrides {
  * The full class set for a surface variant at a tone — the same combination
  * `Panel` renders, so a control using this sits flush beside one.
  */
-export const getSurfaceVariantClasses = (
+const getRawSurfaceVariantClasses = (
   variant: SurfaceVariant,
   tone: TrueColor,
   overrides: SurfaceVariantOverrides = {},
@@ -2719,6 +2745,13 @@ export const getSurfaceVariantClasses = (
 
 export const getPanelToneStyles = (tone: TrueColor): PanelToneConfig =>
   currentTheme.panel[tone] ?? currentTheme.panel.neutral;
+
+/** Shared surface paint, including the four-level background transparency scale. */
+export const getSurfaceVariantClasses = (
+  variant: SurfaceVariant,
+  tone: TrueColor,
+  overrides: SurfaceVariantOverrides = {},
+): string => getSurfaceTransparencyClasses(getRawSurfaceVariantClasses(variant, tone, overrides), variant, overrides.transparency);
 
 export const getStepperTonePalette = (tone: TrueColor): StepperToneConfig =>
   currentTheme.stepper[tone] ?? currentTheme.stepper.blue;

@@ -520,3 +520,14 @@ describe("Tabs - tone text must not collide with the neutral", () => {
     expect(classes).not.toContain("text-blue-600");
   });
 });
+
+
+describe("Tabs - filled selection hover", () => {
+  it.each(["soft", "pill", "segmented"] as const)("keeps active %s labels on their contrasting fill", variant => {
+    render(<Tabs variant={variant} color="rose" items={[{id:"one",label:"One"},{id:"two",label:"Two"}]} />);
+    const active = screen.getByRole("tab", {selected:true});
+    expect(active).toHaveClass("text-white", "dark:text-white");
+    expect(active.className).not.toContain("hover:text-rose-");
+    expect(screen.getByRole("tab", {selected:false}).className).toContain("hover:text-rose-");
+  });
+});

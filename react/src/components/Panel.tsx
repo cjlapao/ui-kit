@@ -12,9 +12,11 @@ import {
   getSurfacePaddingClasses,
   getSurfaceTextTokens,
   getSurfaceTriggerTokens,
+  getSurfaceTransparencyClasses,
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
+  type SurfaceTransparency,
   type TrueColor,
 } from "../theme/Theme";
 import {
@@ -93,6 +95,9 @@ export interface PanelProps extends Omit<
    * @default "elevated"
    */
   variant?: PanelVariant;
+  /** Background transparency; high preserves the variant's existing alpha.
+   * Defaults to none, except glass, liquid-glass and subtle (high). */
+  transparency?: SurfaceTransparency;
   /**
    * The tint the surface, badge and accents take.
    * @default "blue"
@@ -274,9 +279,10 @@ export const getPanelEdgeChrome = (
   tone: TrueColor,
   glassOpacity: GlassOpacity = "frosted",
   vibrancy: GlassVibrancy = "medium",
+  transparency?: SurfaceTransparency,
 ): PanelEdgeChrome => {
   const palette = getPanelToneStyles(tone);
-  switch (variant) {
+  const chrome = (() => { switch (variant) {
     case "outlined":
       return {
         fill: "bg-white/90 dark:bg-neutral-900/80",
@@ -318,7 +324,8 @@ export const getPanelEdgeChrome = (
         border: "border-black/5 dark:border-white/10",
         backdrop: "",
       };
-  }
+  } })();
+  return { ...chrome, fill: getSurfaceTransparencyClasses(chrome.fill, variant, transparency) };
 };
 
 /**
@@ -492,6 +499,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     actions,
     actionLayout = "auto",
     variant = "elevated",
+    transparency,
     tone,
     padding = DEFAULT_SURFACE_PADDING,
     corner = DEFAULT_SURFACE_CORNER,
@@ -707,7 +715,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   const vibrancyClass = getGlassVibrancyClass(vibrancy);
   const glassFillClass = getSurfaceGlassFillClass(resolvedTone, glassOpacity);
 
-  const variantClasses = (() => {
+  const variantClasses = getSurfaceTransparencyClasses(classNames((() => {
     switch (variant) {
       case "outlined":
         return classNames(
@@ -768,7 +776,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           effectiveBgClass,
         );
     }
-  })();
+  })(), isHoverable && hoverColorName && `hover:bg-${hoverColorName}-50 dark:hover:bg-${hoverColorName}-900/20`), variant, transparency);
 
   const overlayClasses = isOverlay
     ? "relative overflow-hidden text-white shadow-xl ring-0"
@@ -1008,9 +1016,6 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           // because an outer ring is clipped by `overflow: hidden` — which
           // every Panel has.
           isClickable && !disabled && trigger.focusRing,
-          isHoverable &&
-            hoverColorName &&
-            `hover:bg-${hoverColorName}-50 dark:hover:bg-${hoverColorName}-900/20`,
           className,
         )}
         style={resolvedStyle}

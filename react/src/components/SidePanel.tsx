@@ -239,6 +239,7 @@ export interface SidePanelProps {
   variant?: SidePanelVariant;
   /** Glass fill opacity, matching Panel. @default "frosted" */
   glassOpacity?: PanelProps["glassOpacity"];
+  transparency?: PanelProps["transparency"];
   /** Backdrop vibrancy, matching Panel. */
   vibrancy?: PanelProps["vibrancy"];
   /** Highlight treatment for translucent surfaces. */
@@ -356,6 +357,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   color,
   variant = "outlined",
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
   surfaceTone = "neutral",
@@ -713,6 +715,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               variant={panelVariant}
               tone={surfaceTone}
               glassOpacity={glassOpacity}
+              transparency={transparency}
               vibrancy={vibrancy}
               specularMode={specularMode}
               padding="none"

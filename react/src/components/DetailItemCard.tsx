@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useId, useState, type ReactNode } from "react";
 import classNames from "classnames";
 import IconButton from "./IconButton";
@@ -50,6 +51,7 @@ export interface DetailItemCardProps
   corner?: PanelCorner;
   padding?: PanelPadding;
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
 }
@@ -254,6 +256,7 @@ const DetailItemCard: React.FC<DetailItemCardProps> = ({
   corner = DEFAULT_SURFACE_CORNER,
   padding = "sm",
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
   className,
@@ -289,6 +292,7 @@ const DetailItemCard: React.FC<DetailItemCardProps> = ({
       corner={corner}
       padding={padding}
       glassOpacity={glassOpacity}
+        transparency={transparency}
       vibrancy={vibrancy}
       specularMode={specularMode}
       scrollable={false}

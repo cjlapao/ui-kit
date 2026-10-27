@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import React from "react";
 import classNames from "classnames";
 
@@ -97,6 +98,7 @@ export interface PanelHeroProps extends Omit<
   glowIntensity?: GlowIntensity;
   /** Glass fill transparency, for the see-through variants. */
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   /** Backdrop vibrancy, for the see-through variants. */
   vibrancy?: GlassVibrancy;
   /** Specular highlight, for the see-through variants. */
@@ -244,6 +246,7 @@ const PanelHero: React.FC<PanelHeroProps> = ({
   gradientTo,
   glowIntensity = "soft",
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
   className,
@@ -283,6 +286,7 @@ const PanelHero: React.FC<PanelHeroProps> = ({
         padding={padding}
         decoration={decoration}
         glassOpacity={glassOpacity}
+        transparency={transparency}
         vibrancy={vibrancy}
         specularMode={specularMode}
         scrollable={false}

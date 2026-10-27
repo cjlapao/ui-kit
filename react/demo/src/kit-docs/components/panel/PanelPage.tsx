@@ -5,6 +5,7 @@ import { PanelPlayground } from "./PanelPlayground";
 import MediaHeader from "./examples/MediaHeader";
 import mediaHeaderCode from "./examples/MediaHeader.tsx?raw";
 import Variants from "./examples/Variants";
+import Transparency from "./examples/Transparency";
 import variantsCode from "./examples/Variants.tsx?raw";
 import MediaPlacements from "./examples/MediaPlacements";
 import mediaPlacementsCode from "./examples/MediaPlacements.tsx?raw";
@@ -36,11 +37,16 @@ export const PanelPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="All surfaces"
-        description="The eight variants over a gradient backdrop, so the see-through ones (default, glass, liquid-glass) show what they actually composite against."
+        description="Eight shared variants. Glass, liquid-glass and subtle keep their translucent defaults; the other variants have opaque backgrounds."
         code={variantsCode}
         filename="Variants.tsx"
       >
         <Variants />
+      </ExampleCard>
+      <ExampleCard title="Background transparency" description="transparency accepts none, low, medium and high. High preserves each variant's original alpha; none is opaque while preserving its tint. Only the background changes. Glass, liquid-glass and subtle default to high; other variants default to none. Existing glassOpacity presets still determine the glass fill at high." filename="Transparency.tsx" code={`<Panel variant="tonal" transparency="none">Opaque by default</Panel>
+<Panel variant="tonal" transparency="high">Original transparency</Panel>
+<Panel variant="glass" transparency="low">Less transparent glass</Panel>`}>
+        <Transparency />
       </ExampleCard>
       <ExampleCard
         title="Media placements"

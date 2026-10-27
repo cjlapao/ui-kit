@@ -643,7 +643,7 @@ describe("CondensedStepper", () => {
     const { container: def } = strip();
     const defPill = def.querySelector(".cs-pill")!;
     expect(defPill.className).toContain("border-blue-200");
-    expect(defPill.className).toContain("bg-white/90");
+    expect(defPill.className).toContain("ui-surface-transparency-none");
     // The quiet discs wear solid tone fills, never the surface — the
     // variant speaks only to the pill and the revealed items.
     expect(
@@ -654,8 +654,9 @@ describe("CondensedStepper", () => {
     // never a bgClass override stomping it).
     const { container: tonal } = strip({ variant: "tonal" });
     const tonalPill = tonal.querySelector(".cs-pill")!;
-    expect(tonalPill.className).toContain("bg-blue-100/80");
-    expect(tonalPill.className).toContain("dark:bg-blue-500/15");
+    expect(tonalPill.className).toContain("[--ui-surface-color:var(--color-blue-100)]");
+    expect(tonalPill.className).toContain("dark:[--ui-surface-color:var(--color-blue-500)]");
+    expect(tonalPill.className).toContain("ui-surface-transparency-none");
     expect(tonalPill.className).not.toContain("border-blue-200");
     // glass is the *Pill's* recipe, not Panel's: blur proportionate to
     // a pill, the 65% frosted fill that carries a label, vibrancy, and

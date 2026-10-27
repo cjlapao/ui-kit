@@ -73,11 +73,11 @@ describe("Toolbar", () => {
     const { rerender } = render(<Toolbar />);
     expect(screen.getByRole("toolbar").className).toContain("shadow-xl");
     rerender(<Toolbar variant="outlined" />);
-    expect(screen.getByRole("toolbar").className).toContain("bg-white/90");
+    expect(screen.getByRole("toolbar")).toHaveClass("ui-surface-transparency-none");
     rerender(<Toolbar variant="elevated" />);
     expect(screen.getByRole("toolbar").className).toContain("shadow-xl");
     rerender(<Toolbar variant="simple" tone="neutral" />);
-    expect(screen.getByRole("toolbar").className).toContain("bg-neutral-100");
+    expect(screen.getByRole("toolbar").className).toContain("[--ui-surface-color:var(--color-neutral-100)]");
   });
 
   it("tints the surface by tone, Panel-style", () => {
@@ -87,7 +87,7 @@ describe("Toolbar", () => {
 
   it("defaults to the kit's blue surface tone", () => {
     render(<Toolbar variant="tonal" />);
-    expect(screen.getByRole("toolbar").className).toMatch(/bg-blue-/);
+    expect(screen.getByRole("toolbar").className).toContain("[--ui-surface-color:var(--color-blue-100)]");
   });
 
   it("takes the shared corner and padding scales", () => {

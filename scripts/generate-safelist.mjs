@@ -612,6 +612,14 @@ src(`@source inline("dark:bg-{COLOR}-500/15");`);
 src(`@source inline("dark:ring-{COLOR}-400/30");`);
 L("");
 
+// Surface transparency uses variables instead of opacity on the whole panel.
+// The colour and alpha utilities must exist even when consumers choose a tone
+// or numeric glass preset that the demo never renders.
+src(`@source inline("{,dark:,hover:,dark:hover:}[--ui-surface-color:var(--color-{COLOR}-{50,{100..900..100},950})]");`);
+src(`@source inline("{,dark:,hover:,dark:hover:}[--ui-surface-color:var(--color-{white,black})]");`);
+src(`@source inline("{,dark:,hover:,dark:hover:}[--ui-surface-alpha:{0..100}%]");`);
+src(`@source inline("[--ui-surface-base:var(--color-white)] dark:[--ui-surface-base:var(--color-neutral-900)]");`);
+
 // ── Write output ──────────────────────────────────────────────────
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

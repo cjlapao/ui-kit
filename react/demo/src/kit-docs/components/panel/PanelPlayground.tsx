@@ -11,6 +11,7 @@ import type {
   PanelPadding,
   PanelSpecularMode,
   PanelVariant,
+  SurfaceTransparency,
   TrueColor,
 } from "@cjlapao/ui-kit";
 import {
@@ -39,6 +40,7 @@ const GLASS_VARIANTS: PanelVariant[] = ["glass", "liquid-glass", "default"];
 
 export const PanelPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
+  const [transparency, setTransparency] = useState<SurfaceTransparency | "auto">("auto");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [corner, setCorner] = useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
@@ -92,6 +94,12 @@ export const PanelPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <ChoiceControl
+                      label="Transparency"
+                      options={[{value:"auto", label:"Variant default"}, {value:"none", label:"None / opaque"}, {value:"low", label:"Low"}, {value:"medium", label:"Medium"}, {value:"high", label:"High / original"}]}
+                      value={transparency}
+                      onChange={value => setTransparency(value as SurfaceTransparency | "auto")}
+                    />
                     <ChoiceControl
                       label="Corner"
                       options={panelCornerOptions}
@@ -282,6 +290,7 @@ export const PanelPlayground: React.FC = () => {
             disabled={disabled}
             vibrancy={vibrancy}
             glassOpacity={glassOpacity}
+            transparency={transparency === "auto" ? undefined : transparency}
             specularMode={specularMode}
           >
             This panel uses the {variant} variant, {corner} corners and{" "}

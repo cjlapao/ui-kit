@@ -45,14 +45,43 @@ export const DOC_CATEGORIES: DocCategory[] = [
 ];
 
 export const DOC_COMPONENTS: DocComponent[] = [
-  { slug: "menu", name: "Menu", description: "Inline and tiered command menus, selections, and positioned account popups.", icon: "ViewRows", category: "Overlays", Page: lazy(() => import("./components/menu/MenuPage")) },
+  {
+    slug: "identity-picker",
+    name: "Identity Picker",
+    description:
+      "Emoji, uploaded image and monogram identities with a live preview.",
+    icon: "Image",
+    category: "Forms",
+    Page: lazy(() => import("./components/identity-picker/IdentityPickerPage")),
+  },
+  {
+    slug: "file-upload",
+    name: "File Upload",
+    description:
+      "Browse or drop files, validate selections, preview images and remove attachments.",
+    icon: "File",
+    category: "Forms",
+    Page: lazy(() => import("./components/file-upload/FileUploadPage")),
+  },
+  {
+    slug: "menu",
+    name: "Menu",
+    description:
+      "Inline and tiered command menus, selections, and positioned account popups.",
+    icon: "ViewRows",
+    category: "Overlays",
+    Page: lazy(() => import("./components/menu/MenuPage")),
+  },
   {
     slug: "page-body-layout",
     name: "Page Body Layout",
-    description: "A header and centre with collapsible side regions and resizable right/bottom panels.",
+    description:
+      "A header and centre with collapsible side regions and resizable right/bottom panels.",
     icon: "ViewRows",
     category: "Layout",
-    Page: lazy(() => import("./components/page-body-layout/PageBodyLayoutPage")),
+    Page: lazy(
+      () => import("./components/page-body-layout/PageBodyLayoutPage"),
+    ),
   },
   {
     slug: "side-menu",
@@ -79,7 +108,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "Full-bleed gradient backdrops with ambient glows and shimmer, built to sit behind glass panels.",
     icon: "Globe",
     category: "Layout",
-    Page: lazy(() => import("./components/glass-background/GlassBackgroundPage")),
+    Page: lazy(
+      () => import("./components/glass-background/GlassBackgroundPage"),
+    ),
   },
   {
     slug: "gradient-backdrop",
@@ -88,7 +119,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "Soft gradient backdrops to put glass on: six muted templates or your own theme, with the missing light or dark side derived for you.",
     icon: "Image",
     category: "Layout",
-    Page: lazy(() => import("./components/gradient-backdrop/GradientBackdropPage")),
+    Page: lazy(
+      () => import("./components/gradient-backdrop/GradientBackdropPage"),
+    ),
   },
   {
     slug: "panel",
@@ -106,7 +139,10 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "Inline helper copy that truncates to a summary and expands — every Panel surface plus a plain variant.",
     icon: "Help",
     category: "Layout",
-    Page: lazy(() => import("./components/collapsible-help-text/CollapsibleHelpTextPage")),
+    Page: lazy(
+      () =>
+        import("./components/collapsible-help-text/CollapsibleHelpTextPage"),
+    ),
   },
   {
     slug: "collapsible-panel",
@@ -115,7 +151,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "Accordion-style panel built on Panel — controlled or uncontrolled, with header actions and a scrollable content cap.",
     icon: "ChevronRight",
     category: "Layout",
-    Page: lazy(() => import("./components/collapsible-panel/CollapsiblePanelPage")),
+    Page: lazy(
+      () => import("./components/collapsible-panel/CollapsiblePanelPage"),
+    ),
   },
   {
     slug: "accordion",
@@ -297,7 +335,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "Collect arbitrary metadata pairs — every container surface, duplicate-key flagging, a row cap and collapsible help.",
     icon: "Database",
     category: "Forms",
-    Page: lazy(() => import("./components/key-value-array-field/KeyValueArrayFieldPage")),
+    Page: lazy(
+      () => import("./components/key-value-array-field/KeyValueArrayFieldPage"),
+    ),
   },
   {
     slug: "smart-input",
@@ -315,7 +355,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "A row of pills as a checkbox or radio group — it renders the kit's Pill, inheriting every variant, tone, size and corner, including glass.",
     icon: "Check",
     category: "Forms",
-    Page: lazy(() => import("./components/multi-select-pills/MultiSelectPillsPage")),
+    Page: lazy(
+      () => import("./components/multi-select-pills/MultiSelectPillsPage"),
+    ),
   },
   {
     slug: "input-otp",
@@ -410,7 +452,8 @@ export const DOC_COMPONENTS: DocComponent[] = [
   {
     slug: "terminal",
     name: "Terminal",
-    description: "ANSI terminal with tabbed sessions, streaming output, and Panel surfaces.",
+    description:
+      "ANSI terminal with tabbed sessions, streaming output, and Panel surfaces.",
     icon: "Code",
     category: "Data",
     Page: lazy(() => import("./components/terminal/TerminalPage")),
@@ -422,7 +465,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "A pipeline tracker from one data object: status timeline rail, active-step detail with sub-steps and roll-up cards.",
     icon: "Jobs",
     category: "Data",
-    Page: lazy(() => import("./components/workflow-tracker/WorkflowTrackerPage")),
+    Page: lazy(
+      () => import("./components/workflow-tracker/WorkflowTrackerPage"),
+    ),
   },
   {
     slug: "gantt",
@@ -647,7 +692,10 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "A scrolling list that fetches the next page as the end comes into view — masonry, grid, columns and list layouts.",
     icon: "Download",
     category: "Data",
-    Page: lazy(() => import("./components/infinite-scroll-panel/InfiniteScrollPanelPage")),
+    Page: lazy(
+      () =>
+        import("./components/infinite-scroll-panel/InfiniteScrollPanelPage"),
+    ),
   },
   {
     slug: "detail-item-card",
@@ -656,7 +704,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "A list row with an expandable detail — plain by default, a real card with a variant, clickable rows as keyboard-reachable buttons.",
     icon: "Info",
     category: "Data",
-    Page: lazy(() => import("./components/detail-item-card/DetailItemCardPage")),
+    Page: lazy(
+      () => import("./components/detail-item-card/DetailItemCardPage"),
+    ),
   },
   {
     slug: "carousel",
@@ -684,6 +734,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Blueprint",
     category: "Data",
     Page: lazy(() => import("./components/connection-flow/ConnectionFlowPage")),
+  },
+  {
+    slug: "action-panel",
+    name: "Action Panel",
+    description:
+      "A compact composable surface for warnings, quick actions and short lists — optional accent, icon, content lines and trailing actions.",
+    icon: "Warning",
+    category: "Feedback",
+    Page: lazy(() => import("./components/action-panel/ActionPanelPage")),
   },
   {
     slug: "alert",
@@ -746,7 +805,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "A stacked breakdown bar with a hover-dimmed legend and a text alternative naming every slice.",
     icon: "ChartLine",
     category: "Data",
-    Page: lazy(() => import("./components/multi-progress-bar/MultiProgressBarPage")),
+    Page: lazy(
+      () => import("./components/multi-progress-bar/MultiProgressBarPage"),
+    ),
   },
   {
     slug: "user-avatar",
@@ -836,7 +897,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "A small Modal for a single outcome — glyph, title, message and one or two actions.",
     icon: "Info",
     category: "Overlays",
-    Page: lazy(() => import("./components/notification-modal/NotificationModalPage")),
+    Page: lazy(
+      () => import("./components/notification-modal/NotificationModalPage"),
+    ),
   },
   {
     slug: "tag-panel",
@@ -872,7 +935,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "A drag-and-drop dashboard builder — sections, rows, resizable tiles, and a layout that saves itself.",
     icon: "Dashboard",
     category: "Layout",
-    Page: lazy(() => import("./components/smart-grid-layout/SmartGridLayoutPage")),
+    Page: lazy(
+      () => import("./components/smart-grid-layout/SmartGridLayoutPage"),
+    ),
   },
   {
     slug: "side-panel",
@@ -933,7 +998,8 @@ export const DOC_COMPONENTS: DocComponent[] = [
   {
     slug: "network-graph",
     name: "Network Graph",
-    description: "Canvas networks with zoom, pan, community filters and path highlighting on shared Panel surfaces.",
+    description:
+      "Canvas networks with zoom, pan, community filters and path highlighting on shared Panel surfaces.",
     icon: "Share2",
     category: "Data",
     Page: lazy(() => import("./components/network-graph/NetworkGraphPage")),
@@ -999,7 +1065,9 @@ export const DOC_COMPONENTS: DocComponent[] = [
       "A circular process status indicator — an animated ring when the work has no measurable end, a filled arc with a centre readout when it does, on the shared control scale.",
     icon: "Reset",
     category: "Feedback",
-    Page: lazy(() => import("./components/progress-spinner/ProgressSpinnerPage")),
+    Page: lazy(
+      () => import("./components/progress-spinner/ProgressSpinnerPage"),
+    ),
   },
   {
     slug: "loader",
@@ -1029,13 +1097,24 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/stepper/StepperPage")),
   },
   {
+    slug: "dot-stepper",
+    name: "Dot Stepper",
+    description:
+      "Compact step dots for table rows, with a moving window, overflow stacks, active pulse and optional step popover.",
+    icon: "Complete",
+    category: "Feedback",
+    Page: lazy(() => import("./components/dot-stepper/DotStepperPage")),
+  },
+  {
     slug: "condensed-stepper",
     name: "CondensedStepper",
     description:
       "The stepper that fits on one line: the current step anchored in the middle, walked steps compressed left, the queue right — each flank an accordion on the shared spring table. Hover to peek, click to pin; card and panel are the same component.",
     icon: "Complete",
     category: "Feedback",
-    Page: lazy(() => import("./components/condensed-stepper/CondensedStepperPage")),
+    Page: lazy(
+      () => import("./components/condensed-stepper/CondensedStepperPage"),
+    ),
   },
   {
     slug: "toast",

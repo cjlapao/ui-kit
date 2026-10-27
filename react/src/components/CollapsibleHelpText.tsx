@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useId, useState } from "react";
 import classNames from "classnames";
 import Panel from "./Panel";
@@ -81,6 +82,7 @@ export interface CollapsibleHelpTextProps
   padding?: PanelPadding;
   /** Glass fill opacity, forwarded to `Panel`. */
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   /** Backdrop vibrancy, forwarded to `Panel`. */
   vibrancy?: GlassVibrancy;
   /** Specular highlight for the see-through variants, forwarded to `Panel`. */
@@ -255,6 +257,7 @@ export const CollapsibleHelpText: React.FC<CollapsibleHelpTextProps> = ({
   corner = DEFAULT_SURFACE_CORNER,
   padding = "sm",
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
   expandLabel,
@@ -311,6 +314,7 @@ export const CollapsibleHelpText: React.FC<CollapsibleHelpTextProps> = ({
       corner={corner}
       padding="none"
       glassOpacity={glassOpacity}
+        transparency={transparency}
       vibrancy={vibrancy}
       specularMode={specularMode}
       scrollable={false}

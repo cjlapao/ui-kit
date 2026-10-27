@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import classNames from "classnames";
 import { devWarnA11yOnce } from "../../../common/a11y/warn";
 import React, {
@@ -226,6 +227,7 @@ export interface ModalProps
   variant?: PanelVariant;
   tone?: TrueColor;
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
   /** Icon for the maximise toggle. @default "Scale" */
@@ -285,6 +287,7 @@ const Modal: React.FC<ModalProps> = ({
   variant = "elevated",
   tone = "neutral",
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
   maximizeIcon = "Scale",
@@ -807,6 +810,7 @@ const Modal: React.FC<ModalProps> = ({
         flexBody
         bodyClassName="!space-y-0 !gap-0"
         glassOpacity={glassOpacity}
+        transparency={transparency}
         vibrancy={vibrancy}
         specularMode={specularMode}
         className={contentClasses}

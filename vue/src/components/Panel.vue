@@ -6,6 +6,7 @@ import type {
   SurfaceCorner,
   SurfacePadding,
   SurfaceVariant,
+  SurfaceTransparency,
   TrueColor,
 } from "../theme/Theme";
 
@@ -56,6 +57,7 @@ export interface PanelProps {
   actions?: PanelAction[];
   actionLayout?: PanelActionLayout;
   variant?: PanelVariant;
+  transparency?: SurfaceTransparency;
   tone?: TrueColor;
   padding?: PanelPadding;
   corner?: PanelCorner;
@@ -177,6 +179,7 @@ import {
   getSurfaceCornerClass,
   getSurfacePaddingClass,
   getSurfacePaddingClasses,
+  getSurfaceTransparencyClasses,
 } from "../theme/Theme";
 import Loader from "./Loader.vue";
 
@@ -309,7 +312,7 @@ const glassFillClass = computed(() => {
   return `bg-${props.tone}-50/${litOpacity} dark:bg-${props.tone}-500/${drkOpacity}`;
 });
 
-const variantClasses = computed(() => {
+const variantClasses = computed(() => getSurfaceTransparencyClasses((() => {
   switch (props.variant) {
     case "outlined":
       return classNames(
@@ -372,7 +375,7 @@ const variantClasses = computed(() => {
         effectiveBgClass.value,
       );
   }
-});
+})(), props.variant, props.transparency));
 
 const overlayClasses = computed(() =>
   isOverlay.value

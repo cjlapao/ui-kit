@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import React, {
   useCallback,
   useEffect,
@@ -93,6 +94,7 @@ export interface KeyValueArrayFieldProps {
   corner?: PanelCorner;
   padding?: PanelPadding;
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
   /**
@@ -344,6 +346,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   corner = DEFAULT_SURFACE_CORNER,
   padding = "sm",
   glassOpacity,
+  transparency,
   vibrancy,
   specularMode,
   inputVariant = "auto",
@@ -469,6 +472,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
       corner={corner}
       padding={padding}
       glassOpacity={glassOpacity}
+        transparency={transparency}
       vibrancy={vibrancy}
       specularMode={specularMode}
       scrollable={false}

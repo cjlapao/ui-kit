@@ -589,7 +589,11 @@ const Tabs: React.FC<TabsProps> = ({
         sizeConfig.gap,
         focusRing(color),
         focusOffset,
-        config.base,
+        // Filled active tabs must not inherit inactive hover text/backgrounds:
+        // a tone-coloured label on the same tone fill becomes unreadable.
+        isActive && ["soft", "pill", "segmented"].includes(variant)
+          ? config.base.split(" ").filter(token => !token.startsWith("hover:") && !token.startsWith("dark:hover:" )).join(" ")
+          : config.base,
         isActive ? config.active : config.inactive,
         isDisabled && config.disabled,
         fullWidth && "flex-1 justify-center",

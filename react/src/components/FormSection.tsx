@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import classNames from "classnames";
 import React, { type ReactNode } from "react";
 import Panel, {
@@ -45,6 +46,7 @@ export interface FormSectionProps {
   /** Forwarded to `Panel` for the `liquid-glass` variant. */
   vibrancy?: GlassVibrancy;
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   specularMode?: PanelSpecularMode;
 }
 
@@ -60,6 +62,7 @@ const FormSection: React.FC<FormSectionProps> = ({
   corner = "rounded-md",
   vibrancy,
   glassOpacity,
+  transparency,
   specularMode,
 }) => {
   const pad = paddingMap[padding] ?? paddingMap.md;
@@ -77,6 +80,7 @@ const FormSection: React.FC<FormSectionProps> = ({
       scrollable={false}
       vibrancy={vibrancy}
       glassOpacity={glassOpacity}
+        transparency={transparency}
       specularMode={specularMode}
       className={className}
       bodyClassName="!space-y-0"

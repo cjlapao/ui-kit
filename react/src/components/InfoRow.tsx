@@ -1,3 +1,4 @@
+import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import Panel, { SkeletonBar } from "./Panel";
@@ -138,6 +139,7 @@ export interface InfoRowProps extends Omit<
   hoverable?: boolean;
   /** Glass fill transparency, when `variant` is a glass one. */
   glassOpacity?: GlassOpacity;
+  transparency?: SurfaceTransparency;
   /** Backdrop vibrancy, when `variant` is a glass one. */
   vibrancy?: GlassVibrancy;
   className?: string;
@@ -556,6 +558,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
     loading = false,
     error,
     glassOpacity,
+    transparency,
     vibrancy,
     className,
     // Everything below is read by the body, not here.
@@ -615,6 +618,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
       padding="none"
       scrollable={false}
       glassOpacity={glassOpacity}
+        transparency={transparency}
       vibrancy={vibrancy}
       className={className}
     >

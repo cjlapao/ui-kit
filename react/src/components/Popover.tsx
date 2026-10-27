@@ -30,6 +30,7 @@ import {
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
+  type SurfaceTransparency,
   type TrueColor,
 } from "../theme/Theme";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
@@ -87,6 +88,7 @@ export interface PopoverProps {
   placement?: PopoverPlacement;
   /** Surface treatment — the shared container family the `Panel` owns. @default "elevated" */
   variant?: SurfaceVariant;
+  transparency?: SurfaceTransparency;
   /** @default "neutral" */
   tone?: TrueColor;
   /** @default "rounded-md" */
@@ -274,6 +276,7 @@ const Popover: React.FC<PopoverProps> = ({
   skeletonLines = 3,
   vibrancy = "medium",
   glassOpacity = "frosted",
+  transparency,
   specularMode,
   className,
 }) => {
@@ -631,7 +634,7 @@ const Popover: React.FC<PopoverProps> = ({
   /*  Render                                                            */
   /* ---------------------------------------------------------------- */
 
-  const chrome = getPanelEdgeChrome(variant, tone, glassOpacity, vibrancy);
+  const chrome = getPanelEdgeChrome(variant, tone, glassOpacity, vibrancy, transparency);
 
   const cappedMaxWidth =
     typeof window === "undefined"
@@ -920,6 +923,7 @@ const Popover: React.FC<PopoverProps> = ({
               scrollable={false}
               vibrancy={vibrancy}
               glassOpacity={glassOpacity}
+              transparency={transparency}
               specularMode={specularMode}
             >
               <div className="max-h-[55vh] overflow-y-auto">

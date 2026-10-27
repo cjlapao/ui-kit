@@ -16,6 +16,9 @@ import {
   getStatTileColorClasses,
   getStepperTonePalette,
   getSurfaceTriggerTokens,
+  getSurfaceVariantClasses,
+  SURFACE_VARIANTS,
+  SURFACE_TRANSPARENCIES,
   getTabsColorTokens,
   type SidebarVariant,
 } from "./Theme";
@@ -50,6 +53,11 @@ const collect = (value: unknown, into: Set<string>): void => {
 const generatedClasses = (): Set<string> => {
   const out = new Set<string>();
   for (const tone of TRUE_COLORS) {
+    for (const variant of SURFACE_VARIANTS) {
+      for (const transparency of SURFACE_TRANSPARENCIES) {
+        collect(getSurfaceVariantClasses(variant, tone, { transparency }), out);
+      }
+    }
     collect(getPanelToneStyles(tone), out);
     collect(getMultiToggleColorTokens(tone), out);
     collect(getMultiToggleVariantTokens(tone), out);
@@ -80,7 +88,7 @@ const generatedClasses = (): Set<string> => {
 
 /** Tailwind escapes `:` and `/` in the selector it emits. */
 const escapeClass = (cls: string): string =>
-  cls.replace(/:/g, "\\:").replace(/\//g, "\\/");
+  cls.replace(/[^\w-]/g, char => `\\${char}`);
 
 describe("theme tokens are safelisted", () => {
   it.runIf(existsSync(DIST))(
