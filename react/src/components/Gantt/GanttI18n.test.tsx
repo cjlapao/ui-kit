@@ -38,7 +38,13 @@ describe("Gantt i18n", () => {
   it("the labels prop still overrides the catalog", () => {
     const { container } = withLocale(
       "fr",
-      h(Gantt, { tasks, links, lanes: sampleGanttLanes, labels: { today: "Maintenant" } }),
+      h(Gantt, {
+        tasks,
+        links,
+        lanes: sampleGanttLanes,
+        labels: { today: "Maintenant" },
+        today: NOW,
+      }),
     );
     expect(screen.getByText("Maintenant")).toBeTruthy();
     // Untouched keys keep the catalog value.

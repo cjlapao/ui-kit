@@ -54,10 +54,10 @@ import {
   computeLinkPaths,
   computeViewRange,
   dateToX,
+  ganttLinkLayerWidth,
   getGanttSelectionTokens,
   getGanttTodayTokens,
   laneRollupProgress,
-  LINK_RIGHT_GUTTER,
   rangeWidth,
   taskRollupProgress,
   toMs,
@@ -937,6 +937,16 @@ export const Gantt: React.FC<GanttProps> = ({
     () => computeLinkPaths(links, liveLinkBars, color),
     [links, liveLinkBars, color],
   );
+  const linkLayerWidth = useMemo(
+    () => ganttLinkLayerWidth(linkPaths, timelineWidth),
+    [linkPaths, timelineWidth],
+  );
+
+  // Route-aware bounds can grow or shrink independently of the time scale.
+  // Re-apply the body scroll transform so the detached header stays aligned.
+  useEffect(() => {
+    syncHeaderScale();
+  }, [linkLayerWidth, syncHeaderScale]);
 
   // Port slots per bar edge: the hover link handle sits on the largest free
   // slot (never on the static fan) and passes the same offset to the
@@ -1115,7 +1125,7 @@ export const Gantt: React.FC<GanttProps> = ({
           className={`gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-1.5 ${THIN_SCROLLBAR}`}
           onScroll={syncHeaderScale}
         >
-          <div style={{ width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER, minWidth: "100%" }}>
+          <div style={{ width: leftWidth + linkLayerWidth, minWidth: "100%" }}>
           {loading ? (
             <GanttSkeleton rows={12} rowHeight={rowHeight} leftWidth={leftWidth} />
           ) : isEmpty ? (
@@ -1232,7 +1242,7 @@ export const Gantt: React.FC<GanttProps> = ({
               {/* Dependency overlay (above rows, below handles via z-index) */}
               <GanttLinkLayer
                 ref={overlayRef}
-                width={timelineWidth + LINK_RIGHT_GUTTER}
+                width={linkLayerWidth}
                 height={bodyHeight}
                 offsetLeft={leftWidth}
                 paths={linkPaths}
@@ -1282,7 +1292,7 @@ export const Gantt: React.FC<GanttProps> = ({
                     style={{
                       left: drag.clientX - (drag.grabOffset?.x ?? 0),
                       top: drag.clientY - (drag.grabOffset?.y ?? 0),
-                      width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER,
+                      width: leftWidth + linkLayerWidth,
                     }}
                   >
                     <div

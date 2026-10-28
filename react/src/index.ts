@@ -37,6 +37,8 @@ export type {
 // Icons — explicit re-exports of IconName type + iconRegistry (SVG components are re-exported via "./icons" above)
 export type { IconName } from "./icons/registry";
 export { iconRegistry } from "./icons/registry";
+export { registerIcons } from "./icons/customRegistry";
+export type { IconComponent } from "./icons/customRegistry";
 
 // Default exports not covered by `export *`
 export { default as MultiToggle } from "./components/MultiToggle";

@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
-import { type IconName, iconRegistry } from "../icons/registry";
+import React, { useMemo, useSyncExternalStore } from "react";
+import { type IconName } from "../icons/registry";
+import { type IconComponent, resolveIcon, subscribeIcons, getIconRevision, getServerIconRevision } from "../icons/customRegistry";
 import { mergeClassTokens, hasExplicitSize } from "../utils/iconUtils";
 import type { IconSize } from "../types/Icon";
 import type { TrueColor } from "../theme/Theme";
@@ -9,8 +10,8 @@ export interface CustomIconProps
     React.HTMLAttributes<HTMLSpanElement>,
     "children" | "color" | "onClick"
   > {
-  /** Name of the icon to display. */
-  icon: IconName;
+  /** Built-in/registered name, or a React SVG component for one-off usage. */
+  icon: IconName | IconComponent;
   /**
    * Accessible name. Omit it and the icon is treated as decoration and hidden
    * from assistive technology — which is right for an icon sitting beside a
@@ -74,7 +75,8 @@ export const CustomIcon: React.FC<CustomIconProps> = ({
   style,
   ...rest
 }) => {
-  const IconComponent = iconRegistry[icon];
+  useSyncExternalStore(subscribeIcons, getIconRevision, getServerIconRevision);
+  const IconComponent = typeof icon === "string" ? resolveIcon(icon) : icon;
 
   const dimension = useMemo(() => {
     if (!customSize) return undefined;
@@ -132,11 +134,11 @@ export const CustomIcon: React.FC<CustomIconProps> = ({
     // size at all unless `customSize` was given — it collapsed the layout
     // around it.
     <span className="grid h-full w-full place-items-center rounded bg-neutral-100 text-[0.6em] font-bold uppercase text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-      {icon?.charAt(0) || "?"}
+      {typeof icon === "string" ? icon.charAt(0) || "?" : "?"}
     </span>
   );
 
-  if (!IconComponent && icon && !warned.has(icon)) {
+  if (!IconComponent && typeof icon === "string" && icon && !warned.has(icon)) {
     warned.add(icon);
     console.warn(`Icon not found in registry: ${icon}`);
   }

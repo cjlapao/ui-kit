@@ -25,6 +25,7 @@ import {
   toMs,
   MS_PER_DAY,
 } from "./time";
+import { ganttCrossingPaths } from "./crossings";
 
 export const MIN_TASK_MS = 3_600_000; // one hour minimum for non-milestones
 
@@ -121,6 +122,8 @@ export const LINK_PORT_R = 3.5;
  * padding everywhere in the diagram.
  */
 export const LINK_PASS_PADDING = 6;
+/** Minimum centre-to-centre distance between independent connector lanes. */
+export const LINK_LANE_SPACING = 16;
 /** Radius of the rounded elbow at each turn. */
 const LINK_ELBOW_R = 6;
 /** Length of the arrowhead. */
@@ -482,6 +485,8 @@ export const LINK_HANDLE_OVERHANG = 4;
 /** Blank right gutter (px) past the timeline, so rightmost link routes and
  *  their arrowheads never sit at the scroll edge. */
 export const LINK_RIGHT_GUTTER = 24;
+/** Extra room past the furthest routed glyph (halo, arrow or selected stroke). */
+export const LINK_BOUNDS_PADDING = 8;
 
 /** Effective (visual) height a bar edge spans for port distribution. The bar
  *  paints `LINK_BAR_HEIGHT` tall, centred in its (taller) row. */
@@ -615,18 +620,18 @@ export function fanHandleOffset(barHeight: number, taken: number[]): number {
 }
 
 /**
- * Align overlapping vertical channel runs so that connectors whose vertical
- * legs share a y-corridor drop into the **same column** (diagram-style: lines
- * may overlap one another, but never a bar). Runs are grouped by transitive
- * y-overlap; each group slides to the single clear column that (a) is clear of
- * every bar across the group's combined y-span and (b) lies inside every
- * member's valid window, so no horizontal stub is dragged over a bar.
+ * Allocate independent vertical channel runs to adjacent lanes.
+ *
+ * Runs are grouped by transitive y-overlap, then processed by stable link
+ * identity. Each run stays inside its routing window and clear of every bar,
+ * while previously allocated overlapping runs reserve a lane-sized interval.
+ * When a corridor cannot fit another lane, the original safe channel wins —
+ * never move a connector through a task merely to avoid another connector.
  */
-function alignVerticalChannels(
-  routes: { points: Pt[]; channels: Channel[] }[],
+function allocateVerticalLanes(
+  routes: { points: Pt[]; channels: Channel[]; orderKey: string }[],
   bars: GanttBarGeometry[],
 ): void {
-  // Gather every channel with its current x and y-span.
   const chans: {
     route: number;
     seg: number;
@@ -635,6 +640,7 @@ function alignVerticalChannels(
     y2: number;
     lo: number;
     hi: number;
+    orderKey: string;
   }[] = [];
   routes.forEach((r, ri) => {
     for (const ch of r.channels) {
@@ -648,6 +654,7 @@ function alignVerticalChannels(
         y2: Math.max(a[1], b[1]),
         lo: ch.lo,
         hi: ch.hi,
+        orderKey: `${r.orderKey}:${ch.seg}`,
       });
     }
   });
@@ -675,45 +682,27 @@ function alignVerticalChannels(
 
   for (const idxs of groups.values()) {
     if (idxs.length < 2) continue;
-    const runs = idxs.map((i) => chans[i]);
-    const yLo = Math.min(...runs.map((r) => r.y1));
-    const yHi = Math.max(...runs.map((r) => r.y2));
-    const interLo = Math.max(...runs.map((r) => r.lo));
-    const interHi = Math.min(...runs.map((r) => r.hi));
-    if (interLo >= interHi) continue; // windows don't overlap — can't align
-    if (Math.max(...runs.map((r) => r.x)) - Math.min(...runs.map((r) => r.x)) < 0.5) {
-      continue; // already in the same column
-    }
-    // Columns clear of every bar across the combined y-span, at the passing
-    // padding.
-    const blocked = blockedIntervals(bars, yLo, yHi, LINK_PASS_PADDING);
-    const meanX = runs.reduce((s, r) => s + r.x, 0) / runs.length;
-    // Preferred: hug the nearest passed bar at exactly the passing padding —
-    // the edges of the merged blocked intervals are precisely those positions
-    // (a merged interval's left edge is P px left of its nearest bar's left
-    // edge, its right edge P px right of its farthest bar's right edge). Pick
-    // the hug closest to the members' mean column so the shared column sits
-    // where the lines already run; when no bar is in the way, fall back to the
-    // clear column nearest the mean (centred in the open gap).
-    const merged = clipMerge(interLo, interHi, blocked);
-    let targetX: number | null = null;
-    let bestDist = Infinity;
-    for (const [a, b] of merged) {
-      for (const cand of [a, b]) {
-        if (cand <= interLo || cand >= interHi) continue;
-        const d = Math.abs(cand - meanX);
-        if (d < bestDist) {
-          bestDist = d;
-          targetX = cand;
-        }
-      }
-    }
-    if (targetX == null) targetX = findClearX(interLo, interHi, meanX, merged);
-    if (targetX == null) continue;
-    for (const r of runs) {
-      const pts = routes[r.route].points;
-      pts[r.seg][0] = targetX;
-      pts[r.seg + 1][0] = targetX;
+    const runs = idxs
+      .map((i) => chans[i])
+      .sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+    const allocated: typeof runs = [];
+    for (const run of runs) {
+      const barBlocks = blockedIntervals(bars, run.y1, run.y2, LINK_PASS_PADDING);
+      const laneBlocks: XInterval[] = allocated
+        .filter((other) => Math.max(run.y1, other.y1) < Math.min(run.y2, other.y2))
+        .map((other) => [
+          other.x - LINK_LANE_SPACING,
+          other.x + LINK_LANE_SPACING,
+        ]);
+      const targetX = findClearX(run.lo, run.hi, run.x, [
+        ...barBlocks,
+        ...laneBlocks,
+      ]);
+      if (targetX != null) run.x = targetX;
+      const pts = routes[run.route].points;
+      pts[run.seg][0] = run.x;
+      pts[run.seg + 1][0] = run.x;
+      allocated.push(run);
     }
   }
 }
@@ -738,6 +727,8 @@ export function computeLinkPaths(
 
   const allBars = [...bars.values()];
   const routes: {
+    routeId: string;
+    orderKey: string;
     link: GanttLink;
     points: Pt[];
     channels: Channel[];
@@ -754,6 +745,8 @@ export function computeLinkPaths(
     const to = bars.get(link.target);
     if (!from || !to) continue;
     const type: GanttLinkType = link.type ?? "fs";
+    const orderKey =
+      link.id ?? `${link.source}\u0000${link.target}\u0000${type}`;
 
     // Port slot for this link on each bar edge (0 = centred).
     const fanSrcY = fan.perLink[li].src;
@@ -776,6 +769,8 @@ export function computeLinkPaths(
 
     const { points, channels, arrow } = routePoints(from, to, fanSrcY, fanTgtY, obstacles);
     routes.push({
+      routeId: `${orderKey}\u0000${li}`,
+      orderKey,
       link,
       points,
       channels,
@@ -787,15 +782,27 @@ export function computeLinkPaths(
     });
   }
 
-  // Global pass: slide overlapping vertical channels into shared columns.
-  alignVerticalChannels(routes, allBars);
+  // Global pass: keep independent overlapping vertical channels in adjacent,
+  // stable lanes. A route remains in its original safe channel when the
+  // corridor cannot fit another lane.
+  allocateVerticalLanes(routes, allBars);
+
+  // Crossings are valid topology, but they must not read as merges. Only the
+  // horizontal participant receives a hop; untouched routes keep their exact
+  // rounded-path output.
+  const crossings = ganttCrossingPaths(
+    routes.map((route) => ({ id: route.routeId, points: route.points })),
+    LINK_ELBOW_R,
+  );
 
   const paths: GanttLinkPath[] = [];
   for (const r of routes) {
+    const crossing = crossings.get(r.routeId);
     paths.push({
       link: r.link,
-      d: roundedPath(r.points, LINK_ELBOW_R),
-      points: r.points,
+      d: crossing?.d ?? roundedPath(r.points, LINK_ELBOW_R),
+      points: crossing?.hitPoints ?? r.points,
+      hopPoints: crossing?.hopPoints,
       arrow: r.arrow,
       from: r.fromPt,
       to: r.toPt,
@@ -804,6 +811,36 @@ export function computeLinkPaths(
     });
   }
   return paths;
+}
+
+/**
+ * Width required by the timeline link layer and its scroll content.
+ * `LINK_RIGHT_GUTTER` remains the minimum; outside detours expand it only when
+ * their final geometry, ports or arrowheads need more room.
+ */
+export function ganttLinkLayerWidth(
+  paths: readonly GanttLinkPath[],
+  timelineWidth: number,
+): number {
+  let furthest = timelineWidth;
+  for (const path of paths) {
+    for (const point of path.points) furthest = Math.max(furthest, point[0]);
+    furthest = Math.max(
+      furthest,
+      path.from.x + LINK_BOUNDS_PADDING,
+      path.to.x + LINK_BOUNDS_PADDING,
+    );
+    if (path.arrow) {
+      const values = path.arrow.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+      for (let index = 0; index + 1 < values.length; index += 2) {
+        furthest = Math.max(furthest, values[index]);
+      }
+    }
+  }
+  return Math.max(
+    timelineWidth + LINK_RIGHT_GUTTER,
+    furthest + LINK_BOUNDS_PADDING,
+  );
 }
 
 /**
@@ -934,6 +971,21 @@ export function pickLinkAt(
   y: number,
   radius: number = LINK_HIT_RADIUS,
 ): GanttLinkPath | null {
+  // A bridge is the visible foreground connector at a crossing. Prefer its
+  // sampled arc before measuring the straight line passing underneath it.
+  let hopBest: GanttLinkPath | null = null;
+  let hopBestDist = Infinity;
+  for (const path of paths) {
+    for (const hop of path.hopPoints ?? []) {
+      const distance = linkDistance(hop, x, y);
+      if (distance <= radius && distance < hopBestDist) {
+        hopBestDist = distance;
+        hopBest = path;
+      }
+    }
+  }
+  if (hopBest) return hopBest;
+
   let best: GanttLinkPath | null = null;
   let bestDist = Infinity;
   for (const p of paths) {

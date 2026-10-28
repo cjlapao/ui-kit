@@ -31,7 +31,9 @@ function pointer(win: Window & typeof globalThis, type: string, x: number, y: nu
 
 describe("Gantt component", () => {
   it("renders lanes, tasks, bars, scale and the today marker", () => {
-    const { container } = render(<Gantt tasks={tasks} links={links} lanes={sampleGanttLanes} />);
+    const { container } = render(
+      <Gantt tasks={tasks} links={links} lanes={sampleGanttLanes} today={NOW} />,
+    );
     // Lane headers.
     expect(screen.getByText("Design")).toBeTruthy();
     expect(screen.getByText("Engineering")).toBeTruthy();
@@ -992,6 +994,19 @@ describe("Gantt component", () => {
     expect(onTasksChange).toHaveBeenCalledTimes(1);
   });
 
+  it("uses one route-derived width for the body content and dependency layer", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} links={links} lanes={sampleGanttLanes} />,
+    );
+    const scroller = container.querySelector<HTMLElement>(".gantt-scroller")!;
+    const content = scroller.firstElementChild as HTMLElement;
+    const layer = container.querySelector<HTMLElement>("[data-gantt-link-layer]")!;
+    const contentWidth = Number.parseFloat(content.style.width);
+    const layerLeft = Number.parseFloat(layer.style.left);
+    const layerWidth = Number.parseFloat(layer.style.width);
+    expect(contentWidth).toBeCloseTo(layerLeft + layerWidth, 5);
+  });
+
   it("moves a focused task with the arrow keys", () => {
     const onTasksChange = vi.fn();
     render(<Gantt tasks={tasks} lanes={sampleGanttLanes} onTasksChange={onTasksChange} />);
@@ -1053,7 +1068,7 @@ describe("Gantt component", () => {
 
   it("keeps the toolbar and the today marker in the detached header, out of the body scroller", () => {
     const { container } = render(
-      <Gantt tasks={tasks} links={links} lanes={sampleGanttLanes} />,
+      <Gantt tasks={tasks} links={links} lanes={sampleGanttLanes} today={NOW} />,
     );
     const scroller = container.querySelector<HTMLElement>(".gantt-scroller")!;
     expect(scroller).toBeTruthy();

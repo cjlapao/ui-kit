@@ -12,6 +12,8 @@ import MilestonesExample from "./examples/Milestones";
 import milestonesCode from "./examples/Milestones.tsx?raw";
 import LanesExample from "./examples/Lanes";
 import lanesCode from "./examples/Lanes.tsx?raw";
+import DenseRoutingExample from "./examples/DenseRouting";
+import denseRoutingCode from "./examples/DenseRouting.tsx?raw";
 
 export const GanttPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -42,6 +44,15 @@ export const GanttPage: React.FC = () => (
         filename="Dependencies.tsx"
       >
         <DependenciesExample />
+      </ExampleCard>
+
+      <ExampleCard
+        title="Dense dependency routing"
+        description="Independent dependencies reserve adjacent lanes instead of disappearing into one shared stroke. Unavoidable perpendicular crossings use a small bridge on the horizontal route, and outside detours extend the scrollable drawing area automatically. Drag or resize a connected task to watch the routes update live."
+        code={denseRoutingCode}
+        filename="DenseRouting.tsx"
+      >
+        <DenseRoutingExample />
       </ExampleCard>
 
       <ExampleCard

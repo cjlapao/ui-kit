@@ -105,6 +105,7 @@ export const GanttLinkLayer = forwardRef<HTMLDivElement, GanttLinkLayerProps>(
     return (
       <div
         ref={ref}
+        data-gantt-link-layer
         className="pointer-events-none absolute top-0 z-10"
         style={{ left: offsetLeft, width, height }}
       >

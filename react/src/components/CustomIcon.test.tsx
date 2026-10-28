@@ -2,6 +2,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import CustomIcon from "./CustomIcon";
 import { TRUE_COLORS } from "../theme/Theme";
+import { registerIcons } from "../icons/customRegistry";
+import { act } from "@testing-library/react";
+import type { SVGProps } from "react";
 
 const root = (container: HTMLElement) =>
   container.firstElementChild as HTMLElement;
@@ -9,6 +12,53 @@ const root = (container: HTMLElement) =>
 afterEach(() => vi.restoreAllMocks());
 
 describe("CustomIcon", () => {
+  const ConsumerGlyph = (props: SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" {...props}><path data-testid="consumer-glyph" fill="currentColor" d="M0 0h24v24H0z" /></svg>
+  );
+
+  it("styles direct SVG components and preserves button accessibility", () => {
+    const onClick = vi.fn();
+    render(<CustomIcon icon={ConsumerGlyph} alt="Consumer action" tone="blue" size="sm" onClick={onClick} />);
+    const button = screen.getByRole("button", { name: "Consumer action" });
+    expect(button.className).toContain("h-5");
+    expect(button.className).toContain("text-blue-500");
+    expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("updates mounted icons when registrations are added and removed", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { container } = render(<CustomIcon icon="Consumer.Runtime" customSize={32} />);
+    let cleanup!: () => void;
+    act(() => { cleanup = registerIcons({ "Consumer.Runtime": ConsumerGlyph }); });
+    expect(container.querySelector("svg")).not.toBeNull();
+    expect(root(container).style.width).toBe("32px");
+    act(() => cleanup());
+    expect(container.querySelector("svg")).toBeNull();
+  });
+
+  it("rejects duplicate batches atomically and restores overridden built-ins", () => {
+    expect(() => registerIcons({ "Consumer.Atomic": ConsumerGlyph, Add: ConsumerGlyph })).toThrow("already registered");
+    const cleanup = registerIcons({ "Consumer.Atomic": ConsumerGlyph });
+    expect(() => registerIcons({ "Consumer.Atomic": ConsumerGlyph })).toThrow();
+    cleanup();
+    const restore = registerIcons({ Add: ConsumerGlyph }, { override: true });
+    const { container, rerender } = render(<CustomIcon icon="Add" />);
+    expect(container.querySelector('[data-testid="consumer-glyph"]')).not.toBeNull();
+    act(() => restore());
+    rerender(<CustomIcon icon="Add" />);
+    expect(container.querySelector('[data-testid="consumer-glyph"]')).toBeNull();
+  });
+
+  it("does not restore a registration whose cleanup already ran", () => {
+    const first = registerIcons({ "Consumer.Stack": ConsumerGlyph });
+    const second = registerIcons({ "Consumer.Stack": ConsumerGlyph }, { override: true });
+    first();
+    second();
+    const third = registerIcons({ "Consumer.Stack": ConsumerGlyph });
+    third();
+  });
   describe("colour props that used to do nothing", () => {
     // `color` and `hoverColor` set `--icon-color` / `--icon-hover-color`
     // custom properties that nothing in either kit ever read. The icons paint

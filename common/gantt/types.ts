@@ -206,11 +206,14 @@ export interface GanttLinkPath {
   /** SVG path `d` in the link layer's coordinate space (origin = timeline origin). */
   d: string;
   /**
-   * The route polyline (pre-corner-rounding) the same `d` is derived from —
-   * in the link layer's coordinate space. Kept on the path so hit-testing
-   * (`pickLinkAt`) can measure pointer distance without parsing path data.
+   * Hit-test geometry in the link layer's coordinate space. Normally this is
+   * the route polyline; crossing hops include sampled arc points so nearest-
+   * route selection follows the visible connector rather than the line below.
    */
   points: GanttPt[];
+  /** Sampled visible bridge arcs. Hit testing gives these priority over the
+   *  straight connector passing underneath a crossing. */
+  hopPoints?: GanttPt[][];
   /**
    * Arrowhead polygon points (SVG `<polygon points>`), or undefined when the
    * approach is too short for a head. Computed in the engine so the

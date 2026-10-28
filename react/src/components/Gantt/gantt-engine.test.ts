@@ -33,9 +33,13 @@ import {
   pickLinkAt,
   LINK_HIT_RADIUS,
   LINK_ENTRY_CLEAR,
+  LINK_LANE_SPACING,
+  LINK_RIGHT_GUTTER,
   computeLinkFanOffsets,
   fanHandleOffset,
+  ganttLinkLayerWidth,
 } from "../../../../common/gantt/drag";
+import { ganttCrossingPaths } from "../../../../common/gantt/crossings";
 import { getGanttBarTokens, getGanttLaneTokens } from "../../../../common/gantt/tokens";
 import {
   sampleGanttTasks,
@@ -574,11 +578,9 @@ describe("drag / interaction math", () => {
     expect(tasksById.size).toBe(tasks.length);
   });
 
-  it("aligns overlapping vertical channels into a shared column", () => {
-    // Two "going back" links whose vertical drops overlap in y but would
-    // naturally drop in different columns (each hugs the left of its own
-    // target). The global alignment pass must slide both into one shared,
-    // clear column so the two legs read as a single line.
+  it("allocates overlapping vertical channels to stable adjacent lanes", () => {
+    // Two "going back" links whose vertical drops overlap in y and naturally
+    // prefer different clear columns. They must remain visibly independent.
     const bar = (
       taskId: string,
       left: number,
@@ -598,16 +600,7 @@ describe("drag / interaction math", () => {
     const paths = computeLinkPaths(links, bars, "blue");
     expect(paths).toHaveLength(2);
 
-    // The x of the longest vertical run in a path = its drop column.
-    const dropX = (d: string): number => {
-      const pts: [number, number][] = [];
-      const m = d.match(/^M\s*([\d.-]+)\s+([\d.-]+)/);
-      if (m) pts.push([Number(m[1]), Number(m[2])]);
-      for (const q of d.matchAll(/Q\s*([\d.-]+)\s+([\d.-]+)\s+[\d.-]+\s+[\d.-]+/g)) {
-        pts.push([Number(q[1]), Number(q[2])]);
-      }
-      const nums = d.match(/-?\d+(\.\d+)?/g) ?? [];
-      if (nums.length >= 2) pts.push([Number(nums[nums.length - 2]), Number(nums[nums.length - 1])]);
+    const dropX = (pts: readonly [number, number][]): number => {
       let best = 0;
       let bestLen = 0;
       for (let i = 0; i < pts.length - 1; i++) {
@@ -622,21 +615,29 @@ describe("drag / interaction math", () => {
       return best;
     };
 
-    const xa = dropX(paths[0].d);
-    const xb = dropX(paths[1].d);
-    // Both drops land in one shared clear column at A's target entry
-    // clearance (90 - 25 = 65), instead of the two different columns (65 and
-    // 95) they'd pick alone.
-    expect(xa).toBe(xb);
+    const xa = dropX(paths[0].points);
+    const xb = dropX(paths[1].points);
+    expect(Math.abs(xa - xb)).toBeGreaterThanOrEqual(LINK_LANE_SPACING);
     expect(xa).toBe(65);
+    expect(xb).toBe(95);
+
+    const reversed = computeLinkPaths([...links].reverse(), bars, "blue");
+    for (const path of paths) {
+      const match = reversed.find(
+        (candidate) =>
+          candidate.link.source === path.link.source &&
+          candidate.link.target === path.link.target,
+      );
+      expect(match).toBeDefined();
+      expect(dropX(match!.points)).toBe(dropX(path.points));
+    }
   });
 
-  it("aligns a group into the target's entry-clearance column, not the floating mean", () => {
+  it("keeps adjacent lanes near each route's preferred entry clearance", () => {
     // Two band drops share a corridor and both pass the middle bar `c`. Their
     // natural columns (35 and 54) put the group's mean (44.5) inside A's
     // entry-clearance window but a mean-based placement would float there at
-    // an arbitrary margin. The alignment must slide both into the single
-    // shared clear column at A's target entry clearance (60 - 25 = 35).
+    // an arbitrary margin. Lane allocation retains both safe preferences.
     const bar = (
       taskId: string,
       left: number,
@@ -656,15 +657,7 @@ describe("drag / interaction math", () => {
     const paths = computeLinkPaths(links, bars, "blue");
     expect(paths).toHaveLength(2);
 
-    const dropX = (d: string): number => {
-      const pts: [number, number][] = [];
-      const m = d.match(/^M\s*([\d.-]+)\s+([\d.-]+)/);
-      if (m) pts.push([Number(m[1]), Number(m[2])]);
-      for (const q of d.matchAll(/Q\s*([\d.-]+)\s+([\d.-]+)\s+[\d.-]+\s+[\d.-]+/g)) {
-        pts.push([Number(q[1]), Number(q[2])]);
-      }
-      const nums = d.match(/-?\d+(\.\d+)?/g) ?? [];
-      if (nums.length >= 2) pts.push([Number(nums[nums.length - 2]), Number(nums[nums.length - 1])]);
+    const dropX = (pts: readonly [number, number][]): number => {
       let best = 0;
       let bestLen = 0;
       for (let i = 0; i < pts.length - 1; i++) {
@@ -679,13 +672,11 @@ describe("drag / interaction math", () => {
       return best;
     };
 
-    const xa = dropX(paths[0].d);
-    const xb = dropX(paths[1].d);
-    // Shared column, at A's target entry clearance — not the floating mean
-    // (44.5) between the natural columns (35 and 54).
-    expect(xa).toBe(xb);
+    const xa = dropX(paths[0].points);
+    const xb = dropX(paths[1].points);
     expect(xa).toBe(a1.left - LINK_ENTRY_CLEAR);
-    expect(xa).not.toBeCloseTo(44.5, 1);
+    expect(xb).toBe(54);
+    expect(Math.abs(xa - xb)).toBeGreaterThanOrEqual(LINK_LANE_SPACING);
   });
 });
 
@@ -782,6 +773,81 @@ describe("link fan slots (port distribution)", () => {
     const plain = rubberLinkPath(s, 400, 200);
     const offset = rubberLinkPath(s, 400, 200, undefined, [], 5);
     expect(offset.from.y).toBeCloseTo(plain.from.y + 5, 5);
+  });
+});
+
+describe("dependency crossing hops and drawing bounds", () => {
+  const horizontal: [number, number][] = [[0, 22], [100, 22]];
+  const vertical: [number, number][] = [[50, 0], [50, 44]];
+
+  it("adds a hop only to the horizontal route at a true crossing", () => {
+    const changed = ganttCrossingPaths(
+      [
+        { id: "horizontal", points: horizontal },
+        { id: "vertical", points: vertical },
+      ],
+      6,
+    );
+    expect(changed.get("horizontal")?.d).toContain("A 6 6");
+    expect(changed.get("vertical")).toBeUndefined();
+    expect(Math.min(...changed.get("horizontal")!.hitPoints.map((point) => point[1])))
+      .toBeCloseTo(16, 5);
+  });
+
+  it("does not add a hop for an endpoint touch or parallel overlap", () => {
+    const changed = ganttCrossingPaths(
+      [
+        { id: "horizontal", points: horizontal },
+        { id: "touch", points: [[100, 22], [100, 66]] },
+        { id: "parallel", points: [[20, 22], [80, 22]] },
+      ],
+      6,
+    );
+    expect(changed.size).toBe(0);
+  });
+
+  it("gives the visible hop priority over the line underneath", () => {
+    const crossing = ganttCrossingPaths(
+      [
+        { id: "horizontal", points: horizontal },
+        { id: "vertical", points: vertical },
+      ],
+      6,
+    ).get("horizontal")!;
+    const h: GanttLinkPath = {
+      link: { id: "horizontal", source: "hs", target: "ht" },
+      d: crossing.d,
+      points: crossing.hitPoints,
+      hopPoints: crossing.hopPoints,
+      from: { x: 0, y: 22 },
+      to: { x: 100, y: 22 },
+      type: "fs",
+    };
+    const v: GanttLinkPath = {
+      link: { id: "vertical", source: "vs", target: "vt" },
+      d: "M 50 0 L 50 44",
+      points: vertical,
+      from: { x: 50, y: 0 },
+      to: { x: 50, y: 44 },
+      type: "fs",
+    };
+    // The vertical link is listed first and occupies the same apex point, but
+    // the bridge is the visible foreground route there.
+    expect(pickLinkAt([v, h], 50, 16)?.link.id).toBe("horizontal");
+  });
+
+  it("keeps the minimum gutter and expands for routed geometry", () => {
+    expect(ganttLinkLayerWidth([], 300)).toBe(300 + LINK_RIGHT_GUTTER);
+    const path: GanttLinkPath = {
+      link: { id: "outside", source: "s", target: "t" },
+      d: "M 100 0 L 360 0",
+      points: [[100, 0], [360, 0]],
+      arrow: "400,0 393,-4 393,4",
+      from: { x: 100, y: 0 },
+      to: { x: 360, y: 0 },
+      type: "fs",
+    };
+    expect(ganttLinkLayerWidth([path], 300)).toBe(408);
   });
 });
 

@@ -17,6 +17,8 @@ import ButtonMode from "./examples/ButtonMode";
 import buttonModeCode from "./examples/ButtonMode.tsx?raw";
 import Fallback from "./examples/Fallback";
 import fallbackCode from "./examples/Fallback.tsx?raw";
+import ConsumerIcons from "./examples/ConsumerIcons";
+import consumerIconsCode from "./examples/ConsumerIcons.tsx?raw";
 
 export const CustomIconPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -52,6 +54,14 @@ export const CustomIconPage: React.FC = () => (
         filename="ButtonMode.tsx"
       >
         <ButtonMode />
+      </ExampleCard>
+      <ExampleCard
+        title="Consumer SVG icons"
+        description="Register React SVG components once at app startup, or pass a component directly. Forward SVG props and use currentColor to inherit tone, color and hoverColor; use colored to preserve fixed SVG colors."
+        code={consumerIconsCode}
+        filename="ConsumerIcons.tsx"
+      >
+        <ConsumerIcons />
       </ExampleCard>
       <ExampleCard
         title="Unknown icon"
@@ -120,9 +130,9 @@ export const CustomIconPage: React.FC = () => (
       props={[
         {
           name: "icon",
-          type: "IconName",
+          type: "IconName | IconComponent",
           description:
-            "Registry key. An unknown name warns once and falls back to a monogram that keeps the requested size.",
+            "Built-in or consumer-registered key, or a React SVG component. Unknown names warn once and fall back to a size-preserving monogram.",
         },
         {
           name: "alt",
@@ -197,7 +207,17 @@ export const CustomIconPage: React.FC = () => (
       ]}
     />
 
-    <p className="text-xs opacity-70">
+    <p className="text-xs leading-6 text-neutral-600 dark:text-neutral-400">
+      <C>registerIcons(icons, options?)</C> accepts a record of names to SVG
+      components and returns a cleanup function. Duplicate names throw unless{" "}
+      <C>{"{ override: true }"}</C> is supplied; validation is atomic. Register
+      application-wide icons before rendering, including server startup for SSR.
+      Registrations are shared within this kit instance, so use the direct
+      component form for request-specific icons on a server. Imported SVG files
+      require a bundler SVG-to-React transform; URL strings and raw SVG markup
+      are not supported.
+    </p>
+    <p className="text-xs leading-6 text-neutral-600 dark:text-neutral-400">
       Other HTML attributes spread through to the wrapper (span or button), so{" "}
       <C>title</C>, <C>id</C>, and extra aria attributes land where they should.{" "}
       <C>forceSvg</C> is accepted but does nothing — the registry has been
