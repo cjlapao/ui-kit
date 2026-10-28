@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import SideMenu, {
   useSidebarIsMobile,
@@ -20,11 +20,17 @@ export interface SideMenuLayoutProps {
   /**
    * Multi sidebars: an extra menu rendered next to the primary. While this is
    * set, the primary defaults to a hover rail. Use multiMenuMode="joined"
-   * for a permanent icon rail next to a permanently expanded panel.
+   * for a permanent icon rail next to an optionally hidden secondary panel.
    */
   secondarySideMenuProps?: SideMenuProps;
+  /** Joined mode: show the secondary menu. No secondary props always hides it. */
+  secondaryOpen?: boolean;
+  /** Initial joined secondary visibility when uncontrolled. @default true */
+  defaultSecondaryOpen?: boolean;
+  /** Requested visibility change (Escape within the desktop secondary menu). */
+  onSecondaryOpenChange?: (open: boolean) => void;
   /** Multi-menu presentation. Joined pins the primary to an icon rail and
-   * the secondary expanded, combining both in one responsive shell.
+   * combines the secondary and body in one responsive shell, even without secondary props.
    * @default "hover" */
   multiMenuMode?: "hover" | "joined";
   /** Content rendered in the fixed header bar at the top of the main area */
@@ -53,6 +59,9 @@ export const SideMenuLayout = ({
   sideMenuProps,
   rightSideMenuProps,
   secondarySideMenuProps,
+  secondaryOpen,
+  defaultSecondaryOpen = true,
+  onSecondaryOpenChange,
   multiMenuMode = "hover",
   header,
   children,
@@ -65,7 +74,27 @@ export const SideMenuLayout = ({
   const t = useKitT();
   const isMobile = useSidebarIsMobile(sideMenuProps.responsive ?? true);
   const isMulti = !!secondarySideMenuProps;
-  const isJoined = isMulti && multiMenuMode === "joined";
+  const isJoined = multiMenuMode === "joined";
+  const [internalSecondaryOpen, setInternalSecondaryOpen] = useState(defaultSecondaryOpen);
+  const secondaryVisible = Boolean(secondarySideMenuProps) && (secondaryOpen ?? internalSecondaryOpen);
+  // Preserve outgoing content while its width closes, including when a section
+  // removes its menu props. It remains inert until another menu is available.
+  const lastSecondaryProps = useRef(secondarySideMenuProps);
+  useLayoutEffect(() => {
+    if (secondarySideMenuProps) lastSecondaryProps.current = secondarySideMenuProps;
+  }, [secondarySideMenuProps]);
+  const displayedSecondaryProps = secondarySideMenuProps ?? lastSecondaryProps.current;
+  const secondaryRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (!secondaryVisible && secondaryRef.current?.contains(document.activeElement)) {
+      mainRef.current?.focus({ preventScroll: true });
+    }
+  }, [secondaryVisible]);
+  const requestSecondaryOpen = (open: boolean) => {
+    if (secondaryOpen === undefined) setInternalSecondaryOpen(open);
+    onSecondaryOpenChange?.(open);
+  };
 
   const [collapsed, setCollapsed] = useState(sideMenuProps.collapsed ?? false);
   const [rightCollapsed, setRightCollapsed] = useState(
@@ -170,7 +199,7 @@ export const SideMenuLayout = ({
   };
 
   const secondaryProps: SideMenuProps = {
-    ...secondarySideMenuProps!,
+    ...displayedSecondaryProps!,
     side: "left",
     collapsed: isSecondaryCollapsed,
     onToggleCollapse: handleSecondaryToggleCollapse,
@@ -225,12 +254,13 @@ export const SideMenuLayout = ({
                 if (isMobile && event.key === "Escape") handleCloseMobile();
               }}
               className={classNames(
-                "flex w-[324px] max-w-[calc(100vw-1rem)] shrink-0",
+                "flex max-w-[calc(100vw-1rem)] shrink-0 transition-[width,transform] duration-250 ease-in-out motion-reduce:transition-none",
                 isMobile
-                  ? "fixed inset-y-0 left-0 z-[60] flex-col bg-neutral-100 transition-transform duration-300 dark:bg-neutral-950"
+                  ? "fixed inset-y-0 left-0 z-[60] flex-col bg-neutral-100 dark:bg-neutral-950"
                   : "h-full",
                 isMobile && !isMobileOpen && "-translate-x-full",
               )}
+              style={{ width: secondaryVisible ? 324 : 68 }}
             >
               {isMobile && (
                 <div className="flex shrink-0 justify-end px-3 pt-2">
@@ -243,7 +273,25 @@ export const SideMenuLayout = ({
               <div className="relative flex h-full min-h-0 min-w-0 flex-1">
                 {isMobile && joinedSurface}
                 <SideMenu {...primaryProps} />
-                <SideMenu {...secondaryProps} />
+                <div
+                  ref={secondaryRef}
+                  data-joined-secondary
+                  data-open={secondaryVisible}
+                  inert={!secondaryVisible || undefined}
+                  aria-hidden={!secondaryVisible || undefined}
+                  className="h-full min-w-0 shrink-0 overflow-hidden transition-[width] duration-250 ease-in-out motion-reduce:transition-none"
+                  style={{ width: secondaryVisible ? 256 : 0 }}
+                  onKeyDown={(event) => {
+                    if (!isMobile && event.key === "Escape" && !event.defaultPrevented) {
+                      event.preventDefault();
+                      requestSecondaryOpen(false);
+                    }
+                  }}
+                >
+                  <div className="flex h-full w-64">
+                    {displayedSecondaryProps && <SideMenu {...secondaryProps} />}
+                  </div>
+                </div>
               </div>
             </div>
           </>
@@ -258,6 +306,8 @@ export const SideMenuLayout = ({
         <div className={classNames(
           "relative flex min-w-0 flex-1 flex-col",
           isJoined && !isMobile ? "my-2 h-[calc(100%-1rem)]" : "h-full",
+          isJoined && !isMobile && "overflow-hidden transition-[border-radius] duration-250 motion-reduce:transition-none",
+          isJoined && !isMobile && !secondaryVisible && "rounded-l-2xl",
         )}>
           {/* Mobile menu toggle — same breakpoint as the menu's offcanvas mode */}
           {isMobile && (
@@ -289,7 +339,7 @@ export const SideMenuLayout = ({
           )}
 
           {/* Scrollable Body */}
-          <main className={classNames("flex-1 overflow-y-auto", bodyClassName)}>
+          <main ref={mainRef} tabIndex={-1} className={classNames("flex-1 overflow-y-auto", bodyClassName)}>
             {children}
           </main>
         </div>

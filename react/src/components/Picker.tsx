@@ -14,6 +14,7 @@ import { useKitT } from "../i18n";
 import Pill from "./Pill";
 import Panel from "./Panel";
 import Spinner from "./Spinner";
+import CustomIcon from "./CustomIcon";
 import {
   type ControlSize,
   DEFAULT_GLOW_INTENSITY,
@@ -165,6 +166,13 @@ export interface PickerFilter {
 }
 
 export interface PickerProps {
+  /** Trigger corner radius on the shared field scale, matching Select. @default "auto" */
+  corner?: SurfaceCorner;
+  /** Fixed trigger icon (registry name or element). Overrides the selected item's
+   * icon in the trigger; item icons in the dropdown remain independent. */
+  leadingIcon?: string | React.ReactElement;
+  /** Hide the decorative caret without changing trigger behavior. @default false */
+  hideCaret?: boolean;
   items: PickerItem[];
   loading?: boolean;
   /** Single-select: the currently selected item id */
@@ -251,6 +259,9 @@ export interface PickerProps {
 // ── Picker ────────────────────────────────────────────────────────────────────
 
 const Picker: React.FC<PickerProps> = ({
+  corner = "auto",
+  leadingIcon,
+  hideCaret = false,
   items,
   loading = false,
   selectedId,
@@ -312,7 +323,7 @@ const Picker: React.FC<PickerProps> = ({
   // stacked beside any of them lines up and focuses identically.
   const sizeToken = getFieldSizeTokens(size);
   const fieldTokens = getFieldToneTokens(effectiveTone);
-  const variantTokens = getInputVariantTokens(variant, effectiveTone, "auto", {
+  const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
     explicitTone: tone ?? color,
   });
   const hasStatus = validationStatus !== "none";
@@ -757,6 +768,7 @@ const Picker: React.FC<PickerProps> = ({
                     ref={listRef}
                     id={listboxId}
                     role="listbox"
+                    className="m-0 w-full list-none p-0"
                     aria-label={t("kit.picker.options")}
                     aria-multiselectable={multi || undefined}
                   >
@@ -777,7 +789,7 @@ const Picker: React.FC<PickerProps> = ({
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => handleSelect(item)}
                           className={classNames(
-                            "flex cursor-pointer select-none items-center gap-3 px-4 py-2.5 transition-colors",
+                            "m-0 flex w-full cursor-pointer select-none items-center gap-3 border-0 px-4 py-2.5 outline-none transition-colors",
                             isSelected
                               ? colorTokens.optionSelectedBg
                               : "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
@@ -787,13 +799,13 @@ const Picker: React.FC<PickerProps> = ({
                             // fill here read as "selected" while the
                             // checkbox said otherwise. Same wash as hover
                             // when unselected; a selected row keeps its
-                            // tone wash and gains an inset ring so the
-                            // position stays visible without a competing
-                            // background.
+                            // tone wash and underlines its title. No row
+                            // border/ring: the enclosing Panel clips the last
+                            // background to the popup's bottom corner radius.
                             index === activeIndex &&
                               cursorByKeyboard &&
                               (isSelected
-                                ? "ring-1 ring-inset ring-neutral-400/40 dark:ring-white/25"
+                                ? "[&_p:first-child]:underline [&_p:first-child]:underline-offset-2"
                                 : "bg-neutral-50 dark:bg-neutral-800/60"),
                           )}
                         >
@@ -1045,6 +1057,15 @@ const Picker: React.FC<PickerProps> = ({
         className,
       )}
     >
+      {!loading && (leadingIcon ?? (!multi ? selectedItem?.icon : undefined)) && (
+        <span aria-hidden="true" className={classNames("shrink-0 transition-colors", variantTokens.icon, fieldTokens.icon)}>
+          {leadingIcon != null
+            ? typeof leadingIcon === "string"
+              ? <CustomIcon icon={leadingIcon} size={sizeToken.icon} />
+              : leadingIcon
+            : selectedItem?.icon}
+        </span>
+      )}
       {loading ? (
         // `flex-1` on the copy. Without it neither the spinner nor the text
         // grew, so the chevron sat immediately after "Loading…" instead of at
@@ -1071,17 +1092,6 @@ const Picker: React.FC<PickerProps> = ({
         multiTriggerContent
       ) : selectedItem ? (
         <>
-          {selectedItem.icon && (
-            <span
-              className={classNames(
-                "shrink-0 transition-colors",
-                variantTokens.icon,
-                fieldTokens.icon,
-              )}
-            >
-              {selectedItem.icon}
-            </span>
-          )}
           <div className="min-w-0 flex-1">
             <span
               className={classNames(
@@ -1131,7 +1141,9 @@ const Picker: React.FC<PickerProps> = ({
       )}
 
       {/* Chevron */}
-      <svg
+      {!hideCaret && <svg
+        data-picker-caret
+        aria-hidden="true"
         className={classNames(
           chevronSize,
           "shrink-0 transition-transform",
@@ -1145,7 +1157,7 @@ const Picker: React.FC<PickerProps> = ({
         strokeWidth={2}
       >
         <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
-      </svg>
+      </svg>}
     </button>
   );
 

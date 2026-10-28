@@ -78,6 +78,53 @@ function renderLayout(props: Partial<SideMenuLayoutProps> = {}) {
 }
 
 describe("SideMenuLayout", () => {
+  it("joined: keeps its rail and corners when secondary props disappear", () => {
+    const view = (secondary?: SideMenuProps) => <MemoryRouter><SideMenuLayout
+      sideMenuProps={MENU_PROPS} multiMenuMode="joined" secondarySideMenuProps={secondary}>
+      <p>App remains</p>
+    </SideMenuLayout></MemoryRouter>;
+    const { rerender } = render(view(SECONDARY_PROPS));
+    const surface = document.querySelector("[data-joined-surface]");
+    const secondary = document.querySelector("[data-joined-secondary]");
+    expect(secondary).toHaveStyle({ width: "256px" });
+    screen.getByText("Second").closest("a")!.focus();
+    rerender(view());
+    expect(document.querySelector("[data-joined-surface]")).toBe(surface);
+    expect(document.querySelector('[data-joined-role="rail"] aside')).toHaveClass("w-[68px]");
+    expect(secondary).toHaveStyle({ width: "0px" });
+    expect(secondary).toHaveAttribute("inert");
+    expect(screen.getByRole("main")).toHaveFocus();
+    expect(screen.getByRole("main").parentElement).toHaveClass("rounded-l-2xl");
+    rerender(view(SECONDARY_PROPS));
+    expect(secondary).toHaveStyle({ width: "256px" });
+    expect(secondary).not.toHaveAttribute("inert");
+  });
+
+  it("joined: requests controlled closure with Escape without changing the controlled width", () => {
+    const onSecondaryOpenChange = vi.fn();
+    renderLayout({ multiMenuMode: "joined", secondarySideMenuProps: SECONDARY_PROPS, secondaryOpen: true, onSecondaryOpenChange });
+    fireEvent.keyDown(screen.getByText("Second"), { key: "Escape" });
+    expect(onSecondaryOpenChange).toHaveBeenCalledWith(false);
+    expect(document.querySelector("[data-joined-secondary]")).toHaveStyle({ width: "256px" });
+  });
+
+  it("joined: supports initial closure and uncontrolled Escape closure", () => {
+    const { unmount } = renderLayout({ multiMenuMode: "joined", secondarySideMenuProps: SECONDARY_PROPS, defaultSecondaryOpen: false });
+    expect(document.querySelector("[data-joined-menu]")).toHaveStyle({ width: "68px" });
+    unmount();
+    renderLayout({ multiMenuMode: "joined", secondarySideMenuProps: SECONDARY_PROPS });
+    fireEvent.keyDown(screen.getByText("Second"), { key: "Escape" });
+    expect(document.querySelector("[data-joined-secondary]")).toHaveAttribute("inert");
+  });
+
+  it("joined mobile: primary navigation remains available without secondary content", () => {
+    setViewportMobile(true);
+    renderLayout({ multiMenuMode: "joined" });
+    expect(document.querySelector("[data-joined-menu]")).toHaveAttribute("inert");
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    expect(document.querySelector("[data-joined-menu]")).not.toHaveAttribute("inert");
+    expect(document.querySelector("[data-joined-secondary]")).toHaveAttribute("inert");
+  });
   it("renders the header, body and the primary menu", () => {
     renderLayout({ header: <header>Header bar</header> });
     expect(screen.getByText("Header bar")).toBeInTheDocument();

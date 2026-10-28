@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import CustomIcon from "./CustomIcon";
+import { SideMenuButtonContext, sideMenuTileClasses, type SideMenuFooterContext } from "./SideMenuIconButton";
 import { getNoiseBackgroundSize } from "../../../common/theme/noise";
 import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
@@ -277,6 +278,8 @@ export interface SideMenuDetailItem {
 }
 
 export interface SideMenuProps {
+  /** Pinned custom controls, inheriting this menu's tone and collapsed state. */
+  footer?: React.ReactNode | ((context: SideMenuFooterContext) => React.ReactNode);
   color?: TrueColor;
   title?: string;
   /** Icon element shown in the logo area (always visible, collapsed or expanded) */
@@ -970,6 +973,7 @@ export const SideMenu = ({
   responsive = true,
   topItem,
   footerItem,
+  footer,
   ctas,
   footerDetails,
   footerDetailsTone,
@@ -1471,7 +1475,7 @@ export const SideMenu = ({
             title={contentCollapsed ? link.label : undefined}
             className={`flex min-w-0 flex-1 items-center gap-3 py-2.5 text-sm font-medium ${
               contentCollapsed
-                ? `w-full justify-center rounded-lg transition-all duration-150 ${indentClass(0)} ${rowStateClasses}`
+                ? sideMenuTileClasses(selfActive, link.color || color, surface.idleCopy)
                 : ""
             }`}
           >
@@ -1629,7 +1633,7 @@ export const SideMenu = ({
   };
 
   const renderContent = (contentCollapsed: boolean, isMobileView: boolean) => (
-    <>
+    <SideMenuButtonContext.Provider value={{ collapsed: contentCollapsed, color, idleCopy: surface.idleCopy }}>
       {/* Logo Header */}
       {logoSection && logoSection(contentCollapsed)}
 
@@ -1816,6 +1820,11 @@ export const SideMenu = ({
       )}
 
       {/* Footer item (pinned above the collapse control) */}
+      {footer != null && (
+        <div className="flex shrink-0 flex-col gap-1 px-3 pb-1" data-sidemenu-footer>
+          {typeof footer === "function" ? footer({ collapsed: contentCollapsed, side }) : footer}
+        </div>
+      )}
       {footerItem && (
         <div className="shrink-0 px-3 pb-1">
           <SideMenuDropdownRow
@@ -1878,7 +1887,7 @@ export const SideMenu = ({
           </button>
         </div>
       )}
-    </>
+    </SideMenuButtonContext.Provider>
   );
 
   return (

@@ -59,6 +59,7 @@ export const SelectPlayground: React.FC = () => {
   const [leadingIcon, setLeadingIcon] = useState(false);
   const [placeholder, setPlaceholder] = useState(true);
   const [hideCaret, setHideCaret] = useState(false);
+  const [closeOnSelect, setCloseOnSelect] = useState(false);
   const [multiple, setMultiple] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const [inPanel, setInPanel] = useState(false);
@@ -99,6 +100,7 @@ export const SelectPlayground: React.FC = () => {
       multiple={multiple}
       leadingIcon={leadingIcon ? "Globe" : undefined}
       hideCaret={hideCaret}
+      closeOnSelect={closeOnSelect}
       placeholder={placeholder ? "Choose a region" : undefined}
       value={multiple ? multiValue : value}
       onChange={handleChange}
@@ -178,6 +180,11 @@ export const SelectPlayground: React.FC = () => {
                       label="Multiple"
                       checked={multiple}
                       onChange={setMultiple}
+                    />
+                    <ToggleRow
+                      label="Close on select"
+                      checked={closeOnSelect}
+                      onChange={setCloseOnSelect}
                     />
                     <ToggleRow
                       label="Disabled"

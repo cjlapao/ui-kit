@@ -6,6 +6,7 @@ import type {
   InputVariant,
   TrueColor,
   ValidationStatus,
+  SurfaceCorner,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -20,6 +21,7 @@ import {
   glowIntensityOptions,
   inputVariantOptions,
   validationStatusOptions,
+  panelCornerOptions,
 } from "../../shared/options";
 
 const ITEMS = [
@@ -48,6 +50,8 @@ export const PickerPlayground: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tone, setTone] = useState<TrueColor>("blue");
   const [size, setSize] = useState<ControlSize>("md");
+  const [corner, setCorner] = useState<SurfaceCorner>("auto");
+  const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [validationStatus, setValidationStatus] =
     useState<ValidationStatus>("none");
@@ -55,6 +59,8 @@ export const PickerPlayground: React.FC = () => {
   const [multi, setMulti] = useState(false);
   const [loading, setLoading] = useState(false);
   const [disabled, setDisabled] = useState(false);
+  const [leadingIcon, setLeadingIcon] = useState(false);
+  const [hideCaret, setHideCaret] = useState(false);
   const [withFilter, setWithFilter] = useState(false);
   const [compare, setCompare] = useState(true);
   const [inPanel, setInPanel] = useState(false);
@@ -66,11 +72,15 @@ export const PickerPlayground: React.FC = () => {
       items={ITEMS}
       tone={tone}
       size={size}
+      corner={corner}
+      panelCorner={panelCorner}
       variant={variant}
       validationStatus={validationStatus}
       glowIntensity={glowIntensity}
       loading={loading}
       disabled={disabled}
+      leadingIcon={leadingIcon ? "Folder" : undefined}
+      hideCaret={hideCaret}
       multi={multi}
       selectedId={selectedId}
       onSelect={(item) => {
@@ -134,6 +144,10 @@ export const PickerPlayground: React.FC = () => {
                         setValidationStatus(v as ValidationStatus)
                       }
                     />
+                    <ChoiceControl label="Corner" options={panelCornerOptions} value={corner}
+                      onChange={value => setCorner(value as SurfaceCorner)} />
+                    <ChoiceControl label="Dropdown corner" options={panelCornerOptions} value={panelCorner}
+                      onChange={value => setPanelCorner(value as SurfaceCorner)} />
                   </>
                 ),
               },
@@ -147,6 +161,8 @@ export const PickerPlayground: React.FC = () => {
                       checked={multi}
                       onChange={setMulti}
                     />
+                    <ToggleRow label="Leading icon" checked={leadingIcon} onChange={setLeadingIcon} />
+                    <ToggleRow label="Hide caret" checked={hideCaret} onChange={setHideCaret} />
                     <ToggleRow
                       label="Default filter"
                       checked={withFilter}

@@ -41,6 +41,8 @@ import Workspaces from "./examples/Workspaces";
 import workspacesCode from "./examples/Workspaces.tsx?raw";
 import Chat from "./examples/Chat";
 import chatCode from "./examples/Chat.tsx?raw";
+import FooterTriggers from "./examples/FooterTriggers";
+import footerTriggersCode from "./examples/FooterTriggers.tsx?raw";
 
 export const SideMenuPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -60,6 +62,11 @@ export const SideMenuPage: React.FC = () => (
         filename="Basic.tsx"
       >
         <Basic />
+      </ExampleCard>
+      <ExampleCard title="Custom footer triggers"
+        description="Use SideMenuIconButton as a native button trigger for Menu or Popover. The footer slot receives collapsed and side; buttons inherit menu styling and show labels when expanded. Custom avatar content, badges, active, disabled and loading states are supported."
+        code={footerTriggersCode} filename="FooterTriggers.tsx">
+        <FooterTriggers />
       </ExampleCard>
       <ExampleCard
         title="Surface variants"
@@ -151,7 +158,7 @@ export const SideMenuPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Joined navigation rail and panel"
-        description='multiMenuMode="joined" pairs a permanent icon rail with an expanded contextual menu. Shared edges and inset corners unite the surfaces; on mobile, both levels open in one drawer. Select a rail icon to switch the adjoining menu.'
+        description='multiMenuMode="joined" pairs a permanent icon rail with contextual navigation. Hide navigation or select Home to animate the secondary menu to zero; the app expands while the inset corners remain. On mobile, available navigation opens in one drawer.'
         code={joinedLayoutCode}
         filename="JoinedLayout.tsx"
       >
@@ -219,6 +226,8 @@ export const SideMenuPage: React.FC = () => (
     <PropsTable
       props={[
         { name: "layout: secondarySideMenuProps / multiMenuMode", type: 'SideMenuProps / "hover" | "joined"', default: '— / "hover"', description: "Adds an adjacent secondary menu. Joined mode pins the primary compact and the secondary expanded, shares surface geometry, and opens both levels in one mobile drawer. The primary variant sets the pair's surface family." },
+        { name: "layout: secondaryOpen / defaultSecondaryOpen", type: "boolean", default: "— / true", description: "Joined secondary visibility, controlled or initially uncontrolled. Missing secondarySideMenuProps closes the secondary automatically while preserving the rail and rounded body surface. Width transitions respect reduced motion." },
+        { name: "layout: onSecondaryOpenChange", type: "(open: boolean) => void", description: "Visibility change request. Escape inside the desktop secondary menu requests closure; controlled consumers update secondaryOpen. Focus moves into the app body if its focused secondary content is hidden." },
         { name: "activeItemSlug / onItemSelect", type: "string / (item, event) => void", description: "Optional local selection. activeItemSlug overrides route-based highlighting; onItemSelect runs before navigation. Prevent the event's default action to switch contextual menu content without navigating." },
         { name: "joinedRole", type: '"rail" | "panel"', description: "Advanced composition prop set by SideMenuLayout in joined mode. Pins the desktop width and removes hover expansion and collapse controls." },
         { name: "items", type: "SideMenuItem[]", description: "A flat list of links, group headers and dividers. A link joins a group with groupName; a group with no visible link hides itself." },
@@ -242,6 +251,7 @@ export const SideMenuPage: React.FC = () => (
         { name: "mobileOpen / onCloseMobile / responsive", type: "boolean / () => void / boolean", default: "— / — / true", description: "Below 1024px the panel is an offcanvas drawer with a backdrop; Esc closes it." },
         { name: "search / searchValue / onSearchChange / searchPlaceholder", type: "boolean / string / (v) => void / string", description: "An item search over labels and descriptions; controlled or not." },
         { name: "topItem / footerItem", type: "SideMenuDropdownItem", description: "Rows above the navigation and above the collapse control, each with its own dropdown menu." },
+        { name: "footer", type: "ReactNode | ({ collapsed, side }) => ReactNode", description: "Pinned custom controls above footerItem. SideMenuIconButton inherits tone, surface copy and collapsed state, and forwards its ref and native button attributes for overlay triggers." },
         { name: "ctas / footerDetails / footerDetailsTone", type: "SideMenuCta[] / SideMenuDetailItem[] / TrueColor", description: "Pinned call-to-action cards and the status detail footer." },
         { name: "loading / loaderType / skeletonLines", type: "boolean / SideMenuLoaderType / number", default: 'false / "skeleton" / 4', description: "The whole menu's loading state — a skeleton shaped like the rows, or the shared Loader over them." },
         { name: "noiseScale", type: "number", description: "Positive grain scale based on a repeating 200px tile: 0.25 very fine, 0.5 fine, 2 coarse. Omit to preserve automatic sizing. Requires noise." },

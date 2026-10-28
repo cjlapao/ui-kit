@@ -14,6 +14,8 @@ import Variants from "./examples/Variants";
 import variantsCode from "./examples/Variants.tsx?raw";
 import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
+import Workspace from "./examples/Workspace";
+import workspaceCode from "./examples/Workspace.tsx?raw";
 
 export const PickerPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -34,6 +36,11 @@ export const PickerPage: React.FC = () => (
       >
         <Variants />
       </ExampleCard>
+      <ExampleCard title="Workspace picker and trigger icons"
+        description="A fixed leadingIcon is shown before and after selection. Item icons, paths and branch/status tags populate the searchable rows. hideCaret removes only the arrow, keeping the full button and keyboard behavior."
+        code={workspaceCode} filename="Workspace.tsx">
+        <Workspace />
+      </ExampleCard>
       <ExampleCard
         title="Loading, disabled and error"
         description="All three come from the shared field system, so a Picker and an Input agree on them. The loading row's chevron now sits at the trailing edge — it used to sit against the word Loading."
@@ -53,6 +60,10 @@ export const PickerPage: React.FC = () => (
     </section>
     <PropsTable
       props={[
+        { name: "corner", type: "SurfaceCorner", default: '"auto"', description: "Trigger radius on the shared scale, matching Select. Auto uses the theme field corner; underline stays square." },
+        { name: "panelCorner", type: "SurfaceCorner", default: '"auto"', description: "Independent dropdown radius on the shared Panel corner scale. The last row clips to these corners without outer padding." },
+        { name: "leadingIcon", type: "string | ReactElement", description: "Fixed trigger icon, by registry name or custom element. Overrides the selected item's trigger icon and also appears on placeholders and in multi-select mode. Dropdown item icons remain independent." },
+        { name: "hideCaret", type: "boolean", default: "false", description: "Removes the decorative caret and its space. The trigger remains a keyboard-accessible button with aria-expanded and aria-haspopup." },
         {
           name: "items",
           type: "PickerItem[]",

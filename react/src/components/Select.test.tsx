@@ -20,6 +20,24 @@ const options = (
 );
 
 describe("Select", () => {
+  it("optionally dismisses selection by blurring after the consumer callback", () => {
+    const onChange = vi.fn();
+    render(<Select aria-label="Dismiss" closeOnSelect onChange={onChange}>{options}</Select>);
+    const select = screen.getByLabelText("Dismiss");
+    select.focus();
+    fireEvent.change(select, { target: { value: "b" } });
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(select).not.toHaveFocus();
+    expect(select).not.toHaveAttribute("closeOnSelect");
+  });
+
+  it.each([false, true])("preserves focus for %s multiple when dismissal is inactive", (multiple) => {
+    render(<Select aria-label="Preserve" multiple={multiple} closeOnSelect={multiple}>{options}</Select>);
+    const select = screen.getByLabelText("Preserve");
+    select.focus();
+    fireEvent.change(select, { target: { value: "b" } });
+    expect(select).toHaveFocus();
+  });
   describe("variant tokens", () => {
     it.each(INPUT_VARIANTS)("applies the %s surface and copy", (variant) => {
       const { container } = render(
@@ -274,6 +292,14 @@ describe("Select", () => {
   });
 
   describe("behaviour", () => {
+    it.each([false, true])("does not reopen the picker after an option click (closeOnSelect=%s)", (closeOnSelect) => {
+      render(<Select aria-label="Option click" closeOnSelect={closeOnSelect}>{options}</Select>);
+      const select = screen.getByLabelText("Option click") as HTMLSelectElement & { showPicker?: () => void };
+      const showPicker = vi.fn();
+      select.showPicker = showPicker;
+      fireEvent.click(screen.getByRole("option", { name: "B" }));
+      expect(showPicker).not.toHaveBeenCalled();
+    });
     it("renders a placeholder option that cannot be chosen", () => {
       render(
         <Select placeholder="Pick one" aria-label="s">

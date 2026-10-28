@@ -123,6 +123,10 @@ export interface SelectProps extends Omit<
   leadingIcon?: string | React.ReactElement;
   /** Hides the drop-down caret. Always hidden for `multiple`. */
   hideCaret?: boolean;
+  /** Blur after a selection change to dismiss the native picker. Ignored for
+   * multiple. False preserves browser behavior; it does not force the picker open.
+   * @default false */
+  closeOnSelect?: boolean;
   /**
    * Classes for the field box. The surface moved from the `<select>` to its
    * wrapper (matching `Input`), so this is the element that carries the border,
@@ -151,6 +155,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     placeholder,
     leadingIcon,
     hideCaret = false,
+    closeOnSelect = false,
     disabled,
     children,
     unstyled = false,
@@ -158,6 +163,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     style,
     onFocus,
     onBlur,
+    onChange,
     ...rest
   },
   ref: ForwardedRef<HTMLSelectElement>,
@@ -220,7 +226,9 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
    */
   const handleWrapperClick = (event: React.MouseEvent<HTMLSpanElement>) => {
     const select = innerRef.current;
-    if (!select || disabled || multiple || event.target === select) return;
+    // Styled base-select options dispatch clicks through the select. Treating
+    // those as padding clicks immediately reopens the picker after selection.
+    if (!select || disabled || multiple || select.contains(event.target as Node)) return;
     const showPicker = (
       select as HTMLSelectElement & { showPicker?: () => void }
     ).showPicker;
@@ -287,6 +295,12 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
       )}
       defaultValue={needsPlaceholderDefault ? "" : undefined}
       {...rest}
+      onChange={(event) => {
+        // Capture before the consumer callback: it may synchronously unmount us.
+        const select = event.currentTarget;
+        onChange?.(event);
+        if (closeOnSelect && !multiple) select.blur();
+      }}
       // After the spread, so a caller cannot leave a select that reports
       // itself as valid while showing the error surface.
       aria-invalid={validationStatus === "error" ? true : rest["aria-invalid"]}

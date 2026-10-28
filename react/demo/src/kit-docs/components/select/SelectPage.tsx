@@ -64,6 +64,12 @@ export const SelectPage: React.FC = () => (
     <PropsTable
       props={[
         {
+          name: "closeOnSelect",
+          type: "boolean",
+          default: "false",
+          description: "Explicitly blurs the Select after a selection change to dismiss the native picker. Calls onChange first. Ignored for multiple. False retains browser behavior, which normally closes single-select pickers automatically.",
+        },
+        {
           name: "(native attributes)",
           type: "SelectHTMLAttributes",
           description:

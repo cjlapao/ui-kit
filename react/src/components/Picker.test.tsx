@@ -12,6 +12,25 @@ const ITEMS = [
 ];
 
 describe("Picker", () => {
+  it("shows a fixed trigger icon before selection and overrides only the selected trigger icon", () => {
+    const items = [{ id: "a", title: "Alpha", icon: <span data-testid="row-icon">A</span> }];
+    const { rerender } = render(<Picker items={items} leadingIcon={<span data-testid="fixed-icon">F</span>} />);
+    expect(within(screen.getByRole("button")).getByTestId("fixed-icon")).toBeInTheDocument();
+    rerender(<Picker items={items} selectedId="a" leadingIcon={<span data-testid="fixed-icon">F</span>} />);
+    expect(within(screen.getByRole("button")).queryByTestId("row-icon")).toBeNull();
+    fireEvent.click(screen.getByRole("button"));
+    expect(within(screen.getByRole("option")).getByTestId("row-icon")).toBeInTheDocument();
+  });
+
+  it("hides the caret while keeping the trigger operational", () => {
+    const { container } = render(<Picker items={ITEMS} leadingIcon="Folder" hideCaret />);
+    const button = screen.getByRole("button");
+    expect(container.querySelector("[data-picker-caret]")).toBeNull();
+    expect(button.querySelector("svg")).not.toBeNull();
+    fireEvent.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+  });
   it("paints every tone in its own tone, with no drift", () => {
     // The 21-entry literal had `red` spelling every class with *rose* and
     // `green` with *emerald*, so those two rendered as their neighbours.
@@ -647,7 +666,8 @@ describe("Picker — the dropdown surface follows the field", () => {
   it("takes an explicit panelVariant", () => {
     render(<Picker items={ITEMS} variant="glass" panelVariant="outlined" />);
     fireEvent.click(screen.getByRole("button"));
-    expect(popupCard()).toContain("bg-white/90");
+    expect(popupCard()).toContain("[--ui-surface-color:var(--color-white)]");
+    expect(popupCard()).toContain("ui-surface-transparency-none");
     expect(popupCard()).not.toContain("backdrop-blur");
   });
 });

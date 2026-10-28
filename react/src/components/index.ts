@@ -645,6 +645,7 @@ export {
   type SideMenuGuardAnyModule,
   type SideMenuGuardCustom,
 } from "./SideMenu";
+export { SideMenuIconButton, type SideMenuIconButtonProps, type SideMenuFooterContext } from "./SideMenuIconButton";
 export {
   default as SideMenuLayout,
   type SideMenuLayoutProps,
