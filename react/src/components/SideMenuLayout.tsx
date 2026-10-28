@@ -273,6 +273,9 @@ export const SideMenuLayout = ({
               <div className="relative flex h-full min-h-0 min-w-0 flex-1">
                 {isMobile && joinedSurface}
                 <SideMenu {...primaryProps} />
+                {/* Escape bubbles from the native controls inside; this layout
+                    wrapper is not itself an interactive element or tab stop. */}
+                {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- delegates Escape from descendant controls */}
                 <div
                   ref={secondaryRef}
                   data-joined-secondary
