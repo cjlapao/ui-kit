@@ -91,6 +91,7 @@ export const SidePanelPage: React.FC = () => (
 
     <PropsTable
       props={[
+        { name: "flush", type: "boolean", default: "true", description: "Square the attached edge, expanded or collapsed, for docked and overlay panels. Left/right/top/bottom attachment mirrors the rounded content-facing corners. Set false for all four rounded corners on a free-standing panel." },
         {
           name: "isOpen",
           type: "boolean",

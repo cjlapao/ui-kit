@@ -718,6 +718,14 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/carousel/CarouselPage")),
   },
   {
+    slug: "stack-carousel",
+    name: "Stack Carousel",
+    description: "A circular card deck with wheel, swipe and keyboard navigation, up to three peeking layers and automatic height.",
+    icon: "ViewRows",
+    category: "Data",
+    Page: lazy(() => import("./components/stack-carousel/StackCarouselPage")),
+  },
+  {
     slug: "stat-card",
     name: "Stat Card",
     description:

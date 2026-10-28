@@ -108,6 +108,7 @@ const NestedSubSteps: React.FC<NestedSubStepsProps> = ({
 );
 
 export interface WorkflowTimelineProps {
+  disableFutureSteps?: boolean;
   controls?: React.ReactNode;
   hasCollapseToggle?: boolean;
   renderStepPopover?: (step: WorkflowStep) => React.ReactNode;
@@ -133,6 +134,7 @@ export interface WorkflowTimelineProps {
 
 /** Progress header, the vertical timeline, and the legend footer. */
 export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
+  disableFutureSteps = false,
   controls,
   hasCollapseToggle = false,
   renderStepPopover,
@@ -268,6 +270,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
           <ol className="m-0 list-none p-0">
             {steps.map((step, index) => {
               const status = normalizeStatus(step.status);
+              const disabled = Boolean(step.disabled || (disableFutureSteps && status === "not_started"));
               const tokens = getStatusTokens(status, palette);
               const isActive = step.id === activeStepId;
               const isLast = index === steps.length - 1;
@@ -333,20 +336,22 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                 </>
               );
 
-              const popupContent = collapsed
+              const popupContent = collapsed && !disabled
                 ? renderStepPopover?.(step)
                 : undefined;
               const row = onStepSelect ? (
                 <button
                   type="button"
-                  onClick={() => onStepSelect(step.id)}
+                  disabled={disabled}
+                  onClick={() => { if (!disabled) onStepSelect(step.id); }}
                   className={classNames(
                     "relative flex text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
                     collapsed ? "focus-visible:ring-inset" : "focus-visible:ring-offset-2",
                     collapsed
                       ? "h-9 w-9 items-center justify-center rounded-xl"
                       : "w-full items-start gap-3 rounded-sm",
-                    collapsed && "transition-colors hover:bg-neutral-100 dark:hover:bg-white/5",
+                    collapsed && !disabled && "transition-colors hover:bg-neutral-100 dark:hover:bg-white/5",
+                    disabled && "pointer-events-none cursor-default",
                   )}
                 >
                   {rowContent}
@@ -354,15 +359,16 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
               ) : (
                 <div
                   // Keyboard focus reveals the tooltip on a read-only compact node.
-                  // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-                  tabIndex={collapsed ? 0 : undefined}
+                  tabIndex={collapsed && !disabled ? 0 : undefined}
+                  aria-disabled={disabled || undefined}
                   className={classNames(
                     "relative flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 dark:focus-visible:ring-neutral-500",
                     collapsed && "focus-visible:ring-inset",
                     collapsed
                       ? "h-9 w-9 items-center justify-center rounded-xl"
                       : "w-full items-start gap-3 rounded-sm",
-                    collapsed && "transition-colors hover:bg-neutral-100 dark:hover:bg-white/5",
+                    collapsed && !disabled && "transition-colors hover:bg-neutral-100 dark:hover:bg-white/5",
+                    disabled && "pointer-events-none cursor-default",
                   )}
                 >
                   {rowContent}
@@ -372,6 +378,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
               return (
                 <li
                   key={step.id}
+                  data-disabled={disabled || undefined}
                   className={classNames(
                     "relative",
                     !isLast && (collapsed ? "pb-2" : "pb-5"),
@@ -407,7 +414,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                   <div
                     className={collapsed ? "flex justify-center" : undefined}
                   >
-                    {popupContent != null && popupContent !== false ? (
+                    {disabled ? row : popupContent != null && popupContent !== false ? (
                       <Popover
                         {...stepPopoverProps}
                         placement={stepPopoverProps?.placement ?? "right"}
@@ -435,7 +442,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                       button inside a button and the label stays the row's
                       click target. `ml-8` matches NESTED_INDENT, aligning
                       them to the label's edge. */}
-                  {!collapsed && (
+                  {!collapsed && !disabled && (
                     <WorkflowQuickActions
                       stepId={step.id}
                       actions={step.actions ?? []}
@@ -451,7 +458,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                       subSteps={nested}
                       palette={palette}
                       surfaces={surfaces}
-                      onSubStepSelect={onSubStepSelect}
+                      onSubStepSelect={disabled ? undefined : onSubStepSelect}
                     />
                   )}
                 </li>

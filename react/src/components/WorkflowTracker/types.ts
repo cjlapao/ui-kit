@@ -60,6 +60,8 @@ export interface WorkflowAction {
 }
 
 export interface WorkflowStep {
+  /** Prevent selection, hover previews, and rail actions for this stage. */
+  disabled?: boolean;
   id: string;
   label: React.ReactNode;
   status: WorkflowStatus;
@@ -141,6 +143,9 @@ export interface WorkflowTrackerLabels {
 
 export interface WorkflowTrackerProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+  /** Make not_started stages non-interactive. Running and previously started
+   * stages remain selectable unless individually disabled. @default false */
+  disableFutureSteps?: boolean;
   /** The whole view. Defaults to the bundled `sampleWorkflow` fixture. */
   data?: WorkflowData;
   /** Tone for `done` / `in_progress` / `running`. @default "blue" */

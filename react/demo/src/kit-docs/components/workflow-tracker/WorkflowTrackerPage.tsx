@@ -14,6 +14,9 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 import CollapsibleRail from "./examples/CollapsibleRail";
 import collapsibleRailCode from "./examples/CollapsibleRail.tsx?raw";
+import LockedStages from "./examples/LockedStages";
+import lockedStagesCode from "./examples/LockedStages.tsx?raw";
+import { PropsTable } from "../../shared/A11ySections";
 
 export const WorkflowTrackerPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -74,7 +77,13 @@ export const WorkflowTrackerPage: React.FC = () => (
       >
         <States />
       </ExampleCard>
+      <ExampleCard title="Lock future stages" description="disableFutureSteps prevents not_started stages from being selected or previewed. step.disabled explicitly locks any stage. Neither responds to hover or keyboard focus, in expanded or collapsed mode."
+        code={lockedStagesCode} filename="LockedStages.tsx"><LockedStages /></ExampleCard>
     </section>
+    <PropsTable props={[
+      { name: "disableFutureSteps", type: "boolean", default: "false", description: "WorkflowTracker and WorkflowTrackerRail: disable stages with normalized status not_started. Running, completed, skipped, blocked and attention stages remain available unless explicitly disabled." },
+      { name: "step.disabled", type: "boolean", default: "false", description: "Disable an individual stage regardless of status. Disables rail selection, hover/focus previews and rail quick actions. The status remains visible; controlled activeStepId is not changed." },
+    ]} />
   </div>
 );
 

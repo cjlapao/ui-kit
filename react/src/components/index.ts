@@ -317,6 +317,7 @@ export {
   type CarouselOrientation,
   type CarouselResponsiveOption,
 } from "./Carousel";
+export { StackCarousel, type StackCarouselProps } from "./StackCarousel";
 export {
   default as Toggle,
   TOGGLE_VARIANTS,

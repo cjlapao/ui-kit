@@ -195,6 +195,9 @@ export interface SidePanelProps {
    * fill the parent's height, `bottom` its width.
    */
   docked?: boolean;
+  /** Square the corners on the attached edge, including the collapsed rail.
+   * Set false for a free-standing, fully rounded panel. @default true */
+  flush?: boolean;
   /**
    * Called when the user clicks the close button (or the overlay scrim). A
    * `collapsible` panel shows no close button — it collapses and expands
@@ -337,6 +340,7 @@ export interface SidePanelProps {
 export const SidePanel: React.FC<SidePanelProps> = ({
   isOpen,
   docked = false,
+  flush = true,
   onClose,
   title,
   subtitle,
@@ -404,11 +408,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     insetValue === true ? "md" : insetValue === false || insetValue === "none" ? null : insetValue;
   const isInset = insetSize !== null;
   const insetGap = insetSize ? INSET_GAP[insetSize] : null;
-  // Docked, the panel is a card in its own region with nothing flush against
-  // it, so every corner rounds — the same shape as the WorkflowTracker rail.
-  const cornerClass = docked
-    ? getSurfaceCornerClass(corner)
-    : INNER_CORNER[corner === "auto" ? DEFAULT_SURFACE_CORNER : corner][side];
+  // The attached edge stays square throughout collapse, like the workflow
+  // rail and SideMenu. Free-standing panels can opt into all four corners.
+  const cornerClass = flush
+    ? INNER_CORNER[corner === "auto" ? DEFAULT_SURFACE_CORNER : corner][side]
+    : getSurfaceCornerClass(corner);
   // Inset outlines the three edges you can actually see; the docked one is
   // still flush against the container, so a rule there would double up with
   // whatever the container draws.

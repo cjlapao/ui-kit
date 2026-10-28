@@ -26,6 +26,8 @@ export interface WorkflowTrackerRailControlsContext {
 }
 
 export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
+  /** Disable not_started stage selection and hover previews. @default false */
+  disableFutureSteps?: boolean;
   /** Docked edge. With `collapsible` (and `flush`), only the corners facing
    * the content round. Also mirrors the toggle and step popovers. */
   side?: "left" | "right";
@@ -132,6 +134,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   cardClassName,
   cardScrollable,
   onStepSelect,
+  disableFutureSteps = false,
   onSubStepSelect,
   onStepAction,
   className,
@@ -245,6 +248,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
           loadingRows={loadingRows}
           emptyState={emptyState}
           onStepSelect={onStepSelect}
+          disableFutureSteps={disableFutureSteps}
           onSubStepSelect={onSubStepSelect}
           onStepAction={onStepAction}
         />

@@ -56,6 +56,7 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   showLegend = true,
   labels: labelOverrides,
   onStepSelect,
+  disableFutureSteps = false,
   onSubStepSelect,
   onStepAction,
   className,
@@ -184,6 +185,7 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
             fillHeight && "@4xl:min-h-0 @4xl:self-stretch",
           )}
           onStepSelect={onStepSelect}
+          disableFutureSteps={disableFutureSteps}
           onSubStepSelect={onSubStepSelect}
           onStepAction={onStepAction}
         />

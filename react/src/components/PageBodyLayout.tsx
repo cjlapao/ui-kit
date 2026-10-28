@@ -1,7 +1,7 @@
 import React from "react";
 import classNames from "classnames";
 import Panel, { type PanelProps } from "./Panel";
-import { SURFACE_VARIANTS, THIN_SCROLLBAR, type PlainSurfaceVariant, type SurfaceVariant } from "../theme/Theme";
+import { SURFACE_VARIANTS, THIN_SCROLLBAR, getSurfacePaddingClass, type SurfacePadding, type PlainSurfaceVariant, type SurfaceVariant } from "../theme/Theme";
 
 export type PageBodyRegionSide = "left" | "right" | "bottom";
 /** The shared surfaces plus `none` (draw nothing); `plain` is its kit-wide alias. */
@@ -27,8 +27,12 @@ export interface PageBodyLayoutProps extends Pick<PanelProps, "tone" | "corner" 
   /** Minimum centre dimensions; smaller containers scroll the layout. */
   minCenterWidth?: number;
   minCenterHeight?: number;
-  /** Gutter around and between zones, in px. @default 8 */
+  /** Gutter between zones, in px. @default 8 */
   gap?: number;
+  /** Outer body inset on the shared responsive padding scale. Ignored for none/plain. @default "xs" */
+  padding?: SurfacePadding;
+  /** Padding inside the center on the shared responsive scale. @default "none" */
+  centerPadding?: SurfacePadding;
 }
 
 /**
@@ -42,7 +46,7 @@ export interface PageBodyLayoutProps extends Pick<PanelProps, "tone" | "corner" 
  * container). Left/right zones stretch their content to the body's height; the
  * bottom zone stretches it to the centre's width.
  */
-export function PageBodyLayout({ header, left, right, bottom, children, className, minCenterWidth = 240, minCenterHeight = 120, gap = 8, variant = "outlined", ...surface }: PageBodyLayoutProps) {
+export function PageBodyLayout({ header, left, right, bottom, children, className, minCenterWidth = 240, minCenterHeight = 120, gap = 8, padding = "xs", centerPadding = "none", variant = "outlined", ...surface }: PageBodyLayoutProps) {
   const plain = variant === "none" || variant === "plain";
   const body = (
     <>
@@ -51,10 +55,10 @@ export function PageBodyLayout({ header, left, right, bottom, children, classNam
         {/* `fit-content` floors the row at its zones plus the centre's minimum,
             so a tight container scrolls instead of the centre sliding under a
             zone. Plain has no edge to inset from, so only the gaps remain. */}
-        <div className="flex h-full min-h-0" style={{ minWidth: "fit-content", gap, ...(plain ? { paddingTop: header ? gap : 0 } : { padding: gap }) }}>
+        <div className={classNames("flex h-full min-h-0", !plain && getSurfacePaddingClass(padding))} style={{ minWidth: "fit-content", gap, ...(plain ? { paddingTop: header ? gap : 0 } : {}) }}>
           {hasZone(left) && <div data-page-region="left" className="flex min-h-0 shrink-0">{left}</div>}
           <div className="flex min-h-0 flex-1 flex-col" style={{ gap, minWidth: minCenterWidth }}>
-            <div data-page-region="center" className={classNames("min-w-0 flex-1 overflow-auto", THIN_SCROLLBAR)} style={{ minHeight: minCenterHeight }}>{children}</div>
+            <div data-page-region="center" className={classNames("min-w-0 flex-1 overflow-auto", THIN_SCROLLBAR, getSurfacePaddingClass(centerPadding))} style={{ minHeight: minCenterHeight }}>{children}</div>
             {hasZone(bottom) && <div data-page-region="bottom" className="flex min-w-0 shrink-0 flex-col">{bottom}</div>}
           </div>
           {hasZone(right) && <div data-page-region="right" className="flex min-h-0 shrink-0">{right}</div>}

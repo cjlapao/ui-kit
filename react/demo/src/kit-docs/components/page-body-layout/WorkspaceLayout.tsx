@@ -45,6 +45,8 @@ export default function WorkspaceLayout() {
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [tone, setTone] = useState<TrueColor>("neutral");
+  const [bodyPadding, setBodyPadding] = useState<SurfacePadding>("xs");
+  const [centerPadding, setCenterPadding] = useState<SurfacePadding>("none");
   // The panels' float off the zone edges beside their docked one.
   const [inset, setInset] = useState<SurfacePadding>("none");
   const [showRail, setShowRail] = useState(true);
@@ -58,6 +60,8 @@ export default function WorkspaceLayout() {
 
   const controls = (
     <div className="grid gap-4 sm:grid-cols-5">
+      <SelectControl label="Body padding" options={panelPaddingOptions} value={bodyPadding} onChange={value => setBodyPadding(value as SurfacePadding)} />
+      <SelectControl label="Center padding" options={panelPaddingOptions} value={centerPadding} onChange={value => setCenterPadding(value as SurfacePadding)} />
       <SelectControl label="Layout surface" options={PAGE_BODY_LAYOUT_VARIANTS.map((v) => ({ label: v, value: v }))} value={layoutVariant} onChange={(v) => setLayoutVariant(v as PageBodyLayoutVariant)} />
       <SelectControl label="Controls surface" options={surfaceVariantOptions} value={variant} onChange={(v) => setVariant(v as SurfaceVariant)} />
       <SelectControl label="Corner" options={panelCornerOptions} value={corner} onChange={(v) => setCorner(v as SurfaceCorner)} />
@@ -79,7 +83,7 @@ export default function WorkspaceLayout() {
         <div aria-hidden="true" className="absolute inset-0 hidden bg-cover bg-center dark:block" style={{ backgroundImage: `url(${backdropDark})` }} />
       </>}
       <div className={showBackdrop ? "relative h-full p-4" : "relative h-full"}>
-      <PageBodyLayout variant={layoutVariant} corner={corner} tone={tone} minCenterWidth={220}
+      <PageBodyLayout variant={layoutVariant} corner={corner} tone={tone} minCenterWidth={220} padding={bodyPadding} centerPadding={centerPadding}
         header={<PageHeader variant={layoutVariant} tone={tone} corner="none"
           start={<strong>Loop workspace</strong>}
           end={<span className="text-xs text-emerald-600 dark:text-emerald-400">Running · {active}</span>} />}

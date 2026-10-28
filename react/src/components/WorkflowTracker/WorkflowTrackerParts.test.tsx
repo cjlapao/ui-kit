@@ -31,6 +31,39 @@ const gateData: WorkflowData = {
 };
 
 describe("WorkflowTrackerRail — standalone", () => {
+  it.each([false, true])("locks future and individually disabled stages when collapsed=%s", (collapsed) => {
+    const onStepSelect = vi.fn();
+    const renderStepPopover = vi.fn(() => "Preview");
+    const data: WorkflowData = { title: "Selection rules", steps: [
+      { id: "done", label: "Completed stage", status: "done" },
+      { id: "running", label: "Running stage", status: "running" },
+      { id: "future", label: "Future stage", status: "not_started" },
+      { id: "locked", label: "Disabled stage", status: "done", disabled: true },
+    ] };
+    const { container } = render(<WorkflowTrackerRail data={data} collapsible collapsed={collapsed}
+      disableFutureSteps onStepSelect={onStepSelect} renderStepPopover={renderStepPopover} />);
+    const future = screen.getByRole("button", { name: /Future stage/ });
+    const disabled = screen.getByRole("button", { name: /Disabled stage/ });
+    expect(future).toBeDisabled();
+    expect(disabled).toBeDisabled();
+    expect(future.className).not.toContain("hover:");
+    fireEvent.click(future);
+    fireEvent.click(disabled);
+    expect(onStepSelect).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /Running stage/ }));
+    expect(onStepSelect).toHaveBeenCalledWith("running");
+    fireEvent.click(screen.getByRole("button", { name: /Completed stage/ }));
+    expect(onStepSelect).toHaveBeenCalledWith("done");
+    expect(container.querySelectorAll("li[data-disabled]")).toHaveLength(2);
+    if (collapsed) expect(renderStepPopover.mock.calls).toHaveLength(2);
+  });
+
+  it("keeps future-stage selection enabled by default", () => {
+    const onStepSelect = vi.fn();
+    render(<WorkflowTrackerRail data={gateData} onStepSelect={onStepSelect} />);
+    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+    expect(onStepSelect).toHaveBeenCalledWith("publish");
+  });
   it("lets controls adapt to collapse without losing their own state", () => {
     function Controls({ collapsed }: { collapsed: boolean }) {
       const [count, setCount] = useState(0);

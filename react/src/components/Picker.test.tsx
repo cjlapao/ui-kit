@@ -12,6 +12,31 @@ const ITEMS = [
 ];
 
 describe("Picker", () => {
+  it("renders a custom body instead of standard copy, preserving tags and search", () => {
+    render(<Picker selectedId="custom" items={[
+      { id: "custom", textValue: "Searchable workspace", title: "Hidden title", subtitle: "Hidden subtitle", description: "Hidden description",
+        body: <strong>Custom workspace</strong>, tags: [{ label: "main" }] },
+      { id: "other", title: "Other" },
+    ]} />);
+    const trigger = screen.getByRole("button");
+    expect(within(trigger).getByText("Custom workspace")).toBeInTheDocument();
+    expect(within(trigger).getByText("main")).toBeInTheDocument();
+    expect(screen.queryByText("Hidden title")).toBeNull();
+    fireEvent.click(trigger);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "searchable" } });
+    const row = screen.getByRole("option", { name: "Searchable workspace" });
+    expect(within(row).getByText("Custom workspace")).toBeInTheDocument();
+    expect(within(row).getByText("main")).toBeInTheDocument();
+    expect(screen.queryByText("Hidden description")).toBeNull();
+    expect(screen.queryByText("Other")).toBeNull();
+  });
+
+  it("uses textValue for multi-select bodies and id when no text metadata exists", () => {
+    const { rerender } = render(<Picker multi selectedIds={["custom"]} items={[{ id: "custom", textValue: "Workspace label", body: <strong>Rich body</strong> }]} />);
+    expect(within(screen.getByRole("button")).getByText("Workspace label")).toBeInTheDocument();
+    rerender(<Picker multi selectedIds={["custom"]} items={[{ id: "custom", body: <strong>Rich body</strong> }]} />);
+    expect(within(screen.getByRole("button")).getByText("custom")).toBeInTheDocument();
+  });
   it("shows a fixed trigger icon before selection and overrides only the selected trigger icon", () => {
     const items = [{ id: "a", title: "Alpha", icon: <span data-testid="row-icon">A</span> }];
     const { rerender } = render(<Picker items={items} leadingIcon={<span data-testid="fixed-icon">F</span>} />);

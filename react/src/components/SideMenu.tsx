@@ -278,6 +278,9 @@ export interface SideMenuDetailItem {
 }
 
 export interface SideMenuProps {
+  /** Square the attached edge of a collapsible desktop menu, matching the
+   * workflow rail. False preserves a fully rounded floating card. @default true */
+  flush?: boolean;
   /** Pinned custom controls, inheriting this menu's tone and collapsed state. */
   footer?: React.ReactNode | ((context: SideMenuFooterContext) => React.ReactNode);
   color?: TrueColor;
@@ -948,6 +951,7 @@ const SideMenuDetailPanel: React.FC<SideMenuDetailPanelProps> = ({
 // ---------------------------------------------------------------------------
 
 export const SideMenu = ({
+  flush = true,
   title,
   logoIcon,
   logoText,
@@ -1295,6 +1299,13 @@ export const SideMenu = ({
       ? "sticky top-16 h-[calc(100vh-64px-1rem)]"
       : "sticky top-16 h-[calc(100vh-64px)]";
   const isLeft = side === "left";
+  // Keep the same docked silhouette throughout collapse/hover expansion.
+  // Joined menus retain the shared shell's independently managed geometry.
+  const dockedCorners: React.CSSProperties = flush && !joinedRole && effectiveMode !== "none"
+    ? isLeft
+      ? { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
+      : { borderTopRightRadius: 0, borderBottomRightRadius: 0 }
+    : {};
   // The hover-rail grows the panel itself — one solid div whose width
   // transitions 68px → 256px on hover (PrimeVue-style) — instead of a separate
   // overlay fading in over the rail, which read as a second, see-through layer.
@@ -1935,9 +1946,7 @@ export const SideMenu = ({
           <aside
             className={asideClasses}
             aria-busy={loading}
-            style={
-              isHoverMode ? { transitionDuration: `${hoverTransitionMs}ms` } : undefined
-            }
+            style={{ ...dockedCorners, ...(isHoverMode ? { transitionDuration: `${hoverTransitionMs}ms` } : {}) }}
             // Hover-rail expansion is a pointer-only enhancement; the nav
             // content is native and fully keyboard-operable without it.
             onMouseEnter={handleRailEnter}
@@ -1947,12 +1956,13 @@ export const SideMenu = ({
                 outer wrapper does not create a stacking context. */}
             <div
               className={`absolute inset-0 pointer-events-none ${panelFill} ${surface.radius}`}
+              style={dockedCorners}
             />
             {noise && (
               <div
                 className={`absolute inset-0 opacity-[0.4] pointer-events-none mix-blend-overlay ${surface.radius}`}
                 data-sidemenu-noise
-                style={{ ...NOISE_STYLE, backgroundSize: getNoiseBackgroundSize(noiseScale) }}
+                style={{ ...NOISE_STYLE, ...dockedCorners, backgroundSize: getNoiseBackgroundSize(noiseScale) }}
               />
             )}
             <div

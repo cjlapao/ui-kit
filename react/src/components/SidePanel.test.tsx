@@ -878,9 +878,19 @@ it("resizes a docked bottom panel upward by its top edge", () => {
   expect(shell.style.height).toBe("120px");
 });
 
-it("rounds every corner when docked, like the workflow rail", () => {
-  const { container } = render(<SidePanel docked isOpen side="left" corner="rounded-md" title="Docked">Content</SidePanel>);
+it("allows free-standing docked panels to round every corner", () => {
+  const { container } = render(<SidePanel docked flush={false} isOpen side="left" corner="rounded-md" title="Docked">Content</SidePanel>);
   expect(container.querySelector("[data-sp-shell]")).toHaveClass("rounded-2xl");
+});
+
+it.each([
+  ["left", "rounded-r-2xl"], ["right", "rounded-l-2xl"],
+  ["top", "rounded-b-2xl"], ["bottom", "rounded-t-2xl"],
+] as const)("keeps the %s attached edge square when collapsed", (side, corners) => {
+  const { container, rerender } = render(<SidePanel docked isOpen collapsible collapsed side={side} title="Attached" corner="rounded-md" />);
+  expect(container.querySelector("[data-sp-shell]")).toHaveClass(corners);
+  rerender(<SidePanel docked isOpen collapsible collapsed={false} side={side} title="Attached" corner="rounded-md" />);
+  expect(container.querySelector("[data-sp-shell]")).toHaveClass(corners);
 });
 
 it("folds a docked bottom panel to a labelled strip and expands it upward", () => {

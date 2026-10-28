@@ -151,9 +151,16 @@ export interface PickerItem {
   id: string;
   /** Optional leading icon element */
   icon?: React.ReactNode;
-  title: string;
+  /** Visible title in standard mode; optional plain-text label in body mode. */
+  title?: string;
   subtitle?: string;
   description?: string;
+  /** Custom non-interactive JSX/React content, replacing title/subtitle/description
+   * in the dropdown and single-selection trigger. Tags and icon remain. */
+  body?: React.ReactNode;
+  /** Search/accessibility text and multi-select pill label for a custom body.
+   * Falls back to title, then id. HTML strings are rendered as text, not parsed. */
+  textValue?: string;
   /** Tags rendered as Pills at the trailing edge of each row */
   tags?: PickerTag[];
 }
@@ -367,7 +374,7 @@ const Picker: React.FC<PickerProps> = ({
     if (!q) return baseItems;
     return baseItems.filter(
       (item) =>
-        item.title.toLowerCase().includes(q) ||
+        (item.textValue ?? item.title ?? item.id).toLowerCase().includes(q) ||
         (item.subtitle ?? "").toLowerCase().includes(q) ||
         (item.description ?? "").toLowerCase().includes(q) ||
         (item.tags ?? []).some((t) => t.label.toLowerCase().includes(q)),
@@ -784,6 +791,7 @@ const Picker: React.FC<PickerProps> = ({
                           key={item.id}
                           id={optionId(index)}
                           role="option"
+                          aria-label={item.body != null ? item.textValue ?? item.title : undefined}
                           aria-selected={isSelected || undefined}
                           data-active={index === activeIndex || undefined}
                           onMouseDown={(e) => e.preventDefault()}
@@ -879,6 +887,7 @@ const Picker: React.FC<PickerProps> = ({
 
                           {/* Title + subtitle + description */}
                           <div className="min-w-0 flex-1">
+                            {item.body != null ? item.body : <>
                             <p
                               className={classNames(
                                 "truncate text-sm font-medium",
@@ -887,7 +896,7 @@ const Picker: React.FC<PickerProps> = ({
                                   : popupText.heading,
                               )}
                             >
-                              {item.title}
+                              {item.title ?? item.id}
                             </p>
                             {item.subtitle && (
                               <p
@@ -909,6 +918,7 @@ const Picker: React.FC<PickerProps> = ({
                                 {item.description}
                               </p>
                             )}
+                            </>}
                           </div>
 
                           {/* Tags */}
@@ -979,7 +989,7 @@ const Picker: React.FC<PickerProps> = ({
                     colorTokens.filterActive,
                   )}
                 >
-                  {it.title}
+                  {it.textValue ?? it.title ?? it.id}
                 </span>
               );
             })}
@@ -1093,6 +1103,7 @@ const Picker: React.FC<PickerProps> = ({
       ) : selectedItem ? (
         <>
           <div className="min-w-0 flex-1">
+            {selectedItem.body != null ? selectedItem.body : <>
             <span
               className={classNames(
                 "block truncate font-medium",
@@ -1100,7 +1111,7 @@ const Picker: React.FC<PickerProps> = ({
                 triggerText,
               )}
             >
-              {selectedItem.title}
+              {selectedItem.title ?? selectedItem.id}
             </span>
             {selectedItem.subtitle && (
               <span
@@ -1112,6 +1123,7 @@ const Picker: React.FC<PickerProps> = ({
                 {selectedItem.subtitle}
               </span>
             )}
+            </>}
           </div>
           {selectedItem.tags && selectedItem.tags.length > 0 && (
             <div className="flex shrink-0 flex-wrap gap-1">

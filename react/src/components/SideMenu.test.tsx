@@ -18,6 +18,24 @@ import SideMenu, {
   type SideMenuDetailItem,
 } from "./SideMenu";
 
+describe("SideMenu docked corners", () => {
+  it.each(["left", "right"] as const)("squares the %s edge throughout collapse", (side) => {
+    const view = (collapsed: boolean, flush = true) => <MemoryRouter><SideMenu items={[]} responsive={false}
+      side={side} variant="floating" collapsible collapsed={collapsed} onToggleCollapse={() => {}} flush={flush} noise /></MemoryRouter>;
+    const { container, rerender } = render(view(true));
+    const aside = container.querySelector("aside")!;
+    const expected = side === "left"
+      ? { borderTopLeftRadius: "0", borderBottomLeftRadius: "0" }
+      : { borderTopRightRadius: "0", borderBottomRightRadius: "0" };
+    expect(aside).toHaveStyle(expected);
+    expect(container.querySelector("[data-sidemenu-noise]")).toHaveStyle(expected);
+    rerender(view(false));
+    expect(aside).toHaveStyle(expected);
+    rerender(view(true, false));
+    expect(side === "left" ? aside.style.borderTopLeftRadius : aside.style.borderTopRightRadius).toBe("");
+  });
+});
+
 // DropdownMenu (topItem/footerItem) and Input (search) resolve icons through
 // the shared context; a no-op renderer keeps the tests off the real registry.
 vi.mock("../contexts/IconContext", () => ({
