@@ -338,7 +338,7 @@ const ToastMessageCard: React.FC<ToastMessageCardProps> = ({
         />
       )}
 
-      <div ref={measureRef} className="relative flex w-full">
+      <div ref={measureRef} className={classNames("relative flex w-full", size.gap)}>
         <div className={classNames("flex min-w-0 flex-1", size.gap)}>
           {(message.loading || resolvedIcon) && (
             <div
@@ -409,7 +409,7 @@ const ToastMessageCard: React.FC<ToastMessageCardProps> = ({
               onClose(message.id);
             }}
             className={classNames(
-              "absolute top-1 end-1 inline-flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2",
+              "inline-flex shrink-0 items-center justify-center self-start rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2",
               size.close,
               tokens.dismiss,
             )}
