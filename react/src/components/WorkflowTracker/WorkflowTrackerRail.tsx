@@ -146,7 +146,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   const timelineId = useId();
   const scrollBody = fillHeight || (cardScrollable ?? false);
   const steps = data?.steps ?? [];
-  const { palette, surfaces } = useWorkflowChrome(styleProps);
+  const { palette, surfaces, customStatuses } = useWorkflowChrome(styleProps);
   const labels = useMemo(() => resolveLabels(labelOverrides), [labelOverrides]);
   const cardProps = buildCardProps(styleProps);
 
@@ -155,7 +155,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
     [steps, data?.activeStepId],
   );
   const progress = useMemo(() => computeProgress(steps), [steps]);
-  const tallies = useMemo(() => computeTallies(steps), [steps]);
+  const tallies = useMemo(() => computeTallies(steps, customStatuses), [steps, customStatuses]);
 
   return (
     <Panel
@@ -239,6 +239,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
           steps={steps}
           activeStepId={active?.step.id}
           palette={palette}
+          customStatuses={customStatuses}
           surfaces={surfaces}
           labels={labels}
           progress={progress}

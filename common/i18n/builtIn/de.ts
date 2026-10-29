@@ -17,6 +17,12 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       canceled: "Knotenerstellung abgebrochen",
       created: "Knotenentwurf hinzugefügt. Konfigurieren oder verwerfen.",
     },
+    traceGraph: {
+      name: "Ablaufgraph", fit: "Einpassen", zoomIn: "Vergrößern", zoomOut: "Verkleinern",
+      search: "Punkt suchen", follow: "Live folgen", resume: "Weiter folgen", pause: "Folgen pausieren",
+      details: "Details anzeigen", close: "Details schließen", empty: "Noch keine Aktivität",
+      help: "Zum Verschieben ziehen; zum Zoomen scrollen oder zwei Finger verwenden. Pfeiltasten wechseln Punkte; Pos1 und Ende springen; Enter öffnet Details; Escape schließt sie. Manuelle Kamerabewegung pausiert das Folgen.",
+    },
     networkGraph: {
       name: "Netzwerkgraph",
       zoomIn: "Vergrößern",

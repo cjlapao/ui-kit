@@ -17,11 +17,13 @@ import {
 import {
   getStatusTokens,
   normalizeStatus,
+  resolveStatusLabel,
   type WorkflowPalette,
 } from "./statusTokens";
 import type { WorkflowSurfaceTokens } from "./surfaces";
 import type { WorkflowTallies } from "./derive";
 import type {
+  WorkflowCustomStatusMap,
   WorkflowStatus,
   WorkflowStep,
   WorkflowSubStep,
@@ -41,6 +43,7 @@ const LEGEND_ORDER: WorkflowStatus[] = [
   "skipped",
   "blocked",
   "attention",
+  "failed",
   "not_started",
 ];
 
@@ -48,6 +51,7 @@ interface NestedSubStepsProps {
   stepId: string;
   subSteps: WorkflowSubStep[];
   palette: WorkflowPalette;
+  customStatuses?: WorkflowCustomStatusMap;
   surfaces: WorkflowSurfaceTokens;
   onSubStepSelect?: (stepId: string, subStepId: string) => void;
 }
@@ -60,6 +64,7 @@ const NestedSubSteps: React.FC<NestedSubStepsProps> = ({
   stepId,
   subSteps,
   palette,
+  customStatuses,
   surfaces,
   onSubStepSelect,
 }) => (
@@ -69,11 +74,11 @@ const NestedSubSteps: React.FC<NestedSubStepsProps> = ({
   >
     <ul className="space-y-2.5">
       {subSteps.map((subStep) => {
-        const status = normalizeStatus(subStep.status);
+        const status = normalizeStatus(subStep.status, customStatuses);
         const isActive = status === "running" || status === "in_progress";
         const content = (
           <>
-            <WorkflowStatusNode status={status} palette={palette} size="sm" />
+            <WorkflowStatusNode status={status} palette={palette} customStatuses={customStatuses} size="sm" />
             <span
               className={classNames(
                 "text-sm",
@@ -119,6 +124,7 @@ export interface WorkflowTimelineProps {
   steps: WorkflowStep[];
   activeStepId?: string;
   palette: WorkflowPalette;
+  customStatuses?: WorkflowCustomStatusMap;
   surfaces: WorkflowSurfaceTokens;
   labels: WorkflowTrackerLabels;
   progress: number;
@@ -145,6 +151,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   steps,
   activeStepId,
   palette,
+  customStatuses,
   surfaces,
   labels,
   progress,
@@ -269,9 +276,9 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
         ) : (
           <ol className="m-0 list-none p-0">
             {steps.map((step, index) => {
-              const status = normalizeStatus(step.status);
+              const status = normalizeStatus(step.status, customStatuses);
               const disabled = Boolean(step.disabled || (disableFutureSteps && status === "not_started"));
-              const tokens = getStatusTokens(status, palette);
+              const tokens = getStatusTokens(status, palette, customStatuses);
               const isActive = step.id === activeStepId;
               const isLast = index === steps.length - 1;
               const nested =
@@ -284,12 +291,13 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                   <WorkflowStatusNode
                     status={status}
                     palette={palette}
+                    customStatuses={customStatuses}
                     size={collapsed ? "sm" : "md"}
                     className={collapsed ? undefined : "mt-0.5"}
                   />
                   {collapsed && (
                     <span className="sr-only">
-                      {step.label} — {labels.statuses[status]}
+                      {step.label} — {resolveStatusLabel(status, labels, customStatuses)}
                     </span>
                   )}
                   <div
@@ -316,6 +324,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                         <WorkflowBadge
                           status={status}
                           palette={palette}
+                          customStatuses={customStatuses}
                           tone={step.badgeTone}
                         >
                           {step.badge}
@@ -429,7 +438,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                         position="right"
                         text={
                           collapsed
-                            ? `${typeof step.label === "string" || typeof step.label === "number" ? step.label : `${labels.step} ${index + 1}`} — ${labels.statuses[status]}`
+                            ? `${typeof step.label === "string" || typeof step.label === "number" ? step.label : `${labels.step} ${index + 1}`} — ${resolveStatusLabel(status, labels, customStatuses)}`
                             : undefined
                         }
                       >
@@ -457,6 +466,7 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
                       stepId={step.id}
                       subSteps={nested}
                       palette={palette}
+                      customStatuses={customStatuses}
                       surfaces={surfaces}
                       onSubStepSelect={disabled ? undefined : onSubStepSelect}
                     />
@@ -488,15 +498,16 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
           )}
         >
           <ul className="flex flex-wrap gap-x-4 gap-y-2">
-            {LEGEND_ORDER.map((status) => (
+            {[...LEGEND_ORDER, ...Object.keys(customStatuses ?? {})].map((status) => (
               <li key={status} className="flex items-center gap-2">
                 <WorkflowStatusNode
                   status={status}
                   palette={palette}
+                  customStatuses={customStatuses}
                   size="sm"
                 />
                 <span className={classNames("text-xs", surfaces.mutedText)}>
-                  {labels.statuses[status]}
+                  {resolveStatusLabel(status, labels, customStatuses)}
                 </span>
               </li>
             ))}

@@ -14,12 +14,13 @@ import {
 import { normalizeStatus, type WorkflowPalette } from "./statusTokens";
 import { getRowHighlight, type WorkflowSurfaceTokens } from "./surfaces";
 import { computeSubSummary, type ResolvedActiveStep } from "./derive";
-import type { WorkflowTrackerLabels } from "./types";
+import type { WorkflowCustomStatusMap, WorkflowTrackerLabels } from "./types";
 
 export interface WorkflowDetailPanelProps {
   active?: ResolvedActiveStep;
   totalSteps: number;
   palette: WorkflowPalette;
+  customStatuses?: WorkflowCustomStatusMap;
   surfaces: WorkflowSurfaceTokens;
   labels: WorkflowTrackerLabels;
   loading: boolean;
@@ -32,6 +33,7 @@ export const WorkflowDetailPanel: React.FC<WorkflowDetailPanelProps> = ({
   active,
   totalSteps,
   palette,
+  customStatuses,
   surfaces,
   labels,
   loading,
@@ -53,7 +55,7 @@ export const WorkflowDetailPanel: React.FC<WorkflowDetailPanelProps> = ({
   }
 
   const { step, index } = active;
-  const status = normalizeStatus(step.status);
+  const status = normalizeStatus(step.status, customStatuses);
   const subSteps = step.subSteps ?? [];
   const summary = computeSubSummary(subSteps);
   const metaFields = [
@@ -74,6 +76,7 @@ export const WorkflowDetailPanel: React.FC<WorkflowDetailPanelProps> = ({
               <WorkflowBadge
                 status={status}
                 palette={palette}
+                customStatuses={customStatuses}
                 tone={step.badgeTone}
               >
                 {step.badge}
@@ -151,12 +154,12 @@ export const WorkflowDetailPanel: React.FC<WorkflowDetailPanelProps> = ({
             )}
           >
             {subSteps.map((subStep) => {
-              const subStatus = normalizeStatus(subStep.status);
+              const subStatus = normalizeStatus(subStep.status, customStatuses);
               const isRunning = subStatus === "running";
 
               const rowContent = (
                 <>
-                  <WorkflowStatusNode status={subStatus} palette={palette} />
+                  <WorkflowStatusNode status={subStatus} palette={palette} customStatuses={customStatuses} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
                       {subStep.label}
@@ -176,6 +179,7 @@ export const WorkflowDetailPanel: React.FC<WorkflowDetailPanelProps> = ({
                     <WorkflowBadge
                       status={subStatus}
                       palette={palette}
+                      customStatuses={customStatuses}
                       tone={subStep.badgeTone}
                     >
                       {subStep.badge}

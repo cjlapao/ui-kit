@@ -54,7 +54,7 @@ export const WorkflowTrackerStepDetails: React.FC<WorkflowTrackerStepDetailsProp
     ...styleProps
   }) => {
     const steps = data?.steps ?? [];
-    const { palette, surfaces } = useWorkflowChrome(styleProps);
+    const { palette, surfaces, customStatuses } = useWorkflowChrome(styleProps);
     const labels = useMemo(
       () => resolveLabels(labelOverrides),
       [labelOverrides],
@@ -76,6 +76,7 @@ export const WorkflowTrackerStepDetails: React.FC<WorkflowTrackerStepDetailsProp
           active={active}
           totalSteps={steps.length}
           palette={palette}
+          customStatuses={customStatuses}
           surfaces={surfaces}
           labels={labels}
           loading={loading}

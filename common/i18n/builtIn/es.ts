@@ -17,6 +17,12 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       canceled: "Creación de nodo cancelada",
       created: "Nodo provisional añadido. Configúralo o descártalo.",
     },
+    traceGraph: {
+      name: "Grafo de ejecución", fit: "Ajustar", zoomIn: "Acercar", zoomOut: "Alejar",
+      search: "Buscar un punto", follow: "Seguir en directo", resume: "Reanudar seguimiento", pause: "Pausar seguimiento",
+      details: "Mostrar detalles", close: "Cerrar detalles", empty: "Sin actividad todavía",
+      help: "Arrastra para mover; desplaza o pellizca para ampliar. Las flechas recorren puntos; Inicio y Fin saltan; Intro abre detalles; Escape cierra. Mover la cámara manualmente pausa el seguimiento.",
+    },
     networkGraph: {
       name: "Grafo de red",
       zoomIn: "Acercar",

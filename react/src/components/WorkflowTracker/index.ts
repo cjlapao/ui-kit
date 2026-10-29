@@ -26,6 +26,8 @@ export {
 export {
   getStatusTokens,
   normalizeStatus,
+  resolveStatusLabel,
+  isBuiltInStatus,
   type WorkflowPalette,
   type WorkflowStatusTokens,
   type WorkflowNodeGlyph,
@@ -42,6 +44,9 @@ export {
 } from "./derive";
 export type {
   WorkflowStatus,
+  BuiltInWorkflowStatus,
+  WorkflowCustomStatus,
+  WorkflowCustomStatusMap,
   WorkflowStep,
   WorkflowSubStep,
   WorkflowAction,
@@ -52,3 +57,4 @@ export type {
   WorkflowTrackerCorner,
   WorkflowTrackerPadding,
 } from "./types";
+export type { WorkflowTrackerStyleProps } from "./chrome";

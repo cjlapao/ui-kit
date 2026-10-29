@@ -27,6 +27,57 @@ const retries = (height = 88): ConnectionFlowNode[] => [
 ];
 
 describe("retry routing regressions", () => {
+  it("does not widen the ladder-to-QA gap for QA's upstream retry label", () => {
+    const layout = layoutConnectionFlow({ nodes: [
+      { id: "plan", title: "Plan" },
+      { id: "build", title: "Build", childLayout: "chain", rows: [
+        [{ id: "code", title: "Code" }, { id: "scan", title: "Scan deps" }],
+        [{ id: "merge", title: "Merge code" }],
+      ] },
+      { id: "qa", title: "QA", failure: { to: "plan", label: "max 2 · then escalate" } },
+    ] });
+    const right = Math.max(...layout.nodes.filter(n => ["build", "code", "scan", "merge"].includes(n.id)).map(n => n.x + n.width));
+    const qa = layout.nodes.find(n => n.id === "qa")!;
+    expect(qa.x - right).toBe(DEFAULT_LAYOUT_OPTIONS.connectorWidth);
+    for (const edge of layout.edges) expect(segmentsCrossBoxes(edge.points, layout.nodes), edge.id).toBe(false);
+    expect(layout.edges.find(e => e.branchKind === "failure")?.caption).toBeDefined();
+  });
+  it("does not reserve a retry caption in the scan-to-review ladder seam", () => {
+    const layout = layoutConnectionFlow({ nodes: [
+      { id: "build", title: "Build", childLayout: "chain", rows: [
+        [{ id: "create-code", title: "Create code" }, { id: "unit-tests", title: "Unit tests" }],
+        [{ id: "lint", title: "Lint" }],
+        [{ id: "secure-code", title: "Secure code" }, { id: "scan-deps", title: "Scan deps" }],
+        [{ id: "review-code", title: "Review code", failure: { to: "create-code", label: "max 2 · retry" } }],
+        [{ id: "merge-code", title: "Merge code" }],
+      ] },
+      { id: "qa", title: "QA" },
+    ] });
+    const scan = layout.nodes.find(n => n.id === "scan-deps")!;
+    const review = layout.nodes.find(n => n.id === "review-code")!;
+    expect(review.y - scan.y - scan.height).toBeLessThanOrEqual(80);
+    for (const edge of layout.edges) expect(segmentsCrossBoxes(edge.points, layout.nodes), edge.id).toBe(false);
+    expect(layout.edges.find(e => e.branchKind === "failure")?.caption).toBeDefined();
+  });
+  it("keeps independent labelled retries compact instead of stacking global outer lanes", () => {
+    const nodes: ConnectionFlowNode[] = [];
+    for (let i = 0; i < 4; i++) nodes.push(
+      { id: `task-${i}`, title: "Task", height: 120 },
+      { id: `gate-${i}`, title: "Approval", height: 120, failure: { to: `task-${i}`, label: "plan · max 2 · then escalate" } },
+    );
+    const layout = layoutConnectionFlow({ nodes });
+    const top = Math.min(...layout.nodes.map(n => n.y));
+    const bottom = Math.max(...layout.nodes.map(n => n.y + n.height));
+    for (const edge of layout.edges) {
+      expect(segmentsCrossBoxes(edge.points, layout.nodes), edge.id).toBe(false);
+      if (edge.branchKind !== "failure") continue;
+      expect(edge.caption, edge.id).toBeDefined();
+      for (const p of edge.points) {
+        expect(p.y, edge.id).toBeGreaterThanOrEqual(top - 100);
+        expect(p.y, edge.id).toBeLessThanOrEqual(bottom + 100);
+      }
+    }
+  });
   it("keeps adjacent handoffs in their gap and never travels through either endpoint card", () => {
     const layout = layoutConnectionFlow({ nodes: retries() });
     for (const edge of layout.edges) {

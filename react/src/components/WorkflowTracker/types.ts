@@ -12,18 +12,41 @@ export type { PanelVariant as WorkflowTrackerVariant };
 export type { PanelCorner as WorkflowTrackerCorner };
 export type { PanelPadding as WorkflowTrackerPadding };
 
-/**
- * Every state a step (or sub-step) can be in. Unknown values passed at runtime
- * degrade to `not_started` rather than throwing — see `normalizeStatus`.
- */
-export type WorkflowStatus =
+/** The eight statuses the kit itself knows how to draw — see `statusTokens.ts`. */
+export type BuiltInWorkflowStatus =
   | "done"
   | "in_progress"
   | "running"
   | "skipped"
   | "blocked"
   | "attention"
+  | "failed"
   | "not_started";
+
+/**
+ * Every state a step (or sub-step) can be in: one of the eight built-ins, or
+ * any key a `customStatuses` registration adds. Loosened rather than a closed
+ * union so an app's own status compiles without a kit release — autocomplete
+ * still offers the eight built-ins first. A string that is neither degrades
+ * to `not_started` rather than throwing — see `normalizeStatus`.
+ */
+export type WorkflowStatus = BuiltInWorkflowStatus | (string & {});
+
+/**
+ * One consumer-registered status beyond the built-in eight: its own icon and
+ * color, so an app can extend what the tracker draws without forking it.
+ * Passed as `customStatuses={{ security: {...} }}` and referenced from a
+ * step as `status: "security"`.
+ */
+export interface WorkflowCustomStatus {
+  /** Shown in the legend, and anywhere the status needs spelling out. */
+  label: string;
+  /** A kit icon name, or your own element — the same convention as `WorkflowAction.leadingIcon`. */
+  icon: string | React.ReactElement;
+  color: TrueColor;
+}
+
+export type WorkflowCustomStatusMap = Record<string, WorkflowCustomStatus>;
 
 export interface WorkflowSubStep {
   id: string;
@@ -138,7 +161,8 @@ export interface WorkflowTrackerLabels {
   details: string;
   /** Accessible name of a step's quick-actions group. */
   quickActions: string;
-  statuses: Record<WorkflowStatus, string>;
+  /** Legend/sr-only copy for the eight built-ins. A `customStatuses` entry carries its own `label` instead. */
+  statuses: Record<BuiltInWorkflowStatus, string>;
 }
 
 export interface WorkflowTrackerProps
@@ -154,6 +178,14 @@ export interface WorkflowTrackerProps
   attentionColor?: TrueColor;
   /** Tone for `blocked`. @default "amber" */
   blockedColor?: TrueColor;
+  /** Tone for `failed`. @default "red" */
+  failedColor?: TrueColor;
+  /**
+   * Extra statuses beyond the built-in eight — each with its own icon and
+   * color, registered once and referenced from any step's `status`. Shows up
+   * in the legend after the built-ins, and counts toward the flagged tally.
+   */
+  customStatuses?: WorkflowCustomStatusMap;
   /** Tone for `skipped` / `not_started` and all muted chrome. @default "neutral" */
   mutedColor?: TrueColor;
   /** Surface treatment of the three cards. @default "outlined" */

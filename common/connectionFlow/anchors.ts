@@ -1,6 +1,7 @@
 import {
   port,
   routeBetween,
+  routeLength,
   routePolyline,
   routePorts,
   segmentsCrossBoxes,
@@ -236,6 +237,13 @@ export function separateAnchors(
           100 * parallelOverlap(points, p),
         0,
       );
+    // A suggested bypass is only a starting route. Drop it when the final
+    // anchors admit a shorter, equally uncrowded local connection.
+    const compact = routePorts(fromPort, toPort, settings);
+    if (!segmentsCrossBoxes(compact.points, nodes) &&
+        overlap(compact.points) <= overlap(candidate.points) &&
+        routeLength(compact.points) < routeLength(candidate.points))
+      candidate = compact;
     if (
       segmentsCrossBoxes(candidate.points, nodes) ||
       overlap(candidate.points) > 1

@@ -18,6 +18,12 @@ export const FR_KIT_CATALOG: MessageCatalog = {
       canceled: "Création du nœud annulée",
       created: "Nœud provisoire ajouté. Configurez-le ou supprimez-le.",
     },
+    traceGraph: {
+      name: "Graphe de traces", fit: "Ajuster", zoomIn: "Zoom avant", zoomOut: "Zoom arrière",
+      search: "Rechercher un point", follow: "Suivre en direct", resume: "Reprendre le suivi", pause: "Suspendre le suivi",
+      details: "Afficher les détails", close: "Fermer les détails", empty: "Aucune activité",
+      help: "Glissez pour déplacer; défilez ou pincez pour zoomer. Les flèches parcourent les points; Début et Fin accèdent aux extrémités; Entrée ouvre les détails; Échap les ferme. Un déplacement manuel suspend le suivi.",
+    },
     networkGraph: {
       name: "Graphe de réseau",
       zoomIn: "Zoom avant",

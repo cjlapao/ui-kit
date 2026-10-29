@@ -167,7 +167,10 @@ describe("ConnectionFlow captions", () => {
     const gaps = layout.nodes
       .slice(1)
       .map((n, i) => n.x - layout.nodes[i].x - layout.nodes[i].width);
-    expect(gaps[0]).toBeLessThan(gaps[1]);
+    // The forward caption needs its own seam; the upstream retry caption
+    // belongs to an outer lane and must not widen the next handoff.
+    expect(gaps[0]).toBeGreaterThan(72);
+    expect(gaps[1]).toBe(72);
     expect(gaps[2]).toBe(72);
     expect(layout.edges.filter((e) => e.label).every((e) => e.caption)).toBe(
       true,

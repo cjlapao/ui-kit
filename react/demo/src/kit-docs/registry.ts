@@ -726,6 +726,11 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/stack-carousel/StackCarouselPage")),
   },
   {
+    slug: "trace-graph", name: "Trace Graph", icon: "Blueprint", category: "Data",
+    description: "WebGL activity traces with forks, merges, live follow mode and consumer details.",
+    Page: lazy(() => import("./components/trace-graph/TraceGraphPage")),
+  },
+  {
     slug: "stat-card",
     name: "Stat Card",
     description:

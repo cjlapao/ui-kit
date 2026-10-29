@@ -1,5 +1,5 @@
-import { normalizeStatus } from "./statusTokens";
-import type { WorkflowStep, WorkflowSubStep } from "./types";
+import { isBuiltInStatus, normalizeStatus } from "./statusTokens";
+import type { WorkflowCustomStatusMap, WorkflowStep, WorkflowSubStep } from "./types";
 
 export interface WorkflowTallies {
   done: number;
@@ -31,8 +31,11 @@ export const computeProgress = (steps: WorkflowStep[]): number => {
   return Math.round((done / steps.length) * 100);
 };
 
-/** `blocked` and `attention` both count as flagged; everything else remains. */
-export const computeTallies = (steps: WorkflowStep[]): WorkflowTallies => {
+/** `blocked`, `attention`, `failed` and any `customStatuses` entry all count as flagged; everything else remains. */
+export const computeTallies = (
+  steps: WorkflowStep[],
+  customStatuses?: WorkflowCustomStatusMap,
+): WorkflowTallies => {
   const tallies: WorkflowTallies = {
     done: 0,
     skipped: 0,
@@ -41,7 +44,8 @@ export const computeTallies = (steps: WorkflowStep[]): WorkflowTallies => {
   };
 
   steps.forEach((step) => {
-    switch (normalizeStatus(step.status)) {
+    const status = normalizeStatus(step.status, customStatuses);
+    switch (status) {
       case "done":
         tallies.done += 1;
         break;
@@ -50,10 +54,14 @@ export const computeTallies = (steps: WorkflowStep[]): WorkflowTallies => {
         break;
       case "attention":
       case "blocked":
+      case "failed":
         tallies.flagged += 1;
         break;
       default:
-        tallies.remaining += 1;
+        // A registered custom status is, by construction, one more "needs a
+        // person" state — there's no quiet custom status today.
+        if (isBuiltInStatus(status)) tallies.remaining += 1;
+        else tallies.flagged += 1;
     }
   });
 
@@ -81,10 +89,13 @@ export const computeSubSummary = (
   return summary;
 };
 
-export const getAttentionSteps = (steps: WorkflowStep[]): WorkflowStep[] =>
+export const getAttentionSteps = (
+  steps: WorkflowStep[],
+  customStatuses?: WorkflowCustomStatusMap,
+): WorkflowStep[] =>
   steps.filter((step) => {
-    const status = normalizeStatus(step.status);
-    return status === "attention" || status === "blocked";
+    const status = normalizeStatus(step.status, customStatuses);
+    return status === "attention" || status === "blocked" || status === "failed" || !isBuiltInStatus(status);
   });
 
 export const getSkippedSteps = (steps: WorkflowStep[]): WorkflowStep[] =>

@@ -42,11 +42,11 @@ export const WorkflowTrackerRollups: React.FC<WorkflowTrackerRollupsProps> = ({
   ...styleProps
 }) => {
   const steps = data?.steps ?? [];
-  const { palette, surfaces } = useWorkflowChrome(styleProps);
+  const { palette, surfaces, customStatuses } = useWorkflowChrome(styleProps);
   const labels = useMemo(() => resolveLabels(labelOverrides), [labelOverrides]);
   const cardProps = buildCardProps(styleProps);
 
-  const attentionSteps = useMemo(() => getAttentionSteps(steps), [steps]);
+  const attentionSteps = useMemo(() => getAttentionSteps(steps, customStatuses), [steps, customStatuses]);
   const skippedSteps = useMemo(() => getSkippedSteps(steps), [steps]);
 
   if (loading || (attentionSteps.length === 0 && skippedSteps.length === 0)) {
@@ -64,6 +64,7 @@ export const WorkflowTrackerRollups: React.FC<WorkflowTrackerRollupsProps> = ({
             title={labels.needsAttention}
             steps={attentionSteps}
             palette={palette}
+            customStatuses={customStatuses}
             surfaces={surfaces}
           />
         </Panel>
@@ -74,6 +75,7 @@ export const WorkflowTrackerRollups: React.FC<WorkflowTrackerRollupsProps> = ({
             title={labels.skippedSteps}
             steps={skippedSteps}
             palette={palette}
+            customStatuses={customStatuses}
             surfaces={surfaces}
           />
         </Panel>

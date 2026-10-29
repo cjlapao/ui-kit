@@ -14,7 +14,7 @@ import {
   type WorkflowSurfaceTokens,
 } from "./surfaces";
 import type { WorkflowPalette } from "./statusTokens";
-import type { WorkflowTrackerLabels } from "./types";
+import type { WorkflowCustomStatusMap, WorkflowTrackerLabels } from "./types";
 
 /**
  * Shared plumbing for the tracker family: the composite and the standalone
@@ -54,6 +54,7 @@ export const DEFAULT_LABELS: WorkflowTrackerLabels = {
     skipped: "Skipped",
     blocked: "Blocked",
     attention: "Attention",
+    failed: "Failed",
     not_started: "Not started",
   },
 };
@@ -66,6 +67,14 @@ export interface WorkflowTrackerStyleProps {
   attentionColor?: TrueColor;
   /** Tone for `blocked`. @default "amber" */
   blockedColor?: TrueColor;
+  /** Tone for `failed`. @default "red" */
+  failedColor?: TrueColor;
+  /**
+   * Extra statuses beyond the built-in eight — each with its own icon and
+   * color, registered once and referenced from any step's `status`. Shows up
+   * in the legend after the built-ins, and counts toward the flagged tally.
+   */
+  customStatuses?: WorkflowCustomStatusMap;
   /** Tone for `skipped` / `not_started` and all muted chrome. @default "neutral" */
   mutedColor?: TrueColor;
   /** Surface treatment of the cards. @default "outlined" */
@@ -93,6 +102,8 @@ export interface WorkflowChrome {
   translucent: boolean;
   palette: WorkflowPalette;
   surfaces: WorkflowSurfaceTokens;
+  /** Resolved to `{}` when the caller passed none, so every reader can skip the null check. */
+  customStatuses: WorkflowCustomStatusMap;
 }
 
 /**
@@ -104,6 +115,8 @@ export const useWorkflowChrome = ({
   accentColor = "blue",
   attentionColor = "rose",
   blockedColor = "amber",
+  failedColor = "red",
+  customStatuses = {},
   mutedColor = "neutral",
   variant = "outlined",
   translucentSurfaces,
@@ -114,13 +127,14 @@ export const useWorkflowChrome = ({
       accent: accentColor,
       attention: attentionColor,
       blocked: blockedColor,
+      failed: failedColor,
       muted: mutedColor,
       translucent,
     }),
-    [accentColor, attentionColor, blockedColor, mutedColor, translucent],
+    [accentColor, attentionColor, blockedColor, failedColor, mutedColor, translucent],
   );
   const surfaces = useMemo(() => getSurfaceTokens(translucent), [translucent]);
-  return { translucent, palette, surfaces };
+  return { translucent, palette, surfaces, customStatuses };
 };
 
 /** Merge partial copy overrides over the defaults. */

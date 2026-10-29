@@ -50,6 +50,12 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       canceled: "Node creation canceled",
       created: "Draft node added. Configure or dismiss it.",
     },
+    traceGraph: {
+      name: "Trace graph", fit: "Fit", zoomIn: "Zoom in", zoomOut: "Zoom out",
+      search: "Find a point", follow: "Follow live", resume: "Resume following", pause: "Pause following",
+      details: "Show details", close: "Close details", empty: "No activity yet",
+      help: "Drag to pan; scroll or pinch to zoom. Arrow keys browse points; Home and End jump; Enter opens details; Escape closes. Manual camera movement pauses following.",
+    },
     networkGraph: {
       name: "Network graph",
       zoomIn: "Zoom in",

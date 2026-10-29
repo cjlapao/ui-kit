@@ -318,6 +318,7 @@ export {
   type CarouselResponsiveOption,
 } from "./Carousel";
 export { StackCarousel, type StackCarouselProps } from "./StackCarousel";
+export * from "./TraceGraph";
 export {
   default as Toggle,
   TOGGLE_VARIANTS,

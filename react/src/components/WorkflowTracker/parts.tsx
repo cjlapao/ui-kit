@@ -10,7 +10,7 @@ import { getSurfaceTokens, type WorkflowSurfaceTokens } from "./surfaces";
 /** Falls back to the opaque token set so every piece renders standalone. */
 const resolve = (surfaces?: WorkflowSurfaceTokens) =>
   surfaces ?? getSurfaceTokens(false);
-import type { WorkflowStatus } from "./types";
+import type { WorkflowCustomStatusMap, WorkflowStatus } from "./types";
 
 /**
  * Quiet placeholder for "nothing here yet". The icon is the tracker's own
@@ -85,6 +85,7 @@ export interface WorkflowBadgeProps {
   children: React.ReactNode;
   status: WorkflowStatus;
   palette: WorkflowPalette;
+  customStatuses?: WorkflowCustomStatusMap;
   /** Overrides the tint derived from `status`. */
   tone?: TrueColor;
 }
@@ -94,9 +95,10 @@ export const WorkflowBadge: React.FC<WorkflowBadgeProps> = ({
   children,
   status,
   palette,
+  customStatuses,
   tone,
 }) => {
-  const tokens = getStatusTokens(status, palette);
+  const tokens = getStatusTokens(status, palette, customStatuses);
   return (
     <Pill
       size="xs"

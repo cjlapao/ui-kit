@@ -5,12 +5,13 @@ import WorkflowStatusNode from "./WorkflowStatusNode";
 import { SectionTitle } from "./parts";
 import { normalizeStatus, type WorkflowPalette } from "./statusTokens";
 import type { WorkflowSurfaceTokens } from "./surfaces";
-import type { WorkflowStep } from "./types";
+import type { WorkflowCustomStatusMap, WorkflowStep } from "./types";
 
 export interface WorkflowSummaryCardProps {
   title: React.ReactNode;
   steps: WorkflowStep[];
   palette: WorkflowPalette;
+  customStatuses?: WorkflowCustomStatusMap;
   surfaces: WorkflowSurfaceTokens;
 }
 
@@ -22,6 +23,7 @@ export const WorkflowSummaryCard: React.FC<WorkflowSummaryCardProps> = ({
   title,
   steps,
   palette,
+  customStatuses,
   surfaces,
 }) => (
   <div className="px-5 py-4">
@@ -30,8 +32,9 @@ export const WorkflowSummaryCard: React.FC<WorkflowSummaryCardProps> = ({
       {steps.map((step) => (
         <li key={step.id} className="flex items-start gap-3">
           <WorkflowStatusNode
-            status={normalizeStatus(step.status)}
+            status={normalizeStatus(step.status, customStatuses)}
             palette={palette}
+            customStatuses={customStatuses}
             className="mt-0.5"
           />
           <div className="min-w-0 flex-1">

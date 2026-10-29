@@ -17,6 +17,12 @@ export const PT_KIT_CATALOG: MessageCatalog = {
       canceled: "Criação do nó cancelada",
       created: "Nó provisório adicionado. Configure-o ou descarte-o.",
     },
+    traceGraph: {
+      name: "Grafo de execução", fit: "Ajustar", zoomIn: "Ampliar", zoomOut: "Reduzir",
+      search: "Procurar um ponto", follow: "Seguir em direto", resume: "Retomar seguimento", pause: "Pausar seguimento",
+      details: "Mostrar detalhes", close: "Fechar detalhes", empty: "Ainda sem atividade",
+      help: "Arraste para mover; desloque ou use dois dedos para ampliar. As setas percorrem os pontos; Home e End saltam; Enter abre detalhes; Escape fecha. Mover a câmara manualmente pausa o seguimento.",
+    },
     networkGraph: {
       name: "Grafo de rede",
       zoomIn: "Ampliar",

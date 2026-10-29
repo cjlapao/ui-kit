@@ -2,9 +2,11 @@ import React from "react";
 import classNames from "classnames";
 
 import { Check } from "../../icons/components/Check";
+import { Close } from "../../icons/components/Close";
 import { Pause } from "../../icons/components/Pause";
+import { renderIcon } from "../../utils/renderIcon";
 import { getStatusTokens, type WorkflowPalette } from "./statusTokens";
-import type { WorkflowStatus } from "./types";
+import type { WorkflowCustomStatusMap, WorkflowStatus } from "./types";
 
 export type WorkflowNodeSize = "sm" | "md" | "lg";
 
@@ -43,6 +45,7 @@ const AlertGlyph: React.FC<{ className?: string }> = ({ className }) => (
 export interface WorkflowStatusNodeProps {
   status: WorkflowStatus;
   palette: WorkflowPalette;
+  customStatuses?: WorkflowCustomStatusMap;
   size?: WorkflowNodeSize;
   className?: string;
 }
@@ -55,10 +58,11 @@ export interface WorkflowStatusNodeProps {
 export const WorkflowStatusNode: React.FC<WorkflowStatusNodeProps> = ({
   status,
   palette,
+  customStatuses,
   size = "md",
   className,
 }) => {
-  const tokens = getStatusTokens(status, palette);
+  const tokens = getStatusTokens(status, palette, customStatuses);
   const { node, glyph } = sizeTokens[size];
 
   return (
@@ -90,11 +94,17 @@ export const WorkflowStatusNode: React.FC<WorkflowStatusNodeProps> = ({
         {tokens.glyph === "alert" && (
           <AlertGlyph className={classNames(glyph, tokens.glyphClass)} />
         )}
+        {tokens.glyph === "close" && (
+          <Close className={classNames(glyph, tokens.glyphClass)} />
+        )}
         {tokens.glyph === "dashed" && (
           <DashedRing
             className={classNames("h-full w-full", tokens.glyphClass)}
           />
         )}
+        {tokens.glyph === "custom" &&
+          tokens.customIcon &&
+          renderIcon(tokens.customIcon, size, classNames(glyph, tokens.glyphClass))}
       </span>
     </span>
   );

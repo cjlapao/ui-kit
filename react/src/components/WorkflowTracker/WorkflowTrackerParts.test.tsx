@@ -10,6 +10,7 @@ import { sampleWorkflow } from "./sampleWorkflow";
 import SidePanel from "../SidePanel";
 import { PANEL_SLIDE_DURATION_MS, PANEL_SLIDE_EASING } from "../../theme/Theme";
 import WorkflowStatusNode from "./WorkflowStatusNode";
+import { computeTallies, getAttentionSteps } from "./derive";
 import type { WorkflowData } from "./types";
 
 const gateData: WorkflowData = {
@@ -569,13 +570,61 @@ describe("WorkflowTrackerRail — collapse toggle matches SidePanel's", () => {
 
 describe("Workflow status pulse", () => {
   it.each([true, false])("animates only running steps with compact=%s", (compact) => {
-    const palette = { accent: "blue", attention: "rose", blocked: "amber", muted: "neutral", translucent: false } as const;
+    const palette = { accent: "blue", attention: "rose", blocked: "amber", failed: "red", muted: "neutral", translucent: false } as const;
     const { container, rerender } = render(<WorkflowStatusNode status="running" palette={palette} size={compact ? "sm" : "md"} />);
     expect(container.querySelector(".animate-ping")).toHaveClass("dark:bg-blue-400", "motion-reduce:hidden");
-    for (const status of ["done", "in_progress", "blocked", "attention", "skipped", "not_started"] as const) {
+    for (const status of ["done", "in_progress", "blocked", "attention", "failed", "skipped", "not_started"] as const) {
       rerender(<WorkflowStatusNode status={status} palette={palette} size={compact ? "sm" : "md"} />);
       expect(container.querySelector(".animate-ping")).toBeNull();
     }
+  });
+});
+
+describe("customStatuses — extending the eight built-ins", () => {
+  const palette = { accent: "blue", attention: "rose", blocked: "amber", failed: "red", muted: "neutral", translucent: false } as const;
+  const customStatuses = {
+    security: { label: "Security", icon: <svg data-testid="security-icon" />, color: "violet" as const },
+  };
+
+  it("draws the registered icon and color instead of falling back to not_started", () => {
+    const { container } = render(
+      <WorkflowStatusNode status="security" palette={palette} customStatuses={customStatuses} />,
+    );
+    expect(screen.getByTestId("security-icon")).toBeTruthy();
+    expect(container.querySelector("[data-workflow-status-node] > span")).toHaveClass("bg-white", "border-violet-500");
+  });
+
+  it("degrades an unregistered status to not_started, same as before customStatuses existed", () => {
+    const { container } = render(
+      <WorkflowStatusNode status="security" palette={palette} />,
+    );
+    expect(screen.queryByTestId("security-icon")).toBeNull();
+    expect(container.querySelector("[data-workflow-status-node] > span")).toHaveClass("border-neutral-300");
+  });
+
+  it("shows a custom status in the rail, its legend, and its own accessible label", () => {
+    const data: WorkflowData = {
+      title: "Release",
+      activeStepId: "scan",
+      steps: [{ id: "scan", label: "Security scan", status: "security" }],
+    };
+    render(<WorkflowTrackerRail data={data} customStatuses={customStatuses} />);
+    // The step row itself, and again in the legend appended after the built-in eight.
+    expect(screen.getByText("Security scan")).toBeTruthy();
+    expect(screen.getAllByTestId("security-icon")).toHaveLength(2);
+    expect(screen.getByText("Security")).toBeTruthy();
+  });
+
+  it("counts a custom status toward the flagged tally and the needs-attention roll-up", () => {
+    const data: WorkflowData = {
+      title: "Release",
+      steps: [
+        { id: "done", label: "Done", status: "done" },
+        { id: "scan", label: "Security scan", status: "security" },
+      ],
+    };
+    expect(computeTallies(data.steps, customStatuses)).toEqual({ done: 1, skipped: 0, flagged: 1, remaining: 0 });
+    expect(getAttentionSteps(data.steps, customStatuses).map((s) => s.id)).toEqual(["scan"]);
   });
 });
 

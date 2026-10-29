@@ -6,6 +6,7 @@ import {
   routeBetween,
   routePolyline,
   routePorts,
+  routeLength,
   segmentsCrossBoxes,
   type Box,
 } from "./router";
@@ -213,6 +214,7 @@ export function layoutCaptions(
     }
     avoid(edge, reserved);
     const text = edge.label;
+    let captionDetour = false;
     const readableWidth = Math.max(
       64,
       Math.min(96, Math.max(...text.split(/\s+/u).map(captionTextWidth))) + 16,
@@ -312,6 +314,7 @@ export function layoutCaptions(
         }
         if (segmentsCrossBoxes(points, [...nodes, ...reserved])) continue;
         edge.caption = caption;
+        captionDetour = offset !== 0;
         if (offset)
           Object.assign(
             edge,
@@ -321,62 +324,64 @@ export function layoutCaptions(
       }
       if (edge.caption) break;
     }
-    if (!edge.caption) {
-      // No local stretch can hold the text: create a full-height outer lane.
-      // This grows the layout bounds and keeps every other caption/path clear.
+    if (!edge.caption || captionDetour) {
+      // Reserve a readable horizontal caption instead of wrapping into a tall
+      // label just because the normal connector gap is narrow.
       const caption = measure(
         text,
-        Math.min(240, Math.max(80, options.connectorWidth - 2 * MARGIN)),
+        Math.min(240, Math.max(96, captionTextWidth(text) + PADDING * 2)),
         0,
         0,
       );
       const { from, to } = endpoints.get(edge.id) ?? {};
       if (from && to) {
-        const top =
-          Math.min(
-            ...nodes.map((n) => n.y),
-            ...reserved.map((b) => b.y),
-            ...edges.flatMap((e) => e.points.map((p) => p.y)),
-          ) -
-          MARGIN -
-          caption.height / 2;
         const center = (from.x + to.x) / 2;
         const left = center - caption.width / 2 - MARGIN,
           right = center + caption.width / 2 + MARGIN;
-        const forward = from.x <= to.x;
-        const start = {
-          x: forward ? left : right,
-          y: top,
-          width: 0,
-          height: 0,
-        };
-        const end = { x: forward ? right : left, y: top, width: 0, height: 0 };
-        const obstacles = [...nodes, ...reserved];
-        const first = routeBetween(
-          endpoint(from),
-          { box: start, t: 0.5, sides: [forward ? "left" : "right"] },
-          obstacles,
-          settings(edge),
-        );
-        const last = routeBetween(
-          { box: end, t: 0.5, sides: [forward ? "right" : "left"] },
-          endpoint(to),
-          obstacles,
-          settings(edge),
-        );
-        if (first && last) {
-          const points = [...first.points, ...last.points];
-          if (!segmentsCrossBoxes(points, obstacles)) {
-            Object.assign(
-              edge,
-              routePolyline(points, settings(edge).style, options.cornerRadius),
-            );
-            edge.caption = {
-              ...caption,
-              x: center - caption.width / 2,
-              y: top - caption.height / 2,
-            };
+        // Only obstacles in this route's horizontal span affect its outer
+        // corridor. Unrelated loops must not keep lifting subsequent routes.
+        const spanLeft = Math.min(from.x, to.x, left), spanRight = Math.max(from.x, to.x, right);
+        const local = [...nodes, ...reserved].filter(b => b.x <= spanRight && b.x + b.width >= spanLeft);
+        const gap = MARGIN + caption.height / 2 + options.pathClearance;
+        const above = Math.min(from.y, to.y, ...local.map(b => b.y)) - gap;
+        const below = Math.max(from.y, to.y, ...local.map(b => b.y + b.height)) + gap;
+        let best: { points: LaidOutEdge["points"]; y: number; cost: number } | undefined;
+        for (const top of [above, below]) {
+          const forward = from.x <= to.x;
+          const start = {
+            x: forward ? left : right,
+            y: top,
+            width: 0,
+            height: 0,
+          };
+          const end = { x: forward ? right : left, y: top, width: 0, height: 0 };
+          const obstacles = [...nodes, ...reserved];
+          const first = routeBetween(
+            endpoint(from),
+            { box: start, t: 0.5, sides: [forward ? "left" : "right"] },
+            obstacles,
+            { ...settings(edge), strictObstacles: true },
+          );
+          const last = routeBetween(
+            { box: end, t: 0.5, sides: [forward ? "right" : "left"] },
+            endpoint(to),
+            obstacles,
+            { ...settings(edge), strictObstacles: true },
+          );
+          if (first && last) {
+            const points = [...first.points, ...last.points];
+            const bounds = { ...caption, x: center - caption.width / 2, y: top - caption.height / 2 };
+            if (!segmentsCrossBoxes(points, obstacles) &&
+                !obstacles.some(b => intersects(inflate(bounds), b)) &&
+                ![...labelled, ...protectedPaths].some(e => segmentsCrossBoxes(e.points, [inflate(bounds)]))) {
+              const cost = routeLength(points) + points.length * options.cornerRadius;
+              if (!best || cost < best.cost) best = { points, y: top, cost };
+            }
           }
+        }
+        if (best && (!edge.caption || best.cost < routeLength(edge.points) + edge.points.length * options.cornerRadius)) {
+          Object.assign(edge, routePolyline(best.points, settings(edge).style, options.cornerRadius));
+          edge.caption = { ...caption, x: center - caption.width / 2, y: best.y - caption.height / 2 };
         }
       }
     }
@@ -442,7 +447,10 @@ export function captionSpacing(
         const upstream =
           branch.to !== undefined &&
           (ranks.get(branch.to) ?? Infinity) < (ranks.get(n.id) ?? 0);
-        reserve(upstream ? before : after, n.id, branch.label);
+        // Return captions own an outer routing corridor. Reserving either
+        // seam before the source stretches unrelated handoffs (including
+        // a ladder's exit to QA) without helping that return label fit.
+        if (!upstream) reserve(after, n.id, branch.label);
       }
   }
   return { before, after };
