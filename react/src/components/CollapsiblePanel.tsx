@@ -213,15 +213,18 @@ const CollapsibleBody: React.FC<CollapsibleBodyProps> = ({
               surface.body,
               inset,
               "pt-0",
-              isExpanded && !fillHeight ? SCROLLBAR : "overflow-hidden",
+              !fillHeight ? SCROLLBAR : "overflow-hidden",
               contentClassName,
             )}
             style={{
               maxHeight:
-                isExpanded && !fillHeight
+                !fillHeight
                   ? `min(${contentMaxHeight}px, 65vh)`
                   : undefined,
-              minHeight: isExpanded ? minExpandedHeight : undefined,
+              // Keep intrinsic content sizing stable throughout the grid
+              // transition. Removing these bounds on collapse first expands
+              // a scrollable body to its full content height.
+              minHeight: minExpandedHeight,
             }}
           >
             {children}

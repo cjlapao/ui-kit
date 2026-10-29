@@ -30,6 +30,7 @@ import {
   flowProgress,
   getHeaderSurface,
   layoutConnectionFlow,
+  nodeIsActive,
   tracePathTo,
   type ConnectionFlowConnection,
   type ConnectionFlowEdgeStyle,
@@ -123,6 +124,15 @@ export interface ConnectionFlowProps {
    * into a short frame does. @default false
    */
   fitOnLoad?: boolean;
+  followMode?: ConnectionFlowFollowMode;
+  defaultFollowMode?: ConnectionFlowFollowMode;
+  onFollowModeChange?: (mode: ConnectionFlowFollowMode) => void;
+  /** Override status-derived active cards, including nested chain cards. */
+  activeNodeIds?: readonly string[];
+  /** Space around active cards in CSS pixels. @default 40 */
+  followPadding?: number;
+  /** Smooth follow camera duration in milliseconds. @default 400 */
+  followDuration?: number;
   /**
    * Wheel and drag on the canvas.
    *
@@ -172,7 +182,10 @@ export interface ConnectionFlowProps {
   renderNode?: (node: LaidOutNode) => React.ReactNode;
 }
 
+export type ConnectionFlowFollowMode = "off" | "following" | "paused";
 export interface ConnectionFlowHandle {
+  pauseFollowing: () => void;
+  resumeFollowing: () => void;
   /** Remove an unresolved draft, for example when its configuration is canceled. */
   dismissGhost: (ghostId: string) => void;
   zoomIn: () => void;
@@ -246,6 +259,8 @@ const ConnectionFlow = React.forwardRef<
     highlightPath = true,
     showControls = true,
     fitOnLoad = false,
+    followMode, defaultFollowMode = "off", onFollowModeChange, activeNodeIds,
+    followPadding = 40, followDuration = 400,
     interactive = true,
     minZoom = 0.25,
     maxZoom = 2,
@@ -280,6 +295,24 @@ const ConnectionFlow = React.forwardRef<
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const wheelAreaRef = useRef<HTMLDivElement | null>(null);
   const manuallyNavigated = useRef(false);
+  const [internalFollow, setInternalFollow] = useState<ConnectionFlowFollowMode>(defaultFollowMode);
+  const follow = followMode ?? internalFollow;
+  const followFrame = useRef<number | null>(null);
+  const followZoomChange = useRef(onZoomChange);
+  followZoomChange.current = onZoomChange;
+  const cancelFollow = useCallback(() => {
+    if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
+    followFrame.current = null;
+  }, []);
+  const requestFollow = useCallback((mode: ConnectionFlowFollowMode) => {
+    if (followMode === undefined) setInternalFollow(mode);
+    onFollowModeChange?.(mode);
+  }, [followMode, onFollowModeChange]);
+  const pauseFollowing = useCallback(() => {
+    cancelFollow();
+    if (follow === "following") requestFollow("paused");
+  }, [cancelFollow, follow, requestFollow]);
+  useEffect(() => cancelFollow, [cancelFollow]);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -300,6 +333,8 @@ const ConnectionFlow = React.forwardRef<
   };
 
   const [scale, setScale] = useState(1);
+  const currentScale = useRef(scale);
+  currentScale.current = scale;
   const [panning, setPanning] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(
     () => new Set<string>(),
@@ -393,11 +428,12 @@ const ConnectionFlow = React.forwardRef<
     if (!element || !apply) return;
     pendingScroll.current = null;
     apply(element);
-  }, [scale]);
+  });
 
   const setZoom = useCallback(
     (value: number, anchor?: { x: number; y: number }) => {
       manuallyNavigated.current = true;
+      pauseFollowing();
       const next = clampZoom(value);
       if (next === scale) return;
       const element = viewportRef.current;
@@ -419,7 +455,7 @@ const ConnectionFlow = React.forwardRef<
       setScale(next);
       onZoomChange?.(next);
     },
-    [clampZoom, scale, onZoomChange],
+    [clampZoom, scale, onZoomChange, pauseFollowing],
   );
 
   const fit = useCallback(() => {
@@ -441,10 +477,12 @@ const ConnectionFlow = React.forwardRef<
   }, [layout, drawing.offsetX, drawing.offsetY, drawing.width, drawing.height, maxZoom, clampZoom, onZoomChange]);
 
   useImperativeHandle(ref, () => ({
+    pauseFollowing,
+    resumeFollowing: () => requestFollow("following"),
     dismissGhost: (id: string) => editorRef.current?.dismissGhost(id),
     zoomIn: () => setZoom(scale * 1.2),
     zoomOut: () => setZoom(scale / 1.2),
-    fit: () => { manuallyNavigated.current = true; fit(); },
+    fit: () => { manuallyNavigated.current = true; pauseFollowing(); fit(); },
     setZoom: (value: number) => setZoom(value),
   }));
 
@@ -482,12 +520,45 @@ const ConnectionFlow = React.forwardRef<
   }, [interactive, scale, setZoom, loading, nodes.length > 0]);
 
   useEffect(() => {
-    if (fitOnLoad && viewport.width && !manuallyNavigated.current) fit();
+    if (follow === "off" && fitOnLoad && viewport.width && !manuallyNavigated.current) fit();
     // Keyed on the graph and the viewport, deliberately *not* on `layout`:
     // Manual navigation owns the view after the first user gesture.
     // Expanding a card's item list changes the layout, and refitting on that
     // would slide the whole graph out from under the pointer that opened it.
-  }, [fitOnLoad, nodes, viewport.width, viewport.height]);
+  }, [fitOnLoad, nodes, viewport.width, viewport.height, follow]);
+
+  const activeCards = layout.nodes.filter(n => activeNodeIds ? activeNodeIds.includes(n.id) : nodeIsActive(n.node));
+  const followTargets = JSON.stringify(activeCards.map(n => [n.x, n.y, n.width, n.height]));
+  useEffect(() => {
+    cancelFollow();
+    const element = viewportRef.current;
+    const boxes = JSON.parse(followTargets) as number[][];
+    if (follow !== "following" || loading || !element || !boxes.length || !viewport.width || !viewport.height) return;
+    const left = Math.min(...boxes.map(b => b[0])), top = Math.min(...boxes.map(b => b[1]));
+    const right = Math.max(...boxes.map(b => b[0] + b[2])), bottom = Math.max(...boxes.map(b => b[1] + b[3]));
+    const padding = Number.isFinite(followPadding) ? Math.max(0, followPadding) : 40;
+    const next = clampZoom(Math.min(maxZoom, Math.max(1, viewport.width - 2 * padding) / Math.max(1, right - left), Math.max(1, viewport.height - 2 * padding) / Math.max(1, bottom - top)));
+    const from = { scale: currentScale.current, x: element.scrollLeft, y: element.scrollTop };
+    const target = { x: Math.max(0, ((left + right) / 2 - drawing.offsetX) * next - viewport.width / 2), y: Math.max(0, ((top + bottom) / 2 - drawing.offsetY) * next - viewport.height / 2) };
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const duration = reduced || !animated ? 0 : Number.isFinite(followDuration) ? Math.max(0, followDuration) : 400;
+    const start = performance.now();
+    const tick = (time: number) => {
+      const progress = duration ? Math.min(1, Math.max(0, (time - start) / duration)) : 1;
+      const ease = 1 - (1 - progress) ** 3;
+      const value = from.scale + (next - from.scale) * ease;
+      pendingScroll.current = el => {
+        el.scrollLeft = from.x + (target.x - from.x) * ease;
+        el.scrollTop = from.y + (target.y - from.y) * ease;
+      };
+      // Scroll must also update when only the target position changes.
+      if (value === currentScale.current) { pendingScroll.current(element); pendingScroll.current = null; }
+      setScale(value); followZoomChange.current?.(value);
+      followFrame.current = progress < 1 ? requestAnimationFrame(tick) : null;
+    };
+    if (duration) followFrame.current = requestAnimationFrame(tick); else tick(start);
+    return cancelFollow;
+  }, [follow, followTargets, viewport.width, viewport.height, drawing.offsetX, drawing.offsetY, followPadding, followDuration, animated, loading, clampZoom, maxZoom, cancelFollow]);
 
   const onHover = (node: LaidOutNode | null) => {
     setHoveredId(node?.id ?? null);
@@ -623,12 +694,14 @@ const ConnectionFlow = React.forwardRef<
         <ScrollArea
           variant="auto"
           viewportRef={viewportRef}
+          data-follow-mode={follow}
           viewportClassName="!overflow-hidden"
           className="h-full w-full min-w-0 select-none"
           style={{ cursor: panning ? "grabbing" : undefined }}
           onPointerDown={(event) => {
             if (event.button === 0 && editMode && !(event.target as Element).closest('[data-flow-node], [data-flow-connection-hit], button, input, select, textarea')) selectConnection(null);
             if (!interactive || event.button !== 0) return;
+            if ((event.target as Element).closest?.('[data-slot="scrollarea-scrollbar"]')) pauseFollowing();
             // In edit mode a card's centre belongs to selection. Capturing
             // it for pan retargets the click away from the node's editor.
             if (editMode && (event.target as HTMLElement).closest('[data-flow-node]')) return;
@@ -647,6 +720,7 @@ const ConnectionFlow = React.forwardRef<
             const element = viewportRef.current;
             if (!element) return;
             manuallyNavigated.current = true;
+            pauseFollowing();
             setPanning(true);
             panStart.current = {
               x: event.clientX,
@@ -692,7 +766,7 @@ const ConnectionFlow = React.forwardRef<
               scale={scale} offsetX={rendererProps.offsetX} offsetY={rendererProps.offsetY}
               tone={tone} variant={surfaceVariant} edgeStyle={edgeStyle}
               onCreate={(id, placement) => { selectConnection(null); onNodeCreate?.(id, placement); }} onConnect={onConnect} onBounds={onEditBounds}
-              onStart={() => { manuallyNavigated.current = true; }} />
+              onStart={() => { manuallyNavigated.current = true; pauseFollowing(); }} />
           </div>
         </ScrollArea>
 
@@ -702,6 +776,11 @@ const ConnectionFlow = React.forwardRef<
             <div
               data-no-pan
               className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90">
+              <button type="button" aria-pressed={follow === "following"}
+                className="rounded-md px-2 py-1 text-xs text-neutral-600 hover:bg-black/5 dark:text-neutral-300 dark:hover:bg-white/10"
+                onClick={() => follow === "following" ? pauseFollowing() : requestFollow("following")}>
+                {follow === "following" ? "Pause following" : follow === "paused" ? "Resume following" : "Follow active"}
+              </button>
               <IconButton
                 icon={FIT_ICON}
                 size="xs"
@@ -709,7 +788,7 @@ const ConnectionFlow = React.forwardRef<
                 color="slate"
                 srLabel="Fit to view"
                 tooltip="Fit to view"
-                onClick={() => { manuallyNavigated.current = true; fit(); }}
+                onClick={() => { manuallyNavigated.current = true; pauseFollowing(); fit(); }}
               />
               <IconButton
                 icon={MINUS_ICON}

@@ -59,6 +59,26 @@ describe("CollapsiblePanel", () => {
   });
 
   describe("toggling", () => {
+    it("keeps scroll constraints stable while collapsing overflowing content", () => {
+      const { container } = render(
+        <CollapsiblePanel title="Long logs" defaultExpanded contentMaxHeight={180} minExpandedHeight={100}>
+          {Array.from({ length: 50 }, (_, i) => <div key={i}>Log entry {i}</div>)}
+        </CollapsiblePanel>,
+      );
+      const region = container.querySelector<HTMLElement>('[role="region"]')!;
+      const content = region.firstElementChild as HTMLElement;
+      const expandedHeight = content.style.maxHeight;
+      expect(expandedHeight).toBe("min(180px, 65vh)");
+      expect(content).toHaveClass("overflow-y-auto");
+      fireEvent.click(screen.getByRole("button", { name: "Long logs" }));
+      expect(region.parentElement).toHaveStyle({ gridTemplateRows: "0fr" });
+      expect(content.style.maxHeight).toBe(expandedHeight);
+      expect(content).toHaveStyle({ minHeight: "100px" });
+      expect(content).toHaveClass("overflow-y-auto");
+      expect(region).toHaveAttribute("inert");
+      fireEvent.click(screen.getByRole("button", { name: "Long logs" }));
+      expect(content.style.maxHeight).toBe(expandedHeight);
+    });
     it("is uncontrolled by default and follows defaultExpanded", () => {
       render(
         <CollapsiblePanel title="Logs" defaultExpanded>

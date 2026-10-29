@@ -31,6 +31,10 @@ import RetryPaths from "./examples/RetryPaths";
 import retryPathsCode from "./examples/RetryPaths.tsx?raw";
 import Pipeline from "./examples/Pipeline";
 import pipelineCode from "./examples/Pipeline.tsx?raw";
+import FollowActive from "./examples/FollowActive";
+import followActiveCode from "./examples/FollowActive.tsx?raw";
+import LiveRelease from "./examples/LiveRelease";
+import liveReleaseCode from "./examples/LiveRelease.tsx?raw";
 
 export const ConnectionFlowPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -44,6 +48,10 @@ export const ConnectionFlowPage: React.FC = () => (
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
         Examples
       </h2>
+      <ExampleCard title="Play a complex release" description="A 17-stage simulation with a nested build ladder, parallel checks and artifact builds, an integration failure and retry, approval gates and production rollout. Play, pause, step or restart; tune playback speed. The camera follows active work without overriding manual navigation."
+        code={liveReleaseCode} filename="LiveRelease.tsx"><LiveRelease /></ExampleCard>
+      <ExampleCard title="Follow active cards" description="Advance activity to animate between a single active card and multiple active cards. The camera frames their combined bounds. Manual pan, scrollbar drag, fit or zoom pauses following; resume from the toolbar."
+        code={followActiveCode} filename="FollowActive.tsx"><FollowActive /></ExampleCard>
       <ExampleCard title="Edit mode" description="Drag from a card’s edge into empty space to add a node, or onto another card to connect it. Click the middle to edit a card. Select a line to edit its label, type, description or tone, or delete it. This example supplies its own SidePanel, fields and save/cancel handlers; the component supplies the ghost previews and requests. See Building an editor above for the data model and creation lifecycle." code={editModeCode} filename="EditMode.tsx"><EditMode /></ExampleCard>
       <ExampleCard title="Connection tones and metadata" description="Connections inherit the source node’s tone. Override tone for independent success and failure paths without changing the cards. type is free text, description supplies supporting accessible text, and data carries application-owned rules. These fields do not change execution or create a condition engine. Select, edit and delete lines in the Edit mode example above." code={connectionTonesCode} filename="ConnectionTones.tsx"><ConnectionTones /></ExampleCard>
       <ExampleCard title="Wrapped captions" description="Connector captions wrap inside their route with margins on both sides. Each card gap and row boundary grows independently when needed; shorter captions reserve less space than longer captions. Measured caption bounds reserve corridor space; other paths avoid the caption, and fit includes its full bounds. Solid surfaces use a neutral gray treatment for contrast." code={captionsCode} filename="Captions.tsx"><Captions /></ExampleCard>

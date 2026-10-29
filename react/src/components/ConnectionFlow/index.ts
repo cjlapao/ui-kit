@@ -3,7 +3,7 @@ export { default as ConnectionFlowSvg } from "./ConnectionFlowSvg";
 export { default as ConnectionFlowNodeBody } from "./ConnectionFlowNodeBody";
 export { default as ConnectionFlowHeader } from "./ConnectionFlowHeader";
 export { default as ConnectionFlowSkeleton } from "./ConnectionFlowSkeleton";
-export type { ConnectionFlowProps, ConnectionFlowHandle } from "./ConnectionFlow";
+export type { ConnectionFlowProps, ConnectionFlowHandle, ConnectionFlowFollowMode } from "./ConnectionFlow";
 
 /**
  * The model, the layout engine and the painter are framework-agnostic and live

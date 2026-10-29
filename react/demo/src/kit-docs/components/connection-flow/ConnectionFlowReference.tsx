@@ -128,6 +128,8 @@ export const ConnectionFlowReference: React.FC = () => (
       { name: "highlightPath", type: "boolean", default: "true", description: "Highlight incoming paths on hover or focus and dim unrelated cards and links." },
       { name: "showControls / fitOnLoad / interactive", type: "boolean / boolean / boolean", default: "true / false / true", description: "Show in-canvas zoom controls, fit initially, and enable drag pan plus modified-wheel zoom. Controls and ref methods remain usable when interactive is false." },
       { name: "minZoom / maxZoom", type: "number / number", default: "0.25 / 2", description: "Zoom bounds as scale factors; 1 means 100%." },
+      { name: "followMode / defaultFollowMode / onFollowModeChange", type: '"off" | "following" | "paused" / callback', default: '— / "off"', description: "Controlled or uncontrolled active-card following. Smoothly frames all active cards, including nested chain cards. Manual camera navigation pauses follow. Toolbar and ref pauseFollowing/resumeFollowing provide explicit control. No active cards holds the current view. Overrides fitOnLoad while following." },
+      { name: "activeNodeIds / followPadding / followDuration", type: "readonly string[] / number / number", default: "status-derived / 40 / 400", description: "Override active:true or status=running detection. Padding in CSS pixels; camera duration in milliseconds. Respects minZoom/maxZoom; lower minZoom for widely separated active cards. Reduced motion or animated=false disables camera tweening." },
       { name: "height", type: "number | string", default: "320", description: "Drawing viewport height in pixels or a CSS height value." },
       { name: "title / subtitle / eyebrow / icon", type: "ReactNode", description: "Header title, supporting line, uppercase eyebrow and icon content. A registry icon name is also accepted." },
       { name: "iconCorner", type: "SurfaceCorner", default: '"rounded-md"', description: "Header icon chip corner treatment." },
@@ -170,6 +172,7 @@ export const ConnectionFlowReference: React.FC = () => (
     ]} />
     <PropsTable title="ConnectionFlowHandle (ref)" props={[
       { name: "dismissGhost(ghostId)", type: "(string) => void", description: "Remove an unresolved draft, for example when your configuration form is canceled. Does not delete real nodes." },
+      { name: "pauseFollowing() / resumeFollowing()", type: "() => void", description: "Stop the follow camera immediately or resume framing current active cards. Controlled followMode requires the consumer to accept onFollowModeChange." },
       { name: "zoomIn() / zoomOut()", type: "() => void", description: "Increase or decrease the current scale within the zoom bounds." },
       { name: "fit()", type: "() => void", description: "Fit the drawing, including pending ghosts and caption bounds, to the viewport." },
       { name: "setZoom(scale)", type: "(number) => void", description: "Set a bounded zoom scale; pass 1 for 100%." },

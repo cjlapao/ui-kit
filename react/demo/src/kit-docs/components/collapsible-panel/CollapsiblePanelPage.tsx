@@ -16,6 +16,8 @@ import BuildConfiguration from "./examples/BuildConfiguration";
 import buildConfigurationCode from "./examples/BuildConfiguration.tsx?raw";
 import Accordion from "./examples/Accordion";
 import accordionCode from "./examples/Accordion.tsx?raw";
+import OverflowCollapse from "./examples/OverflowCollapse";
+import overflowCollapseCode from "./examples/OverflowCollapse.tsx?raw";
 
 
 export const CollapsiblePanelPage: React.FC = () => (
@@ -29,6 +31,11 @@ export const CollapsiblePanelPage: React.FC = () => (
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
         Examples
       </h2>
+      <ExampleCard title="Collapse overflowing content"
+        description="Two nested scroll areas inside a body capped at 180px. Scroll the lists, then collapse using the header or external button. The panel should shrink directly without first expanding to its full content height."
+        code={overflowCollapseCode} filename="OverflowCollapse.tsx">
+        <OverflowCollapse />
+      </ExampleCard>
       <ExampleCard
         title="Deployment logs"
         description="An open panel with a subtitle and a header action. The log output exceeds `contentMaxHeight`, so the body scrolls instead of growing."

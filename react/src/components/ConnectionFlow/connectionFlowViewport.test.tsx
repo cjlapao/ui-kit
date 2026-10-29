@@ -23,6 +23,41 @@ const NODES: ConnectionFlowNode[] = [
  * "show more" did nothing at all.
  */
 describe("ConnectionFlow viewport", () => {
+  it("frames one or multiple active cards, pauses on zoom and resumes", () => {
+    const observers: { callback: ResizeObserverCallback; target?: Element }[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      entry: { callback: ResizeObserverCallback; target?: Element };
+      constructor(callback: ResizeObserverCallback) { this.entry = { callback }; observers.push(this.entry); }
+      observe(target: Element) { this.entry.target = target; }
+      disconnect() {}
+    });
+    const nodes: ConnectionFlowNode[] = Array.from({ length: 6 }, (_, i) => ({ id: String(i), title: `Step ${i}` }));
+    const change = vi.fn();
+    const view = (ids: string[]) => <ConnectionFlow nodes={nodes} defaultFollowMode="following" activeNodeIds={ids} followDuration={0} minZoom={.05} onFollowModeChange={change} />;
+    const { container, rerender, getByTitle, getByLabelText, getByRole } = render(view(["0"]));
+    const viewport = container.querySelector('[data-slot="scrollarea-viewport"]')!;
+    act(() => observers.filter(o => o.target === viewport).forEach(o => o.callback([{ target: viewport, contentRect: { width: 600, height: 300 } } as ResizeObserverEntry], {} as ResizeObserver)));
+    const closeZoom = Number(getByTitle("Zoom level").textContent?.replace("%", ""));
+    expect(closeZoom).toBeGreaterThan(100);
+    rerender(view(["0", "5"]));
+    const wideZoom = Number(getByTitle("Zoom level").textContent?.replace("%", ""));
+    expect(wideZoom).toBeLessThan(closeZoom);
+    fireEvent.click(getByLabelText("Zoom in"));
+    expect(change).toHaveBeenLastCalledWith("paused");
+    const manualZoom = getByTitle("Zoom level").textContent;
+    rerender(view(["3"]));
+    expect(getByTitle("Zoom level").textContent).toBe(manualZoom);
+    fireEvent.click(getByRole("button", { name: "Resume following" }));
+    expect(change).toHaveBeenLastCalledWith("following");
+    expect(Number(getByTitle("Zoom level").textContent?.replace("%", ""))).toBeGreaterThan(wideZoom);
+  });
+  it("requests controlled follow changes without taking ownership", () => {
+    const change = vi.fn();
+    const { getByRole } = render(<ConnectionFlow nodes={NODES} followMode="off" onFollowModeChange={change} />);
+    fireEvent.click(getByRole("button", { name: "Follow active" }));
+    expect(change).toHaveBeenCalledWith("following");
+    expect(getByRole("button", { name: "Follow active" })).toHaveAttribute("aria-pressed", "false");
+  });
   const viewportOf = (container: HTMLElement) =>
     container.querySelector<HTMLElement>('[data-slot="scrollarea-viewport"]')!;
   const frameOf = (container: HTMLElement) =>
