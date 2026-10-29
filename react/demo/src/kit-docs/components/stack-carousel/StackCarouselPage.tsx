@@ -15,6 +15,9 @@ export default function StackCarouselPage() {
   const [wheel, setWheel] = useState(true);
   const [navigators, setNavigators] = useState(true);
   const [showStatus, setShowStatus] = useState(true);
+  const [loop, setLoop] = useState(true), [expandable, setExpandable] = useState(true);
+  const [expanded, setExpanded] = useState(false), [showExpandButton, setShowExpandButton] = useState(true);
+  const [expandOnHover, setExpandOnHover] = useState(false), [hoverExpandDelay, setHoverExpandDelay] = useState(2000);
   const [variant, setVariant] = useState<PanelProps["variant"]>("elevated");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [offset, setOffset] = useState(12);
@@ -33,10 +36,17 @@ export default function StackCarouselPage() {
       <ToggleRow label="Wheel navigation" checked={wheel} onChange={setWheel} />
       <ToggleRow label="Navigation buttons" checked={navigators} onChange={setNavigators} />
       <ToggleRow label="Title and position" checked={showStatus} onChange={setShowStatus} />
+      <ToggleRow label="Infinite navigation" checked={loop} onChange={setLoop} />
+      <ToggleRow label="Allow expansion" checked={expandable} onChange={setExpandable} />
+      <ToggleRow label="Expand button" checked={showExpandButton} onChange={setShowExpandButton} />
+      <ToggleRow label="Expand after stationary hover" checked={expandOnHover} onChange={setExpandOnHover} />
+      <ChoiceControl label="Hover delay" options={[1000, 2000, 3000].map(value => ({ label: `${value / 1000}s`, value: String(value) }))} value={String(hoverExpandDelay)} onChange={value => setHoverExpandDelay(Number(value))} />
+      <button type="button" aria-expanded={expandable && expanded} disabled={!expandable} onClick={() => setExpanded(value => !value)} className="rounded-md border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-700">Consumer button: {expanded ? "collapse" : "expand"}</button>
     </div>} preview={
       <div className="mx-auto w-full max-w-lg py-4">
         <StackCarousel items={TASKS.slice(0, count)} getItemKey={task => task.id} getItemLabel={task => task.title}
           activeIndex={index} onActiveIndexChange={setIndex} visibleCount={visibleCount} wheel={wheel} showNavigators={navigators} showStatus={showStatus}
+          loop={loop} expandable={expandable} expanded={expanded} onExpandedChange={setExpanded} showExpandButton={showExpandButton} expandOnHover={expandOnHover} hoverExpandDelay={hoverExpandDelay}
           variant={variant} tone={tone} stackOffset={offset} corner={corner} padding={padding} renderItem={task => <TaskContent task={task} />} />
       </div>
     } />
@@ -47,8 +57,13 @@ export default function StackCarouselPage() {
       <A11yTopic title="Internationalization"><p>Provide ariaLabel, previousLabel, nextLabel, getItemLabel and emptyState in your app’s language. Item content is supplied by the consumer.</p></A11yTopic>
     </A11ySection>
     <PropsTable props={[
+      { name: "loop", type: "boolean", default: "true", description: "Set false for finite wheel, swipe, keyboard and button navigation. Stops at the first/last item, disables end navigators, and never peeks wrapped items." },
+      { name: "expandable / expanded / defaultExpanded / onExpandedChange", type: "boolean / boolean / boolean / (expanded) => void", default: "false / — / false / —", description: "Enable expansion into a vertical list with every card interactive. Control expanded from any consumer button, or use internal state. Expanded mode preserves the active index and uses normal page scrolling." },
+      { name: "showExpandButton / expandOnHover / hoverExpandDelay", type: "boolean / boolean / number", default: "false / false / 2000", description: "Optional footer expand/collapse button, independent of navigators. Stationary mouse hover expands after the delay (ms); pointer movement and wheel activity restart the timer, including nested scrolling and when wheel navigation is disabled. Only hover-opened lists collapse on pointer leave. Touch does not trigger hover expansion." },
+      { name: "expandLabel / collapseLabel", type: "string", default: '"Expand stack" / "Collapse stack"', description: "Consumer-localized toggle labels." },
+      { name: "hoverCollapseDelay", type: "number", default: "500", description: "Delay in milliseconds before a hover-opened list collapses after pointer leave. Returning before the delay cancels collapse. Button-opened lists remain open." },
       { name: "showStatus", type: "boolean", default: "true", description: "Hide the title and position below the deck when false. Screen-reader navigation announcements remain available. Independent of showNavigators; hiding both removes the visible footer space." },
-      { name: "items / renderItem / getItemKey", type: "readonly T[] / (item, index) => ReactNode / (item, index) => Key", description: "Supply nodes or render data. Stable keys preserve visible card state during rotations. Only the visible layers and outgoing card are mounted." },
+      { name: "items / renderItem / getItemKey", type: "readonly T[] / (item, index) => ReactNode / (item, index) => Key", description: "Supply nodes or render data. Stable keys preserve visible card state during rotations. Collapsed mode mounts only visible layers and the outgoing card; expanded mode mounts all items." },
       { name: "activeIndex / defaultActiveIndex", type: "number", default: "— / 0", description: "Controlled or initial active index. Navigation wraps continuously in both directions." },
       { name: "onActiveIndexChange", type: "(index: number) => void", description: "Called for wheel, swipe, keyboard, navigator and peeking-card navigation." },
       { name: "visibleCount / stackOffset", type: "number", default: "3 / 12", description: "Includes the active card; visible layers are capped at three. Each peeking layer adds stackOffset pixels to the measured active height." },

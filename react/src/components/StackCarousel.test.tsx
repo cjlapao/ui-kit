@@ -1,12 +1,89 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StackCarousel } from "./StackCarousel";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 const items = ["One", "Two", "Three", "Four", "Five"];
 const deck = (extra = {}) => <StackCarousel items={items} getItemLabel={item => item} {...extra} />;
 
 describe("StackCarousel", () => {
+  it.each([true, false])("defers hover expansion throughout wheel activity (wheel=%s)", wheel => {
+    vi.useFakeTimers();
+    render(deck({ expandable: true, expandOnHover: true, showExpandButton: true, wheel }));
+    const root = screen.getByRole("region");
+    fireEvent.pointerEnter(root);
+    act(() => vi.advanceTimersByTime(1500));
+    fireEvent.wheel(root, { deltaY: 80 });
+    act(() => vi.advanceTimersByTime(1500));
+    expect(screen.getByRole("button", { name: "Expand stack" })).toBeInTheDocument();
+    fireEvent.wheel(root, { deltaX: 40 });
+    act(() => vi.advanceTimersByTime(1999));
+    expect(screen.getByRole("button", { name: "Expand stack" })).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("button", { name: "Collapse stack" })).toBeInTheDocument();
+  });
+  it("stops finite navigation at both ends and never wraps peeking layers", () => {
+    const change = vi.fn();
+    const { container } = render(deck({ loop: false, onActiveIndexChange: change }));
+    const root = screen.getByRole("region");
+    expect(screen.getByRole("button", { name: "Previous item" })).toBeDisabled();
+    fireEvent.keyDown(root, { key: "ArrowUp" });
+    expect(change).not.toHaveBeenCalled();
+    fireEvent.keyDown(root, { key: "End" });
+    expect(screen.getByRole("button", { name: "Next item" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Show One" })).toBeNull();
+    expect(container.querySelectorAll('[data-stack-rank="1"]')).toHaveLength(0);
+    change.mockClear();
+    fireEvent.wheel(root, { deltaY: 100 });
+    fireEvent.keyDown(root, { key: "ArrowDown" });
+    expect(change).not.toHaveBeenCalled();
+  });
+
+  it("expands all items with an independent footer button and preserves selection", () => {
+    render(<StackCarousel items={items} expandable showExpandButton showNavigators={false} defaultActiveIndex={2}
+      renderItem={item => <button>{item} action</button>} />);
+    fireEvent.click(screen.getByRole("button", { name: "Expand stack" }));
+    for (const item of items) expect(screen.getByRole("button", { name: `${item} action` })).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("region"), { key: "ArrowDown" });
+    fireEvent.click(screen.getByRole("button", { name: "Collapse stack" }));
+    expect(screen.getByRole("status")).toHaveTextContent("3 / 5");
+    expect(document.querySelector('[data-stack-rank="1"] [inert]')).not.toBeNull();
+  });
+
+  it("allows consumer-controlled expansion without taking ownership", () => {
+    const change = vi.fn();
+    const { rerender } = render(deck({ expandable: true, expanded: false, showExpandButton: true, onExpandedChange: change }));
+    fireEvent.click(screen.getByRole("button", { name: "Expand stack" }));
+    expect(change).toHaveBeenCalledWith(true);
+    expect(screen.getByRole("button", { name: "Expand stack" })).toHaveAttribute("aria-expanded", "false");
+    rerender(deck({ expandable: true, expanded: true, showExpandButton: true, onExpandedChange: change }));
+    expect(screen.getByRole("button", { name: "Collapse stack" })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("restarts stationary-hover timing on movement and collapses hover-opened lists", () => {
+    vi.useFakeTimers();
+    render(deck({ expandable: true, expandOnHover: true, showExpandButton: true, hoverExpandDelay: 2000 }));
+    const root = screen.getByRole("region");
+    fireEvent.pointerEnter(root);
+    act(() => vi.advanceTimersByTime(1500));
+    fireEvent.pointerMove(root);
+    act(() => vi.advanceTimersByTime(1500));
+    expect(screen.getByRole("button", { name: "Expand stack" })).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByRole("button", { name: "Collapse stack" })).toBeInTheDocument();
+    fireEvent.pointerLeave(root);
+    act(() => vi.advanceTimersByTime(499));
+    expect(screen.getByRole("button", { name: "Collapse stack" })).toBeInTheDocument();
+    fireEvent.pointerEnter(root);
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByRole("button", { name: "Collapse stack" })).toBeInTheDocument();
+    fireEvent.pointerLeave(root);
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByRole("button", { name: "Expand stack" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Expand stack" }));
+    fireEvent.pointerLeave(root);
+    expect(screen.getByRole("button", { name: "Collapse stack" })).toBeInTheDocument();
+  });
   it("wraps in both directions using keyboard and navigators", () => {
     render(deck());
     const root = screen.getByRole("region", { name: "Card stack" });

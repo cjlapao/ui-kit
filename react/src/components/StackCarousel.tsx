@@ -16,6 +16,22 @@ export interface StackCarouselProps<T = React.ReactNode> extends Omit<React.HTML
   stackOffset?: number;
   /** @default true */
   wheel?: boolean;
+  /** Wrap at either end. @default true */
+  loop?: boolean;
+  /** Allow the deck to expand into a list. @default false */
+  expandable?: boolean;
+  expanded?: boolean;
+  defaultExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  showExpandButton?: boolean;
+  /** Expand after the mouse remains still; collapse on pointer leave. */
+  expandOnHover?: boolean;
+  /** Stationary hover delay in milliseconds. @default 2000 */
+  hoverExpandDelay?: number;
+  /** Hover-opened stacks collapse this long after leaving; re-entry cancels it. @default 500 */
+  hoverCollapseDelay?: number;
+  expandLabel?: string;
+  collapseLabel?: string;
   /** @default true */
   swipe?: boolean;
   /** @default true */
@@ -38,13 +54,35 @@ const wrap = (index: number, count: number) => count ? ((Math.trunc(index) % cou
 export function StackCarousel<T = React.ReactNode>({
   items, renderItem, getItemKey, activeIndex, defaultActiveIndex = 0, onActiveIndexChange,
   visibleCount = 3, stackOffset = 12, wheel = true, swipe = true, showNavigators = true, showStatus = true,
+  loop = true, expandable = false, expanded, defaultExpanded = false, onExpandedChange,
+  showExpandButton = false, expandOnHover = false, hoverExpandDelay = 2000, hoverCollapseDelay = 500,
+  expandLabel = "Expand stack", collapseLabel = "Collapse stack",
   ariaLabel = "Card stack", previousLabel = "Previous item", nextLabel = "Next item", getItemLabel,
   emptyState = "No items to display.", variant = "elevated", tone = "blue", corner = "auto",
-  padding = "sm", transparency, className = "", onKeyDown, style, ...rest
+  padding = "sm", transparency, className = "", onKeyDown, onPointerEnter, onPointerMove, onPointerLeave, onWheelCapture, style, ...rest
 }: StackCarouselProps<T>) {
   const [internalIndex, setInternalIndex] = useState(defaultActiveIndex);
-  const index = wrap(Number.isFinite(activeIndex ?? internalIndex) ? (activeIndex ?? internalIndex) : 0, items.length);
-  const layers = Math.min(items.length, Math.max(1, Math.min(3, Math.trunc(visibleCount) || 1)));
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const isExpanded = expandable && (expanded ?? internalExpanded);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverOpened = useRef(false);
+  const setExpanded = useCallback((value: boolean) => {
+    if (expanded === undefined) setInternalExpanded(value);
+    onExpandedChange?.(value);
+  }, [expanded, onExpandedChange]);
+  const clearHover = useCallback(() => { if (hoverTimer.current !== null) clearTimeout(hoverTimer.current); hoverTimer.current = null; }, []);
+  const clearCollapse = useCallback(() => { if (collapseTimer.current !== null) clearTimeout(collapseTimer.current); collapseTimer.current = null; }, []);
+  useEffect(() => { clearHover(); clearCollapse(); return () => { clearHover(); clearCollapse(); }; }, [expandable, expandOnHover, hoverExpandDelay, hoverCollapseDelay, isExpanded, clearHover, clearCollapse]);
+  const armHover = (event?: Pick<React.PointerEvent, "pointerType">) => {
+    clearHover();
+    clearCollapse();
+    if (!expandable || !expandOnHover || isExpanded || event?.pointerType === "touch") return;
+    hoverTimer.current = setTimeout(() => { hoverOpened.current = true; setExpanded(true); }, Math.max(0, Number.isFinite(hoverExpandDelay) ? hoverExpandDelay : 2000));
+  };
+  const normalize = useCallback((value: number) => loop ? wrap(value, items.length) : Math.max(0, Math.min(items.length - 1, Math.trunc(value))), [loop, items.length]);
+  const index = normalize(Number.isFinite(activeIndex ?? internalIndex) ? (activeIndex ?? internalIndex) : 0);
+  const layers = Math.min(loop ? items.length : items.length - index, Math.max(1, Math.min(3, Math.trunc(visibleCount) || 1)));
   const offset = Math.max(0, Number.isFinite(stackOffset) ? stackOffset : 12);
   const rootRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -55,17 +93,22 @@ export function StackCarousel<T = React.ReactNode>({
   const wheelDelta = useRef(0);
   const touch = useRef<{ x: number; y: number; target: EventTarget | null } | null>(null);
   const label = (i: number) => getItemLabel?.(items[i], i) ?? `Item ${i + 1}`;
+  useLayoutEffect(() => {
+    if (!isExpanded && document.activeElement instanceof Element &&
+        rootRef.current?.contains(document.activeElement) && document.activeElement.closest("[inert]"))
+      rootRef.current.focus({ preventScroll: true });
+  }, [isExpanded]);
 
   const navigate = useCallback((next: number, focus = false) => {
     if (items.length < 2) return;
-    const normalized = wrap(next, items.length);
+    const normalized = normalize(next);
     if (normalized === index) return;
     if (focus || measureRef.current?.contains(document.activeElement)) {
       rootRef.current?.focus({ preventScroll: true });
     }
     if (activeIndex === undefined) setInternalIndex(normalized);
     onActiveIndexChange?.(normalized);
-  }, [items.length, index, activeIndex, onActiveIndexChange]);
+  }, [items.length, index, activeIndex, onActiveIndexChange, normalize]);
 
   useLayoutEffect(() => {
     const old = previousIndex.current;
@@ -85,7 +128,7 @@ export function StackCarousel<T = React.ReactNode>({
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [index, items.length, items[index]]);
+  }, [index, items.length, items[index], isExpanded]);
 
   // Let an inner scroll area consume its own wheel/swipe until its boundary.
   const canScrollInside = useCallback((target: EventTarget | null, delta: number) => {
@@ -102,7 +145,7 @@ export function StackCarousel<T = React.ReactNode>({
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !swipe || items.length < 2) return;
+    if (!root || !swipe || isExpanded || items.length < 2) return;
     const handleMove = (event: TouchEvent) => {
       const start = touch.current;
       if (!start || event.touches.length !== 1) return;
@@ -113,11 +156,11 @@ export function StackCarousel<T = React.ReactNode>({
     };
     root.addEventListener("touchmove", handleMove, { passive: false });
     return () => root.removeEventListener("touchmove", handleMove);
-  }, [swipe, items.length, canScrollInside]);
+  }, [swipe, isExpanded, items.length, canScrollInside]);
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !wheel || items.length < 2) return;
+    if (!root || !wheel || isExpanded || items.length < 2) return;
     const handleWheel = (event: WheelEvent) => {
       if (event.ctrlKey || event.metaKey || !event.deltaY || Math.abs(event.deltaX) > Math.abs(event.deltaY)
         || canScrollInside(event.target, event.deltaY)) return;
@@ -135,14 +178,14 @@ export function StackCarousel<T = React.ReactNode>({
     };
     root.addEventListener("wheel", handleWheel, { passive: false });
     return () => root.removeEventListener("wheel", handleWheel);
-  }, [wheel, items.length, index, navigate, canScrollInside]);
+  }, [wheel, isExpanded, items.length, index, navigate, canScrollInside]);
 
-  const visible = Array.from({ length: layers }, (_, rank) => wrap(index + rank, items.length));
+  const visible = isExpanded ? items.map((_, i) => i) : Array.from({ length: layers }, (_, rank) => normalize(index + rank));
   const rendered = [...visible];
   // Retain the old front in the very first changed render, before the layout
   // effect records it, so React can animate its existing DOM node out.
   const transitionFrom = previousIndex.current !== index ? previousIndex.current : outgoing;
-  if (transitionFrom !== null && transitionFrom < items.length && !rendered.includes(transitionFrom)) rendered.push(transitionFrom);
+  if (!isExpanded && transitionFrom !== null && transitionFrom < items.length && !rendered.includes(transitionFrom)) rendered.push(transitionFrom);
 
   return (
     // A focusable carousel region owns arrow navigation; child controls keep
@@ -150,9 +193,23 @@ export function StackCarousel<T = React.ReactNode>({
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex
     <div {...rest} ref={rootRef} role="region" aria-roledescription="carousel" aria-label={ariaLabel} tabIndex={0}
       className={`min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-lg ${className}`} style={style}
+      onPointerEnter={event => { onPointerEnter?.(event); if (!event.defaultPrevented) armHover(event); }}
+      onPointerMove={event => { onPointerMove?.(event); if (!event.defaultPrevented) armHover(event); }}
+      onWheelCapture={event => {
+        onWheelCapture?.(event);
+        // Capture nested scrolling too, even when carousel wheel navigation
+        // is disabled or an inner control consumes the gesture.
+        if (event.deltaX || event.deltaY) armHover();
+      }}
+      onPointerLeave={event => {
+        onPointerLeave?.(event); clearHover(); clearCollapse();
+        if (hoverOpened.current) collapseTimer.current = setTimeout(() => {
+          collapseTimer.current = null; hoverOpened.current = false; setExpanded(false);
+        }, Math.max(0, Number.isFinite(hoverCollapseDelay) ? hoverCollapseDelay : 500));
+      }}
       onKeyDown={event => {
         onKeyDown?.(event);
-        if (event.defaultPrevented || event.target !== event.currentTarget) return;
+        if (event.defaultPrevented || event.target !== event.currentTarget || isExpanded) return;
         const next = event.key === "ArrowDown" || event.key === "ArrowRight" ? index + 1
           : event.key === "ArrowUp" || event.key === "ArrowLeft" ? index - 1
           : event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : null;
@@ -160,9 +217,9 @@ export function StackCarousel<T = React.ReactNode>({
       }}>
       {!items.length ? <div className="text-sm text-neutral-500 dark:text-neutral-400">{emptyState}</div> : <>
         <div className="relative transition-[height] duration-300 ease-out motion-reduce:transition-none"
-          data-stack-carousel-track style={{ height: height ? height + Math.max(0, layers - 1) * offset : undefined }}
+          data-stack-carousel-track data-expanded={isExpanded} style={{ height: !isExpanded && height ? height + Math.max(0, layers - 1) * offset : undefined }}
           onTouchStart={event => {
-            if (!swipe || event.touches.length !== 1) { touch.current = null; return; }
+            if (!swipe || isExpanded || event.touches.length !== 1) { touch.current = null; return; }
             const point = event.touches[0];
             touch.current = { x: point.clientX, y: point.clientY, target: event.target };
           }}
@@ -178,17 +235,17 @@ export function StackCarousel<T = React.ReactNode>({
           }}>
           {rendered.map(i => {
             const rank = visible.indexOf(i);
-            const active = rank === 0;
+            const active = isExpanded || rank === 0;
             const leaving = rank < 0;
             return (
               <div key={getItemKey?.(items[i], i) ?? i} data-stack-rank={rank}
                 className={`w-full origin-top transition-[transform,opacity,height] duration-300 ease-out motion-reduce:transition-none ${getSurfaceCornerClass(corner)}`}
-                style={{ position: height || !active ? "absolute" : "relative", top: 0,
-                  zIndex: leaving ? 4 : 3 - rank, opacity: leaving ? 0 : 1,
+                style={{ position: isExpanded ? "relative" : height || !active ? "absolute" : "relative", top: 0, marginTop: isExpanded && rank > 0 ? offset : undefined,
+                  zIndex: isExpanded ? 0 : leaving ? 4 : 3 - rank, opacity: leaving ? 0 : 1,
                   pointerEvents: leaving ? "none" : undefined,
-                  transform: leaving ? "translateY(-16px) scaleX(1.02)" : `translateY(${rank * offset}px) scaleX(${1 - rank * 0.04})`,
+                  transform: isExpanded ? "none" : leaving ? "translateY(-16px) scaleX(1.02)" : `translateY(${rank * offset}px) scaleX(${1 - rank * 0.04})`,
                   height: !active && height ? height : undefined }}>
-                <div ref={active ? measureRef : undefined} inert={!active || undefined} aria-hidden={!active || undefined}
+                <div ref={i === index ? measureRef : undefined} inert={!active || undefined} aria-hidden={!active || undefined}
                   style={{ height: !active && height ? height : undefined }}>
                   <Panel variant={variant} tone={tone} corner={corner} padding={padding} transparency={transparency}
                     scrollable={false} className={!active ? "h-full" : undefined}>
@@ -203,14 +260,15 @@ export function StackCarousel<T = React.ReactNode>({
             );
           })}
         </div>
-        <div className={showStatus || (showNavigators && items.length > 1)
+        <div className={showStatus || (showNavigators && items.length > 1) || (expandable && showExpandButton)
           ? "mt-3 flex items-center justify-between gap-3 text-xs text-neutral-600 dark:text-neutral-400" : undefined}>
           <span className={showStatus ? undefined : "sr-only"} role="status" aria-live="polite" aria-atomic="true">{label(index)} · {index + 1} / {items.length}</span>
-          {showNavigators && items.length > 1 && <div className="ml-auto flex items-center gap-1">
-            <button type="button" aria-label={previousLabel} onClick={() => navigate(index - 1)}
+          {((showNavigators && items.length > 1) || (expandable && showExpandButton)) && <div className="ml-auto flex items-center gap-1">
+            {expandable && showExpandButton && <button type="button" aria-expanded={isExpanded} onClick={() => { hoverOpened.current = false; clearHover(); clearCollapse(); setExpanded(!isExpanded); }} className="rounded-md px-2 py-1 hover:bg-black/5 dark:hover:bg-white/10">{isExpanded ? collapseLabel : expandLabel}</button>}
+            {showNavigators && !isExpanded && items.length > 1 && <><button type="button" aria-label={previousLabel} disabled={!loop && index === 0} onClick={() => navigate(index - 1)}
               className="rounded-md px-2 py-1 hover:bg-black/5 focus-visible:outline-2 dark:hover:bg-white/10">↑</button>
-            <button type="button" aria-label={nextLabel} onClick={() => navigate(index + 1)}
-              className="rounded-md px-2 py-1 hover:bg-black/5 focus-visible:outline-2 dark:hover:bg-white/10">↓</button>
+            <button type="button" aria-label={nextLabel} disabled={!loop && index === items.length - 1} onClick={() => navigate(index + 1)}
+              className="rounded-md px-2 py-1 hover:bg-black/5 focus-visible:outline-2 dark:hover:bg-white/10">↓</button></>}
           </div>}
         </div>
       </>}
