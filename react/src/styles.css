@@ -1390,3 +1390,34 @@
 /* Scrollbar gets a dedicated lane below the tab hit targets. The terminal
    supplies no tab panels here, so only the tab-strip content is affected. */
 .kit-terminal-tabs [data-slot="scrollarea-content"] { padding-bottom: 12px; }
+
+
+/* Sticky cells need an opaque backing beneath translucent stripe, selection,
+   and hover fills. Keep both layers inside the cell's stacking context so
+   scrolling text cannot paint through, and ScrollArea bars stay above it. */
+.ui-table-sticky-cell {
+  isolation: isolate;
+  --ui-table-sticky-base: var(--ui-surface-opaque, var(--color-white));
+  --ui-table-row-stripe: var(--ui-table-row-stripe-light, transparent);
+}
+.ui-table-sticky-cell:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *)) {
+  --ui-table-sticky-base: var(--ui-surface-opaque, var(--color-neutral-900));
+  --ui-table-row-stripe: var(--ui-table-row-stripe-dark, transparent);
+}
+.ui-table-sticky-cell::before,
+.ui-table-sticky-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ui-table-sticky-cell::before {
+  z-index: -2;
+  background-color: var(--ui-table-sticky-base);
+  background-image: linear-gradient(var(--ui-table-row-stripe), var(--ui-table-row-stripe));
+}
+.ui-table-sticky-cell::after {
+  z-index: -1;
+  background-color: inherit;
+  transition: inherit;
+}

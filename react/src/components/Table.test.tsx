@@ -401,8 +401,8 @@ describe("Table — tone-tinted rows", () => {
       <Table columns={baseColumns} data={rows} tone="emerald" hoverable />,
     );
     const lightTd = rowBy(container, "Zoe").querySelector("td")!;
-    expect(lightTd.className).toContain("group-hover:bg-emerald-100/55");
-    expect(lightTd.className).toContain("dark:group-hover:bg-emerald-500/13");
+    expect(lightTd.className).toContain("group-hover/table-row:bg-emerald-100/55");
+    expect(lightTd.className).toContain("dark:group-hover/table-row:bg-emerald-500/13");
   });
 
   it("gives a striped row the deeper hover step in the table tone", () => {
@@ -416,8 +416,8 @@ describe("Table — tone-tinted rows", () => {
       />,
     );
     const stripedTd = rowBy(container, "Ava").querySelector("td")!;
-    expect(stripedTd.className).toContain("group-hover:bg-emerald-100/80");
-    expect(stripedTd.className).toContain("dark:group-hover:bg-emerald-500/17");
+    expect(stripedTd.className).toContain("group-hover/table-row:bg-emerald-100/80");
+    expect(stripedTd.className).toContain("dark:group-hover/table-row:bg-emerald-500/17");
   });
 
   it("keeps the grey hover for the neutral tone", () => {
@@ -425,8 +425,8 @@ describe("Table — tone-tinted rows", () => {
       <Table columns={baseColumns} data={rows} tone="neutral" hoverable />,
     );
     const td = container.querySelector("tbody td")!;
-    expect(td.className).toContain("group-hover:bg-neutral-100/55");
-    expect(td.className).toContain("dark:group-hover:bg-neutral-800/25");
+    expect(td.className).toContain("group-hover/table-row:bg-neutral-100/55");
+    expect(td.className).toContain("dark:group-hover/table-row:bg-neutral-800/25");
   });
 
   it("lets a per-row hover class override replace the default data-row hover", () => {
@@ -442,9 +442,9 @@ describe("Table — tone-tinted rows", () => {
       />,
     );
     const overriddenTd = rowBy(container, "Ava").querySelector("td")!;
-    expect(overriddenTd.className).toContain("group-hover:bg-rose-300");
+    expect(overriddenTd.className).toContain("group-hover/table-row:bg-rose-300");
     const defaultTd = rowBy(container, "Zoe").querySelector("td")!;
-    expect(defaultTd.className).toContain("group-hover:bg-rose-100/55");
+    expect(defaultTd.className).toContain("group-hover/table-row:bg-rose-100/55");
   });
 
   it("tints the group-header row in the table tone", () => {
@@ -996,4 +996,40 @@ describe("Table — body scrolling", () => {
     expect(firstTh(container).className).not.toContain("dark:bg-neutral-800/70");
     expect(screen.getByText("Row count")).toHaveClass("dark:bg-neutral-900");
   });
+});
+
+
+describe("Table — fixed actions scrolling", () => {
+  it("scopes hover to the row while keeping the fixed action cell in the same row", () => {
+    const columns: TableColumn<Row>[] = [...baseColumns, {
+      id: "actions", header: "Actions", width: 80, isActionsColumn: true,
+      render: (row) => <button>Actions for {row.name}</button>,
+    }];
+    const { container } = render(<div className="group"><Table columns={columns} data={rows} stickyActions hoverable fullHeight /></div>);
+    const action = screen.getByText("Actions for Zoe").closest("td")!;
+    expect(action).toHaveClass("sticky", "right-0", "ui-table-sticky-cell");
+    expect(action.closest("tr")).toHaveClass("group/table-row");
+    expect(action.className).toContain("group-hover/table-row:");
+    expect(action.className).not.toContain("group-hover:");
+    expect(container.querySelector('[data-slot="scrollarea-viewport"]')).toContainElement(action);
+  });
+});
+
+
+it("backs pinned cells for striped, selected, highlighted, and hoverable rows", () => {
+  const { container } = render(<Table columns={baseColumns} data={rows} stickyActions striped hoverable selectedItems={[rows[0]]} rowHighlight={(row) => row.id === rows[2].id} />);
+  const cells = container.querySelectorAll("tbody tr td:last-child");
+  expect(cells).toHaveLength(rows.length);
+  cells.forEach((cell) => expect(cell).toHaveClass("ui-table-sticky-cell"));
+});
+
+
+it("blends sticky hover over one stripe layer, matching the rest of the row", () => {
+  const { container } = render(<Table columns={baseColumns} data={rows} stickyActions striped hoverable />);
+  const stripedRow = container.querySelectorAll("tbody tr")[1] as HTMLElement;
+  const action = stripedRow.lastElementChild!;
+  expect(stripedRow.style.getPropertyValue("--ui-table-row-stripe-dark")).toContain("15%");
+  expect(action).toHaveClass("bg-transparent");
+  expect(action.className).not.toContain("dark:bg-neutral-800/15");
+  expect(action.className).toContain("dark:group-hover/table-row:bg-neutral-800/30");
 });

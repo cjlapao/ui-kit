@@ -1724,16 +1724,17 @@ function TableComponent<T>({
     // cascade, so the whole row shifts uniformly on hover — sticky cells
     // included — without needing `!important`. Striped rows get the deeper
     // step so the hover change stays visible against the zebra wash.
-    const rowHoverClass =
+    const rowHoverClass = (
       !isSelected && !isHighlighted && hoverable
         ? (rowHoverClassName?.(row, originalIndex) ??
           (isStripedRow
             ? getStripedRowHoverClass(tone)
             : getLightRowHoverClass(tone)))
-        : undefined;
+        : undefined
+    )?.replace(/group-hover:/g, "group-hover/table-row:");
     const rowClasses = classNames(
       cellPadding,
-      "group",
+      "group group/table-row",
       isSelected
         ? selectedClass
         : isHighlighted
@@ -1749,6 +1750,17 @@ function TableComponent<T>({
       <tr role="row"
         key={key}
         className={rowClasses}
+        style={{
+          // Sticky cells must blend hover over the same stripe as normal cells.
+          "--ui-table-row-stripe-light": isStripedRow && !isSelected && !isHighlighted
+            ? `color-mix(in oklab, var(--color-${NEUTRAL_TONES.includes(tone) ? "neutral" : tone}-50) 55%, transparent)`
+            : "transparent",
+          "--ui-table-row-stripe-dark": isStripedRow && !isSelected && !isHighlighted
+            ? NEUTRAL_TONES.includes(tone)
+              ? "color-mix(in oklab, var(--color-neutral-800) 15%, transparent)"
+              : `color-mix(in oklab, var(--color-${tone}-500) 8%, transparent)`
+            : "transparent",
+        } as React.CSSProperties}
         onClick={onRowClick ? () => onRowClick(row, originalIndex) : undefined}
       >
         {/* Expand spacer column — only in grouped mode with visible group headers.
@@ -1759,7 +1771,7 @@ function TableComponent<T>({
         {showGroupExpandCol && (
           <td role="cell"
             className={classNames(
-              "w-10 sticky left-0 z-20 transition-colors duration-150 ease-out",
+              "w-10 sticky left-0 z-20 ui-table-sticky-cell transition-colors duration-150 ease-out",
               // Only apply an opaque background when there is a left-sticky data column;
               // otherwise the spacer can remain transparent.
               hasLeftStickyColumn &&
@@ -1767,7 +1779,7 @@ function TableComponent<T>({
                   ? getSelectedRowClass(controlColor)
                   : isHighlighted
                     ? getHighlightRowClass(controlColor)
-                    : baseRowBgClass),
+                    : isStripedRow ? "bg-transparent" : baseRowBgClass),
               rowHoverClass,
             )}
             aria-hidden="true"
@@ -1813,14 +1825,14 @@ function TableComponent<T>({
                 isStickyLeft && (showGroupExpandCol ? "left-10" : "left-0"),
                 // right position is set via inline style when offset > 0
                 isStickyRight && !rightOffset && "right-0",
-                (isStickyLeft || isStickyRight) && "z-10",
+                (isStickyLeft || isStickyRight) && "z-10 ui-table-sticky-cell",
                 (isStickyLeft || isStickyRight) &&
                   (isSelected
                     ? getSelectedRowClass(controlColor)
                     : isHighlighted
                       ? getHighlightRowClass(controlColor)
                       : isStripedRow
-                        ? getStripedRowClass(tone)
+                        ? "bg-transparent"
                         : (column.stickyBackgroundFn?.(row, originalIndex) ??
                           column.stickyBackground ??
                           "bg-white dark:bg-neutral-900")),
@@ -1832,7 +1844,7 @@ function TableComponent<T>({
                 (isStickyLeft || isStickyRight) &&
                   isHighlighted &&
                   hoverable &&
-                  "group-hover:brightness-95",
+                  "group-hover/table-row:brightness-95",
                 getCellAlignment(column.align),
                 // Horizontal padding. Every cell keeps a symmetric gap so
                 // adjacent columns never sit flush (bordered or not) and the

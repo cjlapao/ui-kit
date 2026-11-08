@@ -387,7 +387,7 @@ export const ScrollArea = ({
           ...(horizontal ? null : { overflowX: "hidden" as const }),
         }}
         className={classNames(
-          "h-full w-full max-h-[inherit] overflow-auto rounded-[inherit] outline-none",
+          "relative z-0 h-full w-full max-h-[inherit] overflow-auto rounded-[inherit] outline-none",
           // `max-height: inherit` is what makes a `max-h-*` frame work: a
           // percentage height would resolve against an auto-height parent
           // and the viewport would simply grow past the frame's cap, get

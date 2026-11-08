@@ -558,6 +558,12 @@ src(`@source inline("bg-{COLOR}-50/55");`);
 src(`@source inline("group-hover:bg-{COLOR}-100/{55,80}");`);
 src(`@source inline("dark:bg-{COLOR}-500/{8,20}");`);
 src(`@source inline("dark:group-hover:bg-{COLOR}-500/{13,17}");`);
+// Named table row groups prevent ancestor panels from activating every row.
+src(`@source inline("dark:group-hover/table-row:bg-neutral-800/{25,30} dark:group-hover/table-row:bg-neutral-700/60");`);
+src(`@source inline("group-hover/table-row:bg-{COLOR}-100/{55,80}");`);
+src(`@source inline("dark:group-hover/table-row:bg-{COLOR}-500/{13,17}");`);
+src(`@source inline("group-hover/table-row:bg-{COLOR}-300");`);
+src(`@source inline("dark:group-hover/table-row:bg-{COLOR}-500/35");`);
 src(`@source inline("dark:hover:bg-{COLOR}-500/35");`);
 // Cell-level group hover for pseudo group rows (AccessMatrix) — the same bold
 // fill the group-header tr paints, so all cells of the row shift together.

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ColorSwatches, Table, MultiToggle } from "@cjlapao/ui-kit";
+import { ColorSwatches, Table, MultiToggle, IconButton } from "@cjlapao/ui-kit";
 import type {
   SurfaceVariant,
   TableDensity,
@@ -83,6 +83,7 @@ const COLUMNS: TableColumn<ServiceRow>[] = [
   {
     id: "service",
     header: "Service",
+    minWidth: 240,
     accessor: "service",
     sortable: true,
     groupable: true,
@@ -90,14 +91,16 @@ const COLUMNS: TableColumn<ServiceRow>[] = [
   {
     id: "owner",
     header: "Owner",
+    minWidth: 140,
     accessor: "owner",
     sortable: true,
     groupable: true,
   },
-  { id: "region", header: "Region", accessor: "region", sortable: true },
+  { id: "region", minWidth: 120, header: "Region", accessor: "region", sortable: true },
   {
     id: "uptime",
     header: "Uptime",
+    minWidth: 120,
     accessor: "uptime",
     sortable: true,
     className: "text-right",
@@ -106,6 +109,7 @@ const COLUMNS: TableColumn<ServiceRow>[] = [
   {
     id: "status",
     header: "Status",
+    minWidth: 140,
     accessor: "status",
     sortable: true,
     render: (row) => (
@@ -143,6 +147,7 @@ export const TablePlayground: React.FC = () => {
   const [hoverable, setHoverable] = useState(true);
   const [columnSelector, setColumnSelector] = useState(true);
   const [groupable, setGroupable] = useState(true);
+  const [stickyActions, setStickyActions] = useState(true);
   const [stickyColumns, setStickyColumns] = useState(true);
   const [resizable, setResizable] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -285,6 +290,7 @@ export const TablePlayground: React.FC = () => {
                       checked={groupable}
                       onChange={setGroupable}
                     />
+                    <ToggleRow label="Fixed actions" checked={stickyActions} onChange={setStickyActions} />
                     <ToggleRow
                       label="Sticky columns"
                       checked={stickyColumns}
@@ -329,7 +335,13 @@ export const TablePlayground: React.FC = () => {
       preview={
         <div className="w-full min-w-0 overflow-hidden" style={fullHeight ? { height: 480, resize: "both", maxWidth: "100%", minWidth: 240, minHeight: 200 } : undefined}>
           <Table<ServiceRow>
-            columns={COLUMNS}
+            columns={[...COLUMNS, {
+              id: "actions",
+              header: "Actions",
+              width: 96,
+              isActionsColumn: true,
+              render: (row) => <IconButton icon="DotsVertical" variant="ghost" aria-label={`Actions for ${row.service}`} onClick={() => pushLog(`Actions: ${row.service}`)} />,
+            }]}
             data={PREVIEW_ROWS}
             rowKey={(row) => row.id}
             variant={variant}
@@ -343,6 +355,7 @@ export const TablePlayground: React.FC = () => {
             showColumnSelector={columnSelector}
             groupable={groupable}
             userStickyColumns={stickyColumns}
+            stickyActions={stickyActions}
             resizableColumns={resizable}
             showGroupHeader
             storageKey={persist ? "playground" : undefined}

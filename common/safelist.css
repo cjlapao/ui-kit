@@ -266,6 +266,11 @@
 @source inline("group-hover:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-100/{55,80}");
 @source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/{8,20}");
 @source inline("dark:group-hover:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/{13,17}");
+@source inline("dark:group-hover/table-row:bg-neutral-800/{25,30} dark:group-hover/table-row:bg-neutral-700/60");
+@source inline("group-hover/table-row:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-100/{55,80}");
+@source inline("dark:group-hover/table-row:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/{13,17}");
+@source inline("group-hover/table-row:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-300");
+@source inline("dark:group-hover/table-row:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/35");
 @source inline("dark:hover:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/35");
 @source inline("group-hover:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-300");
 @source inline("dark:group-hover:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/35");

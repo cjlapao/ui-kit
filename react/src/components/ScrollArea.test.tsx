@@ -34,6 +34,15 @@ const overflowX = (element: HTMLElement, width: number) => {
 };
 
 describe("ScrollArea", () => {
+  it("contains sticky child stacking below the scrollbar siblings", () => {
+    render(<ScrollArea><div className="sticky right-0 z-30">Actions</div></ScrollArea>);
+    expect(viewport()).toHaveClass("relative", "z-0");
+    for (const bar of bars()) {
+      expect(viewport()).not.toContainElement(bar as HTMLElement);
+      expect(bar.parentElement).toBe(viewport().parentElement);
+    }
+  });
+
   it("controls a virtual viewport in logical units with hover-only bars", () => {
     const onScroll = vi.fn();
     render(
