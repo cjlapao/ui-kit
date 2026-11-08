@@ -46,6 +46,11 @@ export const DOC_CATEGORIES: DocCategory[] = [
 
 export const DOC_COMPONENTS: DocComponent[] = [
   {
+    slug: "knowledge-explorer", name: "Knowledge Explorer", icon: "Blueprint", category: "Data",
+    description: "Composable memory cards, searchable library, topic map, details, and linked agent traces.",
+    Page: lazy(() => import("./components/knowledge-explorer/KnowledgeExplorerPage")),
+  },
+  {
     slug: "identity-picker",
     name: "Identity Picker",
     description:
@@ -1070,6 +1075,14 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Live",
     category: "Feedback",
     Page: lazy(() => import("./components/status-spinner/StatusSpinnerPage")),
+  },
+  {
+    slug: "led",
+    name: "LED",
+    description: "A theme-aware signal light with real colors, glow and configurable motion.",
+    icon: "Live",
+    category: "Feedback",
+    Page: lazy(() => import("./components/led/LedPage")),
   },
   {
     slug: "progress-spinner",

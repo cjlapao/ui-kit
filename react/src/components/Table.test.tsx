@@ -335,7 +335,7 @@ describe("Table — tone treatment", () => {
       } else {
         expect(cls).toContain(`bg-${tone}-50`);
         expect(cls).toContain(`dark:border-${tone}-500/30`);
-        expect(cls).toContain(`dark:bg-${tone}-500/15`);
+        expect(cls).toContain(`dark:bg-${tone}-950`);
       }
       unmount();
     }
@@ -774,7 +774,7 @@ describe("Table — loading", () => {
       <Table columns={baseColumns} data={rows} loading maxHeight={200} />,
     );
     const overlay = findOverlay();
-    const scrollContainer = container.querySelector(".overflow-x-auto");
+    const scrollContainer = container.querySelector('[data-slot="scrollarea-viewport"]');
     expect(scrollContainer).toBeTruthy();
     expect(scrollContainer!.contains(overlay)).toBe(false);
   });
@@ -868,13 +868,13 @@ describe("Table — kit voice", () => {
     const utils = renderCols({ variant: "glass" });
     const glassMenu = openMenu().className;
     expect(glassMenu).toContain("backdrop-blur");
-    expect(glassMenu).toContain("bg-white/80");
+    expect(glassMenu).toContain("ui-surface-transparency-none");
     expect(glassMenu).not.toContain("bg-neutral-50/50");
     utils.unmount();
 
     const plain = renderCols({ variant: "outlined" });
     const plainMenu = openMenu();
-    expect(plainMenu.className).toContain("bg-white/90");
+    expect(plainMenu.className).toContain("ui-surface-transparency-none");
     expect(plainMenu.className).not.toContain("backdrop-blur");
     // The list scrolls with the kit's overlay bars, not a native gutter.
     expect(plainMenu.querySelector('[data-slot="scrollarea"]')).not.toBeNull();
@@ -887,7 +887,7 @@ describe("Table — kit voice", () => {
       panelTone: "violet",
     });
     const pinnedCls = openMenu().className;
-    expect(pinnedCls).toContain("bg-white/90");
+    expect(pinnedCls).toContain("ui-surface-transparency-none");
     expect(pinnedCls).not.toContain("backdrop-blur");
     pinned.unmount();
 
@@ -958,5 +958,42 @@ describe("Table — floating menus", () => {
     // not count as clicking outside it.
     fireEvent.mouseDown(screen.getByRole("button", { name: "Clear all" }));
     expect(document.querySelector('[data-slot="table-menu"]')).not.toBeNull();
+  });
+});
+
+
+describe("Table — body scrolling", () => {
+  it("keeps column headers and footer outside the body viewport", () => {
+    const { container } = render(<Table columns={baseColumns} data={rows} footer="Row count" fullHeight />);
+    const viewport = container.querySelector('[data-slot="scrollarea-viewport"]') as HTMLElement;
+    expect(viewport.querySelector("tbody")).not.toBeNull();
+    expect(viewport.querySelector("thead")).toBeNull();
+    expect(viewport.textContent).not.toContain("Row count");
+    expect(screen.getByRole("table")).toHaveClass("min-h-0", "min-w-0");
+    expect(screen.getAllByRole("columnheader")).toHaveLength(3);
+  });
+
+  it("synchronizes horizontal scrolling without moving the header vertically", () => {
+    const { container } = render(<Table columns={baseColumns} data={rows} maxHeight={200} />);
+    const viewport = container.querySelector('[data-slot="scrollarea-viewport"]') as HTMLElement;
+    const header = container.querySelector('[data-slot="table-header"]') as HTMLElement;
+    fireEvent.scroll(viewport, { target: { scrollLeft: 120, scrollTop: 80 } });
+    expect(header.scrollLeft).toBe(120);
+    expect(header.scrollTop).toBe(0);
+  });
+
+  it("keeps body scrolling aligned when focus scrolls a clipped header control", () => {
+    const { container } = render(<Table columns={baseColumns} data={rows} />);
+    const viewport = container.querySelector('[data-slot="scrollarea-viewport"]') as HTMLElement;
+    const header = container.querySelector('[data-slot="table-header"]') as HTMLElement;
+    fireEvent.scroll(header, { target: { scrollLeft: 90 } });
+    expect(viewport.scrollLeft).toBe(90);
+  });
+
+  it.each(["default", "simple", "outlined", "tonal"] as const)("uses opaque chrome for %s", (variant) => {
+    const { container } = render(<Table columns={baseColumns} data={rows} variant={variant} footer="Row count" />);
+    expect(firstTh(container).className).toContain("dark:bg-neutral-800");
+    expect(firstTh(container).className).not.toContain("dark:bg-neutral-800/70");
+    expect(screen.getByText("Row count")).toHaveClass("dark:bg-neutral-900");
   });
 });

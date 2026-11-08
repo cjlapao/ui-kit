@@ -86,6 +86,11 @@ export const TablePage: React.FC = () => (
             "Uncontrolled with defaultSort, or fully controlled via sortState + onSortChange (pair it with manualSorting and sort the data yourself). Headers carry aria-sort, and the cycle is ascending, descending, cleared.",
         },
         {
+          name: "fullHeight / maxHeight",
+          type: "boolean / string | number",
+          description: "fullHeight fills a parent with a bounded height and width. In flex/grid layouts, allow the parent to shrink with min-height: 0 and min-width: 0. maxHeight caps the header and body region otherwise. The body uses ScrollArea on both axes; the header and footer stay visible.",
+        },
+        {
           name: "pagination",
           type: "TablePaginationState",
           description:

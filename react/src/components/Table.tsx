@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/no-interactive-element-to-noninteractive-role -- Explicit cell/row roles preserve semantics inside the presentational header/body tables. */
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAnchoredPopupPosition } from "../hooks/useAnchoredPopupPosition";
@@ -15,6 +16,7 @@ import type { TrueColor } from "../theme";
 import { isGlassSurface } from "../theme/Theme";
 import { useKitT } from "../i18n";
 import { ScrollArea } from "./ScrollArea";
+import { TableViewport } from "./TableViewport";
 
 const PORTAL_ROOT = typeof document !== "undefined" ? document.body : null;
 import {
@@ -241,6 +243,7 @@ export interface TableProps<T> {
   tableClassName?: string;
   bodyClassName?: string;
   style?: React.CSSProperties;
+  /** Fill a bounded parent in both dimensions; only the body scrolls. */
   fullHeight?: boolean;
   manualSorting?: boolean;
   /** Title shown in the header bar alongside headerActions / view toggle. Defaults to empty. */
@@ -377,7 +380,7 @@ export interface TableProps<T> {
   storage?: TableStorageAdapter;
 }
 const NEUTRAL_HEADER_CLASSES =
-  "bg-neutral-50 text-neutral-700 dark:bg-neutral-800/70 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700";
+  "bg-neutral-50 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700";
 // Zebra stripe — fainted so a hovered row has room to sit between the stripe
 // and the group-header band while still reading as a faint alternation.
 const STRIPED_ROW_BG = "bg-neutral-50/55 dark:bg-neutral-800/15";
@@ -392,7 +395,7 @@ const toneHeaderClasses: Record<TrueColor, string> = {
   ...Object.fromEntries(
     TRUE_COLORS.filter((tone) => !NEUTRAL_TONES.includes(tone)).map((tone) => [
       tone,
-      `bg-${tone}-50 text-${tone}-700 dark:bg-${tone}-500/15 dark:text-${tone}-100 border-${tone}-200 dark:border-${tone}-500/30`,
+      `bg-${tone}-50 text-${tone}-700 dark:bg-${tone}-950 dark:text-${tone}-100 border-${tone}-200 dark:border-${tone}-500/30`,
     ]),
   ),
   ...Object.fromEntries(
@@ -1633,7 +1636,7 @@ function TableComponent<T>({
   const surfaceText = getSurfaceTextTokens(variant);
   const gridLinesOn = bordered && !noBorders;
 
-  const wrapperClasses = classNames(fullHeight && "h-full", className);
+  const wrapperClasses = classNames("min-w-0 max-w-full", fullHeight && "h-full w-full min-h-0", className);
   const tableClasses = classNames(
     "min-w-full divide-y",
     surfaceText.translucent ? TRANSLUCENT_ROW_RULES : SOLID_ROW_RULES,
@@ -1643,12 +1646,9 @@ function TableComponent<T>({
   const gridLineClass =
     gridLinesOn && "border-neutral-200 dark:border-neutral-700";
 
-  // On a see-through surface the header band must stay see-through too — an
-  // opaque band reads as a hole punched in the glass. The light-mode tint is a
-  // translucent half of the solid tone fill (`-50/50`); dark mode reuses the
-  // already-translucent `-500/15` tint. Neutral steps down to white/20 (its
-  // `-50` is a paper-white that would still mask the backdrop).
-  const headerToneClasses = surfaceText.translucent
+  // Explicit glass surfaces retain a translucent header tint. Other panel
+  // surfaces use opaque chrome so content never shows through the header.
+  const headerToneClasses = isGlassSurface(variant)
     ? NEUTRAL_TONES.includes(tone)
       ? "bg-white/20 text-neutral-700 border-neutral-200/60 dark:bg-white/5 dark:text-neutral-100 dark:border-white/10"
       : `bg-${tone}-50/50 text-${tone}-700 border-${tone}-200/60 dark:bg-${tone}-500/15 dark:text-${tone}-100 dark:border-${tone}-500/30`
@@ -1681,8 +1681,8 @@ function TableComponent<T>({
     1;
 
   const renderEmptyState = () => (
-    <tr>
-      <td
+    <tr role="row">
+      <td role="cell"
         colSpan={emptyColSpan}
         className={classNames(
           "px-6 py-16 text-center text-sm font-medium text-neutral-500 dark:text-neutral-300",
@@ -1746,7 +1746,7 @@ function TableComponent<T>({
     );
 
     return (
-      <tr
+      <tr role="row"
         key={key}
         className={rowClasses}
         onClick={onRowClick ? () => onRowClick(row, originalIndex) : undefined}
@@ -1757,7 +1757,7 @@ function TableComponent<T>({
             does not apply. */}
         {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable -- decorative empty spacer cell (no focusable content) */}
         {showGroupExpandCol && (
-          <td
+          <td role="cell"
             className={classNames(
               "w-10 sticky left-0 z-20 transition-colors duration-150 ease-out",
               // Only apply an opaque background when there is a left-sticky data column;
@@ -1779,7 +1779,7 @@ function TableComponent<T>({
         {/* Indent spacer — only in grouped mode without group headers */}
         {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable -- decorative empty spacer cell (no focusable content) */}
         {resolvedGroupBy && !showGroupExpandCol && (
-          <td className="w-4" aria-hidden="true" />
+          <td role="cell" className="w-4" aria-hidden="true" />
         )}
         {/* eslint-enable jsx-a11y/no-aria-hidden-on-focusable */}
         {orderedVisibleColumns.map((column, colIndex) => {
@@ -1799,7 +1799,7 @@ function TableComponent<T>({
             ? rightStickyOffsets[column.id]
             : undefined;
           return (
-            <td
+            <td role="cell"
               key={column.id}
               className={classNames(
                 "whitespace-nowrap align-middle text-sm text-neutral-700 dark:text-neutral-200",
@@ -1921,7 +1921,7 @@ function TableComponent<T>({
     >
       <div
         className={classNames(
-          "relative flex flex-col",
+          "relative flex min-w-0 flex-col",
           fullHeight && "flex-1 min-h-0 overflow-hidden",
         )}
       >
@@ -2428,24 +2428,21 @@ function TableComponent<T>({
                 className="rounded-none"
               />
             )}
-            <div
-              ref={scrollContainerRef}
-              onScroll={handleGuideScroll}
-              className={classNames(
-                "overflow-x-auto relative",
-                fullHeight ? "h-full overflow-y-auto" : "",
-                !fullHeight && maxHeight && "overflow-y-auto",
-              )}
-              style={!fullHeight ? scrollContainerStyle : undefined}
-            >
-              <div className="relative">
-                {showSkeleton ? (
-                  <TableSkeleton
-                    columns={orderedVisibleColumns.length}
-                    rows={skeletonRows}
-                  />
-                ) : (
-                  <>
+            {showSkeleton ? (
+              <ScrollArea className={fullHeight ? "h-full min-h-0" : ""} style={!fullHeight ? scrollContainerStyle : undefined}>
+                <TableSkeleton columns={orderedVisibleColumns.length} rows={skeletonRows} />
+              </ScrollArea>
+            ) : (
+              // Full-height column-resize guide, spanning the whole table.
+              <TableViewport
+                fullHeight={fullHeight}
+                maxHeight={!fullHeight ? maxHeight : undefined}
+                viewportRef={scrollContainerRef}
+                onScroll={handleGuideScroll}
+                guide={resizeGuide ? (
+                  <div aria-hidden="true" className={classNames("pointer-events-none absolute inset-y-0 z-30 w-0.5", gridLinesOn ? getResizeGuideColorClass(controlColor) : "bg-neutral-300 dark:bg-neutral-600")} style={{ left: resizeGuide.left }} />
+                ) : null}
+              >
                     <table
                       className={tableClasses}
                       style={
@@ -2512,7 +2509,7 @@ function TableComponent<T>({
                         </colgroup>
                       )}
                       <thead>
-                        <tr
+                        <tr role="row"
                           className={classNames(
                             headerToneClasses,
                             "border-b dark:border-opacity-60",
@@ -2523,7 +2520,7 @@ function TableComponent<T>({
                         rule's focusable check is a false positive here. */}
                           {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable -- decorative empty spacer header */}
                           {showGroupExpandCol && (
-                            <th
+                            <th role="columnheader"
                               scope="col"
                               className={classNames(
                                 headerToneClasses,
@@ -2541,7 +2538,7 @@ function TableComponent<T>({
                           {/* Indent spacer th for grouped mode without group headers */}
                           {/* eslint-disable jsx-a11y/no-aria-hidden-on-focusable -- decorative empty spacer header */}
                           {resolvedGroupBy && !showGroupExpandCol && (
-                            <th
+                            <th role="columnheader"
                               scope="col"
                               className="w-4"
                               aria-hidden="true"
@@ -2570,7 +2567,7 @@ function TableComponent<T>({
                               : undefined;
 
                             return (
-                              <th
+                              <th role="columnheader"
                                 key={column.id}
                                 ref={(el) => {
                                   thRefs.current[column.id] = el;
@@ -2739,7 +2736,7 @@ function TableComponent<T>({
                                   <React.Fragment key={`group-${group.key}`}>
                                     {/* Group header row */}
                                     {resolvedShowGroupHeader && (
-                                      <tr
+                                      <tr role="row"
                                         className={classNames(
                                           "cursor-pointer select-none border-b transition-colors duration-150 ease-out",
                                           getGroupHeaderBorderClass(tone),
@@ -2747,7 +2744,7 @@ function TableComponent<T>({
                                         )}
                                         onClick={() => toggleGroup(group.key)}
                                       >
-                                        <td
+                                        <td role="cell"
                                           colSpan={visibleColumns.length + 1}
                                           className={classNames(
                                             "py-2 transition-colors duration-150 ease-out",
@@ -2826,23 +2823,8 @@ function TableComponent<T>({
                             : renderEmptyState()}
                       </tbody>
                     </table>
-                    {/* Full-height column-resize guide, spanning the whole table. */}
-                    {resizeGuide && (
-                      <div
-                        aria-hidden="true"
-                        className={classNames(
-                          "pointer-events-none absolute inset-y-0 z-30 w-0.5",
-                          gridLinesOn
-                            ? getResizeGuideColorClass(controlColor)
-                            : "bg-neutral-300 dark:bg-neutral-600",
-                        )}
-                        style={{ left: resizeGuide.left }}
-                      />
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+              </TableViewport>
+            )}
           </div>
         )}
 
@@ -2861,12 +2843,8 @@ function TableComponent<T>({
                 className="rounded-none"
               />
             )}
-            <div
-              className={classNames(
-                "overflow-x-auto",
-                fullHeight ? "h-full overflow-y-auto" : "",
-                !fullHeight && maxHeight && "overflow-y-auto",
-              )}
+            <ScrollArea
+              className={classNames("min-h-0 min-w-0", fullHeight && "h-full")}
               style={!fullHeight ? scrollContainerStyle : undefined}
             >
               {showSkeleton ? (
@@ -2916,7 +2894,7 @@ function TableComponent<T>({
               ) : (
                 renderPanelEmptyState()
               )}
-            </div>
+            </ScrollArea>
           </div>
         )}
 
@@ -2924,13 +2902,11 @@ function TableComponent<T>({
         {(footer || (pagination && pagination.total > 0)) && (
           <div
             className={classNames(
-              "border-t px-6 py-3 text-sm text-neutral-600 dark:text-neutral-300",
-              // The footer band is interior chrome — on a see-through surface
-              // an opaque `bg-neutral-50` strip would seal the bottom of the
-              // glass, so it drops to the same translucent fill as the header.
-              surfaceText.translucent
+              "shrink-0 border-t px-6 py-3 text-sm text-neutral-600 dark:text-neutral-300",
+              // Match the header: opaque panel chrome, translucent explicit glass.
+              isGlassSurface(variant)
                 ? "bg-white/20 dark:bg-white/5"
-                : "bg-neutral-50 dark:bg-neutral-900/60",
+                : "bg-neutral-50 dark:bg-neutral-900",
               surfaceText.divider,
             )}
           >

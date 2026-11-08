@@ -1,0 +1,47 @@
+.kit-led {
+  position: relative;
+  display: inline-flex;
+  width: var(--led-size);
+  height: var(--led-size);
+  flex: none;
+  vertical-align: middle;
+  isolation: isolate;
+}
+.kit-led-core {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, color-mix(in srgb, currentColor 55%, white), currentColor 65%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 65%, white);
+}
+.kit-led-halo {
+  position: absolute;
+  inset: -110%;
+  border-radius: 50%;
+  background: radial-gradient(circle, currentColor 0%, color-mix(in srgb, currentColor 45%, transparent) 28%, transparent 70%);
+  opacity: calc(var(--led-glow) * .55);
+  pointer-events: none;
+}
+.kit-led[data-variant="flat"] .kit-led-core {
+  background: currentColor;
+  box-shadow: none;
+}
+.kit-led[data-lit="false"] .kit-led-core { opacity: .3; }
+.kit-led[data-animation="pulse"] .kit-led-halo { animation: kit-led-pulse var(--led-duration) ease-out infinite; }
+.kit-led[data-animation="breathe"] { animation: kit-led-breathe var(--led-duration) ease-in-out infinite; }
+.kit-led[data-animation="blink"] { animation: kit-led-blink var(--led-duration) steps(1, end) infinite; }
+.kit-led[data-animation="vibrate"] .kit-led-core { animation: kit-led-vibrate var(--led-duration) linear infinite; }
+@keyframes kit-led-pulse {
+  0% { transform: scale(.65); opacity: calc(var(--led-glow) * .8); }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes kit-led-breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@keyframes kit-led-blink { 0%, 70% { opacity: 1; } 71%, 100% { opacity: .2; } }
+@keyframes kit-led-vibrate {
+  0%, 35%, 100% { transform: translate(0, 0); }
+  5%, 15%, 25% { transform: translate(-12%, 4%); }
+  10%, 20%, 30% { transform: translate(12%, -4%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-led, .kit-led .kit-led-halo, .kit-led .kit-led-core { animation: none !important; }
+}

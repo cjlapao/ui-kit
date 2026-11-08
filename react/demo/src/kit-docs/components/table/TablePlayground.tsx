@@ -75,6 +75,10 @@ const ROWS: ServiceRow[] = [
   },
 ];
 
+const PREVIEW_ROWS = Array.from({ length: 4 }, (_, index) =>
+  ROWS.map((row) => ({ ...row, id: `${row.id}-${index}`, service: index ? `${row.service}-${index + 1}` : row.service })),
+).flat();
+
 const COLUMNS: TableColumn<ServiceRow>[] = [
   {
     id: "service",
@@ -133,6 +137,7 @@ export const TablePlayground: React.FC = () => {
   // "" = the interior controls follow the table tone.
   const [controlTone, setControlTone] = useState("");
   const [density, setDensity] = useState<TableDensity>("default");
+  const [fullHeight, setFullHeight] = useState(true);
   const [bordered, setBordered] = useState(false);
   const [striped, setStriped] = useState(true);
   const [hoverable, setHoverable] = useState(true);
@@ -249,6 +254,7 @@ export const TablePlayground: React.FC = () => {
                 title: "Options",
                 controls: (
                   <div className="grid grid-cols-1 gap-2">
+                    <ToggleRow label="Fill parent" checked={fullHeight} onChange={setFullHeight} />
                     <ToggleRow
                       label="Loading"
                       checked={loading}
@@ -304,6 +310,8 @@ export const TablePlayground: React.FC = () => {
             emptyText="No events yet — callbacks report through here."
           />
           <p className="text-xs opacity-70">
+            Enable <code>Fill parent</code> and drag the preview corner to resize both dimensions. The parent must provide a bounded height. Only the body scrolls.
+            <br />
             Toggle <code>Loading</code> to preview the three Panel-style loaders
             — the spinner/progress overlay stays pinned to the card while the
             content scrolls (the preview has a fixed height, so scroll it to
@@ -319,10 +327,10 @@ export const TablePlayground: React.FC = () => {
         </div>
       }
       preview={
-        <div className="w-full">
+        <div className="w-full min-w-0 overflow-hidden" style={fullHeight ? { height: 480, resize: "both", maxWidth: "100%", minWidth: 240, minHeight: 200 } : undefined}>
           <Table<ServiceRow>
             columns={COLUMNS}
-            data={ROWS}
+            data={PREVIEW_ROWS}
             rowKey={(row) => row.id}
             variant={variant}
             panelVariant={panelVariant as "auto" | SurfaceVariant}
@@ -352,14 +360,15 @@ export const TablePlayground: React.FC = () => {
               setSaved(next);
               pushLog("onTableSettingsChange \u2192 saved");
             }}
-            maxHeight={420}
+            fullHeight={fullHeight}
+            maxHeight={fullHeight ? undefined : 420}
             loading={loading}
             loadingMessage="Loading services…"
             loaderType={loaderType}
             loaderProgress={
               loaderType === "progress" ? loaderProgress : undefined
             }
-            footer={<span>{ROWS.length} services</span>}
+            footer={<span>{PREVIEW_ROWS.length} services</span>}
           />
         </div>
       }

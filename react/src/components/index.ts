@@ -841,6 +841,8 @@ export {
   type TimelinePanelLoaderType,
 } from "./TimelinePanel";
 
+export { Led, LED_ANIMATIONS, type LedProps, type LedAnimation, type LedVariant } from "./Led";
+
 // ConnectionFlow
 export * from "./ConnectionFlow";
 
@@ -904,3 +906,6 @@ export { Menu, MENU_VARIANTS, type MenuItem, type MenuProps } from "./Menu";
 export { FileUpload, type FileUploadProps, type FileUploadLabels, type FileRejection } from "./FileUpload";
 export { IdentityPicker, IDENTITY_EMOJIS, type IdentityPickerProps, type IdentityPickerLabels, type IdentityValue, type IdentityEmoji } from "./IdentityPicker";
 export { DotStepper, type DotStepperProps, type DotStepperStep } from "./DotStepper";
+
+// Composable knowledge and memory views
+export * from "./knowledge";

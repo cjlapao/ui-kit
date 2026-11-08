@@ -7,6 +7,8 @@
 @import "../../common/safelist.css";
 @import "../../common/surface-transparency.css";
 @import "@xterm/xterm/css/xterm.css";
+@import "./components/Led.css";
+@import "./components/knowledge/knowledge.css";
 
 @custom-variant dark (&:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *)));
 
