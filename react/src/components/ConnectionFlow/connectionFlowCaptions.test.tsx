@@ -1,3 +1,5 @@
+import { SURFACE_VARIANTS } from "../../theme/Theme";
+import { getNodeSurface } from "../../connectionFlow";
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import ConnectionFlow from "./ConnectionFlow";
@@ -237,15 +239,35 @@ describe("ConnectionFlow captions", () => {
       expect(layout.edges[0].caption!.y).toBeGreaterThan(layout.nodes[0].y);
     },
   );
-  it("uses neutral contrast on solid surfaces and preserves glass caption colors", () => {
+  it("uses readable Panel text on solid and translucent caption surfaces", () => {
     const { container, rerender } = render(
       <ConnectionFlow nodes={nodes} variant="outlined" />,
     );
     const label = () => container.querySelector("[data-edge-caption] text")!;
-    expect(label()).toHaveClass("fill-neutral-700", "dark:fill-neutral-200");
+    expect(label()).toHaveClass("fill-neutral-700", "dark:fill-neutral-300");
     expect(label().querySelectorAll("tspan").length).toBeGreaterThan(1);
     expect(label()).toHaveAttribute("aria-label", text);
     rerender(<ConnectionFlow nodes={nodes} variant="glass" />);
-    expect(label()).toHaveClass("fill-neutral-500", "dark:fill-neutral-400");
+    expect(label()).toHaveClass("fill-neutral-800", "dark:fill-neutral-100");
   });
+});
+
+it("gives captions the Panel variant fill, a rim and matching surface effects", () => {
+  const nodes: ConnectionFlowNode[] = [
+    { id: "a", title: "Start" },
+    { id: "b", title: "End", connector: { label: "Next step" } },
+  ];
+  for (const variant of SURFACE_VARIANTS) {
+    const { container, unmount } = render(<ConnectionFlow nodes={nodes} variant={variant} />);
+    const rect = container.querySelector("[data-edge-caption] rect")!;
+    const surface = getNodeSurface("neutral", variant);
+    for (const token of surface.fill.split(" ")) expect(rect).toHaveClass(token);
+    expect(rect.getAttribute("class")).toContain("stroke-");
+    expect(rect).toHaveAttribute("vector-effect", "non-scaling-stroke");
+    const mask = container.querySelector("mask")!;
+    expect(mask.querySelector('[fill="black"]')).toBeTruthy();
+    expect(container.querySelector(`g[mask="url(#${mask.id})"]`)).toBeTruthy();
+    for (const token of surface.effect.split(" ").filter(Boolean)) expect(rect).toHaveClass(token);
+    unmount();
+  }
 });

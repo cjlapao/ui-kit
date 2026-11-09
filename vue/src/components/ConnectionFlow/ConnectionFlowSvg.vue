@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, useId } from "vue";
 import classNames from "classnames";
 import ConnectionFlowNodeBody from "./ConnectionFlowNodeBody.vue";
 import {
   connectorVisual,
   dotTiming,
   getNodeSurface,
+  getCaptionSurface,
   getToneClasses,
   routeLength,
 } from "../../connectionFlow";
@@ -47,6 +48,9 @@ const props = defineProps<{
   offsetX: number;
   offsetY: number;
 }>();
+
+const captionMaskId = `flow-captions-${useId()}`;
+const captionSurface = computed(() => getCaptionSurface(props.variant));
 
 const emit = defineEmits<{
   hover: [node: LaidOutNode | null];
@@ -174,9 +178,22 @@ const nodeClasses = (laid: LaidOutNode) =>
       class="pointer-events-none absolute inset-0 h-full w-full"
       :style="{ overflow: 'visible' }"
     >
+      <defs>
+        <mask :id="captionMaskId" maskUnits="userSpaceOnUse"
+          :x="layout.offsetX - 8" :y="layout.offsetY - 8"
+          :width="layout.width - layout.offsetX + 16" :height="layout.height - layout.offsetY + 16">
+          <rect :x="layout.offsetX - 8" :y="layout.offsetY - 8"
+            :width="layout.width - layout.offsetX + 16" :height="layout.height - layout.offsetY + 16" fill="white" />
+          <template v-for="edge in layout.edges" :key="edge.id">
+            <rect v-if="edge.label && edge.caption" :x="edge.caption.x" :y="edge.caption.y"
+              :width="edge.caption.width" :height="edge.caption.height" rx="4" fill="black" />
+          </template>
+        </mask>
+      </defs>
       <g
         v-for="layer in edgeLayers"
         :key="String(layer.lit)"
+        :mask="`url(#${captionMaskId})`"
         :transform="transform"
         :opacity="layer.lit ? 1 : 0.22"
       >
@@ -233,9 +250,9 @@ const nodeClasses = (laid: LaidOutNode) =>
         <template v-for="edge in layout.edges" :key="`label-${edge.id}`">
           <g v-if="edge.label && edge.caption" :opacity="isLit(edge) ? 1 : 0.22" :data-edge-caption="edge.id">
             <rect :x="edge.caption.x" :y="edge.caption.y" :width="edge.caption.width" :height="edge.caption.height" rx="4"
-              :class="['glass','liquid-glass','default'].includes(variant) ? 'fill-white dark:fill-neutral-900' : 'fill-neutral-100 dark:fill-neutral-800'" />
+              :class="classNames(captionSurface.fill, captionSurface.stroke, captionSurface.effect)" stroke-width="1" vector-effect="non-scaling-stroke" />
             <text :x="edge.caption.x + edge.caption.width / 2" :y="edge.caption.y + 4 + edge.caption.lineHeight / 2" text-anchor="middle" dominant-baseline="central" :aria-label="edge.label"
-              :class="['glass','liquid-glass','default'].includes(variant) ? 'fill-neutral-500 text-[10px] dark:fill-neutral-400' : 'fill-neutral-700 text-[10px] dark:fill-neutral-200'">
+              :class="classNames('text-[10px]', captionSurface.text)">
               <tspan v-for="(line,index) in edge.caption.lines" :key="index" :x="edge.caption.x + edge.caption.width / 2" :dy="index === 0 ? 0 : edge.caption.lineHeight">{{ line }}</tspan>
             </text>
           </g>

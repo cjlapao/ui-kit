@@ -1,0 +1,28 @@
+/* Animate the spring inputs, then constrain the painted geometry every frame. */
+@property --mt-offset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --mt-width {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Shared segment motion; the caller selects the kit spring through custom properties. */
+.multi-toggle-indicator {
+  --mt-bounded-width: clamp(0px, var(--mt-width), max(0px, calc(var(--mt-right) - var(--mt-left))));
+  width: var(--mt-bounded-width);
+  transform: translateX(clamp(var(--mt-left), var(--mt-offset), calc(var(--mt-right) - var(--mt-bounded-width))));
+  transition-property: --mt-offset, --mt-width;
+  transition-duration: var(--mt-spring-duration, 600ms);
+  transition-timing-function: var(--mt-spring-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .multi-toggle .multi-toggle-indicator {
+    transition: none;
+  }
+}

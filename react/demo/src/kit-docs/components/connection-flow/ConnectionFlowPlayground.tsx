@@ -101,6 +101,7 @@ export const ConnectionFlowPlayground: React.FC = () => {
 
   return (
     <PlaygroundPanel
+      previewClassName="min-w-0"
       controls={
         <div className="space-y-3">
           <ControlAccordion
@@ -340,7 +341,7 @@ export const ConnectionFlowPlayground: React.FC = () => {
         </div>
       }
       preview={
-        <div className="w-full space-y-2">
+        <div className="w-full min-w-0 space-y-2">
           <ConnectionFlow
             nodes={nodes}
             variant={variant}

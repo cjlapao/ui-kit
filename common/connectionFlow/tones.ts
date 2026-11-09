@@ -1,4 +1,4 @@
-import { TRUE_COLORS, type SurfaceVariant, type TrueColor } from "../theme/Theme";
+import { TRUE_COLORS, getSurfaceTextTokens, type SurfaceVariant, type TrueColor } from "../theme/Theme";
 import {
   CONNECTOR_BULGE_MIN,
   connectorDotRadius,
@@ -143,7 +143,7 @@ const NODE_SURFACES: Record<
     effect: "",
   }),
   tonal: (tone) => ({
-    fill: `fill-${tone}-100/80 dark:fill-${tone}-500/15`,
+    fill: `fill-${tone}-200/60 dark:fill-${tone}-500/15`,
     stroke: "",
     effect: "",
   }),
@@ -163,7 +163,7 @@ const NODE_SURFACES: Record<
     effect: "drop-shadow-lg",
   }),
   simple: (tone) => ({
-    fill: `fill-${tone}-100/80 dark:fill-${tone}-500/15`,
+    fill: `fill-${tone}-200/60 dark:fill-${tone}-500/15`,
     stroke: "",
     effect: "",
   }),
@@ -176,3 +176,13 @@ export const getNodeSurface = (
   (NODE_SURFACES[variant ?? "subtle"] ?? NODE_SURFACES.subtle)(
     tone ?? "neutral",
   );
+
+/** Connector captions use a neutral Panel surface with a readable, persistent rim. */
+export const getCaptionSurface = (variant: SurfaceVariant) => {
+  const surface = getNodeSurface("neutral", variant);
+  return {
+    ...surface,
+    stroke: surface.stroke || "stroke-neutral-300 dark:stroke-neutral-600",
+    text: getSurfaceTextTokens(variant).body.replace(/text-/g, "fill-"),
+  };
+};

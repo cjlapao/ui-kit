@@ -1,65 +1,52 @@
-import React from "react";
+import React, { useMemo } from "react";
 import classNames from "classnames";
-
-import { SkeletonBar } from "../Panel";
-import { getHeaderSurface, type NodeMetrics } from "../../connectionFlow";
+import { getNodeSurface, type ConnectionFlowLayout, type NodeMetrics } from "../../connectionFlow";
+import { getSkeletonLayout, skeletonCardBars, skeletonViewBox } from "../../../../common/connectionFlow/skeleton";
 import type { SurfaceVariant } from "../../theme/Theme";
 
 export interface ConnectionFlowSkeletonProps {
   variant: SurfaceVariant;
   metrics: NodeMetrics;
-  /** Placeholder cards to draw. @default 4 */
+  /** Known graph topology to mirror while refreshing. */
+  layout?: ConnectionFlowLayout;
+  /** Placeholder cards when no topology is available. @default 6 */
   count?: number;
 }
 
-/**
- * Placeholder cards in a plain chain, at the real card size.
- *
- * Shaped from `NodeMetrics` rather than guessed, so the frame holds the height
- * a real graph would need and nothing jumps when the data lands — the same
- * reason `PanelSkeleton` mirrors the slots its caller actually passed.
- */
+/** A fitted flow preview with connected cards, glyphs and varied body rows. */
 const ConnectionFlowSkeleton: React.FC<ConnectionFlowSkeletonProps> = ({
   variant,
   metrics,
-  count = 4,
+  layout,
+  count = 6,
 }) => {
-  const surface = getHeaderSurface(variant);
+  const preview = useMemo(() => getSkeletonLayout(metrics, layout, count), [metrics, layout, count]);
+  const surface = getNodeSurface("neutral", variant);
   return (
     <div
-      className="flex h-full animate-pulse items-center motion-reduce:animate-none"
-      style={{ gap: metrics.width / 4, padding: metrics.padding * 2 }}
+      className="h-full w-full min-h-0 min-w-0 overflow-hidden animate-pulse motion-reduce:animate-none"
+      data-slot="connection-flow-skeleton"
       aria-hidden="true"
     >
-      {Array.from({ length: count }, (_, index) => (
-        <React.Fragment key={index}>
-          {index > 0 && (
-            <span
-              className={classNames("h-px shrink-0", surface.chip)}
-              style={{ width: metrics.width / 4 }}
-            />
-          )}
-          <div
-            className={classNames(
-              "flex shrink-0 flex-col justify-center rounded-lg border",
-              surface.divider,
-            )}
-            style={{
-              width: metrics.width,
-              height: metrics.height,
-              padding: metrics.padding,
-              gap: metrics.gap,
-            }}
-          >
-            <SkeletonBar width="70%" className="h-3" />
-            <SkeletonBar width="45%" className="h-2.5" />
-          </div>
-        </React.Fragment>
-      ))}
+      <svg className="block h-full w-full" viewBox={skeletonViewBox(preview, metrics.padding * 2)} preserveAspectRatio="xMidYMid meet">
+        <g fill="none" className="stroke-neutral-300 dark:stroke-neutral-600" strokeWidth={1.5}>
+          {preview.edges.map(edge => <path key={edge.id} d={edge.d} vectorEffect="non-scaling-stroke" />)}
+        </g>
+        {preview.nodes.map(node => (
+          <g key={node.id} transform={`translate(${node.x} ${node.y})`} data-skeleton-card="">
+            <rect width={node.width} height={node.height} rx={8}
+              className={classNames(surface.fill, surface.stroke || "stroke-neutral-300 dark:stroke-neutral-600")}
+              strokeWidth={1} vectorEffect="non-scaling-stroke" />
+            {skeletonCardBars(node.width, node.height, metrics).map((bar, index) => (
+              <rect key={index} x={bar.x} y={bar.y} width={bar.width} height={bar.height} rx={bar.radius}
+                className="fill-neutral-300/70 dark:fill-neutral-600/70" />
+            ))}
+          </g>
+        ))}
+      </svg>
     </div>
   );
 };
 
 ConnectionFlowSkeleton.displayName = "ConnectionFlowSkeleton";
-
 export default ConnectionFlowSkeleton;

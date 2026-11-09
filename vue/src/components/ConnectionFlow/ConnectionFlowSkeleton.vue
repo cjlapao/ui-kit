@@ -1,56 +1,38 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { getHeaderSurface } from "../../connectionFlow";
-import type { NodeMetrics } from "../../connectionFlow";
+import classNames from "classnames";
+import { getNodeSurface, type ConnectionFlowLayout, type NodeMetrics } from "../../connectionFlow";
+import { getSkeletonLayout, skeletonCardBars, skeletonViewBox } from "../../../../common/connectionFlow/skeleton";
 import type { SurfaceVariant } from "../../theme/Theme";
 
-/**
- * Placeholder cards in a plain chain, at the real card size.
- *
- * Shaped from `NodeMetrics` rather than guessed, so the frame holds the height
- * a real graph would need and nothing jumps when the data lands.
- */
-const props = withDefaults(
-  defineProps<{
-    variant: SurfaceVariant;
-    metrics: NodeMetrics;
-    /** Placeholder cards to draw. @default 4 */
-    count?: number;
-  }>(),
-  { count: 4 },
-);
+/** A fitted flow preview with connected cards, glyphs and varied body rows. */
+const props = withDefaults(defineProps<{
+  variant: SurfaceVariant;
+  metrics: NodeMetrics;
+  /** Known graph topology to mirror while refreshing. */
+  layout?: ConnectionFlowLayout;
+  /** Placeholder cards when no topology is available. @default 6 */
+  count?: number;
+}>(), { count: 6 });
 
-const surface = computed(() => getHeaderSurface(props.variant));
-const cards = computed(() => Array.from({ length: props.count }, (_, i) => i));
-const gap = computed(() => props.metrics.width / 4);
+const preview = computed(() => getSkeletonLayout(props.metrics, props.layout, props.count));
+const surface = computed(() => getNodeSurface("neutral", props.variant));
 </script>
 
 <template>
-  <div
-    class="flex h-full animate-pulse items-center motion-reduce:animate-none"
-    :style="{ gap: `${gap}px`, padding: `${metrics.padding * 2}px` }"
-    aria-hidden="true"
-  >
-    <template v-for="(index, position) in cards" :key="index">
-      <span
-        v-if="position > 0"
-        class="h-px shrink-0"
-        :class="surface.chip"
-        :style="{ width: `${gap}px` }"
-      />
-      <div
-        class="flex shrink-0 flex-col justify-center rounded-lg border"
-        :class="surface.divider"
-        :style="{
-          width: `${metrics.width}px`,
-          height: `${metrics.height}px`,
-          padding: `${metrics.padding}px`,
-          gap: `${metrics.gap}px`,
-        }"
-      >
-        <span class="block h-3 w-[70%] rounded-full bg-black/10 dark:bg-white/10" />
-        <span class="block h-2.5 w-[45%] rounded-full bg-black/10 dark:bg-white/10" />
-      </div>
-    </template>
+  <div class="h-full w-full min-h-0 min-w-0 overflow-hidden animate-pulse motion-reduce:animate-none"
+    data-slot="connection-flow-skeleton" aria-hidden="true">
+    <svg class="block h-full w-full" :viewBox="skeletonViewBox(preview, metrics.padding * 2)" preserveAspectRatio="xMidYMid meet">
+      <g fill="none" class="stroke-neutral-300 dark:stroke-neutral-600" :stroke-width="1.5">
+        <path v-for="edge in preview.edges" :key="edge.id" :d="edge.d" vector-effect="non-scaling-stroke" />
+      </g>
+      <g v-for="node in preview.nodes" :key="node.id" :transform="`translate(${node.x} ${node.y})`" data-skeleton-card="">
+        <rect :width="node.width" :height="node.height" :rx="8"
+          :class="classNames(surface.fill, surface.stroke || 'stroke-neutral-300 dark:stroke-neutral-600')" :stroke-width="1" vector-effect="non-scaling-stroke" />
+        <rect v-for="(bar, index) in skeletonCardBars(node.width, node.height, metrics)" :key="index"
+          :x="bar.x" :y="bar.y" :width="bar.width" :height="bar.height" :rx="bar.radius"
+          class="fill-neutral-300/70 dark:fill-neutral-600/70" />
+      </g>
+    </svg>
   </div>
 </template>

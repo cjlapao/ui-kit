@@ -1,3 +1,9 @@
+import TooltipWrapper from "./TooltipWrapper";
+import { getMultiToggleMotionStyle } from "../../../common/theme/multiToggleMotion";
+import {
+  CONTROL_SPRING_TOKENS,
+  type ControlSpring,
+} from "../../../common/theme/springs";
 import React, {
   type ReactNode,
   useCallback,
@@ -91,13 +97,15 @@ export interface MultiToggleProps
   /** @deprecated Use `tone`, which is what every other control calls it. */
   color?: TrueColor;
   fullWidth?: boolean;
+  /** Spring preset shared with ExpandableButton. @default "bouncy" */
+  spring?: ControlSpring;
+  /** Override the spring duration in milliseconds. */
+  springDuration?: number;
   className?: string;
   showOnlyActiveLabel?: boolean;
   /**
-   * Let labels ellipsize inside width-constrained segments. Defaults to on
-   * only where a constraint exists (`fullWidth` or fixed option widths) —
-   * in auto mode the track sizes to the words, and ellipsising them would
-   * defeat exactly that.
+   * Ellipsize labels when their segments cannot fit the parent. Defaults to on.
+   * Auto width grows to fit the labels up to the parent's available width.
    */
   truncateOverflow?: boolean;
   adaptiveWidth?: boolean;
@@ -204,6 +212,8 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
   tone,
   color,
   fullWidth = false,
+  spring = "bouncy",
+  springDuration,
   className,
   showOnlyActiveLabel = false,
   truncateOverflow,
@@ -227,6 +237,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     adaptiveWidth || options.some((option) => option.width !== undefined);
   const [indicatorInlineStyle, setIndicatorInlineStyle] =
     useState<React.CSSProperties>();
+  const [overflowLabels, setOverflowLabels] = useState<Array<string | undefined>>([]);
   const [maxOptionWidth, setMaxOptionWidth] = useState<number>();
   const parsedOptionMaxWidth = toCssDimension(optionMaxWidth);
   const shouldLockToMaxWidth = hasCustomWidths && activeWidthStrategy === "max";
@@ -291,7 +302,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     soft: `${variantTokens.softIndicator} border border-${resolvedTone}-300 dark:border-${resolvedTone}-500/25`,
     tonal: `bg-${resolvedTone}-500/15 dark:bg-${resolvedTone}-400/20 border border-${resolvedTone}-400/40 dark:border-${resolvedTone}-300/20`,
   }[indicator];
-  const usesSegmentLayout = !hasCustomWidths && !shouldLockToMaxWidth;
+  const usesSegmentLayout = fullWidth && !hasCustomWidths && !shouldLockToMaxWidth;
   optionRefs.current.length = optionCount;
   measurementRefs.current.length = optionCount;
 
@@ -321,6 +332,17 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       return;
     }
 
+    const labels = optionRefs.current.map((button) => {
+      const label = button?.querySelector<HTMLElement>("[data-multi-toggle-label]");
+      return truncateOverflow !== false && label && label.scrollWidth > label.clientWidth
+        ? label.textContent ?? undefined
+        : undefined;
+    });
+    setOverflowLabels((previous) =>
+      previous.length === labels.length && previous.every((text, index) => text === labels[index])
+        ? previous : labels,
+    );
+
     const containerStyles = window.getComputedStyle(container);
     const paddingLeft = parseFloat(containerStyles?.paddingLeft ?? "0") || 0;
     const paddingRight = parseFloat(containerStyles?.paddingRight ?? "0") || 0;
@@ -334,10 +356,9 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
       const inset = computeInset(segmentWidth);
       const indicatorWidth = Math.max(0, segmentWidth - inset * 2);
       const offset = paddingLeft + activeIndex * segmentWidth + inset;
-      setIndicatorInlineStyle({
-        width: `${indicatorWidth}px`,
-        transform: `translateX(${offset}px)`,
-      });
+      setIndicatorInlineStyle(getMultiToggleMotionStyle(
+        offset, indicatorWidth, container.clientWidth, paddingLeft, paddingRight, inset,
+      ) as React.CSSProperties);
       return;
     }
 
@@ -359,16 +380,16 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     );
     offset = Math.min(Math.max(offset, inset), maxOffset);
 
-    setIndicatorInlineStyle({
-      width: `${indicatorWidth}px`,
-      transform: `translateX(${offset}px)`,
-    });
+    setIndicatorInlineStyle(getMultiToggleMotionStyle(
+      offset, indicatorWidth, container.clientWidth, paddingLeft, paddingRight, inset,
+    ) as React.CSSProperties);
   }, [
     activeIndex,
     shouldLockToMaxWidth,
     maxOptionWidth,
     optionCount,
     usesSegmentLayout,
+    truncateOverflow,
   ]);
 
   const optionsSignature = useMemo(
@@ -505,19 +526,17 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
     [options, disabled, activeIndex, onChange],
   );
 
-  // Truncation only makes sense where something constrains the width —
-  // `fullWidth` dividing fixed space, or an explicit per-option width. In
-  // plain auto mode the track shrink-wraps, and `truncate` there is
-  // self-defeating: the ellipsis is narrower than the word, so min-content
-  // sizing collapsed every label to "We…". It defaulted to on regardless.
-  const shouldTruncate = truncateOverflow ?? (fullWidth || hasCustomWidths);
+  // Auto width grows to the labels until the parent constrains the track.
+  // Segments then shrink and ellipsize, just as they do in full-width mode.
+  const shouldTruncate = truncateOverflow ?? true;
   const computedIndicatorStyle = indicatorInlineStyle ?? indicatorStyle;
+  const springConfig = CONTROL_SPRING_TOKENS[spring] ?? CONTROL_SPRING_TOKENS.bouncy;
 
   return (
     <div
       ref={containerRef}
       className={classNames(
-        "relative inline-flex select-none items-center px-1 py-0.5",
+        "multi-toggle relative inline-flex min-w-0 max-w-full box-border select-none items-center px-1 py-0.5",
         trackClasses,
         controlRounded,
         sizeStyles.track,
@@ -525,13 +544,17 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
         disabled && "opacity-60 cursor-not-allowed",
         className,
       )}
+      style={{
+        "--mt-spring-easing": springConfig.easing,
+        "--mt-spring-duration": `${springDuration ?? springConfig.duration}ms`,
+      } as React.CSSProperties}
       role="radiogroup"
       aria-disabled={disabled}
       {...buttonProps}
     >
       <span
         className={classNames(
-          "pointer-events-none absolute left-0 flex items-center justify-center transition-transform duration-200 ease-out",
+          "pointer-events-none absolute left-0 flex items-center justify-center multi-toggle-indicator",
           sizeStyles.indicatorInset,
           sizeStyles.paddingY,
         )}
@@ -585,7 +608,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
               >
                 <span
                   className={classNames(
-                    "flex min-w-0 items-center justify-center",
+                    "flex min-w-0 max-w-full items-center justify-center",
                     sizeStyles.gap,
                   )}
                 >
@@ -659,6 +682,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
             : undefined;
 
         return (
+          <TooltipWrapper key={option.value} text={overflowLabels[index]}>
           <button
             ref={(node) => {
               optionRefs.current[index] = node;
@@ -670,7 +694,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
               controlRounded,
               sizeStyles.cell,
               sizeStyles.gap,
-              hasCustomWidths ? "flex-none" : "flex-1",
+              fullWidth && !hasCustomWidths ? "flex-1" : "flex-initial",
               trigger.focusRing,
               optionDisabled
                 ? classNames(surfaceText.muted, "cursor-not-allowed opacity-60")
@@ -698,7 +722,7 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
           >
             <span
               className={classNames(
-                "flex min-w-0 items-center justify-center",
+                "flex min-w-0 max-w-full items-center justify-center",
                 sizeStyles.gap,
               )}
             >
@@ -711,17 +735,14 @@ const MultiToggle: React.FC<MultiToggleProps> = ({
                     "min-w-0 px-1 text-center leading-tight block",
                     shouldTruncate ? "truncate" : "whitespace-nowrap",
                   )}
-                  title={
-                    shouldTruncate && typeof option.label === "string"
-                      ? option.label
-                      : undefined
-                  }
+                  data-multi-toggle-label=""
                 >
                   {option.label}
                 </span>
               )}
             </span>
           </button>
+          </TooltipWrapper>
         );
       })}
     </div>

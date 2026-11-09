@@ -139,3 +139,6 @@ export * from "./components/Check";
 export * from "./components/ArrowChevronLeft";
 export * from "./components/ArrowChevronRight";
 export * from "./components/Drag";
+export * from "./components/AgentFlow";
+export * from "./components/AiAgent";
+export * from "./components/FlowChart";

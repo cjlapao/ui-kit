@@ -1,5 +1,10 @@
 <script lang="ts">
 import type { CSSProperties, VNode } from "vue";
+import { getMultiToggleMotionStyle } from "../../../common/theme/multiToggleMotion";
+import {
+  CONTROL_SPRING_TOKENS,
+  type ControlSpring,
+} from "../../../common/theme/springs";
 import {
   SURFACE_VARIANTS,
   type ControlSize,
@@ -59,6 +64,10 @@ export interface MultiToggleProps {
   size?: MultiToggleSize;
   color?: TrueColor;
   fullWidth?: boolean;
+  /** Spring preset shared with ExpandableButton. @default "bouncy" */
+  spring?: ControlSpring;
+  /** Override the spring duration in milliseconds. */
+  springDuration?: number;
   showOnlyActiveLabel?: boolean;
   truncateOverflow?: boolean;
   adaptiveWidth?: boolean;
@@ -190,6 +199,7 @@ import {
 import type { IconSize } from "../types/Icon";
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
+import TooltipWrapper from "./TooltipWrapper.vue";
 
 defineOptions({ name: "MultiToggle", inheritAttrs: false });
 
@@ -197,6 +207,8 @@ const props = withDefaults(defineProps<MultiToggleProps>(), {
   size: "md",
   color: "blue",
   fullWidth: false,
+  truncateOverflow: undefined,
+  spring: "bouncy",
   showOnlyActiveLabel: false,
   adaptiveWidth: false,
   rounded: "lg",
@@ -237,6 +249,7 @@ const hasCustomWidths = computed(
     props.options.some((option) => option.width !== undefined),
 );
 const indicatorInlineStyle = ref<CSSProperties | undefined>();
+const overflowLabels = ref<Array<string | undefined>>([]);
 const maxOptionWidth = ref<number | undefined>();
 const parsedOptionMaxWidth = computed(() =>
   toCssDimension(props.optionMaxWidth),
@@ -320,7 +333,7 @@ const activeTextClass = computed(
   () => getMultiToggleVariantTokens(resolvedAccent.value).activeText,
 );
 const usesSegmentLayout = computed(
-  () => !hasCustomWidths.value && !shouldLockToMaxWidth.value,
+  () => props.fullWidth && !hasCustomWidths.value && !shouldLockToMaxWidth.value,
 );
 
 const indicatorStyle = computed<CSSProperties>(() => {
@@ -349,6 +362,12 @@ const updateIndicatorPosition = () => {
     return;
   }
 
+  overflowLabels.value = optionRefs.map((button) => {
+    const label = button?.querySelector<HTMLElement>("[data-multi-toggle-label]");
+    return props.truncateOverflow !== false && label && label.scrollWidth > label.clientWidth
+      ? label.textContent ?? undefined : undefined;
+  });
+
   const containerStyles = window.getComputedStyle(container);
   const paddingLeft = parseFloat(containerStyles?.paddingLeft ?? "0") || 0;
   const paddingRight = parseFloat(containerStyles?.paddingRight ?? "0") || 0;
@@ -362,10 +381,9 @@ const updateIndicatorPosition = () => {
     const inset = computeInset(segmentWidth);
     const indicatorWidth = Math.max(0, segmentWidth - inset * 2);
     const offset = paddingLeft + activeIndex.value * segmentWidth + inset;
-    indicatorInlineStyle.value = {
-      width: `${indicatorWidth}px`,
-      transform: `translateX(${offset}px)`,
-    };
+    indicatorInlineStyle.value = getMultiToggleMotionStyle(
+      offset, indicatorWidth, container.clientWidth, paddingLeft, paddingRight, inset,
+    );
     return;
   }
 
@@ -387,10 +405,9 @@ const updateIndicatorPosition = () => {
   );
   offset = Math.min(Math.max(offset, inset), maxOffset);
 
-  indicatorInlineStyle.value = {
-    width: `${indicatorWidth}px`,
-    transform: `translateX(${offset}px)`,
-  };
+  indicatorInlineStyle.value = getMultiToggleMotionStyle(
+    offset, indicatorWidth, container.clientWidth, paddingLeft, paddingRight, inset,
+  );
 };
 
 const optionsSignature = computed(() =>
@@ -486,6 +503,7 @@ watch(
     optionsSignature,
     () => props.optionMaxWidth,
     activeIndex,
+    () => props.truncateOverflow,
     shouldLockToMaxWidth,
     maxOptionWidth,
     optionCount,
@@ -517,13 +535,20 @@ onUnmounted(() => {
 });
 
 const shouldTruncate = computed(() => props.truncateOverflow ?? true);
+const springStyle = computed(() => {
+  const config = CONTROL_SPRING_TOKENS[props.spring] ?? CONTROL_SPRING_TOKENS.bouncy;
+  return {
+    "--mt-spring-easing": config.easing,
+    "--mt-spring-duration": `${props.springDuration ?? config.duration}ms`,
+  };
+});
 const computedIndicatorStyle = computed(
   () => indicatorInlineStyle.value ?? indicatorStyle.value,
 );
 
 const containerClass = computed(() =>
   classNames(
-    "relative inline-flex select-none items-center px-1 py-0.5",
+    "multi-toggle relative inline-flex min-w-0 max-w-full box-border select-none items-center px-1 py-0.5",
     trackClasses.value,
     controlRounded.value,
     sizeStyles.value.track,
@@ -535,7 +560,7 @@ const containerClass = computed(() =>
 
 const indicatorWrapperClass = computed(() =>
   classNames(
-    "pointer-events-none absolute left-0 flex items-center justify-center transition-transform duration-200 ease-out",
+    "pointer-events-none absolute left-0 flex items-center justify-center multi-toggle-indicator",
     sizeStyles.value.indicatorInset,
     sizeStyles.value.paddingY,
   ),
@@ -574,7 +599,7 @@ const optionClass = (option: MultiToggleOption) => {
     controlRounded.value,
     sizeStyles.value.cell,
     sizeStyles.value.gap,
-    hasCustomWidths.value ? "flex-none" : "flex-1",
+    props.fullWidth && !hasCustomWidths.value ? "flex-1" : "flex-initial",
     trigger.value.focusRing,
     optionDisabled
       ? classNames(surfaceText.value.muted, "cursor-not-allowed opacity-60")
@@ -685,6 +710,7 @@ const handleSelect = (option: MultiToggleOption) => {
   <div
     ref="containerRef"
     :class="containerClass"
+    :style="springStyle"
     role="radiogroup"
     :aria-disabled="disabled"
     v-bind="restAttrs"
@@ -714,7 +740,7 @@ const handleSelect = (option: MultiToggleOption) => {
         <span
           :class="
             classNames(
-              'flex min-w-0 items-center justify-center',
+              'flex min-w-0 max-w-full items-center justify-center',
               sizeStyles.gap,
             )
           "
@@ -735,9 +761,8 @@ const handleSelect = (option: MultiToggleOption) => {
       </div>
     </div>
 
+    <TooltipWrapper v-for="(option, index) in options" :key="option.value" :text="overflowLabels[index]">
     <button
-      v-for="(option, index) in options"
-      :key="option.value"
       :ref="(el) => setOptionRef(el, index)"
       type="button"
       :class="optionClass(option)"
@@ -753,7 +778,7 @@ const handleSelect = (option: MultiToggleOption) => {
     >
       <span
         :class="
-          classNames('flex min-w-0 items-center justify-center', sizeStyles.gap)
+          classNames('flex min-w-0 max-w-full items-center justify-center', sizeStyles.gap)
         "
       >
         <VNodeRenderer
@@ -769,15 +794,12 @@ const handleSelect = (option: MultiToggleOption) => {
               shouldTruncate ? 'truncate' : 'whitespace-nowrap',
             )
           "
-          :title="
-            shouldTruncate && typeof option.label === 'string'
-              ? option.label
-              : undefined
-          "
+          data-multi-toggle-label=""
         >
           <VNodeRenderer :nodes="option.label" />
         </span>
       </span>
     </button>
+    </TooltipWrapper>
   </div>
 </template>

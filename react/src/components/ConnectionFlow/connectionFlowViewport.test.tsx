@@ -50,7 +50,58 @@ describe("ConnectionFlow viewport", () => {
     fireEvent.click(getByRole("button", { name: "Resume following" }));
     expect(change).toHaveBeenLastCalledWith("following");
     expect(Number(getByTitle("Zoom level").textContent?.replace("%", ""))).toBeGreaterThan(wideZoom);
+    const toolbar = getByLabelText("Zoom in").parentElement!;
+    fireEvent.click(getByRole("button", { name: "Pause following" }));
+    expect(change).toHaveBeenLastCalledWith("paused");
+    expect(getByRole("button", { name: "Resume following" })).toHaveAttribute("aria-pressed", "false");
+    const pausedZoom = getByTitle("Zoom level").textContent;
+    rerender(view(["0", "5"]));
+    expect(getByTitle("Zoom level")).toHaveTextContent(pausedZoom!);
+    expect(getByLabelText("Zoom in").parentElement).toBe(toolbar);
+    expect(viewport.contains(toolbar)).toBe(false);
   });
+  it("keeps the pause control available during a camera animation and cancels it", () => {
+    const observers: { callback: ResizeObserverCallback; target?: Element }[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      entry: { callback: ResizeObserverCallback; target?: Element };
+      constructor(callback: ResizeObserverCallback) { this.entry = { callback }; observers.push(this.entry); }
+      observe(target: Element) { this.entry.target = target; }
+      disconnect() {}
+    });
+    const schedule = vi.fn(() => 42);
+    const cancel = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", schedule);
+    vi.stubGlobal("cancelAnimationFrame", cancel);
+    const { container, getByRole, getByTitle, unmount } = render(
+      <ConnectionFlow nodes={NODES} activeNodeIds={["a"]} followDuration={400} />,
+    );
+    const viewport = container.querySelector('[data-slot="scrollarea-viewport"]')!;
+    act(() => observers.filter(o => o.target === viewport).forEach(o => o.callback([
+      { target: viewport, contentRect: { width: 600, height: 300 } } as ResizeObserverEntry,
+    ], {} as ResizeObserver)));
+    fireEvent.click(getByRole("button", { name: "Follow active" }));
+    expect(schedule).toHaveBeenCalled();
+    fireEvent.click(getByRole("button", { name: "Pause following" }));
+    expect(cancel).toHaveBeenCalledWith(42);
+    expect(getByRole("button", { name: "Resume following" })).toHaveAttribute("aria-pressed", "false");
+    expect(getByTitle("Zoom level")).toHaveTextContent("100%");
+    unmount();
+    vi.unstubAllGlobals();
+  });
+
+  it("fills a constrained panel body and anchors controls outside its scroller", () => {
+    const { container, getByLabelText } = render(
+      <ConnectionFlow nodes={NODES} className="h-full" height="100%" />,
+    );
+    const toolbar = getByLabelText("Zoom in").parentElement!;
+    const frame = toolbar.parentElement!;
+    expect(frame).toHaveClass("relative", "flex-auto", "min-h-0", "isolate");
+    expect(frame.style.height).toBe("100%");
+    expect(toolbar).toHaveClass("absolute", "bottom-3", "right-3");
+    expect(frame.parentElement).toHaveClass("flex", "flex-1", "min-h-0");
+    expect(container.querySelector('[data-slot="scrollarea-viewport"]')!.contains(toolbar)).toBe(false);
+  });
+
   it("requests controlled follow changes without taking ownership", () => {
     const change = vi.fn();
     const { getByRole } = render(<ConnectionFlow nodes={NODES} followMode="off" onFollowModeChange={change} />);
@@ -73,6 +124,31 @@ describe("ConnectionFlow viewport", () => {
     expect(
       frameOf(container).querySelector('[data-slot="scrollarea-scrollbar"]'),
     ).toBeTruthy();
+  });
+
+  it("shows overflowing axes only while the flow is hovered at 100% zoom", () => {
+    const { container, getByTitle } = render(<ConnectionFlow nodes={NODES} />);
+    const viewport = viewportOf(container);
+    const frame = frameOf(container);
+    Object.defineProperties(viewport, {
+      clientWidth: { configurable: true, value: 300 },
+      scrollWidth: { configurable: true, value: 900 },
+      clientHeight: { configurable: true, value: 200 },
+      scrollHeight: { configurable: true, value: 600 },
+    });
+    const bars = frame.querySelectorAll('[data-slot="scrollarea-scrollbar"]');
+    fireEvent.scroll(viewport);
+    expect(getByTitle("Zoom level")).toHaveTextContent("100%");
+    for (const bar of bars) expect(bar).toHaveAttribute("data-state", "hidden");
+    fireEvent.pointerEnter(frame);
+    for (const bar of bars) expect(bar).toHaveAttribute("data-state", "visible");
+    fireEvent.pointerLeave(frame);
+    for (const bar of bars) expect(bar).toHaveAttribute("data-state", "hidden");
+    Object.defineProperty(viewport, "scrollHeight", { configurable: true, value: 200 });
+    fireEvent.scroll(viewport);
+    fireEvent.pointerEnter(frame);
+    expect(bars[0]).toHaveAttribute("data-state", "hidden");
+    expect(bars[1]).toHaveAttribute("data-state", "visible");
   });
 
   it("does not start a pan from a control", () => {

@@ -6,6 +6,7 @@
    precede all non-import statements. */
 @import "../../common/safelist.css";
 @import "../../common/surface-transparency.css";
+@import "../../common/multi-toggle.css";
 @import "@xterm/xterm/css/xterm.css";
 @import "./components/Led.css";
 @import "./components/knowledge/knowledge.css";

@@ -1,3 +1,5 @@
+import { TRUE_COLORS, getPanelToneStyles } from "./Theme";
+import { getNodeSurface } from "../connectionFlow";
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import Panel, { getPanelEdgeChrome } from "../components/Panel";
@@ -52,6 +54,19 @@ describe("surface background transparency", () => {
     const [outer, inner] = container.querySelectorAll("section");
     expect(outer).toHaveClass("ui-surface-transparency-medium");
     expect(inner).toHaveClass("ui-surface-transparency-none");
-    expect(inner.className).toContain("[--ui-surface-color:var(--color-rose-100)]");
+    expect(inner.className).toContain("[--ui-surface-color:var(--color-rose-200)]");
+  });
+});
+
+describe("light tonal and simple surface contrast", () => {
+  it("uses the stronger tone shade for panels and flow surfaces across the palette", () => {
+    for (const tone of TRUE_COLORS) {
+      expect(getPanelToneStyles(tone).tonalBg).toBe(`bg-${tone}-200/60 dark:bg-${tone}-500/15`);
+      for (const variant of ["tonal", "simple"] as const) {
+        expect(getSurfaceVariantClasses(variant, tone, { transparency: "high" })).toContain(`bg-${tone}-200/60`);
+        expect(getSurfaceVariantClasses(variant, tone)).toContain(`[--ui-surface-color:var(--color-${tone}-200)]`);
+        expect(getNodeSurface(tone, variant).fill).toBe(`fill-${tone}-200/60 dark:fill-${tone}-500/15`);
+      }
+    }
   });
 });

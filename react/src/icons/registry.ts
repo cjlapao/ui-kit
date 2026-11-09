@@ -1,6 +1,8 @@
 import React from "react";
 import { Accordion } from "./components/Accordion";
 import { Add } from "./components/Add";
+import { AgentFlow } from "./components/AgentFlow";
+import { AiAgent } from "./components/AiAgent";
 import { Apple } from "./components/Apple";
 import { ArrowChevronLeft } from "./components/ArrowChevronLeft";
 import { ArrowChevronRight } from "./components/ArrowChevronRight";
@@ -58,6 +60,7 @@ import { EyeClosed } from "./components/EyeClosed";
 import { EyeOpen } from "./components/EyeOpen";
 import { Fedora } from "./components/Fedora";
 import { File } from "./components/File";
+import { FlowChart } from "./components/FlowChart";
 import { Folder } from "./components/Folder";
 import { Globe } from "./components/Globe";
 import { Group } from "./components/Group";
@@ -151,6 +154,8 @@ import { Windows } from "./components/Windows";
 export type IconName =
   | "Accordion"
   | "Add"
+  | "AgentFlow"
+  | "AiAgent"
   | "Apple"
   | "ArrowChevronLeft"
   | "ArrowChevronRight"
@@ -208,6 +213,7 @@ export type IconName =
   | "EyeOpen"
   | "Fedora"
   | "File"
+  | "FlowChart"
   | "Folder"
   | "Globe"
   | "Group"
@@ -301,6 +307,8 @@ export const iconRegistry: Record<
 > = {
   Accordion: Accordion,
   Add: Add,
+  AgentFlow: AgentFlow,
+  AiAgent: AiAgent,
   Apple: Apple,
   ArrowChevronLeft: ArrowChevronLeft,
   ArrowChevronRight: ArrowChevronRight,
@@ -358,6 +366,7 @@ export const iconRegistry: Record<
   EyeOpen: EyeOpen,
   Fedora: Fedora,
   File: File,
+  FlowChart: FlowChart,
   Folder: Folder,
   Globe: Globe,
   Group: Group,
@@ -443,4 +452,5 @@ export const iconRegistry: Record<
   VirtualMachine: VirtualMachine,
   Warning: Warning,
   Windows: Windows,
+  "flow-chart": FlowChart,
 };

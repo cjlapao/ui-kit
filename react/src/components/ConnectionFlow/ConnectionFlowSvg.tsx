@@ -8,6 +8,7 @@ import {
   connectorVisual,
   dotTiming,
   getNodeSurface,
+  getCaptionSurface,
   getToneClasses,
   routeLength,
   type ConnectionFlowLayout,
@@ -87,6 +88,7 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
   renderNode,
 }) => {
   const t = useKitT();
+  const captionSurface = getCaptionSurface(variant);
   const descriptionPrefix = useId();
   const [focusedConnectionId, setFocusedConnectionId] = useState<string | null>(null);
   const emphasized = (id: string) => !!editableConnections && (id === selectedConnectionId || id === focusedConnectionId);
@@ -152,9 +154,26 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
         className="pointer-events-none absolute inset-0 h-full w-full"
         style={{ overflow: "visible" }}
       >
+        {/* Knock routes out beneath captions so translucent surfaces stay readable. */}
+        <defs>
+          <mask id={`${descriptionPrefix}-captions`} maskUnits="userSpaceOnUse"
+            x={layout.offsetX - 8} y={layout.offsetY - 8}
+            width={layout.width - layout.offsetX + 16} height={layout.height - layout.offsetY + 16}>
+            <rect x={layout.offsetX - 8} y={layout.offsetY - 8}
+              width={layout.width - layout.offsetX + 16} height={layout.height - layout.offsetY + 16} fill="white" />
+            {layout.edges.map(edge => {
+              const caption = edge.caption;
+              return edge.label && caption ? (
+                <rect key={edge.id} x={caption.x} y={caption.y}
+                  width={caption.width} height={caption.height} rx={4} fill="black" />
+              ) : null;
+            })}
+          </mask>
+        </defs>
         {([false, true] as const).map((lit) => (
           <g
             key={String(lit)}
+            mask={`url(#${descriptionPrefix}-captions)`}
             opacity={lit ? 1 : 0.22}
             transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}
           >
@@ -231,10 +250,6 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
           {layout.edges.map((edge) => {
             if (!edge.label || !edge.caption) return null;
             const caption = edge.caption;
-            const glass =
-              variant === "glass" ||
-              variant === "liquid-glass" ||
-              variant === "default";
             return (
               <g
                 key={edge.id}
@@ -247,11 +262,9 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
                   width={caption.width}
                   height={caption.height}
                   rx={4}
-                  className={
-                    glass
-                      ? "fill-white dark:fill-neutral-900"
-                      : "fill-neutral-100 dark:fill-neutral-800"
-                  }
+                  className={classNames(captionSurface.fill, captionSurface.stroke, captionSurface.effect)}
+                  strokeWidth={1}
+                  vectorEffect="non-scaling-stroke"
                 />
                 <text
                   x={caption.x + caption.width / 2}
@@ -259,11 +272,7 @@ const ConnectionFlowSvg: React.FC<ConnectionFlowSvgProps> = ({
                   textAnchor="middle"
                   dominantBaseline="central"
                   aria-label={edge.label}
-                  className={
-                    glass
-                      ? "fill-neutral-500 text-[10px] dark:fill-neutral-400"
-                      : "fill-neutral-700 text-[10px] dark:fill-neutral-200"
-                  }
+                  className={classNames("text-[10px]", captionSurface.text)}
                 >
                   {caption.lines.map((line, index) => (
                     <tspan

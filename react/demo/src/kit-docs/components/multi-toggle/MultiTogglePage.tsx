@@ -12,6 +12,8 @@ import Sizes from "./examples/Sizes";
 import sizesCode from "./examples/Sizes.tsx?raw";
 import Variants from "./examples/Variants";
 import variantsCode from "./examples/Variants.tsx?raw";
+import LongLabels from "./examples/LongLabels";
+import longLabelsCode from "./examples/LongLabels.tsx?raw";
 import Tones from "./examples/Tones";
 import tonesCode from "./examples/Tones.tsx?raw";
 
@@ -26,6 +28,14 @@ export const MultiTogglePage: React.FC = () => (
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
         Examples
       </h2>
+      <ExampleCard
+        title="Long labels in a narrow parent"
+        description="Resize the parent to compare natural label widths with full-width truncation. Select each option to check the indicator at both edges."
+        code={longLabelsCode}
+        filename="LongLabels.tsx"
+      >
+        <LongLabels />
+      </ExampleCard>
       <ExampleCard
         title="Track variants and indicators"
         description="The track is a surface, so it takes the Panel family — each toggle here is paired with the Panel it matches. The indicator is separate: it is what the old `theme | solid | soft` variant was really describing."

@@ -66,6 +66,7 @@ lines.push(
 );
 lines.push("> = {");
 for (const e of entries) lines.push(`  ${e.name}: ${e.name},`);
+lines.push('  "flow-chart": FlowChart,');
 lines.push("};");
 lines.push("");
 

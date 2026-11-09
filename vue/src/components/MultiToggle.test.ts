@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
+import { nextTick } from "vue";
 
 import MultiToggle from "./MultiToggle.vue";
 import {
@@ -142,5 +143,54 @@ describe("MultiToggle", () => {
     const w = mountToggle({ id: "toggle-1" });
     expect(w.element.getAttribute("id")).toBe("toggle-1");
     expect(w.findAll("#toggle-1")).toHaveLength(1);
+  });
+});
+
+describe("MultiToggle label sizing and motion", () => {
+  it("fits long labels in auto mode and follows their measured bounds", async () => {
+    const w = mountToggle({ options: [
+      { value: "a", label: "One step" },
+      { value: "b", label: "Repeat for each item" },
+    ] });
+    const group = w.element;
+    const button = radios(w)[1].element;
+    Object.defineProperty(group, "clientWidth", { configurable: true, value: 308 });
+    Object.defineProperty(button, "offsetWidth", { configurable: true, value: 200 });
+    Object.defineProperty(button, "offsetLeft", { configurable: true, value: 104 });
+    await w.setProps({ modelValue: "b" });
+    expect(radios(w)[1].classes()).toContain("flex-initial");
+    expect(w.html()).toContain("truncate");
+    const indicator = w.find(".multi-toggle-indicator").element as HTMLElement;
+    expect(indicator.style.getPropertyValue("--mt-width")).toBe("198px");
+    expect(indicator.style.getPropertyValue("--mt-offset")).toBe("105px");
+    w.unmount();
+  });
+
+  it("keeps constrained segments equal and accepts spring overrides", () => {
+    const w = mountToggle({ fullWidth: true, spring: "snappy", springDuration: 450 });
+    expect(radios(w)[0].classes()).toContain("flex-1");
+    expect(w.html()).toContain("truncate");
+    expect((w.element as HTMLElement).style.getPropertyValue("--mt-spring-duration")).toBe("450ms");
+    w.unmount();
+  });
+});
+
+describe("MultiToggle overflow tooltips", () => {
+  it("shows the full label on focus and removes it when the label fits", async () => {
+    const w = mountToggle();
+    const label = w.find("[data-multi-toggle-label]").element;
+    Object.defineProperty(label, "scrollWidth", { configurable: true, value: 240 });
+    Object.defineProperty(label, "clientWidth", { configurable: true, value: 80 });
+    window.dispatchEvent(new Event("resize"));
+    await nextTick();
+    await radios(w)[0].trigger("focus");
+    await new Promise((resolve) => setTimeout(resolve, 550));
+    await nextTick();
+    expect(document.querySelector('[role="tooltip"]')?.textContent).toContain("Alpha");
+    Object.defineProperty(label, "clientWidth", { configurable: true, value: 240 });
+    window.dispatchEvent(new Event("resize"));
+    await nextTick();
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    w.unmount();
   });
 });

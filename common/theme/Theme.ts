@@ -1465,7 +1465,7 @@ const sidebarSurfaceTokens: Record<
   floating: {
     fill: "bg-white dark:bg-neutral-900",
     solidFill: "bg-white dark:bg-neutral-900",
-    border: "border-neutral-200/80 dark:border-neutral-700/80",
+    border: "border-neutral-200/60 dark:border-neutral-700/80",
     borderSides: "all",
     shadow: "shadow-xl",
     shadowRight: "shadow-xl",
@@ -1980,7 +1980,7 @@ const createTheme = (): ThemeDefinition => {
       muted: `text-${color}-600/90 dark:text-${color}-200/85`,
       badge: `bg-${color}-100 text-${color}-700 dark:bg-${color}-500/20 dark:text-${color}-100`,
       subtleBg: `bg-${color}-50/80 dark:bg-${color}-500/10`,
-      tonalBg: `bg-${color}-100/80 dark:bg-${color}-500/15`,
+      tonalBg: `bg-${color}-200/60 dark:bg-${color}-500/15`,
       glassBg: `bg-${color}-50/50 dark:bg-${color}-500/15`,
       glassBorder: `border-${color}-500 dark:border-${color}-400`,
       liquidBg: `bg-${color}-50/30 dark:bg-${color}-500/10`,

@@ -298,11 +298,13 @@ const ConnectionFlow = React.forwardRef<
   const [internalFollow, setInternalFollow] = useState<ConnectionFlowFollowMode>(defaultFollowMode);
   const follow = followMode ?? internalFollow;
   const followFrame = useRef<number | null>(null);
+  const pendingScroll = useRef<((el: HTMLDivElement) => void) | null>(null);
   const followZoomChange = useRef(onZoomChange);
   followZoomChange.current = onZoomChange;
   const cancelFollow = useCallback(() => {
     if (followFrame.current !== null) cancelAnimationFrame(followFrame.current);
     followFrame.current = null;
+    pendingScroll.current = null;
   }, []);
   const requestFollow = useCallback((mode: ConnectionFlowFollowMode) => {
     if (followMode === undefined) setInternalFollow(mode);
@@ -420,8 +422,6 @@ const ConnectionFlow = React.forwardRef<
    * scale. Setting `scrollLeft` before the content grows just clamps against
    * the old extent, so the adjustment waits for the layout effect below.
    */
-  const pendingScroll = useRef<((el: HTMLDivElement) => void) | null>(null);
-
   useLayoutEffect(() => {
     const element = viewportRef.current;
     const apply = pendingScroll.current;
@@ -622,7 +622,7 @@ const ConnectionFlow = React.forwardRef<
   };
 
   const body = (
-    <div className="relative w-full min-w-0">
+    <div className="relative flex min-h-0 w-full min-w-0 flex-1 flex-col">
       {showHeader &&
         (eyebrow || title || subtitle || icon || tag || progressType !== "none") && (
           <>
@@ -650,7 +650,7 @@ const ConnectionFlow = React.forwardRef<
 
       {loading && loaderType !== "skeleton" ? (
         <div
-          className="flex w-full items-center justify-center"
+          className="flex min-h-0 w-full flex-auto items-center justify-center"
           style={{ height: typeof height === "number" ? `${height}px` : height }}
         >
           {loaderType === "spinner" ? (
@@ -672,10 +672,10 @@ const ConnectionFlow = React.forwardRef<
         </div>
       ) : loading ? (
         <div
-          className="w-full overflow-hidden"
+          className="min-h-0 w-full flex-auto overflow-hidden"
           style={{ height: typeof height === "number" ? `${height}px` : height }}
         >
-          <ConnectionFlowSkeleton variant={surfaceVariant} metrics={metrics} />
+          <ConnectionFlowSkeleton variant={surfaceVariant} metrics={metrics} layout={layout} />
         </div>
       ) : nodes.length === 0 ? (
         <EmptyState
@@ -688,11 +688,13 @@ const ConnectionFlow = React.forwardRef<
       ) : (
         <div
           ref={wheelAreaRef}
-          className="relative w-full min-w-0 overflow-hidden"
+          // Keep the declared height as the flex basis. A zero basis lets the
+          // zoomed canvas size the viewport and repeatedly retarget following.
+          className="relative isolate min-h-0 w-full min-w-0 flex-auto overflow-hidden"
           style={{ height: typeof height === "number" ? `${height}px` : height }}
         >
         <ScrollArea
-          variant="auto"
+          variant="hover"
           viewportRef={viewportRef}
           data-follow-mode={follow}
           viewportClassName="!overflow-hidden"
@@ -837,16 +839,17 @@ const ConnectionFlow = React.forwardRef<
   );
 
   if (variant === "plain") {
-    return <div className={classNames("w-full min-w-0", className)}>{body}</div>;
+    return <div className={classNames("flex min-h-0 w-full min-w-0 flex-col", className)}>{body}</div>;
   }
 
   return (
     <Panel
-      className={classNames("w-full min-w-0", className)}
+      className={classNames("flex min-h-0 w-full min-w-0 flex-col", className)}
       variant={variant}
       tone={tone}
       corner={corner}
       padding="none"
+      flexBody
       // Title, subtitle and loading are drawn by the flow's own header:
       // Panel's carries no icon chip and no progress, and `variant="plain"`
       // renders no Panel at all, so the header has to belong here either way.

@@ -502,9 +502,9 @@ defineExpose({ zoomIn, zoomOut, fit, setZoom });
     :is="isPlain ? 'div' : Panel"
     v-bind="
       isPlain
-        ? { class: classNames('w-full', classAttr) }
+        ? { class: classNames('flex min-h-0 w-full flex-col', classAttr) }
         : {
-            class: classNames('w-full', classAttr),
+            class: classNames('flex min-h-0 w-full flex-col', classAttr),
             variant,
             tone,
             corner,
@@ -515,11 +515,12 @@ defineExpose({ zoomIn, zoomOut, fit, setZoom });
             // scrolling — Panel's body scroller would sit outside it and take
             // the gesture first.
             scrollable: false,
+            flexBody: true,
           }
     "
     v-bind:="restAttrs"
   >
-    <div class="relative w-full">
+    <div class="relative flex min-h-0 w-full flex-1 flex-col">
       <template v-if="showHeaderBlock">
         <div class="px-4 pt-4 pb-3">
           <ConnectionFlowHeader
@@ -545,7 +546,7 @@ defineExpose({ zoomIn, zoomOut, fit, setZoom });
       <!-- The graph frame, or whichever loader is standing in for it. -->
       <div
         v-if="loading && loaderType !== 'skeleton'"
-        class="flex w-full items-center justify-center"
+        class="flex min-h-0 w-full flex-auto items-center justify-center"
         :style="frameStyle"
       >
         <ProgressSpinner
@@ -566,10 +567,10 @@ defineExpose({ zoomIn, zoomOut, fit, setZoom });
 
       <div
         v-else-if="loading"
-        class="w-full overflow-hidden"
+        class="min-h-0 w-full flex-auto overflow-hidden"
         :style="frameStyle"
       >
-        <ConnectionFlowSkeleton :variant="surfaceVariant" :metrics="metrics" />
+        <ConnectionFlowSkeleton :variant="surfaceVariant" :metrics="metrics" :layout="layout" />
       </div>
 
       <EmptyState
@@ -581,7 +582,7 @@ defineExpose({ zoomIn, zoomOut, fit, setZoom });
         subtitle="No steps have been reported for this flow."
       />
 
-      <div v-else class="relative w-full" :style="frameStyle">
+      <div v-else class="relative isolate min-h-0 w-full flex-auto overflow-hidden" :style="frameStyle">
       <div
         ref="viewportRef"
         class="h-full w-full select-none overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent"

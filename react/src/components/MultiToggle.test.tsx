@@ -232,13 +232,13 @@ describe("MultiToggle", () => {
   });
 
   describe("auto width", () => {
-    it("keeps labels whole in plain auto mode", () => {
+    it("allows labels to ellipsize when the parent constrains auto width", () => {
       // The track is an inline-flex that shrink-wraps, and `truncate` was
       // always on — so min-content sizing (an ellipsis) won the shrink-wrap
       // and every label collapsed to "We…". No constraint, no truncation.
       const { container } = setup();
-      expect(container.innerHTML).not.toContain("truncate");
-      expect(container.innerHTML).toContain("whitespace-nowrap");
+      expect(container.innerHTML).toContain("truncate");
+      expect(screen.getAllByRole("radio")[0].className).toContain("flex-initial");
     });
 
     it("truncates under fullWidth, where segments really are constrained", () => {
@@ -269,5 +269,51 @@ describe("MultiToggle", () => {
       fireEvent.click(screen.getAllByRole("radio")[1]);
       expect(onChange).toHaveBeenCalledWith("b");
     });
+  });
+});
+
+describe("MultiToggle unequal label geometry", () => {
+  it("uses the selected button's measured bounds in auto mode", () => {
+    const { container, rerender } = setup({ options: [
+      { value: "a", label: "One step" },
+      { value: "b", label: "Repeat for each item" },
+    ] });
+    const group = container.querySelector('[role="radiogroup"]')!;
+    const buttons = container.querySelectorAll("button");
+    Object.defineProperty(group, "clientWidth", { configurable: true, value: 308 });
+    Object.defineProperty(buttons[1], "offsetWidth", { configurable: true, value: 200 });
+    Object.defineProperty(buttons[1], "offsetLeft", { configurable: true, value: 104 });
+    rerender(<MultiToggle options={[
+      { value: "a", label: "One step" },
+      { value: "b", label: "Repeat for each item" },
+    ]} value="b" onChange={() => {}} />);
+    const indicator = container.querySelector<HTMLElement>(".multi-toggle-indicator")!;
+    expect(indicator.style.getPropertyValue("--mt-width")).toBe("198px");
+    expect(indicator.style.getPropertyValue("--mt-offset")).toBe("105px");
+    expect(buttons[1].className).toContain("flex-initial");
+  });
+
+  it("keeps equal segments in fullWidth mode and exposes spring tuning", () => {
+    const { container } = setup({ fullWidth: true, spring: "snappy", springDuration: 450 });
+    expect(screen.getAllByRole("radio")[0].className).toContain("flex-1");
+    const group = container.querySelector<HTMLElement>('[role="radiogroup"]')!;
+    expect(group.style.getPropertyValue("--mt-spring-duration")).toBe("450ms");
+    expect(group.style.getPropertyValue("--mt-spring-easing")).toBe("cubic-bezier(0.22, 1.35, 0.36, 1)");
+  });
+});
+
+describe("MultiToggle overflow tooltips", () => {
+  it("shows a tooltip on keyboard focus only while the label overflows", async () => {
+    const { container } = setup();
+    const label = container.querySelector<HTMLElement>("[data-multi-toggle-label]")!;
+    Object.defineProperty(label, "scrollWidth", { configurable: true, value: 240 });
+    Object.defineProperty(label, "clientWidth", { configurable: true, value: 80 });
+    fireEvent(window, new Event("resize"));
+    fireEvent.focus(screen.getAllByRole("radio")[0]);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Alpha");
+    Object.defineProperty(label, "clientWidth", { configurable: true, value: 240 });
+    fireEvent(window, new Event("resize"));
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(screen.getAllByRole("radio").map((button) => button.tabIndex)).toEqual([0, -1, -1]);
   });
 });
