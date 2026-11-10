@@ -20,6 +20,8 @@ import Physics from "./examples/Physics";
 import physicsCode from "./examples/Physics.tsx?raw";
 import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
+import HoverStability from "./examples/HoverStability";
+import hoverStabilityCode from "./examples/HoverStability.tsx?raw";
 import Glass from "./examples/Glass";
 import glassCode from "./examples/Glass.tsx?raw";
 
@@ -34,6 +36,14 @@ export const ExpandableButtonPage: React.FC = () => (
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">
         Examples
       </h2>
+      <ExampleCard
+        title="Hover stability"
+        description="A constrained toolbar makes expansion wrap the button. The rectangular hit area and collapse delay give the pointer time to follow."
+        code={hoverStabilityCode}
+        filename="HoverStability.tsx"
+      >
+        <HoverStability />
+      </ExampleCard>
       <ExampleCard
         title="Triggers"
         description="The five expandOn modes side by side — hover, focus, both, click and always. Hover, Tab and press each one."
@@ -102,7 +112,7 @@ export const ExpandableButtonPage: React.FC = () => (
           <C>aria-expanded</C> is only set where the component genuinely owns
           the open state — <C>expandOn=&quot;click&quot;</C>,{" "}
           <C>expandOn=&quot;always&quot;</C> or a controlled <C>expanded</C>.
-          The CSS triggers do not advertise a state they do not
+          The hover/focus triggers do not advertise a state they do not
           hold. A styled <C>tooltip</C> replaces the native <code>title</code>{" "}
           rather than doubling it; with no tooltip the native one falls back to
           the accessible name. Passing <C>aria-hidden</C> on the button itself
@@ -338,7 +348,14 @@ export const ExpandableButtonPage: React.FC = () => (
           type: "ExpandTrigger",
           default: '"hover"',
           description:
-            "What reveals the label. hover / focus / hover+focus are pure CSS (the button never re-renders to animate); click and always move the open state into React. hover also opens on :focus-visible, focus uses plain :focus, and on a touchscreen (hover: none) a tap's focus opens the hover modes too.",
+            "What reveals the label. Hover uses explicit state with a delayed collapse; focus uses CSS. Click toggles the open state, and always holds it open. hover also opens on :focus-visible, focus uses plain :focus, and on a touchscreen (hover: none) a tap's focus opens the hover modes too.",
+        },
+        {
+          name: "collapseDelay",
+          type: "number",
+          default: "500",
+          description:
+            "Milliseconds outside the rectangular hover area before collapse. Re-entry cancels the timer. Rounded corners remain part of the hit area. Set 0 for immediate collapse. Focus keeps hover+focus controls open after the delay. Controlled, click, always and focus-only modes do not use this delay.",
         },
         {
           name: "expanded",
@@ -357,7 +374,7 @@ export const ExpandableButtonPage: React.FC = () => (
           name: "onExpandedChange",
           type: "(expanded: boolean) => void",
           description:
-            "Fires when the effective open state changes — in the CSS modes, once the pointer and focus have both let go (so a hover+focus control does not report true twice on arrival, nor false while focus still holds the label open); in click mode, on every toggle. Never from always, and never from a value you set yourself.",
+            "Fires when the effective open state changes — in hover/focus modes, once the hover grace period and focus have both let go (so a hover+focus control does not report true twice on arrival, nor false while focus still holds the label open); in click mode, on every toggle. Never from always, and never from a value you set yourself.",
         },
         {
           name: "spring",

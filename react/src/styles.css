@@ -1003,6 +1003,13 @@
     transform 150ms ease;
   -webkit-tap-highlight-color: transparent;
 }
+/* Transparent rectangular hit area includes the visual button's rounded corners.
+   It follows the animated bounds without reserving space or covering neighbors. */
+.eb-hitbox {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+}
 :where(.dark) .eb-btn {
   --_eb-shadow-1: rgb(0 0 0 / 0.45);
   --_eb-shadow-2: rgb(0 0 0 / 0.6);
@@ -1098,7 +1105,7 @@
    its open state (`data-expanded`) ignores the pointer entirely. */
 .eb-btn:is(
     [data-expanded="true"],
-    [data-expand-hover="true"]:hover:not(:disabled),
+    [data-expand-hover="true"][data-hovered="true"]:not(:disabled),
     [data-expand-hover="true"]:focus-visible:not(:disabled),
     [data-expand-focus="true"]:focus:not(:disabled)
   ) {

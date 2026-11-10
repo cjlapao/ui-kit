@@ -10,6 +10,8 @@ import React, {
   type ReactNode,
   forwardRef,
   useCallback,
+  useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -48,8 +50,8 @@ const roundedMap: Record<ExpandableButtonRounded, string> = {
 /**
  * What reveals the label.
  *
- * `hover`/`focus`/`hover+focus` are pure CSS (the button is never re-rendered
- * to animate), `click` puts the open state in React so it survives a tap and
+ * Hover uses React state with a collapse grace period; focus remains CSS-driven.
+ * `click` puts the open state in React so it survives a tap and
  * answers to Enter/Space, and `always` renders the control expanded — useful
  * for a sidebar that has just been pinned open.
  */
@@ -132,6 +134,8 @@ export interface ExpandableButtonProps
   specularMode?: SpecularMode;
   /** What reveals the label. Defaults to "hover". */
   expandOn?: ExpandTrigger;
+  /** Time outside the rectangular hover area before collapsing, in ms. Defaults to 500. */
+  collapseDelay?: number;
   /**
    * Controlled open state. When set it owns the control outright: the hover
    * and focus triggers are switched off — glyph included, since the whole
@@ -143,7 +147,7 @@ export interface ExpandableButtonProps
   defaultExpanded?: boolean;
   /**
    * Fired when the effective open state changes: once the pointer and focus
-   * have *both* let go in the CSS modes (so a `hover+focus` control does not
+   * have *both* let go after the hover grace period (so a `hover+focus` control does not
    * report `true` twice on arrival, nor `false` on mouse-leave while focus
    * still holds the label open), and on every toggle in `click` mode. Nothing
    * comes from `always`, and nothing from a value you set yourself.
@@ -205,6 +209,7 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
       glassOpacity = "clear",
       specularMode = "none",
       expandOn = "hover",
+      collapseDelay = 150,
       expanded,
       defaultExpanded = false,
       onExpandedChange,
@@ -289,8 +294,8 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
           })()
         : null;
 
-    // `click` and `always` need to know the open state; `hover`/`focus` are
-    // answered by CSS, so the React state stays put and no hover re-renders.
+    // Click owns its toggle; hover adds a grace period before releasing the
+    // CSS open switch. Focus is still answered by the stylesheet.
     const isControlled = expanded !== undefined;
     const [open, setOpen] = useState(defaultExpanded);
     const controlledOpen = isControlled ? !!expanded : open;
@@ -311,10 +316,12 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
       !ownsOpenState && (expandOn === "focus" || expandOn === "hover+focus");
 
     // `report` exists so a caller can follow the state without the control
-    // having to re-render for it: hover and focus are tracked in refs, and the
+    // tracking individual events: hover and focus are tracked in refs, and the
     // callback fires only when the *composite* answer changes. (Reporting each
     // event instead would announce `true` twice for one hover+focus arrival,
     // and `false` on mouse-leave while the label is still held open by focus.)
+    const [hoverOpen, setHoverOpen] = useState(false);
+    const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hoveredRef = useRef(false);
     const focusedRef = useRef(false);
     const reportedRef = useRef<boolean>(
@@ -332,6 +339,44 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
       () => report(hoveredRef.current || focusedRef.current),
       [report],
     );
+
+    const reportCompositeRef = useRef(reportComposite);
+    useLayoutEffect(() => { reportCompositeRef.current = reportComposite; });
+    const cancelCollapse = useCallback(() => {
+      if (collapseTimer.current !== null) {
+        clearTimeout(collapseTimer.current);
+        collapseTimer.current = null;
+      }
+    }, []);
+    useEffect(() => {
+      cancelCollapse();
+      hoveredRef.current = false;
+      focusedRef.current = false;
+      setHoverOpen(false);
+      // Synchronize ownership without announcing a caller-controlled change.
+      reportedRef.current = expandOn === "always"
+        ? true
+        : isControlled || clickMode ? controlledOpen : false;
+      return cancelCollapse;
+    }, [cancelCollapse, expandOn, isControlled, controlledOpen, clickMode, disabled, loading]);
+
+    const enterHover = () => {
+      cancelCollapse();
+      hoveredRef.current = true;
+      setHoverOpen(true);
+      reportComposite();
+    };
+    const leaveHover = () => {
+      cancelCollapse();
+      const release = () => {
+        collapseTimer.current = null;
+        hoveredRef.current = false;
+        setHoverOpen(false);
+        reportCompositeRef.current();
+      };
+      if (collapseDelay <= 0) release();
+      else collapseTimer.current = setTimeout(release, collapseDelay);
+    };
 
     const computedClassName = classNames(
       "eb-btn",
@@ -451,6 +496,7 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
         data-glass={isGlass}
         data-expanded={openAttribute}
         data-expand-hover={cssHover}
+        data-hovered={cssHover && hoverOpen && !disabled && !loading}
         data-expand-focus={cssFocus}
         data-elevate={elevate}
         data-icon-motion={loading ? "none" : iconMotion}
@@ -464,8 +510,7 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
         onMouseEnter={
           cssHover
             ? (event) => {
-                hoveredRef.current = true;
-                reportComposite();
+                if (!disabled && !loading) enterHover();
                 onMouseEnter?.(event);
               }
             : onMouseEnter
@@ -473,23 +518,24 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
         onMouseLeave={
           cssHover
             ? (event) => {
-                hoveredRef.current = false;
-                reportComposite();
+                if (!disabled && !loading) leaveHover();
                 onMouseLeave?.(event);
               }
             : onMouseLeave
         }
         onFocus={
-          cssFocus
+          cssFocus || cssHover
             ? (event) => {
-                focusedRef.current = true;
+                focusedRef.current = cssFocus ||
+                  event.currentTarget.matches(":focus-visible") ||
+                  window.matchMedia("(hover: none)").matches;
                 reportComposite();
                 onFocus?.(event);
               }
             : onFocus
         }
         onBlur={
-          cssFocus
+          cssFocus || cssHover
             ? (event) => {
                 focusedRef.current = false;
                 reportComposite();
@@ -499,6 +545,7 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
         }
         {...restProps}
       >
+        {cssHover && <span className="eb-hitbox" aria-hidden="true" />}
         {specularOverlay}
         {loading ? (
           <span className="eb-icon" aria-hidden="true">

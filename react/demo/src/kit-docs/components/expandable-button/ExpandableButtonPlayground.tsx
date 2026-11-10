@@ -51,6 +51,7 @@ export const ExpandableButtonPlayground: React.FC = () => {
   const [iconMotion, setIconMotion] =
     useState<ExpandableButtonIconMotion>("pop-tilt");
   const [duration, setDuration] = useState(600);
+  const [collapseDelay, setCollapseDelay] = useState(500);
   const [overrideDuration, setOverrideDuration] = useState(false);
   const [elevate, setElevate] = useState(true);
   const [squish, setSquish] = useState(true);
@@ -128,6 +129,18 @@ export const ExpandableButtonPlayground: React.FC = () => {
                       value={expandOn}
                       onChange={(v) => setExpandOn(v as ExpandTrigger)}
                     />
+                    <Control label={`Collapse delay — ${collapseDelay} ms`}>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1500}
+                        step={50}
+                        value={collapseDelay}
+                        onChange={(event) => setCollapseDelay(Number(event.target.value))}
+                        aria-label="Hover collapse delay in milliseconds"
+                        className="w-full accent-blue-500"
+                      />
+                    </Control>
                     <ChoiceControl
                       label="Spring"
                       options={expandableButtonSpringOptions}
@@ -272,8 +285,9 @@ export const ExpandableButtonPlayground: React.FC = () => {
             The resting control is a circle; the label rides out on a spring
             whose overshoot is the whole illusion. <strong>Expand on</strong>{" "}
             decides who owns that open state: <code>hover</code>,{" "}
-            <code>focus</code> and <code>hover+focus</code> are pure CSS (no
-            re-render), <code>click</code> moves it into React state, and{" "}
+            <code>hover+focus</code> use a rectangular hover area and delayed
+            collapse; <code>focus</code> stays CSS-driven. <code>click</code>{" "}
+            toggles React state, and{" "}
             <code>always
             </code> writes it outright — the pointer has nothing to do with it.{" "}
             <strong>Force open</strong> pins any trigger through{" "}
@@ -293,6 +307,7 @@ export const ExpandableButtonPlayground: React.FC = () => {
               size={size}
               rounded={rounded}
               expandOn={expandOn}
+              collapseDelay={collapseDelay}
               expanded={controlledOpen ? true : undefined}
               spring={spring}
               springDuration={overrideDuration ? duration : undefined}

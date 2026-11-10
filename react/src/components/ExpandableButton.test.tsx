@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import ExpandableButton from "./ExpandableButton";
 
 // Mock the IconContext so useIconRenderer doesn't throw (mirrors IconButton.test)
@@ -151,13 +151,14 @@ describe("ExpandableButton — expansion triggers", () => {
     expect(button(container)).toHaveAttribute("data-expand-focus", "false");
   });
 
-  it("reports hover and focus transitions without re-rendering the open state", () => {
+  it("reports hover and focus transitions with immediate collapse when configured", () => {
     const onExpandedChange = vi.fn();
     const { container } = render(
       <ExpandableButton
         icon="Search"
         label="Go"
         expandOn="hover+focus"
+        collapseDelay={0}
         onExpandedChange={onExpandedChange}
       />,
     );
@@ -168,7 +169,7 @@ describe("ExpandableButton — expansion triggers", () => {
     expect(onExpandedChange).toHaveBeenLastCalledWith(false);
     fireEvent.focus(button(container));
     expect(onExpandedChange).toHaveBeenLastCalledWith(true);
-    // CSS owns the visual state, so React never claims it is expanded.
+    // data-expanded remains reserved for click, always, and controlled state.
     expect(button(container)).toHaveAttribute("data-expanded", "false");
   });
 
@@ -451,6 +452,7 @@ describe("ExpandableButton — what onExpandedChange reports", () => {
         icon="Search"
         label="Go"
         expandOn="hover+focus"
+        collapseDelay={0}
         onExpandedChange={onExpandedChange}
       />,
     );
@@ -482,5 +484,130 @@ describe("ExpandableButton — what onExpandedChange reports", () => {
     );
     expect(onExpandedChange).not.toHaveBeenCalled();
     expect(button(container)).toHaveAttribute("aria-expanded", "true");
+  });
+});
+
+
+describe("ExpandableButton — hover stability", () => {
+  it("opens immediately and waits 500ms outside before collapsing", () => {
+    vi.useFakeTimers();
+    try {
+      const change = vi.fn();
+      const { container } = render(<ExpandableButton icon="Search" label="Go" onExpandedChange={change} />);
+      const target = button(container);
+      expect(target.querySelector(".eb-hitbox")).not.toBeNull();
+      fireEvent.mouseEnter(target);
+      expect(target).toHaveAttribute("data-hovered", "true");
+      fireEvent.mouseLeave(target);
+      act(() => vi.advanceTimersByTime(499));
+      expect(target).toHaveAttribute("data-hovered", "true");
+      act(() => vi.advanceTimersByTime(1));
+      expect(target).toHaveAttribute("data-hovered", "false");
+      expect(change.mock.calls).toEqual([[true], [false]]);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("cancels collapse when the pointer returns through the rectangular hit area", () => {
+    vi.useFakeTimers();
+    try {
+      const change = vi.fn();
+      const { container } = render(<ExpandableButton icon="Search" label="Go" onExpandedChange={change} />);
+      fireEvent.mouseEnter(button(container));
+      fireEvent.mouseLeave(button(container));
+      act(() => vi.advanceTimersByTime(300));
+      fireEvent.mouseEnter(container.querySelector(".eb-hitbox")!);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(button(container)).toHaveAttribute("data-hovered", "true");
+      expect(change.mock.calls).toEqual([[true]]);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("holds focus while the hover grace period expires", () => {
+    vi.useFakeTimers();
+    try {
+      const change = vi.fn();
+      const { container } = render(<ExpandableButton icon="Search" label="Go" expandOn="hover+focus" onExpandedChange={change} />);
+      fireEvent.mouseEnter(button(container));
+      fireEvent.focus(button(container));
+      fireEvent.mouseLeave(button(container));
+      act(() => vi.advanceTimersByTime(500));
+      expect(change.mock.calls).toEqual([[true]]);
+      fireEvent.blur(button(container));
+      expect(change.mock.calls).toEqual([[true], [false]]);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("keeps keyboard focus holding hover mode open after the grace period", () => {
+    vi.useFakeTimers();
+    try {
+      const change = vi.fn();
+      const { container } = render(<ExpandableButton icon="Search" label="Go" onExpandedChange={change} />);
+      const target = button(container);
+      vi.spyOn(target, "matches").mockReturnValue(true);
+      fireEvent.mouseEnter(target);
+      fireEvent.focus(target);
+      fireEvent.mouseLeave(target);
+      act(() => vi.advanceTimersByTime(500));
+      expect(change.mock.calls).toEqual([[true]]);
+      fireEvent.blur(target);
+      expect(change.mock.calls).toEqual([[true], [false]]);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("keeps the grace period when focus leaves before the pointer timeout", () => {
+    vi.useFakeTimers();
+    try {
+      const change = vi.fn();
+      const { container } = render(<ExpandableButton icon="Search" label="Go" expandOn="hover+focus" onExpandedChange={change} />);
+      fireEvent.mouseEnter(button(container));
+      fireEvent.focus(button(container));
+      fireEvent.mouseLeave(button(container));
+      fireEvent.blur(button(container));
+      expect(change.mock.calls).toEqual([[true]]);
+      act(() => vi.advanceTimersByTime(500));
+      expect(change.mock.calls).toEqual([[true], [false]]);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("uses the configured delay", () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<ExpandableButton icon="Search" label="Go" collapseDelay={800} />);
+      fireEvent.mouseEnter(button(container));
+      fireEvent.mouseLeave(button(container));
+      act(() => vi.advanceTimersByTime(799));
+      expect(button(container)).toHaveAttribute("data-hovered", "true");
+      act(() => vi.advanceTimersByTime(1));
+      expect(button(container)).toHaveAttribute("data-hovered", "false");
+    } finally { vi.useRealTimers(); }
+  });
+
+  it.each([{ disabled: true }, { loading: true }, { expandOn: "click" as const }, { expanded: false }])("clears pending hover when behavior changes: %j", (next) => {
+    vi.useFakeTimers();
+    try {
+      const change = vi.fn();
+      const { container, rerender } = render(<ExpandableButton icon="Search" label="Go" onExpandedChange={change} />);
+      fireEvent.mouseEnter(button(container));
+      fireEvent.mouseLeave(button(container));
+      rerender(<ExpandableButton icon="Search" label="Go" onExpandedChange={change} {...next} />);
+      expect(button(container)).toHaveAttribute("data-hovered", "false");
+      expect(vi.getTimerCount()).toBe(0);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(change.mock.calls).toEqual([[true]]);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it("cleans up the timer on unmount", () => {
+    vi.useFakeTimers();
+    try {
+      const change = vi.fn();
+      const { container, unmount } = render(<ExpandableButton icon="Search" label="Go" onExpandedChange={change} />);
+      fireEvent.mouseEnter(button(container));
+      fireEvent.mouseLeave(button(container));
+      unmount();
+      expect(vi.getTimerCount()).toBe(0);
+      act(() => vi.advanceTimersByTime(1000));
+      expect(change.mock.calls).toEqual([[true]]);
+    } finally { vi.useRealTimers(); }
   });
 });
