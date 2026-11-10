@@ -179,6 +179,14 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/app-divider/AppDividerPage")),
   },
   {
+    slug: "content-actions",
+    name: "Content Actions",
+    description: "Content yields width to growing actions; both stay on one row, with horizontal action scrolling when space runs out.",
+    icon: "ViewGrid",
+    category: "Layout",
+    Page: lazy(() => import("./components/content-actions/ContentActionsPage")),
+  },
+  {
     slug: "header-group",
     name: "Header Group",
     description:

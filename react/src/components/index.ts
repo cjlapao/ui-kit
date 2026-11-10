@@ -910,3 +910,5 @@ export { DotStepper, type DotStepperProps, type DotStepperStep } from "./DotStep
 
 // Composable knowledge and memory views
 export * from "./knowledge";
+
+export { default as ContentActions, type ContentActionsProps } from "./ContentActions";

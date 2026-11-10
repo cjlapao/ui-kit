@@ -550,3 +550,5 @@ export {
   type TreeItemCardProps,
   type TreeFlowSvgProps,
 } from "./TreeView";
+
+export { default as ContentActions, type ContentActionsProps } from "./ContentActions.vue";

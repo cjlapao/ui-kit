@@ -1,5 +1,6 @@
 // Components
 export * from "./components";
+export { default as ContentActions, type ContentActionsProps } from "./components/ContentActions";
 
 // Contexts
 // Contexts
