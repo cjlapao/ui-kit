@@ -477,6 +477,7 @@ export {
   type TableColumn,
   type TableSortState,
   type TablePaginationState,
+  type TableInfiniteScrollState,
   type Column,
   type TableVariant,
 } from "./Table.vue";

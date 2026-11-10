@@ -23,6 +23,9 @@ import {
 } from "../utils/tableStorage";
 import type { TableSettings } from "../types/TableSettings";
 
+import type { TableInfiniteScrollState } from "../../../common/types/InfiniteScroll";
+export type { TableInfiniteScrollState } from "../../../common/types/InfiniteScroll";
+
 type SortDirection = "asc" | "desc";
 
 export interface TableSortState {
@@ -166,6 +169,8 @@ export interface TableProps<T> {
   headerActions?: VNodeChild;
   footer?: VNodeChild;
   pagination?: TablePaginationState;
+  /** Append pages in the existing viewport; takes precedence over pagination. */
+  infiniteScroll?: TableInfiniteScrollState;
   maxHeight?: string | number;
   rowClassName?: (row: T, index: number) => string;
   /** When provided and returns true for a row, that row is rendered with an intense accent background and a pulsing left-border indicator to signal new/updated content. */
@@ -542,6 +547,8 @@ import {
 } from "vue";
 import classNames from "classnames";
 import Loader from "./Loader.vue";
+import TableInfiniteScroll from "./TableInfiniteScroll.vue";
+import { useInfiniteScroll } from "../composables/useInfiniteScroll";
 import IconButton from "./IconButton.vue";
 import Button from "./Button.vue";
 import Select from "./Select.vue";
@@ -770,6 +777,20 @@ watch(
 // refs: one per <th> for DOM measurement, plus transient resize state
 const thRefs: Record<string, HTMLTableCellElement | null> = {};
 const scrollContainerRef = ref<HTMLDivElement | null>(null);
+const panelScrollRef = ref<HTMLDivElement | null>(null);
+const infiniteSentinelRef = ref<HTMLDivElement | null>(null);
+const infiniteRootRef = computed(() => activeView.value === "table" ? scrollContainerRef.value : panelScrollRef.value);
+const { busy: infiniteBusy, error: infiniteError, loadMore: loadMoreRows } = useInfiniteScroll(
+  infiniteRootRef, infiniteSentinelRef,
+  () => ({
+    ...props.infiniteScroll,
+    hasMore: props.infiniteScroll?.hasMore ?? false,
+    onLoadMore: props.infiniteScroll?.onLoadMore ?? (async () => {}),
+    itemCount: props.data.length,
+    isLoading: props.loading,
+  }),
+);
+const pagination = computed(() => props.infiniteScroll ? undefined : props.pagination);
 let resizing: { colId: string; startX: number; startWidth: number } | null =
   null;
 let widthsDuringResize: Record<string, number> = {};
@@ -1448,7 +1469,7 @@ const scrollContainerClass = computed(() =>
 const panelOuterClass = computed(() =>
   classNames(
     "relative",
-    props.fullHeight ? "flex-1 min-h-0 overflow-auto" : undefined,
+    props.fullHeight ? "flex-1 min-h-0 overflow-auto" : props.maxHeight ? "overflow-auto" : undefined,
   ),
 );
 
@@ -1913,26 +1934,26 @@ const hasFooterBar = computed(
   () =>
     !!slots.footer ||
     !!props.footer ||
-    !!(props.pagination && props.pagination.total > 0),
+    !!(pagination.value && pagination.value.total > 0),
 );
 
 // Presets plus the active page size, so a non-preset size still renders
 // a matching option instead of a blank select.
 const pageSizeOptions = computed<number[]>(() => {
-  const active = props.pagination?.pageSize;
+  const active = pagination.value?.pageSize;
   const set = new Set<number>([20, 50, 100, ...(active ? [active] : [])]);
   return Array.from(set).sort((a, b) => a - b);
 });
 const handlePageSizeChange = (value: unknown) => {
-  props.pagination?.onPageSizeChange(Number(value));
+  pagination.value?.onPageSizeChange(Number(value));
 };
 const handlePrevPage = () => {
-  const p = props.pagination;
+  const p = pagination.value;
   if (!p) return;
   p.onPageChange(Math.max(1, p.page - 1));
 };
 const handleNextPage = () => {
-  const p = props.pagination;
+  const p = pagination.value;
   if (!p) return;
   p.onPageChange(Math.min(Math.ceil(p.total / p.pageSize), p.page + 1));
 };
@@ -2469,6 +2490,15 @@ const handleNextPage = () => {
               </tr>
             </tbody>
           </table>
+          <TableInfiniteScroll
+            v-if="infiniteScroll"
+            :config="infiniteScroll"
+            :item-count="data.length"
+            :busy="infiniteBusy"
+            :error="infiniteError"
+            :load-more="loadMoreRows"
+            @sentinel="(element) => infiniteSentinelRef = element"
+          />
           <!-- Full-height column-resize guide, spanning the whole table. -->
           <div
             v-if="resizeGuide"
@@ -2496,6 +2526,7 @@ const handleNextPage = () => {
       <!-- ── Panel view ────────────────────────────────────────────────────── -->
       <div
         v-if="activeView === 'panel' && hasPanelRenderer"
+        ref="panelScrollRef"
         :class="panelOuterClass"
         :style="!fullHeight ? scrollContainerStyle : undefined"
       >
@@ -2532,6 +2563,15 @@ const handleNextPage = () => {
             <VNodeRenderer :nodes="emptyState ?? 'No data to display'" />
           </slot>
         </div>
+        <TableInfiniteScroll
+          v-if="infiniteScroll"
+          :config="infiniteScroll"
+          :item-count="data.length"
+          :busy="infiniteBusy"
+          :error="infiniteError"
+          :load-more="loadMoreRows"
+          @sentinel="(element) => infiniteSentinelRef = element"
+        />
       </div>
 
       <!-- ── Footer / pagination ───────────────────────────────────────────── -->

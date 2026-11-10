@@ -299,6 +299,7 @@ export type IconName =
   | "VirtualMachine"
   | "Warning"
   | "Windows"
+  | "flow-chart"
   | (string & {});
 
 export const iconRegistry: Record<

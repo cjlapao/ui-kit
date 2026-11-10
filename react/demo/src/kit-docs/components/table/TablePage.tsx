@@ -19,7 +19,7 @@ export const TablePage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Table"
-      description="A data grid on the shared panel surface — sorting, grouping, pagination, column management, and opt-in settings persistence, with a three-step density scale, an optional bordered grid, and Panel-style loading states (spinner, progress, skeleton)."
+      description="A data grid on the shared panel surface — sorting, grouping, pagination or infinite scrolling, column management, and opt-in settings persistence, with a three-step density scale, an optional bordered grid, and Panel-style loading states (spinner, progress, skeleton)."
     />
     <TablePlayground />
     <section className="flex flex-col gap-5">
@@ -89,6 +89,12 @@ export const TablePage: React.FC = () => (
           name: "fullHeight / maxHeight",
           type: "boolean / string | number",
           description: "fullHeight fills a parent with a bounded height and width. In flex/grid layouts, allow the parent to shrink with min-height: 0 and min-width: 0. maxHeight caps the header and body region otherwise. The body uses ScrollArea on both axes; the header and footer stay visible.",
+        },
+        {
+          name: "infiniteScroll",
+          type: "TableInfiniteScrollState",
+          description:
+            "Optional { hasMore, onLoadMore, rootMargin?, onError?, resetKey? }. Append fetched pages to data; the table requests more near the body bottom (320px by default), prevents concurrent requests and offers retry. Takes precedence over pagination; custom footers remain visible. Use maxHeight or a bounded fullHeight parent. Change resetKey when replacing rows after server filtering or sorting; discard stale network responses in the parent. Pair remote sorting with manualSorting. Local sorting and grouping apply only to loaded rows. A page that adds no rows pauses automatic loading until data changes; Load more remains available.",
         },
         {
           name: "pagination",

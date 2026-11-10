@@ -17,6 +17,10 @@ import { isGlassSurface } from "../theme/Theme";
 import { useKitT } from "../i18n";
 import { ScrollArea } from "./ScrollArea";
 import { TableViewport } from "./TableViewport";
+import { TableInfiniteScroll } from "./TableInfiniteScroll";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import type { TableInfiniteScrollState } from "../../../common/types/InfiniteScroll";
+export type { TableInfiniteScrollState } from "../../../common/types/InfiniteScroll";
 
 const PORTAL_ROOT = typeof document !== "undefined" ? document.body : null;
 import {
@@ -226,6 +230,8 @@ export interface TableProps<T> {
   headerActions?: React.ReactNode;
   footer?: React.ReactNode;
   pagination?: TablePaginationState;
+  /** Append pages in the body viewport; takes precedence over pagination. */
+  infiniteScroll?: TableInfiniteScrollState;
   maxHeight?: string | number;
   onRowClick?: (row: T, index: number) => void;
   rowClassName?: (row: T, index: number) => string;
@@ -892,7 +898,8 @@ function TableComponent<T>({
   bodyClassName,
   style,
   fullHeight,
-  pagination,
+  pagination: paginationProp,
+  infiniteScroll,
   manualSorting = false,
   panelItem,
   defaultView,
@@ -1078,7 +1085,19 @@ function TableComponent<T>({
 
   // refs: one per <th> for DOM measurement, plus transient resize state
   const thRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
+  const pagination = infiniteScroll ? undefined : paginationProp;
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const infiniteSentinelRef = useRef<HTMLDivElement | null>(null);
+  const infiniteState = useInfiniteScroll({
+    ...infiniteScroll,
+    hasMore: infiniteScroll?.hasMore ?? false,
+    onLoadMore: infiniteScroll?.onLoadMore ?? (async () => {}),
+    rootRef: scrollContainerRef,
+    sentinelRef: infiniteSentinelRef,
+    itemCount: data.length,
+    isLoading: loading,
+    observeKey: activeView,
+  });
   const resizingRef = useRef<{
     colId: string;
     startX: number;
@@ -2450,6 +2469,14 @@ function TableComponent<T>({
                 fullHeight={fullHeight}
                 maxHeight={!fullHeight ? maxHeight : undefined}
                 viewportRef={scrollContainerRef}
+                afterBody={infiniteScroll ? (
+                  <TableInfiniteScroll
+                    config={infiniteScroll}
+                    sentinelRef={infiniteSentinelRef}
+                    itemCount={data.length}
+                    state={infiniteState}
+                  />
+                ) : undefined}
                 onScroll={handleGuideScroll}
                 guide={resizeGuide ? (
                   <div aria-hidden="true" className={classNames("pointer-events-none absolute inset-y-0 z-30 w-0.5", gridLinesOn ? getResizeGuideColorClass(controlColor) : "bg-neutral-300 dark:bg-neutral-600")} style={{ left: resizeGuide.left }} />
@@ -2858,6 +2885,7 @@ function TableComponent<T>({
             <ScrollArea
               className={classNames("min-h-0 min-w-0", fullHeight && "h-full")}
               style={!fullHeight ? scrollContainerStyle : undefined}
+              viewportRef={scrollContainerRef}
             >
               {showSkeleton ? (
                 <PanelCardSkeleton rows={skeletonRows} />
@@ -2905,6 +2933,14 @@ function TableComponent<T>({
                 </div>
               ) : (
                 renderPanelEmptyState()
+              )}
+              {infiniteScroll && (
+                <TableInfiniteScroll
+                  config={infiniteScroll}
+                  sentinelRef={infiniteSentinelRef}
+                  itemCount={data.length}
+                  state={infiniteState}
+                />
               )}
             </ScrollArea>
           </div>

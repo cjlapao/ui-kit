@@ -387,6 +387,11 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       loading: "Wird geladen",
     },
     table: {
+      loadingMore: "Weitere Einträge werden geladen...",
+      loadMoreError: "Weitere Einträge konnten nicht geladen werden.",
+      retryLoadMore: "Erneut versuchen",
+      loadMore: "Mehr laden",
+      endOfResults: "Sie haben das Ende erreicht",
       empty: "Keine Daten anzuzeigen",
 
       tableView: "Tabellenansicht",
