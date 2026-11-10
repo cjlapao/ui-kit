@@ -8,10 +8,11 @@ interface TableViewportProps {
   viewportRef: React.RefObject<HTMLDivElement | null>;
   onScroll: () => void;
   guide?: React.ReactNode;
+  afterBody?: React.ReactNode;
 }
 
 /** Separate vertical scrolling from the column header, sharing native column measurements. */
-export function TableViewport({ children, fullHeight, maxHeight, viewportRef, onScroll, guide }: TableViewportProps) {
+export function TableViewport({ children, fullHeight, maxHeight, viewportRef, onScroll, guide, afterBody }: TableViewportProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const headerTableRef = useRef<HTMLTableElement>(null);
@@ -103,6 +104,7 @@ export function TableViewport({ children, fullHeight, maxHeight, viewportRef, on
         }}
       >
         <table {...children.props} role="presentation" ref={bodyTableRef}><colgroup />{body}</table>
+        {afterBody}
         {guide}
       </ScrollArea>
     </div>

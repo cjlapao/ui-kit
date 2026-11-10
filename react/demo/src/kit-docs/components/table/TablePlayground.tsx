@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { ColorSwatches, Table, MultiToggle, IconButton } from "@cjlapao/ui-kit";
 import type {
   SurfaceVariant,
@@ -75,7 +75,7 @@ const ROWS: ServiceRow[] = [
   },
 ];
 
-const PREVIEW_ROWS = Array.from({ length: 4 }, (_, index) =>
+const PREVIEW_ROWS = Array.from({ length: 20 }, (_, index) =>
   ROWS.map((row) => ({ ...row, id: `${row.id}-${index}`, service: index ? `${row.service}-${index + 1}` : row.service })),
 ).flat();
 
@@ -142,6 +142,17 @@ export const TablePlayground: React.FC = () => {
   const [controlTone, setControlTone] = useState("");
   const [density, setDensity] = useState<TableDensity>("default");
   const [fullHeight, setFullHeight] = useState(true);
+  const [dataMode, setDataMode] = useState("paginated");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [loadedCount, setLoadedCount] = useState(20);
+  const datasetGeneration = useRef(0);
+  const changeDataMode = (value: string) => {
+    datasetGeneration.current += 1;
+    setDataMode(value);
+    setPage(1);
+    setLoadedCount(pageSize);
+  };
   const [bordered, setBordered] = useState(false);
   const [striped, setStriped] = useState(true);
   const [hoverable, setHoverable] = useState(true);
@@ -259,6 +270,7 @@ export const TablePlayground: React.FC = () => {
                 title: "Options",
                 controls: (
                   <div className="grid grid-cols-1 gap-2">
+                    <SelectControl label="Data loading" options={[{ value: "paginated", label: "Paginated" }, { value: "infinite", label: "Infinite scroll" }]} value={dataMode} onChange={changeDataMode} />
                     <ToggleRow label="Fill parent" checked={fullHeight} onChange={setFullHeight} />
                     <ToggleRow
                       label="Loading"
@@ -342,7 +354,23 @@ export const TablePlayground: React.FC = () => {
               isActionsColumn: true,
               render: (row) => <IconButton icon="DotsVertical" variant="ghost" aria-label={`Actions for ${row.service}`} onClick={() => pushLog(`Actions: ${row.service}`)} />,
             }]}
-            data={PREVIEW_ROWS}
+            data={dataMode === "infinite" ? PREVIEW_ROWS.slice(0, loadedCount) : PREVIEW_ROWS.slice((page - 1) * pageSize, page * pageSize)}
+            pagination={dataMode === "paginated" ? {
+              page, pageSize, total: PREVIEW_ROWS.length,
+              onPageChange: setPage,
+              onPageSizeChange: (size) => { setPageSize(size); setPage(1); },
+            } : undefined}
+            infiniteScroll={dataMode === "infinite" ? {
+              hasMore: loadedCount < PREVIEW_ROWS.length,
+              resetKey: dataMode,
+              onLoadMore: async () => {
+                const generation = datasetGeneration.current;
+                await new Promise((resolve) => setTimeout(resolve, 600));
+                if (generation !== datasetGeneration.current) return;
+                setLoadedCount((count) => Math.min(count + pageSize, PREVIEW_ROWS.length));
+                pushLog("Loaded next page");
+              },
+            } : undefined}
             rowKey={(row) => row.id}
             variant={variant}
             panelVariant={panelVariant as "auto" | SurfaceVariant}
@@ -381,7 +409,6 @@ export const TablePlayground: React.FC = () => {
             loaderProgress={
               loaderType === "progress" ? loaderProgress : undefined
             }
-            footer={<span>{PREVIEW_ROWS.length} services</span>}
           />
         </div>
       }

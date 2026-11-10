@@ -55,6 +55,7 @@ lines.push("// generator rewrites this whole file. A vitest guard fails the suit
 lines.push("// when the directory gains or loses a component without a regen.");
 lines.push("export type IconName =");
 for (const e of entries) lines.push(`  | "${e.name}"`);
+lines.push('  | "flow-chart"');
 lines.push("  | (string & {});");
 lines.push("");
 lines.push(

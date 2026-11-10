@@ -1,7 +1,6 @@
 import type { SurfaceTransparency } from "../theme/Theme";
 import React, {
   useCallback,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -9,6 +8,7 @@ import React, {
 } from "react";
 import classNames from "classnames";
 import Button from "./Button";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import Panel from "./Panel";
 import Spinner from "./Spinner";
 import { useSurfaceText } from "../contexts/SurfaceContext";
@@ -166,8 +166,6 @@ function ScrollBody<T>({
 }: ScrollBodyProps<T>) {
   const surface = useSurfaceText();
 
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState<unknown>(null);
   const [columnCount, setColumnCount] = useState(1);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,51 +173,10 @@ function ScrollBody<T>({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  const busy = isLoading || isLoadingMore;
-
-  const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
-    setError(null);
-    try {
-      await onLoadMore();
-    } catch (caught) {
-      // Was `console.error` and nothing else, so a failed page looked exactly
-      // like the end of the list.
-      setError(caught ?? new Error("Failed to load more items"));
-      onError?.(caught);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [isLoadingMore, hasMore, onLoadMore, onError]);
-
-  // ── Sentinel ──────────────────────────────────────────────────────────────
-  // An IntersectionObserver, not a debounced scroll handler comparing
-  // `getBoundingClientRect`s. The old approach missed fast scrolls, fired on
-  // every resize, and could not see the sentinel at all inside a nested
-  // scroller that had not scrolled yet.
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    const root = containerRef.current;
-    if (!sentinel || !root || !hasMore || error) return undefined;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting) && !busy) {
-          void loadMore();
-        }
-      },
-      { root, rootMargin: `0px 0px ${rootMargin}px 0px`, threshold: 0 },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, error, busy, rootMargin, loadMore]);
-
-  // Keeps fetching while the panel is under-filled.
-  useEffect(() => {
-    if (!hasMore || busy || error) return;
-    if (items.length < minItems) void loadMore();
-  }, [items.length, minItems, hasMore, busy, error, loadMore]);
+  const { error, busy, loadMore } = useInfiniteScroll({
+    rootRef: containerRef, sentinelRef, hasMore, onLoadMore, isLoading,
+    itemCount: items.length, minItems, rootMargin, onError,
+  });
 
   // ── Columns ───────────────────────────────────────────────────────────────
   const usesColumns = layout !== "list";
@@ -384,7 +341,6 @@ function ScrollBody<T>({
             color={tone}
             leadingIcon="Refresh"
             onClick={() => {
-              setError(null);
               void loadMore();
             }}
           >

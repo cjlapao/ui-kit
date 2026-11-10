@@ -385,6 +385,11 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       loading: "Cargando",
     },
     table: {
+      loadingMore: "Cargando más...",
+      loadMoreError: "No se pudieron cargar más elementos.",
+      retryLoadMore: "Intentar de nuevo",
+      loadMore: "Cargar más",
+      endOfResults: "Has llegado al final",
       empty: "No hay datos para mostrar",
 
       tableView: "Vista de tabla",

@@ -108,6 +108,7 @@ import {
 } from "vue";
 import classNames from "classnames";
 import Button from "./Button.vue";
+import { useInfiniteScroll } from "../composables/useInfiniteScroll";
 import Panel from "./Panel.vue";
 import Spinner from "./Spinner.vue";
 import {
@@ -144,8 +145,6 @@ defineSlots<{
 
 const { classAttr, restAttrs } = useClassAttrs();
 
-const isLoadingMore = ref(false);
-const error = ref<unknown>(null);
 const columnCount = ref(1);
 
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -153,11 +152,9 @@ const gridRef = ref<HTMLDivElement | null>(null);
 const sentinelRef = ref<HTMLDivElement | null>(null);
 let itemRefs: Array<HTMLDivElement | null> = [];
 
-let sentinelObserver: IntersectionObserver | null = null;
 let widthObserver: ResizeObserver | null = null;
 let itemObserver: ResizeObserver | null = null;
 
-const busy = computed(() => props.isLoading || isLoadingMore.value);
 const usesColumns = computed(() => props.layout !== "list");
 
 const setItemRef = (
@@ -167,70 +164,13 @@ const setItemRef = (
   itemRefs[index] = el as HTMLDivElement | null;
 };
 
-const loadMore = async () => {
-  if (isLoadingMore.value || !props.hasMore) return;
-  isLoadingMore.value = true;
-  error.value = null;
-  try {
-    await props.onLoadMore();
-  } catch (caught) {
-    // Was `console.error` and nothing else, so a failed page looked exactly
-    // like the end of the list.
-    error.value = caught ?? new Error("Failed to load more items");
-    emit("error", caught);
-  } finally {
-    isLoadingMore.value = false;
-  }
-};
-
-const retry = () => {
-  error.value = null;
-  void loadMore();
-};
-
-// ── Sentinel ────────────────────────────────────────────────────────────────
-// An IntersectionObserver, not a debounced scroll handler comparing
-// `getBoundingClientRect`s. The old approach missed fast scrolls, fired on
-// every window resize, and could not see the sentinel inside a nested scroller
-// that had not scrolled yet.
-const teardownSentinel = () => {
-  sentinelObserver?.disconnect();
-  sentinelObserver = null;
-};
-
-const setupSentinel = async () => {
-  teardownSentinel();
-  if (!props.hasMore || error.value) return;
-  await nextTick();
-  const sentinel = sentinelRef.value;
-  const root = containerRef.value;
-  if (!sentinel || !root) return;
-
-  sentinelObserver = new IntersectionObserver(
-    (entries) => {
-      if (entries.some((entry) => entry.isIntersecting) && !busy.value) {
-        void loadMore();
-      }
-    },
-    { root, rootMargin: `0px 0px ${props.rootMargin}px 0px`, threshold: 0 },
-  );
-  sentinelObserver.observe(sentinel);
-};
-
-watch(
-  [() => props.hasMore, error, busy, () => props.rootMargin],
-  () => void setupSentinel(),
-);
-
-// Keeps fetching while the panel is under-filled.
-watch(
-  [() => props.items.length, () => props.minItems, () => props.hasMore, busy],
-  () => {
-    if (!props.hasMore || busy.value || error.value) return;
-    if (props.items.length < props.minItems) void loadMore();
-  },
-  { immediate: true },
-);
+const { error, busy, loadMore } = useInfiniteScroll(containerRef, sentinelRef, () => ({
+  hasMore: props.hasMore, onLoadMore: props.onLoadMore,
+  isLoading: props.isLoading, itemCount: props.items.length,
+  minItems: props.minItems, rootMargin: props.rootMargin,
+  onError: (caught) => emit("error", caught),
+}));
+const retry = () => { void loadMore(); };
 
 // ── Columns ─────────────────────────────────────────────────────────────────
 const measureColumns = () => {
@@ -298,7 +238,6 @@ const setupMasonry = async () => {
 onMounted(() => {
   setupColumns();
   void setupMasonry();
-  void setupSentinel();
 });
 
 watch(
@@ -312,7 +251,6 @@ watch(
 );
 
 onBeforeUnmount(() => {
-  teardownSentinel();
   widthObserver?.disconnect();
   itemObserver?.disconnect();
 });

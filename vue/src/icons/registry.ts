@@ -145,6 +145,7 @@ import { ArrowChevronRight } from "./components/ArrowChevronRight";
 import { Drag } from "./components/Drag";
 
 export type IconName =
+  | "flow-chart"
   | "FlowChart"
   | "AgentFlow"
   | "AiAgent"
