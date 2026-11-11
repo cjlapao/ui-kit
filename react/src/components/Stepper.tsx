@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
 import React, {
   useId,
   useLayoutEffect,
@@ -1124,7 +1125,7 @@ const Stepper: React.FC<StepperProps> = ({
   completedStepIds,
   orientation = "horizontal",
   variant = "elevated",
-  tone = "neutral",
+  tone: surfaceTone = "none",
   size = "md",
   nodeCorner = "full",
   padding = "md",
@@ -1154,6 +1155,7 @@ const Stepper: React.FC<StepperProps> = ({
   className,
   ...panelRest
 }) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const state = useStepper(steps, {
     currentIndex,
     currentStepId,
@@ -1169,7 +1171,7 @@ const Stepper: React.FC<StepperProps> = ({
     <Panel
       className={classNames("w-full", className)}
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       padding={padding}
       corner={corner}
       loaderType={loaderType === "skeleton" ? "spinner" : loaderType}

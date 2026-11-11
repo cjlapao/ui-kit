@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, { cloneElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import classNames from "classnames";
@@ -109,7 +110,7 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
     {item.label && <div className="px-3 pb-1 pt-3 text-xs font-semibold text-neutral-500 dark:text-neutral-400">{item.label}</div>}
     {item.items && <MenuList items={item.disabled ? item.items.map(child => ({ ...child, disabled: true })) : item.items} state={state} depth={depth} parentLabel={label} grouped />}
   </li>;
-  const itemTone = item.tone ?? props.itemTone ?? props.tone ?? "neutral";
+  const itemTone = getSurfaceAccentColor(item.tone ?? props.itemTone ?? props.tone ?? "none");
   const itemPadding = item.padding ?? props.itemPadding;
   const tokens = getSideMenuItemTokens(itemTone);
   const checkable = item.type === "checkbox" || item.type === "radio";
@@ -167,7 +168,7 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
 function MenuSurface({ state, children, root = false }: { state: State; children: React.ReactNode; root?: boolean }) {
   const { props } = state;
   return <div data-menu-owner={state.owner} onMouseEnter={state.cancelLeave} onMouseLeave={state.scheduleLeave}>
-    <Panel variant={props.variant ?? "outlined"} tone={props.tone ?? "neutral"} corner={props.corner} padding="none"
+    <Panel variant={props.variant ?? "outlined"} tone={props.tone ?? "none"} corner={props.corner} padding="none"
       glassOpacity={props.glassOpacity} transparency={props.transparency} vibrancy={props.vibrancy} specularMode={props.specularMode}
       className={classNames(root ? props.className : undefined,
         (!root || props.popup || props.trigger || props.anchorRef) && "backdrop-blur-xl")}>

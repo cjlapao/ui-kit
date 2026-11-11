@@ -30,13 +30,13 @@ describe("CollapsiblePanel", () => {
   });
 
   describe("common-property defaults", () => {
-    it("stands on the container standard: elevated, blue tone, sm inset", () => {
+    it("stands on the container standard: elevated, no tint, sm inset", () => {
       const { container } = render(
         <CollapsiblePanel title="Logs">{body}</CollapsiblePanel>,
       );
       const section = container.querySelector("section[data-tone]")!;
       expect(section.getAttribute("data-variant")).toBe("elevated");
-      expect(section.getAttribute("data-tone")).toBe("blue");
+      expect(section.getAttribute("data-tone")).toBe("none");
       // The sm inset lives on the header — the Panel itself is padding-none.
       const header = screen.getByRole("button", { name: /Logs/ });
       expect(header.className).toContain("p-4 sm:p-5");

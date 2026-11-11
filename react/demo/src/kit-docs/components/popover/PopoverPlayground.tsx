@@ -1,3 +1,6 @@
+import { getSurfaceAccentColor } from "@cjlapao/ui-kit";
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   Button,
@@ -9,7 +12,6 @@ import {
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
-  type TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -27,7 +29,6 @@ import {
   panelSpecularOptions,
   popoverPlacementOptions,
   surfaceVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const Caption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -69,7 +70,7 @@ const ARROW_OPTIONS = [
  */
 export const PopoverPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
   const [placement, setPlacement] = useState<PopoverPlacement>("auto");
@@ -104,12 +105,7 @@ export const PopoverPlayground: React.FC = () => {
                       value={variant}
                       onChange={(v) => setVariant(v as SurfaceVariant)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                    />
+                    <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
                     <SelectControl
                       label="Corner"
                       options={panelCornerOptions}
@@ -240,7 +236,7 @@ export const PopoverPlayground: React.FC = () => {
         <div className="flex w-full flex-col items-center gap-4">
           <div className="rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 p-10 dark:from-neutral-800 dark:to-neutral-900">
             <Popover
-              trigger={<Button color={tone} size="sm">Toggle</Button>}
+              trigger={<Button color={getSurfaceAccentColor(tone)} size="sm">Toggle</Button>}
               variant={variant}
               tone={tone}
               corner={corner}

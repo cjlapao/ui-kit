@@ -894,7 +894,7 @@ describe("Table — kit voice", () => {
     // Pinning glass is the opt-in to the literal chrome - frosted popup
     // or full glass, the caller decides.
     const glassed = renderCols({ variant: "glass", panelVariant: "glass" });
-    expect(openMenu().className).toContain("bg-neutral-50/50");
+    expect(openMenu().className).toContain("bg-white/40");
     glassed.unmount();
   });
 

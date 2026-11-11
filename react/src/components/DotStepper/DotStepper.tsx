@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, { forwardRef, useState } from "react";
 import classNames from "classnames";
 import Panel, { type PanelProps } from "../Panel";
@@ -58,7 +59,8 @@ function ActivePopover({ trigger, content, options }: { trigger: React.ReactElem
 }
 
 /** A table-row-sized view of workflow progress, with no automatic advancement. */
-export function DotStepper({ steps, currentIndex, currentStepId, maxVisible = 5, size = "sm", corner = "full", tone = "blue", variant = "tonal", padding = "none", doneColor = "emerald", nextColor = "neutral", errorColor = "rose", animated = true, disabled = false, onStepSelect, renderActiveContent, popoverProps, className, style, "aria-label": label = "Workflow progress", ...surface }: DotStepperProps) {
+export function DotStepper({ steps, currentIndex, currentStepId, maxVisible = 5, size = "sm", corner = "full", tone: surfaceTone = "none", variant = "tonal", padding = "none", doneColor = "emerald", nextColor = "neutral", errorColor = "rose", animated = true, disabled = false, onStepSelect, renderActiveContent, popoverProps, className, style, "aria-label": label = "Workflow progress", ...surface }: DotStepperProps) {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const plan = planDotSteps(steps, currentIndex, currentStepId, maxVisible);
   const density = sizes[size];
   const fill = (status: StepStatus) => status === "completed" ? getTrueColorDotClass(doneColor) : status === "error" ? getTrueColorDotClass(errorColor) : status === "active" ? getTrueColorDotClass(tone) : classNames(getTrueColorDotClass(nextColor), "opacity-20 dark:opacity-25");
@@ -69,7 +71,7 @@ export function DotStepper({ steps, currentIndex, currentStepId, maxVisible = 5,
       </span>
     </span>
   </TooltipWrapper>;
-  return <Panel {...surface} role="group" aria-label={label} aria-disabled={disabled || undefined} variant={variant} tone={tone} corner={corner === "full" ? "none" : corner} padding="none" className={classNames("align-middle", disabled && "opacity-50", className)} style={{ width: "max-content", overflow: "visible", ...(corner === "full" ? { borderRadius: 9999 } : {}), ...style }}>
+  return <Panel {...surface} role="group" aria-label={label} aria-disabled={disabled || undefined} variant={variant} tone={surfaceTone} corner={corner === "full" ? "none" : corner} padding="none" className={classNames("align-middle", disabled && "opacity-50", className)} style={{ width: "max-content", overflow: "visible", ...(corner === "full" ? { borderRadius: 9999 } : {}), ...style }}>
     <div className={classNames("flex w-max items-center", density.gap, getCompactSurfacePaddingClass(padding))}>
       {overflow("before", plan.before)}
       {plan.indices.map(index => {

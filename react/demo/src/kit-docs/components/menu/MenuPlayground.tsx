@@ -1,3 +1,6 @@
+import { getSurfaceAccentColor } from "@cjlapao/ui-kit";
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useState } from "react";
 import { Button, ColorSwatches, Menu, type ControlSize, type MenuItem, type MenuProps, type SurfaceCorner, type SurfacePadding, type SurfaceVariant, type TrueColor } from "@cjlapao/ui-kit";
 import { Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
@@ -7,7 +10,7 @@ import { controlSizeOptions, panelCornerOptions, panelPaddingOptions, surfaceVar
 
 export function MenuPlayground() {
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
-  const [tone, setTone] = useState<TrueColor>("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [size, setSize] = useState<ControlSize>("md");
   const [padding, setPadding] = useState<SurfacePadding>("xs");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
@@ -44,13 +47,13 @@ export function MenuPlayground() {
     { id: "core", title: "Core", controls: <>
       <SelectControl label="Variant" options={surfaceVariantOptions} value={variant} onChange={v => setVariant(v as SurfaceVariant)} />
       <SelectControl label="Size" options={controlSizeOptions} value={size} onChange={v => setSize(v as ControlSize)} />
-      <Control label="Surface tone"><ColorSwatches selectable size="sm" value={tone} onSelect={setTone} defaultExpanded /></Control>
+      <Control label="Surface tone"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
       <SelectControl label="Surface padding" options={panelPaddingOptions} value={padding} onChange={v => setPadding(v as SurfacePadding)} />
       <SelectControl label="Surface corner" options={panelCornerOptions} value={corner} onChange={v => setCorner(v as SurfaceCorner)} />
     </> },
     { id: "items", title: "Menu items", controls: <>
       <ToggleRow label="Items follow surface tone" checked={followTone} onChange={setFollowTone} />
-      <Control label="Item tone"><ColorSwatches selectable size="sm" value={followTone ? tone : itemTone} onSelect={value => { setItemTone(value); setFollowTone(false); }} defaultExpanded /></Control>
+      <Control label="Item tone"><ColorSwatches selectable size="sm" value={followTone ? getSurfaceAccentColor(tone) : itemTone} onSelect={value => { setItemTone(value); setFollowTone(false); }} defaultExpanded /></Control>
       <SelectControl label="Item padding" options={[{ value: "auto", label: "Auto (follows size)" }, ...panelPaddingOptions]} value={itemPadding} onChange={v => setItemPadding(v as "auto" | SurfacePadding)} />
       <SelectControl label="Item corner" options={panelCornerOptions} value={itemCorner} onChange={v => setItemCorner(v as SurfaceCorner)} />
       <ToggleRow label="Show icons" checked={withIcons} onChange={setWithIcons} />

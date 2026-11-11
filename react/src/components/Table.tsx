@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
 /* eslint-disable jsx-a11y/no-interactive-element-to-noninteractive-role -- Explicit cell/row roles preserve semantics inside the presentational header/body tables. */
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -868,7 +869,7 @@ function TableComponent<T>({
   density = "default",
   bordered = false,
   corner,
-  tone = "neutral",
+  tone: surfaceTone = "none",
   panelVariant = "auto",
   panelTone = "auto",
   panelCorner = "auto",
@@ -933,6 +934,7 @@ function TableComponent<T>({
   storage,
   color,
 }: TableProps<T>) {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const t = useKitT();
   const uid = useId();
   const getDefaultColumnVisibility = (column: TableColumn<T>) => {
@@ -999,7 +1001,7 @@ function TableComponent<T>({
         ? "default"
         : variant
       : panelVariant;
-  const resolvedPanelTone: PanelTone = panelTone === "auto" ? tone : panelTone;
+  const resolvedPanelTone: PanelTone = panelTone === "auto" ? surfaceTone : panelTone;
   const resolvedPanelCorner: SurfaceCorner | undefined =
     panelCorner === "auto" ? corner : panelCorner;
   const focusRingClass = `focus-visible:ring-${controlColor}-500 dark:focus-visible:ring-${controlColor}-400`;
@@ -1942,7 +1944,7 @@ function TableComponent<T>({
   return (
     <Panel
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       padding="none"
       corner={corner}
       scrollable={false}

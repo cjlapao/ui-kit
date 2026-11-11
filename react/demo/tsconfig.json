@@ -17,7 +17,8 @@
     "resolveJsonModule": true,
     "types": ["node"],
     "paths": {
-      "@cjlapao/ui-kit": ["../src/index.ts"]
+      "@cjlapao/ui-kit": ["../src/index.ts"],
+      "@cjlapao/ui-kit/markdown": ["../src/markdown.ts"]
     }
   },
   "include": ["src", "vite-env.d.ts"],

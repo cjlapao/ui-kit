@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useId, useState, type ReactNode } from "react";
 import classNames from "classnames";
@@ -47,7 +48,7 @@ export interface DetailItemCardProps
   // ── Surface ───────────────────────────────────────────────────────────────
   /** @default "plain" — this is normally a row inside a list. */
   variant?: DetailItemCardVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   corner?: PanelCorner;
   padding?: PanelPadding;
   glassOpacity?: GlassOpacity;
@@ -252,7 +253,7 @@ const DetailItemCard: React.FC<DetailItemCardProps> = ({
   expanded,
   onToggle,
   variant = "plain",
-  tone = "blue",
+  tone: surfaceTone = "none",
   corner = DEFAULT_SURFACE_CORNER,
   padding = "sm",
   glassOpacity,
@@ -262,6 +263,7 @@ const DetailItemCard: React.FC<DetailItemCardProps> = ({
   className,
   ...rest
 }) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isControlled = typeof expanded === "boolean";
   const isExpanded = isControlled ? expanded : internalExpanded;
@@ -288,7 +290,7 @@ const DetailItemCard: React.FC<DetailItemCardProps> = ({
   return (
     <Panel
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       corner={corner}
       padding={padding}
       glassOpacity={glassOpacity}

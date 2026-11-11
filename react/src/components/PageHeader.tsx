@@ -116,7 +116,7 @@ export const PageHeader = ({
   children,
   variant = "default",
   accentColor = "blue",
-  tone = "neutral",
+  tone = "none",
   glassOpacity,
   transparency,
   vibrancy,

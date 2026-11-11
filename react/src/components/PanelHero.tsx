@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import React from "react";
 import classNames from "classnames";
@@ -70,7 +71,7 @@ export interface PanelHeroProps extends Omit<
   /** Registry icon name, or a node. Omit it and the slot is not drawn. */
   icon?: IconName | React.ReactElement;
   /** @default "blue" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** Alias for `tone`, matching the rest of the kit. */
   color?: TrueColor;
   /** @default "gradient" */
@@ -253,7 +254,7 @@ const PanelHero: React.FC<PanelHeroProps> = ({
   children,
   ...rest
 }) => {
-  const accent = tone ?? color ?? "blue";
+  const accent = getSurfaceAccentColor(tone ?? color ?? "none");
   const effectiveCorner: SurfaceCorner =
     corner ?? (rounded ? DEFAULT_SURFACE_CORNER : "none");
 
@@ -281,7 +282,7 @@ const PanelHero: React.FC<PanelHeroProps> = ({
       <Panel
         className={classNames("w-full", className)}
         variant={variant}
-        tone={accent}
+        tone={tone ?? "none"}
         corner={effectiveCorner}
         padding={padding}
         decoration={decoration}
@@ -334,7 +335,7 @@ const PanelHero: React.FC<PanelHeroProps> = ({
           backgroundImage: `linear-gradient(to bottom right, ${stopFrom}, ${stopTo})`,
         }}
         data-variant="gradient"
-        data-tone={accent}
+        data-tone={tone ?? "none"}
         {...rest}
       >
         {showShapes && (

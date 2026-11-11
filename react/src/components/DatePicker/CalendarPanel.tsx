@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 import React, { useEffect, useRef } from "react";
 import classNames from "classnames";
 import Panel from "../Panel";
@@ -33,7 +34,7 @@ export interface CalendarPanelProps {
   /** DOM id of the panel — the input's `aria-controls` target. */
   id: string;
   panelVariant: SurfaceVariant;
-  panelTone: TrueColor;
+  panelTone: SurfaceTone;
   panelCorner: SurfaceCorner;
   panelClassName?: string;
   /** Field accent — selected cells, focus rings and the button bar. */

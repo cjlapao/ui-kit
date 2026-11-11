@@ -1,3 +1,4 @@
+import type { SurfaceTone, SurfaceVariant } from "../theme/Theme";
 import { Link, useLocation } from "react-router-dom";
 import React, {
   useCallback,
@@ -224,6 +225,9 @@ export interface SideMenuCtaAction {
  * scrolls inside it, the nav keeping its own scroll.
  */
 export interface SideMenuCta {
+  /** Surface tint, independent of action accents. @default "none" */
+  surfaceTone?: SurfaceTone;
+  variant?: SurfaceVariant;
   slug: string;
   title: string;
   description?: string;
@@ -381,7 +385,7 @@ export interface SideMenuProps {
    * the solid ones keep the neutral grey box, where a tone wash fought the
    * sidebar. @default the menu's `color`
    */
-  footerDetailsTone?: TrueColor;
+  footerDetailsTone?: SurfaceTone;
   /**
    * Paint a subtle dither-noise (film-grain) texture over the panel
    * background, behind the content. Reads best on dark surfaces.
@@ -828,8 +832,8 @@ const SideMenuCtaCard: React.FC<SideMenuCtaCardProps> = ({
   return (
     <Panel
       className={cta.onDismiss ? "relative" : undefined}
-      variant={glass ? "glass" : "outlined"}
-      tone={tone}
+      variant={cta.variant ?? (glass ? "glass" : "outlined")}
+      tone={cta.surfaceTone ?? "none"}
       padding="sm"
       mediaPlacement="top"
       media={cta.media}
@@ -860,7 +864,7 @@ const SideMenuCtaCard: React.FC<SideMenuCtaCardProps> = ({
 interface SideMenuDetailPanelProps {
   items: SideMenuDetailItem[];
   /** Tone of the box's wash. */
-  tone: TrueColor;
+  tone: SurfaceTone;
   /** Fallback tone for pills/values that do not carry one. */
   menuTone: TrueColor;
   /** The sidebar surface is see-through: the box takes the glass look. */
@@ -1857,7 +1861,7 @@ export const SideMenu = ({
         <div className="shrink-0 px-3 pb-1">
           <SideMenuDetailPanel
             items={footerDetails}
-            tone={footerDetailsTone ?? color}
+            tone={footerDetailsTone ?? "none"}
             menuTone={color}
             glass={surface.idleCopy === "glass"}
             idleCopy={surface.idleCopy}

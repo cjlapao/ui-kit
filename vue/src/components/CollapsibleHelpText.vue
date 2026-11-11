@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { TrueColor } from "../theme/Theme";
 
 export interface CollapsibleHelpTextProps {
@@ -7,7 +8,7 @@ export interface CollapsibleHelpTextProps {
   maxLength?: number;
   showIcon?: boolean;
   icon?: string;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   variant?: "card" | "plain";
 }
 
@@ -100,7 +101,7 @@ const props = withDefaults(defineProps<CollapsibleHelpTextProps>(), {
   maxLength: 160,
   showIcon: false,
   icon: "Help",
-  tone: "blue",
+  tone: "none",
   variant: "card",
 });
 
@@ -111,12 +112,13 @@ const sanitized = computed(() => props.text?.trim() ?? "");
 const needsTruncation = computed(() => sanitized.value.length > props.maxLength);
 const expanded = ref(false);
 
-const colorTokens = computed(() => toneTokens[props.tone] ?? toneTokens.blue!);
+const colorTokens = computed(() => toneTokens[resolvedAccentTone.value] ?? toneTokens.blue!);
 const displayText = computed(() =>
   expanded.value || !needsTruncation.value
     ? sanitized.value
     : truncate(sanitized.value, props.maxLength),
 );
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
 const iconWrapperClass = computed(() =>
   classNames(

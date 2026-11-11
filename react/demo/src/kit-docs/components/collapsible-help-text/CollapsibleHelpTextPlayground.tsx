@@ -1,7 +1,8 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   CollapsibleHelpText,
-  ColorSwatches,
   DEFAULT_SURFACE_CORNER,
 } from "@cjlapao/ui-kit";
 import type {
@@ -11,7 +12,6 @@ import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -44,7 +44,7 @@ const LONG_COPY =
 export const CollapsibleHelpTextPlayground: React.FC = () => {
   const [variant, setVariant] =
     useState<CollapsibleHelpTextVariant>("card");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] =
     useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
@@ -79,13 +79,7 @@ export const CollapsibleHelpTextPlayground: React.FC = () => {
                   {/* Tone is a colour decision — pick it from colour swatches,
                       not from a dropdown of words. */}
                   <Control label="Tone">
-                    <ColorSwatches
-                      selectable
-                      size="sm"
-                      value={tone}
-                      onSelect={setTone}
-                      defaultExpanded
-                    />
+                    <SurfaceToneSwatches value={tone} onSelect={setTone} />
                   </Control>
                   <ChoiceControl
                     label="Corner"

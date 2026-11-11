@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { type SurfaceTone } from "../theme/Theme";
 import { computed } from "vue";
 import classNames from "classnames";
 import {
@@ -9,7 +10,7 @@ import {
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
-  type TrueColor,
+
 } from "../theme/Theme";
 import {
   getGlassVibrancyClass,
@@ -43,7 +44,7 @@ interface ToolbarProps {
    */
   variant?: SurfaceVariant;
   /** Accent for the tinted and translucent variants. @default "neutral" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /**
    * Inset around the regions, on the shared container scale. A bar wants it
    * small; `none` lets a toolbar bleed flush into the content it serves.
@@ -60,7 +61,7 @@ interface ToolbarProps {
 
 const props = withDefaults(defineProps<ToolbarProps>(), {
   variant: "outlined",
-  tone: "neutral",
+  tone: "none",
   padding: "xs",
   corner: DEFAULT_SURFACE_CORNER,
   vibrancy: "medium",
@@ -73,6 +74,7 @@ const { classAttr, restAttrs } = useClassAttrs();
 // map (vue/CONVENTIONS.md), minus the text tokens Panel layers separately —
 // a bar paints no text of its own.
 const variantBaseStyles: Record<SurfaceVariant, string> = {
+  none: "",
   elevated:
     "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10",
   outlined: "border bg-white/90 dark:bg-neutral-900/80",
@@ -93,6 +95,7 @@ const GLASS_RIM = "border-white/50 dark:border-white/10";
 const variantClasses = computed(() => {
   const palette = getPanelToneStyles(props.tone);
   switch (props.variant) {
+    case "none": return props.tone === "none" ? "" : palette.subtleBg;
     case "outlined":
       return classNames(variantBaseStyles.outlined, palette.outlineBorder);
     case "subtle":

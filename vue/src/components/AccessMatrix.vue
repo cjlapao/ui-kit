@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor } from "../theme/Theme";
 import { h, type VNode, type VNodeChild } from "vue";
 import type { TableVariant } from "./Table.vue";
 import type { PanelTone } from "./Panel.vue";
@@ -151,7 +152,7 @@ const props = withDefaults(defineProps<AccessMatrixProps>(), {
   limit: 5,
   // Keep in step with React AccessMatrix and Table's own default ("outlined").
   variant: "outlined",
-  tone: "neutral",
+  tone: "none",
   bordered: false,
   striped: false,
   noBorders: false,
@@ -198,6 +199,7 @@ const allGroups = computed(() => {
 const visibleGroups = computed(() =>
   expanded.value ? allGroups.value : allGroups.value.slice(0, props.limit),
 );
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 const hiddenCount = computed(() => allGroups.value.length - props.limit);
 
 // Build rows: group header pseudo-rows + data rows, with collapsed groups omitted
@@ -291,7 +293,7 @@ const columns = computed((): TableColumn<MatrixRow>[] => {
             },
             row._resource,
           ),
-          h(Badge, { count: row._groupCount as number, tone: props.tone }),
+          h(Badge, { count: row._groupCount as number, tone: resolvedAccentTone.value }),
         ]);
       }
       return h(
@@ -312,7 +314,7 @@ const columns = computed((): TableColumn<MatrixRow>[] => {
     hideable: false,
     render: (row: MatrixRow) => {
       if (row._isGroupHeader) return null;
-      return row[action] === true ? EnabledCell(props.tone) : DisabledCell();
+      return row[action] === true ? EnabledCell(resolvedAccentTone.value) : DisabledCell();
     },
   }));
 
@@ -340,7 +342,7 @@ const rowClassNameFn = (row: MatrixRow) =>
       :columns="columns"
       :data="rows"
       :variant="variant"
-      :tone="tone"
+      :tone="resolvedAccentTone"
       :density="density"
       :bordered="bordered"
       :corner="corner"
@@ -360,7 +362,7 @@ const rowClassNameFn = (row: MatrixRow) =>
     <div v-if="hiddenCount > 0" class="mt-3 flex justify-center">
       <Button
         variant="ghost"
-        :color="tone"
+        :color="resolvedAccentTone"
         size="sm"
         :trailing-icon="expanded ? 'ArrowUp' : 'ArrowDown'"
         @click="expanded = !expanded"

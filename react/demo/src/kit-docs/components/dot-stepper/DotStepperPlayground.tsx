@@ -1,3 +1,5 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useState } from "react";
 import { ColorSwatches, DotStepper, Slider, type ControlSize, type DotStepperProps, type DotStepperStep, type SurfacePadding, type SurfaceVariant, type TrueColor } from "@cjlapao/ui-kit";
 import { Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
@@ -15,7 +17,7 @@ export function DotStepperPlayground() {
   const [max, setMax] = useState(5);
   const [size, setSize] = useState<ControlSize>("sm");
   const [variant, setVariant] = useState<SurfaceVariant>("tonal");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [doneColor, setDoneColor] = useState<TrueColor>("emerald");
   const [nextColor, setNextColor] = useState<TrueColor>("neutral");
   const [errorColor, setErrorColor] = useState<TrueColor>("rose");
@@ -44,7 +46,7 @@ export function DotStepperPlayground() {
       <SelectControl label="Corners" value={corner ?? "full"} options={[{ value: "full", label: "Full / pill" }, ...panelCornerOptions]} onChange={value => setCorner(value as DotStepperProps["corner"])} />
     </> },
     { id: "colours", title: "Colours", controls: <>
-      <Control label="Active / surface"><ColorSwatches size="sm" selectable value={tone} onSelect={setTone} /></Control>
+      <Control label="Active / surface"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
       <Control label="Completed"><ColorSwatches size="sm" selectable value={doneColor} onSelect={setDoneColor} /></Control>
       <Control label="Pending"><ColorSwatches size="sm" selectable value={nextColor} onSelect={setNextColor} /></Control>
       <Control label="Error"><ColorSwatches size="sm" selectable value={errorColor} onSelect={setErrorColor} /></Control>

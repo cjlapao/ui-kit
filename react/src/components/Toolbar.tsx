@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import { type ReactNode } from "react";
 import classNames from "classnames";
 import {
@@ -15,7 +16,7 @@ import {
   getSurfacePaddingClass,
   getSurfaceTransparencyClasses,
   type SurfaceTransparency,
-  type TrueColor,
+
 } from "../theme/Theme";
 import {
   getGlassVibrancyClass,
@@ -53,8 +54,8 @@ export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
    * @default "elevated"
    */
   variant?: PanelVariant;
-  /** Accent for the tinted and translucent variants. @default "blue" */
-  tone?: TrueColor;
+  /** Optional tint for the surface. @default "none" */
+  tone?: SurfaceTone;
   /**
    * Inset around the regions, on the shared container scale — the same
    * language as the Button inside. A bar wants it small; `none` lets a
@@ -105,6 +106,7 @@ export const Toolbar = ({
   // overrides — the parts of the switch every surface shares.
   const variantClasses = getSurfaceTransparencyClasses((() => {
     switch (variant) {
+      case "none": return tone === "none" ? "" : palette.subtleBg;
       case "outlined":
         return classNames(variantBaseStyles.outlined, palette.outlineBorder);
       case "subtle":

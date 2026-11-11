@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 /** One entry in the feed. */
 export interface ActivityFeedItem {
   id: string;
@@ -93,7 +94,7 @@ const props = withDefaults(
     /** Surface, as every card in the kit takes it. @default "outlined" */
     variant?: SurfaceVariant;
     /** @default "neutral" */
-    tone?: TrueColor;
+    tone?: SurfaceTone;
     /** @default "md" */
     padding?: SurfacePadding;
     corner?: SurfaceCorner;
@@ -112,10 +113,11 @@ const props = withDefaults(
     loadMoreLabel: "Load more",
     totalCount: undefined,
     variant: "outlined",
-    tone: "neutral",
+    tone: "none",
     padding: "md",
   },
 );
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
 const emit = defineEmits<{
   (event: "filterChange", value: string): void;
@@ -137,9 +139,9 @@ const loadMoreVariantResolved = computed(
 );
 /** An untoned entry wears the card's tone; a neutral card stays quiet. */
 const dotClass = (item: ActivityFeedItem) =>
-  getTrueColorDotClass(item.tone ?? (props.tone === "neutral" ? "neutral" : props.tone));
+  getTrueColorDotClass(item.tone ?? (resolvedAccentTone.value === "neutral" ? "neutral" : resolvedAccentTone.value));
 /** The card's color for controls, `undefined` handing them their default. */
-const controlColor = computed(() => (props.tone === "neutral" ? undefined : props.tone));
+const controlColor = computed(() => (resolvedAccentTone.value === "neutral" ? undefined : resolvedAccentTone.value));
 
 const active = ref(props.defaultFilter);
 
@@ -170,7 +172,7 @@ const eventsWord = computed(() => {
   <Panel
     v-bind="restAttrs"
     :variant="variant"
-    :tone="tone"
+    :tone="props.tone ?? 'none'"
     :padding="padding"
     :corner="corner"
     :class="classNames('w-full', classAttr)"
@@ -178,7 +180,7 @@ const eventsWord = computed(() => {
     <div class="flex flex-col gap-4">
       <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h3 class="text-sm font-semibold">{{ title }}</h3>
-        <Pill v-if="tag && !loading" :tone="tone === 'neutral' ? 'blue' : tone" size="sm">
+        <Pill v-if="tag && !loading" :tone="resolvedAccentTone === 'neutral' ? 'blue' : resolvedAccentTone" size="sm">
           {{ tag }}
         </Pill>
         <span
@@ -206,7 +208,7 @@ const eventsWord = computed(() => {
         :model-value="active"
         :variant="filterVariant ?? variant"
         size="sm"
-        :tone="tone === 'neutral' ? undefined : tone"
+        :tone="resolvedAccentTone === 'neutral' ? undefined : resolvedAccentTone"
         @update:model-value="onFilter"
       />
 
@@ -255,7 +257,7 @@ const eventsWord = computed(() => {
                 <span v-if="item.actor" class="font-semibold">{{ item.actor }} </span>
                 {{ item.title }}
               </span>
-              <Pill v-if="item.count !== undefined && item.count > 1" size="sm" tone="neutral">
+              <Pill v-if="item.count !== undefined && item.count > 1" size="sm" resolvedAccentTone="neutral">
                 ×{{ item.count }}
               </Pill>
             </div>

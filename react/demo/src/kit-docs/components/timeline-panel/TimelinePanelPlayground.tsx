@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import { CustomIcon, MultiToggle, TimelinePanel } from "@cjlapao/ui-kit";
 import type {
@@ -10,7 +12,6 @@ import type {
   TimelinePanelLoaderType,
   TimelinePanelPadding,
   TimelinePanelVariant,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -28,7 +29,6 @@ import {
   panelPaddingOptions,
   panelSpecularOptions,
   surfaceVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 /** Variants whose surface is see-through, so the glass controls apply. */
@@ -70,7 +70,7 @@ const ITEMS: TimelinePanelItem[] = [
 
 export const TimelinePanelPlayground: React.FC = () => {
   const [variant, setVariant] = useState<TimelinePanelVariant>("simple");
-  const [tone, setTone] = useState<TrueColor>("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<TimelinePanelCorner>("none");
   const [padding, setPadding] = useState<TimelinePanelPadding>("sm");
   const [loaderType, setLoaderType] =
@@ -105,12 +105,7 @@ export const TimelinePanelPlayground: React.FC = () => {
                     value={variant}
                     onChange={(v) => setVariant(v as TimelinePanelVariant)}
                   />
-                  <SelectControl
-                    label="Tone"
-                    options={trueColorOptions}
-                    value={tone}
-                    onChange={(v) => setTone(v as TrueColor)}
-                  />
+                  <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
                   <SelectControl
                     label="Corner"
                     options={panelCornerOptions}

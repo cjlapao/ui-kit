@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 import type React from "react";
 import type { TrueColor, ButtonVariant } from "../../theme/Theme";
 import type {
@@ -195,7 +196,7 @@ export interface WorkflowTrackerProps
    * variants (`tonal`, `subtle`, `glass`, `liquid-glass`) read it.
    * @default "neutral"
    */
-  cardTone?: TrueColor;
+  cardTone?: SurfaceTone;
   /**
    * Forces translucent inner surfaces (nested box, sub-step strip, node fills)
    * on or off. Defaults to on for the see-through variants — `glass`,

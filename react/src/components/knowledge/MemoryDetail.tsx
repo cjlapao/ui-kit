@@ -6,7 +6,7 @@ import type { MemoryDetailProps } from "./types";
 export function MemoryDetail({ memory, relatedMemories = [], onRelatedSelect, renderContent, onEdit, onPinChange,
   onArchive, labels, disabled = false, className = "", ...surface }: MemoryDetailProps) {
   const copy = useKnowledgeCopy(labels);
-  return <Panel tone="neutral" variant="outlined" padding="none" disabled={disabled} {...surface} className={`kit-knowledge kit-memory-detail ${className}`}>
+  return <Panel tone="none" variant="outlined" padding="none" disabled={disabled} {...surface} className={`kit-knowledge kit-memory-detail ${className}`}>
     {!memory ? <p className="kit-knowledge-empty">{copy("selectMemory")}</p> : <div className="kit-memory-detail-body">
       <div className="kit-memory-meta"><span>{copy(`kinds.${memory.kind}`)}</span><span>{copy(`statuses.${memory.status ?? "active"}`)}</span>{memory.scope && <span>{memory.scope}</span>}</div>
       <h3>{memory.title}</h3><p className="kit-memory-summary">{memory.summary}</p>

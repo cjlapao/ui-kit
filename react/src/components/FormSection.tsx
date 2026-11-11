@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import classNames from "classnames";
 import React, { type ReactNode } from "react";
@@ -8,7 +9,7 @@ import Panel, {
 } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../../../common/theme/glass";
 import { getSurfaceTextTokens } from "../theme/Theme";
-import type { ControlSize, TrueColor } from "../theme/Theme";
+import type { ControlSize } from "../theme/Theme";
 
 /** Header / body / footer padding, on the shared control scale. */
 const paddingMap: Record<
@@ -39,8 +40,8 @@ export interface FormSectionProps {
    * @default "elevated"
    */
   variant?: PanelVariant;
-  /** Tone for the tinted and translucent variants. @default "neutral" */
-  tone?: TrueColor;
+  /** Optional tint for the surface. @default "none" */
+  tone?: SurfaceTone;
   /** Corner rounding. @default "rounded-md" */
   corner?: PanelCorner;
   /** Forwarded to `Panel` for the `liquid-glass` variant. */
@@ -58,7 +59,7 @@ const FormSection: React.FC<FormSectionProps> = ({
   className,
   padding = "md",
   variant = "elevated",
-  tone = "neutral",
+  tone = "none",
   corner = "rounded-md",
   vibrancy,
   glassOpacity,

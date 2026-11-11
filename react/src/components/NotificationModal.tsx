@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import React from "react";
 import classNames from "classnames";
 import Modal, { type ModalProps } from "./Modal";
@@ -39,6 +40,8 @@ export interface NotificationModalProps
   icon?: IconName;
   /** Override the tone the `type` would pick. */
   tone?: TrueColor;
+  /** Container tint is independent of the notification status. @default "none" */
+  surfaceTone?: SurfaceTone;
 }
 
 const TYPE_CONFIG: Record<
@@ -76,6 +79,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   onSecondaryAction,
   icon,
   tone,
+  surfaceTone = "none",
   size = "sm",
   ...rest
 }) => {
@@ -98,7 +102,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
       onClose={onClose}
       title={title}
       size={size}
-      tone={resolvedTone}
+      tone={surfaceTone}
       icon={icon ?? config.icon}
       actions={
         <Modal.Actions>

@@ -22,7 +22,7 @@ export const Terminal = forwardRef<TerminalHandle, TerminalProps>(
       style,
       padding = "sm",
       variant = "outlined",
-      tone = "neutral",
+      tone = "none",
       ...surface
     },
     ref,

@@ -6,6 +6,7 @@ import type {
   SurfaceCorner,
   SurfacePadding,
   SurfaceVariant,
+  SurfaceTone,
   SurfaceTransparency,
   TrueColor,
 } from "../theme/Theme";
@@ -16,7 +17,7 @@ import type {
  * one had no `rounded-xl` and its `pill` duplicated `rounded-lg`.
  */
 export type PanelVariant = SurfaceVariant;
-export type PanelTone = TrueColor;
+export type PanelTone = SurfaceTone;
 export type PanelDecoration = "none" | "gradient" | "shapes" | "both";
 export type PanelMediaPlacement = "top" | "start" | "end" | "overlay";
 export type PanelPadding = SurfacePadding;
@@ -58,7 +59,7 @@ export interface PanelProps {
   actionLayout?: PanelActionLayout;
   variant?: PanelVariant;
   transparency?: SurfaceTransparency;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   padding?: PanelPadding;
   corner?: PanelCorner;
   fullWidth?: boolean;
@@ -128,6 +129,7 @@ export interface PanelProps {
    }
 
 const variantBaseStyles: Record<PanelVariant, string> = {
+  none: "",
   elevated:
     "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10 text-neutral-900 dark:text-neutral-100",
   outlined:
@@ -192,7 +194,7 @@ const props = withDefaults(defineProps<PanelProps>(), {
   mediaPlacement: "top",
   actionLayout: "auto",
   variant: "elevated",
-  tone: "neutral",
+
   padding: "md",
   corner: "rounded-sm",
   loading: false,
@@ -211,7 +213,8 @@ const props = withDefaults(defineProps<PanelProps>(), {
 const slots = useSlots();
 const { classAttr, restAttrs } = useClassAttrs();
 
-const palette = computed(() => getPanelToneStyles(props.tone));
+const resolvedTone = computed(() => props.tone ?? props.color ?? "none");
+const palette = computed(() => getPanelToneStyles(resolvedTone.value));
 const colorPalette = computed(() =>
   props.color ? getPanelToneStyles(props.color) : palette.value,
 );
@@ -309,11 +312,15 @@ const glassFillClass = computed(() => {
     if (glassOpacity === "clear") return 5;
     return 15;
   })();
-  return `bg-${props.tone}-50/${litOpacity} dark:bg-${props.tone}-500/${drkOpacity}`;
+  return resolvedTone.value === "none"
+    ? `bg-white/${litOpacity} dark:bg-neutral-900/${drkOpacity}`
+    : `bg-${resolvedTone.value}-50/${litOpacity} dark:bg-${resolvedTone.value}-500/${drkOpacity}`;
 });
 
 const variantClasses = computed(() => getSurfaceTransparencyClasses((() => {
   switch (props.variant) {
+    case "none":
+      return resolvedTone.value === "none" ? "" : palette.value.subtleBg;
     case "outlined":
       return classNames(
         variantBaseStyles.outlined,
@@ -488,9 +495,9 @@ const resolvedSpecularMode = computed<PanelSpecularMode>(() => {
 
 <template>
   <section
-    :class="sectionClass"
+    :data-tone="resolvedTone"
     :data-variant="variant"
-    :data-tone="tone"
+    :class="sectionClass"
     :aria-busy="loading"
     v-bind="restAttrs"
     :style="resolvedStyle"

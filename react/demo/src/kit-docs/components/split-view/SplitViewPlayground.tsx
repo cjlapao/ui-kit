@@ -1,3 +1,5 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   ColorSwatches,
@@ -54,7 +56,7 @@ const Replicas: React.FC<{ names: string[]; tone: TrueColor }> = ({
 export const SplitViewPlayground: React.FC = () => {
   const [tone, setTone] = useState<TrueColor>("blue");
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
-  const [surfaceTone, setSurfaceTone] = useState<TrueColor>("neutral");
+  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [toneAuto, setToneAuto] = useState(false);
   const [searchVariant, setSearchVariant] = useState<string>("");
   const [size, setSize] = useState<ControlSize>("md");
@@ -165,13 +167,7 @@ export const SplitViewPlayground: React.FC = () => {
                       />
                     </Control>
                     <Control label="Surface tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={surfaceTone}
-                        onSelect={setSurfaceTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={surfaceTone} onSelect={setSurfaceTone} />
                     </Control>
                     <ToggleRow
                       label="Surface tone follows accent"

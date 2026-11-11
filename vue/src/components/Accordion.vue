@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor } from "../theme/Theme";
 import type { VNode } from "vue";
 import type { PanelProps } from "./Panel.vue";
 import {
@@ -157,7 +158,7 @@ const props = withDefaults(defineProps<AccordionProps>(), {
   indicatorPlacement: "right",
   animated: true,
   variant: "elevated",
-  tone: "neutral",
+  tone: "none",
   padding: "md",
   corner: "rounded-md",
   hoverable: false,
@@ -193,9 +194,10 @@ const baseId = useId();
 const surface = computed(() =>
   getSurfaceTextTokens(props.variant ?? "elevated"),
 );
-const trigger = computed(() => getSurfaceTriggerTokens(props.tone ?? "neutral"));
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
+const trigger = computed(() => getSurfaceTriggerTokens(resolvedAccentTone.value ?? "neutral"));
 const chip = computed(() =>
-  getPillColorClasses(props.tone ?? "neutral", "soft"),
+  getPillColorClasses(resolvedAccentTone.value ?? "neutral", "soft"),
 );
 const inset = computed(
   () => paddingStyles[(props.padding ?? "md") as PanelPadding] || paddingStyles.md,
@@ -320,7 +322,7 @@ const panelBindings = computed(() => {
         :dashed="false"
         icon="ViewRows"
         :title="t('kit.accordion.noItemsTitle')"
-        :tone="tone"
+        :tone="resolvedAccentTone"
         :size="size"
       />
     </div>
@@ -411,7 +413,7 @@ const panelBindings = computed(() => {
                 </span>
                 <Pill
                   v-if="item.badge"
-                  :tone="tone"
+                  :tone="resolvedAccentTone"
                   variant="soft"
                   :size="tokens.pill"
                   class="flex-none"
@@ -502,7 +504,7 @@ const panelBindings = computed(() => {
           :title="t('kit.accordion.loadingTitle')"
           class="rounded-none"
           size="md"
-          :color="tone"
+          :color="resolvedAccentTone"
         />
       </div>
     </div>

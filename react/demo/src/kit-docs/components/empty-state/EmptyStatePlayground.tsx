@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   DEFAULT_SURFACE_CORNER,
@@ -55,7 +57,7 @@ const GLASS_VARIANTS: EmptyStateVariant[] = [
 
 export const EmptyStatePlayground: React.FC = () => {
   const [variant, setVariant] = useState<EmptyStateVariant>("outlined");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<SurfacePadding>("lg");
   const [size, setSize] = useState<EmptyStateSize>("md");
@@ -100,12 +102,7 @@ export const EmptyStatePlayground: React.FC = () => {
                       value={variant}
                       onChange={(v) => setVariant(v as EmptyStateVariant)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                    />
+                    <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
                     {!isPlain && (
                       <>
                         <SelectControl

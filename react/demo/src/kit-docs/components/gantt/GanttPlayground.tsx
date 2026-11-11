@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   Gantt,
@@ -58,6 +60,7 @@ const INITIAL_TASKS = sampleGantt.tasks();
 const INITIAL_LINKS = sampleGantt.links();
 
 export const GanttPlayground: React.FC = () => {
+  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [tasks, setTasks] = useState<GanttTask[]>(INITIAL_TASKS);
   const [links, setLinks] = useState<GanttLink[]>(INITIAL_LINKS);
   const [rowOrder, setRowOrder] = useState<string[] | undefined>(undefined);
@@ -179,6 +182,7 @@ export const GanttPlayground: React.FC = () => {
       preview={
         <div className="w-full">
           <Gantt
+            tone={surfaceTone}
             tasks={tasks}
             links={links}
             lanes={LANES}

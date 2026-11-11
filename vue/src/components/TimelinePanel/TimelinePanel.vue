@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor } from "../../theme/Theme";
 import { isVNode } from "vue";
 import type { PanelVariant } from "../Panel.vue";
 import type {
@@ -45,6 +46,7 @@ const BW = 1.5;
 // ── Variant shell styles (mirrors Panel) ──────────────────────────────────────
 
 const variantShellStyles: Record<PanelVariant, string> = {
+  none: "",
   elevated:
     "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10 text-neutral-900 dark:text-neutral-100",
   outlined:
@@ -127,7 +129,7 @@ defineOptions({ name: "TimelinePanel", inheritAttrs: false });
 
 const props = withDefaults(defineProps<TimelinePanelProps>(), {
   variant: "simple",
-  tone: "neutral",
+  tone: "none",
   padding: "sm",
   corner: "none",
   loading: false,
@@ -158,7 +160,7 @@ onUnmounted(() => {
   darkObserver?.disconnect();
 });
 
-const palette = computed(() => getPanelToneStyles(props.tone));
+const palette = computed(() => getPanelToneStyles(resolvedAccentTone.value));
 
 // ── Height measurement for SVG ────────────────────────────────────────────
 const itemEls = ref<(HTMLDivElement | null)[]>([]);
@@ -199,7 +201,7 @@ onUnmounted(() => resizeObserver?.disconnect());
 // ── TimelineSvg data ──────────────────────────────────────────────────────
 const colorTokens = computed(() => {
   const ci = isDark.value ? 1 : 0;
-  const tok = getTreeColorTokens(props.tone);
+  const tok = getTreeColorTokens(resolvedAccentTone.value);
   // Derived color shorthands — [light, dark] resolved to current mode
   return {
     trunkColor: tok.trunk[ci],
@@ -240,6 +242,7 @@ const svgVisible = computed(
     totalSvgH.value !== 0 &&
     midYs.value.length > 0,
 );
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
 const currentIdx = computed(() =>
   props.items.findIndex((it) => it.isCurrent),
@@ -437,7 +440,7 @@ const handleOverflowSelect = (
 };
 
 const iconColorClasses = (item: TimelinePanelItem) =>
-  classNames(item.iconBackground ? `rounded-full bg-${props.tone}-100` : "");
+  classNames(item.iconBackground ? `rounded-full bg-${resolvedAccentTone.value}-100` : "");
 
 const itemActionsArray = (
   item: TimelinePanelItem,
@@ -487,7 +490,7 @@ const toggleOverflow = (id: string) => {
         <Button
           v-else-if="headerActionObject"
           :variant="headerActionObject.variant ?? 'solid'"
-          :color="headerActionObject.color ?? tone"
+          :color="headerActionObject.color ?? resolvedAccentTone"
           :size="headerActionObject.size ?? 'sm'"
           :disabled="headerActionObject.disabled"
           :loading="headerActionObject.loading"
@@ -512,7 +515,7 @@ const toggleOverflow = (id: string) => {
       >
         <Loader
           :spinner-thickness="loaderProps?.spinnerThickness"
-          :color="tone"
+          :color="resolvedAccentTone"
           :glass="loaderProps?.glass"
           :glass-blur-intensity="loaderProps?.glassBlurIntensity"
           :label="loaderProps?.label"
@@ -693,7 +696,7 @@ const toggleOverflow = (id: string) => {
                   v-for="(action, idx) in itemActionsArray(item)"
                   :key="idx"
                   :variant="action.variant ?? 'outline'"
-                  :color="action.color ?? tone"
+                  :color="action.color ?? resolvedAccentTone"
                   :size="action.size ?? 'sm'"
                   :disabled="action.disabled"
                   :loading="action.loading"
@@ -747,7 +750,7 @@ const toggleOverflow = (id: string) => {
           v-if="loading"
           overlay
           glass
-          :color="tone"
+          :color="resolvedAccentTone"
           :spinner-thickness="loaderProps?.spinnerThickness"
           :glass-blur-intensity="loaderProps?.glassBlurIntensity ?? 'low'"
           :label="loaderProps?.label"

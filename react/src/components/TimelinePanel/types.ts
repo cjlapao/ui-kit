@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 import type React from "react";
 import type { ButtonVariant, ButtonSize } from "../Button";
 import type { TrueColor } from "../../theme/Theme";
@@ -90,7 +91,7 @@ export interface TimelinePanelProps {
   // ── Appearance ────────────────────────────────────────────────────────────
   /** Every container surface the `Panel` supports — this renders one. */
   variant?: PanelVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   padding?: PanelPadding;
   corner?: PanelCorner;
   /**

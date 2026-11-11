@@ -1,8 +1,10 @@
+import { getSurfaceAccentColor } from "@cjlapao/ui-kit";
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   Button,
   CollapsiblePanel,
-  ColorSwatches,
   DEFAULT_SURFACE_CORNER,
 } from "@cjlapao/ui-kit";
 import type {
@@ -12,7 +14,6 @@ import type {
   PanelPadding,
   PanelSpecularMode,
   PanelVariant,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -45,7 +46,7 @@ const LOG_LINES = Array.from(
 
 export const CollapsiblePanelPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] =
     useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
@@ -80,13 +81,7 @@ export const CollapsiblePanelPlayground: React.FC = () => {
                   {/* Tone is a colour decision — pick it from colour swatches,
                       not from a dropdown of words. */}
                   <Control label="Tone">
-                    <ColorSwatches
-                      selectable
-                      size="sm"
-                      value={tone}
-                      onSelect={setTone}
-                      defaultExpanded
-                    />
+                    <SurfaceToneSwatches value={tone} onSelect={setTone} />
                   </Control>
                   <ChoiceControl
                     label="Corner"
@@ -172,7 +167,7 @@ export const CollapsiblePanelPlayground: React.FC = () => {
             subtitle={withSubtitle ? "Last updated 5 minutes ago" : undefined}
             actions={
               withActions ? (
-                <Button size="xs" variant="ghost" color={tone}>
+                <Button size="xs" variant="ghost" color={getSurfaceAccentColor(tone)}>
                   Refresh
                 </Button>
               ) : undefined

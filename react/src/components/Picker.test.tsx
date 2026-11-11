@@ -11,6 +11,34 @@ const ITEMS = [
   { id: "b", title: "Beta" },
 ];
 
+describe("Picker groups", () => {
+  const G = [
+    { id: "a", title: "Alpha", group: "Automation" },
+    { id: "b", title: "Beta", group: "Automation" },
+    { id: "c", title: "Gamma", group: "Tools" },
+  ];
+  it("group header selects all, then clears all, with tri-state", () => {
+    const onMultiChange = vi.fn();
+    const { rerender } = render(<Picker multi groupSelectable items={G} selectedIds={["c"]} onMultiChange={onMultiChange} />);
+    fireEvent.click(screen.getByRole("button"));
+    const header = screen.getByRole("checkbox", { name: /Automation/ });
+    expect(header).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(header);
+    expect(onMultiChange).toHaveBeenLastCalledWith(["c", "a", "b"]);
+    rerender(<Picker multi groupSelectable items={G} selectedIds={["a"]} onMultiChange={onMultiChange} />);
+    expect(screen.getByRole("checkbox", { name: /Automation/ })).toHaveAttribute("aria-checked", "mixed");
+    rerender(<Picker multi groupSelectable items={G} selectedIds={["a", "b", "c"]} onMultiChange={onMultiChange} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /Automation/ }));
+    expect(onMultiChange).toHaveBeenLastCalledWith(["c"]);
+  });
+  it("renders plain headers without groupSelectable", () => {
+    render(<Picker multi items={G} />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(screen.getByText("Automation")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+  });
+});
+
 describe("Picker", () => {
   it("renders a custom body instead of standard copy, preserving tags and search", () => {
     render(<Picker selectedId="custom" items={[

@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useMemo, useState } from "react";
 import { ConnectionFlow } from "@cjlapao/ui-kit";
 import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
@@ -39,7 +41,7 @@ import { CI_FLOW, DOCKER_ROWS } from "./examples/sampleFlow";
 
 export const ConnectionFlowPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
-  const [tone, setTone] = useState<TrueColor>("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [variant, setVariant] = useState<PanelVariant | "plain">("outlined");
   const [edgeStyle, setEdgeStyle] =
@@ -117,12 +119,7 @@ export const ConnectionFlowPlayground: React.FC = () => {
                       value={size}
                       onChange={(value) => setSize(value as ControlSize)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(value) => setTone(value as TrueColor)}
-                    />
+                    <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
                     <SelectControl
                       label="Variant"
                       options={connectionFlowVariantOptions}

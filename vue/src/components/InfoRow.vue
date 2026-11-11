@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import {
   PLAIN_SURFACE_VARIANTS,
   type ControlSize,
@@ -6,7 +7,7 @@ import {
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
-  type TrueColor,
+
 } from "../theme/Theme";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
 
@@ -73,7 +74,7 @@ export interface InfoRowProps {
    */
   variant?: InfoRowVariant;
   /** Accent for the hover wash, the focus ring and the glass tint. @default "blue" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** Corner radius when `variant` is not `plain`. */
   corner?: SurfaceCorner;
   /** Vertical padding override. When omitted, padding is derived from `size`. */
@@ -256,7 +257,7 @@ defineOptions({ name: "InfoRow", inheritAttrs: false });
 const props = withDefaults(defineProps<InfoRowProps>(), {
   size: "md",
   variant: "plain",
-  tone: "blue",
+  tone: "none",
   corner: DEFAULT_SURFACE_CORNER,
   copyable: true,
   mono: false,
@@ -292,6 +293,7 @@ const normalised = computed<NormalisedValue>(() =>
     ? { display: null, copyText: null, isEmpty: false }
     : normaliseValue(props.value),
 );
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
 const hasError = computed(() => Boolean(props.error));
 /**
@@ -333,7 +335,7 @@ const panelVariant = computed<SurfaceVariant>(() => surfaceVariant.value);
 const tokens = computed(() => sizeTokens[props.size]);
 const labelTokens = computed(() => sizeTokens[props.labelSize ?? props.size]);
 const valueTokens = computed(() => sizeTokens[props.valueSize ?? props.size]);
-const trigger = computed(() => getSurfaceTriggerTokens(props.tone));
+const trigger = computed(() => getSurfaceTriggerTokens(resolvedAccentTone.value));
 
 const rowPadding = computed(() =>
   props.padding !== undefined
@@ -436,10 +438,10 @@ const valueClass = computed(() =>
 // The loader follows the row's tone. Derived from the tone, never mapped:
 // both shapes are already safelisted for all 21 colours.
 const loaderInk = computed(
-  () => `bg-${props.tone}-500/20 dark:bg-${props.tone}-500/25`,
+  () => `bg-${resolvedAccentTone.value}-500/20 dark:bg-${resolvedAccentTone.value}-500/25`,
 );
 const loaderText = computed(
-  () => `text-${props.tone}-500 dark:text-${props.tone}-400`,
+  () => `text-${resolvedAccentTone.value}-500 dark:text-${resolvedAccentTone.value}-400`,
 );
 
 const spinnerClass = computed(() =>
@@ -493,7 +495,7 @@ const view = computed<InfoRowView>(() => ({
   copyLabel: copyLabel.value,
   error: props.error,
   hasError: hasError.value,
-  tone: props.tone,
+  tone: resolvedAccentTone.value,
   iconSize: tokens.value.iconSize,
 }));
 </script>
@@ -514,7 +516,7 @@ const view = computed<InfoRowView>(() => ({
     v-bind="restAttrs"
     :class="classAttr"
     :variant="panelVariant"
-    :color="tone"
+    :color="resolvedAccentTone"
     :corner="corner"
     padding="none"
     :scrollable="false"

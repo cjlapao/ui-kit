@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 import React, {
   forwardRef,
   useCallback,
@@ -508,7 +509,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       panelVariant === "auto"
         ? SURFACE_VARIANT_FOR_FIELD[variant]
         : panelVariant;
-    const resolvedPanelTone: TrueColor =
+    const resolvedPanelTone: SurfaceTone =
       panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone;
     const sizeToken = getFieldSizeTokens(size);
     const tokens = getFieldToneTokens(effectiveTone);

@@ -1,11 +1,12 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
 } from "./Panel.vue";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
-import type { PlainSurfaceVariant, TrueColor } from "../theme/Theme";
+import type { PlainSurfaceVariant } from "../theme/Theme";
 
 /** Every container surface, plus `plain` for a bare row inside a list. */
 export type DetailItemCardVariant = PlainSurfaceVariant;
@@ -30,7 +31,7 @@ export interface DetailItemCardProps {
   // ── Surface ───────────────────────────────────────────────────────────────
   /** @default "plain" — this is normally a row inside a list. */
   variant?: DetailItemCardVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   corner?: PanelCorner;
   padding?: PanelPadding;
   glassOpacity?: GlassOpacity;
@@ -59,10 +60,11 @@ const props = withDefaults(defineProps<DetailItemCardProps>(), {
   clickable: false,
   disabled: false,
   variant: "plain",
-  tone: "blue",
+  tone: "none",
   corner: () => DEFAULT_SURFACE_CORNER,
   padding: "sm",
 });
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
 const emit = defineEmits<{
   (event: "toggle", expanded: boolean): void;
@@ -84,7 +86,7 @@ const isExpanded = computed(() =>
 
 const hasDetails = computed(() => Boolean(slots.default));
 const interactive = computed(() => props.clickable && !props.disabled);
-const trigger = computed(() => getSurfaceTriggerTokens(props.tone));
+const trigger = computed(() => getSurfaceTriggerTokens(resolvedAccentTone.value));
 
 const toggleExpanded = () => {
   const next = !isExpanded.value;
@@ -153,7 +155,7 @@ const panelProps = computed(() =>
           v-if="hasDetails"
           icon="ArrowDown"
           variant="ghost"
-          :color="tone"
+          :color="resolvedAccentTone"
           size="xs"
           :disabled="disabled"
           :aria-expanded="isExpanded"

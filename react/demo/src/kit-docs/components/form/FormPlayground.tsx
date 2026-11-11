@@ -1,7 +1,8 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   Button,
-  ColorSwatches,
   FormField,
   FormLayout,
   FormSection,
@@ -21,7 +22,6 @@ import type {
   GlassVibrancy,
   PanelSpecularMode,
   PanelVariant,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -61,7 +61,7 @@ const fieldLayoutOptions = [
 
 export const FormPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [padding, setPadding] = useState<ControlSize>("md");
   const [columns, setColumns] = useState<FormLayoutColumns>(2);
   const [align, setAlign] = useState<FormLayoutAlign>("start");
@@ -174,13 +174,7 @@ export const FormPlayground: React.FC = () => {
                     />
                     {/* Colour is a palette, not a dropdown of colour names. */}
                     <Control label="Section tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <ChoiceControl
                       label="Section padding"

@@ -1,12 +1,13 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
-import { ColorSwatches, InfoRow, Panel } from "@cjlapao/ui-kit";
+import { InfoRow, Panel } from "@cjlapao/ui-kit";
 import type {
   ControlSize,
   InfoRowLoader,
   InfoRowVariant,
   SurfaceCorner,
   SurfacePadding,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -28,7 +29,7 @@ const LONG =
 
 export const InfoRowPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InfoRowVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [size, setSize] = useState<ControlSize>("md");
   const [padding, setPadding] = useState<SurfacePadding | "auto">("auto");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
@@ -95,13 +96,7 @@ export const InfoRowPlayground: React.FC = () => {
                       onChange={(v) => setVariant(v as InfoRowVariant)}
                     />
                     <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <SelectControl
                       label="Size"

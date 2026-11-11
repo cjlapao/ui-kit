@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 import type { VNode, VNodeChild } from "vue";
 import type { ButtonVariant, ButtonSize } from "../Button.vue";
 import type { TrueColor } from "../../theme/Theme";
@@ -80,7 +81,7 @@ export interface TimelinePanelProps {
   items: TimelinePanelItem[];
   // ── Appearance ────────────────────────────────────────────────────────────
   variant?: PanelVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   padding?: PanelPadding;
   corner?: PanelCorner;
   /** Color of the connecting vertical line */

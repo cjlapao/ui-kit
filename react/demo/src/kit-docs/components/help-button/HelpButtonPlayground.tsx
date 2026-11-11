@@ -1,3 +1,5 @@
+import { ColorSwatches, type SurfaceTone } from "@cjlapao/ui-kit";
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
 import React, { useState } from "react";
 import {
   HelpButton,
@@ -22,7 +24,6 @@ import {
   helpButtonPlacementOptions,
   panelCornerOptions,
   surfaceVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const MARKDOWN = [
@@ -66,6 +67,7 @@ const NODE = (
  */
 export const HelpButtonPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
+  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [size, setSize] = useState<ControlSize>("md");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
@@ -92,12 +94,8 @@ export const HelpButtonPlayground: React.FC = () => {
                       value={variant}
                       onChange={(v) => setVariant(v as SurfaceVariant)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                    />
+                    <Control label="Trigger color"><ColorSwatches selectable size="sm" value={tone} onSelect={setTone} defaultExpanded /></Control>
+                    <SurfaceToneControl label="Surface tone" value={surfaceTone} onChange={setSurfaceTone} />
                     <SelectControl
                       label="Size"
                       options={controlSizeOptions}
@@ -176,6 +174,7 @@ export const HelpButtonPlayground: React.FC = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 p-10 dark:from-neutral-800 dark:to-neutral-900">
             <HelpButton
+              tone={surfaceTone}
               content={contentType === "markdown" ? MARKDOWN : NODE}
               title="Help"
               variant={variant}

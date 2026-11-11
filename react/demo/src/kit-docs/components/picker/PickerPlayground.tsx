@@ -62,6 +62,7 @@ export const PickerPlayground: React.FC = () => {
   const [leadingIcon, setLeadingIcon] = useState(false);
   const [hideCaret, setHideCaret] = useState(false);
   const [withFilter, setWithFilter] = useState(false);
+  const [grouped, setGrouped] = useState(false);
   const [compare, setCompare] = useState(true);
   const [inPanel, setInPanel] = useState(false);
   const [onGlass, setOnGlass] = useState(false);
@@ -69,7 +70,12 @@ export const PickerPlayground: React.FC = () => {
 
   const picker = (
     <Picker
-      items={ITEMS}
+      items={
+        grouped
+          ? ITEMS.map((i, n) => ({ ...i, group: n === 0 ? "Compute" : "Batch" }))
+          : ITEMS
+      }
+      groupSelectable={grouped}
       tone={tone}
       size={size}
       corner={corner}
@@ -160,6 +166,11 @@ export const PickerPlayground: React.FC = () => {
                       label="Multi-select"
                       checked={multi}
                       onChange={setMulti}
+                    />
+                    <ToggleRow
+                      label="Groups (selectable, needs multi)"
+                      checked={grouped}
+                      onChange={setGrouped}
                     />
                     <ToggleRow label="Leading icon" checked={leadingIcon} onChange={setLeadingIcon} />
                     <ToggleRow label="Hide caret" checked={hideCaret} onChange={setHideCaret} />

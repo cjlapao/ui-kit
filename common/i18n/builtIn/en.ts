@@ -37,6 +37,13 @@ import type { MessageCatalog } from "../types";
 
 export const EN_KIT_CATALOG: MessageCatalog = {
   kit: {
+    codeBlock: {
+      code: "Code",
+      edit: "Edit code",
+      copy: "Copy code",
+      copied: "Copied",
+      copyFailed: "Could not copy code. Select and copy it manually.",
+    },
     knowledge: {
       "library": "Memory library",
       "map": "Knowledge map",

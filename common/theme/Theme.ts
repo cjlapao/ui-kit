@@ -62,6 +62,12 @@ export const TRUE_COLORS = [
  */
 export type TrueColor = (typeof TRUE_COLORS)[number];
 
+/** Container tint is independent of control/status accent colors. */
+export type SurfaceTone = TrueColor | "none";
+export const SURFACE_TONES = ["none", ...TRUE_COLORS] as const;
+/** A non-tinted surface still needs a real color for controls and focus cues. */
+export const getSurfaceAccentColor = (tone: SurfaceTone): TrueColor => tone === "none" ? "neutral" : tone;
+
 /**
  * The fill class for a dot/swatch of each TrueColor: the 500 step in light
  * mode, the 400 step in dark. Literal per colour — never interpolated — so
@@ -627,6 +633,7 @@ export const FIELD_STATUS_CLASSES: Record<"error" | "success", string> = {
  * surfaces are defined once, not per component.
  */
 export const SURFACE_VARIANTS = [
+  "none",
   "elevated",
   "outlined",
   "subtle",
@@ -644,6 +651,7 @@ export type SurfaceVariant = (typeof SURFACE_VARIANTS)[number];
  */
 export const SURFACE_TO_BUTTON_VARIANT: Record<SurfaceVariant, ButtonVariant> =
   {
+    none: "ghost",
     elevated: "solid",
     outlined: "outline",
     subtle: "ghost",
@@ -757,9 +765,9 @@ const surfaceTriggerTokens: Record<TrueColor, SurfaceTriggerTokens> =
   ) as Record<TrueColor, SurfaceTriggerTokens>;
 
 export const getSurfaceTriggerTokens = (
-  color: TrueColor,
+  color: SurfaceTone,
 ): SurfaceTriggerTokens =>
-  surfaceTriggerTokens[color] ?? surfaceTriggerTokens.blue;
+  surfaceTriggerTokens[getSurfaceAccentColor(color)] ?? surfaceTriggerTokens.neutral;
 
 /**
  * The `CollapsibleHelpText` trigger — the shared surface-trigger tokens plus
@@ -926,7 +934,7 @@ export const isGlassSurface = (variant: PlainSurfaceVariant): boolean =>
 
 /** The panel tone that follows a field: the field keeps its accent as the
  *  selected-day tint either way, so the fill takes the neutral default. */
-export const PANEL_TONE_FOR_FIELD: "neutral" = "neutral";
+export const PANEL_TONE_FOR_FIELD: SurfaceTone = "none";
 
 /**
  * The field surface a container implies — the reverse pairing: composite
@@ -940,6 +948,7 @@ export const INPUT_VARIANT_FOR_SURFACE: Record<
   PlainSurfaceVariant,
   InputVariant
 > = {
+  none: "flat",
   elevated: "flat",
   outlined: "flat",
   subtle: "ghost",
@@ -956,7 +965,7 @@ export const INPUT_VARIANT_FOR_SURFACE: Record<
  * component — `Panel` and its wrappers — resolves to this same constant, so a
  * default cannot be restated wrongly in one of them.
  */
-export const DEFAULT_SURFACE_TONE: TrueColor = "blue";
+export const DEFAULT_SURFACE_TONE: SurfaceTone = "none";
 
 /**
  * The `EmptyState` size for a pane that has its own header — a `Panel`
@@ -2656,6 +2665,7 @@ export const getTabsColorTokens = (color: TrueColor): TabsColorTokens =>
  * belongs to the same family and has to read identically beside a `Panel`.
  */
 export const SURFACE_VARIANT_BASE: Record<SurfaceVariant, string> = {
+  none: "",
   elevated:
     "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10",
   // A real 1px border, not a ring. `ring-1` with no ring colour resolves to
@@ -2702,14 +2712,16 @@ export interface SurfaceVariantOverrides {
  */
 const getRawSurfaceVariantClasses = (
   variant: SurfaceVariant,
-  tone: TrueColor,
+  tone: SurfaceTone,
   overrides: SurfaceVariantOverrides = {},
 ): string => {
-  const palette = currentTheme.panel[tone] ?? currentTheme.panel.neutral;
+  const palette = getPanelToneStyles(tone);
   const { bgClass, borderClass, liquidExtras } = overrides;
   const base = SURFACE_VARIANT_BASE[variant] ?? SURFACE_VARIANT_BASE.elevated;
 
   switch (variant) {
+    case "none":
+      return tone === "none" ? "" : (bgClass ?? palette.subtleBg);
     case "outlined":
       return [base, borderClass ?? palette.outlineBorder].join(" ");
     case "subtle":
@@ -2743,13 +2755,21 @@ const getRawSurfaceVariantClasses = (
   }
 };
 
-export const getPanelToneStyles = (tone: TrueColor): PanelToneConfig =>
-  currentTheme.panel[tone] ?? currentTheme.panel.neutral;
+export const getPanelToneStyles = (tone: SurfaceTone = DEFAULT_SURFACE_TONE): PanelToneConfig =>
+  tone === "none" ? {
+    ...currentTheme.panel.neutral,
+    subtleBg: "bg-white dark:bg-neutral-900",
+    tonalBg: "bg-white dark:bg-neutral-900",
+    glassBg: "bg-white/40 dark:bg-neutral-900/20",
+    liquidBg: "bg-white/45 dark:bg-neutral-900/15",
+    decorationShape: "",
+    decorationGradient: "",
+  } : currentTheme.panel[tone] ?? currentTheme.panel.neutral;
 
 /** Shared surface paint, including the four-level background transparency scale. */
 export const getSurfaceVariantClasses = (
   variant: SurfaceVariant,
-  tone: TrueColor,
+  tone: SurfaceTone,
   overrides: SurfaceVariantOverrides = {},
 ): string => getSurfaceTransparencyClasses(getRawSurfaceVariantClasses(variant, tone, overrides), variant, overrides.transparency);
 

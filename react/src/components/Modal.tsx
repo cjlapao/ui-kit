@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import classNames from "classnames";
 import { devWarnA11yOnce } from "../../../common/a11y/warn";
@@ -25,7 +26,6 @@ import {
 import Panel from "./Panel";
 import { type Size as ModalSize } from "../theme";
 import { DEFAULT_SURFACE_CORNER, getSurfaceTextTokens, THIN_SCROLLBAR } from "../theme/Theme";
-import type { TrueColor } from "../theme/Theme";
 import type { PanelCorner, PanelSpecularMode, PanelVariant } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
 import { type IconName } from "../icons/registry";
@@ -225,7 +225,7 @@ export interface ModalProps
   corner?: PanelCorner;
   /** Surface treatment, shared with `Panel`. @default "elevated" */
   variant?: PanelVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   glassOpacity?: GlassOpacity;
   transparency?: SurfaceTransparency;
   vibrancy?: GlassVibrancy;
@@ -285,7 +285,7 @@ const Modal: React.FC<ModalProps> = ({
   container,
   corner = DEFAULT_SURFACE_CORNER,
   variant = "elevated",
-  tone = "neutral",
+  tone = "none",
   glassOpacity,
   transparency,
   vibrancy,

@@ -18,7 +18,7 @@ export const TraceGraph = forwardRef<TraceGraphHandle, TraceGraphProps>(function
   onViewportChange, onDiagnostics, onRendererChange, renderer = "auto", minZoom = .001, maxZoom = 8,
   animation = true, glow = "all", showLabels = true, showControls = true, ariaLabel, emptyState, labels,
   sparkles = true, sparkleIntensity = 1, sparkleSpeed = 1, flareSize, pulseScale, junctionGlowIntensity = 1,
-  tone = "blue", variant = "outlined", corner = "auto", padding = "none", loading = false, disabled = false, ...panelProps
+  tone = "none", variant = "outlined", corner = "auto", padding = "none", loading = false, disabled = false, ...panelProps
 }, ref) {
   const t = useKitT(), helpId = useId();
   const copy = (key: keyof NonNullable<TraceGraphProps["labels"]>) => labels?.[key] ?? t(`kit.traceGraph.${key}`);
@@ -230,13 +230,13 @@ export const TraceGraph = forwardRef<TraceGraphHandle, TraceGraphProps>(function
   const overlay = overlayContent != null && overlayNode && typeof document !== "undefined" ? createPortal(
     <div ref={overlayRef} style={{ position: "fixed", zIndex: 100, width: 300, maxWidth: "calc(100vw - 16px)", visibility: "hidden" }}
       role={showPopover ? "dialog" : "tooltip"} aria-label={overlayNode.label ?? overlayNode.id}>
-      <Panel variant="elevated" tone={tone === "none" ? "neutral" : tone} corner={corner} padding="xs" scrollable={false}>
+      <Panel variant="elevated" tone={tone} corner={corner} padding="xs" scrollable={false}>
         {showPopover && <button type="button" className={`${buttonClass} float-right ml-2`} aria-label={copy("close")} onClick={() => { setDetailsOpen(false); hostRef.current?.focus(); }}>×</button>}
         <div className="max-h-72 overflow-auto text-sm">{overlayContent}</div>
       </Panel>
     </div>, document.body) : null;
 
-  return <Panel {...panelProps} variant={variant} tone={tone === "none" ? "neutral" : tone}
+  return <Panel {...panelProps} variant={variant} tone={tone}
     backgroundColor={tone === "none" ? "neutral" : panelProps.backgroundColor}
     style={tone === "none" && variant === "simple" ? { borderWidth: 0, boxShadow: "none", ...panelProps.style } : panelProps.style}
     corner={corner} padding={padding} loading={loading} disabled={disabled} scrollable={false}>

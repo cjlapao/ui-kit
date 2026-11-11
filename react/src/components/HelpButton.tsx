@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
@@ -41,6 +42,8 @@ export interface HelpButtonProps {
   placement?: HelpButtonPlacement;
   /** Accent color for the trigger button and the panel header band. @default "sky" */
   color?: TrueColor;
+  /** Container tint; omitted means no tint. @default "none" */
+  tone?: SurfaceTone;
   /**
    * Surface treatment of the floating panel — the shared container family the
    * `Panel` reference owns, so a help panel and a card beside it read the same.
@@ -285,6 +288,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
   content,
   title,
   placement = "auto",
+  tone = "none",
   color = "sky",
   variant = "elevated",
   corner = DEFAULT_SURFACE_CORNER,
@@ -410,7 +414,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
               corners to the shared corner radius. */}
           <Panel
             variant={variant}
-            tone={color}
+            tone={tone}
             corner={corner}
             padding="none"
             scrollable={false}

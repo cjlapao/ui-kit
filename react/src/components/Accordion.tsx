@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
 import React, { useId, useRef } from "react";
 import classNames from "classnames";
 import EmptyState from "./EmptyState";
@@ -204,7 +205,7 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
   const renderIcon = useIconRenderer();
   const surface = useSurfaceText();
   const trigger = getSurfaceTriggerTokens(tone);
-  const chip = getPillColorClasses(tone, "soft");
+  const chip = getPillColorClasses(getSurfaceAccentColor(tone), "soft");
   const inset = getSurfacePaddingClass(padding);
   const tokens = SIZE_TOKENS[size] ?? SIZE_TOKENS.md;
   const headerRefs = useRef(new Map<string, HTMLDivElement>());
@@ -217,7 +218,7 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
           dashed={false}
           icon="ViewRows"
           title={t("kit.accordion.noItemsTitle")}
-          tone={tone}
+          tone={getSurfaceAccentColor(tone)}
           size={size}
         />
       </div>
@@ -382,7 +383,7 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
                     <span className={tokens.title}>{item.title}</span>
                     {item.badge ? (
                       <Pill
-                        tone={tone}
+                        tone={getSurfaceAccentColor(tone)}
                         variant="soft"
                         size={tokens.pill}
                         className="flex-none"
@@ -467,7 +468,7 @@ const AccordionBody: React.FC<AccordionBodyProps> = ({
                 title={t("kit.accordion.loadingTitle")}
                 className="rounded-none"
                 size="md"
-                color={tone}
+                color={getSurfaceAccentColor(tone)}
               />
             ) : null}
           </div>

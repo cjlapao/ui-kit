@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import React, {
   cloneElement,
   isValidElement,
@@ -31,7 +32,7 @@ import {
   type SurfacePadding,
   type SurfaceVariant,
   type SurfaceTransparency,
-  type TrueColor,
+
 } from "../theme/Theme";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
 import { resolveOverlayZIndex } from "../../../common/utils/overlayZIndex";
@@ -90,7 +91,7 @@ export interface PopoverProps {
   variant?: SurfaceVariant;
   transparency?: SurfaceTransparency;
   /** @default "neutral" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** @default "rounded-md" */
   corner?: SurfaceCorner;
   /** Body inset, on the shared container scale. @default "sm" */
@@ -256,7 +257,7 @@ const Popover: React.FC<PopoverProps> = ({
   children,
   placement = "auto",
   variant = "elevated",
-  tone = "neutral",
+  tone = "none",
   corner = DEFAULT_SURFACE_CORNER,
   padding = "sm",
   maxWidth = 320,

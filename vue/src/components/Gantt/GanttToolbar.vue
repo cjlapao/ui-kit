@@ -1,9 +1,11 @@
 <script lang="ts">
+import type { SurfaceTone } from "../../theme/Theme";
 import type { GANTT_ZOOM_PRESET } from "../../../../common/gantt";
 import type { SurfaceVariant } from "../../theme/Theme";
 export interface GanttToolbarProps {
   /** Gantt surface variant the pill should match. @default "elevated" */
   variant?: SurfaceVariant;
+  tone?: SurfaceTone;
   zoom: number;
   presets: GANTT_ZOOM_PRESET[];
 }
@@ -23,6 +25,7 @@ import Button from "../Button.vue";
 defineOptions({ name: "GanttToolbar" });
 const props = withDefaults(defineProps<GanttToolbarProps>(), {
   variant: "elevated",
+  tone: "none",
 });
 const emit = defineEmits<GanttToolbarEmits>();
 const t = useKitT();
@@ -53,7 +56,7 @@ function nearestPreset(zoom: number, presets: GANTT_ZOOM_PRESET[]): number | nul
 const active = computed(() => nearestPreset(props.zoom, props.presets));
 // The shared surface-variant class set — the same combination the Panel
 // renders, so the pill sits flush beside the container chrome.
-const chrome = computed(() => getSurfaceVariantClasses(props.variant, "neutral"));
+const chrome = computed(() => getSurfaceVariantClasses(props.variant, props.tone ?? "none"));
 </script>
 
 <template>

@@ -1,3 +1,5 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
+import type { SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import React, {
   useCallback,
@@ -113,7 +115,7 @@ export interface InfiniteScrollPanelProps<T> {
   // ── Surface ───────────────────────────────────────────────────────────────
   /** @default "plain" — this is usually dropped into a card the app owns. */
   variant?: InfiniteScrollPanelVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   corner?: PanelCorner;
   padding?: PanelPadding;
   glassOpacity?: GlassOpacity;
@@ -412,7 +414,7 @@ function ScrollBody<T>({
 
 export function InfiniteScrollPanel<T>({
   variant = "plain",
-  tone = "blue",
+  tone: surfaceTone = "none",
   corner = DEFAULT_SURFACE_CORNER,
   padding = "none",
   glassOpacity,
@@ -422,6 +424,7 @@ export function InfiniteScrollPanel<T>({
   className,
   ...rest
 }: InfiniteScrollPanelProps<T>) {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const body = <ScrollBody<T> tone={tone} padding={padding} {...rest} />;
 
   if (variant === "plain") {
@@ -431,7 +434,7 @@ export function InfiniteScrollPanel<T>({
   return (
     <Panel
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       corner={corner}
       glassOpacity={glassOpacity}
         transparency={transparency}

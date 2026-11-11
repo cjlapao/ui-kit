@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useState } from "react";
 import {
   Terminal,
@@ -5,7 +7,6 @@ import {
   type PanelPadding,
   type PanelVariant,
   type TerminalScheme,
-  type TrueColor,
   type GlassOpacity,
   type GlassVibrancy,
   type PanelSpecularMode,
@@ -17,7 +18,6 @@ import {
   surfaceVariantOptions,
   panelCornerOptions,
   panelPaddingOptions,
-  trueColorOptions,
   glassOpacityOptions,
   glassVibrancyOptions,
   panelSpecularOptions,
@@ -28,7 +28,7 @@ import tabbedCode from "./examples/TabbedTerminal.tsx?raw";
 export default function TerminalPage() {
   const [scheme, setScheme] = useState<TerminalScheme>("auto");
   const [variant, setVariant] = useState<PanelVariant>("outlined");
-  const [tone, setTone] = useState<TrueColor>("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<PanelCorner>("rounded-md");
   const [padding, setPadding] = useState<PanelPadding>("sm");
   const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("light");
@@ -60,12 +60,7 @@ export default function TerminalPage() {
               value={variant}
               onChange={(value) => setVariant(value as PanelVariant)}
             />
-            <SelectControl
-              label="Tone"
-              options={trueColorOptions}
-              value={tone}
-              onChange={(value) => setTone(value as TrueColor)}
-            />
+            <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
             <SelectControl
               label="Corner"
               options={panelCornerOptions}

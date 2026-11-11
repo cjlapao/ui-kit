@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, {
   useCallback,
   useEffect,
@@ -642,7 +643,7 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
   headerAction,
   items,
   variant = "simple",
-  tone = "neutral",
+  tone: surfaceTone = "none",
   padding = "sm",
   corner = "none",
   lineColor,
@@ -661,6 +662,7 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
   glassOpacity,
   specularMode,
 }) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const isDark = useIsDark();
   const palette = getPanelToneStyles(tone);
 
@@ -790,7 +792,7 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
     // so it rendered as an invisible box.
     <Panel
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       padding={padding}
       corner={corner}
       className={className}

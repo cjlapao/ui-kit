@@ -1,3 +1,5 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
+import type { SurfaceTone } from "../theme/Theme";
 import React, {
   useCallback,
   useEffect,
@@ -273,7 +275,7 @@ export interface SidePanelProps {
    * nothing to stand out against.
    * @default "neutral"
    */
-  surfaceTone?: TrueColor;
+  surfaceTone?: SurfaceTone;
   /** Header padding and type scale. @default "md" */
   size?: ControlSize;
   /** Which edge to dock to. @default "right" */
@@ -364,7 +366,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   transparency,
   vibrancy,
   specularMode,
-  surfaceTone = "neutral",
+  surfaceTone = "none",
   size = "md",
   side = "right",
   overlay = false,
@@ -398,7 +400,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   );
   const surface = getSidebarSurfaceTokens(
     legacyVariant ? (variant as SidebarVariant) : "sidebar",
-    surfaceTone,
+    getSurfaceAccentColor(surfaceTone),
   );
   const surfaceText = getSidePanelTextTokens(variant);
   // `offset` is how SideMenu marks a detached variant, so it is the honest

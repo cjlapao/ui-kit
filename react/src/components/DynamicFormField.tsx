@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useId, useMemo } from "react";
 import classNames from "classnames";
@@ -78,7 +79,7 @@ export interface DynamicFormFieldProps {
    * @default "elevated"
    */
   variant?: DynamicFormFieldVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   corner?: SurfaceCorner;
   /** @default "md" */
   padding?: SurfacePadding;
@@ -165,7 +166,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   isVisible = true,
   size = "md",
   variant = "elevated",
-  tone = "blue",
+  tone: surfaceTone = "none",
   corner = DEFAULT_SURFACE_CORNER,
   padding = "md",
   inputVariant = "auto",
@@ -180,6 +181,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   vibrancy,
   specularMode,
 }) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const t = useKitT();
   const generatedId = useId();
   // The card decides the entry style unless the caller overrides it -
@@ -380,7 +382,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
     <Panel
       className={classNames("w-full", className)}
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       corner={corner}
       padding={padding}
       glassOpacity={glassOpacity}

@@ -1,7 +1,8 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   Button,
-  ColorSwatches,
   IconButton,
   Input,
   Toolbar,
@@ -11,7 +12,6 @@ import type {
   PanelCorner,
   PanelPadding,
   PanelVariant,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -46,7 +46,7 @@ const endGroup = (
 
 export const ToolbarPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [padding, setPadding] = useState<PanelPadding>("xs");
   const [corner, setCorner] = useState<PanelCorner>(DEFAULT_CONTROL_CORNER);
   const [hasStart, setHasStart] = useState(true);
@@ -74,13 +74,7 @@ export const ToolbarPlayground: React.FC = () => {
                     {/* Tone is a colour decision — pick it from colour
                         swatches, not from a dropdown of words. */}
                     <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <ChoiceControl
                       label="Padding"

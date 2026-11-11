@@ -1,3 +1,6 @@
+import { getSurfaceAccentColor } from "@cjlapao/ui-kit";
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   Button,
@@ -28,7 +31,7 @@ export const SidePanelPlayground: React.FC = () => {
   const [open, setOpen] = useState(true);
   const [variant, setVariant] = useState<SidePanelVariant>("outlined");
   const [tone, setTone] = useState<TrueColor>("blue");
-  const [surfaceTone, setSurfaceTone] = useState<TrueColor>("neutral");
+  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [size, setSize] = useState<ControlSize>("md");
   const [side, setSide] = useState<SidePanelSide>("right");
   const [resizable, setResizable] = useState(true);
@@ -78,13 +81,7 @@ export const SidePanelPlayground: React.FC = () => {
                       />
                     </Control>
                     <Control label="Surface tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={surfaceTone}
-                        onSelect={setSurfaceTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={surfaceTone} onSelect={setSurfaceTone} />
                     </Control>
                     <ChoiceControl
                       label="Size"
@@ -199,7 +196,7 @@ export const SidePanelPlayground: React.FC = () => {
               className="mt-3"
               size="xs"
               variant="outline"
-              color={tone}
+              color={getSurfaceAccentColor(tone)}
               onClick={() => setOpen((v) => !v)}
             >
               {open ? "Close panel" : "Open panel"}
@@ -228,10 +225,10 @@ export const SidePanelPlayground: React.FC = () => {
             footer={
               withFooter ? (
                 <div className="flex justify-end gap-2">
-                  <Button size="xs" variant="ghost" color={tone}>
+                  <Button size="xs" variant="ghost" color={getSurfaceAccentColor(tone)}>
                     Cancel
                   </Button>
-                  <Button size="xs" variant="solid" color={tone}>
+                  <Button size="xs" variant="solid" color={getSurfaceAccentColor(tone)}>
                     Save
                   </Button>
                 </div>

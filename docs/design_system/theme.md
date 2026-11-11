@@ -523,3 +523,9 @@ const toneTokens: Record<TrueColor, ToneConfig> = {
 ### Feature branch
 
 `feature/theme-refactor-core` (merged to `main` via squashed commits)
+
+## Untinted container surfaces
+
+`SurfaceTone` (also exported as `PanelTone`) is `TrueColor | "none"`. Panel and its surface wrappers default to `tone="none"`; their variant defaults remain unchanged (`elevated` for Panel). None uses untinted white/neutral glass fills appropriate to the selected variant. Supply `tone="blue"` (or another palette color) to request a tint. Control and status colors remain `TrueColor`; they never receive the none token.
+
+`variant="none"` removes the surface border, ring, shadow, blur and default background. With the default none tone it is a layout-only Panel; an explicit tone supplies a borderless tint. Padding, corners, content and accessibility remain available. Existing `plain` options remain supported where components already expose them. Surface playgrounds offer None alongside color swatches.

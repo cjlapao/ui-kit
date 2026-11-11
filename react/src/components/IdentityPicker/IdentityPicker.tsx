@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, { useId, useState } from "react";
 import classNames from "classnames";
 import Panel, { type PanelProps } from "../Panel";
@@ -71,7 +72,7 @@ export function IdentityPicker({ value, defaultValue = null, onChange, onReject,
   const selected = value === undefined ? internal : value;
   const labels = { ...defaults, ...overrides };
   const locked = disabled || loading;
-  const tone = surface.tone ?? "blue";
+  const tone = getSurfaceAccentColor(surface.tone ?? "none");
   const tokens = getSideMenuItemTokens(tone);
   const automatic = initials(name);
   const change = (next: IdentityValue) => { if (locked) return; if (value === undefined) setInternal(next); onChange?.(next); };

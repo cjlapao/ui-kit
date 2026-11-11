@@ -1,5 +1,7 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
-import { ColorSwatches, PanelHero } from "@cjlapao/ui-kit";
+import { PanelHero } from "@cjlapao/ui-kit";
 import type {
   ControlSize,
   GlowIntensity,
@@ -8,7 +10,6 @@ import type {
   PanelDecoration,
   SurfaceCorner,
   SurfacePadding,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -29,7 +30,7 @@ import {
 
 export const PanelHeroPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelHeroVariant>("gradient");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [titleSize, setTitleSize] = useState<ControlSize>("sm");
   const [subtitleSize, setSubtitleSize] = useState<ControlSize>("xs");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
@@ -61,13 +62,7 @@ export const PanelHeroPlayground: React.FC = () => {
                     {/* Tone is a colour decision — pick it from colour
                         swatches, not from a dropdown of words. */}
                     <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <ChoiceControl
                       label="Title size"

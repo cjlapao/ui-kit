@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 /**
  * TaskBoard — a kanban board with columns or swimlanes, real-time drag and
  * drop, and a collaboration layer that shows teammates' drags live.
@@ -150,7 +151,7 @@ export interface TaskBoardProps {
 
   /** @default "elevated" */
   variant?: TaskBoardVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** The board container's radius. @default "rounded-md" */
   corner?: TaskBoardCorner;
   /** Radius of the column wells — the same container scale as `corner`. @default "rounded-md" */

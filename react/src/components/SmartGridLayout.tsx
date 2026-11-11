@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import React, {
   useCallback,
   useEffect,
@@ -118,7 +119,7 @@ export interface SmartGridLayoutProps {
    * stand out against the surface rather than match it.
    * @default "neutral"
    */
-  surfaceTone?: TrueColor;
+  surfaceTone?: SurfaceTone;
   /** Grid gap, tile padding and the row-height unit. @default "md" */
   size?: SmartGridSize;
   /**
@@ -357,6 +358,7 @@ const ROW_ICON_VARIANT: ButtonVariant = "ghost";
 const EDITOR_BUTTON_FOR_SURFACE: Record<PlainSurfaceVariant, ButtonVariant> = {
   // `plain` means "the background is unknown". Glass is the treatment built
   // for exactly that: a frosted backdrop reads on a white page and on a photo.
+  none: "ghost",
   plain: "glass",
   elevated: "outline",
   outlined: "outline",
@@ -944,7 +946,7 @@ export const SmartGridLayout: React.FC<SmartGridLayoutProps> = ({
   tone,
   editThemeColor,
   variant = "plain",
-  surfaceTone = "neutral",
+  surfaceTone = "none",
   size = "md",
   controlVariant,
   readOnly = false,

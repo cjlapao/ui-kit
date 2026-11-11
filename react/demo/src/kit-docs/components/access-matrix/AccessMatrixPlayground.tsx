@@ -1,9 +1,10 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import { AccessMatrix, MultiToggle } from "@cjlapao/ui-kit";
 import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import type {
   AccessMatrixPermission,
-  PanelTone,
   TableDensity,
   TableVariant,
   TableLoaderType,
@@ -20,7 +21,6 @@ import {
   panelCornerOptions,
   surfaceVariantOptions,
   tableDensityOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const GROUPS = [
@@ -64,7 +64,7 @@ const PERMISSIONS: AccessMatrixPermission[] = GROUPS.flatMap((group) =>
 
 export const AccessMatrixPlayground: React.FC = () => {
   const [variant, setVariant] = useState<TableVariant>("outlined");
-  const [tone, setTone] = useState<PanelTone>("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [density, setDensity] = useState<TableDensity>("default");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [limit, setLimit] = useState(3);
@@ -94,12 +94,7 @@ export const AccessMatrixPlayground: React.FC = () => {
                       value={variant}
                       onChange={(value) => setVariant(value as TableVariant)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(value) => setTone(value as PanelTone)}
-                    />
+                    <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
                     <Control label="Density">
                       <MultiToggle
                         fullWidth

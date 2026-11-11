@@ -1,8 +1,10 @@
+import { getSurfaceAccentColor } from "@cjlapao/ui-kit";
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   Accordion,
   Button,
-  ColorSwatches,
   useAccordion,
 } from "@cjlapao/ui-kit";
 import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
@@ -17,7 +19,6 @@ import type {
   PanelPadding,
   PanelSpecularMode,
   PanelVariant,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -86,7 +87,7 @@ const REGIONS = [
 
 export const AccordionPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<PanelCorner>(DEFAULT_CONTROL_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
   const [size, setSize] = useState<ControlSize>("md");
@@ -125,7 +126,7 @@ export const AccordionPlayground: React.FC = () => {
         <Button
           size="xs"
           variant="ghost"
-          color={tone}
+          color={getSurfaceAccentColor(tone)}
           onClick={() => {
             setLoading(true);
             setTimeout(() => setLoading(false), 1200);
@@ -155,13 +156,7 @@ export const AccordionPlayground: React.FC = () => {
                   {/* Tone is a colour decision — pick it from colour swatches,
                       not from a dropdown of words. */}
                   <Control label="Tone">
-                    <ColorSwatches
-                      selectable
-                      size="sm"
-                      value={tone}
-                      onSelect={setTone}
-                      defaultExpanded
-                    />
+                    <SurfaceToneSwatches value={tone} onSelect={setTone} />
                   </Control>
                   <ChoiceControl
                     label="Corner"

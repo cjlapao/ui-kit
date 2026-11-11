@@ -1,3 +1,5 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
+import type { SurfaceTone } from "../theme/Theme";
 import { useMemo, useState } from "react";
 import classNames from "classnames";
 import Button, { type ButtonVariant } from "./Button";
@@ -89,7 +91,7 @@ export interface ActivityFeedProps
   /** Surface, as every card in the kit takes it. @default "outlined" */
   variant?: SurfaceVariant;
   /** @default "neutral" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** @default "md" */
   padding?: SurfacePadding;
   corner?: SurfaceCorner;
@@ -118,12 +120,13 @@ export const ActivityFeed = ({
   loadMoreLabel = "Load more",
   totalCount,
   variant = "outlined",
-  tone = "neutral",
+  tone: surfaceTone = "none",
   padding = "md",
   corner,
   className = "",
   ...rest
 }: ActivityFeedProps) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const [active, setActive] = useState(defaultFilter);
 
   const options = useMemo(
@@ -148,7 +151,7 @@ export const ActivityFeed = ({
     <Panel
       {...rest}
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       padding={padding}
       corner={corner}
       className={classNames("w-full", className)}

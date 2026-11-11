@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useId } from "react";
 import classNames from "classnames";
@@ -33,7 +34,7 @@ import type {
 export const EMPTY_STATE_VARIANTS = PLAIN_SURFACE_VARIANTS;
 export type EmptyStateVariant = (typeof EMPTY_STATE_VARIANTS)[number];
 
-export type EmptyStateTone = TrueColor;
+export type EmptyStateTone = SurfaceTone;
 export type EmptyStateSize = ControlSize;
 /** @deprecated Use `size`, which now drives the whole type scale. */
 export type TextSize = ControlSize;
@@ -366,7 +367,8 @@ const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
   ) => {
     const titleId = useId();
 
-    const effectiveTone = tone ?? color ?? "neutral";
+    const surfaceTone = tone ?? color ?? "none";
+    const effectiveTone = getSurfaceAccentColor(surfaceTone);
     const iconTone = iconColor ?? effectiveTone;
     const effectiveSize = size ?? textSize ?? "md";
     const sizeToken = SIZE_STYLES[effectiveSize] ?? SIZE_STYLES.md;
@@ -443,7 +445,7 @@ const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
       <Panel
         ref={ref}
         variant={effectiveVariant as SurfaceVariant}
-        tone={effectiveTone}
+        tone={surfaceTone}
         corner={corner}
         padding={padding}
         fullWidth={fullWidth}

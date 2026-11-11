@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import React, {
   useCallback,
@@ -90,7 +91,7 @@ export interface KeyValueArrayFieldProps {
   // ── Appearance ──────────────────────────────────────────────────────────
   /** Surface treatment. @default "outlined" */
   variant?: KeyValueArrayFieldVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   corner?: PanelCorner;
   padding?: PanelPadding;
   glassOpacity?: GlassOpacity;
@@ -342,7 +343,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   disabled = false,
   flagDuplicateKeys = true,
   variant = "outlined",
-  tone = "blue",
+  tone: surfaceTone = "none",
   corner = DEFAULT_SURFACE_CORNER,
   padding = "sm",
   glassOpacity,
@@ -353,6 +354,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   size = "sm",
   className,
 }) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const baseId = useId();
   const labelId = `${baseId}-label`;
   const errorId = `${baseId}-error`;
@@ -468,7 +470,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   return (
     <Panel
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       corner={corner}
       padding={padding}
       glassOpacity={glassOpacity}

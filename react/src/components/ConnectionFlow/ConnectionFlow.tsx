@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor, type SurfaceTone } from "../../theme/Theme";
 import React, {
   useCallback,
   useEffect,
@@ -70,7 +71,7 @@ export interface ConnectionFlowProps {
   /** Open your editor. Supplying a real node with ghostId resolves the draft. */
   onNodeCreate?: (ghostId: string, placement: ConnectionFlowPlacement) => void;
   variant?: PlainSurfaceVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   size?: ControlSize;
   corner?: SurfaceCorner;
   edgeStyle?: ConnectionFlowEdgeStyle;
@@ -243,7 +244,7 @@ const ConnectionFlow = React.forwardRef<
     editMode = false,
     onNodeCreate,
     variant = "outlined",
-    tone = "neutral",
+    tone: surfaceTone = "none",
     size = "md",
     corner = DEFAULT_SURFACE_CORNER,
     edgeStyle = "orthogonal",
@@ -286,6 +287,7 @@ const ConnectionFlow = React.forwardRef<
   },
   ref,
 ) {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const editorRef = useRef<ConnectionFlowEditorHandle>(null);
   const [editBounds, setEditBounds] = useState<Box | null>(null);
   const onEditBounds = useCallback((next: Box | null) => setEditBounds(current =>
@@ -846,7 +848,7 @@ const ConnectionFlow = React.forwardRef<
     <Panel
       className={classNames("flex min-h-0 w-full min-w-0 flex-col", className)}
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       corner={corner}
       padding="none"
       flexBody

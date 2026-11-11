@@ -1,6 +1,7 @@
 <script lang="ts">
+import { type SurfaceTone } from "../theme/Theme";
 import type { ChatEvent, ChatMessage, ChatModel, ChatStorage } from "../chat";
-import type { SurfacePadding, TrueColor } from "../theme";
+import type { SurfacePadding } from "../theme";
 
 export interface ChatProps {
   /**
@@ -29,7 +30,7 @@ export interface ChatProps {
   /** @default "outlined" */
   variant?: "outlined" | "subtle" | "elevated" | "tonal" | "glass";
   /** @default "neutral" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** @default "none" */
   padding?: SurfacePadding;
 }
@@ -90,7 +91,7 @@ const props = withDefaults(defineProps<ChatProps>(), {
   placeholder: "Send a message…",
   onEvent: undefined,
   variant: "outlined",
-  tone: "neutral",
+  tone: "none",
   padding: "none",
 });
 

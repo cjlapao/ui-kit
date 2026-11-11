@@ -16,6 +16,7 @@ import {
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
+  type SurfaceTone,
   type SurfaceTransparency,
   type TrueColor,
 } from "../theme/Theme";
@@ -40,7 +41,7 @@ import { SurfaceProvider } from "../contexts/SurfaceContext";
  * redeclared so `Panel` and `FormSection` cannot drift.
  */
 export type PanelVariant = SurfaceVariant;
-export type PanelTone = TrueColor;
+export type PanelTone = SurfaceTone;
 export type PanelDecoration = "none" | "gradient" | "shapes" | "both";
 export type PanelMediaPlacement = "top" | "start" | "end" | "overlay";
 /**
@@ -100,9 +101,9 @@ export interface PanelProps extends Omit<
   transparency?: SurfaceTransparency;
   /**
    * The tint the surface, badge and accents take.
-   * @default "blue"
+   * @default "none"
    */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /**
    * Body inset, on the shared container scale.
    * @default "sm"
@@ -219,6 +220,7 @@ export interface PanelProps extends Omit<
  * set from the same map — aliased, not redeclared, so they cannot drift.
  */
 export const variantBaseStyles: Record<PanelVariant, string> = {
+  none: "",
   elevated:
     "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10",
   // A real 1px border, not a ring. `ring-1` with no ring colour resolves to
@@ -276,13 +278,15 @@ export type PanelEdgeChrome = {
  */
 export const getPanelEdgeChrome = (
   variant: SurfaceVariant,
-  tone: TrueColor,
+  tone: SurfaceTone,
   glassOpacity: GlassOpacity = "frosted",
   vibrancy: GlassVibrancy = "medium",
   transparency?: SurfaceTransparency,
 ): PanelEdgeChrome => {
   const palette = getPanelToneStyles(tone);
   const chrome = (() => { switch (variant) {
+    case "none":
+      return { fill: tone === "none" ? "" : palette.subtleBg, border: "", backdrop: "" };
     case "outlined":
       return {
         fill: "bg-white/90 dark:bg-neutral-900/80",
@@ -339,9 +343,9 @@ export const getPanelEdgeChrome = (
  * and chrome can never disagree on the resolved tone.
  */
 export const resolvePanelTone = (
-  tone?: TrueColor,
+  tone?: SurfaceTone,
   color?: TrueColor,
-): TrueColor => tone ?? color ?? DEFAULT_SURFACE_TONE;
+): SurfaceTone => tone ?? color ?? DEFAULT_SURFACE_TONE;
 
 export const paddingStyles: Record<PanelPadding, string> =
   getSurfacePaddingClasses();
@@ -717,6 +721,8 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
 
   const variantClasses = getSurfaceTransparencyClasses(classNames((() => {
     switch (variant) {
+      case "none":
+        return resolvedTone === "none" ? "" : palette.subtleBg;
       case "outlined":
         return classNames(
           variantBaseStyles.outlined,

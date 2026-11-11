@@ -1,4 +1,5 @@
 <script lang="ts">
+import { type SurfaceTone } from "../theme/Theme";
 /** One slice of the breakdown — its tone paints both the slice and the dot. */
 export interface BreakdownItem {
   id: string;
@@ -62,7 +63,7 @@ const props = withDefaults(
     /** Surface, as every card in the kit takes it. @default "outlined" */
     variant?: SurfaceVariant;
     /** @default "neutral" */
-    tone?: TrueColor;
+    tone?: SurfaceTone;
     /** @default "md" */
     padding?: SurfacePadding;
     corner?: SurfaceCorner;
@@ -73,7 +74,7 @@ const props = withDefaults(
     ctaLabel: "",
     loading: false,
     variant: "outlined",
-    tone: "neutral",
+    tone: "none",
     padding: "md",
   },
 );

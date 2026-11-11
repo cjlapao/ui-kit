@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import Panel from "../Panel";
 import IconButton from "../IconButton";
@@ -36,12 +37,13 @@ export function NetworkGraph({
   ariaLabel,
   emptyMessage,
   onViewportChange,
-  tone = "blue",
+  tone: surfaceTone = "none",
   variant = "elevated",
   disabled = false,
   loading = false,
   ...panelProps
 }: NetworkGraphProps) {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const t = useKitT();
   const helpId = useId();
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -201,7 +203,7 @@ export function NetworkGraph({
       .map((n) => ({ value: n.id, label: n.label ?? n.id }));
   }, [visibleNodes, query]);
   const graphHeight = Number.isFinite(height) ? Math.max(160, height) : 480;
-  const resolvedLegendTone = legendTone === "auto" ? tone : legendTone;
+  const resolvedLegendTone = legendTone === "auto" ? surfaceTone : legendTone;
   const legendContent = (
     <fieldset
       disabled={locked}
@@ -215,7 +217,7 @@ export function NetworkGraph({
       </legend>
       <Checkbox
         size="sm"
-        tone={resolvedLegendTone}
+        tone={getSurfaceAccentColor(resolvedLegendTone)}
         label={t("kit.networkGraph.selectAll")}
         checked={model.groups.every((g) => enabled.has(g.id))}
         indeterminate={
@@ -230,7 +232,7 @@ export function NetworkGraph({
         <div key={group.id} className="flex items-center justify-between gap-2">
           <Checkbox
             size="sm"
-            tone={group.tone ?? resolvedLegendTone}
+            tone={group.tone ?? getSurfaceAccentColor(resolvedLegendTone)}
             label={group.label}
             checked={enabled.has(group.id)}
             onChange={(event) =>
@@ -251,7 +253,7 @@ export function NetworkGraph({
   return (
     <Panel
       {...panelProps}
-      tone={tone}
+      tone={surfaceTone}
       variant={variant}
       padding="sm"
       disabled={disabled}

@@ -143,7 +143,7 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
   const matches = useMemo(() => scene.points.filter(point => (!selectedTopic || point.memory.topic === selectedTopic) && `${point.memory.title} ${point.memory.topic ?? ""}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())), [scene, query, selectedTopic]);
   const lastPage = Math.max(0, Math.ceil(matches.length / PAGE_SIZE) - 1), currentPage = Math.min(page, lastPage);
   const selectableRelationships = geometry.edges.filter(edge => edge.source.memoryId === selection || edge.target.memoryId === selection);
-  return <Panel tone="neutral" variant="outlined" padding="none" loading={loading} disabled={disabled} {...surface} className={`kit-knowledge kit-knowledge-map ${className}`} aria-busy={loading}>
+  return <Panel tone="none" variant="outlined" padding="none" loading={loading} disabled={disabled} {...surface} className={`kit-knowledge kit-knowledge-map ${className}`} aria-busy={loading}>
     <div className="kit-knowledge-toolbar"><strong>{copy("map")}</strong><div className="kit-knowledge-view"><button type="button" disabled={disabled} onClick={() => setCamera(INITIAL_CAMERA)}>{copy("fit")}</button><button type="button" disabled={disabled} aria-label={copy("zoomOut")} onClick={() => zoom(1 / 1.3)}>−</button><button type="button" disabled={disabled} aria-label={copy("zoomIn")} onClick={() => zoom(1.3)}>+</button></div></div>
     <div ref={hostRef} className="kit-knowledge-canvas" style={{ height: Math.max(120, height) }}>
       <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} tabIndex={disabled ? -1 : 0} role="img" aria-label={copy("map")} aria-describedby={helpId}

@@ -1,3 +1,5 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
+import type { SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
@@ -91,7 +93,7 @@ export interface InfoRowProps extends Omit<
    */
   variant?: InfoRowVariant;
   /** Accent for the hover wash, the focus ring and the glass tint. @default "blue" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** Corner radius when `variant` is not `plain`. */
   corner?: SurfaceCorner;
   /**
@@ -553,7 +555,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
     value,
     hideIfEmpty = true,
     variant = "elevated",
-    tone = "blue",
+    tone = "none",
     corner = DEFAULT_SURFACE_CORNER,
     loading = false,
     error,
@@ -602,7 +604,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
       <InfoRowBody
         {...props}
         normalised={normalised}
-        rowTone={tone}
+        rowTone={getSurfaceAccentColor(tone)}
         rootProps={rest}
         className={className}
       />
@@ -613,7 +615,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
     <Panel
       {...rest}
       variant={variant as SurfaceVariant}
-      color={tone}
+      tone={tone}
       corner={corner}
       padding="none"
       scrollable={false}
@@ -625,7 +627,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
       <InfoRowBody
         {...props}
         normalised={normalised}
-        rowTone={tone}
+        rowTone={getSurfaceAccentColor(tone)}
         className={undefined}
       />
     </Panel>

@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   CustomIcon,
@@ -64,7 +66,7 @@ const fillHeightOffsetOptions = [
 export const WorkflowTrackerPlayground: React.FC = () => {
   const [dataSet, setDataSet] = useState<DataSet>("vendor");
   const [variant, setVariant] = useState<WorkflowTrackerVariant>("outlined");
-  const [cardTone, setCardTone] = useState<TrueColor>("neutral");
+  const [cardTone, setCardTone] = useState<SurfaceTone>("none");
   const [accent, setAccent] = useState<TrueColor>("blue");
   const [corner, setCorner] =
     useState<WorkflowTrackerCorner>(DEFAULT_SURFACE_CORNER);
@@ -139,12 +141,7 @@ export const WorkflowTrackerPlayground: React.FC = () => {
                     value={variant}
                     onChange={(v) => setVariant(v as WorkflowTrackerVariant)}
                   />
-                  <SelectControl
-                    label="Card tone"
-                    options={trueColorOptions}
-                    value={cardTone}
-                    onChange={(v) => setCardTone(v as TrueColor)}
-                  />
+                  <SurfaceToneControl label="Card tone" value={cardTone} onChange={setCardTone} />
                   <SelectControl
                     label="Accent"
                     options={trueColorOptions}

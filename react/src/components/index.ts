@@ -912,3 +912,5 @@ export { DotStepper, type DotStepperProps, type DotStepperStep } from "./DotStep
 export * from "./knowledge";
 
 export { default as ContentActions, type ContentActionsProps } from "./ContentActions";
+
+export { default as CodeBlock, type CodeBlockProps } from "./CodeBlock";

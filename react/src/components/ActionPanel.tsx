@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
 import classNames from "classnames";
 import React, { useId } from "react";
 
@@ -232,8 +233,8 @@ const ActionPanel = React.forwardRef<HTMLElement, ActionPanelProps>(
   ) {
     const renderIcon = useIconRenderer();
     const generatedTitleId = useId();
-    const resolvedTone = tone ?? color ?? "neutral";
-    const resolvedAccent = accentColor ?? resolvedTone;
+    const resolvedTone = tone ?? color ?? "none";
+    const resolvedAccent = accentColor ?? getSurfaceAccentColor(resolvedTone);
     const palette = getPanelToneStyles(resolvedAccent);
     const surfaceText = getSurfaceTextTokens(variant);
     const sizeTokens = SIZE_TOKENS[size] ?? SIZE_TOKENS.sm;

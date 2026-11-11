@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
 import React, { useMemo, useState } from "react";
 import classNames from "classnames";
 import Table, {
@@ -137,7 +138,7 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
   permissions,
   limit = 5,
   variant = "outlined",
-  tone = "neutral",
+  tone: surfaceTone = "none",
   density,
   bordered = false,
   corner,
@@ -153,6 +154,7 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
   loaderProgress,
   emptyState,
 }) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const [expanded, setExpanded] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     new Set(),
@@ -313,7 +315,7 @@ const AccessMatrix: React.FC<AccessMatrixProps> = ({
         columns={columns}
         data={rows}
         variant={variant}
-        tone={tone}
+        tone={surfaceTone}
         density={density}
         bordered={bordered}
         corner={corner}

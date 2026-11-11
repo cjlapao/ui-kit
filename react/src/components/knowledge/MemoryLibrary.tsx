@@ -24,7 +24,7 @@ export function MemoryLibrary({ memories, query: queryProp, defaultQuery = "", o
     return [...result];
   }, [visible, groupByTopic]);
   function changeFilter(key: keyof MemoryFilters, value: string) { setFilters({ ...filters, [key]: value || undefined }); }
-  return <Panel tone="neutral" variant="outlined" padding="none" loading={loading} disabled={disabled} {...surface} className={`kit-knowledge kit-memory-library ${className}`} aria-busy={loading}>
+  return <Panel tone="none" variant="outlined" padding="none" loading={loading} disabled={disabled} {...surface} className={`kit-knowledge kit-memory-library ${className}`} aria-busy={loading}>
     <div className="kit-knowledge-toolbar"><label className="kit-knowledge-search"><span>{copy("search")}</span><input type="search" value={query} disabled={disabled} onChange={event => setQuery(event.target.value)} placeholder={copy("search")} /></label>
       <div className="kit-knowledge-view" role="group" aria-label={copy("library")}>
         {(["cards", "list"] as const).map(mode => <button type="button" key={mode} disabled={disabled} aria-pressed={view === mode} onClick={() => setView(mode)}>{copy(mode)}</button>)}

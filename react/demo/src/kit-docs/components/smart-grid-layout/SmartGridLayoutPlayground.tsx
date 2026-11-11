@@ -1,3 +1,5 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   BUTTON_VARIANTS,
@@ -29,7 +31,7 @@ const columnOptions = [4, 6, 8, 12].map((n) => ({
 export const SmartGridLayoutPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SmartGridVariant>("plain");
   const [tone, setTone] = useState<TrueColor>("blue");
-  const [surfaceTone, setSurfaceTone] = useState<TrueColor>("neutral");
+  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [controlVariant, setControlVariant] = useState<string>("");
   const [size, setSize] = useState<ControlSize>("md");
   const [maxColumns, setMaxColumns] = useState("12");
@@ -70,13 +72,7 @@ export const SmartGridLayoutPlayground: React.FC = () => {
                       />
                     </Control>
                     <Control label="Surface tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={surfaceTone}
-                        onSelect={setSurfaceTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={surfaceTone} onSelect={setSurfaceTone} />
                     </Control>
                     <ChoiceControl
                       label="Control variant"

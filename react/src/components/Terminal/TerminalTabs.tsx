@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../../theme/Theme";
 import classNames from "classnames";
 import {
   forwardRef,
@@ -37,7 +38,7 @@ export const TerminalTabs = forwardRef<TerminalTabsHandle, TerminalTabsProps>(
       height = 360,
       style,
       variant = "outlined",
-      tone = "neutral",
+      tone: surfaceTone = "none",
       padding = "sm",
       readOnly,
       scheme,
@@ -51,6 +52,7 @@ export const TerminalTabs = forwardRef<TerminalTabsHandle, TerminalTabsProps>(
     },
     ref,
   ) {
+    const tone = getSurfaceAccentColor(surfaceTone);
     const prefix = useId();
     const [selected, setSelected] = useState(defaultValue ?? sessions[0]?.id);
     const requested = value ?? selected;
@@ -72,7 +74,7 @@ export const TerminalTabs = forwardRef<TerminalTabsHandle, TerminalTabsProps>(
         {...surface}
         data-color-scheme={scheme ?? "auto"}
         className={classNames(surface.className, scheme === "dark" && "dark")}
-        {...{ variant, tone, padding }}
+        {...{ variant, tone: surfaceTone, padding }}
         flexBody
         scrollable={false}
         style={{

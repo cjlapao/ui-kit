@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import {
   SURFACE_VARIANTS,
   type ControlSize,
@@ -50,7 +51,7 @@ export interface DynamicFormFieldProps {
   size?: ControlSize;
   /** Surface of the card around the field. @default "outlined" */
   variant?: DynamicFormFieldVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   corner?: SurfaceCorner;
   /** @default "md" */
   padding?: SurfacePadding;
@@ -125,7 +126,7 @@ const props = withDefaults(defineProps<DynamicFormFieldProps>(), {
   isVisible: true,
   size: "md",
   variant: "outlined",
-  tone: "neutral",
+  tone: "none",
   corner: DEFAULT_SURFACE_CORNER,
   padding: "md",
   inputVariant: "flat",
@@ -134,6 +135,7 @@ const props = withDefaults(defineProps<DynamicFormFieldProps>(), {
   helpTitle: "What is this?",
   listRows: 4,
 });
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
 const emit = defineEmits<{
   change: [
@@ -287,7 +289,7 @@ const onNumberInput = (next: string) =>
         :type="textFieldType"
         :model-value="String(value ?? '')"
         :size="size"
-        :tone="tone"
+        :tone="resolvedAccentTone"
         :variant="inputVariant"
         :disabled="disabled"
         :readonly="readOnly"
@@ -306,7 +308,7 @@ const onNumberInput = (next: string) =>
         :required="required"
         :disabled="disabled || readOnly"
         :size="size"
-        :tone="tone"
+        :tone="resolvedAccentTone"
         :validation-status="validationStatus"
         @update:model-value="handleChange(Boolean($event))"
       />
@@ -316,7 +318,7 @@ const onNumberInput = (next: string) =>
         :id="fieldId"
         :model-value="String(value ?? '')"
         :size="size"
-        :tone="tone"
+        :tone="resolvedAccentTone"
         :variant="inputVariant"
         :disabled="disabled"
         :required="required"
@@ -339,7 +341,7 @@ const onNumberInput = (next: string) =>
         :model-value="lines"
         :rows="listRows"
         :size="size"
-        :tone="tone"
+        :tone="resolvedAccentTone"
         :variant="inputVariant"
         :disabled="disabled"
         :readonly="readOnly"

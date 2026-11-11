@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 /**
  * GanttToolbar — the zoom control in the detached header.
  *
@@ -20,6 +21,7 @@ import Button from "../Button";
 interface GanttToolbarProps {
   /** Gantt surface variant the pill should match. @default "elevated" */
   variant?: SurfaceVariant;
+  tone?: SurfaceTone;
   zoom: number;
   presets: GANTT_ZOOM_PRESET[];
   /** Set the zoom to an absolute value (preset jumps). */
@@ -45,6 +47,7 @@ function nearestPreset(zoom: number, presets: GANTT_ZOOM_PRESET[]): number | nul
 
 export const GanttToolbar: React.FC<GanttToolbarProps> = ({
   variant = "elevated",
+  tone = "none",
   zoom,
   presets,
   onZoomTo,
@@ -59,8 +62,8 @@ export const GanttToolbar: React.FC<GanttToolbarProps> = ({
   };
   const active = useMemo(() => nearestPreset(zoom, presets), [zoom, presets]);
   const chrome = useMemo(
-    () => getSurfaceVariantClasses(variant, "neutral"),
-    [variant],
+    () => getSurfaceVariantClasses(variant, tone),
+    [variant, tone],
   );
 
   return (

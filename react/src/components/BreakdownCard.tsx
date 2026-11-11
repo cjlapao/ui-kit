@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import classNames from "classnames";
 import Button, { type ButtonVariant } from "./Button";
 import Chart from "./chart";
@@ -53,7 +54,7 @@ export interface BreakdownCardProps
   /** Surface, as every card in the kit takes it. @default "outlined" */
   variant?: SurfaceVariant;
   /** @default "neutral" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** @default "md" */
   padding?: SurfacePadding;
   corner?: SurfaceCorner;
@@ -74,7 +75,7 @@ export const BreakdownCard = ({
   loading = false,
   ctaVariant,
   variant = "outlined",
-  tone = "neutral",
+  tone: surfaceTone = "none",
   padding = "md",
   corner,
   className = "",
@@ -86,7 +87,7 @@ export const BreakdownCard = ({
     <Panel
       {...rest}
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       padding={padding}
       corner={corner}
       className={classNames("w-full", className)}

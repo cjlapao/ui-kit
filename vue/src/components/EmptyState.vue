@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { VNode } from "vue";
 import type { ButtonVariant, ButtonSize, ButtonColor } from "./Button.vue";
 import {
@@ -18,7 +19,7 @@ import type { GlassOpacity, GlassVibrancy, SpecularMode } from "../theme/glass";
 export const EMPTY_STATE_VARIANTS = PLAIN_SURFACE_VARIANTS;
 export type EmptyStateVariant = (typeof EMPTY_STATE_VARIANTS)[number];
 
-export type EmptyStateTone = TrueColor;
+export type EmptyStateTone = SurfaceTone;
 export type EmptyStateSize = ControlSize;
 /** @deprecated Use `size`, which now drives the whole type scale. */
 export type TextSize = ControlSize;
@@ -206,7 +207,8 @@ const renderIcon = useIconRenderer();
 
 const titleId = useId();
 
-const effectiveTone = computed(() => props.tone ?? props.color ?? "neutral");
+const surfaceTone = computed(() => props.tone ?? props.color ?? "none");
+const effectiveTone = computed(() => getSurfaceAccentColor(surfaceTone.value));
 const iconTone = computed(() => props.iconColor ?? effectiveTone.value);
 const effectiveSize = computed(() => props.size ?? props.textSize ?? "md");
 const sizeToken = computed(
@@ -309,7 +311,7 @@ const handleAction = () => {
         : {
             class: panelClass,
             variant: effectiveVariant,
-            tone: effectiveTone,
+            tone: surfaceTone,
             corner,
             padding,
             fullWidth,

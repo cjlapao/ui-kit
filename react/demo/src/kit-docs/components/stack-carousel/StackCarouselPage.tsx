@@ -1,5 +1,7 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useState } from "react";
-import { ColorSwatches, StackCarousel, type PanelProps, type TrueColor } from "@cjlapao/ui-kit";
+import { StackCarousel, type PanelProps} from "@cjlapao/ui-kit";
 import { PageHeader } from "../../shared/PageHeader";
 import { ExampleCard } from "../../shared/ExampleCard";
 import { A11ySection, A11yTopic, PropsTable } from "../../shared/A11ySections";
@@ -19,7 +21,7 @@ export default function StackCarouselPage() {
   const [expanded, setExpanded] = useState(false), [showExpandButton, setShowExpandButton] = useState(true);
   const [expandOnHover, setExpandOnHover] = useState(false), [hoverExpandDelay, setHoverExpandDelay] = useState(2000);
   const [variant, setVariant] = useState<PanelProps["variant"]>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [offset, setOffset] = useState(12);
   const [corner, setCorner] = useState<PanelProps["corner"]>("auto");
   const [padding, setPadding] = useState<PanelProps["padding"]>("sm");
@@ -29,7 +31,7 @@ export default function StackCarouselPage() {
       <ChoiceControl label="Items" options={[0, 1, 2, 3, 5].map(value => ({ label: String(value), value: String(value) }))} value={String(count)} onChange={value => { setCount(Number(value)); setIndex(0); }} />
       <ChoiceControl label="Visible layers" options={[1, 2, 3].map(value => ({ label: String(value), value: String(value) }))} value={String(visibleCount)} onChange={value => setVisibleCount(Number(value))} />
       <ChoiceControl label="Variant" options={surfaceVariantOptions} value={variant!} onChange={value => setVariant(value as PanelProps["variant"])} />
-      <Control label="Tone"><ColorSwatches selectable value={tone} onSelect={setTone} size="sm" /></Control>
+      <Control label="Tone"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
       <ChoiceControl label="Stack offset" options={[8, 12, 16, 24].map(value => ({ label: `${value}px`, value: String(value) }))} value={String(offset)} onChange={value => setOffset(Number(value))} />
       <ChoiceControl label="Corner" options={panelCornerOptions} value={corner!} onChange={value => setCorner(value as PanelProps["corner"])} />
       <ChoiceControl label="Padding" options={panelPaddingOptions} value={padding!} onChange={value => setPadding(value as PanelProps["padding"])} />

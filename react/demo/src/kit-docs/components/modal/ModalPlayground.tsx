@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import { Button, Input, Modal, MultiToggle } from "@cjlapao/ui-kit";
 import type {
@@ -6,7 +8,6 @@ import type {
   PanelSpecularMode,
   PanelVariant,
   Size,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -22,7 +23,6 @@ import {
   panelCornerOptions,
   panelSpecularOptions,
   surfaceVariantOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const GLASS_VARIANTS: PanelVariant[] = ["glass", "liquid-glass", "default"];
@@ -55,7 +55,7 @@ export const ModalPlayground: React.FC = () => {
   const [size, setSize] = useState<Size>("md");
   const [position, setPosition] = useState<ModalPosition>("center");
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<PanelCorner>(DEFAULT_CORNER);
   const [draggable, setDraggable] = useState(true);
   const [showMaximizeButton, setShowMaximizeButton] = useState(true);
@@ -102,12 +102,7 @@ export const ModalPlayground: React.FC = () => {
                       value={position}
                       onChange={(value) => setPosition(value as ModalPosition)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(value) => setTone(value as TrueColor)}
-                    />
+                    <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
                     <SelectControl
                       label="Corner"
                       options={panelCornerOptions}

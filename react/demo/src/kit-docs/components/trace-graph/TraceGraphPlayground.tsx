@@ -1,5 +1,7 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ColorSwatches, TraceGraph, type TraceGraphProps, type TraceGraphHandle, type TraceGraphNode, type TraceFollowMode, type TraceGraphLayout, type SurfaceVariant, type TrueColor } from "@cjlapao/ui-kit";
+import { TraceGraph, type TraceGraphProps, type TraceGraphHandle, type TraceGraphNode, type TraceFollowMode, type TraceGraphLayout, type SurfaceVariant} from "@cjlapao/ui-kit";
 import { ChoiceControl, Control, PlaygroundPanel, ToggleRow } from "../../shared/PlaygroundPanel";
 import { surfaceVariantOptions } from "../../shared/options";
 import { createTraceFixture } from "./fixture";
@@ -15,7 +17,8 @@ export function TraceGraphPlayground() {
   const [junctionGlowIntensity, setJunctionGlowIntensity] = useState(1);
   const [sparkles, setSparkles] = useState(true), [sparkleIntensity, setSparkleIntensity] = useState(1), [sparkleSpeed, setSparkleSpeed] = useState(1), [pulseScale, setPulseScale] = useState(2.5);
   const [fallback, setFallback] = useState(false), [backend, setBackend] = useState("");
-  const [tone, setTone] = useState<TrueColor>("violet"), [variant, setVariant] = useState<SurfaceVariant>("outlined");
+  const [tone, setTone] = useState<SurfaceTone>("none");
+  const [variant, setVariant] = useState<SurfaceVariant>("outlined");
   const [selected, setSelected] = useState<TraceGraphNode | null>(null);
   const [diagnostics, setDiagnostics] = useState(0);
   const fixture = useMemo(() => createTraceFixture(turns), [turns]);
@@ -39,7 +42,7 @@ export function TraceGraphPlayground() {
     <ChoiceControl label="History size" options={[{ label: "6 turns · 43 points", value: "6" }, { label: "100 turns · 701 points", value: "100" }, { label: "400 turns · 2,801 points", value: "400" }]}
       value={String(turns)} onChange={value => { const next = Number(value); setTurns(next); setCount(next * 7 + 1); setPlaying(false); setFollow("off"); setSelected(null); }} />
     <ChoiceControl label="Surface" options={surfaceVariantOptions} value={variant} onChange={value => setVariant(value as SurfaceVariant)} />
-    <Control label="Tone"><ColorSwatches selectable size="sm" value={tone} onSelect={setTone} /></Control>
+    <Control label="Tone"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
     <ToggleRow label="Tone: none (untinted)" checked={untinted} onChange={setUntinted} />
     <ChoiceControl label="Corner" options={["auto", "none", "rounded", "rounded-sm", "rounded-md", "rounded-lg", "rounded-xl"].map(value => ({ label: value, value }))} value={corner ?? "auto"} onChange={value => setCorner(value as TraceGraphProps["corner"])} />
     <ChoiceControl label="Padding" options={["none", "xs", "sm", "md", "lg"].map(value => ({ label: value, value }))} value={padding ?? "none"} onChange={value => setPadding(value as TraceGraphProps["padding"])} />

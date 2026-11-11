@@ -44,7 +44,7 @@ describe("Panel — outlined border", () => {
 });
 
 describe("Panel — common-property defaults", () => {
-  it("stands on the shared scales: sm padding, medium corner, blue tone", () => {
+  it("stands on the shared scales: sm padding, medium corner, no tint", () => {
     const { container } = render(<Panel variant="outlined">Body</Panel>);
     const panel = panelOf(container);
 
@@ -52,9 +52,9 @@ describe("Panel — common-property defaults", () => {
     // to `rounded-2xl`).
     expect(panel.className).toContain("p-4 sm:p-5");
     expect(panel.className).toContain("rounded-2xl");
-    // Tone default blue — the outlined hairline picks up the tone.
-    expect(panel.className).toContain("border-blue-200");
-    expect(panel).toHaveAttribute("data-tone", "blue");
+    // Untinted is the default; the outlined hairline stays neutral.
+    expect(panel.className).toContain("border-neutral-200");
+    expect(panel).toHaveAttribute("data-tone", "none");
   });
 
   it("honours the deprecated `color` prop as an alias of `tone`", () => {
@@ -542,5 +542,35 @@ describe("Panel — a clickable card that hosts controls", () => {
 
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+
+describe("Panel — untinted surfaces", () => {
+  it("keeps elevated as the default and defaults to no tint", () => {
+    const { container } = render(<Panel>Body</Panel>);
+    expect(panelOf(container)).toHaveAttribute("data-variant", "elevated");
+    expect(panelOf(container)).toHaveAttribute("data-tone", "none");
+  });
+
+  it("renders none as a layout-only container and preserves content and padding", () => {
+    const { container } = render(<Panel variant="none" padding="md" title="Container">Body</Panel>);
+    const panel = panelOf(container);
+    expect(panel.className.split(/\s+/).filter(token => /^(?:dark:)?(?:bg-|border(?:-|$)|ring-|shadow|backdrop-)/.test(token))).toEqual([]);
+    expect(panel.textContent).toContain("Body");
+    expect(panel.textContent).toContain("Container");
+    expect(panel.className).toContain("p-6");
+  });
+
+  it("tints a borderless container only when explicitly requested", () => {
+    const { container } = render(<Panel variant="none" tone="rose">Body</Panel>);
+    expect(panelOf(container).className).toContain("--color-rose-50");
+    expect(panelOf(container).className).not.toMatch(/(?:^|\s)(?:border|ring-1|shadow-xl)(?:\s|$)/);
+  });
+
+  it("explicit none overrides the legacy color alias", () => {
+    const { container } = render(<Panel variant="tonal" tone="none" color="rose">Body</Panel>);
+    expect(panelOf(container)).toHaveAttribute("data-tone", "none");
+    expect(panelOf(container).className).not.toContain("bg-rose");
   });
 });

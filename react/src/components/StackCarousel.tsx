@@ -58,7 +58,7 @@ export function StackCarousel<T = React.ReactNode>({
   showExpandButton = false, expandOnHover = false, hoverExpandDelay = 2000, hoverCollapseDelay = 500,
   expandLabel = "Expand stack", collapseLabel = "Collapse stack",
   ariaLabel = "Card stack", previousLabel = "Previous item", nextLabel = "Next item", getItemLabel,
-  emptyState = "No items to display.", variant = "elevated", tone = "blue", corner = "auto",
+  emptyState = "No items to display.", variant = "elevated", tone: surfaceTone = "none", corner = "auto",
   padding = "sm", transparency, className = "", onKeyDown, onPointerEnter, onPointerMove, onPointerLeave, onWheelCapture, style, ...rest
 }: StackCarouselProps<T>) {
   const [internalIndex, setInternalIndex] = useState(defaultActiveIndex);
@@ -247,7 +247,7 @@ export function StackCarousel<T = React.ReactNode>({
                   height: !active && height ? height : undefined }}>
                 <div ref={i === index ? measureRef : undefined} inert={!active || undefined} aria-hidden={!active || undefined}
                   style={{ height: !active && height ? height : undefined }}>
-                  <Panel variant={variant} tone={tone} corner={corner} padding={padding} transparency={transparency}
+                  <Panel variant={variant} tone={surfaceTone} corner={corner} padding={padding} transparency={transparency}
                     scrollable={false} className={!active ? "h-full" : undefined}>
                     <div className={!active && !leaving ? "invisible" : undefined}>
                       {renderItem ? renderItem(items[i], i) : items[i] as React.ReactNode}

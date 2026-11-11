@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 /**
  * Gantt — a feature-rich, editable timeline chart.
  *
@@ -160,6 +161,8 @@ export interface GanttProps {
    * @default "elevated"
    */
   variant?: GanttVariant;
+  /** Container tint, separate from task accent colors. @default "none" */
+  tone?: SurfaceTone;
   /**
    * Corner radius of the panel surface — the shared container scale
    * (same `corner` vocabulary as Panel).
@@ -245,6 +248,7 @@ export const Gantt: React.FC<GanttProps> = ({
   height = 520,
   color = "blue",
   variant = "elevated",
+  tone = "none",
   corner = "rounded-sm",
   padding = "none",
   vibrancy,
@@ -962,6 +966,7 @@ export const Gantt: React.FC<GanttProps> = ({
     <Panel
       ref={rootRef}
       variant={variant}
+      tone={tone}
       padding={padding}
       corner={corner}
       vibrancy={vibrancy}
@@ -990,7 +995,7 @@ export const Gantt: React.FC<GanttProps> = ({
             <div
               className={classNames(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                getSurfaceVariantClasses(variant, "neutral"),
+                getSurfaceVariantClasses(variant, tone),
               )}
             >
               {icon}
@@ -1018,6 +1023,7 @@ export const Gantt: React.FC<GanttProps> = ({
               right edge when no icon/title/actions are present. */}
           <div className="ml-auto shrink-0">
             <GanttToolbar
+              tone={tone}
               variant={variant}
               zoom={zoom}
               presets={GANTT_ZOOM_PRESETS}

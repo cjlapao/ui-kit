@@ -340,14 +340,14 @@ describe("Accordion", () => {
   });
 
   describe("common-property defaults", () => {
-    it("stands on the container standard: elevated, tone blue, sm padding", () => {
+    it("stands on the container standard: elevated, no tint, sm padding", () => {
       const { container } = render(<Accordion items={ITEMS} />);
       const card = container.querySelector<HTMLElement>("[data-tone]")!;
-      expect(card.getAttribute("data-tone")).toBe("blue");
+      expect(card.getAttribute("data-tone")).toBe("none");
       const headerEl = container.querySelector<HTMLElement>('[role="button"]')!;
       expect(headerEl.className).toContain("p-4 sm:p-5");
-      expect(headerEl.className).toContain("hover:bg-blue-100/40");
-      expect(headerEl.className).toContain("focus-visible:ring-blue-400");
+      expect(headerEl.className).toContain("hover:bg-neutral-100/40");
+      expect(headerEl.className).toContain("focus-visible:ring-neutral-400");
     });
 
     it("routes the deprecated color alias through tone — card chrome and rows agree", () => {

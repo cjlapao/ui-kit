@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 import type { PanelProps } from "../Panel";
 import type { TrueColor } from "../../theme/Theme";
 
@@ -61,7 +62,7 @@ export interface NetworkGraphProps extends Pick<
   /** Legend Panel surface; auto follows the graph variant. Default: auto. */
   legendVariant?: "auto" | NonNullable<PanelProps["variant"]>;
   /** Legend Panel tone; auto follows the graph tone. Default: auto. */
-  legendTone?: "auto" | TrueColor;
+  legendTone?: "auto" | SurfaceTone;
   /** Auto places the legend right at 600px available width, otherwise below. */
   legendPosition?: "auto" | "right" | "bottom";
   showLabels?: boolean;

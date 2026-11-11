@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import { Button, MultiToggle, Stepper, type Step } from "@cjlapao/ui-kit";
 import type {
@@ -9,7 +11,6 @@ import type {
   StepperNodeCorner,
   StepperOrientation,
   StepperProgressBarPosition,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -27,7 +28,6 @@ import {
   stepperNodeCornerOptions,
   stepperOrientationOptions,
   stepperProgressBarPositionOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 const steps: Step[] = [
@@ -63,7 +63,7 @@ const steps: Step[] = [
  */
 export const StepperPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [size, setSize] = useState<ControlSize>("md");
   const [orientation, setOrientation] =
     useState<StepperOrientation>("horizontal");
@@ -109,12 +109,7 @@ export const StepperPlayground: React.FC = () => {
                       value={variant}
                       onChange={(v) => setVariant(v as PanelVariant)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                    />
+                    <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
                     <SelectControl
                       label="Size"
                       options={controlSizeOptions}

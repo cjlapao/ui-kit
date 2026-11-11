@@ -127,6 +127,7 @@ const NODE_SURFACES: Record<
   SurfaceVariant,
   (tone: TrueColor) => NodeSurface
 > = {
+  none: () => ({ fill: "fill-transparent", stroke: "stroke-none", effect: "" }),
   elevated: () => ({
     fill: "fill-white dark:fill-neutral-900",
     stroke: "stroke-black/5 dark:stroke-white/10",

@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import React, {
   useCallback,
   useEffect,
@@ -64,6 +65,7 @@ export type SplitViewLoader = (typeof SPLIT_VIEW_LOADERS)[number];
  * was pinned to `gradient` with a `subtle` glow on every surface.
  */
 const SEARCH_VARIANT_FOR_SURFACE: Record<SurfaceVariant, InputVariant> = {
+  none: "flat",
   elevated: "elevated",
   outlined: "flat",
   subtle: "ghost",
@@ -208,7 +210,7 @@ export interface SplitViewProps {
    * (white by design) or `default` (its rim is deliberately tone-free).
    * @default "neutral"
    */
-  surfaceTone?: TrueColor | "auto";
+  surfaceTone?: SurfaceTone | "auto";
   /**
    * Surface for the built-in search field. Defaults to whichever `InputVariant`
    * suits `variant`, so the field belongs to the pane it sits on.
@@ -443,7 +445,7 @@ const SplitView: React.FC<SplitViewProps> = ({
   tone,
   color,
   variant = "elevated",
-  surfaceTone = "neutral",
+  surfaceTone = "none",
   searchVariant,
   size = "md",
   showHighlightIndicator = true,
@@ -479,7 +481,7 @@ const SplitView: React.FC<SplitViewProps> = ({
   const t = useKitT();
   const effectiveTone = tone ?? color ?? "blue";
   // `"auto"` hands the surface to the accent; anything else names it.
-  const resolvedSurfaceTone: TrueColor =
+  const resolvedSurfaceTone: SurfaceTone =
     surfaceTone === "auto" ? effectiveTone : surfaceTone;
   // The container owns the surface; the two panes are differentiated by a
   // *tint that composites over it* rather than a fill that replaces it — so a

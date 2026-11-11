@@ -1,5 +1,7 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
-import { ColorSwatches, DynamicFormField } from "@cjlapao/ui-kit";
+import { DynamicFormField } from "@cjlapao/ui-kit";
 import { DEFAULT_CONTROL_CORNER } from "@cjlapao/ui-kit";
 import type {
   ControlSize,
@@ -8,7 +10,6 @@ import type {
   InputVariant,
   SurfaceCorner,
   SurfacePadding,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -48,7 +49,7 @@ export const DynamicFormFieldPlayground: React.FC = () => {
   const [inputVariant, setInputVariant] = useState<InputVariant | "auto">(
     "auto",
   );
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [padding, setPadding] = useState<SurfacePadding>("md");
 
@@ -99,13 +100,7 @@ export const DynamicFormFieldPlayground: React.FC = () => {
                     />
                     {/* Colour is a palette, not a dropdown of colour names. */}
                     <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <SelectControl
                       label="Corner"

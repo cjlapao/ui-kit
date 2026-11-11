@@ -1,6 +1,7 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useRef, useState } from "react";
 import {
-  ColorSwatches,
   Input,
   KeyValueArrayField,
   Panel,
@@ -15,7 +16,6 @@ import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -54,7 +54,7 @@ const INITIAL: KeyValuePair[] = [
 export const KeyValueArrayFieldPlayground: React.FC = () => {
   const [pairs, setPairs] = useState(INITIAL);
   const [variant, setVariant] = useState<KeyValueArrayFieldVariant>("outlined");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<PanelCorner>("auto");
   const [padding, setPadding] = useState<PanelPadding>("sm");
   const [inputVariant, setInputVariant] = useState<"auto" | InputVariant>(
@@ -149,13 +149,7 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
                     />
                     {/* Colour is a palette, not a dropdown of colour names. */}
                     <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <SelectControl
                       label="Controls variant"

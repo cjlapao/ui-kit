@@ -1,3 +1,5 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   ColorSwatches,
@@ -56,7 +58,7 @@ export const DatePickerPlayground: React.FC = () => {
   const [panelVariant, setPanelVariant] = useState<"auto" | SurfaceVariant>(
     "auto",
   );
-  const [panelTone, setPanelTone] = useState<"auto" | TrueColor>("auto");
+  const [panelTone, setPanelTone] = useState<SurfaceTone | "auto">("none");
   const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
   const [appendTo, setAppendTo] = useState<DatePickerAppendTo>("body");
   const [weekStartsOn, setWeekStartsOn] = useState<0 | 1>(1);
@@ -211,13 +213,7 @@ export const DatePickerPlayground: React.FC = () => {
                       }
                     />
                     <Control label="Panel tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={panelTone === "auto" ? "neutral" : panelTone}
-                        onSelect={setPanelTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={panelTone === "auto" ? "none" : panelTone} onSelect={setPanelTone} />
                     </Control>
                     {/* The swatches cannot show "auto" — this drives it. */}
                     <ToggleRow

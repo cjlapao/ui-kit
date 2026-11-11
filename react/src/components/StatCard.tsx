@@ -1,3 +1,5 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
+import type { SurfaceTone } from "../theme/Theme";
 import React from "react";
 import classNames from "classnames";
 // Direct, not `from "."`: the barrel re-exports StatCard, so going through
@@ -118,7 +120,7 @@ export interface StatCardProps
   trend?: StatCardTrend;
   /** Overall scale. Label and value inherit it unless they override. */
   size?: StatCardSize;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /**
    * Paints the surface with a dark diagonal `tone` gradient (950 → 800 → 700),
    * the PrimeVue showcase wash — dark enough that white copy and a light
@@ -314,7 +316,7 @@ const StatCard: React.FC<StatCardProps> = ({
   iconTone,
   trend: trendProp,
   size = "md",
-  tone,
+  tone: surfaceTone = "none",
   gradient = false,
   progress: progressProp = false,
   progressType = "spinner",
@@ -355,6 +357,7 @@ const StatCard: React.FC<StatCardProps> = ({
   children,
   ...rest
 }) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   // ── Paging ────────────────────────────────────────────────────────────────
   // The index lives in `usePager`, shared with `PagedPanel`, so the clamping
   // and the end conditions cannot drift between the two.
@@ -469,7 +472,7 @@ const StatCard: React.FC<StatCardProps> = ({
     // horizontal one appears.
     <Panel
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       corner={corner}
       padding={padding}
       decoration={resolvedDecoration}

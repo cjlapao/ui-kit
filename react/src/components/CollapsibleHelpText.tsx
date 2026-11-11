@@ -1,3 +1,5 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
+import type { SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
 import React, { useId, useState } from "react";
 import classNames from "classnames";
@@ -17,7 +19,7 @@ import type {
   PanelVariant,
 } from "./Panel";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
-import type { CollapsibleHelpToneTokens, TrueColor } from "../theme/Theme";
+import type { CollapsibleHelpToneTokens } from "../theme/Theme";
 
 // ── Variants ──────────────────────────────────────────────────────────────────
 
@@ -73,7 +75,7 @@ export interface CollapsibleHelpTextProps
   showIcon?: boolean;
   icon?: string;
   /** Accent colour, and the tint of the card when the variant reads a tone. */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** Surface treatment. @default "card" (an alias of `outlined`) */
   variant?: CollapsibleHelpTextVariant;
   /** Corner rounding. Defaults to the Panel's own default. */
@@ -252,7 +254,7 @@ export const CollapsibleHelpText: React.FC<CollapsibleHelpTextProps> = ({
   icon = "Help",
   children,
   className,
-  tone = "blue",
+  tone = "none",
   variant = "card",
   corner = DEFAULT_SURFACE_CORNER,
   padding = "sm",
@@ -273,7 +275,7 @@ export const CollapsibleHelpText: React.FC<CollapsibleHelpTextProps> = ({
   const displayText =
     expanded || !needsTruncation ? sanitized : truncate(sanitized, maxLength);
 
-  const toneTokens = getCollapsibleHelpToneTokens(tone);
+  const toneTokens = getCollapsibleHelpToneTokens(getSurfaceAccentColor(tone));
   const bare = variant === "plain";
 
   const body = (

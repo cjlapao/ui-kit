@@ -1,3 +1,5 @@
+import { getSurfaceAccentColor } from "../theme/Theme";
+import type { SurfaceTone } from "../theme/Theme";
 import React from "react";
 import classNames from "classnames";
 import Panel, { PanelProps } from "./Panel";
@@ -54,7 +56,7 @@ export interface PagedPanelProps
   /** Copy for the default empty state. @default "No data available." */
   emptyMessage?: string;
   /** Accent for the nav buttons. @default "blue" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** Scale of the nav buttons and header type. @default "md" */
   size?: ControlSize;
   /**
@@ -317,7 +319,7 @@ const PagedPanel: React.FC<PagedPanelProps> = ({
   error,
   emptyState,
   emptyMessage,
-  tone = "blue",
+  tone: surfaceTone = "none",
   size = "md",
   page,
   onPageChange,
@@ -329,6 +331,7 @@ const PagedPanel: React.FC<PagedPanelProps> = ({
   loadingState,
   ...rest
 }) => {
+  const tone = getSurfaceAccentColor(surfaceTone);
   const t = useKitT();
   // The index, the clamp when `pages` shrinks under a reload, and the
   // effect-based resync (a render-phase `setState` makes React re-run the
@@ -372,7 +375,7 @@ const PagedPanel: React.FC<PagedPanelProps> = ({
   return (
     <Panel
       {...rest}
-      tone={tone}
+      tone={surfaceTone}
       padding="none"
       bodyClassName={total === 0 && !loading ? "h-full" : ""}
       className={classNames("relative overflow-hidden", rest.className)}

@@ -1,10 +1,12 @@
+import { getSurfaceAccentColor } from "@cjlapao/ui-kit";
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import { Button, CustomIcon, PageHeader, SideMenu, PAGE_HEADER_VARIANTS } from "@cjlapao/ui-kit";
 import type {
   PageHeaderVariant,
   PanelCorner,
   PanelPadding,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   PlaygroundPanel,
@@ -54,7 +56,7 @@ export const PageHeaderPlayground: React.FC = () => {
   const [hasExtra, setHasExtra] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [variant, setVariant] = useState<PageHeaderVariant>("default");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   // "default" hands the axis back to the variant: the floating card keeps
   // the menu's m-2 above and right, flush left and bottom; the seam bar
   // closes on every side. Corner starts on Panel's default (rounded-md →
@@ -118,17 +120,7 @@ export const PageHeaderPlayground: React.FC = () => {
                         { value: "floating-glass", label: "floating-glass" },
                       ]}
                     />
-                    <ChoiceControl
-                      label="accent — frosted tint"
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                      options={[
-                        { value: "blue", label: "blue" },
-                        { value: "emerald", label: "emerald" },
-                        { value: "violet", label: "violet" },
-                        { value: "amber", label: "amber" },
-                      ]}
-                    />
+                    <SurfaceToneControl label="accent — frosted tint" value={tone} onChange={setTone} />
                     <ChoiceControl
                       label="gutter — top"
                       value={gutterTop}
@@ -210,7 +202,7 @@ export const PageHeaderPlayground: React.FC = () => {
               fullHeight
               collapsible
               variant={variant === "floating" || variant === "floating-glass" || variant === "glass" ? variant : "sidebar"}
-              color={tone}
+              color={getSurfaceAccentColor(tone)}
               logoIcon={
                 <CustomIcon icon="UX" className="h-6 w-6 text-neutral-500 dark:text-neutral-300" />
               }
@@ -228,7 +220,7 @@ export const PageHeaderPlayground: React.FC = () => {
                 aria-label="Preview header"
                 variant={variant}
                 tone={tone}
-                accentColor={tone}
+                accentColor={getSurfaceAccentColor(tone)}
                 paddingTop={asGutter(gutterTop)}
                 paddingRight={asGutter(gutterRight)}
                 paddingBottom={asGutter(gutterBottom)}

@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   DEFAULT_SURFACE_CORNER,
@@ -15,7 +17,6 @@ import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
-  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -31,7 +32,6 @@ import {
   panelCornerOptions,
   panelPaddingOptions,
   panelSpecularOptions,
-  trueColorOptions,
 } from "../../shared/options";
 
 /** Variants whose surface is see-through, so the glass controls apply. */
@@ -78,7 +78,7 @@ export const DetailItemCardPlayground: React.FC = () => {
     useState<DetailItemCardBadgesAlignment>("right");
   const [variant, setVariant] =
     useState<DetailItemCardVariant>("outlined");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] =
     useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
@@ -137,12 +137,7 @@ export const DetailItemCardPlayground: React.FC = () => {
                       value={variant}
                       onChange={(v) => setVariant(v as DetailItemCardVariant)}
                     />
-                    <SelectControl
-                      label="Tone"
-                      options={trueColorOptions}
-                      value={tone}
-                      onChange={(v) => setTone(v as TrueColor)}
-                    />
+                    <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
                     <SelectControl
                       label="Corner"
                       options={panelCornerOptions}

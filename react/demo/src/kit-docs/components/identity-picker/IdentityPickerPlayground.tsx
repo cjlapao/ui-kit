@@ -1,5 +1,7 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useState } from "react";
-import { ColorSwatches, FileUpload, IdentityPicker, type ControlSize, type IdentityValue, type SurfaceCorner, type SurfacePadding, type SurfaceVariant, type TrueColor } from "@cjlapao/ui-kit";
+import { FileUpload, IdentityPicker, type ControlSize, type IdentityValue, type SurfaceCorner, type SurfacePadding, type SurfaceVariant} from "@cjlapao/ui-kit";
 import { Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
@@ -8,7 +10,7 @@ import { controlSizeOptions, panelCornerOptions, panelPaddingOptions, surfaceVar
 /** Shared playground controls keep both upload components on the same scales. */
 export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: boolean }) {
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
   const [size, setSize] = useState<ControlSize>("md");
@@ -27,7 +29,7 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
       <ToggleRow label="Compact layout" checked={compact} onChange={setCompact} />
       <SelectControl label="Variant" options={surfaceVariantOptions} value={variant} onChange={value => setVariant(value as SurfaceVariant)} />
       <SelectControl label="Size" options={controlSizeOptions} value={size} onChange={value => setSize(value as ControlSize)} />
-      <Control label="Tone"><ColorSwatches selectable size="sm" value={tone} onSelect={setTone} defaultExpanded /></Control>
+      <Control label="Tone"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
       <SelectControl label="Corner" options={panelCornerOptions} value={corner} onChange={value => setCorner(value as SurfaceCorner)} />
       <SelectControl label="Padding" options={panelPaddingOptions} value={padding} onChange={value => setPadding(value as SurfacePadding)} />
     </> },

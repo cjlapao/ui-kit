@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 import type React from "react";
 import type {
   ControlSize,
@@ -135,7 +136,7 @@ export interface DatePickerProps extends Omit<
    * selected days, so a following panel does not stack another tint.
    * @default "auto"
    */
-  panelTone?: "auto" | TrueColor;
+  panelTone?: "auto" | SurfaceTone;
   /** @default `"auto"` — the theme's container corner (no radius pinned) */
   panelCorner?: SurfaceCorner;
   panelClassName?: string;

@@ -1,3 +1,5 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useMemo, useState } from "react";
 import { ColorSwatches, NetworkGraph, findNetworkPath } from "@cjlapao/ui-kit";
 import type {
@@ -23,7 +25,7 @@ import { communities, makeNetwork } from "./data";
 
 export function NetworkGraphPlayground() {
   const [variant, setVariant] = useState<SurfaceVariant>("glass");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [opacity, setOpacity] = useState<GlassOpacity>("frosted");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
@@ -35,7 +37,7 @@ export function NetworkGraphPlayground() {
   const [legendVariant, setLegendVariant] = useState<"auto" | SurfaceVariant>(
     "auto",
   );
-  const [legendTone, setLegendTone] = useState<"auto" | TrueColor>("auto");
+  const [legendTone, setLegendTone] = useState<"auto" | SurfaceTone>("auto");
   const [legend, setLegend] = useState(true);
   const [labels, setLabels] = useState(false);
   const [path, setPath] = useState(false);
@@ -72,13 +74,7 @@ export function NetworkGraphPlayground() {
                       onChange={(v) => setVariant(v as SurfaceVariant)}
                     />
                     <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <SelectControl
                       label="Corner"
@@ -149,13 +145,7 @@ export function NetworkGraphPlayground() {
                         }
                       />
                       {legendTone !== "auto" && (
-                        <ColorSwatches
-                          selectable
-                          size="sm"
-                          value={legendTone}
-                          onSelect={setLegendTone}
-                          defaultExpanded
-                        />
+                        <SurfaceToneSwatches value={legendTone} onSelect={setLegendTone} />
                       )}
                     </Control>
                     <SelectControl

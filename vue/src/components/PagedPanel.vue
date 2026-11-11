@@ -1,7 +1,8 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { VNodeChild } from "vue";
 import type { PanelProps } from "./Panel.vue";
-import type { ControlSize, TrueColor } from "../theme/Theme";
+import type { ControlSize } from "../theme/Theme";
 
 /**
  * The kit's three loader treatments, with `skeleton` the default — a
@@ -41,7 +42,7 @@ export interface PagedPanelProps
   /** Copy for the default empty state. @default "No data available." */
   emptyMessage?: string;
   /** Accent for the nav buttons. @default "blue" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** Scale of the nav buttons and header type. @default "md" */
   size?: ControlSize;
   /** Controlled page index. Omit for uncontrolled paging. */
@@ -70,7 +71,7 @@ const props = withDefaults(defineProps<PagedPanelProps>(), {
   bare: false,
   loading: false,
   loaderType: "skeleton",
-  tone: "blue",
+  tone: "none",
   size: "md",
 });
 
@@ -106,6 +107,7 @@ const goTo = (next: number) => {
 const resolvedTitle = computed(() =>
   Array.isArray(props.title) ? props.title[current.value] : props.title,
 );
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
 const view = computed<PagedPanelView>(() => ({
   resolvedTitle: resolvedTitle.value,
@@ -113,7 +115,7 @@ const view = computed<PagedPanelView>(() => ({
   page: props.pages[current.value],
   error: props.error,
   emptyMessage: props.emptyMessage ?? t("kit.pagedpanel.empty"),
-  tone: props.tone,
+  tone: resolvedAccentTone.value,
   size: props.size,
   current: current.value,
   total: total.value,
@@ -144,7 +146,7 @@ const rootClass = computed(() =>
   <Panel
     v-else
     v-bind="restAttrs"
-    :tone="tone"
+    :tone="props.tone ?? 'none'"
     padding="none"
     :body-class-name="total === 0 && !loading ? 'h-full' : ''"
     :loading="false"

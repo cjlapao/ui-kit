@@ -147,7 +147,7 @@ export const getGlassFillClass = (
  * The steps here are the ones `scripts/generate-safelist.mjs` emits.
  */
 export const getSurfaceGlassFillClass = (
-  color: TrueColor,
+  color: TrueColor | "none",
   opacity: GlassOpacity,
 ): string => {
   const litOpacity: number = (() => {
@@ -166,6 +166,8 @@ export const getSurfaceGlassFillClass = (
     if (opacity === "clear") return 5;
     return 15;
   })();
+
+  if (color === "none") return `bg-white/${litOpacity} dark:bg-neutral-900/${drkOpacity}`;
 
   const safeBase: TrueColor = GLASS_COLOR_SAFELIST.has(color)
     ? color

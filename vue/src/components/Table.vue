@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor } from "../theme/Theme";
 import type { CSSProperties, VNodeChild } from "vue";
 import type { TrueColor } from "../theme";
 import {
@@ -563,7 +564,7 @@ const props = withDefaults(defineProps<TableProps<T>>(), {
   variant: "outlined",
   density: "default",
   bordered: false,
-  tone: "neutral",
+  tone: "none",
   striped: false,
   noBorders: false,
   hoverable: true,
@@ -644,6 +645,7 @@ const getDefaultColumnVisibility = (column: TableColumn<T>) => {
 const storageAdapter = computed<TableStorageAdapter>(
   () => props.storage ?? createSafeLocalStorage(),
 );
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 const fullStorageKey = computed<string | null>(() =>
   props.storageKey
     ? buildTableStorageKey(
@@ -674,7 +676,7 @@ const emitSettingsChange = (settings: TableSettings) => {
 
 // The tone tints the interior controls too, unless the caller overrides
 // just those with `color` (e.g. an emerald table with blue actions).
-const controlColor = computed(() => props.color ?? props.tone);
+const controlColor = computed(() => props.color ?? resolvedAccentTone.value);
 
 const focusRingClass = computed(
   () =>
@@ -1338,10 +1340,10 @@ const gridLineClass =
 // `-50` is a paper-white that would still mask the backdrop).
 const headerToneClasses = computed(() =>
   surfaceText.value.translucent
-    ? NEUTRAL_TONES.includes(props.tone)
+    ? NEUTRAL_TONES.includes(resolvedAccentTone.value)
       ? "bg-white/20 text-neutral-700 border-neutral-200/60 dark:bg-white/5 dark:text-neutral-100 dark:border-white/10"
-      : `bg-${props.tone}-50/50 text-${props.tone}-700 border-${props.tone}-200/60 dark:bg-${props.tone}-500/15 dark:text-${props.tone}-100 dark:border-${props.tone}-500/30`
-    : getToneHeaderClasses(props.tone),
+      : `bg-${resolvedAccentTone.value}-50/50 text-${resolvedAccentTone.value}-700 border-${resolvedAccentTone.value}-200/60 dark:bg-${resolvedAccentTone.value}-500/15 dark:text-${resolvedAccentTone.value}-100 dark:border-${resolvedAccentTone.value}-500/30`
+    : getToneHeaderClasses(resolvedAccentTone.value),
 );
 const headerBaseClasses =
   "text-xs font-semibold uppercase tracking-wide text-left";
@@ -1962,7 +1964,7 @@ const handleNextPage = () => {
 <template>
   <Panel
     :variant="variant"
-    :tone="tone"
+    :tone="props.tone ?? 'none'"
     padding="none"
     :corner="corner"
     :scrollable="false"

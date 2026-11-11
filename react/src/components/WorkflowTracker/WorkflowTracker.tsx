@@ -38,7 +38,7 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   customStatuses,
   mutedColor = "neutral",
   variant = "outlined",
-  cardTone = "neutral",
+  cardTone = "none",
   translucentSurfaces,
   glassOpacity = "light",
   vibrancy,

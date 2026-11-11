@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import classNames from "classnames";
 import Button from "./Button";
@@ -28,7 +29,7 @@ import {
   type ChatStorage,
   type ChatUsage,
 } from "../chat";
-import { getTrueColorTextClass, type SurfacePadding, type TrueColor } from "../theme";
+import { getTrueColorTextClass, type SurfacePadding } from "../theme";
 
 export interface ChatProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onChange" | "color"> {
   /**
@@ -59,7 +60,7 @@ export interface ChatProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "o
   /** @default "outlined" */
   variant?: "outlined" | "subtle" | "elevated" | "tonal" | "glass";
   /** @default "neutral" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** @default "none" */
   padding?: SurfacePadding;
 }
@@ -99,7 +100,7 @@ export const Chat = ({
   renderMessage,
   onEvent,
   variant = "outlined",
-  tone = "neutral",
+  tone: surfaceTone = "none",
   padding = "none",
   className = "",
   style,
@@ -569,7 +570,7 @@ export const Chat = ({
     <Panel
       {...rest}
       variant={variant}
-      tone={tone}
+      tone={surfaceTone}
       padding={padding}
       className={classNames("relative overflow-hidden", className)}
       style={{ ...style, height }}

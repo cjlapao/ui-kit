@@ -163,6 +163,10 @@ export interface PickerItem {
   textValue?: string;
   /** Tags rendered as Pills at the trailing edge of each row */
   tags?: PickerTag[];
+  /** Group label. Items sharing a label render under one header, in order of
+   * first appearance. With `groupSelectable` (multi), the header toggles every
+   * visible item in the group. */
+  group?: string;
 }
 
 export interface PickerFilter {
@@ -250,6 +254,9 @@ export interface PickerProps {
   selectedIds?: string[];
   /** Called with the new selection array whenever the user toggles an item */
   onMultiChange?: (ids: string[]) => void;
+  /** Multi-select: make group headers clickable, selecting or clearing every
+   * visible item in the group. Tri-state checkbox (all / some / none). */
+  groupSelectable?: boolean;
   /** Max individual pills shown in the trigger before collapsing to "N selected". Default: 3 */
   maxPillsShown?: number;
 
@@ -295,6 +302,7 @@ const Picker: React.FC<PickerProps> = ({
   selectedIds: selectedIdsProp,
   onMultiChange,
   maxPillsShown = 3,
+  groupSelectable = false,
   size = "md",
   fullWidth = true,
   fullHeight = false,
@@ -371,14 +379,27 @@ const Picker: React.FC<PickerProps> = ({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return baseItems;
-    return baseItems.filter(
+    const matched = !q ? baseItems : baseItems.filter(
       (item) =>
         (item.textValue ?? item.title ?? item.id).toLowerCase().includes(q) ||
         (item.subtitle ?? "").toLowerCase().includes(q) ||
         (item.description ?? "").toLowerCase().includes(q) ||
         (item.tags ?? []).some((t) => t.label.toLowerCase().includes(q)),
     );
+    if (!matched.some((item) => item.group)) return matched;
+    // Make each group contiguous (first-appearance order) so headers and
+    // keyboard order agree; ungrouped items keep their place.
+    const order: string[] = [];
+    const buckets = new Map<string, PickerItem[]>();
+    for (const item of matched) {
+      const key = item.group ?? "";
+      if (!buckets.has(key)) {
+        buckets.set(key, []);
+        order.push(key);
+      }
+      buckets.get(key)!.push(item);
+    }
+    return order.flatMap((key) => buckets.get(key)!);
   }, [baseItems, query]);
 
   // ── Portal positioning ────────────────────────────────────────────────────
@@ -570,6 +591,16 @@ const Picker: React.FC<PickerProps> = ({
       setOpen(false);
       setQuery("");
     }
+  };
+
+  const handleToggleGroup = (group: string) => {
+    const ids = filtered.filter((i) => i.group === group).map((i) => i.id);
+    const allOn = ids.every((id) => effectiveSelectedIds.includes(id));
+    onMultiChange?.(
+      allOn
+        ? effectiveSelectedIds.filter((id) => !ids.includes(id))
+        : [...effectiveSelectedIds, ...ids.filter((id) => !effectiveSelectedIds.includes(id))],
+    );
   };
 
   const handleClearMulti = () => {
@@ -781,14 +812,93 @@ const Picker: React.FC<PickerProps> = ({
                   >
                     {filtered.map((item, index) => {
                       const isSelected = effectiveSelectedIds.includes(item.id);
+                      const showHeader =
+                        !!item.group &&
+                        item.group !== filtered[index - 1]?.group;
+                      let header: React.ReactNode = null;
+                      if (showHeader) {
+                        const g = item.group as string;
+                        const members = filtered.filter((i) => i.group === g);
+                        const on = members.filter((i) =>
+                          effectiveSelectedIds.includes(i.id),
+                        ).length;
+                        const state =
+                          on === 0 ? "none" : on === members.length ? "all" : "some";
+                        const selectable = multi && groupSelectable;
+                        const label = (
+                          <>
+                            {selectable && (
+                              <span
+                                className={classNames(
+                                  "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                                  state === "none"
+                                    ? "border-neutral-300 dark:border-neutral-600"
+                                    : classNames(
+                                        colorTokens.optionSelectedBg,
+                                        "border-current",
+                                        colorTokens.optionSelectedIcon,
+                                      ),
+                                )}
+                              >
+                                {state !== "none" && (
+                                  <svg
+                                    className="h-3.5 w-3.5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2.5}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d={state === "all" ? "m5 13 4 4L19 7" : "M6 12h12"}
+                                    />
+                                  </svg>
+                                )}
+                              </span>
+                            )}
+                            <span className="flex-1 truncate text-left">{g}</span>
+                            {selectable && (
+                              <span className="shrink-0 tabular-nums">
+                                {on}/{members.length}
+                              </span>
+                            )}
+                          </>
+                        );
+                        const headerClass = classNames(
+                          "flex w-full items-center gap-3 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide",
+                          popupText.muted,
+                        );
+                        header = (
+                          <li role="presentation" className="m-0 list-none p-0">
+                            {selectable ? (
+                              <button
+                                type="button"
+                                role="checkbox"
+                                aria-checked={state === "all" ? true : state === "some" ? "mixed" : false}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => handleToggleGroup(g)}
+                                className={classNames(
+                                  headerClass,
+                                  "cursor-pointer border-0 bg-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
+                                )}
+                              >
+                                {label}
+                              </button>
+                            ) : (
+                              <div className={headerClass}>{label}</div>
+                            )}
+                          </li>
+                        );
+                      }
                       return (
-                        // Keyboard lives on the combobox input (arrow keys +
-                        // Enter move/confirm the aria-activedescendant), so the
-                        // option row needs no listener of its own; a native
-                        // <option> cannot carry the rich content rendered here.
-                        // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- APG combobox-with-list
+                        <React.Fragment key={item.id}>
+                          {header}
+                          {/* Keyboard lives on the combobox input (arrow keys +
+                              Enter move/confirm the aria-activedescendant), so
+                              the option row needs no listener of its own. */}
+                          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events -- APG combobox-with-list */}
                         <li
-                          key={item.id}
                           id={optionId(index)}
                           role="option"
                           aria-label={item.body != null ? item.textValue ?? item.title : undefined}
@@ -937,6 +1047,7 @@ const Picker: React.FC<PickerProps> = ({
                             </div>
                           )}
                         </li>
+                        </React.Fragment>
                       );
                     })}
                   </ul>

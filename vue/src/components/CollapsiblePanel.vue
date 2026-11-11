@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<CollapsiblePanelProps>(), {
   fillHeight: false,
   disabled: false,
   variant: "elevated",
-  tone: "neutral",
+  tone: "none",
   padding: "md",
   corner: "rounded-sm",
   hoverable: false,

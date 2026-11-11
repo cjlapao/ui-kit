@@ -1,0 +1,48 @@
+.ui-code-block {
+  --code-fg: var(--color-neutral-800);
+  --code-comment: var(--color-neutral-500);
+  --code-keyword: var(--color-violet-700);
+  --code-string: var(--color-green-700);
+  --code-number: var(--color-amber-700);
+  --code-function: var(--color-blue-700);
+  --code-tag: var(--color-rose-700);
+}
+.dark .ui-code-block:not(:where([data-color-scheme="light"], [data-color-scheme="light"] *)) {
+  --code-fg: var(--color-neutral-200);
+  --code-comment: var(--color-neutral-400);
+  --code-keyword: var(--color-violet-300);
+  --code-string: var(--color-green-300);
+  --code-number: var(--color-amber-300);
+  --code-function: var(--color-blue-300);
+  --code-tag: var(--color-rose-300);
+}
+.ui-code-block-scroll { min-width: 0; }
+.ui-code-block-scroll [data-slot="scrollarea-content"] { display: block; }
+.ui-code-block-source, .ui-code-block-editor, .ui-code-block-editor-mirror {
+  margin: 0; padding: 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px; line-height: 1.65; tab-size: 2; color: var(--code-fg);
+}
+.ui-code-block-source { flex: 1; min-width: 0; }
+.ui-code-block-source code { display: flex; flex-direction: column; min-width: max-content; }
+.ui-code-block-scroll[data-wrap] .ui-code-block-source code { min-width: 0; }
+.ui-code-block-line { display: flex; min-height: 1.65em; }
+.ui-code-block-line-number { flex: none; margin-inline-end: 1rem; text-align: end; user-select: none; color: var(--code-comment); }
+.ui-code-block-line-number::before { content: attr(data-line); }
+.ui-code-block-line-text { flex: 1; min-width: 0; }
+.ui-code-block-editor-layout { position: relative; min-width: 100%; width: max-content; }
+.ui-code-block-editor-layout[data-wrap] { width: 100%; }
+.ui-code-block-editor-mirror { visibility: hidden; min-height: calc(4.95em + 2rem); box-sizing: border-box; }
+.ui-code-block-editor { position: absolute; inset: 0; display: block; width: 100%; height: 100%; box-sizing: border-box; background: transparent; border: 0; resize: none; overflow: hidden; }
+/* Keep focus on the rounded surface rather than outlining the inner rectangle. */
+.ui-code-block-editor:focus, .ui-code-block-scroll [data-slot="scrollarea-viewport"]:focus { outline: none; box-shadow: none; }
+.ui-code-block-surface:has(.ui-code-block-editor:focus-visible),
+.ui-code-block-surface:has([data-slot="scrollarea-viewport"]:focus-visible) {
+  outline: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  outline-offset: -1px;
+}
+.ui-code-block .token.comment, .ui-code-block .token.prolog, .ui-code-block .token.doctype { color: var(--code-comment); }
+.ui-code-block .token.keyword, .ui-code-block .token.operator { color: var(--code-keyword); }
+.ui-code-block .token.string, .ui-code-block .token.attr-value { color: var(--code-string); }
+.ui-code-block .token.number, .ui-code-block .token.boolean, .ui-code-block .token.constant { color: var(--code-number); }
+.ui-code-block .token.function, .ui-code-block .token.class-name, .ui-code-block .token.property { color: var(--code-function); }
+.ui-code-block .token.tag, .ui-code-block .token.attr-name { color: var(--code-tag); }

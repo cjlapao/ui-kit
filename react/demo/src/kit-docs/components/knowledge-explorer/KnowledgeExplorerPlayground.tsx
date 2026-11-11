@@ -1,10 +1,14 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone, SurfaceVariant } from "@cjlapao/ui-kit";
 import { useState } from "react";
 import { KnowledgeExplorer, type KnowledgeRegion, type MemoryRecord, type PanelLoaderType } from "@cjlapao/ui-kit";
 import { ChoiceControl } from "../../shared/PlaygroundPanel";
-import { panelLoaderTypeOptions } from "../../shared/options";
+import { panelLoaderTypeOptions, surfaceVariantOptions } from "../../shared/options";
 import { memories, nodes, edges, points, traceLinks } from "./examples/data";
 
 export function KnowledgeExplorerPlayground() {
+  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
+  const [variant, setVariant] = useState<SurfaceVariant>("simple");
   const [regions, setRegions] = useState<Record<KnowledgeRegion, boolean>>({ library: true, map: true, detail: true, trace: false });
   const [projected, setProjected] = useState(false), [customDetail, setCustomDetail] = useState(false);
   const [selectedId, select] = useState<string | null>("refresh");
@@ -19,8 +23,9 @@ export function KnowledgeExplorerPlayground() {
       <label className="flex items-center gap-2"><input type="checkbox" checked={customDetail} onChange={event => setCustomDetail(event.target.checked)} />Replace detail</label>
       <label>State <select className="rounded border bg-transparent p-1" value={state} onChange={event => setState(event.target.value)}><option value="ready">Ready</option><option value="loading">Loading</option><option value="empty">Empty</option></select></label>
     </div>
+    <div className="mb-4 grid gap-4 sm:grid-cols-2"><ChoiceControl label="Surface variant" options={surfaceVariantOptions} value={variant} onChange={value => setVariant(value as SurfaceVariant)} /><SurfaceToneControl value={surfaceTone} onChange={setSurfaceTone} /></div>
     {state === "loading" && <div className="mb-4"><ChoiceControl label="Loader type" options={panelLoaderTypeOptions} value={loaderType} onChange={value => setLoaderType(value as PanelLoaderType)} /></div>}
-    <KnowledgeExplorer loaderType={loaderType} memories={state === "empty" ? [] : records} points={projected ? points : undefined} regions={regions} loading={state === "loading"} selectedId={selectedId} onSelectionChange={select}
+    <KnowledgeExplorer tone={surfaceTone} variant={variant} loaderType={loaderType} memories={state === "empty" ? [] : records} points={projected ? points : undefined} regions={regions} loading={state === "loading"} selectedId={selectedId} onSelectionChange={select}
       trace={{ nodes, edges, height: 260, animation: false }} traceLinks={traceLinks}
       relationships={[{ id: "replaces", source: "refresh", target: "legacy", label: "replaces" }]}
       onPinChange={(record, pinned) => setRecords(current => current.map(memory => memory.id === record.id ? { ...memory, pinned } : memory))}

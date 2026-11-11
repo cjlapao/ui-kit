@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../theme/Theme";
 import React, { useMemo, useState } from "react";
 import Button from "./Button";
 import IconButton from "./IconButton";
@@ -32,7 +33,7 @@ export interface SmartGridItemPaletteProps {
    * menu, not a card.
    */
   variant: SidePanelVariant;
-  surfaceTone: TrueColor;
+  surfaceTone: SurfaceTone;
 }
 
 /**

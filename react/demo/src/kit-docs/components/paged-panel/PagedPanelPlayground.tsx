@@ -1,11 +1,12 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
-  ColorSwatches,
   PagedPanel,
   PAGED_PANEL_LOADERS,
   type PanelVariant,
 } from "@cjlapao/ui-kit";
-import type { ControlSize, PagedPanelLoader, TrueColor } from "@cjlapao/ui-kit";
+import type { ControlSize, PagedPanelLoader} from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
   Control,
@@ -32,7 +33,7 @@ const PAGES = [
 
 export const PagedPanelPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [variant, setVariant] = useState<PanelVariant>("elevated");
   const [perPageTitles, setPerPageTitles] = useState(false);
   const [withSubtitle, setWithSubtitle] = useState(false);
@@ -62,13 +63,7 @@ export const PagedPanelPlayground: React.FC = () => {
                     {/* Tone is a colour decision — pick it from colour
                         swatches, not from a dropdown of words. */}
                     <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={setTone}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <ChoiceControl
                       label="Variant"

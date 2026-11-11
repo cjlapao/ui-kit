@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor } from "../theme/Theme";
 import type { CSSProperties, VNode, VNodeChild } from "vue";
 import type { PanelLoaderType, PanelProps } from "./Panel.vue";
 import type { IconName } from "../icons/registry";
@@ -238,7 +239,7 @@ defineOptions({ name: "Stepper", inheritAttrs: false });
 const props = withDefaults(defineProps<StepperProps>(), {
   orientation: "horizontal",
   variant: "elevated",
-  tone: "neutral",
+  tone: "none",
   size: "md",
   nodeCorner: "full",
   padding: "md",
@@ -278,12 +279,13 @@ const state = useStepper<StepperStep>(() => props.steps, {
 });
 
 const surface = computed(() => getSurfaceTextTokens(props.variant ?? "elevated"));
-const trigger = computed(() => getSurfaceTriggerTokens(props.tone ?? "neutral"));
-const palette = computed(() => getStepperTonePalette(props.tone ?? "neutral"));
-const panelTone = computed(() => getPanelToneStyles(props.tone ?? "neutral"));
+const trigger = computed(() => getSurfaceTriggerTokens(resolvedAccentTone.value ?? "neutral"));
+const palette = computed(() => getStepperTonePalette(resolvedAccentTone.value ?? "neutral"));
+const panelTone = computed(() => getPanelToneStyles(resolvedAccentTone.value ?? "neutral"));
 const progressColors = computed(() =>
-  getLoaderProgressColors(props.tone ?? "neutral"),
+  getLoaderProgressColors(resolvedAccentTone.value ?? "neutral"),
 );
+const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 const tokens = computed(
   () => SIZE_TOKENS[props.size ?? "md"] ?? SIZE_TOKENS.md,
 );
@@ -824,7 +826,7 @@ const panelBindings = computed(() => {
         icon="ViewRows"
         title="No steps"
         subtitle="Add steps to show the workflow."
-        :tone="tone"
+        :tone="resolvedAccentTone"
         :size="size"
       />
     </div>

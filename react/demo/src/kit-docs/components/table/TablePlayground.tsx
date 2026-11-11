@@ -1,9 +1,10 @@
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useRef, useState } from "react";
-import { ColorSwatches, Table, MultiToggle, IconButton } from "@cjlapao/ui-kit";
+import { Table, MultiToggle, IconButton } from "@cjlapao/ui-kit";
 import type {
   SurfaceVariant,
   TableDensity,
-  PanelTone,
   TrueColor,
   TableColumn,
   TableLoaderType,
@@ -137,7 +138,7 @@ export const TablePlayground: React.FC = () => {
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
   // "auto" = the toolbar menus follow the table's surface.
   const [panelVariant, setPanelVariant] = useState<string>("auto");
-  const [tone, setTone] = useState<PanelTone>("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   // "" = the interior controls follow the table tone.
   const [controlTone, setControlTone] = useState("");
   const [density, setDensity] = useState<TableDensity>("default");
@@ -201,13 +202,7 @@ export const TablePlayground: React.FC = () => {
                     />
                     {/* Colour is a palette, not a dropdown of colour names. */}
                     <Control label="Tone">
-                      <ColorSwatches
-                        selectable
-                        size="sm"
-                        value={tone}
-                        onSelect={(value) => setTone(value as PanelTone)}
-                        defaultExpanded
-                      />
+                      <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
                     <SelectControl
                       label="Control tone"

@@ -11,7 +11,7 @@ export function MemoryCard({ memory, layout = "expanded", selected = false, high
     <span className="kit-memory-summary">{memory.summary}</span>
     <span className="kit-memory-meta kit-memory-footer"><span>{copy(`statuses.${memory.status ?? "active"}`)}</span>{memory.scope && <span>{memory.scope}</span>}{layout === "expanded" && memory.usage?.retrievalCount !== undefined && <span>{copy("retrievals")}: {memory.usage.retrievalCount}</span>}</span>
   </>;
-  return <Panel tone="neutral" variant="outlined" padding="none" disabled={disabled} {...surface} className={`kit-knowledge kit-memory-card ${className}`} data-layout={layout} data-selected={selected} data-highlighted={highlighted}>
+  return <Panel tone="none" variant="outlined" padding="none" disabled={disabled} {...surface} className={`kit-knowledge kit-memory-card ${className}`} data-layout={layout} data-selected={selected} data-highlighted={highlighted}>
     {onSelect ? <button className="kit-memory-select" type="button" disabled={disabled} aria-pressed={selected} onClick={() => onSelect(memory)}>{body}</button> : <div className="kit-memory-select">{body}</div>}
     <MemoryActionButtons memory={memory} disabled={disabled} onEdit={onEdit} onPinChange={onPinChange} onArchive={onArchive} copy={copy} />
   </Panel>;

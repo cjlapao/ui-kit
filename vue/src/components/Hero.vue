@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
 import type { VNode } from "vue";
 import {
   SURFACE_VARIANTS,
@@ -53,7 +54,7 @@ export interface HeroProps {
   /** Registry icon name, or a node. Omit it and the slot is not drawn. */
   icon?: IconName | VNode;
   /** @default "blue" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** Alias for `tone`, matching the rest of the kit. */
   color?: TrueColor;
   /** @default "gradient" */
@@ -144,7 +145,7 @@ const CHIP_SIZES: Record<ControlSize, { box: string; glyph: number }> = {
   xl: { box: "h-16 w-16", glyph: 30 },
 };
 
-const accent = computed<TrueColor>(() => props.tone ?? props.color ?? "blue");
+const accent = computed<TrueColor>(() => getSurfaceAccentColor(props.tone ?? props.color ?? "none"));
 const effectiveCorner = computed<SurfaceCorner>(
   () => props.corner ?? (props.rounded ? DEFAULT_SURFACE_CORNER : "none"),
 );
@@ -219,7 +220,7 @@ const chipClass = computed(() =>
     v-if="!onGradient"
     class="w-full"
     :variant="panelVariant"
-    :tone="accent"
+    :tone="props.tone ?? 'none'"
     :corner="effectiveCorner"
     :padding="padding"
     :decoration="decoration"

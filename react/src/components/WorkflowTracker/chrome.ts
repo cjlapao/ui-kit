@@ -1,3 +1,4 @@
+import type { SurfaceTone } from "../../theme/Theme";
 import { useMemo } from "react";
 
 import { DEFAULT_SURFACE_CORNER, type TrueColor } from "../../theme/Theme";
@@ -80,7 +81,7 @@ export interface WorkflowTrackerStyleProps {
   /** Surface treatment of the cards. @default "outlined" */
   variant?: PanelVariant;
   /** Tone the cards are tinted with (tinted/translucent variants only). @default "neutral" */
-  cardTone?: TrueColor;
+  cardTone?: SurfaceTone;
   /** Corner rounding of the cards. Defaults to the Panel's own default. */
   corner?: PanelCorner;
   /** Glass fill opacity, forwarded to `Panel`. @default "light" */
@@ -152,7 +153,7 @@ export const resolveLabels = (
 /** The shared card treatment every `Panel` in the tracker family gets. */
 export const buildCardProps = ({
   variant = "outlined",
-  cardTone = "neutral",
+  cardTone = "none",
   corner = DEFAULT_SURFACE_CORNER,
   glassOpacity = "light",
   vibrancy,

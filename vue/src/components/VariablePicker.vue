@@ -131,7 +131,7 @@ const rowClass = (groupTone?: TrueColor) => {
   <Panel
     v-bind="restAttrs"
     variant="elevated"
-    tone="neutral"
+    tone="none"
     padding="none"
     :scrollable="false"
     :class="classNames('w-[26rem] max-w-[calc(100vw-2rem)]', classAttr)"

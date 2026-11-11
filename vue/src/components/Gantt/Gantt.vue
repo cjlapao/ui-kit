@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { SurfaceTone } from "../../theme/Theme";
 import type {
   GanttBarGeometry,
   GanttColumn,
@@ -77,6 +78,8 @@ export interface GanttProps {
    * @default "elevated"
    */
   variant?: GanttVariant;
+  /** Container tint, separate from task accent colors. @default "none" */
+  tone?: SurfaceTone;
   /**
    * Corner radius of the panel surface — the shared container scale
    * (same `corner` vocabulary as Panel).
@@ -186,6 +189,7 @@ const props = withDefaults(defineProps<GanttProps>(), {
   height: 520,
   color: "blue",
   variant: "elevated",
+  tone: "none",
   corner: "rounded-sm",
   padding: "none",
   loading: false,
@@ -256,7 +260,7 @@ const hasNode = (v: unknown) => v != null && v !== false;
 const hasIcon = computed(() => hasNode(props.icon));
 const hasActions = computed(() => hasNode(props.actions));
 // Icon tile chrome follows the panel variant (sits flush beside the container).
-const chartHeaderTile = computed(() => getSurfaceVariantClasses(props.variant, "neutral"));
+const chartHeaderTile = computed(() => getSurfaceVariantClasses(props.variant, props.tone));
 
 // Whether the consumer wired change listeners (drives the `editable` default).
 const instance = getCurrentInstance();
@@ -855,6 +859,7 @@ const colJustify = (col: GanttColumn) =>
   <Panel
     ref="rootRef"
     :variant="variant"
+    :tone="tone"
     :padding="padding"
     :corner="corner"
     :vibrancy="vibrancy"
@@ -905,6 +910,7 @@ const colJustify = (col: GanttColumn) =>
              right edge when no icon/title/actions are present. -->
         <div class="ml-auto shrink-0">
           <GanttToolbar
+            :tone="tone"
             :variant="variant"
             :zoom="zoom"
             :presets="GANTT_ZOOM_PRESETS"

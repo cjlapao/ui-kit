@@ -124,6 +124,7 @@ export default defineConfig({
     // optimizeDeps pre-bundles once).
     dedupe: ["react", "react-dom", "react-router", "react-router-dom"],
     alias: {
+      "@cjlapao/ui-kit/markdown": path.resolve(demoRoot, "../src/markdown.ts"),
       "@cjlapao/ui-kit": path.resolve(demoRoot, "../src/index.ts"),
       "@assets": path.resolve(demoRoot, "../src/assets"),
     },

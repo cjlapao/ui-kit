@@ -1,3 +1,4 @@
+import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, { useId, useRef, useState } from "react";
 import classNames from "classnames";
 import Panel, { type PanelProps } from "../Panel";
@@ -55,7 +56,7 @@ export function FileUpload({ embedded = false, compact = false, value, defaultVa
   const files = value ?? internal;
   const locked = disabled || loading;
   const labels = { ...defaultLabels, ...overrides };
-  const tokens = getSideMenuItemTokens(surface.tone ?? "blue");
+  const tokens = getSideMenuItemTokens(getSurfaceAccentColor(surface.tone ?? "none"));
   const change = (next: File[]) => { if (value === undefined) setInternal(next); onChange?.(next); };
   const choose = (incoming: File[]) => {
     if (locked || !incoming.length) return;
@@ -78,7 +79,7 @@ export function FileUpload({ embedded = false, compact = false, value, defaultVa
       <CustomIcon icon="File" size={size} className={classNames("text-neutral-400", density.icon)} />
       <div className={compact ? "min-w-0 flex-1" : undefined}><p className={classNames("font-medium", density.title)}>{loading ? labels.loading : labels.title}</p><p id={`${id}-hint`} className={classNames("mt-1 text-neutral-500 dark:text-neutral-400", density.detail)}>{labels.description}</p></div>
       <input ref={input} id={id} type="file" accept={accept} multiple={multiple} disabled={locked} aria-label={labels.browse} aria-describedby={`${id}-hint`} aria-invalid={Boolean(error || rejections.length) || undefined} className="hidden" onChange={event => { choose(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
-      <Button size={size} className={compact ? "shrink-0" : undefined} variant="soft" color={surface.tone ?? "blue"} disabled={locked} loading={loading} onClick={() => input.current?.click()}>{labels.browse}</Button>
+      <Button size={size} className={compact ? "shrink-0" : undefined} variant="soft" color={getSurfaceAccentColor(surface.tone ?? "none")} disabled={locked} loading={loading} onClick={() => input.current?.click()}>{labels.browse}</Button>
     </div>
     {files.length > 0 ? <ul className="mt-3 space-y-2" aria-label={labels.selectedFiles}>{files.map((file, index) => <li key={`${file.name}-${file.lastModified}-${index}`} className={classNames("flex items-center rounded-lg border border-neutral-200 dark:border-neutral-700", density.row)}>
       {preview && <ImagePreview file={file} alt={file.name} className={classNames("shrink-0 rounded-lg object-contain", density.preview)} />}
@@ -88,6 +89,6 @@ export function FileUpload({ embedded = false, compact = false, value, defaultVa
     {(error || rejections.length > 0) && <div role="alert" className="mt-3 text-xs text-rose-700 dark:text-rose-300">{error || <ul>{rejections.map((rejection, i) => <li key={i}>{rejectionMessage?.(rejection) ?? rejection.message}</li>)}</ul>}</div>}
   </>;
   return embedded ? <div className={className}>{content}</div>
-    : <Panel {...surface} variant={surface.variant ?? "outlined"} tone={surface.tone ?? "neutral"} padding={surface.padding ?? "sm"} className={className}>{content}</Panel>;
+    : <Panel {...surface} variant={surface.variant ?? "outlined"} tone={surface.tone ?? "none"} padding={surface.padding ?? "sm"} className={className}>{content}</Panel>;
 }
 export default FileUpload;
