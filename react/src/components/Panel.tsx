@@ -666,7 +666,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   })();
 
   const effectiveHoverColor =
-    hoverColor ?? (color && color !== "neutral" ? color : undefined);
+    hoverColor ?? (resolvedTone !== "none" && resolvedTone !== "neutral" ? resolvedTone : undefined);
   const hoverColorName = effectiveHoverColor ? effectiveHoverColor : undefined;
 
   const borderPalette = borderColor

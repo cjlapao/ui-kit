@@ -231,7 +231,7 @@ describe("ExpandableButton — the physics", () => {
       <ExpandableButton icon="Search" label="Go" labelPlacement="before" />,
     );
     expect(button(container)).toHaveAttribute("data-icon-motion", "pop-tilt");
-    expect(button(container)).toHaveAttribute("data-elevate", "true");
+    expect(button(container)).toHaveAttribute("data-elevate", "false");
     expect(button(container)).toHaveAttribute("data-squish", "true");
     expect(button(container)).toHaveAttribute("data-label-placement", "before");
   });

@@ -1,3 +1,5 @@
+import type { SurfaceTone } from "@cjlapao/ui-kit";
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
 import React, { useState } from "react";
 import {
   BreakdownCard,
@@ -54,6 +56,7 @@ const PRESET_OPTIONS = [
 
 export const BreakdownCardPlayground: React.FC = () => {
   const [preset, setPreset] = useState("spend");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
   const [padding, setPadding] = useState<SurfacePadding>("md");
   const [showStats, setShowStats] = useState(true);
@@ -81,6 +84,7 @@ export const BreakdownCardPlayground: React.FC = () => {
                 title: "Surface",
                 controls: (
                   <>
+                    <SurfaceToneControl value={tone} onChange={setTone} />
                     <SelectControl label="Variant" options={surfaceVariantOptions} value={variant}
                       onChange={(v) => setVariant(v as SurfaceVariant)} />
                     <SelectControl label="Padding" options={panelPaddingOptions} value={padding}
@@ -116,6 +120,7 @@ export const BreakdownCardPlayground: React.FC = () => {
       preview={
         <div className="mx-auto w-full max-w-xl">
           <BreakdownCard
+            tone={tone}
             title={preset === "leads" ? "Leads by source" : "Cloud spend by service"}
             caption={caption}
             items={items}

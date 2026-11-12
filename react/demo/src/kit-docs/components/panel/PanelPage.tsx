@@ -20,7 +20,7 @@ export const PanelPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Panel"
-      description="The shared container: eight surface treatments, media in four placements, badges, action buttons, decorations and loaders. Its standing look is the kit's container standard — the elevated variant, tone blue, sm padding and the medium corner — and every other surface component takes its defaults from here. It also publishes a surface context, so nested content like FormField hints picks up copy that reads on the card it sits on — including glass."
+      description="The shared container: nine surface treatments, media in four placements, badges, action buttons, decorations and loaders. Its standing look is the kit's container standard — the elevated variant, no tint by default, sm padding and the medium corner — and every other surface component takes its defaults from here. It also publishes a surface context, so nested content like FormField hints picks up copy that reads on the card it sits on — including glass."
     />
     <PanelPlayground />
     <section className="flex flex-col gap-5">
@@ -37,7 +37,7 @@ export const PanelPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="All surfaces"
-        description="Eight shared variants. Glass, liquid-glass and subtle keep their translucent defaults; the other variants have opaque backgrounds."
+        description="Nine shared variants. Glass, liquid-glass and subtle keep their translucent defaults; the other variants have opaque backgrounds."
         code={variantsCode}
         filename="Variants.tsx"
       >

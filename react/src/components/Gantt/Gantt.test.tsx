@@ -1062,8 +1062,8 @@ describe("Gantt component", () => {
     const root = container.querySelector<HTMLElement>("[data-gantt]")!;
     expect(root.tagName).toBe("SECTION");
     expect(root.getAttribute("data-variant")).toBe("elevated");
-    // Panel's default tone — the kit container standard — is blue.
-    expect(root.getAttribute("data-tone")).toBe("blue");
+    // Panel defaults to no tint, independently of task accent colors.
+    expect(root.getAttribute("data-tone")).toBe("none");
   });
 
   it("keeps the toolbar and the today marker in the detached header, out of the body scroller", () => {
@@ -1111,7 +1111,7 @@ describe("Gantt component", () => {
 
     // The toolbar pill follows the shared surface-variant chrome (glass rim).
     const pill = screen.getByText("Week").closest("[class*='pointer-events-auto']")!;
-    expect(pill.className).toContain(getSurfaceVariantClasses("glass", "neutral"));
+    expect(pill.className).toContain(getSurfaceVariantClasses("glass", "none"));
     expect(pill.className).toContain(SURFACE_GLASS_RIM.split(" ")[0]);
 
     // Row hairlines follow the divider token (solid → neutral-200 hairline by

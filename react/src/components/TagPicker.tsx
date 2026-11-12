@@ -27,6 +27,7 @@ import {
   PANEL_TONE_FOR_FIELD,
   SURFACE_VARIANT_FOR_FIELD,
   type SurfaceCorner,
+  type SurfaceTone,
   type SurfaceVariant,
   getFieldSizeTokens,
   getFieldToneTokens,
@@ -244,6 +245,12 @@ export interface TagPickerProps {
    */
   panelVariant?: "auto" | SurfaceVariant;
   /**
+   * The dropdown card's tone. `"auto"` keeps the field default (neutral);
+   * an explicit tone tints the card.
+   * @default "auto"
+   */
+  panelTone?: "auto" | SurfaceTone;
+  /**
    * The dropdown card's radius on the shared corner scale. `"auto"` resolves
    * through the theme - the card stays one step tighter than the field.
    * @default "auto"
@@ -297,6 +304,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
   glowIntensity = DEFAULT_GLOW_INTENSITY,
   validationStatus = "none",
   panelVariant = "auto",
+  panelTone = "auto",
   panelCorner = "auto",
   tagLimit = 3,
   highlightNew = true,
@@ -646,7 +654,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                 glass popup instead of the opaque white slab this used to be. */}
             <Panel
               variant={resolvedPanelVariant}
-              tone={PANEL_TONE_FOR_FIELD}
+              tone={panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone}
               corner={panelCorner}
               padding="none"
               scrollable={false}

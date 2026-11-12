@@ -215,9 +215,7 @@ const { classAttr, restAttrs } = useClassAttrs();
 
 const resolvedTone = computed(() => props.tone ?? props.color ?? "none");
 const palette = computed(() => getPanelToneStyles(resolvedTone.value));
-const colorPalette = computed(() =>
-  props.color ? getPanelToneStyles(props.color) : palette.value,
-);
+const colorPalette = palette;
 const isHoverable = computed(
   () => props.hoverable ?? Boolean(restAttrs.value.onClick),
 );
@@ -225,7 +223,7 @@ const isHoverable = computed(
 const effectiveHoverColor = computed(
   () =>
     props.hoverColor ??
-    (props.color && props.color !== "neutral" ? props.color : undefined),
+    (resolvedTone.value !== "none" && resolvedTone.value !== "neutral" ? resolvedTone.value : undefined),
 );
 const hoverColorName = computed(() =>
   effectiveHoverColor.value,

@@ -221,7 +221,7 @@ describe("DynamicFormField", () => {
       );
     });
 
-    it("tints the tonal card with the default tone - blue", () => {
+    it("keeps the tonal card untinted by default", () => {
       const { container } = render(
         <DynamicFormField
           parameter={param()}
@@ -232,7 +232,7 @@ describe("DynamicFormField", () => {
       // "Our default" is one story: the tone the wash draws with is the
       // kit default, not a grey nobody chose.
       expect(container.querySelector("section")!.className).toContain(
-        "bg-blue-100/80",
+        "bg-white",
       );
     });
 

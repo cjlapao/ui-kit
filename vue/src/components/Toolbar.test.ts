@@ -65,7 +65,7 @@ describe("Toolbar", () => {
     ).toContain("shadow-xl");
     expect(
       mount(Toolbar, { props: { variant: "simple" } }).attributes("class"),
-    ).toContain("bg-neutral-100");
+    ).toContain("bg-white");
   });
 
   it("tints the surface by tone, Panel-style", () => {

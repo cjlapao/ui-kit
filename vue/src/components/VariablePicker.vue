@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { SurfaceTone, SurfaceVariant } from "../theme/Theme";
 import type {
   SmartVariable,
   SmartVariableGroup,
@@ -7,6 +8,8 @@ import type {
 import type { TrueColor } from "../theme/Theme";
 
 export interface VariablePickerProps {
+  variant?: SurfaceVariant;
+  panelTone?: SurfaceTone;
   /** The groups to offer, one tab each. */
   groups: SmartVariableGroup[];
   /** Shows each variable's resolved value beside it. */
@@ -44,6 +47,8 @@ const t = useKitT();
 
 const props = withDefaults(defineProps<VariablePickerProps>(), {
   tone: "blue",
+  variant: "elevated",
+  panelTone: "none",
   size: "md",
   initialSearch: "",
 });
@@ -130,8 +135,8 @@ const rowClass = (groupTone?: TrueColor) => {
        `bg-white border-slate-200` box with no dark mode. -->
   <Panel
     v-bind="restAttrs"
-    variant="elevated"
-    tone="none"
+    :variant="variant"
+    :tone="panelTone"
     padding="none"
     :scrollable="false"
     :class="classNames('w-[26rem] max-w-[calc(100vw-2rem)]', classAttr)"

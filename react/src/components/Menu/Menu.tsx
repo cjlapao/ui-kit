@@ -170,6 +170,7 @@ function MenuSurface({ state, children, root = false }: { state: State; children
   return <div data-menu-owner={state.owner} onMouseEnter={state.cancelLeave} onMouseLeave={state.scheduleLeave}>
     <Panel variant={props.variant ?? "outlined"} tone={props.tone ?? "none"} corner={props.corner} padding="none"
       glassOpacity={props.glassOpacity} transparency={props.transparency} vibrancy={props.vibrancy} specularMode={props.specularMode}
+      style={root ? props.style : undefined}
       className={classNames(root ? props.className : undefined,
         (!root || props.popup || props.trigger || props.anchorRef) && "backdrop-blur-xl")}>
       <div data-menu-padding className={menuPadding[props.padding ?? "xs"]}>

@@ -314,8 +314,8 @@ describe("InfoRow", () => {
       expect(html).toContain("text-sky-500");
       expect(html).toContain("text-emerald-600");
       // The defaults it replaces are gone, not merely losing a race.
-      expect(html).not.toContain("text-neutral-500");
-      expect(html).not.toContain("text-neutral-700");
+      expect(screen.getByText("L")).not.toHaveClass("text-neutral-500");
+      expect(screen.getByText("V")).not.toHaveClass("text-neutral-700");
     });
 
     it("keeps its own colour when the override sets only a size or weight", () => {

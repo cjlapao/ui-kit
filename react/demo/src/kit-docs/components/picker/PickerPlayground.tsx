@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { ColorSwatches, Input, Panel, Picker } from "@cjlapao/ui-kit";
 import type {
+  SurfaceTone,
+  SurfaceVariant,
   ControlSize,
   GlowIntensity,
   InputVariant,
@@ -14,6 +16,7 @@ import {
   PlaygroundPanel,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { PanelSurfaceControls } from "../../shared/PanelSurfaceControls";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
@@ -52,6 +55,8 @@ export const PickerPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
   const [corner, setCorner] = useState<SurfaceCorner>("auto");
   const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
+  const [panelVariant, setPanelVariant] = useState<"auto" | SurfaceVariant>("auto");
+  const [panelTone, setPanelTone] = useState<"auto" | SurfaceTone>("auto");
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [validationStatus, setValidationStatus] =
     useState<ValidationStatus>("none");
@@ -79,6 +84,8 @@ export const PickerPlayground: React.FC = () => {
       tone={tone}
       size={size}
       corner={corner}
+      panelVariant={panelVariant}
+      panelTone={panelTone}
       panelCorner={panelCorner}
       variant={variant}
       validationStatus={validationStatus}
@@ -154,6 +161,12 @@ export const PickerPlayground: React.FC = () => {
                       onChange={value => setCorner(value as SurfaceCorner)} />
                     <ChoiceControl label="Dropdown corner" options={panelCornerOptions} value={panelCorner}
                       onChange={value => setPanelCorner(value as SurfaceCorner)} />
+                    <PanelSurfaceControls
+                      panelVariant={panelVariant}
+                      onPanelVariant={setPanelVariant}
+                      panelTone={panelTone}
+                      onPanelTone={setPanelTone}
+                    />
                   </>
                 ),
               },

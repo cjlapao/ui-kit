@@ -5,6 +5,7 @@ import type {
   ComboboxVariant,
   ControlSize,
   SurfaceCorner,
+  SurfaceTone,
   SurfaceVariant,
   TrueColor,
 } from "@cjlapao/ui-kit";
@@ -14,6 +15,7 @@ import {
   SelectControl,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
@@ -77,6 +79,7 @@ export const ComboboxPlayground: React.FC = () => {
   const [panelVariant, setPanelVariant] = useState<"auto" | SurfaceVariant>(
     "auto",
   );
+  const [panelTone, setPanelTone] = useState<"auto" | SurfaceTone>("auto");
   const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
 
   const [disabled, setDisabled] = useState(false);
@@ -131,6 +134,17 @@ export const ComboboxPlayground: React.FC = () => {
                       onChange={(v) =>
                         setPanelVariant(v as "auto" | SurfaceVariant)
                       }
+                    />
+                    <Control label="Popup tone">
+                      <SurfaceToneSwatches
+                        value={panelTone === "auto" ? "none" : panelTone}
+                        onSelect={setPanelTone}
+                      />
+                    </Control>
+                    <ToggleRow
+                      label="Popup tone follows field"
+                      checked={panelTone === "auto"}
+                      onChange={(v) => setPanelTone(v ? "auto" : "none")}
                     />
                     <SelectControl
                       label="Popup corner"
@@ -213,6 +227,7 @@ export const ComboboxPlayground: React.FC = () => {
             variant={variant}
             tone={tone}
             panelVariant={panelVariant}
+            panelTone={panelTone}
             panelCorner={panelCorner}
             validationStatus={validationStatus}
             disabled={disabled}

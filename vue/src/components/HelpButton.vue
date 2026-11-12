@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { SurfaceTone } from "../theme/Theme";
 import { h, type CSSProperties, type VNode, type VNodeChild } from "vue";
 import {
   type ControlSize,
@@ -28,8 +29,10 @@ export interface HelpButtonProps {
    * "auto" (default) picks the side with the most available space.
    */
   placement?: HelpButtonPlacement;
-  /** Accent color for the trigger button and the panel header band. @default "blue" */
+  /** Accent color for the trigger button. @default "blue" */
   color?: TrueColor;
+  /** Panel tint is independent of the trigger accent. @default "none" */
+  tone?: SurfaceTone;
   /** Surface treatment of the panel — the shared container family. @default "elevated" */
   variant?: SurfaceVariant;
   /** Corner radius of the panel, on the shared container scale. @default "rounded-md" */
@@ -49,7 +52,7 @@ export interface HelpButtonProps {
 /* ------------------------------------------------------------------ */
 /*
  * The header band's tint, top accent and copy colour all come from
- * `getPanelToneStyles(color)` (below), so every one of the 21 TrueColors is
+ * `getPanelToneStyles(tone)` (below), so every one of the 21 TrueColors is
  * present and a new tone in the theme reaches this component automatically.
  * The previous 12-entry table fell through to a neutral fallback for nine of
  * the 21 tones — half the tone set rendered with no accent at all (§5.2).
@@ -539,7 +542,7 @@ watch(open, (isOpen) => {
 onUnmounted(removeListeners);
 
 // Generated from the theme — all 21 tones, no local map to drift (§5.2).
-const palette = computed(() => getPanelToneStyles(props.color));
+const palette = computed(() => getPanelToneStyles(props.tone ?? "none"));
 // Copy colour follows the surface so a glass panel gets the higher-contrast ink (§4).
 const surfaceText = computed(() => getSurfaceTextTokens(props.variant));
 const isMarkdown = computed(() => typeof props.content === "string");
@@ -603,7 +606,7 @@ const panelClass = computed(() =>
              panel's overflow-hidden clips the band's top corners. -->
         <Panel
           :variant="variant"
-          :tone="color"
+          :tone="props.tone ?? 'none'"
           :corner="corner"
           padding="none"
           :scrollable="false"

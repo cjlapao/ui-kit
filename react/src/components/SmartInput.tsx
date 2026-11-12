@@ -34,6 +34,7 @@ import type {
   GlowIntensity,
   InputVariant,
   SurfaceCorner,
+  SurfaceTone,
   SurfaceVariant,
   TrueColor,
 } from "../theme/Theme";
@@ -118,6 +119,12 @@ export interface SmartInputProps {
    */
   panelVariant?: "auto" | SurfaceVariant;
   /**
+   * The dropdown card's tone. `"auto"` keeps the field default (neutral);
+   * an explicit tone tints the card.
+   * @default "auto"
+   */
+  panelTone?: "auto" | SurfaceTone;
+  /**
    * The picker card's radius. `"auto"` resolves to the theme's *container*
    * corner — the ladder holds: the card stays one step tighter than the
    * field poking out of it. An explicit token overrules.
@@ -151,6 +158,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   gradientTo,
   glowIntensity = DEFAULT_GLOW_INTENSITY,
   panelVariant = "auto",
+  panelTone = "auto",
   panelCorner = "auto",
   defaultViewMode = "token",
   autocomplete = true,
@@ -565,6 +573,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
               tone={tone}
               size={size}
               variant={resolvedPanelVariant}
+              panelTone={panelTone}
               corner={panelCorner}
               initialSearch={pickerFilter}
               onSelect={handleSelect}

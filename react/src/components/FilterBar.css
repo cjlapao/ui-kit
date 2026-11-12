@@ -1,0 +1,17 @@
+.kit-filter-bar { --fb-duration: 380ms; --fb-easing: ease-out; }
+.fb-search { position: relative; flex: 0 1 auto; width: 2.5rem; max-width: 100%; transition: width var(--fb-duration) var(--fb-easing); }
+.fb-search[data-expanded="true"] { width: 22rem; }
+.fb-search-input { opacity: 0; pointer-events: none; transition: opacity 150ms ease-out; }
+.fb-search[data-expanded="true"] .fb-search-input { opacity: 1; pointer-events: auto; }
+.fb-search-trigger { position: absolute; inset: 0; margin: auto; }
+.fb-search-trigger[hidden] { display: none; }
+.fb-chip { display: inline-grid; grid-template-columns: 1fr; max-width: 100%; opacity: 1; transform: scale(1); transition: grid-template-columns var(--fb-duration) var(--fb-easing), opacity 150ms ease-out, transform var(--fb-duration) var(--fb-easing); }
+.fb-chip > * { min-width: 0; overflow: hidden; }
+.fb-chip[data-exiting="true"] { grid-template-columns: 0fr; opacity: 0; transform: scale(.85); pointer-events: none; }
+.fb-chip[data-exiting="true"] > * { padding-left: 0; padding-right: 0; border-width: 0; }
+.fb-menu { animation: fb-arrive var(--fb-duration, 380ms) var(--fb-easing, ease-out) both; }
+@keyframes fb-arrive { from { opacity: 0; transform: translateY(-5px) scale(.98); } to { opacity: 1; transform: none; } }
+@starting-style { .fb-chip { opacity: 0; transform: scale(.85); grid-template-columns: 0fr; } }
+@media (prefers-reduced-motion: reduce) {
+  .kit-filter-bar *, .fb-menu { animation: none !important; transition: none !important; }
+}

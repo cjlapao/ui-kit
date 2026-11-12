@@ -204,6 +204,8 @@ L("");
 // @layer utilities block below would drop the `dark:` variant selector and
 // leak dark styling into light mode.
 src(`@source inline("bg-{COLOR}-50/{20,30,45,50,70}");`);
+// Untinted surface glass supports preset and numeric opacity values.
+src(`@source inline("bg-white/{0..100} dark:bg-neutral-900/{0..30}");`);
 src(`@source inline("dark:bg-{COLOR}-500/{5,10,15,25}");`);
 src(`@source inline("border-{COLOR}-300/50");`);
 src(`@source inline("dark:border-{COLOR}-500/25");`);

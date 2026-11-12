@@ -1,3 +1,6 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone, SurfaceVariant } from "@cjlapao/ui-kit";
+import { surfaceVariantOptions } from "../../shared/options";
 import React, { useState } from "react";
 import {
   ColorSwatches,
@@ -32,6 +35,8 @@ import {
 } from "./demoData";
 
 export const SideMenuPlayground: React.FC = () => {
+  const [cardTone, setCardTone] = useState<SurfaceTone>("none");
+  const [cardVariant, setCardVariant] = useState<SurfaceVariant>("outlined");
   const [variant, setVariant] = useState<SidebarVariant>("sidebar");
   const [collapsible, setCollapsible] = useState<SidebarCollapsible>("icon");
   const [side, setSide] = useState<SidebarSide>("left");
@@ -92,7 +97,9 @@ export const SideMenuPlayground: React.FC = () => {
       footerItem={
         footerItem ? { label: "Ada Lovelace", icon: "User", menu: USER_MENU } : undefined
       }
-      ctas={visibleCtas}
+      ctas={visibleCtas?.map(cta => ({ ...cta, surfaceTone: cardTone, variant: cardVariant }))}
+      footerDetailsTone={cardTone}
+      footerDetailsVariant={cardVariant}
       footerDetails={showDetails ? DEMO_DETAILS : undefined}
       items={
         workspaces
@@ -127,6 +134,8 @@ export const SideMenuPlayground: React.FC = () => {
                     value={variant}
                     onChange={(value) => setVariant(value as SidebarVariant)}
                   />
+                  <SurfaceToneControl label="Content panel tone" value={cardTone} onChange={setCardTone} />
+                  <ChoiceControl label="Content panel variant" options={surfaceVariantOptions} value={cardVariant} onChange={value => setCardVariant(value as SurfaceVariant)} />
                   <ChoiceControl
                     label="Collapsible"
                     options={sidebarCollapsibleOptions}

@@ -1,3 +1,5 @@
+import { PanelSurfaceControls } from "../../shared/PanelSurfaceControls";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useMemo, useRef, useState } from "react";
 import { ColorSwatches, Panel, SmartInput, SmartValue } from "@cjlapao/ui-kit";
 import type {
@@ -32,7 +34,6 @@ import {
   inputVariantOptions,
   panelCornerOptions,
   panelSpecularOptions,
-  surfaceVariantOptions,
   SMART_INPUT_SAMPLES,
   SMART_VARIABLE_GROUPS,
 } from "../../shared/options";
@@ -61,6 +62,7 @@ export const SmartInputPlayground: React.FC = () => {
   const [tone, setTone] = useState<TrueColor>("blue");
   const [corner, setCorner] = useState<SurfaceCorner>("auto");
   const [size, setSize] = useState<SmartInputSize>("md");
+  const [panelTone, setPanelTone] = useState<"auto" | SurfaceTone>("auto");
   const [panelVariant, setPanelVariant] = useState<"auto" | SurfaceVariant>(
     "auto",
   );
@@ -130,6 +132,7 @@ export const SmartInputPlayground: React.FC = () => {
       corner={corner}
       size={size}
       panelVariant={panelVariant}
+      panelTone={panelTone}
       panelCorner={panelCorner}
       glowIntensity={glowIntensity}
       defaultViewMode={defaultView}
@@ -197,17 +200,7 @@ export const SmartInputPlayground: React.FC = () => {
                       value={corner}
                       onChange={(v) => setCorner(v as SurfaceCorner)}
                     />
-                    <SelectControl
-                      label="Picker surface"
-                      options={[
-                        { label: "Auto (follow variant)", value: "auto" },
-                        ...surfaceVariantOptions,
-                      ]}
-                      value={panelVariant}
-                      onChange={(v) =>
-                        setPanelVariant(v as "auto" | SurfaceVariant)
-                      }
-                    />
+                    <PanelSurfaceControls panelVariant={panelVariant} onPanelVariant={setPanelVariant} panelTone={panelTone} onPanelTone={setPanelTone} />
                     <SelectControl
                       label="Picker corner"
                       options={panelCornerOptions}

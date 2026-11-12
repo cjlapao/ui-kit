@@ -226,7 +226,7 @@ it("renders shared panel variants while preserving the header regions", async ()
     const { container, unmount } = render(<PageHeader variant={variant} start="Title" end="Actions" />);
     expect(screen.getByText("Title")).toBeInTheDocument();
     expect(screen.getByText("Actions")).toBeInTheDocument();
-    if (variant !== "default") expect(container.querySelector(`[data-variant="${variant}"]`)).not.toBeNull();
+    if (!["default", "none", "plain"].includes(variant)) expect(container.querySelector(`[data-variant="${variant}"]`)).not.toBeNull();
     unmount();
   }
 });

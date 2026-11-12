@@ -573,4 +573,9 @@ describe("Panel — untinted surfaces", () => {
     expect(panelOf(container)).toHaveAttribute("data-tone", "none");
     expect(panelOf(container).className).not.toContain("bg-rose");
   });
+  it("explicit none overrides the legacy hover tint", () => {
+    const { container } = render(<Panel variant="glass" tone="none" color="rose" hoverable>Body</Panel>);
+    expect(panelOf(container).className).not.toContain("rose");
+  });
+
 });

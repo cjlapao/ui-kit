@@ -175,7 +175,7 @@ export interface ExpandableButtonProps
    * stylesheet's `0.8em`.
    */
   labelSlide?: string;
-  /** Static resting shadow + a deeper one on hover, both on the spring. Defaults to true. */
+  /** Optional resting shadow + a deeper one on hover, both on the spring. Defaults to false. */
   elevate?: boolean;
   /** What the glyph does while the label slides out. Defaults to "pop-tilt". */
   iconMotion?: ExpandableButtonIconMotion;
@@ -218,7 +218,7 @@ const ExpandableButton = forwardRef<HTMLButtonElement, ExpandableButtonProps>(
       fadeDuration,
       labelGap,
       labelSlide,
-      elevate = true,
+      elevate = false,
       iconMotion = "pop-tilt",
       squish = true,
       labelPlacement = "after",

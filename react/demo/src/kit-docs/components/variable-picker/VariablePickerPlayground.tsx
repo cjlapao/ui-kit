@@ -1,3 +1,5 @@
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
+import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import { ColorSwatches, VariablePicker } from "@cjlapao/ui-kit";
 import type {
@@ -48,6 +50,7 @@ const GROUPS: SmartVariableGroup[] = [
 ];
 
 export const VariablePickerPlayground: React.FC = () => {
+  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [size, setSize] = useState<ControlSize>("md");
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
   const [corner, setCorner] = useState<SurfaceCorner>("auto");
@@ -67,6 +70,7 @@ export const VariablePickerPlayground: React.FC = () => {
                 title: "Options",
                 controls: (
                   <>
+                    <SurfaceToneControl label="Dropdown tone" value={surfaceTone} onChange={setSurfaceTone} />
                     <ChoiceControl
                       label="Size"
                       options={controlSizeOptions}
@@ -131,6 +135,7 @@ export const VariablePickerPlayground: React.FC = () => {
       }
       preview={
         <VariablePicker
+          panelTone={surfaceTone}
           groups={empty ? [] : GROUPS}
           size={size}
           variant={variant}

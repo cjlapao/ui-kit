@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { SurfaceVariant } from "../theme/Theme";
 import type { TrueColor } from "../theme";
 import type { StatTileProps } from "./StatTile.vue";
 
@@ -12,8 +13,9 @@ export interface StatGraphSeries {
 export interface StatGraphTileProps
   extends Omit<
     StatTileProps,
-    "body" | "progress" | "trend" | "meta" | "footer"
+    "body" | "progress" | "trend" | "meta" | "footer" | "variant"
   > {
+  panelVariant?: SurfaceVariant;
   data: any[];
   variant: "bar" | "sparkline";
   series: StatGraphSeries[];
@@ -132,6 +134,7 @@ const statTileProps = computed(() => {
   const {
     data: _data,
     variant: _variant,
+    panelVariant,
     series: _series,
     height: _height,
     showLegend: _showLegend,
@@ -144,7 +147,7 @@ const statTileProps = computed(() => {
     maxDataPoints: _maxDataPoints,
     ...rest
   } = props;
-  return rest;
+  return { ...rest, variant: panelVariant };
 });
 
 // ── Container measurement (ResponsiveContainer replacement) ──────────────────

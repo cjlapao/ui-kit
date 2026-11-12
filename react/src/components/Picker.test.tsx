@@ -11,6 +11,19 @@ const ITEMS = [
   { id: "b", title: "Beta" },
 ];
 
+describe("Picker panelTone", () => {
+  const card = () => document.body.querySelector('[role="listbox"]')!.closest("[class*='ui-surface']")!.className;
+  it("auto matches the field default; an explicit tone changes the card", () => {
+    const { unmount } = render(<Picker items={ITEMS} />);
+    fireEvent.click(screen.getByRole("button"));
+    const auto = card();
+    unmount();
+    render(<Picker items={ITEMS} panelTone="blue" />);
+    fireEvent.click(screen.getByRole("button"));
+    expect(card()).not.toBe(auto);
+  });
+});
+
 describe("Picker groups", () => {
   const G = [
     { id: "a", title: "Alpha", group: "Automation" },

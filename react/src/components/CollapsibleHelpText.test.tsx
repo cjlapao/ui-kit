@@ -35,9 +35,9 @@ describe("CollapsibleHelpText", () => {
       }
     });
 
-    it("defaults to the blue tone on the title line", () => {
+    it("defaults to an untinted title line", () => {
       render(<CollapsibleHelpText text={SHORT} title="Help" />);
-      expect(screen.getByText("Help").className).toContain("text-blue-700");
+      expect(screen.getByText("Help").className).toContain("text-neutral-700");
     });
   });
 

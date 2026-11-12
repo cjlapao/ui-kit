@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { SurfaceTone } from "../theme/Theme";
 import type { VNodeChild } from "vue";
 import { TRUE_COLORS, type TrueColor } from "../theme/Theme";
 import type { IconName } from "../icons/registry";
@@ -55,7 +56,7 @@ export interface SplitViewHeaderDetails {
    * When provided, it overrides title/subtitle/description/tags content.
    */
   headerBody?: VNodeChild;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   variant?: PanelVariant;
   /** Alias for `variant` */
   variants?: PanelVariant;
@@ -539,7 +540,7 @@ interface ResolvedBuiltInHeader {
   className?: string;
   detailsVariant: PanelVariant;
   detailsDecoration: PanelDecoration;
-  detailsTone: TrueColor;
+  detailsTone: SurfaceTone;
   hasCustomHeaderBody: boolean;
   hasHeaderDetailsContent: boolean;
   isDetailsBordered: boolean;
@@ -575,7 +576,7 @@ const builtInHeader = computed<ResolvedBuiltInHeader | null>(() => {
     headerDetails?.variant ?? headerDetails?.variants ?? "subtle";
   const detailsDecoration =
     headerDetails?.decoration ?? headerDetails?.decorations ?? "none";
-  const detailsTone = headerDetails?.tone ?? "neutral";
+  const detailsTone = headerDetails?.tone ?? "none";
   const hasCustomHeaderBody =
     headerDetails?.headerBody !== undefined &&
     headerDetails?.headerBody !== null;

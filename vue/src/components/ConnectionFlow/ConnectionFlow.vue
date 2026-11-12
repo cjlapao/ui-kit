@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getSurfaceAccentColor, type SurfaceTone } from "../../theme/Theme";
 import {
   CONNECTION_FLOW_EDGE_STYLES,
   CONNECTION_FLOW_PROGRESS_TYPES,
@@ -36,7 +37,7 @@ export interface ConnectionFlowProps {
   /** Surface treatment of the frame. @default "outlined" */
   variant?: PlainSurfaceVariant;
   /** @default "neutral" */
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   /** Node box scale, on the shared control scale. @default "md" */
   size?: ControlSize;
   /** Node corner radius, on the shared container scale. */
@@ -173,7 +174,7 @@ defineOptions({ name: "ConnectionFlow", inheritAttrs: false });
 
 const props = withDefaults(defineProps<ConnectionFlowProps>(), {
   variant: "outlined",
-  tone: "neutral",
+  tone: "none",
   size: "md",
   corner: DEFAULT_SURFACE_CORNER,
   edgeStyle: "orthogonal",
@@ -199,6 +200,7 @@ const props = withDefaults(defineProps<ConnectionFlowProps>(), {
   height: 320,
   loading: false,
 });
+const accentTone = computed(() => getSurfaceAccentColor(props.tone));
 
 const emit = defineEmits<{
   nodeClick: [node: ConnectionFlowNode];
@@ -525,7 +527,7 @@ defineExpose({ zoomIn, zoomOut, fit, setZoom });
         <div class="px-4 pt-4 pb-3">
           <ConnectionFlowHeader
             :variant="surfaceVariant"
-            :tone="tone"
+            :tone="accentTone"
             :eyebrow="eyebrow"
             :title="title"
             :subtitle="subtitle"
@@ -552,13 +554,13 @@ defineExpose({ zoomIn, zoomOut, fit, setZoom });
         <ProgressSpinner
           v-if="loaderType === 'spinner'"
           size="xl"
-          :color="tone === 'neutral' ? 'blue' : tone"
+          :color="accentTone === 'neutral' ? 'blue' : accentTone"
           aria-label="Loading flow"
         />
         <div v-else class="w-1/2 max-w-sm">
           <Progress
             size="sm"
-            :color="tone === 'neutral' ? 'blue' : tone"
+            :color="accentTone === 'neutral' ? 'blue' : accentTone"
             indeterminate
             label="Loading flow"
           />

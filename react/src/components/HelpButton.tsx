@@ -40,7 +40,7 @@ export interface HelpButtonProps {
    * "auto" (default) picks the side with the most available space.
    */
   placement?: HelpButtonPlacement;
-  /** Accent color for the trigger button and the panel header band. @default "sky" */
+  /** Accent color for the trigger button. @default "sky" */
   color?: TrueColor;
   /** Container tint; omitted means no tint. @default "none" */
   tone?: SurfaceTone;
@@ -72,7 +72,7 @@ export interface HelpButtonProps {
 /* ------------------------------------------------------------------ */
 /*
  * The header band's tint, top accent and copy colour all come from
- * `getPanelToneStyles(color)`, so every one of the 21 TrueColors is present
+ * `getPanelToneStyles(tone)`, so every one of the 21 TrueColors is present
  * and a new tone in the theme reaches this component automatically. A
  * hand-written per-colour map is exactly the drift the hardening brief exists
  * to eliminate (§5.2): the previous 12-entry table fell through to a neutral
@@ -367,7 +367,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
   }, [open, recompute]);
 
   // Generated from the theme — all 21 tones, no local map to drift.
-  const palette = getPanelToneStyles(color);
+  const palette = getPanelToneStyles(tone);
   // Copy colour follows the surface, so a see-through (glass) panel gets the
   // higher-contrast ink instead of a hardcoded neutral pair (§4).
   const surfaceText = getSurfaceTextTokens(variant);

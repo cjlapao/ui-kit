@@ -81,6 +81,7 @@
 @source inline("dark:text-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-900");
 
 @source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-50/{20,30,45,50,70}");
+@source inline("bg-white/{0..100} dark:bg-neutral-900/{0..30}");
 @source inline("dark:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/{5,10,15,25}");
 @source inline("border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-300/50");
 @source inline("dark:border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/25");

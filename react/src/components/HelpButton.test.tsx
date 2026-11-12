@@ -24,7 +24,7 @@ describe("HelpButton", () => {
     it.each(TRUE_COLORS)(
       "the header carries %s's own accent (not the neutral fallback)",
       (tone) => {
-        const { unmount } = render(<HelpButton content="x" color={tone} />);
+        const { unmount } = render(<HelpButton content="x" color={tone} tone={tone} />);
         const html = panel()!.innerHTML;
         // band tint + heading copy (light + dark) — all in the tone's own
         // family. The old 12-entry table fell through to a fixed neutral for

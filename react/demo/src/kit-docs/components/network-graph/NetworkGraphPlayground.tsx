@@ -1,11 +1,10 @@
 import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
 import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useMemo, useState } from "react";
-import { ColorSwatches, NetworkGraph, findNetworkPath } from "@cjlapao/ui-kit";
+import { NetworkGraph, findNetworkPath } from "@cjlapao/ui-kit";
 import type {
   SurfaceVariant,
   SurfaceCorner,
-  TrueColor,
   GlassOpacity,
   GlassVibrancy,
 } from "@cjlapao/ui-kit";

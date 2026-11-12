@@ -66,6 +66,8 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
   header?: React.ReactNode;
   footer?: React.ReactNode;
   renderItem?: (item: MenuItem, state: { expanded: boolean; checked: boolean }) => React.ReactNode;
+  /** Inline surface styling, including shared motion custom properties. */
+  style?: React.CSSProperties;
   className?: string;
   "aria-label"?: string;
 }

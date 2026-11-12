@@ -414,9 +414,9 @@ export const ExpandableButtonPage: React.FC = () => (
         {
           name: "elevate",
           type: "boolean",
-          default: "true",
+          default: "false",
           description:
-            "A resting shadow that deepens as the label springs out — the raise rides the same curve.",
+            "Opt-in resting shadow that deepens as the label springs out. Off by default so scrolling containers cannot clip the normal button's shadow.",
         },
         {
           name: "iconMotion",

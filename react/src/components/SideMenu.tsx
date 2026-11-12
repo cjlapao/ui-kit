@@ -386,6 +386,7 @@ export interface SideMenuProps {
    * sidebar. @default the menu's `color`
    */
   footerDetailsTone?: SurfaceTone;
+  footerDetailsVariant?: SurfaceVariant;
   /**
    * Paint a subtle dither-noise (film-grain) texture over the panel
    * background, behind the content. Reads best on dark surfaces.
@@ -862,6 +863,7 @@ const SideMenuCtaCard: React.FC<SideMenuCtaCardProps> = ({
 // ---------------------------------------------------------------------------
 
 interface SideMenuDetailPanelProps {
+  variant?: SurfaceVariant;
   items: SideMenuDetailItem[];
   /** Tone of the box's wash. */
   tone: SurfaceTone;
@@ -888,6 +890,7 @@ interface SideMenuDetailPanelProps {
  * array is the whole contract.
  */
 const SideMenuDetailPanel: React.FC<SideMenuDetailPanelProps> = ({
+  variant,
   items,
   tone,
   menuTone,
@@ -926,10 +929,10 @@ const SideMenuDetailPanel: React.FC<SideMenuDetailPanelProps> = ({
       ) : null}
     </div>
   ));
-  if (glass) {
+  if (glass || variant) {
     return (
       <Panel
-        variant="glass"
+        variant={variant ?? "glass"}
         tone={tone}
         // The container corner scale is historical, not Tailwind's: this
         // step emits `rounded-lg` — the same 0.5rem the flat solid box
@@ -985,6 +988,7 @@ export const SideMenu = ({
   ctas,
   footerDetails,
   footerDetailsTone,
+  footerDetailsVariant,
   noise = false,
   noiseScale,
   loading = false,
@@ -1860,6 +1864,7 @@ export const SideMenu = ({
       {!contentCollapsed && footerDetails && footerDetails.length > 0 && (
         <div className="shrink-0 px-3 pb-1">
           <SideMenuDetailPanel
+            variant={footerDetailsVariant}
             items={footerDetails}
             tone={footerDetailsTone ?? "none"}
             menuTone={color}

@@ -53,7 +53,7 @@ export const ExpandableButtonPlayground: React.FC = () => {
   const [duration, setDuration] = useState(600);
   const [collapseDelay, setCollapseDelay] = useState(500);
   const [overrideDuration, setOverrideDuration] = useState(false);
-  const [elevate, setElevate] = useState(true);
+  const [elevate, setElevate] = useState(false);
   const [squish, setSquish] = useState(true);
   const [glass, setGlass] = useState(false);
   const [specularMode, setSpecularMode] = useState<SpecularMode>("none");

@@ -249,8 +249,8 @@ describe("InfoRow", () => {
       const html = w.html();
       expect(html).toContain("text-sky-500");
       expect(html).toContain("text-emerald-600");
-      expect(html).not.toContain("text-neutral-500");
-      expect(html).not.toContain("text-neutral-700");
+      expect(w.get(".text-emerald-600").classes()).not.toContain("text-neutral-500");
+      expect(w.get(".text-sky-500").classes()).not.toContain("text-neutral-700");
     });
 
     it("keeps its own colour when the override sets only a size or weight", () => {

@@ -1,3 +1,5 @@
+import type { SurfaceTone } from "@cjlapao/ui-kit";
+import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
 import { useState } from "react";
 import {
   ActionPanel,
@@ -34,7 +36,7 @@ const actionLayoutOptions = [
 
 export function ActionPanelPlayground() {
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [accentColor, setAccentColor] = useState<TrueColor>("amber");
   const [size, setSize] = useState<ControlSize>("sm");
   const [iconSize, setIconSize] = useState<ControlSize>("sm");
@@ -67,12 +69,7 @@ export function ActionPanelPlayground() {
                     onChange={(value) => setVariant(value as SurfaceVariant)}
                   />
                   <Control label="Surface tone">
-                    <ColorSwatches
-                      selectable
-                      size="sm"
-                      value={tone}
-                      onSelect={setTone}
-                    />
+                    <SurfaceToneSwatches value={tone} onSelect={setTone} />
                   </Control>
                   <Control label="Accent colour">
                     <ColorSwatches

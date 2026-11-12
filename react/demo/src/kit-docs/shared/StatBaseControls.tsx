@@ -1,3 +1,5 @@
+import type { SurfaceTone } from "@cjlapao/ui-kit";
+import { SurfaceToneControl } from "./SurfaceToneControl";
 import { useState } from "react";
 import { STAT_CARD_LOADERS, STAT_CARD_PROGRESS_TYPES } from "@cjlapao/ui-kit";
 import type {
@@ -55,7 +57,7 @@ export interface StatBaseControls {
  */
 export const useStatBaseControls = (): StatBaseControls => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
-  const [tone, setTone] = useState<TrueColor>("blue");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [size, setSize] = useState<ControlSize>("md");
   const [padding, setPadding] = useState<PanelPadding>("md");
   const [corner, setCorner] = useState<PanelCorner>("rounded-lg");
@@ -94,8 +96,7 @@ export const useStatBaseControls = (): StatBaseControls => {
         <>
           <ChoiceControl label="Variant" options={surfaceVariantOptions}
             value={variant} onChange={(v) => setVariant(v as PanelVariant)} />
-          <ChoiceControl label="Tone" options={trueColorOptions}
-            value={tone} onChange={(v) => setTone(v as TrueColor)} />
+          <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
           <ChoiceControl label="Size" options={controlSizeOptions}
             value={size} onChange={(v) => setSize(v as ControlSize)} />
           <ChoiceControl label="Padding" options={panelPaddingOptions}

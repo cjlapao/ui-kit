@@ -17,6 +17,7 @@ import { groupToVariables } from "../utils/smartVariables";
 import type {
   ControlSize,
   SurfaceCorner,
+  SurfaceTone,
   SurfaceVariant,
   TrueColor,
 } from "../theme/Theme";
@@ -49,6 +50,12 @@ export interface VariablePickerProps {
    * @default "elevated"
    */
   variant?: SurfaceVariant;
+  /**
+   * The dropdown card's tone. `"auto"` keeps the field default (neutral);
+   * an explicit tone tints the card.
+   * @default "auto"
+   */
+  panelTone?: "auto" | SurfaceTone;
   /**
    * The card's radius, on the shared corner scale — `"auto"` resolves to
    * the theme's container corner through `Panel`; composites pass their
@@ -129,6 +136,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
   tone = "blue",
   size = "md",
   variant = "elevated",
+  panelTone = "auto",
   corner = "auto",
   initialSearch = "",
   title,
@@ -227,7 +235,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
     // field's own furniture.
     <Panel
       variant={variant}
-      tone={PANEL_TONE_FOR_FIELD}
+      tone={panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone}
       corner={corner}
       padding="none"
       scrollable={false}

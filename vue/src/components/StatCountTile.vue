@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { SurfaceTone, SurfaceVariant } from "../theme/Theme";
 import type { TrueColor } from "../theme";
 import type { IconName } from "../icons/registry";
 
@@ -9,6 +10,8 @@ export interface StatCountTileBreakdown {
 }
 
 export interface StatCountTileProps {
+  variant?: SurfaceVariant;
+  tone?: SurfaceTone;
   title?: string;
   count?: string | number;
   breakdown?: StatCountTileBreakdown[];
@@ -49,6 +52,8 @@ defineOptions({ name: "StatCountTile", inheritAttrs: false });
 
 const props = withDefaults(defineProps<StatCountTileProps>(), {
   color: "blue",
+  variant: "default",
+  tone: "none",
   withDecoration: false,
   withHoverEffect: false,
   loading: false,
@@ -121,7 +126,8 @@ const countClass = computed(() =>
 
 <template>
   <Panel
-    variant="default"
+    :variant="variant"
+    :tone="tone"
     corner="rounded"
     padding="none"
     :flex-body="true"

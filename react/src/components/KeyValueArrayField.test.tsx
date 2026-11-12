@@ -267,7 +267,7 @@ describe("conventions", () => {
     // A flat field is a solid button…
     expect(
       screen.getByRole("button", { name: "Add entry" }).className,
-    ).toContain("bg-blue-700");
+    ).toContain("bg-neutral-700");
     // …a glass container wins, and the German locale arrives whole.
     rerender(
       <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
@@ -314,7 +314,7 @@ describe("conventions", () => {
     expect(
       (screen.getAllByRole("textbox")[0].closest("span") as HTMLElement)
         .className,
-    ).toContain("bg-blue-50"); // ghost, tone-tinted
+    ).toContain("bg-neutral-50"); // ghost, untinted by default
     rerender(
       <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
         <KeyValueArrayField label="Vars" value={[]} onChange={() => {}} />

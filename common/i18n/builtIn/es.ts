@@ -4,6 +4,13 @@ import type { MessageCatalog } from "../types";
 
 export const ES_KIT_CATALOG: MessageCatalog = {
   kit: {
+    codeBlock: {
+      code: "Código",
+      edit: "Editar código",
+      copy: "Copiar código",
+      copied: "Copiado",
+      copyFailed: "No se pudo copiar. Selecciona y copia el código manualmente.",
+    },
     knowledge: {
       "library": "Biblioteca de memorias",
       "map": "Mapa de conocimiento",
@@ -268,6 +275,20 @@ export const ES_KIT_CATALOG: MessageCatalog = {
     },
     progressspinner: {
       loading: "Cargando",
+    },
+    filterbar: {
+      filters: "Filtros",
+      search: "Buscar",
+      empty: "Sin filtros aplicados",
+      add: "Añadir filtro",
+      filterBy: "Filtrar por",
+      back: "Volver",
+      clear: "Limpiar",
+      done: "Listo",
+      clearAll: "Borrar todos",
+      items: "elementos",
+      summary: "{filtered} de {total} {items}",
+      remove: "Eliminar filtro {label}",
     },
     searchbar: {
       clearAria: "Borrar búsqueda",

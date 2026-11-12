@@ -138,7 +138,7 @@ export interface SplitViewHeaderDetails {
    * When provided, it overrides title/subtitle/description/tags content.
    */
   headerBody?: React.ReactNode;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   variant?: PanelVariant;
   /** Alias for `variant` */
   variants?: PanelVariant;
@@ -766,7 +766,7 @@ const SplitView: React.FC<SplitViewProps> = ({
       headerDetails?.variant ?? headerDetails?.variants ?? "subtle";
     const detailsDecoration =
       headerDetails?.decoration ?? headerDetails?.decorations ?? "none";
-    const detailsTone = headerDetails?.tone ?? "neutral";
+    const detailsTone = headerDetails?.tone ?? "none";
     const hasCustomHeaderBody =
       headerDetails?.headerBody !== undefined &&
       headerDetails?.headerBody !== null;

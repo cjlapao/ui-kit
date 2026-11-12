@@ -308,6 +308,12 @@ export const EN_KIT_CATALOG: MessageCatalog = {
     progressspinner: {
       loading: "Loading",
     },
+    filterbar: {
+      filters: "Filters", search: "Search", empty: "No filters applied",
+      add: "Add filter", filterBy: "Filter by", back: "Back",
+      clear: "Clear", done: "Done", clearAll: "Clear all",
+      items: "items", summary: "{filtered} of {total} {items}", remove: "Remove {label} filter",
+    },
     searchbar: {
       clearAria: "Clear search",
       placeholder: "Search...",

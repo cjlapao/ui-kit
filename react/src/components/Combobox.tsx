@@ -23,6 +23,7 @@ import {
   type ControlSize,
   type InputVariant,
   type SurfaceCorner,
+  type SurfaceTone,
   type SurfaceVariant,
   type TrueColor,
   type ValidationStatus,
@@ -140,6 +141,12 @@ export interface ComboboxProps extends Omit<
    * @default "auto"
    */
   panelVariant?: "auto" | SurfaceVariant;
+  /**
+   * The dropdown card's tone. `"auto"` keeps the field default (neutral);
+   * an explicit tone tints the card.
+   * @default "auto"
+   */
+  panelTone?: "auto" | SurfaceTone;
   /** Corner scale of the popup. @default "auto" */
   panelCorner?: SurfaceCorner;
   /** Classes for the field box. */
@@ -180,6 +187,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       leadingIcon,
       visibleRows = 6,
       panelVariant = "auto",
+      panelTone = "auto",
       panelCorner = "auto",
       className,
       listClassName,
@@ -400,7 +408,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
                 field opens a glass popup instead of an opaque slab. */}
             <Panel
               variant={resolvedPanelVariant}
-              tone={PANEL_TONE_FOR_FIELD}
+              tone={panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone}
               corner={panelCorner}
               padding="none"
               scrollable={false}

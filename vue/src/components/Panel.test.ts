@@ -22,4 +22,9 @@ describe("Panel untinted surfaces", () => {
     expect(wrapper.attributes("data-tone")).toBe("none");
     expect(wrapper.classes().some(token => token.includes("bg-rose"))).toBe(false);
   });
+  it("explicit none also overrides legacy tint on glass rims and hover", () => {
+    const wrapper = mount(Panel, { props: { variant: "glass", tone: "none", color: "rose", hoverable: true } });
+    expect(wrapper.classes().join(" ")).not.toContain("rose");
+  });
+
 });

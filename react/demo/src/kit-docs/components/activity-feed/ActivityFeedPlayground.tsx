@@ -1,3 +1,5 @@
+import type { SurfaceTone } from "@cjlapao/ui-kit";
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
 import React, { useState } from "react";
 import {
   ActivityFeed,
@@ -5,11 +7,10 @@ import {
   type ButtonVariant,
   type SurfacePadding,
   type SurfaceVariant,
-  type TrueColor,
 } from "@cjlapao/ui-kit";
 import { PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
-import { panelPaddingOptions, surfaceVariantOptions, trueColorOptions } from "../../shared/options";
+import { panelPaddingOptions, surfaceVariantOptions } from "../../shared/options";
 
 const FILTER_VARIANT_OPTIONS = [
   { value: "", label: "Auto" },
@@ -51,7 +52,7 @@ export const ActivityFeedPlayground: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
-  const [tone, setTone] = useState("neutral");
+  const [tone, setTone] = useState<SurfaceTone>("none");
   const [ctaVariant, setCtaVariant] = useState("");
   const [loadMoreVariant, setLoadMoreVariant] = useState("");
   const [filterVariant, setFilterVariant] = useState("");
@@ -96,7 +97,7 @@ export const ActivityFeedPlayground: React.FC = () => {
                   <>
                     <SelectControl label="Variant" options={surfaceVariantOptions} value={variant}
                       onChange={(v) => setVariant(v as SurfaceVariant)} />
-                    <SelectControl label="Tone" options={trueColorOptions} value={tone} onChange={setTone} />
+                    <SurfaceToneControl label="Surface tone" value={tone} onChange={setTone} />
                     <SelectControl label="CTA variant" options={CTA_VARIANT_OPTIONS} value={ctaVariant} onChange={setCtaVariant} />
                     <SelectControl label="Load more variant" options={CTA_VARIANT_OPTIONS} value={loadMoreVariant} onChange={setLoadMoreVariant} />
                     <SelectControl label="Filter variant" options={FILTER_VARIANT_OPTIONS} value={filterVariant} onChange={setFilterVariant} />
@@ -126,7 +127,7 @@ export const ActivityFeedPlayground: React.FC = () => {
             hasMore={hasMore}
             onLoadMore={loadMore}
             variant={variant}
-            tone={tone as TrueColor}
+            tone={tone}
             ctaVariant={(ctaVariant || undefined) as ButtonVariant | undefined}
             loadMoreVariant={(loadMoreVariant || undefined) as ButtonVariant | undefined}
             filterVariant={(filterVariant || undefined) as SurfaceVariant | undefined}

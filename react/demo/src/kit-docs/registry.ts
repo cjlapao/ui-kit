@@ -314,6 +314,14 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/input/InputPage")),
   },
   {
+    slug: "filter-bar",
+    name: "Filter Bar",
+    description: "Expandable search, staged filters, chips and result counts.",
+    icon: "Search",
+    category: "Forms",
+    Page: lazy(() => import("./components/filter-bar/FilterBarPage")),
+  },
+  {
     slug: "searchbar",
     name: "Search Bar",
     description:

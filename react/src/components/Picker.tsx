@@ -28,6 +28,7 @@ import {
   PANEL_TONE_FOR_FIELD,
   SURFACE_VARIANT_FOR_FIELD,
   type SurfaceCorner,
+  type SurfaceTone,
   type SurfaceVariant,
   getFieldSizeTokens,
   getFieldToneTokens,
@@ -237,6 +238,12 @@ export interface PickerProps {
    */
   panelVariant?: "auto" | SurfaceVariant;
   /**
+   * The dropdown card's tone. `"auto"` keeps the field default (neutral);
+   * an explicit tone tints the card.
+   * @default "auto"
+   */
+  panelTone?: "auto" | SurfaceTone;
+  /**
    * The dropdown card's radius. `"auto"` resolves to the theme's
    * container corner — the same ladder SmartInput's card holds: the
    * card stays one step tighter than the field poking out of it. An
@@ -296,6 +303,7 @@ const Picker: React.FC<PickerProps> = ({
   glowIntensity = DEFAULT_GLOW_INTENSITY,
   validationStatus = "none",
   panelVariant = "auto",
+  panelTone = "auto",
   panelCorner = "auto",
   disabled = false,
   multi = false,
@@ -638,7 +646,7 @@ const Picker: React.FC<PickerProps> = ({
                 glass popup instead of an opaque slab. */}
             <Panel
               variant={resolvedPanelVariant}
-              tone={PANEL_TONE_FOR_FIELD}
+              tone={panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone}
               // "auto" resolves through the same corner scale the field
               // uses - a hardcoded `rounded-lg` here could not follow the
               // theme, and a field sitting in a tight panel would still
@@ -755,13 +763,20 @@ const Picker: React.FC<PickerProps> = ({
               {/* Option list */}
               {/* Multi-select clear action — a button, kept out of the
                 listbox so the listbox contains only options. */}
-              {multi && effectiveSelectedIds.length > 0 && (
+              {multi && (
                 <button
                   type="button"
+                  disabled={effectiveSelectedIds.length === 0}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={handleClearMulti}
                   className={classNames(
-                    "flex w-full cursor-pointer select-none items-center justify-between border-b border-black/5 px-4 py-1.5 text-xs hover:bg-neutral-50 dark:border-white/10 dark:hover:bg-neutral-800/60",
+                    // Always rendered: mounting it on the first pick pushed the
+                    // list down and resized the popup (flicker). Hidden, not
+                    // removed, while nothing is selected.
+                    "flex w-full select-none items-center justify-between border-b border-black/5 px-4 py-1.5 text-xs dark:border-white/10",
+                    effectiveSelectedIds.length > 0
+                      ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
+                      : "invisible",
                     popupText.muted,
                   )}
                 >

@@ -914,3 +914,6 @@ export * from "./knowledge";
 export { default as ContentActions, type ContentActionsProps } from "./ContentActions";
 
 export { default as CodeBlock, type CodeBlockProps } from "./CodeBlock";
+
+export { FilterBar } from "./FilterBar";
+export type { FilterBarProps, FilterBarFilter, FilterBarOption, FilterBarValue } from "./FilterBar";

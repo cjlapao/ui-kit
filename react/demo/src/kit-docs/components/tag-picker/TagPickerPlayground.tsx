@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { ColorSwatches, Input, Panel, TagPicker } from "@cjlapao/ui-kit";
 import type {
+  SurfaceTone,
+  SurfaceVariant,
   ControlSize,
   GlowIntensity,
   InputVariant,
@@ -13,6 +15,7 @@ import {
   PlaygroundPanel,
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
+import { PanelSurfaceControls } from "../../shared/PanelSurfaceControls";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
@@ -35,6 +38,8 @@ export const TagPickerPlayground: React.FC = () => {
   const [tone, setTone] = useState<TrueColor>("blue");
   const [size, setSize] = useState<ControlSize>("md");
   const [variant, setVariant] = useState<InputVariant>("flat");
+  const [panelVariant, setPanelVariant] = useState<"auto" | SurfaceVariant>("auto");
+  const [panelTone, setPanelTone] = useState<"auto" | SurfaceTone>("auto");
   const [validationStatus, setValidationStatus] =
     useState<ValidationStatus>("none");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("subtle");
@@ -65,6 +70,8 @@ export const TagPickerPlayground: React.FC = () => {
       tone={tone}
       size={size}
       variant={variant}
+      panelVariant={panelVariant}
+      panelTone={panelTone}
       validationStatus={validationStatus}
       glowIntensity={glowIntensity}
       multi={multi}
@@ -114,6 +121,12 @@ export const TagPickerPlayground: React.FC = () => {
                       onChange={(v) =>
                         setValidationStatus(v as ValidationStatus)
                       }
+                    />
+                    <PanelSurfaceControls
+                      panelVariant={panelVariant}
+                      onPanelVariant={setPanelVariant}
+                      panelTone={panelTone}
+                      onPanelTone={setPanelTone}
                     />
                   </>
                 ),

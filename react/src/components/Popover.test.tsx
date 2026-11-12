@@ -222,6 +222,14 @@ describe("Popover", () => {
     expect(trigger).toHaveAttribute("aria-controls", w.id);
   });
 
+  it.each([true, "bubble"] as const)("keeps the %s caret borderless on a none surface", async (arrow) => {
+    renderPopover({ variant: "none", tone: "none", arrow });
+    const wrapper = await openPopover();
+    const caret = wrapper.querySelector(arrow === "bubble" ? "[data-popover-bubble]" : ".rotate-45")!;
+    expect(caret).not.toBeNull();
+    expect(caret.className).not.toMatch(/(?:^|\s)border(?:-[tlrb])?(?:\s|$)/);
+  });
+
   it("points the arrow at the trigger's centre (caret − half the arrow)", async () => {
     renderPopover();
     await openPopover();

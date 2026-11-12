@@ -157,10 +157,10 @@ describe("StatCard — gradient", () => {
     expect(section(container).getAttribute("data-gradient")).toBe("true");
   });
 
-  it("defaults to blue when no tone is given", () => {
+  it("uses a neutral gradient when no tone is given", () => {
     const { container } = render(<StatCard value="1" gradient />);
     expect(section(container).style.background).toContain(
-      "var(--color-blue-950)",
+      "var(--color-neutral-950)",
     );
   });
 
@@ -240,10 +240,10 @@ describe("StatCard — progress", () => {
     );
   });
 
-  it("falls back to blue when the card has no tone", () => {
+  it("uses a neutral progress accent when the card has no tone", () => {
     const { container } = render(<StatCard value="1" progress />);
     expect(arcOf(container)?.getAttribute("stroke")).toBe(
-      "var(--color-blue-400)",
+      "var(--color-neutral-400)",
     );
   });
 

@@ -1,3 +1,5 @@
+import type { SurfaceTone } from "@cjlapao/ui-kit";
+import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Badge,
@@ -75,6 +77,7 @@ export const TaskBoardPlayground: React.FC = () => {
   const [log, pushLog] = useEventLog();
   const [layout, setLayout] = useState<TaskBoardLayout>("columns");
   const [cardLayout, setCardLayout] = useState<TaskBoardCardLayout>("detailed");
+  const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [variant, setVariant] = useState<TaskBoardVariant>("elevated");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [columnCorner, setColumnCorner] = useState<SurfaceCorner>("rounded-md");
@@ -158,6 +161,7 @@ export const TaskBoardPlayground: React.FC = () => {
                 title: "Surface",
                 controls: (
                   <>
+                    <SurfaceToneControl label="Surface tone" value={surfaceTone} onChange={setSurfaceTone} />
                     <SelectControl label="Variant" options={plainSurfaceVariantOptions} value={variant} onChange={(v) => setVariant(v as TaskBoardVariant)} />
                     <SelectControl label="Corner" options={panelCornerOptions} value={corner} onChange={(v) => setCorner(v as SurfaceCorner)} />
                     <SelectControl label="Column corner" options={panelCornerOptions} value={columnCorner} onChange={(v) => setColumnCorner(v as SurfaceCorner)} />
@@ -218,6 +222,7 @@ export const TaskBoardPlayground: React.FC = () => {
       preview={
         <div className="flex w-full flex-col gap-2">
           <TaskBoard
+            tone={surfaceTone}
             layout={layout}
             cardLayout={cardLayout}
             cards={empty ? [] : toned ? cards.map((c) => ({ ...c, tone: toneFor(c) })) : cards}

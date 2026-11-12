@@ -86,7 +86,7 @@ export function IdentityPicker({ value, defaultValue = null, onChange, onReject,
   const previewClass = classNames("flex shrink-0 items-center justify-center overflow-hidden border border-neutral-200 dark:border-neutral-600", density.preview, getSurfaceCornerClass(surface.corner ?? "rounded-md"), tokens.bg);
   const preview = selected?.type === "image" ? <ImagePreview file={selected.file} src={selected.src} alt={labels.preview} className="h-full w-full object-contain" />
     : <span style={{ fontFamily }} aria-hidden="true">{selected?.type === "emoji" ? selected.emoji : selected?.type === "monogram" ? selected.text : automatic}</span>;
-  return <Panel {...surface} variant={surface.variant ?? "outlined"} tone={tone} padding={surface.padding ?? (compact ? "xs" : "sm")} className={className} aria-busy={loading || undefined}>
+  return <Panel {...surface} variant={surface.variant ?? "outlined"} tone={surface.tone ?? "none"} padding={surface.padding ?? (compact ? "xs" : "sm")} className={className} aria-busy={loading || undefined}>
     <div className={classNames("flex items-start", density.headerGap)}>
       <div className={previewClass} role={selected?.type === "image" ? undefined : "img"} aria-label={selected?.type === "image" ? undefined : `${labels.preview}: ${selected?.type === "emoji" ? selected.emoji : selected?.type === "monogram" ? selected.text : automatic}`}>{preview}</div>
       <div className="min-w-0 flex-1"><h3 className={classNames("font-semibold", density.title)}>{labels.title}</h3><p className={classNames("mt-1 text-neutral-500 dark:text-neutral-400", density.description)}>{labels.description}</p></div>
@@ -131,7 +131,7 @@ export function IdentityPicker({ value, defaultValue = null, onChange, onReject,
           {!filtered.length && <p role="status" className="py-4 text-center text-sm text-neutral-500">{labels.empty}</p>}
         </div> },
         { id: `${tabsId}-upload`, label: labels.upload, disabled: locked, panel: <div className={spacing.panel}><FileUpload embedded compact={compact}
-          variant={surface.variant} tone={tone} corner={surface.corner} padding="none" size={size} accept="image/png,image/svg+xml" maxSize={maxImageSize}
+          variant={surface.variant} tone={surface.tone ?? "none"} corner={surface.corner} padding="none" size={size} accept="image/png,image/svg+xml" maxSize={maxImageSize}
           disabled={disabled} loading={loading} labels={{ title: "Drop an image here", description: "SVG or PNG · drag and drop, or browse your device", ...uploadLabels }}
           value={selected?.type === "image" && selected.file ? [selected.file] : []} onReject={onReject}
           onChange={files => change(files[0] ? { type: "image", file: files[0] } : null)} /></div> },

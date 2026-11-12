@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { SurfaceTone, SurfaceVariant } from "../theme/Theme";
 import type { VNode } from "vue";
 import type { TrueColor } from "../theme";
 import type { IconName } from "../icons/registry";
@@ -33,6 +34,8 @@ export interface StatTileProgress {
 }
 
 export interface StatTileProps {
+  variant?: SurfaceVariant;
+  tone?: SurfaceTone;
   title?: string;
   value?: string | number;
   subtitle?: string;
@@ -71,6 +74,8 @@ defineOptions({ name: "StatTile", inheritAttrs: false });
 
 const props = withDefaults(defineProps<StatTileProps>(), {
   color: "blue",
+  variant: "default",
+  tone: "none",
   withDecoration: false,
   withHoverEffect: false,
   loading: false,
@@ -181,7 +186,8 @@ const metaSectionClass = computed(() =>
 
 <template>
   <Panel
-    variant="default"
+    :variant="variant"
+    :tone="tone"
     corner="rounded"
     padding="none"
     :flex-body="true"

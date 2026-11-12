@@ -1,11 +1,12 @@
 <script lang="ts">
+import { getSurfaceAccentColor } from "../theme/Theme";
 import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
 } from "./Panel.vue";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
-import type { ControlSize, PlainSurfaceVariant, TrueColor } from "../theme/Theme";
+import type { ControlSize, PlainSurfaceVariant, SurfaceTone } from "../theme/Theme";
 
 /** Every container surface, plus `plain` for use inside a card that exists. */
 export type InfiniteScrollPanelVariant = PlainSurfaceVariant;
@@ -70,7 +71,7 @@ export interface InfiniteScrollPanelProps<T> {
   // ── Surface ───────────────────────────────────────────────────────────────
   /** @default "plain" — this is usually dropped into a card the app owns. */
   variant?: InfiniteScrollPanelVariant;
-  tone?: TrueColor;
+  tone?: SurfaceTone;
   corner?: PanelCorner;
   padding?: PanelPadding;
   glassOpacity?: GlassOpacity;
@@ -129,10 +130,11 @@ const props = withDefaults(defineProps<InfiniteScrollPanelProps<T>>(), {
   endMessage: "You have reached the end",
   emptyMessage: "No items found",
   variant: "plain",
-  tone: "blue",
+  tone: "none",
   corner: () => DEFAULT_SURFACE_CORNER,
   padding: "none",
 });
+const accentTone = computed(() => getSurfaceAccentColor(props.tone));
 
 const emit = defineEmits<{ (event: "error", error: unknown): void }>();
 
@@ -336,7 +338,7 @@ const keyFor = (item: T, index: number) =>
           class="flex min-h-40 items-center justify-center p-8"
         >
           <slot name="loadingComponent">
-            <Spinner :color="tone" size="lg" variant="segments" />
+            <Spinner :color="accentTone" size="lg" variant="segments" />
           </slot>
         </div>
         <slot v-else name="emptyComponent">
@@ -406,7 +408,7 @@ const keyFor = (item: T, index: number) =>
         <Button
           size="sm"
           variant="outline"
-          :color="tone"
+          :color="accentTone"
           leading-icon="Refresh"
           @click="retry"
         >
@@ -420,7 +422,7 @@ const keyFor = (item: T, index: number) =>
         <slot name="loadingComponent">
           <div class="flex flex-col items-center justify-center gap-3">
             <Spinner
-              :color="tone"
+              :color="accentTone"
               size="lg"
               variant="segments"
               thickness="thick"

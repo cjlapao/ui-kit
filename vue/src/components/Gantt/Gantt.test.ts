@@ -592,7 +592,7 @@ describe("Gantt (Vue)", () => {
     const root = w.find("[data-gantt]").element as HTMLElement;
     expect(root.tagName).toBe("SECTION");
     expect(root.getAttribute("data-variant")).toBe("elevated");
-    expect(root.getAttribute("data-tone")).toBe("neutral");
+    expect(root.getAttribute("data-tone")).toBe("none");
   });
 
   it("keeps the toolbar and the today marker in the detached header, out of the body scroller", () => {
@@ -633,7 +633,7 @@ describe("Gantt (Vue)", () => {
 
     // The toolbar pill follows the shared surface-variant chrome.
     const pill = w.find<HTMLElement>('[class*="pointer-events-auto"]').element;
-    expect(pill.className).toContain(getSurfaceVariantClasses("glass", "neutral"));
+    expect(pill.className).toContain(getSurfaceVariantClasses("glass", "none"));
 
     // Row hairlines follow the divider token — carried by the row's sticky
     // half, which owns the bottom border.

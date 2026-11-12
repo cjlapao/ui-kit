@@ -33,7 +33,7 @@ describe("HelpButton (Vue)", () => {
     it.each(TRUE_COLORS)(
       "the header carries %s's own accent (not the neutral fallback)",
       async (tone) => {
-        mount(HelpButton, { props: { content: "x", color: tone } });
+        mount(HelpButton, { props: { content: "x", color: tone, tone } });
         await nextTick();
         const html = panel()!.innerHTML;
         expect(html).toContain(`bg-${tone}-50/80`);

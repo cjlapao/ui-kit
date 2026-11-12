@@ -878,7 +878,7 @@ const Popover: React.FC<PopoverProps> = ({
                     aria-hidden="true"
                     className={classNames(
                       "absolute block h-4 w-4 rotate-45",
-                      ARROW_SIDE_BORDERS[position.placement.side],
+                      variant !== "none" && ARROW_SIDE_BORDERS[position.placement.side],
                       chrome.border,
                       chrome.fill,
                       chrome.backdrop,
@@ -902,7 +902,8 @@ const Popover: React.FC<PopoverProps> = ({
                 aria-hidden="true"
                 data-popover-bubble
                 className={classNames(
-                  "pointer-events-none absolute z-20 block rounded-full border",
+                  "pointer-events-none absolute z-20 block rounded-full",
+                  variant !== "none" && "border",
                   chrome.border,
                   chrome.fill,
                   chrome.backdrop,

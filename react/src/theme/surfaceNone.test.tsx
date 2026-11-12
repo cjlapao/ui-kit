@@ -14,8 +14,8 @@ describe("Untinted shared surfaces", () => {
     expect(getSurfaceAccentColor("none")).toBe("neutral");
     expect(getSurfaceAccentColor("blue")).toBe("blue");
     expect(getSurfaceVariantClasses("none", "none")).toBe("");
-    expect(getSurfaceVariantClasses("none", "blue")).toContain("bg-blue");
-    expect(getPanelToneStyles("none").tonalBg).not.toContain("bg-blue");
+    expect(getSurfaceVariantClasses("none", "blue")).toContain("--color-blue-50");
+    expect(getPanelToneStyles("none").tonalBg).not.toContain("--color-blue-50");
     expect(getSurfaceGlassFillClass("none", "frosted")).not.toContain("bg-none");
   });
 

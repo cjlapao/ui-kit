@@ -96,6 +96,7 @@ export const GanttPlayground: React.FC = () => {
     <PlaygroundPanel
       controls={
         <div className="flex flex-col gap-4">
+          <SurfaceToneControl label="Surface tone" value={surfaceTone} onChange={setSurfaceTone} />
           <Control label="Accent">
             <div className="flex flex-wrap gap-1.5">
               {ACCENTS.map((c) => (
