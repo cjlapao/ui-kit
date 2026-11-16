@@ -8,6 +8,8 @@ describe("AiOrb appearance and budgets", () => {
     });
     expect(resolveAppearance("ember", { glow: -1, motionIntensity: Infinity }).glow).toBe(0);
     expect(AI_ORB_PRESETS.solar.glow).toBe(0.7);
+    expect(resolveAppearance("solar", { definition: -1 }).definition).toBe(0);
+    expect(resolveAppearance("solar", { definition: NaN }).definition).toBe(1);
   });
   it("caps resolution and effects for every quality tier", () => {
     expect(backingSize(240, 3, "balanced")).toBe(360);

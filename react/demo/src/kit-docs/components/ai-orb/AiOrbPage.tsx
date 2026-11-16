@@ -6,6 +6,8 @@ import Presets from "./examples/Presets";
 import presetsCode from "./examples/Presets.tsx?raw";
 import CompactOrb from "./examples/AudioSource";
 import audioCode from "./examples/AudioSource.tsx?raw";
+import CompactDefinition from "./examples/CompactDefinition";
+import compactCode from "./examples/CompactDefinition.tsx?raw";
 
 export default function AiOrbPage() {
   return <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -14,6 +16,7 @@ export default function AiOrbPage() {
     <section className="flex flex-col gap-5">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Examples</h2>
       <ExampleCard title="Three personalities, one renderer" code={presetsCode} filename="Presets.tsx"><Presets /></ExampleCard>
+      <ExampleCard title="Definition at small sizes" description="48–128px listening and speaking orbs. Size-aware strokes, brighter flares, fewer details, and restrained glow keep motion readable. Set appearance.definition to 0 to disable the enhancement." code={compactCode} filename="CompactDefinition.tsx"><CompactDefinition /></ExampleCard>
       <ExampleCard title="Audio sources and compact presence" description="The application owns microphone permissions, tracks, playback, and conversation state. The orb borrows sources and never plays audio." code={audioCode} filename="AudioSource.tsx"><CompactOrb /></ExampleCard>
     </section>
     <A11ySection>
@@ -24,7 +27,7 @@ export default function AiOrbPage() {
     <PropsTable props={[
       { name: "state", type: '"idle" | "listening" | "speaking"', default: '"idle"', description: "Conversation state controlled by the host." },
       { name: "preset", type: '"solar" | "ion" | "ember"', default: '"solar"', description: "Base palette and motion settings." },
-      { name: "appearance", type: "AiOrbAppearance", default: "Preset values", description: "Optional coreColor, accentColor, glowColor (#RGB or #RRGGBB), glow and motionIntensity (0–1). Invalid values fall back to preset defaults." },
+      { name: "appearance", type: "AiOrbAppearance", default: "Preset values; definition: 1", description: "Optional coreColor, accentColor, glowColor (#RGB or #RRGGBB), glow, motionIntensity, and definition (0–1). Definition automatically improves detail below 240 CSS pixels; 0 restores proportional scaling. Invalid values fall back to preset defaults." },
       { name: "audioSource", type: "AnalyserNode | MediaStream | null", default: "undefined", description: "Borrowed source. No microphone request or playback. Stream-owned analysis contexts close on source changes/unmount; caller tracks and analysers remain untouched." },
       { name: "size", type: "number", default: "240", description: "Square CSS pixel size; shrinks to container width. Nonpositive/nonfinite values fall back to 240." },
       { name: "quality", type: '"low" | "balanced" | "high"', default: '"balanced"', description: "24/30/60 FPS and 1/1.5/2 maximum DPR. Backing store capped at 1024 pixels per side." },

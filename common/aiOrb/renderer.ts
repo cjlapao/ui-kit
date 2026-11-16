@@ -19,6 +19,14 @@ export function createOrbRenderer(canvas: HTMLCanvasElement, options: OrbRenderO
   let listen = options.state === "listening" ? 1 : 0;
   let speak = options.state === "speaking" ? 1 : 0;
   let time = 0;
+  let cssSize = 240;
+  let compact = 0;
+  let pixel = 2;
+  const updateDefinition = () => {
+    // Use displayed CSS size, never the DPR-scaled backing store.
+    compact = Math.max(0, Math.min(1, (240 - cssSize) / 176)) * colors.definition;
+    pixel = 480 / cssSize;
+  };
   const core = document.createElement("canvas");
   const halo = document.createElement("canvas");
   core.width = core.height = 256;
@@ -52,9 +60,12 @@ export function createOrbRenderer(canvas: HTMLCanvasElement, options: OrbRenderO
       const nextColors = resolveAppearance(next.preset, next.appearance);
       const changed = nextColors.coreColor !== colors.coreColor || nextColors.accentColor !== colors.accentColor || nextColors.glowColor !== colors.glowColor;
       settings = next; colors = nextColors; budget = AI_ORB_QUALITY[next.quality];
+      updateDefinition();
       if (changed) textures();
     },
     resize(size: number, dpr: number) {
+      cssSize = Number.isFinite(size) && size > 0 ? size : 240;
+      updateDefinition();
       const pixels = backingSize(size, dpr, settings.quality);
       if (canvas.width !== pixels || canvas.height !== pixels) canvas.width = canvas.height = pixels;
     },
@@ -68,52 +79,56 @@ export function createOrbRenderer(canvas: HTMLCanvasElement, options: OrbRenderO
       const target = animated && settings.state !== "idle" ? audio?.sample() ?? 0 : 0;
       level += (target - level) * (animated ? Math.min(1, dt * 14) : 1);
       const energy = level * colors.motionIntensity;
-      const radius = 75 + Math.sin(time * 1.8) * 2 + energy * 12;
+      const radius = 75 + compact * 25 + Math.sin(time * 1.8) * (2 + compact * 3) + energy * (12 + compact * 10);
       ctx.setTransform(canvas.width / 480, 0, 0, canvas.height / 480, 0, 0);
       ctx.clearRect(0, 0, 480, 480);
-      ctx.globalAlpha = colors.glow * (0.65 + energy * 0.35);
+      ctx.globalAlpha = colors.glow * (0.65 + energy * 0.35) * (1 - compact * 0.45);
       ctx.drawImage(halo, 0, 0);
       ctx.globalAlpha = 1;
       if (listen > 0.001) {
-        for (let ring = 0; ring < budget.rings; ring++) {
+        const rings = compact > 0.5 ? Math.min(2, budget.rings) : budget.rings;
+        for (let ring = 0; ring < rings; ring++) {
           ctx.beginPath();
           for (let i = 0; i <= 128; i++) {
             const angle = i / 128 * Math.PI * 2;
             // A taper joins waveform endpoints without a visible seam.
             const sample = animated ? audio?.waveform[i % 128] ?? 0 : 0;
-            const wave = sample * Math.sin(angle / 2) * 40 * colors.motionIntensity;
-            const r = 112 + ring * 15 + wave + Math.sin(angle * 7 + time * 2 + ring) * 3 * colors.motionIntensity;
+            const wave = sample * Math.sin(angle / 2) * (40 + compact * 28) * colors.motionIntensity;
+            const r = 112 + compact * 25 + ring * (15 + compact * 8) + wave + Math.sin(angle * 7 + time * 2 + ring) * (3 + compact * 10) * colors.motionIntensity;
             const x = 240 + Math.cos(angle) * r, y = 240 + Math.sin(angle) * r;
             if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
           }
-          ctx.closePath(); ctx.strokeStyle = colors.accentColor; ctx.globalAlpha = listen * (0.65 - ring * 0.15); ctx.lineWidth = 1.4; ctx.stroke();
+          ctx.closePath(); ctx.strokeStyle = colors.accentColor; ctx.globalAlpha = listen * (0.65 + compact * 0.25 - ring * 0.15); ctx.lineWidth = Math.max(1.4, pixel * compact * 1.25); ctx.stroke();
         }
       }
       if (speak > 0.001) {
         ctx.strokeStyle = colors.accentColor;
-        for (let i = 0; i < budget.flares; i++) {
+        const flares = Math.max(6, Math.round(budget.flares * (1 - compact * 0.45)));
+        for (let i = 0; i < flares; i++) {
           const angle = seeds[i] + time * 0.07;
-          const length = 10 + (Math.sin(time * 1.7 + seeds[i]) + 1) * 7 * colors.motionIntensity + energy * 18;
+          const length = 10 + compact * 7 + (Math.sin(time * 1.7 + seeds[i]) + 1) * (7 + compact * 8) * colors.motionIntensity + energy * 18;
           ctx.save(); ctx.translate(240, 240); ctx.rotate(angle);
-          ctx.globalAlpha = speak * (0.25 + colors.glow * 0.4);
-          ctx.beginPath(); ctx.ellipse(radius + length * 0.45, 0, length, 4 + energy * 3, 0, 0, Math.PI * 2); ctx.lineWidth = 1.3; ctx.stroke(); ctx.restore();
+          ctx.globalAlpha = speak * (0.25 + colors.glow * 0.4 + compact * 0.3);
+          ctx.beginPath(); ctx.ellipse(radius + length * 0.45, 0, length, 4 + compact * 5 + energy * 3, 0, 0, Math.PI * 2); ctx.lineWidth = Math.max(1.3, pixel * compact * 1.15); ctx.stroke(); ctx.restore();
         }
         ctx.fillStyle = colors.coreColor;
-        for (let i = 0; i < budget.particles; i++) {
+        const particles = Math.max(4, Math.round(budget.particles * (1 - compact * 0.5)));
+        for (let i = 0; i < particles; i++) {
           const phase = (time * 0.12 + i * 0.173) % 1;
           const angle = seeds[i] + time * 0.035;
           const r = radius + 22 + phase * 85;
-          ctx.globalAlpha = speak * (1 - phase) * (0.3 + energy * 0.5);
-          ctx.beginPath(); ctx.arc(240 + Math.cos(angle) * r, 240 + Math.sin(angle) * r, 1 + i % 3 * 0.65, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = speak * (1 - phase) * (0.3 + energy * 0.5 + compact * 0.2);
+          ctx.beginPath(); ctx.arc(240 + Math.cos(angle) * r, 240 + Math.sin(angle) * r, Math.max(1 + i % 3 * 0.65, pixel * compact * (0.8 + i % 3 * 0.15)), 0, Math.PI * 2); ctx.fill();
         }
       }
       ctx.globalAlpha = 1;
       ctx.drawImage(core, 240 - radius, 240 - radius, radius * 2, radius * 2);
       ctx.save(); ctx.beginPath(); ctx.arc(240, 240, radius * 0.95, 0, Math.PI * 2); ctx.clip();
       ctx.strokeStyle = colors.accentColor;
-      for (let i = 0; i < 10; i++) {
-        ctx.globalAlpha = 0.12 + speak * 0.07;
-        ctx.beginPath(); ctx.ellipse(240 + Math.sin(seeds[i] + time * 0.16) * 54, 240 + Math.cos(seeds[i] * 2 + time * 0.1) * 54, 22 + i * 2, 8 + i % 4, seeds[i] + time * 0.1, 0, Math.PI * 2); ctx.lineWidth = 1; ctx.stroke();
+      const surfaceLoops = compact > 0.5 ? 4 : 10;
+      for (let i = 0; i < surfaceLoops; i++) {
+        ctx.globalAlpha = 0.12 + speak * 0.07 + compact * 0.12;
+        ctx.beginPath(); ctx.ellipse(240 + Math.sin(seeds[i] + time * 0.16) * 54, 240 + Math.cos(seeds[i] * 2 + time * 0.1) * 54, 22 + i * 2, 8 + i % 4, seeds[i] + time * 0.1, 0, Math.PI * 2); ctx.lineWidth = Math.max(1, pixel * compact * 0.65); ctx.stroke();
       }
       ctx.restore(); ctx.globalAlpha = 1;
     },

@@ -10,12 +10,14 @@ export interface AiOrbAppearance {
   glow?: number;
   /** Ambient and audio-driven motion, from 0 to 1. */
   motionIntensity?: number;
+  /** Strength of automatic detail enhancement below 240 CSS pixels, from 0 to 1. */
+  definition?: number;
 }
 
 export const AI_ORB_PRESETS: Record<AiOrbPreset, Required<AiOrbAppearance>> = {
-  solar: { coreColor: "#ffe9a8", accentColor: "#ff9b32", glowColor: "#ed5b16", glow: 0.7, motionIntensity: 0.75 },
-  ion: { coreColor: "#e0fffa", accentColor: "#63e8dd", glowColor: "#158ca5", glow: 0.55, motionIntensity: 0.6 },
-  ember: { coreColor: "#641b18", accentColor: "#ff7754", glowColor: "#ad2517", glow: 0.45, motionIntensity: 0.4 },
+  solar: { coreColor: "#ffe9a8", accentColor: "#ff9b32", glowColor: "#ed5b16", glow: 0.7, motionIntensity: 0.75, definition: 1 },
+  ion: { coreColor: "#e0fffa", accentColor: "#63e8dd", glowColor: "#158ca5", glow: 0.55, motionIntensity: 0.6, definition: 1 },
+  ember: { coreColor: "#641b18", accentColor: "#ff7754", glowColor: "#ad2517", glow: 0.45, motionIntensity: 0.4, definition: 1 },
 };
 
 export const AI_ORB_QUALITY = {
@@ -40,6 +42,7 @@ export function resolveAppearance(preset: AiOrbPreset, appearance?: AiOrbAppeara
     glowColor: color(appearance?.glowColor, base.glowColor),
     glow: unit(appearance?.glow, base.glow),
     motionIntensity: unit(appearance?.motionIntensity, base.motionIntensity),
+    definition: unit(appearance?.definition, base.definition),
   };
 }
 
