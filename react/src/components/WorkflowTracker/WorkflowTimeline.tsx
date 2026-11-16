@@ -116,6 +116,7 @@ const NestedSubSteps: React.FC<NestedSubStepsProps> = ({
 export interface WorkflowTimelineProps {
   disableFutureSteps?: boolean;
   controls?: React.ReactNode;
+  controlsHeader?: React.ReactNode;
   footerResizable?: boolean;
   defaultFooterHeight?: number;
   footerHeight?: number;
@@ -149,6 +150,7 @@ export interface WorkflowTimelineProps {
 export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   disableFutureSteps = false,
   controls,
+  controlsHeader,
   footerResizable = false,
   defaultFooterHeight = 30,
   footerHeight,
@@ -178,7 +180,8 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   onStepAction,
 }) => {
   const isEmpty = steps.length === 0;
-  const hasFooter = controls != null && controls !== false;
+  const hasFooterHeader = controlsHeader != null && controlsHeader !== false;
+  const hasFooter = (controls != null && controls !== false) || hasFooterHeader;
   const resizableFooter = footerResizable && fillHeight && hasFooter;
   const footer = useWorkflowFooterResize({
     height: footerHeight, defaultHeight: defaultFooterHeight,
@@ -508,18 +511,26 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
         <span aria-hidden="true" className={classNames("pointer-events-none absolute inset-x-0 top-1/2 border-t", surfaces.border)} />
         <span aria-hidden="true" className={classNames("relative h-1 w-10 rounded-full bg-neutral-400 transition-opacity dark:bg-neutral-500", footer.dragging ? "opacity-100" : "opacity-40 group-hover:opacity-100 group-focus-visible:opacity-100")} />
       </div>}
-      {hasFooter && <ScrollArea
+      {hasFooter && <div
         id={footer.footerId}
         role="region"
         aria-label={footerLabel}
-        variant="hover"
-        className={classNames(!resizableFooter && "border-t", surfaces.border, fillHeight && "min-h-0")}
+        className={classNames("flex min-h-0 flex-col overflow-hidden", !resizableFooter && "border-t", surfaces.border)}
         style={fillHeight ? { flex: `${footer.percentage} 1 0%` } : undefined}
-        viewportClassName="overscroll-contain"
-        contentClassName={collapsed ? "px-2 py-4" : "px-5 py-4"}
       >
-        {controls}
-      </ScrollArea>}
+        {hasFooterHeader && <div className={classNames("shrink-0 pb-3 pt-4", collapsed ? "px-2" : "px-5")}>
+          {controlsHeader}
+        </div>}
+        <ScrollArea
+          variant="hover"
+          className={fillHeight ? "min-h-0 flex-1" : undefined}
+          viewportClassName="overscroll-contain"
+          contentClassName={classNames(collapsed ? "px-2 pb-4" : "px-5 pb-4", !hasFooterHeader && "pt-4")}
+        >
+          {controls}
+        </ScrollArea>
+      </div>}
+
       </div>
 
       {/* Legend */}

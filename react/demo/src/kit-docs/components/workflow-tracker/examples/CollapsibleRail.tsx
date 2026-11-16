@@ -65,6 +65,30 @@ const agents = [
   },
 ];
 
+function AgentControlsHeader({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div
+      className={`flex items-center ${collapsed ? "justify-center" : "justify-between gap-2"}`}
+    >
+      <h3
+        className={
+          collapsed
+            ? "text-[8px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
+            : "text-[10px] font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-300"
+        }
+      >
+        {collapsed ? "Agents" : "Orchestrated agents"}
+      </h3>
+      {!collapsed && (
+        <span className="text-xs text-blue-600 dark:text-blue-300">
+          3 Total
+        </span>
+      )}
+    </div>
+  );
+}
+
+
 // Consumer-owned UI and state. The rail only supplies its effective collapse state.
 function AgentControls({ collapsed }: { collapsed: boolean }) {
   const [selected, setSelected] = useState("all");
@@ -81,24 +105,6 @@ function AgentControls({ collapsed }: { collapsed: boolean }) {
   ];
   return (
     <section aria-label="Orchestrated agents" className="min-w-0">
-      <div
-        className={`mb-3 flex items-center ${collapsed ? "justify-center" : "justify-between gap-2"}`}
-      >
-        <h3
-          className={
-            collapsed
-              ? "text-[8px] font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400"
-              : "text-[10px] font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-300"
-          }
-        >
-          {collapsed ? "Agents" : "Orchestrated agents"}
-        </h3>
-        {!collapsed && (
-          <span className="text-xs text-blue-600 dark:text-blue-300">
-            3 Total
-          </span>
-        )}
-      </div>
       <div className="space-y-2">
         {entries.map((agent) => (
           <button
@@ -204,6 +210,9 @@ export default function CollapsibleRail() {
           </div>
         )}
         stepPopoverProps={{ maxWidth: 300 }}
+        renderControlsHeader={({ collapsed }) => (
+          <AgentControlsHeader collapsed={collapsed} />
+        )}
         renderControls={({ collapsed }) => (
           <AgentControls collapsed={collapsed} />
         )}

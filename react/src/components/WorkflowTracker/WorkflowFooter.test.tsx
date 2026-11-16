@@ -19,6 +19,22 @@ describe("WorkflowTrackerRail footer split", () => {
     expect(stepViewport.parentElement?.style.flexGrow).toBe("70");
     expect(screen.queryByRole("separator")).toBeNull();
   });
+  it("keeps the footer heading outside its scrolling viewport in both collapse states", () => {
+    const props = {
+      fillHeight: true, collapsible: true, footerResizable: true,
+      renderControls: controls,
+      renderControlsHeader: ({ collapsed }: { collapsed: boolean }) => <h3>{collapsed ? "Agents" : "Orchestrated agents"}</h3>,
+    };
+    const { rerender } = render(<WorkflowTrackerRail {...props} />);
+    const region = screen.getByRole("region", { name: "Workflow footer" });
+    const viewport = region.querySelector('[data-slot="scrollarea-viewport"]')!;
+    expect(region).toContainElement(screen.getByRole("heading", { name: "Orchestrated agents" }));
+    expect(viewport).not.toContainElement(screen.getByRole("heading", { name: "Orchestrated agents" }));
+    expect(viewport).toContainElement(screen.getByRole("button", { name: "Agent controls" }));
+    rerender(<WorkflowTrackerRail {...props} collapsed />);
+    expect(viewport).not.toContainElement(screen.getByRole("heading", { name: "Agents" }));
+    expect(viewport).toContainElement(screen.getByRole("button", { name: "Agent controls" }));
+  });
   it("supports keyboard resizing and clamps both ends", () => {
     const onChange = vi.fn();
     render(<WorkflowTrackerRail fillHeight footerResizable renderControls={controls} onFooterHeightChange={onChange} />);

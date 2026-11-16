@@ -37,6 +37,10 @@ export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
   renderControls?: (
     context: WorkflowTrackerRailControlsContext,
   ) => React.ReactNode;
+  /** Fixed footer heading, outside the controls scroll area. Receives the same collapse state as renderControls. */
+  renderControlsHeader?: (
+    context: WorkflowTrackerRailControlsContext,
+  ) => React.ReactNode;
   /** Enable the horizontal resize handle between steps and footer in a height-constrained rail. @default false */
   footerResizable?: boolean;
   /** Initial footer share of the steps/footer space, in percent (10–80). @default 30 */
@@ -135,6 +139,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   collapseLabel = "Collapse workflow rail",
   renderStepPopover,
   renderControls,
+  renderControlsHeader,
   footerResizable = false,
   defaultFooterHeight = 30,
   footerHeight,
@@ -238,6 +243,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
       >
         <WorkflowTimeline
           controls={renderControls?.({ collapsed: isCollapsed })}
+          controlsHeader={renderControlsHeader?.({ collapsed: isCollapsed })}
           footerResizable={footerResizable}
           defaultFooterHeight={defaultFooterHeight}
           footerHeight={footerHeight}
