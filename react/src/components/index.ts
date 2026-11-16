@@ -1,3 +1,5 @@
+export * from "./AiOrb";
+
 // Primitives
 export {
   default as Alert,

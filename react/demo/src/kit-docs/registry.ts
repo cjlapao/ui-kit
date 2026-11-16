@@ -46,6 +46,11 @@ export const DOC_CATEGORIES: DocCategory[] = [
 
 export const DOC_COMPONENTS: DocComponent[] = [
   {
+    slug: "ai-orb", name: "AI Orb", icon: "Sun", category: "Feedback",
+    description: "Audio-reactive presence with solar flares, listening waves, and customizable palettes.",
+    Page: lazy(() => import("./components/ai-orb/AiOrbPage")),
+  },
+  {
     slug: "knowledge-explorer", name: "Knowledge Explorer", icon: "Blueprint", category: "Data",
     description: "Composable memory cards, searchable library, topic map, details, and linked agent traces.",
     Page: lazy(() => import("./components/knowledge-explorer/KnowledgeExplorerPage")),
