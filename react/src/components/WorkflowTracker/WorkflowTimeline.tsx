@@ -1,3 +1,4 @@
+import { useWorkflowFooterResize } from "./useWorkflowFooterResize";
 import React from "react";
 import classNames from "classnames";
 
@@ -115,6 +116,12 @@ const NestedSubSteps: React.FC<NestedSubStepsProps> = ({
 export interface WorkflowTimelineProps {
   disableFutureSteps?: boolean;
   controls?: React.ReactNode;
+  footerResizable?: boolean;
+  defaultFooterHeight?: number;
+  footerHeight?: number;
+  onFooterHeightChange?: (height: number) => void;
+  footerLabel?: string;
+  footerResizeLabel?: string;
   hasCollapseToggle?: boolean;
   renderStepPopover?: (step: WorkflowStep) => React.ReactNode;
   stepPopoverProps?: Omit<PopoverProps, "trigger" | "children">;
@@ -142,6 +149,12 @@ export interface WorkflowTimelineProps {
 export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   disableFutureSteps = false,
   controls,
+  footerResizable = false,
+  defaultFooterHeight = 30,
+  footerHeight,
+  onFooterHeightChange,
+  footerLabel = "Workflow footer",
+  footerResizeLabel = "Resize workflow footer",
   hasCollapseToggle = false,
   renderStepPopover,
   stepPopoverProps,
@@ -165,6 +178,12 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
   onStepAction,
 }) => {
   const isEmpty = steps.length === 0;
+  const hasFooter = controls != null && controls !== false;
+  const resizableFooter = footerResizable && fillHeight && hasFooter;
+  const footer = useWorkflowFooterResize({
+    height: footerHeight, defaultHeight: defaultFooterHeight,
+    onChange: onFooterHeightChange, enabled: resizableFooter,
+  });
 
   const tallyEntries = [
     { count: tallies.done, label: labels.done },
@@ -250,10 +269,14 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
         </div>
       )}
 
+      {/* The two panes share a bounded body; neither scrolls the other. */}
+      <div ref={footer.bodyRef} className={classNames("flex min-h-0 flex-col", fillHeight && "flex-1", footer.dragging && "select-none")}>
       {/* Timeline */}
       <ScrollArea
         variant="hover"
         className={fillHeight ? "min-h-0 flex-1" : undefined}
+        style={fillHeight ? { flex: `${hasFooter ? 100 - footer.percentage : 100} 1 0%` } : undefined}
+        viewportClassName="overscroll-contain"
         contentClassName={classNames(
           !loading && !isEmpty && (collapsed ? "px-2 py-4" : "px-5 py-5"),
         )}
@@ -476,18 +499,28 @@ export const WorkflowTimeline: React.FC<WorkflowTimelineProps> = ({
             })}
           </ol>
         )}
-        {controls != null && controls !== false && (
-          <div
-            className={classNames(
-              "mt-4 border-t pt-4",
-              surfaces.border,
-              (loading || isEmpty) && (collapsed ? "px-2 pb-4" : "px-5 pb-5"),
-            )}
-          >
-            {controls}
-          </div>
-        )}
       </ScrollArea>
+      {resizableFooter && <div
+        {...footer.handleProps}
+        aria-label={footerResizeLabel}
+        className={classNames("group relative flex h-3 shrink-0 touch-none cursor-row-resize items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400", surfaces.border)}
+      >
+        <span aria-hidden="true" className={classNames("pointer-events-none absolute inset-x-0 top-1/2 border-t", surfaces.border)} />
+        <span aria-hidden="true" className={classNames("relative h-1 w-10 rounded-full bg-neutral-400 transition-opacity dark:bg-neutral-500", footer.dragging ? "opacity-100" : "opacity-40 group-hover:opacity-100 group-focus-visible:opacity-100")} />
+      </div>}
+      {hasFooter && <ScrollArea
+        id={footer.footerId}
+        role="region"
+        aria-label={footerLabel}
+        variant="hover"
+        className={classNames(!resizableFooter && "border-t", surfaces.border, fillHeight && "min-h-0")}
+        style={fillHeight ? { flex: `${footer.percentage} 1 0%` } : undefined}
+        viewportClassName="overscroll-contain"
+        contentClassName={collapsed ? "px-2 py-4" : "px-5 py-4"}
+      >
+        {controls}
+      </ScrollArea>}
+      </div>
 
       {/* Legend */}
       {showLegend && !isEmpty && !collapsed && (

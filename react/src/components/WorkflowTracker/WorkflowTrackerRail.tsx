@@ -31,12 +31,23 @@ export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
   /** Docked edge. With `collapsible` (and `flush`), only the corners facing
    * the content round. Also mirrors the toggle and step popovers. */
   side?: "left" | "right";
-  /** Content below the steps, inside the rail's scroll area. Render a component
+  /** Content below the steps, in its own scroll area. Render a component
    * here to preserve its local state as `collapsed` changes. The consumer owns
    * its expanded/compact layout and accessible labels. Also available while loading. */
   renderControls?: (
     context: WorkflowTrackerRailControlsContext,
   ) => React.ReactNode;
+  /** Enable the horizontal resize handle between steps and footer in a height-constrained rail. @default false */
+  footerResizable?: boolean;
+  /** Initial footer share of the steps/footer space, in percent (10–80). @default 30 */
+  defaultFooterHeight?: number;
+  /** Controlled footer share in percent (10–80). */
+  footerHeight?: number;
+  onFooterHeightChange?: (height: number) => void;
+  /** Accessible name of the footer region. @default "Workflow footer" */
+  footerLabel?: string;
+  /** Accessible name of the separator. @default "Resize workflow footer" */
+  footerResizeLabel?: string;
   /** Enables the animated collapse toggle. Expanded width defaults to 360px;
    * override it with `style.width`. @default false */
   collapsible?: boolean;
@@ -124,6 +135,12 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   collapseLabel = "Collapse workflow rail",
   renderStepPopover,
   renderControls,
+  footerResizable = false,
+  defaultFooterHeight = 30,
+  footerHeight,
+  onFooterHeightChange,
+  footerLabel = "Workflow footer",
+  footerResizeLabel = "Resize workflow footer",
   stepPopoverProps,
   data = sampleWorkflow,
   loading = false,
@@ -221,6 +238,12 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
       >
         <WorkflowTimeline
           controls={renderControls?.({ collapsed: isCollapsed })}
+          footerResizable={footerResizable}
+          defaultFooterHeight={defaultFooterHeight}
+          footerHeight={footerHeight}
+          onFooterHeightChange={onFooterHeightChange}
+          footerLabel={footerLabel}
+          footerResizeLabel={footerResizeLabel}
           collapsed={isCollapsed}
           side={side}
           hasCollapseToggle={collapsible}

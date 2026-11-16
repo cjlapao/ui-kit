@@ -87,9 +87,8 @@ describe("WorkflowTrackerRail — standalone", () => {
     const control = screen.getByRole("button", {
       name: "Expanded controls: 1",
     });
-    expect(container.querySelector("ol")!.parentElement).toContainElement(
-      control,
-    );
+    expect(container.querySelector("ol")!.parentElement).not.toContainElement(control);
+    expect(screen.getByRole("region", { name: "Workflow footer" })).toContainElement(control);
     fireEvent.click(
       screen.getByRole("button", { name: "Collapse workflow rail" }),
     );

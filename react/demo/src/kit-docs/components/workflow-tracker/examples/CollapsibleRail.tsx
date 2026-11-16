@@ -3,6 +3,8 @@ import {
   WorkflowTrackerRail,
   WorkflowTrackerStepDetails,
   ScrollArea,
+  Toggle,
+  Button,
   type WorkflowData,
 } from "@cjlapao/ui-kit";
 
@@ -163,9 +165,17 @@ export default function CollapsibleRail() {
   const [activeStepId, setActiveStepId] = useState("test");
   const [collapsed, setCollapsed] = useState(true);
   const data = { ...workflow, activeStepId };
+  const [footerResizable, setFooterResizable] = useState(true);
+  const [footerHeight, setFooterHeight] = useState(30);
 
   return (
-    <div className="flex h-[480px] w-full min-w-0 gap-4">
+    <div className="w-full space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <Toggle label="Resizable agents footer" size="sm" checked={footerResizable} onChange={event => setFooterResizable(event.target.checked)} />
+        <span className="text-xs text-neutral-500">Footer: {Math.round(footerHeight)}%</span>
+        <Button size="xs" variant="ghost" onClick={() => setFooterHeight(30)}>Reset to 30%</Button>
+      </div>
+      <div className="flex h-[480px] w-full min-w-0 gap-4">
       <WorkflowTrackerRail
         data={data}
         side="left"
@@ -174,6 +184,10 @@ export default function CollapsibleRail() {
         collapsed={collapsed}
         onCollapsedChange={setCollapsed}
         fillHeight
+        footerResizable={footerResizable}
+        footerHeight={footerHeight}
+        onFooterHeightChange={setFooterHeight}
+        footerLabel="Orchestrated agents"
         style={{ width: "min(320px, 65vw)" }}
         onStepSelect={setActiveStepId}
         renderStepPopover={(step) => (
@@ -197,6 +211,7 @@ export default function CollapsibleRail() {
       <ScrollArea variant="hover" className="min-w-0 flex-1">
         <WorkflowTrackerStepDetails data={data} />
       </ScrollArea>
+      </div>
     </div>
   );
 }
