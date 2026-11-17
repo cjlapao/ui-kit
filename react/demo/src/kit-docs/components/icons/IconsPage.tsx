@@ -83,8 +83,12 @@ export const IconsPage: React.FC = () => {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
+      {/* `items-start` keeps the gallery column at its own height — stretched
+          grid items plus auto-sized rows would inflate a short result set to
+          fill the tall aside. `auto-rows-min content-start` pins rows to tile
+          height and packs them at the top, whatever the container does. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
+        <div className="grid auto-rows-min content-start grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
           {filtered.map(({ name, Component }) => (
             // Explicit colour: `<button>` resets the inherited colour, so a
             // bare `opacity-*` label computed to black on the dark theme.
@@ -92,7 +96,7 @@ export const IconsPage: React.FC = () => {
               key={name}
               type="button"
               onClick={() => setSelectedName(name)}
-              className={`flex flex-col items-center gap-1.5 rounded-lg p-3 text-center text-neutral-700 transition hover:bg-black/5 dark:text-neutral-200 dark:hover:bg-white/10 ${
+              className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg p-3 text-center text-neutral-700 transition hover:bg-black/5 dark:text-neutral-200 dark:hover:bg-white/10 ${
                 name === selected.name
                   ? "bg-blue-500/10 ring-1 ring-blue-500/40"
                   : ""

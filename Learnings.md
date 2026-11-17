@@ -4,6 +4,116 @@
 
 ## Top-Level Patterns (High Priority)
 
+### How to add a new icon to the registry (repeatable workflow — first done for `Brain`, 2026-11-28)
+
+The React components directory is the single source of truth; Vue and both
+`registry.ts`/`index.ts` files are all generated from it. Never hand-edit
+`react/src/icons/registry.ts`, `react/src/icons/index.ts`, or anything in
+`vue/src/icons/`.
+
+1. **Clean the raw SVG first** (SVG Repo / Figma exports are never clean):
+   - Remove the `SVGRepo_bgCarrier` / `SVGRepo_tracerCarrier` /
+     `SVGRepo_iconCarrier` wrapper `<g>`s, `id` attributes, `version`,
+     `xmlns:xlink`, `xml:space`, HTML comments and metadata elements
+     (`<title>`, `<desc>`) — keep the inner shapes.
+   - **Replace every hardcoded colour with `currentColor`** (`fill="#0F0F0F"` →
+     `fill="currentColor"`; for stroke icons, `stroke="#..."` →
+     `stroke="currentColor"`). Watch for colour hidden in a CSS class —
+     exports like `<style>.st0{fill:#000000}</style>` + `class="st0"` on the
+     paths (the fill is invisible to a `fill=` grep): delete the `<style>`
+     block and put `fill="currentColor"` on every classed path. **Multi-colour
+     exports collapse to one `currentColor` silhouette** — that's the kit
+     convention (overlapping shapes merge; the icon reads by shape, not colour).
+     A root `stroke="#000"` / `stroke="#000000"` must be dropped too (every shape
+     inherits it).
+     Non-`path` primitives (`<ellipse>`, `<circle>`, `<rect>`) are fine as-is —
+     verify them by **attribute set**, not string prefix (junk attrs like
+     `class` shift the prefix), and keep their geometry attrs byte-exact.
+     When the source puts the fill on the root
+     `<svg>` (e.g. `fill="#000000"`, paths inheriting), **move it down onto the
+     paths** and set the root back to `fill="none"` — match `Bug.tsx`, don't
+     keep a root fill. This is what makes the icon follow the current
+     text colour like every other icon — verify with
+     `grep -o 'fill="[^"]*"'` / `stroke=` on the result: only `none` or
+     `currentColor` are allowed. (The hardcoded colour isn't always black —
+     `#292929` greys appear too; same fix.)
+   - **Drop identity `<defs>`/`clipPath` export junk.** Figma exports wrap
+     content in `<g clip-path="url(#clipN_…)">` plus a `<defs>` whose rect
+     equals the full viewBox — a clip that clips nothing. Delete the attribute,
+     the `<defs>` block, and its generated ids together; keeping duplicate ids
+     across inlined icons makes them steal each other's clip. Only keep a clip
+     if its shape is genuinely smaller than the viewBox (check the rect vs the
+     viewBox numbers before deleting).
+   - Keep the original `viewBox` (do not resize paths to force 24×24) and
+     `fill="none"` on the root `<svg>`.
+   - **Never invent a `fill-rule`/`clip-rule` the source doesn't have.** Icons
+     with holes (checkered flag, donuts) often rely on default *nonzero*
+     winding with reverse-wound subpaths; adding `evenodd` silently changes the
+     render. Copy whatever the source declares, exactly — and drop
+     attribute-less nested `<g>` wrappers (no transform/clip on them = safe to
+     flatten; the React components keep paths directly under `<svg>`).
+     **Sketch/Figma export groups are different**: they carry real state —
+     a `transform="translate(…)"` is geometry (flattening the group would shift
+     the icon), and a group-level `fill-rule="evenodd"` is inherited by the
+     path. Keep one `<g transform>` wrapper and push `fill-rule` (plus the
+     `fill`) down onto the path; drop the group's `id`/`stroke="none"`/
+     `fill="none"` no-ops. The Vue generator passes `<g>` children through
+     `innerHTML` untouched, so this survives conversion (verify `transform` and
+     `fill-rule` appear in the emitted file).
+   - **Drop invisible hit-area filler shapes** — exports include a full-canvas
+     invisible shape: `<path fill="none" d="M0 0h24v24H0z">` (path form) or
+     `<rect x="0" y="0" width="{vbW}" height="{vbH}" fill-opacity="0">`
+     (Clarity's rect form — it still *captures pointer events*, so drop it
+     rather than keeping it "just in case"). Don't confuse it with real `<rect>`
+     geometry like `Backup`'s tray bar — the tell is 0,0 + full-canvas +
+     invisible fill. No kit icon has one. When verifying `d` strings, filter it
+     out before comparing counts.
+   - **Drop no-op default attributes** — e.g.
+     `preserveAspectRatio="xMidYMid meet"` *is* the SVG spec default; no kit
+     icon carries it.
+2. **Drop the cleaned SVG** at `react/src/assets/icons/<Name>.svg` (PascalCase
+   file name = icon name).
+3. **Create the React component** `react/src/icons/components/<Name>.tsx`
+   following `Bug.tsx` exactly: `forwardRef<SVGSVGElement, SVGProps>`, spread
+   `{...props}` then `ref={ref}` on `<svg>`, **JSX camelCase attributes**
+   (`fillRule`, `clipRule`, `strokeWidth`, … — kebab-case gets silently dropped
+   by React; the vitest suite fails on it), `fill="currentColor"` on paths, and
+   `<Name>.displayName = "<Name>";`.
+   - Do **not** run `react/scripts/generate-icons.ts`: it wipes and rebuilds
+     the whole `src/icons` dir (formatting churn on 140+ files). It exists only
+     as a bulk bootstrap.
+4. **Verify the long `d` strings survived copying** — diff the path data of the
+   pasted file against the original with node:
+   `s.match(/\sd="([^"]*)"/)[1]` (regex needs the leading `\s` or it matches
+   `id="…"` instead). Use `matchAll` to check **every** path, and collapse
+   whitespace (`replace(/\s+/g, " ")`) before comparing — exports sometimes
+   line-wrap inside `d`, and collapsing is safe there because whitespace only
+   separates numbers.
+5. **Regenerate, in this order** (from repo root):
+   - `node scripts/generate-icon-registry.mjs` → `react/src/icons/registry.ts`
+   - `node scripts/generate-icons-index.mjs` → `react/src/icons/index.ts`
+   - `cd vue && npm run generate:icons` → mirrors every React component into
+     `vue/src/icons/` and rewrites `vue/src/icons/registry.ts` + `index.ts`.
+     Expect the Vue diff to be big the first time — it realigns stale hand
+     edits with the React list; that is correct.
+     Run it **from `vue/`** (`tsx` resolves from `vue/node_modules`; plain
+     `npx tsx …` from the repo root tries to download it and dies in the
+     sandbox). If the npm script itself is blocked, call the local binary
+     directly: `TMPDIR=$PWD/../.icon-tmp ./node_modules/.bin/tsx
+     scripts/generate-vue-icons.ts`.
+6. **Validate**: `cd react && npx vitest run src/icons/icons.test.ts` (drift
+   guard + kebab-attribute guard) and a `tsc --noEmit` on the new files. The
+   demo `IconsPage` lists `iconRegistry` automatically — no demo edit needed.
+- **Sandbox/gotcha**: `tsx`/`vitest` write IPC pipes/temp dirs under
+  `TMPDIR` (default `~/.cache/go-tmp`, read-only in the sandbox). Prefix the
+  commands with `TMPDIR=<workspace-relative writable dir>` (e.g.
+  `TMPDIR=$PWD/.tmp npx tsx scripts/generate-vue-icons.ts`) instead of
+  escalating sandbox access.
+- **Registry entry cost**: adding `Foo.svg` + `Foo.tsx` + the two generator
+  runs produces exactly 3 added lines in the react `registry.ts`
+  (import / `IconName` union / map entry) — anything more means the generator
+  picked up something unintended.
+
 ## Technical Debt & Gotchas
 
 | Date | Category | Insight / Lesson | Ref |

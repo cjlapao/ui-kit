@@ -3,6 +3,7 @@ import { Accordion } from "./components/Accordion";
 import { Add } from "./components/Add";
 import { AgentFlow } from "./components/AgentFlow";
 import { AiAgent } from "./components/AiAgent";
+import { Alarm } from "./components/Alarm";
 import { Apple } from "./components/Apple";
 import { ArrowChevronLeft } from "./components/ArrowChevronLeft";
 import { ArrowChevronRight } from "./components/ArrowChevronRight";
@@ -13,10 +14,14 @@ import { ArrowUp } from "./components/ArrowUp";
 import { Artifactory } from "./components/Artifactory";
 import { Attached } from "./components/Attached";
 import { Attachment } from "./components/Attachment";
+import { Automation } from "./components/Automation";
 import { Aws } from "./components/Aws";
 import { Azure } from "./components/Azure";
 import { Back } from "./components/Back";
+import { Backup } from "./components/Backup";
 import { Blueprint } from "./components/Blueprint";
+import { Box } from "./components/Box";
+import { Brain } from "./components/Brain";
 import { Bug } from "./components/Bug";
 import { Cache } from "./components/Cache";
 import { Calendar } from "./components/Calendar";
@@ -27,6 +32,7 @@ import { ChartLine } from "./components/ChartLine";
 import { Chat } from "./components/Chat";
 import { Check } from "./components/Check";
 import { CheckCircle } from "./components/CheckCircle";
+import { CheckeredFlag } from "./components/CheckeredFlag";
 import { ChevronLeft } from "./components/ChevronLeft";
 import { ChevronRight } from "./components/ChevronRight";
 import { Claim } from "./components/Claim";
@@ -62,38 +68,48 @@ import { Fedora } from "./components/Fedora";
 import { File } from "./components/File";
 import { FlowChart } from "./components/FlowChart";
 import { Folder } from "./components/Folder";
+import { Gantt } from "./components/Gantt";
+import { Gate } from "./components/Gate";
 import { Globe } from "./components/Globe";
 import { Group } from "./components/Group";
 import { HealthCheck } from "./components/HealthCheck";
 import { Help } from "./components/Help";
+import { History } from "./components/History";
 import { Host } from "./components/Host";
 import { Idea } from "./components/Idea";
 import { Image } from "./components/Image";
 import { Info } from "./components/Info";
+import { Investigator } from "./components/Investigator";
 import { Jobs } from "./components/Jobs";
 import { KaliLinux } from "./components/KaliLinux";
 import { Key } from "./components/Key";
 import { KeyManagement } from "./components/KeyManagement";
 import { LXC } from "./components/LXC";
 import { LXCOld } from "./components/LXCOld";
+import { Launch } from "./components/Launch";
 import { Library } from "./components/Library";
 import { Live } from "./components/Live";
 import { Log } from "./components/Log";
 import { Login } from "./components/Login";
 import { Logout } from "./components/Logout";
+import { Memory } from "./components/Memory";
 import { Minio } from "./components/Minio";
 import { Moon } from "./components/Moon";
+import { NetworkNodes } from "./components/NetworkNodes";
 import { Notification } from "./components/Notification";
 import { Official } from "./components/Official";
 import { Offline } from "./components/Offline";
 import { OpenApp } from "./components/OpenApp";
 import { Orchestrator } from "./components/Orchestrator";
+import { PaperPlane } from "./components/PaperPlane";
 import { Parameter } from "./components/Parameter";
 import { Pause } from "./components/Pause";
 import { Pin } from "./components/Pin";
 import { Podman } from "./components/Podman";
 import { PodmanDesktop } from "./components/PodmanDesktop";
+import { Policeman } from "./components/Policeman";
 import { Praise } from "./components/Praise";
+import { Project } from "./components/Project";
 import { Pull } from "./components/Pull";
 import { Push } from "./components/Push";
 import { RedHat } from "./components/RedHat";
@@ -114,6 +130,7 @@ import { ReverseProxyTLS } from "./components/ReverseProxyTLS";
 import { ReverseProxyTo } from "./components/ReverseProxyTo";
 import { Revert } from "./components/Revert";
 import { Revoke } from "./components/Revoke";
+import { Roadmap } from "./components/Roadmap";
 import { Rocket } from "./components/Rocket";
 import { Role } from "./components/Role";
 import { Roles } from "./components/Roles";
@@ -124,13 +141,17 @@ import { Script } from "./components/Script";
 import { Search } from "./components/Search";
 import { Send } from "./components/Send";
 import { Settings } from "./components/Settings";
+import { SettingsVertical } from "./components/SettingsVertical";
+import { Shield } from "./components/Shield";
 import { Shop } from "./components/Shop";
 import { Snapshot } from "./components/Snapshot";
+import { Sorting } from "./components/Sorting";
 import { Star } from "./components/Star";
 import { Stop } from "./components/Stop";
 import { Sun } from "./components/Sun";
 import { Suspend } from "./components/Suspend";
 import { Taint } from "./components/Taint";
+import { Target } from "./components/Target";
 import { ThemeAuto } from "./components/ThemeAuto";
 import { ThemeDark } from "./components/ThemeDark";
 import { ThemeLight } from "./components/ThemeLight";
@@ -146,6 +167,7 @@ import { ViewRows } from "./components/ViewRows";
 import { VirtualMachine } from "./components/VirtualMachine";
 import { Warning } from "./components/Warning";
 import { Windows } from "./components/Windows";
+import { Work } from "./components/Work";
 
 // GENERATED by scripts/generate-icon-registry.mjs — do not edit by
 // hand. The components directory is the source of truth; running the
@@ -156,6 +178,7 @@ export type IconName =
   | "Add"
   | "AgentFlow"
   | "AiAgent"
+  | "Alarm"
   | "Apple"
   | "ArrowChevronLeft"
   | "ArrowChevronRight"
@@ -166,10 +189,14 @@ export type IconName =
   | "Artifactory"
   | "Attached"
   | "Attachment"
+  | "Automation"
   | "Aws"
   | "Azure"
   | "Back"
+  | "Backup"
   | "Blueprint"
+  | "Box"
+  | "Brain"
   | "Bug"
   | "Cache"
   | "Calendar"
@@ -180,6 +207,7 @@ export type IconName =
   | "Chat"
   | "Check"
   | "CheckCircle"
+  | "CheckeredFlag"
   | "ChevronLeft"
   | "ChevronRight"
   | "Claim"
@@ -215,38 +243,48 @@ export type IconName =
   | "File"
   | "FlowChart"
   | "Folder"
+  | "Gantt"
+  | "Gate"
   | "Globe"
   | "Group"
   | "HealthCheck"
   | "Help"
+  | "History"
   | "Host"
   | "Idea"
   | "Image"
   | "Info"
+  | "Investigator"
   | "Jobs"
   | "KaliLinux"
   | "Key"
   | "KeyManagement"
   | "LXC"
   | "LXCOld"
+  | "Launch"
   | "Library"
   | "Live"
   | "Log"
   | "Login"
   | "Logout"
+  | "Memory"
   | "Minio"
   | "Moon"
+  | "NetworkNodes"
   | "Notification"
   | "Official"
   | "Offline"
   | "OpenApp"
   | "Orchestrator"
+  | "PaperPlane"
   | "Parameter"
   | "Pause"
   | "Pin"
   | "Podman"
   | "PodmanDesktop"
+  | "Policeman"
   | "Praise"
+  | "Project"
   | "Pull"
   | "Push"
   | "RedHat"
@@ -267,6 +305,7 @@ export type IconName =
   | "ReverseProxyTo"
   | "Revert"
   | "Revoke"
+  | "Roadmap"
   | "Rocket"
   | "Role"
   | "Roles"
@@ -277,13 +316,17 @@ export type IconName =
   | "Search"
   | "Send"
   | "Settings"
+  | "SettingsVertical"
+  | "Shield"
   | "Shop"
   | "Snapshot"
+  | "Sorting"
   | "Star"
   | "Stop"
   | "Sun"
   | "Suspend"
   | "Taint"
+  | "Target"
   | "ThemeAuto"
   | "ThemeDark"
   | "ThemeLight"
@@ -299,6 +342,7 @@ export type IconName =
   | "VirtualMachine"
   | "Warning"
   | "Windows"
+  | "Work"
   | "flow-chart"
   | (string & {});
 
@@ -310,6 +354,7 @@ export const iconRegistry: Record<
   Add: Add,
   AgentFlow: AgentFlow,
   AiAgent: AiAgent,
+  Alarm: Alarm,
   Apple: Apple,
   ArrowChevronLeft: ArrowChevronLeft,
   ArrowChevronRight: ArrowChevronRight,
@@ -320,10 +365,14 @@ export const iconRegistry: Record<
   Artifactory: Artifactory,
   Attached: Attached,
   Attachment: Attachment,
+  Automation: Automation,
   Aws: Aws,
   Azure: Azure,
   Back: Back,
+  Backup: Backup,
   Blueprint: Blueprint,
+  Box: Box,
+  Brain: Brain,
   Bug: Bug,
   Cache: Cache,
   Calendar: Calendar,
@@ -334,6 +383,7 @@ export const iconRegistry: Record<
   Chat: Chat,
   Check: Check,
   CheckCircle: CheckCircle,
+  CheckeredFlag: CheckeredFlag,
   ChevronLeft: ChevronLeft,
   ChevronRight: ChevronRight,
   Claim: Claim,
@@ -369,38 +419,48 @@ export const iconRegistry: Record<
   File: File,
   FlowChart: FlowChart,
   Folder: Folder,
+  Gantt: Gantt,
+  Gate: Gate,
   Globe: Globe,
   Group: Group,
   HealthCheck: HealthCheck,
   Help: Help,
+  History: History,
   Host: Host,
   Idea: Idea,
   Image: Image,
   Info: Info,
+  Investigator: Investigator,
   Jobs: Jobs,
   KaliLinux: KaliLinux,
   Key: Key,
   KeyManagement: KeyManagement,
   LXC: LXC,
   LXCOld: LXCOld,
+  Launch: Launch,
   Library: Library,
   Live: Live,
   Log: Log,
   Login: Login,
   Logout: Logout,
+  Memory: Memory,
   Minio: Minio,
   Moon: Moon,
+  NetworkNodes: NetworkNodes,
   Notification: Notification,
   Official: Official,
   Offline: Offline,
   OpenApp: OpenApp,
   Orchestrator: Orchestrator,
+  PaperPlane: PaperPlane,
   Parameter: Parameter,
   Pause: Pause,
   Pin: Pin,
   Podman: Podman,
   PodmanDesktop: PodmanDesktop,
+  Policeman: Policeman,
   Praise: Praise,
+  Project: Project,
   Pull: Pull,
   Push: Push,
   RedHat: RedHat,
@@ -421,6 +481,7 @@ export const iconRegistry: Record<
   ReverseProxyTo: ReverseProxyTo,
   Revert: Revert,
   Revoke: Revoke,
+  Roadmap: Roadmap,
   Rocket: Rocket,
   Role: Role,
   Roles: Roles,
@@ -431,13 +492,17 @@ export const iconRegistry: Record<
   Search: Search,
   Send: Send,
   Settings: Settings,
+  SettingsVertical: SettingsVertical,
+  Shield: Shield,
   Shop: Shop,
   Snapshot: Snapshot,
+  Sorting: Sorting,
   Star: Star,
   Stop: Stop,
   Sun: Sun,
   Suspend: Suspend,
   Taint: Taint,
+  Target: Target,
   ThemeAuto: ThemeAuto,
   ThemeDark: ThemeDark,
   ThemeLight: ThemeLight,
@@ -453,5 +518,6 @@ export const iconRegistry: Record<
   VirtualMachine: VirtualMachine,
   Warning: Warning,
   Windows: Windows,
+  Work: Work,
   "flow-chart": FlowChart,
 };
