@@ -93,6 +93,14 @@ export interface PanelProps extends Omit<
   actionLayout?: PanelActionLayout;
   /**
    * The surface treatment.
+   *
+   * Cost note for desktop shells (WebKitGTK/Tauri): `glass` and
+   * `liquid-glass` carry a `backdrop-filter`, which on WebKitGTK is a
+   * **main-thread read-back of the backdrop on every frame anything scrolls
+   * beneath the panel** — not a GPU effect. Reserve them for surfaces over
+   * static content; choose `simple` (or `elevated`) for cards and layouts on
+   * busy scrolling pages, rather than forcing a glass default and undoing it
+   * per page with a later `variant` spread.
    * @default "elevated"
    */
   variant?: PanelVariant;

@@ -28,7 +28,9 @@ import {
   getSidebarSurfaceTokens,
   getPanelToneStyles,
   getSurfaceTextTokens,
+  prefersReducedMotion,
   type ControlSize,
+  type PanelMotion,
   type SidebarVariant,
   type SurfaceVariant,
   type SurfaceCorner,
@@ -145,6 +147,21 @@ export type SidePanelDockSide = SidePanelSide;
 const OPEN_DURATION_MS = PANEL_SLIDE_DURATION_MS;
 const OPEN_EASING = PANEL_SLIDE_EASING;
 
+/**
+ * Layout + style containment on the animating shell. A `motion="layout"`
+ * sweep relayouts the row every frame; containment is what bounds that work
+ * to the shell's own subtree instead of letting it cascade into whatever the
+ * page observes through it. `contain-intrinsic-size: auto` records the last
+ * resolved size, so containment can never collapse a measured height — and
+ * deliberately NO `paint` here: popovers, pickers and tooltips that render
+ * outside this box are silently amputated by paint containment, a bug that
+ * is invisible until someone opens a menu over the panel edge.
+ */
+const SHELL_CONTAINMENT: React.CSSProperties = {
+  contain: "layout style",
+  containIntrinsicSize: "auto",
+};
+
 const SIZE_TOKENS: Record<
   ControlSize,
   {
@@ -240,7 +257,17 @@ export interface SidePanelProps {
   tone?: TrueColor;
   /** @deprecated Use `tone`, which is what every other component calls it. */
   color?: TrueColor;
-  /** Shared Panel surfaces; legacy sidebar names also accepted. @default "outlined" */
+  /**
+   * Shared Panel surfaces; legacy sidebar names also accepted.
+   *
+   * On WebKitGTK (a Tauri desktop shell), `glass` and `liquid-glass` paint a
+   * `backdrop-filter`, which is a **main-thread read-back of the backdrop on
+   * every frame anything scrolls beneath it** — expensive for a panel beside
+   * a busy stream. Prefer `simple` (or `elevated`) as the desktop-shell
+   * surface default and reserve the glass family for surfaces over content
+   * that does not scroll.
+   * @default "outlined"
+   */
   variant?: SidePanelVariant;
   /** Glass fill opacity, matching Panel. @default "frosted" */
   glassOpacity?: PanelProps["glassOpacity"];
@@ -317,6 +344,29 @@ export interface SidePanelProps {
   /** The vertical text of the collapsed rail. @default the `title` */
   collapsedLabel?: React.ReactNode;
   /**
+   * How the panel takes and gives back its space.
+   *
+   * `"layout"` (default, historical): the flow size animates on the shared
+   * panel curve, and the centre eases along with it. The honest cost: every
+   * frame of that sweep relayouts the row, so anything observing the resized
+   * subtree — a `ResizeObserver` (e.g. `ScrollArea`), a
+   * `min-width: fit-content` floor — runs its full pass inside each frame of
+   * the animation. That is the coupling slow engines feel.
+   *
+   * `"slide"`: the shell takes its **final** flow size in a single layout and
+   * the content counter-animates `transform` + `opacity`, which WebKitGTK
+   * composites on HTML elements (never `scaleX` — it distorts glyphs). The
+   * trade, stated honestly: **the centre snaps to its new width instead of
+   * easing; the panel still appears to sweep.** A closing slide panel fades
+   * out in place (composited) before releasing its space — content cannot
+   * sweep visibly out of a zero-width clipping shell.
+   *
+   * Under `prefers-reduced-motion` both modes collapse instantly — a
+   * reduced-motion user gets no 450 ms layout animation to begin with.
+   * @default "layout"
+   */
+  motion?: PanelMotion;
+  /**
    * Key handler on the panel body. Exists so a consumer can add Escape-to-close
    * without wrapping the content in another element — the header sits inside
    * the panel, so a wrapper around `children` alone would miss keys pressed
@@ -332,6 +382,18 @@ export interface SidePanelProps {
  * box rather than the viewport. (The docstring used to claim `fixed`, which it
  * has never been.) Because it overlays rather than occupying a column, opening
  * it never reflows the content beside it.
+ *
+ * Docked (`docked`), it sits in flow — typically a `PageBodyLayout` zone — and
+ * publishes its own width into that row's minimum-width floor (`motion`,
+ * `collapsible` and the resize handle all keep working in flow; see
+ * `PageBodyLayout`).
+ *
+ * Cost notes for desktop shells: `motion="layout"` (the default) sweeps the
+ * flow size, and **everything observing the animating subtree runs its full
+ * pass inside each frame of the sweep** — `motion="slide"` removes that
+ * coupling at the cost of a snapped centre; `variant="glass"` /
+ * `liquid-glass` carry a `backdrop-filter`, a main-thread read-back per frame
+ * on WebKitGTK, so `simple` is the low-cost surface there.
  *
  * ```tsx
  * <SidePanel isOpen={open} onClose={() => setOpen(false)} title="Details">
@@ -379,9 +441,16 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   defaultCollapsed = false,
   onCollapsedChange,
   collapsedLabel,
+  motion = "layout",
   onKeyDown,
 }) => {
   const t = useKitT();
+  // Read at render: the render that starts a transition *is* the collapse
+  // toggle or the `isOpen` flip, so this is always fresh where it matters.
+  // Inline `transition` values cannot be overridden by a stylesheet media
+  // query (the `Progress` lesson), so the decision has to live here.
+  const reduced = prefersReducedMotion();
+  const slide = motion === "slide";
   // a11y (P1-2): an unnamed panel is an unidentifiable landmark/region.
   warnIfMissingTitle("SidePanel", title);
   // Top and bottom panels animate, collapse and resize on the height axis.
@@ -431,10 +500,15 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     : "";
   const shadowClass = side === "right" ? surface.shadowRight : surface.shadow;
   // Mount immediately on open so the opening animation can play.
-  // Unmount only after the closing animation finishes (onTransitionEnd).
+  // Unmount only after the closing animation finishes (onTransitionEnd) —
+  // or at once under `prefers-reduced-motion`, where there is no animation
+  // to wait for (the `usePresence` rule: `transition: none` means no
+  // `transitionend` will ever come, and the panel would linger unmounted-in-
+  // spirit but mounted-in-fact forever).
   const [mounted, setMounted] = useState(isOpen);
   /**
-   * Whether the panel has *finished* arriving, which is what drives its width.
+   * Whether the panel has *finished* arriving, which is what drives its width
+   * in `motion="layout"`.
    *
    * Opening used to snap. `mounted` and `isOpen` both became true in the same
    * render, so the element was inserted already at its full width — there was
@@ -453,38 +527,52 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     prevOpenRef.current = isOpen;
 
     if (isOpen && !wasOpen) setMounted(true);
-    if (!isOpen && wasOpen) setEntered(false);
-  }, [isOpen]);
+    if (!isOpen && wasOpen) {
+      setEntered(false);
+      // Reduced motion suppresses the transition, so nothing would ever
+      // fire the `transitionend` that normally unmounts the panel.
+      if (reduced) setMounted(false);
+    }
+  }, [isOpen, reduced]);
 
   /*
-   * The Vue/PrimeVue `useOverlayShow` technique, which is where this stopped
-   * racing: insert the shell at its 0-width state, force the browser to
-   * *compute* that state once — reading `offsetWidth` is the synchronisation
-   * point — then flip to the target width in the same frame. A transition
-   * needs two computed styles, not two painted frames, so this cannot miss.
+   * The handoff that used to live here read `offsetWidth` — a synchronous
+   * layout flush — to make the browser compute the 0-width state once before
+   * flipping to the target. The lesson it encoded is kept verbatim in spirit:
+   * **a transition needs two computed styles, not two painted frames** — the
+   * element must exist with a computed starting style before the target is
+   * applied, or a fresh element never transitions from its own initial style
+   * and opening teleports while closing animates. And the race the flush was
+   * papering over — a bare `requestAnimationFrame` firing before React had
+   * committed the 0-width element at all — is why it has to be *two* frames.
    *
-   * The handoff used to be `requestAnimationFrame`, and it raced React's
-   * scheduler: when the rAF fired before React had committed the 0-width
-   * element at all, the first style the browser ever computed *was* the
-   * target width — and a fresh element never transitions from its own initial
-   * style. That was the snap: open teleported while close, whose element was
-   * already mounted and already had a computed width to animate away from,
-   * looked perfect.
+   * But the flush is not what guarantees the from-state, and it was expensive
+   * exactly when it hurt: a panel mounted while another panel was mid-collapse
+   * landed its forced layout *inside* the animation. The "from" value is
+   * already known to this component (0), so the chain just needs the browser
+   * to own one frame at the from-state — which double-rAF guarantees with no
+   * read at all: frame N style-lays-paints the committed 0-width element
+   * (nothing flips until N+1), frame N+1 flips.
    */
   const shellRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (mounted && isOpen && !entered) {
-      // Force the browser to compute the 0-width state *now* — this is the
-      // half that fixes the race: by the time the rAF below fires, the
-      // element exists with a computed starting style to transition from,
-      // whatever order the scheduler picks. The hand-off then flips on the
-      // following frame, as before.
-      void shellRef.current?.offsetWidth;
-      const frame = requestAnimationFrame(() => setEntered(true));
-      return () => cancelAnimationFrame(frame);
+      if (reduced || slide) {
+        // Instant is instant: no start frame to hold.
+        setEntered(true);
+        return undefined;
+      }
+      let second = 0;
+      const first = requestAnimationFrame(() => {
+        second = requestAnimationFrame(() => setEntered(true));
+      });
+      return () => {
+        cancelAnimationFrame(first);
+        cancelAnimationFrame(second);
+      };
     }
     return undefined;
-  }, [mounted, isOpen, entered]);
+  }, [mounted, isOpen, entered, reduced, slide]);
 
   const handleTransitionEnd = (
     event: React.TransitionEvent<HTMLDivElement>,
@@ -492,7 +580,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     // transitionend bubbles: the resize handle's opacity fade would otherwise
     // unmount the panel mid-close.
     if (event.target !== event.currentTarget) return;
-    if (event.propertyName !== (vertical ? "height" : "width")) return;
+    // Slide mode never animates the flow size — its close is a composited
+    // opacity fade on the shell itself, and that fade is what to unmount on.
+    if (event.propertyName !== (slide ? "opacity" : vertical ? "height" : "width")) return;
     if (!isOpen) setMounted(false);
   };
 
@@ -583,6 +673,88 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const shellWidth = isCollapsed ? COLLAPSED_RAIL_WIDTH : resolvedWidth;
   // Top/bottom fold to a strip as tall as the side rail is wide.
   const shellHeight = isCollapsed ? COLLAPSED_RAIL_WIDTH : resolvedHeight;
+
+  // ── Slide mode (motion="slide") ─────────────────────────────────────────
+  // The shell takes its final flow size in a single layout; the content
+  // counter-animates along the sweep axis with the `kit-sp-sweep-*` keyframes
+  // (transform + opacity only — the two properties WebKitGTK composites on
+  // HTML elements). The distance is the same number the shell animates
+  // between in layout mode: this code owns the geometry, it never measures
+  // it back. Content sweeps toward the docked edge, so the sign follows
+  // `side`; a closing panel fades the shell in place instead (content cannot
+  // sweep out of a zero-width clipping shell without painting over the
+  // centre — that is what `overflow: hidden` is for).
+  const sweepAxisSize = vertical ? resolvedHeight : resolvedWidth;
+  const [sweep, setSweep] = useState<
+    { dir: "in" | "out"; distance: number } | null
+  >(null);
+  const sweepKeyRef = useRef(`${isOpen}:${isCollapsed}`);
+  useEffect(() => {
+    const key = `${isOpen}:${isCollapsed}`;
+    const prev = sweepKeyRef.current;
+    sweepKeyRef.current = key;
+    if (!slide || reduced || key === prev) return;
+    const [wasOpen, wasCollapsed] = prev.split(":").map((v) => v === "true");
+    if (!isOpen) {
+      setSweep(null); // a close is the shell's fade, not the content's sweep
+      return;
+    }
+    if (!wasOpen) {
+      setSweep({ dir: "in", distance: sweepAxisSize });
+    } else if (isCollapsed !== wasCollapsed) {
+      setSweep({
+        dir: isCollapsed ? "out" : "in",
+        distance: Math.max(1, sweepAxisSize - COLLAPSED_RAIL_WIDTH),
+      });
+    }
+    // Deps include the sizes only so a resize re-checks the key (a no-op);
+    // the sweep itself fires exclusively on open/collapse transitions.
+  }, [slide, reduced, isOpen, isCollapsed, sweepAxisSize]);
+  const sweepStyle: React.CSSProperties | undefined =
+    slide && sweep && !reduced
+      ? ({
+          // `both` fill: an "out" sweep holds its end state (offset + hidden),
+          // which is exactly the resting state of the inert collapsed content.
+          ...(vertical
+            ? { "--sp-sweep-y": `${(side === "top" ? -1 : 1) * sweep.distance}px` }
+            : { "--sp-sweep-x": `${(side === "left" ? -1 : 1) * sweep.distance}px` }),
+          animation: `kit-sp-sweep-${vertical ? "y" : "x"}-${sweep.dir} ${OPEN_DURATION_MS}ms ${OPEN_EASING} both`,
+        } as React.CSSProperties)
+      : undefined;
+
+  // A slide-mode close is a composited fade: the shell keeps its pre-close
+  // size (one layout), fades out, and releases the space when the fade ends.
+  const closingSlide = slide && !isOpen && !reduced;
+
+  // ── Zone floor publish (PageBodyLayout) ─────────────────────────────────
+  // `PageBodyLayout` floors its row at the zones' widths without ever
+  // measuring or storing them — the lesson that "a layout must not own
+  // behaviour its children already have" stays intact: the layout keeps no
+  // state, the zone publishes its own known number. Custom properties only
+  // inherit *downward*, so publishing *up* to the row's `calc()` floor is a
+  // direct style write the zone performs on `[data-page-row]` — with the
+  // numbers this component already uses to size its shell, never read back
+  // from the DOM.
+  const dockRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!docked) return;
+    const prop =
+      side === "left"
+        ? "--page-zone-min-left"
+        : side === "right"
+        ? "--page-zone-min-right"
+        : undefined;
+    if (!prop) return; // top/bottom zones never widen the row's zone floor
+    const row = dockRef.current?.closest<HTMLElement>("[data-page-row]");
+    if (!row) return;
+    row.style.setProperty(prop, `${shellWidth}px`);
+    return () => {
+      row.style.removeProperty(prop);
+    };
+    // `isOpen` is a dependency so closing runs the cleanup — a closed panel
+    // occupies nothing and must stop flooring the row.
+  }, [docked, side, shellWidth, isOpen]);
+
   // The kit's one collapse toggle (shared with the WorkflowTracker rail), at
   // the close button's size so it takes its place exactly.
   const collapseButton = (label: string) => (
@@ -632,8 +804,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   // The handle rides the panel's outer edge, so it tracks the same value the
   // width animates to — and carries the same transition, or it would jump to
-  // its final position while the panel was still opening.
-  const edgeOffset = entered ? (vertical ? shellHeight : shellWidth) : 0;
+  // its final position while the panel was still opening. Slide mode and
+  // reduced motion have no edge sweep to ride, so the handle simply sits at
+  // the final edge.
+  const edgeOffset =
+    slide || reduced || entered ? (vertical ? shellHeight : shellWidth) : 0;
   // The resize bar and the grip's active layer share one paint: hover reveals
   // it, dragging deepens the tone as well as the opacity, so "grabbed" reads
   // differently from "pointer happens to be here".
@@ -649,9 +824,23 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   const edgeProperty = side;
   const handleStyle: React.CSSProperties = {
     [edgeProperty]: edgeOffset,
-    transition: isDragging
-      ? undefined
-      : `${edgeProperty} ${OPEN_DURATION_MS}ms ${OPEN_EASING}, opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+    ...(isDragging
+      ? null
+      : reduced
+      ? null // nothing to ease into — reduced motion suppresses the ride
+      : slide
+      ? closingSlide
+        ? {
+            // Out with the panel: a composited fade, and the sweep is over
+            // once the shell unmounts. Click-through while it fades.
+            opacity: 0,
+            pointerEvents: "none" as const,
+            transition: `opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+          }
+        : null // slide: the edge snapped with the shell; nothing to track
+      : {
+          transition: `${edgeProperty} ${OPEN_DURATION_MS}ms ${OPEN_EASING}, opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+        }),
   };
   /*
    * Collapsed, the handle is not removed but parked: on the rail's edge,
@@ -681,20 +870,41 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           legacyVariant && borderClass,
           legacyVariant ? shadowClass : panelOuterChrome,
         )}
-        style={{
-          ...(vertical
-            ? { height: entered ? shellHeight : 0 }
-            : { width: entered ? shellWidth : 0 }),
-          // Inline rather than `transition-[width] duration-… ease-…`: an
-          // arbitrary easing utility would have to survive the safelist, and
-          // this curve is not themeable anyway. It decelerates hard at the end,
-          // which is what stops the panel feeling like it snaps into place.
-          // Suppressed while resizing so the panel tracks the pointer exactly
-          // rather than lagging a third of a second behind it.
-          transition: isDragging
-            ? undefined
-            : `${vertical ? "height" : "width"} ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
-        }}
+        style={
+          slide
+            ? {
+                // Slide mode: the final flow size, once, no size transition.
+                // A closing panel holds this size while it fades (composited)
+                // and releases it at the end in a single layout.
+                ...(vertical ? { height: shellHeight } : { width: shellWidth }),
+                ...SHELL_CONTAINMENT,
+                ...(closingSlide
+                  ? {
+                      opacity: 0,
+                      transition: `opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+                    }
+                  : null),
+              }
+            : {
+                ...(vertical
+                  ? { height: reduced || entered ? shellHeight : 0 }
+                  : { width: reduced || entered ? shellWidth : 0 }),
+                ...SHELL_CONTAINMENT,
+                // Inline rather than `transition-[width] duration-… ease-…`: an
+                // arbitrary easing utility would have to survive the safelist,
+                // and this curve is not themeable anyway. It decelerates hard
+                // at the end, which is what stops the panel feeling like it
+                // snaps into place. Suppressed while resizing so the panel
+                // tracks the pointer exactly rather than lagging a third of a
+                // second behind it — and under `prefers-reduced-motion`, where
+                // an instant collapse is the whole point (no duration means no
+                // `transitionend` either; the close effect unmounts directly).
+                transition:
+                  isDragging || reduced
+                    ? undefined
+                    : `${vertical ? "height" : "width"} ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+              }
+        }
         onTransitionEnd={handleTransitionEnd}
       >
         {/*
@@ -776,7 +986,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           // Fixed at the target size so the content clips rather than
           // squishing while the shell animates; a bottom panel keeps its
           // header at the top as it folds.
-          style={vertical ? { height: resolvedHeight } : { width: resolvedWidth }}
+          style={
+            vertical
+              ? { height: resolvedHeight, ...sweepStyle }
+              : { width: resolvedWidth, ...sweepStyle }
+          }
           onKeyDown={onKeyDown}
         >
           {/* ── Header ─────────────────────────────────────────────── */}
@@ -889,12 +1103,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           className="absolute inset-0 z-30 bg-black/20 backdrop-blur-sm"
           style={{
             // A collapsed panel is a rail beside the content, not a sheet
-            // over it — the scrim steps back with it.
-            opacity: entered && !isCollapsed ? 1 : 0,
+            // over it — the scrim steps back with it. Slide mode has no
+            // entered-sweep to fade in behind, and reduced motion takes the
+            // scrim off at once (there is no 450 ms fade to wait out).
+            opacity:
+              (slide || reduced ? isOpen : entered) && !isCollapsed ? 1 : 0,
             // Not clickable until it has faded in: a double-click-open
             // gesture must not have its second click eaten by the scrim.
-            pointerEvents: isOpen && entered && !isCollapsed ? "auto" : "none",
-            transition: `opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
+            pointerEvents:
+              isOpen && (slide || reduced || entered) && !isCollapsed
+                ? "auto"
+                : "none",
+            transition: reduced
+              ? undefined
+              : `opacity ${OPEN_DURATION_MS}ms ${OPEN_EASING}`,
           }}
         />
       )}
@@ -997,6 +1219,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   // container's in the overlay case — and the zone around it sizes to it.
   return docked ? (
     <div
+      ref={dockRef}
       data-sp-dock
       className={classNames(
         "relative flex shrink-0",

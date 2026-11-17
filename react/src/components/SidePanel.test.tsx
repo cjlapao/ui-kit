@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SidePanel, { SIDE_PANEL_VARIANTS } from "./SidePanel";
-import { COLLAPSED_RAIL_WIDTH } from "../theme/Theme";
+import {
+  COLLAPSED_RAIL_WIDTH,
+  PANEL_SLIDE_DURATION_MS,
+  PANEL_SLIDE_EASING,
+} from "../theme/Theme";
 
 describe("SidePanel", () => {
   it("renders title and children when open", () => {
@@ -984,4 +988,226 @@ it("scales side panel grain while retaining automatic sizing by default", () => 
   expect(container.querySelector("[data-sp-noise]")).toHaveStyle({ backgroundSize: "50px 50px" });
   rerender(<SidePanel isOpen title="Details" noise />);
   expect((container.querySelector("[data-sp-noise]") as HTMLElement).style.backgroundSize).toBe("");
+});
+
+// ── The frame-budget fixes (2026-11): measurement-free mount, slide mode,
+// containment, reduced motion ────────────────────────────────────────────────
+const shellOf = (c: HTMLElement) =>
+  c.querySelector("[data-sp-shell]") as HTMLElement;
+
+const mockReducedMotion = (matches: boolean) =>
+  vi
+    .spyOn(window, "matchMedia")
+    .mockImplementation((query: string) =>
+      ({
+        matches: matches && query.includes("prefers-reduced-motion"),
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList,
+    );
+
+describe("SidePanel — the mount handoff reads nothing", () => {
+  it("never reads offsetWidth: the enter animation is driven blind", async () => {
+    // The old handoff read `shellRef.current.offsetWidth` — a synchronous
+    // layout flush that landed *inside* the sweep of any other panel already
+    // animating. The from-value (0) is known to the code; the double-rAF
+    // chain lets the browser compute it in a frame of its own, with no read.
+    let reads = 0;
+    const descriptor = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "offsetWidth",
+    );
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+      configurable: true,
+      get() {
+        reads += 1;
+        return 0;
+      },
+    });
+    try {
+      const { container, rerender } = render(
+        <SidePanel isOpen={false} width={320} title="D" />,
+      );
+      rerender(<SidePanel isOpen width={320} title="D" />);
+      // It still mounts at zero and *lands* at the target width — the
+      // property the flush used to guarantee, now without the flush.
+      expect(shellOf(container).style.width).toBe("0px");
+      await waitFor(() =>
+        expect(shellOf(container).style.width).toBe("320px"),
+      );
+      expect(reads).toBe(0);
+    } finally {
+      if (descriptor) Object.defineProperty(HTMLElement.prototype, "offsetWidth", descriptor);
+    }
+  });
+});
+
+describe("SidePanel — containment bounds the sweep", () => {
+  it("layout+style containment on the animating shell, never paint", () => {
+    // `paint` would clip pickers/menus/tooltips that render outside the
+    // panel's box — a bug invisible until someone opens one over the edge.
+    // (`contain-intrinsic-size: auto` rides along in the inline style, but
+    // jsdom's cssstyle discards the property, so it is not assertable here.)
+    const { container } = render(<SidePanel isOpen title="D" />);
+    const shell = shellOf(container);
+    expect(shell.style.contain).toContain("layout");
+    expect(shell.style.contain).toContain("style");
+    expect(shell.style.contain).not.toContain("paint");
+  });
+});
+
+describe("SidePanel — motion=\"slide\"", () => {
+  it("keeps the default exactly on the layout sweep", () => {
+    const { container } = render(<SidePanel isOpen width={320} title="D" />);
+    const shell = shellOf(container);
+    expect(shell.style.transition).toBe(
+      `width ${PANEL_SLIDE_DURATION_MS}ms ${PANEL_SLIDE_EASING}`,
+    );
+    expect(shell.style.width).toBe("320px");
+  });
+
+  it("takes the final flow size in one layout — no width in the transition", () => {
+    const { container, rerender } = render(
+      <SidePanel isOpen={false} motion="slide" width={320} title="D" />,
+    );
+    rerender(<SidePanel isOpen motion="slide" width={320} title="D" />);
+    const shell = shellOf(container);
+    // No 0-width phase, no entered wait: the centre snaps to its new width.
+    expect(shell.style.width).toBe("320px");
+    expect(shell.style.transition).not.toContain("width");
+    // The content carries the visible motion instead, composited only:
+    // transform + opacity from the sweep distance the panel already owns.
+    const content = container.querySelector("[data-sp-content]") as HTMLElement;
+    expect(content.style.animation).toContain("kit-sp-sweep-x-in");
+    expect(content.style.animation).not.toContain("scaleX");
+    expect(content.style.getPropertyValue("--sp-sweep-x")).toBe("320px");
+  });
+
+  it("collapses to the rail in one layout, sweeping the content out", () => {
+    const { container } = render(
+      <SidePanel isOpen collapsible motion="slide" width={420} title="D" />,
+    );
+    const shell = shellOf(container);
+    fireEvent.click(screen.getByRole("button", { name: "Collapse panel" }));
+    expect(shell.style.width).toBe(`${COLLAPSED_RAIL_WIDTH}px`);
+    const content = container.querySelector("[data-sp-content]") as HTMLElement;
+    expect(content.style.animation).toContain("kit-sp-sweep-x-out");
+    // 420 − 56: exactly the distance the layout mode no longer animates.
+    expect(content.style.getPropertyValue("--sp-sweep-x")).toBe("364px");
+    fireEvent.click(screen.getByRole("button", { name: "Expand panel" }));
+    expect(shell.style.width).toBe("420px");
+    expect(
+      (container.querySelector("[data-sp-content]") as HTMLElement).style
+        .animation,
+    ).toContain("kit-sp-sweep-x-in");
+  });
+
+  it("closes with a composited fade at the held size, releasing space once at the end", () => {
+    const { container, rerender } = render(
+      <SidePanel isOpen motion="slide" width={320} title="D" />,
+    );
+    rerender(<SidePanel isOpen={false} motion="slide" width={320} title="D" />);
+    const shell = shellOf(container);
+    // Still mounted at the full size, fading out: one layout at the end.
+    expect(shell.style.width).toBe("320px");
+    expect(shell.style.opacity).toBe("0");
+    expect(shell.style.transition).toContain("opacity");
+    // The fade's transitionend is the unmount cue — a width end (no width
+    // transition exists in slide mode) must not be relied on.
+    fireEvent.transitionEnd(shell, { propertyName: "width" });
+    expect(container.firstChild).not.toBeNull();
+    fireEvent.transitionEnd(shell, { propertyName: "opacity" });
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("a left-docked slide panel sweeps from its own docked edge", () => {
+    const { container, rerender } = render(
+      <SidePanel isOpen={false} side="left" motion="slide" width={320} title="D" />,
+    );
+    rerender(<SidePanel isOpen side="left" motion="slide" width={320} title="D" />);
+    const content = container.querySelector("[data-sp-content]") as HTMLElement;
+    expect(content.style.getPropertyValue("--sp-sweep-x")).toBe("-320px");
+  });
+});
+
+describe("SidePanel — prefers-reduced-motion", () => {
+  it("no panel transition duration, instant open, instant unmount", () => {
+    const spy = mockReducedMotion(true);
+    try {
+      const { container, rerender } = render(
+        <SidePanel isOpen={false} width={320} title="D" />,
+      );
+      rerender(<SidePanel isOpen width={320} title="D" />);
+      const shell = shellOf(container);
+      // No 450 ms layout animation to observe per frame — the point.
+      expect(shell.style.transition).not.toContain(`${PANEL_SLIDE_DURATION_MS}ms`);
+      expect(shell.style.transition).toBe("");
+      expect(shell.style.width).toBe("320px"); // instant: no entered sweep
+      rerender(<SidePanel isOpen={false} width={320} title="D" />);
+      // With no transition, no `transitionend` will ever come: the panel
+      // unmounts directly rather than lingering at zero width forever.
+      expect(container.firstChild).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("a reduced-motion overlay close needs no transitionend to unmount", () => {
+    const spy = mockReducedMotion(true);
+    try {
+      const { container, rerender } = render(
+        <SidePanel isOpen overlay onClose={() => {}} title="D" />,
+      );
+      rerender(<SidePanel isOpen={false} overlay onClose={() => {}} title="D" />);
+      expect(container.firstChild).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("keeps the shared curve when motion is allowed", () => {
+    const spy = mockReducedMotion(false);
+    try {
+      const { container } = render(<SidePanel isOpen title="D" />);
+      expect(shellOf(container).style.transition).toContain(
+        `${PANEL_SLIDE_DURATION_MS}ms`,
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+describe("SidePanel — docked zone-floor publish", () => {
+  it("publishes its own width into the row floor and stops when unmounted", () => {
+    // The mechanism behind PageBodyLayout's `calc()` floor: the zone owns its
+    // width, the layout measures nothing. Asserted here where the numbers are
+    // owned; the consuming side is pinned in PageBodyLayout.test.tsx.
+    const { container, rerender } = render(
+      <div data-page-row="true">
+        <div>
+          <SidePanel docked isOpen collapsible width={300} title="Files" />
+        </div>
+      </div>,
+    );
+    const row = container.querySelector("[data-page-row]") as HTMLElement;
+    expect(row.style.getPropertyValue("--page-zone-min-right")).toBe("300px");
+    fireEvent.click(screen.getByRole("button", { name: "Collapse panel" }));
+    expect(row.style.getPropertyValue("--page-zone-min-right")).toBe(
+      `${COLLAPSED_RAIL_WIDTH}px`,
+    );
+    rerender(
+      <div data-page-row="true">
+        <div>
+          <SidePanel docked isOpen={false} collapsible width={300} title="Files" />
+        </div>
+      </div>,
+    );
+    expect(row.style.getPropertyValue("--page-zone-min-right")).toBe("");
+  });
 });

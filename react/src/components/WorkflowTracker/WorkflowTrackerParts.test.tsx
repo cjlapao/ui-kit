@@ -8,7 +8,7 @@ import { WorkflowTrackerDetails } from "./WorkflowTrackerDetails";
 import { WorkflowTrackerRollups } from "./WorkflowTrackerRollups";
 import { sampleWorkflow } from "./sampleWorkflow";
 import SidePanel from "../SidePanel";
-import { PANEL_SLIDE_DURATION_MS, PANEL_SLIDE_EASING } from "../../theme/Theme";
+import { COLLAPSED_RAIL_WIDTH, PANEL_SLIDE_DURATION_MS, PANEL_SLIDE_EASING } from "../../theme/Theme";
 import WorkflowStatusNode from "./WorkflowStatusNode";
 import { computeTallies, getAttentionSteps } from "./derive";
 import type { WorkflowData } from "./types";
@@ -638,14 +638,78 @@ describe("WorkflowTrackerRail — flush", () => {
 });
 
 describe("WorkflowTrackerRail — motion", () => {
-  it("collapses on SidePanel's curve, with padding riding the same transition", () => {
+  it("collapses on SidePanel's curve, one swept property, inset riding inside", () => {
     const { container } = render(<WorkflowTrackerRail collapsible />);
     const rail = container.querySelector("[data-collapsed]") as HTMLElement;
     const panel = render(<SidePanel isOpen title="P" />).container.querySelector("[data-sp-shell]") as HTMLElement;
+    // One property sweeps the animating shell: `padding` used to ride the
+    // same transition on the shell — two layout properties where one carries
+    // the motion. The inset still rides the same curve, on its own element
+    // inside the shell's layout containment.
     expect(rail.style.transition).toContain(PANEL_SLIDE_EASING);
     expect(rail.style.transition).toContain(`width ${PANEL_SLIDE_DURATION_MS}ms`);
-    expect(rail.style.transition).toContain(`padding ${PANEL_SLIDE_DURATION_MS}ms`);
+    expect(rail.style.transition).not.toContain("padding");
+    const inset = rail.querySelector("[data-rail-inset]") as HTMLElement;
+    expect(inset).not.toBeNull();
+    expect(inset.style.transition).toBe(
+      `padding ${PANEL_SLIDE_DURATION_MS}ms ${PANEL_SLIDE_EASING}`,
+    );
     expect(panel.style.transition).toBe(`width ${PANEL_SLIDE_DURATION_MS}ms ${PANEL_SLIDE_EASING}`);
     expect(rail.className).not.toContain("duration-200");
+  });
+
+  it("bounds the sweep: containment on the shell, no paint", () => {
+    const { container } = render(<WorkflowTrackerRail collapsible />);
+    const rail = container.querySelector("[data-collapsed]") as HTMLElement;
+    expect(rail.style.contain).toContain("layout");
+    expect(rail.style.contain).toContain("style");
+    expect(rail.style.contain).not.toContain("paint");
+  });
+
+  it("motion=\"slide\" snaps the flow size and sweeps the timeline with composited properties", () => {
+    const { container } = render(<WorkflowTrackerRail collapsible motion="slide" />);
+    const rail = container.querySelector("[data-collapsed]") as HTMLElement;
+    expect(rail.style.transition).not.toContain("width");
+    const inset = rail.querySelector("[data-rail-inset]") as HTMLElement;
+    expect(inset.style.transition).not.toContain("padding");
+    // Collapse: the width changes once; the content counter-animates
+    // transform + opacity — never width, never scaleX (glyph distortion).
+    fireEvent.click(screen.getByRole("button", { name: "Collapse workflow rail" }));
+    expect(rail.style.width).toBe(`${COLLAPSED_RAIL_WIDTH}px`);
+    expect(inset.style.animation).toContain("kit-sp-sweep-x-out");
+    expect(inset.style.animation).not.toContain("scaleX");
+    expect(inset.style.getPropertyValue("--sp-sweep-x")).toBe("-304px");
+    fireEvent.click(screen.getByRole("button", { name: "Expand workflow rail" }));
+    expect(rail.style.width).toBe("360px");
+    expect(inset.style.animation).toContain("kit-sp-sweep-x-in");
+  });
+
+  it("prefers-reduced-motion: no duration anywhere, instant collapse", () => {
+    const matchMedia = vi
+      .spyOn(window, "matchMedia")
+      .mockImplementation((query: string) =>
+        ({
+          matches: query.includes("reduce"),
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => false,
+        }) as unknown as MediaQueryList,
+      );
+    try {
+      const { container } = render(<WorkflowTrackerRail collapsible />);
+      const rail = container.querySelector("[data-collapsed]") as HTMLElement;
+      expect(rail.style.transition).not.toContain(`${PANEL_SLIDE_DURATION_MS}ms`);
+      expect(rail.style.transition).toBe("");
+      const inset = rail.querySelector("[data-rail-inset]") as HTMLElement;
+      expect(inset.style.transition).not.toContain(`${PANEL_SLIDE_DURATION_MS}ms`);
+      fireEvent.click(screen.getByRole("button", { name: "Collapse workflow rail" }));
+      expect(rail.style.width).toBe(`${COLLAPSED_RAIL_WIDTH}px`);
+    } finally {
+      matchMedia.mockRestore();
+    }
   });
 });

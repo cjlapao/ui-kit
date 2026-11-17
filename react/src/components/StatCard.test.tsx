@@ -186,9 +186,18 @@ describe("StatCard — gradient", () => {
 
   it("tints the icon chip as white glass", () => {
     const { container } = render(
-      <StatCard value="1" icon="Shop" gradient tone="violet" />,
+      <StatCard value="1" icon="Shop" gradient tone="violet" iconBackground />,
     );
     expect(chipOf(container)).toBeTruthy();
+  });
+
+  it("keeps a bare icon white on the wash when there is no chip", () => {
+    const { container } = render(<StatCard value="1" icon="Shop" gradient />);
+    expect(container.innerHTML).not.toContain("bg-white/20");
+    // `CustomIcon` wraps its svg in a span of its own; the tinting span is
+    // the one above it.
+    const glyph = container.querySelector("svg")!.closest("span")!.parentElement!;
+    expect(glyph.className).toContain("text-white");
   });
 
   it("uses a solid trend pill so it reads on the wash", () => {
@@ -274,19 +283,171 @@ describe("StatCard — tone", () => {
         new RegExp(`bg-${tone}-50\\b`).test(el.className),
     );
 
-  it("tints the icon chip from the card tone by default", () => {
+  it("tints the icon chip from the card tone when iconBackground is set", () => {
     const { container } = render(
-      <StatCard value="1" icon="Shop" tone="violet" />,
+      <StatCard value="1" icon="Shop" tone="violet" iconBackground />,
     );
     expect(softChipOf(container, "violet")).toBeTruthy();
   });
 
   it("lets iconTone override the card tone", () => {
     const { container } = render(
-      <StatCard value="1" icon="Shop" tone="violet" iconTone="amber" />,
+      <StatCard
+        value="1"
+        icon="Shop"
+        tone="violet"
+        iconTone="amber"
+        iconBackground
+      />,
     );
     expect(softChipOf(container, "amber")).toBeTruthy();
     expect(softChipOf(container, "violet")).toBeUndefined();
+  });
+});
+
+describe("StatCard — icon treatment", () => {
+  const titleOf = (container: HTMLElement) =>
+    [...container.querySelectorAll("span")].find(
+      (el) =>
+        typeof el.className === "string" &&
+        el.className.includes("font-medium") &&
+        el.textContent === "L",
+    )!;
+
+  const glyphWrapOf = (container: HTMLElement) =>
+    // `CustomIcon` wraps its svg in a span of its own; the card's tinting
+    // span is the one above it.
+    container.querySelector("svg")!.closest("span")!.parentElement!;
+
+  it("renders the icon bare by default — no chip, tone tints the glyph", () => {
+    const { container } = render(<StatCard label="L" value="1" icon="Shop" tone="violet" />);
+    expect(container.innerHTML).not.toContain("bg-violet-50");
+    expect(glyphWrapOf(container).className).toContain("text-violet-600");
+  });
+
+  it("lets iconTone tint the bare glyph", () => {
+    const { container } = render(
+      <StatCard label="L" value="1" icon="Shop" tone="violet" iconTone="amber" />,
+    );
+    expect(glyphWrapOf(container).className).toContain("text-amber-600");
+  });
+
+  it("puts the icon before the title by default, centred on it", () => {
+    const { container } = render(<StatCard label="L" value="1" icon="Shop" />);
+    const title = titleOf(container);
+    // Icon and title share one `items-center` row, the icon first.
+    expect(title.parentElement!.className).toContain("items-center");
+    expect(title.previousElementSibling!.querySelector("svg")).not.toBeNull();
+  });
+
+  it("pins the icon top-right with iconPlacement=\"right\"", () => {
+    const { container } = render(
+      <StatCard label="L" value="1" icon="Shop" iconPlacement="right" />,
+    );
+    const title = titleOf(container);
+    // The title leads the row; the icon sits in the right-hand cluster.
+    expect(title.parentElement!.className).toContain("justify-between");
+    const iconCluster = title.nextElementSibling!;
+    expect(iconCluster.querySelector("svg")).not.toBeNull();
+    // It is not the centred left row — the icon is after the title.
+    expect(title.parentElement!.firstElementChild).toBe(title);
+  });
+
+  it("keeps actions pinned right beside a left icon", () => {
+    const { container } = render(
+      <StatCard
+        label="L"
+        value="1"
+        icon="Shop"
+        actions={<button type="button">act</button>}
+      />,
+    );
+    const row = titleOf(container).parentElement!.parentElement!;
+    expect(row.lastElementChild!.querySelector("button")).not.toBeNull();
+    expect(row.querySelector("svg")).not.toBeNull();
+  });
+});
+
+describe("StatCard — title scale", () => {
+  const titleOf = (container: HTMLElement) =>
+    [...container.querySelectorAll("span")].find(
+      (el) =>
+        typeof el.className === "string" &&
+        el.className.includes("font-medium") &&
+        el.textContent === "L",
+    )!;
+
+  it("titles a step above the old copy scale", () => {
+    const { container } = render(<StatCard label="L" value="1" size="md" />);
+    expect(titleOf(container).className).toContain("text-base");
+  });
+
+  it("steps the title with the card size", () => {
+    const sizes = { xs: "text-xs", sm: "text-sm", md: "text-base", lg: "text-base", xl: "text-lg" } as const;
+    for (const [size, cls] of Object.entries(sizes)) {
+      const { container, unmount } = render(
+        <StatCard label="L" value="1" size={size as "xs"} />,
+      );
+      expect(titleOf(container).className).toContain(cls);
+      unmount();
+    }
+  });
+
+  it("lets labelSize override it", () => {
+    const { container } = render(<StatCard label="L" value="1" labelSize="xl" />);
+    expect(titleOf(container).className).toContain("text-lg");
+  });
+
+  it("keeps the subtitle on the copy scale", () => {
+    const { container } = render(
+      <StatCard label="L" value="1" subtitle="sub" size="md" />,
+    );
+    const subtitle = [...container.querySelectorAll("div")].find(
+      (el) => el.textContent === "sub",
+    )!;
+    expect(subtitle.className).toContain("text-sm");
+    expect(subtitle.className).not.toContain("text-base");
+  });
+});
+
+describe("StatCard — footer divider follows the surface", () => {
+  const stripOf = (container: HTMLElement) =>
+    container.querySelector(".border-t") as HTMLElement;
+
+  it("takes the alpha hairline over a toned surface", () => {
+    // The opaque `-200/-800` hairline is the same hue as a tonal fill one
+    // step off — on a neutral tonal card the line was effectively invisible.
+    const { container } = render(
+      <StatCard label="L" value="1" variant="tonal" tone="neutral" footer={<span>f</span>} />,
+    );
+    expect(stripOf(container).className).toContain("border-neutral-400/40");
+    expect(stripOf(container).className).toContain("dark:border-neutral-500/40");
+  });
+
+  it("carries the hue on every toned variant", () => {
+    for (const variant of ["subtle", "glass", "simple", "liquid-glass"] as const) {
+      const { container, unmount } = render(
+        <StatCard label="L" value="1" variant={variant} tone="violet" meta={[{ text: "m" }]} />,
+      );
+      expect(stripOf(container).className).toContain("border-violet-400/40");
+      unmount();
+    }
+  });
+
+  it("keeps the opaque hairline on plain surfaces", () => {
+    const { container } = render(
+      <StatCard label="L" value="1" variant="elevated" tone="violet" footer={<span>f</span>} />,
+    );
+    expect(stripOf(container).className).toContain("border-violet-200");
+    expect(stripOf(container).className).not.toContain("400/40");
+  });
+
+  it("stays white glass on a gradient", () => {
+    const { container } = render(
+      <StatCard label="L" value="1" variant="tonal" tone="violet" gradient footer={<span>f</span>} />,
+    );
+    expect(stripOf(container).className).toContain("border-white/20");
+    expect(stripOf(container).className).not.toContain("400/40");
   });
 });
 

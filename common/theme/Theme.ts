@@ -900,6 +900,42 @@ export const panelSlideTransition = (...properties: string[]): string =>
     .map((property) => `${property} ${PANEL_SLIDE_DURATION_MS}ms ${PANEL_SLIDE_EASING}`)
     .join(", ");
 
+/**
+ * How a docked panel hands over (or takes back) the space it occupies.
+ * `"layout"` (the default, and the historical behaviour) animates the flow
+ * size itself: the centre eases along with the panel. Every frame of that
+ * sweep relayouts the row, so anything observing the resized subtree — a
+ * ResizeObserver, a `min-width: fit-content` floor — runs inside the
+ * animation's frame budget on every frame.
+ * `"slide"` takes the final flow size in **one** layout and counter-animates
+ * the content with `transform` + `opacity`, which WebKitGTK composites on
+ * HTML elements. The honest trade: the centre snaps to its new width instead
+ * of easing; the panel still appears to sweep. (Never implemented with
+ * `scaleX` — it distorts glyphs.)
+ */
+export const PANEL_MOTIONS = ["layout", "slide"] as const;
+export type PanelMotion = (typeof PANEL_MOTIONS)[number];
+
+/**
+ * SSR-safe `prefers-reduced-motion` check — the same shape as the chart
+ * engine's (`chart/engine/animation.ts`). Panel motion is applied through
+ * *inline* `transition` values, which a stylesheet's
+ * `prefers-reduced-motion` block cannot override (the `Progress` lesson), so
+ * whoever applies the curve reads this flag on the render that starts the
+ * transition — a collapse toggle or an `isOpen` flip always re-renders —
+ * and applies no duration at all when it is set.
+ */
+export function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
 export const DEFAULT_CONTROL_CORNER: Exclude<SurfaceCorner, "auto"> =
   "rounded-lg";
 
@@ -1063,6 +1099,26 @@ export const DEFAULT_SURFACE_PADDING: SurfacePadding = "sm";
 export const getSurfacePaddingClass = (padding: SurfacePadding): string =>
   surfacePaddingClasses[padding] ??
   surfacePaddingClasses[DEFAULT_SURFACE_PADDING];
+
+/**
+ * The base (pre-`sm:`) pixel inset behind each `surfacePaddingClasses` token.
+ * For the rare caller that has to animate an inset inline — a class cannot
+ * transition, and a `transition` value has to name one property — and for
+ * `calc()` floors that must add the padding to a measured width. Inline px
+ * gives up the responsive `sm:` bump (at most 8px on the widest token, from
+ * 640px up); the classes keep it everywhere else.
+ */
+const SURFACE_PADDING_PX: Record<SurfacePadding, number> = {
+  none: 0,
+  xs: 8,
+  sm: 16,
+  md: 24,
+  lg: 32,
+  xl: 40,
+};
+
+export const getSurfacePaddingPx = (padding: SurfacePadding): number =>
+  SURFACE_PADDING_PX[padding] ?? SURFACE_PADDING_PX[DEFAULT_SURFACE_PADDING];
 
 /** Every padding token but `none`, for the callers that require a real inset. */
 export const getSurfacePaddingClasses = (): Record<SurfacePadding, string> => ({

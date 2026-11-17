@@ -1,9 +1,23 @@
-import React, { useId, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import classNames from "classnames";
 
 import Panel from "../Panel";
 import { CollapseToggleButton } from "../CollapseToggleButton";
-import { COLLAPSED_RAIL_WIDTH, panelSlideTransition } from "../../theme/Theme";
+import {
+  COLLAPSED_RAIL_WIDTH,
+  PANEL_SLIDE_DURATION_MS,
+  PANEL_SLIDE_EASING,
+  getSurfacePaddingPx,
+  panelSlideTransition,
+  prefersReducedMotion,
+  type PanelMotion,
+} from "../../theme/Theme";
 import type { PopoverProps } from "../Popover";
 import WorkflowTimeline from "./WorkflowTimeline";
 import {
@@ -60,6 +74,19 @@ export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
   /** Initial uncontrolled collapse state. @default false */
   defaultCollapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
+  /**
+   * How the rail takes and gives back its space when collapsing.
+   *
+   * `"layout"` (default, historical): the rail's width sweeps on the shared
+   * panel curve — one property, the inset now rides inside as its own bounded
+   * animation. `"slide"`: the width snaps to its final value in a single
+   * layout and the timeline counter-animates `transform` + `opacity`, which
+   * WebKitGTK composites — the centre snaps to its new width instead of
+   * easing, the rail still appears to sweep. `prefers-reduced-motion` makes
+   * both modes instant. See `SidePanel`'s `motion` for the full trade.
+   * @default "layout"
+   */
+  motion?: PanelMotion;
   /** Fills a parent with a defined height and scrolls the timeline internally. */
   fillHeight?: boolean;
   /**
@@ -133,6 +160,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   collapsed,
   defaultCollapsed = false,
   onCollapsedChange,
+  motion = "layout",
   fillHeight = false,
   flush = true,
   expandLabel = "Expand workflow rail",
@@ -179,10 +207,69 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   const progress = useMemo(() => computeProgress(steps), [steps]);
   const tallies = useMemo(() => computeTallies(steps, customStatuses), [steps, customStatuses]);
 
+  // ── Collapse motion ──────────────────────────────────────────────────────
+  // One swept property on the rail itself (width). The card inset rides along
+  // on an INNER wrapper inside the shell's containment: the old version asked
+  // the shared curve for `width` AND `padding` — two layout properties where
+  // one carries the motion — and dropping the inset to `none` mid-sweep was
+  // the visible jump this still avoids. A class cannot transition (and would
+  // drag `space-y`/gutter classes with it), so the inset is the token's base
+  // px inline: the `sm:` bump of container padding is given up here in
+  // exchange for one property per sweep, bounded by containment (≤8px on the
+  // widest token, only for rails that opt into an inset at all — the rail's
+  // own padding default is `none`).
+  const reduced = prefersReducedMotion();
+  const slide = motion === "slide";
+  const padPx = getSurfacePaddingPx(cardProps.padding ?? "none");
+  // The expanded width as a plain number — the floor publish and the sweep
+  // distance both need one; a non-numeric `style.width` keeps the 360 default.
+  const expandedWidth = typeof style?.width === "number" ? style.width : 360;
+
+  // Slide mode: the width snaps, the timeline sweeps in/out with the
+  // composited `kit-sp-sweep-x-*` keyframes (see styles.css), displaced
+  // toward the docked edge by exactly the distance the width no longer
+  // animates. Numbers the rail already owns — never measured back.
+  const [sweepDir, setSweepDir] = useState<"in" | "out" | null>(null);
+  const sweepKeyRef = useRef(isCollapsed);
+  useEffect(() => {
+    const prev = sweepKeyRef.current;
+    sweepKeyRef.current = isCollapsed;
+    if (!slide || reduced || prev === isCollapsed) return;
+    setSweepDir(isCollapsed ? "out" : "in");
+  }, [slide, reduced, isCollapsed]);
+
+  // Zone-floor publish (see PageBodyLayout): the rail knows its own width, so
+  // it writes that number up into the row's `calc()` floor. Custom properties
+  // only inherit downward, so publishing *up* is this one direct style write;
+  // the layout still measures and stores nothing.
+  const railRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!collapsible) return;
+    const prop =
+      side === "left" ? "--page-zone-min-left" : "--page-zone-min-right";
+    const row = railRef.current?.closest<HTMLElement>("[data-page-row]");
+    if (!row) return;
+    row.style.setProperty(
+      prop,
+      `${isCollapsed ? COLLAPSED_RAIL_WIDTH : expandedWidth}px`,
+    );
+    return () => {
+      row.style.removeProperty(prop);
+    };
+  }, [collapsible, side, isCollapsed, expandedWidth]);
+
+  // The single property the sweep animates, named through a variable: one
+  // property per sweep is the contract (see Learnings — a layout animation is
+  // a measurement driver, and each extra swept property multiplies it).
+  const sweepProperty = "width";
+
   return (
     <Panel
       {...cardProps}
-      padding={isCollapsed ? "none" : cardProps.padding}
+      ref={railRef}
+      // Only a collapsible rail moves the inset inside the shell as an
+      // animated inline value; a static rail keeps the responsive class.
+      padding={collapsible ? "none" : cardProps.padding}
       scrollable={false}
       flexBody={scrollBody}
       className={classNames(
@@ -195,9 +282,20 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
         collapsible
           ? {
               // SidePanel's curve, not `duration-200 ease-in-out` (which read
-              // as a snap). Padding rides it too: collapsing drops it to none,
-              // and snapping it mid-sweep was a visible jump.
-              transition: panelSlideTransition("width", "padding"),
+              // as a snap), and ONE property: the width carries the sweep,
+              // the inset rides inside the containment on its own element.
+              // Slide mode snaps the flow size (the timeline sweeps instead);
+              // reduced motion takes both off — an instant collapse is the
+              // point, and no 450 ms layout animation to observe per frame.
+              ...(slide || reduced
+                ? null
+                : { transition: panelSlideTransition(sweepProperty) }),
+              // Layout containment bounds the per-frame relayout the sweep
+              // triggers; `paint` deliberately absent — step popovers and
+              // tooltips render outside this box, and paint containment would
+              // amputate them invisibly until someone opened one.
+              contain: "layout style",
+              containIntrinsicSize: "auto",
               ...style,
               width: isCollapsed ? COLLAPSED_RAIL_WIDTH : (style?.width ?? 360),
               ...(flush ? side === "left"
@@ -234,6 +332,30 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
           />
         </div>
       )}
+      {/* The card inset, inside the containment: the rail sweeps one property,
+          this element lets the inset ride the same curve without widening the
+          swept set on the animating shell. The absolute toggle above is
+          unaffected by padding either way (abspos insets resolve against the
+          padding box). */}
+      <div
+        data-rail-inset
+        className={classNames("min-w-0", scrollBody && "flex min-h-0 flex-1 flex-col")}
+        style={{
+          padding: collapsible && !isCollapsed ? padPx : 0,
+          ...(collapsible && !slide && !reduced
+            ? { transition: panelSlideTransition("padding") }
+            : null),
+          ...(slide && sweepDir && !reduced
+            ? ({
+                "--sp-sweep-x": `${
+                  (side === "left" ? -1 : 1) *
+                  Math.max(1, expandedWidth - COLLAPSED_RAIL_WIDTH)
+                }px`,
+                animation: `kit-sp-sweep-x-${sweepDir} ${PANEL_SLIDE_DURATION_MS}ms ${PANEL_SLIDE_EASING} both`,
+              } as React.CSSProperties)
+            : null),
+        }}
+      >
       {collapsible && (isCollapsed || loading || steps.length === 0) && (
         <div className="h-10 shrink-0" />
       )}
@@ -282,6 +404,7 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
           onSubStepSelect={onSubStepSelect}
           onStepAction={onStepAction}
         />
+      </div>
       </div>
     </Panel>
   );

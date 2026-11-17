@@ -747,6 +747,7 @@ export {
   default as StatCard,
   STAT_CARD_LOADERS,
   STAT_CARD_PROGRESS_TYPES,
+  STAT_CARD_ICON_PLACEMENTS,
   type StatCardProps,
   type StatCardTrend,
   type StatCardSize,
@@ -754,6 +755,7 @@ export {
   type StatCardError,
   type StatCardPage,
   type StatCardLoader,
+  type StatCardIconPlacement,
   type StatCardProgressType,
 } from "./StatCard";
 export {

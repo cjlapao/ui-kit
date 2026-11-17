@@ -70,17 +70,14 @@ export function getEasing(name: EasingName | EasingFn | undefined): EasingFn {
 
 // ── Reduced motion ───────────────────────────────────────────────────────────
 
-/** SSR-safe prefers-reduced-motion check. */
-export function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return false;
-  }
-  try {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
-}
+/**
+ * SSR-safe prefers-reduced-motion check — the theme owns it
+ * (`common/theme/Theme.ts`, beside the panel slide curve that also honours
+ * it), and this module re-exports it. Two live declarations of one exported
+ * name is how `export *` barrels end up TS2308 with neither name resolving;
+ * one declaration re-exported down both paths keeps both callers working.
+ */
+export { prefersReducedMotion } from "../../../theme/Theme";
 
 /** True when animations must render instantly (disabled or reduced-motion). */
 export function isAnimationInstant(

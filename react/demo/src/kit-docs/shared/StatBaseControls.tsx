@@ -4,6 +4,7 @@ import { useState } from "react";
 import { STAT_CARD_LOADERS, STAT_CARD_PROGRESS_TYPES } from "@cjlapao/ui-kit";
 import type {
   ControlSize,
+  StatCardIconPlacement,
   StatPagerPlacement,
   PanelCorner,
   PanelDecoration,
@@ -76,6 +77,8 @@ export const useStatBaseControls = (): StatBaseControls => {
   const [loading, setLoading] = useState(false);
 
   const [withIcon, setWithIcon] = useState(true);
+  const [iconBackground, setIconBackground] = useState(false);
+  const [iconPlacement, setIconPlacement] = useState<StatCardIconPlacement>("left");
   const [withTrend, setWithTrend] = useState(true);
   const [withSubtitle, setWithSubtitle] = useState(true);
   const [withMeta, setWithMeta] = useState(false);
@@ -148,6 +151,10 @@ export const useStatBaseControls = (): StatBaseControls => {
       controls: (
         <div className="space-y-1.5">
           <ToggleRow label="Icon" checked={withIcon} onChange={setWithIcon} />
+          <ChoiceControl label="Icon placement"
+            options={[{ label: "left", value: "left" }, { label: "right", value: "right" }]}
+            value={iconPlacement} onChange={(v) => setIconPlacement(v as StatCardIconPlacement)} />
+          <ToggleRow label="Icon background" checked={iconBackground} onChange={setIconBackground} />
           <ToggleRow label="Subtitle" checked={withSubtitle} onChange={setWithSubtitle} />
           <ToggleRow label="Trend" checked={withTrend} onChange={setWithTrend} />
           <ToggleRow label="Meta + footer" checked={withMeta} onChange={setWithMeta} />
@@ -197,6 +204,8 @@ export const useStatBaseControls = (): StatBaseControls => {
     valueTone: (valueTone || undefined) as TrueColor | undefined,
     valueSize: (valueSize || undefined) as ControlSize | undefined,
     icon: withIcon ? "Database" : undefined,
+    iconBackground,
+    iconPlacement,
     subtitle: withSubtitle ? "across 3 regions" : undefined,
     trend: withTrend
       ? { value: "+12%", direction: "up", label: "vs. last week" }

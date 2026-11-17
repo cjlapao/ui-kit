@@ -58,3 +58,77 @@ describe("PageBodyLayout — none", () => {
     expect(row.style.gap).toBe("12px");
   });
 });
+
+describe("PageBodyLayout — the zone floor, measured-free", () => {
+  const row = (container: HTMLElement) =>
+    container.querySelector("[data-page-row]") as HTMLElement;
+
+  it("floors the row at a calc() of published widths — not fit-content", () => {
+    // A narrow container must still produce the floor (the lesson: floor the
+    // row so it scrolls instead of the centre sliding under a zone). The
+    // floor used to be `min-width: fit-content` — an intrinsic-size pass
+    // measuring every zone's content recursively, re-run inside every frame
+    // of a panel's collapse sweep. jsdom lays nothing out, so the pin is on
+    // the expression that produces the floor: zones' published widths (0px
+    // until published) + the centre minimum + a gutter per zone + padding.
+    const { container } = render(
+      <PageBodyLayout left="Steps" right="Files">Centre</PageBodyLayout>,
+    );
+    const minWidth = row(container).style.minWidth;
+    expect(minWidth).not.toContain("fit-content");
+    // 240 centre + 2 × 8 gaps + 2 × 8 base padding ("xs" at xs viewports).
+    expect(minWidth).toBe(
+      "calc(var(--page-zone-min-left, 0px) + var(--page-zone-min-right, 0px) + 272px)",
+    );
+  });
+
+  it("sizes the numeric part from the props in play", () => {
+    const { container } = render(
+      <PageBodyLayout variant="plain" gap={12} minCenterWidth={300} left="Steps">
+        Centre
+      </PageBodyLayout>,
+    );
+    // Plain: no padding to add; one zone, one gutter.
+    expect(row(container).style.minWidth).toBe(
+      "calc(var(--page-zone-min-left, 0px) + var(--page-zone-min-right, 0px) + 312px)",
+    );
+  });
+
+  it("consumes a docked panel's published width, live through collapse", () => {
+    const { container } = render(
+      <PageBodyLayout
+        right={
+          <SidePanel docked isOpen collapsible width={300} title="Files">
+            body
+          </SidePanel>
+        }
+      >
+        Centre
+      </PageBodyLayout>,
+    );
+    // The zone publishes (it owns the number); the layout never measures.
+    expect(row(container).style.getPropertyValue("--page-zone-min-right")).toBe(
+      "300px",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Collapse panel" }));
+    expect(row(container).style.getPropertyValue("--page-zone-min-right")).toBe(
+      "56px",
+    );
+    expect(row(container).style.minWidth).toContain(
+      "var(--page-zone-min-right, 0px)",
+    );
+  });
+
+  it("every zone region is layout-contained — with no paint", () => {
+    const { container } = render(
+      <PageBodyLayout left="Steps" right="Files" bottom="Out">Centre</PageBodyLayout>,
+    );
+    for (const zone of ["left", "right", "bottom", "center"]) {
+      const el = container.querySelector(
+        `[data-page-region="${zone}"]`,
+      ) as HTMLElement;
+      expect(el.style.contain).toContain("layout");
+      expect(el.style.contain).not.toContain("paint");
+    }
+  });
+});

@@ -1430,3 +1430,38 @@
   background-color: inherit;
   transition: inherit;
 }
+
+/* Docked-panel sweep for `motion="slide"` (SidePanel, WorkflowTrackerRail).
+   A layout sweep makes every observer of the animating subtree re-run inside
+   each frame of the animation; "slide" takes the flow size in one layout and
+   counter-animates the content instead — and only with `transform` and
+   `opacity`, the two properties WebKitGTK composites on HTML elements
+   (deliberately never `scaleX`, which distorts glyphs). The missing keyframe
+   side is the element's own computed style, so one pair of keyframes serves
+   every distance and direction: the panel sets `--sp-sweep-x` / `--sp-sweep-y`
+   inline from the geometry it already owns. Reduced motion never applies the
+   animation, so these need no media guard of their own. */
+@keyframes kit-sp-sweep-x-in {
+  from {
+    transform: translateX(var(--sp-sweep-x, 0px));
+    opacity: 0;
+  }
+}
+@keyframes kit-sp-sweep-x-out {
+  to {
+    transform: translateX(var(--sp-sweep-x, 0px));
+    opacity: 0;
+  }
+}
+@keyframes kit-sp-sweep-y-in {
+  from {
+    transform: translateY(var(--sp-sweep-y, 0px));
+    opacity: 0;
+  }
+}
+@keyframes kit-sp-sweep-y-out {
+  to {
+    transform: translateY(var(--sp-sweep-y, 0px));
+    opacity: 0;
+  }
+}

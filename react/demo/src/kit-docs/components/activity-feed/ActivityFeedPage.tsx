@@ -11,7 +11,7 @@ export const ActivityFeedPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Activity Feed"
-      description="The audit log as a living feed: newest first, toned dots for what happened, a segment control for who or what kind, count badges for what aggregated, and a tail that says there is more. Rows are dense on purpose — feeds are skimmed, not read."
+      description="The audit log as a living feed: newest first, toned dots for what happened, a segment control for who or what kind, count badges for what aggregated, and a tail that says there is more. Rows are dense on purpose — feeds are skimmed, not read. `maxHeight` caps the body in a `ScrollArea`, so Load more grows the list while the card and the tail button stay put."
     />
     <ActivityFeedPlayground />
     <section className="flex flex-col gap-5">

@@ -63,6 +63,16 @@ export const STAT_CARD_LOADERS = ["skeleton", "spinner", "progress"] as const;
 export type StatCardLoader = (typeof STAT_CARD_LOADERS)[number];
 
 /**
+ * Where the icon sits against the card's title.
+ *
+ * `left` — the default — puts the icon before the title in one row, with the
+ * title centred on the icon. `right` is the original treatment: the icon
+ * pinned to the card's top-right, beside `actions`.
+ */
+export const STAT_CARD_ICON_PLACEMENTS = ["left", "right"] as const;
+export type StatCardIconPlacement = (typeof STAT_CARD_ICON_PLACEMENTS)[number];
+
+/**
  * @deprecated Use `progress` with `progressType="bar"`.
  */
 export interface StatCardProgressBar {
@@ -117,6 +127,20 @@ export interface StatCardProps
    * @default tone ?? "neutral"
    */
   iconTone?: TrueColor;
+  /**
+   * Paints the toned chip (background + border) behind the icon. Off by
+   * default: the icon renders bare, and `iconTone` then tints the glyph
+   * itself — on a `gradient` card the glyph stays white.
+   * @default false
+   */
+  iconBackground?: boolean;
+  /**
+   * Where the icon sits relative to the title. `left` renders it before the
+   * title with the title centred on the icon; `right` pins it to the card's
+   * top-right, beside `actions`.
+   * @default "left"
+   */
+  iconPlacement?: StatCardIconPlacement;
   trend?: StatCardTrend;
   /** Overall scale. Label and value inherit it unless they override. */
   size?: StatCardSize;
@@ -165,7 +189,11 @@ export interface StatCardProps
   valueSize?: StatCardSize;
   /** Tints the label. */
   labelTone?: TrueColor;
-  /** Type scale for the label. Falls back to `size`. */
+  /**
+   * Type scale for the label. Falls back to `size`. The title reads from the
+   * dedicated title scale (`LABEL_SIZE_TOKENS`), one step above the card's
+   * copy scale; the subtitle keeps the copy scale.
+   */
   labelSize?: StatCardSize;
   /** Secondary line under the value. */
   subtitle?: React.ReactNode;
@@ -291,6 +319,23 @@ const SIZE_TOKENS: Record<
   },
 };
 
+/**
+ * The title's own type scale.
+ *
+ * The title used to share the card's copy scale with the subtitle, which read
+ * small on a card whose whole point is the metric. It now steps a size above
+ * the copy scale at every `size`; `labelSize` indexes this same table, so an
+ * explicit choice never lands smaller than the default it replaces. The
+ * subtitle stays on the copy scale, which is what keeps it a subtitle.
+ */
+const LABEL_SIZE_TOKENS: Record<StatCardSize, string> = {
+  xs: "text-xs",
+  sm: "text-sm",
+  md: "text-base",
+  lg: "text-base",
+  xl: "text-lg",
+};
+
 const TREND_TONES: Record<StatCardTrend["direction"], TrueColor> = {
   up: "emerald",
   down: "rose",
@@ -306,6 +351,21 @@ const TREND_ICONS: Record<StatCardTrend["direction"], IconName> = {
 const SKELETON =
   "animate-pulse bg-black/10 motion-reduce:animate-none dark:bg-white/10";
 
+/**
+ * The surfaces whose fill *is* a tint of the tone (or a translucent glass).
+ * The opaque `border-{c}-200 dark:border-{c}-800` hairline is the same hue
+ * one step off those backgrounds, so it sank into them — a neutral tonal
+ * card showed almost no line at all. On these variants the footer divider
+ * takes the alpha pair instead, which reads on any fill.
+ */
+const TONED_SURFACE_VARIANTS: readonly PanelVariant[] = [
+  "subtle",
+  "tonal",
+  "glass",
+  "simple",
+  "liquid-glass",
+];
+
 const isEmpty = (node: React.ReactNode): boolean =>
   node == null || node === "" || node === false;
 
@@ -314,6 +374,8 @@ const StatCard: React.FC<StatCardProps> = ({
   value: valueProp,
   icon: iconProp,
   iconTone,
+  iconBackground = false,
+  iconPlacement = "left",
   trend: trendProp,
   size = "md",
   tone: surfaceTone = "none",
@@ -387,6 +449,8 @@ const StatCard: React.FC<StatCardProps> = ({
   // Label and value carry their own scale, falling back to the card's.
   const valueTokens = SIZE_TOKENS[valueSize ?? size] ?? tokens;
   const labelTokens = SIZE_TOKENS[labelSize ?? size] ?? tokens;
+  // The title reads from its own scale — the copy scale made it read small.
+  const titleScale = LABEL_SIZE_TOKENS[labelSize ?? size] ?? LABEL_SIZE_TOKENS.md;
   const hasLabel = !isEmpty(label);
   const hasValue = !isEmpty(value);
   const hasIcon = !!icon;
@@ -430,6 +494,7 @@ const StatCard: React.FC<StatCardProps> = ({
   const statTokens = getStatTileColorClasses(tone ?? "neutral");
 
   const chipTokens = getPillColorClasses(iconTone ?? tone ?? "neutral", "soft");
+  const iconColor = iconTone ?? tone ?? "neutral";
   const trendTone = trend ? (TREND_TONES[trend.direction] ?? "slate") : "slate";
 
   const gradientTone = tone ?? "blue";
@@ -451,11 +516,88 @@ const StatCard: React.FC<StatCardProps> = ({
     : undefined;
   const onGradient = Boolean(gradientBackground);
 
+  const titleClass = classNames(
+    "min-w-0 font-medium",
+    onGradient
+      ? "text-white/80"
+      : labelTone
+        ? `text-${labelTone}-600 dark:text-${labelTone}-400`
+        : "text-neutral-500 dark:text-neutral-400",
+    titleScale,
+  );
+
+  /**
+   * The icon with or without its chip. With the chip off, the tone tints the
+   * glyph itself, so `iconTone` keeps meaning — there is just no background
+   * left for it.
+   */
+  const iconNode = hasIcon ? (
+    iconBackground ? (
+      <span
+        className={classNames(
+          "inline-flex flex-none items-center justify-center",
+          tokens.chip,
+          onGradient
+            ? "bg-white/20 text-white"
+            : classNames(chipTokens.base, chipTokens.border),
+        )}
+      >
+        <CustomIcon icon={icon} size={tokens.icon} />
+      </span>
+    ) : (
+      <span
+        className={classNames(
+          "flex-none",
+          onGradient
+            ? "text-white"
+            : `text-${iconColor}-600 dark:text-${iconColor}-400`,
+        )}
+      >
+        <CustomIcon icon={icon} size={tokens.icon} />
+      </span>
+    )
+  ) : null;
+
+  /**
+   * The hairline above the meta/footer strip. Opaque `-200/-800` on the
+   * plain surfaces, where it sits on paper; the alpha pair on the toned
+   * variants, where that hairline is the same hue as the fill one step off
+   * and disappears (a neutral tonal card showed almost no line at all).
+   */
+  const dividerClass = onGradient
+    ? "border-white/20"
+    : variant && TONED_SURFACE_VARIANTS.includes(variant)
+      ? `border-${tone ?? "neutral"}-400/40 dark:border-${tone ?? "neutral"}-500/40`
+      : statTokens.divider;
+
   const skeleton = (
     <div className="flex min-w-0 flex-1 flex-col gap-3" aria-hidden="true">
       <div className="flex items-start justify-between gap-3">
-        <div className={classNames(SKELETON, "h-3 w-24 rounded")} />
-        {hasIcon && <div className={classNames(SKELETON, tokens.chip)} />}
+        {iconPlacement === "left" ? (
+          <span className="flex min-w-0 flex-1 items-center gap-2">
+            {hasIcon && (
+              <div
+                className={classNames(
+                  SKELETON,
+                  iconBackground ? tokens.chip : "h-4 w-4 rounded",
+                )}
+              />
+            )}
+            <div className={classNames(SKELETON, "h-3 w-24 rounded")} />
+          </span>
+        ) : (
+          <>
+            <div className={classNames(SKELETON, "h-3 w-24 rounded")} />
+            {hasIcon && (
+              <div
+                className={classNames(
+                  SKELETON,
+                  iconBackground ? tokens.chip : "h-4 w-4 rounded",
+                )}
+              />
+            )}
+          </>
+        )}
       </div>
       <div className={classNames(SKELETON, "h-8 w-2/3 rounded")} />
       {hasSubtitle && <div className={classNames(SKELETON, "h-3 w-1/2 rounded")} />}
@@ -521,43 +663,34 @@ const StatCard: React.FC<StatCardProps> = ({
         skeleton
       ) : (
       <div className="flex min-w-0 flex-1 flex-col">
-        {hasHeader && (
-          <div className="flex items-start justify-between gap-3">
-            {hasLabel ? (
-              <span
-                className={classNames(
-                  "min-w-0 font-medium",
-                  onGradient
-                    ? "text-white/80"
-                    : labelTone
-                      ? `text-${labelTone}-600 dark:text-${labelTone}-400`
-                      : "text-neutral-500 dark:text-neutral-400",
-                  labelTokens.label,
-                )}
-              >
-                {label}
+        {hasHeader &&
+          (iconPlacement === "left" ? (
+            // Icon then title, as one row centred on the icon; `actions`
+            // still pin to the right edge.
+            <div className="flex items-start justify-between gap-3">
+              <span className="flex min-w-0 flex-1 items-center gap-2">
+                {iconNode}
+                {hasLabel && <span className={titleClass}>{label}</span>}
               </span>
-            ) : (
-              <span />
-            )}
-            <span className="flex flex-none items-center gap-1">
-              {!isEmpty(actions) && actions}
-              {hasIcon && (
-                <span
-                  className={classNames(
-                    "inline-flex flex-none items-center justify-center",
-                    tokens.chip,
-                    onGradient
-                      ? "bg-white/20 text-white"
-                      : classNames(chipTokens.base, chipTokens.border),
-                  )}
-                >
-                  <CustomIcon icon={icon} size={tokens.icon} />
+              {!isEmpty(actions) && (
+                <span className="flex flex-none items-center gap-1">
+                  {actions}
                 </span>
               )}
-            </span>
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="flex items-start justify-between gap-3">
+              {hasLabel ? (
+                <span className={titleClass}>{label}</span>
+              ) : (
+                <span />
+              )}
+              <span className="flex flex-none items-center gap-1">
+                {!isEmpty(actions) && actions}
+                {iconNode}
+              </span>
+            </div>
+          ))}
 
         {isPaged && pagerPlacement === "top" && (
           <StatPager
@@ -729,10 +862,7 @@ const StatCard: React.FC<StatCardProps> = ({
 
         {(hasMeta || hasFooter) && !hasError && (
           <div
-            className={classNames(
-              "mt-4 border-t pt-4",
-              onGradient ? "border-white/20" : statTokens.divider,
-            )}
+            className={classNames("mt-4 border-t pt-4", dividerClass)}
           >
             {hasMeta && (
               <div className="flex flex-wrap gap-3">

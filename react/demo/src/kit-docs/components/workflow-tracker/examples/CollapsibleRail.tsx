@@ -173,11 +173,17 @@ export default function CollapsibleRail() {
   const data = { ...workflow, activeStepId };
   const [footerResizable, setFooterResizable] = useState(true);
   const [footerHeight, setFooterHeight] = useState(30);
+  // `layout` sweeps the rail's width on SidePanel's shared curve — one
+  // property, the card inset riding inside the shell's containment. `slide`
+  // takes the final width in a single layout and sweeps the content on the
+  // compositor; the space beside the rail snaps to its new size at once.
+  const [motion, setMotion] = useState<"layout" | "slide">("layout");
 
   return (
     <div className="w-full space-y-3">
       <div className="flex flex-wrap items-center gap-3">
         <Toggle label="Resizable agents footer" size="sm" checked={footerResizable} onChange={event => setFooterResizable(event.target.checked)} />
+        <Toggle label="motion=slide" size="sm" checked={motion === "slide"} onChange={event => setMotion(event.target.checked ? "slide" : "layout")} />
         <span className="text-xs text-neutral-500">Footer: {Math.round(footerHeight)}%</span>
         <Button size="xs" variant="ghost" onClick={() => setFooterHeight(30)}>Reset to 30%</Button>
       </div>
@@ -189,6 +195,7 @@ export default function CollapsibleRail() {
         collapsible
         collapsed={collapsed}
         onCollapsedChange={setCollapsed}
+        motion={motion}
         fillHeight
         footerResizable={footerResizable}
         footerHeight={footerHeight}

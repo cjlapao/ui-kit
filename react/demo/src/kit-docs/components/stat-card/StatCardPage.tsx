@@ -29,7 +29,7 @@ export const StatCardPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Stat Card"
-      description="A metric in a card — label, big value, optional trend pill, icon chip, optional progress, and a full-size surface underneath. Every Panel variant, tone and corner works; `gradient` paints the surface itself."
+      description="A metric in a card — label, big value, optional trend pill, icon, optional progress, and a full-size surface underneath. Every Panel variant, tone and corner works; `gradient` paints the surface itself."
     />
     <StatCardPlayground />
     <section className="flex flex-col gap-5">
@@ -49,7 +49,7 @@ export const StatCardPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="With Icon"
-        description={'An `icon` renders in a toned chip. Without `iconTone` the chip falls back to the card\'s own `tone`; with one, it overrides it.'}
+        description={'By default the `icon` renders bare before the title — the tone (or an overriding `iconTone`) tints the glyph itself. `iconBackground` paints the toned chip back behind it, and `iconPlacement="right"` pins the icon to the card\'s top-right instead of centring the title on it.'}
         code={withIconCode}
         filename="WithIcon.tsx"
       >

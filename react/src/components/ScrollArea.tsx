@@ -161,6 +161,20 @@ export const ScrollArea = ({
     ratio: number;
   } | null>(null);
 
+  /**
+   * The virtual-scroll fields as stable primitives, captured once per render.
+   * A host passing `virtualScroll={{ offset, contentSize, viewportSize }}`
+   * as an inline literal gets a fresh OBJECT every render; depending on that
+   * object would rebuild the memoised measurements — and with them the
+   * ResizeObserver subscription — on every host render, forcing a full
+   * re-measure each time. The values are what the measurements actually
+   * read; the identity is noise.
+   */
+  const virtual = virtualScroll != null;
+  const virtualViewport = virtualScroll?.viewportSize ?? 0;
+  const virtualContent = virtualScroll?.contentSize ?? 0;
+  const virtualOffset = virtualScroll?.offset ?? 0;
+
   const thumb = useCallback(
     (
       viewport: HTMLDivElement,
@@ -168,14 +182,14 @@ export const ScrollArea = ({
       axis: "x" | "y",
     ): ThumbMetrics => {
       const viewportSize =
-        axis === "y" && virtualScroll
-          ? virtualScroll.viewportSize
+        axis === "y" && virtual
+          ? virtualViewport
           : axis === "y"
             ? viewport.clientHeight
             : viewport.clientWidth;
       const contentSize =
-        axis === "y" && virtualScroll
-          ? virtualScroll.contentSize
+        axis === "y" && virtual
+          ? virtualContent
           : axis === "y"
             ? viewport.scrollHeight
             : viewport.scrollWidth;
@@ -186,14 +200,14 @@ export const ScrollArea = ({
             : track.clientWidth
           : viewportSize) || 1;
       const scrollable = contentSize - viewportSize;
-      if (scrollable <= (virtualScroll ? 0 : 1)) return FITTING_THUMB;
+      if (scrollable <= (virtual ? 0 : 1)) return FITTING_THUMB;
       const size = Math.max(
         MIN_THUMB,
         (viewportSize / contentSize) * trackSize,
       );
       const position =
-        axis === "y" && virtualScroll
-          ? virtualScroll.offset
+        axis === "y" && virtual
+          ? virtualOffset
           : axis === "y"
             ? viewport.scrollTop
             : viewport.scrollLeft;
@@ -203,8 +217,12 @@ export const ScrollArea = ({
         ratio: position / scrollable,
       };
     },
-    [virtualScroll],
+    [virtual, virtualViewport, virtualContent, virtualOffset],
   );
+
+  /** Same metrics ⇒ same thumb. Object identity is the render signal. */
+  const sameMetrics = (a: ThumbMetrics, b: ThumbMetrics) =>
+    a.size === b.size && a.offset === b.offset && a.ratio === b.ratio;
 
   const update = useCallback(() => {
     const viewport = viewportRef.current;
@@ -213,36 +231,66 @@ export const ScrollArea = ({
     // loudly as content that can actually be scrolled to, so a sideways-locked
     // region has to be told off here: measuring it would draw a bar over an
     // axis with nothing to scroll.
-    setOverflow({
-      x: horizontal && viewport.scrollWidth - viewport.clientWidth > 1,
-      y: virtualScroll
-        ? virtualScroll.contentSize > virtualScroll.viewportSize
-        : viewport.scrollHeight - viewport.clientHeight > 1,
-    });
-    setThumbY(thumb(viewport, yTrackRef.current, "y"));
-    setThumbX(
-      horizontal ? thumb(viewport, xTrackRef.current, "x") : FITTING_THUMB,
+    const nextX = horizontal && viewport.scrollWidth - viewport.clientWidth > 1;
+    const nextY = virtual
+      ? virtualContent > virtualViewport
+      : viewport.scrollHeight - viewport.clientHeight > 1;
+    // Guarded by value, reusing the previous object when unchanged: the
+    // ResizeObserver fires on any resize *nearby* — a panel collapsing
+    // elsewhere on the page re-runs this callback with geometry that is
+    // frequently identical — and handing `setState` a fresh object every
+    // time re-rendered the whole area on frames where nothing moved. Same
+    // values return the same object and React bails the render out entirely.
+    setOverflow((prev) =>
+      prev.x === nextX && prev.y === nextY ? prev : { x: nextX, y: nextY },
     );
-  }, [thumb, horizontal, virtualScroll]);
+    const nextYThumb = thumb(viewport, yTrackRef.current, "y");
+    setThumbY((prev) => (sameMetrics(prev, nextYThumb) ? prev : nextYThumb));
+    const nextXThumb = horizontal
+      ? thumb(viewport, xTrackRef.current, "x")
+      : FITTING_THUMB;
+    setThumbX((prev) => (sameMetrics(prev, nextXThumb) ? prev : nextXThumb));
+  }, [thumb, horizontal, virtual, virtualContent, virtualViewport]);
+
+  // The latest `update`, read through a ref, so the observer subscription
+  // below is built exactly once — `update`'s identity changing (a genuine
+  // value change, a `horizontal` flip) must never tear down and rebuild the
+  // observer; the ref always sees the current one.
+  const updateRef = useRef(update);
+  useEffect(() => {
+    updateRef.current = update;
+  });
 
   // Re-measure on any size change, of the frame or of the content inside it.
   // No ResizeObserver (jsdom, old engines) means falling back to window
   // resizes alone; the scroll handler keeps the thumbs honest meanwhile.
+  // The observer watches viewport AND content, so two callbacks per frame is
+  // normal — they coalesce into one rAF-batched `update()`, which also keeps
+  // this callback off the forced-layout path inside a panel's sweep.
   useEffect(() => {
-    update();
+    updateRef.current();
     let observer: ResizeObserver | undefined;
+    let frame = 0;
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        updateRef.current();
+      });
+    };
     if (typeof ResizeObserver !== "undefined") {
-      observer = new ResizeObserver(update);
+      observer = new ResizeObserver(schedule);
       if (viewportRef.current) observer.observe(viewportRef.current);
       if (contentRef.current) observer.observe(contentRef.current);
     } else {
-      window.addEventListener("resize", update);
+      window.addEventListener("resize", schedule);
     }
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       observer?.disconnect();
-      window.removeEventListener("resize", update);
+      window.removeEventListener("resize", schedule);
     };
-  }, [update]);
+  }, []);
 
   useEffect(() => () => window.clearTimeout(lingerTimer.current), []);
 
@@ -402,6 +450,12 @@ export const ScrollArea = ({
           data-slot="scrollarea-content"
           className={classNames(
             virtualScroll ? "h-full min-w-full" : "table min-w-full",
+            // The overlay bar's lane is reserved in the content *always*:
+            // the auto/hover bar appears on gesture, and a gutter tied to
+            // its visibility would jog the text sideways on every scroll.
+            // A constant 10px inset is the calmer contract — the thumb then
+            // never sits on the caller's content, or its hover state.
+            "pr-2.5",
             contentClassName,
           )}
         >

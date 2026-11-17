@@ -86,11 +86,13 @@ export const IconsPage: React.FC = () => {
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
           {filtered.map(({ name, Component }) => (
+            // Explicit colour: `<button>` resets the inherited colour, so a
+            // bare `opacity-*` label computed to black on the dark theme.
             <button
               key={name}
               type="button"
               onClick={() => setSelectedName(name)}
-              className={`flex flex-col items-center gap-1.5 rounded-lg p-3 text-center transition hover:bg-black/5 dark:hover:bg-white/10 ${
+              className={`flex flex-col items-center gap-1.5 rounded-lg p-3 text-center text-neutral-700 transition hover:bg-black/5 dark:text-neutral-200 dark:hover:bg-white/10 ${
                 name === selected.name
                   ? "bg-blue-500/10 ring-1 ring-blue-500/40"
                   : ""
@@ -98,13 +100,13 @@ export const IconsPage: React.FC = () => {
               aria-pressed={name === selected.name}
             >
               <Component className="h-6 w-6 text-neutral-700 dark:text-neutral-200" />
-              <span className="w-full truncate text-[10px] opacity-60">
+              <span className="w-full truncate text-[10px] text-neutral-500 dark:text-neutral-400">
                 {name}
               </span>
             </button>
           ))}
           {filtered.length === 0 && (
-            <p className="col-span-full py-8 text-center text-sm opacity-60">
+            <p className="col-span-full py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
               No icon matches &ldquo;{search}&rdquo;.
             </p>
           )}
@@ -120,8 +122,10 @@ export const IconsPage: React.FC = () => {
               <selected.Component className="h-8 w-8 text-blue-500" />
             )}
             <div className="flex min-w-0 flex-col">
-              <span className="truncate font-semibold">{selected.name}</span>
-              <span className="text-xs opacity-60">
+              <span className="truncate font-semibold text-neutral-900 dark:text-neutral-50">
+                {selected.name}
+              </span>
+              <span className="text-xs text-neutral-500 dark:text-neutral-400">
                 {entries.length} icons in the registry
               </span>
               {!isRegistered && (
@@ -140,14 +144,16 @@ export const IconsPage: React.FC = () => {
                   <selected.Component
                     className={`${SIZE_CLASS[s]} text-neutral-600 dark:text-neutral-300`}
                   />
-                  <span className="text-[10px] uppercase opacity-50">{s}</span>
+                  <span className="text-[10px] uppercase text-neutral-500 dark:text-neutral-400">
+                    {s}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
           <CodeBlock code={usageCode} filename={`${selected.name}.tsx`} />
-          <p className="text-xs opacity-70">
+          <p className="text-xs text-neutral-600 dark:text-neutral-300">
             Icons paint with <code>currentColor</code> — tint them with{" "}
             <code>tone</code> or plain CSS colour, size them with the{" "}
             <code>size</code> scale or <code>customSize</code>, and give them{" "}

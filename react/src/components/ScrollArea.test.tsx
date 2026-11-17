@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { Profiler } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import ScrollArea from "./ScrollArea";
 
@@ -215,6 +216,22 @@ describe("ScrollArea", () => {
     expect(viewport().className).toContain("[&::-webkit-scrollbar]:hidden");
   });
 
+  it("reserves the bar's lane in the content always, never on gesture", () => {
+    render(
+      <ScrollArea>
+        <p>content</p>
+      </ScrollArea>,
+    );
+    const content = document.querySelector(
+      '[data-slot="scrollarea-content"]',
+    ) as HTMLElement;
+    // The gutter is constant: the auto/hover thumb appears and hides on
+    // gesture, and a padding that followed it would jog the text sideways.
+    expect(content.className).toContain("pr-2.5");
+    overflowY(viewport(), 400);
+    expect(content.className).toContain("pr-2.5");
+  });
+
   it("the content wrapper stretches for horizontal scroll sizing", () => {
     render(
       <ScrollArea>
@@ -304,5 +321,152 @@ describe("ScrollArea", () => {
       expect(bars()[1].getAttribute("data-state")).toBe("visible");
       expect(viewport().style.overflowX).toBe("");
     });
+  });
+});
+
+// ── The collapse-sweep budget (2026-11): nothing re-renders, nothing
+// re-subscribes, when the page merely resizes near an unchanged area ─────────
+/**
+ * A ResizeObserver spy: counts instances and `observe`/`disconnect` calls and
+ * lets a test fire the callback the component would see from the engine.
+ */
+class SpyResizeObserver {
+  static created: SpyResizeObserver[] = [];
+  observeCount = 0;
+  disconnectCount = 0;
+  constructor(public callback: ResizeObserverCallback) {
+    SpyResizeObserver.created.push(this);
+  }
+  observe() {
+    this.observeCount += 1;
+  }
+  unobserve() {}
+  disconnect() {
+    this.disconnectCount += 1;
+  }
+  fire() {
+    this.callback([], this as unknown as ResizeObserver);
+  }
+}
+
+const flushFrames = async (ms = 40) => {
+  await act(async () => {
+    await new Promise((resolve) => window.setTimeout(resolve, ms));
+  });
+};
+
+describe("ScrollArea — inside the animation's frame budget", () => {
+  it("renders zero extra times when a resize leaves the geometry identical", async () => {
+    // The panel-sweep coupling: a collapse elsewhere in the page makes every
+    // observing ScrollArea re-measure. Identical geometry must not cost a
+    // single render — the guarded `update()` reuses the previous state
+    // objects and React bails out entirely.
+    SpyResizeObserver.created = [];
+    vi.stubGlobal("ResizeObserver", SpyResizeObserver);
+    let commits = 0;
+    render(
+      <Profiler id="scrollarea" onRender={() => { commits += 1; }}>
+        <ScrollArea>
+          <div>Unchanged content</div>
+        </ScrollArea>
+      </Profiler>,
+    );
+    await flushFrames();
+    expect(SpyResizeObserver.created).toHaveLength(1);
+    const observer = SpyResizeObserver.created[0];
+    const before = commits;
+    // Viewport AND content callbacks in one frame, no deltas.
+    observer.fire();
+    observer.fire();
+    await flushFrames();
+    expect(commits).toBe(before);
+
+    // And the update is genuinely alive, not merely unhooked: real geometry
+    // movement still reaches the thumbs.
+    Object.defineProperty(viewport(), "scrollHeight", {
+      configurable: true,
+      value: 1000,
+    });
+    Object.defineProperty(viewport(), "clientHeight", {
+      configurable: true,
+      value: 100,
+    });
+    observer.fire();
+    await flushFrames();
+    expect(commits).toBeGreaterThan(before);
+    vi.unstubAllGlobals();
+  });
+
+  it("an inline virtualScroll literal never recreates the observer", () => {
+    // A host passing `virtualScroll={{ offset, contentSize, viewportSize }}`
+    // as a literal gets a fresh object each render. The subscription depends
+    // on the fields (through a latest-ref), so the observer survives all
+    // three renders untouched — no teardown, no rebuild, no forced update.
+    SpyResizeObserver.created = [];
+    vi.stubGlobal("ResizeObserver", SpyResizeObserver);
+    const onScroll = vi.fn();
+    const view = (
+      <ScrollArea
+        virtualScroll={{ contentSize: 100, viewportSize: 10, offset: 0, onScroll }}
+      >
+        <div>engine</div>
+      </ScrollArea>
+    );
+    const { rerender } = render(view);
+    expect(SpyResizeObserver.created).toHaveLength(1);
+    const observer = SpyResizeObserver.created[0];
+    expect(observer.observeCount).toBe(2); // viewport + content, once
+    rerender(
+      <ScrollArea
+        virtualScroll={{ contentSize: 100, viewportSize: 10, offset: 0, onScroll }}
+      >
+        <div>engine</div>
+      </ScrollArea>,
+    );
+    rerender(
+      <ScrollArea
+        virtualScroll={{ contentSize: 100, viewportSize: 10, offset: 0, onScroll }}
+      >
+        <div>engine</div>
+      </ScrollArea>,
+    );
+    expect(SpyResizeObserver.created).toHaveLength(1);
+    expect(observer.observeCount).toBe(2);
+    expect(observer.disconnectCount).toBe(0);
+    vi.unstubAllGlobals();
+  });
+
+  it("coalesces both observer callbacks of a frame into one update", async () => {
+    // Two callbacks per frame is normal (viewport + content); the rAF batch
+    // means the component still runs one measurement pass. Here: even after
+    // both fire, the thumb metrics commit at most once per frame — with
+    // changing geometry that shows as one render, not two.
+    SpyResizeObserver.created = [];
+    vi.stubGlobal("ResizeObserver", SpyResizeObserver);
+    let commits = 0;
+    render(
+      <Profiler id="scrollarea" onRender={() => { commits += 1; }}>
+        <ScrollArea>
+          <div>content</div>
+        </ScrollArea>
+      </Profiler>,
+    );
+    await flushFrames();
+    const observer = SpyResizeObserver.created[0];
+    Object.defineProperty(viewport(), "scrollHeight", {
+      configurable: true,
+      value: 500,
+    });
+    Object.defineProperty(viewport(), "clientHeight", {
+      configurable: true,
+      value: 100,
+    });
+    const before = commits;
+    observer.fire();
+    observer.fire();
+    observer.fire(); // a third in the same frame: still one pass
+    await flushFrames();
+    expect(commits - before).toBeLessThanOrEqual(1);
+    vi.unstubAllGlobals();
   });
 });

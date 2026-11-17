@@ -54,6 +54,10 @@ export default function WorkspaceLayout() {
   const [showTerminal, setShowTerminal] = useState(true);
   const [backdrop, setBackdrop] = useState(false);
   const [active, setActive] = useState("survey");
+  // How the docked zones hand over space: the layout sweep eases the centre
+  // (and re-runs every observer of the animating subtree per frame); the
+  // slide sweep snaps the centre and moves the content on the compositor.
+  const [motion, setMotion] = useState<"layout" | "slide">("layout");
   // See-through surfaces need something behind them to be judged against.
   const showBackdrop = backdrop || (GLASS_VARIANTS as string[]).includes(variant) || GLASS_VARIANTS.includes(layoutVariant);
   const surface = { variant, corner, tone };
@@ -67,6 +71,7 @@ export default function WorkspaceLayout() {
       <SelectControl label="Corner" options={panelCornerOptions} value={corner} onChange={(v) => setCorner(v as SurfaceCorner)} />
       <SelectControl label="Tone" options={trueColorOptions} value={tone} onChange={(v) => setTone(v as TrueColor)} />
       <SelectControl label="Panel inset" options={panelPaddingOptions} value={inset} onChange={(v) => setInset(v as SurfacePadding)} />
+      <SelectControl label="Collapse motion" options={[{ label: "layout — centre eases", value: "layout" }, { label: "slide — centre snaps, content sweeps", value: "slide" }]} value={motion} onChange={(v) => setMotion(v as "layout" | "slide")} />
       <div className="grid gap-x-6 gap-y-2 sm:col-span-5 sm:grid-cols-4">
         <ToggleRow label="Workflow rail" checked={showRail} onChange={setShowRail} />
         <ToggleRow label="Files panel" checked={showFiles} onChange={setShowFiles} />
@@ -88,11 +93,11 @@ export default function WorkspaceLayout() {
           start={<strong>Loop workspace</strong>}
           end={<span className="text-xs text-emerald-600 dark:text-emerald-400">Running · {active}</span>} />}
         left={showRail && (
-          <WorkflowTrackerRail {...surface} side="left" flush={false} fillHeight collapsible style={{ width: 240 }}
+          <WorkflowTrackerRail {...surface} side="left" flush={false} fillHeight collapsible motion={motion} style={{ width: 240 }}
             data={{ title: "Execution path", activeStepId: active, steps }} onStepSelect={setActive} />
         )}
         right={showFiles && (
-          <SidePanel docked isOpen collapsible resizable inset={inset} width={260} minWidth={180} maxWidth={440}
+          <SidePanel docked isOpen collapsible resizable motion={motion} inset={inset} width={260} minWidth={180} maxWidth={440}
             title="Files in scope" subtitle={`${files.length} items`} variant={variant} surfaceTone={tone} corner={corner}>
             <div className="space-y-1 px-3 pb-4 text-sm text-neutral-700 dark:text-neutral-300">
               {files.map(file => <div key={file} className="truncate rounded-lg px-2 py-1.5 hover:bg-neutral-100 dark:hover:bg-white/5">{file}</div>)}
@@ -103,7 +108,7 @@ export default function WorkspaceLayout() {
           </SidePanel>
         )}
         bottom={showTerminal && (
-          <SidePanel docked side="bottom" isOpen collapsible resizable inset={inset} height={220} minHeight={120} maxHeight={400}
+          <SidePanel docked side="bottom" isOpen collapsible resizable motion={motion} inset={inset} height={220} minHeight={120} maxHeight={400}
             title="Terminal" variant={variant} surfaceTone={tone} corner={corner}>
             <div className="h-full px-3 pb-3">
               <Terminal height="100%" variant="simple" corner="rounded-sm" readOnly initialData={terminalOutput} />

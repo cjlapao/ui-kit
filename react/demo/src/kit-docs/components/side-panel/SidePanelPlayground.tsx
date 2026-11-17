@@ -48,6 +48,7 @@ export const SidePanelPlayground: React.FC = () => {
    */
   const [inset, setInset] = useState<"auto" | SurfacePadding>("auto");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  const [motion, setMotion] = useState<"layout" | "slide">("layout");
 
   return (
     <PlaygroundPanel
@@ -106,6 +107,15 @@ export const SidePanelPlayground: React.FC = () => {
                       ]}
                       value={inset}
                       onChange={(v) => setInset(v as "auto" | SurfacePadding)}
+                    />
+                    <ChoiceControl
+                      label="Motion"
+                      options={[
+                        { label: "layout (centre eases)", value: "layout" },
+                        { label: "slide (centre snaps, content sweeps)", value: "slide" },
+                      ]}
+                      value={motion}
+                      onChange={(v) => setMotion(v as "layout" | "slide")}
                     />
                     <ChoiceControl
                       label="Side"
@@ -173,6 +183,21 @@ export const SidePanelPlayground: React.FC = () => {
             column means opening it never reflows the content beside it.
           </p>
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
+            <strong>Motion</strong>: <code>layout</code> sweeps the
+            panel{"'"}s flow size — smooth where the page is cheap, but on slow
+            engines everything observing the animating subtree (ResizeObservers,
+            a <code>fit-content</code> floor) runs its full pass{" "}
+            <em>inside every frame of the sweep</em>. <code>slide</code> takes
+            the final size in one layout and counter-animates the content with
+            <code>{" "}transform</code> + <code>opacity</code> — the centre
+            snaps to its new width instead of easing; the panel still appears to
+            sweep. <code>prefers-reduced-motion</code> makes both instant.{" "}
+            <strong>Surfaces</strong>: <code>glass</code>/<code>liquid-glass</code>
+            {" "}read their backdrop back on the main thread every frame
+            anything scrolls beneath them (WebKitGTK); prefer <code>simple</code>
+            or <code>elevated</code> for shells over busy pages.
+          </p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
             Uses the same surface variants as <code>Panel</code> and the workflow
             rail. <strong>Inset</strong> adds a gap from the padding scale on the
             two edges beside the docked one, so the panel is a little shorter
@@ -218,6 +243,7 @@ export const SidePanelPlayground: React.FC = () => {
             collapsedLabel="Inspector"
             noise={noise}
             noiseScale={noiseScale === "auto" ? undefined : Number(noiseScale)}
+            motion={motion}
             inset={inset === "auto" ? undefined : inset}
             corner={corner}
             width={280}
