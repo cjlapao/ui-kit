@@ -14,8 +14,11 @@ The React components directory is the single source of truth; Vue and both
 1. **Clean the raw SVG first** (SVG Repo / Figma exports are never clean):
    - Remove the `SVGRepo_bgCarrier` / `SVGRepo_tracerCarrier` /
      `SVGRepo_iconCarrier` wrapper `<g>`s, `id` attributes, `version`,
-     `xmlns:xlink`, `xml:space`, HTML comments and metadata elements
-     (`<title>`, `<desc>`) — keep the inner shapes.
+     `xmlns:xlink`, `xml:space`, `aria-hidden` / `role` / `class` on the root
+     (Iconify exports carry `class="iconify iconify--…"` + `aria-hidden` +
+     `role="img"` — the class points at an Iconify stylesheet that never ships,
+     and a-hiding an icon component is wrong for consumers), HTML comments and
+     metadata elements (`<title>`, `<desc>`) — keep the inner shapes.
    - **Replace every hardcoded colour with `currentColor`** (`fill="#0F0F0F"` →
      `fill="currentColor"`; for stroke icons, `stroke="#..."` →
      `stroke="currentColor"`). Watch for colour hidden in a CSS class —
@@ -68,9 +71,11 @@ The React components directory is the single source of truth; Vue and both
      geometry like `Backup`'s tray bar — the tell is 0,0 + full-canvas +
      invisible fill. No kit icon has one. When verifying `d` strings, filter it
      out before comparing counts.
-   - **Drop no-op default attributes** — e.g.
-     `preserveAspectRatio="xMidYMid meet"` *is* the SVG spec default; no kit
-     icon carries it.
+   - **Drop no-op default/dead attributes** — e.g.
+     `preserveAspectRatio="xMidYMid meet"` *is* the SVG spec default,
+     `baseProfile="full"` / `enable-background` are legacy leftovers,
+     `fill-opacity="1"` is the default, and `stroke-width`/`stroke-linejoin`
+     without any `stroke=` paints nothing. No kit icon carries any of them.
 2. **Drop the cleaned SVG** at `react/src/assets/icons/<Name>.svg` (PascalCase
    file name = icon name).
 3. **Create the React component** `react/src/icons/components/<Name>.tsx`
@@ -89,6 +94,12 @@ The React components directory is the single source of truth; Vue and both
    whitespace (`replace(/\s+/g, " ")`) before comparing — exports sometimes
    line-wrap inside `d`, and collapsing is safe there because whitespace only
    separates numbers.
+   - **≥5 paths (or any path with 500+ chars): skip manual pasting entirely.**
+     Save the raw original to a temp file and *generate* both the asset SVG and
+     the `.tsx` mechanically with a node one-liner: `matchAll(/<path d="([^"]*)"[^>]*>/g)`
+     out of it, re-emit with `fill="currentColor"` per path (first `Robot`).
+     Then "verify" is trivially re-running the same extraction — drift becomes
+     structurally impossible instead of hoped-for.
 5. **Regenerate, in this order** (from repo root):
    - `node scripts/generate-icon-registry.mjs` → `react/src/icons/registry.ts`
    - `node scripts/generate-icons-index.mjs` → `react/src/icons/index.ts`

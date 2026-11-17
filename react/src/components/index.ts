@@ -921,3 +921,7 @@ export { default as CodeBlock, type CodeBlockProps } from "./CodeBlock";
 
 export { FilterBar } from "./FilterBar";
 export type { FilterBarProps, FilterBarFilter, FilterBarOption, FilterBarValue } from "./FilterBar";
+
+export * from "./AiRobot";
+export * from "./AgentMap";
+export { GridBackground, type GridBackgroundProps } from "./GridBackground";

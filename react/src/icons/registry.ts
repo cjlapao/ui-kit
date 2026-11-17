@@ -44,6 +44,8 @@ import { Close } from "./components/Close";
 import { Close1 } from "./components/Close1";
 import { CloudOff } from "./components/CloudOff";
 import { Cog } from "./components/Cog";
+import { Cogs } from "./components/Cogs";
+import { Comments } from "./components/Comments";
 import { Complete } from "./components/Complete";
 import { Container } from "./components/Container";
 import { Copy } from "./components/Copy";
@@ -70,8 +72,10 @@ import { FlowChart } from "./components/FlowChart";
 import { Folder } from "./components/Folder";
 import { Gantt } from "./components/Gantt";
 import { Gate } from "./components/Gate";
+import { Gauge } from "./components/Gauge";
 import { Globe } from "./components/Globe";
 import { Group } from "./components/Group";
+import { HalfCogs } from "./components/HalfCogs";
 import { HealthCheck } from "./components/HealthCheck";
 import { Help } from "./components/Help";
 import { History } from "./components/History";
@@ -131,6 +135,7 @@ import { ReverseProxyTo } from "./components/ReverseProxyTo";
 import { Revert } from "./components/Revert";
 import { Revoke } from "./components/Revoke";
 import { Roadmap } from "./components/Roadmap";
+import { Robot } from "./components/Robot";
 import { Rocket } from "./components/Rocket";
 import { Role } from "./components/Role";
 import { Roles } from "./components/Roles";
@@ -152,6 +157,7 @@ import { Sun } from "./components/Sun";
 import { Suspend } from "./components/Suspend";
 import { Taint } from "./components/Taint";
 import { Target } from "./components/Target";
+import { Task } from "./components/Task";
 import { ThemeAuto } from "./components/ThemeAuto";
 import { ThemeDark } from "./components/ThemeDark";
 import { ThemeLight } from "./components/ThemeLight";
@@ -166,6 +172,7 @@ import { ViewGrid } from "./components/ViewGrid";
 import { ViewRows } from "./components/ViewRows";
 import { VirtualMachine } from "./components/VirtualMachine";
 import { Warning } from "./components/Warning";
+import { Whiteboard } from "./components/Whiteboard";
 import { Windows } from "./components/Windows";
 import { Work } from "./components/Work";
 
@@ -219,6 +226,8 @@ export type IconName =
   | "Close1"
   | "CloudOff"
   | "Cog"
+  | "Cogs"
+  | "Comments"
   | "Complete"
   | "Container"
   | "Copy"
@@ -245,8 +254,10 @@ export type IconName =
   | "Folder"
   | "Gantt"
   | "Gate"
+  | "Gauge"
   | "Globe"
   | "Group"
+  | "HalfCogs"
   | "HealthCheck"
   | "Help"
   | "History"
@@ -306,6 +317,7 @@ export type IconName =
   | "Revert"
   | "Revoke"
   | "Roadmap"
+  | "Robot"
   | "Rocket"
   | "Role"
   | "Roles"
@@ -327,6 +339,7 @@ export type IconName =
   | "Suspend"
   | "Taint"
   | "Target"
+  | "Task"
   | "ThemeAuto"
   | "ThemeDark"
   | "ThemeLight"
@@ -341,6 +354,7 @@ export type IconName =
   | "ViewRows"
   | "VirtualMachine"
   | "Warning"
+  | "Whiteboard"
   | "Windows"
   | "Work"
   | "flow-chart"
@@ -395,6 +409,8 @@ export const iconRegistry: Record<
   Close1: Close1,
   CloudOff: CloudOff,
   Cog: Cog,
+  Cogs: Cogs,
+  Comments: Comments,
   Complete: Complete,
   Container: Container,
   Copy: Copy,
@@ -421,8 +437,10 @@ export const iconRegistry: Record<
   Folder: Folder,
   Gantt: Gantt,
   Gate: Gate,
+  Gauge: Gauge,
   Globe: Globe,
   Group: Group,
+  HalfCogs: HalfCogs,
   HealthCheck: HealthCheck,
   Help: Help,
   History: History,
@@ -482,6 +500,7 @@ export const iconRegistry: Record<
   Revert: Revert,
   Revoke: Revoke,
   Roadmap: Roadmap,
+  Robot: Robot,
   Rocket: Rocket,
   Role: Role,
   Roles: Roles,
@@ -503,6 +522,7 @@ export const iconRegistry: Record<
   Suspend: Suspend,
   Taint: Taint,
   Target: Target,
+  Task: Task,
   ThemeAuto: ThemeAuto,
   ThemeDark: ThemeDark,
   ThemeLight: ThemeLight,
@@ -517,6 +537,7 @@ export const iconRegistry: Record<
   ViewRows: ViewRows,
   VirtualMachine: VirtualMachine,
   Warning: Warning,
+  Whiteboard: Whiteboard,
   Windows: Windows,
   Work: Work,
   "flow-chart": FlowChart,

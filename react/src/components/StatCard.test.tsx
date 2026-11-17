@@ -335,8 +335,11 @@ describe("StatCard — icon treatment", () => {
   it("puts the icon before the title by default, centred on it", () => {
     const { container } = render(<StatCard label="L" value="1" icon="Shop" />);
     const title = titleOf(container);
-    // Icon and title share one `items-center` row, the icon first.
+    // Icon and title share one `items-center` row, the icon first — and the
+    // title carries no half-leading, so the centring is of the glyphs
+    // themselves, true whatever the title or icon size.
     expect(title.parentElement!.className).toContain("items-center");
+    expect(title.className).toContain("leading-none");
     expect(title.previousElementSibling!.querySelector("svg")).not.toBeNull();
   });
 

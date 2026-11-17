@@ -46,6 +46,16 @@ export const DOC_CATEGORIES: DocCategory[] = [
 
 export const DOC_COMPONENTS: DocComponent[] = [
   {
+    slug: "agent-map", name: "Agent Map", icon: "ViewGrid", category: "Data",
+    description: "A project-centered map for monitoring agent activity.",
+    Page: lazy(() => import("./components/agent-map/AgentMapPage")),
+  },
+  {
+    slug: "ai-robot", name: "AI Robot", icon: "Sun", category: "Feedback",
+    description: "A lightweight animated robot with a moving wave and blinking eyes.",
+    Page: lazy(() => import("./components/ai-robot/AiRobotPage")),
+  },
+  {
     slug: "ai-orb", name: "AI Orb", icon: "Sun", category: "Feedback",
     description: "Audio-reactive presence with solar flares, listening waves, and customizable palettes.",
     Page: lazy(() => import("./components/ai-orb/AiOrbPage")),

@@ -1,0 +1,20 @@
+import { forwardRef, type SVGProps } from "react";
+
+export const Comments = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
+  (props, ref) => (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+      ref={ref}
+    >
+      <path
+        d="M8 1c-4.4 0-8 2.5-8 5.5 0 2 2 3.8 4 4.8 0 0 0 0 0 0 0 2.1-2 2.8-2 2.8 2.8 0 4.4-1.3 5.1-2.1 0.3 0 0.6 0 0.9 0 4.4 0 8-2.5 8-5.5s-3.6-5.5-8-5.5z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  ),
+);
+
+Comments.displayName = "Comments";

@@ -517,7 +517,12 @@ const StatCard: React.FC<StatCardProps> = ({
   const onGradient = Boolean(gradientBackground);
 
   const titleClass = classNames(
-    "min-w-0 font-medium",
+    // `leading-none` after the size class: Tailwind's `text-*` ships its own
+    // line-height, and a line box is glyphs-plus-descender-space — centring
+    // that on the icon puts the visible copy low. With no half-leading the
+    // title's box *is* its glyphs, so `items-center` lands true at any title
+    // size against any icon size.
+    "min-w-0 font-medium leading-none",
     onGradient
       ? "text-white/80"
       : labelTone
@@ -666,9 +671,14 @@ const StatCard: React.FC<StatCardProps> = ({
         {hasHeader &&
           (iconPlacement === "left" ? (
             // Icon then title, as one row centred on the icon; `actions`
-            // still pin to the right edge.
+            // still pin to the right edge. The title carries `leading-none`
+            // (see `titleClass`): a line box is glyphs-plus-descender-space,
+            // so centring it on the icon puts the visible copy low — with no
+            // half-leading the title's box *is* its glyphs, and
+            // `items-center` lands true at any title size against any icon
+            // size.
             <div className="flex items-start justify-between gap-3">
-              <span className="flex min-w-0 flex-1 items-center gap-2">
+              <span className="flex min-w-0 flex-1 items-center gap-2 leading-none">
                 {iconNode}
                 {hasLabel && <span className={titleClass}>{label}</span>}
               </span>
