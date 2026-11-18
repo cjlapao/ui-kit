@@ -383,7 +383,7 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     sizeTokens.text,
     tokens.text,
     // Swap the radius the surface token baked in for the size ladder's (or a
-    // pinned pill-scale corner) — the card radii blob small squares.
+    // corner pinned to the pill scale) — the card radii blob small squares.
     tokens.surface.replace(
       /rounded-\S+/,
       corner === "auto" ? sizeTokens.rounded : CELL_CORNERS[corner],

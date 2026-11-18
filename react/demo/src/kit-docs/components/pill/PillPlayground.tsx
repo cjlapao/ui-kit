@@ -47,6 +47,7 @@ export const PillPlayground: React.FC = () => {
   const [truncate, setTruncate] = useState(false);
   const [removable, setRemovable] = useState(false);
   const [withDot, setWithDot] = useState(false);
+  const [pulse, setPulse] = useState(false);
   const [glassPanel, setGlassPanel] = useState(false);
   const [glassOpacity, setGlassOpacity] = useState<GlassOpacity>("frosted");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
@@ -65,6 +66,7 @@ export const PillPlayground: React.FC = () => {
     corner,
     uppercase,
     disabled,
+    pulse,
     icon: withIcon ? "Check" : undefined,
     trailingIcon: withTrailingIcon ? "ArrowRight" : undefined,
     maxWidth: truncate ? 140 : undefined,
@@ -164,6 +166,11 @@ export const PillPlayground: React.FC = () => {
                       onChange={setWithDot}
                     />
                     <ToggleRow
+                      label="Pulse"
+                      checked={pulse}
+                      onChange={setPulse}
+                    />
+                    <ToggleRow
                       label="Glass panel"
                       checked={glassPanel}
                       onChange={setGlassPanel}
@@ -221,9 +228,11 @@ export const PillPlayground: React.FC = () => {
             <strong>Removable</strong> adds that nested button, whose click
             never activates the pill. <strong>Dot pill</strong> shows the
             bare-dot form, announced only because it is labelled.{" "}
-            <strong>Glass panel</strong> swaps the host between the kit&rsquo;s
-            default <code>elevated</code> surface and <code>glass</code>; pair
-            it with the background-image toggle.
+            <strong>Pulse</strong> glows inward from the pill&rsquo;s rim in
+            its own tone — the attention call, with no spill past the
+            pill&rsquo;s edge; a <strong>Disabled</strong> pill never glows. <strong>Glass panel</strong> swaps the host between the
+            kit&rsquo;s default <code>elevated</code> surface and{" "}
+            <code>glass</code>; pair it with the background-image toggle.
           </p>
         </div>
       }
@@ -246,6 +255,7 @@ export const PillPlayground: React.FC = () => {
                     dot
                     label="Operational status"
                     disabled={disabled}
+                    pulse={pulse}
                   />
                 )}
                 {LABELS.filter((l) => !removed.includes(l)).map((label) => (

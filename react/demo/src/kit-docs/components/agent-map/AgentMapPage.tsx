@@ -13,9 +13,11 @@ const projects: AgentMapProject[] = [
   { id: "orbit", name: "Orbit", agents: [{ id: "o1", name: "Builder", status: "completed", activity: "Implementation complete" }, { id: "o2", name: "Reviewer", status: "completed", activity: "Review complete" }, { id: "o3", name: "Tester", status: "completed", activity: "Tests passed" }] },
   ...["Northstar", "Meridian", "Lumen", "Canvas", "Beacon"].map((name, i) => ({ id: `p${i}`, name, agents: Array.from({ length: [14, 18, 26, 4, 4][i] }, (_, j) => ({ id: `p${i}-${j}`, name: `${["Planner", "Builder", "Reviewer", "Tester"][j % 4]} ${Math.floor(j / 4) + 1}`, status: (i === 4 ? "completed" : i === 1 && j % 4 === 2 ? "attention" : j % 6 === 5 ? "idle" : "working") as "working" | "completed" | "attention" | "idle", activity: i === 4 ? "Work complete" : "Working on project" })) })),
 ];
+const inactiveProjects: AgentMapProject[] = projects.slice(0, 3).map(project => ({ ...project, agents: project.agents.map(agent => ({ ...agent, status: agent.status === "attention" ? "attention" : agent.status === "completed" ? "completed" : "idle" })) }));
+const unassignedProjects: AgentMapProject[] = [{ id: "unassigned", name: "New project", agents: [] }];
 
 export default function AgentMapPage() {
-  const [busy, setBusy] = useState(false);
+  const [scenario, setScenario] = useState("small");
   const [expanded, setExpanded] = useState<string | null>("atlas");
   const [gridSize, setGridSize] = useState(24);
   const [gridFade, setGridFade] = useState<"none" | "radial" | "vertical">("radial");
@@ -33,11 +35,12 @@ export default function AgentMapPage() {
   const [gridTone, setGridTone] = useState<TrueColor>("cyan");
   const [glowTone, setGlowTone] = useState<TrueColor>("cyan");
   const grid = showGrid ? { size: gridSize, fade: gridFade, opacity: gridOpacity / 100, fadeStart } : false as const;
+  const visibleProjects = scenario === "empty" ? [] : scenario === "unassigned" ? unassignedProjects : scenario === "inactive" ? inactiveProjects : scenario === "busy" ? projects : projects.slice(0, 3);
   return <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-8">
     <PageHeader name="Agent Map" description="Monitor agents across projects, with room to expand without overlapping neighboring projects." />
     <PlaygroundPanel controls={<ControlAccordion groups={[
       { id: "fleet", title: "Fleet and layout", defaultOpen: true, controls: <>
-        <SelectControl label="Example" value={busy ? "busy" : "small"} options={[{ value: "small", label: "Three projects" }, { value: "busy", label: "Busy fleet" }]} onChange={value => { setBusy(value === "busy"); setExpanded(value === "busy" ? null : "atlas"); }} />
+        <SelectControl label="Example" value={scenario} options={[{ value: "small", label: "Three projects" }, { value: "busy", label: "Busy fleet" }, { value: "empty", label: "No projects" }, { value: "unassigned", label: "No agents assigned" }, { value: "inactive", label: "No agents working" }]} onChange={value => { setScenario(value); setExpanded(value === "small" || value === "inactive" ? "atlas" : value === "unassigned" ? "unassigned" : null); }} />
         <ToggleRow label="Scattered layout" checked={scattered} onChange={setScattered} />
         <ToggleRow label="Live indicator" checked={live} onChange={setLive} />
       </> },
@@ -62,7 +65,7 @@ export default function AgentMapPage() {
         <Control label="Grid tone"><ColorSwatches selectable size="sm" value={gridTone} onSelect={setGridTone} defaultExpanded /></Control>
         <Control label="Glow tone"><ColorSwatches selectable size="sm" value={glowTone} onSelect={setGlowTone} defaultExpanded /></Control>
       </> },
-    ]} />} preview={<AgentMap className="w-full" projects={busy ? projects : projects.slice(0, 3)} expandedProjectId={expanded} onExpandedProjectChange={setExpanded} defaultSelectedAgentId="a2" scattered={scattered} live={live} grid={grid} panelVariant={panelVariant} detailsVariant={detailsVariant} listVariant={listVariant} panelTone={panelTone} detailsTone={detailsTone} listTone={listTone} gridTone={gridTone} glowTone={glowTone} renderAgentDetails={(_agent, project) => <p className="mt-4 text-sm">Project: {project.name}</p>} />} />
+    ]} />} preview={<AgentMap className="w-full" projects={visibleProjects} expandedProjectId={expanded} onExpandedProjectChange={setExpanded} defaultSelectedAgentId="a2" scattered={scattered} live={live} grid={grid} panelVariant={panelVariant} detailsVariant={detailsVariant} listVariant={listVariant} panelTone={panelTone} detailsTone={detailsTone} listTone={listTone} gridTone={gridTone} glowTone={glowTone} renderAgentDetails={(_agent, project) => <p className="mt-4 text-sm">Project: {project.name}</p>} />} />
     <section><h2 className="mb-3 text-xl font-semibold">Reusable grid background</h2><div className="relative flex h-40 items-center justify-center overflow-hidden rounded-xl border border-neutral-300 dark:border-neutral-700">{grid !== false && <GridBackground {...grid} lineColor={`var(--color-${gridTone}-500)`} />}<span className="relative">The same grid settings can be used independently.</span></div></section>
     <PropsTable props={[
       { name: "projects", type: "readonly AgentMapProject[]", default: "required", description: "Project IDs and agent IDs must be unique. Agents carry a status and current activity." },
@@ -74,6 +77,7 @@ export default function AgentMapPage() {
       { name: "panelVariant / detailsVariant / listVariant", type: "PanelVariant", default: "elevated / elevated / subtle", description: "Set the map, selection, and list panel surfaces independently." },
       { name: "panelTone / detailsTone / listTone", type: "PanelTone", default: "none", description: "Set the tone of each panel surface independently." },
       { name: "gridTone / glowTone", type: "TrueColor", default: "undefined", description: "Choose independent theme colors for grid lines and ambient glow. grid.lineColor overrides gridTone." },
+      { name: "emptyProjects / noActiveAgentsMessage", type: "ReactNode", default: "built-in messages", description: "Override the empty-project view or the message shown when no agents are working." },
       { name: "GridBackground: size / lineColor / opacity / fade / fadeStart", type: "number / string / number / fade / number", default: "32 / currentColor / 0.12 / none / 15", description: "Configure a decorative grid with optional radial or vertical edge fade." },
     ]} />
   </div>;

@@ -1,5 +1,6 @@
 import React from "react";
 import { Accordion } from "./components/Accordion";
+import { Activity } from "./components/Activity";
 import { Add } from "./components/Add";
 import { AgentFlow } from "./components/AgentFlow";
 import { AiAgent } from "./components/AiAgent";
@@ -19,6 +20,8 @@ import { Aws } from "./components/Aws";
 import { Azure } from "./components/Azure";
 import { Back } from "./components/Back";
 import { Backup } from "./components/Backup";
+import { Blocked } from "./components/Blocked";
+import { BlockerCircular } from "./components/BlockerCircular";
 import { Blueprint } from "./components/Blueprint";
 import { Box } from "./components/Box";
 import { Brain } from "./components/Brain";
@@ -30,9 +33,11 @@ import { CatalogVersion } from "./components/CatalogVersion";
 import { CentOS } from "./components/CentOS";
 import { ChartLine } from "./components/ChartLine";
 import { Chat } from "./components/Chat";
+import { ChatApproved } from "./components/ChatApproved";
 import { Check } from "./components/Check";
 import { CheckCircle } from "./components/CheckCircle";
 import { CheckeredFlag } from "./components/CheckeredFlag";
+import { CheckmarkSeal } from "./components/CheckmarkSeal";
 import { ChevronLeft } from "./components/ChevronLeft";
 import { ChevronRight } from "./components/ChevronRight";
 import { Claim } from "./components/Claim";
@@ -76,6 +81,7 @@ import { Gauge } from "./components/Gauge";
 import { Globe } from "./components/Globe";
 import { Group } from "./components/Group";
 import { HalfCogs } from "./components/HalfCogs";
+import { HandUp } from "./components/HandUp";
 import { HealthCheck } from "./components/HealthCheck";
 import { Help } from "./components/Help";
 import { History } from "./components/History";
@@ -108,6 +114,7 @@ import { Orchestrator } from "./components/Orchestrator";
 import { PaperPlane } from "./components/PaperPlane";
 import { Parameter } from "./components/Parameter";
 import { Pause } from "./components/Pause";
+import { PauseCircular } from "./components/PauseCircular";
 import { Pin } from "./components/Pin";
 import { Podman } from "./components/Podman";
 import { PodmanDesktop } from "./components/PodmanDesktop";
@@ -151,6 +158,7 @@ import { Shield } from "./components/Shield";
 import { Shop } from "./components/Shop";
 import { Snapshot } from "./components/Snapshot";
 import { Sorting } from "./components/Sorting";
+import { Stamp } from "./components/Stamp";
 import { Star } from "./components/Star";
 import { Stop } from "./components/Stop";
 import { Sun } from "./components/Sun";
@@ -161,6 +169,7 @@ import { Task } from "./components/Task";
 import { ThemeAuto } from "./components/ThemeAuto";
 import { ThemeDark } from "./components/ThemeDark";
 import { ThemeLight } from "./components/ThemeLight";
+import { ThumbsUp } from "./components/ThumbsUp";
 import { Trash } from "./components/Trash";
 import { UX } from "./components/UX";
 import { Ubuntu } from "./components/Ubuntu";
@@ -182,6 +191,7 @@ import { Work } from "./components/Work";
 // when the directory gains or loses a component without a regen.
 export type IconName =
   | "Accordion"
+  | "Activity"
   | "Add"
   | "AgentFlow"
   | "AiAgent"
@@ -201,6 +211,8 @@ export type IconName =
   | "Azure"
   | "Back"
   | "Backup"
+  | "Blocked"
+  | "BlockerCircular"
   | "Blueprint"
   | "Box"
   | "Brain"
@@ -212,9 +224,11 @@ export type IconName =
   | "CentOS"
   | "ChartLine"
   | "Chat"
+  | "ChatApproved"
   | "Check"
   | "CheckCircle"
   | "CheckeredFlag"
+  | "CheckmarkSeal"
   | "ChevronLeft"
   | "ChevronRight"
   | "Claim"
@@ -258,6 +272,7 @@ export type IconName =
   | "Globe"
   | "Group"
   | "HalfCogs"
+  | "HandUp"
   | "HealthCheck"
   | "Help"
   | "History"
@@ -290,6 +305,7 @@ export type IconName =
   | "PaperPlane"
   | "Parameter"
   | "Pause"
+  | "PauseCircular"
   | "Pin"
   | "Podman"
   | "PodmanDesktop"
@@ -333,6 +349,7 @@ export type IconName =
   | "Shop"
   | "Snapshot"
   | "Sorting"
+  | "Stamp"
   | "Star"
   | "Stop"
   | "Sun"
@@ -343,6 +360,7 @@ export type IconName =
   | "ThemeAuto"
   | "ThemeDark"
   | "ThemeLight"
+  | "ThumbsUp"
   | "Trash"
   | "UX"
   | "Ubuntu"
@@ -365,6 +383,7 @@ export const iconRegistry: Record<
   React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement>>
 > = {
   Accordion: Accordion,
+  Activity: Activity,
   Add: Add,
   AgentFlow: AgentFlow,
   AiAgent: AiAgent,
@@ -384,6 +403,8 @@ export const iconRegistry: Record<
   Azure: Azure,
   Back: Back,
   Backup: Backup,
+  Blocked: Blocked,
+  BlockerCircular: BlockerCircular,
   Blueprint: Blueprint,
   Box: Box,
   Brain: Brain,
@@ -395,9 +416,11 @@ export const iconRegistry: Record<
   CentOS: CentOS,
   ChartLine: ChartLine,
   Chat: Chat,
+  ChatApproved: ChatApproved,
   Check: Check,
   CheckCircle: CheckCircle,
   CheckeredFlag: CheckeredFlag,
+  CheckmarkSeal: CheckmarkSeal,
   ChevronLeft: ChevronLeft,
   ChevronRight: ChevronRight,
   Claim: Claim,
@@ -441,6 +464,7 @@ export const iconRegistry: Record<
   Globe: Globe,
   Group: Group,
   HalfCogs: HalfCogs,
+  HandUp: HandUp,
   HealthCheck: HealthCheck,
   Help: Help,
   History: History,
@@ -473,6 +497,7 @@ export const iconRegistry: Record<
   PaperPlane: PaperPlane,
   Parameter: Parameter,
   Pause: Pause,
+  PauseCircular: PauseCircular,
   Pin: Pin,
   Podman: Podman,
   PodmanDesktop: PodmanDesktop,
@@ -516,6 +541,7 @@ export const iconRegistry: Record<
   Shop: Shop,
   Snapshot: Snapshot,
   Sorting: Sorting,
+  Stamp: Stamp,
   Star: Star,
   Stop: Stop,
   Sun: Sun,
@@ -526,6 +552,7 @@ export const iconRegistry: Record<
   ThemeAuto: ThemeAuto,
   ThemeDark: ThemeDark,
   ThemeLight: ThemeLight,
+  ThumbsUp: ThumbsUp,
   Trash: Trash,
   UX: UX,
   Ubuntu: Ubuntu,

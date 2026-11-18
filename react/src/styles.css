@@ -266,6 +266,65 @@
   animation: timeline-current-pulse 2.4s ease-out infinite;
 }
 
+/* ---- Pill attention pulse ----
+   A pill that must be the thing the eye lands on glows INWARD from its own
+   rim. Inset was the point, not a detail: an outward halo paints over the
+   neighbourhood, so hosts needed padding to absorb it — an inset shadow is
+   clipped to the border-box, so the attention call never spills. The
+   component sets `--pill-glow` (and `--pill-glow-dark`, preferred in the dark
+   theme) inline from the tone — the Select accent precedent — so these rules
+   are colour-agnostic: no per-tone class shapes to safelist and no second
+   hand-written colour map; the alpha lives in `color-mix`.
+
+   A running keyframe animation wins over the plain declarations that paint
+   the `focus-visible` ring and solid's `shadow-sm`, so the Tailwind shadow
+   variables are re-composited ahead of the glow — the ring still fires on a
+   pulsing, clickable pill. */
+.pill-pulse {
+  --_pill-glow: var(--pill-glow, currentColor);
+  animation: pill-pulse 2s ease-in-out infinite;
+}
+:where(.dark) .pill-pulse {
+  --_pill-glow: var(--pill-glow-dark, var(--pill-glow, currentColor));
+}
+
+@keyframes pill-pulse {
+  0%,
+  100% {
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000),
+      var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      var(--tw-shadow, 0 0 #0000),
+      inset 0 0 0 0 color-mix(in srgb, var(--_pill-glow) 55%, transparent);
+  }
+  55% {
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000),
+      var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      var(--tw-shadow, 0 0 #0000),
+      inset 0 0 10px 3px color-mix(in srgb, var(--_pill-glow) 38%, transparent);
+  }
+}
+
+/* No motion — but the faint static inner glow stays, so reduced-motion users
+   still see *which* pill matters. */
+@media (prefers-reduced-motion: reduce) {
+  .pill-pulse {
+    animation: none;
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000),
+      var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      var(--tw-shadow, 0 0 #0000),
+      inset 0 0 7px 2px color-mix(in srgb, var(--_pill-glow) 32%, transparent);
+  }
+}
+
 /* ---- CustomIcon hover colour ----
    An inline style cannot express `:hover`, so a caller-supplied hover colour
    travels as a custom property and this rule consumes it. The class is only

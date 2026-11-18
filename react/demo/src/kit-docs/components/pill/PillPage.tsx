@@ -17,6 +17,8 @@ import SizeLadder from "./examples/SizeLadder";
 import sizeLadderCode from "./examples/SizeLadder.tsx?raw";
 import InteractiveTags from "./examples/InteractiveTags";
 import interactiveTagsCode from "./examples/InteractiveTags.tsx?raw";
+import AttentionPulse from "./examples/AttentionPulse";
+import attentionPulseCode from "./examples/AttentionPulse.tsx?raw";
 
 export const PillPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -60,6 +62,14 @@ export const PillPage: React.FC = () => (
         filename="InteractiveTags.tsx"
       >
         <InteractiveTags />
+      </ExampleCard>
+      <ExampleCard
+        title="Attention pulse"
+        description="pulse glows inward from the pill's rim in its own tone — the attention call, with no layout spill. Dots pulse too; a disabled pill stays quiet."
+        code={attentionPulseCode}
+        filename="AttentionPulse.tsx"
+      >
+        <AttentionPulse />
       </ExampleCard>
     </section>
 
@@ -165,6 +175,13 @@ export const PillPage: React.FC = () => (
           type: "string",
           description:
             "Accessible name for the dot form — the only text a dot has.",
+        },
+        {
+          name: "pulse",
+          type: "boolean",
+          default: "false",
+          description:
+            "Glows inward from the pill's rim in its own tone to call attention — label pills and dots alike. Inset, so it never spills into the layout and dense rows need no padding for it. Off while `disabled`; reduced-motion users get a static inner glow. The halo composites under the focus ring, so clickable pills keep it.",
         },
         {
           name: "onRemove",

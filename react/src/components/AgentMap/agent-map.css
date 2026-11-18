@@ -30,6 +30,8 @@
 .cj-agent-map__exit-focus { position:absolute; z-index:3; top:12px; left:14px; padding:6px 9px; border:1px solid var(--color-neutral-500,#64748b); border-radius:6px; color:var(--color-neutral-700,#334155); background:var(--color-neutral-100,#f1f5f9); cursor:pointer; font-size:11px; }
 .dark .cj-agent-map__exit-focus { color:var(--color-neutral-100,#f1f5f9); background:var(--color-neutral-800,#1e293b); }
 .cj-agent-map__empty { margin:0; padding:48px 20px; text-align:center; }
+.cj-agent-map__inactive { position:relative; z-index:1; margin:12px 18px 0; padding:10px 12px; border:1px solid var(--color-neutral-300,#cbd5e1); border-radius:8px; background:var(--color-neutral-50,#f8fafc); color:var(--color-neutral-700,#334155); font-size:12px; }
+.dark .cj-agent-map__inactive { border-color:var(--color-neutral-700,#334155); background:var(--color-neutral-900,#171717); color:var(--color-neutral-300,#d4d4d4); }
 .cj-agent-map__legend { display:flex; flex-wrap:wrap; gap:14px; padding:14px 20px; font-size:11px; color:var(--color-neutral-500,#64748b); }
 .cj-agent-map__legend i { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; }
 .cj-agent-map__details { min-width:0; }
@@ -53,6 +55,7 @@
 .cj-agent-map__agent-list { margin-top:8px; color:var(--color-neutral-700,#334155); }
 .cj-agent-map__list-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 4px 8px; font-size:12px; }
 .cj-agent-map__list-heading span { color:var(--color-neutral-500,#64748b); font-size:11px; }
+.cj-agent-map__list-empty { margin:0; padding:12px 4px; color:var(--color-neutral-500,#64748b); font-size:12px; }
 .cj-agent-map__list-scroll { max-height:420px; }
 .cj-agent-map .cj-agent-map__list-rows { display:grid; gap:6px; max-height:none; overflow:visible; padding:2px; }
 .cj-agent-map .cj-agent-map__list-agent { width:100%; display:flex; align-items:center; gap:10px; text-align:left; padding:9px; margin-top:0; border:1px solid transparent; border-radius:9px; background:var(--color-neutral-100,#f1f5f9); color:var(--color-neutral-700,#334155); cursor:pointer; }

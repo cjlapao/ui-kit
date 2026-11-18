@@ -101,6 +101,13 @@ export interface PillProps
    * `onRemove` are dropped, so it stays a dot.
    */
   dot?: boolean;
+  /**
+   * Glows inward from its rim in the pill's own tone to call attention — the
+   * glow is inset, so it never spills into the layout. Label pills and `dot`
+   * alike. On while set, off while `disabled`; reduced-motion users get a
+   * static inner glow instead of the pulse.
+   */
+  pulse?: boolean;
   /** Adds a remove button. Its click does not activate the pill itself. */
   onRemove?: () => void;
   /** Accessible name for that button. @default "Remove" */
@@ -129,6 +136,7 @@ export const Pill: React.FC<PillProps> = ({
   icon,
   trailingIcon,
   dot = false,
+  pulse = false,
   onRemove,
   removeLabel,
   onClick,
@@ -149,6 +157,19 @@ export const Pill: React.FC<PillProps> = ({
   // light up as if the whole pill were a button. (The remove button carries
   // its own hover.)
   const isActivatable = Boolean(onClick);
+
+  // An attention call on a pill the app itself has dimmed is a contradiction —
+  // `disabled` wins. The tone rides to the stylesheet as a custom property
+  // (the Select accent precedent): the keyframes stay colour-agnostic, so a
+  // new tone needs no CSS of its own. Dark fills are dark, so the dark theme's
+  // rim light rides a step brighter — enough to read against a `solid` -400.
+  const pulsing = pulse && !disabled;
+  const glowStyle: React.CSSProperties = pulsing
+    ? ({
+        "--pill-glow": `var(--color-${tone}-500)`,
+        "--pill-glow-dark": `var(--color-${tone}-300)`,
+      } as React.CSSProperties)
+    : {};
 
   // The tone map only covers the opaque variants; a glass pill drops them
   // entirely — they paint a solid fill — and takes its rim, copy colour and
@@ -207,10 +228,11 @@ export const Pill: React.FC<PillProps> = ({
           toneTokens.base,
           toneTokens.border,
           glassClasses,
+          pulsing && "pill-pulse",
           disabled && "opacity-50",
           className,
         )}
-        style={style}
+        style={{ ...glowStyle, ...style }}
         role={label ? "img" : undefined}
         aria-label={label}
         aria-hidden={label ? undefined : true}
@@ -261,12 +283,14 @@ export const Pill: React.FC<PillProps> = ({
     isActivatable && !isGlass && toneTokens.hover,
     isGlass && "relative overflow-hidden",
     glassClasses,
+    pulsing && "pill-pulse",
     uppercase && "uppercase tracking-wide",
     disabled && "opacity-50",
     className,
   );
 
   const sizeStyle: React.CSSProperties = {
+    ...glowStyle,
     ...(maxWidth !== undefined
       ? { maxWidth: typeof maxWidth === "number" ? `${maxWidth}px` : maxWidth }
       : undefined),

@@ -26,7 +26,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const CONTRACT_PREFIXES = ["fb-", "startup-stage-"];
+const CONTRACT_PREFIXES = ["fb-", "startup-stage-", "pill-"];
 const JS_FILES = ["index.js", "index.cjs", "markdown.js", "markdown.cjs"];
 
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "dist");

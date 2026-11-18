@@ -87,6 +87,13 @@ export interface PillProps {
    * button is dropped, so it stays a dot.
    */
   dot?: boolean;
+  /**
+   * Glows inward from its rim in the pill's own tone to call attention — the
+   * glow is inset, so it never spills into the layout. Label pills and `dot`
+   * alike. On while set, off while `disabled`; reduced-motion users get a
+   * static inner glow instead of the pulse.
+   */
+  pulse?: boolean;
   /** Shows a remove button, which emits `remove`. */
   removable?: boolean;
   /** Accessible name for that button. @default "Remove" */
@@ -129,6 +136,7 @@ const props = withDefaults(defineProps<PillProps>(), {
   glassOpacity: "frosted",
   vibrancy: "medium",
   dot: false,
+  pulse: false,
   removable: false,
   clickable: false,
   disabled: false,
@@ -148,6 +156,22 @@ const GLASS_VARIANTS = new Set(["glass", "liquid-glass"]);
 
 const isGlass = computed(() => GLASS_VARIANTS.has(props.variant));
 const isInteractive = computed(() => props.clickable || props.removable);
+
+// An attention call on a pill the app itself has dimmed is a contradiction —
+// `disabled` wins. The tone rides to the stylesheet as custom properties (the
+// Select accent precedent): the keyframes stay colour-agnostic, so a new tone
+// needs no CSS of its own. Dark fills are dark, so the dark theme's rim light
+// rides a step brighter — enough to read against a `solid` -400.
+const pulsing = computed(() => props.pulse && !props.disabled);
+const glowStyle = computed(
+  () =>
+    pulsing.value
+      ? ({
+          "--pill-glow": `var(--color-${props.tone}-500)`,
+          "--pill-glow-dark": `var(--color-${props.tone}-300)`,
+        } as Record<string, string>)
+      : undefined,
+);
 
 // The tone map only covers the opaque variants; a glass pill drops them
 // entirely — they paint a solid fill — and takes its rim, copy colour and focus
@@ -197,6 +221,7 @@ const dotClass = computed(() =>
     toneTokens.value.base,
     toneTokens.value.border,
     glassClasses.value,
+    pulsing.value && "pill-pulse",
     props.disabled && "opacity-50",
     classAttr.value,
   ),
@@ -211,6 +236,7 @@ const pillClass = computed(() =>
     toneTokens.value.border,
     isGlass.value && "relative overflow-hidden",
     glassClasses.value,
+    pulsing.value && "pill-pulse",
     props.uppercase && "uppercase tracking-wide",
     props.disabled && "opacity-50",
     props.clickable &&
@@ -221,8 +247,9 @@ const pillClass = computed(() =>
 
 const pillStyle = computed(() =>
   props.maxWidth === undefined
-    ? undefined
+    ? glowStyle.value
     : {
+        ...glowStyle.value,
         maxWidth:
           typeof props.maxWidth === "number"
             ? `${props.maxWidth}px`
@@ -236,6 +263,7 @@ const pillStyle = computed(() =>
     v-if="dot"
     v-bind="restAttrs"
     :class="dotClass"
+    :style="glowStyle"
     :role="label ? 'img' : undefined"
     :aria-label="label"
     :aria-hidden="label ? undefined : true"

@@ -288,4 +288,58 @@ describe("Pill", () => {
       expect(screen.getByRole("button", { name: "Remove" })).toBeDisabled();
     });
   });
+
+  describe("pulse", () => {
+    it("is off by default", () => {
+      const { container } = render(<Pill>Label</Pill>);
+      expect(root(container).className).not.toContain("pill-pulse");
+      expect(root(container).style.getPropertyValue("--pill-glow")).toBe("");
+    });
+
+    it("breathes in its own tone", () => {
+      const { container } = render(<Pill tone="rose" pulse>Live</Pill>);
+      expect(root(container).className).toContain("pill-pulse");
+      // The tone travels as a custom property, not a class shape — the
+      // stylesheet stays colour-agnostic and the safelist stays untouched.
+      expect(root(container).style.getPropertyValue("--pill-glow")).toBe(
+        "var(--color-rose-500)",
+      );
+      expect(root(container).style.getPropertyValue("--pill-glow-dark")).toBe(
+        "var(--color-rose-300)",
+      );
+    });
+
+    it.each(TRUE_COLORS)("names tone %s's colour", (tone) => {
+      const { container } = render(<Pill tone={tone} pulse>x</Pill>);
+      expect(root(container).style.getPropertyValue("--pill-glow")).toBe(
+        `var(--color-${tone}-500)`,
+      );
+    });
+
+    it("a disabled pill does not call attention", () => {
+      // An attention call on a pill the app has dimmed is a contradiction.
+      const { container } = render(<Pill pulse disabled>Quiet</Pill>);
+      expect(root(container).className).not.toContain("pill-pulse");
+    });
+
+    it("pulses on glass — the halo is a box-shadow, so a translucent fill suits it", () => {
+      const { container } = render(<Pill variant="liquid-glass" pulse>x</Pill>);
+      expect(root(container).className).toContain("pill-pulse");
+    });
+
+    it("pulses as a button too — the ring still composites over the glow", () => {
+      render(<Pill pulse onClick={() => {}}>Act</Pill>);
+      const button = screen.getByRole("button", { name: "Act" });
+      expect(button.className).toContain("pill-pulse");
+      expect(button.className).toContain("focus-visible:ring-2");
+    });
+
+    it("a dot pulses too", () => {
+      const { container } = render(<Pill dot pulse tone="amber" />);
+      expect(root(container).className).toContain("pill-pulse");
+      expect(root(container).style.getPropertyValue("--pill-glow")).toBe(
+        "var(--color-amber-500)",
+      );
+    });
+  });
 });

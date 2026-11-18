@@ -6,6 +6,31 @@ import { layoutProjects } from "./layout";
 const projects: AgentMapProject[] = [{ id: "atlas", name: "Atlas", agents: [{ id: "builder", name: "Builder", activity: "Writing code", status: "working" }, { id: "reviewer", name: "Reviewer", activity: "Waiting for approval", status: "attention" }] }, { id: "orbit", name: "Orbit", agents: [{ id: "done", name: "Tester", activity: "Tests passed", status: "completed" }] }];
 
 describe("AgentMap", () => {
+  it("shows a dedicated empty-project state and restores the map when projects arrive", () => {
+    const { rerender } = render(<AgentMap projects={[]} />);
+    expect(screen.getByText("No projects to display")).toBeTruthy();
+    expect(screen.queryByText("Selected agent")).toBeNull();
+    rerender(<AgentMap projects={projects} />);
+    expect(screen.queryByText("No projects to display")).toBeNull();
+    expect(screen.getByRole("button", { name: /Atlas, 2 agents/ })).toBeTruthy();
+  });
+  it("reports no working agents without hiding completed or attention-needed work", () => {
+    const inactive: AgentMapProject[] = [{ id: "a", name: "Atlas", agents: [{ id: "review", name: "Reviewer", status: "attention", activity: "Waiting for approval" }, { id: "done", name: "Builder", status: "completed", activity: "Finished" }] }];
+    render(<AgentMap projects={inactive} defaultExpandedProjectId="a" />);
+    expect(screen.getByRole("status").textContent).toBe("No agents are currently working.");
+    expect(screen.getByRole("button", { name: /Reviewer, Atlas, Needs attention/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Builder, Atlas, Completed/ })).toBeTruthy();
+  });
+  it("distinguishes projects with no assigned agents and supports custom empty copy", () => {
+    const unassigned: AgentMapProject[] = [{ id: "new", name: "New project", agents: [] }];
+    const { rerender } = render(<AgentMap projects={unassigned} />);
+    expect(screen.getByRole("status").textContent).toBe("No agents are assigned to these projects yet.");
+    expect(screen.getByRole("button", { name: /New project, 0 agents/ })).toBeTruthy();
+    rerender(<AgentMap projects={unassigned} noActiveAgentsMessage="Nothing running" />);
+    expect(screen.getByRole("status").textContent).toBe("Nothing running");
+    rerender(<AgentMap projects={[]} emptyProjects={<span>Custom empty view</span>} />);
+    expect(screen.getByText("Custom empty view")).toBeTruthy();
+  });
   it("expands projects and selects an agent", () => {
     render(<AgentMap projects={projects} />);
     fireEvent.click(screen.getByRole("button", { name: /Atlas, 2 agents/ }));
