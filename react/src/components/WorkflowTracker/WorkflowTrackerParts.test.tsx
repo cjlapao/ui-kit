@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useState } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { WorkflowTrackerRail } from "./WorkflowTrackerRail";
+import WorkflowTracker from "./WorkflowTracker";
 import { WorkflowTrackerStepDetails } from "./WorkflowTrackerStepDetails";
 import { WorkflowTrackerDetails } from "./WorkflowTrackerDetails";
 import { WorkflowTrackerRollups } from "./WorkflowTrackerRollups";
@@ -28,6 +29,54 @@ const gateData: WorkflowData = {
       ],
     },
     { id: "publish", label: "Publish", status: "not_started" },
+  ],
+};
+
+/**
+ * jsdom has no IntersectionObserver. This stub records every instance so a
+ * test can drive the sub-step sentinel directly (same shape the
+ * ActivityFeed suite uses).
+ */
+const observers: Array<{ trigger: (isIntersecting: boolean) => void }> = [];
+
+class IO {
+  private callback: IntersectionObserverCallback;
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+    observers.push({
+      trigger: (isIntersecting) =>
+        this.callback(
+          [{ isIntersecting }] as unknown as IntersectionObserverEntry[],
+          this as unknown as IntersectionObserver,
+        ),
+    });
+  }
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+beforeEach(() => {
+  observers.length = 0;
+  vi.stubGlobal("IntersectionObserver", IO);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+const manySubSteps = (count: number) =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `s${index + 1}`,
+    label: `Sub-step ${index + 1}`,
+    status: "done" as const,
+  }));
+
+const longRunData: WorkflowData = {
+  title: "Long run",
+  activeStepId: "build",
+  steps: [
+    { id: "build", label: "build", status: "running", subSteps: manySubSteps(7) },
   ],
 };
 
@@ -711,5 +760,148 @@ describe("WorkflowTrackerRail — motion", () => {
     } finally {
       matchMedia.mockRestore();
     }
+  });
+});
+
+describe("WorkflowTrackerRail — capped sub-steps", () => {
+  it("shows every sub-step and no tail when uncapped", () => {
+    render(<WorkflowTrackerRail data={longRunData} />);
+    expect(screen.getByText("Sub-step 1")).toBeInTheDocument();
+    expect(screen.getByText("Sub-step 7")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Show \d+ more/ }),
+    ).toBeNull();
+  });
+
+  it("reverse (default) opens on the newest tail and Show more pages the past", () => {
+    render(
+      <WorkflowTrackerRail
+        data={longRunData}
+        maxVisibleSubSteps={3}
+        subStepLoadMode="button"
+      />,
+    );
+    // The last page is the newest tail: rows 5–7, not 1–3.
+    expect(screen.getByText("Sub-step 7")).toBeInTheDocument();
+    expect(screen.queryByText("Sub-step 4")).toBeNull();
+    // Each click reveals one more page — the label counts it.
+    fireEvent.click(screen.getByRole("button", { name: "Show 3 more" }));
+    expect(screen.getByText("Sub-step 2")).toBeInTheDocument();
+    expect(screen.queryByText("Sub-step 1")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 more" }));
+    expect(screen.getByText("Sub-step 1")).toBeInTheDocument();
+    // Fully expanded: fold back to the newest tail.
+    fireEvent.click(screen.getByRole("button", { name: "Show less" }));
+    expect(screen.queryByText("Sub-step 4")).toBeNull();
+    expect(screen.getByText("Sub-step 7")).toBeInTheDocument();
+  });
+
+  it("forward order opens on the oldest head and the tail reveals the future", () => {
+    render(
+      <WorkflowTrackerRail
+        data={longRunData}
+        maxVisibleSubSteps={3}
+        subStepLoadMode="button"
+        subStepOrder="forward"
+      />,
+    );
+    expect(screen.getByText("Sub-step 3")).toBeInTheDocument();
+    expect(screen.queryByText("Sub-step 4")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show 3 more" }));
+    expect(screen.getByText("Sub-step 6")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 more" }));
+    expect(screen.getByText("Sub-step 7")).toBeInTheDocument();
+  });
+
+  it("scroll mode reveals an older page when the top sentinel intersects", async () => {
+    render(<WorkflowTrackerRail data={longRunData} maxVisibleSubSteps={3} />);
+    expect(screen.getByText("Sub-step 7")).toBeInTheDocument();
+    expect(screen.queryByText("Sub-step 4")).toBeNull();
+    const observer = observers[observers.length - 1];
+    expect(observer).toBeDefined();
+    act(() => observer.trigger(true));
+    await waitFor(() =>
+      expect(screen.getByText("Sub-step 2")).toBeInTheDocument(),
+    );
+    // One page per intersection — the rest waits for the next trigger.
+    expect(screen.queryByText("Sub-step 1")).toBeNull();
+  });
+
+  it("scroll mode never offers Show less — the scroll does the folding", async () => {
+    render(<WorkflowTrackerRail data={longRunData} maxVisibleSubSteps={5} />);
+    act(() => observers[observers.length - 1].trigger(true));
+    await waitFor(() =>
+      expect(screen.getByText("Sub-step 2")).toBeInTheDocument(),
+    );
+    // Fully revealed, still no fold button: reading back happens by scrolling.
+    expect(screen.queryByRole("button", { name: "Show less" })).toBeNull();
+  });
+
+  it("scroll mode falls back to the paged button when no IntersectionObserver exists", () => {
+    // The honest degrade: with no scroller to watch, the explicit tail shows.
+    vi.unstubAllGlobals();
+    render(<WorkflowTrackerRail data={longRunData} maxVisibleSubSteps={3} />);
+    fireEvent.click(screen.getByRole("button", { name: "Show 3 more" }));
+    expect(screen.getByText("Sub-step 4")).toBeInTheDocument();
+    expect(screen.queryByText("Sub-step 1")).toBeNull();
+  });
+
+  it("keeps sub-step rows clickable through the slice", () => {
+    const onSubStepSelect = vi.fn();
+    render(
+      <WorkflowTrackerRail
+        data={longRunData}
+        maxVisibleSubSteps={3}
+        subStepLoadMode="button"
+        onSubStepSelect={onSubStepSelect}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Sub-step 6" }));
+    expect(onSubStepSelect).toHaveBeenCalledWith("build", "s6");
+  });
+
+  it("the cap applies to the rail only — the detail panel keeps the full table", () => {
+    render(
+      <WorkflowTracker
+        data={longRunData}
+        maxVisibleSubSteps={3}
+        subStepLoadMode="button"
+      />,
+    );
+    // The rail's nested box is capped and offers the paged tail…
+    expect(screen.getByRole("button", { name: "Show 3 more" })).toBeInTheDocument();
+    // …while the step card's sub-step table renders every row regardless:
+    // rows 1–4 exist exactly once each (in the detail panel, not the rail).
+    for (let i = 1; i <= 4; i += 1) {
+      expect(screen.getAllByText(`Sub-step ${i}`)).toHaveLength(1);
+    }
+  });
+});
+
+describe("WorkflowTrackerRail — sub-step cap changes live", () => {
+  it("re-caps when maxVisibleSubSteps changes on the same step", () => {
+    const { rerender } = render(<WorkflowTrackerRail data={longRunData} />);
+    expect(screen.getByText("Sub-step 1")).toBeInTheDocument();
+    rerender(
+      <WorkflowTrackerRail
+        data={longRunData}
+        maxVisibleSubSteps={2}
+        subStepLoadMode="button"
+      />,
+    );
+    expect(screen.getByText("Sub-step 7")).toBeInTheDocument();
+    expect(screen.queryByText("Sub-step 5")).toBeNull();
+    rerender(
+      <WorkflowTrackerRail
+        data={longRunData}
+        maxVisibleSubSteps={5}
+        subStepLoadMode="button"
+      />,
+    );
+    expect(screen.getByText("Sub-step 3")).toBeInTheDocument();
+    expect(screen.queryByText("Sub-step 2")).toBeNull();
+    // Dropping the cap shows everything again.
+    rerender(<WorkflowTrackerRail data={longRunData} subStepLoadMode="button" />);
+    expect(screen.getByText("Sub-step 1")).toBeInTheDocument();
   });
 });

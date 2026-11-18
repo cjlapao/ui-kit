@@ -117,6 +117,34 @@ export interface WorkflowTrackerRailProps extends WorkflowTrackerStyleProps {
   >;
   /** The whole view. Defaults to the bundled `sampleWorkflow` fixture. */
   data?: WorkflowData;
+  /**
+   * Sub-steps the nested box shows before the rest fold away. Unset — or set
+   * past the count — and every sub-step renders, as before.
+   */
+  maxVisibleSubSteps?: number;
+  /**
+   * How the sub-steps past `maxVisibleSubSteps` are revealed.
+   *
+   * `"scroll"` (default) caps the nested box at the height of the first page
+   * and turns it into a `ScrollArea` — the kit's shared `useInfiniteScroll`
+   * watch reveals the rest as the reader nears the tail. `"button"` folds
+   * them behind a `Show more` / `Show less` tail that reveals one page per
+   * click and grows the box in place.
+   * @default "scroll"
+   */
+  subStepLoadMode?: "scroll" | "button";
+  /**
+   * Which end of the list the first page keeps.
+   *
+   * `"reverse"` (default) reads the run like a live tail: the LAST
+   * sub-steps are the current ones, so the box opens showing the newest
+   * tail (scrolled to the bottom in scroll mode) and both tails — scroll
+   * up, or Show more — reveal the PAST. `"forward"` keeps the
+   * chronological reading: the first page is the oldest head and the tails
+   * reveal the future.
+   * @default "reverse"
+   */
+  subStepOrder?: "reverse" | "forward";
   /** Swaps the rail for its skeleton placeholder. */
   loading?: boolean;
   /** Rows in the rail skeleton. @default 6 */
@@ -176,6 +204,9 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
   footerResizeLabel = "Resize workflow footer",
   stepPopoverProps,
   data = sampleWorkflow,
+  maxVisibleSubSteps,
+  subStepLoadMode = "scroll",
+  subStepOrder = "reverse",
   loading = false,
   loadingRows = 6,
   showLegend = true,
@@ -389,6 +420,9 @@ export const WorkflowTrackerRail: React.FC<WorkflowTrackerRailProps> = ({
           fillHeight={scrollBody}
           steps={steps}
           activeStepId={active?.step.id}
+          maxVisibleSubSteps={maxVisibleSubSteps}
+          subStepLoadMode={subStepLoadMode}
+          subStepOrder={subStepOrder}
           palette={palette}
           customStatuses={customStatuses}
           surfaces={surfaces}

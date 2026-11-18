@@ -48,6 +48,10 @@ export const DEFAULT_LABELS: WorkflowTrackerLabels = {
   noActiveStep: "No step selected",
   details: "Step details",
   quickActions: "Quick actions",
+  showMore: "Show {count} more",
+  showLess: "Show less",
+  loadMoreError: "Couldn’t load more",
+  loadingMore: "Loading more",
   statuses: {
     done: "Done",
     in_progress: "In progress",

@@ -10,6 +10,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
+    "postbuild": "node scripts/check-css-contract.mjs",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit && eslint src",
     "test": "vitest run --coverage",

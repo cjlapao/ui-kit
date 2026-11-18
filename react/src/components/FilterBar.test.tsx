@@ -25,6 +25,15 @@ describe("FilterBar", () => {
     expect(screen.getByText("No filters applied")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("3 of 11 devices");
   });
+  it("styles the search trigger with searchButtonVariant, pinning its icon-only footprint", () => {
+    const { container } = setup();
+    expect(container.querySelector(".fb-search-trigger")).toHaveAttribute("data-variant", "icon");
+    const { container: outlined } = setup({ searchButtonVariant: "outline" });
+    const trigger = outlined.querySelector(".fb-search-trigger")!;
+    expect(trigger).toHaveAttribute("data-variant", "outline");
+    // sizeConfig.iconOnly for md — the treatment changes, the compact footprint does not.
+    expect(trigger).toHaveClass("p-2.5");
+  });
   it("stages multiple checkbox selections and commits once on Done", () => {
     const { onChange } = setup(); openStatus();
     fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Online" }));

@@ -16,6 +16,8 @@ import CollapsibleRail from "./examples/CollapsibleRail";
 import collapsibleRailCode from "./examples/CollapsibleRail.tsx?raw";
 import LockedStages from "./examples/LockedStages";
 import lockedStagesCode from "./examples/LockedStages.tsx?raw";
+import SubStepCap from "./examples/SubStepCap";
+import subStepCapCode from "./examples/SubStepCap.tsx?raw";
 import { PropsTable } from "../../shared/A11ySections";
 
 export const WorkflowTrackerPage: React.FC = () => (
@@ -70,6 +72,14 @@ export const WorkflowTrackerPage: React.FC = () => (
         <CollapsibleRail />
       </ExampleCard>
       <ExampleCard
+        title="Capped sub-steps"
+        description="`maxVisibleSubSteps` caps the rail's nested box; the rest fold away behind `subStepLoadMode`. `scroll` (default) turns the box into a `ScrollArea` capped at the height of the first page — the kit's shared infinite-scroll watch reveals the next rows as you near the fold, so the rail never grows. `button` reveals one page per click behind a counting `Show N more` / `Show less` tail. `subStepOrder` decides which end the first page keeps: `reverse` (default) opens on the newest tail and reveals the past (scroll up / Show more), `forward` opens on the oldest head and reveals the future. Labels truncate to one line. The step detail panel's table is never capped."
+        code={subStepCapCode}
+        filename="SubStepCap.tsx"
+      >
+        <SubStepCap />
+      </ExampleCard>
+      <ExampleCard
         title="States"
         description="Empty steps show the built-in placeholder; `loading` swaps the rail and cards for skeletons."
         code={statesCode}
@@ -87,6 +97,9 @@ export const WorkflowTrackerPage: React.FC = () => (
       { name: "footerLabel / footerResizeLabel", type: "string", default: "Workflow footer / Resize workflow footer", description: "WorkflowTrackerRail: accessible names for the footer scroll region and resizing separator." },
       { name: "disableFutureSteps", type: "boolean", default: "false", description: "WorkflowTracker and WorkflowTrackerRail: disable stages with normalized status not_started. Running, completed, skipped, blocked and attention stages remain available unless explicitly disabled." },
       { name: "step.disabled", type: "boolean", default: "false", description: "Disable an individual stage regardless of status. Disables rail selection, hover/focus previews and rail quick actions. The status remains visible; controlled activeStepId is not changed." },
+      { name: "maxVisibleSubSteps", type: "number", default: "all", description: "WorkflowTracker and WorkflowTrackerRail: sub-steps the rail's nested box shows before the rest fold away. Unset, or set past the count, every sub-step renders. The step detail panel's table is never capped." },
+      { name: "subStepLoadMode", type: '"scroll" | "button"', default: '"scroll"', description: 'How rows past maxVisibleSubSteps are revealed. "scroll" caps the nested box at the height of the first page and scrolls inside a ScrollArea, the shared infinite-scroll watch revealing the next rows near the fold (it degrades to the button without an IntersectionObserver). "button" reveals one page per click behind a Show N more / Show less tail, localized via the showMore/showLess labels — showMore carries a {count} placeholder.' },
+      { name: "subStepOrder", type: '"reverse" | "forward"', default: '"reverse"', description: 'Which end of the list the first page keeps. "reverse" is the live-tail reading: the newest sub-steps stay visible, the box opens at the bottom, and both tails reveal the past (scroll up / Show more); rows appended by a live run keep the reader pinned at the bottom. "forward" is the chronological reading — the oldest head first, tails revealing the future.' },
     ]} />
   </div>
 );

@@ -63,6 +63,22 @@ const fillHeightOffsetOptions = [
   { label: "10vh", value: "10vh" },
 ];
 
+const subStepCapOptions = [
+  { label: "All", value: "" },
+  { label: "2", value: "2" },
+  { label: "4", value: "4" },
+];
+
+const subStepLoadModeOptions = [
+  { label: "Scroll", value: "scroll" },
+  { label: "Button", value: "button" },
+];
+
+const subStepOrderOptions = [
+  { label: "Newest first", value: "reverse" },
+  { label: "Oldest first", value: "forward" },
+];
+
 export const WorkflowTrackerPlayground: React.FC = () => {
   const [dataSet, setDataSet] = useState<DataSet>("vendor");
   const [variant, setVariant] = useState<WorkflowTrackerVariant>("outlined");
@@ -81,6 +97,13 @@ export const WorkflowTrackerPlayground: React.FC = () => {
   const [stickyRail, setStickyRail] = useState(false);
   const [fillHeight, setFillHeight] = useState(false);
   const [fillHeightOffset, setFillHeightOffset] = useState("0px");
+  const [subStepCap, setSubStepCap] = useState("");
+  const [subStepLoadMode, setSubStepLoadMode] = useState<"scroll" | "button">(
+    "scroll",
+  );
+  const [subStepOrder, setSubStepOrder] = useState<"reverse" | "forward">(
+    "reverse",
+  );
   const [specularMode, setSpecularMode] =
     useState<PanelSpecularMode>("classic");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
@@ -209,6 +232,38 @@ export const WorkflowTrackerPlayground: React.FC = () => {
                       onChange={setFillHeightOffset}
                     />
                   )}
+                  <SelectControl
+                    label="Rail sub-step cap"
+                    options={subStepCapOptions}
+                    value={subStepCap}
+                    onChange={setSubStepCap}
+                  />
+                  {subStepCap !== "" && (
+                    <Control label="Sub-step reveal">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={subStepLoadModeOptions}
+                        value={subStepLoadMode}
+                        onChange={(v) =>
+                          setSubStepLoadMode(v as "scroll" | "button")
+                        }
+                      />
+                    </Control>
+                  )}
+                  {subStepCap !== "" && (
+                    <Control label="Sub-step order">
+                      <MultiToggle
+                        fullWidth
+                        size="sm"
+                        options={subStepOrderOptions}
+                        value={subStepOrder}
+                        onChange={(v) =>
+                          setSubStepOrder(v as "reverse" | "forward")
+                        }
+                      />
+                    </Control>
+                  )}
                 </div>
               ),
             },
@@ -273,6 +328,9 @@ export const WorkflowTrackerPlayground: React.FC = () => {
               stickyRail={stickyRail}
               fillHeight={fillHeight}
               fillHeightOffset={fillHeightOffset}
+              maxVisibleSubSteps={subStepCap === "" ? undefined : Number(subStepCap)}
+              subStepLoadMode={subStepLoadMode}
+              subStepOrder={subStepOrder}
               onStepSelect={
                 interactive
                   ? (stepId) => {

@@ -12,6 +12,13 @@
 @import "./components/CodeBlock.css";
 @import "./components/knowledge/knowledge.css";
 @import "./components/AgentMap/agent-map.css";
+/* Component stylesheets must be imported BOTH here and by their .tsx. The
+   public ./styles.css is generated solely from this entry (the Tailwind CLI
+   step in tsup.config.ts overwrites the dist/index.css that tsup emits from
+   the .tsx imports), so a stylesheet that is only imported from TSX never
+   ships — src/styles.contract.test.ts guards the closure. */
+@import "./components/FilterBar.css";
+@import "./components/StartupStageStepper.css";
 
 @custom-variant dark (&:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *)));
 

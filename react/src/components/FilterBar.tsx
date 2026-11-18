@@ -68,6 +68,13 @@ export interface FilterBarProps {
   secondaryButtonVariant?: ButtonProps["variant"];
   /** Menu Done treatment. @default "solid" */
   applyButtonVariant?: ButtonProps["variant"];
+  /**
+   * Treatment of the expand-search trigger. It always keeps its compact
+   * icon-only footprint (`iconOnly` sizing), so no variant widens the
+   * collapsed control; the 2.5rem .fb-search box in FilterBar.css holds.
+   * @default "icon"
+   */
+  searchButtonVariant?: ButtonProps["variant"];
   /** Tone of action buttons, search trigger and chip remove buttons. Defaults to color. */
   buttonTone?: TrueColor;
   /** Action button size. Defaults to size; chip remove buttons retain their compact size. */
@@ -111,6 +118,7 @@ export function FilterBar({
   variant = "outlined", tone = "neutral", corner = "rounded-sm", padding = "xs",
   transparency, glassOpacity = "frosted", vibrancy = "medium",
   buttonVariant = "outline", secondaryButtonVariant = "ghost", applyButtonVariant = "solid",
+  searchButtonVariant = "icon",
   buttonTone = color, buttonSize = size, buttonCorner, buttonWeight = "normal", buttonDashed = true,
   menuVariant = "outlined", menuTone = "none", menuCorner, menuPadding,
   chipVariant = "soft", chipTone = color, spring = "snappy",
@@ -215,7 +223,10 @@ export function FilterBar({
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)
           && !event.currentTarget.querySelector("input")?.value) setExpanded(false);
       }}>
-      <Button {...actionStyle} variant="icon" leadingIcon="Search"
+      {/* iconOnly is deliberate for every variant: it pins the compact
+          icon sizing so the trigger always fits the collapsed .fb-search
+          footprint — the treatment may change, the footprint never does. */}
+      <Button {...actionStyle} variant={searchButtonVariant} iconOnly leadingIcon="Search"
         aria-label={t("kit.filterbar.search")} aria-expanded={expanded} aria-controls={searchId}
         disabled={searchDisabled} className="fb-search-trigger" hidden={expanded}
         onClick={() => setExpanded(true)} />

@@ -53,6 +53,9 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   fillHeightOffset = 0,
   loading = false,
   loadingRows = 6,
+  maxVisibleSubSteps,
+  subStepLoadMode = "scroll",
+  subStepOrder = "reverse",
   emptyState,
   showHeader = true,
   showLegend = true,
@@ -177,6 +180,9 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
           data={data}
           loading={loading}
           loadingRows={loadingRows}
+          maxVisibleSubSteps={maxVisibleSubSteps}
+          subStepLoadMode={subStepLoadMode}
+          subStepOrder={subStepOrder}
           showLegend={showLegend}
           emptyState={emptyState}
           labels={labelOverrides}

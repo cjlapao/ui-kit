@@ -162,6 +162,17 @@ export interface WorkflowTrackerLabels {
   details: string;
   /** Accessible name of a step's quick-actions group. */
   quickActions: string;
+  /**
+   * Tail button that reveals the next page of sub-steps folded away by
+   * `maxVisibleSubSteps`. `{count}` is replaced with the rows it will add.
+   */
+  showMore: string;
+  /** Tail button that folds the sub-steps back behind `maxVisibleSubSteps`. */
+  showLess: string;
+  /** One-line note under a failed infinite-scroll page, beside the retry link. */
+  loadMoreError: string;
+  /** Accessible name of the sub-step page spinner in scroll mode. */
+  loadingMore: string;
   /** Legend/sr-only copy for the eight built-ins. A `customStatuses` entry carries its own `label` instead. */
   statuses: Record<BuiltInWorkflowStatus, string>;
 }
@@ -254,6 +265,32 @@ export interface WorkflowTrackerProps
   loading?: boolean;
   /** Rows in the rail skeleton. @default 6 */
   loadingRows?: number;
+  /**
+   * Sub-steps the rail shows in its nested box before the rest fold away.
+   * Unset — or set past the count — and every sub-step renders, as before.
+   * Applies to the rail's nested list only; the step detail panel always
+   * shows the full table.
+   */
+  maxVisibleSubSteps?: number;
+  /**
+   * How the rail reveals the sub-steps past `maxVisibleSubSteps`.
+   *
+   * `"scroll"` (default) mirrors `ActivityFeed`'s `loadMode`: the nested box
+   * is capped to the height of the first page and becomes a `ScrollArea` —
+   * the kit's shared `useInfiniteScroll` watch keeps the tail in flight as
+   * the reader nears it, so the box never grows. `"button"` folds the rest
+   * behind a `Show more` tail that expands the box in place; `Show less`
+   * folds them back.
+   * @default "scroll"
+   */
+  subStepLoadMode?: "scroll" | "button";
+  /**
+   * Which end of the list the rail's first page keeps. `"reverse"`
+   * (default) shows the newest tail and reveals the past; `"forward"`
+   * shows the oldest head and reveals the future.
+   * @default "reverse"
+   */
+  subStepOrder?: "reverse" | "forward";
   /** Replaces the built-in placeholder shown when `steps` is empty. */
   emptyState?: React.ReactNode;
   /** @default true */

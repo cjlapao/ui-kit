@@ -26,6 +26,7 @@ export function FilterBarPlayground() {
   const [buttonVariant, setButtonVariant] = useState<ButtonVariant>("outline");
   const [secondaryButtonVariant, setSecondaryButtonVariant] = useState<ButtonVariant>("ghost");
   const [applyButtonVariant, setApplyButtonVariant] = useState<ButtonVariant>("solid");
+  const [searchButtonVariant, setSearchButtonVariant] = useState<ButtonVariant>("icon");
   const [buttonTone, setButtonTone] = useState<TrueColor>("blue");
   const [buttonSize, setButtonSize] = useState<ControlSize | undefined>(undefined);
   const [buttonCorner, setButtonCorner] = useState<PanelCorner | undefined>(undefined);
@@ -75,6 +76,7 @@ export function FilterBarPlayground() {
       <SelectControl label="Add filter variant" value={buttonVariant} onChange={next => setButtonVariant(next as ButtonVariant)} options={buttonVariantOptions} />
       <SelectControl label="Secondary button variant" value={secondaryButtonVariant} onChange={next => setSecondaryButtonVariant(next as ButtonVariant)} options={buttonVariantOptions} />
       <SelectControl label="Done button variant" value={applyButtonVariant} onChange={next => setApplyButtonVariant(next as ButtonVariant)} options={buttonVariantOptions} />
+      <SelectControl label="Search trigger variant" value={searchButtonVariant} onChange={next => setSearchButtonVariant(next as ButtonVariant)} options={buttonVariantOptions} />
       <Control label="Button tone"><ColorSwatches value={buttonTone} onSelect={setButtonTone} selectable size="sm" defaultExpanded /></Control>
       <SelectControl label="Button size" value={buttonSize ?? "inherit"} onChange={next => setButtonSize(next === "inherit" ? undefined : next as ControlSize)} options={[{ value: "inherit", label: "Follow size" }, ...controlSizeOptions]} />
       <SelectControl label="Button corner" value={buttonCorner ?? "default"} onChange={next => setButtonCorner(next === "default" ? undefined : next as PanelCorner)} options={[{ value: "default", label: "Default shapes" }, ...panelCornerOptions]} />
@@ -115,6 +117,7 @@ export function FilterBarPlayground() {
       <FilterBar searchProps={{ onSearch: setQuery, placeholder: "Search by device name", loading, autoSearch: !manual, variant: searchVariant }} filters={filters} value={value} onChange={setValue} filteredCount={results.length} totalCount={devices.length} itemLabel="devices" size={size} spring={spring} disabled={disabled}
         variant={variant} tone={tone} corner={corner} padding={padding} transparency={transparency} glassOpacity={glassOpacity} vibrancy={vibrancy}
         buttonVariant={buttonVariant} secondaryButtonVariant={secondaryButtonVariant} applyButtonVariant={applyButtonVariant}
+        searchButtonVariant={searchButtonVariant}
         buttonTone={buttonTone} buttonSize={buttonSize} buttonCorner={buttonCorner} buttonWeight={buttonWeight} buttonDashed={buttonDashed}
         menuVariant={menuVariant} menuTone={menuTone} menuCorner={menuCorner} menuPadding={menuPadding}
         chipVariant={chipVariant} chipTone={chipTone} color={color}
