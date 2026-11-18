@@ -290,10 +290,11 @@ describe("AvatarGroup", () => {
         proto.getBoundingClientRect = original;
       }
       const row = document.querySelector('[role="group"]') as HTMLElement;
-      // padPx (8) + the fade's reach (24) at the start; the end pays back
-      // the scroller's 10px bar lane, so both ends clear the fade the same.
-      expect(row.style.paddingLeft).toBe("32px");
-      expect(row.style.paddingRight).toBe("22px");
+      // Exactly the fade's reach (24) — the chip lands just past the blur;
+      // the end pays back the scroller's 10px bar lane, so both ends clear
+      // the fade the same.
+      expect(row.style.paddingLeft).toBe("24px");
+      expect(row.style.paddingRight).toBe("14px");
     });
 
     it("does not pad the scroll ends when the row fits — no fade to dodge", () => {

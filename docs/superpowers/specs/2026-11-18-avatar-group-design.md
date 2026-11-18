@@ -150,8 +150,8 @@ chip strips, and chips carry `title={name}`.
   adds no phantom scroll lane. The row stretches to the viewport and centres
   its chips, so they always sit on the pinned toggle's centreline whatever
   the viewport padding; and when it overflows, its start and end are padded
-  past the mask's 24px reach — the first and last chip never blur out
-  mid-face at the scroll ends.
+  out to the mask's 24px reach — the first and last chip land just past the
+  blur at the scroll ends, never faded mid-face, never stranded in space.
 
 ## Accessibility
 

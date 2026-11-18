@@ -563,12 +563,13 @@ export const AvatarGroup = ({
   if (singleRow) {
     const rowPx = padPx * 2 + chipPx; // the fixed one-row viewport
     // Edge-fade standing room. The mask reaches `SCROLLAREA_MASK_FADE_PX`
-    // into the content, so at the scroll ends the first and last chip must
-    // start clear of that reach or they blur out mid-face. Only a row that
-    // actually scrolls pays it — a row that fits has no fade to dodge — and
-    // the right pad pays ScrollArea's own lane gutter back, so both ends
-    // guard the same distance.
-    const edgeGuard = !fitsAll && layoutOpen ? SCROLLAREA_MASK_FADE_PX : 0;
+    // into the content, so when the row scrolls its ends push the first and
+    // last chip to land just outside that reach — right past the blur, not
+    // a whole chip clear of it. A row that fits keeps the plain content
+    // padding, with no fade to dodge; the right pad pays ScrollArea's own
+    // lane gutter back, so both ends guard the same distance.
+    const edgeGuard =
+      !fitsAll && layoutOpen ? SCROLLAREA_MASK_FADE_PX - padPx : 0;
     // The condensed line: leading chips overlap, the inline `+N` pays the
     // ride-over back and hugs the last one, the rest sit zero-width (and
     // zero-margin, so they add no scroll) behind it.
