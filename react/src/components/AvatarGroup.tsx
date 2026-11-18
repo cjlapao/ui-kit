@@ -71,6 +71,13 @@ export interface AvatarGroupProps extends Omit<
   /** One corner for every chip. @default "full" */
   rounded?: AvatarGroupRounded;
   /**
+   * A 1px tone-neutral rim on every chip — the kit's glass-edge recipe,
+   * which reads on any background in both schemes. It is what separates
+   * same-tone chips where they overlap and lifts near-transparent washes
+   * off same-colored surfaces. @default true
+   */
+  border?: boolean;
+  /**
    * Chips shown before the `+N` chip — and the cap on non-overlapping chips
    * once a container too narrow for the whole row condenses on its own.
    * Non-finite falls back to 5; finite values clamp to at least 1.
@@ -154,6 +161,8 @@ interface ChipProps {
   tone: TrueColor;
   size: ControlSize;
   rounded: AvatarGroupRounded;
+  /** The 1px neutral rim — see the group's `border` prop. */
+  bordered: boolean;
   /** Chips zero-width behind the +N keep their slot but leave the tab order. */
   hidden: boolean;
   fallbackName: string;
@@ -170,6 +179,7 @@ const Chip = ({
   tone,
   size,
   rounded,
+  bordered,
   hidden,
   fallbackName,
 }: ChipProps) => {
@@ -216,6 +226,10 @@ const Chip = ({
         className={classNames(
           "relative flex h-full w-full items-center justify-center overflow-hidden font-bold transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.15]",
           shape,
+          // The rim lives on the disc itself, not the halo: it is what
+          // separates same-tone chips where they overlap and lifts a
+          // near-transparent wash off a same-colored surface.
+          bordered && "border border-black/15 dark:border-white/15",
           AVATAR_TEXT[size],
           solid && classNames(fill, ink),
           kind === "icon" && classNames(washInk, showWash && wash),
@@ -316,6 +330,7 @@ export const AvatarGroup = ({
   size = "md",
   tone = "blue",
   rounded = "full",
+  border = true,
   maxVisible = 5,
   expandOn = "click",
   defaultExpanded = false,
@@ -453,6 +468,7 @@ export const AvatarGroup = ({
         tone={item.tone ?? tone}
         size={size}
         rounded={rounded}
+        bordered={border}
         hidden={hidden}
         fallbackName={fallbackName}
       />

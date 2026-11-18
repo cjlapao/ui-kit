@@ -45,6 +45,7 @@ export const AvatarGroupPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("lg");
   const [tone, setTone] = useState<TrueColor>("blue");
   const [rounded, setRounded] = useState<AvatarGroupRounded>("full");
+  const [border, setBorder] = useState(true);
   const [expandOn, setExpandOn] = useState<"click" | "hover">("click");
   const [maxVisible, setMaxVisible] = useState(5);
   const [defaultExpanded, setDefaultExpanded] = useState(false);
@@ -66,6 +67,7 @@ export const AvatarGroupPlayground: React.FC = () => {
                       onChange={(v) => setTone(v as TrueColor)} />
                     <ChoiceControl label="Rounded" options={ROUNDED_OPTIONS} value={rounded}
                       onChange={(v) => setRounded(v as AvatarGroupRounded)} />
+                    <ToggleRow label="border" checked={border} onChange={setBorder} />
                   </>
                 ),
               },
@@ -99,6 +101,7 @@ export const AvatarGroupPlayground: React.FC = () => {
             size={size}
             tone={tone}
             rounded={rounded}
+            border={border}
             expandOn={expandOn}
             maxVisible={maxVisible}
             defaultExpanded={defaultExpanded}

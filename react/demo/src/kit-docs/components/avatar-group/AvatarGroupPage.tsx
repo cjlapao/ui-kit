@@ -175,6 +175,13 @@ export const AvatarGroupPage: React.FC = () => (
                 "One corner for every chip — discs, washes, image clips and halos alike.",
             },
             {
+              name: "border",
+              type: "boolean",
+              default: "true",
+              description:
+                "A 1px tone-neutral rim on every chip — the glass-edge recipe. It separates same-tone chips where they overlap and lifts near-transparent washes off same-colored surfaces.",
+            },
+            {
               name: "maxVisible",
               type: "number",
               default: "5",
