@@ -266,6 +266,44 @@ describe("AvatarGroup", () => {
       expect(area!.querySelectorAll("[role=img]")).toHaveLength(PEOPLE.length);
     });
 
+    it("stretches the row to the viewport so chips and toggle share a centreline", () => {
+      render(<AvatarGroup singleRow defaultExpanded items={PEOPLE} />);
+      // The viewport is taller than a chip (viewport padding, and room for
+      // the hover halo). Without the stretch the row is chip-tall and hugs
+      // the top, riding `padPx` off the pinned toggle's centre.
+      const wrap = document.querySelector('[data-slot="scrollarea-content"]');
+      expect(wrap?.className).toContain("h-full");
+      const row = document.querySelector('[role="group"]')!;
+      expect(row.className).toContain("h-full");
+      expect(row.className).toContain("items-center");
+    });
+
+    it("pads the scroll ends clear of the mask fade when the row overflows", () => {
+      // Six md chips want 232px; the stubbed root measures 120 — scrolling.
+      const proto = Element.prototype;
+      const original = proto.getBoundingClientRect;
+      proto.getBoundingClientRect = () =>
+        ({ width: 120, height: 48 }) as DOMRect;
+      try {
+        render(<AvatarGroup singleRow defaultExpanded items={PEOPLE} />);
+      } finally {
+        proto.getBoundingClientRect = original;
+      }
+      const row = document.querySelector('[role="group"]') as HTMLElement;
+      // padPx (8) + the fade's reach (24) at the start; the end pays back
+      // the scroller's 10px bar lane, so both ends clear the fade the same.
+      expect(row.style.paddingLeft).toBe("32px");
+      expect(row.style.paddingRight).toBe("22px");
+    });
+
+    it("does not pad the scroll ends when the row fits — no fade to dodge", () => {
+      render(<AvatarGroup singleRow defaultExpanded items={PEOPLE} />);
+      // Unmeasured (jsdom width 0) counts as fitting: plain content padding.
+      const row = document.querySelector('[role="group"]') as HTMLElement;
+      expect(row.style.paddingLeft).toBe("8px");
+      expect(row.style.paddingRight).toBe("0px");
+    });
+
     it("pins the collapse chip outside the scroller, so it never scrolls away", () => {
       const { container } = render(
         <AvatarGroup singleRow items={PEOPLE.slice(0, 4)} maxVisible={2} />,

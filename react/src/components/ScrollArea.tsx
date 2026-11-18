@@ -86,7 +86,11 @@ const MIN_THUMB = 24;
 /** How long after the last scroll event a `scroll`/`auto` bar lingers. */
 const SCROLL_LINGER_MS = 800;
 /** How far the edge fade reaches into the content when `mask` is on. */
-const MASK_FADE = "1.5rem";
+export const SCROLLAREA_MASK_FADE_PX = 24; // the 1.5rem below
+const MASK_FADE = `${SCROLLAREA_MASK_FADE_PX / 16}rem`;
+/** The content's permanent right inset, reserving the overlay bar's lane —
+ *  exported so a caller that pads its own content can pay the lane back. */
+export const SCROLLAREA_LANE_PX = 10; // mirrors the `pr-2.5` below
 
 const BAR_BASE =
   "absolute select-none touch-none opacity-100 transition-opacity duration-200 ease-out data-[state=hidden]:pointer-events-none data-[state=hidden]:opacity-0";

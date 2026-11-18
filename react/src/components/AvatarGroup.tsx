@@ -3,7 +3,11 @@ import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
-import { ScrollArea } from "./ScrollArea";
+import {
+  ScrollArea,
+  SCROLLAREA_LANE_PX,
+  SCROLLAREA_MASK_FADE_PX,
+} from "./ScrollArea";
 import {
   getSurfacePaddingClass,
   getTrueColorChipClasses,
@@ -558,6 +562,13 @@ export const AvatarGroup = ({
   // ── singleRow: one row when expanded, scroll sideways to reach the rest ──
   if (singleRow) {
     const rowPx = padPx * 2 + chipPx; // the fixed one-row viewport
+    // Edge-fade standing room. The mask reaches `SCROLLAREA_MASK_FADE_PX`
+    // into the content, so at the scroll ends the first and last chip must
+    // start clear of that reach or they blur out mid-face. Only a row that
+    // actually scrolls pays it — a row that fits has no fade to dodge — and
+    // the right pad pays ScrollArea's own lane gutter back, so both ends
+    // guard the same distance.
+    const edgeGuard = !fitsAll && layoutOpen ? SCROLLAREA_MASK_FADE_PX : 0;
     // The condensed line: leading chips overlap, the inline `+N` pays the
     // ride-over back and hugs the last one, the rest sit zero-width (and
     // zero-margin, so they add no scroll) behind it.
@@ -597,6 +608,11 @@ export const AvatarGroup = ({
           horizontal
           mask
           className="min-w-0 flex-1"
+          // `h-full` on the content, and the row's `h-full` + items-center
+          // land on it: without it the row is only as tall as a chip and
+          // sits at the top of the taller viewport — chips off the pinned
+          // toggle's centre by the viewport's vertical padding.
+          contentClassName="h-full"
           style={{ height: rowPx }}
         >
           <div
@@ -605,7 +621,15 @@ export const AvatarGroup = ({
             role="group"
             aria-label="Avatars"
             className="flex h-full items-center"
-            style={{ paddingLeft: padPx, paddingRight: padPx }}
+            style={{
+              paddingLeft: padPx + edgeGuard,
+              // ScrollArea's lane gutter sits past all content, so the
+              // right guard pays it back to match the left one.
+              paddingRight: Math.max(
+                0,
+                padPx + edgeGuard - SCROLLAREA_LANE_PX,
+              ),
+            }}
           >
             {items
               .slice(0, visibleCount)

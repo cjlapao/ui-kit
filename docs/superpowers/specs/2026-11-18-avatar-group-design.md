@@ -147,7 +147,11 @@ chip strips, and chips carry `title={name}`.
   the scroller so it never scrolls off-screen. Condensed, `singleRow` is
   pixel-identical to the natural stack — the inline `+N` still hugs the
   visible chips; a zero-width hidden chip also pays back its margin so it
-  adds no phantom scroll lane.
+  adds no phantom scroll lane. The row stretches to the viewport and centres
+  its chips, so they always sit on the pinned toggle's centreline whatever
+  the viewport padding; and when it overflows, its start and end are padded
+  past the mask's 24px reach — the first and last chip never blur out
+  mid-face at the scroll ends.
 
 ## Accessibility
 
