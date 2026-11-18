@@ -1,13 +1,14 @@
 /**
  * TaskBoardHeader — the Gantt-style header strip: icon tile, title with its
- * subtitle, the app's summary pills, the presence avatar stack and actions.
+ * subtitle, the app's summary pills, the presence avatars (an AvatarGroup,
+ * `+N` unfolds the rest) and actions.
  */
 
 import React from "react";
 import classNames from "classnames";
 import { peerColor, type TaskBoardUser } from "../../../../common/taskboard";
 import { getSurfaceVariantClasses, type SurfaceVariant } from "../../theme/Theme";
-import UserAvatar from "../UserAvatar";
+import AvatarGroup from "../AvatarGroup";
 import { useTaskBoard } from "./context";
 
 export interface TaskBoardHeaderProps {
@@ -34,8 +35,6 @@ export const TaskBoardHeader: React.FC<TaskBoardHeaderProps> = ({
   variant,
 }) => {
   const { surface, text } = useTaskBoard();
-  const shown = people?.slice(0, MAX_AVATARS) ?? [];
-  const extra = (people?.length ?? 0) - shown.length;
   return (
     <div
       data-taskboard-header
@@ -61,25 +60,20 @@ export const TaskBoardHeader: React.FC<TaskBoardHeaderProps> = ({
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2">{hasNode(summary) && summary}</div>
-      {shown.length > 0 && (
-        <div
+      {people && people.length > 0 && (
+        <AvatarGroup
           data-taskboard-people
           role="group"
-          aria-label={text("online", { count: people!.length })}
-          className="flex items-center -space-x-2"
-        >
-          {shown.map((p) => (
-            <UserAvatar
-              key={p.id}
-              user={{ name: p.name, avatarUrl: p.avatarUrl }}
-              tone={p.color ?? peerColor(p.id)}
-              size="sm"
-              title={p.name}
-              className="ring-2 ring-white dark:ring-neutral-900"
-            />
-          ))}
-          {extra > 0 && <UserAvatar label={`+${extra}`} size="sm" className="ring-2 ring-white dark:ring-neutral-900" />}
-        </div>
+          aria-label={text("online", { count: people.length })}
+          className="shrink-0"
+          size="sm"
+          maxVisible={MAX_AVATARS}
+          items={people.map((p) => ({
+            name: p.name,
+            image: p.avatarUrl,
+            tone: p.color ?? peerColor(p.id),
+          }))}
+        />
       )}
       {hasNode(actions) && <div className="flex items-center gap-1">{actions}</div>}
     </div>

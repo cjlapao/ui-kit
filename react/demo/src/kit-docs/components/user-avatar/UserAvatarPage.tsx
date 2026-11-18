@@ -9,8 +9,6 @@ import Fallbacks from "./examples/Fallbacks";
 import fallbacksCode from "./examples/Fallbacks.tsx?raw";
 import Content from "./examples/Content";
 import contentCode from "./examples/Content.tsx?raw";
-import Group from "./examples/Group";
-import groupCode from "./examples/Group.tsx?raw";
 
 export const UserAvatarPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
@@ -30,14 +28,6 @@ export const UserAvatarPage: React.FC = () => (
         filename="Content.tsx"
       >
         <Content />
-      </ExampleCard>
-      <ExampleCard
-        title="Group"
-        description="Grouping, PrimeVue-style: a negative-gap stack with rings, capped by a `label` avatar for the overflow."
-        code={groupCode}
-        filename="Group.tsx"
-      >
-        <Group />
       </ExampleCard>
       <ExampleCard
         title="Sizes"
@@ -137,6 +127,12 @@ export const UserAvatarPage: React.FC = () => (
       image — and falls below it to ours: the `user` initial, then the generic
       glyph. An image error fires `onError` and then falls back; PrimeVue emits
       `error` and shows a blank box.
+    </p>
+    <p className="max-w-3xl text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+      One avatar is one person. Showing several together — the overlapping
+      stack, the `+N` chip, the unfold — is <strong>AvatarGroup</strong>&rsquo;s
+      job, not this component&rsquo;s; the old hand-rolled grouping recipe used
+      to live on this page and now lives where it belongs.
     </p>
 
     <A11ySection>

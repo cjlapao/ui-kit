@@ -23,7 +23,7 @@ import {
   type TaskBoardUser,
 } from "../../../../common/taskboard";
 import { getSurfaceTriggerTokens } from "../../theme/Theme";
-import UserAvatar from "../UserAvatar";
+import AvatarGroup from "../AvatarGroup";
 import DotStepper from "../DotStepper";
 import { Calendar } from "../../icons/components/Calendar";
 import { CheckCircle } from "../../icons/components/CheckCircle";
@@ -52,20 +52,28 @@ function formatDue(due: Card["due"], locale: string): string | null {
   return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(d);
 }
 
+/** The card shows at most this many assignee chips — the old hand-rolled cap. */
+const MAX_ASSIGNEES = 3;
+
+/**
+ * Assignees as an AvatarGroup, capped at three chips. Deliberately the plain
+ * strip and not the expandable one: the card itself is the control — the same
+ * stance the sub task dots take, so no `+N` tab stop lands inside a
+ * `role="button"` card.
+ */
 const Avatars: React.FC<{ users?: TaskBoardUser[] }> = ({ users }) => {
   if (!users?.length) return null;
   return (
-    <div data-card-avatars className="flex shrink-0 -space-x-1.5">
-      {users.slice(0, 3).map((u) => (
-        <UserAvatar
-          key={u.id}
-          user={{ name: u.name, avatarUrl: u.avatarUrl }}
-          tone={u.color ?? peerColor(u.id)}
-          size="sm"
-          className="ring-2 ring-white dark:ring-neutral-900"
-        />
-      ))}
-    </div>
+    <AvatarGroup
+      data-card-avatars
+      size="sm"
+      className="shrink-0"
+      items={users.slice(0, MAX_ASSIGNEES).map((u) => ({
+        name: u.name,
+        image: u.avatarUrl,
+        tone: u.color ?? peerColor(u.id),
+      }))}
+    />
   );
 };
 
