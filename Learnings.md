@@ -1319,3 +1319,21 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
 - Panel drops `aria-*` props it does not model (DotStepper's `aria-disabled`
   has never reached its section element — it only paints `opacity-50`): assert
   what Panel actually forwards before testing a caller's aria story.
+
+## SideMenu `searchScope` — one question, two consumers (2026-11-18)
+
+- The menu search filters in two places, and only one of them is the filter: the
+  `visibleItems` memo decides which top-level rows survive, and `renderLinkRow`
+  independently re-filters `visibleChildren` so a matched parent shows only the
+  branches that matched. A scope prop that touched only the memo would leave
+  depth-0 matches rendering empty. One derived boolean (`searchTopOnly`) read by
+  both is what keeps them telling the same story.
+- Depth-0-only matching makes the no-results row reachable by a query that does
+  match *something*, one level down. That is the point of the mode, and it came
+  for free only because `hasVisibleLink` is derived from `visibleItems` — a
+  second source of truth about "did anything match" would have shown an empty
+  list with no explanation.
+- `ExampleCard`'s `description` is typed `string`, unlike a props-table row's,
+  which takes JSX — so the `<C>` code-span component the prose elsewhere uses
+  cannot appear there. Quote a literal (`searchScope='top'`) instead of
+  reaching for markup that would render as text.

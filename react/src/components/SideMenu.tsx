@@ -48,6 +48,14 @@ export type SideMenuItemType = "link" | "group" | "divider";
 export type SideMenuLoaderType = Exclude<LoaderProps["variant"], undefined> |
   "skeleton";
 
+/**
+ * What the menu search is allowed to match. `all` searches every depth, so one
+ * deep match keeps its parents on screen; `top` searches only the rows at depth
+ * 0 — a link in `items`, group header or no — and renders a matched row with
+ * its full child list.
+ */
+export type SideMenuSearchScope = "all" | "top";
+
 export interface SideMenuGuardClaim {
   type: "claim";
   claim: string;
@@ -429,6 +437,16 @@ export interface SideMenuProps {
   onSearchChange?: (value: string) => void;
   /** Placeholder for the search input. @default "Search menu" */
   searchPlaceholder?: string;
+  /**
+   * How deep the item search may reach. `all` (default) matches every depth and
+   * keeps the parents of a nested match visible; `top` matches only depth-0
+   * links — a link in `items`, whether or not it sits under a group header,
+   * since only `children` adds depth — and renders a matched row with its full
+   * child list. A query that matches nothing at depth 0 shows the no-results
+   * row, which is the point: the navigation is searched, not its contents.
+   * @default "all"
+   */
+  searchScope?: SideMenuSearchScope;
 }
 
 const EMPTY_VIEW_OPTIONS: readonly string[] = [];
@@ -1002,6 +1020,7 @@ export const SideMenu = ({
   searchValue,
   onSearchChange,
   searchPlaceholder,
+  searchScope = "all",
 }: SideMenuProps) => {
   const t = useKitT();
   const location = useLocation();
@@ -1218,6 +1237,14 @@ export const SideMenu = ({
   const matchesSubtree = (item: SideMenuItemLink): boolean =>
     matchesItem(item) || (item.children ?? []).some(matchesSubtree);
 
+  // One fork, two consumers. `searchScope="top"` stops the query at depth 0,
+  // where depth is added only by `children` — a group header is presentation,
+  // not a level. Both the filter pass and the row renderer come through here,
+  // so the two can never disagree about what `top` means.
+  const searchTopOnly = searchScope === "top";
+  const matchesScope = (item: SideMenuItemLink): boolean =>
+    searchTopOnly ? matchesItem(item) : matchesSubtree(item);
+
   // Guard + module-view gate shared by the navigation items and the CTA
   // cards: one definition, so a card guarded like a link behaves exactly
   // like that link. `hidden` wins first; the module-view filter is a hard
@@ -1265,7 +1292,7 @@ export const SideMenu = ({
         item.type !== "group" &&
         item.type !== "divider" &&
         passesGuard(item) &&
-        matchesSubtree(item)
+        matchesScope(item)
       ) {
         if (item.groupName) groupsWithVisibleLinks.add(item.groupName);
       }
@@ -1273,7 +1300,7 @@ export const SideMenu = ({
 
     return items.filter((item) => {
       if (!passesGuard(item)) return false;
-      if (item.type !== "group" && item.type !== "divider" && !matchesSubtree(item)) {
+      if (item.type !== "group" && item.type !== "divider" && !matchesScope(item)) {
         return false;
       }
       if (item.type === "group") return groupsWithVisibleLinks.has(item.slug);
@@ -1282,7 +1309,7 @@ export const SideMenu = ({
         return !item.groupName || groupsWithVisibleLinks.has(item.groupName);
       return true;
     });
-  }, [items, passesGuard, query]);
+  }, [items, passesGuard, query, searchTopOnly]);
 
   const visibleCtas = useMemo(
     () => (ctas ? ctas.filter(passesGuard) : []),
@@ -1424,10 +1451,13 @@ export const SideMenu = ({
     const hasChildren = !!link.children?.length;
     const selfActive = isActiveItem(link);
     const childActive = hasChildren ? hasActiveDescendant(link) : false;
-    // While searching, only matching branches stay visible under a parent.
-    const visibleChildren = searchActive
-      ? (link.children ?? []).filter(matchesSubtree)
-      : (link.children ?? []);
+    // While searching, only matching branches stay visible under a parent —
+    // unless the scope stopped the query at depth 0: there a match is a whole
+    // subtree, and the children are exactly what the user wants to click into.
+    const visibleChildren =
+      searchActive && !searchTopOnly
+        ? (link.children ?? []).filter(matchesSubtree)
+        : (link.children ?? []);
     const showChildren =
       hasChildren &&
       (searchActive || openSubmenus.has(link.slug)) &&

@@ -637,6 +637,7 @@ export {
   type SideMenuProps,
   type SideMenuSettings,
   type SideMenuLoaderType,
+  type SideMenuSearchScope,
   type SideMenuItem,
   type SideMenuItemLink,
   type SideMenuItemGroup,

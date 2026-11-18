@@ -85,7 +85,7 @@ export default function AgentMapPage() {
       { name: "renderAgentDetails", type: "(agent, project) => ReactNode", default: "undefined", description: "Add consumer-owned actions or details to the selection panel." },
       { name: "inspectorTitle", type: "ReactNode", default: '"Inspector"', description: "Customize the selected agent's inspector title." },
       { name: "fullHeight / fullWidth", type: "boolean", default: "false / true", description: "Fill the parent height (which must be defined) or available width." },
-      { name: "scattered", type: "boolean", default: "false", description: "Scatter the project hubs deterministically while avoiding collisions." },
+      { name: "scattered", type: "boolean", default: "false", description: "Deterministically scatter the project hubs to fill the available area, shrinking them as one group when crowded." },
       { name: "grid", type: "false | GridBackground settings", default: "radial grid", description: "Configure the map grid or set false to hide it." },
       { name: "panelVariant / detailsVariant / listVariant", type: "PanelVariant", default: "elevated / elevated / subtle", description: "Set the map, selection, and list panel surfaces independently." },
       { name: "panelTone / detailsTone / listTone", type: "PanelTone", default: "none", description: "Set the tone of each panel surface independently." },

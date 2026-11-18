@@ -331,6 +331,12 @@ export const sidebarLoaderTypeOptions: MultiToggleOption[] = [
   { label: "Spinner", value: "spinner" },
   { label: "Progress", value: "progress" },
 ];
+// Labels, not the kit's literals: `all` / `top` read as nothing next to each
+// other, and what the control is choosing is the depth the query may reach.
+export const sideMenuSearchScopeOptions: MultiToggleOption[] = [
+  { label: "All depths", value: "all" },
+  { label: "Top level only", value: "top" },
+];
 
 // ── Tree ───────────────────────────────────────────────────────────────────
 

@@ -110,7 +110,7 @@ export const SideMenuPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Search"
-        description="A toggleable search below the top item matches each label and description, hides non-matching branches and auto-expands the parents of nested matches."
+        description="A toggleable search below the top item matches each label and description, hides non-matching branches and auto-expands the parents of nested matches — the default searchScope='all'. searchScope='top' matches only the depth-0 rows, and shows a match with all of its children."
         code={searchCode}
         filename="Search.tsx"
       >
@@ -251,6 +251,7 @@ export const SideMenuPage: React.FC = () => (
         { name: "openOnHover / hoverTransitionMs", type: "boolean / number", default: "false / 250", description: "Keep a rail that grows into the full panel on hover. Needs collapsible." },
         { name: "mobileOpen / onCloseMobile / responsive", type: "boolean / () => void / boolean", default: "— / — / true", description: "Below 1024px the panel is an offcanvas drawer with a backdrop; Esc closes it." },
         { name: "search / searchValue / onSearchChange / searchPlaceholder", type: "boolean / string / (v) => void / string", description: "An item search over labels and descriptions; controlled or not." },
+        { name: "searchScope", type: "SideMenuSearchScope", default: '"all"', description: "How deep that search reaches. \"all\" matches every depth and keeps the parents of a nested match visible; \"top\" matches only the depth-0 rows — a link in items, group header or no, since only children adds depth — and shows a match with its whole child list." },
         { name: "topItem / footerItem", type: "SideMenuDropdownItem", description: "Rows above the navigation and above the collapse control, each with its own dropdown menu." },
         { name: "footer", type: "ReactNode | ({ collapsed, side }) => ReactNode", description: "Pinned custom controls above footerItem. SideMenuIconButton inherits tone, surface copy and collapsed state, and forwards its ref and native button attributes for overlay triggers." },
         { name: "ctas / footerDetails / footerDetailsTone", type: "SideMenuCta[] / SideMenuDetailItem[] / TrueColor", description: "Pinned call-to-action cards and the status detail footer." },

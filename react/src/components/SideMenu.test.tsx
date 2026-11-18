@@ -112,6 +112,23 @@ const NESTED: SideMenuItem[] = [
   },
 ];
 
+// The same tree under a group header: `searchScope="top"` counts a grouped link
+// as depth 0, because only `children` adds depth — a header is presentation.
+const GROUPED_NESTED: SideMenuItem[] = [
+  { slug: "g1", type: "group", label: "Group One" },
+  {
+    slug: "infra",
+    label: "Infrastructure",
+    path: "/infra",
+    icon: "Folder",
+    groupName: "g1",
+    children: [
+      { slug: "hosts", label: "Hosts", path: "/infra/hosts", icon: "Host" },
+      { slug: "pods", label: "Pods", path: "/infra/pods", icon: "Container" },
+    ],
+  },
+];
+
 function renderMenu(props: Partial<SideMenuProps> = {}, route = "/") {
   return render(
     <MemoryRouter initialEntries={[route]}>
@@ -519,6 +536,49 @@ describe("SideMenu — search", () => {
     const input = screen.getByRole("textbox", { name: /search menu items/i });
     fireEvent.change(input, { target: { value: "pods" } });
     expect(screen.getByText("Pods")).toBeInTheDocument();
+    expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
+  });
+
+  // ── searchScope ───────────────────────────────────────────────────────────
+
+  it("stops the query at depth 0 when searchScope is \"top\"", () => {
+    renderMenu({ search: true, searchScope: "top", items: GROUPED_NESTED });
+    fireEvent.change(screen.getByRole("textbox", { name: /search menu items/i }), {
+      target: { value: "pods" },
+    });
+    // Nothing at depth 0 matches, and the group header that only had a deep
+    // match under it goes with the link.
+    expect(screen.getByText(/No results for "pods"/)).toBeInTheDocument();
+    expect(screen.queryByText("Group One")).not.toBeInTheDocument();
+  });
+
+  it("counts a grouped link as depth 0 when searchScope is \"top\"", () => {
+    renderMenu({ search: true, searchScope: "top", items: GROUPED_NESTED });
+    fireEvent.change(screen.getByRole("textbox", { name: /search menu items/i }), {
+      target: { value: "infra" },
+    });
+    expect(link("Infrastructure")).toBeInTheDocument();
+    expect(screen.getByText("Group One")).toBeInTheDocument();
+  });
+
+  it("renders a depth-0 match with its full child list when searchScope is \"top\"", () => {
+    renderMenu({ search: true, searchScope: "top", items: NESTED });
+    fireEvent.change(screen.getByRole("textbox", { name: /search menu items/i }), {
+      target: { value: "infra" },
+    });
+    // Scope says what the query may match, not what a match shows: the user
+    // still has to be able to click through into a subtree.
+    expect(link("Hosts")).toBeInTheDocument();
+    expect(link("Pods")).toBeInTheDocument();
+  });
+
+  it("still searches every depth when searchScope is \"all\"", () => {
+    renderMenu({ search: true, searchScope: "all", items: NESTED });
+    fireEvent.change(screen.getByRole("textbox", { name: /search menu items/i }), {
+      target: { value: "pods" },
+    });
+    expect(link("Pods")).toBeInTheDocument();
+    expect(link("Infrastructure")).toBeInTheDocument();
     expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
   });
 });

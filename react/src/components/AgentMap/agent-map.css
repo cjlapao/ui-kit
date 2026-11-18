@@ -45,7 +45,7 @@
 .cj-agent-map__agent strong { position:absolute; top:50px; color:var(--color-neutral-700,#334155); margin-top:0; font-size:11px; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cj-agent-map__agent small { position:absolute; top:65px; font-size:9px; white-space:nowrap; }
 .dark .cj-agent-map__agent strong { color:var(--color-neutral-100,#f1f5f9); }
-.cj-agent-map__overflow { position:absolute; transform:translate(-50%,58px); white-space:nowrap; font-size:10px; }
+.cj-agent-map__overflow { position:absolute; transform:translate(-50%,var(--overflow-offset,58px)); white-space:nowrap; font-size:10px; }
 .cj-agent-map__exit-focus { position:absolute; z-index:3; top:12px; left:14px; padding:6px 9px; border:1px solid var(--color-neutral-500,#64748b); border-radius:6px; color:var(--color-neutral-700,#334155); background:var(--color-neutral-100,#f1f5f9); cursor:pointer; font-size:11px; }
 .dark .cj-agent-map__exit-focus { color:var(--color-neutral-100,#f1f5f9); background:var(--color-neutral-800,#1e293b); }
 .cj-agent-map__empty { margin:0; padding:48px 20px; text-align:center; }

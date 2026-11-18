@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AgentMap, type AgentMapProject } from "./AgentMap";
-import { layoutProjects, layoutProjectsHorizontally } from "./layout";
+import { layoutProjects, layoutProjectsHorizontally, scatterProjects } from "./layout";
 
 const projects: AgentMapProject[] = [{ id: "atlas", name: "Atlas", agents: [{ id: "builder", name: "Builder", activity: "Writing code", status: "working" }, { id: "reviewer", name: "Reviewer", activity: "Waiting for approval", status: "attention" }] }, { id: "orbit", name: "Orbit", agents: [{ id: "done", name: "Tester", activity: "Tests passed", status: "completed" }] }];
 
@@ -215,5 +215,80 @@ describe("AgentMap", () => {
         for (const other of result.circles.slice(i + 1)) expect(Math.hypot(circle.x - other.x, circle.y - other.y)).toBeGreaterThanOrEqual(circle.radius + other.radius);
       }
     }
+  });
+
+  const insideBox = (circles: { radius: number; x: number; y: number }[], width: number, height: number) => {
+    for (const [i, circle] of circles.entries()) {
+      expect(circle.x - circle.radius).toBeGreaterThanOrEqual(-0.05);
+      expect(circle.x + circle.radius).toBeLessThanOrEqual(width + 0.05);
+      expect(circle.y - circle.radius).toBeGreaterThanOrEqual(-0.05);
+      expect(circle.y + circle.radius).toBeLessThanOrEqual(height + 0.05);
+      for (const other of circles.slice(i + 1)) expect(Math.hypot(circle.x - other.x, circle.y - other.y)).toBeGreaterThanOrEqual(circle.radius + other.radius - 0.05);
+    }
+  };
+
+  it("fills the whole scatter box leaving no empty quadrant", () => {
+    const items = ["atlas", "horizon", "orbit", "northstar", "meridian", "lumen", "canvas", "beacon", "quartz", "delta", "vertex", "prism"].map(id => ({ id, radius: 62 }));
+    const width = 1200, height = 420;
+    const result = scatterProjects(items, width, height, 18);
+    expect(result.scale).toBe(1);
+    expect(result.width).toBe(width);
+    insideBox(result.circles, width, height);
+    const quadrants = [0, 0, 0, 0];
+    for (const circle of result.circles) quadrants[(circle.y < height / 2 ? 0 : 2) + (circle.x < width / 2 ? 0 : 1)] += 1;
+    expect(quadrants.every(count => count > 0)).toBe(true);
+    const xs = result.circles.map(circle => circle.x), ys = result.circles.map(circle => circle.y);
+    expect(Math.min(...xs)).toBeLessThanOrEqual(150);
+    expect(Math.max(...xs)).toBeGreaterThanOrEqual(width - 150);
+    expect(Math.min(...ys)).toBeLessThanOrEqual(150);
+    expect(Math.max(...ys)).toBeGreaterThanOrEqual(height - 150);
+  });
+  it("scatters deterministically so repeated layouts are identical", () => {
+    const items = ["atlas", "horizon", "orbit", "northstar", "meridian"].map(id => ({ id, radius: 62 }));
+    expect(scatterProjects(items, 900, 420, 18)).toEqual(scatterProjects(items, 900, 420, 18));
+  });
+  it("shrinks the scattered group as one when the box cannot hold full hubs", () => {
+    const items = Array.from({ length: 20 }, (_, i) => ({ id: `project-${i}`, radius: 62 }));
+    const result = scatterProjects(items, 700, 420, 18);
+    expect(result.scale).toBeLessThan(1);
+    expect(result.scale).toBeGreaterThanOrEqual(0.7);
+    expect(result.width).toBeGreaterThanOrEqual(700);
+    insideBox(result.circles, result.width, 420);
+  });
+  it("never scales scattered hubs beyond full size when they fit", () => {
+    const items = Array.from({ length: 4 }, (_, i) => ({ id: `project-${i}`, radius: 62 }));
+    const result = scatterProjects(items, 1000, 420, 18);
+    expect(result.scale).toBe(1);
+    expect(result.width).toBe(1000);
+  });
+  it("keeps an expanded footprint at full size while neighbours shrink", () => {
+    const items = [{ id: "expanded", radius: 164 }, ...Array.from({ length: 18 }, (_, i) => ({ id: `project-${i}`, radius: 62 }))];
+    const result = scatterProjects(items, 700, 420, 18);
+    expect(result.scale).toBeLessThan(1);
+    expect(result.circles.find(circle => circle.id === "expanded")?.radius).toBe(164);
+    insideBox(result.circles, result.width, 420);
+  });
+  it("falls back to the compact pack when even the scale floor cannot fit", () => {
+    const items = Array.from({ length: 60 }, (_, i) => ({ id: `project-${i}`, radius: 62 }));
+    const result = scatterProjects(items, 400, 420, 18);
+    expect(result.scale).toBe(1);
+    expect(result.width).toBeGreaterThan(400);
+    insideBox(result.circles, result.width, 420);
+  });
+  it("applies the scatter scale to hubs and overflow labels", () => {
+    const many: AgentMapProject[] = Array.from({ length: 20 }, (_, i) => ({ id: `busy-${i}`, name: `Busy ${i}`, agents: [{ id: `agent-${i}`, name: `Agent ${i}`, activity: "Working", status: "working" as const }] }));
+    const { container } = render(<AgentMap projects={many} scattered />);
+    const expected = scatterProjects(many.map(project => ({ id: project.id, radius: 62 })), 720, 420, 18);
+    expect(expected.scale).toBeLessThan(1);
+    const hub = container.querySelector(".cj-agent-map__hub") as HTMLElement;
+    expect(hub.getAttribute("style")).toContain(`--hub-scale: ${expected.scale}`);
+    const project = container.querySelector(".cj-agent-map__project") as HTMLElement;
+    expect(project.getAttribute("style")).toContain(`--overflow-offset: ${58 * expected.scale}px`);
+  });
+  it("adds no phantom horizontal scroll when scattered hubs fit the panel", () => {
+    const few: AgentMapProject[] = Array.from({ length: 8 }, (_, i) => ({ id: `easy-${i}`, name: `Easy ${i}`, agents: [{ id: `helper-${i}`, name: `Helper ${i}`, activity: "Working", status: "working" as const }] }));
+    const { container } = render(<AgentMap projects={few} scattered />);
+    const canvas = container.querySelector(".cj-agent-map__canvas") as HTMLElement;
+    expect(canvas.style.width).toBe("720px");
   });
 });

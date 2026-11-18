@@ -5,7 +5,7 @@ import { AiRobot } from "../AiRobot";
 import { GridBackground, type GridBackgroundProps } from "../GridBackground";
 import { ScrollArea } from "../ScrollArea";
 import EmptyState from "../EmptyState";
-import { agentPositions, layoutProjectsHorizontally } from "./layout";
+import { agentPositions, layoutProjectsHorizontally, scatterProjects, type MapCircle } from "./layout";
 import "./agent-map.css";
 
 export type AgentMapStatus = "working" | "attention" | "idle" | "completed";
@@ -27,7 +27,7 @@ export interface AgentMapProps {
   ariaLabel?: string;
   /** Show a live indicator when the consumer supplies live data. */
   live?: boolean;
-  /** Scatter project hubs while retaining collision and boundary handling. */
+  /** Deterministically scatter the project hubs to fill the available area, shrinking them as one group when crowded. */
   scattered?: boolean;
   /** Configure the grid or hide it with false. */
   grid?: false | Pick<GridBackgroundProps, "size" | "lineColor" | "opacity" | "fade" | "fadeStart">;
@@ -98,7 +98,10 @@ export function AgentMap({ projects, expandedProjectId, defaultExpandedProjectId
   const focused = !narrow && !!expandedProject && expandedProject.agents.length > MAX_ORBIT_AGENTS && expandedProject.agents.length <= MAX_FOCUS_AGENTS;
   const showLargeAgentList = !!expandedProject && expandedProject.agents.length > MAX_FOCUS_AGENTS;
   const graphHeight = fullHeight && !narrow ? (showLargeAgentList ? Math.max(160, Math.floor(viewportHeight * 0.45)) : Math.max(364, viewportHeight)) : 420;
-  const layout = useMemo(() => layoutProjectsHorizontally(projects.map(p => ({ id: p.id, radius: p.id === expanded && p.agents.length <= MAX_ORBIT_AGENTS ? EXPANDED_RADIUS : COLLAPSED_RADIUS })), graphHeight, 18, scattered), [projects, expanded, graphHeight, scattered]);
+  const layout = useMemo<{ circles: MapCircle[]; width: number; scale: number }>(() => {
+    const items = projects.map(p => ({ id: p.id, radius: p.id === expanded && p.agents.length <= MAX_ORBIT_AGENTS ? EXPANDED_RADIUS : COLLAPSED_RADIUS }));
+    return scattered && !narrow ? scatterProjects(items, width, graphHeight, 18) : { ...layoutProjectsHorizontally(items, graphHeight, 18, scattered), scale: 1 };
+  }, [projects, expanded, graphHeight, scattered, narrow, width]);
   const canvasWidth = Math.max(width, layout.width, focused ? scrollLeft + width : 0);
   useEffect(() => {
     const viewport = orbsViewportRef.current;
@@ -139,10 +142,11 @@ export function AgentMap({ projects, expandedProjectId, defaultExpandedProjectId
             const pos = layout.circles[i]; const open = expanded === project.id; const orbit = open && project.agents.length <= MAX_FOCUS_AGENTS; const attention = project.agents.filter(a => a.status === "attention").length; const completed = project.agents.filter(a => a.status === "completed").length;
             const points = orbit ? agentPositions(project.agents.length, focused) : [];
             const scale = focused ? 0.7 : project.agents.length > 8 ? Math.max(0.72, 8 / project.agents.length) : 1;
+            const hubScale = open ? scale : layout.scale;
             const color = attention ? COLORS.attention : completed === project.agents.length && completed > 0 ? COLORS.completed : COLORS.working;
-            return <div key={project.id} className={["cj-agent-map__project", focused && !open && "cj-agent-map__project--background", focused && open && "cj-agent-map__project--focused"].filter(Boolean).join(" ")} style={{ left: focused && open ? scrollLeft + width / 2 : pos.x, top: focused && open ? graphHeight / 2 : pos.y }} aria-hidden={focused && !open ? true : undefined}>
+            return <div key={project.id} className={["cj-agent-map__project", focused && !open && "cj-agent-map__project--background", focused && open && "cj-agent-map__project--focused"].filter(Boolean).join(" ")} style={{ left: focused && open ? scrollLeft + width / 2 : pos.x, top: focused && open ? graphHeight / 2 : pos.y, ...(open ? {} : { "--overflow-offset": `${58 * layout.scale}px` }) } as CSSProperties} aria-hidden={focused && !open ? true : undefined}>
               {orbit && <svg className="cj-agent-map__lines" aria-hidden="true" viewBox="-164 -164 328 328">{project.agents.map((agent, j) => <line key={agent.id} x1="0" y1="0" x2={points[j].x} y2={points[j].y} stroke={COLORS[agent.status]} />)}</svg>}
-              <button type="button" className={["cj-agent-map__hub", attention && "cj-agent-map__hub--attention"].filter(Boolean).join(" ")} style={{ "--agent-color": color, "--hub-scale": open ? scale : 1 } as CSSProperties} disabled={focused && !open} title={project.name} aria-expanded={open} aria-label={`${project.name}, ${project.agents.length} agents${attention ? `, ${attention} need attention` : ""}`} onClick={() => toggle(project)}><strong>{project.name}</strong><span>{project.agents.length} agents</span></button>
+              <button type="button" className={["cj-agent-map__hub", attention && "cj-agent-map__hub--attention"].filter(Boolean).join(" ")} style={{ "--agent-color": color, "--hub-scale": hubScale } as CSSProperties} disabled={focused && !open} title={project.name} aria-expanded={open} aria-label={`${project.name}, ${project.agents.length} agents${attention ? `, ${attention} need attention` : ""}`} onClick={() => toggle(project)}><strong>{project.name}</strong><span>{project.agents.length} agents</span></button>
               {!open && <span className="cj-agent-map__overflow">{attention ? `${attention} need attention` : completed ? `${completed} completed` : "Select to expand"}</span>}
               {orbit && project.agents.map((agent, j) => <button key={agent.id} type="button" className="cj-agent-map__agent" style={{ left: points[j].x, top: points[j].y, "--agent-color": COLORS[agent.status], "--agent-scale": scale } as CSSProperties} aria-label={`${agent.name}, ${project.name}, ${LABELS[agent.status]}: ${agent.activity}`} aria-pressed={selected === agent.id} onClick={() => select(agent, project)}><span className={["cj-agent-map__orb", agent.status === "attention" && "cj-agent-map__attention-ring"].filter(Boolean).join(" ")}><AiRobot size={24} tone={TONES[agent.status]} paused={agent.status !== "working"} /></span><strong>{agent.name}</strong><small>{LABELS[agent.status]}</small></button>)}
               {open && !orbit && <span className="cj-agent-map__overflow">See agents below</span>}

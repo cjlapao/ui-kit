@@ -10,6 +10,7 @@ import {
   type SidebarSide,
   type SidebarVariant,
   type SideMenuLoaderType,
+  type SideMenuSearchScope,
   type TrueColor,
 } from "@cjlapao/ui-kit";
 import {
@@ -24,6 +25,7 @@ import {
   sidebarLoaderTypeOptions,
   sidebarSideOptions,
   sidebarVariantOptions,
+  sideMenuSearchScopeOptions,
 } from "../../shared/options";
 import {
   buildWorkspaceSection,
@@ -44,6 +46,7 @@ export const SideMenuPlayground: React.FC = () => {
   const [openOnHover, setOpenOnHover] = useState(false);
   const [hoverTransitionMs, setHoverTransitionMs] = useState(250);
   const [search, setSearch] = useState(false);
+  const [searchScope, setSearchScope] = useState<SideMenuSearchScope>("all");
   const [topItem, setTopItem] = useState(true);
   const [footerItem, setFooterItem] = useState(false);
   const [showCtas, setShowCtas] = useState(false);
@@ -90,6 +93,7 @@ export const SideMenuPlayground: React.FC = () => {
       loading={loading}
       loaderType={loaderType}
       search={search}
+      searchScope={searchScope}
       searchPlaceholder="Search menu"
       topItem={
         topItem ? { label: "ACME Corp", icon: "Users", menu: WORKSPACE_MENU } : undefined
@@ -212,6 +216,16 @@ export const SideMenuPlayground: React.FC = () => {
                     checked={search}
                     onChange={setSearch}
                   />
+                  {search && (
+                    <ChoiceControl
+                      label="Search scope"
+                      options={sideMenuSearchScopeOptions}
+                      value={searchScope}
+                      onChange={(value) =>
+                        setSearchScope(value as SideMenuSearchScope)
+                      }
+                    />
+                  )}
                   <ToggleRow
                     label="Dither noise"
                     checked={noise}
