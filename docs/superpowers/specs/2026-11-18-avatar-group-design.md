@@ -68,6 +68,8 @@ export interface AvatarGroupProps extends Omit<
   expandOn?: "click" | "hover";
   /** @default false */
   defaultExpanded?: boolean;
+  /** Cap the expansion at one row that scrolls sideways. @default false */
+  singleRow?: boolean;
   /** Inset around the group, shared container scale. @default "none" */
   padding?: SurfacePadding;
   className?: string;
@@ -137,6 +139,15 @@ chip strips, and chips carry `title={name}`.
   1.45× at 40% opacity) behind a spring-eased 1.15× chip lift, `hover:z-10`.
 - `expandOn: "hover"` reveals on pointer enter/leave of the group; the chip
   always toggles by click in both modes.
+- `singleRow` caps the expansion at one line. Off (the default) the strip
+  unfolds as above — chips wrap and the clip grows to the measured height.
+  On, the whole roster stays on one non-wrapping row inside a `ScrollArea`
+  (fixed one-row height, `mask` fading the reachable edge), scrolling
+  sideways by wheel, touch or keyboard; the collapse chip is *pinned* outside
+  the scroller so it never scrolls off-screen. Condensed, `singleRow` is
+  pixel-identical to the natural stack — the inline `+N` still hugs the
+  visible chips; a zero-width hidden chip also pays back its margin so it
+  adds no phantom scroll lane.
 
 ## Accessibility
 
@@ -153,9 +164,10 @@ order (`tabIndex={-1}`). The `+N` chip reads `Show N more avatars` /
 
 `react/demo/src/kit-docs/components/avatar-group/`: an `AvatarGroupPage.tsx`
 with a playground (knobs for `size`, `tone`, `rounded`, `maxVisible`,
-`expandOn`, `defaultExpanded` over a fixed demo roster) and examples —
+`expandOn`, `defaultExpanded`, `singleRow` over a fixed demo roster) and examples —
 `TeamInitials` (per-chip colours), `Integrations` (registry icons on wash),
 `TransparentLogos` (images, wash as opt-in), `CondensedOverflow`,
+`SingleRowScroll` (the scrolling row with its pinned collapse chip),
 `ExpandOnHover` — registered in `registry.ts` beside the `color-swatches`
 entry, matching its shape.
 

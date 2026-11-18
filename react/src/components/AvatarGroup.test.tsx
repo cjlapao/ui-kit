@@ -252,4 +252,55 @@ describe("AvatarGroup", () => {
     expect(element.className).toContain("gap-4");
     expect(element.className).toContain("relative");
   });
+
+  describe("singleRow", () => {
+    it("scrolls horizontally instead of growing a second row", () => {
+      const { container } = render(
+        <AvatarGroup singleRow items={PEOPLE} maxVisible={2} />,
+      );
+      // The expansion viewport is a ScrollArea, and it is exactly one row
+      // tall — its own height, no max-height animation to a measured whole.
+      const area = container.querySelector('[data-slot="scrollarea"]');
+      expect(area).toBeTruthy();
+      // All six chips stay on the single non-wrapping line inside it.
+      expect(area!.querySelectorAll("[role=img]")).toHaveLength(PEOPLE.length);
+    });
+
+    it("pins the collapse chip outside the scroller, so it never scrolls away", () => {
+      const { container } = render(
+        <AvatarGroup singleRow items={PEOPLE.slice(0, 4)} maxVisible={2} />,
+      );
+      fireEvent.click(screen.getByLabelText("Show 2 more avatars"));
+      const area = container.querySelector('[data-slot="scrollarea"]')!;
+      const pinned = screen.getByLabelText("Collapse avatars");
+      // It is a sibling of the scroll area, not a child — the whole point.
+      expect(area.contains(pinned)).toBe(false);
+      expect(container.contains(pinned)).toBe(true);
+      expect(pinned.getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("keeps the condensed stack the same as the natural strip", () => {
+      const { container } = render(
+        <AvatarGroup singleRow items={PEOPLE} maxVisible={3} />,
+      );
+      // The single-row viewport exists, but collapsed it shows the inline
+      // +N hugging the visible chips — no pinned sibling yet.
+      expect(container.querySelector('[data-slot="scrollarea"]')).toBeTruthy();
+      expect(screen.getByLabelText("Show 3 more avatars")).toBeTruthy();
+      expect(screen.queryByLabelText("Collapse avatars")).toBeNull();
+    });
+
+    it("leaves room for nothing to scroll when the roster already fits", () => {
+      const { container } = render(
+        <AvatarGroup singleRow items={PEOPLE.slice(0, 3)} />,
+      );
+      // Nothing to condense: no toggle at all, and the scroller reports no
+      // sideways overflow (its thumb is the full viewport).
+      expect(screen.queryByRole("button")).toBeNull();
+      const xBar = container.querySelector(
+        '[data-orientation="horizontal"]',
+      ) as HTMLElement;
+      expect(xBar.getAttribute("data-state")).toBe("hidden");
+    });
+  });
 });

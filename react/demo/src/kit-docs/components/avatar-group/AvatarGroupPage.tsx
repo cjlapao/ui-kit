@@ -20,6 +20,8 @@ import CondensedOverflow from "./examples/CondensedOverflow";
 import condensedOverflowCode from "./examples/CondensedOverflow.tsx?raw";
 import ExpandOnHover from "./examples/ExpandOnHover";
 import expandOnHoverCode from "./examples/ExpandOnHover.tsx?raw";
+import SingleRowScroll from "./examples/SingleRowScroll";
+import singleRowScrollCode from "./examples/SingleRowScroll.tsx?raw";
 
 const NAMING_CODE = `// The chip names itself from the item; the artwork never double-announces.
 <AvatarGroup
@@ -83,6 +85,14 @@ export const AvatarGroupPage: React.FC = () => (
       >
         <ExpandOnHover />
       </ExampleCard>
+      <ExampleCard
+        title="Single Row"
+        description={`singleRow caps the expansion at one line: opened, the chips hold a single row and the strip scrolls sideways to reach the rest, with the collapse chip pinned to the right. Off, it unfolds and wraps as usual.`}
+        code={singleRowScrollCode}
+        filename="SingleRowScroll.tsx"
+      >
+        <SingleRowScroll />
+      </ExampleCard>
     </section>
     <A11ySection>
       <A11yTopic title="Screen reader">
@@ -121,6 +131,16 @@ export const AvatarGroupPage: React.FC = () => (
                 <>
                   On the <C>+N</C> chip: unfold or fold the strip (native
                   button behaviour). On a chip: fire its <C>onClick</C>.
+                </>
+              ),
+            },
+            {
+              keys: ["left", "right", "home", "end"],
+              action: (
+                <>
+                  In <C>singleRow</C>, once the scroll viewport is focused:
+                  scroll the row (native scroll behaviour). A row that already
+                  fits leaves the viewport out of the tab order entirely.
                 </>
               ),
             },
@@ -200,6 +220,13 @@ export const AvatarGroupPage: React.FC = () => (
               type: "boolean",
               default: "false",
               description: "Whether the strip starts unfolded.",
+            },
+            {
+              name: "singleRow",
+              type: "boolean",
+              default: "false",
+              description:
+                "Cap the expansion at one row. Off, the strip unfolds and wraps naturally, growing as tall as it needs; on, it holds a single row and scrolls sideways (a ScrollArea — wheel, touch and keyboard) to reach the rest, the collapse chip pinned to the right edge.",
             },
             {
               name: "padding",

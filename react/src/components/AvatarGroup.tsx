@@ -3,6 +3,7 @@ import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
+import { ScrollArea } from "./ScrollArea";
 import {
   getSurfacePaddingClass,
   getTrueColorChipClasses,
@@ -92,6 +93,15 @@ export interface AvatarGroupProps extends Omit<
   expandOn?: "click" | "hover";
   /** @default false */
   defaultExpanded?: boolean;
+  /**
+   * Cap the expansion at one row. Off (the default) the strip unfolds
+   * naturally — chips wrap onto new lines and it grows as tall as it needs.
+   * On, expansion never exceeds a single row: the chips stay on one
+   * non-wrapping line and the strip scrolls sideways to reach the rest, the
+   * collapse chip pinned to the right edge so it never scrolls away.
+   * @default false
+   */
+  singleRow?: boolean;
   /** Inset around the group, on the shared container scale. @default "none" */
   padding?: SurfacePadding;
   className?: string;
@@ -315,6 +325,62 @@ const Chip = ({
   );
 };
 
+// ── The toggle ────────────────────────────────────────────────────────────────
+
+/**
+ * The `+N`⇄`×` control. The `+` tilts into a `×` while open, one control in
+ * both directions (`aria-expanded`). Presentational: the group places it
+ * inline (natural unfold, condensed stack) or pinned to the scroll edge, and
+ * passes the geometry that differs between those placements.
+ */
+const ToggleChip = ({
+  expanded,
+  hiddenCount,
+  onToggle,
+  regionId,
+  style,
+  className,
+}: {
+  expanded: boolean;
+  hiddenCount: number;
+  onToggle: React.MouseEventHandler<HTMLButtonElement>;
+  regionId: string;
+  style: React.CSSProperties;
+  className?: string;
+}) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    aria-expanded={expanded}
+    aria-controls={regionId}
+    aria-label={
+      expanded
+        ? "Collapse avatars"
+        : hiddenCount > 0
+          ? `Show ${hiddenCount} more avatars`
+          : "Expand avatars"
+    }
+    className={classNames(
+      "inline-flex shrink-0 items-center justify-center gap-0.5 rounded-full px-1.5",
+      "bg-neutral-100 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-200",
+      "dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700",
+      className,
+    )}
+    style={style}
+  >
+    <span
+      className={classNames(
+        "text-sm leading-none transition-transform duration-300",
+        expanded && "rotate-45",
+      )}
+      aria-hidden="true"
+    >
+      +
+    </span>
+    {hiddenCount > 0 && hiddenCount}
+  </button>
+);
+
 // ── The group ─────────────────────────────────────────────────────────────────
 
 /**
@@ -335,6 +401,7 @@ export const AvatarGroup = ({
   maxVisible = 5,
   expandOn = "click",
   defaultExpanded = false,
+  singleRow = false,
   padding = "none",
   className = "",
   ...rest
@@ -442,13 +509,20 @@ export const AvatarGroup = ({
     // clip shows a short condensed line while their layout never moves.
     width: hidden && !collapsing ? 0 : undefined,
     minWidth: hidden && !collapsing ? 0 : undefined,
+    // In the scrolling row a zero-width chip's leftover margin would still
+    // scroll — an empty lane after the last chip. The steady-collapsed ones
+    // pay their margin back; the collapsing ones keep it until the hold ends.
     marginRight:
-      hidden || layoutOpen || !condense
-        ? `${gapPx}px`
-        : leading
-          ? `${-overlapPx}px`
-          : `${gapPx}px`,
-    marginBottom: `${gapPx}px`,
+      hidden && singleRow && !collapsing
+        ? "0px"
+        : hidden || layoutOpen || !condense
+          ? `${gapPx}px`
+          : leading
+            ? `${-overlapPx}px`
+            : `${gapPx}px`,
+    // A single row has no second line for a bottom margin to space; the
+    // natural unfold needs it to separate the wrap lines.
+    marginBottom: singleRow ? 0 : `${gapPx}px`,
     order,
     transition: `width 0s, margin-right ${expanded ? 200 : 150}ms ease-out, transform 200ms ease-out, opacity 200ms ease-out`,
     transitionDelay: `0ms, ${expanded ? `${index * CASCADE_MS}ms` : "0ms"}, ${cascadeMs(index)}ms, ${cascadeMs(index)}ms`,
@@ -475,6 +549,90 @@ export const AvatarGroup = ({
       />
     </span>
   );
+
+  // ── singleRow: one row when expanded, scroll sideways to reach the rest ──
+  if (singleRow) {
+    const rowPx = padPx * 2 + chipPx; // the fixed one-row viewport
+    // The condensed line: leading chips overlap, the inline `+N` pays the
+    // ride-over back and hugs the last one, the rest sit zero-width (and
+    // zero-margin, so they add no scroll) behind it.
+    const inlineToggle = condense && !layoutOpen && (
+      <ToggleChip
+        expanded={false}
+        hiddenCount={count - visibleCount}
+        onToggle={toggle}
+        regionId={regionId}
+        style={{
+          height: Math.max(chipPx, 18),
+          marginLeft: `${overlapPx + gapPx}px`,
+          order: 1,
+        }}
+      />
+    );
+    return (
+      <div
+        {...rest}
+        ref={rootRef}
+        className={classNames(
+          "relative flex items-center",
+          getSurfacePaddingClass(padding),
+          className,
+        )}
+        data-expanded={expanded ? "" : undefined}
+        onPointerEnter={(event) => {
+          if (expandOn === "hover" && condense) reveal(true);
+          rest.onPointerEnter?.(event);
+        }}
+        onPointerLeave={(event) => {
+          if (expandOn === "hover" && expanded) reveal(false);
+          rest.onPointerLeave?.(event);
+        }}
+      >
+        <ScrollArea
+          horizontal
+          mask
+          className="min-w-0 flex-1"
+          style={{ height: rowPx }}
+        >
+          <div
+            ref={contentRef}
+            id={regionId}
+            role="group"
+            aria-label="Avatars"
+            className="flex h-full items-center"
+            style={{ paddingLeft: padPx, paddingRight: padPx }}
+          >
+            {items
+              .slice(0, visibleCount)
+              .map((item, index) => chip(item, index, false))}
+            {inlineToggle}
+            {items
+              .slice(visibleCount)
+              .map((item, offset) =>
+                chip(item, visibleCount + offset, !expanded, 2),
+              )}
+          </div>
+        </ScrollArea>
+        {condense && layoutOpen && (
+          // Pinned outside the scroller: a collapse control that scrolls
+          // off-screen is a promise the strip cannot keep.
+          <ToggleChip
+            expanded={expanded}
+            hiddenCount={hiddenCount}
+            onToggle={toggle}
+            regionId={regionId}
+            style={{
+              height: Math.max(chipPx, 18),
+              width: Math.max(chipPx, 18),
+              paddingLeft: 0,
+              paddingRight: 0,
+              marginLeft: gapPx,
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -506,23 +664,12 @@ export const AvatarGroup = ({
         >
           {items.slice(0, visibleCount).map((item, index) => chip(item, index, false))}
           {condense && (
-            <button
-              type="button"
-              onClick={toggle}
-              aria-expanded={expanded}
-              aria-controls={regionId}
-              aria-label={
-                expanded
-                  ? "Collapse avatars"
-                  : hiddenCount > 0
-                    ? `Show ${hiddenCount} more avatars`
-                    : "Expand avatars"
-              }
-              className={classNames(
-                "inline-flex shrink-0 items-center justify-center gap-0.5 self-start rounded-full px-1.5",
-                "bg-neutral-100 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-200",
-                "dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700",
-              )}
+            <ToggleChip
+              expanded={expanded}
+              hiddenCount={hiddenCount}
+              onToggle={toggle}
+              regionId={regionId}
+              className="self-start"
               style={{
                 height: Math.max(chipPx, 18),
                 // A lone `+` wants a circle, not a tall pill; the count
@@ -537,18 +684,7 @@ export const AvatarGroup = ({
                 order: layoutOpen ? 3 : 1,
                 marginBottom: `${gapPx}px`,
               }}
-            >
-              <span
-                className={classNames(
-                  "text-sm leading-none transition-transform duration-300",
-                  expanded && "rotate-45",
-                )}
-                aria-hidden="true"
-              >
-                +
-              </span>
-              {hiddenCount > 0 && hiddenCount}
-            </button>
+            />
           )}
           {items
             .slice(visibleCount)

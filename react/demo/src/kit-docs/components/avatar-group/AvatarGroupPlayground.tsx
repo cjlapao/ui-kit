@@ -49,6 +49,7 @@ export const AvatarGroupPlayground: React.FC = () => {
   const [expandOn, setExpandOn] = useState<"click" | "hover">("click");
   const [maxVisible, setMaxVisible] = useState(5);
   const [defaultExpanded, setDefaultExpanded] = useState(false);
+  const [singleRow, setSingleRow] = useState(false);
 
   return (
     <PlaygroundPanel
@@ -81,6 +82,7 @@ export const AvatarGroupPlayground: React.FC = () => {
                     <ChoiceControl label="Max visible" options={MAX_VISIBLE_OPTIONS}
                       value={String(maxVisible)} onChange={(v) => setMaxVisible(Number(v))} />
                     <ToggleRow label="defaultExpanded" checked={defaultExpanded} onChange={setDefaultExpanded} />
+                    <ToggleRow label="singleRow" checked={singleRow} onChange={setSingleRow} />
                   </>
                 ),
               },
@@ -105,6 +107,7 @@ export const AvatarGroupPlayground: React.FC = () => {
             expandOn={expandOn}
             maxVisible={maxVisible}
             defaultExpanded={defaultExpanded}
+            singleRow={singleRow}
           />
         </div>
       }
