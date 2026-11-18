@@ -541,6 +541,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/color-swatches/ColorSwatchesPage")),
   },
   {
+    slug: "avatar-group",
+    name: "Avatar Group",
+    description:
+      "Identity chips — photos, icons or initials discs, each in its own tone or the group's — condensed into an overlapping stack behind a +N chip when count or width outgrows the row, unfolding the colour-swatch way.",
+    icon: "Users",
+    category: "Data",
+    Page: lazy(() => import("./components/avatar-group/AvatarGroupPage")),
+  },
+  {
     slug: "breakdown-card",
     name: "Breakdown Card",
     description:

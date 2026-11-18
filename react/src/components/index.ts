@@ -404,6 +404,13 @@ export {
   default as ColorSwatches,
   type ColorSwatchesProps,
 } from "./ColorSwatches";
+export {
+  default as AvatarGroup,
+  AVATAR_GROUP_ROUNDED,
+  type AvatarGroupProps,
+  type AvatarGroupItem,
+  type AvatarGroupRounded,
+} from "./AvatarGroup";
 export { default as Chat, type ChatProps } from "./Chat";
 export {
   createLocalChatStorage,
