@@ -18,7 +18,11 @@ export function getSurfaceTransparencyClasses(classes: string, variant: SurfaceV
   const level = resolveSurfaceTransparency(variant, transparency);
   if (level === "high") return classes;
   const tokens = classes.split(/\s+/).filter(Boolean);
-  const background = /^((?:(?:dark|hover):)*)bg-((?:[a-z]+-\d+)|white|black)(?:\/(\d+))?$/;
+  // `active:` is in this list for the same reason `hover:` is: the pressed step
+  // of a clickable surface is a background too, and a plain `active:bg-*`
+  // utility left alongside `ui-surface-fill` fights it for `background-color`
+  // instead of handing it another colour variable.
+  const background = /^((?:(?:dark|hover|active):)*)bg-((?:[a-z]+-\d+)|white|black)(?:\/(\d+))?$/;
   // A surface that was already opaque must never become more transparent.
   if (!tokens.some(token => background.test(token) && token.includes("/"))) return classes;
   const converted = tokens.map(token => {

@@ -1,11 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AgentMap, type AgentMapProject } from "./AgentMap";
-import { layoutProjects } from "./layout";
+import { layoutProjects, layoutProjectsHorizontally } from "./layout";
 
 const projects: AgentMapProject[] = [{ id: "atlas", name: "Atlas", agents: [{ id: "builder", name: "Builder", activity: "Writing code", status: "working" }, { id: "reviewer", name: "Reviewer", activity: "Waiting for approval", status: "attention" }] }, { id: "orbit", name: "Orbit", agents: [{ id: "done", name: "Tester", activity: "Tests passed", status: "completed" }] }];
 
 describe("AgentMap", () => {
+  it("retains the full project title for tooltips and assistive technology", () => {
+    const name = "A very long project title with SupercalifragilisticUnbrokenIdentifier";
+    const project: AgentMapProject = { id: "long", name, agents: [] };
+    render(<AgentMap projects={[project]} />);
+    const hub = screen.getByRole("button", { name: `${name}, 0 agents` });
+    expect(hub.getAttribute("title")).toBe(name);
+    expect(hub.querySelector("strong")?.textContent).toBe(name);
+  });
   it("shows a dedicated empty-project state and restores the map when projects arrive", () => {
     const { rerender } = render(<AgentMap projects={[]} />);
     expect(screen.getByText("No projects to display")).toBeTruthy();
@@ -47,7 +55,59 @@ describe("AgentMap", () => {
     expect(onExpandedProjectChange).toHaveBeenCalledWith(null);
     fireEvent.click(screen.getByRole("button", { name: /Builder, Atlas/ }));
     expect(onAgentSelect).toHaveBeenCalledWith(projects[0].agents[0], projects[0]);
-    expect(screen.getByText("Select an agent to see its activity.")).toBeTruthy();
+    expect(screen.queryByText("Inspector")).toBeNull();
+  });
+  it("opens the inspector for a valid selection and hides it again when cleared", () => {
+    const { container, rerender } = render(<AgentMap projects={projects} selectedAgentId={null} inspectorTitle="Agent details" />);
+    const inspector = container.querySelector(".cj-agent-map__inspector")!;
+    expect(inspector.getAttribute("aria-hidden")).toBe("true");
+    expect(inspector.hasAttribute("inert")).toBe(true);
+    expect(screen.queryByText("Agent details")).toBeNull();
+    rerender(<AgentMap projects={projects} selectedAgentId="reviewer" inspectorTitle="Agent details" />);
+    expect(inspector.getAttribute("aria-hidden")).toBe("false");
+    expect(inspector.hasAttribute("inert")).toBe(false);
+    expect(screen.getByText("Agent details")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Reviewer" })).toBeTruthy();
+    rerender(<AgentMap projects={projects} selectedAgentId="missing" />);
+    expect(inspector.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.queryByText("Agent details")).toBeNull();
+  });
+  it("uses Inspector as the default title", () => {
+    render(<AgentMap projects={projects} defaultSelectedAgentId="builder" />);
+    expect(screen.getByText("Inspector")).toBeTruthy();
+  });
+  it("dismisses the inspector on outside clicks but keeps it open inside the inspector", () => {
+    const { container } = render(<AgentMap projects={projects} defaultExpandedProjectId="atlas" defaultSelectedAgentId="builder" />);
+    fireEvent.pointerDown(screen.getByText("Current activity"));
+    expect(screen.getByText("Inspector")).toBeTruthy();
+    fireEvent.pointerDown(screen.getByRole("button", { name: /Reviewer, Atlas/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Reviewer, Atlas/ }));
+    expect(screen.getByRole("heading", { name: "Reviewer" })).toBeTruthy();
+    fireEvent.pointerDown(container.querySelector(".cj-agent-map__canvas")!);
+    expect(screen.queryByText("Inspector")).toBeNull();
+  });
+  it("opens the other project's agents and clears the prior selection", () => {
+    render(<AgentMap projects={projects} defaultExpandedProjectId="atlas" defaultSelectedAgentId="builder" />);
+    fireEvent.click(screen.getByRole("button", { name: /Orbit, 1 agents/ }));
+    expect(screen.getByRole("button", { name: /Tester, Orbit/ })).toBeTruthy();
+    expect(screen.queryByText("Inspector")).toBeNull();
+  });
+  it("requests clearing controlled selection on an outside click", () => {
+    const onSelectionClear = vi.fn();
+    const { rerender } = render(<AgentMap projects={projects} selectedAgentId="builder" onSelectionClear={onSelectionClear} />);
+    fireEvent.pointerDown(document.body);
+    expect(onSelectionClear).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Inspector")).toBeTruthy();
+    rerender(<AgentMap projects={projects} selectedAgentId={null} onSelectionClear={onSelectionClear} />);
+    expect(screen.queryByText("Inspector")).toBeNull();
+  });
+  it("requests clearing controlled selection when changing projects", () => {
+    const onSelectionClear = vi.fn();
+    const onExpandedProjectChange = vi.fn();
+    render(<AgentMap projects={projects} selectedAgentId="builder" expandedProjectId="atlas" onSelectionClear={onSelectionClear} onExpandedProjectChange={onExpandedProjectChange} />);
+    fireEvent.click(screen.getByRole("button", { name: /Orbit, 1 agents/ }));
+    expect(onSelectionClear).toHaveBeenCalledTimes(1);
+    expect(onExpandedProjectChange).toHaveBeenCalledWith("orbit");
   });
   it("offers a project list in a narrow container", () => {
     const measure = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 320 } as DOMRect);
@@ -116,6 +176,30 @@ describe("AgentMap", () => {
         for (const b of circles.slice(i + 1)) expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(a.radius + b.radius);
       }
     }
+  });
+  it("grows the project layout horizontally without crossing its height or overlapping", () => {
+    const items = Array.from({ length: 14 }, (_, i) => ({ id: `project-${i}`, radius: i === 3 ? 164 : 62 }));
+    for (const scattered of [false, true]) {
+      const { circles, width } = layoutProjectsHorizontally(items, 420, 18, scattered);
+      expect(width).toBeGreaterThan(420);
+      for (const [i, circle] of circles.entries()) {
+        expect(circle.x - circle.radius).toBeGreaterThanOrEqual(0);
+        expect(circle.x + circle.radius).toBeLessThanOrEqual(width);
+        expect(circle.y - circle.radius).toBeGreaterThanOrEqual(0);
+        expect(circle.y + circle.radius).toBeLessThanOrEqual(420);
+        for (const other of circles.slice(i + 1)) expect(Math.hypot(circle.x - other.x, circle.y - other.y)).toBeGreaterThanOrEqual(circle.radius + other.radius);
+      }
+    }
+  });
+  it("uses a horizontal-only ScrollArea and exposes sizing options", () => {
+    const { container } = render(<AgentMap projects={projects} fullHeight fullWidth={false} />);
+    const root = container.querySelector(".cj-agent-map")!;
+    expect(root.classList.contains("cj-agent-map--full-height")).toBe(true);
+    expect(root.classList.contains("cj-agent-map--intrinsic-width")).toBe(true);
+    const scroll = container.querySelector(".cj-agent-map__orbs-scroll")!;
+    expect(scroll.querySelector('[data-slot="scrollarea-viewport"]')?.getAttribute("style")).toContain("overflow-y: hidden");
+    expect(scroll.querySelector('[data-orientation="vertical"]')).toBeNull();
+    expect(scroll.querySelector('[data-orientation="horizontal"]')).toBeTruthy();
   });
   it("scatters busy project layouts deterministically without collisions", () => {
     const items = ["atlas", "horizon", "orbit", "northstar", "meridian", "lumen", "canvas", "beacon"].map((id, i) => ({ id, radius: i === 3 ? 164 : 62 }));

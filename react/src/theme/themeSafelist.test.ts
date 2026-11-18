@@ -15,6 +15,7 @@ import {
   getSideMenuItemTokens,
   getStatTileColorClasses,
   getStepperTonePalette,
+  getSurfaceHoverTokens,
   getSurfaceTriggerTokens,
   getSurfaceVariantClasses,
   SURFACE_VARIANTS,
@@ -59,6 +60,16 @@ const generatedClasses = (): Set<string> => {
       }
     }
     collect(getPanelToneStyles(tone), out);
+    // Container hover, pressed and rim — every variant, and every rim kind
+    // either kit may ask for. This walk is the reason the shape list is in the
+    // generator at all: Panel used to build its hover string inline, outside
+    // every getter, which is exactly how `dark:hover:bg-{c}-900/20` shipped for
+    // two releases with no rule behind it.
+    for (const variant of SURFACE_VARIANTS) {
+      for (const rimKind of ["border", "ring", "none"] as const) {
+        collect(getSurfaceHoverTokens(variant, tone, rimKind), out);
+      }
+    }
     collect(getMultiToggleColorTokens(tone), out);
     collect(getMultiToggleVariantTokens(tone), out);
     collect(getStatTileColorClasses(tone), out);

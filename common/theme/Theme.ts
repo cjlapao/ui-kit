@@ -928,6 +928,185 @@ export const getSurfaceTriggerTokens = (
   surfaceTriggerTokens[getSurfaceAccentColor(color)] ?? surfaceTriggerTokens.neutral;
 
 /**
+ * How much paint a variant's own fill already carries — the only thing a hover
+ * wash has to be measured against.
+ *
+ * `Panel` chose its hover tint from the tone alone, which is right exactly once:
+ * on a white card. On `tonal`/`simple` the rest fill is `{c}-200/60`, so
+ * `hover:bg-{c}-50` was *lighter* than the surface it replaced and the card
+ * faded out under the pointer; in dark, that fill is `{c}-500/15` and the hover
+ * asked for `{c}-900/20` — darker than the rest state — so the wash read as a
+ * shadow falling over the card instead of a lift. One mistake at both ends: a
+ * fixed step taken from the top of the ramp, where the answer is one step taken
+ * from wherever the surface already sits.
+ */
+export const SURFACE_TINT_DEPTHS = ["plain", "sheer", "tinted"] as const;
+export type SurfaceTintDepth = (typeof SURFACE_TINT_DEPTHS)[number];
+
+/** The depth each variant's fill starts from, per `SURFACE_VARIANT_BASE`. */
+const surfaceTintDepth: Record<SurfaceVariant, SurfaceTintDepth> = {
+  // `bg-white` / `bg-neutral-900` — the hue arrives on hover, from nothing.
+  elevated: "plain",
+  outlined: "plain",
+  // The pale three, all within a few percent of the page they sit on:
+  // `palette.subtleBg` (`{c}-50/80`), `bg-white/80` over a blur, and
+  // `palette.glassBg` (`{c}-50/50`). They share one step because their rest
+  // luminances do — and because the step each one *needs* is the one that
+  // clears 1.04:1 for a pale hue, which `-100/60` did not (`glass` on yellow
+  // measured 1.027:1: a hover that exists only in the stylesheet).
+  none: "sheer",
+  subtle: "sheer",
+  default: "sheer",
+  glass: "sheer",
+  // `palette.tonalBg` (`{c}-200/60`) and the liquid fill, whose alpha is the
+  // caller's — `glassOpacity` runs 5%–95% — so it needs the deeper step to stay
+  // visible at the opaque end of that range.
+  tonal: "tinted",
+  simple: "tinted",
+  "liquid-glass": "tinted",
+};
+
+/**
+ * Rest → hover → pressed as a shade/alpha pair per depth.
+ *
+ * Light mode *deepens* the tint, dark mode *lifts* the same hue — never `-900`
+ * in dark, which is the step that made the whole affordance invisible. Measured
+ * against the surface each variant actually rests on (`surfaceHover.test.ts`
+ * computes it from the palette, over the page): 1.09–1.22:1 in light,
+ * 1.25–1.32:1 in dark, with the pressed state another 1.09–1.17:1 past hover.
+ * Enough to be seen on a panel that covers half a viewport, short of the flash a
+ * full shade jump makes.
+ *
+ * `plain` takes the alpha-free `-100`/`-200` pair — the same step Tabs and a soft
+ * Button already use on a white ground — rather than the `-50` Panel used to:
+ * `-50` measures 1.04:1 against white on a pale hue like yellow or lime, and
+ * 1.04:1 on an area that size is not a hover, it is a rumour of one. Every
+ * translucent depth keeps an alpha so the backdrop survives the hover.
+ */
+const surfaceHoverWash: Record<
+  SurfaceTintDepth,
+  { lit: string; litPressed: string; drk: string; drkPressed: string }
+> = {
+  plain: {
+    lit: "100",
+    litPressed: "200",
+    drk: "500/20",
+    drkPressed: "500/30",
+  },
+  sheer: {
+    lit: "200/70",
+    litPressed: "300/70",
+    drk: "400/20",
+    drkPressed: "400/30",
+  },
+  tinted: {
+    lit: "300/70",
+    litPressed: "400/70",
+    drk: "400/25",
+    drkPressed: "400/35",
+  },
+};
+
+/** The rim a variant wears at rest — hover ignites that property, not another. */
+export type SurfaceRimKind = "border" | "ring" | "none";
+
+const surfaceRimKind: Record<SurfaceVariant, SurfaceRimKind> = {
+  none: "none",
+  elevated: "ring",
+  outlined: "border",
+  subtle: "ring",
+  tonal: "ring",
+  default: "border",
+  glass: "border",
+  simple: "ring",
+  "liquid-glass": "border",
+};
+
+export type SurfaceHoverTokens = {
+  /** Background step under the pointer. */
+  wash: string;
+  /** One step further while the pointer is held down. */
+  pressed: string;
+  /** Rim ignition. Colour only, plus the width a `ring` rim needs to paint. */
+  rim: string;
+};
+
+/**
+ * Hover, pressed and rim steps for a container surface at a tone.
+ *
+ * Three rules, each learned from a hover nobody could see:
+ *
+ * 1. The step is taken from the variant's own fill (`surfaceTintDepth`), never
+ *    from a fixed shade. This is what makes `tonal`, `simple`, `glass` and
+ *    `liquid-glass` answer a pointer at all.
+ * 2. In dark the wash always goes *lighter*. `getSurfaceTriggerTokens().hover`
+ *    gets away with `-600/15` because it sits on an unfilled row; a Panel is
+ *    already sitting on `{c}-500/15`, so the row-scale step lands under it.
+ * 3. A ring colour is inert without a ring width — see `SurfaceTriggerTokens`.
+ *    `simple` carries `ring-transparent` with no width at all, so the hover
+ *    supplies one; a ring is a shadow, so a rim appearing costs no layout.
+ *
+ * The translucent variants ignite the glass rim grammar the controls already
+ * use (`{c}-500` light / `{c}-400` dark, white when untinted) rather than a
+ * solid outline, which would fight the bevel the rim is meant to read as.
+ *
+ * `rimKind` defaults to the shared table, which describes `SURFACE_VARIANT_BASE`.
+ * The Vue kit still draws a `ring-1` where the React kit draws a `border` on
+ * three variants, so it passes its own — the rim has to ignite on the property
+ * that component actually renders, or the class is inert and we are back to a
+ * hover nobody sees.
+ *
+ * Classes are built with template literals, so every shape here needs a
+ * matching `@source inline()` line in `scripts/generate-safelist.mjs`;
+ * `themeSafelist.test.ts` walks this getter across all nine variants and all
+ * 21 tones and fails the build when one is missing from the stylesheet.
+ */
+export const getSurfaceHoverTokens = (
+  variant: SurfaceVariant,
+  tone: SurfaceTone = DEFAULT_SURFACE_TONE,
+  rimKind: SurfaceRimKind = surfaceRimKind[variant] ?? "none",
+): SurfaceHoverTokens => {
+  const step = surfaceHoverWash[surfaceTintDepth[variant] ?? "plain"];
+  const color = getSurfaceAccentColor(tone);
+  const tinted = tone !== "none";
+
+  const rim = (() => {
+    if (rimKind === "none") return "";
+    if (rimKind === "border")
+      return TRANSLUCENT_SURFACE_VARIANTS.includes(variant)
+        ? tinted
+          ? `hover:border-${color}-500 dark:hover:border-${color}-400`
+          : "hover:border-white/80 dark:hover:border-white/25"
+        : tinted
+          ? `hover:border-${color}-300 dark:hover:border-${color}-500/50`
+          : "hover:border-neutral-300 dark:hover:border-neutral-600";
+    return tinted
+      ? `hover:ring-1 hover:ring-${color}-300/70 dark:hover:ring-${color}-500/30`
+      : "hover:ring-1 hover:ring-black/10 dark:hover:ring-white/15";
+  })();
+
+  return {
+    wash: `hover:bg-${color}-${step.lit} dark:hover:bg-${color}-${step.drk}`,
+    pressed: `active:bg-${color}-${step.litPressed} dark:active:bg-${color}-${step.drkPressed}`,
+    rim,
+  };
+};
+
+/**
+ * The untinted hover: a panel with no tone and no `hoverColor` has no hue to
+ * wash with, so it takes a neutral veil instead.
+ *
+ * Additive, and deliberately so — an untinted panel may be any variant over any
+ * backdrop, and a veil composites correctly on all of them. The pair this
+ * replaces (`black/2.5%`, `white/4%`) was a 1.10:1 step in dark: technically a
+ * change, visibly not one. These aim at the same ~1.3:1 the tinted steps do.
+ */
+export const SURFACE_NEUTRAL_HOVER = {
+  wash: "group-hover:bg-black/[0.045] dark:group-hover:bg-white/10",
+  pressed: "group-active:bg-black/[0.07] dark:group-active:bg-white/[0.16]",
+} as const;
+
+/**
  * The `CollapsibleHelpText` trigger — the shared surface-trigger tokens plus
  * the accent glyph, icon chip and title line.
  *

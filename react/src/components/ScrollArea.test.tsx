@@ -267,6 +267,16 @@ describe("ScrollArea", () => {
     expect(ref.current).toBe(viewport());
   });
 
+  it("supports horizontal-only scrolling", () => {
+    render(<ScrollArea vertical={false} variant="always"><p>content</p></ScrollArea>);
+    overflowY(viewport(), 1000);
+    overflowX(viewport(), 1000);
+    expect(viewport().style.overflowY).toBe("hidden");
+    expect(viewport().dataset.overflowY).toBeUndefined();
+    expect(bars().map(bar => bar.getAttribute("data-orientation"))).toEqual(["horizontal"]);
+    expect(bars()[0].getAttribute("data-state")).toBe("visible");
+  });
+
   describe("horizontal={false} — a region with one axis", () => {
     it("draws no sideways bar at all, even when the content is wider", () => {
       // `scrollWidth` reports content clipped by `overflow-x: hidden` as

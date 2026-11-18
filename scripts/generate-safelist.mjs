@@ -621,12 +621,44 @@ src(`@source inline("dark:bg-{COLOR}-500/15");`);
 src(`@source inline("dark:ring-{COLOR}-400/30");`);
 L("");
 
+// ── Container surface hover — getSurfaceHoverTokens() in Theme.ts ─
+// A clickable card's whole affordance is one background step, and for two
+// releases the dark half of it painted nothing: the component wrote the class
+// into the DOM, this file never declared the shape, and Tailwind had no rule to
+// give it. Every shade/alpha pair the getter can emit is listed here — three tint
+// depths (plain, sheer, tinted) x hover and pressed x light and dark, plus
+// the rim ignition for both rim kinds. themeSafelist.test.ts walks the getter and
+// fails the build when this list and that table drift.
+src(`@source inline("hover:bg-{COLOR}-200/70");`);
+src(`@source inline("hover:bg-{COLOR}-300/70");`);
+src(`@source inline("dark:hover:bg-{COLOR}-500/20");`);
+src(`@source inline("dark:hover:bg-{COLOR}-400/20");`);
+src(`@source inline("dark:hover:bg-{COLOR}-400/25");`);
+src(`@source inline("active:bg-{COLOR}-200");`);
+src(`@source inline("active:bg-{COLOR}-300/70");`);
+src(`@source inline("active:bg-{COLOR}-400/70");`);
+src(`@source inline("dark:active:bg-{COLOR}-500/30");`);
+src(`@source inline("dark:active:bg-{COLOR}-400/30");`);
+src(`@source inline("dark:active:bg-{COLOR}-400/35");`);
+// Rim ignition. `hover:border-{c}-500` already lives above (the glass controls),
+// `ring-1` is a core utility, and the neutral / white / black pairs are literals
+// in Theme.ts, so the scanner picks those up without help from this file.
+src(`@source inline("hover:border-{COLOR}-300");`);
+src(`@source inline("hover:ring-{COLOR}-300/70");`);
+src(`@source inline("dark:hover:border-{COLOR}-400");`);
+src(`@source inline("dark:hover:border-{COLOR}-500/50");`);
+src(`@source inline("dark:hover:ring-{COLOR}-500/30");`);
+L("");
+
 // Surface transparency uses variables instead of opacity on the whole panel.
 // The colour and alpha utilities must exist even when consumers choose a tone
-// or numeric glass preset that the demo never renders.
-src(`@source inline("{,dark:,hover:,dark:hover:}[--ui-surface-color:var(--color-{COLOR}-{50,{100..900..100},950})]");`);
-src(`@source inline("{,dark:,hover:,dark:hover:}[--ui-surface-color:var(--color-{white,black})]");`);
-src(`@source inline("{,dark:,hover:,dark:hover:}[--ui-surface-alpha:{0..100}%]");`);
+// or numeric glass preset that the demo never renders. `active:` joins the prefix
+// list because `getSurfaceTransparencyClasses` rewrites the pressed step into
+// these variables too — a plain `active:bg-*` sitting alongside `ui-surface-fill`
+// fights it for `background-color` instead of feeding it a colour.
+src(`@source inline("{,dark:,hover:,dark:hover:,active:,dark:active:}[--ui-surface-color:var(--color-{COLOR}-{50,{100..900..100},950})]");`);
+src(`@source inline("{,dark:,hover:,dark:hover:,active:,dark:active:}[--ui-surface-color:var(--color-{white,black})]");`);
+src(`@source inline("{,dark:,hover:,dark:hover:,active:,dark:active:}[--ui-surface-alpha:{0..100}%]");`);
 src(`@source inline("[--ui-surface-base:var(--color-white)] dark:[--ui-surface-base:var(--color-neutral-900)]");`);
 
 // ── Write output ──────────────────────────────────────────────────

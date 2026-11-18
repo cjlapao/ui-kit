@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { ReactElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import Panel from "./Panel";
 import { resetA11yWarned } from "../../../common/a11y/warn";
@@ -578,4 +579,254 @@ describe("Panel — untinted surfaces", () => {
     expect(panelOf(container).className).not.toContain("rose");
   });
 
+});
+
+describe("Panel — hover, pressed and rim", () => {
+  /**
+   * A clickable card's entire affordance is one background step. Panel wrote
+   * `hover:bg-{c}-50 dark:hover:bg-{c}-900/20` regardless of the surface it was
+   * laying that step on, so a `tonal` card went *paler* under the pointer in
+   * light mode, took a darker wash in dark, and — because that dark shape was
+   * never declared to the safelist generator — painted nothing at all.
+   *
+   * The step arrives in two spellings: the plain utility, or the
+   * `--ui-surface-color` / `--ui-surface-alpha` pair that
+   * `getSurfaceTransparencyClasses` rewrites it into for any panel whose fill
+   * carries alpha, which is every tinted variant. These tests assert the step
+   * that will *paint*, not the spelling it paints in.
+   */
+  const stepFor = (
+    cls: string,
+    mode: "light" | "dark",
+    state: "hover" | "pressed",
+  ): string | undefined => {
+    const want = state === "hover" ? "hover" : "active";
+    let colour: string | undefined;
+    let alpha: string | undefined;
+    for (const token of cls.split(/\s+/)) {
+      const isDark = token.startsWith("dark:");
+      const afterMode = isDark ? token.slice("dark:".length) : token;
+      if (!afterMode.startsWith(`${want}:`)) continue;
+      if (mode === "dark" ? !isDark : isDark) continue;
+      const rest = afterMode.slice(want.length + 1);
+      const utility = rest.match(/^bg-([a-z]+-\d+)(?:\/(\d+))?$/);
+      const varColour = rest.match(/^\[--ui-surface-color:var\(--color-([a-z]+-\d+)\)\]$/);
+      const varAlpha = rest.match(/^\[--ui-surface-alpha:(\d+)%\]$/);
+      if (utility) {
+        colour = utility[1];
+        alpha = utility[2];
+      } else if (varColour) colour = varColour[1];
+      else if (varAlpha) alpha = varAlpha[1];
+    }
+    return colour ? `${colour}${alpha ? `/${alpha}` : ""}` : undefined;
+  };
+
+  const classes = (ui: ReactElement) =>
+    panelOf(render(ui).container).className;
+
+  /**
+   * The `hoverable` contract, in both directions: an `onClick` is enough on its
+   * own to make a card answer the pointer, and the only way to stop it is to
+   * pass `hoverable={false}` by hand. The opt-out still leaves the pointer
+   * cursor on, because that has followed `onClick` since before `hoverable`
+   * existed — switching off the tint must not quietly take the cursor with it.
+   */
+  it("answers the pointer from onClick alone; only an explicit false turns it off", () => {
+    const auto = classes(
+      <Panel variant="tonal" tone="blue" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    expect(stepFor(auto, "dark", "hover")).toBe("blue-400/25");
+    expect(auto).toMatch(/(?:^|\s)group(?:\s|$)/);
+
+    const off = classes(
+      <Panel variant="tonal" tone="blue" hoverable={false} onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    for (const mode of ["light", "dark"] as const)
+      for (const state of ["hover", "pressed"] as const)
+        expect(stepFor(off, mode, state)).toBeUndefined();
+    expect(off).not.toMatch(/(?:^|\s)(?:dark:)?hover:ring-/);
+    expect(off).toMatch(/(?:^|\s)cursor-pointer(?:\s|$)/);
+  });
+
+  it("opts an untinted card out of the veil the same way", () => {
+    const veilOf = (ui: ReactElement) =>
+      Array.from(render(ui).container.querySelectorAll("div")).some((el) =>
+        el.className.includes("group-hover:bg-"),
+      );
+    expect(veilOf(<Panel onClick={vi.fn()}>Body</Panel>)).toBe(true);
+    expect(
+      veilOf(
+        <Panel hoverable={false} onClick={vi.fn()}>
+          Body
+        </Panel>,
+      ),
+    ).toBe(false);
+  });
+
+  it("steps a tinted variant off its own fill, not off the top of the ramp", () => {
+    const cls = classes(
+      <Panel variant="tonal" tone="blue" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    // Rest is `blue-200/60` light, `blue-500/15` dark: deeper going in, lighter
+    // coming out — which is 1.22:1 and 1.29:1, both measured.
+    expect(stepFor(cls, "light", "hover")).toBe("blue-300/70");
+    expect(stepFor(cls, "dark", "hover")).toBe("blue-400/25");
+    expect(stepFor(cls, "light", "pressed")).toBe("blue-400/70");
+    expect(stepFor(cls, "dark", "pressed")).toBe("blue-400/35");
+    // The pair that shipped: `-50` is lighter than a `-200/60` card, and
+    // `-900/20` is darker than a `-500/15` one.
+    expect(cls).not.toMatch(/(?:bg-|--color-)blue-900/);
+    expect(cls).not.toMatch(/(?:^|\s)hover:bg-blue-50(?:\s|$)/);
+  });
+
+  it("takes the depth from the variant, so sheer surfaces step less", () => {
+    const sheer = classes(
+      <Panel variant="glass" tone="blue" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    const deep = classes(
+      <Panel variant="tonal" tone="blue" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    expect(stepFor(sheer, "light", "hover")).toBe("blue-200/70");
+    expect(stepFor(deep, "light", "hover")).toBe("blue-300/70");
+  });
+
+  it("presses one step past the hover, and only when it can be pressed", () => {
+    const clickable = classes(
+      <Panel variant="tonal" tone="blue" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    expect(stepFor(clickable, "dark", "pressed")).toBe("blue-400/35");
+
+    // A card that cannot be pressed must not flinch under a held pointer.
+    const hoverOnly = classes(
+      <Panel variant="tonal" tone="blue" hoverable clickable={false}>
+        Body
+      </Panel>,
+    );
+    expect(stepFor(hoverOnly, "light", "hover")).toBe("blue-300/70");
+    expect(stepFor(hoverOnly, "light", "pressed")).toBeUndefined();
+    expect(stepFor(hoverOnly, "dark", "pressed")).toBeUndefined();
+  });
+
+  it("ignites the rim the variant actually wears", () => {
+    // `tonal` rests on `ring-1 ring-transparent`, and a ring colour with no
+    // width is inert — the hover has to bring the width with it.
+    const ring = classes(
+      <Panel variant="tonal" tone="blue" hoverable>
+        Body
+      </Panel>,
+    );
+    expect(ring).toMatch(/(?:^|\s)hover:ring-1(?:\s|$)/);
+    expect(ring).toContain("hover:ring-blue-300/70");
+    expect(ring).toContain("dark:hover:ring-blue-500/30");
+    expect(ring).not.toContain("hover:border-blue");
+
+    const border = classes(
+      <Panel variant="outlined" tone="blue" hoverable>
+        Body
+      </Panel>,
+    );
+    expect(border).toContain("hover:border-blue-300");
+    expect(border).toContain("dark:hover:border-blue-500/50");
+
+    // Glass ignites in its own tone, the way the glass controls already do.
+    const glass = classes(
+      <Panel variant="glass" tone="blue" hoverable>
+        Body
+      </Panel>,
+    );
+    expect(glass).toContain("hover:border-blue-500");
+    expect(glass).toContain("dark:hover:border-blue-400");
+  });
+
+  it("lifts an untinted card with the veil, at a step you can see", () => {
+    const { container } = render(
+      <Panel hoverable onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    const veil = Array.from(container.querySelectorAll("div")).find((el) =>
+      el.className.includes("group-hover:bg-"),
+    );
+    expect(veil).toBeDefined();
+    // 4% white on a dark page measured 1.10:1 — a change, not a hover.
+    expect(veil!.className).toContain("dark:group-hover:bg-white/10");
+    expect(veil!.className).not.toContain("bg-white/[0.04]");
+    expect(veil!.className).toContain("group-active:bg-black/[0.07]");
+    expect(veil!.className).toContain("dark:group-active:bg-white/[0.16]");
+  });
+
+  it("keeps the same step when the transparency path rewrites it", () => {
+    // A panel whose fill carries alpha is painted through `ui-surface-fill`, so
+    // the hover has to travel with it as variables — a plain utility beside
+    // `ui-surface-fill` fights it for `background-color` instead of feeding it.
+    const cls = classes(
+      <Panel variant="tonal" tone="blue" transparency="none" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    expect(cls).toContain("ui-surface-fill");
+    expect(stepFor(cls, "light", "hover")).toBe("blue-300/70");
+    expect(stepFor(cls, "dark", "hover")).toBe("blue-400/25");
+    expect(stepFor(cls, "dark", "pressed")).toBe("blue-400/35");
+  });
+
+  it("goes quiet when it is disabled", () => {
+    const cls = classes(
+      <Panel variant="tonal" tone="blue" disabled onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    for (const mode of ["light", "dark"] as const)
+      for (const state of ["hover", "pressed"] as const)
+        expect(stepFor(cls, mode, state)).toBeUndefined();
+    expect(cls).not.toMatch(/(?:^|\s)dark:hover:ring-/);
+    expect(cls).toContain("cursor-not-allowed");
+  });
+
+  it("follows hoverColor for the hue and keeps the depth the theme's", () => {
+    const cls = classes(
+      <Panel variant="glass" tone="blue" hoverColor="rose" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    expect(stepFor(cls, "light", "hover")).toBe("rose-200/70");
+    expect(stepFor(cls, "dark", "hover")).toBe("rose-400/20");
+    expect(cls).toContain("hover:border-rose-500");
+    // The rest fill and the focus ring keep the Panel's own tone; only the
+    // pointer states follow `hoverColor`.
+    expect(cls).toContain("bg-blue-50/50");
+    expect(cls).not.toMatch(/(?:hover|active):bg-blue-/);
+  });
+
+  it("eases the wash with one transition list, not two", () => {
+    const tinted = classes(
+      <Panel variant="tonal" tone="blue" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    expect(tinted).toMatch(/(?:^|\s)transition-colors(?:\s|$)/);
+
+    const both = classes(
+      <Panel variant="tonal" tone="blue" hoverShadow onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    // Two `transition-*` utilities on one element leave the winner to the
+    // stylesheet's order, and the one that loses snaps.
+    expect(both).toContain("transition-[background-color,box-shadow,transform]");
+    expect(both).not.toMatch(/(?:^|\s)transition-shadow(?:\s|$)/);
+    expect(both).toContain("hover:shadow-xl");
+  });
 });

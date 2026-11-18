@@ -56,6 +56,8 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
    * @default true
    */
   horizontal?: boolean;
+  /** Whether the region can scroll vertically. @default true */
+  vertical?: boolean;
   /**
    * Tab order entry for the scrollable viewport — keyboard users scroll the
    * focused area with the arrows / Page / Home / End keys natively. Ignored
@@ -123,6 +125,7 @@ export const ScrollArea = ({
   variant = "auto",
   mask = false,
   horizontal = true,
+  vertical = true,
   tabIndex = 0,
   contentClassName,
   viewportClassName,
@@ -132,6 +135,7 @@ export const ScrollArea = ({
   ...rest
 }: ScrollAreaProps) => {
   horizontal = horizontal && !virtualScroll;
+  vertical = vertical || !!virtualScroll;
   const viewportId = useId();
   const viewportRef = useRef<HTMLDivElement>(null);
   // The internal ref drives the thumbs; a caller's ref has to see the same
@@ -236,9 +240,9 @@ export const ScrollArea = ({
     // region has to be told off here: measuring it would draw a bar over an
     // axis with nothing to scroll.
     const nextX = horizontal && viewport.scrollWidth - viewport.clientWidth > 1;
-    const nextY = virtual
+    const nextY = vertical && (virtual
       ? virtualContent > virtualViewport
-      : viewport.scrollHeight - viewport.clientHeight > 1;
+      : viewport.scrollHeight - viewport.clientHeight > 1);
     // Guarded by value, reusing the previous object when unchanged: the
     // ResizeObserver fires on any resize *nearby* — a panel collapsing
     // elsewhere on the page re-runs this callback with geometry that is
@@ -248,13 +252,13 @@ export const ScrollArea = ({
     setOverflow((prev) =>
       prev.x === nextX && prev.y === nextY ? prev : { x: nextX, y: nextY },
     );
-    const nextYThumb = thumb(viewport, yTrackRef.current, "y");
+    const nextYThumb = vertical ? thumb(viewport, yTrackRef.current, "y") : FITTING_THUMB;
     setThumbY((prev) => (sameMetrics(prev, nextYThumb) ? prev : nextYThumb));
     const nextXThumb = horizontal
       ? thumb(viewport, xTrackRef.current, "x")
       : FITTING_THUMB;
     setThumbX((prev) => (sameMetrics(prev, nextXThumb) ? prev : nextXThumb));
-  }, [thumb, horizontal, virtual, virtualContent, virtualViewport]);
+  }, [thumb, horizontal, vertical, virtual, virtualContent, virtualViewport]);
 
   // The latest `update`, read through a ref, so the observer subscription
   // below is built exactly once — `update`'s identity changing (a genuine
@@ -437,6 +441,7 @@ export const ScrollArea = ({
           ...maskStyle(),
           ...(virtualScroll ? { overflow: "hidden" } : null),
           ...(horizontal ? null : { overflowX: "hidden" as const }),
+          ...(vertical ? null : { overflowY: "hidden" as const }),
         }}
         className={classNames(
           "relative z-0 h-full w-full max-h-[inherit] overflow-auto rounded-[inherit] outline-none",
@@ -467,7 +472,7 @@ export const ScrollArea = ({
         </div>
       </div>
 
-      <div
+      {vertical && <div
         data-slot="scrollarea-scrollbar"
         data-orientation="vertical"
         data-state={yVisible ? "visible" : "hidden"}
@@ -495,7 +500,7 @@ export const ScrollArea = ({
             className={classNames(THUMB_BASE, "w-full")}
           />
         </div>
-      </div>
+      </div>}
 
       {/* The sideways bar is not there at all when the axis is locked — a
           `role="scrollbar"` that scrolls nothing is a promise the region

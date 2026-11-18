@@ -191,6 +191,14 @@ export const panelLoaderTypeOptions = toOptions([
  */
 export const panelClickableOptions = toOptions(["auto", "on", "off"]);
 
+/**
+ * `hoverable` is three-state for the same reason, and `auto` is the case worth
+ * seeing: it is where an `onClick` alone answers the pointer. `off` proves the
+ * opt-out — no wash, no rim, no veil, while the card keeps its pointer cursor
+ * and its activation.
+ */
+export const panelHoverableOptions = toOptions(["auto", "on", "off"]);
+
 export const panelMediaPlacementOptions: {
   label: string;
   value: "top" | "start" | "end" | "overlay";

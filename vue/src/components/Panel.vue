@@ -5,6 +5,7 @@ import type { LoaderProps } from "./Loader.vue";
 import type {
   SurfaceCorner,
   SurfacePadding,
+  SurfaceRimKind,
   SurfaceVariant,
   SurfaceTone,
   SurfaceTransparency,
@@ -78,14 +79,25 @@ export interface PanelProps {
   hoverShadow?: boolean;
   decoration?: PanelDecoration;
   /**
-   * Adds a subtle background tint on hover and lightens any decoration elements.
-   * Defaults to `true` when an `onClick` handler is present, otherwise `false`.
+   * Answers the pointer: the surface takes one background step, the rim
+   * ignites, and any decoration fades. The step is measured against the
+   * variant's own fill — deeper in light, lifted in dark — so a `tonal` card
+   * darkens from its tint instead of flashing pale over it.
+   *
+   * Defaults to `true` when an `onClick` handler is present, otherwise `false`
+   * — an `@click` is enough on its own, and the only way to switch the answer
+   * off is to pass `hoverable="false"` by hand. The card keeps its pointer
+   * cursor either way while it has a click handler; that follows the click, not
+   * this prop.
    */
   hoverable?: boolean;
   color?: TrueColor;
   /**
-   * Override the default hover color.
-   * If not provided, it defaults to the `color` prop if available, or a neutral tint.
+   * Hue the hover, pressed and rim steps take. Defaults to the Panel's own
+   * `tone`; with neither, a neutral veil is used instead.
+   *
+   * Only the hue is yours to pick — the depth of the step stays the theme's,
+   * because it is measured against the variant's fill.
    */
   hoverColor?: TrueColor;
   /**
@@ -179,9 +191,11 @@ import Button from "./Button.vue";
 import {
   getPanelToneStyles,
   getSurfaceCornerClass,
+  getSurfaceHoverTokens,
   getSurfacePaddingClass,
   getSurfacePaddingClasses,
   getSurfaceTransparencyClasses,
+  SURFACE_NEUTRAL_HOVER,
 } from "../theme/Theme";
 import Loader from "./Loader.vue";
 
@@ -202,6 +216,15 @@ const props = withDefaults(defineProps<PanelProps>(), {
   flexBody: false,
   loaderType: "spinner",
   hoverShadow: false,
+  /**
+   * `undefined` is load-bearing, so it has to be written down. A `boolean` prop
+   * the parent omits is *cast to `false`* by Vue unless the option carries a
+   * `default` key at all — and `hoverable` is read as `props.hoverable ??
+   * Boolean(onClick)`, so an absent prop that arrived as `false` meant the
+   * auto-from-`@click` branch could never run. No clickable Panel in this kit
+   * had ever answered a pointer.
+   */
+  hoverable: undefined,
   decoration: "none",
   scrollable: true,
   vibrancy: "medium",
@@ -220,14 +243,46 @@ const isHoverable = computed(
   () => props.hoverable ?? Boolean(restAttrs.value.onClick),
 );
 
-const effectiveHoverColor = computed(
-  () =>
-    props.hoverColor ??
-    (resolvedTone.value !== "none" && resolvedTone.value !== "neutral" ? resolvedTone.value : undefined),
+/**
+ * The hue the hover wears: an explicit `hoverColor`, else the Panel's own tone.
+ * `undefined` means no hue at all, and the neutral veil takes the wash. `neutral`
+ * counts as a hue here — the depth-aware step is measured against the variant's
+ * fill, which the veil never was.
+ */
+const hoverHue = computed(
+  () => props.hoverColor ?? (resolvedTone.value === "none" ? undefined : resolvedTone.value),
 );
-const hoverColorName = computed(() =>
-  effectiveHoverColor.value,
+/**
+ * The rim each variant actually draws here. The shared table in the theme
+ * describes React's `SURFACE_VARIANT_BASE`; this file's `variantBaseStyles`
+ * still puts a `ring-1` on `outlined`, `default` and `liquid-glass` where React
+ * puts a `border`, so the ignition has to follow the property that exists in
+ * this kit — a rim colour on a property with no width paints nothing, which is
+ * the whole class of bug this file keeps re-learning.
+ */
+const panelRimKind: Record<PanelVariant, SurfaceRimKind> = {
+  none: "none",
+  elevated: "ring",
+  outlined: "ring",
+  subtle: "ring",
+  tonal: "ring",
+  default: "ring",
+  // The `glass` case below adds an explicit `border`, so it ignites a border.
+  glass: "border",
+  simple: "ring",
+  "liquid-glass": "ring",
+};
+
+const hoverTokens = computed(() =>
+  getSurfaceHoverTokens(
+    props.variant,
+    hoverHue.value ?? "none",
+    panelRimKind[props.variant],
+  ),
 );
+const isTintedHover = computed(() => hoverHue.value !== undefined);
+/** The Vue Panel has no `clickable` prop; an `onClick` in the attrs is its card action. */
+const isCardAction = computed(() => Boolean(restAttrs.value.onClick));
 
 const borderPalette = computed(() =>
   props.borderColor ? getPanelToneStyles(props.borderColor) : undefined,
@@ -315,7 +370,7 @@ const glassFillClass = computed(() => {
     : `bg-${resolvedTone.value}-50/${litOpacity} dark:bg-${resolvedTone.value}-500/${drkOpacity}`;
 });
 
-const variantClasses = computed(() => getSurfaceTransparencyClasses((() => {
+const variantClasses = computed(() => getSurfaceTransparencyClasses(classNames((() => {
   switch (props.variant) {
     case "none":
       return resolvedTone.value === "none" ? "" : palette.value.subtleBg;
@@ -380,7 +435,18 @@ const variantClasses = computed(() => getSurfaceTransparencyClasses((() => {
         effectiveBgClass.value,
       );
   }
-})(), props.variant, props.transparency));
+})(),
+  // Both states go through the transparency rewrite together: a panel that
+  // precomposes its alpha turns every background step into the
+  // `--ui-surface-color` / `--ui-surface-alpha` pair `ui-surface-fill` reads, and
+  // a plain `active:bg-*` left outside that call competes with it for
+  // `background-color`, with stylesheet order as the referee.
+  isHoverable.value && !props.disabled && isTintedHover.value && hoverTokens.value.wash,
+  isCardAction.value &&
+    isHoverable.value &&
+    !props.disabled &&
+    isTintedHover.value &&
+    hoverTokens.value.pressed), props.variant, props.transparency));
 
 const overlayClasses = computed(() =>
   isOverlay.value
@@ -474,12 +540,29 @@ const sectionClass = computed(() =>
     getSurfaceCornerClass(props.corner),
     props.fullWidth ? "w-full" : undefined,
     isOverlay.value ? overlayClasses.value : undefined,
-    props.hoverShadow &&
-      "transition-shadow duration-200 hover:shadow-xl hover:-translate-y-[1px]",
-    isHoverable.value && "group cursor-pointer",
-    isHoverable.value &&
-      hoverColorName.value &&
-      `hover:bg-${hoverColorName.value}-50 dark:hover:bg-${hoverColorName.value}-900/20`,
+    props.hoverShadow && "hover:shadow-xl hover:-translate-y-[1px]",
+    // One transition list, never two: `transition-shadow` and `transition-colors`
+    // on the same element leave the winner to the stylesheet's order, and the one
+    // that loses snaps. A panel that lifts and tints eases both, plus the
+    // transform the lift uses.
+    (props.hoverShadow || isHoverable.value) &&
+      classNames(
+        "duration-200",
+        props.hoverShadow && isHoverable.value
+          ? "transition-[background-color,box-shadow,transform]"
+          : props.hoverShadow
+            ? "transition-shadow"
+            : "transition-colors",
+      ),
+    isHoverable.value && "group",
+    // The pointer cursor follows an `@click`, as it always has in this kit — it
+    // is not a second copy of `hoverable`. Tying it there meant a card that
+    // opted out of the tint (`:hoverable="false"`) silently lost its cursor
+    // too, which React's Panel never did. A disabled card says so with the
+    // cursor instead.
+    (isHoverable.value || isCardAction.value) &&
+      (props.disabled ? "cursor-not-allowed" : "cursor-pointer"),
+    isHoverable.value && !props.disabled && hoverTokens.value.rim,
     classAttr.value,
   ),
 );
@@ -560,9 +643,19 @@ const resolvedSpecularMode = computed<PanelSpecularMode>(() => {
         aria-hidden="true"
       />
     </template>
+    <!-- The untinted hover. A tinted panel takes a real background step on the
+         section instead (`hoverTokens.wash`), which is what lets the transparency
+         path precompose it; this is the fallback for a card with no hue to wash
+         with, and it composites over whatever is under it. -->
     <div
-      v-if="isHoverable && !hoverColorName"
-      class="pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]"
+      v-if="isHoverable && !isTintedHover && !disabled"
+      :class="
+        classNames(
+          'pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200',
+          SURFACE_NEUTRAL_HOVER.wash,
+          SURFACE_NEUTRAL_HOVER.pressed,
+        )
+      "
       aria-hidden="true"
     />
     <template v-if="variant === 'liquid-glass' && resolvedSpecularMode !== 'none'">

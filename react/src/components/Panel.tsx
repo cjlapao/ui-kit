@@ -6,8 +6,10 @@ import {
   DEFAULT_SURFACE_CORNER,
   DEFAULT_SURFACE_PADDING,
   DEFAULT_SURFACE_TONE,
+  SURFACE_NEUTRAL_HOVER,
   getPanelToneStyles,
   getSurfaceCornerClass,
+  getSurfaceHoverTokens,
   getSurfacePaddingClass,
   getSurfacePaddingClasses,
   getSurfaceTextTokens,
@@ -148,14 +150,26 @@ export interface PanelProps extends Omit<
   hoverShadow?: boolean;
   decoration?: PanelDecoration;
   /**
-   * Adds a subtle background tint on hover and lightens any decoration elements.
-   * Defaults to `true` when an `onClick` handler is present, otherwise `false`.
+   * Answers the pointer: the surface takes one background step, the rim
+   * ignites, and any decoration fades. The step is measured against the
+   * variant's own fill — deeper in light, lifted in dark — so a `tonal` card
+   * darkens from its tint instead of flashing pale over it.
+   *
+   * Defaults to `true` when an `onClick` handler is present, otherwise `false`
+   * — an `onClick` is enough on its own, and the only way to switch the answer
+   * off is to pass `hoverable={false}` by hand. The card keeps its pointer
+   * cursor either way while it has a click handler; that follows the click, not
+   * this prop.
    */
   hoverable?: boolean;
   /**
    * Whether the card behaves as a single action: focusable, `role="button"`,
    * Enter and Space activate it, and it draws a tone-coloured inset focus
    * ring. Defaults to true when an `onClick` handler is present.
+   *
+   * Also the switch for the pressed step — the background takes one more shade
+   * while the pointer is held down — because a card that cannot be pressed
+   * should not flinch when you hold it down.
    *
    * Pass `false` for a card whose *body* owns the interaction — a form, a
    * list of links — where announcing the whole card as one button would be
@@ -170,9 +184,13 @@ export interface PanelProps extends Omit<
    */
   color?: TrueColor;
   /**
-   * Override the default hover tint.
-   * If not provided, the non-neutral `color` alias (not `tone`) hints it,
-   * otherwise a neutral tint is used.
+   * Hue the hover, pressed and rim steps take. Defaults to the Panel's own
+   * `tone`; with neither, a neutral veil is used instead.
+   *
+   * Only the hue is yours to pick — the depth of the step stays the theme's,
+   * because it is measured against the variant's fill. An untinted `elevated`
+   * card and a `tonal` one asked for by the same name start from different
+   * places, and a fixed shade is what made half these hovers invisible.
    */
   hoverColor?: TrueColor;
   /**
@@ -673,9 +691,21 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     return "classic";
   })();
 
-  const effectiveHoverColor =
-    hoverColor ?? (resolvedTone !== "none" && resolvedTone !== "neutral" ? resolvedTone : undefined);
-  const hoverColorName = effectiveHoverColor ? effectiveHoverColor : undefined;
+  /**
+   * The hue the hover wears: an explicit `hoverColor`, else the Panel's own
+   * tone. `undefined` means there is no hue at all, and the neutral veil takes
+   * the wash instead.
+   *
+   * `neutral` now counts as a hue where the old check folded it into the veil.
+   * A `tonal` neutral card has a `neutral-200` fill, and the depth-aware step
+   * is the one measured against that fill; the veil was only ever measured
+   * against white.
+   */
+  const hoverHue =
+    hoverColor ?? (resolvedTone === "none" ? undefined : resolvedTone);
+  const hoverTokens = getSurfaceHoverTokens(variant, hoverHue ?? "none");
+  /** Whether the wash comes from the tone or from the neutral veil. */
+  const isTintedHover = hoverHue !== undefined;
 
   const borderPalette = borderColor
     ? getPanelToneStyles(borderColor)
@@ -790,7 +820,18 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           effectiveBgClass,
         );
     }
-  })(), isHoverable && hoverColorName && `hover:bg-${hoverColorName}-50 dark:hover:bg-${hoverColorName}-900/20`), variant, transparency);
+  })(),
+    // Both states go through the transparency rewrite together. A panel that
+    // precomposes its alpha turns every background step into the
+    // `--ui-surface-color` / `--ui-surface-alpha` pair `ui-surface-fill` reads;
+    // a plain `active:bg-*` utility left outside that call competes with it for
+    // `background-color`, and stylesheet order decides the fight.
+    isHoverable && !disabled && isTintedHover && hoverTokens.wash,
+    isClickable &&
+      isHoverable &&
+      !disabled &&
+      isTintedHover &&
+      hoverTokens.pressed), variant, transparency);
 
   const overlayClasses = isOverlay
     ? "relative overflow-hidden text-white shadow-xl ring-0"
@@ -1018,8 +1059,20 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           getSurfaceCornerClass(corner),
           fullWidth ? "w-full" : undefined,
           isOverlay ? overlayClasses : undefined,
-          hoverShadow &&
-            "transition-shadow duration-200 hover:shadow-xl hover:-translate-y-[1px]",
+          hoverShadow && "hover:shadow-xl hover:-translate-y-[1px]",
+          // One transition list, never two: `transition-shadow` and
+          // `transition-colors` on the same element leave it to the stylesheet's
+          // order which of them survives, and the one that loses snaps. A panel
+          // that lifts and tints eases both, plus the transform the lift uses.
+          (hoverShadow || isHoverable) &&
+            classNames(
+              "duration-200",
+              hoverShadow && isHoverable
+                ? "transition-[background-color,box-shadow,transform]"
+                : hoverShadow
+                  ? "transition-shadow"
+                  : "transition-colors",
+            ),
           isHoverable && "group",
           // Additive, not moved. A hoverable-only panel has shown a pointer
           // cursor as long as it has existed, so callers must keep it; a
@@ -1030,6 +1083,11 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           // because an outer ring is clipped by `overflow: hidden` — which
           // every Panel has.
           isClickable && !disabled && trigger.focusRing,
+          // The rim ignition follows the card's own hue, and `disabled` takes the
+          // whole hover away — rim included. A card that answers the pointer
+          // visually while refusing it functionally reads as a bug. The pressed
+          // step is applied with the wash, inside the transparency rewrite.
+          isHoverable && !disabled && hoverTokens.rim,
           className,
         )}
         style={resolvedStyle}
@@ -1121,9 +1179,17 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
             />
           </>
         )}
-        {isHoverable && !hoverColorName && (
+        {/* The untinted hover. A tinted panel takes a real background step on
+            the section instead (`hoverTokens.wash`), which is what lets the
+            transparency path precompose it; this is the fallback for a card with
+            no hue to wash with, and it composites over whatever is under it. */}
+        {isHoverable && !isTintedHover && !disabled && (
           <div
-            className="pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200 group-hover:bg-black/[0.025] dark:group-hover:bg-white/[0.04]"
+            className={classNames(
+              "pointer-events-none absolute inset-0 rounded-[inherit] bg-transparent transition-colors duration-200",
+              SURFACE_NEUTRAL_HOVER.wash,
+              SURFACE_NEUTRAL_HOVER.pressed,
+            )}
             aria-hidden="true"
           />
         )}

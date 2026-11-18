@@ -60,3 +60,9 @@ export function layoutProjects(items: readonly { id: string; radius: number }[],
   }
   return fallback;
 }
+
+/** Pack within a fixed height and grow sideways when more room is needed. */
+export function layoutProjectsHorizontally(items: readonly { id: string; radius: number }[], height: number, gap = 18, scattered = false): { circles: MapCircle[]; width: number } {
+  const layout = layoutProjects(items, height, gap, scattered);
+  return { circles: layout.circles.map(circle => ({ ...circle, x: circle.y, y: circle.x })), width: layout.height };
+}

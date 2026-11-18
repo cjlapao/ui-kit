@@ -29,6 +29,7 @@ import {
   panelClickableOptions,
   panelCornerOptions,
   panelDecorationOptions,
+  panelHoverableOptions,
   panelLoaderTypeOptions,
   panelMediaPlacementOptions,
   panelPaddingOptions,
@@ -54,7 +55,11 @@ export const PanelPlayground: React.FC = () => {
   const [hasActions, setHasActions] = useState(true);
   const [loading, setLoading] = useState(false);
   const [hoverShadow, setHoverShadow] = useState(false);
-  const [hoverable, setHoverable] = useState(false);
+  // Both are three-state, and both are kept side by side because the pair is
+  // the interesting part: `auto` is where an `onClick` alone answers the
+  // pointer, and `hoverable=off` / `clickable=off` are the two separate
+  // opt-outs — one takes the tint and the rim, the other takes the button.
+  const [hoverableMode, setHoverableMode] = useState<string>("auto");
   // `auto` leaves the prop undefined, which is the interesting state: the
   // card becomes a button because it has an `onClick`.
   const [clickableMode, setClickableMode] = useState<string>("auto");
@@ -161,10 +166,11 @@ export const PanelPlayground: React.FC = () => {
                         checked={hoverShadow}
                         onChange={setHoverShadow}
                       />
-                      <ToggleRow
+                      <ChoiceControl
                         label="Hoverable"
-                        checked={hoverable}
-                        onChange={setHoverable}
+                        options={panelHoverableOptions}
+                        value={hoverableMode}
+                        onChange={setHoverableMode}
                       />
                       <ChoiceControl
                         label="Clickable"
@@ -271,7 +277,13 @@ export const PanelPlayground: React.FC = () => {
             loaderTitle="Loading…"
             loaderMessage="Getting things ready…"
             hoverShadow={hoverShadow}
-            hoverable={hoverable}
+            hoverable={
+              hoverableMode === "auto"
+                ? undefined
+                : hoverableMode === "on"
+                  ? true
+                  : false
+            }
             // Always given, so `auto` is genuinely "follows onClick" rather
             // than "nothing is wired up".
             onClick={() => pushLog("Card activated")}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AgentMap, ColorSwatches, GridBackground, Slider, type AgentMapProject, type PanelTone, type PanelVariant, type TrueColor } from "@cjlapao/ui-kit";
+import { AgentMap, Button, ColorSwatches, GridBackground, Input, Slider, type AgentMapProject, type PanelTone, type PanelVariant, type TrueColor } from "@cjlapao/ui-kit";
 import { PageHeader } from "../../shared/PageHeader";
 import { PropsTable } from "../../shared/A11ySections";
 import { Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
@@ -12,13 +12,17 @@ const projects: AgentMapProject[] = [
   { id: "horizon", name: "Horizon", agents: [{ id: "h1", name: "Planner", status: "working", activity: "Planning migration" }, { id: "h2", name: "Builder", status: "working", activity: "Writing code" }, { id: "h3", name: "Tester", status: "idle", activity: "Waiting for build" }, ...Array.from({ length: 7 }, (_, i) => ({ id: `h${i + 4}`, name: `Agent ${i + 4}`, status: "working" as const, activity: "Working on migration" }))] },
   { id: "orbit", name: "Orbit", agents: [{ id: "o1", name: "Builder", status: "completed", activity: "Implementation complete" }, { id: "o2", name: "Reviewer", status: "completed", activity: "Review complete" }, { id: "o3", name: "Tester", status: "completed", activity: "Tests passed" }] },
   ...["Northstar", "Meridian", "Lumen", "Canvas", "Beacon"].map((name, i) => ({ id: `p${i}`, name, agents: Array.from({ length: [14, 18, 26, 4, 4][i] }, (_, j) => ({ id: `p${i}-${j}`, name: `${["Planner", "Builder", "Reviewer", "Tester"][j % 4]} ${Math.floor(j / 4) + 1}`, status: (i === 4 ? "completed" : i === 1 && j % 4 === 2 ? "attention" : j % 6 === 5 ? "idle" : "working") as "working" | "completed" | "attention" | "idle", activity: i === 4 ? "Work complete" : "Working on project" })) })),
+  ...["Delta", "Harbor", "Summit", "Willow", "Pioneer", "Vertex"].map((name, i) => ({ id: `extra-${i}`, name, agents: [{ id: `extra-${i}-agent`, name: "Builder", status: "working" as const, activity: "Working on project" }] })),
 ];
 const inactiveProjects: AgentMapProject[] = projects.slice(0, 3).map(project => ({ ...project, agents: project.agents.map(agent => ({ ...agent, status: agent.status === "attention" ? "attention" : agent.status === "completed" ? "completed" : "idle" })) }));
 const unassignedProjects: AgentMapProject[] = [{ id: "unassigned", name: "New project", agents: [] }];
+const longTitleProjects: AgentMapProject[] = projects.slice(0, 3).map((project, index) => ({ ...project, name: ["Add a small greeting package to the hello project", "Clarify Greeting CLI Requirements and acceptance criteria", "ExtremelyLongUnbrokenProjectIdentifierForTestingOverflow"][index] }));
 
 export default function AgentMapPage() {
   const [scenario, setScenario] = useState("small");
   const [expanded, setExpanded] = useState<string | null>("atlas");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [inspectorTitle, setInspectorTitle] = useState("Inspector");
   const [gridSize, setGridSize] = useState(24);
   const [gridFade, setGridFade] = useState<"none" | "radial" | "vertical">("radial");
   const [gridOpacity, setGridOpacity] = useState(20);
@@ -26,6 +30,8 @@ export default function AgentMapPage() {
   const [showGrid, setShowGrid] = useState(true);
   const [scattered, setScattered] = useState(false);
   const [live, setLive] = useState(false);
+  const [fullHeight, setFullHeight] = useState(false);
+  const [fullWidth, setFullWidth] = useState(true);
   const [panelVariant, setPanelVariant] = useState<PanelVariant>("elevated");
   const [detailsVariant, setDetailsVariant] = useState<PanelVariant>("elevated");
   const [listVariant, setListVariant] = useState<PanelVariant>("subtle");
@@ -35,14 +41,18 @@ export default function AgentMapPage() {
   const [gridTone, setGridTone] = useState<TrueColor>("cyan");
   const [glowTone, setGlowTone] = useState<TrueColor>("cyan");
   const grid = showGrid ? { size: gridSize, fade: gridFade, opacity: gridOpacity / 100, fadeStart } : false as const;
-  const visibleProjects = scenario === "empty" ? [] : scenario === "unassigned" ? unassignedProjects : scenario === "inactive" ? inactiveProjects : scenario === "busy" ? projects : projects.slice(0, 3);
+  const visibleProjects = scenario === "empty" ? [] : scenario === "unassigned" ? unassignedProjects : scenario === "inactive" ? inactiveProjects : scenario === "long" ? longTitleProjects : scenario === "busy" ? projects : projects.slice(0, 3);
   return <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-8">
     <PageHeader name="Agent Map" description="Monitor agents across projects, with room to expand without overlapping neighboring projects." />
     <PlaygroundPanel controls={<ControlAccordion groups={[
       { id: "fleet", title: "Fleet and layout", defaultOpen: true, controls: <>
-        <SelectControl label="Example" value={scenario} options={[{ value: "small", label: "Three projects" }, { value: "busy", label: "Busy fleet" }, { value: "empty", label: "No projects" }, { value: "unassigned", label: "No agents assigned" }, { value: "inactive", label: "No agents working" }]} onChange={value => { setScenario(value); setExpanded(value === "small" || value === "inactive" ? "atlas" : value === "unassigned" ? "unassigned" : null); }} />
+        <SelectControl label="Example" value={scenario} options={[{ value: "small", label: "Three projects" }, { value: "busy", label: "Busy fleet" }, { value: "long", label: "Long project titles" }, { value: "empty", label: "No projects" }, { value: "unassigned", label: "No agents assigned" }, { value: "inactive", label: "No agents working" }]} onChange={value => { setScenario(value); setSelected(null); setExpanded(value === "small" || value === "inactive" ? "atlas" : value === "unassigned" ? "unassigned" : null); }} />
         <ToggleRow label="Scattered layout" checked={scattered} onChange={setScattered} />
         <ToggleRow label="Live indicator" checked={live} onChange={setLive} />
+        <ToggleRow label="Full height" checked={fullHeight} onChange={setFullHeight} />
+        <ToggleRow label="Full width" checked={fullWidth} onChange={setFullWidth} />
+        <Control label="Inspector title"><Input size="sm" aria-label="Inspector title" value={inspectorTitle} onChange={event => setInspectorTitle(event.target.value)} /></Control>
+        <Button size="sm" variant="outline" disabled={!selected} onClick={() => setSelected(null)}>Clear selection</Button>
       </> },
       { id: "grid", title: "Grid background", defaultOpen: true, controls: <>
         <ToggleRow label="Show grid" checked={showGrid} onChange={setShowGrid} />
@@ -65,13 +75,16 @@ export default function AgentMapPage() {
         <Control label="Grid tone"><ColorSwatches selectable size="sm" value={gridTone} onSelect={setGridTone} defaultExpanded /></Control>
         <Control label="Glow tone"><ColorSwatches selectable size="sm" value={glowTone} onSelect={setGlowTone} defaultExpanded /></Control>
       </> },
-    ]} />} preview={<AgentMap className="w-full" projects={visibleProjects} expandedProjectId={expanded} onExpandedProjectChange={setExpanded} defaultSelectedAgentId="a2" scattered={scattered} live={live} grid={grid} panelVariant={panelVariant} detailsVariant={detailsVariant} listVariant={listVariant} panelTone={panelTone} detailsTone={detailsTone} listTone={listTone} gridTone={gridTone} glowTone={glowTone} renderAgentDetails={(_agent, project) => <p className="mt-4 text-sm">Project: {project.name}</p>} />} />
+    ]} />} preview={<div className="w-full" style={{ height: fullHeight ? 640 : undefined }}><AgentMap fullHeight={fullHeight} fullWidth={fullWidth} projects={visibleProjects} expandedProjectId={expanded} onExpandedProjectChange={setExpanded} selectedAgentId={selected} onAgentSelect={agent => setSelected(agent.id)} onSelectionClear={() => setSelected(null)} inspectorTitle={inspectorTitle} scattered={scattered} live={live} grid={grid} panelVariant={panelVariant} detailsVariant={detailsVariant} listVariant={listVariant} panelTone={panelTone} detailsTone={detailsTone} listTone={listTone} gridTone={gridTone} glowTone={glowTone} renderAgentDetails={(_agent, project) => <p className="mt-4 text-sm">Project: {project.name}</p>} /></div>} />
     <section><h2 className="mb-3 text-xl font-semibold">Reusable grid background</h2><div className="relative flex h-40 items-center justify-center overflow-hidden rounded-xl border border-neutral-300 dark:border-neutral-700">{grid !== false && <GridBackground {...grid} lineColor={`var(--color-${gridTone}-500)`} />}<span className="relative">The same grid settings can be used independently.</span></div></section>
     <PropsTable props={[
       { name: "projects", type: "readonly AgentMapProject[]", default: "required", description: "Project IDs and agent IDs must be unique. Agents carry a status and current activity." },
       { name: "expandedProjectId / onExpandedProjectChange", type: "string | null / callback", default: "uncontrolled", description: "Control which project is expanded. Projects with 13–20 agents use a focused layer; larger projects use a list." },
       { name: "selectedAgentId / onAgentSelect", type: "string | null / callback", default: "uncontrolled", description: "Control agent selection and receive the selected agent and project." },
+      { name: "onSelectionClear", type: "() => void", default: "undefined", description: "Clear controlled selection when an outside click or project selection dismisses the inspector." },
       { name: "renderAgentDetails", type: "(agent, project) => ReactNode", default: "undefined", description: "Add consumer-owned actions or details to the selection panel." },
+      { name: "inspectorTitle", type: "ReactNode", default: '"Inspector"', description: "Customize the selected agent's inspector title." },
+      { name: "fullHeight / fullWidth", type: "boolean", default: "false / true", description: "Fill the parent height (which must be defined) or available width." },
       { name: "scattered", type: "boolean", default: "false", description: "Scatter the project hubs deterministically while avoiding collisions." },
       { name: "grid", type: "false | GridBackground settings", default: "radial grid", description: "Configure the map grid or set false to hide it." },
       { name: "panelVariant / detailsVariant / listVariant", type: "PanelVariant", default: "elevated / elevated / subtle", description: "Set the map, selection, and list panel surfaces independently." },
