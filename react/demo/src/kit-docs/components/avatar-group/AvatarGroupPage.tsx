@@ -100,10 +100,13 @@ export const AvatarGroupPage: React.FC = () => (
           The strip is a <C>role="group"</C> labelled <em>Avatars</em>, and the{" "}
           <C>+N</C> chip is one <C>aria-expanded</C> button wired to it with{" "}
           <C>aria-controls</C>. A chip is a <C>role="img"</C> figure named by
-          its item — <C>aria-label</C> plus a <C>title</C> tooltip — or, with
+          its item — <C>aria-label</C>, the one line its name{" "}
+          <C>Popover</C> shows after a short dwell — or, with
           an <C>onClick</C>, a real <C>&lt;button&gt;</C> with the same name;
           its artwork is <C>aria-hidden</C> and images carry <C>alt=""</C>, so
-          the person is announced once, not as name-and-photo. Condensing is
+          the person is announced once, not as name-and-photo. The panel adds
+          no tab stop: it repeats what the label already says, so a 20-person
+          roster stays 20 chips to read, not 40 stops. Condensing is
           pure presentation: every chip stays mounted and readable whether or
           not <em>you</em> have clicked the +N yet — only the tab order of the
           zero-width ones thins, until the strip opens. An item with no name,

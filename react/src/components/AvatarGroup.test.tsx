@@ -1,11 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import AvatarGroup, {
   deriveInitials,
   type AvatarGroupItem,
 } from "./AvatarGroup";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const PEOPLE: AvatarGroupItem[] = [
   { name: "Ada Lovelace" },
@@ -340,6 +349,88 @@ describe("AvatarGroup", () => {
         '[data-orientation="horizontal"]',
       ) as HTMLElement;
       expect(xBar.getAttribute("data-state")).toBe("hidden");
+    });
+  });
+
+  // The chip's name surfaces in a `Popover`, not in the browser's `title`.
+  // The dwell is the point of the mechanism — a condensed strip puts eight
+  // chips inside ~200 px, and an instant open flashes a panel per chip.
+  describe("the chip's name popover", () => {
+    /** `TOOLTIP_DWELL_MS` in the component. */
+    const DWELL = 400;
+    const overlay = () => document.querySelector(".popover-overlay");
+    const advance = (ms: number) => act(() => vi.advanceTimersByTime(ms));
+
+    it("carries no native title on either chip kind", () => {
+      render(
+        <AvatarGroup
+          items={[
+            { name: "Ada Lovelace" },
+            { name: "Grace Hopper", onClick: () => {} },
+          ]}
+        />,
+      );
+      const img = screen.getByLabelText("Ada Lovelace");
+      const button = screen.getByLabelText("Grace Hopper");
+      expect(img).not.toHaveAttribute("title");
+      expect(button).not.toHaveAttribute("title");
+      // The popover's trigger attrs, on the non-interactive chip too.
+      expect(img).toHaveAttribute("aria-haspopup", "dialog");
+    });
+
+    it("surfaces the name after the dwell, not on enter", () => {
+      vi.useFakeTimers();
+      render(<AvatarGroup items={[{ name: "Ada Lovelace" }]} />);
+      const chip = screen.getByLabelText("Ada Lovelace");
+      fireEvent.mouseEnter(chip);
+      expect(overlay()).toBeNull();
+      advance(DWELL);
+      expect(overlay()).not.toBeNull();
+      expect(screen.getByText("Ada Lovelace")).toBeTruthy();
+    });
+
+    it("never opens if the pointer leaves inside the dwell", () => {
+      vi.useFakeTimers();
+      render(<AvatarGroup items={[{ name: "Ada Lovelace" }]} />);
+      const chip = screen.getByLabelText("Ada Lovelace");
+      fireEvent.mouseEnter(chip);
+      advance(DWELL - 100);
+      fireEvent.mouseLeave(chip);
+      advance(DWELL * 2);
+      expect(overlay()).toBeNull();
+    });
+
+    it("closes the moment the pointer leaves an opened chip", () => {
+      vi.useFakeTimers();
+      render(<AvatarGroup items={[{ name: "Ada Lovelace" }]} />);
+      const chip = screen.getByLabelText("Ada Lovelace");
+      fireEvent.mouseEnter(chip);
+      advance(DWELL);
+      expect(chip).toHaveAttribute("aria-expanded", "true");
+      fireEvent.mouseLeave(chip);
+      // Past Popover's 150 ms cross-the-gap grace. The overlay itself only
+      // unmounts on `animationend`, which jsdom never fires, so the close is
+      // read where it actually flips.
+      advance(200);
+      expect(chip).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("dismisses an open panel when the strip expands", () => {
+      vi.useFakeTimers();
+      render(<AvatarGroup items={PEOPLE} maxVisible={2} />);
+      const chip = screen.getAllByRole("img")[0];
+      fireEvent.mouseEnter(chip);
+      advance(DWELL);
+      expect(chip).toHaveAttribute("aria-expanded", "true");
+      fireEvent.click(screen.getByLabelText("Show 4 more avatars"));
+      expect(chip).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("still runs the item's own onClick", () => {
+      const onClick = vi.fn();
+      render(<AvatarGroup items={[{ name: "Ada Lovelace", onClick }]} />);
+      fireEvent.click(screen.getByLabelText("Ada Lovelace"));
+      expect(onClick).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -1337,3 +1337,33 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   which takes JSX — so the `<C>` code-span component the prose elsewhere uses
   cannot appear there. Quote a literal (`searchScope='top'`) instead of
   reaching for markup that would render as text.
+
+## AvatarGroup chip popovers — hover timing is the caller's business (2026-11-18)
+
+- `Popover`'s hover mode opens on `mouseenter`, which is right for one trigger
+  and wrong for a **row of touching triggers**: a condensed strip packs eight
+  chips into ~200 px, so crossing it flashed a panel per chip — worse than the
+  native `title` it replaced. The fix is a 400 ms dwell, and it lives in the
+  chip, not in `Popover`: the component that knows its own density owns the
+  open intent (`visible` + `onOpenChange`, `triggerMode="hover"` kept for the
+  150 ms cross-the-gap grace that lets the pointer travel into the panel).
+  Adding `delay` to the shared component would have been the tempting shape and
+  the wrong one — one component's rhythm is not every caller's.
+- A panel anchored inside a *moving* strip must be dismissed, not tracked.
+  `Popover` observes its trigger wrapper with a `ResizeObserver`, so an open
+  panel during the 20 ms/item cascade re-measures every animation frame — the
+  layout-animation-is-a-measurement-driver lesson, one notch smaller. Closing
+  on `expanded` is both cheaper and more honest: a panel has nothing to point
+  at while its chip slides away.
+- `Popover` clones its trigger with `onClick`/`aria-haspopup`/`aria-expanded`,
+  but `handleTriggerClick` calls the trigger's own handler first, so wrapping
+  an element that already reports a click is safe — assert it anyway (one
+  test), because the override is one refactor away.
+- Checked in `axe-core/axe.js` rather than assumed: role `img` lists
+  `aria-expanded` in `attributes.allowed`, and `ariaAttributes['aria-haspopup'].global`
+  is `true` — so a Popover trigger on a `role="img"` chip does not trip
+  `aria-allowed-attr`. Read the library's own standards table before dropping a
+  role you think is in the way.
+- jsdom never fires `animationend`, so a Popover's overlay stays in the DOM
+  after a close: assert a close on the trigger's `aria-expanded`, which flips
+  immediately, not on the node's absence.

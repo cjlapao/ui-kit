@@ -1,4 +1,4 @@
-.cj-agent-map.cj-agent-map { display:grid; grid-template-columns:minmax(0, 1fr) 0px; gap:0; transition:grid-template-columns 240ms ease, gap 240ms ease; }
+.cj-agent-map.cj-agent-map { display:grid; grid-template-columns:minmax(0, 1fr) 0px; gap:0; transition:grid-template-columns 240ms ease, gap 240ms ease; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
 .cj-agent-map.cj-agent-map--inspector-open { grid-template-columns:minmax(0, 1fr) 280px; gap:16px; }
 .cj-agent-map.cj-agent-map--stacked { grid-template-columns:1fr; }
 .cj-agent-map.cj-agent-map--stacked.cj-agent-map--inspector-open { grid-template-columns:1fr; }

@@ -32,6 +32,7 @@ import {
   DEMO_CTAS,
   DEMO_DETAILS,
   DEMO_ITEMS,
+  EXPAND_ONLY_SECTION,
   USER_MENU,
   WORKSPACE_MENU,
 } from "./demoData";
@@ -69,6 +70,8 @@ export const SideMenuPlayground: React.FC = () => {
     : undefined;
   const [noise, setNoise] = useState(false);
   const [noiseScale, setNoiseScale] = useState("auto");
+  // A parent row with no route: the row itself toggles its sub-tree.
+  const [expandOnly, setExpandOnly] = useState(true);
   const [workspaces, setWorkspaces] = useState(true);
   const [groupActions, setGroupActions] = useState(true);
   const [actionsOnHover, setActionsOnHover] = useState(false);
@@ -105,20 +108,19 @@ export const SideMenuPlayground: React.FC = () => {
       footerDetailsTone={cardTone}
       footerDetailsVariant={cardVariant}
       footerDetails={showDetails ? DEMO_DETAILS : undefined}
-      items={
-        workspaces
-          ? [
-              ...DEMO_ITEMS,
-              ...buildWorkspaceSection({
-                actions: groupActions,
-                actionsOnHover,
-                tag: groupTag ? tone : undefined,
-                loadingSession,
-                pageSize: pageSize === "all" ? undefined : Number(pageSize),
-              }),
-            ]
-          : DEMO_ITEMS
-      }
+      items={[
+        ...DEMO_ITEMS,
+        ...(expandOnly ? EXPAND_ONLY_SECTION : []),
+        ...(workspaces
+          ? buildWorkspaceSection({
+              actions: groupActions,
+              actionsOnHover,
+              tag: groupTag ? tone : undefined,
+              loadingSession,
+              pageSize: pageSize === "all" ? undefined : Number(pageSize),
+            })
+          : []),
+      ]}
     />
   );
 
@@ -301,6 +303,11 @@ export const SideMenuPlayground: React.FC = () => {
                     label="Top item (workspace menu)"
                     checked={topItem}
                     onChange={setTopItem}
+                  />
+                  <ToggleRow
+                    label="Expand-only section (no route)"
+                    checked={expandOnly}
+                    onChange={setExpandOnly}
                   />
                   <ToggleRow
                     label="Footer item (user menu)"

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within, act } from "@testing-library/react";
 import { SURFACE_VARIANTS } from "../../theme/Theme";
-import { TaskBoard, sampleTaskBoard, type TaskBoardProps } from "./index";
+import { TaskBoard, sampleTaskBoard, type TaskBoardCard, type TaskBoardColumn, type TaskBoardProps } from "./index";
 
 const roadmap = sampleTaskBoard.roadmap();
 
@@ -174,6 +174,81 @@ describe("TaskBoard — columns layout", () => {
       const src = fs.readFileSync(path.join(dir, f), "utf8");
       expect(src, f).not.toMatch(/text-(slate|neutral)-\d/);
     }
+  });
+});
+
+describe("TaskBoard — auto-collapse empty columns", () => {
+  const shipped: TaskBoardColumn = { id: "shipped", title: "Shipped" };
+  const withShipped: TaskBoardColumn[] = [...roadmap.columns, shipped];
+  const board = (cards: TaskBoardCard[], extra: Partial<TaskBoardProps> = {}) => (
+    <TaskBoard cards={cards} columns={withShipped} priorities={roadmap.priorities} autoCollapseEmpty {...extra} />
+  );
+
+  it("an empty column shows collapsed and nothing is emitted", () => {
+    const onColumnsChange = vi.fn();
+    renderBoard({ columns: withShipped, autoCollapseEmpty: true, onColumnsChange });
+    expect(column("shipped").getAttribute("data-collapsed")).toBe("true");
+    for (const col of roadmap.columns) expect(column(col.id).hasAttribute("data-collapsed")).toBe(false);
+    expect(onColumnsChange).not.toHaveBeenCalled();
+  });
+
+  it("flag off: an empty column stays open", () => {
+    renderBoard({ columns: withShipped });
+    expect(column("shipped").hasAttribute("data-collapsed")).toBe(false);
+  });
+
+  it("a collapsed flag on a non-empty column keeps it collapsed", () => {
+    const columns = roadmap.columns.map((c) => (c.id === "blocked" ? { ...c, collapsed: true } : c));
+    renderBoard({ columns, autoCollapseEmpty: true });
+    expect(column("blocked").getAttribute("data-collapsed")).toBe("true");
+  });
+
+  it("expanding an auto-collapsed column emits nothing and wins for the session", () => {
+    vi.useFakeTimers();
+    const onColumnsChange = vi.fn();
+    const { rerender } = render(board(roadmap.cards, { onColumnsChange }));
+    fireEvent.click(within(column("shipped")).getByRole("button", { name: "Expand Shipped" }));
+    expect(onColumnsChange).not.toHaveBeenCalled();
+    expect(column("shipped").hasAttribute("data-collapsed")).toBe(false);
+    // Cards arrive and leave again — the manual expansion outlives them.
+    rerender(board([...roadmap.cards, { id: "s1", column: "shipped", title: "v2.0 notes" } as TaskBoardCard], { onColumnsChange }));
+    rerender(board(roadmap.cards, { onColumnsChange }));
+    expect(column("shipped").hasAttribute("data-collapsed")).toBe(false);
+    // The caret folds it back — still a view change, still no emission.
+    fireEvent.click(within(column("shipped")).getByRole("button", { name: "Collapse Shipped" }));
+    expect(column("shipped").getAttribute("data-collapsed")).toBe("true");
+    expect(onColumnsChange).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    vi.useRealTimers();
+  });
+
+  it("expanding a data-collapsed empty column undoes the flag once and exempts for the session", () => {
+    vi.useFakeTimers();
+    const onColumnsChange = vi.fn();
+    render(
+      board(roadmap.cards, {
+        onColumnsChange,
+        columns: [...roadmap.columns, { ...shipped, collapsed: true }],
+      }),
+    );
+    fireEvent.click(within(column("shipped")).getByRole("button", { name: "Expand Shipped" }));
+    const next = onColumnsChange.mock.calls[0][0] as TaskBoardColumn[];
+    expect(next.find((c) => c.id === "shipped")!.collapsed).toBe(false);
+    expect(column("shipped").hasAttribute("data-collapsed")).toBe(false);
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    vi.useRealTimers();
+  });
+
+  it("no onColumnsChange: empty columns still collapse and open by caret", () => {
+    const { rerender } = render(<TaskBoard cards={roadmap.cards} columns={withShipped} autoCollapseEmpty />);
+    expect(column("shipped").getAttribute("data-collapsed")).toBe("true");
+    rerender(<TaskBoard cards={roadmap.cards} columns={withShipped} autoCollapseEmpty />);
+    fireEvent.click(within(column("shipped")).getByRole("button", { name: "Expand Shipped" }));
+    expect(column("shipped").hasAttribute("data-collapsed")).toBe(false);
   });
 });
 

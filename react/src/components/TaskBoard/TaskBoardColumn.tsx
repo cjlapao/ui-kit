@@ -96,7 +96,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
           : undefined
       }
       className={classNames(
-        "text-xs font-semibold tabular-nums",
+        "select-none text-xs font-semibold tabular-nums",
         wip === "full" || wip === "over" || full ? tokens.wipFull : surface.muted,
       )}
     >
@@ -145,7 +145,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
           {countChip}
           <span
             className={classNames(
-              "text-sm font-semibold whitespace-nowrap [writing-mode:vertical-rl]",
+              "text-sm font-semibold whitespace-nowrap [writing-mode:vertical-rl] select-none",
               surface.heading,
             )}
           >
@@ -171,7 +171,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
             <TaskBoardColumnGrip column={column} index={index} />
             <span
               className={classNames(
-                "truncate text-sm font-semibold",
+                "truncate text-sm font-semibold select-none",
                 surface.heading,
               )}
             >

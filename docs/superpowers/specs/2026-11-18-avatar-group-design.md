@@ -123,7 +123,9 @@ Geometry constants: chip boxes reuse `UserAvatar`'s ladder
 (`text-[10px] … text-base`); `GAP_PX` (`4/6/8/12/16`), `OVERLAP_RATIO 0.3`,
 the `+N` footprint (34 px), and inner `PAD_RATIO 0.25` carry over unchanged.
 The `showNames` label block is dropped — condensed rows are pure
-chip strips, and chips carry `title={name}`.
+chip strips, and chips carry `title={name}` (superseded the same day: the chip
+hover label became a `Popover`, see
+[2026-11-18-avatar-group-popover-tooltip-design.md](./2026-11-18-avatar-group-popover-tooltip-design.md)).
 
 - Condensed when `count > maxVisible` **or** the measured row doesn't fit
   (`ResizeObserver` on the root, same width-fits math as the swatches; an
@@ -157,7 +159,8 @@ chip strips, and chips carry `title={name}`.
 
 The group is `role="group"` labelled `Avatars`, with the `regionId` wiring the
 `+N` button (`aria-expanded`, `aria-controls`) shares with `ColorSwatches`.
-A chip is `role="img"` with `aria-label={name}` and `title={name}` — or a real
+A chip is `role="img"` with `aria-label={name}` and `title={name}` (the
+`title` is superseded — see the popover-tooltip spec beside this one) — or a real
 `<button type="button">` with a tone focus ring (`focus-visible:ring-{tone}-400`,
 offset included) when it has `onClick`; its artwork is `aria-hidden` so the
 name is announced once. Images are `alt=""`. Condensed chips leave the tab
@@ -185,5 +188,6 @@ theme maps get a shape test over all 21 colours.
 ## Out of scope
 
 The Vue mirror (follow-up change), a `selectable` ring mode, `showNames`,
-per-chip tooltip popovers, and item-level `disabled` — none requested, each
+per-chip tooltip popovers (taken up the same day — see the popover-tooltip
+spec), and item-level `disabled` — none requested, each
 addable without breaking the API above.

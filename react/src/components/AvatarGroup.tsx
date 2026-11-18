@@ -3,6 +3,7 @@ import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
+import Popover from "./Popover";
 import {
   ScrollArea,
   SCROLLAREA_LANE_PX,
@@ -29,7 +30,10 @@ import {
 // ── Items ─────────────────────────────────────────────────────────────────────
 
 export interface AvatarGroupItem {
-  /** Display name — the accessible name, and the source of derived initials. */
+  /**
+   * Display name — the accessible name, the source of derived initials, and
+   * the one line the chip surfaces in a `Popover` when the pointer dwells.
+   */
   name?: string;
   /**
    * Explicit initials, max 2 chars — trimmed and uppercased, wins over the
@@ -141,6 +145,14 @@ const PLUS_PX = 34;
 const OVERLAP_RATIO = 0.3;
 /** Inner breathing room so hover growth stays inside the clip. */
 const PAD_RATIO = 0.25;
+/**
+ * How long the pointer must rest on a chip before its name panel opens.
+ * `Popover`'s hover mode opens on `mouseenter`, and chips touch — eight of
+ * them inside ~200 px when condensed — so an instant open is a panel flashing
+ * once per chip as the pointer crosses. The dwell is the grace the native
+ * `title` it replaces had; `Tooltip`'s own convention is 500 ms.
+ */
+const TOOLTIP_DWELL_MS = 400;
 /** The shared unfold rhythm — see `CASCADE_EXPAND` in the theme. */
 const CASCADE_MS = CASCADE_EXPAND.stepMs;
 const RETRACT_MS = CASCADE_EXPAND.retractStepMs;
@@ -181,14 +193,16 @@ interface ChipProps {
   bordered: boolean;
   /** Chips zero-width behind the +N keep their slot but leave the tab order. */
   hidden: boolean;
+  /** The strip's expansion — an open panel is dismissed when the row moves. */
+  expanded: boolean;
   fallbackName: string;
 }
 
 /**
  * One identity chip: the content chain (`image → icon → initials → User
  * glyph`) with the tone skins on top. Owns the image-error state, so a dead
- * URL walks the chain instead of breaking the row; the layout and the
- * cascade belong to `AvatarGroup`.
+ * URL walks the chain instead of breaking the row, and the dwell that opens
+ * its name in a `Popover`; the layout and the cascade belong to `AvatarGroup`.
  */
 const Chip = ({
   item,
@@ -197,12 +211,32 @@ const Chip = ({
   rounded,
   bordered,
   hidden,
+  expanded,
   fallbackName,
 }: ChipProps) => {
   const renderIcon = useIconRenderer();
   const [hasError, setHasError] = useState(false);
+  // The name panel. `Popover` keeps the hover plumbing — it owns the pointer
+  // inside the portaled panel and debounces a leave by 150 ms, which is what
+  // lets the pointer travel from chip into panel — but the chip is the source
+  // of truth for `visible`, because it alone knows a strip of touching chips
+  // must not flash a panel per chip: an open request waits out the dwell, a
+  // close request cancels it and closes at once.
+  const [open, setOpen] = useState(false);
+  const dwell = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => setHasError(false), [item.image]);
+  useEffect(() => () => clearTimeout(dwell.current), []);
+  // Cascading moves the chip out from under an open panel: nothing to point
+  // at, and its ResizeObserver would re-measure every frame of the animation.
+  useEffect(() => setOpen(false), [expanded]);
+
+  const requestOpen = (next: boolean) => {
+    clearTimeout(dwell.current);
+    if (next)
+      dwell.current = setTimeout(() => setOpen(true), TOOLTIP_DWELL_MS);
+    else setOpen(false);
+  };
 
   const px = AVATAR_PX[size];
   const shape = ROUNDED_CLASS[rounded];
@@ -308,10 +342,9 @@ const Chip = ({
   );
   const box: React.CSSProperties = { width: px, height: px };
 
-  return item.onClick ? (
+  const chipElement = item.onClick ? (
     <button
       type="button"
-      title={item.name}
       aria-label={name}
       // Condensed chips sit zero-width behind the +N: no tab stop.
       tabIndex={hidden ? -1 : 0}
@@ -324,13 +357,33 @@ const Chip = ({
   ) : (
     <span
       role="img"
-      title={item.name}
       aria-label={name}
       className={shell}
       style={box}
     >
       {artwork}
     </span>
+  );
+
+  // The name the accessible label already carries, surfaced on dwell in the
+  // kit's own surface instead of the browser's `title` — the chip gains the
+  // panel chrome, the arrow that ties it to this 32 px circle, and the flip
+  // that keeps it on screen. No new tab stops: a panel holding text a screen
+  // reader already announces is an affordance for the pointer, like the
+  // `title` it replaces, not a control the keyboard is missing.
+  return (
+    <Popover
+      trigger={chipElement}
+      visible={open}
+      onOpenChange={requestOpen}
+      triggerMode="hover"
+      placement="top"
+      variant="elevated"
+      padding="xs"
+      maxWidth={240}
+    >
+      <span className="text-xs font-medium leading-normal">{name}</span>
+    </Popover>
   );
 };
 
@@ -554,6 +607,7 @@ export const AvatarGroup = ({
         rounded={rounded}
         bordered={border}
         hidden={hidden}
+        expanded={expanded}
         fallbackName={fallbackName}
       />
     </span>

@@ -116,7 +116,12 @@ export interface SideMenuItemLink extends SideMenuItemBase {
   color?: TrueColor;
   type?: "link";
   label: string;
-  path: string;
+  /**
+   * Route to navigate to. Omit to make the row expand-only: with `children`
+   * the whole row toggles its sub-tree (click expands, click again
+   * collapses); without, the row renders inert — never a dead link.
+   */
+  path?: string;
   icon?: IconName;
   groupName?: string;
   /**
@@ -1184,7 +1189,7 @@ export const SideMenu = ({
   const isActiveItem = (link: SideMenuItemLink): boolean =>
     activeItemSlug !== undefined
       ? link.slug === activeItemSlug
-      : isActivePath(link.path);
+      : !!link.path && isActivePath(link.path);
 
   const hasActiveDescendant = (link: SideMenuItemLink): boolean =>
     !!link.children?.some(
@@ -1509,25 +1514,19 @@ export const SideMenu = ({
         : `rounded-lg transition-all duration-150 ${indentClass(depth)} ${rowStateClasses}`
     }`;
 
-    return (
-      <div key={key}>
-        <div className={rowClasses}>
-          <Link
-            to={link.path}
-            onClick={(event) => {
-              onItemSelect?.(link, event);
-              if (mobileOpen) onCloseMobile?.();
-              if (hoverOpen) closeHover();
-            }}
-            aria-current={selfActive ? "page" : undefined}
-            aria-busy={link.loading || undefined}
-            title={contentCollapsed ? link.label : undefined}
-            className={`flex min-w-0 flex-1 items-center gap-3 py-2.5 text-sm font-medium ${
-              contentCollapsed
-                ? sideMenuTileClasses(selfActive, link.color || color, surface.idleCopy)
-                : ""
-            }`}
-          >
+    // A row without a route is not a link: with children it *is* the
+    // submenu's toggle — one control for the whole row, the chevron its
+    // indicator instead of a second button; without children it renders
+    // inert, never a dead link.
+    const isExpandOnly = !link.path && hasChildren;
+    const rowClassName = `flex min-w-0 flex-1 items-center gap-3 py-2.5 text-sm font-medium ${
+      contentCollapsed
+        ? sideMenuTileClasses(selfActive, link.color || color, surface.idleCopy)
+        : ""
+    }`;
+
+    const rowInner = (
+      <>
             {(link.icon || link.loading || contentCollapsed) && (
               <div
                 className={`flex items-center justify-center relative shrink-0 ${
@@ -1604,7 +1603,65 @@ export const SideMenu = ({
                 )}
               </>
             )}
-          </Link>
+        {isExpandOnly && !contentCollapsed && (
+          // The row itself is the toggle: the chevron rides along as the
+          // indicator, not as a second button.
+          <span
+            aria-hidden="true"
+            className={`inline-flex shrink-0 items-center justify-center p-1.5 ${surface.muted}`}
+          >
+            <CustomIcon
+              icon="ChevronRight"
+              className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                showChildren ? "rotate-90" : ""
+              }`}
+            />
+          </span>
+        )}
+      </>
+    );
+
+    const rowMain = isExpandOnly ? (
+      // Expanding is the click's whole point, so the mobile drawer and the
+      // hover panel stay open — the children it reveals are what you
+      // clicked for. `onItemSelect` is pre-navigation copy: no navigation,
+      // no call.
+      <button
+        type="button"
+        onClick={() => toggleSubmenu(link.slug)}
+        aria-expanded={showChildren}
+        aria-busy={link.loading || undefined}
+        title={contentCollapsed ? link.label : undefined}
+        className={rowClassName}
+      >
+        {rowInner}
+      </button>
+    ) : link.path ? (
+      <Link
+        to={link.path}
+        onClick={(event) => {
+          onItemSelect?.(link, event);
+          if (mobileOpen) onCloseMobile?.();
+          if (hoverOpen) closeHover();
+        }}
+        aria-current={selfActive ? "page" : undefined}
+        aria-busy={link.loading || undefined}
+        title={contentCollapsed ? link.label : undefined}
+        className={rowClassName}
+      >
+        {rowInner}
+      </Link>
+    ) : (
+      // No route and no children: content, not a control.
+      <div title={contentCollapsed ? link.label : undefined} className={rowClassName}>
+        {rowInner}
+      </div>
+    );
+
+    return (
+      <div key={key}>
+        <div className={rowClasses}>
+          {rowMain}
           {/* Actions at the end of the row (hidden in the icon rail) */}
           {!contentCollapsed && link.actions && (
             <span
@@ -1622,8 +1679,9 @@ export const SideMenu = ({
               {link.actions}
             </span>
           )}
-          {/* Submenu toggle (hidden in the icon rail) */}
-          {hasChildren && !contentCollapsed && (
+          {/* Submenu toggle (hidden in the icon rail; expand-only rows are
+              the toggle themselves — see the row's chevron indicator) */}
+          {hasChildren && !contentCollapsed && !isExpandOnly && (
             <button
               type="button"
               aria-expanded={showChildren}

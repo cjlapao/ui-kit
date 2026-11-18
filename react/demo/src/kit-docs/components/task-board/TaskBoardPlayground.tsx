@@ -86,6 +86,7 @@ export const TaskBoardPlayground: React.FC = () => {
   const [columnCorner, setColumnCorner] = useState<SurfaceCorner>("rounded-md");
   const [toned, setToned] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [autoCollapseEmpty, setAutoCollapseEmpty] = useState(false);
   const [maxItems, setMaxItems] = useState("none");
   const [padding, setPadding] = useState<SurfacePadding>("none");
   const [color, setColor] = useState<TrueColor>("blue");
@@ -186,6 +187,7 @@ export const TaskBoardPlayground: React.FC = () => {
                       <ToggleRow label="Editable" checked={editable} onChange={setEditable} />
                       <ToggleRow label="Card tones" checked={toned} onChange={setToned} />
                       <ToggleRow label="Edit mode (columns)" checked={editMode} onChange={setEditMode} />
+                      <ToggleRow label="Auto-collapse empty" checked={autoCollapseEmpty} onChange={setAutoCollapseEmpty} />
                       <ToggleRow label="WIP limits" checked={wip} onChange={setWip} />
                       <ToggleRow label="Transition rules + locks" checked={rules} onChange={setRules} />
                       <SelectControl
@@ -236,6 +238,7 @@ export const TaskBoardPlayground: React.FC = () => {
             priorities={source.priorities}
             editable={editable}
             editMode={editMode}
+            autoCollapseEmpty={autoCollapseEmpty}
             maxItems={maxItems === "none" ? undefined : Number(maxItems)}
             onCardsChange={(next, move) => {
               setCards(next);

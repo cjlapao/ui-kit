@@ -60,6 +60,24 @@ export const DEMO_ITEMS: SideMenuItem[] = [
   },
 ];
 
+/**
+ * A parent with no route: the row itself is the submenu's toggle — click
+ * expands, click again collapses. It never navigates and is never route-active.
+ */
+export const EXPAND_ONLY_SECTION: SideMenuItem[] = [
+  {
+    slug: "resources",
+    label: "Resources",
+    icon: "Library",
+    description: "guides, runbooks and the changelog",
+    children: [
+      { slug: "guides", label: "Guides", path: "/resources/guides", icon: "Log" },
+      { slug: "runbooks", label: "Runbooks", path: "/resources/runbooks", icon: "File" },
+      { slug: "changelog", label: "Changelog", path: "/resources/changelog", icon: "Calendar" },
+    ],
+  },
+];
+
 /** A short list for side-by-side mini panels. */
 export const MINI_ITEMS: SideMenuItem[] = [
   { slug: "overview", label: "Overview", path: "/overview", icon: "Dashboard" },

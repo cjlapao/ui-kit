@@ -604,6 +604,59 @@ describe("SideMenu — nested items", () => {
     });
     expect(screen.getByText("Hosts")).toBeInTheDocument();
   });
+
+  // The same tree without the parent's route: the row has nowhere to
+  // navigate, so the row itself is the submenu's toggle.
+  const EXPAND_ONLY: SideMenuItem[] = [
+    {
+      slug: "infra",
+      label: "Infrastructure",
+      icon: "Folder",
+      children: [
+        { slug: "hosts", label: "Hosts", path: "/infra/hosts", icon: "Host" },
+        { slug: "pods", label: "Pods", path: "/infra/pods", icon: "Container" },
+      ],
+    },
+  ];
+
+  it("toggles the subtree from the whole row when the parent has no path", () => {
+    renderMenu({ items: EXPAND_ONLY });
+    const row = screen.getByRole("button", { name: "Infrastructure" });
+    expect(row).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
+
+    fireEvent.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Hosts")).toBeInTheDocument();
+
+    fireEvent.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
+  });
+
+  it("renders a no-path parent as a button, not an anchor", () => {
+    renderMenu({ items: EXPAND_ONLY });
+    expect(screen.queryByRole("link", { name: "Infrastructure" })).toBeNull();
+    // One control per row: the chevron rides along, it is not a second button.
+    expect(
+      screen.queryByLabelText("Expand Infrastructure submenu"),
+    ).toBeNull();
+  });
+
+  it("keeps clicking the row of a link with children as navigation", () => {
+    renderMenu({ items: NESTED });
+    fireEvent.click(link("Infrastructure"));
+    expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
+    const toggle = screen.getByLabelText("Expand Infrastructure submenu");
+    expect(toggle).toBeInTheDocument();
+  });
+
+  it("renders a row with neither path nor children inert", () => {
+    renderMenu({ items: [{ slug: "ghost", label: "Ghost section" }] });
+    expect(screen.getByText("Ghost section")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ghost/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /ghost/i })).toBeNull();
+  });
 });
 
 // ── Row extras ──────────────────────────────────────────────────────────────

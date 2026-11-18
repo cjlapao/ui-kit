@@ -30,6 +30,7 @@ import {
   Accordion,
   ActionPanel,
   Alert,
+  AvatarGroup,
   Badge,
   Breadcrumb,
   Button,
@@ -325,6 +326,23 @@ const FIXTURES: Fixture[] = [
   { name: "Textarea (labelled via FormField)", render: () => <FormField label="Notes"><Textarea placeholder="notes" /></FormField> },
   { name: "InputOtp (6 digits, labelled)", render: () => <InputOtp length={6} aria-label="One-time code" /> },
   { name: "Alert (tone, title)", render: () => <Alert tone="amber" title="Degraded">Check the queue.</Alert> },
+  {
+    // Chips named by `aria-label` and carrying the popover's trigger attrs
+    // (`aria-haspopup`/`aria-expanded`) on a `role="img"` element; the +N
+    // chip beside them. The panel itself only exists while hovered, which
+    // this harness cannot reach — the attrs are the thing to guard.
+    name: "AvatarGroup (named chips, +N)",
+    render: () => (
+      <AvatarGroup
+        items={[
+          { name: "Ada Lovelace" },
+          { name: "Grace Hopper", onClick: () => {} },
+          { name: "Alan Turing" },
+        ]}
+        maxVisible={2}
+      />
+    ),
+  },
   { name: "EmptyState (title, subtitle)", render: () => <EmptyState title="No hosts" subtitle="Nothing here yet." /> },
   {
     name: "Breadcrumb (items, labelled)",

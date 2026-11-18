@@ -125,6 +125,14 @@ export interface TaskBoardProps {
    * Off by default — the layout is fixed until the app turns this on.
    */
   editMode?: boolean;
+  /**
+   * Shows empty columns collapsed — the default view. The board never emits
+   * for the auto state: your `collapsed` flags stay as you set them. A caret
+   * click that expands an auto-collapsed column wins for the session — that
+   * column stops auto-collapsing until the board remounts. Inert in the
+   * lanes layout; empty = no cards, judged on the committed `cards`.
+   */
+  autoCollapseEmpty?: boolean;
 
   /** Click or Enter on a card — open your editor. */
   onCardOpen?: (card: TaskBoardCard) => void;
@@ -209,6 +217,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
     onBeforeMove,
     editable,
     editMode = false,
+    autoCollapseEmpty = false,
     maxItems,
     onCardOpen,
     onCardContextMenu,
@@ -382,9 +391,43 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
   // Buckets and counts follow the live preview, so WIP readouts move with the card.
   const buckets = useMemo(() => bucketCards(previewCards, columns, viewLanes), [previewCards, columns, viewLanes]);
   const draggedCard = drag ? cards.find((c) => c.id === drag.cardId) : undefined;
-  const toggleColumn = onColumnsChange
-    ? (id: string) => onColumnsChange(columns.map((c) => (c.id === id ? { ...c, collapsed: !c.collapsed } : c)))
-    : undefined;
+  // Auto-collapse of empty columns — a view default, never emitted. Emptiness
+  // reads the committed cards, so a mid-flight drag never flickers a column.
+  // The ids the user expanded by caret are exempt for the session.
+  const autoCollapse = autoCollapseEmpty && !laneView;
+  const [autoExpanded, setAutoExpanded] = useState<ReadonlySet<string>>(() => new Set());
+  const keepAutoExpanded = (id: string, keep: boolean) =>
+    setAutoExpanded((prev) => {
+      if (prev.has(id) === keep) return prev;
+      const next = new Set(prev);
+      if (keep) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  const toggleColumn =
+    onColumnsChange || autoCollapse
+      ? (id: string) => {
+          if (autoCollapse && columnCount(cards, id) === 0) {
+            if (!autoExpanded.has(id)) {
+              keepAutoExpanded(id, true);
+              // A real collapsed flag is still a real flag: undoing it on
+              // click is the same emission the caret made before this prop.
+              if (columns.some((c) => c.id === id && c.collapsed))
+                onColumnsChange?.(columns.map((c) => (c.id === id ? { ...c, collapsed: false } : c)));
+            } else keepAutoExpanded(id, false);
+            return;
+          }
+          onColumnsChange?.(columns.map((c) => (c.id === id ? { ...c, collapsed: !c.collapsed } : c)));
+        }
+      : undefined;
+  // What the columns row shows: each column with its effective collapsed
+  // state — the flag, the empty-column default, or the manual expansion.
+  const shownColumns = autoCollapse
+    ? viewColumns.map((col) => ({
+        ...col,
+        collapsed: autoExpanded.has(col.id) ? false : Boolean(col.collapsed) || columnCount(cards, col.id) === 0,
+      }))
+    : viewColumns;
   const toggleLane =
     onLanesChange && lanes
       ? (id: string) => onLanesChange(lanes.map((l) => (l.id === id ? { ...l, collapsed: !l.collapsed } : l)))
@@ -443,7 +486,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
             contentClassName="flex! h-full"
           >
             <div data-taskboard-columns className="flex w-max items-stretch gap-3 p-3">
-            {viewColumns.map((col, index) => (
+            {shownColumns.map((col, index) => (
               <Column
                 key={col.id}
                 column={col}

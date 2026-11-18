@@ -114,7 +114,7 @@ export const TaskBoardLaneGrid: React.FC<TaskBoardLaneGridProps> = ({
             >
               <TaskBoardColumnGrip column={col} index={index} />
               {!col.collapsed && (
-                <span className={classNames("truncate text-xs font-semibold uppercase tracking-wider", surface.body)}>
+                <span className={classNames("truncate text-xs font-semibold uppercase tracking-wider select-none", surface.body)}>
                   {col.title}
                 </span>
               )}
@@ -122,7 +122,7 @@ export const TaskBoardLaneGrid: React.FC<TaskBoardLaneGridProps> = ({
               <span
                 data-column-count
                 className={classNames(
-                  "rounded-full bg-black/5 px-1.5 text-[11px] font-semibold tabular-nums dark:bg-white/10",
+                  "select-none rounded-full bg-black/5 px-1.5 text-[11px] font-semibold tabular-nums dark:bg-white/10",
                   wip === "full" || wip === "over" || fullColumns.has(col.id)
                     ? getTaskBoardColumnTokens(col.color ?? color).wipFull
                     : surface.muted,
