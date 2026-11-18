@@ -69,7 +69,9 @@ describe("TaskBoard — columns layout", () => {
   it("plain renders no Panel chrome", () => {
     const { container } = renderBoard({ variant: "plain" });
     expect(container.querySelector("[data-taskboard]")).toBeTruthy();
-    expect(container.querySelector("section")).toBeNull();
+    // The board wrapper is a plain div. (Cards may hold their own sections —
+    // e.g. a sub task DotStepper — that is card content, not board chrome.)
+    expect(container.querySelector(":scope > section")).toBeNull();
   });
 
   it("loading renders the column-shaped skeleton and aria-busy", () => {

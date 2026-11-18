@@ -59,6 +59,31 @@ describe("DotStepper", () => {
     expect(select).not.toHaveBeenCalled();
     expect(screen.queryByText("Details")).toBeNull();
   });
+  it("renders read-only dots as non-focusable images, keeping tooltips", async () => {
+    const select = vi.fn();
+    const { container } = render(
+      <DotStepper steps={steps} currentIndex={4} readOnly aria-label="Sub tasks" onStepSelect={select} renderActiveContent={() => "Details"} />,
+    );
+    // Not one button, not one tab stop — progress inside another control.
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(container.querySelector('[tabindex="0"]')).toBeNull();
+    expect(screen.getByRole("group", { name: "Sub tasks" })).toBeInTheDocument();
+    expect(screen.getAllByRole("img")).toHaveLength(7); // five windowed steps + two stacks
+    const active = screen.getByRole("img", { name: "Step 5, step 5 of 10, active" });
+    expect(active).toHaveAttribute("aria-current", "step");
+    expect(container.querySelector("[data-dot-pulse]")).not.toBeNull(); // visuals untouched
+    expect(screen.getByRole("img", { name: "2 more steps before" })).toBeInTheDocument();
+    fireEvent.click(active);
+    expect(select).not.toHaveBeenCalled();
+    expect(screen.queryByText("Details")).toBeNull();
+    fireEvent.mouseEnter(active);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Step 5");
+  });
+  it("stays button-free when read-only is also disabled", () => {
+    render(<DotStepper steps={steps} currentIndex={4} readOnly disabled />);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByRole("group", { name: "Workflow progress" })).toHaveClass("opacity-50");
+  });
   it("keeps disabled steps inert while other steps remain available", () => {
     const select = vi.fn();
     const { container } = render(<DotStepper steps={[{ title: "Locked", disabled: true }, { title: "Failed", status: "error" }]} errorColor="orange" onStepSelect={select} renderActiveContent={() => "Details"} />);

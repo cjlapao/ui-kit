@@ -31,6 +31,25 @@ export interface TaskBoardPriority {
   color: TrueColor;
 }
 
+/**
+ * A sub task's state. The strings match the stepper statuses the card
+ * renders them with, so the mapping at the React boundary is 1:1.
+ */
+export type TaskBoardSubtaskStatus = "pending" | "active" | "completed" | "error";
+
+/** One step of a card's sub-task list — rendered as a dot on the card. */
+export interface TaskBoardSubtask {
+  id: string;
+  /** Plain text: it is the dot's tooltip and screen-reader name. */
+  title: string;
+  /** Checked state — shorthand for status `"completed"`. `status` wins. */
+  done?: boolean;
+  /** Explicit state; overrides `done`. Omitted = inferred from order. */
+  status?: TaskBoardSubtaskStatus;
+  /** App payload, passed back untouched. */
+  data?: Record<string, unknown>;
+}
+
 export interface TaskBoardCard {
   id: string;
   title: string;
@@ -46,6 +65,13 @@ export interface TaskBoardCard {
   assignees?: TaskBoardUser[];
   due?: TaskBoardDate;
   checklist?: { done: number; total: number };
+  /**
+   * Sub tasks — the card shows them as a DotStepper row (a dot each,
+   * windowed to the board's `subtaskMaxVisible`) plus a `done/total`
+   * count. Presentational: the board never edits them; `onCardOpen`
+   * hands the card to your editor.
+   */
+  subtasks?: TaskBoardSubtask[];
   /** Estimate points (compact cards show them as `3p`). */
   points?: number;
   /** Per-card permission: a locked card cannot be moved. */
@@ -131,6 +157,7 @@ export interface TaskBoardLabels {
   online: string;
   notes: string;
   checklist: string;
+  subtasks: string;
   due: string;
   addColumn: string;
   columnName: string;
@@ -174,6 +201,7 @@ export const DEFAULT_TASKBOARD_LABELS: TaskBoardLabels = {
   online: "{count} online",
   notes: "Has notes",
   checklist: "{done} of {total} done",
+  subtasks: "{done} of {total} subtasks",
   due: "Due {date}",
   addColumn: "Add column",
   columnName: "Column name",

@@ -1293,3 +1293,29 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   edge it runs along, or it runs past the curve. Map it from the same corner
   scale (`BAR_INSET` beside `INNER_CORNER`), never a fixed inset.
 | 2026-11-18 | CSS / Test | **The contract guard scans comments too — grep the new prefix across `react/src` before adding it to `CONTRACT_PREFIXES`.** Adding `pill-` to guard `.pill-pulse` (a raw hook whose colour rides as an inline `--pill-glow`/`--pill-glow-dark` custom property of `var(--color-{tone}-{shade})` — the Select-accent precedent, so no safelist shape and no hand-written colour map) failed on a phantom emitted class: the tokeniser matched the phrase "pill-scale corner" inside an unrelated InputOtp comment. Rephrase the comment, don't weaken the guard. Second, from the same feature: a running keyframe animation beats the plain declaration that paints the `focus-visible` ring — any keyframe animating `box-shadow` must re-composite the `--tw-*-shadow` variables ahead of its own layer, or the pulse eats the focus ring on a clickable pill. | Pill |
+
+## Sub tasks on TaskBoard cards — presentational dots inside a control (2026-11-18)
+
+- Progress rendered **inside** a `role="button"` card must not be interactive:
+  `DotStepper` dots are buttons, so the stepper grew a `readOnly` mode — dots
+  as `role="img"` spans with their tooltips, `tabIndex={-1}` stacks, clicks
+  left to the card. Reusing `disabled` for this was the wrong tool: it fades
+  the row `opacity-50` (pending dots sink to ~10%) and announces a disabled
+  control where none exists.
+- Chrome-probe test assertions break when card content adds semantic tags:
+  `container.querySelector("section")` for "plain renders no Panel chrome"
+  started matching the DotStepper group inside a card. Scope such probes
+  (`:scope > section`) — they guard the wrapper, not the content. Same trap
+  one notch smaller: `within(card).getByText("1/3")` broke when a sub task
+  `done/total` fraction printed the same string as the checklist glyph —
+  sample data with two count-ish badges per card must keep their texts
+  distinct.
+- The sub task model resolves in the engine, not the renderer: `resolveSubtasks`
+  in `common/taskboard` maps `done`/`status` to one of four stepper statuses
+  (first unstated item = active), and the strings are deliberately identical
+  to react's `StepStatus`, so the card just hands the list to `DotStepper`.
+  `applyMove` already spreads cards, so new per-card fields ride through
+  moves/undo/collab with zero engine work.
+- Panel drops `aria-*` props it does not model (DotStepper's `aria-disabled`
+  has never reached its section element — it only paints `opacity-50`): assert
+  what Panel actually forwards before testing a caller's aria story.

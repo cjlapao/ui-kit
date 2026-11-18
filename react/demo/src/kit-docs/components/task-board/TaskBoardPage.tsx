@@ -16,6 +16,8 @@ import FieldOperations from "./examples/FieldOperations";
 import fieldOperationsCode from "./examples/FieldOperations.tsx?raw";
 import Rules from "./examples/Rules";
 import rulesCode from "./examples/Rules.tsx?raw";
+import Subtasks from "./examples/Subtasks";
+import subtasksCode from "./examples/Subtasks.tsx?raw";
 import CustomCards from "./examples/CustomCards";
 import customCardsCode from "./examples/CustomCards.tsx?raw";
 import States from "./examples/States";
@@ -76,6 +78,14 @@ export const TaskBoardPage: React.FC = () => (
         filename="FieldOperations.tsx"
       >
         <FieldOperations />
+      </ExampleCard>
+      <ExampleCard
+        title="Sub tasks"
+        description="`subtasks` ride on the card and read as a read-only DotStepper row: one dot per sub task (done · active · pending · error), a `done/total` fraction beside them, and `subtaskMaxVisible` (3 by default) dots at most — the rest stack into a tooltip, one per hidden sub task. A plain `done: true` list is enough to drive it; explicit `status` overrides the inference. The dots never take focus — the card stays the only control, and `onCardOpen` still opens the editor that owns them."
+        code={subtasksCode}
+        filename="Subtasks.tsx"
+      >
+        <Subtasks />
       </ExampleCard>
       <ExampleCard
         title="Rules and guarded moves"
@@ -140,6 +150,11 @@ export const TaskBoardPage: React.FC = () => (
           position 1 of 4"), the drop and a cancel. A card a teammate holds gets <C>aria-disabled</C> and a
           visually hidden "{"{name}"} is moving this"; a pending guarded move sets <C>aria-busy</C> on the card.
         </p>
+        <p>
+          Sub task dots are read-only: each is a <C>role="img"</C> named "{"{title}, step i of n, {status}"}"
+          {" "}inside a <C>role="group"</C> named by <C>kit.taskboard.subtasks</C> ("{"2 of 7 subtasks"}"), never a
+          button — so a card stays one tab stop and a click on a dot still opens the card.
+        </p>
         <A11yCode code={TRANSPORT_CODE} filename="transport.tsx" />
       </A11yTopic>
       <KeyboardSupportTable
@@ -179,6 +194,8 @@ export const TaskBoardPage: React.FC = () => (
         { name: "layout", type: "TaskBoardLayout", default: '"columns"', description: '"lanes" crosses the columns with `lanes`.' },
         { name: "cardLayout / renderCard", type: "TaskBoardCardLayout / (card, state) => ReactNode", default: '"detailed"', description: "A preset card body, or your own. The card shell stays the board's." },
         { name: "priorities", type: "TaskBoardPriority[]", description: "What `card.priority` ids resolve to: label and colour." },
+        { name: "card.subtasks", type: "TaskBoardSubtask[]", description: "Per card: rendered as a read-only DotStepper row — one dot per sub task — with a `done/total` fraction. `{ id, title, done }` is the simple form (the first unchecked sub task reads as active); `status: \"pending\" | \"active\" | \"completed\" | \"error\"` overrides the inference. Presentational: editing them happens in your `onCardOpen` editor." },
+        { name: "subtaskMaxVisible", type: "number", default: "3", description: "How many sub task dots a card shows; the rest stack into \"more\" markers whose tooltip names every hidden sub task." },
         { name: "onCardOpen / onCardContextMenu / onAddCard", type: "callbacks", description: "App-owned surfaces. The context-menu payload carries the card, column, lane, index, x / y and the event." },
         { name: "selectedIds / onSelectionChange", type: "string[] / (ids) => void", description: "Click, Ctrl/⌘-click and Shift-click (range within a column). Uncontrolled when selectedIds is omitted." },
         { name: "transport / currentUser", type: "TaskBoardTransport / TaskBoardUser", description: "The collaboration channel: presence, grabs and drag targets only — never card data. Without both, nothing runs." },

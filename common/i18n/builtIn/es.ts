@@ -189,6 +189,7 @@ export const ES_KIT_CATALOG: MessageCatalog = {
       online: "{count} en l\u00ednea",
       notes: "Tiene notas",
       checklist: "{done} de {total} hechas",
+      subtasks: "{done} de {total} subtareas",
       due: "Vence {date}",
       addColumn: "A\u00f1adir columna",
       columnName: "Nombre de la columna",

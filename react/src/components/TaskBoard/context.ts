@@ -66,6 +66,8 @@ export interface TaskBoardContextValue {
   size: TaskBoardSizeTokens;
   /** Resolved expanded-column width; `auto` has already fallen back to size. */
   columnWidth: number | string;
+  /** The board's density setting — parts that need it (card dot sizes) read it here. */
+  controlSize: ControlSize;
   cardLayout: TaskBoardCardLayout;
   priorities: Map<string, TaskBoardPriority>;
   locale: string;
@@ -92,6 +94,8 @@ export interface TaskBoardContextValue {
   allColumns?: TaskBoardColumn[];
   /** Board-wide default for `column.maxItems`. */
   boardMaxItems?: number;
+  /** Dots a card shows for its sub tasks; anything past them stacks. */
+  subtaskMaxVisible: number;
   /** Opaque-enough fill for sticky headers that cards scroll under. */
   stickySurface: string;
   /** Live state of a card (drag / hold / selection / pending). */

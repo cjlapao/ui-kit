@@ -31,6 +31,7 @@ const KEYS: Record<keyof TaskBoardLabels, string> = {
   online: "kit.taskboard.online",
   notes: "kit.taskboard.notes",
   checklist: "kit.taskboard.checklist",
+  subtasks: "kit.taskboard.subtasks",
   due: "kit.taskboard.due",
   addColumn: "kit.taskboard.addColumn",
   columnName: "kit.taskboard.columnName",

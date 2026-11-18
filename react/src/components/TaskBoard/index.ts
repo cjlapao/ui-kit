@@ -39,6 +39,7 @@ export {
   DEFAULT_TASKBOARD_LABELS,
   TASKBOARD_LAYOUTS,
   TASKBOARD_CARD_LAYOUTS,
+  resolveSubtasks,
 } from "../../../../common/taskboard";
 export type {
   TaskBoardCard,
@@ -47,6 +48,8 @@ export type {
   TaskBoardPriority,
   TaskBoardUser,
   TaskBoardTag,
+  TaskBoardSubtask,
+  TaskBoardSubtaskStatus,
   TaskBoardSlot,
   TaskBoardMove,
   TaskBoardLayout,
@@ -56,6 +59,8 @@ export type {
   TaskBoardCollabEvent,
   TaskBoardHistory,
   TaskBoardSample,
+  ResolvedSubtask,
+  ResolvedSubtasks,
   PresenceState,
   MoveVerdict,
   MoveContext,

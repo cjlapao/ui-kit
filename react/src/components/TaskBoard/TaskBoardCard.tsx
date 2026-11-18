@@ -1,10 +1,11 @@
 /**
  * TaskBoardCard — one card in a column × lane bucket.
  *
- * Two presets: `detailed` (tags, title, priority / checklist / due / notes
- * meta row, assignee bottom-right — the roadmap reference) and `compact`
- * (title with the assignee beside it, then priority, points and first tag —
- * the dispatch reference). `renderCard` replaces the body of either.
+ * Two presets: `detailed` (tags, title, priority / checklist / sub tasks /
+ * due / notes meta row, assignee bottom-right — the roadmap reference) and
+ * `compact` (title with the assignee beside it, then priority, points, first
+ * tag and sub task dots — the dispatch reference). `renderCard` replaces the
+ * body of either.
  */
 
 import React from "react";
@@ -15,12 +16,15 @@ import {
   getTaskBoardSelectionTokens,
   getTaskBoardPeerTokens,
   peerColor,
+  resolveSubtasks,
+  type ResolvedSubtasks,
   type TaskBoardCard as Card,
   type TaskBoardTag,
   type TaskBoardUser,
 } from "../../../../common/taskboard";
 import { getSurfaceTriggerTokens } from "../../theme/Theme";
 import UserAvatar from "../UserAvatar";
+import DotStepper from "../DotStepper";
 import { Calendar } from "../../icons/components/Calendar";
 import { CheckCircle } from "../../icons/components/CheckCircle";
 import { Details } from "../../icons/components/Details";
@@ -65,10 +69,41 @@ const Avatars: React.FC<{ users?: TaskBoardUser[] }> = ({ users }) => {
   );
 };
 
+/** Dot density for the board's control size — dots stay under the text line. */
+const subtaskDotSize = (controlSize: string): "xs" | "sm" | "md" =>
+  controlSize === "xs" || controlSize === "sm" ? "xs" : controlSize === "xl" ? "md" : "sm";
+
+/**
+ * Sub tasks as a read-only DotStepper row plus a GitHub-style `done/total`
+ * fraction: dots carry per-item state (a tooltip each, hidden ones stack),
+ * the fraction carries progress at a glance. Read-only because the card
+ * itself is the control — interactive dots would add a tab stop per item
+ * inside a `role="button"` card.
+ */
+const SubtaskDots: React.FC<{ subtasks: ResolvedSubtasks }> = ({ subtasks }) => {
+  const { subtaskMaxVisible, controlSize, text, surface } = useTaskBoard();
+  return (
+    <span data-card-subtasks className="inline-flex items-center gap-1.5">
+      <DotStepper
+        aria-label={text("subtasks", { done: subtasks.done, total: subtasks.total })}
+        steps={subtasks.subtasks.map((s) => ({ id: s.id, title: s.title, tooltip: s.title, status: s.status }))}
+        readOnly
+        variant="none"
+        maxVisible={subtaskMaxVisible}
+        size={subtaskDotSize(controlSize)}
+      />
+      <span aria-hidden="true" className={classNames("tabular-nums", surface.muted)}>
+        {subtasks.done}/{subtasks.total}
+      </span>
+    </span>
+  );
+};
+
 export const TaskBoardCardBody: React.FC<{ card: Card }> = ({ card }) => {
   const { surface, size, cardLayout, priorities, locale, text } = useTaskBoard();
   const priority = card.priority ? priorities.get(card.priority) : undefined;
   const due = formatDue(card.due, locale);
+  const subtasks = card.subtasks?.length ? resolveSubtasks(card.subtasks) : undefined;
   const plainChip = classNames("bg-black/5 dark:bg-white/10", surface.muted);
   const chip = "inline-flex items-center rounded px-1.5 py-0.5 font-medium leading-none";
 
@@ -117,12 +152,13 @@ export const TaskBoardCardBody: React.FC<{ card: Card }> = ({ card }) => {
           {first !== undefined && (
             <span className={classNames("text-[10px]", surface.muted)}>#{tagLabel(first)}</span>
           )}
+          {subtasks && <SubtaskDots subtasks={subtasks} />}
         </div>
       </div>
     );
   }
 
-  const hasMeta = priority || card.description || card.checklist || due;
+  const hasMeta = priority || card.description || card.checklist || due || subtasks;
   return (
     <div className={classNames("flex flex-col", size.gap)}>
       {card.tags && card.tags.length > 0 && (
@@ -153,6 +189,7 @@ export const TaskBoardCardBody: React.FC<{ card: Card }> = ({ card }) => {
                 {due}
               </span>
             )}
+            {subtasks && <SubtaskDots subtasks={subtasks} />}
           </div>
           <Avatars users={card.assignees} />
         </div>

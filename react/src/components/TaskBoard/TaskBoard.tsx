@@ -91,6 +91,12 @@ export interface TaskBoardProps {
   layout?: TaskBoardLayout;
   /** @default "detailed" */
   cardLayout?: TaskBoardCardLayout;
+  /**
+   * Dots a card shows for its sub tasks (one dot per sub task). Anything
+   * past the window stacks into DotStepper's "more" markers, with a
+   * tooltip per hidden sub task on hover. @default 3
+   */
+  subtaskMaxVisible?: number;
   /** Replace a card's body. The card shell (drag, focus, selection) stays. */
   renderCard?: (card: TaskBoardCard, state: TaskBoardCardState) => ReactNode;
 
@@ -195,6 +201,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
     layout = "columns",
     priorities,
     cardLayout = "detailed",
+    subtaskMaxVisible = 3,
     renderCard,
     onCardsChange,
     onColumnsChange,
@@ -335,6 +342,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
       color,
       size: sizeTokens,
       columnWidth: resolvedColumnWidth,
+      controlSize: size,
       cardLayout,
       priorities: new Map((priorities ?? []).map((p) => [p.id, p])),
       locale,
@@ -351,6 +359,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
       onEditColumn: columnEditing ? editColumn : undefined,
       allColumns: columns,
       boardMaxItems: maxItems,
+      subtaskMaxVisible,
       stickySurface: surface.translucent ? GLASS_STICKY : SOLID_STICKY,
       cardState: (card) => ({
         held: heldPeer(card.id),
@@ -367,7 +376,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
           ? { bucket: bucketKey(drag.to.column, drag.to.lane), index: drag.to.index, valid: false }
           : null,
     }),
-    [text, surface, color, sizeTokens, resolvedColumnWidth, cardLayout, priorities, locale, isEditable, renderCard, onCardOpen, onCardContextMenu, onAddCard, wellSurface, columnCornerClass, columnEditing, columnDrag.gripProps, columnDrag.drag, editColumn, columns, maxItems, selected, drag, pending, cardHandlers, keyboardProps, heldPeer, notice],
+    [text, surface, color, sizeTokens, resolvedColumnWidth, size, cardLayout, subtaskMaxVisible, priorities, locale, isEditable, renderCard, onCardOpen, onCardContextMenu, onAddCard, wellSurface, columnCornerClass, columnEditing, columnDrag.gripProps, columnDrag.drag, editColumn, columns, maxItems, selected, drag, pending, cardHandlers, keyboardProps, heldPeer, notice],
   );
 
   // Buckets and counts follow the live preview, so WIP readouts move with the card.

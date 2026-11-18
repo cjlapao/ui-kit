@@ -12,3 +12,4 @@ export * from "./collab";
 export * from "./history";
 export * from "./tokens";
 export * from "./columns";
+export * from "./subtasks";

@@ -30,6 +30,13 @@ export interface DotStepperProps extends Pick<PanelProps, "variant" | "tone" | "
   /** Only the active dot pulses. Respects reduced motion. @default true */
   animated?: boolean;
   disabled?: boolean;
+  /**
+   * Presentational mode: dots are non-focusable `img` spans with their
+   * tooltips, not buttons — for showing progress inside another control
+   * (a TaskBoard card, a table row) without adding tab stops. Tooltips
+   * stay; `onStepSelect` and `renderActiveContent` do nothing here.
+   */
+  readOnly?: boolean;
   "aria-label"?: string;
   onStepSelect?: (step: DotStepperStep, index: number) => void;
   renderActiveContent?: (step: DotStepperStep, index: number) => React.ReactNode;
@@ -59,13 +66,13 @@ function ActivePopover({ trigger, content, options }: { trigger: React.ReactElem
 }
 
 /** A table-row-sized view of workflow progress, with no automatic advancement. */
-export function DotStepper({ steps, currentIndex, currentStepId, maxVisible = 5, size = "sm", corner = "full", tone: surfaceTone = "none", variant = "tonal", padding = "none", doneColor = "emerald", nextColor = "neutral", errorColor = "rose", animated = true, disabled = false, onStepSelect, renderActiveContent, popoverProps, className, style, "aria-label": label = "Workflow progress", ...surface }: DotStepperProps) {
+export function DotStepper({ steps, currentIndex, currentStepId, maxVisible = 5, size = "sm", corner = "full", tone: surfaceTone = "none", variant = "tonal", padding = "none", doneColor = "emerald", nextColor = "neutral", errorColor = "rose", animated = true, disabled = false, readOnly = false, onStepSelect, renderActiveContent, popoverProps, className, style, "aria-label": label = "Workflow progress", ...surface }: DotStepperProps) {
   const tone = getSurfaceAccentColor(surfaceTone);
   const plan = planDotSteps(steps, currentIndex, currentStepId, maxVisible);
   const density = sizes[size];
   const fill = (status: StepStatus) => status === "completed" ? getTrueColorDotClass(doneColor) : status === "error" ? getTrueColorDotClass(errorColor) : status === "active" ? getTrueColorDotClass(tone) : classNames(getTrueColorDotClass(nextColor), "opacity-20 dark:opacity-25");
   const overflow = (side: "before" | "after", count: number) => count > 0 && <TooltipWrapper key={side} text={`${count} more steps ${side}`}>
-    <span tabIndex={disabled ? -1 : 0} role="img" aria-label={`${count} more steps ${side}`} className={classNames("relative inline-flex shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2", density.target)}>
+    <span tabIndex={disabled || readOnly ? -1 : 0} role="img" aria-label={`${count} more steps ${side}`} className={classNames("relative inline-flex shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2", density.target)}>
       <span aria-hidden="true" className={classNames("relative inline-flex items-center", density.stack)}>
         {[0, 1].map(index => <span key={index} className={classNames("absolute rounded-full", density.dot, fill(overflowStatus(side === "before" ? plan.statuses.slice(0, plan.start) : plan.statuses.slice(plan.end))))} style={{ left: index === 0 ? 0 : "35%", transform: "scale(.72)", filter: index === (side === "before" ? 0 : 1) ? "opacity(.55)" : undefined, zIndex: side === "before" ? index : 1 - index }} />)}
       </span>
@@ -80,12 +87,18 @@ export function DotStepper({ steps, currentIndex, currentStepId, maxVisible = 5,
         const active = status === "active";
         const name = step.tooltip ?? (typeof step.title === "string" || typeof step.title === "number" ? String(step.title) : `Step ${index + 1}`);
         const locked = disabled || step.disabled;
-        const content = active && !locked ? renderActiveContent?.(step, index) : undefined;
-        const trigger = <DotTrigger tooltip={name} type="button" disabled={locked} aria-label={`${name}, step ${index + 1} of ${steps.length}, ${status}`} aria-current={active ? "step" : undefined} onClick={() => onStepSelect?.(step, index)} className={classNames("relative inline-flex shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed", density.target, onStepSelect || content ? "cursor-pointer" : "cursor-default")}>
-          <span aria-hidden="true" className={classNames("relative block shrink-0 rounded-full", density.dot)}>
-            {active && animated && <span data-dot-pulse="" className={classNames("pointer-events-none absolute inset-0 rounded-full motion-safe:animate-ping [animation-duration:1.6s] motion-reduce:hidden", getTrueColorDotClass(tone))} />}
-            <span data-dot-status={status} className={classNames("absolute inset-0 rounded-full", fill(status))} />
-          </span>
+        const content = !readOnly && active && !locked ? renderActiveContent?.(step, index) : undefined;
+        const dot = <span aria-hidden="true" className={classNames("relative block shrink-0 rounded-full", density.dot)}>
+          {active && animated && <span data-dot-pulse="" className={classNames("pointer-events-none absolute inset-0 rounded-full motion-safe:animate-ping [animation-duration:1.6s] motion-reduce:hidden", getTrueColorDotClass(tone))} />}
+          <span data-dot-status={status} className={classNames("absolute inset-0 rounded-full", fill(status))} />
+        </span>;
+        const a11y = { "aria-label": `${name}, step ${index + 1} of ${steps.length}, ${status}`, "aria-current": active ? ("step" as const) : undefined };
+        // Read-only: an img span, never a button — progress shown inside
+        // another control must not add tab stops or nested interactives.
+        const trigger = readOnly ? <TooltipWrapper text={name}>
+          <span role="img" {...a11y} className={classNames("relative inline-flex shrink-0 items-center justify-center rounded-full", density.target)}>{dot}</span>
+        </TooltipWrapper> : <DotTrigger tooltip={name} type="button" disabled={locked} {...a11y} onClick={() => onStepSelect?.(step, index)} className={classNames("relative inline-flex shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed", density.target, onStepSelect || content ? "cursor-pointer" : "cursor-default")}>
+          {dot}
         </DotTrigger>;
         return <React.Fragment key={`${step.id ?? index}:${status}:${locked ? "disabled" : "enabled"}`}>{content !== undefined && content !== null ? <ActivePopover trigger={trigger} content={content} options={popoverProps} /> : trigger}</React.Fragment>;
       })}
