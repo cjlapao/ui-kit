@@ -60,7 +60,7 @@ export interface AvatarGroupProps extends Omit<
   tone?: TrueColor;
   /** One corner for every chip. @default "full" */
   rounded?: "full" | "lg" | "md" | "none";
-  /** A 1px tone-neutral rim on every chip. @default true */
+  /** A 2px tone-neutral rim on every chip. @default true */
   border?: boolean;
   /** Chips shown before the +N chip. @default 5 */
   maxVisible?: number;

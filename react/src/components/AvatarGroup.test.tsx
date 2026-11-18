@@ -230,8 +230,8 @@ describe("AvatarGroup", () => {
   it("rims every chip with the neutral edge by default, and drops it on request", () => {
     const { rerender } = render(<AvatarGroup items={[{ name: "Ada Lovelace" }]} />);
     const chip = screen.getByRole("img", { name: "Ada Lovelace" });
-    expect(chip.querySelector('[class*="border-black/15"]')).toBeTruthy();
-    expect(chip.querySelector('[class*="dark:border-white/15"]')).toBeTruthy();
+    expect(chip.querySelector('[class*="border-black/25"]')).toBeTruthy();
+    expect(chip.querySelector('[class*="dark:border-white/30"]')).toBeTruthy();
     rerender(<AvatarGroup border={false} items={[{ name: "Ada Lovelace" }]} />);
     expect(
       screen.getByRole("img", { name: "Ada Lovelace" }).querySelector(

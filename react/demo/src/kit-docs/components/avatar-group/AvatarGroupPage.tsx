@@ -179,7 +179,7 @@ export const AvatarGroupPage: React.FC = () => (
               type: "boolean",
               default: "true",
               description:
-                "A 1px tone-neutral rim on every chip — the glass-edge recipe. It separates same-tone chips where they overlap and lifts near-transparent washes off same-colored surfaces.",
+                "A 2px tone-neutral rim on every chip — the glass-edge recipe, committed enough to read at normal size. It separates same-tone chips where they overlap and lifts near-transparent washes off same-colored surfaces.",
             },
             {
               name: "maxVisible",

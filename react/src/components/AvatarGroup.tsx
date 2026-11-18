@@ -71,8 +71,8 @@ export interface AvatarGroupProps extends Omit<
   /** One corner for every chip. @default "full" */
   rounded?: AvatarGroupRounded;
   /**
-   * A 1px tone-neutral rim on every chip — the kit's glass-edge recipe,
-   * which reads on any background in both schemes. It is what separates
+   * A 2px tone-neutral rim on every chip — the kit's glass edge, committed
+   * enough to read at normal size in both schemes. It is what separates
    * same-tone chips where they overlap and lifts near-transparent washes
    * off same-colored surfaces. @default true
    */
@@ -228,8 +228,9 @@ const Chip = ({
           shape,
           // The rim lives on the disc itself, not the halo: it is what
           // separates same-tone chips where they overlap and lifts a
-          // near-transparent wash off a same-colored surface.
-          bordered && "border border-black/15 dark:border-white/15",
+          // near-transparent wash off a same-colored surface. Thickness is
+          // what the eye detects at normal size, so it's a committed 2px.
+          bordered && "border-2 border-black/25 dark:border-white/30",
           AVATAR_TEXT[size],
           solid && classNames(fill, ink),
           kind === "icon" && classNames(washInk, showWash && wash),
