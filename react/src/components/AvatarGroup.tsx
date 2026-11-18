@@ -7,6 +7,7 @@ import { ScrollArea } from "./ScrollArea";
 import {
   getSurfacePaddingClass,
   getTrueColorChipClasses,
+  getTrueColorDotClass,
   CASCADE_EXPAND,
   type ControlSize,
   type SurfacePadding,
@@ -38,11 +39,12 @@ export interface AvatarGroupItem {
   /** This chip's colour; falls back to the group's `tone` (blue). */
   tone?: TrueColor;
   /**
-   * Tone wash behind an image/icon chip — the resolved tone almost
-   * transparent, on the group's corner. Defaults to `true` behind an icon
-   * (a glyph floating bare in a group looks unfinished) and `false` behind
-   * an image (the art is the content; the wash shows through transparent
-   * logos when asked for). Ignored by initials discs.
+   * Tone pad behind an image/icon chip — a solid light/dark step of the
+   * resolved tone (`-100`/`-900`). Solid, not translucent: a `/10` wash
+   * reads muddy on the dark scheme and bleeds through the overlap. Defaults
+   * to `true` behind an icon (a glyph floating bare in a group looks
+   * unfinished) and `false` behind an image (the art is the content; the pad
+   * shows under transparent logos when asked for). Ignored by initials discs.
    */
   background?: boolean;
   /**
@@ -74,8 +76,8 @@ export interface AvatarGroupProps extends Omit<
   /**
    * A 2px tone-neutral rim on every chip — the kit's glass edge, committed
    * enough to read at normal size in both schemes. It is what separates
-   * same-tone chips where they overlap and lifts near-transparent washes
-   * off same-colored surfaces. @default true
+   * same-tone chips where they overlap and lifts a flat tone pad off a
+   * same-colored surface. @default true
    */
   border?: boolean;
   /**
@@ -212,7 +214,7 @@ const Chip = ({
       : label
         ? "initials"
         : "fallback";
-  // The wash brands the chip without outshouting the artwork behind it.
+  // The pad brands the chip without outshouting the artwork on top of it.
   const showWash =
     item.background ?? (kind === "icon" || kind === "fallback" ? true : false);
   // Initials and the fallback glyph ride the saturated disc — the kit's
@@ -227,7 +229,10 @@ const Chip = ({
         className={classNames(
           "absolute inset-0 scale-100 opacity-0 transition duration-200 ease-out",
           "group-hover:scale-[1.45] group-hover:opacity-40",
-          wash,
+          // The dot step (500/400) at 40%, the ColorSwatch hover grammar —
+          // the saturated step is the only one that still reads as a glow at
+          // that opacity on both schemes; the flat pad would vanish in dark.
+          getTrueColorDotClass(tone),
           shape,
         )}
       />
@@ -237,8 +242,8 @@ const Chip = ({
           "relative flex h-full w-full items-center justify-center overflow-hidden font-bold transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-[1.15]",
           shape,
           // The rim lives on the disc itself, not the halo: it is what
-          // separates same-tone chips where they overlap and lifts a
-          // near-transparent wash off a same-colored surface. Thickness is
+          // separates same-tone chips where they overlap and lifts a flat
+          // tone pad off a same-colored surface. Thickness is
           // what the eye detects at normal size, so it's a committed 2px.
           bordered && "border-2 border-black/25 dark:border-white/30",
           AVATAR_TEXT[size],

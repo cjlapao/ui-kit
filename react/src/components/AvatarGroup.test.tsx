@@ -16,12 +16,12 @@ const PEOPLE: AvatarGroupItem[] = [
   { name: "Margaret Hamilton" },
 ];
 
-/** Wash layers sit under the art (`absolute inset-0`); the hover halo shares
- *  the wash class but carries `opacity-0`, so it never counts as one. */
+/** Pad layers sit under the art (`absolute inset-0`); the hover halo paints
+ *  the dot step instead, so it never shares the pad class and can't count. */
 const washLayers = (el: Element) =>
   [...el.querySelectorAll("span")].filter(
     (s) =>
-      s.className.includes("bg-blue-500/10") &&
+      s.className.includes("bg-blue-100") &&
       s.className.includes("absolute") &&
       !s.className.includes("opacity-0"),
   );
@@ -140,7 +140,7 @@ describe("AvatarGroup", () => {
     expect(chip).toHaveTextContent("AL");
   });
 
-  it("sits an icon on the wash by default, an image without it", () => {
+  it("sits an icon on the pad by default, an image without it", () => {
     render(
       <AvatarGroup
         items={[
@@ -150,7 +150,7 @@ describe("AvatarGroup", () => {
       />,
     );
     const icon = screen.getByRole("img", { name: "Database" });
-    expect(icon.querySelector(".bg-blue-500\\/10")).toBeTruthy();
+    expect(icon.querySelector(".bg-blue-100")).toBeTruthy();
     expect(icon.querySelector("svg")).toBeTruthy();
 
     const image = screen.getByRole("img", { name: "Ada Lovelace" });
@@ -168,8 +168,8 @@ describe("AvatarGroup", () => {
       />,
     );
     const bare = screen.getByRole("img", { name: "Bare" });
-    // The glyph keeps the tone's ink; the wash fill is what goes away —
-    // only the halo (opacity-0) still carries it.
+    // The glyph keeps the tone's ink; the pad fill is what goes away — the
+    // halo paints the dot step, so nothing under the art carries the pad.
     expect(washLayers(bare)).toHaveLength(0);
     expect(bare.querySelector(".text-blue-700")).toBeTruthy();
 

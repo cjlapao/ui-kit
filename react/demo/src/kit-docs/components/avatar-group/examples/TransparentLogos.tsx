@@ -3,7 +3,7 @@ import { AvatarGroup, type AvatarGroupItem } from "@cjlapao/ui-kit";
 /**
  * Transparent marks, one SVG per logo — no backdrop of their own, so the
  * chip shows through. The first three let the art sit on the page; the last
- * asks for `background: true` and rides on an indigo wash, which reads
+ * asks for `background: true` and rides on a solid indigo pad, which reads
  * through the mark's own transparency.
  */
 const logo = (shape: string, color: string) =>

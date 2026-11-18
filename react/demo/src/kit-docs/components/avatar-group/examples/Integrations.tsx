@@ -13,9 +13,9 @@ const STACK: AvatarGroupItem[] = [
 
 /**
  * The same strip as a service roster: each chip is a registry icon on its
- * tone almost transparent — the `/10` wash that brands the chip without
- * outshouting the glyph. Icons wear the wash by default; `background: false`
- * takes it away.
+ * tone as a solid quiet pad — the `-100`/`-900` step that brands the chip
+ * without outshouting the glyph. Icons wear the pad by default;
+ * `background: false` takes it away.
  */
 export default function Integrations() {
   return <AvatarGroup items={STACK} size="lg" />;

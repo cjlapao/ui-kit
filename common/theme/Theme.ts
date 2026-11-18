@@ -145,10 +145,12 @@ export function getTrueColorTextClass(tone: TrueColor): string {
  * scheme and `-950` ink in the dark one, the recipe that keeps initials
  * legible on yellow and lime where the dot step (500/400) is not.
  *
- * `wash`/`washInk` is the same tone almost-transparent — the fill diluted to
- * `/10`–`/15` and the ink lifted to the pill-soft pair — for the chip behind
- * an icon glyph or under a transparent logo, where the tone should brand the
- * chip, not outshout the artwork.
+ * `wash`/`washInk` is the same tone as a solid quiet pad — the `-100` step
+ * in the light scheme, `-900` in the dark one, with the ink lifted to the
+ * pill-soft pair — for the chip behind an icon glyph or under a transparent
+ * logo, where the tone should brand the chip, not outshout the artwork.
+ * Solid, not a translucent `/10`–`/15` wash: over the overlap the alpha
+ * muddied the dark scheme and let neighbouring chips bleed through.
  */
 export const TRUE_COLOR_CHIP_CLASSES: Record<
   TrueColor,
@@ -157,127 +159,127 @@ export const TRUE_COLOR_CHIP_CLASSES: Record<
   red: {
     fill: "bg-red-700 dark:bg-red-400",
     ink: "text-white dark:text-red-950",
-    wash: "bg-red-500/10 dark:bg-red-500/15",
+    wash: "bg-red-100 dark:bg-red-900",
     washInk: "text-red-700 dark:text-red-100",
   },
   orange: {
     fill: "bg-orange-700 dark:bg-orange-400",
     ink: "text-white dark:text-orange-950",
-    wash: "bg-orange-500/10 dark:bg-orange-500/15",
+    wash: "bg-orange-100 dark:bg-orange-900",
     washInk: "text-orange-700 dark:text-orange-100",
   },
   amber: {
     fill: "bg-amber-700 dark:bg-amber-400",
     ink: "text-white dark:text-amber-950",
-    wash: "bg-amber-500/10 dark:bg-amber-500/15",
+    wash: "bg-amber-100 dark:bg-amber-900",
     washInk: "text-amber-700 dark:text-amber-100",
   },
   yellow: {
     fill: "bg-yellow-700 dark:bg-yellow-400",
     ink: "text-white dark:text-yellow-950",
-    wash: "bg-yellow-500/10 dark:bg-yellow-500/15",
+    wash: "bg-yellow-100 dark:bg-yellow-900",
     washInk: "text-yellow-700 dark:text-yellow-100",
   },
   lime: {
     fill: "bg-lime-700 dark:bg-lime-400",
     ink: "text-white dark:text-lime-950",
-    wash: "bg-lime-500/10 dark:bg-lime-500/15",
+    wash: "bg-lime-100 dark:bg-lime-900",
     washInk: "text-lime-700 dark:text-lime-100",
   },
   green: {
     fill: "bg-green-700 dark:bg-green-400",
     ink: "text-white dark:text-green-950",
-    wash: "bg-green-500/10 dark:bg-green-500/15",
+    wash: "bg-green-100 dark:bg-green-900",
     washInk: "text-green-700 dark:text-green-100",
   },
   emerald: {
     fill: "bg-emerald-700 dark:bg-emerald-400",
     ink: "text-white dark:text-emerald-950",
-    wash: "bg-emerald-500/10 dark:bg-emerald-500/15",
+    wash: "bg-emerald-100 dark:bg-emerald-900",
     washInk: "text-emerald-700 dark:text-emerald-100",
   },
   teal: {
     fill: "bg-teal-700 dark:bg-teal-400",
     ink: "text-white dark:text-teal-950",
-    wash: "bg-teal-500/10 dark:bg-teal-500/15",
+    wash: "bg-teal-100 dark:bg-teal-900",
     washInk: "text-teal-700 dark:text-teal-100",
   },
   cyan: {
     fill: "bg-cyan-700 dark:bg-cyan-400",
     ink: "text-white dark:text-cyan-950",
-    wash: "bg-cyan-500/10 dark:bg-cyan-500/15",
+    wash: "bg-cyan-100 dark:bg-cyan-900",
     washInk: "text-cyan-700 dark:text-cyan-100",
   },
   sky: {
     fill: "bg-sky-700 dark:bg-sky-400",
     ink: "text-white dark:text-sky-950",
-    wash: "bg-sky-500/10 dark:bg-sky-500/15",
+    wash: "bg-sky-100 dark:bg-sky-900",
     washInk: "text-sky-700 dark:text-sky-100",
   },
   blue: {
     fill: "bg-blue-700 dark:bg-blue-400",
     ink: "text-white dark:text-blue-950",
-    wash: "bg-blue-500/10 dark:bg-blue-500/15",
+    wash: "bg-blue-100 dark:bg-blue-900",
     washInk: "text-blue-700 dark:text-blue-100",
   },
   indigo: {
     fill: "bg-indigo-700 dark:bg-indigo-400",
     ink: "text-white dark:text-indigo-950",
-    wash: "bg-indigo-500/10 dark:bg-indigo-500/15",
+    wash: "bg-indigo-100 dark:bg-indigo-900",
     washInk: "text-indigo-700 dark:text-indigo-100",
   },
   violet: {
     fill: "bg-violet-700 dark:bg-violet-400",
     ink: "text-white dark:text-violet-950",
-    wash: "bg-violet-500/10 dark:bg-violet-500/15",
+    wash: "bg-violet-100 dark:bg-violet-900",
     washInk: "text-violet-700 dark:text-violet-100",
   },
   purple: {
     fill: "bg-purple-700 dark:bg-purple-400",
     ink: "text-white dark:text-purple-950",
-    wash: "bg-purple-500/10 dark:bg-purple-500/15",
+    wash: "bg-purple-100 dark:bg-purple-900",
     washInk: "text-purple-700 dark:text-purple-100",
   },
   fuchsia: {
     fill: "bg-fuchsia-700 dark:bg-fuchsia-400",
     ink: "text-white dark:text-fuchsia-950",
-    wash: "bg-fuchsia-500/10 dark:bg-fuchsia-500/15",
+    wash: "bg-fuchsia-100 dark:bg-fuchsia-900",
     washInk: "text-fuchsia-700 dark:text-fuchsia-100",
   },
   rose: {
     fill: "bg-rose-700 dark:bg-rose-400",
     ink: "text-white dark:text-rose-950",
-    wash: "bg-rose-500/10 dark:bg-rose-500/15",
+    wash: "bg-rose-100 dark:bg-rose-900",
     washInk: "text-rose-700 dark:text-rose-100",
   },
   slate: {
     fill: "bg-slate-700 dark:bg-slate-400",
     ink: "text-white dark:text-slate-950",
-    wash: "bg-slate-500/10 dark:bg-slate-500/15",
+    wash: "bg-slate-100 dark:bg-slate-900",
     washInk: "text-slate-700 dark:text-slate-100",
   },
   gray: {
     fill: "bg-gray-700 dark:bg-gray-400",
     ink: "text-white dark:text-gray-950",
-    wash: "bg-gray-500/10 dark:bg-gray-500/15",
+    wash: "bg-gray-100 dark:bg-gray-900",
     washInk: "text-gray-700 dark:text-gray-100",
   },
   zinc: {
     fill: "bg-zinc-700 dark:bg-zinc-400",
     ink: "text-white dark:text-zinc-950",
-    wash: "bg-zinc-500/10 dark:bg-zinc-500/15",
+    wash: "bg-zinc-100 dark:bg-zinc-900",
     washInk: "text-zinc-700 dark:text-zinc-100",
   },
   neutral: {
     fill: "bg-neutral-700 dark:bg-neutral-400",
     ink: "text-white dark:text-neutral-950",
-    wash: "bg-neutral-500/10 dark:bg-neutral-500/15",
+    wash: "bg-neutral-100 dark:bg-neutral-900",
     washInk: "text-neutral-700 dark:text-neutral-100",
   },
   stone: {
     fill: "bg-stone-700 dark:bg-stone-400",
     ink: "text-white dark:text-stone-950",
-    wash: "bg-stone-500/10 dark:bg-stone-500/15",
+    wash: "bg-stone-100 dark:bg-stone-900",
     washInk: "text-stone-700 dark:text-stone-100",
   },
 };

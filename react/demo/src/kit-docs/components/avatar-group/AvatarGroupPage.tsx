@@ -55,7 +55,7 @@ export const AvatarGroupPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Integrations"
-        description="Registry icons on the same tones almost transparent — a /10 wash that brands the chip without outshouting the glyph. Icons ride on the wash by default; background: false takes it away."
+        description="Registry icons on a solid quiet pad of their tone — the -100/-900 step that brands the chip without outshouting the glyph. Icons ride on the pad by default; background: false takes it away."
         code={integrationsCode}
         filename="Integrations.tsx"
       >
@@ -63,7 +63,7 @@ export const AvatarGroupPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Transparent Logos"
-        description="Image chips sit bare on the page by default; with background: true the tone wash paints under the art, showing through transparent logos and PNGs."
+        description="Image chips sit bare on the page by default; with background: true the tone pad paints under the art, showing through transparent logos and PNGs."
         code={transparentLogosCode}
         filename="TransparentLogos.tsx"
       >
@@ -192,14 +192,14 @@ export const AvatarGroupPage: React.FC = () => (
               type: '"full" | "lg" | "md" | "none"',
               default: '"full"',
               description:
-                "One corner for every chip — discs, washes, image clips and halos alike.",
+                "One corner for every chip — discs, pads, image clips and halos alike.",
             },
             {
               name: "border",
               type: "boolean",
               default: "true",
               description:
-                "A 2px tone-neutral rim on every chip — the glass-edge recipe, committed enough to read at normal size. It separates same-tone chips where they overlap and lifts near-transparent washes off same-colored surfaces.",
+                "A 2px tone-neutral rim on every chip — the glass-edge recipe, committed enough to read at normal size. It separates same-tone chips where they overlap and lifts a flat tone pad off a same-colored surface.",
             },
             {
               name: "maxVisible",
@@ -279,7 +279,7 @@ export const AvatarGroupPage: React.FC = () => (
               type: "boolean",
               default: "true for icons, false for images",
               description:
-                "The tone wash behind an image/icon chip, painted under the art. Ignored by initials discs.",
+                "The solid tone pad behind an image/icon chip, painted under the art (light step -100, dark step -900). Ignored by initials discs.",
             },
             {
               name: "onClick",

@@ -30,7 +30,7 @@ describe("TRUE_COLOR_CHIP_CLASSES", () => {
       const chip = getTrueColorChipClasses(tone);
       expect(chip.fill).toBe(`bg-${tone}-700 dark:bg-${tone}-400`);
       expect(chip.ink).toBe(`text-white dark:text-${tone}-950`);
-      expect(chip.wash).toBe(`bg-${tone}-500/10 dark:bg-${tone}-500/15`);
+      expect(chip.wash).toBe(`bg-${tone}-100 dark:bg-${tone}-900`);
       expect(chip.washInk).toBe(`text-${tone}-700 dark:text-${tone}-100`);
     }
   });

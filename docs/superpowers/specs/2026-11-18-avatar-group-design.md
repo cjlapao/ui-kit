@@ -27,7 +27,7 @@ export interface AvatarGroupItem {
   image?: string;
   /** This chip's colour; falls back to the group's `tone` (blue). */
   tone?: TrueColor;
-  /** Tone wash behind an image/icon chip. @default true for icons, false for images */
+  /** Solid tone pad behind an image/icon chip. @default true for icons, false for images */
   background?: boolean;
   /** With a handler the chip becomes a real <button>, UserAvatar-style. */
   onClick?: React.MouseEventHandler<HTMLElement>;
@@ -78,7 +78,7 @@ export interface AvatarGroupProps extends Omit<
 
 Tone resolution per item: `item.tone ?? tone ?? "blue"`. `rounded` maps
 `full → rounded-full`, `lg → rounded-xl`, `md → rounded-md`,
-`none → rounded-none`, and applies to the initials fill, the wash, the image
+`none → rounded-none`, and applies to the initials fill, the pad, the image
 clip and the hover halo alike. `maxVisible` normalizes non-finite values to 5
 and clamps finite ones to at least 1. An empty `items` array renders nothing.
 
@@ -89,8 +89,8 @@ One resolved tone, one `rounded` corner, three skins:
 | Item | Paint |
 | --- | --- |
 | Initials | `bg-{c}-700 dark:bg-{c}-400` + `text-white dark:text-{c}-950` — the kit's glyph-fill rule (the Stepper's pairing), so yellow/lime stay legible. |
-| Icon | Wash `bg-{c}-500/10 dark:bg-{c}-500/15` behind the glyph, glyph in `text-{c}-700 dark:text-{c}-100` (the pill-soft ink pair, ink alone). |
-| Image | Art on transparent, `object-cover`, clipped to the `rounded` corner; with `background: true` the same wash paints *under* the img so it shows through transparent logos and PNGs. |
+| Icon | Pad `bg-{c}-100 dark:bg-{c}-900` behind the glyph — a solid quiet step, not a translucent wash, which read muddy on dark and bled through the overlap — glyph in `text-{c}-700 dark:text-{c}-100` (the pill-soft ink pair, ink alone). |
+| Image | Art on transparent, `object-cover`, clipped to the `rounded` corner; with `background: true` the same pad paints *under* the img so it shows through transparent logos and PNGs. |
 
 `background` is contextually defaulted: `true` for icon chips (a glyph
 floating bare in a group looks unfinished), `false` for image chips — an
@@ -105,7 +105,7 @@ so Tailwind's scanner always sees the classes:
 export const TRUE_COLOR_CHIP_CLASSES: Record<TrueColor, {
   fill: string;   // bg-c-700 dark:bg-c-400
   ink: string;    // text-white dark:text-c-950
-  wash: string;   // bg-c-500/10 dark:bg-c-500/15
+  wash: string;   // bg-c-100 dark:bg-c-900  (solid, not translucent)
   washInk: string;// text-c-700 dark:text-c-100
 }>;
 export const getTrueColorChipClasses = (tone: TrueColor) => …
@@ -135,8 +135,8 @@ chip strips, and chips carry `title={name}`.
 - Expanding cascades chips in left→right at 20 ms/item; retracting is the 8 ms
   right→left ripple, the expanded layout held 300 ms before the condensed
   geometry commits, clip grows over 400 ms — all from `CASCADE_EXPAND`.
-- Hover grammar as in the swatches: a halo (the item's tone wash scaled up to
-  1.45× at 40% opacity) behind a spring-eased 1.15× chip lift, `hover:z-10`.
+- Hover grammar as in the swatches: a halo (the item's tone dot step,
+  500/400, scaled up to 1.45× at 40% opacity) behind a spring-eased 1.15× chip lift, `hover:z-10`.
 - `expandOn: "hover"` reveals on pointer enter/leave of the group; the chip
   always toggles by click in both modes.
 - `singleRow` caps the expansion at one line. Off (the default) the strip
@@ -165,8 +165,8 @@ order (`tabIndex={-1}`). The `+N` chip reads `Show N more avatars` /
 `react/demo/src/kit-docs/components/avatar-group/`: an `AvatarGroupPage.tsx`
 with a playground (knobs for `size`, `tone`, `rounded`, `maxVisible`,
 `expandOn`, `defaultExpanded`, `singleRow` over a fixed demo roster) and examples —
-`TeamInitials` (per-chip colours), `Integrations` (registry icons on wash),
-`TransparentLogos` (images, wash as opt-in), `CondensedOverflow`,
+`TeamInitials` (per-chip colours), `Integrations` (registry icons on tone pads),
+`TransparentLogos` (images, pad as opt-in), `CondensedOverflow`,
 `SingleRowScroll` (the scrolling row with its pinned collapse chip),
 `ExpandOnHover` — registered in `registry.ts` beside the `color-swatches`
 entry, matching its shape.
@@ -174,7 +174,7 @@ entry, matching its shape.
 `AvatarGroup.test.tsx` mirrors the ColorSwatches suite: render and condense
 counts, the `+N` unfold/retract, hover expand, tone resolution with the blue
 fallback, initials derivation and truncation rules, the broken-image fallback
-chain, icon-wash-on / image-wash-off defaults, `background` overrides,
+chain, icon-pad-on / image-pad-off defaults, `background` overrides,
 keyboard reach and `aria-expanded`, and the `rounded` corner classes. The new
 theme maps get a shape test over all 21 colours.
 
