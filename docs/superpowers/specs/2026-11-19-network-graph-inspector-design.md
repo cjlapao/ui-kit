@@ -59,6 +59,14 @@ grid (`minmax(0,1fr) 0px → minmax(0,1fr) <width>`, gap `0 → 16px`, both
 below the fit threshold the grid collapses to one column and the inspector
 stacks under the card (same `--stacked` idea as AgentMap).
 
+> Updated later: the stack breakpoint is the main column's floor alone —
+> `componentWidth < (inspectorStackBelow ?? inspectorMinMainWidth)`, measured
+> on the root via ResizeObserver (the width `__main` itself gets when
+> stacked; a window-based variant was tried and reverted). Width remains the
+> only input, and the inspector's own width and the 16px gap never move the
+> breakpoint; `INSPECTOR_GAP` was dropped from the TSX with the old derived
+> formula.
+
 ```
 div.cj-network-graph (root grid; 0→width column; --stacked when too narrow)
 ├─ div.cj-network-graph__main > Panel(graph)

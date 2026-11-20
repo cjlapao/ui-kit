@@ -133,9 +133,9 @@ export default function NetworkGraphPage() {
           {
             name: "inspectorMinMainWidth / inspectorStackBelow",
             type: "number / number",
-            default: "320 / fit-derived",
+            default: "320 / main-floor",
             description:
-              "Where the inspector stops fitting beside the graph. It docks while the component is at least inspectorWidth + 16 + inspectorMinMainWidth wide (616 by default) and stacks under that floor — raise the floor when the graph needs more room. inspectorStackBelow replaces that comparison outright: 0 always docks, a large value always stacks.",
+              "Where the inspector moves to the bottom, measured on the component itself (the width the graph gets when stacked) rather than the window. It docks while the component is at least inspectorMinMainWidth wide and stacks below that — the inspector's own width and the gap never move the breakpoint. inspectorStackBelow overrides the comparison outright: 0 always docks, a large value always stacks.",
           },
           {
             name: "inspectorButtonVariant / inspectorButtonTone / inspectorButtonWeight",
@@ -220,6 +220,13 @@ export default function NetworkGraphPage() {
             default: "false / true",
             description:
               "Fill the parent height (which must be defined — the height prop is then ignored) or available width; false fits the content width. Same contract as AgentMap's. The inspector column and neighbour scroll area absorb the height with it.",
+          },
+          {
+            name: "autoRevealSelected / autoCenterSelected / autoFitOnInspector",
+            type: "boolean / boolean / boolean",
+            default: "true / true / false",
+            description:
+              "Once the dock animation settles, ease the canvas to bring a just-selected node into view (autoRevealSelected): centered by default (autoCenterSelected) or by the shortest pan when autoCenterSelected is false. autoFitOnInspector first animates a fit of the whole graph into the shrunken canvas box when the inspector opens, then chains the reveal — it changes the zoom level, so it is opt-in. All honor prefers-reduced-motion (instant jump) and are cancelled by any drag or zoom.",
           },
           {
             name: "onViewportChange",

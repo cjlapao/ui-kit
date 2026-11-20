@@ -23,13 +23,11 @@ import "./network-graph.css";
 const NO_COMMUNITIES: readonly NetworkGraphCommunity[] = [];
 const NO_HIGHLIGHTS: readonly string[] = [];
 
-/** Inspector column gap kept from the graph — must match network-graph.css. */
-const INSPECTOR_GAP = 16;
 /** The `inspectorWidth` default and its sanity clamp. */
 const INSPECTOR_WIDTH_DEFAULT = 280;
 const INSPECTOR_WIDTH_MIN = 180;
 const INSPECTOR_WIDTH_MAX = 480;
-/** Graph-column floor behind the derived dock threshold. */
+/** Main-column floor — the sole contributor to the stack breakpoint. */
 const INSPECTOR_MIN_MAIN_WIDTH_DEFAULT = 320;
 
 /** One clamp, so the CSS column and the dock threshold never disagree. */
@@ -74,6 +72,9 @@ export function NetworkGraph({
   hoverHighlight = true,
   fullHeight = false,
   fullWidth = true,
+  autoRevealSelected = true,
+  autoCenterSelected = true,
+  autoFitOnInspector = false,
   ariaLabel,
   emptyMessage,
   onViewportChange,
@@ -106,20 +107,19 @@ export function NetworkGraph({
   useEffect(() => {
     const element = rootRef.current;
     if (!element || !inspector) return;
-    // Fit-based rather than a magic number: the inspector docks beside the graph
-    // only while the graph column keeps its floor after the inspector column and
-    // its gap are taken from the component. `inspectorStackBelow` replaces the
-    // comparison outright for callers who simply want one side or the other.
-    const threshold =
-      inspectorStackBelow ??
-      resolvedInspectorWidth + INSPECTOR_GAP + inspectorMinMainWidth;
+    // The breakpoint belongs to the graph alone and is measured on the
+    // component (the width `__main` itself gets when stacked): width is the
+    // only input and the inspector's own width never moves it.
+    // `inspectorStackBelow` replaces the comparison outright for callers who
+    // simply want one side or the other.
+    const threshold = inspectorStackBelow ?? inspectorMinMainWidth;
     const measure = () =>
       setInspectorStacked(element.getBoundingClientRect().width < threshold);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [inspector, resolvedInspectorWidth, inspectorMinMainWidth, inspectorStackBelow]);
+  }, [inspector, inspectorMinMainWidth, inspectorStackBelow]);
   const model = useMemo(
     () => buildNetwork(nodes, edges, communities),
     [nodes, edges, communities],
@@ -203,6 +203,44 @@ export function NetworkGraph({
     onViewportChange,
   });
   const locked = disabled || loading;
+  // Auto-reveal/auto-fit: once the dock transition (240ms) has settled the
+  // canvas box, animate the selection into view — centered when
+  // autoCenterSelected (default), otherwise by the shortest pan — optionally
+  // preceded by an animated fit into the shrunken box. Stable hook callbacks
+  // keep this effect from looping.
+  const { revealNode, animateFit } = canvas;
+  const inspectorOpen = !!inspector && selected !== null;
+  const inspectorWasOpen = useRef(false);
+  useEffect(() => {
+    const opening = inspectorOpen && !inspectorWasOpen.current;
+    inspectorWasOpen.current = inspectorOpen;
+    if (!inspectorOpen || locked) return;
+    if (!autoRevealSelected && !autoFitOnInspector) return;
+    const positioned = selected !== null ? model.byId.get(selected) : undefined;
+    const reduced =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = setTimeout(() => {
+      if (opening && autoFitOnInspector)
+        animateFit(() => {
+          if (positioned && autoRevealSelected)
+            revealNode(positioned, autoCenterSelected);
+        });
+      else if (positioned && autoRevealSelected)
+        revealNode(positioned, autoCenterSelected);
+    }, reduced ? 0 : 260);
+    return () => clearTimeout(timer);
+  }, [
+    inspectorOpen,
+    selected,
+    locked,
+    autoRevealSelected,
+    autoCenterSelected,
+    autoFitOnInspector,
+    model,
+    revealNode,
+    animateFit,
+  ]);
   const drag = useRef<{
     id: number;
     x: number;

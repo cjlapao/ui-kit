@@ -1,5 +1,5 @@
 import { act, createEvent, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryCard } from "./MemoryCard";
 import { MemoryDetail } from "./MemoryDetail";
 import { MemoryLibrary } from "./MemoryLibrary";
@@ -448,7 +448,7 @@ describe("knowledge map and composition", () => {
     const { container } = render(<KnowledgeExplorer memories={records} defaultSelectedId="retry" />);
     const root = container.querySelector<HTMLElement>(".kit-knowledge-explorer-grid")!;
     const inspector = container.querySelector(".kit-knowledge-inspector")!;
-    // Wide enough for the inspector column plus the view's floor: docked.
+    // At least the main view's floor wide: docked.
     act(() => callbacks.forEach(callback => callback(1200)));
     expect(root).toHaveClass("kit-knowledge-explorer-grid--inspector-open");
     expect(root).not.toHaveClass("kit-knowledge-explorer-grid--stacked");
@@ -456,13 +456,43 @@ describe("knowledge map and composition", () => {
     // Docked parity: the measured view height drives the inspector's column
     // height, the way NetworkGraph pins its inspector to the graph height.
     expect(root.style.getPropertyValue("--kit-knowledge-inspector-height")).toBe("600px");
-    // Below the fit threshold the same rule moves the inspector under the view.
-    act(() => callbacks.forEach(callback => callback(600)));
+    // Below the main view's floor the same rule moves the inspector under the view.
+    act(() => callbacks.forEach(callback => callback(300)));
     expect(root).toHaveClass("kit-knowledge-explorer-grid--stacked");
+    // Back above the floor it docks again — the switch is width alone.
+    act(() => callbacks.forEach(callback => callback(400)));
+    expect(root).not.toHaveClass("kit-knowledge-explorer-grid--stacked");
     // No selection means no inspector, same as NetworkGraph's.
     const { container: idle } = render(<KnowledgeExplorer memories={records} />);
     expect(idle.querySelector(".kit-knowledge-explorer-grid--inspector-open")).toBeNull();
     expect(idle.querySelector(".kit-knowledge-inspector")).toHaveAttribute("inert");
+    vi.unstubAllGlobals();
+  });
+  it("breaks on the main component's width alone, never on the inspector's", () => {
+    const callbacks: ((width: number) => void)[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: (entries: { contentRect: { width: number; height: number } }[]) => void) {
+        callbacks.push(width => callback([{ contentRect: { width, height: Math.round(width / 2) } }]));
+      }
+      observe() {}
+      disconnect() {}
+    });
+    // The old fit rule would stack a 480px inspector column below 856px;
+    // now only the main view's floor counts, so it still docks at 500px.
+    const { container } = render(<KnowledgeExplorer memories={records} defaultSelectedId="retry" inspectorWidth={480} />);
+    const root = container.querySelector<HTMLElement>(".kit-knowledge-explorer-grid")!;
+    act(() => callbacks.forEach(callback => callback(500)));
+    expect(root).toHaveClass("kit-knowledge-explorer-grid--inspector-open");
+    expect(root).not.toHaveClass("kit-knowledge-explorer-grid--stacked");
+    // The floor still switches on its own: below it, the inspector moves down.
+    act(() => callbacks.forEach(callback => callback(359)));
+    expect(root).toHaveClass("kit-knowledge-explorer-grid--stacked");
+    // inspectorStackBelow replaces the comparison outright: 1200 is far above
+    // the 360 floor, yet the pinned threshold stacks it anyway.
+    const { container: pinned } = render(<KnowledgeExplorer memories={records} defaultSelectedId="retry" inspectorStackBelow={1400} />);
+    const pinnedRoot = pinned.querySelector<HTMLElement>(".kit-knowledge-explorer-grid")!;
+    act(() => callbacks.forEach(callback => callback(1200)));
+    expect(pinnedRoot).toHaveClass("kit-knowledge-explorer-grid--stacked");
     vi.unstubAllGlobals();
   });
   it("hides the inspector while the workspace loads", () => {
@@ -617,6 +647,214 @@ describe("knowledge map grid background", () => {
     expect(grid.style.backgroundImage).toContain("linear-gradient");
     expect(grid.style.backgroundSize).toBe("48px 48px");
     expect(grid.style.opacity).toBe("0.1");
+  });
+});
+
+describe("knowledge map auto reveal and inspector fit", () => {
+  // Deterministic scatter with room to fall out of view: a wheel zoom anchored
+  // top-left pushes the bottom point past the edge, so selecting it must pan.
+  const points = [
+    { memoryId: "lock", x: -300, y: 0 },
+    { memoryId: "retry", x: 300, y: 0 },
+    { memoryId: "old", x: 0, y: 300 },
+  ];
+  let frames: Map<number, FrameRequestCallback>, frameId = 0;
+  beforeEach(() => {
+    frames = new Map(); frameId = 0;
+    vi.stubGlobal("requestAnimationFrame", (fn: FrameRequestCallback) => { frames.set(++frameId, fn); return frameId; });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => { frames.delete(id); });
+  });
+  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+  const mockBox = (width = 640, height = 360) =>
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(() => ({ width, height, top: 0, left: 0, right: width, bottom: height, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect);
+  const flushFrames = () => { let guard = 0; while (frames.size && guard++ < 60) { const callbacks = [...frames.values()]; frames.clear(); callbacks.forEach(callback => callback(0)); } };
+  const runTween = (total = 800, step = 60) => { for (let elapsed = 0; elapsed < total; elapsed += step) act(() => { vi.advanceTimersByTime(step); flushFrames(); }); };
+  const zoomAway = (canvas: HTMLElement, change: ReturnType<typeof vi.fn>) => {
+    for (let i = 0; i < 4; i++) fireEvent.wheel(canvas, { clientX: 60, clientY: 60, deltaY: -100, ctrlKey: true });
+    act(flushFrames);
+    const before = change.mock.lastCall![0]; change.mockClear(); return before;
+  };
+  it("eases the selected point into view by the shortest pan, keeping the zoom", () => {
+    vi.useFakeTimers(); mockBox();
+    const change = vi.fn();
+    const { container, rerender } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10)); // let the box measure commit
+    change.mockClear(); // the initial camera notification
+    const canvas = container.querySelector("canvas")!;
+    const before = zoomAway(canvas, change);
+    expect(before.zoom).toBeGreaterThan(1.5);
+    rerender(<KnowledgeMap memories={records} points={points} selectedId="old" autoCenterSelected={false} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(300)); // the dock settles at 240ms, the reveal fires past it
+    runTween();
+    expect(change).toHaveBeenCalled();
+    const after = change.mock.lastCall![0];
+    expect(after.zoom).toBe(before.zoom); // a reveal pans; it never rezooms
+    expect(after.y).not.toBe(before.y);
+  });
+  it("eases an off-screen selection to the center of the box by default", () => {
+    vi.useFakeTimers(); mockBox();
+    const change = vi.fn();
+    const { container, rerender } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear();
+    const before = zoomAway(container.querySelector("canvas")!, change);
+    expect(before.zoom).toBeGreaterThan(1.5);
+    rerender(<KnowledgeMap memories={records} points={points} selectedId="retry" onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).toHaveBeenCalled();
+    // The "retry" point (world 300, 0) rests at the middle of the 640×360
+    // box; the locked geometry puts the fit zoom at 26/30. Centering is a
+    // pan — it keeps the zoom, exactly like the graph's autoCenterSelected.
+    const after = change.mock.lastCall![0];
+    expect(after.zoom).toBe(before.zoom);
+    expect(after.x).toBeCloseTo(-300 * (26 / 30) * after.zoom, 6);
+    expect(after.y).toBeCloseTo(150 * (26 / 30) * after.zoom, 6);
+  });
+  it("centers even a point already inside the box", () => {
+    // The graph's default is not just an off-screen rescue: autoCenterSelected
+    // glides a visible selection to the middle too.
+    vi.useFakeTimers(); mockBox();
+    const change = vi.fn();
+    const { rerender } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear();
+    rerender(<KnowledgeMap memories={records} points={points} selectedId="old" onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).toHaveBeenCalled();
+    // "old" sits at (0, 300): already x-centered (bounds.x is 0), its y
+    // eases from 310 up to the box middle.
+    expect(change.mock.lastCall![0]).toEqual(expect.objectContaining({ x: 0, y: -150 * (26 / 30), zoom: 1 }));
+  });
+  it("never moves the camera for a selection already inside the box", () => {
+    vi.useFakeTimers(); mockBox();
+    const change = vi.fn();
+    render(<KnowledgeMap memories={records} points={points} defaultSelectedId="lock" autoCenterSelected={false} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear(); // the initial camera notification
+    act(() => vi.advanceTimersByTime(600));
+    runTween();
+    expect(change).not.toHaveBeenCalled(); // the fitted point was already visible
+  });
+  it("stays put with autoRevealSelected={false}", () => {
+    vi.useFakeTimers(); mockBox();
+    const change = vi.fn();
+    const { container, rerender } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear();
+    const before = zoomAway(container.querySelector("canvas")!, change);
+    rerender(<KnowledgeMap memories={records} points={points} selectedId="old" autoRevealSelected={false} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).not.toHaveBeenCalled();
+    expect(before.zoom).toBeGreaterThan(1.5);
+  });
+  it("animates a fit into the shrunken box with autoFitOnInspector", () => {
+    vi.useFakeTimers(); mockBox();
+    const change = vi.fn();
+    const { container, rerender } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear();
+    const before = zoomAway(container.querySelector("canvas")!, change);
+    expect(before.zoom).toBeGreaterThan(1.5);
+    rerender(<KnowledgeMap memories={records} points={points} selectedId="old" autoFitOnInspector autoCenterSelected={false} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).toHaveBeenCalled();
+    // The fit returns the scene to its fitted camera — and the reveal after it
+    // is a no-op, since the fitted pose shows every point.
+    expect(change.mock.lastCall![0]).toEqual(expect.objectContaining({ x: 0, y: 0, zoom: 1 }));
+  });
+  it("keeps the fit pending when the dock resizes the canvas mid-timer", () => {
+    // The browser-only regression: the inspector dock shrinks the canvas
+    // (ResizeObserver → new size → new reveal closure), which must NOT
+    // re-run the selection effect — re-running would clear the pending
+    // 260ms timer, and the re-run no longer counts as an opening, so the
+    // fit would silently never happen.
+    vi.useFakeTimers(); mockBox();
+    const observers: ((entries: ResizeObserverEntry[]) => void)[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: (entries: ResizeObserverEntry[]) => void) { observers.push(callback); }
+      observe() {} unobserve() {} disconnect() {}
+    });
+    const change = vi.fn();
+    const { container, rerender } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear();
+    const before = zoomAway(container.querySelector("canvas")!, change);
+    expect(before.zoom).toBeGreaterThan(1.5);
+    rerender(<KnowledgeMap memories={records} points={points} selectedId="old" autoFitOnInspector autoCenterSelected={false} onViewportChange={change} />);
+    // The dock opens: the canvas box collapses while the 260ms timer is pending.
+    mockBox(320, 360);
+    act(() => observers.forEach(callback => callback([{}] as ResizeObserverEntry[])));
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).toHaveBeenCalled();
+    expect(change.mock.lastCall![0]).toEqual(expect.objectContaining({ x: 0, y: 0, zoom: 1 })); // fit survived the resize
+  });
+  it("holds the zoomed scene in place when the canvas shrinks, like the graph", () => {
+    // NetworkGraph keeps its viewport across container resizes; the map must
+    // do the same while zoomed in so the docked inspector opening can push a
+    // selected point out of view — instead of the old behaviour, where the
+    // scene re-fitted itself into the smaller box and the reveal choreography
+    // had nothing to act on.
+    vi.useFakeTimers(); mockBox();
+    const observers: ((entries: ResizeObserverEntry[]) => void)[] = [];
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: (entries: ResizeObserverEntry[]) => void) { observers.push(callback); }
+      observe() {} unobserve() {} disconnect() {}
+    });
+    const change = vi.fn();
+    const { container } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear();
+    const before = zoomAway(container.querySelector("canvas")!, change);
+    // The locked point geometry above spans x −300..300, y 0..300.
+    const bounds = { x: 0, y: 150, width: 600, height: 300 };
+    const fit = (w: number, h: number) => Math.max(.000001, Math.min((w - 100) / bounds.width, (h - 100) / bounds.height, 3));
+    const screen = (cam: { x: number; y: number; zoom: number }, w: number, h: number, point: { x: number; y: number }) =>
+      ({ x: (point.x - bounds.x) * fit(w, h) * cam.zoom + w / 2 + cam.x, y: (point.y - bounds.y) * fit(w, h) * cam.zoom + h / 2 + cam.y });
+    const retry = { x: 300, y: 0 };
+    const seenBefore = screen(before, 640, 360, retry);
+    mockBox(320, 360); // the dock opens
+    act(() => observers.forEach(callback => callback([{}] as ResizeObserverEntry[])));
+    const after = change.mock.lastCall![0];
+    const seenAfter = screen(after, 320, 360, retry);
+    expect(seenAfter.x).toBeCloseTo(seenBefore.x, 6); // the scene held its screen position
+    expect(seenAfter.y).toBeCloseTo(seenBefore.y, 6);
+    expect(after.zoom).toBeGreaterThan(before.zoom); // the fit-relative multiplier grew to compensate
+  });
+  it("jumps instantly under reduced motion", () => {
+    vi.useFakeTimers(); mockBox();
+    vi.spyOn(window, "matchMedia").mockImplementation((query: string) => ({ matches: query.includes("reduced-motion"), media: query, onchange: null, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false }) as MediaQueryList);
+    const change = vi.fn();
+    const { container, rerender } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear();
+    zoomAway(container.querySelector("canvas")!, change);
+    rerender(<KnowledgeMap memories={records} points={points} selectedId="old" onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(1)); // no 260ms wait, no tween — one instant commit
+    expect(change).toHaveBeenCalledTimes(1);
+    expect(frames.size).toBe(0);
+  });
+  it("lets a user gesture cancel an in-flight reveal", () => {
+    vi.useFakeTimers(); mockBox();
+    const change = vi.fn();
+    const { container, rerender } = render(<KnowledgeMap memories={records} points={points} onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10));
+    change.mockClear();
+    zoomAway(container.querySelector("canvas")!, change);
+    rerender(<KnowledgeMap memories={records} points={points} selectedId="old" onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(300));
+    act(() => { vi.advanceTimersByTime(120); flushFrames(); }); // midway through the ease
+    const midway = change.mock.lastCall![0];
+    change.mockClear();
+    fireEvent.keyDown(container.querySelector("canvas")!, { key: "Home" }); // Home refits and kills the pan
+    runTween();
+    expect(change).toHaveBeenCalledTimes(1);
+    expect(change.mock.lastCall![0]).toEqual(expect.objectContaining({ x: 0, y: 0, zoom: 1 }));
+    expect(midway.zoom).not.toBe(1);
   });
 });
 

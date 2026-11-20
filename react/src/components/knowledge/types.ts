@@ -165,6 +165,8 @@ export interface MemoryLibraryProps extends Omit<KnowledgeSurfaceProps, "onError
   renderMemory?: (memory: MemoryRecord, state: { selected: boolean; highlighted: boolean; select: () => void }) => ReactNode;
   emptyState?: ReactNode;
 }
+/** The map's camera: the pan offset and zoom the canvas draws through. */
+export interface KnowledgeMapViewport { x: number; y: number; zoom: number }
 export interface KnowledgeMapProps extends KnowledgeSurfaceProps, MemorySelection, KnowledgeControlChromeProps {
   memories: readonly MemoryRecord[];
   /** Omit for illustrative topic placement; supply coordinates for a real projection. */
@@ -216,6 +218,29 @@ export interface KnowledgeMapProps extends KnowledgeSurfaceProps, MemorySelectio
    */
   hoverHighlight?: boolean;
   /**
+   * When a memory is selected — or the selected point falls out of sight
+   * while the explorer's inspector dock animates — ease the canvas so the
+   * point comes into view, the graph's own autoRevealSelected: centered
+   * when autoCenterSelected (default), otherwise by the shortest pan.
+   * Honors prefers-reduced-motion.
+   * @default true
+   */
+  autoRevealSelected?: boolean;
+  /**
+   * Have the reveal center on the selected point instead of panning by the
+   * minimum needed to show it, NetworkGraph's own autoCenterSelected. Only
+   * applies together with autoRevealSelected.
+   * @default true
+   */
+  autoCenterSelected?: boolean;
+  /**
+   * Additionally animate a fit of the whole scene into the shrunken canvas
+   * box when the selection opens the inspector. Changes the zoom level, so
+   * it is opt-in; the reveal choreography still runs afterwards.
+   * @default false
+   */
+  autoFitOnInspector?: boolean;
+  /**
    * Decorative lattice behind the canvas, NetworkGraph's own: a blue dot
    * pattern by default. Set false to hide it; pass an object to override the
    * GridBackground settings — `grid.lineColor` overrides `gridTone`.
@@ -224,6 +249,8 @@ export interface KnowledgeMapProps extends KnowledgeSurfaceProps, MemorySelectio
   /** Theme color of the grid lattice. @default "blue" */
   gridTone?: TrueColor;
   onDiagnostics?: (diagnostics: readonly KnowledgeDiagnostic[]) => void;
+  /** Notified with the camera on every pan/zoom commit, NetworkGraph's viewport callback. */
+  onViewportChange?: (viewport: KnowledgeMapViewport) => void;
 }
 export type KnowledgeRegion = "library" | "map" | "detail";
 /** Which region owns the main column. The inspector never competes for it —
@@ -239,6 +266,12 @@ export interface KnowledgeMapSurfaceProps {
   showControls?: boolean;
   /** @default true — the graph's passive hover preview on points */
   hoverHighlight?: boolean;
+  /** @default true — the animated pan that brings a selected point into view */
+  autoRevealSelected?: boolean;
+  /** @default true — the reveal centers on the point instead of panning by the minimum */
+  autoCenterSelected?: boolean;
+  /** @default false — animated fit into the shrunken canvas box when the inspector opens */
+  autoFitOnInspector?: boolean;
   /** @default "auto" — the topic legend sits right at ≥600px, below otherwise */
   legendPosition?: "auto" | "right" | "bottom";
   /**
@@ -298,16 +331,19 @@ export interface KnowledgeExplorerProps extends KnowledgeSurfaceProps, MemorySel
    * Reveal the inspector column — the memory detail —
    * on the right of whichever view is showing. Same approach as NetworkGraph's
    * inspector: it appears only while a memory is selected, docks beside the
-   * view while there is room, stacks under it below the fit threshold, and
-   * matches the view panel's height while docked.
+   * view while the component is at least the main view's floor wide, stacks
+   * under it below that width, and matches the view panel's height while docked.
    * @default true
    */
   inspector?: boolean;
-  /** Inspector column width in CSS pixels. @default 340 */
+  /** Inspector column width in CSS pixels. Never moves the dock/stack breakpoint. @default 340 */
   inspectorWidth?: number;
-  /** The view column's floor used to derive the dock/stack switch. @default 360 */
+  /** The main view column's floor — the single width the dock/stack switch
+   * measures against: the inspector docks while the component is at least
+   * this wide, and moves under the view below it. The inspector's own column
+   * width plays no part. @default 360 */
   inspectorMinMainWidth?: number;
-  /** Escape hatch: stack while narrower than this many px. Overrides the fit-derived threshold. */
+  /** Escape hatch: stack while narrower than this many px. Overrides the main floor. */
   inspectorStackBelow?: number;
   /** Eyebrow above the selected memory's title inside the inspector card,
    * mirroring NetworkGraph's `inspectorTitle`. @default copy("inspector") — "Inspector" */

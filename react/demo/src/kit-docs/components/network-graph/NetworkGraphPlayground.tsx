@@ -63,6 +63,9 @@ export function NetworkGraphPlayground() {
   const [inspectorButtonTone, setInspectorButtonTone] =
     useState<TrueColor>("sky");
   const [customBody, setCustomBody] = useState(false);
+  const [autoRevealSelected, setAutoRevealSelected] = useState(true);
+  const [autoCenterSelected, setAutoCenterSelected] = useState(true);
+  const [autoFitOnInspector, setAutoFitOnInspector] = useState(false);
   const [grid, setGrid] = useState(true);
   const [gridPattern, setGridPattern] = useState<GridBackgroundPattern>("dots");
   const [gridTone, setGridTone] = useState<TrueColor>("blue");
@@ -257,6 +260,23 @@ export function NetworkGraphPlayground() {
                       checked={inspector}
                       onChange={setInspector}
                     />
+                    <ToggleRow
+                      label="Auto-reveal selected"
+                      checked={autoRevealSelected}
+                      onChange={setAutoRevealSelected}
+                    />
+                    {autoRevealSelected && (
+                      <ToggleRow
+                        label="Auto-center selected"
+                        checked={autoCenterSelected}
+                        onChange={setAutoCenterSelected}
+                      />
+                    )}
+                    <ToggleRow
+                      label="Auto-fit on inspector open"
+                      checked={autoFitOnInspector}
+                      onChange={setAutoFitOnInspector}
+                    />
                     <SelectControl
                       label="Inspector variant"
                       value={inspectorVariant}
@@ -355,6 +375,9 @@ export function NetworkGraphPlayground() {
             legendVariant={legendVariant}
             legendTone={legendTone}
             inspector={inspector}
+            autoRevealSelected={autoRevealSelected}
+            autoCenterSelected={autoCenterSelected}
+            autoFitOnInspector={autoFitOnInspector}
             inspectorVariant={inspectorVariant}
             inspectorTone={inspectorTone}
             inspectorButtonVariant={inspectorButtonVariant}

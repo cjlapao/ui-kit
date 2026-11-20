@@ -178,14 +178,109 @@ export function useNetworkCanvas(options: CanvasOptions) {
       draw();
     });
   }, [draw]);
+  // Tween state for reveal/fit animations. Any public update() — drag,
+  // wheel, fit, focus — cancels an in-flight tween so the user always wins.
+  const panFrame = useRef<number | null>(null);
+  const cancelPan = useCallback(() => {
+    if (panFrame.current !== null) {
+      cancelAnimationFrame(panFrame.current);
+      panFrame.current = null;
+    }
+  }, []);
   const update = useCallback(
     (next: NetworkGraphViewport) => {
+      cancelPan();
       view.current = next;
       setZoom(next.zoom);
       requestDraw();
       latest.current.onViewportChange?.({ ...next });
     },
-    [requestDraw],
+    [requestDraw, cancelPan],
+  );
+  const animateView = useCallback(
+    (target: NetworkGraphViewport, onDone?: () => void) => {
+      cancelPan();
+      const from = { ...view.current };
+      if (
+        from.x === target.x &&
+        from.y === target.y &&
+        from.zoom === target.zoom
+      ) {
+        onDone?.();
+        return;
+      }
+      const commit = (v: NetworkGraphViewport) => {
+        view.current = v;
+        setZoom(v.zoom);
+        requestDraw();
+        latest.current.onViewportChange?.({ ...v });
+      };
+      if (
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
+        commit(target);
+        onDone?.();
+        return;
+      }
+      const start = Date.now();
+      const step = () => {
+        panFrame.current = requestAnimationFrame(() => {
+          const t = Math.min(1, (Date.now() - start) / 300);
+          const e = 1 - Math.pow(1 - t, 3);
+          commit({
+            x: from.x + (target.x - from.x) * e,
+            y: from.y + (target.y - from.y) * e,
+            zoom: from.zoom + (target.zoom - from.zoom) * e,
+          });
+          if (t < 1) step();
+          else {
+            panFrame.current = null;
+            onDone?.();
+          }
+        });
+      };
+      step();
+    },
+    [cancelPan, requestDraw],
+  );
+  /** Shortest animated pan that brings a node just inside the viewport. */
+  const revealNode = useCallback(
+    (node: PositionedNode, center = false) => {
+      const v = view.current;
+      const { width, height } = size.current;
+      if (center) {
+        animateView({
+          ...v,
+          x: width / 2 - node.x * v.zoom,
+          y: height / 2 - node.y * v.zoom,
+        });
+        return;
+      }
+      // Below fitNetwork's 32px half-padding so a just-fitted node never
+      // triggers a redundant nudge.
+      const margin = 8 + Math.max(node.radius, 1.5 / v.zoom) * v.zoom;
+      const sx = node.x * v.zoom + v.x,
+        sy = node.y * v.zoom + v.y;
+      let dx = 0,
+        dy = 0;
+      if (sx < margin) dx = margin - sx;
+      else if (sx > width - margin) dx = width - margin - sx;
+      if (sy < margin) dy = margin - sy;
+      else if (sy > height - margin) dy = height - margin - sy;
+      if (dx === 0 && dy === 0) return;
+      animateView({ ...v, x: v.x + dx, y: v.y + dy });
+    },
+    [animateView],
+  );
+  /** Animated fit of the visible graph into the current canvas box. */
+  const animateFit = useCallback(
+    (onDone?: () => void) =>
+      animateView(
+        fitNetwork(latest.current.nodes, size.current.width, size.current.height),
+        onDone,
+      ),
+    [animateView],
   );
   const fit = useCallback(
     () =>
@@ -273,8 +368,19 @@ export function useNetworkCanvas(options: CanvasOptions) {
       theme.disconnect();
       window.removeEventListener("resize", measure);
       if (frame.current !== null) cancelAnimationFrame(frame.current);
+      if (panFrame.current !== null) cancelAnimationFrame(panFrame.current);
       frame.current = null;
     };
   }, [fit, update, requestDraw, options.active]);
-  return { canvasRef, view, zoom, update, fit, zoomBy, focusNode };
+  return {
+    canvasRef,
+    view,
+    zoom,
+    update,
+    fit,
+    zoomBy,
+    focusNode,
+    revealNode,
+    animateFit,
+  };
 }

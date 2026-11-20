@@ -195,6 +195,12 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
   const [mapDividerOn, setMapDividerOn] = useState(false);
   // The topic legend — on by default; hiding it is the explicit opt-out.
   const [mapLegendOn, setMapLegendOn] = useState(true);
+  // The selection choreography, NetworkGraph's own: the shortest-pan reveal
+  // once the inspector dock settles, and the opt-in animated fit of the
+  // whole scene into the shrunken box that comes with it.
+  const [mapRevealOn, setMapRevealOn] = useState(true);
+  const [mapCenterOn, setMapCenterOn] = useState(true);
+  const [mapFitOn, setMapFitOn] = useState(false);
   const [log, pushLog] = useEventLog();
 
   const titleOf = (id: string) =>
@@ -451,6 +457,21 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
                       checked={mapLegendOn}
                       onChange={setMapLegendOn}
                     />
+                    <ToggleRow
+                      label="Reveal selection"
+                      checked={mapRevealOn}
+                      onChange={setMapRevealOn}
+                    />
+                    <ToggleRow
+                      label="Center selection"
+                      checked={mapCenterOn}
+                      onChange={setMapCenterOn}
+                    />
+                    <ToggleRow
+                      label="Fit on inspector dock"
+                      checked={mapFitOn}
+                      onChange={setMapFitOn}
+                    />
                     <ToneSwatchControl
                       label="Camera tone"
                       value={mapToneColor}
@@ -549,6 +570,9 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
               hoverHighlight: mapHoverOn,
               showTitleDivider: mapDividerOn,
               showLegend: mapLegendOn,
+              autoRevealSelected: mapRevealOn,
+              autoCenterSelected: mapCenterOn,
+              autoFitOnInspector: mapFitOn,
               size: controlsSize,
               controlsTone: (mapToneColor || "auto") as TrueColor | "auto",
             }}

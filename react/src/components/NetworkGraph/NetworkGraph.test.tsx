@@ -613,15 +613,52 @@ describe("NetworkGraph inspector docking", () => {
     return !!container.querySelector(".cj-network-graph--stacked");
   };
 
-  // Docked while the graph keeps its 320px floor beside 280px + 16px gap = 616.
-  it("docks beside the graph while the graph keeps its floor", () => {
+  // The breakpoint is the main column's floor alone — width is the only
+  // input and the inspector's own width never moves it.
+  it("docks beside the graph while the component keeps the main floor", () => {
     expect(stackedAt(700)).toBe(false);
-    expect(stackedAt(500)).toBe(true);
+    expect(stackedAt(400)).toBe(false); // 400 ≥ 320: docked even though the inspector squeezes main
+    expect(stackedAt(310)).toBe(true);
   });
-  it("raises the threshold with a wider inspector column or graph floor", () => {
-    expect(stackedAt(700, { inspectorWidth: 480 })).toBe(true);
-    expect(stackedAt(700, { inspectorMinMainWidth: 600 })).toBe(true);
-    expect(stackedAt(900, { inspectorMinMainWidth: 600 })).toBe(false);
+  it("keeps the inspector width out of the breakpoint but honors the floor", () => {
+    expect(stackedAt(700, { inspectorWidth: 480 })).toBe(false);
+    expect(stackedAt(700, { inspectorMinMainWidth: 600 })).toBe(false); // 700 still clears the floor
+    expect(stackedAt(550, { inspectorMinMainWidth: 600 })).toBe(true);
+  });
+  it("re-evaluates the dock when the component is resized", () => {
+    let width = 700;
+    const callbacks: (() => void)[] = [];
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      () => ({
+        width,
+        height: 480,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: width,
+        bottom: 480,
+        toJSON() {},
+      }),
+    );
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          callbacks.push(callback);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const { container } = render(
+      <NetworkGraph {...props} inspector defaultSelectedNodeId="a" />,
+    );
+    act(() => callbacks.forEach((callback) => callback()));
+    expect(container.querySelector(".cj-network-graph--stacked")).toBeNull();
+    width = 200;
+    act(() => callbacks.forEach((callback) => callback()));
+    expect(container.querySelector(".cj-network-graph--stacked")).not.toBeNull();
   });
   it("lets inspectorStackBelow replace the decision", () => {
     expect(stackedAt(500, { inspectorStackBelow: 0 })).toBe(false);
@@ -808,5 +845,212 @@ describe("NetworkGraph empty state", () => {
     );
     expect(screen.getByText("nothing here")).toBeInTheDocument();
     expect(screen.queryByText("No visible nodes")).toBeNull();
+  });
+});
+
+describe("NetworkGraph auto reveal and inspector fit", () => {
+  const mockBox = () =>
+    vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(
+        () =>
+          ({
+            width: 400,
+            height: 480,
+            top: 0,
+            left: 0,
+            right: 400,
+            bottom: 480,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+          }) as DOMRect,
+      );
+  const flushFrames = () => {
+    let guard = 0;
+    while (frames.size && guard++ < 60) {
+      const callbacks = [...frames.values()];
+      frames.clear();
+      callbacks.forEach((callback) => callback(0));
+    }
+  };
+  const runTween = (total = 800, step = 60) => {
+    for (let elapsed = 0; elapsed < total; elapsed += step)
+      act(() => {
+        vi.advanceTimersByTime(step);
+        flushFrames();
+      });
+  };
+  const zoomAway = (graph: HTMLElement, change: ReturnType<typeof vi.fn>) => {
+    for (let i = 0; i < 4; i++)
+      fireEvent.wheel(graph, {
+        clientX: 350,
+        clientY: 420,
+        deltaY: -100,
+        ctrlKey: true,
+      });
+    act(flushFrames);
+    const before = change.mock.lastCall![0];
+    change.mockClear();
+    return before;
+  };
+  it("does not pan when the selected node is already centered", () => {
+    vi.useFakeTimers();
+    mockBox();
+    const change = vi.fn();
+    render(
+      <NetworkGraph
+        nodes={[{ id: "a", label: "Alpha", x: 0, y: 0 }]}
+        edges={[]}
+        inspector
+        defaultSelectedNodeId="a"
+        onViewportChange={change}
+      />,
+    );
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).toHaveBeenCalled(); // the initial fit
+    change.mockClear();
+    act(() => vi.advanceTimersByTime(600));
+    runTween();
+    expect(change).not.toHaveBeenCalled(); // centering on an already-centered node is a no-op
+    vi.useRealTimers();
+  });
+  it("eases to center on an off-screen selection by default", () => {
+    vi.useFakeTimers();
+    mockBox();
+    const change = vi.fn();
+    const { rerender } = render(
+      <NetworkGraph {...props} inspector onViewportChange={change} />,
+    );
+    act(() => vi.advanceTimersByTime(10));
+    const before = zoomAway(screen.getByRole("application"), change);
+    rerender(
+      <NetworkGraph
+        {...props}
+        inspector
+        selectedNodeId="a"
+        onViewportChange={change}
+      />,
+    );
+    act(() => vi.advanceTimersByTime(300)); // reveal timer fires after the dock settles
+    runTween();
+    expect(change).toHaveBeenCalled();
+    const last = change.mock.lastCall![0];
+    expect(last.x).toBeGreaterThan(before.x);
+    // Node "a" (world -50, 0) ends centered in the 400×480 box.
+    expect(Math.abs(-50 * last.zoom + last.x - 200)).toBeLessThan(2);
+    expect(Math.abs(last.y - 240)).toBeLessThan(2);
+    vi.useRealTimers();
+  });
+  it("pans by the minimum with autoCenterSelected={false}", () => {
+    vi.useFakeTimers();
+    mockBox();
+    const change = vi.fn();
+    const { rerender } = render(
+      <NetworkGraph {...props} inspector onViewportChange={change} />,
+    );
+    act(() => vi.advanceTimersByTime(10));
+    const before = zoomAway(screen.getByRole("application"), change);
+    rerender(
+      <NetworkGraph
+        {...props}
+        inspector
+        selectedNodeId="a"
+        autoCenterSelected={false}
+        onViewportChange={change}
+      />,
+    );
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).toHaveBeenCalled();
+    const last = change.mock.lastCall![0];
+    expect(last.x).toBeGreaterThan(before.x);
+    // Just inside the left margin — not centered.
+    expect(-50 * last.zoom + last.x).toBeLessThan(100);
+    vi.useRealTimers();
+  });
+  it("stays put with autoRevealSelected={false}", () => {
+    vi.useFakeTimers();
+    mockBox();
+    const change = vi.fn();
+    const { rerender } = render(
+      <NetworkGraph {...props} inspector onViewportChange={change} />,
+    );
+    act(() => vi.advanceTimersByTime(10));
+    zoomAway(screen.getByRole("application"), change);
+    rerender(
+      <NetworkGraph
+        {...props}
+        inspector
+        selectedNodeId="a"
+        autoRevealSelected={false}
+        onViewportChange={change}
+      />,
+    );
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+  it("animates a fit into the shrunken box with autoFitOnInspector", () => {
+    vi.useFakeTimers();
+    mockBox();
+    const change = vi.fn();
+    const { rerender } = render(
+      <NetworkGraph {...props} inspector onViewportChange={change} />,
+    );
+    act(() => vi.advanceTimersByTime(10));
+    const before = zoomAway(screen.getByRole("application"), change);
+    expect(before.zoom).toBeGreaterThan(2.5);
+    rerender(
+      <NetworkGraph
+        {...props}
+        inspector
+        selectedNodeId="a"
+        autoFitOnInspector
+        onViewportChange={change}
+      />,
+    );
+    act(() => vi.advanceTimersByTime(300));
+    runTween();
+    expect(change).toHaveBeenCalled();
+    expect(change.mock.lastCall![0].zoom).toBeLessThan(before.zoom);
+    vi.useRealTimers();
+  });
+  it("jumps instantly under reduced motion", () => {
+    vi.useFakeTimers();
+    mockBox();
+    vi.spyOn(window, "matchMedia").mockImplementation(
+      (query) =>
+        ({
+          matches: query.includes("reduced-motion"),
+          media: query,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          addListener: () => {},
+          removeListener: () => {},
+          dispatchEvent: () => false,
+        }) as MediaQueryList,
+    );
+    const change = vi.fn();
+    const { rerender } = render(
+      <NetworkGraph {...props} inspector onViewportChange={change} />,
+    );
+    act(() => vi.advanceTimersByTime(10));
+    const before = zoomAway(screen.getByRole("application"), change);
+    rerender(
+      <NetworkGraph
+        {...props}
+        inspector
+        selectedNodeId="a"
+        onViewportChange={change}
+      />,
+    );
+    act(() => vi.advanceTimersByTime(10)); // 0ms timer + instant commit
+    expect(change).toHaveBeenCalled();
+    expect(change.mock.lastCall![0].x).toBeGreaterThan(before.x);
+    vi.useRealTimers();
   });
 });

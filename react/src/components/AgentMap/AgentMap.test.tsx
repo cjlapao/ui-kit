@@ -84,11 +84,14 @@ describe("AgentMap", () => {
   it("dismisses the inspector on outside clicks but keeps it open inside the inspector", () => {
     const { container } = render(<AgentMap projects={projects} defaultExpandedProjectId="atlas" defaultSelectedAgentId="builder" />);
     fireEvent.pointerDown(screen.getByText("Current activity"));
+    fireEvent.pointerUp(screen.getByText("Current activity"));
     expect(screen.getByText("Inspector")).toBeTruthy();
     fireEvent.pointerDown(screen.getByRole("button", { name: /Reviewer, Atlas/ }));
+    fireEvent.pointerUp(screen.getByRole("button", { name: /Reviewer, Atlas/ }));
     fireEvent.click(screen.getByRole("button", { name: /Reviewer, Atlas/ }));
     expect(screen.getByRole("heading", { name: "Reviewer" })).toBeTruthy();
     fireEvent.pointerDown(container.querySelector(".cj-agent-map__canvas")!);
+    fireEvent.pointerUp(container.querySelector(".cj-agent-map__canvas")!);
     expect(screen.queryByText("Inspector")).toBeNull();
   });
   it("opens the other project's agents and clears the prior selection", () => {
@@ -101,6 +104,7 @@ describe("AgentMap", () => {
     const onSelectionClear = vi.fn();
     const { rerender } = render(<AgentMap projects={projects} selectedAgentId="builder" onSelectionClear={onSelectionClear} />);
     fireEvent.pointerDown(document.body);
+    fireEvent.pointerUp(document.body);
     expect(onSelectionClear).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Inspector")).toBeTruthy();
     rerender(<AgentMap projects={projects} selectedAgentId={null} onSelectionClear={onSelectionClear} />);
@@ -123,6 +127,24 @@ describe("AgentMap", () => {
       expect(screen.getByRole("button", { name: /Reviewer.*Needs attention/ }).querySelector(".cj-agent-map__attention-ring")).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: /Reviewer.*Needs attention/ }));
       expect(screen.getByRole("heading", { name: "Reviewer" })).toBeTruthy();
+    } finally { measure.mockRestore(); }
+  });
+  it("never breaks on height — a short full-height container keeps the map", () => {
+    const measure = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 800, height: 180 } as DOMRect);
+    try {
+      const { container } = render(<AgentMap projects={projects} fullHeight />);
+      expect(container.querySelector(".cj-agent-map__orbs-scroll")).toBeTruthy();
+      expect(container.querySelector(".cj-agent-map__projects-scroll")).toBeNull();
+    } finally { measure.mockRestore(); }
+  });
+  it("lets narrowBelow retarget the compact-list break", () => {
+    const measure = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ width: 360 } as DOMRect);
+    try {
+      const { container, rerender } = render(<AgentMap projects={projects} />);
+      expect(container.querySelector(".cj-agent-map__projects-scroll")).toBeTruthy();
+      rerender(<AgentMap projects={projects} narrowBelow={300} />);
+      expect(container.querySelector(".cj-agent-map__projects-scroll")).toBeNull();
+      expect(container.querySelector(".cj-agent-map__orbs-scroll")).toBeTruthy();
     } finally { measure.mockRestore(); }
   });
   it("applies the requested panel variants", () => {
@@ -390,5 +412,98 @@ describe("AgentMap empty state", () => {
     const many: AgentMapProject[] = [{ id: "horizon", name: "Horizon", agents: Array.from({ length: 30 }, (_, i) => ({ id: `h${i}`, name: `Agent ${i}`, status: "working" as const, activity: "Working" })) }];
     const list = render(<AgentMap projects={many} defaultExpandedProjectId="horizon" robotVariant="solid" />);
     expect(list.container.querySelector(".cj-agent-map__list-avatar [mask]")).toBeTruthy();
+  });
+});
+
+describe("AgentMap zoom", () => {
+  it("scales the canvas with the zoom pill without resizing the component", () => {
+    const { container } = render(<AgentMap projects={projects} />);
+    const pill = screen.getByRole("group", { name: "Map zoom controls" });
+    const canvas = () => container.querySelector(".cj-agent-map__canvas") as HTMLElement;
+    const scroll = () => container.querySelector(".cj-agent-map__orbs-scroll") as HTMLElement;
+    const zoomLabel = () => pill.querySelector('[aria-label="Zoom level"]')?.textContent;
+    const height = () => scroll().style.height;
+    const initialHeight = height();
+    expect(initialHeight).toBe("420px");
+    expect(zoomLabel()).toBe("100%");
+    expect(container.querySelector('[data-orientation="vertical"]')).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(canvas().style.transform).toBe("scale(1.25)");
+    expect(zoomLabel()).toBe("125%");
+    expect(height()).toBe(initialHeight); // component size never changes with zoom
+    expect(container.querySelector('[data-orientation="vertical"]')).not.toBeNull(); // pan while zoomed
+    fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(canvas().style.transform).toBe("scale(1)");
+    expect(container.querySelector('[data-orientation="vertical"]')).toBeNull();
+  });
+  it("fits the canvas to the viewport and hides controls when zoomable is false", () => {
+    const { container, rerender } = render(<AgentMap projects={projects} />);
+    fireEvent.click(screen.getByRole("button", { name: "Fit map to view" }));
+    expect((container.querySelector(".cj-agent-map__canvas") as HTMLElement).style.transform).toMatch(/^scale\(/);
+    rerender(<AgentMap projects={projects} zoomable={false} />);
+    expect(screen.queryByRole("group", { name: "Map zoom controls" })).toBeNull();
+  });
+  it("hides the zoom pill for the empty state", () => {
+    render(<AgentMap projects={[]} />);
+    expect(screen.queryByRole("group", { name: "Map zoom controls" })).toBeNull();
+  });
+});
+
+describe("AgentMap drag navigation", () => {
+  const mockOverflow = (vp: HTMLElement, sw: number, sh: number) => {
+    Object.defineProperty(vp, "scrollWidth", { configurable: true, value: sw });
+    Object.defineProperty(vp, "clientWidth", { configurable: true, value: 752 });
+    Object.defineProperty(vp, "scrollHeight", { configurable: true, value: sh });
+    Object.defineProperty(vp, "clientHeight", { configurable: true, value: 420 });
+  };
+  it("pans the map by dragging when the content overflows", () => {
+    const { container } = render(<AgentMap projects={projects} />);
+    const vp = container.querySelector('[data-slot="scrollarea-viewport"]') as HTMLElement;
+    const frame = container.querySelector(".cj-agent-map__canvas-frame") as HTMLElement;
+    // Nothing overflows in jsdom by default: the drag must stay inert.
+    fireEvent.pointerDown(frame, { button: 0, pointerId: 1, clientX: 500, clientY: 200 });
+    fireEvent.pointerMove(frame, { pointerId: 1, clientX: 400, clientY: 200 });
+    fireEvent.pointerUp(frame, { pointerId: 1, clientX: 400, clientY: 200 });
+    expect(vp.scrollLeft).toBe(0);
+    mockOverflow(vp, 1200, 420);
+    fireEvent.pointerDown(frame, { button: 0, pointerId: 2, clientX: 500, clientY: 200 });
+    fireEvent.pointerMove(frame, { pointerId: 2, clientX: 440, clientY: 200 });
+    expect(vp.scrollLeft).toBe(60);
+    fireEvent.pointerUp(frame, { pointerId: 2, clientX: 440, clientY: 200 });
+    // A small jitter under the 4px threshold must not count as a drag.
+    fireEvent.pointerDown(frame, { button: 0, pointerId: 3, clientX: 500, clientY: 200 });
+    fireEvent.pointerMove(frame, { pointerId: 3, clientX: 498, clientY: 201 });
+    fireEvent.pointerUp(frame, { pointerId: 3, clientX: 498, clientY: 201 });
+    expect(vp.scrollLeft).toBe(60);
+    // The click that follows a real drag is swallowed, not delivered to hubs.
+    fireEvent.pointerDown(frame, { button: 0, pointerId: 4, clientX: 500, clientY: 200 });
+    fireEvent.pointerMove(frame, { pointerId: 4, clientX: 380, clientY: 260 });
+    fireEvent.pointerUp(frame, { pointerId: 4, clientX: 380, clientY: 260 });
+    expect(vp.scrollLeft).toBe(180);
+    const hub = screen.getByRole("button", { name: /Orbit, 1 agents/ });
+    fireEvent.click(hub);
+    expect(hub.getAttribute("aria-expanded")).toBe("false");
+  });
+  it("keeps the inspector open while dragging and pans vertically", () => {
+    const { container } = render(<AgentMap projects={projects} defaultExpandedProjectId="atlas" defaultSelectedAgentId="builder" />);
+    const vp = container.querySelector('[data-slot="scrollarea-viewport"]') as HTMLElement;
+    const frame = container.querySelector(".cj-agent-map__canvas-frame") as HTMLElement;
+    mockOverflow(vp, 800, 900);
+    fireEvent.pointerDown(frame, { button: 0, pointerId: 1, clientX: 300, clientY: 300 });
+    fireEvent.pointerMove(frame, { pointerId: 1, clientX: 300, clientY: 220 });
+    fireEvent.pointerUp(frame, { pointerId: 1, clientX: 300, clientY: 220 });
+    expect(vp.scrollTop).toBe(80);
+    expect(screen.getByText("Inspector")).toBeTruthy(); // pan is not an outside click
+    // A genuine click without movement still clears.
+    fireEvent.pointerDown(container.querySelector(".cj-agent-map__canvas")!);
+    fireEvent.pointerUp(container.querySelector(".cj-agent-map__canvas")!);
+    expect(screen.queryByText("Inspector")).toBeNull();
+  });
+  it("keeps the inspector open when the zoom pill is clicked", () => {
+    render(<AgentMap projects={projects} defaultExpandedProjectId="atlas" defaultSelectedAgentId="builder" />);
+    const zoomIn = screen.getByRole("button", { name: "Zoom in" });
+    fireEvent.pointerDown(zoomIn);
+    fireEvent.pointerUp(zoomIn);
+    expect(screen.getByText("Inspector")).toBeTruthy(); // pill clicks are not outside clicks
   });
 });

@@ -22,7 +22,8 @@
 .cj-agent-map__live { color:#34b690; font-size:11px; letter-spacing:0; }
 .cj-agent-map__counts { margin-left:auto; color:var(--color-neutral-500,#64748b); font-size:10px; font-weight:500; letter-spacing:0; text-transform:none; }
 .cj-agent-map .cj-agent-map__viewport { position:relative; min-width:0; color:#7195a8; background:radial-gradient(ellipse at center, color-mix(in srgb, var(--cj-agent-map-glow-color,#3b82f6) 12%, transparent), transparent 70%); }
-.cj-agent-map__canvas { position:relative; min-width:0; }
+.cj-agent-map__canvas { position:relative; min-width:0; transform-origin:0 0; transition:transform 220ms ease; }
+.cj-agent-map__canvas-frame { position:relative; flex:none; }
 .cj-agent-map__orbs-scroll { flex-shrink:0; width:100%; }
 .cj-agent-map__orbs-content { padding-right:0 !important; }
 .cj-agent-map__project { position:absolute; transition:left 650ms cubic-bezier(.2,.7,.2,1), top 650ms cubic-bezier(.2,.7,.2,1); }
@@ -102,9 +103,10 @@
 .cj-agent-map__list-content small { color:var(--color-neutral-500,#64748b); }
 .cj-agent-map__list-status { flex:none; font-size:10px; }
 .cj-agent-map__list-status i { display:inline-block; width:7px; height:7px; margin-right:5px; border-radius:50%; }
-/* No viewport media rule here: the dock/stack decision is the component measuring
-   its own width against INSPECTOR_WIDTH + INSPECTOR_GAP + inspectorMinMainWidth
-   (AgentMap.tsx), which also lets `inspectorStackBelow` override it. A viewport rule
+/* No viewport media rule here: the dock/stack decision is width-only and measured
+   on the main component alone — the map column against inspectorMinMainWidth,
+   with the docked inspector's 280px + 16px gap predicted (never measured), so the
+   inspector's own width never feeds the calculation (AgentMap.tsx). A viewport rule
    would be the wrong axis and could contradict that decision. */
 @media (max-width:420px) { .cj-agent-map__header { flex-wrap:wrap; } .cj-agent-map__counts { width:100%; margin-left:0; } }
 @media (max-width:500px) {

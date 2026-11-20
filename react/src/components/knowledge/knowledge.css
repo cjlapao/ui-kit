@@ -139,7 +139,8 @@
 /* Explorer layout, NetworkGraph-style: the chosen view takes the main
    column, the inspector docks on the right at --kit-knowledge-inspector-width
    while there is room, and stacks under the view when the ResizeObserver says
-   the main column would fall under its floor. */
+   the component fell under the main view's floor — a width switch on the main
+   component alone; the inspector column's width never counts. */
 .kit-knowledge-explorer { display: grid; gap: 1rem; }
 .kit-knowledge-explorer-grid { display: grid; grid-template-columns: minmax(0, 1fr) 0px; gap: 0; align-items: start; min-width: 0; transition: grid-template-columns 240ms ease, gap 240ms ease; }
 .kit-knowledge-explorer-grid--inspector-open { grid-template-columns: minmax(0, 1fr) var(--kit-knowledge-inspector-width, 340px); gap: 16px; }

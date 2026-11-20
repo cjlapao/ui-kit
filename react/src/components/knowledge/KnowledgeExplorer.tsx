@@ -11,7 +11,6 @@ import type { KnowledgeExplorerContext, KnowledgeExplorerProps, KnowledgeExplore
 const INSPECTOR_WIDTH_DEFAULT = 340;
 const INSPECTOR_WIDTH_MIN = 180;
 const INSPECTOR_WIDTH_MAX = 480;
-const INSPECTOR_GAP = 16;
 const INSPECTOR_MIN_MAIN_WIDTH_DEFAULT = 360;
 
 /** Only forward chrome the slot actually pins: an `undefined` key (an
@@ -76,11 +75,12 @@ export function KnowledgeExplorer({ memories, points, relationships, selectedId,
   const inspectorVisible = inspector && enabled.includes("detail");
   const inspectorOpen = inspectorVisible && !loading && !!selectedMemory;
   const gridRef = useRef<HTMLDivElement | null>(null);
-  // Dock or stack: the inspector keeps its column while the main view still
-  // has its floor width, otherwise it stacks under the view — NetworkGraph's
-  // ResizeObserver switch, including the `inspectorStackBelow` escape hatch.
+  // Dock or stack: a pure width switch on the main component alone — the
+  // inspector docks while the component is at least the main view's floor
+  // wide, and moves under the view below it. The inspector column's own
+  // width never counts; `inspectorStackBelow` replaces the comparison outright.
   const width = Math.min(INSPECTOR_WIDTH_MAX, Math.max(INSPECTOR_WIDTH_MIN, inspectorWidth ?? INSPECTOR_WIDTH_DEFAULT));
-  const threshold = inspectorStackBelow ?? width + INSPECTOR_GAP + (inspectorMinMainWidth ?? INSPECTOR_MIN_MAIN_WIDTH_DEFAULT);
+  const threshold = inspectorStackBelow ?? (inspectorMinMainWidth ?? INSPECTOR_MIN_MAIN_WIDTH_DEFAULT);
   const [stacked, setStacked] = useState(false);
   useEffect(() => {
     const el = gridRef.current;

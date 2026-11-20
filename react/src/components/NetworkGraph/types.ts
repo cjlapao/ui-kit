@@ -93,16 +93,18 @@ export interface NetworkGraphProps extends Pick<
   /** Inspector column width in CSS pixels, when alongside the graph. Default: 280. */
   inspectorWidth?: number;
   /**
-   * The graph column's floor, used to derive where the inspector stops fitting: it
-   * docks beside the graph only while the component is at least
-   * `inspectorWidth + 16 + inspectorMinMainWidth` wide, and stacks under it below
-   * that. Raised when the graph needs more room to stay legible. Default: 320.
+   * The main (graph) column's floor and the sole contributor to the stack
+   * breakpoint, measured on the component itself (the width the graph gets
+   * when stacked, not the window): the inspector stacks below once the
+   * component is narrower than this. The inspector's own width never moves
+   * the breakpoint. Override via `inspectorStackBelow`. Raised when the graph
+   * needs more room to stay legible. Default: 320.
    */
   inspectorMinMainWidth?: number;
   /**
-   * Escape hatch for the dock/stack decision: stack while the component is narrower
-   * than this many CSS pixels, instead of the fit-derived threshold. `0` always
-   * docks beside the graph; a large value always stacks below it.
+   * Escape hatch for the dock/stack decision: stack while the component is
+   * narrower than this many CSS pixels, instead of `inspectorMinMainWidth`.
+   * `0` always docks beside the graph; a large value always stacks below it.
    */
   inspectorStackBelow?: number;
   /** Eyebrow label above the selected node's name. Uses the kit "Inspector" string by default. */
@@ -150,6 +152,25 @@ export interface NetworkGraphProps extends Pick<
   fullHeight?: boolean;
   /** Fill the available width. @default true */
   fullWidth?: boolean;
+  /**
+   * When the inspector opens — or a freshly selected node falls out of
+   * sight while the dock animates — ease the canvas by the shortest pan
+   * that brings the selected node just into view. Honors
+   * prefers-reduced-motion. Default: true.
+   */
+  autoRevealSelected?: boolean;
+  /**
+   * Have `autoRevealSelected` center on the selected node instead of
+   * panning by the minimum needed to show it. Only applies together
+   * with `autoRevealSelected`. Default: true.
+   */
+  autoCenterSelected?: boolean;
+  /**
+   * Additionally animate a fit of the visible graph into the shrunken
+   * canvas box when the inspector opens. Changes the zoom level, so it
+   * is opt-in. Default: false.
+   */
+  autoFitOnInspector?: boolean;
   /** Localized graph name. Other chrome uses the kit catalogs. */
   ariaLabel?: string;
   emptyMessage?: React.ReactNode;
