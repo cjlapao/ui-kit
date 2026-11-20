@@ -731,9 +731,9 @@ DOM.
 | module | responsibility |
 |---|---|
 | `types.ts` | data model (`GanttTask`, `GanttLink`, `GanttLane`, `GanttColumn`, `GanttSnap`, `GanttLabels`) + zoom presets (`GANTT_ZOOM_PRESETS`, `GANTT_MIN_ZOOM`, `GANTT_MAX_ZOOM`, `GANTT_HOUR_PX_PER_DAY`) + `DEFAULT_GANTT_LABELS`. |
-| `time.ts` | pure date/scale math: `toMs`, `dateToX`/`xToDate`, `startOfDay/Hour/Week/Month/Quarter`, `addDays/Hours/Months`, `snapDate`, `computeViewRange`, `buildTimeScale` (multi-level header), `getIsoWeekNumber`, formatters. `MS_PER_DAY`, week starts Monday. |
+| `time.ts` | pure date/scale math: `toMs`, `dateToX`/`xToDate`, `startOfDay/Hour/Week/Month/Quarter`, `addDays/Hours/Months`, `snapDate`, `computeViewRange`, `buildTimeScale` (multi-level header), `getIsoWeekNumber`, `zoomForSpan` (named `GanttZoomTier` span → preset px/day), formatters. `MS_PER_DAY`, week starts Monday. |
 | `layout.ts` | row model: `buildRows` (flattens lanes + hierarchy into ordered rows with px geometry), `rollupProgress` / `rollupLaneProgress` (duration-weighted), `applyRowReorder`, `resolveDropBeforeId`, `topAncestorId`. `DEFAULT_ROW_HEIGHT=44`, `GROUP_ROW_HEIGHT=40`. |
-| `drag.ts` | interaction math: `applyDragDates` (move/resize with snap + min-duration clamp), `commitDragEdit` (no-op aware), `progressFromPointer`, `linkPath`/`computeLinkPaths`/`linkSourceAnchor` (FS/SS/FF/SF routing + arrowhead polygon), `todayX`, `dragDurationLabel`. |
+| `drag.ts` | interaction math: `applyDragDates` (move/resize with snap + min-duration clamp), `commitDragEdit` (no-op aware), `progressFromPointer`, `linkPath`/`computeLinkPaths`/`linkSourceAnchor` (FS/SS/FF/SF routing + arrowhead polygon), `todayX`, `todayScrollLeft`, `dragDurationLabel`. |
 | `tokens.ts` | `TrueColor` → Tailwind class maps (`getGanttBarTokens`, `getGanttLaneTokens`, `getGanttColumnTokens`, `getGanttLinkTokens`, `getGanttTodayTokens`, `getGanttSelectionTokens`). No hand hex. |
 | `sample.ts` | `sampleGanttTasks/Lines/Links`, `sampleGantt` — a realistic project fixture (Design / Engineering / Launch lanes, groups, milestones, typed links). |
 
@@ -758,6 +758,14 @@ interface GanttTask {
 arrays. It is **controlled**: `tasks`/`links`/`rowOrder` come in; edits go out via `onTasksChange` /
 `onLinksChange` / `onReorder`. `editable` is derived from the presence of those callbacks unless set.
 
+### Chart header
+
+The header strip always renders: `icon` + `subtitle`/`title`, the right-aligned `actions` region (e.g. a
+status pill), and the zoom selector at the right edge. `headerActions` (any React/Vue node) adds ad-hoc
+controls beside the span selector — `headerActionsAlign="end"` (default) parks them **between the
+`actions` pill and the span selector**; `"start"` rides them in the left zone (after the title, flush
+left when no icon/title is present). The group wrapper carries `data-gantt-header-region="start|end"`.
+
 ### Interactions (all in the shared `drag.ts` engine)
 
 - **Move** — drag a bar; duration preserved, snapped to the configured unit.
@@ -779,7 +787,13 @@ the hour tier the fine level is whole-hour columns under a coarse day level, wit
 midnight; hour labels merge into groups sized by column width — a label centered every 2h at the Hour
 preset, per hour again past 20px columns — so narrow columns stay legible). Past `GANTT_HOUR_PX_PER_DAY=192` px/day the grid is hourly, and `snapDate` auto-refines
 `snap="day"`/`"none"` to the hour — keyboard nudging follows the same rule. A floating toolbar offers
-preset + fine `−`/`+` zoom; `Ctrl`/`Cmd`+scroll pinch-zooms at the cursor.
+preset + fine `−`/`+` zoom; `Ctrl`/`Cmd`+scroll pinch-zooms at the cursor. Uncontrolled zoom can open
+on a named span — `initialSpan="hour" | … | "quarter"` resolves through `zoomForSpan` to the preset
+table (numeric `initialZoom` wins when both are given). With `autoScrollToToday` (the default), the
+body scrolls `todayScrollLeft(todayX, …, leftWidth)` — "now" centered in the **visible** timeline
+region, right of the fixed columns — on open (instant, waiting on a one-shot `ResizeObserver` if the
+scroller mounts unmeasured) and whenever the header tier changes (smooth); fine zoom or pinch within a
+tier never re-centers, and `autoScrollToToday={false}` opts out.
 
 ### Styling & a11y
 

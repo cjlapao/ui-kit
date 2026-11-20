@@ -135,6 +135,51 @@ describe("Gantt component", () => {
     expect(columnHeader.textContent).not.toContain("Quarter");
   });
 
+  it("renders header actions between the live pill and the zoom selector", () => {
+    const { container } = render(
+      <Gantt
+        tasks={tasks}
+        title="Roadmap"
+        actions={<span data-gantt-chart-actions>LIVE</span>}
+        headerActions={
+          <>
+            <button data-gantt-header-btn>By epic</button>
+            <button>By priority</button>
+          </>
+        }
+      />,
+    );
+    const group = container.querySelector('[data-gantt-header-region="end"]')!;
+    expect(group.textContent).toContain("By epic");
+    expect(group.textContent).toContain("By priority");
+    // Strip order: pill → buttons → span selector.
+    const pill = container.querySelector("[data-gantt-chart-actions]")!;
+    expect(pill.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const hour = screen.getByText("Hour");
+    expect(
+      group.compareDocumentPosition(hour) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("aligns header actions to the left zone, flush left without a title", () => {
+    const { container } = render(
+      <Gantt
+        tasks={tasks}
+        headerActions={<button data-gantt-header-btn>By epic</button>}
+        headerActionsAlign="start"
+      />,
+    );
+    const group = container.querySelector('[data-gantt-header-region="start"]')!;
+    expect(container.querySelector('[data-gantt-header-region="end"]')).toBeNull();
+    // The group rides the flex-1 left zone (flush left — nothing precedes it)
+    // and stays before the right-side zoom selector.
+    expect((group.parentElement as HTMLElement).className).toContain("flex-1");
+    expect(
+      group.compareDocumentPosition(screen.getByText("Hour")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("always renders the header strip with the zoom selector, even without header props", () => {
     const { container } = render(<Gantt tasks={tasks} />);
     const scroller = container.querySelector(".gantt-scroller")!;
@@ -1229,6 +1274,64 @@ describe("Gantt component", () => {
     const label = spans[0].firstElementChild as HTMLElement;
     expect(label.textContent).toMatch(/^\d+$/);
     expect(label.className).toContain("whitespace-nowrap");
+  });
+
+  it("auto-scrolls to today on open and on tier jumps, never on fine zoom", () => {
+    // No other component in the chart calls `scrollTo` (the scroller sync
+    // only reads/writes `scrollLeft`), so every recorded call is ours.
+    const calls: ScrollToOptions[] = [];
+    const original = Element.prototype.scrollTo;
+    Element.prototype.scrollTo = function (opts?: ScrollToOptions | number) {
+      if (typeof opts === "object" && opts) calls.push(opts);
+    } as typeof Element.prototype.scrollTo;
+    const ganttCalls = () => calls;
+    try {
+      const { rerender } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} zoom={288} />);
+      // Opening jumps to "now" instantly — no animation from the initial edge.
+      expect(ganttCalls()).toHaveLength(1);
+      expect(ganttCalls()[0].behavior).toBe("auto");
+      // Fine zoom within the hour tier keeps the user's manual scroll.
+      rerender(<Gantt tasks={tasks} lanes={sampleGanttLanes} zoom={384} />);
+      expect(ganttCalls()).toHaveLength(1);
+      // A tier jump (hour → day) re-centers, animated.
+      rerender(<Gantt tasks={tasks} lanes={sampleGanttLanes} zoom={48} />);
+      expect(ganttCalls()).toHaveLength(2);
+      expect(ganttCalls()[1].behavior).toBe("smooth");
+    } finally {
+      if (original) Element.prototype.scrollTo = original;
+      else delete (Element.prototype as unknown as { scrollTo?: unknown }).scrollTo;
+    }
+  });
+
+  it("does not touch the scroller with autoScrollToToday disabled", () => {
+    const calls: unknown[] = [];
+    const original = Element.prototype.scrollTo;
+    Element.prototype.scrollTo = function (opts?: ScrollToOptions | number) {
+      calls.push(opts);
+    } as typeof Element.prototype.scrollTo;
+    try {
+      render(
+        <Gantt tasks={tasks} lanes={sampleGanttLanes} zoom={288} autoScrollToToday={false} />,
+      );
+      expect(calls).toHaveLength(0);
+    } finally {
+      if (original) Element.prototype.scrollTo = original;
+      else delete (Element.prototype as unknown as { scrollTo?: unknown }).scrollTo;
+    }
+  });
+
+  it("opens at the named initialSpan; numeric initialZoom wins when both are given", () => {
+    // Uncontrolled open at the hour preset → merged hour-label markers.
+    const { container, unmount } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} initialSpan="hour" />,
+    );
+    expect(container.querySelectorAll("[data-gantt-label-span]").length).toBeGreaterThan(0);
+    unmount();
+    // Day tier (numeric default) renders no merged-label markers at all.
+    const day = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} initialSpan="hour" initialZoom={48} />,
+    );
+    expect(day.container.querySelectorAll("[data-gantt-label-span]").length).toBe(0);
   });
 
   it("emits nothing from a locked task drag", () => {

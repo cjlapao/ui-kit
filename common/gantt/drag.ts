@@ -1005,6 +1005,23 @@ export function todayX(today: number, viewStart: number, pxPerDay: number): numb
   return (t - viewStart) * (1 / MS_PER_DAY) * pxPerDay;
 }
 
+/**
+ * Centered, clamped target `scrollLeft` for the body scroller to bring "now"
+ * into view. The scroller spans the whole component but its left
+ * `fixedLeftWidth` px are covered by the non-scrolling column block, so "now"
+ * is centered in the **visible** timeline region — never scrolling past
+ * either edge (content narrower than the viewport → 0).
+ */
+export function todayScrollLeft(
+  todayXPos: number,
+  viewportWidth: number,
+  contentWidth: number,
+  fixedLeftWidth = 0,
+): number {
+  const visible = Math.max(0, viewportWidth - fixedLeftWidth);
+  return Math.max(0, Math.min(todayXPos - visible / 2, contentWidth - viewportWidth));
+}
+
 /** Convenience: duration label from a drag state's live dates. */
 export function dragDurationLabel(start: number, end: number): string {
   return `${Math.max(0, Math.round(daysBetween(start, end) * 10) / 10)}d`;

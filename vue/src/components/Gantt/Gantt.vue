@@ -10,11 +10,12 @@ import type {
   GanttRow,
   GanttSnap,
   GanttTask,
+  GanttZoomTier,
   TrueColor,
 } from "../../../../common/gantt";
 import type { VNodeChild } from "vue";
 import type { PanelCorner, PanelPadding, PanelVariant } from "../Panel.vue";
-export type { GanttTask, GanttLink, GanttLane, GanttColumn, GanttSnap, GanttLabels, TrueColor };
+export type { GanttTask, GanttLink, GanttLane, GanttColumn, GanttSnap, GanttLabels, GanttZoomTier, TrueColor };
 /** The Panel surface variant driving the Gantt chrome (re-exported name). */
 export type GanttVariant = PanelVariant;
 /** The shared container radius scale (re-exported Panel `corner` scale). */
@@ -45,6 +46,18 @@ export interface GanttProps {
   /** Right-aligned actions region (e.g. a status pill). */
   actions?: VNodeChild;
   /**
+   * Ad-hoc controls (any Vue/HTML) placed beside the zoom selector — by
+   * default between the `actions` pill and the span selector.
+   */
+  headerActions?: VNodeChild;
+  /**
+   * Where `headerActions` live. `"end"` (default) pins them to the right
+   * zone, immediately before the zoom selector; `"start"` rides the left
+   * zone — after the title block, flush left when there is no icon/title.
+   * @default "end"
+   */
+  headerActionsAlign?: "start" | "end";
+  /**
    * Enable pointer editing (move / resize / reorder / link). Defaults to
    * `true` when a change listener is provided, or when set explicitly.
    */
@@ -55,8 +68,16 @@ export interface GanttProps {
   selectedId?: string | null;
   /** px per day. Controlled when provided with `onZoomChange`. */
   zoom?: number;
-  /** Initial px per day when uncontrolled. Defaults to 16 (week). */
+  /** Initial px per day when uncontrolled. Defaults to 16 (week). Takes
+   *  precedence over `initialSpan` when both are given. */
   initialZoom?: number;
+  /**
+   * Initial zoom span when uncontrolled — opens at that preset's zoom
+   * (`"hour"` … `"quarter"`, resolved via `zoomForSpan` from
+   * `GANTT_ZOOM_PRESETS`). Ignored when `zoom` is controlled; numeric
+   * `initialZoom` wins when both are given.
+   */
+  initialSpan?: GanttZoomTier;
   minZoom?: number;
   maxZoom?: number;
   /** Snap for drag edits. Defaults to `"day"`. */
@@ -65,6 +86,16 @@ export interface GanttProps {
   showToday?: boolean;
   /** Override the today date (demo/tests). */
   today?: GanttDate;
+  /**
+   * Scroll the body to bring "now" into view on open and whenever the header
+   * tier changes — Hour↔Day↔Week↔Month↔Quarter, i.e. preset jumps. "Now"
+   * centers in the **visible** timeline region (right of the fixed columns),
+   * and the open scroll waits for layout if the scroller mounts unmeasured
+   * (hidden tab, animating container). Fine zoom or pinch within a tier never
+   * re-centers, so manual panning is left alone. Independent of `showToday`.
+   * @default true
+   */
+  autoScrollToToday?: boolean;
   /** Row height in px. Defaults to 44. */
   rowHeight?: number;
   /** Total component height (px or CSS length). Defaults to 520. */
@@ -161,8 +192,11 @@ import {
   getGanttTodayTokens,
   laneRollupProgress,
   LINK_RIGHT_GUTTER,
+  pickBaseUnit,
   rangeWidth,
   taskRollupProgress,
+  todayScrollLeft,
+  zoomForSpan,
   toMs,
   MS_PER_DAY,
   applyRowReorder,
@@ -181,11 +215,12 @@ import { useGanttDrag } from "./useGanttDrag";
 defineOptions({ name: "Gantt", inheritAttrs: false });
 const props = withDefaults(defineProps<GanttProps>(), {
   links: () => [],
-  initialZoom: 16,
   minZoom: GANTT_MIN_ZOOM,
   maxZoom: GANTT_MAX_ZOOM,
   snap: "day",
   showToday: true,
+  autoScrollToToday: true,
+  headerActionsAlign: "end",
   rowHeight: DEFAULT_ROW_HEIGHT,
   height: 520,
   color: "blue",
@@ -260,6 +295,7 @@ const surfaceText = computed(() => getSurfaceTextTokens(props.variant));
 const hasNode = (v: unknown) => v != null && v !== false;
 const hasIcon = computed(() => hasNode(props.icon));
 const hasActions = computed(() => hasNode(props.actions));
+const hasHeaderActions = computed(() => hasNode(props.headerActions));
 // Icon tile chrome follows the panel variant (sits flush beside the container).
 const chartHeaderTile = computed(() => getSurfaceVariantClasses(props.variant, props.tone));
 
@@ -272,7 +308,7 @@ const hasZoomListener = "onZoomChange" in vnodeProps;
 const interactive = computed<boolean>(() => props.editable ?? hasChangeListeners);
 
 // ── Zoom (controlled or internal) ─────────────────────────────────────────
-const internalZoom = ref(props.initialZoom);
+const internalZoom = ref(props.initialZoom ?? (props.initialSpan ? zoomForSpan(props.initialSpan) : 16));
 const zoom = computed<number>(() => (props.zoom !== undefined ? props.zoom : internalZoom.value));
 const setZoom = (z: number) => {
   const clamped = Math.min(props.maxZoom, Math.max(props.minZoom, z));
@@ -724,6 +760,76 @@ const hZoomBy = (f: number) => zoomBy(f);
 
 const todayX = computed(() => dateToX(toMs(props.today ?? new Date()), range.value.start, zoom.value));
 const todayVisible = computed(() => (props.showToday ? todayX.value >= 0 && todayX.value <= timelineWidth.value : false));
+
+// Auto-scroll to "now": on open (instant) and on header tier jumps (smooth).
+// "Now" centers in the *visible* timeline region — the fixed column block
+// covers the scroller's left edge, so `leftWidth` is passed in to keep the
+// line off dead-center-of-nothing. Same-tier zoom (fine ±, pinch) never
+// re-centers — the tier memo keeps manual panning within a tier untouched.
+let scrollTier: GanttZoomTier | null = null;
+let openScrollCancel: (() => void) | null = null;
+const scrollToToday = (behavior: ScrollBehavior) => {
+  const el = scrollRef.value;
+  if (!el) return;
+  const left = todayScrollLeft(todayX.value, el.clientWidth, el.scrollWidth, leftWidth.value);
+  if (typeof el.scrollTo === "function") el.scrollTo({ left, behavior });
+  else el.scrollLeft = left;
+};
+// Open: jump to "now" instantly. If the scroller mounts unmeasured (hidden
+// tab, animating container) the immediate scroll lands at the edge, so a
+// one-shot ResizeObserver brings a true centering once the first real size
+// arrives; hosts whose observer never reports (no RO at all, inert test
+// polyfills) keep the immediate scroll as the final answer.
+const runOpenScroll = () => {
+  const el = scrollRef.value;
+  if (!el) return;
+  let pending = true;
+  let ro: ResizeObserver | null = null;
+  const cancel = () => {
+    pending = false;
+    ro?.disconnect();
+    ro = null;
+    openScrollCancel = null;
+  };
+  openScrollCancel = cancel;
+  scrollToToday("auto");
+  if (el.clientWidth === 0 && typeof ResizeObserver === "function") {
+    ro = new ResizeObserver(() => {
+      if (pending && el.clientWidth > 0) {
+        cancel();
+        scrollToToday("auto");
+      }
+    });
+    ro.observe(el);
+  }
+};
+onMounted(() => {
+  if (props.autoScrollToToday && scrollTier === null) {
+    scrollTier = pickBaseUnit(zoom.value);
+    runOpenScroll();
+  }
+});
+onBeforeUnmount(() => openScrollCancel?.());
+watch(
+  () => [props.autoScrollToToday, zoom.value] as const,
+  ([on]) => {
+    if (!on) {
+      openScrollCancel?.();
+      scrollTier = null;
+      return;
+    }
+    if (scrollTier === null) {
+      scrollTier = pickBaseUnit(zoom.value);
+      runOpenScroll();
+      return;
+    }
+    const tier = pickBaseUnit(zoom.value);
+    if (scrollTier === tier) return;
+    scrollTier = tier;
+    openScrollCancel?.();
+    scrollToToday("smooth");
+  },
+);
 const todayTokens = computed(() => getGanttTodayTokens(accentColor.value));
 const selectionTokens = computed(() => getGanttSelectionTokens(accentColor.value));
 const isEmpty = computed(() => props.tasks.length === 0);
@@ -888,30 +994,46 @@ const colJustify = (col: GanttColumn) =>
       <div
         :class="classNames('flex shrink-0 items-center gap-3 border-b px-4 py-3', surfaceText.divider)"
       >
-        <div
-          v-if="hasIcon"
-          :class="
-            classNames(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-              chartHeaderTile,
-            )
-          "
-        >
-          <VNodeRenderer :nodes="icon" />
-        </div>
-        <div v-if="title || subtitle" class="min-w-0 flex-1">
+        <div class="flex min-w-0 flex-1 items-center gap-3">
           <div
-            v-if="subtitle"
-            class="truncate text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+            v-if="hasIcon"
+            :class="
+              classNames(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                chartHeaderTile,
+              )
+            "
           >
-            {{ subtitle }}
+            <VNodeRenderer :nodes="icon" />
           </div>
-          <div v-if="title" class="truncate text-lg font-semibold text-neutral-900 dark:text-white">
-            {{ title }}
+          <div v-if="title || subtitle" class="min-w-0">
+            <div
+              v-if="subtitle"
+              class="truncate text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+            >
+              {{ subtitle }}
+            </div>
+            <div v-if="title" class="truncate text-lg font-semibold text-neutral-900 dark:text-white">
+              {{ title }}
+            </div>
+          </div>
+          <div
+            v-if="headerActionsAlign === 'start' && hasHeaderActions"
+            data-gantt-header-region="start"
+            class="flex shrink-0 items-center gap-2"
+          >
+            <VNodeRenderer :nodes="headerActions" />
           </div>
         </div>
         <div v-if="hasActions" class="flex shrink-0 items-center gap-2">
           <VNodeRenderer :nodes="actions" />
+        </div>
+        <div
+          v-if="headerActionsAlign === 'end' && hasHeaderActions"
+          data-gantt-header-region="end"
+          class="flex shrink-0 items-center gap-2"
+        >
+          <VNodeRenderer :nodes="headerActions" />
         </div>
         <!-- Zoom selector — always in the header strip (after the actions),
              never floating over the scale window. `ml-auto` keeps it at the

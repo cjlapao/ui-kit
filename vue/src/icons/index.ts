@@ -126,6 +126,7 @@ export * from "./components/OpenApp";
 export * from "./components/Orchestrator";
 export * from "./components/PaperPlane";
 export * from "./components/Parameter";
+export * from "./components/Path";
 export * from "./components/Pause";
 export * from "./components/PauseCircular";
 export * from "./components/Pin";

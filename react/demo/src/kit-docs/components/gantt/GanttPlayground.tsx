@@ -70,6 +70,10 @@ const PADDINGS: { label: string; value: GanttPadding }[] = [
   { label: "Large", value: "lg" },
   { label: "Extra large", value: "xl" },
 ];
+const HEADER_ALIGN: { label: string; value: string }[] = [
+  { label: "End — beside the zoom pill", value: "end" },
+  { label: "Start — left, after the title", value: "start" },
+];
 const LANES: GanttLane[] = sampleGantt.lanes;
 const INITIAL_TASKS = sampleGantt.tasks();
 const INITIAL_LINKS = sampleGantt.links();
@@ -93,6 +97,11 @@ export const GanttPlayground: React.FC = () => {
   const [showToday, setShowToday] = useState(true);
   const [resizableCols, setResizableCols] = useState(true);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [showTitle, setShowTitle] = useState(true);
+  const [showIcon, setShowIcon] = useState(true);
+  const [showPill, setShowPill] = useState(true);
+  const [headerActionsAlign, setHeaderActionsAlign] = useState<"start" | "end">("end");
+  const [groupBy, setGroupBy] = useState<"epic" | "priority">("epic");
   const [log, setLog] = useState<{ id: number; label: string }[]>([]);
   const [seq, setSeq] = useState(0);
 
@@ -114,6 +123,11 @@ export const GanttPlayground: React.FC = () => {
     setCorner("rounded-sm");
     setPadding("none");
     setColumnWidths({});
+    setShowTitle(true);
+    setShowIcon(true);
+    setShowPill(true);
+    setHeaderActionsAlign("end");
+    setGroupBy("epic");
     setLog([]);
   };
 
@@ -199,7 +213,16 @@ export const GanttPlayground: React.FC = () => {
               checked={resizableCols}
               onChange={setResizableCols}
             />
+            <ToggleRow label="Header title / subtitle" checked={showTitle} onChange={setShowTitle} />
+            <ToggleRow label="Header icon" checked={showIcon} onChange={setShowIcon} />
+            <ToggleRow label="Live pill (actions)" checked={showPill} onChange={setShowPill} />
           </div>
+          <SelectControl
+            label="Header actions align"
+            options={HEADER_ALIGN}
+            value={headerActionsAlign}
+            onChange={(v) => setHeaderActionsAlign(v as "start" | "end")}
+          />
           <button
             type="button"
             onClick={reset}
@@ -259,15 +282,40 @@ export const GanttPlayground: React.FC = () => {
               pushLog("Columns resized");
             }}
             height={440}
-            icon={<Rocket className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
-            subtitle="VENDOR ONBOARDING · REQ-4128"
-            title="Northwind Logistics GmbH"
+            icon={
+              showIcon ? (
+                <Rocket className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              ) : undefined
+            }
+            subtitle={showTitle ? "VENDOR ONBOARDING · REQ-4128" : undefined}
+            title={showTitle ? "Northwind Logistics GmbH" : undefined}
             actions={
-              <div className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-medium text-neutral-600 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                LIVE · read-only view
+              showPill ? (
+                <div className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-medium text-neutral-600 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  LIVE · read-only view
+                </div>
+              ) : undefined
+            }
+            headerActions={
+              <div className="flex items-center gap-1.5">
+                {(["epic", "priority"] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setGroupBy(k)}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                      groupBy === k
+                        ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                        : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                    }`}
+                  >
+                    By {k}
+                  </button>
+                ))}
               </div>
             }
+            headerActionsAlign={headerActionsAlign}
             onTasksChange={(next) => {
               setTasks(next);
               pushLog("Dates / progress edited");

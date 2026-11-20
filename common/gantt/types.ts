@@ -136,6 +136,9 @@ export const GANTT_ZOOM_PRESETS: GANTT_ZOOM_PRESET[] = [
   { label: "Quarter", value: 1.6 },
 ];
 
+/** Named zoom span — the toolbar preset labels, lowercased. */
+export type GanttZoomTier = "hour" | "day" | "week" | "month" | "quarter";
+
 /** Inclusive zoom bounds applied to wheel/button zoom. */
 export const GANTT_MIN_ZOOM = 0.4;
 export const GANTT_MAX_ZOOM = 576;

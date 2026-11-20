@@ -125,6 +125,7 @@ import { OpenApp } from "./components/OpenApp";
 import { Orchestrator } from "./components/Orchestrator";
 import { PaperPlane } from "./components/PaperPlane";
 import { Parameter } from "./components/Parameter";
+import { Path } from "./components/Path";
 import { Pause } from "./components/Pause";
 import { PauseCircular } from "./components/PauseCircular";
 import { Pin } from "./components/Pin";
@@ -329,6 +330,7 @@ export type IconName =
   | "Orchestrator"
   | "PaperPlane"
   | "Parameter"
+  | "Path"
   | "Pause"
   | "PauseCircular"
   | "Pin"
@@ -534,6 +536,7 @@ export const iconRegistry: Record<
   Orchestrator: Orchestrator,
   PaperPlane: PaperPlane,
   Parameter: Parameter,
+  Path: Path,
   Pause: Pause,
   PauseCircular: PauseCircular,
   Pin: Pin,

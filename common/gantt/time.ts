@@ -7,8 +7,8 @@
  * labels never drift from the grid.
  */
 
-import { GANTT_HOUR_PX_PER_DAY } from "./types";
-import type { GanttDate, GanttSnap, GanttTimeScaleLevel } from "./types";
+import { GANTT_HOUR_PX_PER_DAY, GANTT_ZOOM_PRESETS } from "./types";
+import type { GanttDate, GanttSnap, GanttTimeScaleLevel, GanttZoomTier } from "./types";
 
 export const MS_PER_DAY = 86_400_000;
 export const MS_PER_HOUR = 3_600_000;
@@ -249,14 +249,17 @@ export function snapDate(ms: number, snap: GanttSnap, pxPerDay?: number): number
  * level (year/month/day) and a fine level whose columns are the grid lines
  * of the timeline.
  */
-export function pickBaseUnit(
-  pxPerDay: number,
-): "hour" | "day" | "week" | "month" | "quarter" {
+export function pickBaseUnit(pxPerDay: number): GanttZoomTier {
   if (pxPerDay >= GANTT_HOUR_PX_PER_DAY) return "hour";
   if (pxPerDay >= 24) return "day";
   if (pxPerDay >= 4) return "week";
   if (pxPerDay >= 0.8) return "month";
   return "quarter";
+}
+
+/** Resolve a named zoom span to its preset px/day value (`GANTT_ZOOM_PRESETS` is the source of truth). */
+export function zoomForSpan(span: GanttZoomTier): number {
+  return GANTT_ZOOM_PRESETS.find((p) => p.label.toLowerCase() === span)?.value ?? 16;
 }
 
 interface ColumnSeed {

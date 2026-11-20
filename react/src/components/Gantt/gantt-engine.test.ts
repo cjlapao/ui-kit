@@ -11,6 +11,7 @@ import {
   dateToX,
   xToDate,
   pickBaseUnit,
+  zoomForSpan,
   startOfHour,
   formatHour,
   formatWeekday,
@@ -47,6 +48,7 @@ import {
   computeLinkFanOffsets,
   fanHandleOffset,
   ganttLinkLayerWidth,
+  todayScrollLeft,
 } from "../../../../common/gantt/drag";
 import { ganttCrossingPaths } from "../../../../common/gantt/crossings";
 import { getGanttBarTokens, getGanttLaneTokens } from "../../../../common/gantt/tokens";
@@ -185,6 +187,37 @@ describe("time engine", () => {
     const scale = buildTimeScale(d0, d0 + MS_PER_DAY, 288);
     const day = scale.find((l) => l.id === "day")!;
     expect(day.columns.every((c) => c.labelSpan === undefined)).toBe(true);
+  });
+
+  it("centers 'now' in the visible timeline region, clamped to the scroll range", () => {
+    // Centered: today's x minus half the *visible* viewport (no fixed block).
+    expect(todayScrollLeft(1000, 600, 5000)).toBe(700);
+    // A fixed column block shrinks the region "now" centers in — the line
+    // lands at the middle of what's actually visible, not of the scroller.
+    expect(todayScrollLeft(1000, 600, 5000, 200)).toBe(800);
+    // Left clamp: "now" near the start never scrolls negative.
+    expect(todayScrollLeft(100, 600, 5000)).toBe(0);
+    // A wide fixed block shrinks the region, so the centering target shifts
+    // right — and only clamps once "now" is left of that region's middle.
+    expect(todayScrollLeft(100, 600, 5000, 500)).toBe(50);
+    expect(todayScrollLeft(10, 600, 5000, 500)).toBe(0);
+    // Right clamp: cannot scroll past the content edge (clamps against the
+    // full viewport width, fixed block included).
+    expect(todayScrollLeft(4900, 600, 5000)).toBe(4400);
+    // Content narrower than the viewport → nowhere to scroll.
+    expect(todayScrollLeft(300, 1200, 800)).toBe(0);
+  });
+
+  it("resolves named zoom spans through the preset table", () => {
+    expect(zoomForSpan("hour")).toBe(288);
+    expect(zoomForSpan("day")).toBe(48);
+    expect(zoomForSpan("week")).toBe(16);
+    expect(zoomForSpan("month")).toBe(5);
+    expect(zoomForSpan("quarter")).toBe(1.6);
+    // Same numbers the toolbar renders — one source of truth.
+    expect(GANTT_ZOOM_PRESETS.map((p) => zoomForSpan(p.label.toLowerCase() as never))).toEqual(
+      GANTT_ZOOM_PRESETS.map((p) => p.value),
+    );
   });
 
   it("auto-refines day/none snapping to the hour when hour-fine", () => {

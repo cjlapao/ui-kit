@@ -47,6 +47,7 @@ import {
   GanttRow,
   GanttSnap,
   GanttTask,
+  GanttZoomTier,
   TrueColor,
   applyDragDates,
   buildRows,
@@ -60,8 +61,11 @@ import {
   getGanttSelectionTokens,
   getGanttTodayTokens,
   laneRollupProgress,
+  pickBaseUnit,
+  zoomForSpan,
   rangeWidth,
   taskRollupProgress,
+  todayScrollLeft,
   toMs,
   MS_PER_DAY,
   applyRowReorder,
@@ -79,7 +83,7 @@ import { GanttBodyRow } from "./GanttBodyRow";
 import { GanttToolbar } from "./GanttToolbar";
 import { useGanttDrag } from "./useGanttDrag";
 
-export type { GanttTask, GanttLink, GanttLane, GanttColumn, GanttSnap, GanttLabels, TrueColor };
+export type { GanttTask, GanttLink, GanttLane, GanttColumn, GanttSnap, GanttLabels, GanttZoomTier, TrueColor };
 /** The Panel surface variant driving the Gantt chrome (re-exported name). */
 export type GanttVariant = PanelVariant;
 /** The shared container radius scale (re-exported Panel `corner` scale). */
@@ -123,6 +127,18 @@ export interface GanttProps {
   /** Right-aligned actions region (e.g. a status pill). */
   actions?: ReactNode;
   /**
+   * Ad-hoc controls (any React/HTML) placed beside the zoom selector — by
+   * default between the `actions` pill and the span selector.
+   */
+  headerActions?: ReactNode;
+  /**
+   * Where `headerActions` live. `"end"` (default) pins them to the right
+   * zone, immediately before the zoom selector; `"start"` rides the left
+   * zone — after the title block, flush left when there is no icon/title.
+   * @default "end"
+   */
+  headerActionsAlign?: "start" | "end";
+  /**
    * Enable pointer editing (move / resize / reorder / link). Defaults to
    * `true` when any of `onTasksChange`, `onLinksChange`, `onReorder` is
    * provided, or when the prop is set explicitly.
@@ -140,8 +156,16 @@ export interface GanttProps {
   /** px per day. Controlled when provided with `onZoomChange`. */
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
-  /** Initial px per day when uncontrolled. Defaults to 16 (week). */
+  /** Initial px per day when uncontrolled. Defaults to 16 (week). Takes
+   *  precedence over `initialSpan` when both are given. */
   initialZoom?: number;
+  /**
+   * Initial zoom span when uncontrolled — opens at that preset's zoom
+   * (`"hour"` … `"quarter"`, resolved via `zoomForSpan` from
+   * `GANTT_ZOOM_PRESETS`). Ignored when `zoom` is controlled; numeric
+   * `initialZoom` wins when both are given.
+   */
+  initialSpan?: GanttZoomTier;
   minZoom?: number;
   maxZoom?: number;
   /** Snap for drag edits. Defaults to `"day"`. */
@@ -150,6 +174,16 @@ export interface GanttProps {
   showToday?: boolean;
   /** Override the today date (demo/tests). */
   today?: GanttDate;
+  /**
+   * Scroll the body to bring "now" into view on open and whenever the header
+   * tier changes — Hour↔Day↔Week↔Month↔Quarter, i.e. preset jumps. "Now"
+   * centers in the **visible** timeline region (right of the fixed columns),
+   * and the open scroll waits for layout if the scroller mounts unmeasured
+   * (hidden tab, animating container). Fine zoom or pinch within a tier never
+   * re-centers, so manual panning is left alone. Independent of `showToday`.
+   * @default true
+   */
+  autoScrollToToday?: boolean;
   /** Row height in px. Defaults to 44. */
   rowHeight?: number;
   /** Total component height (px or CSS length). Defaults to 520. */
@@ -268,6 +302,8 @@ export const Gantt: React.FC<GanttProps> = ({
   subtitle,
   title,
   actions,
+  headerActions,
+  headerActionsAlign = "end",
   editable,
   onTasksChange,
   onLinksChange,
@@ -277,12 +313,14 @@ export const Gantt: React.FC<GanttProps> = ({
   onSelect,
   zoom: zoomProp,
   onZoomChange,
-  initialZoom = 16,
+  initialZoom,
+  initialSpan,
   minZoom = GANTT_MIN_ZOOM,
   maxZoom = GANTT_MAX_ZOOM,
   snap = "day",
   showToday = true,
   today,
+  autoScrollToToday = true,
   rowHeight = DEFAULT_ROW_HEIGHT,
   height = 520,
   fullHeight = false,
@@ -364,7 +402,9 @@ export const Gantt: React.FC<GanttProps> = ({
   const cornerRem = getSurfaceCornerRem(corner);
 
   // ── Zoom (controlled or internal) ─────────────────────────────────────────
-  const [internalZoom, setInternalZoom] = useState(initialZoom);
+  const [internalZoom, setInternalZoom] = useState(
+    initialZoom ?? (initialSpan ? zoomForSpan(initialSpan) : 16),
+  );
   const zoom = zoomProp ?? internalZoom;
   const setZoom = useCallback(
     (z: number) => {
@@ -889,6 +929,69 @@ export const Gantt: React.FC<GanttProps> = ({
 
   const todayX = dateToX(toMs(today ?? new Date()), range.start, zoom);
   const todayVisible = showToday && todayX >= 0 && todayX <= timelineWidth;
+
+  // Auto-scroll to "now": on open (instant) and on header tier jumps (smooth).
+  // "Now" centers in the *visible* timeline region — the fixed column block
+  // covers the scroller's left edge, so `leftWidth` is passed in to keep the
+  // line off dead-center-of-nothing. Same-tier zoom (fine ±, pinch) never
+  // re-centers — the tier memo keeps manual panning within a tier untouched.
+  const scrollTierRef = useRef<GanttZoomTier | null>(null);
+  const openScrollCancelRef = useRef<(() => void) | null>(null);
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const scrollGeomRef = useRef({ todayX, leftWidth });
+  scrollGeomRef.current = { todayX, leftWidth };
+  const scrollBodyToToday = useCallback((el: HTMLElement, behavior: ScrollBehavior) => {
+    const geom = scrollGeomRef.current;
+    const left = todayScrollLeft(geom.todayX, el.clientWidth, el.scrollWidth, geom.leftWidth);
+    if (typeof el.scrollTo === "function") el.scrollTo({ left, behavior });
+    else el.scrollLeft = left;
+  }, []);
+
+  // Open: jump to "now" instantly — no animation sweeping in from the edge.
+  // If the scroller mounts unmeasured (hidden tab, animating container) the
+  // immediate scroll lands at the edge, so a one-shot ResizeObserver brings a
+  // true centering once the first real size arrives; hosts whose observer
+  // never reports (no RO at all, inert test polyfills) keep the immediate
+  // scroll as the final answer.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!autoScrollToToday || !el) return;
+    scrollTierRef.current = pickBaseUnit(zoomRef.current);
+    let pending = true;
+    let ro: ResizeObserver | null = null;
+    const cancel = () => {
+      pending = false;
+      ro?.disconnect();
+      ro = null;
+      openScrollCancelRef.current = null;
+    };
+    openScrollCancelRef.current = cancel;
+    scrollBodyToToday(el, "auto");
+    if (el.clientWidth === 0 && typeof ResizeObserver === "function") {
+      ro = new ResizeObserver(() => {
+        if (pending && el.clientWidth > 0) {
+          cancel();
+          scrollBodyToToday(el, "auto");
+        }
+      });
+      ro.observe(el);
+    }
+    return cancel;
+  }, [autoScrollToToday, scrollBodyToToday]);
+
+  // Tier jumps (preset buttons, controlled zoom crossing tiers) re-center
+  // animated; a jump while the open scroll is still pending just takes over.
+  useEffect(() => {
+    if (!autoScrollToToday) return;
+    const el = scrollRef.current;
+    if (!el || scrollTierRef.current === null) return;
+    const tier = pickBaseUnit(zoom);
+    if (scrollTierRef.current === tier) return;
+    scrollTierRef.current = tier;
+    openScrollCancelRef.current?.();
+    scrollBodyToToday(el, "smooth");
+  }, [autoScrollToToday, zoom, scrollBodyToToday]);
   const todayTokens = getGanttTodayTokens(color);
   const selectionTokens = getGanttSelectionTokens(color);
   const isEmpty = tasks.length === 0;
@@ -1064,32 +1167,47 @@ export const Gantt: React.FC<GanttProps> = ({
             surfaceText.divider,
           )}
         >
-          {hasNode(icon) && (
-            <div
-              className={classNames(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                getSurfaceVariantClasses(variant, tone),
-              )}
-            >
-              {icon}
-            </div>
-          )}
-          {(title != null || subtitle != null) && (
-            <div className="min-w-0 flex-1">
-              {subtitle != null && (
-                <div className="truncate text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-                  {subtitle}
-                </div>
-              )}
-              {title != null && (
-                <div className="truncate text-lg font-semibold text-neutral-900 dark:text-white">
-                  {title}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            {hasNode(icon) && (
+              <div
+                className={classNames(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                  getSurfaceVariantClasses(variant, tone),
+                )}
+              >
+                {icon}
+              </div>
+            )}
+            {(title != null || subtitle != null) && (
+              <div className="min-w-0">
+                {subtitle != null && (
+                  <div className="truncate text-[11px] font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                    {subtitle}
+                  </div>
+                )}
+                {title != null && (
+                  <div className="truncate text-lg font-semibold text-neutral-900 dark:text-white">
+                    {title}
+                  </div>
+                )}
+              </div>
+            )}
+            {headerActionsAlign === "start" && hasNode(headerActions) && (
+              <div
+                data-gantt-header-region="start"
+                className="flex shrink-0 items-center gap-2"
+              >
+                {headerActions}
+              </div>
+            )}
+          </div>
           {hasNode(actions) && (
             <div className="flex shrink-0 items-center gap-2">{actions}</div>
+          )}
+          {headerActionsAlign === "end" && hasNode(headerActions) && (
+            <div data-gantt-header-region="end" className="flex shrink-0 items-center gap-2">
+              {headerActions}
+            </div>
           )}
           {/* Zoom selector — always in the header strip (after the actions),
               never floating over the scale window. `ml-auto` keeps it at the

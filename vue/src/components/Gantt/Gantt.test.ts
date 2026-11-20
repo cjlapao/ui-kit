@@ -134,6 +134,35 @@ describe("Gantt (Vue)", () => {
     expect(columnHeader.textContent).not.toContain("Quarter");
   });
 
+  it("renders header actions between the live pill and the zoom selector", () => {
+    const w = mountGantt({
+      title: "Roadmap",
+      actions: h("span", { "data-gantt-chart-actions": "" }, "LIVE"),
+      headerActions: h("button", { "data-gantt-header-btn": "" }, "By epic"),
+    });
+    expect(w.text()).toContain("By epic");
+    const pill = w.find("[data-gantt-chart-actions]").element;
+    const group = w.find('[data-gantt-header-region="end"]').element;
+    // Strip order: pill → buttons → span selector.
+    expect(pill.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const hour = [...w.element.querySelectorAll("button")].find((b) => b.textContent === "Hour")!;
+    const btn = w.find("[data-gantt-header-btn]").element;
+    expect(btn.compareDocumentPosition(hour) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("aligns header actions to the left zone, flush left without a title", () => {
+    const w = mountGantt({
+      headerActions: h("button", { "data-gantt-header-btn": "" }, "By epic"),
+      headerActionsAlign: "start",
+    });
+    expect(w.find('[data-gantt-header-region="end"]').exists()).toBe(false);
+    const group = w.find('[data-gantt-header-region="start"]').element;
+    // The group rides the flex-1 left zone and stays before the zoom selector.
+    expect((group.parentElement as HTMLElement).className).toContain("flex-1");
+    const hour = [...w.element.querySelectorAll("button")].find((b) => b.textContent === "Hour")!;
+    expect(group.compareDocumentPosition(hour) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("always renders the header strip with the zoom selector, even without header props", () => {
     const w = mountGantt();
     const scroller = w.find(".gantt-scroller").element as HTMLElement;
@@ -596,6 +625,58 @@ describe("Gantt (Vue)", () => {
     const label = spans[0].find("span");
     expect(label.text()).toMatch(/^\d+$/);
     expect(label.classes()).toContain("whitespace-nowrap");
+  });
+
+  it("auto-scrolls to today on open and on tier jumps, never on fine zoom", async () => {
+    // No other component in the chart calls `scrollTo` (the scroller sync
+    // only reads/writes `scrollLeft`), so every recorded call is ours.
+    const calls: ScrollToOptions[] = [];
+    const original = HTMLElement.prototype.scrollTo;
+    HTMLElement.prototype.scrollTo = function (opts?: ScrollToOptions | number) {
+      if (typeof opts === "object" && opts) calls.push(opts);
+    } as typeof HTMLElement.prototype.scrollTo;
+    const ganttCalls = () => calls;
+    try {
+      const w = mountGantt({ zoom: 288 });
+      // Opening jumps to "now" instantly — no animation from the initial edge.
+      expect(ganttCalls()).toHaveLength(1);
+      expect(ganttCalls()[0].behavior).toBe("auto");
+      // Fine zoom within the hour tier keeps the user's manual scroll.
+      await w.setProps({ zoom: 384 });
+      expect(ganttCalls()).toHaveLength(1);
+      // A tier jump (hour → day) re-centers, animated.
+      await w.setProps({ zoom: 48 });
+      expect(ganttCalls()).toHaveLength(2);
+      expect(ganttCalls()[1].behavior).toBe("smooth");
+    } finally {
+      if (original) HTMLElement.prototype.scrollTo = original;
+      else delete (HTMLElement.prototype as unknown as { scrollTo?: unknown }).scrollTo;
+    }
+  });
+
+  it("does not touch the scroller with autoScrollToToday disabled", () => {
+    const calls: unknown[] = [];
+    const original = HTMLElement.prototype.scrollTo;
+    HTMLElement.prototype.scrollTo = function (opts?: ScrollToOptions | number) {
+      calls.push(opts);
+    } as typeof HTMLElement.prototype.scrollTo;
+    try {
+      mountGantt({ zoom: 288, autoScrollToToday: false });
+      expect(calls).toHaveLength(0);
+    } finally {
+      if (original) HTMLElement.prototype.scrollTo = original;
+      else delete (HTMLElement.prototype as unknown as { scrollTo?: unknown }).scrollTo;
+    }
+  });
+
+  it("opens at the named initialSpan; numeric initialZoom wins when both are given", () => {
+    // Uncontrolled open at the hour preset → merged hour-label markers.
+    const w = mountGantt({ initialSpan: "hour" });
+    expect(w.findAll("[data-gantt-label-span]").length).toBeGreaterThan(0);
+    w.unmount();
+    // Day tier (numeric default) renders no merged-label markers at all.
+    const day = mountGantt({ initialSpan: "hour", initialZoom: 48 });
+    expect(day.findAll("[data-gantt-label-span]").length).toBe(0);
   });
 
   it("emits nothing from a locked task drag", async () => {
