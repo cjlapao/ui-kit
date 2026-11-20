@@ -53,6 +53,17 @@ Everything else about the row is owned by the feed, exactly as before:
   playground marks Ada active and Watchdog pulsing behind two toggles, with
   an **Attention tone** select (inherit plus every TrueColor) appearing
   beside the attention toggle.
+- The header's count word is the caller's too. `countLabel` unset reads
+  `N events` / `N event` with the noun agreeing with the count actually
+  drawn; a string rides verbatim — the kit does not pluralise what it did
+  not choose — so `countLabel="pod restart"` reads `2 pod restart`; `""`
+  leaves the number alone and `false` drops the count span from the header
+  entirely, invisible placeholder included. In Vue the prop carries an
+  explicit `undefined` default: the `string | false` union compiles to
+  `[String, Boolean]`, and Vue casts an absent Boolean-prop to `false`
+  unless a default intervenes — which would hide the count for callers who
+  never asked (the Panel's `hoverable` precedent). The playground offers a
+  **count label** toggle and a **Count noun** field for all three shapes.
   Passing the item's `onClick` to
   that Panel hands the row the kit's guarded card action — cursor, hover
   wash, focus ring and (React) `role="button"`, `tabIndex` and the

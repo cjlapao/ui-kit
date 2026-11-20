@@ -344,6 +344,29 @@ describe("ActivityFeed", () => {
       expect(container.innerHTML).not.toContain("mask-image");
     });
 
+    it("follows countLabel for the header count — worded, wordless, or gone", () => {
+      const items = [
+        { id: "a", title: "one", timestamp: "now" },
+        { id: "b", title: "two", timestamp: "now" },
+      ];
+      const headerText = (container: HTMLElement) =>
+        container.querySelector("h3")!.parentElement!.textContent;
+      const { container, rerender } = render(<ActivityFeed title="Feed" items={items} />);
+      // The feed's own noun agrees with the count it draws, not with a
+      // `totalCount` it was never given.
+      expect(headerText(container)).toContain("2 events");
+      rerender(<ActivityFeed title="Feed" items={items} countLabel="pod restart" />);
+      // The caller's noun rides verbatim — the kit does not pluralise what
+      // it did not choose.
+      expect(headerText(container)).toContain("2 pod restart");
+      rerender(<ActivityFeed title="Feed" items={items} countLabel="" />);
+      expect(headerText(container)).toMatch(/(^|\D)2(\D|$)/);
+      expect(headerText(container)).not.toContain("event");
+      rerender(<ActivityFeed title="Feed" items={items} countLabel={false} />);
+      // Hidden means gone — no invisible placeholder, no layout slot.
+      expect(headerText(container)).toBe("Feed");
+    });
+
     it("hands an active row the selection rim and an attention row the pulse", () => {
       const { container } = render(
         <ActivityFeed

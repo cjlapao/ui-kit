@@ -198,6 +198,17 @@ export interface ActivityFeedProps
   /** Shown in the header when the caller knows the true total. */
   totalCount?: number;
   /**
+   * The word that follows the header count. Unset, the count reads
+   * `<n> events` — or `<n> of <totalCount> events` while a filter is
+   * applied — with the noun singular at one. A string substitutes the noun
+   * verbatim, so `countLabel="deprecation"` reads `1 deprecation` and
+   * `countLabel="deployments"` reads `9 deployments`; the kit never
+   * pluralises your noun, and the `<n> of <total>` form stays available.
+   * Pass `""` for the number alone, or `false` to drop the count from the
+   * header entirely — the title, tag and link then stand alone.
+   */
+  countLabel?: string | false;
+  /**
    * Caps the feed's body and lets it scroll — a px number or any CSS
    * length. Unset, the feed grows to its full height exactly as before; set,
    * the rows (and the loading skeleton) scroll inside the card, with a right
@@ -261,6 +272,7 @@ export const ActivityFeed = ({
   skeletonRows,
   loadMoreLabel = "Load more",
   totalCount,
+  countLabel,
   maxHeight,
   variant = "outlined",
   tone: surfaceTone = "none",
@@ -297,6 +309,10 @@ export const ActivityFeed = ({
         : items.filter((item) => (item.category ?? item.tone) === active),
     [items, active],
   );
+
+  // The header count: the caller's true total when it knows one, else what
+  // the feed is actually drawing.
+  const count = totalCount ?? visible.length;
 
   const pick = (value: string) => {
     setActive(value);
@@ -511,19 +527,23 @@ export const ActivityFeed = ({
               {tag}
             </Pill>
           )}
-          <span
-            className={classNames(
-              "text-xs text-neutral-500 dark:text-neutral-400",
-              loading && "invisible",
-            )}
-            aria-hidden={loading || undefined}
-          >
-            {totalCount ?? visible.length}
-            {totalCount !== undefined && filters.length > 0 && active !== "all"
-              ? ` of ${totalCount}`
-              : ""}{" "}
-            {totalCount !== undefined && totalCount !== 1 ? "events" : "event"}
-          </span>
+          {countLabel !== false && (
+            <span
+              className={classNames(
+                "text-xs text-neutral-500 dark:text-neutral-400",
+                loading && "invisible",
+              )}
+              aria-hidden={loading || undefined}
+            >
+              {count}
+              {totalCount !== undefined && filters.length > 0 && active !== "all"
+                ? ` of ${totalCount}`
+                : ""}
+              {typeof countLabel === "string"
+                ? countLabel && ` ${countLabel}`
+                : ` ${count === 1 ? "event" : "events"}`}
+            </span>
+          )}
           {linkLabel && !loading && (
             <Button
               variant={ctaVariant ?? SURFACE_TO_BUTTON_VARIANT[variant]}

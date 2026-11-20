@@ -162,6 +162,17 @@ const props = withDefaults(
     loadMoreLabel?: string;
     /** Shown in the header when the caller knows the true total. */
     totalCount?: number;
+    /**
+     * The word that follows the header count. Unset, the count reads
+     * `<n> events` — or `<n> of <totalCount> events` while a filter is
+     * applied — with the noun singular at one. A string substitutes the noun
+     * verbatim, so `countLabel="deprecation"` reads `1 deprecation` and
+     * `countLabel="deployments"` reads `9 deployments`; the kit never
+     * pluralises your noun, and the `<n> of <total>` form stays available.
+     * Pass `""` for the number alone, or `false` to drop the count from the
+     * header entirely — the title, tag and link then stand alone.
+     */
+    countLabel?: string | false;
     /** Surface, as every card in the kit takes it. @default "outlined" */
     variant?: SurfaceVariant;
     /** @default "neutral" */
@@ -201,6 +212,12 @@ const props = withDefaults(
     skeletonRows: undefined,
     loadMoreLabel: "Load more",
     totalCount: undefined,
+    // Explicit undefined, not omission: the `string | false` union makes
+    // the runtime type `[String, Boolean]`, and Vue casts an absent Boolean
+    // prop to `false` unless a default says otherwise — which would hide
+    // the count for callers who never asked. The Panel's `hoverable` runs
+    // the same play.
+    countLabel: undefined,
     variant: "outlined",
     tone: "none",
     padding: "md",
@@ -280,7 +297,13 @@ const eventsWord = computed(() => {
     props.totalCount !== undefined && props.filters.length > 0 && active.value !== "all"
       ? ` of ${props.totalCount}`
       : "";
-  return `${n}${of} ${n === 1 ? "event" : "events"}`;
+  // The caller's noun rides verbatim — the kit does not pluralise what it
+  // did not choose — while the default keeps the count's own agreement.
+  const noun =
+    typeof props.countLabel === "string"
+      ? props.countLabel && ` ${props.countLabel}`
+      : ` ${n === 1 ? "event" : "events"}`;
+  return `${n}${of}${noun}`;
 });
 </script>
 
@@ -300,6 +323,7 @@ const eventsWord = computed(() => {
           {{ tag }}
         </Pill>
         <span
+          v-if="countLabel !== false"
           :class="['text-xs text-neutral-500 dark:text-neutral-400', loading && 'invisible']"
           :aria-hidden="loading ? 'true' : undefined"
         >

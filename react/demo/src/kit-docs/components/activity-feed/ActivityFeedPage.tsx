@@ -60,7 +60,11 @@ export const ActivityFeedPage: React.FC = () => (
           <code>loadingMessage</code> labelling the overlay (defaults to
           "Loading") and{" "}
           <code>skeletonRows</code> pinning the placeholder count —{" "}
-          <code>totalCount</code>,{" "}
+          <code>totalCount</code> with <code>countLabel</code> beside it (the
+          header's noun is <code>"events"</code> — or <code>"event"</code> at
+          one — unless a string names it verbatim, <code>""</code> leaves the
+          number alone and <code>false</code> drops the count from the header
+          entirely),{" "}
           <code>ctaVariant</code> / <code>loadMoreVariant</code> /{" "}
           <code>filterVariant</code> — every control on the card follows the
           card's own variant by default (the filter track speaks the same

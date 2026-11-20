@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import {
   ActivityFeed,
   Button,
+  Input,
   Panel,
   Pill,
   type ActivityFeedItem,
@@ -14,7 +15,7 @@ import {
   type SurfaceVariant,
   type TrueColor,
 } from "@cjlapao/ui-kit";
-import { PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
+import { Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import {
   panelCornerOptions,
@@ -62,6 +63,11 @@ export const ActivityFeedPlayground: React.FC = () => {
   const [items, setItems] = useState(BASE_ITEMS);
   const [filters, setFilters] = useState(true);
   const [tag, setTag] = useState(true);
+  // The header count's noun, the way the kit lets callers take it: empty is
+  // the feed's own "event(s)", any other string rides verbatim, and turning
+  // the row off drops the count from the header altogether.
+  const [countLabel, setCountLabel] = useState("");
+  const [showCount, setShowCount] = useState(true);
   const [link, setLink] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   // Infinite is the feed's default loading mode; the button tail stays one
@@ -178,6 +184,17 @@ export const ActivityFeedPlayground: React.FC = () => {
                   <>
                     <ToggleRow label="filters" checked={filters} onChange={setFilters} />
                     <ToggleRow label="tag" checked={tag} onChange={setTag} />
+                    <ToggleRow label="count label" checked={showCount} onChange={setShowCount} />
+                    {showCount && (
+                      <Control label="Count noun">
+                        <Input
+                          size="sm"
+                          value={countLabel}
+                          placeholder="events (default)"
+                          onChange={(event) => setCountLabel(event.target.value)}
+                        />
+                      </Control>
+                    )}
                     <ToggleRow label="link" checked={link} onChange={setLink} />
                     <ToggleRow label="hasMore" checked={hasMore} onChange={setHasMore} />
                     <SelectControl label="Load mode" options={[{ value: "scroll", label: "Scroll (infinite)" }, { value: "button", label: "Button" }]} value={loadMode}
@@ -267,6 +284,7 @@ export const ActivityFeedPlayground: React.FC = () => {
             filters={filters ? FILTERS : []}
             linkLabel={link ? "Full audit log" : ""}
             totalCount={98}
+            countLabel={showCount ? countLabel || undefined : false}
             loading={loading}
             loaderType={loaderType}
             loaderProgress={loaderType === "progress" ? 62 : undefined}

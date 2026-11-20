@@ -170,6 +170,27 @@ describe("ActivityFeed", () => {
     wrapper.unmount();
   });
 
+  it("follows countLabel for the header count — worded, wordless, or gone", async () => {
+    const items = [
+      { id: "a", title: "one", timestamp: "now" },
+      { id: "b", title: "two", timestamp: "now" },
+    ];
+    const wrapper = mount(ActivityFeed, { props: { title: "Feed", items } });
+    const headerText = () => wrapper.find("h3").element.parentElement?.textContent ?? "";
+    // The feed's own noun agrees with the count it draws.
+    expect(headerText()).toContain("2 events");
+    // The caller's noun rides verbatim — the kit does not pluralise it.
+    await wrapper.setProps({ countLabel: "pod restart" });
+    expect(headerText()).toContain("2 pod restart");
+    await wrapper.setProps({ countLabel: "" });
+    expect(headerText()).toMatch(/(^|\D)2(\D|$)/);
+    expect(headerText()).not.toContain("event");
+    // Hidden means gone — no invisible placeholder, no layout slot.
+    await wrapper.setProps({ countLabel: false });
+    expect(headerText()).toBe("Feed");
+    wrapper.unmount();
+  });
+
   it("hands an active row the selection rim and an attention row the pulse", () => {
     const wrapper = mount(ActivityFeed, {
       props: {
