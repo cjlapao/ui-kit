@@ -13,6 +13,7 @@ import { MemoryRouter } from "react-router-dom";
 import SideMenu, {
   useSidebarIsMobile,
   type SideMenuItem,
+  type SideMenuItemLink,
   type SideMenuProps,
   type SideMenuCta,
   type SideMenuDetailItem,
@@ -656,7 +657,9 @@ describe("SideMenu — nested items", () => {
   // Both bugs were seams: the row end grew to the toggle's hover fill, and the
   // first child grew flush against the parent — two filled rows reading as one.
   it("gives the row end and the submenu toggle a seam of their own", () => {
-    renderMenu({ items: [{ ...NESTED[0], badge: <span>4</span> }] });
+    renderMenu({
+      items: [{ ...(NESTED[0] as SideMenuItemLink), badge: <span>4</span> }],
+    });
     const toggle = screen.getByLabelText("Expand Infrastructure submenu");
     // The wrapper spaces row / actions / toggle apart, so the badge no longer
     // touches the toggle's hover fill.
