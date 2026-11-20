@@ -123,7 +123,7 @@ const FORM_US: FormData = { country: "US" };
 const FORM_DE: FormData = { country: "DE" };
 
 export const UtilitiesPage: React.FC = () => (
-  <div className="flex flex-col gap-10">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-10 px-4 py-8 sm:px-8">
     <PageHeader
       name="Utilities"
       description="The pure helper functions exported from @cjlapao/ui-kit — formatters, parsers and small logic utilities, independent of any component. Every output below is computed live from the real implementation, so what you see is what you get."

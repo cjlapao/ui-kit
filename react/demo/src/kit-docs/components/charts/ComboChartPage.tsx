@@ -16,7 +16,7 @@ import regressionCode from "./examples/ComboRegression.tsx?raw";
 import targetCode from "./examples/ComboTargetActual.tsx?raw";
 
 export const ComboChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Combo"
       description="Mix bar, line and scatter series in one plot: shared or dual y-axes, stacked bars with a total line, moving averages, regression reference lines, and markers landing on the same band positions as line vertices. No special component — the cartesian series share the scales."

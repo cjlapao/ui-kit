@@ -49,6 +49,7 @@ import {
   GRADIENT_BACKDROP_TEMPLATE_IDS,
   GRADIENT_BACKDROP_TEMPLATES,
   GRADIENT_BACKDROP_SCHEMES,
+  GRID_BACKGROUND_PATTERNS,
   TABLE_DENSITIES,
   TOGGLE_VARIANTS,
   CONNECTION_FLOW_EDGE_STYLES,
@@ -1238,6 +1239,29 @@ export const tabsRadiusOptions: MultiToggleOption[] = [
   { label: "Full", value: "full" },
 ];
 
+// ── AI Orb ─────────────────────────────────────────────────────────────────
+
+/** The three preset palettes (the kit exports the preset map, not a list). */
+export const aiOrbPresetOptions: MultiToggleOption[] = [
+  { label: "Solar", value: "solar" },
+  { label: "Ion", value: "ion" },
+  { label: "Ember", value: "ember" },
+];
+
+/** Conversation states the orb renders. */
+export const aiOrbStateOptions: MultiToggleOption[] = [
+  { label: "Idle", value: "idle" },
+  { label: "Listening", value: "listening" },
+  { label: "Speaking", value: "speaking" },
+];
+
+/** Render tiers — 24/30/60 FPS and 1/1.5/2 maximum DPR. */
+export const aiOrbQualityOptions: MultiToggleOption[] = [
+  { label: "Low", value: "low" },
+  { label: "Balanced", value: "balanced" },
+  { label: "High", value: "high" },
+];
+
 // ── Scroll Area ────────────────────────────────────────────────────────────
 
 /** The five bar-visibility modes — a dropdown. */
@@ -1247,6 +1271,20 @@ export const scrollAreaVariantOptions = toOptions([
   "scroll",
   "always",
   "hidden",
+] as const);
+
+// ── Grid Background ──────────────────────────────────────────────────────────
+
+/** The two lattices, straight off the component's own list. */
+export const gridBackgroundPatternOptions: MultiToggleOption[] = toOptions(
+  GRID_BACKGROUND_PATTERNS,
+);
+
+/** Edge treatments — the square lattice and the dots share them. */
+export const gridBackgroundFadeOptions: MultiToggleOption[] = toOptions([
+  "none",
+  "radial",
+  "vertical",
 ] as const);
 
 export { TRUE_COLORS };

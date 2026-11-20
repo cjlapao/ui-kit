@@ -18,7 +18,7 @@ import Checkbox from "./examples/Checkbox";
 import checkboxCode from "./examples/Checkbox.tsx?raw";
 
 export const OrgChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Organization Chart"
       description="Hierarchical org data laid out as a branching diagram — collapsible nodes with child-count badges, single, multiple and checkbox (cascading) selection, and custom node content."

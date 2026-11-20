@@ -2,8 +2,8 @@ import type { SurfaceTone } from "../../theme/Theme";
 /**
  * GanttToolbar — the zoom control in the detached header.
  *
- * A compact pill: the four discrete zoom presets (Day / Week / Month /
- * Quarter) as a segmented control, plus fine zoom-out / zoom-in buttons.
+ * A compact pill: the five discrete zoom presets (Hour / Day / Week / Month
+ * / Quarter) as a segmented control, plus fine zoom-out / zoom-in buttons.
  * The active preset is whichever is closest to the current zoom. The pill's
  * chrome (fill, border, backdrop) follows the Gantt's Panel surface variant,
  * via the shared surface-variant class set so it sits flush beside the
@@ -55,6 +55,7 @@ export const GanttToolbar: React.FC<GanttToolbarProps> = ({
 }) => {
   const t = useKitT();
   const ZOOM_LABELS: Record<string, string> = {
+    Hour: t("kit.gantt.zoomHour"),
     Day: t("kit.gantt.zoomDay"),
     Week: t("kit.gantt.zoomWeek"),
     Month: t("kit.gantt.zoomMonth"),
@@ -68,6 +69,7 @@ export const GanttToolbar: React.FC<GanttToolbarProps> = ({
 
   return (
     <div
+      data-gantt-toolbar
       className={classNames(
         "pointer-events-auto flex items-center gap-1 rounded-lg p-1",
         chrome,

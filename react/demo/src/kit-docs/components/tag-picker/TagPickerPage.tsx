@@ -16,7 +16,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const TagPickerPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Tag Picker"
       description="A multi-select that renders its selection as removable pills, with optional free-text creation. Arrow keys and Enter drive the list; Backspace on an empty query removes the last tag."

@@ -6,11 +6,13 @@ import React, {
   useState,
 } from "react";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import { useKitT } from "../i18n";
 import {
   DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
   VALIDATION_STATUSES,
+  getFieldMinHeightClass,
   getFieldSizeTokens,
   getFieldToneTokens,
   getGlowTokens,
@@ -89,6 +91,12 @@ export interface InputProps extends Omit<
   inputClassName?: string;
   /** Drops the surface entirely — used by `InputGroup`. */
   unstyled?: boolean;
+  /**
+   * Reserve N text lines of trigger height (`getFieldMinHeightClass`), so a
+   * one-line field lines up with a two-line `Picker` beside it when there is
+   * no `FieldRow` to size the shared band.
+   */
+  lines?: 1 | 2;
   fullHeight?: boolean;
 }
 
@@ -114,6 +122,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     disabled,
     unstyled = false,
     fullHeight = false,
+    lines,
     ...rest
   },
   ref: ForwardedRef<HTMLInputElement>,
@@ -124,6 +133,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 
   const effectiveTone = tone ?? color ?? "blue";
   const sizeToken = getFieldSizeTokens(size);
+  // In a `FieldRow` the control band owns the height — the field opts into
+  // the same `h-full` `fullHeight` applies by hand. `lines` reserves a
+  // floor height when there is no row doing the alignment.
+  const { inRow } = useFieldRow();
+  const growsFull = fullHeight || inRow;
+  const linesMinHeight = lines ? getFieldMinHeightClass(size, lines) : "";
   const tokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(variant, effectiveTone, "auto", {
     explicitTone: tone ?? color,
@@ -224,7 +239,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         // same-specificity fight with every variant's own fill, and it turned a
         // glass or underline field into an opaque grey slab.
         disabled && "cursor-not-allowed opacity-60",
-        fullHeight && "h-full",
+        growsFull && "h-full",
+        linesMinHeight,
         wrapperClassName,
         className,
       )}
@@ -238,7 +254,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           sizeToken.text,
           variantTokens.text,
           "disabled:cursor-not-allowed",
-          fullHeight && "h-full",
+          growsFull && "h-full",
           inputClassName,
         )}
         onFocus={(event) => {
@@ -269,7 +285,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         className={classNames(
           "relative flex w-full overflow-hidden rounded-[28px]",
           glow.pad,
-          fullHeight && "h-full",
+          growsFull && "h-full",
         )}
       >
         <span

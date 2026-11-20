@@ -19,7 +19,11 @@ export interface MemoryRecord {
   usage?: { retrievalCount?: number; lastRetrievedAt?: string; feedback?: string };
   metadata?: Readonly<Record<string, unknown>>;
 }
-export interface MemoryFilters { kind?: MemoryKind; status?: MemoryStatus; topic?: string }
+/**
+ * Facet filters, each multi-select: values OR-match within a facet, the
+ * facets AND across. An omitted or empty facet matches everything.
+ */
+export interface MemoryFilters { kind?: MemoryKind[]; status?: MemoryStatus[]; topic?: string[] }
 export interface MemoryTraceLink { traceNodeId: string; memoryId: string }
 export interface KnowledgePoint { memoryId: string; x: number; y: number; clusterId?: string }
 export interface KnowledgeRelationship { id: string; source: string; target: string; label: string }
@@ -30,9 +34,9 @@ export interface KnowledgeScene { points: KnowledgeScenePoint[]; diagnostics: Kn
 export function filterMemories(memories: readonly MemoryRecord[], query = "", filters: MemoryFilters = {}): MemoryRecord[] {
   const terms = query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
   return memories.filter(memory => {
-    if ((filters.kind && memory.kind !== filters.kind)
-      || (filters.status && (memory.status ?? "active") !== filters.status)
-      || (filters.topic && memory.topic !== filters.topic)) return false;
+    if ((filters.kind?.length && !filters.kind.includes(memory.kind))
+      || (filters.status?.length && !filters.status.includes(memory.status ?? "active"))
+      || (filters.topic?.length && !filters.topic.includes(memory.topic ?? ""))) return false;
     if (!terms.length) return true;
     const text = [memory.title, memory.summary, memory.content, memory.topic, memory.scope,
       ...(memory.sources?.map(source => `${source.label} ${source.location ?? ""}`) ?? [])]

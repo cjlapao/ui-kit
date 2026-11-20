@@ -11,7 +11,7 @@ const example = `<IdentityPicker
   tone="blue"
 />`;
 export default function IdentityPickerPage() {
-  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8">
     <PageHeader name="Identity Picker" description="Choose a font-rendered emoji, upload an SVG/PNG image, or create monogram initials. Built from the kit's panels, tabs, search, inputs, buttons and shared upload component." />
     <IdentityPickerPlayground />
     <ExampleCard title="Project identity" description="Returns a discriminated identity value or null on reset. Emoji rendering follows the configured font stack; image files remain local until your app uploads them." code={example} filename="ProjectIdentity.tsx"><div className="w-full max-w-xl"><IdentityPicker name="Project Atlas" defaultValue={{type:"emoji",emoji:"⚡"}} variant="glass" /></div></ExampleCard>

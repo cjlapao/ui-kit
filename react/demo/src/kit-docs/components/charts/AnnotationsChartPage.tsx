@@ -5,7 +5,7 @@ import Annotations from "./examples/Annotations";
 import annotationsCode from "./examples/Annotations.tsx?raw";
 
 export const AnnotationsChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Reference & Callouts"
       description="Cross-cutting chart chrome that works on any cartesian type: reference bands for phase windows, dashed reference lines with labels, milestone labels and annotation callouts with leader lines."

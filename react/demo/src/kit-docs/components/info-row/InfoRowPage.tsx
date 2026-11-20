@@ -18,7 +18,7 @@ import Copy from "./examples/Copy";
 import copyCode from "./examples/Copy.tsx?raw";
 
 export const InfoRowPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Info Row"
       description="One label/value line in a details panel — with copy-to-clipboard, a tooltip when the value is truncated, and loading, empty and error states. Its copy colour and hairline come from the surface it sits on, so a row on glass reads as well as one on a white card."

@@ -12,7 +12,7 @@ import EveryTone from "./examples/EveryTone";
 import everyToneCode from "./examples/EveryTone.tsx?raw";
 
 export const LoaderPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Loader"
       description="A loading state that can be a spinner, a progress bar, or an overlay covering its card. Size comes from the shared control scale and drives the ring, the bar, and the type together; the glass overlay takes its fill from the shared theme."

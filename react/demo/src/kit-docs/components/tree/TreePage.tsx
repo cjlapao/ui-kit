@@ -20,7 +20,7 @@ import Empty from "./examples/Empty";
 import emptyCode from "./examples/Empty.tsx?raw";
 
 export const TreePage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Tree"
       description="Hierarchical data with expand/collapse branches, single, multiple and checkbox selection (with derived partial state), a case-insensitive filter and full roving-keyboard navigation."

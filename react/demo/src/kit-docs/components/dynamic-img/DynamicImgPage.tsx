@@ -18,7 +18,7 @@ import Accessibility from "./examples/Accessibility";
 import accessibilityCode from "./examples/Accessibility.tsx?raw";
 
 export const DynamicImgPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Dynamic Image"
       description="Renders a data URL or raw SVG markup. SVG is sanitised against an allowlist before it is injected, then recoloured to follow the theme."

@@ -16,7 +16,7 @@ import Persistence from "./examples/Persistence";
 import persistenceCode from "./examples/Persistence.tsx?raw";
 
 export const TablePage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Table"
       description="A data grid on the shared panel surface — sorting, grouping, pagination or infinite scrolling, column management, and opt-in settings persistence, with a three-step density scale, an optional bordered grid, and Panel-style loading states (spinner, progress, skeleton)."

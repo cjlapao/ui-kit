@@ -5,7 +5,8 @@ const topics = ["Authentication", "Transport", "Testing", "Storage", "Interface"
 export default function MapOverview() {
   const [count, setCount] = useState(600), [glow, setGlow] = useState(true);
   const [selectedId, select] = useState<string | null>(null);
-  const [topic, selectTopic] = useState<string | null>(null);
+  // null is the legend's "everything on"; an array is exactly the lit set.
+  const [topic, selectTopic] = useState<readonly string[] | null>(null);
   const sample = useMemo(() => {
     const memories: MemoryRecord[] = [], points: KnowledgePoint[] = [];
     for (let i = 0; i < count; i++) {

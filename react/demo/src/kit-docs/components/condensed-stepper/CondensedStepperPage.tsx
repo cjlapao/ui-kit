@@ -14,7 +14,7 @@ import WatchRun from "./examples/WatchRun";
 import watchRunCode from "./examples/WatchRun.tsx?raw";
 
 export const CondensedStepperPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="CondensedStepper"
       description="The stepper that fits on one line: the current step anchored in the middle, the walked steps compressed left, the queue compressed right — and each flank an accordion on ExpandableButton's spring table. Hover to peek, click to pin, Esc to close; the flanks are exclusive and the centre pill squishes to make room. The card and the panel are the same component — the container decides how much condenses, never the behaviour."

@@ -556,3 +556,59 @@
     animation: none !important;
   }
 }
+
+/* ---- Panel attention pulse ----
+   The container-scale twin of the pill's pulse. Inward on purpose: an outer
+   halo would be sheared by the panel's `overflow-hidden` and would paint over
+   the card's neighbours besides, while an inset shadow is the section's own
+   paint, clipped to its border-box and following the corner radius, so the
+   attention call never spills into the layout. It touches no property the
+   panel's other states touch — the hover wash and pressed step are backgrounds,
+   the active rim is an outline — so a card can be hovered, pressed, selected
+   and pulsing at once, and all four read. `Panel` sets `--panel-glow` (and
+   `--panel-glow-dark`, preferred in the dark theme) inline from the accent hue
+   — `borderColor ?? tone`, blue floor. */
+.panel-pulse {
+  --_panel-glow: var(--panel-glow, currentColor);
+  animation: panel-pulse 2s ease-in-out infinite;
+}
+:where(.dark) .panel-pulse {
+  --_panel-glow: var(--panel-glow-dark, var(--panel-glow, currentColor));
+}
+
+@keyframes panel-pulse {
+  0%,
+  100% {
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000),
+      var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      var(--tw-shadow, 0 0 #0000),
+      inset 0 0 0 0 color-mix(in srgb, var(--_panel-glow) 55%, transparent);
+  }
+  55% {
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000),
+      var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      var(--tw-shadow, 0 0 #0000),
+      inset 0 0 10px 3px color-mix(in srgb, var(--_panel-glow) 38%, transparent);
+  }
+}
+
+/* No motion — but the faint static inner glow stays, so reduced-motion users
+   still see *which* card matters, exactly as the pill promises. */
+@media (prefers-reduced-motion: reduce) {
+  .panel-pulse {
+    animation: none;
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000),
+      var(--tw-inset-ring-shadow, 0 0 #0000),
+      var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000),
+      var(--tw-shadow, 0 0 #0000),
+      inset 0 0 7px 2px color-mix(in srgb, var(--_panel-glow) 32%, transparent);
+  }
+}

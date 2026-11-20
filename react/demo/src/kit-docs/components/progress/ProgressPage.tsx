@@ -12,7 +12,7 @@ import CustomRange from "./examples/CustomRange";
 import customRangeCode from "./examples/CustomRange.tsx?raw";
 
 export const ProgressPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Progress"
       description="A determinate or indeterminate progress bar. Size and tone come from the shared scales; the motion overlays are driven by classes so a reduced-motion preference can switch them off."

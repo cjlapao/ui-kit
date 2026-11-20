@@ -768,6 +768,32 @@ export const getFieldSizeTokens = (size: ControlSize): FieldSizeTokens =>
   FIELD_SIZE_STYLES[size] ?? FIELD_SIZE_STYLES.md;
 
 /**
+ * Floor heights for a field trigger that reserves N text lines, so controls
+ * next to a two-line `Picker` (title + subtitle) share one height instead of
+ * shrinking to their own content. Derived from the same scale
+ * `FIELD_SIZE_STYLES` lays out: the size's text line (text-xs 16 / text-sm
+ * 20 / text-base 24), a reserved second line at the subtitle scale
+ * (text-xs 16), both `py` pads, and the 1px box border. Static literal
+ * classes — the Tailwind source scan covers `common/`, and the
+ * style-contract test must see every value.
+ */
+export const FIELD_LINE_MIN_HEIGHTS: Record<ControlSize, Record<1 | 2, string>> = {
+  xs: { 1: "min-h-[26px]", 2: "min-h-[42px]" },
+  sm: { 1: "min-h-[30px]", 2: "min-h-[46px]" },
+  md: { 1: "min-h-[38px]", 2: "min-h-[54px]" },
+  lg: { 1: "min-h-[46px]", 2: "min-h-[62px]" },
+  xl: { 1: "min-h-[50px]", 2: "min-h-[66px]" },
+};
+
+/** Literal min-height class reserving `lines` text lines at `size`. */
+export const getFieldMinHeightClass = (
+  size: ControlSize,
+  lines: 1 | 2,
+): string =>
+  (FIELD_LINE_MIN_HEIGHTS[size] ?? FIELD_LINE_MIN_HEIGHTS.md)[lines] ??
+  FIELD_LINE_MIN_HEIGHTS.md[lines];
+
+/**
  * Border only at rest; the ring is part of the focus state, exactly as it is
  * for the tone tokens. A status used to add a bare `ring-2 ring-inset` at rest
  * with no ring *colour* — an unset ring colour resolves to `currentColor`, so
@@ -1091,6 +1117,38 @@ export const getSurfaceHoverTokens = (
     rim,
   };
 };
+
+export type SurfaceActiveTokens = {
+  /** The sustained-selection rim: 2px, drawn inside the edge. */
+  rim: string;
+};
+
+/**
+ * The selected/current rim for a container surface — `Panel active`.
+ *
+ * Drawn as an inset outline, not a border or a ring, for the reasons
+ * `Panel`'s variants make painful: a second `border-N`/`ring-N` class would
+ * fight the variant's resting width for one property (stylesheet order
+ * decides), and an overlay layer seams at small radii because an inset
+ * border radius does not shrink. Outline is its own paint layer: it follows
+ * the border radius natively, paints over the resting hairline, is not
+ * clipped by the Panel's `overflow-hidden`, and costs no layout — the same
+ * technique the Knowledge Explorer's `[data-selected]` card already uses.
+ *
+ * The colour pair is the kit's translucent-rim grammar from
+ * `getSurfaceHoverTokens` — `{c}-500` light / `{c}-400` dark — at width 2;
+ * the extra weight is what makes a selection read at a glance, so the shade
+ * does not have to step darker.
+ *
+ * The hue is resolved by the caller (`Panel` passes
+ * `borderColor ?? tone`, blue floor when untinted) — this getter only
+ * renders it. Template-literal classes, so both shapes need
+ * `@source inline()` lines in `scripts/generate-safelist.mjs`;
+ * `themeSafelist.test.ts` walks this getter per tone.
+ */
+export const getSurfaceActiveTokens = (tone: TrueColor): SurfaceActiveTokens => ({
+  rim: `outline-2 -outline-offset-2 outline-${tone}-500 dark:outline-${tone}-400`,
+});
 
 /**
  * The untinted hover: a panel with no tone and no `hoverColor` has no hue to
@@ -2286,7 +2344,14 @@ const createTheme = (): ThemeDefinition => {
     theme.buttonHover.icon[color] =
       `hover:bg-${color}-100 dark:hover:bg-${color}-500/20`;
 
-    // Button active classes (persistent "on" state — lighter shade, no hover)
+    // Button active classes (persistent "on" state — lighter shade, no hover).
+    // `icon` is the deliberate exception: an icon button is the selection
+    // paint of IconToggleGroup, where a 15–20% alpha wash on a tone-tinted
+    // track vanished entirely. Its on-state is the solid button's own gated
+    // fill (`{c}-700` + white, `{c}-400` + 950 in dark) — the MultiToggle
+    // indicator's grammar: the selection is a tile, not a hint. `ghost`
+    // deliberately keeps the lighter wash: Tabs paints its active actions
+    // through the ghost slot and must not gain a saturated tile.
     theme.buttonActive.solid[color] =
       `bg-${color}-200 text-${color}-900 shadow-sm dark:bg-${color}-300 dark:text-${color}-900`;
     theme.buttonActive.soft[color] =
@@ -2300,7 +2365,7 @@ const createTheme = (): ThemeDefinition => {
     theme.buttonActive.clear[color] =
       `text-${color}-800 dark:text-${color}-300`;
     theme.buttonActive.icon[color] =
-      `bg-${color}-100 text-${lightText} dark:bg-${color}-500/20 dark:text-${color}-200`;
+      `bg-${color}-700 text-white shadow-sm dark:bg-${color}-400 dark:text-${color}-950`;
 
     // Button active-hover classes (hover within the active state).
     // Light-mode soft/ghost/icon step the *text* out to -800 because their
@@ -2319,7 +2384,7 @@ const createTheme = (): ThemeDefinition => {
     theme.buttonActiveHover.clear[color] =
       `hover:text-${color}-900 dark:hover:text-${color}-200`;
     theme.buttonActiveHover.icon[color] =
-      `hover:bg-${color}-200 hover:text-${color}-800 dark:hover:bg-${color}-500/30`;
+      `hover:bg-${color}-800 dark:hover:bg-${color}-300`;
 
     // Toggle
     theme.toggle[color] =

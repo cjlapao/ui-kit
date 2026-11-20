@@ -4,10 +4,12 @@ import { PropsTable } from "../../shared/A11ySections";
 import { ExampleCard } from "../../shared/ExampleCard";
 import Controlled from "./examples/Controlled";
 import controlledCode from "./examples/Controlled.tsx?raw";
+import Loading from "./examples/Loading";
+import loadingCode from "./examples/Loading.tsx?raw";
 import { FilterBarPlayground } from "./FilterBarPlayground";
 
 export default function FilterBarPage() {
-  return <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader name="Filter Bar" description="Expandable search, staged checkbox filters, removable chips and a live result summary. Built from SearchBar, Menu, Button and Badge with the kit’s shared spring motion." />
     <FilterBarPlayground />
     <section className="space-y-4"><h2 className="text-lg font-semibold">Reference states</h2><p className="text-sm text-neutral-500">Start with collapsed search. Click Search to expand, Add filter to see categories, then Status to select options. Done adds the chip; click its label to edit or its × to remove.</p>
@@ -15,6 +17,7 @@ export default function FilterBarPage() {
       <FilterBar searchProps={{ onSearch: () => {} }} filters={[{ id: "status", label: "Status", options: [{ value: "online", label: "Online", count: 3 }, { value: "offline", label: "Offline", count: 2 }] }]} defaultValue={{ status: ["online"] }} filteredCount={3} totalCount={5} itemLabel="devices" />
     </section>
     <ExampleCard title="Controlled filtering" description="The consumer owns the dataset, search and filter state. Copy this complete example." code={controlledCode} filename="Controlled.tsx"><Controlled /></ExampleCard>
+    <ExampleCard title="Loading" description="The whole control speaks the Table and ActivityFeed loading family — skeleton (the default) rewrites its pieces in placeholder ink, spinner and progress dim the live bar under a labelled overlay — and the strip keeps its shape in every state." code={loadingCode} filename="Loading.tsx"><Loading /></ExampleCard>
     <PropsTable props={[
       { name: "searchProps", type: "SearchBarProps", description: "Existing search API: onSearch(query, signal?), debounceMs, autoSearch, initialValue, shouldClear, onClear, loading and all search styles. Search stays mounted while collapsed." },
       { name: "filters", type: "FilterBarFilter[]", description: "Categories with unique id, label, optional count/disabled and options with value, label, optional count/disabled. Zero counts remain selectable." },
@@ -30,6 +33,7 @@ export default function FilterBarPage() {
       { name: "menuVariant / menuTone / menuCorner / menuPadding", type: "SurfaceVariant / SurfaceTone / SurfaceCorner / SurfacePadding", default: "outlined / none / menu default / xs", description: "Style the filter popup independently of the bar. Popup padding follows Menu’s compact inset scale." },
       { name: "chipVariant / chipTone", type: "BadgeVariant / TrueColor", default: "soft / color", description: "Style applied-filter chips independently of the surface and action buttons." },
       { name: "size / color / spring", type: "ControlSize / TrueColor / ControlSpring", default: "md / blue / snappy", description: "Shared control size, search/chip accent, and spring animation. Search-specific overrides, including variant and color, remain in searchProps. Motion respects reduced-motion preferences." },
+      { name: "loading / loaderType / loaderProgress / loadingMessage", type: "boolean / \"spinner\" | \"progress\" | \"skeleton\" / number / string", default: "false / skeleton / — / \"Loading\"", description: "The whole control speaks the Table and ActivityFeed loading family. skeleton — the default — rewrites the bar's own pieces in pulsing placeholder ink; spinner and progress dim the live bar beneath a labelled Loader overlay. The strip keeps its shape in every state, and an open filter popup closes the moment the bar goes busy." },
       { name: "disabled / className / aria-label", type: "boolean / string / string", description: "Disable interaction, style the root, or name the filter region." },
     ]} />
     <p className="text-sm text-neutral-500">Keyboard: Enter or Space opens controls. Menu arrows, Home, End and typeahead navigate options. ArrowLeft returns to categories; Escape cancels and restores focus. Tab reaches Clear and Done. Labels use the kit translation catalog.</p>

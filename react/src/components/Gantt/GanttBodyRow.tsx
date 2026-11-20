@@ -70,6 +70,11 @@ interface GanttBodyRowProps {
    * Gantt passes its Panel surface divider so hairlines follow the variant.
    */
   dividerClass?: string;
+  /**
+   * Left hairline on the fixed-column block (its right edge, the
+   * fixed/timeline seam, is always drawn) — see `GanttProps.columnEdges`.
+   */
+  columnEdges?: boolean;
 }
 
 export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
@@ -104,6 +109,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
   onBarKeyDown,
   selectionTokens,
   dividerClass = "border-neutral-100 dark:border-neutral-800",
+  columnEdges = false,
 }) => {
   const t = useKitT();
   const isDraggingThis = row.task != null && drag?.taskId === row.task.id;
@@ -142,6 +148,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
           color={color}
           onCaretClick={onLaneCaretClick}
           dividerClass={dividerClass}
+          columnEdges={columnEdges}
           liveProgress={liveLane}
         />
       ) : (
@@ -158,6 +165,7 @@ export const GanttBodyRow: React.FC<GanttBodyRowProps> = ({
             className={classNames(
               "sticky left-0 z-20 flex items-stretch overflow-hidden border-r border-b bg-white dark:bg-neutral-900",
               dividerClass,
+              columnEdges && "border-l",
             )}
             style={{ width: leftWidth }}
           >
@@ -246,9 +254,10 @@ const LaneHeader: React.FC<{
   color: TrueColor;
   onCaretClick: (laneId: string, isOpen: boolean) => void;
   dividerClass?: string;
+  columnEdges?: boolean;
   /** Live lane roll-up (0..1) while one of the lane's children is dragged. */
   liveProgress?: number | null;
-}> = ({ row, columns, leftWidth, color, onCaretClick, dividerClass = "border-neutral-200 dark:border-neutral-800", liveProgress }) => {
+}> = ({ row, columns, leftWidth, color, onCaretClick, dividerClass = "border-neutral-200 dark:border-neutral-800", columnEdges = false, liveProgress }) => {
   const t = useKitT();
   const lane = row.lane!;
   const laneColor = lane.color ?? color;
@@ -265,6 +274,7 @@ const LaneHeader: React.FC<{
         className={classNames(
           "sticky left-0 z-20 flex items-stretch overflow-hidden border-r border-b bg-white dark:bg-neutral-900",
           dividerClass,
+          columnEdges && "border-l",
         )}
         style={{ width: leftWidth }}
       >

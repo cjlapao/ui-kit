@@ -80,3 +80,4 @@ tools/i18n-cli/dist
 .npm-cache/
 .a11y-audit/
 .verify*
+.tmp/

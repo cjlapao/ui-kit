@@ -273,7 +273,7 @@ export type {
   ChatUsage,
 } from "../chat";
 export { default as ActivityFeed } from "./ActivityFeed.vue";
-export type { ActivityFeedItem, ActivityFeedFilter } from "./ActivityFeed.vue";
+export type { ActivityFeedItem, ActivityFeedFilter, ActivityFeedLoaderType } from "./ActivityFeed.vue";
 export { default as BreakdownCard } from "./BreakdownCard.vue";
 export type { BreakdownItem, BreakdownStat } from "./BreakdownCard.vue";
 export {

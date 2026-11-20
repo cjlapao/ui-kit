@@ -15,6 +15,7 @@ import {
   getSideMenuItemTokens,
   getStatTileColorClasses,
   getStepperTonePalette,
+  getSurfaceActiveTokens,
   getSurfaceHoverTokens,
   getSurfaceTriggerTokens,
   getSurfaceVariantClasses,
@@ -70,6 +71,9 @@ const generatedClasses = (): Set<string> => {
         collect(getSurfaceHoverTokens(variant, tone, rimKind), out);
       }
     }
+    // The sustained-selection rim (`Panel active`) — same template-literal
+    // grammar as the hover rim, same obligation on the generator.
+    collect(getSurfaceActiveTokens(tone), out);
     collect(getMultiToggleColorTokens(tone), out);
     collect(getMultiToggleVariantTokens(tone), out);
     collect(getStatTileColorClasses(tone), out);

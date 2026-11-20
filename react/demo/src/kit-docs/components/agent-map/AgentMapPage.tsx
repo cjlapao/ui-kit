@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { AgentMap, Button, ColorSwatches, GridBackground, Input, Slider, type AgentMapProject, type PanelTone, type PanelVariant, type TrueColor } from "@cjlapao/ui-kit";
+import { Link } from "react-router-dom";
+import { AgentMap, AiRobot, Button, ColorSwatches, EmptyState, GridBackground, Input, Slider, type AgentMapLoaderType, type AgentMapProject, type AiRobotVariant, type GridBackgroundPattern, type PanelTone, type PanelVariant, type TrueColor } from "@cjlapao/ui-kit";
 import { PageHeader } from "../../shared/PageHeader";
 import { PropsTable } from "../../shared/A11ySections";
-import { Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
+import { ChoiceControl, Control, PlaygroundPanel, SelectControl, ToggleRow } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
-import { surfaceVariantOptions } from "../../shared/options";
+import { gridBackgroundPatternOptions, surfaceVariantOptions } from "../../shared/options";
 import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
 
 const projects: AgentMapProject[] = [
@@ -23,13 +24,22 @@ export default function AgentMapPage() {
   const [expanded, setExpanded] = useState<string | null>("atlas");
   const [selected, setSelected] = useState<string | null>(null);
   const [inspectorTitle, setInspectorTitle] = useState("Inspector");
-  const [gridSize, setGridSize] = useState(24);
+  const [gridSize, setGridSize] = useState(32);
   const [gridFade, setGridFade] = useState<"none" | "radial" | "vertical">("radial");
-  const [gridOpacity, setGridOpacity] = useState(20);
+  const [gridOpacity, setGridOpacity] = useState(35);
   const [fadeStart, setFadeStart] = useState(15);
   const [showGrid, setShowGrid] = useState(true);
   const [scattered, setScattered] = useState(false);
   const [live, setLive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loaderType, setLoaderType] = useState<AgentMapLoaderType>("spinner");
+  const [loaderProgress, setLoaderProgress] = useState(50);
+  const [skeletonProjects, setSkeletonProjects] = useState(3);
+  const [customEmpty, setCustomEmpty] = useState(false);
+  const [emptyTitle, setEmptyTitle] = useState("Nothing to monitor");
+  const [emptySubtitle, setEmptySubtitle] = useState("Projects will join the map shortly.");
+  const [noActiveMessage, setNoActiveMessage] = useState("");
+  const [robotVariant, setRobotVariant] = useState<AiRobotVariant>("solid");
   const [fullHeight, setFullHeight] = useState(false);
   const [fullWidth, setFullWidth] = useState(true);
   const [panelVariant, setPanelVariant] = useState<PanelVariant>("elevated");
@@ -38,24 +48,45 @@ export default function AgentMapPage() {
   const [panelTone, setPanelTone] = useState<PanelTone>("none");
   const [detailsTone, setDetailsTone] = useState<PanelTone>("none");
   const [listTone, setListTone] = useState<PanelTone>("none");
-  const [gridTone, setGridTone] = useState<TrueColor>("cyan");
-  const [glowTone, setGlowTone] = useState<TrueColor>("cyan");
-  const grid = showGrid ? { size: gridSize, fade: gridFade, opacity: gridOpacity / 100, fadeStart } : false as const;
+  const [gridTone, setGridTone] = useState<TrueColor>("blue");
+  const [glowTone, setGlowTone] = useState<TrueColor>("blue");
+  const [gridPattern, setGridPattern] = useState<GridBackgroundPattern>("dots");
+  const [gridDotSize, setGridDotSize] = useState(1.5);
+  const grid = showGrid ? { pattern: gridPattern, size: gridSize, dotSize: gridDotSize, fade: gridFade, opacity: gridOpacity / 100, fadeStart } : false as const;
   const visibleProjects = scenario === "empty" ? [] : scenario === "unassigned" ? unassignedProjects : scenario === "inactive" ? inactiveProjects : scenario === "long" ? longTitleProjects : scenario === "busy" ? projects : projects.slice(0, 3);
-  return <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 sm:px-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-6 px-4 py-8 sm:px-8">
     <PageHeader name="Agent Map" description="Monitor agents across projects, with room to expand without overlapping neighboring projects." />
     <PlaygroundPanel controls={<ControlAccordion groups={[
       { id: "fleet", title: "Fleet and layout", defaultOpen: true, controls: <>
         <SelectControl label="Example" value={scenario} options={[{ value: "small", label: "Three projects" }, { value: "busy", label: "Busy fleet" }, { value: "long", label: "Long project titles" }, { value: "empty", label: "No projects" }, { value: "unassigned", label: "No agents assigned" }, { value: "inactive", label: "No agents working" }]} onChange={value => { setScenario(value); setSelected(null); setExpanded(value === "small" || value === "inactive" ? "atlas" : value === "unassigned" ? "unassigned" : null); }} />
         <ToggleRow label="Scattered layout" checked={scattered} onChange={setScattered} />
         <ToggleRow label="Live indicator" checked={live} onChange={setLive} />
+        <ChoiceControl label="Robot style" options={[{ value: "outline", label: "Outline" }, { value: "solid", label: "Solid" }]} value={robotVariant} onChange={value => setRobotVariant(value as AiRobotVariant)} />
         <ToggleRow label="Full height" checked={fullHeight} onChange={setFullHeight} />
         <ToggleRow label="Full width" checked={fullWidth} onChange={setFullWidth} />
         <Control label="Inspector title"><Input size="sm" aria-label="Inspector title" value={inspectorTitle} onChange={event => setInspectorTitle(event.target.value)} /></Control>
         <Button size="sm" variant="outline" disabled={!selected} onClick={() => setSelected(null)}>Clear selection</Button>
       </> },
-      { id: "grid", title: "Grid background", defaultOpen: true, controls: <>
+      { id: "loader", title: "Loading", defaultOpen: true, controls: <>
+        <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
+        <ChoiceControl label="Loader (while loading)" options={[{ value: "spinner", label: "Spinner" }, { value: "progress", label: "Progress" }, { value: "skeleton", label: "Skeleton" }]} value={loaderType} onChange={value => setLoaderType(value as AgentMapLoaderType)} />
+        {loaderType === "progress" && <Control label={`Progress: ${loaderProgress}%`}><Slider ariaLabel="Loader progress" min={0} max={100} value={loaderProgress} onChange={value => setLoaderProgress(value as number)} /></Control>}
+        {loaderType === "skeleton" && <Control label="Placeholder hubs"><Input size="sm" aria-label="Placeholder hubs" inputMode="numeric" value={String(skeletonProjects)} onChange={event => setSkeletonProjects(Math.max(1, Number(event.target.value.replace(/\D/g, "")) || 1))} /></Control>}
+        <p className="text-xs opacity-70">Spinner and progress pin a Loader over the map while the content stays behind it; skeleton swaps the map for pulsing hub placeholders and hides the counts, legend and inspector.</p>
+      </> },
+      { id: "empty", title: "Empty state", defaultOpen: true, controls: <>
+        <p className="text-xs opacity-70">Built in already: choose <em>Example → No projects</em> for the full empty view, <em>No agents assigned</em> for the per-project message, or <em>No agents working</em> for the status bar. Toggle custom copy to override the map-level ones.</p>
+        <ToggleRow label="Custom copy" checked={customEmpty} onChange={setCustomEmpty} />
+        {customEmpty && <>
+          <Control label="Empty projects title"><Input size="sm" aria-label="Empty projects title" value={emptyTitle} onChange={event => setEmptyTitle(event.target.value)} /></Control>
+          <Control label="Empty projects subtitle"><Input size="sm" aria-label="Empty projects subtitle" value={emptySubtitle} onChange={event => setEmptySubtitle(event.target.value)} /></Control>
+          <Control label="No agents working message"><Input size="sm" aria-label="No agents working message" placeholder="Built-in message" value={noActiveMessage} onChange={event => setNoActiveMessage(event.target.value)} /></Control>
+        </>}
+      </> },
+      { id: "grid", title: "Lattice background", defaultOpen: true, controls: <>
         <ToggleRow label="Show grid" checked={showGrid} onChange={setShowGrid} />
+        <ChoiceControl label="Pattern" options={gridBackgroundPatternOptions} value={gridPattern} onChange={value => setGridPattern(value as GridBackgroundPattern)} />
+        {gridPattern === "dots" && <Control label={`Dot radius: ${gridDotSize}px`}><Slider ariaLabel="Grid dot radius" min={0.5} max={8} step={0.25} value={gridDotSize} onChange={value => setGridDotSize(value as number)} /></Control>}
         <Control label={`Square size: ${gridSize}px`}><Slider ariaLabel="Grid square size" min={12} max={80} value={gridSize} onChange={value => setGridSize(value as number)} /></Control>
         <Control label={`Opacity: ${gridOpacity}%`}><Slider ariaLabel="Grid opacity" min={0} max={100} value={gridOpacity} onChange={value => setGridOpacity(value as number)} /></Control>
         <SelectControl label="Fade" value={gridFade} options={[{ value: "none", label: "None" }, { value: "radial", label: "Radial" }, { value: "vertical", label: "Vertical" }]} onChange={value => setGridFade(value as typeof gridFade)} />
@@ -75,8 +106,8 @@ export default function AgentMapPage() {
         <Control label="Grid tone"><ColorSwatches selectable size="sm" value={gridTone} onSelect={setGridTone} defaultExpanded /></Control>
         <Control label="Glow tone"><ColorSwatches selectable size="sm" value={glowTone} onSelect={setGlowTone} defaultExpanded /></Control>
       </> },
-    ]} />} preview={<div className="w-full" style={{ height: fullHeight ? 640 : undefined }}><AgentMap fullHeight={fullHeight} fullWidth={fullWidth} projects={visibleProjects} expandedProjectId={expanded} onExpandedProjectChange={setExpanded} selectedAgentId={selected} onAgentSelect={agent => setSelected(agent.id)} onSelectionClear={() => setSelected(null)} inspectorTitle={inspectorTitle} scattered={scattered} live={live} grid={grid} panelVariant={panelVariant} detailsVariant={detailsVariant} listVariant={listVariant} panelTone={panelTone} detailsTone={detailsTone} listTone={listTone} gridTone={gridTone} glowTone={glowTone} renderAgentDetails={(_agent, project) => <p className="mt-4 text-sm">Project: {project.name}</p>} /></div>} />
-    <section><h2 className="mb-3 text-xl font-semibold">Reusable grid background</h2><div className="relative flex h-40 items-center justify-center overflow-hidden rounded-xl border border-neutral-300 dark:border-neutral-700">{grid !== false && <GridBackground {...grid} lineColor={`var(--color-${gridTone}-500)`} />}<span className="relative">The same grid settings can be used independently.</span></div></section>
+    ]} />} preview={<div className="w-full" style={{ height: fullHeight ? 640 : undefined }}><AgentMap fullHeight={fullHeight} fullWidth={fullWidth} projects={visibleProjects} expandedProjectId={expanded} onExpandedProjectChange={setExpanded} selectedAgentId={selected} onAgentSelect={agent => setSelected(agent.id)} onSelectionClear={() => setSelected(null)} inspectorTitle={inspectorTitle} scattered={scattered} live={live} grid={grid} panelVariant={panelVariant} detailsVariant={detailsVariant} listVariant={listVariant} panelTone={panelTone} detailsTone={detailsTone} listTone={listTone} gridTone={gridTone} glowTone={glowTone} loading={loading} loaderType={loaderType} loadingMessage="Loading fleet…" loaderProgress={loaderType === "progress" ? loaderProgress : undefined} skeletonProjects={skeletonProjects} robotVariant={robotVariant} emptyProjects={customEmpty ? <EmptyState variant="plain" dashed={false} icon={<AiRobot size="md" tone={glowTone ?? "blue"} variant={robotVariant} paused />} iconBackground={false} title={emptyTitle} subtitle={emptySubtitle} /> : undefined} noActiveAgentsMessage={customEmpty && noActiveMessage ? noActiveMessage : undefined} renderAgentDetails={(_agent, project) => <p className="mt-4 text-sm">Project: {project.name}</p>} /></div>} />
+    <section><h2 className="mb-3 text-xl font-semibold">Reusable lattice background</h2><p className="mb-3 max-w-3xl text-sm text-neutral-500 dark:text-neutral-400">The map's lattice is the standalone <Link to="/grid-background" className="font-medium text-blue-600 hover:underline dark:text-blue-400">Grid Background</Link> component, so the strip below mirrors whatever the playground above is set to — lines or dots, size, opacity and fade alike.</p><div className="relative flex h-40 items-center justify-center overflow-hidden rounded-xl border border-neutral-300 dark:border-neutral-700">{grid !== false && <GridBackground {...grid} lineColor={`var(--color-${gridTone}-500)`} />}<span className="relative">The same grid settings can be used independently.</span></div></section>
     <PropsTable props={[
       { name: "projects", type: "readonly AgentMapProject[]", default: "required", description: "Project IDs and agent IDs must be unique. Agents carry a status and current activity." },
       { name: "expandedProjectId / onExpandedProjectChange", type: "string | null / callback", default: "uncontrolled", description: "Control which project is expanded. Projects with 13–20 agents use a focused layer; larger projects use a list." },
@@ -84,14 +115,21 @@ export default function AgentMapPage() {
       { name: "onSelectionClear", type: "() => void", default: "undefined", description: "Clear controlled selection when an outside click or project selection dismisses the inspector." },
       { name: "renderAgentDetails", type: "(agent, project) => ReactNode", default: "undefined", description: "Add consumer-owned actions or details to the selection panel." },
       { name: "inspectorTitle", type: "ReactNode", default: '"Inspector"', description: "Customize the selected agent's inspector title." },
+      { name: "inspectorMinMainWidth", type: "number", default: "360", description: "The map column's floor behind the dock/stack decision: the inspector docks beside the map while the component is at least 280 + 16 + this wide (656 by default), and stacks underneath below that. Raise it when the map needs more room to stay legible." },
+      { name: "inspectorStackBelow", type: "number", default: "fit-derived", description: "Replace that comparison outright — stack while the component is narrower than this many pixels. 0 always docks beside the map; a large value always stacks below it." },
       { name: "fullHeight / fullWidth", type: "boolean", default: "false / true", description: "Fill the parent height (which must be defined) or available width." },
       { name: "scattered", type: "boolean", default: "false", description: "Deterministically scatter the project hubs to fill the available area, shrinking them as one group when crowded." },
-      { name: "grid", type: "false | GridBackground settings", default: "radial grid", description: "Configure the map grid or set false to hide it." },
+      { name: "grid", type: "false | GridBackground settings", default: "radial grid", description: "Configure the map lattice — crossing lines, or dots on their cardinal points — or set false to hide it." },
       { name: "panelVariant / detailsVariant / listVariant", type: "PanelVariant", default: "elevated / elevated / subtle", description: "Set the map, selection, and list panel surfaces independently." },
       { name: "panelTone / detailsTone / listTone", type: "PanelTone", default: "none", description: "Set the tone of each panel surface independently." },
-      { name: "gridTone / glowTone", type: "TrueColor", default: "undefined", description: "Choose independent theme colors for grid lines and ambient glow. grid.lineColor overrides gridTone." },
+      { name: "gridTone / glowTone", type: "TrueColor", default: '"blue"', description: "Choose independent theme colors for grid lines and ambient glow — blue matches the NetworkGraph accent. grid.lineColor overrides gridTone." },
       { name: "emptyProjects / noActiveAgentsMessage", type: "ReactNode", default: "built-in messages", description: "Override the empty-project view or the message shown when no agents are working." },
-      { name: "GridBackground: size / lineColor / opacity / fade / fadeStart", type: "number / string / number / fade / number", default: "32 / currentColor / 0.12 / none / 15", description: "Configure a decorative grid with optional radial or vertical edge fade." },
+      { name: "robotVariant", type: '"outline" | "solid"', default: '"solid"', description: "Style for every robot in the map — agent orbs, list avatars and the built-in empty state." },
+      { name: "loading / loaderType", type: "boolean / \"spinner\" | \"progress\" | \"skeleton\"", default: "false / \"spinner\"", description: "Panel-style loading: the spinner and progress overlay pins a Loader over the map (aria-busy marks the region), while skeleton swaps the map for pulsing hub placeholders and hides the counts, legend and inspector." },
+      { name: "loadingMessage", type: "string", default: "undefined", description: "Names the loading overlay for screen readers." },
+      { name: "loaderProgress", type: "number", default: "undefined", description: "The 0–100 value of the progress bar under loaderType=\"progress\"." },
+      { name: "skeletonProjects", type: "number", default: "3", description: "How many hub-shaped placeholders skeleton mode draws." },
+      { name: "GridBackground: pattern / size / lineColor / dotSize / opacity / fade / fadeStart", type: '"grid" | "dots" / number / string / number / number / fade / number', default: '"dots" / 32 / blue-500 / 1.5 / 0.35 / "radial" / 15', description: "The standalone Grid Background component's props, passed through. Dots land on the crossings of the same lattice, so switching pattern keeps the map aligned; gridTone colours either one." },
     ]} />
   </div>;
 }

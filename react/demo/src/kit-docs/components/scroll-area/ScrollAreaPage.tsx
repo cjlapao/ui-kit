@@ -12,7 +12,7 @@ import ScrollFade from "./examples/ScrollFade";
 import scrollFadeCode from "./examples/ScrollFade.tsx?raw";
 
 export const ScrollAreaPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Scroll Area"
       description="A scrollable region whose scrollbars are drawn by the kit instead of the browser — PrimeVue's ScrollArea. Scrolling itself stays completely native (wheel, touch, keyboard), so behaviour never surprises anyone; only the thin overlay bars are ours, sized by the visible fraction and shown only when wanted."

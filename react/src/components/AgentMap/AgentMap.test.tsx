@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AgentMap, type AgentMapProject } from "./AgentMap";
 import { layoutProjects, layoutProjectsHorizontally, scatterProjects } from "./layout";
@@ -68,6 +68,11 @@ describe("AgentMap", () => {
     expect(inspector.hasAttribute("inert")).toBe(false);
     expect(screen.getByText("Agent details")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Reviewer" })).toBeTruthy();
+    // The agent name carries the robot glyph; solid is the default variant.
+    expect(screen.getByRole("heading", { name: "Reviewer" }).querySelector("svg")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Reviewer" }).querySelector("[mask]")).toBeTruthy();
+    rerender(<AgentMap projects={projects} selectedAgentId="reviewer" inspectorTitle="Agent details" robotVariant="outline" />);
+    expect(screen.getByRole("heading", { name: "Reviewer" }).querySelector("[mask]")).toBeNull();
     rerender(<AgentMap projects={projects} selectedAgentId="missing" />);
     expect(inspector.getAttribute("aria-hidden")).toBe("true");
     expect(screen.queryByText("Agent details")).toBeNull();
@@ -143,6 +148,15 @@ describe("AgentMap", () => {
     expect(grid.style.backgroundImage).toContain("--cj-agent-map-grid-color");
     rerender(<AgentMap projects={projects} gridTone="blue" glowTone="rose" grid={{ lineColor: "red" }} />);
     expect((viewport.querySelector('[aria-hidden="true"]') as HTMLElement).style.backgroundImage).toContain("red");
+  });
+  it("renders the map lattice as dots by default and lines when asked", () => {
+    const { container, rerender } = render(<AgentMap projects={projects} />);
+    const lattice = () => (container.querySelector(".cj-agent-map__viewport [aria-hidden='true']") as HTMLElement).style.backgroundImage;
+    // NetworkGraph parity: dots on a 32px lattice are the default.
+    expect(lattice()).toContain("radial-gradient(circle at 0 0");
+    expect(lattice()).toContain("1.5px");
+    rerender(<AgentMap projects={projects} grid={{ pattern: "grid" }} />);
+    expect(lattice()).toContain("linear-gradient");
   });
   it("lists agents when an expanded project has more than twenty", () => {
     const large: AgentMapProject = { id: "large", name: "Large", agents: Array.from({ length: 21 }, (_, i) => ({ id: `agent-${i}`, name: `Agent ${i}`, activity: "Working", status: "working" })) };
@@ -290,5 +304,91 @@ describe("AgentMap", () => {
     const { container } = render(<AgentMap projects={few} scattered />);
     const canvas = container.querySelector(".cj-agent-map__canvas") as HTMLElement;
     expect(canvas.style.width).toBe("720px");
+  });
+});
+
+describe("AgentMap inspector docking", () => {
+  /** Render at a fixed component width and report whether the inspector stacked. */
+  const stackedAt = (width: number, extra: Partial<Parameters<typeof AgentMap>[0]> = {}) => {
+    const callbacks: (() => void)[] = [];
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(() => ({ width, height: 420, x: 0, y: 0, top: 0, left: 0, right: width, bottom: 420, toJSON() {} }));
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(callback: () => void) { callbacks.push(callback); }
+      observe() {}
+      disconnect() {}
+    });
+    const { container } = render(<AgentMap projects={projects} defaultExpandedProjectId="atlas" {...extra} />);
+    act(() => callbacks.forEach((callback) => callback()));
+    return !!container.querySelector(".cj-agent-map--stacked");
+  };
+
+  // Docked while the map keeps its 360px floor beside 280px + 16px gap = 656; the
+  // old fixed 800px rule stacked here, which is why the docs playground always
+  // showed the inspector under the map.
+  it("docks the inspector beside the map once the map keeps its floor", () => {
+    expect(stackedAt(700)).toBe(false);
+    expect(stackedAt(600)).toBe(true);
+  });
+  it("honours inspectorMinMainWidth and the inspectorStackBelow override", () => {
+    expect(stackedAt(700, { inspectorMinMainWidth: 600 })).toBe(true);
+    expect(stackedAt(600, { inspectorStackBelow: 0 })).toBe(false);
+    expect(stackedAt(1200, { inspectorStackBelow: 1400 })).toBe(true);
+  });
+});
+
+describe("AgentMap loading", () => {
+  it("marks the map busy and pins a Loader overlay over the map while loading", () => {
+    const { container } = render(<AgentMap projects={projects} loading loadingMessage="Loading fleet…" />);
+    expect(container.querySelector(".cj-agent-map__viewport")?.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByText("Loading fleet…")).toBeTruthy();
+    // Overlay mode keeps the map behind the scrim, like Table.
+    expect(screen.getByRole("button", { name: /Atlas, 2 agents/ })).toBeTruthy();
+  });
+  it("draws a determinate progress bar for the progress loader", () => {
+    render(<AgentMap projects={projects} loading loaderType="progress" loaderProgress={40} />);
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("40");
+  });
+  it("replaces the map with pulsing hub placeholders in skeleton mode", () => {
+    const { container } = render(<AgentMap projects={projects} loading loaderType="skeleton" skeletonProjects={4} />);
+    expect(container.querySelectorAll(".cj-agent-map__skeleton-hub")).toHaveLength(4);
+    expect(container.querySelector(".cj-agent-map__skeleton")?.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.queryByRole("button", { name: /Atlas, 2 agents/ })).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+    // No stale counts, legend, or inspector while the fleet is loading.
+    expect(screen.queryByText(/active · \d+ projects/)).toBeNull();
+    expect(container.querySelector(".cj-agent-map__legend")).toBeNull();
+    expect(container.querySelector(".cj-agent-map__inspector")).toBeNull();
+  });
+  it("draws one hub floor and hides the empty state while a skeleton loads", () => {
+    const { container } = render(<AgentMap projects={[]} loading loaderType="skeleton" skeletonProjects={0} />);
+    expect(container.querySelectorAll(".cj-agent-map__skeleton-hub")).toHaveLength(1);
+    expect(screen.queryByText("No projects to display")).toBeNull();
+  });
+  it("restores the map, counts, legend and inspector when loading ends", () => {
+    const { rerender, container } = render(<AgentMap projects={projects} loading loaderType="skeleton" />);
+    rerender(<AgentMap projects={projects} />);
+    expect(container.querySelector(".cj-agent-map__skeleton")).toBeNull();
+    expect(container.querySelector(".cj-agent-map__viewport")?.hasAttribute("aria-busy")).toBe(false);
+    expect(screen.getByText("1 active · 2 projects · 1 need attention")).toBeTruthy();
+    expect(container.querySelector(".cj-agent-map__legend")).toBeTruthy();
+    expect(container.querySelector(".cj-agent-map__inspector")).toBeTruthy();
+  });
+});
+
+describe("AgentMap empty state", () => {
+  it("uses the solid robot by default and the outline robot when asked", () => {
+    const { rerender, container } = render(<AgentMap projects={[]} />);
+    expect(screen.getByText("No projects to display")).toBeTruthy();
+    // The solid variant paints its body through a mask; outline does not.
+    expect(container.querySelector(".cj-agent-map__empty [mask]")).toBeTruthy();
+    rerender(<AgentMap projects={[]} robotVariant="outline" />);
+    expect(container.querySelector(".cj-agent-map__empty [mask]")).toBeNull();
+  });
+  it("paints agent orbs and list avatars with the solid robot too", () => {
+    const { container } = render(<AgentMap projects={projects} defaultExpandedProjectId="atlas" robotVariant="solid" />);
+    expect(container.querySelector(".cj-agent-map__orb [mask]")).toBeTruthy();
+    const many: AgentMapProject[] = [{ id: "horizon", name: "Horizon", agents: Array.from({ length: 30 }, (_, i) => ({ id: `h${i}`, name: `Agent ${i}`, status: "working" as const, activity: "Working" })) }];
+    const list = render(<AgentMap projects={many} defaultExpandedProjectId="horizon" robotVariant="solid" />);
+    expect(list.container.querySelector(".cj-agent-map__list-avatar [mask]")).toBeTruthy();
   });
 });

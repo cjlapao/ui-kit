@@ -28,7 +28,7 @@ import Sample from "./examples/Sample";
 import sampleCode from "./examples/Sample.tsx?raw";
 
 export const InputOtpPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Input OTP"
       description="Single-character cells for one-time codes — typed, pasted or autocompleted, with masking, integer-only input and an onComplete callback. The cells are ordinary fields, so they wear the same six surfaces, tones and focus rings as every other input."

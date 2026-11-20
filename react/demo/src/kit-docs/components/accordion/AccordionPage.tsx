@@ -18,7 +18,7 @@ import GlassSettings from "./examples/GlassSettings";
 import glassSettingsCode from "./examples/GlassSettings.tsx?raw";
 
 export const AccordionPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Accordion"
       description="A stacked disclosure list built on Panel — every container surface, tone, corner and padding, on the shared control size, and standing on the container standard: elevated, tone blue, sm padding, medium corner. Independent ids per instance, inert collapsed content, APG arrow-key navigation and per-row loaders."

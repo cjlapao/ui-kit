@@ -343,6 +343,16 @@ export {
   type MultiToggleShape,
 } from "./MultiToggle";
 export {
+  default as IconToggleGroup,
+  ICON_TOGGLE_GROUP_ROUNDED,
+  ICON_TOGGLE_GROUP_VARIANTS,
+  type IconToggleGroupProps,
+  type IconToggleGroupOption,
+  type IconToggleGroupVariant,
+  // `rounded` is public, so its type has to be reachable too.
+  type IconToggleGroupShape,
+} from "./IconToggleGroup";
+export {
   default as ButtonSelector,
   type ButtonSelectorProps,
   type ButtonSelectorOption,
@@ -355,6 +365,7 @@ export {
   type FormFieldValidationStatus,
   type FormFieldWidth,
 } from "./FormField";
+export { default as FieldRow, type FieldRowProps } from "./FieldRow";
 export {
   default as FormLayout,
   type FormLayoutProps,
@@ -432,6 +443,7 @@ export {
   type ActivityFeedProps,
   type ActivityFeedItem,
   type ActivityFeedFilter,
+  type ActivityFeedLoaderType,
 } from "./ActivityFeed";
 export {
   default as BreakdownCard,
@@ -928,8 +940,8 @@ export { default as ContentActions, type ContentActionsProps } from "./ContentAc
 export { default as CodeBlock, type CodeBlockProps } from "./CodeBlock";
 
 export { FilterBar } from "./FilterBar";
-export type { FilterBarProps, FilterBarFilter, FilterBarOption, FilterBarValue } from "./FilterBar";
+export type { FilterBarProps, FilterBarFilter, FilterBarOption, FilterBarValue, FilterBarLoaderType } from "./FilterBar";
 
 export * from "./AiRobot";
 export * from "./AgentMap";
-export { GridBackground, type GridBackgroundProps } from "./GridBackground";
+export { GridBackground, GRID_BACKGROUND_PATTERNS, type GridBackgroundPattern, type GridBackgroundProps } from "./GridBackground";

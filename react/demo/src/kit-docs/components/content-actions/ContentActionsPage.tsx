@@ -7,7 +7,7 @@ import agentHeaderCode from "./examples/AgentHeader.tsx?raw";
 
 export default function ContentActionsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
       <PageHeader name="Content Actions" description="A neutral two-section layout. Content yields width as actions grow; actions stay on one row and scroll horizontally when space runs out." />
       <ContentActionsPlayground />
       <ExampleCard title="Growing actions" description="Adjust the width or drag the preview corner, then hover each action. The surrounding border belongs to this example; ContentActions adds no surface or padding." code={agentHeaderCode} filename="AgentHeader.tsx">

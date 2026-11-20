@@ -1,4 +1,4 @@
-import type { SurfaceTone } from "../../theme/Theme";
+import type { SurfaceTone, SurfaceVariant } from "../../theme/Theme";
 /**
  * Gantt — a feature-rich, editable timeline chart.
  *
@@ -34,6 +34,7 @@ import classNames from "classnames";
 import {
   GANTT_MAX_ZOOM,
   GANTT_MIN_ZOOM,
+  GANTT_HOUR_PX_PER_DAY,
   GANTT_ZOOM_PRESETS,
   DEFAULT_GANTT_LABELS,
   DEFAULT_ROW_HEIGHT,
@@ -67,8 +68,9 @@ import {
   reorderPreviewTop,
   reorderDragSubtree,
 } from "../../../../common/gantt";
-import { getSurfaceTextTokens, getSurfaceVariantClasses, THIN_SCROLLBAR } from "../../theme/Theme";
+import { getSurfaceTextTokens, getSurfaceVariantClasses, getSurfaceCornerRem } from "../../theme/Theme";
 import Panel, { type PanelCorner, type PanelPadding, type PanelVariant } from "../Panel";
+import ScrollArea from "../ScrollArea";
 import type { GlassOpacity, GlassVibrancy } from "../../theme/glass";
 import { useKitEngine, useKitT } from "../../i18n";
 import { GanttScale } from "./GanttScale";
@@ -152,6 +154,19 @@ export interface GanttProps {
   rowHeight?: number;
   /** Total component height (px or CSS length). Defaults to 520. */
   height?: number | string;
+  /**
+   * Fill the height of a parent with a defined height (the root becomes
+   * `h-full`); `height` (default 520) then acts as a **min-height** — the
+   * chart grows to the parent and never shrinks below the given value.
+   * A parent with no defined height degrades gracefully to that min-height.
+   * @default false
+   */
+  fullHeight?: boolean;
+  /**
+   * Fill the available width (`Panel` `fullWidth` pass-through).
+   * @default false
+   */
+  fullWidth?: boolean;
   /** Accent colour for chrome (today marker, selection, default bars). */
   color?: TrueColor;
   /**
@@ -164,8 +179,32 @@ export interface GanttProps {
   /** Container tint, separate from task accent colors. @default "none" */
   tone?: SurfaceTone;
   /**
+   * Surface variant for the zoom controls (the Hour/Day/Week/Month/Quarter pill
+   * with its ± buttons). Defaults to the chart's own `variant` — pin it to
+   * take the controls out of the chart's surface family, e.g. a `none`
+   * chart whose pill still needs to read as raised chrome.
+   */
+  controlsVariant?: SurfaceVariant;
+  /** Container tint for the zoom controls. Defaults to the chart's own `tone`. */
+  controlsTone?: SurfaceTone;
+  /**
+   * Frame the fixed-column block with vertical hairlines on its outer
+   * edges — the new left line plus the fixed/timeline seam on the right
+   * (which is always drawn). On painted surfaces the card border already
+   * frames the left edge; on `variant="none"` this keeps the table boxed.
+   * The line follows the surface divider token, so it tints with the
+   * variant/tone like every other hairline.
+   * @default false
+   */
+  columnEdges?: boolean;
+  /**
    * Corner radius of the panel surface — the shared container scale
-   * (same `corner` vocabulary as Panel).
+   * (same `corner` vocabulary as Panel). On a `variant="none"` chart, which
+   * paints no card to round, this step instead shapes the **table box**
+   * (`data-gantt-frame`: the column-header strip + body, not the chart
+   * header): its top corners round the column-header strip, its bottom
+   * corners the body scroller, closed by hairline borders in the surface
+   * divider.
    * @default "rounded-sm"
    */
   corner?: GanttCorner;
@@ -246,9 +285,13 @@ export const Gantt: React.FC<GanttProps> = ({
   today,
   rowHeight = DEFAULT_ROW_HEIGHT,
   height = 520,
+  fullHeight = false,
+  fullWidth = false,
   color = "blue",
   variant = "elevated",
   tone = "none",
+  controlsVariant,
+  controlsTone,
   corner = "rounded-sm",
   padding = "none",
   vibrancy,
@@ -259,6 +302,7 @@ export const Gantt: React.FC<GanttProps> = ({
   renderBar,
   renderCell,
   resizableColumns = false,
+  columnEdges = false,
   columnWidths,
   onColumnWidthChange,
   locale,
@@ -308,6 +352,16 @@ export const Gantt: React.FC<GanttProps> = ({
   // header and hairline dividers, so the whole chart follows the Panel's
   // surface language (solid vs translucent ink included).
   const surfaceText = useMemo(() => getSurfaceTextTokens(variant), [variant]);
+
+  // On a `none` chart nothing paints, so the corner prop would have nothing
+  // to round. There the TABLE (column-header strip + body) wears its own
+  // hairline frame — the chart header above stays outside it, as panel
+  // chrome — and the `corner` step shapes that box: top corners on the
+  // column-header strip, bottom corners on the body scroller. The header
+  // seam is handed to the frame's own top border so no line doubles, and
+  // `columnEdges` yields its left line to the frame (same pixel, once).
+  const tableFramed = variant === "none";
+  const cornerRem = getSurfaceCornerRem(corner);
 
   // ── Zoom (controlled or internal) ─────────────────────────────────────────
   const [internalZoom, setInternalZoom] = useState(initialZoom);
@@ -567,8 +621,15 @@ export const Gantt: React.FC<GanttProps> = ({
       zoomBy(factor, e.clientX);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [zoomBy]);
+    // ScrollArea forwards `onScroll` to its frame, and a viewport scroll
+    // does not bubble — the header's scale window tracks the scroller on a
+    // native listener on the element that actually scrolls.
+    el.addEventListener("scroll", syncHeaderScale);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("scroll", syncHeaderScale);
+    };
+  }, [zoomBy, syncHeaderScale]);
 
   // Re-align the header scale when the timeline geometry changes (zoom,
   // range, columns) — the body scroller keeps its own scrollLeft, so only
@@ -663,11 +724,13 @@ export const Gantt: React.FC<GanttProps> = ({
   const onBarKeyDown = useCallback(
     (e: React.KeyboardEvent, task: GanttTask) => {
       if (!interactive || task.locked || !onTasksChange) return;
+      // Past the hour-fine threshold the grid is hourly, so day/none
+      // nudge by the hour too (mirrors `snapDate`'s auto-refine).
       const stepMs =
-        snap === "hour"
-          ? 3_600_000
-          : snap === "week"
-            ? 7 * MS_PER_DAY
+        snap === "week"
+          ? 7 * MS_PER_DAY
+          : snap === "hour" || zoom >= GANTT_HOUR_PX_PER_DAY
+            ? 3_600_000
             : MS_PER_DAY;
       let ns = toMs(task.start);
       let ne = toMs(task.end);
@@ -708,7 +771,7 @@ export const Gantt: React.FC<GanttProps> = ({
         onTasksChange(tasks.map((t) => (t.id === task.id ? edited : t)));
       }
     },
-    [interactive, snap, tasks, onTasksChange, setSelected],
+    [interactive, snap, zoom, tasks, onTasksChange, setSelected],
   );
 
   // Remove the currently-selected link (shared by the Delete key and the
@@ -973,8 +1036,14 @@ export const Gantt: React.FC<GanttProps> = ({
       glassOpacity={glassOpacity}
       flexBody
       scrollable={false}
-      className="select-none outline-none focus:outline-none"
-      style={{ height }}
+      fullWidth={fullWidth}
+      className={classNames(
+        "select-none outline-none focus:outline-none",
+        // Fill the parent; `height` steps down to a min-height (§spec
+        // 2026-11-19) so a short parent degrades to the fixed look.
+        fullHeight && "h-full",
+      )}
+      style={fullHeight ? { minHeight: height } : { height }}
       data-gantt
       tabIndex={0}
       aria-label={t("kit.gantt.root")}
@@ -987,7 +1056,11 @@ export const Gantt: React.FC<GanttProps> = ({
               floats over the scale window. ── */}
         <div
           className={classNames(
-            "flex shrink-0 items-center gap-3 border-b px-4 py-3",
+            // The seam below the chart header is normally this strip's
+            // border; when the table carries its own frame the frame's top
+            // border IS that seam — one line, not two.
+            "flex shrink-0 items-center gap-3 px-4 py-3",
+            !tableFramed && "border-b",
             surfaceText.divider,
           )}
         >
@@ -1023,8 +1096,8 @@ export const Gantt: React.FC<GanttProps> = ({
               right edge when no icon/title/actions are present. */}
           <div className="ml-auto shrink-0">
             <GanttToolbar
-              tone={tone}
-              variant={variant}
+              tone={controlsTone ?? tone}
+              variant={controlsVariant ?? variant}
               zoom={zoom}
               presets={GANTT_ZOOM_PRESETS}
               onZoomTo={setZoom}
@@ -1033,17 +1106,32 @@ export const Gantt: React.FC<GanttProps> = ({
           </div>
         </div>
         {/* ── Header (detached: labels | synced scale window) ── */}
+        {/* On a framed (none) table this strip is the box's top edge: the
+            frame's border-x + top border + rounded corners live here, and
+            overflow-hidden keeps the fixed block's opaque fill from
+            painting square over the round. */}
         <div
+          data-gantt-frame={tableFramed ? "" : undefined}
           className={classNames(
             "relative flex shrink-0 items-stretch border-b",
             surfaceText.divider,
+            tableFramed && ["overflow-hidden", "border-x", "border-t"],
           )}
-          style={{ height: HEADER_HEIGHT }}
+          style={{
+            height: HEADER_HEIGHT,
+            ...(tableFramed
+              ? { borderRadius: `${cornerRem} ${cornerRem} 0 0` }
+              : {}),
+          }}
         >
           <div
+            data-gantt-columns
             className={classNames(
               "flex items-stretch border-r bg-white dark:bg-neutral-900",
               surfaceText.divider,
+              // The frame's left border is this same pixel on a framed
+              // table — drawing both is the double line.
+              columnEdges && !tableFramed && "border-l",
             )}
             style={{ width: leftWidth }}
           >
@@ -1126,14 +1214,33 @@ export const Gantt: React.FC<GanttProps> = ({
         </div>
 
         {/* ── Body (the only scroller) ─────────────────────────────────── */}
-        <div
-          ref={scrollRef}
-          className={`gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-1.5 ${THIN_SCROLLBAR}`}
-          onScroll={syncHeaderScale}
+        {/* The kit's ScrollArea owns the viewport: native scrollbars hidden
+            (the white `::-webkit-scrollbar-corner` square cannot exist once
+            they are gone), thin overlay thumbs instead — same on every
+            browser, unlike the Chrome-only `-webkit-scrollbar` string.
+            `scrollRef` is forwarded to the viewport, so header sync, zoom
+            anchoring, pinch and the drag hook all still drive the element
+            that actually scrolls; the header sync rides a native scroll
+            listener on it (React's `onScroll` would land on the frame, and
+            scroll does not bubble). On a none chart this half wears the
+            frame's bottom: border-x/b closing the table box with the
+            `corner` step rounding it; the frame's overflow-hidden plus the
+            viewport's `rounded-[inherit]` clip the sticky columns to the
+            round. */}
+        <ScrollArea
+          data-gantt-frame={tableFramed ? "" : undefined}
+          className={classNames(
+            "gantt-scroller min-h-0 flex-1",
+            tableFramed && ["border-x", "border-b", surfaceText.divider],
+          )}
+          style={tableFramed ? { borderRadius: `0 0 ${cornerRem} ${cornerRem}` } : undefined}
+          viewportRef={scrollRef}
+          viewportClassName="overscroll-contain"
+          tabIndex={-1}
         >
           <div style={{ width: leftWidth + linkLayerWidth, minWidth: "100%" }}>
           {loading ? (
-            <GanttSkeleton rows={12} rowHeight={rowHeight} leftWidth={leftWidth} />
+            <GanttSkeleton rows={12} rowHeight={rowHeight} leftWidth={leftWidth} columnEdges={columnEdges && !tableFramed} />
           ) : isEmpty ? (
             <div className="flex items-center justify-center text-sm text-neutral-500" style={{ height: bodyHeight || 160, width: leftWidth + timelineWidth }}>
               {emptyState ?? allLabels.empty}
@@ -1149,7 +1256,12 @@ export const Gantt: React.FC<GanttProps> = ({
                   scaleLevels[scaleLevels.length - 1].columns.map((c) => (
                     <div
                       key={c.id}
-                      className="absolute inset-y-0 border-r border-neutral-100 dark:border-neutral-800"
+                      className={classNames(
+                        "absolute inset-y-0 border-r",
+                        c.major
+                          ? "border-neutral-300 dark:border-neutral-600"
+                          : "border-neutral-100 dark:border-neutral-800",
+                      )}
                       style={{ left: dateToX(c.start, range.start, zoom), width: c.width }}
                     />
                   ))}
@@ -1241,6 +1353,7 @@ export const Gantt: React.FC<GanttProps> = ({
                   onBarKeyDown={onBarKeyDown}
                   selectionTokens={selectionTokens}
                   dividerClass={surfaceText.divider}
+                  columnEdges={columnEdges && !tableFramed}
                 />
                 );
               })}
@@ -1363,7 +1476,7 @@ export const Gantt: React.FC<GanttProps> = ({
             </div>
           )}
           </div>
-        </div>
+        </ScrollArea>
       </div>
     </Panel>
   );
@@ -1382,16 +1495,25 @@ function formatRangeLabel(start: number, end: number, zoom: number, locale?: str
 }
 
 /** Skeleton placeholder rows while data loads. */
-const GanttSkeleton: React.FC<{ rows: number; rowHeight: number; leftWidth: number }> = ({
+const GanttSkeleton: React.FC<{
+  rows: number;
+  rowHeight: number;
+  leftWidth: number;
+  columnEdges?: boolean;
+}> = ({
   rows,
   rowHeight,
   leftWidth,
+  columnEdges,
 }) => (
   <div className="animate-pulse" aria-busy="true">
     {Array.from({ length: rows }).map((_, i) => (
       <div key={i} className="flex" style={{ height: rowHeight }}>
         <div
-          className="sticky left-0 flex items-center border-b border-neutral-100 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-900"
+          className={classNames(
+            "sticky left-0 flex items-center border-b border-neutral-100 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-900",
+            columnEdges && "border-l",
+          )}
           style={{ width: leftWidth }}
         >
           <div

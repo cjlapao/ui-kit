@@ -20,7 +20,7 @@ import ActionsAndCustom from "./examples/ActionsAndCustom";
 import actionsAndCustomCode from "./examples/ActionsAndCustom.tsx?raw";
 
 export const ToastPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Toast"
       description="Transient notifications with the kit's alert-family surface. A stack of glass cards pins to a page corner: the newest sits in front, the older ones peek out behind it as a deck — and on hover (or focus) the deck fans out to full height. Auto-dismiss timers pause while the deck is engaged, and every card can be swiped away."

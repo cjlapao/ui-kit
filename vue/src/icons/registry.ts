@@ -49,6 +49,11 @@ import { Clone } from "./components/Clone";
 import { Close } from "./components/Close";
 import { Close1 } from "./components/Close1";
 import { CloudOff } from "./components/CloudOff";
+import { Code } from "./components/Code";
+import { CodeCommit } from "./components/CodeCommit";
+import { CodeCompare } from "./components/CodeCompare";
+import { CodeFork } from "./components/CodeFork";
+import { CodeMerge } from "./components/CodeMerge";
 import { Cog } from "./components/Cog";
 import { Cogs } from "./components/Cogs";
 import { Comments } from "./components/Comments";
@@ -79,7 +84,9 @@ import { Folder } from "./components/Folder";
 import { Gantt } from "./components/Gantt";
 import { Gate } from "./components/Gate";
 import { Gauge } from "./components/Gauge";
+import { Github } from "./components/Github";
 import { Globe } from "./components/Globe";
+import { GraduationHat } from "./components/GraduationHat";
 import { Group } from "./components/Group";
 import { HalfCogs } from "./components/HalfCogs";
 import { HandUp } from "./components/HandUp";
@@ -99,10 +106,15 @@ import { LXC } from "./components/LXC";
 import { LXCOld } from "./components/LXCOld";
 import { Launch } from "./components/Launch";
 import { Library } from "./components/Library";
+import { Link } from "./components/Link";
+import { LinkAlt } from "./components/LinkAlt";
+import { LinkSlash } from "./components/LinkSlash";
+import { List } from "./components/List";
 import { Live } from "./components/Live";
 import { Log } from "./components/Log";
 import { Login } from "./components/Login";
 import { Logout } from "./components/Logout";
+import { Map } from "./components/Map";
 import { Memory } from "./components/Memory";
 import { Minio } from "./components/Minio";
 import { Moon } from "./components/Moon";
@@ -144,6 +156,7 @@ import { Revert } from "./components/Revert";
 import { Revoke } from "./components/Revoke";
 import { Roadmap } from "./components/Roadmap";
 import { Robot } from "./components/Robot";
+import { RobotSolid } from "./components/RobotSolid";
 import { Rocket } from "./components/Rocket";
 import { Role } from "./components/Role";
 import { Roles } from "./components/Roles";
@@ -240,6 +253,11 @@ export type IconName =
   | "Close"
   | "Close1"
   | "CloudOff"
+  | "Code"
+  | "CodeCommit"
+  | "CodeCompare"
+  | "CodeFork"
+  | "CodeMerge"
   | "Cog"
   | "Cogs"
   | "Comments"
@@ -270,7 +288,9 @@ export type IconName =
   | "Gantt"
   | "Gate"
   | "Gauge"
+  | "Github"
   | "Globe"
+  | "GraduationHat"
   | "Group"
   | "HalfCogs"
   | "HandUp"
@@ -290,10 +310,15 @@ export type IconName =
   | "LXCOld"
   | "Launch"
   | "Library"
+  | "Link"
+  | "LinkAlt"
+  | "LinkSlash"
+  | "List"
   | "Live"
   | "Log"
   | "Login"
   | "Logout"
+  | "Map"
   | "Memory"
   | "Minio"
   | "Moon"
@@ -335,6 +360,7 @@ export type IconName =
   | "Revoke"
   | "Roadmap"
   | "Robot"
+  | "RobotSolid"
   | "Rocket"
   | "Role"
   | "Roles"
@@ -429,6 +455,11 @@ export const iconRegistry: Record<IconName, Component> = {
   Close: Close,
   Close1: Close1,
   CloudOff: CloudOff,
+  Code: Code,
+  CodeCommit: CodeCommit,
+  CodeCompare: CodeCompare,
+  CodeFork: CodeFork,
+  CodeMerge: CodeMerge,
   Cog: Cog,
   Cogs: Cogs,
   Comments: Comments,
@@ -459,7 +490,9 @@ export const iconRegistry: Record<IconName, Component> = {
   Gantt: Gantt,
   Gate: Gate,
   Gauge: Gauge,
+  Github: Github,
   Globe: Globe,
+  GraduationHat: GraduationHat,
   Group: Group,
   HalfCogs: HalfCogs,
   HandUp: HandUp,
@@ -479,10 +512,15 @@ export const iconRegistry: Record<IconName, Component> = {
   LXCOld: LXCOld,
   Launch: Launch,
   Library: Library,
+  Link: Link,
+  LinkAlt: LinkAlt,
+  LinkSlash: LinkSlash,
+  List: List,
   Live: Live,
   Log: Log,
   Login: Login,
   Logout: Logout,
+  Map: Map,
   Memory: Memory,
   Minio: Minio,
   Moon: Moon,
@@ -524,6 +562,7 @@ export const iconRegistry: Record<IconName, Component> = {
   Revoke: Revoke,
   Roadmap: Roadmap,
   Robot: Robot,
+  RobotSolid: RobotSolid,
   Rocket: Rocket,
   Role: Role,
   Roles: Roles,

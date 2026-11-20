@@ -27,7 +27,7 @@ import FormFieldExample from "./examples/FormField";
 import formFieldCode from "./examples/FormField.tsx?raw";
 
 export const DatePickerPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="DatePicker"
       description="The date field. A text input that parses formatted dates, paired with a real Panel calendar: single and range selection, month and year views, constraints, keyboard navigation and the shared size, tone and variant scales."

@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import { useKitT } from "../i18n";
 import Spinner from "./Spinner";
 import {
   DEFAULT_GLOW_INTENSITY,
   TRUE_COLORS,
+  getFieldMinHeightClass,
   getFieldSizeTokens,
   getFieldToneTokens,
   getGlowTokens,
@@ -111,6 +113,11 @@ export interface SearchBarProps {
    * disabling it would swallow keystrokes and fight the debounce.
    */
   loading?: boolean;
+  /**
+   * Reserve N text lines of bar height — the standalone counterpart of a
+   * `FieldRow`'s shared control band.
+   */
+  lines?: 1 | 2;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -133,6 +140,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   gradientTo,
   glowIntensity = DEFAULT_GLOW_INTENSITY,
   loading = false,
+  lines,
 }) => {
   // Not a parameter default: `explicitTone` has to be able to tell a
   // caller who chose blue from one who said nothing.
@@ -265,6 +273,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   ) : null;
 
   const sizeToken = getFieldSizeTokens(size);
+  // In a `FieldRow` the control band owns the height; `lines` reserves a
+  // floor when there is no row doing the alignment.
+  const { inRow } = useFieldRow();
+  const linesMinHeight = lines ? getFieldMinHeightClass(size, lines) : "";
   const variantTokens = getInputVariantTokens(variant, color, "auto", {
     explicitTone: colorProp,
   });
@@ -284,6 +296,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         // A ring around a borderless underline reads as a stray box.
         variant !== "underline" && tokens.focusRing,
         disabled && "opacity-60",
+        inRow && "h-full",
+        linesMinHeight,
         variant === "gradient" ? undefined : className,
       )}
       aria-busy={loading || undefined}

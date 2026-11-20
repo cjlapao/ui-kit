@@ -1,15 +1,18 @@
 import { getSurfaceAccentColor } from "../theme/Theme";
 import type { SurfaceTone } from "../theme/Theme";
 import { useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import classNames from "classnames";
 import Button, { type ButtonVariant } from "./Button";
 import EmptyState from "./EmptyState";
+import Loader from "./Loader";
 import MultiToggle from "./MultiToggle";
 import Panel, { SkeletonBar } from "./Panel";
 import Pill from "./Pill";
 import ScrollArea from "./ScrollArea";
 import Spinner from "./Spinner";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useKitT } from "../i18n";
 import {
   getTrueColorDotClass,
   SURFACE_TO_BUTTON_VARIANT,
@@ -39,10 +42,42 @@ export interface ActivityFeedItem {
   /** Entries this one aggregates — rendered as a count badge. */
   count?: number;
   /**
-   * Makes the row clickable — pointer cursor and a hover wash, the same
-   * treatment the Table gives its rows.
+   * Makes the row clickable. The row is a Panel, and this becomes its card
+   * action: pointer cursor, toned hover wash, focus ring, `role="button"`,
+   * tabIndex and Enter/Space — the Panel API, not copied row classes.
    */
   onClick?: () => void;
+  /**
+   * Marks the row as the current one. The row's Panel takes the Panel API's
+   * `active`: a 2px inset rim in the row's hue plus a light tone-tinted
+   * fill, layered under the hover wash rather than replacing it.
+   */
+  active?: boolean;
+  /**
+   * Asks for the reader's attention. The row's Panel takes the Panel API's
+   * `pulse`: a glow swelling inward from the row's own rim in the same hue
+   * the selection rim would wear, following the corner radius and spilling
+   * into no layout.
+   */
+  attention?: boolean;
+  /**
+   * Overrides the hue that attention wears — the Panel's own override,
+   * handed to the row Panel's `borderColor`: `borderColor ?? tone` with the
+   * kit's blue as floor, and the selection rim shares the hue, so an active
+   * and pulsing row always agrees. Unset follows the row's tone. On bordered
+   * row variants the hairline follows the override too, as it does on any
+   * Panel given a `borderColor`.
+   */
+  attentionTone?: TrueColor;
+  /**
+   * Replaces the row's entire content. Set and the dot, actor, title,
+   * description, code and timestamp all stop being drawn — the node you
+   * give is rendered inside the row instead, for complex UI the fixed
+   * layout can't express. The row itself stays the kit's: the same Panel,
+   * so the same `xs` inset, dividers and — with `onClick` — hover, focus
+   * and click behaviour. `undefined` or `null` draws the default row.
+   */
+  body?: ReactNode;
 }
 
 /** A feed filter; the value `"all"` always matches. */
@@ -50,6 +85,13 @@ export interface ActivityFeedFilter {
   label: string;
   value: string;
 }
+
+/**
+ * The three loading styles a feed can show, matching Table and Panel.
+ * `"spinner"` and `"progress"` draw a Loader overlay pinned to the feed
+ * body; `"skeleton"` replaces the body with pulsing placeholders.
+ */
+export type ActivityFeedLoaderType = "spinner" | "progress" | "skeleton";
 
 export interface ActivityFeedProps
   extends Omit<React.HTMLAttributes<HTMLElement>, "title" | "color"> {
@@ -126,10 +168,31 @@ export interface ActivityFeedProps
   controlsTone?: TrueColor;
   /**
    * Draws the feed's own shape in placeholder ink while the events are in
-   * flight — same row rhythm, nothing jumps when they land.
+   * flight — same row rhythm, nothing jumps when they land. The style is
+   * `loaderType`'s call.
    * @default false
    */
   loading?: boolean;
+  /**
+   * Style of the loading indicator, matching Table and Panel:
+   * - `"spinner"` / `"progress"` — a Loader overlay pinned to the feed
+   *   body: the rows (or the empty state) stay beneath it while the
+   *   header, tag and filters hold their places, so nothing jumps when
+   *   the events land.
+   * - `"skeleton"` — the body is replaced by pulsing placeholders shaped
+   *   like the feed's own rows.
+   * @default "skeleton"
+   */
+  loaderType?: ActivityFeedLoaderType;
+  /** The bar fill for `loaderType="progress"`, 0–100. */
+  loaderProgress?: number;
+  /** The label the spinner/progress overlay publishes. */
+  loadingMessage?: string;
+  /**
+   * Placeholder rows drawn by `loaderType="skeleton"`. Unset follows the
+   * pending page — `min(max(items.length, 3), 6)`.
+   */
+  skeletonRows?: number;
   /** @default "Load more" */
   loadMoreLabel?: string;
   /** Shown in the header when the caller knows the true total. */
@@ -149,6 +212,20 @@ export interface ActivityFeedProps
   /** @default "md" */
   padding?: SurfacePadding;
   corner?: SurfaceCorner;
+  /**
+   * The surface every template row's Panel wears. @default "none"
+   */
+  rowVariant?: SurfaceVariant;
+  /**
+   * The tone every template row's Panel wears. Unset follows the feed's
+   * own `tone`, so rows wear the card's hue (and its toned hover wash).
+   */
+  rowTone?: SurfaceTone;
+  /**
+   * The corner every template row's Panel wears.
+   * @default "rounded" — the corner scale's xs step
+   */
+  rowCorner?: SurfaceCorner;
 }
 
 /**
@@ -178,6 +255,10 @@ export const ActivityFeed = ({
   onError,
   controlsTone,
   loading = false,
+  loaderType = "skeleton",
+  loaderProgress,
+  loadingMessage,
+  skeletonRows,
   loadMoreLabel = "Load more",
   totalCount,
   maxHeight,
@@ -185,9 +266,13 @@ export const ActivityFeed = ({
   tone: surfaceTone = "none",
   padding = "md",
   corner,
+  rowVariant = "none",
+  rowTone,
+  rowCorner = "rounded",
   className = "",
   ...rest
 }: ActivityFeedProps) => {
+  const t = useKitT();
   const tone = getSurfaceAccentColor(surfaceTone);
   // The controls' accent, once. Unset inherits each control's own default —
   // `undefined` on a neutral card, so Button and MultiToggle keep their blue,
@@ -272,67 +357,94 @@ export const ActivityFeed = ({
     </>
   ) : null;
 
-  // The row's content, shared by the plain and clickable branches — the `li`
-  // itself is the only thing that differs.
-  const rowBody = (item: ActivityFeedItem) => (
-    <>
-      <span
-        className={classNames(
-          getTrueColorDotClass(item.tone ?? (tone === "neutral" ? "neutral" : tone)),
-          "mt-1.5 size-2 shrink-0 rounded-full",
-        )}
-        aria-hidden="true"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="min-w-0 truncate text-sm font-medium">
-            {item.actor && (
-              <span className="font-semibold">{item.actor} </span>
+  // The row's content, dropped into the template row's Panel. An item
+  // `body` replaces the whole content; the Panel stays, so custom rows keep
+  // the feed's row grammar — and its hover, focus and click behaviour.
+  const rowBody = (item: ActivityFeedItem) =>
+    item.body != null ? (
+      item.body
+    ) : (
+      <>
+        <span
+          className={classNames(
+            getTrueColorDotClass(item.tone ?? (tone === "neutral" ? "neutral" : tone)),
+            "mt-1.5 size-2 shrink-0 rounded-full",
+          )}
+          aria-hidden="true"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="min-w-0 truncate text-sm font-medium">
+              {item.actor && (
+                <span className="font-semibold">{item.actor} </span>
+              )}
+              {item.title}
+            </span>
+            {item.count !== undefined && item.count > 1 && (
+              <Pill size="sm" tone="neutral">
+                ×{item.count}
+              </Pill>
             )}
-            {item.title}
-          </span>
-          {item.count !== undefined && item.count > 1 && (
-            <Pill size="sm" tone="neutral">
-              ×{item.count}
-            </Pill>
+          </div>
+          {item.description && (
+            <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+              {item.description}
+            </p>
+          )}
+          {item.code && (
+            <code className="mt-1 inline-block rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] tracking-tighter text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+              {item.code}
+            </code>
           )}
         </div>
-        {item.description && (
-          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-            {item.description}
-          </p>
-        )}
-        {item.code && (
-          <code className="mt-1 inline-block rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] tracking-tighter text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-            {item.code}
-          </code>
-        )}
-      </div>
-      <time className="shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
-        {item.timestamp}
-      </time>
-    </>
-  );
+        <time className="shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
+          {item.timestamp}
+        </time>
+      </>
+    );
 
   // The body is built before the layout so the three states — rows, skeleton
   // and empty — share one scroller when `maxHeight` caps the card. Swapping
   // states never resizes the card or drops the scroll area around them, and
   // the Load-more button stays outside, pinned under the card: you scroll the
   // feed, not the affordance.
-  const body = loading ? (
+  // Only the skeleton mode replaces content; spinner/progress keep the real
+  // rows and controls in place beneath the Loader overlay, so the card's
+  // shape holds from the first frame to the last.
+  const showSkeleton = loading && loaderType === "skeleton";
+  // Placeholder count: the caller's say-so, or a read on the pending page.
+  const skeletonRowCount = Math.max(
+    1,
+    skeletonRows ?? Math.min(Math.max(items.length, 3), 6),
+  );
+  const body = showSkeleton ? (
+    // A placeholder shaped like the feed itself: dot, title bar on the
+    // Table's width ladder, a description line on alternate rows, a code
+    // chip on every third, and the time bar pinned right — skim it and
+    // you'd read a real feed half-written.
     <div
       className="flex flex-col divide-y divide-neutral-100 animate-pulse motion-reduce:animate-none dark:divide-neutral-800"
       aria-hidden="true"
     >
-      {Array.from({ length: Math.min(Math.max(items.length, 3), 6) }).map(
-        (_, index) => (
-          <div key={index} className="flex items-center gap-3 py-3 first:pt-1 last:pb-0">
-            <SkeletonBar className="size-2 shrink-0 rounded-full" height="h-2" />
-            <SkeletonBar className="h-3 flex-1" width={`${74 - index * 8}%`} />
-            <SkeletonBar className="h-3 w-10 shrink-0" />
+      {Array.from({ length: skeletonRowCount }).map((_, index) => (
+        <div key={index} className="flex items-start gap-3 px-2 py-3 first:pt-1 last:pb-0">
+          <SkeletonBar className="mt-1.5 size-2 shrink-0 rounded-full" height="h-2" />
+          <div className="min-w-0 flex-1">
+            <SkeletonBar width={`${[100, 83, 80, 75][index % 4]}%`} />
+            {index % 2 === 0 && (
+              <SkeletonBar
+                className="mt-1.5"
+                height="h-2"
+                width={`${[66, 74, 58, 70][index % 4]}%`}
+              />
+            )}
+            {index % 3 === 2 && (
+              <SkeletonBar className="mt-2 w-12" />
+            )}
           </div>
-        ),
-      )}
+          <SkeletonBar className="mt-0.5 h-3 w-10 shrink-0" />
+        </div>
+      ))}
     </div>
   ) : visible.length === 0 ? (
     <EmptyState
@@ -341,43 +453,44 @@ export const ActivityFeed = ({
       subtitle="No events match this filter yet."
     />
   ) : (
-    <ol className="divide-y divide-neutral-100 dark:divide-neutral-800">
-      {visible.map((item) =>
-        item.onClick ? (
-          // A clickable row is a control: like `StatCard`'s clickable body it
-          // carries the button semantics and the Enter/Space keys. The role
-          // is spelled literally on this branch — a computed attribute reads
-          // as an unknown `li` to the a11y resolver, and to tooling generally.
-          // The rule bans listitem→button outright; here the row *is* the
-          // affordance, the same stance `StatCard` takes for its whole-card
-          // click, and the `ol` still announces the count of events.
-          <li
-            key={item.id}
-            /* eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role */
-            role="button"
-            tabIndex={0}
-            onClick={item.onClick}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                item.onClick?.();
-              }
-            }}
-            className={classNames(
-              "flex items-start gap-3 px-2 py-3 first:pt-1 last:pb-0",
-              // The Table's clickable-row grammar: cursor plus a soft wash,
-              // with the scroller's own focus ring for the keyboard path.
-              "cursor-pointer transition-colors duration-150 ease-out hover:bg-neutral-50 dark:hover:bg-neutral-800/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400",
-            )}
-          >
-            {rowBody(item)}
-          </li>
-        ) : (
-          <li key={item.id} className="flex items-start gap-3 px-2 py-3 first:pt-1 last:pb-0">
-            {rowBody(item)}
-          </li>
-        ),
+    <ol
+      className={classNames(
+        // On the shared `none` surface the list's own dividers draw the
+        // lines between rows. Give the rows a surface of their own and
+        // those lines get in the way — they'd cut straight through each
+        // row's Panel — so they make way for a little vertical air
+        // instead, matching the `xs` inset the rows carry.
+        rowVariant === "none"
+          ? "divide-y divide-neutral-100 dark:divide-neutral-800"
+          : "space-y-2",
       )}
+    >
+      {visible.map((item) => (
+        // The template row is a Panel, not hand-rolled chrome: `rowVariant`
+        // (default `none`), `rowTone` (default: the component's own tone)
+        // and `rowCorner` (default `rounded`, the corner scale's xs step)
+        // on `xs` padding. Hover, focus and activation come from the Panel
+        // API rather than copied row classes — an `onClick` alone makes the
+        // row a guarded button (role, tabIndex, Enter/Space, the focus ring
+        // and the toned hover wash), and a click that belongs to a nested
+        // control — the link, a custom body's buttons — stays that
+        // control's, which the old hand-rolled role="button" li got wrong:
+        // it fired the row alongside.
+        <li key={item.id}>
+          <Panel
+            variant={rowVariant}
+            tone={rowTone ?? surfaceTone}
+            corner={rowCorner}
+            padding="xs"
+            onClick={item.onClick}
+            active={item.active}
+            pulse={item.attention}
+            borderColor={item.attentionTone}
+          >
+            <div className="flex items-start gap-3">{rowBody(item)}</div>
+          </Panel>
+        </li>
+      ))}
     </ol>
   );
 
@@ -436,20 +549,37 @@ export const ActivityFeed = ({
           />
         )}
 
-        {maxHeight === undefined ? (
-          body
-        ) : (
-          <ScrollArea
-            horizontal={false}
-            viewportRef={viewportRef}
-            style={{
-              maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
-            }}
-          >
-            {body}
-            {scrollTail}
-          </ScrollArea>
-        )}
+        {/* Spinner/progress modes pin the Loader to this wrapper, not the
+            ScrollArea below — inside a scroll container an `absolute
+            inset-0` overlay scrolls away with the content (Table's rule).
+            `skeleton` never reaches the overlay branch. */}
+        <div className="relative" aria-busy={loading || undefined}>
+          {loading && loaderType !== "skeleton" && (
+            <Loader
+              overlay
+              variant={loaderType === "progress" ? "progress" : "spinner"}
+              size="lg"
+              label={loadingMessage ?? t("kit.spinner.loading")}
+              progress={loaderProgress}
+              color={controlColor}
+              className="rounded-none"
+            />
+          )}
+          {maxHeight === undefined ? (
+            body
+          ) : (
+            <ScrollArea
+              horizontal={false}
+              viewportRef={viewportRef}
+              style={{
+                maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
+              }}
+            >
+              {body}
+              {scrollTail}
+            </ScrollArea>
+          )}
+        </div>
 
         {/* The button tail: explicit `"button"` mode, or an uncapped feed
             where scroll mode has no scroller to watch. */}

@@ -35,7 +35,7 @@ const NAMING_CODE = `// The chip names itself from the item; the artwork never d
 />`;
 
 export const AvatarGroupPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Avatar Group"
       description="Identities on display: a strip of avatar chips — photos, icons or initials discs, each in its own tone or the group's — condensed into an overlapping stack behind a +N chip when the count (or the container width) outgrows the row, and expanded by unfolding exactly like the colour swatches: the stacked chips spread apart, the rest pop in left to right, one layout clipped or whole."

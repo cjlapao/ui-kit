@@ -16,7 +16,7 @@ import Glass from "./examples/Glass";
 import glassCode from "./examples/Glass.tsx?raw";
 
 export const ModalPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Modal"
       description="A dialog that behaves like a window — draggable by its header, placeable in any corner, able to fill the screen — and that owns attention: focus is trapped, Escape and the backdrop close it, and focus returns to the trigger."

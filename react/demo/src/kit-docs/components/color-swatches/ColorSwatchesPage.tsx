@@ -12,7 +12,7 @@ import Selectable from "./examples/Selectable";
 import selectableCode from "./examples/Selectable.tsx?raw";
 
 export const ColorSwatchesPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Color Swatches"
       description="Colours on display: a strip of dots for the theme's tones, condensed into an overlapping stack behind a +N chip when the count (or the container width) outgrows the row, and expanded — height first, dots popping in left to right — into the full palette. Made selectable, the same strip is a tone picker: buttons with a ring on the chosen dot, which is how the playgrounds ask for a tone."

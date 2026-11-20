@@ -1508,10 +1508,15 @@ export const SideMenu = ({
     // padding and hover surface on its parent left a visible part of the tile
     // outside the link's hit target. Expanded rows still keep their state on
     // the wrapper because trailing actions and submenu controls share it.
+    // `gap-1` is the row end's own breathing room: the label, meta, badge and
+    // actions all sit inside `rowMain`, whose right edge is where the actions
+    // span and the submenu toggle begin. Without a gap the last chip touched
+    // the toggle's hover fill, so the pair read as one control — and the
+    // toggle's hit target looked like it had swallowed the badge.
     const rowClasses = `group relative flex items-center ${
       contentCollapsed
         ? ""
-        : `rounded-lg transition-all duration-150 ${indentClass(depth)} ${rowStateClasses}`
+        : `gap-1 rounded-lg transition-all duration-150 ${indentClass(depth)} ${rowStateClasses}`
     }`;
 
     // A row without a route is not a link: with children it *is* the
@@ -1605,10 +1610,12 @@ export const SideMenu = ({
             )}
         {isExpandOnly && !contentCollapsed && (
           // The row itself is the toggle: the chevron rides along as the
-          // indicator, not as a second button.
+          // indicator, not as a second button. `ml-1` keeps the row-end
+          // cluster off its padding, as the wrapper's gap does for a row that
+          // owns a separate toggle.
           <span
             aria-hidden="true"
-            className={`inline-flex shrink-0 items-center justify-center p-1.5 ${surface.muted}`}
+            className={`ml-1 inline-flex shrink-0 items-center justify-center p-1.5 ${surface.muted}`}
           >
             <CustomIcon
               icon="ChevronRight"
@@ -1625,14 +1632,15 @@ export const SideMenu = ({
       // Expanding is the click's whole point, so the mobile drawer and the
       // hover panel stay open — the children it reveals are what you
       // clicked for. `onItemSelect` is pre-navigation copy: no navigation,
-      // no call.
+      // no call. `text-left`: the UA centers a button's text and the flex-1
+      // label would inherit that — the row must sit like a link.
       <button
         type="button"
         onClick={() => toggleSubmenu(link.slug)}
         aria-expanded={showChildren}
         aria-busy={link.loading || undefined}
         title={contentCollapsed ? link.label : undefined}
-        className={rowClassName}
+        className={`${rowClassName} text-left`}
       >
         {rowInner}
       </button>
@@ -1703,8 +1711,13 @@ export const SideMenu = ({
           )}
         </div>
         {showChildren && (
+          // `mt-1` opens the seam under the parent row: `space-y-1` only
+          // separates siblings, so with a filled parent (route-active) and a
+          // filled first child (hover) the two rounded rectangles shared an
+          // edge and read as one tall block. The children now start on the
+          // same 4px rhythm that separates them from each other.
           <div
-            className="space-y-1"
+            className="mt-1 space-y-1"
             role="group"
             aria-label={t("kit.sidemenu.submenuAria", { label: link.label })}
           >

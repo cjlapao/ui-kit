@@ -15,6 +15,7 @@ import { ScrollArea } from "./ScrollArea";
 import Spinner from "./Spinner";
 import { useKitT } from "../i18n";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import {
   PANEL_TONE_FOR_FIELD,
   SURFACE_VARIANT_FOR_FIELD,
@@ -153,6 +154,11 @@ export interface ComboboxProps extends Omit<
   className?: string;
   /** Classes for the drop-down. */
   listClassName?: string;
+  /**
+   * Reserve N text lines of field height, forwarded to `Input` — the
+   * standalone counterpart of a `FieldRow`'s shared control band.
+   */
+  lines?: 1 | 2;
 }
 
 /**
@@ -191,6 +197,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       panelCorner = "auto",
       className,
       listClassName,
+      lines,
       id,
       onKeyDown,
       onFocus,
@@ -201,6 +208,10 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
   ) {
     const t = useKitT();
     const renderIcon = useIconRenderer();
+    // In a `FieldRow` this positioning wrapper must pass the control band's
+    // height down to the `Input` inside — `h-full` on the field box alone
+    // cannot resolve through a content-sized parent.
+    const { inRow } = useFieldRow();
     const generatedId = useId();
     const fieldId = id ?? `${generatedId}-combobox`;
     const listId = `${fieldId}-listbox`;
@@ -532,7 +543,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       : null;
 
     return (
-      <div ref={containerRef} className="relative w-full">
+      <div ref={containerRef} className={classNames("relative w-full", inRow && "h-full")}>
         <Input
           {...rest}
           ref={inputRef}
@@ -540,6 +551,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
           type="text"
           value={query}
           size={size}
+          lines={lines}
           tone={accent}
           variant={variant}
           validationStatus={status}

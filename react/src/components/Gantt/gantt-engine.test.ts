@@ -10,8 +10,17 @@ import {
   formatDuration,
   dateToX,
   xToDate,
+  pickBaseUnit,
+  startOfHour,
+  formatHour,
+  formatWeekday,
   MS_PER_DAY,
 } from "../../../../common/gantt/time";
+import {
+  GANTT_HOUR_PX_PER_DAY,
+  GANTT_MAX_ZOOM,
+  GANTT_ZOOM_PRESETS,
+} from "../../../../common/gantt/types";
 import {
   buildRows,
   applyRowReorder,
@@ -120,6 +129,82 @@ describe("time engine", () => {
     const r = computeViewRange([MON], [MON + 14 * MS_PER_DAY]);
     const scale = buildTimeScale(r.start, r.end, 48);
     expect(scale[scale.length - 1].id).toBe("day");
+  });
+
+  it("picks hour granularity past the hour-fine threshold", () => {
+    expect(pickBaseUnit(288)).toBe("hour");
+    expect(pickBaseUnit(GANTT_HOUR_PX_PER_DAY)).toBe("hour");
+    expect(pickBaseUnit(GANTT_HOUR_PX_PER_DAY - 1)).toBe("day");
+    expect(pickBaseUnit(96)).toBe("day");
+  });
+
+  it("builds whole-hour columns under a coarse day level at hour zoom", () => {
+    // A day-aligned range: 24 clean hour columns per day.
+    const d0 = startOfDay(MON);
+    const scale = buildTimeScale(d0, d0 + 2 * MS_PER_DAY, 288);
+    expect(scale).toHaveLength(2);
+    const [coarse, fine] = scale;
+    expect(coarse.id).toBe("day");
+    expect(fine.id).toBe("hour");
+    expect(fine.columns).toHaveLength(48);
+    // Every hour column is exactly one hour wide at 288 px/day (12 px/hour).
+    for (const c of fine.columns) expect(c.width).toBeCloseTo(288 / 24, 6);
+    // Labels are 24-hour numbers starting at midnight; midnight columns carry
+    // the day-boundary emphasis.
+    expect(fine.columns[0].label).toBe(formatHour(d0));
+    expect(fine.columns[0].major).toBe(true);
+    expect(fine.columns[24].major).toBe(true);
+    expect(fine.columns[1].major).toBeUndefined();
+    // Coarse: one column per day, day number + weekday sub-label.
+    expect(coarse.columns).toHaveLength(2);
+    expect(coarse.columns[0].subLabel).toBe(formatWeekday(d0));
+  });
+
+  it("merges hour labels into readable groups sized by zoom", () => {
+    const d0 = startOfDay(MON);
+    const hourLevel = (pxPerDay: number) =>
+      buildTimeScale(d0, d0 + MS_PER_DAY, pxPerDay).find((l) => l.id === "hour")!;
+    // 8px hours → every 3h; 12px → every 2h; ≥20px → every hour again.
+    const wide = hourLevel(GANTT_HOUR_PX_PER_DAY);
+    const preset = hourLevel(288);
+    const deep = hourLevel(480);
+    expect(wide.columns.filter((c) => c.labelSpan != null)).toHaveLength(8);
+    expect(preset.columns.filter((c) => c.labelSpan != null)).toHaveLength(12);
+    expect(deep.columns.filter((c) => c.labelSpan != null)).toHaveLength(24);
+    // Labeled columns carry the step; the rest carry nothing (borders only).
+    expect(preset.columns[0].labelSpan).toBe(2); // 00:00
+    expect(preset.columns[1].labelSpan).toBeUndefined(); // 01:00
+    expect(preset.columns[2].labelSpan).toBe(2); // 02:00
+    expect(wide.columns[0].labelSpan).toBe(3); // 00:00
+    expect(wide.columns[3].labelSpan).toBe(3); // 03:00
+    expect(wide.columns[1].labelSpan).toBeUndefined();
+    expect(deep.columns.every((c) => c.labelSpan === 1)).toBe(true);
+    // Midnight always carries a label — the step always divides 24.
+    expect(preset.columns[0].labelSpan).toBeDefined();
+    // Only the fine hour level merges; the coarse day level stays static.
+    const scale = buildTimeScale(d0, d0 + MS_PER_DAY, 288);
+    const day = scale.find((l) => l.id === "day")!;
+    expect(day.columns.every((c) => c.labelSpan === undefined)).toBe(true);
+  });
+
+  it("auto-refines day/none snapping to the hour when hour-fine", () => {
+    const t = MON + 15 * 3_600_000 + 30 * 60_000; // 15:30 local
+    // Classic semantics without the zoom argument.
+    expect(snapDate(t, "day")).toBe(startOfDay(t));
+    expect(snapDate(t, "none")).toBe(t);
+    // Past the threshold the grid is hourly, so both refine to the hour.
+    expect(snapDate(t, "day", 288)).toBe(startOfHour(t));
+    expect(snapDate(t, "none", 288)).toBe(startOfHour(t));
+    // Below it, nothing changes.
+    expect(snapDate(t, "day", 96)).toBe(startOfDay(t));
+    expect(snapDate(t, "none", 96)).toBe(t);
+  });
+
+  it("exposes an Hour preset and an hour-capable zoom range", () => {
+    expect(GANTT_ZOOM_PRESETS[0]).toEqual({ label: "Hour", value: 288 });
+    expect(GANTT_ZOOM_PRESETS).toHaveLength(5);
+    expect(GANTT_MAX_ZOOM).toBe(576);
+    expect(GANTT_HOUR_PX_PER_DAY).toBe(192);
   });
 
   it("formats durations compactly", () => {
@@ -422,6 +507,21 @@ describe("drag / interaction math", () => {
     const e = toMs("2026-01-02T00:00:00Z");
     const r = applyDragDates({ kind: "resize-start", originStart: s, originEnd: e }, 400, 16, "none");
     expect(r.end - r.start).toBe(3_600_000); // one-hour minimum
+  });
+
+  it("refines drags to the hour past the hour-fine zoom", () => {
+    const s = new Date(2026, 0, 1, 9, 15).getTime(); // 09:15 local
+    const e = s + 2 * MS_PER_DAY;
+    // 12px @ 288px/day = 1h → 10:15 → snapped to 10:00 with snap=day.
+    const moved = applyDragDates({ kind: "move", originStart: s, originEnd: e }, 12, 288, "day");
+    expect(moved.start).toBe(new Date(2026, 0, 1, 10, 0).getTime());
+    expect(moved.end - moved.start).toBe(2 * MS_PER_DAY);
+    // snap=none clamps to the hour too, once the grid is hourly.
+    const free = applyDragDates({ kind: "move", originStart: s, originEnd: e }, 12, 288, "none");
+    expect(free.start).toBe(new Date(2026, 0, 1, 10, 0).getTime());
+    // Below the threshold, snap=none still moves freely.
+    const below = applyDragDates({ kind: "move", originStart: s, originEnd: e }, 12, 96, "none");
+    expect(below.start).toBe(s + (12 / 96) * MS_PER_DAY);
   });
 
   it("commits edits as ISO dates and short-circuits no-ops", () => {

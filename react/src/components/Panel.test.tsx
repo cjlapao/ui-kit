@@ -830,3 +830,245 @@ describe("Panel — hover, pressed and rim", () => {
     expect(both).toContain("hover:shadow-xl");
   });
 });
+
+describe("Panel — active state", () => {
+  /**
+   * `active` is sustained selection, not the pointer: a 2px inset outline rim
+   * in the active hue plus a light tone-tinted fill on the variant's own fill
+   * scale. The rim is an outline — never a second `border`/`ring` — so it
+   * cannot fight the variant's resting width classes for one property, and it
+   * paints inside the edge instead of being clipped by `overflow-hidden`.
+   *
+   * Any fill that carries alpha arrives here already rewritten into the
+   * `--ui-surface-color` / `--ui-surface-alpha` pair (see
+   * `getSurfaceTransparencyClasses`), so the assertions name the hue the fill
+   * paints in that spelling, and the plain-utility spelling for the variants
+   * that keep their alpha.
+   */
+  const classesOf = (ui: ReactElement) =>
+    panelOf(render(ui).container).className;
+  const surfaceColourOf = (cls: string, mode: "light" | "dark") => {
+    for (const token of cls.split(/\s+/)) {
+      const isDark = token.startsWith("dark:");
+      if (mode === "dark" ? !isDark : isDark) continue;
+      const match = (isDark ? token.slice(5) : token).match(
+        /^\[--ui-surface-color:var\(--color-([a-z]+-\d+|white|neutral-\d+)\)\]$/,
+      );
+      if (match) return match[1];
+    }
+    return undefined;
+  };
+
+  it("is off by default: no rim, no fill, no data-active", () => {
+    const cls = classesOf(<Panel>Body</Panel>);
+    expect(cls).not.toMatch(/(?:^|\s)outline-2(?:\s|$)/);
+    expect(
+      panelOf(render(<Panel>Body</Panel>).container),
+    ).not.toHaveAttribute("data-active");
+  });
+
+  it("draws the inset rim and the tone fill at a tone", () => {
+    const { container } = render(
+      <Panel variant="elevated" tone="cyan" active>
+        Body
+      </Panel>,
+    );
+    const cls = panelOf(container).className;
+    expect(cls).toMatch(/(?:^|\s)outline-2(?:\s|$)/);
+    expect(cls).toMatch(/(?:^|\s)-outline-offset-2(?:\s|$)/);
+    expect(cls).toContain("outline-cyan-500");
+    expect(cls).toContain("dark:outline-cyan-400");
+    // The elevated fill slot — `subtleBg` — precomposed into the surface pair.
+    expect(surfaceColourOf(cls, "light")).toBe("cyan-50");
+    expect(surfaceColourOf(cls, "dark")).toBe("cyan-500");
+    // ...and the elevated shadow survives the fill swap.
+    expect(cls).toContain("shadow-xl");
+    expect(panelOf(container)).toHaveAttribute("data-active", "true");
+  });
+
+  it("falls to the kit blue when the card carries no hue at all", () => {
+    const cls = classesOf(<Panel active>Body</Panel>);
+    expect(cls).toContain("outline-blue-500");
+    expect(cls).toContain("dark:outline-blue-400");
+    expect(surfaceColourOf(cls, "light")).toBe("blue-50");
+  });
+
+  it("wears the borderColor hue over the tone hue", () => {
+    const cls = classesOf(
+      <Panel tone="cyan" borderColor="rose" active>
+        Body
+      </Panel>,
+    );
+    expect(cls).toContain("outline-rose-500");
+    expect(cls).not.toContain("outline-cyan-500");
+    expect(surfaceColourOf(cls, "light")).toBe("rose-50");
+  });
+
+  it("fills on each variant's own scale, not one shared wash", () => {
+    // tonal deepens on the tonal step
+    const tonal = classesOf(
+      <Panel variant="tonal" tone="cyan" active>
+        Body
+      </Panel>,
+    );
+    expect(surfaceColourOf(tonal, "light")).toBe("cyan-200");
+    expect(tonal).toContain("outline-cyan-500");
+
+    // glass stays glass — high transparency keeps the plain alpha utilities
+    const glass = classesOf(
+      <Panel variant="glass" tone="cyan" active>
+        Body
+      </Panel>,
+    );
+    expect(glass).toContain("bg-cyan-50/50");
+    expect(glass).toContain("dark:bg-cyan-500/15");
+
+    // liquid-glass keeps its thinner liquid fill
+    const liquid = classesOf(
+      <Panel variant="liquid-glass" tone="cyan" active>
+        Body
+      </Panel>,
+    );
+    expect(liquid).toContain("bg-cyan-50/30");
+    expect(liquid).toContain("dark:bg-cyan-500/10");
+
+    // outlined swaps the white fill but keeps the hairline width
+    const outlined = classesOf(
+      <Panel variant="outlined" tone="cyan" active>
+        Body
+      </Panel>,
+    );
+    expect(outlined).toMatch(/(?:^|\s)border(?:\s|$)/);
+    expect(outlined).not.toContain("bg-white/90");
+    expect(surfaceColourOf(outlined, "light")).toBe("cyan-50");
+
+    // subtle keeps its plain subtle step
+    const subtle = classesOf(
+      <Panel variant="subtle" tone="cyan" active>
+        Body
+      </Panel>,
+    );
+    expect(subtle).toContain("bg-cyan-50/80");
+    expect(subtle).toContain("dark:bg-cyan-500/10");
+  });
+
+  it("lets an explicit backgroundColor beat the active fill; the rim still ignites", () => {
+    const cls = classesOf(
+      <Panel tone="cyan" active backgroundColor="rose">
+        Body
+      </Panel>,
+    );
+    // Caller's paint wins — `elevated` maps backgroundColor onto the tonal step.
+    expect(surfaceColourOf(cls, "light")).toBe("rose-200");
+    expect(cls).not.toContain("[--ui-surface-color:var(--color-cyan-50)]");
+    // Selection is still legible.
+    expect(cls).toContain("outline-cyan-500");
+  });
+
+  it("layers under the hover wash and the pressed step instead of blocking them", () => {
+    const cls = classesOf(
+      <Panel tone="cyan" active onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    expect(cls).toMatch(/(?:^|\s)outline-2(?:\s|$)/);
+    // The pointer states still arrive, in either spelling.
+    expect(cls).toMatch(
+      /hover:(?:bg-cyan-|\[--ui-surface-color:var\(--color-cyan-)/,
+    );
+    expect(cls).toMatch(
+      /active:(?:bg-cyan-|\[--ui-surface-color:var\(--color-cyan-)/,
+    );
+  });
+
+  it("stays legible under the disabled veil", () => {
+    const { container } = render(
+      <Panel tone="cyan" active disabled onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    const panel = panelOf(container);
+    expect(panel.className).toContain("outline-cyan-500");
+    expect(panel.className).toMatch(/(?:^|\s)outline-2(?:\s|$)/);
+    expect(panel).toHaveAttribute("data-active", "true");
+  });
+});
+
+describe("Panel — attention pulse", () => {
+  /**
+   * The Pill's attention call at container scale: an inward box-shadow swell
+   * from the section's own rim (the `---- Panel attention pulse ----` rules
+   * in styles.css; `styles.contract.test.ts` guards the hook's rule). The
+   * hue rides inline `--panel-glow`/`--panel-glow-dark` custom properties so
+   * the keyframes stay colour-agnostic and the safelist untouched, and the
+   * glow touches neither background nor outline properties — the hover wash,
+   * the pressed step and the selection rim all still paint beside it.
+   */
+  const glowOf = (ui: ReactElement) => {
+    const panel = panelOf(render(ui).container);
+    return {
+      cls: panel.className,
+      glow: panel.style.getPropertyValue("--panel-glow"),
+      glowDark: panel.style.getPropertyValue("--panel-glow-dark"),
+    };
+  };
+
+  it("is off by default", () => {
+    const { cls, glow, glowDark } = glowOf(<Panel>Body</Panel>);
+    expect(cls).not.toContain("panel-pulse");
+    expect(glow).toBe("");
+    expect(glowDark).toBe("");
+  });
+
+  it("swells inward in the accent hue", () => {
+    const { cls, glow, glowDark } = glowOf(<Panel tone="cyan" pulse>Body</Panel>);
+    expect(cls).toContain("panel-pulse");
+    // The hue travels as a custom property, not a class shape — the
+    // stylesheet stays colour-agnostic and the safelist stays untouched.
+    expect(glow).toBe("var(--color-cyan-500)");
+    expect(glowDark).toBe("var(--color-cyan-300)");
+  });
+
+  it("follows the accent rule: borderColor, then tone, then the blue floor", () => {
+    expect(glowOf(<Panel pulse>Body</Panel>).glow).toBe("var(--color-blue-500)");
+    expect(
+      glowOf(
+        <Panel tone="cyan" borderColor="rose" pulse>
+          Body
+        </Panel>,
+      ).glow,
+    ).toBe("var(--color-rose-500)");
+  });
+
+  it("a disabled card does not call attention", () => {
+    // An attention call on a card the app has dimmed is a contradiction —
+    // unlike the selection rim, which stays legible under the veil.
+    const { cls, glow } = glowOf(<Panel pulse disabled>Body</Panel>);
+    expect(cls).not.toContain("panel-pulse");
+    expect(glow).toBe("");
+  });
+
+  it("coexists with the selection rim — same hue, different paint layer", () => {
+    const { cls, glow } = glowOf(<Panel tone="cyan" active pulse>Body</Panel>);
+    expect(cls).toMatch(/(?:^|\s)outline-2(?:\s|$)/);
+    expect(cls).toContain("panel-pulse");
+    expect(glow).toBe("var(--color-cyan-500)");
+  });
+
+  it("pulses on glass — the glow is a box-shadow, so translucent fills suit it", () => {
+    expect(
+      glowOf(<Panel variant="glass" pulse>Body</Panel>).cls,
+    ).toContain("panel-pulse");
+    expect(
+      glowOf(<Panel variant="liquid-glass" pulse>Body</Panel>).cls,
+    ).toContain("panel-pulse");
+  });
+
+  it("pulses on a clickable card too — the focus ring is intact", () => {
+    const { cls } = glowOf(<Panel pulse onClick={vi.fn()}>Body</Panel>);
+    expect(cls).toContain("panel-pulse");
+    // The keyframes re-composite the Tailwind shadow variables precisely so
+    // this inset ring keeps firing; its classes must survive the glow.
+    expect(cls).toContain("focus-visible:ring-2");
+  });
+});

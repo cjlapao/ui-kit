@@ -8,7 +8,7 @@ import tornadoCode from "./examples/NightingaleTornado.tsx?raw";
 import precipCode from "./examples/NightingalePrecipitation.tsx?raw";
 
 export const NightingaleChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Nightingale"
       description="A rose where the angles are equal and the radii carry the value: the smallest slice ends at the hub, the largest reaches the outer ring. A mode of the pie — set nightingale on Chart.Pie and every pie feature (colors, gaps, corner, center, tooltip) carries over."

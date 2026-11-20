@@ -18,9 +18,11 @@ import Workspace from "./examples/Workspace";
 import workspaceCode from "./examples/Workspace.tsx?raw";
 import CustomBody from "./examples/CustomBody";
 import customBodyCode from "./examples/CustomBody.tsx?raw";
+import InRow from "./examples/InRow";
+import inRowCode from "./examples/InRow.tsx?raw";
 
 export const PickerPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Picker"
       description="A searchable single- or multi-select over rich rows — icon, title, subtitle, description and pills. The list is portaled and flips above the trigger when there is no room below."
@@ -60,6 +62,14 @@ export const PickerPage: React.FC = () => (
         filename="Tones.tsx"
       >
         <Tones />
+      </ExampleCard>
+      <ExampleCard
+        title="In a row"
+        description="Where a Picker actually lives: a toolbar beside fields of its own height. The two-line trigger sets the FieldRow's control band and the combobox and the button fill it — no alignment props anywhere."
+        code={inRowCode}
+        filename="InRow.tsx"
+      >
+        <InRow />
       </ExampleCard>
     </section>
     <PropsTable

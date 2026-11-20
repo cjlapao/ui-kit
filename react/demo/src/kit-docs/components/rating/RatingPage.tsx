@@ -30,7 +30,7 @@ import Sample from "./examples/Sample";
 import sampleCode from "./examples/Sample.tsx?raw";
 
 export const RatingPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Rating"
       description="Star-based selection — typed or clicked, with half stars, hover preview, tones, sizes, vertical layout and custom icons."

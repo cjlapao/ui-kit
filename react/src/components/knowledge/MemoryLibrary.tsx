@@ -1,45 +1,99 @@
-import { useMemo } from "react";
-import Panel from "../Panel";
-import { filterMemories, MEMORY_KINDS, MEMORY_STATUSES } from "../../../../common/knowledge/model";
-import type { MemoryFilters, MemoryRecord } from "../../../../common/knowledge/model";
-import { MemoryCard } from "./MemoryCard";
-import { useKnowledgeCopy, useKnowledgeState } from "./shared";
+import { useMemo, useRef } from "react";
+import "./knowledge.css";
+import Panel, { SkeletonBar } from "../Panel";
+import ScrollArea from "../ScrollArea";
+import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
+import { filterMemories } from "../../../../common/knowledge/model";
+import { MemoryFilterBar } from "./MemoryFilterBar";
+import { MemoryGrid } from "./MemoryGrid";
+import { MemoryLoadMore, MemoryLimitNote, MemoryScrollTail } from "./MemoryPagingTail";
+import { MemoryToolbar } from "./MemoryToolbar";
+import { resolveControlChain, useKnowledgeCopy, useKnowledgeState } from "./shared";
 import type { MemoryLibraryProps } from "./types";
 
+/**
+ * The knowledge library: a searchable, filterable, paged collection of
+ * memories. Built from the standalone parts the kit exports individually —
+ * `MemoryToolbar`, `MemoryFilterBar`, `MemoryGrid` and the paging tail — so
+ * using a part on its own renders identically to the same region here.
+ *
+ * Selection, search and filters are controlled-or-uncontrolled like every
+ * other knowledge component: pass the value + `on…Change` to own the state,
+ * or the `default…` to seed internal state.
+ */
 export function MemoryLibrary({ memories, query: queryProp, defaultQuery = "", onQueryChange, filters: filtersProp,
   defaultFilters = {}, onFiltersChange, selectedId, defaultSelectedId = null, onSelectionChange,
   view: viewProp, defaultView = "cards", onViewChange, groupByTopic = true, highlightedIds = [], remote = false,
-  renderMemory, emptyState, onEdit, onPinChange, onArchive, labels, loading = false, disabled = false, className = "", ...surface }: MemoryLibraryProps) {
+  renderMemory, emptyState, maxHeight, hasMore = false, onLoadMore, loadMode = "scroll", rootMargin, minItems,
+  scrollResetKey, limit, onError, loadMoreLabel, showSearch = true, showFilterBar = true, size = "sm", controlsTone = "auto", searchTone = "auto",
+  searchVariant = "auto", viewTone = "auto", viewVariant = "auto", actions, labels, loading = false, loaderType = "skeleton", loaderMessage, disabled = false, className = "", ...surface }: MemoryLibraryProps) {
   const copy = useKnowledgeCopy(labels);
+  // Resolve the control chain once, on this card's own surface, and hand
+  // concrete values to the parts — exactly how the aggregator feeds its parts.
+  const chain = resolveControlChain({ tone: surface.tone, variant: surface.variant, controlsTone, searchTone, searchVariant, viewTone, viewVariant });
   const [query, setQuery] = useKnowledgeState(queryProp, defaultQuery, onQueryChange);
   const [filters, setFilters] = useKnowledgeState(filtersProp, defaultFilters, onFiltersChange);
   const [selection, select] = useKnowledgeState(selectedId, defaultSelectedId, onSelectionChange);
   const [view, setView] = useKnowledgeState(viewProp, defaultView, onViewChange);
   const visible = useMemo(() => remote ? [...memories] : filterMemories(memories, query, filters), [memories, query, filters, remote]);
-  const topics = useMemo(() => [...new Set(memories.flatMap(memory => memory.topic ? [memory.topic] : []))].sort(), [memories]);
-  const highlighted = useMemo(() => new Set(highlightedIds), [highlightedIds]);
-  const groups = useMemo(() => {
-    const result = new Map<string, MemoryRecord[]>();
-    for (const memory of visible) { const key = groupByTopic ? memory.topic ?? "" : ""; const group = result.get(key) ?? []; group.push(memory); result.set(key, group); }
-    return [...result];
-  }, [visible, groupByTopic]);
-  function changeFilter(key: keyof MemoryFilters, value: string) { setFilters({ ...filters, [key]: value || undefined }); }
-  return <Panel tone="none" variant="outlined" padding="none" loading={loading} disabled={disabled} {...surface} className={`kit-knowledge kit-memory-library ${className}`} aria-busy={loading}>
-    <div className="kit-knowledge-toolbar"><label className="kit-knowledge-search"><span>{copy("search")}</span><input type="search" value={query} disabled={disabled} onChange={event => setQuery(event.target.value)} placeholder={copy("search")} /></label>
-      <div className="kit-knowledge-view" role="group" aria-label={copy("library")}>
-        {(["cards", "list"] as const).map(mode => <button type="button" key={mode} disabled={disabled} aria-pressed={view === mode} onClick={() => setView(mode)}>{copy(mode)}</button>)}
-      </div>
+  // The presentation cap. `shown` is what the library draws and counts;
+  // once it reaches `limit` the paging tail stops even with more to load,
+  // and a quiet note says so instead of an affordance that does nothing.
+  const shown = useMemo(() => limit === undefined ? visible : visible.slice(0, Math.max(0, limit)), [visible, limit]);
+  const atLimit = limit !== undefined && visible.length >= limit;
+  // Infinite loading rides the kit's shared `useInfiniteScroll`, the same
+  // watch ActivityFeed runs: a sentinel at the results' end is observed
+  // inside the capped ScrollArea with a rootMargin lookahead, and the
+  // under-fill pass keeps fetching until the viewport is full. It only
+  // engages with a capped body — an uncapped library has no scroller to
+  // watch, and the Load-more button covers it.
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const infinite = loadMode === "scroll" && maxHeight !== undefined && !!onLoadMore && !atLimit;
+  const scroll = useInfiniteScroll({
+    rootRef: viewportRef,
+    sentinelRef,
+    hasMore: infinite && hasMore,
+    isLoading: loading,
+    onLoadMore: async () => { await onLoadMore?.(); },
+    itemCount: shown.length,
+    minItems,
+    rootMargin,
+    // Search, filters, view and a wholesale refetch all swap the dataset.
+    resetKey: `${query}|${filters.kind?.join(",") ?? ""}|${filters.status?.join(",") ?? ""}|${filters.topic?.join(",") ?? ""}|${view}|${scrollResetKey ?? ""}`,
+    onError,
+  });
+  const body = loading && loaderType === "skeleton" ? <div className="kit-memory-skeleton" role="status" aria-label={typeof loaderMessage === "string" ? loaderMessage : copy("loading")}>
+    <div className={`kit-memory-grid kit-memory-skeleton-grid animate-pulse motion-reduce:animate-none`} data-view={view} aria-hidden="true">
+      {Array.from({ length: view === "list" ? 4 : 6 }, (_, index) => <div className="kit-memory-skeleton-card" key={index}>
+        <SkeletonBar width="35%" height="h-2" /><SkeletonBar width="75%" height="h-4" /><SkeletonBar width="100%" /><SkeletonBar width="65%" />
+      </div>)}
     </div>
-    <fieldset className="kit-knowledge-filters" disabled={disabled}><legend className="sr-only">{copy("library")}</legend>
-      <label>{copy("kind")}<select value={filters.kind ?? ""} onChange={event => changeFilter("kind", event.target.value)}><option value="">{copy("all")}</option>{MEMORY_KINDS.map(kind => <option key={kind} value={kind}>{copy(`kinds.${kind}`)}</option>)}</select></label>
-      <label>{copy("status")}<select value={filters.status ?? ""} onChange={event => changeFilter("status", event.target.value)}><option value="">{copy("all")}</option>{MEMORY_STATUSES.map(status => <option key={status} value={status}>{copy(`statuses.${status}`)}</option>)}</select></label>
-      <label>{copy("topic")}<select value={filters.topic ?? ""} onChange={event => changeFilter("topic", event.target.value)}><option value="">{copy("all")}</option>{[...new Set([...topics, ...(filters.topic ? [filters.topic] : [])])].map(topic => <option key={topic}>{topic}</option>)}</select></label>
-      {(query || filters.kind || filters.status || filters.topic) && <button type="button" onClick={() => { setQuery(""); setFilters({}); }}>{copy("clear")}</button>}
-    </fieldset>
-    <div className="kit-knowledge-results" aria-live="polite">{loading ? copy("loading") : `${visible.length} / ${memories.length}`}</div>
-    {loading ? <p role="status" className="kit-knowledge-empty">{copy("loading")}</p> : visible.length === 0 ? <div className="kit-knowledge-empty">{emptyState ?? copy(memories.length ? "noResults" : "empty")}</div> : <div className="kit-memory-groups">{groups.map(([topic, items]) => <section key={topic}>
-      {groupByTopic && <h3 className="kit-memory-group-title">{topic || copy("ungrouped")}<span>{items.length}</span></h3>}
-      <div className="kit-memory-grid" data-view={view}>{items.map(memory => <div key={memory.id}>{renderMemory ? renderMemory(memory, { selected: selection === memory.id, highlighted: highlighted.has(memory.id), select: () => { if (!disabled) select(memory.id); } }) : <MemoryCard memory={memory} layout={view === "list" ? "compact" : "expanded"} selected={selection === memory.id} highlighted={highlighted.has(memory.id)} onSelect={disabled ? undefined : () => select(memory.id)} onEdit={disabled ? undefined : onEdit} onPinChange={disabled ? undefined : onPinChange} onArchive={disabled ? undefined : onArchive} labels={labels} />}</div>)}</div>
-    </section>)}</div>}
+  </div>
+    : visible.length === 0 ? <div className="kit-knowledge-empty">{emptyState ?? copy(memories.length ? "noResults" : "empty")}</div>
+    : <MemoryGrid records={shown} view={view} groupByTopic={groupByTopic} selectedId={selection} onSelect={record => select(record.id)} highlightedIds={highlightedIds} renderMemory={renderMemory} disabled={disabled || loading} labels={labels} actions={actions} cardTone={chain.cardTone} cardVariant={chain.cardVariant} />;
+  const limitNote = !loading && limit !== undefined && atLimit && visible.length > 0 ? <MemoryLimitNote limit={limit} labels={labels} /> : null;
+  return <Panel variant="elevated" padding="none" disabled={disabled} {...surface} tone={chain.cardTone} loading={loading && loaderType !== "skeleton"} loaderType={loaderType} loaderMessage={loaderType ?? copy("loading")} className={`kit-knowledge kit-memory-library ${className}`} aria-busy={loading}>
+    {/* The filter section owns the search: its built-in SearchBar is the
+        library's search field, showSearch or not — and showFilterBar drops
+        the whole section, letting the view row lead the panel. */}
+    {/* The bar loads with the body — same state, same loader type — so the
+        panel tells one story while results are in flight. */}
+    {showFilterBar && <MemoryFilterBar filters={filters} onFiltersChange={setFilters} memories={memories} query={query} onQueryChange={setQuery}
+      showSearch={showSearch} size={size} tone={chain.controlsTone} searchTone={chain.searchTone} variant={chain.searchVariant} cardTone={surface.tone} cardVariant={chain.cardVariant} loading={loading} loaderType={loaderType} loaderProgress={surface.loaderProgress} loaderMessage={typeof loaderMessage === "string" ? loaderMessage : undefined} disabled={disabled || loading} labels={labels} />}
+    {/* The results count shares the view row — it reads with the toggle it
+        describes, and the row stays one line tall. */}
+    <MemoryToolbar view={view} onViewChange={setView}
+      resultsLabel={loading ? copy("loading") : `${shown.length} / ${memories.length}`}
+      size={size} controlsTone={chain.controlsTone} viewTone={chain.viewTone} viewVariant={chain.viewVariant}
+      cardTone={surface.tone} cardVariant={chain.cardVariant} disabled={disabled || loading} labels={labels} />
+    {maxHeight === undefined ? <><div inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{limitNote}</>
+      : <ScrollArea horizontal={false} viewportRef={viewportRef} viewportClassName="overscroll-contain" style={{ maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight }}>
+        <div inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{infinite && !loading && <MemoryScrollTail sentinelRef={sentinelRef} error={scroll.error} isLoadingMore={scroll.isLoadingMore} onRetry={() => void scroll.loadMore()} tone={chain.controlsTone} labels={labels} />}{limitNote}
+      </ScrollArea>}
+    {/* The button tail: explicit `"button"` mode, or an uncapped library
+        where scroll mode has no scroller to watch. The limit note already
+        closes the tail, so no button competes with it. */}
+    {hasMore && onLoadMore && !loading && !infinite && !atLimit && <MemoryLoadMore onLoadMore={() => void onLoadMore()} label={loadMoreLabel} tone={chain.controlsTone} cardVariant={chain.cardVariant} disabled={disabled} labels={labels} />}
   </Panel>;
 }

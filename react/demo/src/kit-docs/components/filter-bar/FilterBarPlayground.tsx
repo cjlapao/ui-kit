@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FilterBar, ColorSwatches, type FilterBarFilter, type FilterBarValue, type ExpandableButtonSpring, type ControlSize, type SurfaceVariant, type SurfaceTone, type PanelPadding, type PanelCorner, type ButtonVariant, type ButtonWeight, type TrueColor, type BadgeVariant, type InputVariant, type GlassOpacity, type GlassVibrancy, type SurfaceTransparency } from "@cjlapao/ui-kit";
+import { FilterBar, ColorSwatches, type FilterBarFilter, type FilterBarLoaderType, type FilterBarValue, type ExpandableButtonSpring, type ControlSize, type SurfaceVariant, type SurfaceTone, type PanelPadding, type PanelCorner, type ButtonVariant, type ButtonWeight, type TrueColor, type BadgeVariant, type InputVariant, type GlassOpacity, type GlassVibrancy, type SurfaceTransparency } from "@cjlapao/ui-kit";
 import { PlaygroundPanel, SelectControl, ToggleRow, Control } from "../../shared/PlaygroundPanel";
 
 import { ControlAccordion } from "../../shared/ControlAccordion";
@@ -44,6 +44,9 @@ export function FilterBarPlayground() {
   const [spring, setSpring] = useState<ExpandableButtonSpring>("snappy");
   const [disabled, setDisabled] = useState(false);
   const [loading, setLoading] = useState(false);
+  // The whole-control loading state, distinct from `searchProps.loading`.
+  const [busy, setBusy] = useState(false);
+  const [barLoaderType, setBarLoaderType] = useState<FilterBarLoaderType>("skeleton");
   const [manual, setManual] = useState(false);
   const [showSearch, setShowSearch] = useState(true);
   const [showFilterLabel, setShowFilterLabel] = useState(true);
@@ -109,12 +112,16 @@ export function FilterBarPlayground() {
       { id: "state", title: "Behavior", controls: <>
       <ToggleRow label="Disabled" checked={disabled} onChange={setDisabled} />
       <ToggleRow label="Search loading" checked={loading} onChange={setLoading} />
+      <ToggleRow label="Bar loading" checked={busy} onChange={setBusy} />
+      <SelectControl label="Loader type" options={[{ value: "skeleton", label: "Skeleton (default)" }, { value: "spinner", label: "Spinner" }, { value: "progress", label: "Progress" }]} value={barLoaderType}
+        onChange={next => setBarLoaderType(next as FilterBarLoaderType)} />
       <ToggleRow label="Manual search (Enter)" checked={manual} onChange={setManual} />
       </> },
     ]} />
   </div>} preview={
     <div className="w-full space-y-3">
       <FilterBar searchProps={{ onSearch: setQuery, placeholder: "Search by device name", loading, autoSearch: !manual, variant: searchVariant }} filters={filters} value={value} onChange={setValue} filteredCount={results.length} totalCount={devices.length} itemLabel="devices" size={size} spring={spring} disabled={disabled}
+        loading={busy} loaderType={barLoaderType} loaderProgress={barLoaderType === "progress" ? 62 : undefined}
         variant={variant} tone={tone} corner={corner} padding={padding} transparency={transparency} glassOpacity={glassOpacity} vibrancy={vibrancy}
         buttonVariant={buttonVariant} secondaryButtonVariant={secondaryButtonVariant} applyButtonVariant={applyButtonVariant}
         searchButtonVariant={searchButtonVariant}

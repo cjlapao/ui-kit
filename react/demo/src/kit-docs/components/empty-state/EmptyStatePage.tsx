@@ -12,7 +12,7 @@ import GlassAndPlain from "./examples/GlassAndPlain";
 import glassAndPlainCode from "./examples/GlassAndPlain.tsx?raw";
 
 export const EmptyStatePage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Empty State"
       description="The placeholder shown when there is nothing to display. It renders a Panel, so it inherits every surface variant, tone, corner and padding — plus a dashed rule for a slot waiting to be filled."

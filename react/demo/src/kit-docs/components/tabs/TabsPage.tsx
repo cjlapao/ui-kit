@@ -23,7 +23,7 @@ import Glass from "./examples/Glass";
 import glassCode from "./examples/Glass.tsx?raw";
 
 export const TabsPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Tabs"
       description="Switch between panes with icons, descriptions, badges and contextual actions pinned to the active tab. Seven variants — including glass and liquid glass — plus size, tone, orientation and justify; tall panels scroll on the kit's own ScrollArea."

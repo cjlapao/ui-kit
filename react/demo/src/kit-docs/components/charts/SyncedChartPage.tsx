@@ -17,7 +17,7 @@ import SyncedScales from "./examples/SyncedScales";
  */
 
 export const SyncedChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Synced charts"
       description="Join several charts into one hover: wrap them in Chart.Group and mark each with the sync prop. Hovering any card drives crosshair + tooltip on the others at the same category — no shared pixels or scales required."

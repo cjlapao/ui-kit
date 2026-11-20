@@ -26,7 +26,7 @@ import Paged from "./examples/Paged";
 import pagedCode from "./examples/Paged.tsx?raw";
 
 export const StatCardPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Stat Card"
       description="A metric in a card — label, big value, optional trend pill, icon, optional progress, and a full-size surface underneath. Every Panel variant, tone and corner works; `gradient` paints the surface itself."

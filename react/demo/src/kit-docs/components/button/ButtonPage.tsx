@@ -23,7 +23,7 @@ import Active from "./examples/Active";
 import activeCode from "./examples/Active.tsx?raw";
 
 export const ButtonPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Button"
       description="The primary action control. Eight variants, five sizes, four label weights and every true color — plus loading, disabled and icon states, all on one component."

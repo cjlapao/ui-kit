@@ -18,7 +18,7 @@ const columns: TableColumn<Run>[] = [
 ];
 
 export default function DotStepperPage() {
-  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8">
     <PageHeader name="Dot Stepper" description="Workflow progress in a small row of dots. The active step stays visible as the window moves; overlapping dots indicate hidden steps on either side." />
     <DotStepperPlayground />
     <ExampleCard title="Inside a table row" description="The same five-step window at the beginning, middle and end of a workflow. Table rows stay compact; active details open in a portaled popover." filename="RunProgress.tsx" code={`<DotStepper

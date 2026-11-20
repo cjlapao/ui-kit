@@ -26,7 +26,7 @@ import Glass from "./examples/Glass";
 import glassCode from "./examples/Glass.tsx?raw";
 
 export const ExpandableButtonPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Expandable Button"
       description="A circle at rest that springs its label out on hover, focus or click — the whole IconButton palette (variant, size, tone, corner, loading, accent, icon tint, glass, tooltip) plus the elastic reveal itself: five triggers, four spring curves, glyph motion and press squish."

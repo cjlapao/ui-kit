@@ -12,7 +12,7 @@ import stocksCode from "./examples/TreemapStocks.tsx?raw";
 import teamsCode from "./examples/TreemapTeams.tsx?raw";
 
 export const TreemapChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Treemap"
       description="A self-contained grid of squarified tiles — area is proportional to value, no cartesian scales. Uniform or palette fills, stock-style corner tiles with delta pills, and grouped regions with uppercase headers."

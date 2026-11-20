@@ -16,9 +16,11 @@ import Tones from "./examples/Tones";
 import tonesCode from "./examples/Tones.tsx?raw";
 import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
+import InRow from "./examples/InRow";
+import inRowCode from "./examples/InRow.tsx?raw";
 
 export const SelectPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Select"
       description="The native dropdown, with the platform caret replaced by the kit&rsquo;s. Surface, size, corner and tone come from the shared scales, so it lines up with the Input and SearchBar beside it — glass blurs, gradient glows, and the popup itself is the browser&rsquo;s."
@@ -59,6 +61,14 @@ export const SelectPage: React.FC = () => (
         filename="States.tsx"
       >
         <States />
+      </ExampleCard>
+      <ExampleCard
+        title="In a row"
+        description="In a FieldRow beside a two-line Picker, the select grows to the shared control band — text and caret vertically centred, no lines prop needed."
+        code={inRowCode}
+        filename="InRow.tsx"
+      >
+        <InRow />
       </ExampleCard>
     </section>
     <PropsTable

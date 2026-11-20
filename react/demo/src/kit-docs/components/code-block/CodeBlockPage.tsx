@@ -12,7 +12,7 @@ import { MarkdownCode } from "./examples/MarkdownCode";
 import markdownCodeSource from "./examples/MarkdownCode.tsx?raw";
 
 export default function CodeBlockPage() {
-  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader name="Code Block" description="Theme-aware source display with syntax highlighting, exact-source copying, and optional basic editing." />
     <CodeBlockPlayground />
     <ExampleCard title="Source display" description="Read-only by default. Unknown languages fall back to plain text." code={displayCodeSource} filename="DisplayCode.tsx"><DisplayCode /></ExampleCard>

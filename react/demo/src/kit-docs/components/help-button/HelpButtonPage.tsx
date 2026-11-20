@@ -12,7 +12,7 @@ import Surfaces from "./examples/Surfaces";
 import surfacesCode from "./examples/Surfaces.tsx?raw";
 
 export const HelpButtonPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Help Button"
       description="An icon trigger that opens a floating panel of Markdown or node content — the full 21-colour tone set, every container surface, the shared size scale, auto-aware placement, and a loading skeleton shaped like the copy."

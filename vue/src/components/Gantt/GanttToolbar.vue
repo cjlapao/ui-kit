@@ -32,6 +32,7 @@ const t = useKitT();
 // Preset labels come from the kit catalog; the engine constant only
 // carries the machine English names.
 const ZOOM_LABELS: Record<string, string> = {
+  Hour: t("kit.gantt.zoomHour"),
   Day: t("kit.gantt.zoomDay"),
   Week: t("kit.gantt.zoomWeek"),
   Month: t("kit.gantt.zoomMonth"),

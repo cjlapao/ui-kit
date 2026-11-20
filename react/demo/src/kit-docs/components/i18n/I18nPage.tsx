@@ -26,7 +26,7 @@ import kitOverridesCode from "./examples/KitOverrides.tsx?raw";
  * byte-identical no-provider rendering.
  */
 export const I18nPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="I18n"
       description="A zero-dependency internationalization engine bundled with the kit: ICU-subset messages (interpolation, number/date, plural via Intl.PluralRules, select), built-in kit.* catalogs for en/fr/es/de/pt, locale detection + persistence, and byte-identical no-provider rendering. User catalogs layer on top and can override any kit.* key per locale."

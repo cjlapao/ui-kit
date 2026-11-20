@@ -16,7 +16,7 @@ import WithStatCard from "./examples/WithStatCard";
 import withStatCardCode from "./examples/WithStatCard.tsx?raw";
 
 export const ProgressSpinnerPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Progress Spinner"
       description="A circular process status indicator — an animated ring when the work has no measurable end, a filled arc with a centre readout when it does. One component, two ARIA modes, on the shared control scale."

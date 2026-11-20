@@ -25,7 +25,7 @@ export default function StackCarouselPage() {
   const [offset, setOffset] = useState(12);
   const [corner, setCorner] = useState<PanelProps["corner"]>("auto");
   const [padding, setPadding] = useState<PanelProps["padding"]>("sm");
-  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader name="Stack Carousel" description="One active card over a circular deck. Wheel, swipe, use the arrow keys, or click a peeking card to bring it forward. Up to three layers are visible; the stack follows the active card’s height." />
     <PlaygroundPanel controls={<div className="space-y-4">
       <ChoiceControl label="Items" options={[0, 1, 2, 3, 5].map(value => ({ label: String(value), value: String(value) }))} value={String(count)} onChange={value => { setCount(Number(value)); setIndex(0); }} />

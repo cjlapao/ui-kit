@@ -24,7 +24,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const MeterGroupPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Meter Group"
       description="A group of process status indicators — labelled segments of a shared range, per-segment tones, horizontal or vertical, with a labelled breakdown list and full state treatment."

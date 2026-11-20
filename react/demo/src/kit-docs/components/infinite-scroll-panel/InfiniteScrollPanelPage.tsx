@@ -10,7 +10,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const InfiniteScrollPanelPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Infinite Scroll Panel"
       description="A scrolling list that fetches the next page as the end comes into view, with masonry, grid, balanced-column and list layouts — plus first-load, empty, end and retry states."

@@ -3,6 +3,7 @@ import React, { type ReactNode, useId } from "react";
 import { VALIDATION_STATUSES, type ValidationStatus } from "../theme/Theme";
 import type { ControlSize } from "../theme/Theme";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useFieldRow } from "../contexts/FieldRowContext";
 
 export type FormFieldLayout = "stacked" | "inline";
 /** The shared field-status scale. Was a bare union with no runtime list, so
@@ -77,6 +78,10 @@ const FormField: React.FC<FormFieldProps> = ({
   const fieldId = useId();
   const sizeToken = sizeTokens[size] ?? sizeTokens.md;
   const surface = useSurfaceText();
+  // Inside a FieldRow the three blocks (label, control, notes) are placed
+  // directly on the row's shared bands; the flex-era spacer that faked this
+  // alignment is dead weight there — the 1fr control band owns the slack.
+  const { inRow } = useFieldRow();
 
   const childElement = React.isValidElement(children)
     ? (children as React.ReactElement<ChildElementProps>)
@@ -125,7 +130,12 @@ const FormField: React.FC<FormFieldProps> = ({
   const layoutClasses =
     layout === "inline"
       ? "sm:grid sm:grid-cols-3 sm:items-start sm:gap-6"
-      : "flex flex-col gap-2 justify-start h-full";
+      : inRow
+        // The FieldRow item and the subgrid in one element: the label,
+        // control and notes children below auto-place onto the row's
+        // shared `auto 1fr auto` bands.
+        ? "grid [grid-row:span_3] [grid-template-rows:subgrid]"
+        : "flex flex-col gap-2 justify-start h-full";
 
   const widthClasses = width === "full" ? "w-full" : "w-auto";
 
@@ -144,7 +154,8 @@ const FormField: React.FC<FormFieldProps> = ({
   // and its control still starts exactly where its row neighbour's does — the
   // Role-beside-Email misalignment was a content-height bug, not an
   // alignment-prop bug.
-  const spacerClasses = layout === "inline" ? undefined : "grow min-h-0";
+  const spacerClasses =
+    layout === "inline" || inRow ? undefined : "grow min-h-0";
 
   const hintTone =
     status === "error"
@@ -203,7 +214,9 @@ const FormField: React.FC<FormFieldProps> = ({
         )}
       </div>
 
-      {layout === "stacked" && <div aria-hidden className={spacerClasses} />}
+      {layout === "stacked" && !inRow && (
+        <div aria-hidden className={spacerClasses} />
+      )}
       <div
         className={classNames(
           layout === "inline" && "h-full",
@@ -236,5 +249,10 @@ const FormField: React.FC<FormFieldProps> = ({
     </div>
   );
 };
+
+// FieldRow identifies its field children by this to place them on the
+// shared bands (a wrapper div in the consumer's JSX is a bare control-band
+// child, which would misalign the whole field).
+FormField.displayName = "FormField";
 
 export default FormField;

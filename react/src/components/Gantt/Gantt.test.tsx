@@ -672,6 +672,161 @@ describe("Gantt component", () => {
     expect(root().className).toContain("p-6");
   });
 
+  it("fills a bounded parent with fullHeight, stepping height down to a min-height", () => {
+    const { container } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} fullHeight />);
+    const root = container.querySelector<HTMLElement>("section[data-gantt]")!;
+    expect(root.className).toContain("h-full");
+    // The fixed height style is dropped; the default 520 stays as the floor.
+    expect(root.style.height).toBe("");
+    expect(root.style.minHeight).toBe("520px");
+  });
+
+  it("honours the height prop as the fullHeight floor", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} fullHeight height={400} />,
+    );
+    expect(container.querySelector<HTMLElement>("section[data-gantt]")!.style.minHeight).toBe(
+      "400px",
+    );
+  });
+
+  it("defaults to the fixed height — no fill class, no floor", () => {
+    const { container } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} />);
+    const root = container.querySelector<HTMLElement>("section[data-gantt]")!;
+    expect(root.className).not.toContain("h-full");
+    expect(root.style.height).toBe("520px");
+    expect(root.style.minHeight).toBe("");
+  });
+
+  it("fullWidth asks the panel for the full width", () => {
+    const { container } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} fullWidth />);
+    expect(container.querySelector("section[data-gantt]")!.className).toContain("w-full");
+  });
+
+  it("renders the none variant without card paint", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} variant="none" />,
+    );
+    const root = container.querySelector("section[data-gantt]")!;
+    expect(root).toHaveAttribute("data-variant", "none");
+    expect(container.innerHTML).not.toContain("bg-none-");
+    expect(root.className).not.toContain("shadow");
+  });
+
+  it("controlsVariant and controlsTone pin the zoom pill independently of the chart", () => {
+    const { container } = render(
+      <Gantt
+        tasks={tasks}
+        lanes={sampleGanttLanes}
+        variant="none"
+        controlsVariant="elevated"
+        controlsTone="blue"
+      />,
+    );
+    // The chart itself stays unpainted…
+    expect(container.querySelector("section[data-gantt]")!).toHaveAttribute(
+      "data-variant",
+      "none",
+    );
+    // …while the pill wears the pinned elevated + blue chrome.
+    const pill = container.querySelector<HTMLElement>("[data-gantt-toolbar]")!;
+    expect(pill.className).toContain(getSurfaceVariantClasses("elevated", "blue"));
+  });
+
+  it("the zoom pill still follows the chart surface when the controls props are unset", () => {
+    const { container } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} variant="tonal" />);
+    const pill = container.querySelector<HTMLElement>("[data-gantt-toolbar]")!;
+    expect(pill.className).toContain(getSurfaceVariantClasses("tonal", "none"));
+  });
+
+  it("columnEdges boxes the fixed table — left line plus the always-on seam", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} columnEdges />,
+    );
+    // Task-row and lane-row sticky blocks…
+    const taskSticky = container.querySelector<HTMLElement>(
+      '[data-row-key="task:research"] > div.sticky',
+    )!;
+    const laneSticky = container.querySelector<HTMLElement>(
+      '[data-row-key="lane:design"] > div.sticky',
+    )!;
+    expect(taskSticky.className).toContain("border-l");
+    expect(laneSticky.className).toContain("border-l");
+    // …and the header column strip line up on the same x.
+    expect(container.querySelector<HTMLElement>("[data-gantt-columns]")!.className).toContain(
+      "border-l",
+    );
+    // The right seam is always painted, so the table reads as boxed.
+    expect(taskSticky.className).toContain("border-r");
+  });
+
+  it("column edges are off by default (no left line anywhere in the table)", () => {
+    const { container } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} />);
+    const taskSticky = container.querySelector<HTMLElement>(
+      '[data-row-key="task:research"] > div.sticky',
+    )!;
+    expect(taskSticky.className).not.toContain("border-l");
+    expect(container.querySelector<HTMLElement>("[data-gantt-columns]")!.className).not.toContain(
+      "border-l",
+    );
+  });
+
+  it("the none surface frames the table — rounded column-header strip over a closed body", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} variant="none" />,
+    );
+    const parts = [...container.querySelectorAll<HTMLElement>("[data-gantt-frame]")];
+    expect(parts).toHaveLength(2);
+    const [head, body] = parts;
+    // Top half: the column-header strip carries the top border and the
+    // rounded top corners (default rounded-sm token = 0.5rem), and clips
+    // its opaque children to the round.
+    expect(head.className).toContain("border-t");
+    expect(head.className).toContain("border-x");
+    expect(head.className).toContain("overflow-hidden");
+    expect(head.style.borderRadius.startsWith("0.5rem 0.5rem 0 0")).toBe(true);
+    // Bottom half: the body scroller closes the box.
+    expect(body.className).toContain("border-b");
+    expect(body.className).toContain("border-x");
+    expect(body.style.borderRadius.startsWith("0 0 0.5rem 0.5rem")).toBe(true);
+    // The seam under the chart header is the frame's own top border — the
+    // chart header strip adds no border of its own, so the line never
+    // doubles at the table's top.
+    const chartHeader = head.previousElementSibling!;
+    expect(chartHeader.className).not.toContain("border-b");
+  });
+
+  it("the table frame's corners follow the corner prop on both halves", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} variant="none" corner="rounded-xl" />,
+    );
+    const [head, body] = [...container.querySelectorAll<HTMLElement>("[data-gantt-frame]")];
+    expect(head.style.borderRadius).toContain("2rem");
+    expect(body.style.borderRadius).toContain("2rem");
+  });
+
+  it("column edges on a framed table draw one line, not two", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} lanes={sampleGanttLanes} variant="none" columnEdges />,
+    );
+    // The frame's border-x is the table's left line — the sticky blocks and
+    // header strip must not stack their own beside it.
+    const taskSticky = container.querySelector<HTMLElement>(
+      '[data-row-key="task:research"] > div.sticky',
+    )!;
+    expect(taskSticky.className).not.toContain("border-l");
+    expect(container.querySelector<HTMLElement>("[data-gantt-columns]")!.className).not.toContain(
+      "border-l",
+    );
+    // The fixed/timeline seam still belongs to the rows.
+    expect(taskSticky.className).toContain("border-r");
+  });
+
+  it("painted variants draw no table frame — the card is already the box", () => {
+    const { container } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} />);
+    expect(container.querySelector("[data-gantt-frame]")).toBeNull();
+  });
+
   it("honours the initial columnWidths prop", () => {
     const { container } = render(
       <Gantt tasks={tasks} lanes={sampleGanttLanes} columnWidths={{ name: 300 }} />,
@@ -999,7 +1154,11 @@ describe("Gantt component", () => {
       <Gantt tasks={tasks} links={links} lanes={sampleGanttLanes} />,
     );
     const scroller = container.querySelector<HTMLElement>(".gantt-scroller")!;
-    const content = scroller.firstElementChild as HTMLElement;
+    // ScrollArea owns the viewport; the sized content is its content slot's
+    // single child (`.gantt-scroller` stays on the ScrollArea frame).
+    const content = scroller.querySelector<HTMLElement>(
+      '[data-slot="scrollarea-content"] > div',
+    )!;
     const layer = container.querySelector<HTMLElement>("[data-gantt-link-layer]")!;
     const contentWidth = Number.parseFloat(content.style.width);
     const layerLeft = Number.parseFloat(layer.style.left);
@@ -1041,6 +1200,35 @@ describe("Gantt component", () => {
     );
     fireEvent.click(screen.getByText("Month"));
     expect(onZoomChange).toHaveBeenCalledWith(5);
+  });
+
+  it("zooms to the Hour preset through the toolbar (controlled)", () => {
+    const onZoomChange = vi.fn();
+    render(
+      <Gantt
+        tasks={tasks}
+        lanes={sampleGanttLanes}
+        zoom={48}
+        onZoomChange={onZoomChange}
+      />,
+    );
+    fireEvent.click(screen.getByText("Hour"));
+    expect(onZoomChange).toHaveBeenCalledWith(288);
+  });
+
+  it("merges hour labels into readable groups at the Hour preset", () => {
+    const { container } = render(<Gantt tasks={tasks} lanes={sampleGanttLanes} zoom={288} />);
+    // 12px hour columns → a label every 2 hours, each centered over its pair.
+    // The scale spans the whole padded view range, so assert the merged
+    // pattern per day rather than an absolute count (12 labels per 24 hours).
+    const spans = container.querySelectorAll("[data-gantt-label-span]");
+    expect(spans.length).toBeGreaterThan(0);
+    expect(spans.length % 12).toBe(0);
+    for (const el of spans) expect(el.getAttribute("data-gantt-label-span")).toBe("2");
+    // Merged labels escape their narrow column box: nowrap overlays, no truncation.
+    const label = spans[0].firstElementChild as HTMLElement;
+    expect(label.textContent).toMatch(/^\d+$/);
+    expect(label.className).toContain("whitespace-nowrap");
   });
 
   it("emits nothing from a locked task drag", () => {

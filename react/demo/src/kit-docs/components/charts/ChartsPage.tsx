@@ -87,7 +87,7 @@ const TYPE_LINKS: { slug: string; label: string; blurb: string }[] = [
 ];
 
 export const ChartsPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Charts"
       description="PrimeUI-style charting system — one set of children on matching SVG and Canvas renderers, with entrance and update animations, dual axes and shared hover chrome. Pick a type below or poke at the playground."

@@ -12,7 +12,7 @@ import Loaders from "./examples/Loaders";
 import loadersCode from "./examples/Loaders.tsx?raw";
 
 export const StepperPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Stepper"
       description="A multi-step workflow on the shared panel surface — clickable steps with a line or progress connector, the full tone set, per-step and whole-stepper loaders (including a skeleton), an optional progress bar, and both orientations."

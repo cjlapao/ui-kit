@@ -10,10 +10,12 @@ import React, {
 } from "react";
 import ScrollArea from "./ScrollArea";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import {
   DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
   getGlowTokens,
+  getFieldMinHeightClass,
   getFieldSizeTokens,
   getFieldToneTokens,
   getInputVariantTokens,
@@ -137,6 +139,12 @@ export interface SelectProps extends Omit<
   selectClassName?: string;
   /** Drops the surface entirely — used by `InputGroup`. */
   unstyled?: boolean;
+  /**
+   * Reserve N text lines of box height (`getFieldMinHeightClass`), so a
+   * one-line select lines up with a two-line `Picker` beside it when there
+   * is no `FieldRow` to size the shared control band.
+   */
+  lines?: 1 | 2;
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
@@ -159,6 +167,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     disabled,
     children,
     unstyled = false,
+    lines,
     multiple,
     style,
     onFocus,
@@ -186,6 +195,10 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   const [focused, setFocused] = useState(false);
   const effectiveTone = tone ?? color ?? "blue";
   const sizeToken = getFieldSizeTokens(size);
+  // In a `FieldRow` the control band owns the height; `lines` reserves a
+  // floor when there is no row doing the alignment.
+  const { inRow } = useFieldRow();
+  const linesMinHeight = lines ? getFieldMinHeightClass(size, lines) : "";
   const optionLine = OPTION_LINE[size] ?? OPTION_LINE.md;
   const tokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
@@ -341,6 +354,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
         // same-specificity fight with every variant's own fill, and it turned a
         // glass or underline select into an opaque grey slab.
         disabled && "cursor-not-allowed opacity-60",
+        inRow && "h-full",
+        linesMinHeight,
         className,
       )}
     >

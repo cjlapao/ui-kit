@@ -12,7 +12,7 @@ import scatterRoiCode from "./examples/ScatterRoi.tsx?raw";
 import scatterTechCode from "./examples/ScatterTech.tsx?raw";
 
 export const ScatterChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Scatter & Bubble"
       description="One marker per datum on shared x/y scales — linear, log or time. A size field turns dots into area-proportional bubbles, markers take any shape, and the hovered point grows, brightens and can restyle its fill and border while the other series dim. Axes accept a `log` scale for power-law data, and reference lines can span two data points for sloped rules (ROI diagonals, trend lines)."

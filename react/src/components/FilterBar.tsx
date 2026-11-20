@@ -6,7 +6,8 @@ import Badge, { type BadgeVariant } from "./Badge";
 import Menu, { type MenuItem } from "./Menu";
 import CustomIcon from "./CustomIcon";
 import type { ControlSize, TrueColor } from "../theme/Theme";
-import type { PanelProps } from "./Panel";
+import { SkeletonBar, type PanelProps } from "./Panel";
+import Loader from "./Loader";
 import { getSurfaceVariantClasses, getSurfaceCornerClass, getSurfaceCornerRem, getSurfacePaddingClass } from "../theme";
 import { getGlassVibrancyClass, getSurfaceGlassFillClass } from "../theme/glass";
 import { CONTROL_SPRING_TOKENS, type ControlSpring } from "../../../common/theme/springs";
@@ -27,6 +28,12 @@ export interface FilterBarFilter {
   options: FilterBarOption[];
 }
 export type FilterBarValue = Record<string, string[]>;
+/**
+ * The three loading styles a bar can show, matching Table and ActivityFeed.
+ * `"spinner"` and `"progress"` dim the live bar under a Loader overlay;
+ * `"skeleton"` rewrites its pieces in pulsing placeholder ink.
+ */
+export type FilterBarLoaderType = "spinner" | "progress" | "skeleton";
 export interface FilterBarProps {
   /** Forwarded unchanged to the existing SearchBar. */
   searchProps: SearchBarProps;
@@ -96,6 +103,27 @@ export interface FilterBarProps {
   chipTone?: TrueColor;
   /** Shared spring preset used for search, chips and menu transitions. */
   spring?: ControlSpring;
+  /**
+   * Draws the bar in placeholder ink (skeleton) or dims the live bar under
+   * a Loader overlay (spinner/progress) while results are in flight — same
+   * shape either way, nothing jumps when they land. The filter popup
+   * closes the moment the bar goes busy.
+   * @default false
+   */
+  loading?: boolean;
+  /**
+   * Style of the loading indicator, matching Table and ActivityFeed:
+   * - `"skeleton"` (default) — the contents are replaced by pulsing
+   *   placeholders shaped like the bar's own pieces.
+   * - `"spinner"` / `"progress"` — a Loader overlay pinned to the bar;
+   *   the real controls stay beneath it behind the scrim.
+   * @default "skeleton"
+   */
+  loaderType?: FilterBarLoaderType;
+  /** The bar fill for `loaderType="progress"`, 0–100. */
+  loaderProgress?: number;
+  /** The label the overlay publishes. @default the kit's "Loading" */
+  loadingMessage?: string;
   disabled?: boolean;
   className?: string;
   "aria-label"?: string;
@@ -122,6 +150,7 @@ export function FilterBar({
   buttonTone = color, buttonSize = size, buttonCorner, buttonWeight = "normal", buttonDashed = true,
   menuVariant = "outlined", menuTone = "none", menuCorner, menuPadding,
   chipVariant = "soft", chipTone = color, spring = "snappy",
+  loading = false, loaderType = "skeleton", loaderProgress, loadingMessage,
   disabled = false, className, "aria-label": ariaLabel,
 }: FilterBarProps) {
   const t = useKitT();
@@ -168,12 +197,14 @@ export function FilterBar({
     previouslyExpanded.current = expanded;
   }, [expanded, searchDisabled, showSearch]);
   useEffect(() => {
-    if (disabled || (category !== null && (!active || active.disabled))) {
+    // `loading` joins `disabled`: the overlay does not reach the portal, so
+    // a checkbox popup must not float over a bar that has gone busy.
+    if (loading || disabled || (category !== null && (!active || active.disabled))) {
       setOpen(false);
       setCategory(null);
       setDraft([]);
     }
-  }, [disabled, category, active]);
+  }, [loading, disabled, category, active]);
 
   const items: MenuItem[] = active ? active.options.map(option => ({
     id: option.value, label: option.label, type: "checkbox",
@@ -201,8 +232,14 @@ export function FilterBar({
     },
   }));
 
+  // Only the skeleton mode rewrites the bar; spinner/progress keep the real
+  // controls mounted beneath the overlay, so the bar holds its shape from the
+  // first frame to the last.
+  const showSkeleton = loading && loaderType === "skeleton";
+
   return <div role="group" aria-label={ariaLabel ?? t("kit.filterbar.filters")}
-    className={classNames("kit-filter-bar flex min-w-0 flex-wrap items-center gap-2 text-sm", surfaceClasses, getSurfaceCornerClass(corner), getSurfacePaddingClass(padding), className)} style={style}
+    aria-busy={loading || undefined}
+    className={classNames("kit-filter-bar flex min-w-0 flex-wrap items-center gap-2 text-sm", surfaceClasses, getSurfaceCornerClass(corner), getSurfacePaddingClass(padding), loading && "relative", className)} style={style}
     onBlurCapture={event => {
       const menu = (event.target as HTMLElement).closest("[data-menu-owner]");
       const next = event.relatedTarget as Node | null;
@@ -218,7 +255,10 @@ export function FilterBar({
         event.preventDefault(); event.stopPropagation(); close(true);
       }
     }}>
-    <div ref={searchRegion} className="fb-search" data-expanded={expanded} hidden={!showSearch} inert={!showSearch}
+    {/* The search field stays mounted (hidden) under the skeleton exactly
+        the way collapse keeps its query — unmounting SearchBar would drop
+        what the user typed just because results are being refetched. */}
+    <div ref={searchRegion} className="fb-search" data-expanded={expanded} hidden={!showSearch || showSkeleton} inert={!showSearch || showSkeleton}
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)
           && !event.currentTarget.querySelector("input")?.value) setExpanded(false);
@@ -234,6 +274,7 @@ export function FilterBar({
         <SearchBar size={size} color={color} {...searchProps} disabled={searchDisabled} />
       </div>
     </div>
+    {showSkeleton ? <FilterBarSkeleton /> : <>
     {showSearch && (showFilterLabel || chips.length > 0 || showEmptyState) && <span aria-hidden="true" className="h-5 border-l border-neutral-200 dark:border-neutral-700" />}
     {showFilterLabel && <span className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 4h18l-7 8v8l-4-2v-6Z" /></svg>{t("kit.filterbar.filters")}</span>}
     <FilterChips chips={chips} color={chipTone} variant={chipVariant} size={size} buttonTone={buttonTone} buttonStyle={buttonStyle} removeLabel={label => t("kit.filterbar.remove", { label })} />
@@ -266,8 +307,46 @@ export function FilterBar({
         <Button {...actionStyle} variant={secondaryButtonVariant} onClick={() => setDraft(current => current.filter(entry => active.options.some(option => option.value === entry && option.disabled)))}>{t("kit.filterbar.clear")}</Button>
         <Button {...actionStyle} variant={applyButtonVariant} onClick={() => { commit({ ...applied, [active.id]: draft }); close(true); }}>{t("kit.filterbar.done")}</Button>
       </div> : undefined} />
+    </>}
+
+    {/* The overlay pins to the root itself — no wrapper node: the root is
+        the flex-wrap layout, and an extra box would sit between the flex
+        container and its items. Being absolute, the Loader's own padding can
+        neither stretch nor clip the strip, and its `rounded-[inherit]` picks
+        up the bar's corner. The scrim node is also the interaction floor;
+        `aria-busy` on the root carries the signal, so the controls are not
+        inerted (same contract as Table and the feed). */}
+    {loading && loaderType !== "skeleton" && (
+      <Loader
+        overlay
+        variant={loaderType === "progress" ? "progress" : "spinner"}
+        color={color}
+        progress={loaderProgress}
+        aria-label={loadingMessage ?? t("kit.spinner.loading")}
+      />
+    )}
   </div>;
 }
+
+/**
+ * Placeholder drawn by `loaderType="skeleton"`: the bar's own pieces in
+ * placeholder ink — search capsule, divider, "Filters" label bar, two chip
+ * pills, the add-button ring and the summary bar — on fixed heights that sit
+ * in the live strip's range at `size="md"`. One shape, no ladder; the row's
+ * line box holds the strip height steady while results are in flight.
+ */
+const FilterBarSkeleton: React.FC = () => (
+  <div aria-hidden="true" className="flex min-w-0 flex-1 flex-wrap items-center gap-2 animate-pulse motion-reduce:animate-none">
+    <SkeletonBar width="2.5rem" height="h-7" />
+    <SkeletonBar width="1px" height="h-5" />
+    <SkeletonBar width="4rem" />
+    <SkeletonBar width="5rem" height="h-7" />
+    <SkeletonBar width="6rem" height="h-7" />
+    <span className="flex-1" />
+    <SkeletonBar width="6rem" height="h-7" />
+    <SkeletonBar width="5rem" />
+  </div>
+);
 
 interface Chip { id: string; label: string; disabled?: boolean; edit: () => void; remove: () => void }
 function FilterChips({ chips, color, variant, size, buttonTone, buttonStyle, removeLabel }: { chips: Chip[]; color: TrueColor; variant: BadgeVariant; size: ControlSize; buttonTone: TrueColor; buttonStyle?: React.CSSProperties; removeLabel: (label: string) => string }) {

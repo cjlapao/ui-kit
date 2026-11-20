@@ -1,9 +1,33 @@
 import { useState } from "react";
-import { AiOrb, AI_ORB_PRESETS, type AiOrbPreset, type AiOrbQuality, type AiOrbState } from "@cjlapao/ui-kit";
+import {
+  AI_ORB_PRESETS,
+  AiOrb,
+  Button,
+  Input,
+  type AiOrbPreset,
+  type AiOrbQuality,
+  type AiOrbState,
+} from "@cjlapao/ui-kit";
+import {
+  ChoiceControl,
+  Control,
+  PlaygroundPanel,
+  ToggleRow,
+} from "../../shared/PlaygroundPanel";
+import { ControlAccordion } from "../../shared/ControlAccordion";
+import {
+  aiOrbPresetOptions,
+  aiOrbQualityOptions,
+  aiOrbStateOptions,
+} from "../../shared/options";
 import { useDemoAudio } from "./useDemoAudio";
 
-const control = "w-full rounded-md border border-neutral-300 bg-white p-2 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100";
-const button = "rounded-md border border-neutral-400 px-3 py-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800";
+const COLOR_KEYS = ["coreColor", "accentColor", "glowColor"] as const;
+const COLOR_LABELS: Record<(typeof COLOR_KEYS)[number], string> = {
+  coreColor: "Core",
+  accentColor: "Accent",
+  glowColor: "Glow",
+};
 
 export function AiOrbPlayground() {
   const [preset, setPreset] = useState<AiOrbPreset>("solar");
@@ -16,41 +40,251 @@ export function AiOrbPlayground() {
   const [colors, setColors] = useState(AI_ORB_PRESETS.solar);
   const [paused, setPaused] = useState(false);
   const audio = useDemoAudio();
+
+  /** A preset is a full look — picking one reseeds every appearance field. */
   function choosePreset(value: AiOrbPreset) {
-    setPreset(value); setColors(AI_ORB_PRESETS[value]); setGlow(AI_ORB_PRESETS[value].glow); setMotion(AI_ORB_PRESETS[value].motionIntensity); setDefinition(AI_ORB_PRESETS[value].definition);
+    const base = AI_ORB_PRESETS[value];
+    setPreset(value);
+    setColors(base);
+    setGlow(base.glow);
+    setMotion(base.motionIntensity);
+    setDefinition(base.definition);
   }
-  return <section className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))" }}>
-      <div style={{ background: "radial-gradient(ellipse at 50% 50%, #18202a, #080d14 75%)", minHeight: 450, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: 24 }}>
-        <div style={{ color: "#9aa8b8", fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase" }}>A presence inside the machine</div>
-        <AiOrb state={state} preset={preset} size={size} quality={quality} paused={paused} audioSource={audio.source}
-          appearance={{ ...colors, glow, motionIntensity: motion, definition }} label={`Assistant ${state}`} onAudioError={error => audio.setError(error.message)} />
-        <div style={{ color: colors.accentColor, letterSpacing: "0.24em", fontSize: 11, textTransform: "uppercase" }}>{paused ? "Paused" : state}</div>
-        <p style={{ color: "#9aa8b8", fontSize: 12, marginTop: 12 }}>{audio.mode}</p>
-      </div>
-      <div className="flex flex-col gap-4 p-6">
-        <h2 className="text-base font-semibold">Personalize your presence</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <label className="text-sm">Preset<select className={control} value={preset} onChange={e => choosePreset(e.target.value as AiOrbPreset)}>{["solar", "ion", "ember"].map(value => <option key={value}>{value}</option>)}</select></label>
-          <label className="text-sm">State<select className={control} value={state} onChange={e => setState(e.target.value as AiOrbState)}>{["idle", "listening", "speaking"].map(value => <option key={value}>{value}</option>)}</select></label>
-          <label className="text-sm">Quality<select className={control} value={quality} onChange={e => setQuality(e.target.value as AiOrbQuality)}>{["low", "balanced", "high"].map(value => <option key={value}>{value}</option>)}</select></label>
-          <label className="text-sm">Size · {size}px<input className="w-full" type="range" min="48" max="640" step="8" value={size} onChange={e => setSize(+e.target.value)} /></label>
+
+  return (
+    <PlaygroundPanel
+      // The orb lives on its own dark stage; the shared image/gradient
+      // backdrop would only fight the glow.
+      hideBackgroundToggle
+      previewClassName="items-center"
+      controls={
+        <>
+          <ControlAccordion
+            groups={[
+              {
+                id: "presence",
+                title: "Presence",
+                defaultOpen: true,
+                controls: (
+                  <>
+                    <ChoiceControl
+                      label="Preset"
+                      options={aiOrbPresetOptions}
+                      value={preset}
+                      onChange={(value) => choosePreset(value as AiOrbPreset)}
+                    />
+                    <ChoiceControl
+                      label="State"
+                      options={aiOrbStateOptions}
+                      value={state}
+                      onChange={(value) => setState(value as AiOrbState)}
+                    />
+                    <ChoiceControl
+                      label="Quality"
+                      options={aiOrbQualityOptions}
+                      value={quality}
+                      onChange={(value) =>
+                        setQuality(value as AiOrbQuality)
+                      }
+                    />
+                    <ToggleRow
+                      label="Pause animation"
+                      checked={paused}
+                      onChange={setPaused}
+                    />
+                  </>
+                ),
+              },
+              {
+                id: "size",
+                title: "Size & motion",
+                controls: (
+                  <>
+                    <Control label={`Size — ${size}px`}>
+                      <input
+                        type="range"
+                        min={48}
+                        max={640}
+                        step={8}
+                        value={size}
+                        onChange={(event) => setSize(Number(event.target.value))}
+                        className="w-full accent-blue-500"
+                        aria-label="Orb size"
+                      />
+                    </Control>
+                    <Control label={`Glow — ${Math.round(glow * 100)}%`}>
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={glow}
+                        onChange={(event) => setGlow(Number(event.target.value))}
+                        className="w-full accent-blue-500"
+                        aria-label="Glow"
+                      />
+                    </Control>
+                    <Control
+                      label={`Motion intensity — ${Math.round(motion * 100)}%`}
+                    >
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={motion}
+                        onChange={(event) =>
+                          setMotion(Number(event.target.value))
+                        }
+                        className="w-full accent-blue-500"
+                        aria-label="Motion intensity"
+                      />
+                    </Control>
+                    <Control
+                      label={`Compact definition — ${Math.round(
+                        definition * 100,
+                      )}%`}
+                    >
+                      <input
+                        type="range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={definition}
+                        onChange={(event) =>
+                          setDefinition(Number(event.target.value))
+                        }
+                        className="w-full accent-blue-500"
+                        aria-label="Compact definition"
+                      />
+                    </Control>
+                  </>
+                ),
+              },
+              {
+                id: "colors",
+                title: "Colors",
+                controls: (
+                  <div className="flex flex-col gap-3">
+                    {COLOR_KEYS.map((key) => (
+                      <Control key={key} label={`${COLOR_LABELS[key]} color`}>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={colors[key]}
+                            onChange={(event) =>
+                              setColors({ ...colors, [key]: event.target.value })
+                            }
+                            className="h-9 w-14 cursor-pointer rounded border border-neutral-300 bg-transparent p-1 dark:border-neutral-600"
+                            aria-label={`${COLOR_LABELS[key]} color`}
+                          />
+                          <span className="font-mono text-sm opacity-70">
+                            {colors[key]}
+                          </span>
+                        </div>
+                      </Control>
+                    ))}
+                  </div>
+                ),
+              },
+              {
+                id: "audio",
+                title: "Audio",
+                controls: (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        color="neutral"
+                        onClick={() => void audio.simulate()}
+                      >
+                        Simulate audio
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        color="neutral"
+                        onClick={() => {
+                          setState("listening");
+                          void audio.microphone();
+                        }}
+                      >
+                        Start microphone
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        color="neutral"
+                        onClick={audio.stop}
+                      >
+                        Stop audio
+                      </Button>
+                    </div>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      The application owns permissions, tracks and playback —
+                      the orb only borrows the source. Active source:{" "}
+                      {audio.mode}.
+                    </p>
+                    {audio.error && (
+                      <p
+                        role="alert"
+                        className="text-sm text-red-600 dark:text-red-400"
+                      >
+                        {audio.error}
+                      </p>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+          <p className="text-xs leading-5 text-neutral-500 dark:text-neutral-400">
+            Below 240px, definition strengthens waves and flares, enlarges the
+            core, and softens surrounding glow. Zero restores proportional
+            scaling.
+          </p>
+          <Control label="Independent input">
+            <Input
+              size="sm"
+              placeholder="Try typing while the orb animates — uncontrolled"
+            />
+          </Control>
+          <p className="text-xs leading-5 text-neutral-500 dark:text-neutral-400">
+            Balanced: 30 FPS, 1.5× pixel density, 16 particles. Hidden or
+            offscreen orbs pause. Reduced motion keeps a static visual.
+          </p>
+        </>
+      }
+      preview={
+        <div className="flex min-h-[450px] w-full flex-col items-center justify-center gap-3 rounded-lg bg-[radial-gradient(ellipse_at_50%_50%,#18202a,#080d14_75%)] px-6 py-8">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">
+            A presence inside the machine
+          </div>
+          <AiOrb
+            state={state}
+            preset={preset}
+            size={size}
+            quality={quality}
+            paused={paused}
+            audioSource={audio.source}
+            appearance={{
+              ...colors,
+              glow,
+              motionIntensity: motion,
+              definition,
+            }}
+            label={`Assistant ${state}`}
+            onAudioError={(error) => audio.setError(error.message)}
+          />
+          <div
+            className="text-[11px] uppercase tracking-[0.24em]"
+            style={{ color: colors.accentColor }}
+          >
+            {paused ? "Paused" : state}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-4">{(["coreColor", "accentColor", "glowColor"] as const).map((key, i) => <label key={key} className="flex flex-col gap-1 text-xs">{["Core color", "Accent color", "Glow color"][i]}<input type="color" value={colors[key]} onChange={e => setColors({ ...colors, [key]: e.target.value })} /></label>)}</div>
-        <label className="text-sm">Glow · {Math.round(glow * 100)}%<input className="w-full" type="range" min="0" max="1" step="0.01" value={glow} onChange={e => setGlow(+e.target.value)} /></label>
-        <label className="text-sm">Motion intensity · {Math.round(motion * 100)}%<input className="w-full" type="range" min="0" max="1" step="0.01" value={motion} onChange={e => setMotion(+e.target.value)} /></label>
-        <label className="text-sm">Compact definition · {Math.round(definition * 100)}%<input className="w-full" type="range" min="0" max="1" step="0.01" value={definition} onChange={e => setDefinition(+e.target.value)} /></label>
-        <p className="text-xs text-neutral-500">Below 240px, definition strengthens waves and flares, enlarges the core, and softens surrounding glow. Zero restores proportional scaling.</p>
-        <label className="flex gap-2 text-sm"><input type="checkbox" checked={paused} onChange={e => setPaused(e.target.checked)} />Pause animation</label>
-        <div className="flex flex-wrap gap-2">
-          <button className={button} onClick={() => void audio.simulate()}>Simulate audio</button>
-          <button className={button} onClick={() => { setState("listening"); void audio.microphone(); }}>Start microphone</button>
-          <button className={button} onClick={audio.stop}>Stop audio</button>
-        </div>
-        {audio.error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{audio.error}</p>}
-        <label className="text-sm">Try typing while the orb animates<input className={control} placeholder="An independent, uncontrolled input" /></label>
-        <p className="text-xs text-neutral-500">Balanced: 30 FPS, 1.5× pixel density, 16 particles. Hidden or offscreen orbs pause. Reduced motion keeps a static visual.</p>
-      </div>
-    </div>
-  </section>;
+      }
+    />
+  );
 }

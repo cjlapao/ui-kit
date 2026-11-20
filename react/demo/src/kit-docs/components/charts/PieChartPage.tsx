@@ -6,7 +6,7 @@ import PieDonut from "./examples/PieDonut";
 import pieDonutCode from "./examples/PieDonut.tsx?raw";
 
 export const PieChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Pie & Donut"
       description="Pie, donut and gauge sweeps with slice gaps, rounded segments, in-slice percent labels, hover pop-out and a center display for the donut."

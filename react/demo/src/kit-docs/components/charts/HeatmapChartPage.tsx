@@ -12,7 +12,7 @@ import cohortCode from "./examples/HeatmapCohort.tsx?raw";
 import commuteCode from "./examples/HeatmapCommute.tsx?raw";
 
 export const HeatmapChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Heatmap"
       description="A self-contained grid of value-colored cells — no cartesian scales. Multi-stop color scales, null cells, value and tier labels, a gradient legend, and cell-anchored annotation pills."

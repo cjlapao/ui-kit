@@ -17,7 +17,7 @@ import Nav from "./examples/Nav";
 import navCode from "./examples/Nav.tsx?raw";
 
 export const ToolbarPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Toolbar"
       description="A named row of controls for the content beside it — PrimeVue's Toolbar with its start / center / end regions, wearing the kit's shared Panel surface: the same variants, tones, corner and padding scales, painted from the same theme helpers. role=toolbar throughout; empty regions hold their place, so an `end`-only bar still parks right, and the row wraps instead of overflowing."

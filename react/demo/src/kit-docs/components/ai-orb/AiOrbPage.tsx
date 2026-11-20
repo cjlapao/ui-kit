@@ -10,11 +10,11 @@ import CompactDefinition from "./examples/CompactDefinition";
 import compactCode from "./examples/CompactDefinition.tsx?raw";
 
 export default function AiOrbPage() {
-  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader name="AI Orb" description="A luminous presence for a talking AI. Audio shapes listening waves and solar flares. One Canvas renderer, three presets, no frame-driven React renders." />
     <AiOrbPlayground />
     <section className="flex flex-col gap-5">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Examples</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Examples</h2>
       <ExampleCard title="Three personalities, one renderer" code={presetsCode} filename="Presets.tsx"><Presets /></ExampleCard>
       <ExampleCard title="Definition at small sizes" description="48–128px listening and speaking orbs. Size-aware strokes, brighter flares, fewer details, and restrained glow keep motion readable. Set appearance.definition to 0 to disable the enhancement." code={compactCode} filename="CompactDefinition.tsx"><CompactDefinition /></ExampleCard>
       <ExampleCard title="Audio sources and compact presence" description="The application owns microphone permissions, tracks, playback, and conversation state. The orb borrows sources and never plays audio." code={audioCode} filename="AudioSource.tsx"><CompactOrb /></ExampleCard>

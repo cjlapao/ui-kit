@@ -1,20 +1,43 @@
 import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
-import Panel from "../Panel";
+import Panel, { SkeletonBar } from "../Panel";
+import EmptyState from "../EmptyState";
+import Button from "../Button";
 import IconButton from "../IconButton";
+import { GridBackground } from "../GridBackground";
 import Checkbox from "../Checkbox";
 import Combobox from "../Combobox";
+import { ScrollArea } from "../ScrollArea";
 import { useKitT } from "../../i18n";
 import { buildNetwork, pickNode } from "./model";
 import { useNetworkCanvas } from "./useNetworkCanvas";
 import type {
   NetworkGraphCommunity,
   NetworkGraphEdge,
+  NetworkGraphNode,
   NetworkGraphProps,
+  NetworkGraphSelectionInfo,
 } from "./types";
+import "./network-graph.css";
 
 const NO_COMMUNITIES: readonly NetworkGraphCommunity[] = [];
 const NO_HIGHLIGHTS: readonly string[] = [];
+
+/** Inspector column gap kept from the graph — must match network-graph.css. */
+const INSPECTOR_GAP = 16;
+/** The `inspectorWidth` default and its sanity clamp. */
+const INSPECTOR_WIDTH_DEFAULT = 280;
+const INSPECTOR_WIDTH_MIN = 180;
+const INSPECTOR_WIDTH_MAX = 480;
+/** Graph-column floor behind the derived dock threshold. */
+const INSPECTOR_MIN_MAIN_WIDTH_DEFAULT = 320;
+
+/** One clamp, so the CSS column and the dock threshold never disagree. */
+const clampInspectorWidth = (value: number | undefined): number =>
+  Math.max(
+    INSPECTOR_WIDTH_MIN,
+    Math.min(INSPECTOR_WIDTH_MAX, Number.isFinite(value) ? (value as number) : INSPECTOR_WIDTH_DEFAULT),
+  );
 
 export function NetworkGraph({
   nodes,
@@ -32,8 +55,25 @@ export function NetworkGraph({
   legendPanel = false,
   legendVariant = "auto",
   legendTone = "auto",
+  inspector = false,
+  inspectorVariant = "auto",
+  inspectorTone = "auto",
+  inspectorWidth = INSPECTOR_WIDTH_DEFAULT,
+  inspectorMinMainWidth = INSPECTOR_MIN_MAIN_WIDTH_DEFAULT,
+  inspectorStackBelow,
+  inspectorTitle,
+  inspectorButtonVariant = "solid",
+  inspectorButtonTone = "slate",
+  inspectorButtonWeight,
+  renderInspectorBody,
+  renderInspectorActions,
   showLabels = false,
   showControls = true,
+  grid = true,
+  gridTone = "blue",
+  hoverHighlight = true,
+  fullHeight = false,
+  fullWidth = true,
   ariaLabel,
   emptyMessage,
   onViewportChange,
@@ -47,9 +87,12 @@ export function NetworkGraph({
   const t = useKitT();
   const helpId = useId();
   const layoutRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [hasLegendSpace, setHasLegendSpace] = useState(true);
+  const [inspectorStacked, setInspectorStacked] = useState(false);
   const legendOnRight =
     legendPosition === "right" || (legendPosition === "auto" && hasLegendSpace);
+  const resolvedInspectorWidth = clampInspectorWidth(inspectorWidth);
   useEffect(() => {
     const element = layoutRef.current;
     if (!element || legendPosition !== "auto") return;
@@ -60,6 +103,23 @@ export function NetworkGraph({
     observer.observe(element);
     return () => observer.disconnect();
   }, [legendPosition, loading]);
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element || !inspector) return;
+    // Fit-based rather than a magic number: the inspector docks beside the graph
+    // only while the graph column keeps its floor after the inspector column and
+    // its gap are taken from the component. `inspectorStackBelow` replaces the
+    // comparison outright for callers who simply want one side or the other.
+    const threshold =
+      inspectorStackBelow ??
+      resolvedInspectorWidth + INSPECTOR_GAP + inspectorMinMainWidth;
+    const measure = () =>
+      setInspectorStacked(element.getBoundingClientRect().width < threshold);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [inspector, resolvedInspectorWidth, inspectorMinMainWidth, inspectorStackBelow]);
   const model = useMemo(
     () => buildNetwork(nodes, edges, communities),
     [nodes, edges, communities],
@@ -70,6 +130,12 @@ export function NetworkGraph({
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [focused, setFocused] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  // Mirrors drag.current.moved so the cursor can switch to the drag (closed
+  // hand) icon only once a pan actually starts — plain clicks keep the
+  // normal cursor instead of flashing :active the way active:cursor-grabbing did.
+  const [panning, setPanning] = useState(false);
+  // Node under the pointer (visual preview only — never selection).
+  const [hovered, setHovered] = useState<string | null>(null);
   const enabled = useMemo(
     () =>
       new Set(
@@ -102,6 +168,27 @@ export function NetworkGraph({
         result.set(n.community, (result.get(n.community) ?? 0) + 1);
     return result;
   }, [model]);
+  const selectedNode = selected !== null ? model.byId.get(selected) : undefined;
+  const selectionInfo = useMemo<NetworkGraphSelectionInfo | null>(() => {
+    if (!selectedNode) return null;
+    const neighborIds = model.adjacency.get(selectedNode.id);
+    const neighbors: NetworkGraphNode[] = [];
+    if (neighborIds)
+      for (const id of neighborIds)
+        if (visible.has(id)) {
+          const neighbor = model.byId.get(id);
+          if (neighbor) neighbors.push(neighbor);
+        }
+    const community = selectedNode.community
+      ? model.groups.find((group) => group.id === selectedNode.community)
+      : undefined;
+    return {
+      label: selectedNode.label ?? selectedNode.id,
+      community,
+      connectionCount: neighborIds?.size ?? 0,
+      neighbors,
+    };
+  }, [selectedNode, model, visible]);
   const canvas = useNetworkCanvas({
     active: !loading,
     model,
@@ -109,6 +196,7 @@ export function NetworkGraph({
     visible,
     selected,
     focused: activeFocus,
+    hovered: hoverHighlight && !disabled && !loading ? hovered : null,
     highlighted,
     tone,
     showLabels,
@@ -203,6 +291,8 @@ export function NetworkGraph({
       .map((n) => ({ value: n.id, label: n.label ?? n.id }));
   }, [visibleNodes, query]);
   const graphHeight = Number.isFinite(height) ? Math.max(160, height) : 480;
+  const gridEnabled = grid !== false;
+  const gridOverrides = typeof grid === "object" ? grid : undefined;
   const resolvedLegendTone = legendTone === "auto" ? surfaceTone : legendTone;
   const legendContent = (
     <fieldset
@@ -250,23 +340,194 @@ export function NetworkGraph({
       ))}
     </fieldset>
   );
+  const resolvedInspectorVariant =
+    inspectorVariant === "auto" ? variant : inspectorVariant;
+  const resolvedInspectorTone =
+    inspectorTone === "auto" ? surfaceTone : inspectorTone;
+  const inspectorAccent = getSurfaceAccentColor(resolvedInspectorTone);
+  const centerOnSelected = () => {
+    if (!selectedNode) return;
+    const positioned = model.byId.get(selectedNode.id);
+    if (positioned) canvas.focusNode(positioned);
+  };
+  const closeInspector = () => {
+    select(null);
+    setFocused(null);
+  };
+  const inspectorContent =
+    selectedNode && selectionInfo ? (
+      <>
+        <div className="cj-network-graph__body">
+        <div className="cj-network-graph__eyebrow">
+          {inspectorTitle ?? t("kit.networkGraph.inspector")}
+        </div>
+        <h3>{selectionInfo.label}</h3>
+        {selectionInfo.community && (
+          <span
+            className="cj-network-graph__chip"
+            style={
+              {
+                "--chip-color": `var(--color-${
+                  selectionInfo.community.tone ??
+                  selectedNode.tone ??
+                  inspectorAccent
+                }-500)`,
+              } as React.CSSProperties
+            }
+          >
+            <i />
+            {selectionInfo.community.label}
+          </span>
+        )}
+        <dl className="cj-network-graph__meta">
+          <dt>{t("kit.networkGraph.nodeId")}</dt>
+          <dd>
+            <code>{selectedNode.id}</code>
+          </dd>
+          <dt>{t("kit.networkGraph.connections")}</dt>
+          <dd>{selectionInfo.connectionCount}</dd>
+        </dl>
+        {renderInspectorBody ? (
+          renderInspectorBody(selectedNode, selectionInfo)
+        ) : (
+          selectionInfo.neighbors.length > 0 && (
+            <div className="cj-network-graph__neighbors">
+              <small>{t("kit.networkGraph.neighbors")}</small>
+              <ScrollArea
+                variant="auto"
+                horizontal={false}
+                className="cj-network-graph__neighbor-scroll"
+                aria-label={t("kit.networkGraph.neighbors")}
+              >
+                <div className="cj-network-graph__neighbor-rows">
+                {selectionInfo.neighbors.map((neighbor) => (
+                  <button
+                    key={neighbor.id}
+                    type="button"
+                    className="cj-network-graph__neighbor"
+                    style={
+                      {
+                        "--node-color": `var(--color-${
+                          neighbor.tone ??
+                          selectionInfo.community?.tone ??
+                          inspectorAccent
+                        }-500)`,
+                      } as React.CSSProperties
+                    }
+                    onClick={() => {
+                      select(neighbor.id);
+                      setFocused(neighbor.id);
+                      const positioned = model.byId.get(neighbor.id);
+                      if (positioned) canvas.focusNode(positioned);
+                    }}
+                  >
+                    <i />
+                    <span>{neighbor.label ?? neighbor.id}</span>
+                  </button>
+                ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )
+        )}
+        </div>
+        <div className="cj-network-graph__actions">
+          {renderInspectorActions ? (
+            renderInspectorActions(selectedNode, selectionInfo, {
+              centerOnNode: centerOnSelected,
+              close: closeInspector,
+            })
+          ) : (
+            <>
+              <Button
+                size="sm"
+                fullWidth
+                variant={inspectorButtonVariant}
+                color={inspectorButtonTone}
+                weight={inspectorButtonWeight}
+                onClick={centerOnSelected}
+              >
+                {t("kit.networkGraph.centerOnNode")}
+              </Button>
+              <Button
+                size="sm"
+                fullWidth
+                variant={inspectorButtonVariant}
+                color={inspectorButtonTone}
+                weight={inspectorButtonWeight}
+                onClick={closeInspector}
+              >
+                {t("kit.networkGraph.close")}
+              </Button>
+            </>
+          )}
+        </div>
+      </>
+    ) : null;
   return (
+    <div
+      ref={rootRef}
+      className={[
+        inspector && "cj-network-graph",
+        inspector &&
+          selectedNode &&
+          "cj-network-graph--inspector-open",
+        inspector &&
+          inspectorStacked &&
+          "cj-network-graph--stacked",
+        fullHeight && "cj-network-graph--full-height",
+        fullWidth
+          ? "cj-network-graph--full-width"
+          : "cj-network-graph--intrinsic-width",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      style={
+        inspector
+          ? ({
+              "--cj-network-graph-inspector-width": `${resolvedInspectorWidth}px`,
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
+      <div className="cj-network-graph__main">
     <Panel
       {...panelProps}
+      className={[panelProps.className, "cj-network-graph__graph-panel"]
+        .filter(Boolean)
+        .join(" ")}
+      flexBody={fullHeight || undefined}
       tone={surfaceTone}
       variant={variant}
       padding="sm"
       disabled={disabled}
-      loading={loading}
       clickable={false}
       scrollable={false}
     >
       <div
-        className="flex min-w-0 flex-col gap-3"
+        className="cj-network-graph__group flex min-w-0 flex-col gap-3"
         role="group"
         aria-label={ariaLabel ?? t("kit.networkGraph.name")}
         aria-disabled={locked || undefined}
+        aria-busy={loading || undefined}
       >
+        {loading ? (
+          <>
+            <p role="status" className="sr-only">
+              {t("kit.networkGraph.loading")}
+            </p>
+            <GraphSkeleton
+              graphHeight={graphHeight}
+              fullHeight={fullHeight}
+              legendOnRight={legendOnRight}
+              showLegend={showCommunities && model.groups.length > 0}
+              legendPanel={legendPanel}
+              showControls={showControls}
+              groupCount={model.groups.length}
+            />
+          </>
+        ) : (
+          <>
         {showControls && (
           <div className="flex flex-wrap items-center gap-2">
             <div className="min-w-40 flex-1">
@@ -294,17 +555,40 @@ export function NetworkGraph({
         )}
         <div
           ref={layoutRef}
-          className="flex min-w-0 gap-4"
+          className="cj-network-graph__layout flex min-w-0 gap-4"
           style={{ flexDirection: legendOnRight ? "row" : "column" }}
           data-legend-position={legendOnRight ? "right" : "bottom"}
         >
           <div
-            className="relative min-w-0 flex-1"
-            style={{ height: graphHeight, minHeight: graphHeight }}
+            className="cj-network-graph__graph-box relative min-w-0 flex-1"
+            style={
+              {
+                ...(fullHeight
+                  ? {}
+                  : { height: graphHeight, minHeight: graphHeight }),
+                ...(gridEnabled
+                  ? {
+                      "--cj-network-graph-grid-color": `var(--color-${gridTone}-500)`,
+                    }
+                  : {}),
+              } as React.CSSProperties
+            }
           >
+            {gridEnabled && (
+              <GridBackground
+                className="cj-network-graph__grid"
+                pattern="dots"
+                size={32}
+                lineColor="var(--cj-network-graph-grid-color, var(--color-blue-500, #3b82f6))"
+                dotSize={1.5}
+                opacity={0.35}
+                fade="radial"
+                {...gridOverrides}
+              />
+            )}
             <canvas
               ref={canvas.canvasRef}
-              className={`block h-full w-full rounded-md outline-none focus-visible:ring-2 focus-visible:ring-${tone}-500 ${locked ? "" : "cursor-grab active:cursor-grabbing"}`}
+              className={`relative block h-full w-full rounded-md outline-none focus-visible:ring-2 focus-visible:ring-${tone}-500 ${locked ? "" : panning ? "cursor-grabbing" : "cursor-default"}`}
               style={{ touchAction: locked ? "auto" : "none" }}
               tabIndex={locked ? -1 : 0}
               // eslint-disable-next-line jsx-a11y/no-interactive-element-to-noninteractive-role -- A custom Canvas widget uses application to scope its documented keyboard navigation.
@@ -312,6 +596,9 @@ export function NetworkGraph({
               aria-roledescription={t("kit.networkGraph.name")}
               aria-label={ariaLabel ?? t("kit.networkGraph.name")}
               aria-describedby={helpId}
+              data-hovered={
+                hoverHighlight && !locked ? (hovered ?? undefined) : undefined
+              }
               onKeyDown={keyboard}
               onPointerDown={(event) => {
                 if (locked || event.button !== 0 || drag.current) return;
@@ -328,8 +615,24 @@ export function NetworkGraph({
               }}
               onPointerMove={(event) => {
                 const current = drag.current;
-                if (locked || !current || current.id !== event.pointerId)
+                if (!current) {
+                  // Passive hover highlight — a preview, never a selection.
+                  // Same strict hit test as click-select; setState bails out
+                  // when the id is unchanged, so mouse moves stay cheap.
+                  if (!hoverHighlight || locked) return;
+                  const rect = event.currentTarget.getBoundingClientRect(),
+                    view = canvas.view.current;
+                  const node = pickNode(
+                    model,
+                    visible,
+                    (event.clientX - rect.left - view.x) / view.zoom,
+                    (event.clientY - rect.top - view.y) / view.zoom,
+                    view.zoom,
+                  );
+                  setHovered(node?.id ?? null);
                   return;
+                }
+                if (locked || current.id !== event.pointerId) return;
                 const dx = event.clientX - current.x,
                   dy = event.clientY - current.y;
                 current.moved ||=
@@ -337,19 +640,24 @@ export function NetworkGraph({
                     event.clientX - current.originX,
                     event.clientY - current.originY,
                   ) > 4;
-                if (current.moved)
+                if (current.moved) {
+                  setPanning(true);
+                  setHovered(null);
                   canvas.update({
                     ...canvas.view.current,
                     x: canvas.view.current.x + dx,
                     y: canvas.view.current.y + dy,
                   });
+                }
                 current.x = event.clientX;
                 current.y = event.clientY;
               }}
+              onPointerLeave={() => setHovered(null)}
               onPointerUp={(event) => {
                 const current = drag.current;
                 if (!current || current.id !== event.pointerId) return;
                 drag.current = null;
+                setPanning(false);
                 if (event.currentTarget.hasPointerCapture(event.pointerId))
                   event.currentTarget.releasePointerCapture(event.pointerId);
                 if (locked || current.moved) return;
@@ -367,9 +675,11 @@ export function NetworkGraph({
               }}
               onPointerCancel={() => {
                 drag.current = null;
+                setPanning(false);
               }}
               onLostPointerCapture={() => {
                 drag.current = null;
+                setPanning(false);
               }}
             />
             {showControls && (
@@ -453,12 +763,37 @@ export function NetworkGraph({
               </div>
             )}
             {!visibleNodes.length && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm">
-                {emptyMessage ?? t("kit.networkGraph.empty")}
+              <div className="cj-network-graph__empty pointer-events-none absolute inset-0 grid place-items-center p-4">
+                {emptyMessage ?? (
+                  <EmptyState
+                    variant="plain"
+                    dashed={false}
+                    color={gridTone}
+                    icon="NetworkNodes"
+                    title={t("kit.networkGraph.empty")}
+                    subtitle={t("kit.networkGraph.emptySubtitle")}
+                    actions={
+                      model.nodes.length > 0 ? (
+                        <span className="pointer-events-auto">
+                          <Button
+                            size="sm"
+                            variant="soft"
+                            color={gridTone}
+                            onClick={() =>
+                              filter(model.groups.map((g) => g.id))
+                            }
+                          >
+                            {t("kit.networkGraph.selectAll")}
+                          </Button>
+                        </span>
+                      ) : undefined
+                    }
+                  />
+                )}
               </div>
             )}
           </div>
-          {showCommunities && model.groups.length > 0 && (
+          {showCommunities && model.groups.length > 0 && visibleNodes.length > 0 && (
             <div
               className="min-w-0 shrink-0"
               style={{
@@ -506,8 +841,116 @@ export function NetworkGraph({
                 ).length,
               })}
         </p>
+          </>
+        )}
       </div>
     </Panel>
+      </div>
+      {inspector && (
+        <aside
+          className="cj-network-graph__inspector"
+          aria-hidden={!selectedNode || undefined}
+          inert={!selectedNode || undefined}
+        >
+          <div className="cj-network-graph__inspector-inner">
+            <Panel
+              variant={resolvedInspectorVariant}
+              tone={resolvedInspectorTone}
+              padding="sm"
+              corner={panelProps.corner}
+              glassOpacity={panelProps.glassOpacity}
+              vibrancy={panelProps.vibrancy}
+              specularMode={panelProps.specularMode}
+              clickable={false}
+              scrollable={false}
+              flexBody
+              className="cj-network-graph__details"
+            >
+              {inspectorContent}
+            </Panel>
+          </div>
+        </aside>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Loading placeholder shaped like the settled component — search bar, canvas
+ * surface with the zoom pill, community legend column and the two caption
+ * lines — so the skeleton previews what is about to render instead of three
+ * generic bars.
+ */
+function GraphSkeleton({
+  graphHeight,
+  fullHeight,
+  legendOnRight,
+  showLegend,
+  legendPanel,
+  showControls,
+  groupCount,
+}: {
+  graphHeight: number;
+  fullHeight: boolean;
+  legendOnRight: boolean;
+  showLegend: boolean;
+  legendPanel: boolean;
+  showControls: boolean;
+  groupCount: number;
+}) {
+  return (
+    <div
+      className="cj-network-graph__skeleton flex min-w-0 flex-col gap-3"
+      aria-hidden="true"
+    >
+      {showControls && (
+        <SkeletonBar height="h-9" width="100%" className="rounded-lg" />
+      )}
+      <div
+        className="cj-network-graph__layout flex min-w-0 gap-4"
+        style={{ flexDirection: legendOnRight ? "row" : "column" }}
+      >
+        <div
+          className="cj-network-graph__graph-box relative min-w-0 flex-1"
+          style={
+            fullHeight
+              ? undefined
+              : { height: graphHeight, minHeight: graphHeight }
+          }
+        >
+          <div className="block h-full w-full rounded-md bg-black/10 dark:bg-white/10" />
+          {showControls && (
+            <div className="cj-network-graph__skeleton-controls absolute bottom-3 right-3 flex items-center gap-1 rounded-lg border border-neutral-200 bg-white/90 p-1 dark:border-neutral-700 dark:bg-neutral-900/90">
+              <SkeletonBar height="h-3" width="12px" />
+              <SkeletonBar height="h-3" width="8px" />
+              <SkeletonBar height="h-3" width="20px" />
+              <SkeletonBar height="h-3" width="8px" />
+              <SkeletonBar height="h-3" width="12px" />
+            </div>
+          )}
+        </div>
+        {showLegend && (
+          <div
+            className="cj-network-graph__skeleton-legend min-w-0 shrink-0"
+            style={{ width: legendOnRight ? (legendPanel ? 224 : 192) : "100%" }}
+          >
+            <SkeletonBar height="h-3" width="7rem" className="mb-3" />
+            {Array.from({ length: Math.min(groupCount + 1, 7) }, (_, row) => (
+              <div
+                key={row}
+                className="cj-network-graph__skeleton-legend-row mb-2 flex items-center gap-2"
+              >
+                <span className="block h-3.5 w-3.5 rounded-[3px] bg-black/10 dark:bg-white/10" />
+                <SkeletonBar height="h-3" className="flex-1" />
+                <SkeletonBar height="h-3" width="16px" />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <SkeletonBar height="h-3" width="72%" />
+      <SkeletonBar height="h-3" width="28%" />
+    </div>
   );
 }
 export default NetworkGraph;

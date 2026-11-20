@@ -13,6 +13,7 @@ import IconButton from "./IconButton";
 import { VariablePicker } from "./VariablePicker";
 import { SmartValueParts, type SmartViewMode } from "./SmartVariableParts";
 import { useKitT } from "../i18n";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import {
   DEFAULT_GLOW_INTENSITY,
   SURFACE_VARIANT_FOR_FIELD,
@@ -190,6 +191,8 @@ export const SmartInput: React.FC<SmartInputProps> = ({
 
   const pickerId = useId();
   const sizeToken = getFieldSizeTokens(size);
+  // In a `FieldRow` the shared control band owns the height.
+  const { inRow } = useFieldRow();
   const surface = getInputVariantTokens(variant, tone, corner, {
     explicitTone: toneProp,
   });
@@ -457,6 +460,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
         "group relative flex w-full transition",
         multiline ? "items-start" : "items-center",
         MIN_HEIGHTS[size] ?? MIN_HEIGHTS.md,
+        inRow && "h-full",
         // The surface comes from the shared input tokens, so this control is
         // the same box as the Input beside it. It used to hard-code
         // `bg-white border-slate-300` with no dark-mode partner at all.
@@ -595,6 +599,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
         className={classNames(
           "relative flex w-full overflow-hidden rounded-[28px]",
           glow.pad,
+          inRow && "h-full",
         )}
       >
         <span

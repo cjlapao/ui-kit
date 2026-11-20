@@ -12,7 +12,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const AccessMatrixPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Access Matrix"
       description="A read-only RBAC grid on the shared table surface — one flat permission list becomes collapsible group rows, a sticky resource column and one column per action, with a show-more group limit and full loading/empty treatment."

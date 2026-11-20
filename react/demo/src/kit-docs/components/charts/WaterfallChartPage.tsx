@@ -12,7 +12,7 @@ import ebitdaCode from "./examples/WaterfallEbitda.tsx?raw";
 import arrCode from "./examples/WaterfallArr.tsx?raw";
 
 export const WaterfallChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Waterfall"
       description="Bridge analysis on the bar engine: delta steps that accumulate a running total, with total markers anchored at the baseline. Vertical or horizontal, signed data labels, dashed running-total connectors, stacked layers per step, and reference lines."

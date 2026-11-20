@@ -12,7 +12,7 @@ import Typography from "./examples/Typography";
 import typographyCode from "./examples/Typography.tsx?raw";
 
 export const ShimmerPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Shimmer"
       description="A light sweep across waiting text — the chat 'thinking…' effect. It inherits the surrounding text color or runs in any of the 21 kit tones, at three preset speeds, and stays solid readable text under reduced motion."

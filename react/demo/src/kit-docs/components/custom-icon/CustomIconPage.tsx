@@ -21,7 +21,7 @@ import ConsumerIcons from "./examples/ConsumerIcons";
 import consumerIconsCode from "./examples/ConsumerIcons.tsx?raw";
 
 export const CustomIconPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Custom Icon"
       description="Renders any icon in the registry. Tinted with a theme tone or a raw colour; clickable icons render as real buttons, and a missing name falls back to a size-preserving monogram."

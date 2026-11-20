@@ -8,7 +8,7 @@ import Tones from "./examples/Tones";
 import tonesCode from "./examples/Tones.tsx?raw";
 
 export const MetricBarPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Metric Bar"
       description="A labelled progress row: caption on the left, free-form reading on the right, bar underneath. It renders Progress rather than drawing its own header, so the caption becomes the bar's accessible name."

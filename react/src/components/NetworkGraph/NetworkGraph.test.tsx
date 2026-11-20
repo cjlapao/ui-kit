@@ -7,6 +7,7 @@ import {
   screen,
 } from "@testing-library/react";
 import { NetworkGraph } from "./NetworkGraph";
+import type { NetworkGraphProps } from "./types";
 
 const nodes = [
   { id: "a", label: "Alpha", community: "one", x: -50, y: 0 },
@@ -180,6 +181,27 @@ describe("NetworkGraph pointer navigation", () => {
     });
     expect(changed.mock.lastCall![0].zoom).toBeGreaterThan(oldZoom);
   });
+  it("keeps the normal cursor and switches to the drag cursor only while panning", () => {
+    vi.stubGlobal("PointerEvent", MouseEvent);
+    render(<NetworkGraph {...props} />);
+    const graph = screen.getByRole("application");
+    graph.setPointerCapture = vi.fn();
+    graph.hasPointerCapture = () => true;
+    graph.releasePointerCapture = vi.fn();
+    expect(graph.className).toContain("cursor-default");
+    expect(graph.className).not.toContain("cursor-grabbing");
+    fireEvent.pointerDown(graph, { clientX: 10, clientY: 10, button: 0 });
+    // Pressing alone — a plain click to select — stays on the normal cursor.
+    expect(graph.className).not.toContain("cursor-grabbing");
+    // Below the 4px pan threshold the drag has not really started yet.
+    fireEvent.pointerMove(graph, { clientX: 12, clientY: 12 });
+    expect(graph.className).not.toContain("cursor-grabbing");
+    fireEvent.pointerMove(graph, { clientX: 60, clientY: 35 });
+    expect(graph.className).toContain("cursor-grabbing");
+    fireEvent.pointerUp(graph, { clientX: 60, clientY: 35 });
+    expect(graph.className).not.toContain("cursor-grabbing");
+    expect(graph.className).toContain("cursor-default");
+  });
   it("starts backwards traversal at the last visible node", () => {
     render(<NetworkGraph {...props} />);
     fireEvent.keyDown(screen.getByRole("application"), { key: "ArrowLeft" });
@@ -214,6 +236,65 @@ describe("NetworkGraph pointer navigation", () => {
     fireEvent.pointerCancel(graph);
     fireEvent.pointerUp(graph, point);
     expect(select).not.toHaveBeenCalled();
+  });
+});
+
+describe("NetworkGraph hover highlight", () => {
+  const setup = (extra = {}) => {
+    vi.stubGlobal("PointerEvent", MouseEvent);
+    const select = vi.fn(),
+      change = vi.fn();
+    render(
+      <NetworkGraph
+        {...props}
+        onNodeSelect={select}
+        onViewportChange={change}
+        {...extra}
+      />,
+    );
+    const graph = screen.getByRole("application");
+    graph.setPointerCapture = vi.fn();
+    graph.hasPointerCapture = () => true;
+    graph.releasePointerCapture = vi.fn();
+    // Node "a" sits at world (-50, 0) after fit, matching the click tests.
+    const view = change.mock.lastCall![0];
+    return {
+      graph,
+      select,
+      overA: { clientX: -50 * view.zoom + view.x, clientY: view.y },
+      overEmpty: { clientX: view.x + 900, clientY: view.y + 900 },
+    };
+  };
+  it("previews the node under the pointer without selecting it", () => {
+    const { graph, select, overA, overEmpty } = setup();
+    fireEvent.pointerMove(graph, overA);
+    expect(graph).toHaveAttribute("data-hovered", "a");
+    fireEvent.pointerMove(graph, overEmpty);
+    expect(graph).not.toHaveAttribute("data-hovered");
+    fireEvent.pointerMove(graph, overA);
+    fireEvent.pointerLeave(graph);
+    expect(graph).not.toHaveAttribute("data-hovered");
+    expect(select).not.toHaveBeenCalled();
+  });
+  it("clears and suppresses hover while panning", () => {
+    const { graph, overA } = setup();
+    fireEvent.pointerMove(graph, overA);
+    expect(graph).toHaveAttribute("data-hovered", "a");
+    fireEvent.pointerDown(graph, { ...overA, button: 0 });
+    fireEvent.pointerMove(graph, { clientX: overA.clientX + 60, clientY: overA.clientY + 40 });
+    expect(graph).not.toHaveAttribute("data-hovered");
+    fireEvent.pointerUp(graph, { clientX: overA.clientX + 60, clientY: overA.clientY + 40 });
+    expect(graph).not.toHaveAttribute("data-hovered");
+  });
+  it("stays off with hoverHighlight={false}", () => {
+    const { graph, overA } = setup({ hoverHighlight: false });
+    fireEvent.pointerMove(graph, overA);
+    expect(graph).not.toHaveAttribute("data-hovered");
+  });
+  it("stays off while disabled", () => {
+    const { graph, overA } = setup({ disabled: true });
+    fireEvent.pointerMove(graph, overA);
+    expect(graph).not.toHaveAttribute("data-hovered");
   });
 });
 
@@ -302,5 +383,430 @@ describe("NetworkGraph legend panel", () => {
     rerender(<NetworkGraph {...props} />);
     expect(legendPanel()).toBeNull();
     expect(screen.getByRole("checkbox", { name: "First" })).toBeInTheDocument();
+  });
+});
+
+describe("NetworkGraph inspector", () => {
+  const selectAlpha = () => {
+    const graph = screen.getByRole("application");
+    fireEvent.keyDown(graph, { key: "ArrowRight" });
+    fireEvent.keyDown(graph, { key: "Enter" });
+  };
+  it("stays opt-in: no inspector markup without the prop", () => {
+    const { container } = render(<NetworkGraph {...props} />);
+    selectAlpha();
+    expect(container.querySelector(".cj-network-graph")).toBeNull();
+    expect(container.querySelector(".cj-network-graph__inspector")).toBeNull();
+  });
+  it("opens on selection with the standard body and closes via the Close button", () => {
+    const onNodeSelect = vi.fn();
+    const { container } = render(
+      <NetworkGraph {...props} inspector onNodeSelect={onNodeSelect} />,
+    );
+    const root = container.querySelector(".cj-network-graph");
+    const inspector = container.querySelector(".cj-network-graph__inspector");
+    expect(root).not.toHaveClass("cj-network-graph--inspector-open");
+    expect(inspector).toHaveAttribute("aria-hidden", "true");
+    selectAlpha();
+    expect(root).toHaveClass("cj-network-graph--inspector-open");
+    expect(inspector).not.toHaveAttribute("aria-hidden");
+    expect(inspector).toHaveTextContent("Inspector");
+    expect(inspector).toHaveTextContent("Alpha");
+    expect(inspector).toHaveTextContent("First");
+    expect(inspector).toHaveTextContent("a");
+    expect(inspector).toHaveTextContent("Beta");
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(onNodeSelect).toHaveBeenLastCalledWith(null);
+    expect(root).not.toHaveClass("cj-network-graph--inspector-open");
+  });
+  it("follows the graph surface by default and honours inspector variants and tones", () => {
+    const { container, rerender } = render(
+      <NetworkGraph {...props} inspector variant="glass" tone="teal" />,
+    );
+    selectAlpha();
+    const details = () =>
+      container.querySelector(".cj-network-graph__details");
+    expect(details()).toHaveAttribute("data-variant", "glass");
+    expect(details()).toHaveAttribute("data-tone", "teal");
+    rerender(
+      <NetworkGraph
+        {...props}
+        inspector
+        variant="glass"
+        tone="teal"
+        inspectorVariant="outlined"
+        inspectorTone="amber"
+      />,
+    );
+    expect(details()).toHaveAttribute("data-variant", "outlined");
+    expect(details()).toHaveAttribute("data-tone", "amber");
+  });
+  it("styles the built-in buttons and replaces them through renderInspectorActions", () => {
+    const { container, rerender } = render(
+      <NetworkGraph
+        {...props}
+        inspector
+        inspectorButtonVariant="soft"
+        inspectorButtonTone="sky"
+      />,
+    );
+    selectAlpha();
+    const center = screen.getByRole("button", { name: "Center on node" });
+    expect(center).toHaveAttribute("data-variant", "soft");
+    expect(center).toHaveAttribute("data-color", "sky");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveAttribute(
+      "data-variant",
+      "soft",
+    );
+    rerender(
+      <NetworkGraph
+        {...props}
+        inspector
+        renderInspectorActions={(_node, _info, helpers) => (
+          <button type="button" onClick={helpers.close}>
+            Custom action
+          </button>
+        )}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Center on node" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Custom action" }));
+    expect(container.querySelector(".cj-network-graph")).not.toHaveClass(
+      "cj-network-graph--inspector-open",
+    );
+  });
+  it("replaces the standard body through renderInspectorBody", () => {
+    const { container } = render(
+      <NetworkGraph
+        {...props}
+        inspector
+        renderInspectorBody={(_node, info) => (
+          <div>
+            Custom body for {info.label} ({info.connectionCount}) with{" "}
+            {info.community?.label}
+          </div>
+        )}
+      />,
+    );
+    selectAlpha();
+    expect(container.querySelector(".cj-network-graph__inspector")).toHaveTextContent(
+      "Custom body for Alpha (1) with First",
+    );
+    expect(
+      container.querySelector(".cj-network-graph__neighbor-rows"),
+    ).toBeNull();
+    // Footer buttons remain available alongside a custom body.
+    expect(
+      screen.getByRole("button", { name: "Center on node" }),
+    ).toBeInTheDocument();
+  });
+  it("selects a neighbour from the inspector list", () => {
+    const onNodeSelect = vi.fn();
+    const { container } = render(
+      <NetworkGraph {...props} inspector onNodeSelect={onNodeSelect} />,
+    );
+    selectAlpha();
+    fireEvent.click(
+      container.querySelector(".cj-network-graph__neighbor")!,
+    );
+    expect(onNodeSelect).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "b" }),
+    );
+    expect(
+      container.querySelector(".cj-network-graph__details"),
+    ).toHaveTextContent("Beta");
+  });
+  it("keeps the AgentMap layout: inspector outside the graph card with a pinned footer", () => {
+    const { container } = render(
+      <NetworkGraph {...props} inspector height={360} />,
+    );
+    selectAlpha();
+    const root = container.querySelector(".cj-network-graph");
+    expect(root?.getAttribute("style")).toContain(
+      "--cj-network-graph-inspector-width",
+    );
+    // The inspector is a sibling of the graph card, not nested inside it.
+    expect(root?.firstElementChild).toHaveClass("cj-network-graph__main");
+    expect(root?.lastElementChild).toHaveClass("cj-network-graph__inspector");
+    const graphPanel = container.querySelector(
+      ".cj-network-graph__main section",
+    );
+    expect(graphPanel).toBeInTheDocument();
+    expect(
+      graphPanel?.querySelector(".cj-network-graph__inspector"),
+    ).toBeNull();
+    const body = container.querySelector(".cj-network-graph__body");
+    const actions = container.querySelector(".cj-network-graph__actions");
+    expect(body).toBeInTheDocument();
+    expect(actions).toBeInTheDocument();
+    // Details scroll above the footer; the buttons live in the footer only.
+    expect(body?.querySelector(".cj-network-graph__eyebrow")).not.toBeNull();
+    expect(actions?.querySelector(".cj-network-graph__eyebrow")).toBeNull();
+    expect(actions?.querySelector("[data-variant]")).not.toBeNull();
+    expect(body?.querySelector('[data-variant="solid"]')).toBeNull();
+  });
+  it("wraps a long neighbour list in a scroll area", () => {
+    const hubbed = [
+      { id: "hub", label: "Hub" },
+      ...Array.from({ length: 30 }, (_, index) => ({
+        id: `mate-${index}`,
+        label: `Mate ${index}`,
+      })),
+    ];
+    const hubbedEdges = hubbed
+      .slice(1)
+      .map((node) => ({ id: `e-${node.id}`, source: "hub", target: node.id }));
+    const { container } = render(
+      <NetworkGraph
+        nodes={hubbed}
+        edges={hubbedEdges}
+        inspector
+        height={240}
+      />,
+    );
+    const graph = screen.getByRole("application");
+    fireEvent.keyDown(graph, { key: "ArrowRight" });
+    fireEvent.keyDown(graph, { key: "Enter" });
+    expect(
+      container.querySelector(".cj-network-graph__inspector"),
+    ).toHaveTextContent("Hub");
+    expect(
+      container.querySelector(".cj-network-graph__neighbor-scroll"),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll(".cj-network-graph__neighbor")).toHaveLength(30);
+  });
+});
+
+describe("NetworkGraph inspector docking", () => {
+  /** Render at a fixed component width and report whether the inspector stacked. */
+  const stackedAt = (width: number, extra: Partial<NetworkGraphProps> = {}) => {
+    const callbacks: (() => void)[] = [];
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      () => ({
+        width,
+        height: 480,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: width,
+        bottom: 480,
+        toJSON() {},
+      }),
+    );
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          callbacks.push(callback);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const { container } = render(
+      <NetworkGraph {...props} inspector defaultSelectedNodeId="a" {...extra} />,
+    );
+    act(() => callbacks.forEach((callback) => callback()));
+    return !!container.querySelector(".cj-network-graph--stacked");
+  };
+
+  // Docked while the graph keeps its 320px floor beside 280px + 16px gap = 616.
+  it("docks beside the graph while the graph keeps its floor", () => {
+    expect(stackedAt(700)).toBe(false);
+    expect(stackedAt(500)).toBe(true);
+  });
+  it("raises the threshold with a wider inspector column or graph floor", () => {
+    expect(stackedAt(700, { inspectorWidth: 480 })).toBe(true);
+    expect(stackedAt(700, { inspectorMinMainWidth: 600 })).toBe(true);
+    expect(stackedAt(900, { inspectorMinMainWidth: 600 })).toBe(false);
+  });
+  it("lets inspectorStackBelow replace the decision", () => {
+    expect(stackedAt(500, { inspectorStackBelow: 0 })).toBe(false);
+    expect(stackedAt(1200, { inspectorStackBelow: 1400 })).toBe(true);
+  });
+});
+
+describe("NetworkGraph grid background", () => {
+  const lattice = (container: HTMLElement) =>
+    container.querySelector<HTMLElement>(".cj-network-graph__grid > div");
+  it("paints a blue dot lattice behind the canvas by default", () => {
+    const { container } = render(<NetworkGraph {...props} />);
+    const grid = lattice(container);
+    expect(grid).not.toBeNull();
+    // Dots, on the same 32px lattice as AgentMap's, faded at the edges.
+    // Slightly heavier than AgentMap's line defaults so isolated dots read
+    // on the light Panel surfaces too (verified in a headless render).
+    expect(grid?.style.backgroundImage).toContain("radial-gradient(circle at 0 0");
+    expect(grid?.style.backgroundImage).toContain("--color-blue-500");
+    expect(grid?.style.backgroundImage).toContain("1.5px");
+    expect(grid?.style.backgroundSize).toBe("32px 32px");
+    expect(grid?.style.opacity).toBe("0.35");
+    expect(grid?.style.maskImage).toContain("radial-gradient");
+  });
+  it("hides with grid=false and follows gridTone", () => {
+    const { container, rerender } = render(<NetworkGraph {...props} grid={false} />);
+    expect(container.querySelector(".cj-network-graph__grid")).toBeNull();
+    rerender(<NetworkGraph {...props} gridTone="emerald" />);
+    // The tone lands on the graph box as the CSS variable the dots consume.
+    const box = container
+      .querySelector<HTMLElement>(".cj-network-graph__grid")!
+      .closest<HTMLElement>("[style*='--cj-network-graph-grid-color']");
+    expect(box).not.toBeNull();
+    expect(box?.style.getPropertyValue("--cj-network-graph-grid-color")).toBe(
+      "var(--color-emerald-500)",
+    );
+  });
+  it("accepts GridBackground overrides", () => {
+    const { container } = render(
+      <NetworkGraph
+        {...props}
+        grid={{ pattern: "grid", size: 48, dotSize: 3, opacity: 0.4 }}
+      />,
+    );
+    const grid = lattice(container);
+    expect(grid?.style.backgroundImage).toContain("linear-gradient");
+    expect(grid?.style.backgroundImage).not.toContain("radial-gradient(circle at 0 0");
+    expect(grid?.style.backgroundSize).toBe("48px 48px");
+    expect(grid?.style.opacity).toBe("0.4");
+  });
+  it("clamps a nonsense dot size instead of emitting NaN", () => {
+    const { container } = render(
+      <NetworkGraph {...props} grid={{ dotSize: Number.NaN }} />,
+    );
+    expect(lattice(container)?.style.backgroundImage).toContain("1px");
+  });
+  it("is decorative and never intercepts canvas pointer input", () => {
+    const { container } = render(<NetworkGraph {...props} />);
+    const host = container.querySelector<HTMLElement>(".cj-network-graph__grid");
+    expect(host?.style.pointerEvents).toBe("none");
+    expect(lattice(container)?.getAttribute("aria-hidden")).toBe("true");
+    // The canvas paints above the lattice: it is positioned and follows the
+    // lattice in DOM order within the same graph box.
+    const canvas = container.querySelector("canvas");
+    expect(canvas?.className).toContain("relative");
+    expect(
+      canvas?.compareDocumentPosition(
+        container.querySelector(".cj-network-graph__grid")!,
+      ),
+    ).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+  });
+});
+
+describe("NetworkGraph full size modes", () => {
+  it("keeps the fixed viewport height by default", () => {
+    const { container } = render(<NetworkGraph {...props} />);
+    const box = container.querySelector<HTMLElement>(
+      ".cj-network-graph__graph-box",
+    );
+    expect(box?.style.height).toBe("480px");
+    expect(box?.style.minHeight).toBe("480px");
+    expect((container.firstElementChild as HTMLElement).className).toContain(
+      "cj-network-graph--full-width",
+    );
+  });
+  it("hands the height to CSS with fullHeight", () => {
+    const { container } = render(
+      <NetworkGraph {...props} fullHeight inspector defaultSelectedNodeId="a" />,
+    );
+    const root = container.querySelector(".cj-network-graph")!;
+    expect(root.className).toContain("cj-network-graph--full-height");
+    const box = container.querySelector<HTMLElement>(
+      ".cj-network-graph__graph-box",
+    );
+    expect(box?.style.height).toBe("");
+    expect(box?.style.minHeight).toBe("");
+    // The panel body becomes a flex column so the box can absorb the height.
+    expect(root.querySelector("section")?.className).toContain("flex-col");
+  });
+  it("toggles the width classes with fullWidth", () => {
+    const { container, rerender } = render(<NetworkGraph {...props} />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain("cj-network-graph--full-width");
+    rerender(<NetworkGraph {...props} fullWidth={false} />);
+    expect(root.className).toContain("cj-network-graph--intrinsic-width");
+    expect(root.className).not.toContain("cj-network-graph--full-width");
+  });
+});
+
+describe("NetworkGraph loading skeleton", () => {
+  it("mirrors the real layout while loading", () => {
+    const { container } = render(<NetworkGraph {...props} loading />);
+    expect(screen.queryByRole("application")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading graph…");
+    const skeleton = container.querySelector(".cj-network-graph__skeleton");
+    expect(skeleton).not.toBeNull();
+    expect(skeleton?.getAttribute("aria-hidden")).toBe("true");
+    // Search bar, canvas surface with the zoom pill, legend column, captions.
+    expect(skeleton?.querySelectorAll("span.block")).not.toHaveLength(0);
+    expect(
+      skeleton?.querySelector(".cj-network-graph__graph-box > div"),
+    ).not.toBeNull();
+    expect(
+      skeleton?.querySelector(".cj-network-graph__skeleton-controls"),
+    ).not.toBeNull();
+    expect(
+      skeleton?.querySelectorAll(".cj-network-graph__skeleton-legend-row"),
+    ).toHaveLength(3); // select all + the two communities
+    expect(
+      skeleton?.querySelector(".cj-network-graph__skeleton-legend"),
+    ).not.toBeNull();
+  });
+  it("drops the legend column with showCommunities={false}", () => {
+    const { container } = render(
+      <NetworkGraph {...props} loading showCommunities={false} />,
+    );
+    expect(
+      container.querySelector(".cj-network-graph__skeleton-legend"),
+    ).toBeNull();
+  });
+  it("gives way to the real graph when loading ends", () => {
+    const { container, rerender } = render(<NetworkGraph {...props} loading />);
+    rerender(<NetworkGraph {...props} />);
+    expect(container.querySelector(".cj-network-graph__skeleton")).toBeNull();
+    expect(screen.getByRole("application")).toBeInTheDocument();
+  });
+});
+
+describe("NetworkGraph empty state", () => {
+  it("shows an icon empty state and hides the legend when there is no data", () => {
+    render(<NetworkGraph nodes={[]} edges={[]} communities={communities} />);
+    expect(screen.getByText("No visible nodes")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Load nodes into the graph/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Communities")).toBeNull();
+    // Nothing to restore when there never were nodes.
+    expect(screen.queryByRole("button", { name: "Select all" })).toBeNull();
+  });
+  it("hides the legend when every community is filtered out and offers a way back", () => {
+    const onlyCommunities = [
+      { id: "a", label: "Alpha", community: "one", x: -50, y: 0 },
+      { id: "b", label: "Beta", community: "two", x: 50, y: 0 },
+    ];
+    render(
+      <NetworkGraph nodes={onlyCommunities} edges={[]} communities={communities} />,
+    );
+    expect(screen.getByText("Communities")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select all" }));
+    // Empty graph, no legend — the EmptyState action is the way back.
+    expect(screen.queryByText("Communities")).toBeNull();
+    expect(screen.getByText("No visible nodes")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Select all" }));
+    expect(screen.getByText("Communities")).toBeInTheDocument();
+    expect(screen.queryByText("No visible nodes")).toBeNull();
+  });
+  it("keeps the emptyMessage override", () => {
+    render(
+      <NetworkGraph
+        nodes={[]}
+        edges={[]}
+        emptyMessage={<span>nothing here</span>}
+      />,
+    );
+    expect(screen.getByText("nothing here")).toBeInTheDocument();
+    expect(screen.queryByText("No visible nodes")).toBeNull();
   });
 });

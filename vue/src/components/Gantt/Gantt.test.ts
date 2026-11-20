@@ -574,6 +574,30 @@ describe("Gantt (Vue)", () => {
     expect(w.emitted("zoom-change")![0]).toEqual([5]);
   });
 
+  it("zooms to the Hour preset through the toolbar (controlled)", async () => {
+    const w = mountGantt({ zoom: 48, "onZoomChange": () => {} });
+    const hourBtn = w.findAll("button").find((b) => b.text() === "Hour");
+    expect(hourBtn).toBeTruthy();
+    await hourBtn!.trigger("click");
+    expect(w.emitted("zoom-change")).toBeTruthy();
+    expect(w.emitted("zoom-change")![0]).toEqual([288]);
+  });
+
+  it("merges hour labels into readable groups at the Hour preset", () => {
+    const w = mountGantt({ zoom: 288 });
+    // 12px hour columns → a label every 2 hours, centered over its pair.
+    // The scale spans the whole padded view range, so assert the merged
+    // pattern per day rather than an absolute count (12 labels per 24 hours).
+    const spans = w.findAll("[data-gantt-label-span]");
+    expect(spans.length).toBeGreaterThan(0);
+    expect(spans.length % 12).toBe(0);
+    for (const el of spans) expect(el.attributes("data-gantt-label-span")).toBe("2");
+    // Merged labels escape their narrow column box: nowrap overlays, no truncation.
+    const label = spans[0].find("span");
+    expect(label.text()).toMatch(/^\d+$/);
+    expect(label.classes()).toContain("whitespace-nowrap");
+  });
+
   it("emits nothing from a locked task drag", async () => {
     const locked = tasks.map((t) => (t.id === "api" ? { ...t, locked: true } : t));
     const w = mountGantt({ tasks: locked, editable: true });
@@ -596,7 +620,9 @@ describe("Gantt (Vue)", () => {
   });
 
   it("keeps the toolbar and the today marker in the detached header, out of the body scroller", () => {
-    const w = mountGantt();
+    // Pin `today` to the fixture date — the sample tasks are relative to
+    // NOW, and a real clock far outside the padded range hides the marker.
+    const w = mountGantt({ today: NOW });
     const scroller = w.find<HTMLElement>(".gantt-scroller").element;
     expect(scroller).toBeTruthy();
 

@@ -16,9 +16,11 @@ import Variants from "./examples/Variants";
 import variantsCode from "./examples/Variants.tsx?raw";
 import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
+import InRow from "./examples/InRow";
+import inRowCode from "./examples/InRow.tsx?raw";
 
 export const ComboboxPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Combobox"
       description="A text field that suggests without preventing: the list filters as you type, and whatever you leave in the field is the value. It renders `Input`, so the box, the sizes, the entry variants and the validation ring are the ones every other control in the kit uses — and it follows the ARIA combobox pattern, so the whole list is reachable from the keyboard."
@@ -59,6 +61,14 @@ export const ComboboxPage: React.FC = () => (
         filename="States.tsx"
       >
         <States />
+      </ExampleCard>
+      <ExampleCard
+        title="In a row"
+        description="Beside a two-line Picker in a FieldRow: the taller control sets the control band, the combobox grows to match and its clear button and caret ride the vertical centre."
+        code={inRowCode}
+        filename="InRow.tsx"
+      >
+        <InRow />
       </ExampleCard>
     </section>
     <PropsTable

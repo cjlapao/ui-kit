@@ -146,6 +146,7 @@ import { useKitLocale, useKitT } from "../../i18n";
 import {
   GANTT_MAX_ZOOM,
   GANTT_MIN_ZOOM,
+  GANTT_HOUR_PX_PER_DAY,
   GANTT_ZOOM_PRESETS,
   DEFAULT_ROW_HEIGHT,
   applyDragDates,
@@ -555,7 +556,14 @@ const liveReorder = computed<ReturnType<typeof applyRowReorder> | null>(() => {
 // Keyboard editing on the focused bar.
 const onBarKeyDown = (e: KeyboardEvent, task: GanttTask) => {
   if (!interactive.value || task.locked || !hasChangeListeners) return;
-  const stepMs = props.snap === "hour" ? 3_600_000 : props.snap === "week" ? 7 * MS_PER_DAY : MS_PER_DAY;
+  // Past the hour-fine threshold the grid is hourly, so day/none nudge by
+  // the hour too (mirrors `snapDate`'s auto-refine).
+  const stepMs =
+    props.snap === "week"
+      ? 7 * MS_PER_DAY
+      : props.snap === "hour" || zoom.value >= GANTT_HOUR_PX_PER_DAY
+        ? 3_600_000
+        : MS_PER_DAY;
   let ns = toMs(task.start);
   let ne = toMs(task.end);
   let handled = true;
@@ -1034,7 +1042,14 @@ const colJustify = (col: GanttColumn) =>
               <div
                 v-for="c in scaleLevels[scaleLevels.length - 1].columns"
                 :key="c.id"
-                class="absolute inset-y-0 border-r border-neutral-100 dark:border-neutral-800"
+                :class="
+                  classNames(
+                    'absolute inset-y-0 border-r',
+                    c.major
+                      ? 'border-neutral-300 dark:border-neutral-600'
+                      : 'border-neutral-100 dark:border-neutral-800',
+                  )
+                "
                 :style="{ left: dateToX(c.start, range.start, zoom), width: c.width }"
               />
             </template>

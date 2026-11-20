@@ -13,7 +13,7 @@ import BehindGlass from "./examples/BehindGlass";
 import behindGlassCode from "./examples/BehindGlass.tsx?raw";
 
 export const GradientBackdropPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Gradient Backdrop"
       description="A soft radial glow over a three-stop gradient — the backdrop to put glass and translucent components on. Six muted templates ship with the kit (Slate, Mist, Stone, Dune, Fog, Graphite), or pass your own theme. A theme can give only its light or only its dark colours: the other side is derived with a formula fitted on the templates (OKLCH lightness mirrored per colour role, hue kept). It follows the page's dark mode through CSS variables, with no JavaScript. React ships first; the Vue kit is a step behind."

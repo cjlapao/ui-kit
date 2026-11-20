@@ -16,7 +16,7 @@ import IconButtons from "./examples/IconButtons";
 import iconButtonsCode from "./examples/IconButtons.tsx?raw";
 
 export const TooltipPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Tooltip"
       description="A hover-and-focus hint rendered in a portal — zero impact on layout. It takes a preferred side and flips when there is no room, clamps inside the viewport, and slides its caret to keep pointing at the trigger. The geometry is shared with the Vue kit and tested as pure math."

@@ -17,6 +17,7 @@ import type {
   GanttTask,
   TrueColor,
 } from "./types";
+import { GANTT_HOUR_PX_PER_DAY } from "./types";
 import {
   daysBetween,
   msToIso,
@@ -74,13 +75,13 @@ export function applyDragDates(
     if (e - s < MIN_TASK_MS) e = s + MIN_TASK_MS;
   }
 
-  if (snap !== "none") {
-    if (state.kind === "resize-start") s = snapDate(s, snap);
-    else if (state.kind === "resize-end") e = snapDate(e, snap);
+  if (snap !== "none" || pxPerDay >= GANTT_HOUR_PX_PER_DAY) {
+    if (state.kind === "resize-start") s = snapDate(s, snap, pxPerDay);
+    else if (state.kind === "resize-end") e = snapDate(e, snap, pxPerDay);
     else {
       // move: snap the start edge, keep the duration.
       const dur = e - s;
-      s = snapDate(s, snap);
+      s = snapDate(s, snap, pxPerDay);
       e = s + dur;
     }
   }

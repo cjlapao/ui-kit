@@ -10,7 +10,7 @@ import CustomLine from "./examples/CustomLine";
 import customLineCode from "./examples/CustomLine.tsx?raw";
 
 export const EcgMonitorPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="ECG Monitor"
       description="A canvas ECG trace for service health — a steady rhythm when healthy, a jittered one when degraded, a flatline when down. The trace redraws every animation frame and falls back to a static frame under prefers-reduced-motion."

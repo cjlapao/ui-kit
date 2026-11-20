@@ -19,7 +19,7 @@ import TonedSeparators from "./examples/TonedSeparators";
 import tonedSeparatorsCode from "./examples/TonedSeparators.tsx?raw";
 
 export const HeaderGroupPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Header Group"
       description="Clusters related header controls. Adjacent groups get a separator automatically — a lone group never draws one."

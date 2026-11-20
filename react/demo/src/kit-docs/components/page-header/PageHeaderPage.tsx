@@ -17,7 +17,7 @@ import FloatingShell from "./examples/FloatingShell";
 import floatingShellCode from "./examples/FloatingShell.tsx?raw";
 
 export const PageHeaderPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Page Header"
       description="The bar across the top of the main column — the Toolbar's page-level sibling. Same start / center / end regions, but the furniture of a page (brand, breadcrumb, controls) and the SideMenu's own header chrome, so the seam line runs across the shell unbroken. The floating variants pair with the floating SideMenu as one detached-card system. (Not to be confused with the docs' own page-title block, which shares the name locally.)"

@@ -6,4 +6,6 @@ export type {
   NetworkGraphCommunity,
   NetworkGraphViewport,
   NetworkGraphProps,
+  NetworkGraphSelectionInfo,
+  NetworkGraphInspectorHelpers,
 } from "./types";

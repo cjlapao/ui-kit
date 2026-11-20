@@ -27,4 +27,20 @@ describe("AiRobot", () => {
     expect(robot.getAttribute("class")).toContain("text-rose-500");
   });
 
+  it("renders independently masked solid robots with animated cutouts and the selected tone", () => {
+    const { container } = render(<><AiRobot variant="solid" tone="blue" /><AiRobot variant="solid" tone="rose" paused /></>);
+    const robots = container.querySelectorAll("svg");
+    const masks = container.querySelectorAll("mask");
+    expect(masks).toHaveLength(2);
+    expect(masks[0].id).not.toBe(masks[1].id);
+    robots.forEach((robot, index) => {
+      expect(robot.querySelector(`path[mask="url(#${masks[index].id})"]`)).toBeTruthy();
+      expect(robot.querySelector("mask .cj-ai-robot-eyes")).toBeTruthy();
+      expect(robot.querySelectorAll(".cj-ai-robot-bar")).toHaveLength(6);
+    });
+    expect(robots[0].getAttribute("class")).toContain("text-blue-500");
+    expect(robots[1].getAttribute("class")).toContain("text-rose-500");
+    expect(robots[1].getAttribute("data-paused")).toBe("true");
+  });
+
 });

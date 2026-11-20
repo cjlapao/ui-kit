@@ -22,9 +22,11 @@ import EveryTone from "./examples/EveryTone";
 import everyToneCode from "./examples/EveryTone.tsx?raw";
 import Password from "./examples/Password";
 import passwordCode from "./examples/Password.tsx?raw";
+import InRow from "./examples/InRow";
+import inRowCode from "./examples/InRow.tsx?raw";
 
 export const InputPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Input"
       description="The text field. Surface, size and tone all come from the shared scales, so it lines up with the SearchBar, Select and Button beside it. Pair with FormField for labels, hints and errors."
@@ -89,6 +91,14 @@ export const InputPage: React.FC = () => (
         filename="Password.tsx"
       >
         <Password />
+      </ExampleCard>
+      <ExampleCard
+        title="In a row"
+        description="In a FieldRow the box fills the shared control band set by a taller neighbour and the text keeps its vertical centre — outside a row, lines={2} floors it at the same height."
+        code={inRowCode}
+        filename="InRow.tsx"
+      >
+        <InRow />
       </ExampleCard>
     </section>
 

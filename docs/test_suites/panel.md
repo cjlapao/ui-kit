@@ -414,3 +414,146 @@
 - data: specularMode=undefined, specularHighlight=undefined
 - expected: resolvedSpecularMode = "classic" (default hairline behavior preserved)
 - added: 2026-07-03 (loop specular-highlight-options)
+
+## TC-PNL-041 — React active prop exists and defaults to false
+- area: types/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Verify `active?: boolean;` in the PanelProps interface (with JSDoc)
+  2. Verify the destructuring default `active = false,`
+- data: N/A
+- expected: Prop declared after `clickable`, destructured with `= false`
+- added: 2026-11-19 (panel active state)
+
+## TC-PNL-042 — React active rim is an inset 2px outline in the active hue
+- area: behavior/react
+- preconditions: react/src/components/Panel.tsx; Theme.ts exports getSurfaceActiveTokens
+- steps:
+  1. Render `<Panel variant="elevated" tone="cyan" active>`
+  2. Inspect the section class list
+- data: tone=cyan
+- expected: `outline-2`, `-outline-offset-2`, `outline-cyan-500`, `dark:outline-cyan-400` present (never `border-2`/`ring-2`); `getSurfaceActiveTokens` walks against dist/index.css in themeSafelist.test.ts
+- added: 2026-11-19 (panel active state)
+
+## TC-PNL-043 — React active hue resolves borderColor ?? tone ?? blue
+- area: behavior/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel active>` (no tone) → expect outline-blue-500
+  2. Render `<Panel tone="cyan" borderColor="rose" active>` → expect outline-rose-500, not outline-cyan-500
+- data: tone=none/cyan, borderColor=rose
+- expected: Blue floor for untinted cards; borderColor wins over tone; dark copy uses -400
+- added: 2026-11-19 (panel active state)
+
+## TC-PNL-044 — React active fill follows the variant's own fill slot
+- area: behavior/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render active cards at tonal, glass, liquid-glass, elevated, outlined, subtle (tone=cyan)
+  2. Read the painted fill (surface-colour variable pair, or plain utility at transparency "high")
+- data: tone=cyan
+- expected: tonal → cyan-200/60; glass → bg-cyan-50/50 + dark:bg-cyan-500/15; liquid-glass → bg-cyan-50/30; elevated/outlined → cyan-50/80 pair; subtle → bg-cyan-50/80; outlined keeps `border` width, drops bg-white/90
+- added: 2026-11-19 (panel active state)
+
+## TC-PNL-045 — React explicit backgroundColor beats the active fill; rim still ignites
+- area: behavior/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel tone="cyan" active backgroundColor="rose">`
+- data: tone=cyan, backgroundColor=rose
+- expected: Fill paints rose-200 (no cyan surface-colour pair); outline-cyan-500 still present
+- added: 2026-11-19 (panel active state)
+
+## TC-PNL-046 — React active layers with hover wash and pressed step
+- area: behavior/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel tone="cyan" active onClick={fn}>`
+  2. Inspect class list
+- data: tone=cyan
+- expected: `outline-2` plus hover and active background steps both present in either spelling (`hover:bg-cyan-*` or `hover:[--ui-surface-color:var(--color-cyan-*)]`)
+- added: 2026-11-19 (panel active state)
+
+## TC-PNL-047 — React active rim stays visible under the disabled veil
+- area: behavior/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel tone="cyan" active disabled onClick={fn}>`
+- data: tone=cyan, disabled
+- expected: outline-2 + outline-cyan-500 still on the section; `data-active="true"` present
+- added: 2026-11-19 (panel active state)
+
+## TC-PNL-048 — React Panel publishes data-active and no new ARIA
+- area: a11y/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel active>` and `<Panel>`
+  2. Inspect section attributes
+- data: N/A
+- expected: `data-active="true"` only when active (absent otherwise); no role/aria-* added by `active` itself — caller owns `aria-pressed`
+- added: 2026-11-19 (panel active state)
+## TC-PNL-049 — React pulse prop exists and defaults to false
+- area: interaction/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel>` and inspect the section
+- data: N/A
+- expected: no `panel-pulse` class; `--panel-glow` / `--panel-glow-dark` unset
+- added: 2026-11-20 (panel attention pulse)
+
+## TC-PNL-050 — React pulse glows inward from the rim, hue on custom properties
+- area: interaction/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel tone="cyan" pulse>`
+  2. Inspect section classes and inline style
+- data: tone=cyan
+- expected: `panel-pulse` class present; `--panel-glow` = `var(--color-cyan-500)`, `--panel-glow-dark` = `var(--color-cyan-300)` — the keyframes are colour-agnostic, so no per-tone class shapes and no safelist entries
+- added: 2026-11-20 (panel attention pulse)
+
+## TC-PNL-051 — React pulse hue follows the accent rule borderColor ?? tone ?? blue
+- area: interaction/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel pulse>` (untinted)
+  2. Render `<Panel tone="cyan" borderColor="rose" pulse>`
+- data: untinted; tone=cyan + borderColor=rose
+- expected: (1) `--panel-glow` = `var(--color-blue-500)` — kit blue floor, never gray; (2) `var(--color-rose-500)` — borderColor wins, same rule as the active rim, so selected-and-pulsing cards agree
+- added: 2026-11-20 (panel attention pulse)
+
+## TC-PNL-052 — React disabled wins over the pulse (unlike the rim)
+- area: interaction/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel pulse disabled>`
+- data: disabled
+- expected: no `panel-pulse` class, no glow custom properties — an attention call on a dimmed card is a contradiction; the selection rim by contrast stays legible under the veil (TC-PNL-047)
+- added: 2026-11-20 (panel attention pulse)
+
+## TC-PNL-053 — React active and pulse coexist — same hue, different paint layers
+- area: interaction/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel tone="cyan" active pulse>`
+- data: tone=cyan
+- expected: outline rim (`outline-2`, `outline-cyan-500`) and `panel-pulse` both present; glow hue equals the rim hue — the box-shadow glow never fights the outline
+- added: 2026-11-20 (panel attention pulse)
+
+## TC-PNL-054 — React pulses on glass variants and on clickable cards, focus ring intact
+- area: interaction/react
+- preconditions: react/src/components/Panel.tsx exists
+- steps:
+  1. Render `<Panel variant="glass" pulse>` and `<Panel variant="liquid-glass" pulse>`
+  2. Render `<Panel pulse onClick={fn}>`
+- data: variants glass, liquid-glass; clickable
+- expected: `panel-pulse` on all three; the clickable card keeps `focus-visible:ring-2` — the keyframes re-composite the Tailwind shadow variables so rings and elevation survive the glow
+- added: 2026-11-20 (panel attention pulse)
+
+## TC-PNL-055 — React panel-pulse hook is guarded by the stylesheet contract
+- area: build/react
+- preconditions: react/src/styles.contract.test.ts exists
+- steps:
+  1. Run `vitest run src/styles.contract.test.ts`
+- data: CONTRACT_PREFIXES includes `panel-`
+- expected: every emitted `panel-*` raw hook has a rule in the styles.css closure — `.panel-pulse` (and its dark-theme and reduced-motion blocks) cannot silently stop shipping; reduced-motion keeps a static inner glow so *which* card matters still reads
+- added: 2026-11-20 (panel attention pulse)

@@ -221,7 +221,7 @@ const KeyTable: React.FC = () => (
 );
 
 export const A11yPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-10 px-4 py-8 sm:px-8">
     <PageHeader
       name="A11y"
       description="Accessibility is a first-class requirement of the kit, targeted at WCAG 2.1 AA. This page states what is supported, how every widget behaves on the keyboard, what screen readers hear today, and what consumers should do to keep their apps in an accessible state."

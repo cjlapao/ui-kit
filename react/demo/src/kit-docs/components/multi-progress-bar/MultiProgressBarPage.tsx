@@ -14,7 +14,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const MultiProgressBarPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Multi Progress Bar"
       description="A stacked breakdown bar: one quantity split into labelled shares. Hovering a segment dims the others and follows the cursor with its value, and the meter publishes its range and names every slice, so the numbers are reachable without a pointer. This absorbed MeterGroup, which drew the same picture without the hover behaviour."

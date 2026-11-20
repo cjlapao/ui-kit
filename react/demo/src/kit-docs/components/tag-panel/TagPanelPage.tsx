@@ -13,7 +13,7 @@ import Overflow from "./examples/Overflow";
 import overflowCode from "./examples/Overflow.tsx?raw";
 
 export const TagPanelPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Tag Panel"
       description="A titled group of pills with a collapse limit. The header's scale and the pills' scale are separate props — they used to share one, so a SectionSize reached a Pill that expects a PillSize."

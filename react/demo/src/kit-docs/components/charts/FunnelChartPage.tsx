@@ -8,7 +8,7 @@ import basicCode from "./examples/FunnelBasic.tsx?raw";
 import multiCode from "./examples/FunnelMulti.tsx?raw";
 
 export const FunnelChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Funnel"
       description="A self-contained conversion funnel — up to 6 stages, width proportional to value. Bright trapezoids with darker auto-derived connectors and a bottom arrow, values inside, conversion % between stages, stage names on dotted leaders."

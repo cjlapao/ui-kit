@@ -16,6 +16,8 @@ interface CanvasOptions {
   visible: Set<string>;
   selected: string | null;
   focused: string | null;
+  /** Node under the pointer: preview ring + label + un-dim, never selection. */
+  hovered: string | null;
   highlighted: Set<string>;
   tone: TrueColor;
   showLabels: boolean;
@@ -42,6 +44,7 @@ export function useNetworkCanvas(options: CanvasOptions) {
       visible,
       selected,
       focused,
+      hovered,
       highlighted,
       tone,
       showLabels,
@@ -119,6 +122,7 @@ export function useNetworkCanvas(options: CanvasOptions) {
       const active =
         node.id === selected ||
         node.id === focused ||
+        node.id === hovered ||
         neighbors?.has(node.id) ||
         pathNodes.has(node.id);
       ctx.globalAlpha =
@@ -139,10 +143,20 @@ export function useNetworkCanvas(options: CanvasOptions) {
         ctx.beginPath();
         ctx.arc(node.x, node.y, node.radius + 4 / v.zoom, 0, Math.PI * 2);
         ctx.stroke();
+      } else if (node.id === hovered) {
+        // Softer preview ring; selected/focused keep theirs alone.
+        ctx.strokeStyle = color(nodeTone(node));
+        ctx.globalAlpha = 0.9;
+        ctx.lineWidth = 1 / v.zoom;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius + 3 / v.zoom, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = active ? 1 : 0.22;
       }
       if (
         node.id === selected ||
         node.id === focused ||
+        node.id === hovered ||
         (showLabels && v.zoom >= 0.8 && nodes.length <= 250)
       ) {
         ctx.globalAlpha = 1;

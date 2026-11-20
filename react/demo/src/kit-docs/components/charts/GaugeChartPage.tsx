@@ -10,7 +10,7 @@ import gaugeCo2Code from "./examples/GaugeCo2.tsx?raw";
 import gaugeTempCode from "./examples/GaugeTemperature.tsx?raw";
 
 export const GaugeChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Gauge"
       description="A single reading on an arc track: value-space color zones (discrete bands or smooth ramps), optional outside ticks, a target marker, and a 270°/180°/full sweep. Updates morph the arc in place — pair with a live feed for burn-style guardrails."

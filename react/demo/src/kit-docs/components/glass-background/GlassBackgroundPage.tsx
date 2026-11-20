@@ -14,7 +14,7 @@ import AmbientOff from "./examples/AmbientOff";
 import ambientOffCode from "./examples/AmbientOff.tsx?raw";
 
 export const GlassBackgroundPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Glass Background"
       description="A full-bleed gradient layer that sits behind glass surfaces. Pick a primary tone (default blue), steer the gradient in eight directions, and layer ambient glows or a slow shimmer on top; the secondary and deep stops are derived neighbouring hues unless you override them. By default it fills the nearest positioned ancestor; switch it to fixed for a page-level backdrop."

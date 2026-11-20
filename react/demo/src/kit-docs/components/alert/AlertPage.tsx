@@ -14,7 +14,7 @@ import WithActions from "./examples/WithActions";
 import withActionsCode from "./examples/WithActions.tsx?raw";
 
 export const AlertPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Alert"
       description="Semantic callouts for things that need attention. The intent decides tone, icon and screen-reader politeness; the variant decides surface; the icon can sit at the top, the middle or the bottom; actions put the fix next to the problem."

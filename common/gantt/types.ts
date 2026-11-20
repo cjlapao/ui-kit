@@ -115,8 +115,9 @@ export type GanttSnap = "none" | "hour" | "day" | "week";
 
 /**
  * Zoom, expressed as pixels per day. Presets (see `GANTT_ZOOM_PRESETS`):
- * `day` = 48, `week` = 16, `month` = 5, `quarter` = 1.6. Continuous values in
- * between are valid — the time scale re-derives its header levels for any.
+ * `hour` = 288, `day` = 48, `week` = 16, `month` = 5, `quarter` = 1.6.
+ * Continuous values in between are valid — the time scale re-derives its
+ * header levels for any.
  */
 export type GanttZoom = number;
 
@@ -128,6 +129,7 @@ export interface GANTT_ZOOM_PRESET {
 
 /** Discrete zoom presets for the toolbar. */
 export const GANTT_ZOOM_PRESETS: GANTT_ZOOM_PRESET[] = [
+  { label: "Hour", value: 288 },
   { label: "Day", value: 48 },
   { label: "Week", value: 16 },
   { label: "Month", value: 5 },
@@ -136,7 +138,14 @@ export const GANTT_ZOOM_PRESETS: GANTT_ZOOM_PRESET[] = [
 
 /** Inclusive zoom bounds applied to wheel/button zoom. */
 export const GANTT_MIN_ZOOM = 0.4;
-export const GANTT_MAX_ZOOM = 96;
+export const GANTT_MAX_ZOOM = 576;
+
+/**
+ * Zoom (px per day) at which the timeline becomes "hour-fine": the header
+ * gains whole-hour columns (≥ 8 px per hour) and dragging refines day/none
+ * snapping to the hour. Drives both `pickBaseUnit` and `snapDate`.
+ */
+export const GANTT_HOUR_PX_PER_DAY = 192;
 
 /** Time scale header column. */
 export interface GanttTimeColumn {
@@ -151,11 +160,23 @@ export interface GanttTimeColumn {
   end: number;
   /** Rendered width in px. */
   width: number;
+  /**
+   * Day-boundary emphasis: true on the midnight hour column at the hour
+   * tier, so the scale and body grid draw a stronger border there.
+   */
+  major?: boolean;
+  /**
+   * Merged label: this column draws the level's label, centered across
+   * itself plus the next `labelSpan − 1` columns. Absent on levels that
+   * label every column, and on the unlabeled members of a merged level
+   * (borders still draw there).
+   */
+  labelSpan?: number;
 }
 
 /** A resolved time scale level (one row of headers). */
 export interface GanttTimeScaleLevel {
-  /** Stable level id: "year" | "quarter" | "month" | "week" | "day" */
+  /** Stable level id: "year" | "quarter" | "month" | "week" | "day" | "hour" */
   id: string;
   columns: GanttTimeColumn[];
 }

@@ -15,9 +15,11 @@ import Glass from "./examples/Glass";
 import glassCode from "./examples/Glass.tsx?raw";
 import Clickable from "./examples/Clickable";
 import clickableCode from "./examples/Clickable.tsx?raw";
+import NestedSurfaces from "./examples/NestedSurfaces";
+import nestedSurfacesCode from "./examples/NestedSurfaces.tsx?raw";
 
 export const PanelPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Panel"
       description="The shared container: nine surface treatments, media in four placements, badges, action buttons, decorations and loaders. Its standing look is the kit's container standard — the elevated variant, no tint by default, sm padding and the medium corner — and every other surface component takes its defaults from here. It also publishes a surface context, so nested content like FormField hints picks up copy that reads on the card it sits on — including glass."
@@ -47,6 +49,9 @@ export const PanelPage: React.FC = () => (
 <Panel variant="tonal" transparency="high">Original transparency</Panel>
 <Panel variant="glass" transparency="low">Less transparent glass</Panel>`}>
         <Transparency />
+      </ExampleCard>
+      <ExampleCard title="Nested surfaces" description="Matching simple, tonal, subtle, glass and liquid-glass panels automatically take a subtle background step. Set nestedSurface to false to keep the original fill." filename="NestedSurfaces.tsx" code={nestedSurfacesCode}>
+        <NestedSurfaces />
       </ExampleCard>
       <ExampleCard
         title="Media placements"

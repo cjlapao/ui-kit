@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import FilterBar, { type FilterBarProps } from "./FilterBar";
 
 afterEach(() => { cleanup(); vi.useRealTimers(); });
@@ -195,5 +195,69 @@ describe("FilterBar", () => {
     expect(screen.getByRole("menu", { name: "Filter by" })).toBeInTheDocument();
     fireEvent.keyDown(screen.getByRole("menuitem", { name: "Status" }), { key: "Escape" });
     expect(screen.getByRole("button", { name: "Add filter" })).toHaveFocus();
+  });
+
+  describe("loading", () => {
+    it("rests quiet by default — no overlay, no busy signal", () => {
+      setup();
+      expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
+      expect(screen.getByRole("group", { name: "Filters" })).not.toHaveAttribute("aria-busy");
+    });
+    it("dims the live bar under a labelled status overlay", () => {
+      setup({ loading: true, loaderType: "spinner" });
+      expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "Filters" })).toHaveAttribute("aria-busy", "true");
+      // The controls yield beneath the scrim, they don't vanish — the bar
+      // holds its shape from the first frame to the last. (`status` takes
+      // its name from the author, so the summary is asserted by text.)
+      expect(screen.getByRole("button", { name: "Add filter" })).toBeInTheDocument();
+      expect(screen.getByText("3 of 11 devices")).toBeInTheDocument();
+    });
+    it("names the overlay with loadingMessage", () => {
+      setup({ loading: true, loaderType: "spinner", loadingMessage: "Fetching devices" });
+      expect(screen.getByRole("status", { name: "Fetching devices" })).toBeInTheDocument();
+    });
+    it("fills the bar and publishes the value under loaderType=\"progress\"", () => {
+      setup({ loading: true, loaderType: "progress", loaderProgress: 40 });
+      const bar = within(screen.getByRole("status", { name: "Loading" })).getByRole("progressbar");
+      expect(bar).toHaveAttribute("aria-valuenow", "40");
+    });
+    it("defaults to rewriting the bar's pieces in placeholder ink", () => {
+      const { container } = setup({
+        loading: true, defaultValue: { status: ["online"] },
+        searchProps: { onSearch: vi.fn(), initialValue: "mac", autoSearch: false },
+      });
+      expect(screen.queryByRole("button", { name: "Add filter" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Search" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Status: Online" })).toBeNull();
+      // The skeleton carries no Loader overlay — the placeholders are the signal.
+      expect(screen.queryByRole("status")).toBeNull();
+      // The query survives the rewrite — the field is hidden, not unmounted,
+      // the same contract collapse uses.
+      expect(screen.getByDisplayValue("mac")).not.toBeVisible();
+      const skeleton = container.querySelector(".animate-pulse[aria-hidden='true']");
+      expect(skeleton).not.toBeNull();
+      // Search capsule, divider, label bar, two chips, add ring, summary —
+      // seven bars; the trailing flex spacer is not one.
+      expect(skeleton?.querySelectorAll(".block")).toHaveLength(7);
+    });
+    it("closes an open popup when the bar goes busy", () => {
+      const props = { filters, searchProps: { onSearch: vi.fn() }, filteredCount: 3, totalCount: 11, itemLabel: "devices" };
+      const { rerender } = render(<FilterBar {...props} />);
+      fireEvent.click(screen.getByRole("button", { name: "Add filter" }));
+      fireEvent.click(screen.getByRole("menuitem", { name: "Status" }));
+      fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Online" }));
+      rerender(<FilterBar {...props} loading loaderType="spinner" />);
+      // The overlay does not reach the portal — the popup cannot float over
+      // a busy bar, so the popup state yields with the rest of the controls.
+      expect(screen.queryByRole("menuitemcheckbox")).toBeNull();
+      // Spinner mode keeps the controls mounted beneath the scrim…
+      expect(screen.getByRole("button", { name: "Add filter" })).toBeInTheDocument();
+      rerender(<FilterBar {...props} loading loaderType="skeleton" />);
+      // …and skeleton replaces them outright.
+      expect(screen.queryByRole("button", { name: "Add filter" })).toBeNull();
+      rerender(<FilterBar {...props} />);
+      expect(screen.getByRole("button", { name: "Add filter" })).toBeInTheDocument();
+    });
   });
 });

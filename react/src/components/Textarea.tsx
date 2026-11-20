@@ -1,4 +1,5 @@
 import classNames from "classnames";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import {
   type ForwardedRef,
   type ReactNode,
@@ -162,6 +163,8 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const helpId = `${textareaId}-help`;
 
     const sizeToken = sizeTokens[size] ?? sizeTokens.md;
+    // In a `FieldRow` the shared control band owns the height.
+    const { inRow } = useFieldRow();
     const variantTokens = getInputVariantTokens(variant, tone, "auto", {
       explicitTone: toneProp,
     });
@@ -193,6 +196,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           variant === "underline" ? "px-0" : sizeToken.padding,
           sizeToken.text,
           sizeToken.minHeight,
+          inRow && "flex-1 min-h-0",
           focusClass,
           disabledClasses,
           resizeClass,
@@ -201,6 +205,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         ),
       [
         className,
+        inRow,
         focusClass,
         resizeClass,
         sizeToken.minHeight,
@@ -215,7 +220,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
     return (
       <div
-        className={classNames("flex flex-col gap-1.5", fullWidth && "w-full")}
+        className={classNames("flex flex-col gap-1.5", fullWidth && "w-full", inRow && "h-full")}
       >
         {label && (
           <label

@@ -101,6 +101,29 @@ export interface PanelProps {
    */
   hoverColor?: TrueColor;
   /**
+   * The sustained selected/current state: a 2px inset rim in the active hue
+   * and a light tone-tinted fill, on the variant's own fill scale. This is
+   * selection, not the pointer — the `hoverable` wash and the pressed step
+   * keep layering over it, and it stays visible under the `disabled` veil.
+   * The hue is `borderColor ?? tone`, with the kit's blue as floor when
+   * untinted; an explicit `backgroundColor` wins over the active fill while
+   * the rim still ignites. `data-active` is exposed for caller CSS.
+   * @default false
+   */
+  active?: boolean;
+  /**
+   * The attention call: a glow that swells INWARD from the card's own rim
+   * in the accent hue, clipped to the border-box and following the corner
+   * radius, so it never spills into the layout. On while set, off while
+   * `disabled` — a dimmed card may not demand attention, unlike the
+   * selection rim, which is information. The hue is the rim's
+   * `borderColor ?? tone` with the blue floor, so a card that is both
+   * `active` and pulsing always agrees. Reduced-motion users get a static
+   * inner glow instead of the swell.
+   * @default false
+   */
+  pulse?: boolean;
+  /**
    * Override the default border color.
    * If not provided, it defaults to the `tone` or `color` prop depending on variant.
    */
@@ -109,6 +132,8 @@ export interface PanelProps {
    * Override the default background color.
    */
   backgroundColor?: TrueColor;
+  /** Set false to keep the normal fill inside a matching parent panel. */
+  nestedSurface?: boolean;
   /**
    * controls if the panel body should be scrollable
    * @default true
@@ -185,11 +210,12 @@ const defaultActionColor: TrueColor = "blue";
 </script>
 
 <script setup lang="ts">
-import { computed, useSlots } from "vue";
+import { computed, inject, provide, useSlots } from "vue";
 import classNames from "classnames";
 import Button from "./Button.vue";
 import {
   getPanelToneStyles,
+  getSurfaceActiveTokens,
   getSurfaceCornerClass,
   getSurfaceHoverTokens,
   getSurfacePaddingClass,
@@ -201,6 +227,8 @@ import Loader from "./Loader.vue";
 
 import { useClassAttrs } from "../utils/attrsUtils";
 import VNodeRenderer from "./internal/VNodeRenderer";
+import { NestedPanelKey } from "../contexts/NestedPanelContext";
+import { nestedPanelSurface, NESTED_PANEL_WASH } from "../../../common/theme/nestedPanel";
 
 defineOptions({ name: "Panel", inheritAttrs: false });
 
@@ -208,6 +236,7 @@ const props = withDefaults(defineProps<PanelProps>(), {
   mediaPlacement: "top",
   actionLayout: "auto",
   variant: "elevated",
+  nestedSurface: true,
 
   padding: "md",
   corner: "rounded-sm",
@@ -225,6 +254,8 @@ const props = withDefaults(defineProps<PanelProps>(), {
    * had ever answered a pointer.
    */
   hoverable: undefined,
+  active: false,
+  pulse: false,
   decoration: "none",
   scrollable: true,
   vibrancy: "medium",
@@ -237,6 +268,9 @@ const slots = useSlots();
 const { classAttr, restAttrs } = useClassAttrs();
 
 const resolvedTone = computed(() => props.tone ?? props.color ?? "none");
+const parentPanel = inject(NestedPanelKey, null);
+const nestedPanel = computed(() => nestedPanelSurface(parentPanel?.value ?? null, props.variant, resolvedTone.value, props.nestedSurface && !props.backgroundColor));
+provide(NestedPanelKey, nestedPanel);
 const palette = computed(() => getPanelToneStyles(resolvedTone.value));
 const colorPalette = palette;
 const isHoverable = computed(
@@ -283,6 +317,40 @@ const hoverTokens = computed(() =>
 const isTintedHover = computed(() => hoverHue.value !== undefined);
 /** The Vue Panel has no `clickable` prop; an `onClick` in the attrs is its card action. */
 const isCardAction = computed(() => Boolean(restAttrs.value.onClick));
+
+/**
+ * The hue the active state wears: the caller's border hue, else the tone,
+ * else the kit's blue floor — an untinted card still activates in colour,
+ * never gray. `pulse` takes the same hue, so a card that is both selected
+ * and calling for attention always has its glow and its rim agree.
+ */
+const activeHue = computed<TrueColor>(
+  () => props.borderColor ?? (resolvedTone.value === "none" ? "blue" : resolvedTone.value),
+);
+const activePalette = computed(() => getPanelToneStyles(activeHue.value));
+// The active fill follows the variant's own fill slot — a tonal card
+// deepens tonally, a glass card stays glass, nothing flattens onto one
+// wash. An explicit `backgroundColor` beats it: caller's paint wins over
+// component state, while the rim still ignites.
+const activeFill = computed(() =>
+  props.active && !props.backgroundColor
+    ? props.variant === "tonal" || props.variant === "simple"
+      ? activePalette.value.tonalBg
+      : props.variant === "glass" || props.variant === "default"
+        ? activePalette.value.glassBg
+        : props.variant === "liquid-glass"
+          ? activePalette.value.liquidBg
+          : activePalette.value.subtleBg
+    : undefined,
+);
+// The 2px inset selection rim: an outline, not a border or a ring, so it
+// never fights the variant's resting width classes for one property.
+const activeRim = computed(() =>
+  props.active ? getSurfaceActiveTokens(activeHue.value).rim : undefined,
+);
+// `disabled` wins the pulse — the Pill's rule: the rim is information that
+// stays under the veil, the pulse is a demand a dimmed card may not make.
+const pulsing = computed(() => props.pulse && !props.disabled);
 
 const borderPalette = computed(() =>
   props.borderColor ? getPanelToneStyles(props.borderColor) : undefined,
@@ -335,6 +403,14 @@ const resolvedStyle = computed<CSSProperties>(() => {
         ? `${props.minHeight}px`
         : props.minHeight;
   }
+  if (pulsing.value) {
+    // The pulse's hue rides in the `--panel-glow` pair the `.panel-pulse`
+    // keyframes read; the alpha lives in their `color-mix`, so there are no
+    // per-tone class shapes to safelist — the Select accent precedent the
+    // pill follows. Dark prefers `--panel-glow-dark`.
+    (styles as Record<string, string>)["--panel-glow"] = `var(--color-${activeHue.value}-500)`;
+    (styles as Record<string, string>)["--panel-glow-dark"] = `var(--color-${activeHue.value}-300)`;
+  }
   return styles;
 });
 
@@ -373,41 +449,47 @@ const glassFillClass = computed(() => {
 const variantClasses = computed(() => getSurfaceTransparencyClasses(classNames((() => {
   switch (props.variant) {
     case "none":
-      return resolvedTone.value === "none" ? "" : palette.value.subtleBg;
+      return activeFill.value ?? (resolvedTone.value === "none" ? "" : palette.value.subtleBg);
     case "outlined":
       return classNames(
-        variantBaseStyles.outlined,
+        // Active swaps the base's white fill for the active tint; the
+        // hairline keeps its width and colour, and the 2px outline paints
+        // over it, so no double rim shows.
+        activeFill.value ? "border" : variantBaseStyles.outlined,
         effectiveBorderClass.value ?? palette.value.border,
+        activeFill.value,
       );
     case "subtle":
       return classNames(
         variantBaseStyles.subtle,
         effectiveBorderClass.value ?? palette.value.border,
-        effectiveBgClass.value ?? palette.value.subtleBg,
+        effectiveBgClass.value ?? activeFill.value ?? palette.value.subtleBg,
       );
     case "tonal":
       return classNames(
         variantBaseStyles.tonal,
-        effectiveBgClass.value ?? palette.value.tonalBg,
+        effectiveBgClass.value ?? activeFill.value ?? palette.value.tonalBg,
         effectiveBorderClass.value,
       );
     case "default":
       return classNames(
-        variantBaseStyles.default,
+        // Same fill-swap shape as `outlined`: keep the chrome, swap the fill.
+        activeFill.value ? "border backdrop-blur-xl shadow-2xl" : variantBaseStyles.default,
         effectiveBorderClass.value ?? "border border-white/40",
+        activeFill.value,
       );
     case "glass":
       return classNames(
         variantBaseStyles.glass,
         "border",
         effectiveBorderClass.value ?? colorPalette.value.glassBorder,
-        effectiveBgClass.value ?? palette.value.glassBg,
+        effectiveBgClass.value ?? activeFill.value ?? palette.value.glassBg,
       );
     case "liquid-glass":
       return classNames(
         "backdrop-blur-2xl ring-1 ring-transparent dark:ring-white/5",
         vibrancyClass.value,
-        glassFillClass.value,
+        activeFill.value ?? glassFillClass.value,
         effectiveBorderClass.value ?? palette.value.liquidBorder,
         palette.value.liquidShadow,
         palette.value.liquidHeading,
@@ -415,25 +497,23 @@ const variantClasses = computed(() => getSurfaceTransparencyClasses(classNames((
     case "simple":
       return classNames(
         variantBaseStyles.simple,
-        effectiveBgClass.value ?? palette.value.tonalBg,
+        effectiveBgClass.value ?? activeFill.value ?? palette.value.tonalBg,
         effectiveBorderClass.value,
       );
     case "elevated":
+    default: {
+      // A caller-supplied background replaces the variant's own white fill
+      // but keeps its shadow and ring; the active fill does the same on the
+      // active hue, and the caller's paint still beats it.
+      const elevatedFill = effectiveBgClass.value ?? activeFill.value;
       return classNames(
-        !effectiveBgClass.value && variantBaseStyles.elevated,
-        effectiveBgClass.value &&
-          "text-neutral-900 shadow-xl ring-1 ring-black/5 dark:text-neutral-100 dark:ring-white/10",
+        elevatedFill
+          ? "text-neutral-900 shadow-xl ring-1 ring-black/5 dark:text-neutral-100 dark:ring-white/10"
+          : variantBaseStyles.elevated,
         effectiveBorderClass.value,
-        effectiveBgClass.value,
+        elevatedFill,
       );
-    default:
-      return classNames(
-        !effectiveBgClass.value && variantBaseStyles.elevated,
-        effectiveBgClass.value &&
-          "text-neutral-900 shadow-xl ring-1 ring-black/5 dark:text-neutral-100 dark:ring-white/10",
-        effectiveBorderClass.value,
-        effectiveBgClass.value,
-      );
+    }
   }
 })(),
   // Both states go through the transparency rewrite together: a panel that
@@ -563,6 +643,13 @@ const sectionClass = computed(() =>
     (isHoverable.value || isCardAction.value) &&
       (props.disabled ? "cursor-not-allowed" : "cursor-pointer"),
     isHoverable.value && !props.disabled && hoverTokens.value.rim,
+    // The selection rim is not a hover answer — a selected card wears it
+    // disabled or not, and the outline layer ignores the variants' resting
+    // border/ring widths entirely.
+    activeRim.value,
+    // The attention glow is the stylesheet's inset box-shadow — its own
+    // paint layer, so hover wash, selection rim and pulse all read at once.
+    pulsing.value && "panel-pulse",
     classAttr.value,
   ),
 );
@@ -578,11 +665,13 @@ const resolvedSpecularMode = computed<PanelSpecularMode>(() => {
   <section
     :data-tone="resolvedTone"
     :data-variant="variant"
+    :data-active="active || undefined"
     :class="sectionClass"
     :aria-busy="loading"
     v-bind="restAttrs"
     :style="resolvedStyle"
   >
+    <div v-if="nestedPanel.depth > 0 && !isOverlay" aria-hidden="true" data-nested-panel-wash="" :class="classNames('pointer-events-none absolute inset-0', NESTED_PANEL_WASH[nestedPanel.depth])" />
     <template v-if="isOverlay">
       <div class="absolute inset-0 overflow-hidden">
         <div class="h-full w-full"><slot name="media" /></div>

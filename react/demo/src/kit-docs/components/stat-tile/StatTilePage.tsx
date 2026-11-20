@@ -8,7 +8,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const StatTilePage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Stat Tiles"
       description="The metric-tile family, all built on StatCard. Every tile inherits StatCardProps in full — variant, tone, size, padding, corner, decoration, label and value tone and scale, progress, loader, trend, meta, footer — and adds one thing of its own: a breakdown, rings, a donut, a chart, an ECG trace. Pick the variant in the playground; the controls below it are the base card's, shared with that page."

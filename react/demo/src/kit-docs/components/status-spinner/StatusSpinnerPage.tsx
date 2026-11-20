@@ -12,7 +12,7 @@ import OnGlass from "./examples/OnGlass";
 import onGlassCode from "./examples/OnGlass.tsx?raw";
 
 export const StatusSpinnerPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Status Spinner"
       description="A spinner with a glowing centre dot for async states. The ring rides the shared control scale, so it lines up with the Spinner or Button beside it; the tone is any of the 21 true colours, and the label is announced once, in the surface's own copy colour."

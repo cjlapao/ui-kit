@@ -11,6 +11,7 @@ import React, {
 import { createPortal } from "react-dom";
 import classNames from "classnames";
 import { useIconRenderer } from "../../contexts/IconContext";
+import { useFieldRow } from "../../contexts/FieldRowContext";
 import {
   DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
@@ -512,6 +513,8 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const resolvedPanelTone: SurfaceTone =
       panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone;
     const sizeToken = getFieldSizeTokens(size);
+    // In a `FieldRow` the shared control band owns the height.
+    const { inRow } = useFieldRow();
     const tokens = getFieldToneTokens(effectiveTone);
     const variantTokens = getInputVariantTokens(
       variant,
@@ -670,6 +673,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           !unstyled && !isUnderline && !hasStatus && tokens.focusRing,
           !unstyled && hasStatus && FIELD_STATUS_CLASSES[validationStatus],
           disabled && "cursor-not-allowed opacity-60",
+          inRow && "h-full",
           className,
         )}
       >
@@ -765,7 +769,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     // The gradient variant is the same field with a coloured glow behind it.
     if (variant === "gradient" && !unstyled) {
       return (
-        <span className={classNames("relative flex w-full", glow.pad)}>
+        <span className={classNames("relative flex w-full", glow.pad, inRow && "h-full")}>
           <span
             className={classNames(
               "absolute rounded-2xl leading-none transition-opacity duration-500",

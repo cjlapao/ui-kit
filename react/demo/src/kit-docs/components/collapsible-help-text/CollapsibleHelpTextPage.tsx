@@ -10,7 +10,7 @@ import InsideGlassPanel from "./examples/InsideGlassPanel";
 import insideGlassPanelCode from "./examples/InsideGlassPanel.tsx?raw";
 
 export const CollapsibleHelpTextPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Collapsible Help Text"
       description="Inline helper copy that truncates to a word-boundary summary and expands for more context. Renders a Panel, so it takes every container surface — plus a `plain` variant for no card at all."

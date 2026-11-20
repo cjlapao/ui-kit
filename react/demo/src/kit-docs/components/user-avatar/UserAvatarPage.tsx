@@ -11,7 +11,7 @@ import Content from "./examples/Content";
 import contentCode from "./examples/Content.tsx?raw";
 
 export const UserAvatarPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="User Avatar"
       description="A person, PrimeVue's four ways and ours: image, icon, label, or a template — with a user object, a toned initial or glyph fallback, and an accessible name in every branch. PrimeVue drop-in parity: `label`, `icon`, `image`, `onError`, the `normal`/`large`/`xlarge` sizes, and children as the template slot."

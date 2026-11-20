@@ -15,7 +15,7 @@ import Floating from "./examples/Floating";
 import floatingCode from "./examples/Floating.tsx?raw";
 
 export const SidePanelPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Side Panel"
       description="A panel docked to either edge of its container. It overlays rather than occupying a column, so opening it never reflows the content beside it, and it can be drag-resized. `overlay` dims the rest of the container behind a click-to-close scrim. Uses the same surface variants as Panel and the workflow rail, plus the kit's tone and size scales."

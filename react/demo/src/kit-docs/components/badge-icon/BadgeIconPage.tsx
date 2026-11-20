@@ -14,7 +14,7 @@ import Tones from "./examples/Tones";
 import tonesCode from "./examples/Tones.tsx?raw";
 
 export const BadgeIconPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Badge Icon"
       description="An icon button with a badge indicator pinned to one of its four corners. Pass a count, a dot, or any custom badge node — the count, overflow cap and tone come from the Badge vocabulary via badgeProps, and the button itself is a full IconButton, so every of its props (variant, size, loading, onClick) works as usual."

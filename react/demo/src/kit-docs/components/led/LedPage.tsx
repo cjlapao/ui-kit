@@ -12,7 +12,7 @@ export default function LedPage() {
   const [animation, setAnimation] = useState<LedAnimation>("pulse");
   const [variant, setVariant] = useState<LedVariant>("lit");
   const [lit, setLit] = useState(true), [glowIntensity, setGlowIntensity] = useState(1), [duration, setDuration] = useState(1600);
-  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader name="LED" description="A compact signal light with a colored core and soft halo. Shared real-color tones adapt to light and dark themes. Motion stays within a fixed footprint." />
     <PlaygroundPanel controls={<div className="space-y-4">
       <Control label="Tone"><ColorSwatches selectable value={tone} onSelect={setTone} size="sm" /></Control>

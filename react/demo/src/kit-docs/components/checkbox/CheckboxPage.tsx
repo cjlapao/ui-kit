@@ -23,7 +23,7 @@ import EveryTone from "./examples/EveryTone";
 import everyToneCode from "./examples/EveryTone.tsx?raw";
 
 export const CheckboxPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Checkbox"
       description="A drawn checkbox — the box, tick and dash are the kit's own, so they follow the tone in both themes. The native input is still underneath, keeping focus, keyboard behaviour and form participation. The variant changes the rest surface (the box you see when it is *off*); the checked fill is the tone everywhere."

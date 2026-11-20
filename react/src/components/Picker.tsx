@@ -10,6 +10,7 @@ import React, {
 import { createPortal } from "react-dom";
 import classNames from "classnames";
 import { ScrollArea } from "./ScrollArea";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import { useKitT } from "../i18n";
 import Pill from "./Pill";
 import Panel from "./Panel";
@@ -30,6 +31,7 @@ import {
   type SurfaceCorner,
   type SurfaceTone,
   type SurfaceVariant,
+  getFieldMinHeightClass,
   getFieldSizeTokens,
   getFieldToneTokens,
   getGlowTokens,
@@ -275,6 +277,13 @@ export interface PickerProps {
   fullWidth?: boolean;
   /** When true, the picker fills all available vertical space. Default: false */
   fullHeight?: boolean;
+  /**
+   * Trigger line reservation. `2` keeps the trigger tall enough for title +
+   * subtitle in every state (placeholder, loading, selected) so the row it
+   * sits in never jumps; `1` opts out. Unset auto-detects: any item with a
+   * `subtitle` or `body` reserves the second line.
+   */
+  lines?: 1 | 2;
 }
 
 // ── Picker ────────────────────────────────────────────────────────────────────
@@ -314,6 +323,7 @@ const Picker: React.FC<PickerProps> = ({
   size = "md",
   fullWidth = true,
   fullHeight = false,
+  lines,
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -345,6 +355,16 @@ const Picker: React.FC<PickerProps> = ({
   // The field system, shared with Input, Select and SearchBar — so a Picker
   // stacked beside any of them lines up and focuses identically.
   const sizeToken = getFieldSizeTokens(size);
+  // Height resolution. `lines` wins outright; otherwise any item with a
+  // subtitle/body keeps the trigger tall in *every* state — placeholder and
+  // loading included — so a row built around the picker never jumps.
+  // `inRow` opts the trigger into the FieldRow's shared control band.
+  const { inRow } = useFieldRow();
+  const growsFull = fullHeight || inRow;
+  const reservedLines =
+    lines ?? (items.some((i) => i.subtitle != null || i.body != null) ? 2 : 1);
+  const triggerMinHeight =
+    reservedLines === 2 ? getFieldMinHeightClass(size, 2) : "";
   const fieldTokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
     explicitTone: tone ?? color,
@@ -1157,7 +1177,8 @@ const Picker: React.FC<PickerProps> = ({
         // `group`, so the tone's `group-focus-within:` icon accent reaches the
         // chevron the same way it reaches an Input's leading icon.
         "group relative flex w-full items-center text-left transition",
-        fullHeight && "h-full",
+        growsFull && "h-full",
+        triggerMinHeight,
         // Underline drops the horizontal padding - there is no box to inset
         // from - exactly as Input lays it out.
         isUnderline
@@ -1308,7 +1329,7 @@ const Picker: React.FC<PickerProps> = ({
         className={classNames(
           "relative flex w-full",
           glow.pad,
-          fullHeight && "h-full",
+          growsFull && "h-full",
         )}
       >
         <span
@@ -1332,7 +1353,7 @@ const Picker: React.FC<PickerProps> = ({
     <div
       className={classNames(
         fullWidth ? "w-full" : "w-fit",
-        fullHeight && "h-full",
+        growsFull && "h-full",
       )}
     >
       {framed}

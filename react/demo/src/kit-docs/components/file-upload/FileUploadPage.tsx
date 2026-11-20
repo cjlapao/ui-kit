@@ -4,7 +4,7 @@ import { ExampleCard } from "../../shared/ExampleCard";
 import { PropsTable } from "../../shared/A11ySections";
 import { IdentityPickerPlayground } from "../identity-picker/IdentityPickerPlayground";
 export default function FileUploadPage() {
-  return <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8">
     <PageHeader name="File Upload" description="A local file-selection component with drag/drop, native browse, validation, image previews and removal. Upload requests stay app-owned. Returns File[] instead of an identity value." />
     <IdentityPickerPlayground fileOnly />
     <ExampleCard title="Multiple attachments" description="Choose files repeatedly to append, or drop a batch. Each rejected file reports its reason; valid files are retained." filename="Attachments.tsx" code={'<FileUpload multiple maxFiles={4} maxSize={5 * 1024 * 1024}\n  onChange={(files) => setAttachments(files)} />'}><div className="w-full max-w-xl"><FileUpload multiple maxFiles={4} maxSize={5 * 1024 * 1024} /></div></ExampleCard>

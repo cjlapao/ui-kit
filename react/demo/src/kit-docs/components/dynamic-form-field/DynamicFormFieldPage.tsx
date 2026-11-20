@@ -16,7 +16,7 @@ import Validation from "./examples/Validation";
 import validationCode from "./examples/Validation.tsx?raw";
 
 export const DynamicFormFieldPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Dynamic Form Field"
       description="One blueprint parameter, rendered as the control its value type calls for — text, secret, number, checkbox, select, list or key/value map. The label, the required marker, the hint and the error all come from `FormField`, the card defaults to the kit&rsquo;s elevated surface in the default blue, and the entry inside it follows the card."

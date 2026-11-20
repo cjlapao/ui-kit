@@ -25,6 +25,7 @@ import type {
   TrueColor,
 } from "../theme/Theme";
 import { useKitT } from "../i18n";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import type { PillCorner } from "./Pill";
 
 /**
@@ -376,6 +377,9 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     gradientTo,
   );
   const sizeTokens = SIZE_STYLES[size] ?? SIZE_STYLES.md;
+  // In a `FieldRow` the shared control band owns the height; the cells
+  // stay their ladder size and ride centred in it.
+  const { inRow } = useFieldRow();
 
   const cellClass = classNames(
     "block appearance-none border p-0 text-center font-semibold outline-none transition disabled:cursor-not-allowed disabled:opacity-50",
@@ -434,6 +438,7 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
       className={classNames(
         "inline-flex items-center",
         sizeTokens.gap,
+        inRow && "h-full",
         className,
       )}
       {...rest}

@@ -43,6 +43,7 @@ export type { IconComponent } from "./icons/customRegistry";
 
 // Default exports not covered by `export *`
 export { default as MultiToggle } from "./components/MultiToggle";
+export { default as IconToggleGroup } from "./components/IconToggleGroup";
 
 // Icon components — explicit re-exports for Rollup compatibility
 // (these are available via `export * from "./icons"` but Rollup can't
@@ -56,4 +57,4 @@ export { ViewGrid } from "./icons/components/ViewGrid";
 export { Globe } from "./icons/components/Globe";
 
 export { NetworkGraph, findNetworkPath } from "./components/NetworkGraph";
-export type { NetworkGraphNode, NetworkGraphEdge, NetworkGraphCommunity, NetworkGraphViewport, NetworkGraphProps } from "./components/NetworkGraph";
+export type { NetworkGraphNode, NetworkGraphEdge, NetworkGraphCommunity, NetworkGraphViewport, NetworkGraphProps, NetworkGraphSelectionInfo, NetworkGraphInspectorHelpers } from "./components/NetworkGraph";

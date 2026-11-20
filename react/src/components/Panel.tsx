@@ -8,6 +8,7 @@ import {
   DEFAULT_SURFACE_TONE,
   SURFACE_NEUTRAL_HOVER,
   getPanelToneStyles,
+  getSurfaceActiveTokens,
   getSurfaceCornerClass,
   getSurfaceHoverTokens,
   getSurfacePaddingClass,
@@ -37,6 +38,8 @@ import {
   type GlassVibrancy,
 } from "../theme/glass";
 import { SurfaceProvider } from "../contexts/SurfaceContext";
+import { NestedPanelContext } from "../contexts/NestedPanelContext";
+import { nestedPanelSurface, NESTED_PANEL_WASH } from "../../../common/theme/nestedPanel";
 
 /**
  * The shared container surface set, from the theme. Aliased rather than
@@ -74,6 +77,8 @@ export interface PanelAction extends Pick<
 > {
   id?: string;
   label: React.ReactNode;
+  /** Toggle-style actions: renders `aria-pressed` on the Button. */
+  pressed?: boolean;
   onClick?: ButtonProps["onClick"];
   className?: string;
 }
@@ -178,6 +183,40 @@ export interface PanelProps extends Omit<
    */
   clickable?: boolean;
   /**
+   * The sustained selected/current state: a 2px inset rim in the active hue
+   * and a light tone-tinted fill, on the variant's own fill scale.
+   *
+   * This is selection, not the pointer — the `hoverable` wash and the
+   * pressed step keep layering over it, and it stays visible under the
+   * `disabled` veil, because a selected card that becomes disabled should
+   * still read as selected. The hue is `borderColor ?? tone`, with the kit's
+   * blue as floor when untinted; an explicit `backgroundColor` wins over the
+   * active fill (caller's paint beats state) while the rim still ignites.
+   *
+   * The Panel publishes no new ARIA for it — where the card is a toggle the
+   * caller owns that (`aria-pressed` on the card or its body control), as
+   * `MemoryCard` does. `data-active` is exposed for caller CSS.
+   * @default false
+   */
+  active?: boolean;
+  /**
+   * The attention call: a glow that swells INWARD from the card's own rim
+   * in the accent hue, the Pill's pulse at container scale. Inward is the
+   * point, not a detail — the inset shadow is clipped to the border-box and
+   * follows the corner radius, so the call never spills into the layout.
+   *
+   * On while set, off while `disabled`: an attention call on a card the app
+   * itself has dimmed is a contradiction (unlike the selection rim, which
+   * stays legible under the veil — selection is information, the pulse is a
+   * demand, and a dimmed card may not demand). The hue is the shared accent
+   * rule, `borderColor ?? tone` with the kit's blue as floor, so on a card
+   * that is both `active` and pulsing the glow and the rim always agree.
+   * Reduced-motion users get a static inner glow instead of the swell, so
+   * *which* card matters still reads.
+   * @default false
+   */
+  pulse?: boolean;
+  /**
    * @deprecated Renamed to `tone`. Still honoured as an alias — when `tone`
    * is absent it becomes the tone — so `color="rose"` finally does what it
    * reads like it does. It also keeps hinting `hoverColor`, as before.
@@ -202,6 +241,8 @@ export interface PanelProps extends Omit<
    * Override the default background color.
    */
   backgroundColor?: TrueColor;
+  /** Set false to keep the normal fill inside a matching parent panel. */
+  nestedSurface?: boolean;
   /**
    * controls if the panel body should be scrollable
    * @default true
@@ -554,6 +595,8 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     decoration = "none",
     hoverable,
     clickable,
+    active = false,
+    pulse = false,
     // Pulled out of `rest` so the card can wrap them. `onClick` becomes the
     // guarded handler below; `role`, `tabIndex` and `onKeyDown` are the
     // caller's overrides, and they win over what a clickable card would have
@@ -573,6 +616,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     hoverColor,
     borderColor,
     backgroundColor,
+    nestedSurface = true,
     scrollable = true,
     vibrancy = "medium",
     glassOpacity = "frosted",
@@ -584,6 +628,8 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
 ) {
   // The deprecated `color` prop is honoured as an alias of `tone`.
   const resolvedTone = resolvePanelTone(tone, color);
+  const parentPanel = React.useContext(NestedPanelContext);
+  const nestedPanel = nestedPanelSurface(parentPanel, variant, resolvedTone, nestedSurface && !backgroundColor);
   const palette = getPanelToneStyles(resolvedTone);
   // A translucent card composites over whatever the app puts behind it, so the
   // light end of the neutral scale disappears — subtitles and descriptions on
@@ -730,6 +776,37 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     return undefined;
   })();
 
+  // The hue the active state wears: the caller's border hue, else the tone,
+  // else the kit's blue floor — an untinted card still activates in colour,
+  // never gray.
+  const activeHue: TrueColor =
+    borderColor ?? (resolvedTone === "none" ? "blue" : resolvedTone);
+  const activePalette = getPanelToneStyles(activeHue);
+  // The active fill follows the variant's own fill slot — the same per-variant
+  // map `backgroundColor` uses — so a tonal card deepens tonally, a glass card
+  // stays glass, and nothing flattens onto one wash. An explicit
+  // `backgroundColor` beats it: caller's paint wins over component state,
+  // while the rim still ignites.
+  const activeFill =
+    active && !backgroundColor
+      ? variant === "tonal" || variant === "simple"
+        ? activePalette.tonalBg
+        : variant === "glass" || variant === "default"
+          ? activePalette.glassBg
+          : variant === "liquid-glass"
+            ? activePalette.liquidBg
+            : activePalette.subtleBg
+      : undefined;
+  // The 2px inset selection rim. An outline, not a border or a ring, so it
+  // never fights the variant's resting width classes for one property — see
+  // `getSurfaceActiveTokens` for the full reasoning.
+  const activeRim = active ? getSurfaceActiveTokens(activeHue).rim : undefined;
+  // The attention call rides beside the selection state: `disabled` wins,
+  // the Pill's rule — the rim is information that stays under the veil, the
+  // pulse is a demand that a dimmed card may not make. Its hue is the rim's
+  // `activeHue`, so selected-and-pulsing cards always agree.
+  const pulsing = pulse && !disabled;
+
   const isOverlay = mediaPlacement === "overlay" && Boolean(media);
   const hasMedia = Boolean(media);
   // Decoration is suppressed in overlay mode since the image + gradient already provide impact
@@ -748,6 +825,16 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
       styles.minHeight =
         typeof minHeight === "number" ? `${minHeight}px` : minHeight;
     }
+    if (pulsing) {
+      // The hue travels as a custom property, the Select accent precedent
+      // the pill follows: the keyframes stay colour-agnostic, no per-tone
+      // class shapes to safelist, and the dark copy rides a step brighter
+      // because the variants' dark fills are dark.
+      Object.assign(styles, {
+        "--panel-glow": `var(--color-${activeHue}-500)`,
+        "--panel-glow-dark": `var(--color-${activeHue}-300)`,
+      } as React.CSSProperties);
+    }
     return styles;
   })();
 
@@ -760,34 +847,44 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   const variantClasses = getSurfaceTransparencyClasses(classNames((() => {
     switch (variant) {
       case "none":
-        return resolvedTone === "none" ? "" : palette.subtleBg;
+        return (
+          activeFill ?? (resolvedTone === "none" ? "" : palette.subtleBg)
+        );
       case "outlined":
         return classNames(
-          variantBaseStyles.outlined,
+          // Active swaps the base's white fill for the active tint; the
+          // hairline keeps its width and colour, and the 2px outline paints
+          // over it, so no double rim shows.
+          activeFill ? "border" : variantBaseStyles.outlined,
           effectiveBorderClass ?? palette.outlineBorder,
+          activeFill,
         );
       case "subtle":
         return classNames(
           variantBaseStyles.subtle,
           effectiveBorderClass ?? palette.border,
-          effectiveBgClass ?? palette.subtleBg,
+          effectiveBgClass ?? activeFill ?? palette.subtleBg,
         );
       case "tonal":
         return classNames(
           variantBaseStyles.tonal,
-          effectiveBgClass ?? palette.tonalBg,
+          effectiveBgClass ?? activeFill ?? palette.tonalBg,
           effectiveBorderClass,
         );
       case "default":
         return classNames(
-          variantBaseStyles.default,
+          // Same fill-swap shape as `outlined`: keep the chrome, swap the fill.
+          activeFill
+            ? "border backdrop-blur-xl shadow-2xl"
+            : variantBaseStyles.default,
           effectiveBorderClass ?? GLASS_RIM,
+          activeFill,
         );
       case "glass":
         return classNames(
           variantBaseStyles.glass,
           effectiveBorderClass ?? GLASS_RIM,
-          effectiveBgClass ?? palette.glassBg,
+          effectiveBgClass ?? activeFill ?? palette.glassBg,
         );
       case "liquid-glass":
         return classNames(
@@ -795,7 +892,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           // rendered and the panel had no rim at all.
           variantBaseStyles["liquid-glass"],
           vibrancyClass,
-          glassFillClass,
+          activeFill ?? glassFillClass,
           effectiveBorderClass ?? palette.liquidBorder,
           palette.liquidShadow,
           palette.liquidHeading,
@@ -803,22 +900,25 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
       case "simple":
         return classNames(
           variantBaseStyles.simple,
-          effectiveBgClass ?? palette.tonalBg,
+          effectiveBgClass ?? activeFill ?? palette.tonalBg,
           effectiveBorderClass,
         );
       // `elevated` is also the fallback — the two branches used to be
       // byte-identical copies.
       case "elevated":
-      default:
+      default: {
+        // A caller-supplied background replaces the variant's own white fill
+        // but keeps its shadow and ring; the active fill does the same on the
+        // active hue, and the caller's paint still beats it.
+        const elevatedFill = effectiveBgClass ?? activeFill;
         return classNames(
-          // A caller-supplied background replaces the variant's own white fill
-          // but keeps its shadow and ring.
-          effectiveBgClass
+          elevatedFill
             ? "shadow-xl ring-1 ring-black/5 dark:ring-white/10"
             : variantBaseStyles.elevated,
           effectiveBorderClass,
-          effectiveBgClass,
+          elevatedFill,
         );
+      }
     }
   })(),
     // Both states go through the transparency rewrite together. A panel that
@@ -949,6 +1049,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   const actionsSection =
     actions && actions.length > 0 ? (
       <div
+        data-panel-actions=""
         className={classNames(
           "flex pt-3",
           actionWrapperLayout[actionLayout],
@@ -959,6 +1060,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           const {
             id,
             label,
+            pressed,
             className: actionClassName,
             color,
             size,
@@ -972,6 +1074,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
               key={key}
               color={color ?? defaultActionColor}
               size={size ?? "md"}
+              aria-pressed={pressed}
               className={classNames(responsiveWidth, actionClassName)}
               {...buttonProps}
             >
@@ -1048,6 +1151,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   // Published so nested content — FormField hints, dividers, anything using
   // `useSurfaceText` — knows whether it is sitting on a see-through card.
   return (
+    <NestedPanelContext.Provider value={nestedPanel}>
     <SurfaceProvider variant={variant}>
       <section
         ref={setSectionRef}
@@ -1088,11 +1192,21 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           // visually while refusing it functionally reads as a bug. The pressed
           // step is applied with the wash, inside the transparency rewrite.
           isHoverable && !disabled && hoverTokens.rim,
+          // The selection rim is not a hover answer — a selected card wears it
+          // disabled or not, and the outline layer ignores the variants'
+          // resting border/ring widths entirely.
+          activeRim,
+          // The attention glow is the stylesheet's inset box-shadow — its
+          // own paint layer, so hover wash, pressed step, selection rim and
+          // pulse all read at once, and the keyframes re-composite the
+          // variant's resting shadows so none of them is lost.
+          pulsing && "panel-pulse",
           className,
         )}
         style={resolvedStyle}
         data-variant={variant}
         data-tone={resolvedTone}
+        data-active={active || undefined}
         aria-busy={loading}
         {...rest}
         role={role ?? (isClickable ? "button" : undefined)}
@@ -1124,6 +1238,9 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
           (isClickable && !disabled && onClick ? handleCardKeyDown : undefined)
         }
       >
+        {nestedPanel.depth > 0 && !isOverlay && (
+          <div aria-hidden="true" data-nested-panel-wash="" className={classNames("pointer-events-none absolute inset-0", NESTED_PANEL_WASH[nestedPanel.depth])} />
+        )}
         {isOverlay && !showSkeleton && (
           <>
             <div className="absolute inset-0 overflow-hidden">
@@ -1261,6 +1378,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
         )}
       </section>
     </SurfaceProvider>
+    </NestedPanelContext.Provider>
   );
 });
 

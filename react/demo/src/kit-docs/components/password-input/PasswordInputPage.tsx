@@ -16,7 +16,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const PasswordInputPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Password Input"
       description="An Input that masks its value, with a reveal toggle in the trailing slot. It is the same control: every variant, size, tone, validation state, icon and native attribute behaves identically, and the field markup is asserted to match a bare Input at the same settings."

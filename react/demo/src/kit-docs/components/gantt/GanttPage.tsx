@@ -16,10 +16,10 @@ import DenseRoutingExample from "./examples/DenseRouting";
 import denseRoutingCode from "./examples/DenseRouting.tsx?raw";
 
 export const GanttPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Gantt Chart"
-      description="A fully interactive, feature-rich Gantt. Drag bars to move, drag the edges to resize, drag the right-edge handle to draw a dependency, drag the row grip to reorder, and drag the progress knob to set percent complete. Swimlanes group rows into collapsible bands, parent tasks roll up their children's span and progress, and a multi-scale header (day → week → month → quarter) stays anchored as you zoom with the toolbar or Ctrl/Cmd + scroll."
+      description="A fully interactive, feature-rich Gantt. Drag bars to move, drag the edges to resize, drag the right-edge handle to draw a dependency, drag the row grip to reorder, and drag the progress knob to set percent complete. Swimlanes group rows into collapsible bands, parent tasks roll up their children's span and progress, and a multi-scale header (hour → day → week → month → quarter) stays anchored as you zoom with the toolbar or Ctrl/Cmd + scroll."
     />
     <GanttPlayground />
 

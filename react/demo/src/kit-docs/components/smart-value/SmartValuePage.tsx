@@ -6,7 +6,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const SmartValuePage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Smart Value"
       description="The read-only twin of SmartInput: a value's tokens rendered as badges, with a toggle between the token and what it resolves to. Both render through SmartValueParts, so they cannot drift."

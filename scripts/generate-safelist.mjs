@@ -650,6 +650,14 @@ src(`@source inline("dark:hover:border-{COLOR}-500/50");`);
 src(`@source inline("dark:hover:ring-{COLOR}-500/30");`);
 L("");
 
+// ── Panel active state — getSurfaceActiveTokens() in Theme.ts ────
+// The selected card's 2px inset rim. `outline-2` and `-outline-offset-2` are
+// core utilities; only the two colour shapes are tone-interpolated. They ride
+// with the width, never alone — a colour-only outline utility paints nothing.
+src(`@source inline("outline-{COLOR}-500");`);
+src(`@source inline("dark:outline-{COLOR}-400");`);
+L("");
+
 // Surface transparency uses variables instead of opacity on the whole panel.
 // The colour and alpha utilities must exist even when consumers choose a tone
 // or numeric glass preset that the demo never renders. `active:` joins the prefix

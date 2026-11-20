@@ -144,6 +144,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     ),
   },
   {
+    slug: "grid-background",
+    name: "Grid Background",
+    description:
+      "A decorative square lattice — lines, or dots on their cardinal points — with the spacing, colour and edge fade you set.",
+    icon: "ViewGrid",
+    category: "Layout",
+    Page: lazy(() => import("./components/grid-background/GridBackgroundPage")),
+  },
+  {
     slug: "panel",
     name: "Panel",
     description:
@@ -362,6 +371,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "File",
     category: "Forms",
     Page: lazy(() => import("./components/form/FormPage")),
+  },
+  {
+    slug: "field-row",
+    name: "FieldRow",
+    description:
+      "A toolbar row for controls of different heights — shared label, control and note bands, so a two-line picker sizes them all.",
+    icon: "ViewRows",
+    category: "Forms",
+    Page: lazy(() => import("./components/field-row/FieldRowPage")),
   },
   {
     slug: "datepicker",
@@ -937,6 +955,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     icon: "Dashboard",
     category: "Forms",
     Page: lazy(() => import("./components/multi-toggle/MultiTogglePage")),
+  },
+  {
+    slug: "icon-toggle-group",
+    name: "Icon Toggle Group",
+    description:
+      "The MultiToggle without labels or pill — a Panel-family track whose options are IconButtons painting their own active state.",
+    icon: "ViewGrid",
+    category: "Forms",
+    Page: lazy(() => import("./components/icon-toggle-group/IconToggleGroupPage")),
   },
   {
     slug: "stat-tile",

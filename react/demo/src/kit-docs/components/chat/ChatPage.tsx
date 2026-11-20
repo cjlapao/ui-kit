@@ -11,7 +11,7 @@ import RestRecipe from "./examples/RestRecipe";
 import restRecipeCode from "./examples/RestRecipe.tsx?raw";
 
 export const ChatPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Chat"
       description="Chat, self-sustained — like the Smart Grid Layout of the kit, it owns its rail, its folders, its storage and its streaming. Given nothing it runs on localStorage; given an endpoint it streams real completions; given a REST store it pages transcripts OData-style and keeps only a window in memory. Folders are first-class citizens, and every seam — storage, slots, events — is left open on purpose."

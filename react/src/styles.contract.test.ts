@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
  * Tailwind can never generate from scanning.
  */
 
-const CONTRACT_PREFIXES = ["fb-", "startup-stage-", "pill-"];
+const CONTRACT_PREFIXES = ["fb-", "startup-stage-", "pill-", "panel-"];
 const SRC = path.dirname(fileURLToPath(import.meta.url));
 const ENTRY = path.join(SRC, "styles.css");
 

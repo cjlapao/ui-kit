@@ -21,7 +21,7 @@ import WithActions from "./examples/WithActions";
 import withActionsCode from "./examples/WithActions.tsx?raw";
 
 export const PanelHeroPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Panel Hero"
       description="A banner: an icon, a heading and a supporting line, on a saturated gradient or on any of the kit's container surfaces. The gradient runs between the tone's own 700 and 800 shades, read from Tailwind's palette variables — which is what keeps its white copy above the kit's measured contrast floor."

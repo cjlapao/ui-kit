@@ -1,12 +1,19 @@
 import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
 import type { SurfaceTone } from "@cjlapao/ui-kit";
 import { useMemo, useState } from "react";
-import { NetworkGraph, findNetworkPath } from "@cjlapao/ui-kit";
+import {
+  ColorSwatches,
+  NetworkGraph,
+  findNetworkPath,
+} from "@cjlapao/ui-kit";
 import type {
+  ButtonVariant,
+  GridBackgroundPattern,
   SurfaceVariant,
   SurfaceCorner,
   GlassOpacity,
   GlassVibrancy,
+  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -17,6 +24,7 @@ import {
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
+  buttonVariantOptions,
   surfaceVariantOptions,
   panelCornerOptions,
 } from "../../shared/options";
@@ -43,6 +51,24 @@ export function NetworkGraphPlayground() {
   const [disabled, setDisabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [empty, setEmpty] = useState(false);
+  const [inspector, setInspector] = useState(true);
+  const [inspectorVariant, setInspectorVariant] = useState<
+    "auto" | SurfaceVariant
+  >("auto");
+  const [inspectorTone, setInspectorTone] = useState<"auto" | SurfaceTone>(
+    "auto",
+  );
+  const [inspectorButtonVariant, setInspectorButtonVariant] =
+    useState<ButtonVariant>("solid");
+  const [inspectorButtonTone, setInspectorButtonTone] =
+    useState<TrueColor>("sky");
+  const [customBody, setCustomBody] = useState(false);
+  const [grid, setGrid] = useState(true);
+  const [gridPattern, setGridPattern] = useState<GridBackgroundPattern>("dots");
+  const [gridTone, setGridTone] = useState<TrueColor>("blue");
+  const [hoverHighlight, setHoverHighlight] = useState(true);
+  const [fullHeight, setFullHeight] = useState(false);
+  const [fullWidth, setFullWidth] = useState(true);
   const [log, pushLog] = useEventLog();
   const graph = useMemo(
     () => makeNetwork(empty ? 0 : Number(count)),
@@ -170,9 +196,114 @@ export function NetworkGraphPlayground() {
                       onChange={setLabels}
                     />
                     <ToggleRow
+                      label="Grid background"
+                      checked={grid}
+                      onChange={setGrid}
+                    />
+                    {grid && (
+                      <>
+                        <SelectControl
+                          label="Grid pattern"
+                          value={gridPattern}
+                          options={[
+                            { label: "Dots", value: "dots" },
+                            { label: "Lines", value: "grid" },
+                          ]}
+                          onChange={(v) =>
+                            setGridPattern(v as GridBackgroundPattern)
+                          }
+                        />
+                        <Control label="Grid tone">
+                          <ColorSwatches
+                            selectable
+                            size="sm"
+                            value={gridTone}
+                            onSelect={setGridTone}
+                            defaultExpanded
+                          />
+                        </Control>
+                      </>
+                    )}
+                    <ToggleRow
                       label="Highlight a path"
                       checked={path}
                       onChange={setPath}
+                    />
+                    <ToggleRow
+                      label="Hover highlight"
+                      checked={hoverHighlight}
+                      onChange={setHoverHighlight}
+                    />
+                    <ToggleRow
+                      label="Full height"
+                      checked={fullHeight}
+                      onChange={setFullHeight}
+                    />
+                    <ToggleRow
+                      label="Full width"
+                      checked={fullWidth}
+                      onChange={setFullWidth}
+                    />
+                  </>
+                ),
+              },
+              {
+                id: "inspector",
+                title: "Inspector",
+                controls: (
+                  <>
+                    <ToggleRow
+                      label="Inspector panel"
+                      checked={inspector}
+                      onChange={setInspector}
+                    />
+                    <SelectControl
+                      label="Inspector variant"
+                      value={inspectorVariant}
+                      options={[
+                        { label: "Auto (parent)", value: "auto" },
+                        ...surfaceVariantOptions,
+                      ]}
+                      onChange={(v) =>
+                        setInspectorVariant(v as typeof inspectorVariant)
+                      }
+                    />
+                    <Control label="Inspector tone">
+                      <ToggleRow
+                        label="Follow parent tone"
+                        checked={inspectorTone === "auto"}
+                        onChange={(follow) =>
+                          setInspectorTone(follow ? "auto" : tone)
+                        }
+                      />
+                      {inspectorTone !== "auto" && (
+                        <SurfaceToneSwatches
+                          value={inspectorTone}
+                          onSelect={setInspectorTone}
+                        />
+                      )}
+                    </Control>
+                    <SelectControl
+                      label="Button variant"
+                      value={inspectorButtonVariant}
+                      options={buttonVariantOptions}
+                      onChange={(v) =>
+                        setInspectorButtonVariant(v as ButtonVariant)
+                      }
+                    />
+                    <Control label="Button tone">
+                      <ColorSwatches
+                        selectable
+                        size="sm"
+                        value={inspectorButtonTone}
+                        onSelect={setInspectorButtonTone}
+                        defaultExpanded
+                      />
+                    </Control>
+                    <ToggleRow
+                      label="Custom body"
+                      checked={customBody}
+                      onChange={setCustomBody}
                     />
                   </>
                 ),
@@ -206,22 +337,59 @@ export function NetworkGraphPlayground() {
         </div>
       }
       preview={
-        <NetworkGraph
-          {...graph}
-          communities={communities}
-          variant={variant}
-          tone={tone}
-          corner={corner}
-          glassOpacity={opacity}
-          vibrancy={vibrancy}
-          height={440}
-          showCommunities={legend}
-          legendPosition={legendPosition}
-          legendPanel={legendPanel}
-          legendVariant={legendVariant}
-          legendTone={legendTone}
+        <div className="w-full" style={{ height: fullHeight ? 640 : undefined }}>
+          <NetworkGraph
+            {...graph}
+            communities={communities}
+            variant={variant}
+            tone={tone}
+            corner={corner}
+            glassOpacity={opacity}
+            vibrancy={vibrancy}
+            height={440}
+            fullHeight={fullHeight}
+            fullWidth={fullWidth}
+            showCommunities={legend}
+            legendPosition={legendPosition}
+            legendPanel={legendPanel}
+            legendVariant={legendVariant}
+            legendTone={legendTone}
+            inspector={inspector}
+            inspectorVariant={inspectorVariant}
+            inspectorTone={inspectorTone}
+            inspectorButtonVariant={inspectorButtonVariant}
+            inspectorButtonTone={inspectorButtonTone}
+            renderInspectorBody={
+              customBody
+                ? (node, info) => (
+                    <div className="space-y-2 text-sm">
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                        Custom body · {node.id}
+                      </p>
+                      <p>
+                        {info.connectionCount} connection
+                      {info.connectionCount === 1 ? "" : "s"}
+                      {info.community ? ` in ${info.community.label}` : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {info.neighbors.map((neighbor) => (
+                        <span
+                          key={neighbor.id}
+                          className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs dark:bg-neutral-800"
+                        >
+                          {neighbor.label ?? neighbor.id}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              : undefined
+          }
           showLabels={labels}
           highlightedEdgeIds={highlighted}
+          grid={grid ? { pattern: gridPattern } : false}
+          gridTone={gridTone}
+          hoverHighlight={hoverHighlight}
           disabled={disabled}
           loading={loading}
           onNodeSelect={(node) => pushLog(`Selected: ${node?.label ?? "none"}`)}
@@ -229,6 +397,7 @@ export function NetworkGraphPlayground() {
             pushLog(`Communities: ${ids.length}`)
           }
         />
+        </div>
       }
     />
   );

@@ -65,6 +65,12 @@ export const PanelPlayground: React.FC = () => {
   const [clickableMode, setClickableMode] = useState<string>("auto");
   const [log, pushLog] = useEventLog();
   const [disabled, setDisabled] = useState(false);
+  // Selection, not the pointer — try it together with Disabled: a selected
+  // card stays legibly selected while disabled.
+  const [active, setActive] = useState(false);
+  // The attention call, inward from the rim — try it with Disabled: a
+  // dimmed card stops demanding, unlike its selection rim, which stays.
+  const [pulse, setPulse] = useState(false);
   const [specularMode, setSpecularMode] =
     useState<PanelSpecularMode>("classic");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
@@ -183,6 +189,16 @@ export const PanelPlayground: React.FC = () => {
                         checked={disabled}
                         onChange={setDisabled}
                       />
+                      <ToggleRow
+                        label="Active"
+                        checked={active}
+                        onChange={setActive}
+                      />
+                      <ToggleRow
+                        label="Pulse"
+                        checked={pulse}
+                        onChange={setPulse}
+                      />
                     </div>
                   </>
                 ),
@@ -295,6 +311,8 @@ export const PanelPlayground: React.FC = () => {
                   : false
             }
             disabled={disabled}
+            active={active}
+            pulse={pulse}
             vibrancy={vibrancy}
             glassOpacity={glassOpacity}
             transparency={transparency === "auto" ? undefined : transparency}

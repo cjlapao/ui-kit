@@ -1,1 +1,1 @@
-export { AiRobot, type AiRobotProps, type AiRobotSize, type AiRobotTone } from "./AiRobot";
+export { AiRobot, type AiRobotProps, type AiRobotSize, type AiRobotTone, type AiRobotVariant } from "./AiRobot";

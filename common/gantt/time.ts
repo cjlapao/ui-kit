@@ -7,6 +7,7 @@
  * labels never drift from the grid.
  */
 
+import { GANTT_HOUR_PX_PER_DAY } from "./types";
 import type { GanttDate, GanttSnap, GanttTimeScaleLevel } from "./types";
 
 export const MS_PER_DAY = 86_400_000;
@@ -45,8 +46,25 @@ export function startOfDay(ms: number): number {
   return d.getTime();
 }
 
+export function startOfHour(ms: number): number {
+  const d = new Date(ms);
+  d.setMinutes(0, 0, 0);
+  return d.getTime();
+}
+
 export function addDays(ms: number, days: number): number {
   return ms + days * MS_PER_DAY;
+}
+
+/**
+ * Wall-clock hours (DST-safe): unlike `ms + n * MS_PER_HOUR`, a skipped or
+ * repeated DST hour follows the calendar, so hour columns never duplicate
+ * or go missing.
+ */
+export function addHours(ms: number, hours: number): number {
+  const d = new Date(ms);
+  d.setHours(d.getHours() + hours, 0, 0, 0);
+  return d.getTime();
 }
 
 /** `weekday` 1 = Monday … 7 = Sunday, matching the ISO week (0 unused). */
@@ -117,6 +135,15 @@ export function formatDay(ms: number, locale?: LabelLocale): string {
 
 export function formatDayNumber(ms: number, locale?: LabelLocale): string {
   return formatter(locale, { day: "numeric" }).format(new Date(ms));
+}
+
+/**
+ * Hour column label: a bare 24-hour number ("0"…"23"). Always short enough
+ * for the narrow hour columns; the 12-hour "AM/PM" form truncates at this
+ * width, and a time-of-day header is inherently 24-hour.
+ */
+export function formatHour(ms: number, locale?: LabelLocale): string {
+  return formatter(locale, { hour: "numeric", hourCycle: "h23" }).format(new Date(ms));
 }
 
 export function formatWeekday(ms: number, locale?: LabelLocale): string {
@@ -194,20 +221,22 @@ export function xToDate(x: number, viewStart: number, pxPerDay: number): number 
 
 /**
  * Snap a timestamp to the configured unit. `week` snaps to the start of the
- * week. `none` passes through (still clamped to the hour when the timeline is
- * hour-fine, i.e. pxPerDay > 120).
+ * week. `none` passes through.
+ *
+ * When `pxPerDay` is past the hour-fine threshold (`GANTT_HOUR_PX_PER_DAY`)
+ * the snap auto-refines to follow the visible grid: `day` behaves as `hour`
+ * and `none` clamps to the hour. Omitting `pxPerDay` keeps the classic
+ * day/none semantics.
  */
-export function snapDate(ms: number, snap: GanttSnap): number {
+export function snapDate(ms: number, snap: GanttSnap, pxPerDay?: number): number {
+  const hourFine = pxPerDay != null && pxPerDay >= GANTT_HOUR_PX_PER_DAY;
   switch (snap) {
     case "none":
-      return ms;
-    case "hour": {
-      const d = new Date(ms);
-      d.setMinutes(0, 0, 0);
-      return d.getTime();
-    }
+      return hourFine ? startOfHour(ms) : ms;
+    case "hour":
+      return startOfHour(ms);
     case "day":
-      return startOfDay(ms);
+      return hourFine ? startOfHour(ms) : startOfDay(ms);
     case "week":
       return startOfWeek(ms);
   }
@@ -217,10 +246,13 @@ export function snapDate(ms: number, snap: GanttSnap): number {
 
 /**
  * Pick the base header unit for a zoom. Two levels are produced: a coarse
- * level (month/year/quarter) and a fine level whose columns are the grid
- * lines of the timeline.
+ * level (year/month/day) and a fine level whose columns are the grid lines
+ * of the timeline.
  */
-export function pickBaseUnit(pxPerDay: number): "day" | "week" | "month" | "quarter" {
+export function pickBaseUnit(
+  pxPerDay: number,
+): "hour" | "day" | "week" | "month" | "quarter" {
+  if (pxPerDay >= GANTT_HOUR_PX_PER_DAY) return "hour";
   if (pxPerDay >= 24) return "day";
   if (pxPerDay >= 4) return "week";
   if (pxPerDay >= 0.8) return "month";
@@ -265,7 +297,12 @@ export function buildTimeScale(
   const pushLevel = (
     id: string,
     seeds: ColumnSeed[],
-    labelOf: (s: number) => { label: string; subLabel?: string },
+    labelOf: (s: number) => {
+      label: string;
+      subLabel?: string;
+      major?: boolean;
+      labelSpan?: number;
+    },
   ) => {
     const columns = seeds
       .filter((s) => s.end > rangeStart && s.start < rangeEnd)
@@ -280,12 +317,39 @@ export function buildTimeScale(
           start: clampedStart,
           end: clampedEnd,
           width: ((clampedEnd - clampedStart) / MS_PER_DAY) * pxPerDay,
+          ...(text.major ? { major: true } : {}),
+          ...(text.labelSpan != null ? { labelSpan: text.labelSpan } : {}),
         };
       });
     if (columns.length > 0) levels.push({ id, columns });
   };
 
-  if (base === "day") {
+  if (base === "hour") {
+    // Fine: whole hours (wall-clock steps, DST-safe). Coarse: days.
+    // Hour columns are narrow, so labels merge into groups of `step` hours
+    // (drawn centered over the group) — the smallest divisor of 24 whose
+    // merged span is comfortably readable. Midnight always carries a label
+    // (step divides 24); zooming past ~480 px/day restores every-hour labels.
+    const hourWidth = pxPerDay / 24;
+    const step = [1, 2, 3, 4, 6, 12].find((s) => hourWidth * s >= 20) ?? 12;
+    pushLevel(
+      "hour",
+      seed(rangeStart, rangeEnd, (m) => addHours(m, 1), startOfHour),
+      (s) => {
+        const hours = new Date(s).getHours();
+        return {
+          label: formatHour(s, locale),
+          major: hours === 0,
+          labelSpan: hours % step === 0 ? step : undefined,
+        };
+      },
+    );
+    pushLevel(
+      "day",
+      seed(rangeStart, rangeEnd, (m) => addDays(m, 1), startOfDay),
+      (s) => ({ label: formatDayNumber(s, locale), subLabel: formatWeekday(s, locale) }),
+    );
+  } else if (base === "day") {
     // Fine: days. Coarse: months.
     pushLevel(
       "day",

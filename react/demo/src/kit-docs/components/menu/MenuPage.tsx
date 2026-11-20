@@ -5,7 +5,7 @@ import { MenuPlayground } from "./MenuPlayground";
 import MenuExamples from "./MenuExamples";
 import code from "./MenuExamples.tsx?raw";
 export default function MenuPage() {
-  return <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8">
     <PageHeader name="Menu" description="Command and navigation menus with groups, inline expansion, cascading submenus, checkbox/radio selection, and positioned popups. Uses the kit's shared panel surfaces, tone, size, padding and corners." />
     <MenuPlayground />
     <ExampleCard title="Menus for commands, preferences and accounts" description="Hover or use Right Arrow to open a tiered submenu. Use Up/Down, Home/End and typeahead to navigate; Left Arrow returns to the parent, Escape closes and restores focus. Checkbox/radio items stay open by default." code={code} filename="MenuExamples.tsx"><MenuExamples /></ExampleCard>

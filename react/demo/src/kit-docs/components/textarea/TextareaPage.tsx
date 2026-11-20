@@ -24,7 +24,7 @@ import GradientGlow from "./examples/GradientGlow";
 import gradientGlowCode from "./examples/GradientGlow.tsx?raw";
 
 export const TextareaPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Textarea"
       description="A multi-line text input with the same surfaces, sizes and focus treatment as Input, plus a built-in label, status-aware help text and a character counter. Help text is linked to the field with aria-describedby, and its colour follows the validation state."

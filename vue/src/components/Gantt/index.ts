@@ -31,6 +31,7 @@ export {
   GANTT_ZOOM_PRESETS,
   GANTT_MIN_ZOOM,
   GANTT_MAX_ZOOM,
+  GANTT_HOUR_PX_PER_DAY,
   DEFAULT_GANTT_LABELS,
 } from "../../../../common/gantt";
 

@@ -34,7 +34,7 @@ export const ExampleCard: React.FC<ExampleCardProps> = ({
         {title}
       </h3>
       {description && (
-        <p className="mt-1 text-sm leading-5 text-neutral-500 dark:text-neutral-400">
+        <p className="mt-1 max-w-3xl text-sm leading-5 text-neutral-500 dark:text-neutral-400">
           {description}
         </p>
       )}

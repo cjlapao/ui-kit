@@ -8,7 +8,7 @@ import AgentFlow from "./examples/AgentFlow";
 import agentFlowCode from "./examples/AgentFlow.tsx?raw";
 
 export default function TraceGraphPage() {
-  return <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-8">
+  return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader name="Trace Graph" description="A canvas-rendered history of points, forks and merges. WebGL2 animates activity and camera motion; Canvas 2D provides labels and a fallback renderer. Timeline and dependency layouts share selection, consumer details and live follow mode." />
     <TraceGraphPlayground />
     <ExampleCard title="One path, no branches" description="A simple sequence is a complete use case. Timeline order is based on time, order, or input order, with compact even spacing rather than proportional wall-clock gaps." code={singlePathCode} filename="SinglePath.tsx"><SinglePath /></ExampleCard>

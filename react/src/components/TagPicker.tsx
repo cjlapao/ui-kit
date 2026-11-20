@@ -10,6 +10,7 @@ import React, {
 import { createPortal } from "react-dom";
 import classNames from "classnames";
 import { useKitT } from "../i18n";
+import { useFieldRow } from "../contexts/FieldRowContext";
 import Panel from "./Panel";
 import Pill from "./Pill";
 import { ScrollArea } from "./ScrollArea";
@@ -343,6 +344,8 @@ const TagPicker: React.FC<TagPickerProps> = ({
   const colorTokens = toneTokens[effectiveTone] ?? toneTokens.blue;
   // The field system, shared with Input, Select, SearchBar and Picker.
   const sizeToken = getFieldSizeTokens(size);
+  // In a `FieldRow` the shared control band owns the height.
+  const { inRow } = useFieldRow();
   const fieldTokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(
     variant,
@@ -1005,6 +1008,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
         disabled && "cursor-not-allowed opacity-50",
         loading && !disabled && "cursor-wait",
         readOnly && "cursor-default opacity-75",
+        inRow && "h-full",
         className,
       )}
     >
@@ -1183,6 +1187,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
           className={classNames(
             "relative flex w-full overflow-hidden rounded-[28px]",
             glow.pad,
+            inRow && "h-full",
           )}
         >
           <span

@@ -1,0 +1,51 @@
+/* Animated side inspector for the NetworkGraph, mirroring the AgentMap pattern. */
+.cj-network-graph.cj-network-graph { display:grid; grid-template-columns:minmax(0, 1fr) 0px; gap:0; transition:grid-template-columns 240ms ease, gap 240ms ease; }
+.cj-network-graph.cj-network-graph--inspector-open { grid-template-columns:minmax(0, 1fr) var(--cj-network-graph-inspector-width, 280px); gap:16px; }
+.cj-network-graph.cj-network-graph--stacked { grid-template-columns:1fr; }
+.cj-network-graph__main { min-width:0; }
+/* AgentMap inspector animation: 0fr→1fr row reveal + slide + fade, while the
+   column itself grows through the root grid-template-columns transition. */
+.cj-network-graph__inspector { min-width:0; min-height:0; display:grid; grid-template-rows:0fr; opacity:0; transform:translateX(-8px); overflow:hidden; pointer-events:none; transition:grid-template-rows 240ms ease, opacity 180ms ease, transform 240ms ease; }
+.cj-network-graph--inspector-open .cj-network-graph__inspector { grid-template-rows:1fr; opacity:1; transform:translateX(0); pointer-events:auto; }
+.cj-network-graph__inspector-inner { min-height:0; height:100%; padding:2px; overflow:hidden; }
+.cj-network-graph__inspector-inner > .cj-network-graph__details { height:100%; overflow:hidden; }
+.cj-network-graph__details { min-width:0; }
+/* Full-size modes, same contract as AgentMap: fullHeight fills a parent of
+   defined height (the height prop is ignored), fullWidth (default true)
+   stretches, false fits the content. */
+.cj-network-graph--full-width { width:100%; }
+.cj-network-graph--intrinsic-width { width:fit-content; max-width:100%; }
+.cj-network-graph--full-height { height:100%; min-height:0; }
+.cj-network-graph.cj-network-graph--full-height { grid-template-rows:minmax(0, 1fr); }
+.cj-network-graph--full-height > .cj-network-graph__main { height:100%; min-height:0; }
+.cj-network-graph--full-height .cj-network-graph__graph-panel { height:100%; }
+.cj-network-graph--full-height .cj-network-graph__group { flex:1 1 auto; min-height:0; }
+.cj-network-graph--full-height .cj-network-graph__layout { flex:1 1 auto; min-height:0; }
+.cj-network-graph--full-height .cj-network-graph__graph-box { height:auto; min-height:0; }
+/* Scrollable details area above the pinned footer: the aside stretches to
+   the graph card like AgentMap's inspector, and long content scrolls. */
+.cj-network-graph__body { flex:1 1 auto; min-height:0; overflow:auto; scrollbar-width:thin; }
+.cj-network-graph__eyebrow { color:var(--color-neutral-500, #64748b); font-size:11px; text-transform:uppercase; letter-spacing:.1em; }
+.cj-network-graph__details h3 { margin:10px 0 8px; font-size:17px; font-weight:700; overflow-wrap:anywhere; }
+.cj-network-graph__chip { display:inline-flex; align-items:center; gap:6px; margin-bottom:12px; padding:3px 9px; border:1px solid var(--color-neutral-300, #cbd5e1); border-radius:999px; font-size:11px; font-weight:600; }
+.dark .cj-network-graph__chip { border-color:var(--color-neutral-700, #334155); }
+.cj-network-graph__chip i { flex:none; width:8px; height:8px; border-radius:50%; background:var(--chip-color, var(--color-neutral-500, #64748b)); }
+.cj-network-graph__meta { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:0 0 14px; font-size:12px; }
+.cj-network-graph__meta dt { color:var(--color-neutral-500, #64748b); }
+.cj-network-graph__meta dd { margin:0; overflow-wrap:anywhere; }
+.cj-network-graph__meta code { font-size:11px; }
+.cj-network-graph__neighbors { margin:0 0 4px; padding-top:12px; border-top:1px solid var(--color-neutral-300, #cbd5e1); }
+.dark .cj-network-graph__neighbors { border-color:var(--color-neutral-700, #334155); }
+.cj-network-graph__neighbors small { color:var(--color-neutral-500, #64748b); font-size:11px; }
+.cj-network-graph__neighbor-rows { display:grid; gap:6px; margin-top:8px; }
+/* Cap the connections list so a hub node with many neighbours stays scannable; the ScrollArea takes over past this point. */
+.cj-network-graph__neighbor-scroll { max-height:176px; }
+.cj-network-graph .cj-network-graph__neighbor { width:100%; display:flex; align-items:center; gap:8px; text-align:left; padding:7px 9px; border:1px solid var(--color-neutral-300, #cbd5e1); border-radius:8px; background:var(--color-neutral-100, #f8fafc); color:inherit; cursor:pointer; font:inherit; font-size:12px; }
+.dark .cj-network-graph .cj-network-graph__neighbor { background:var(--color-neutral-800, #1e293b); border-color:var(--color-neutral-700, #334155); }
+.cj-network-graph .cj-network-graph__neighbor:hover { border-color:var(--color-sky-500, #0ea5e9); }
+.cj-network-graph__neighbor i { flex:none; width:7px; height:7px; border-radius:50%; background:var(--node-color, var(--color-neutral-500, #64748b)); }
+.cj-network-graph__neighbor span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Footer of the inspector: pinned to the bottom by the flexBody Panel. */
+.cj-network-graph__actions { flex:none; display:grid; gap:8px; padding-top:14px; border-top:1px solid var(--color-neutral-300, #cbd5e1); }
+.dark .cj-network-graph__actions { border-color:var(--color-neutral-700, #334155); }
+@media (prefers-reduced-motion:reduce) { .cj-network-graph.cj-network-graph, .cj-network-graph__inspector { transition:none; } }

@@ -8,7 +8,7 @@ import polarStackedCode from "./examples/PolarStacked.tsx?raw";
 import polarGroupedCode from "./examples/PolarGrouped.tsx?raw";
 
 export const PolarChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Polar"
       description="A rose / nightingale chart: one annular segment per category per series, fanned out from the center. Segments can sit side-by-side (grouped) or stack radially (stacked) on a shared total scale, with circular or polygonal grid rings, rounded segment corners, and a center readout."

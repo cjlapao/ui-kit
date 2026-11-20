@@ -22,7 +22,7 @@ import NonDismissable from "./examples/NonDismissable";
 import nonDismissableCode from "./examples/NonDismissable.tsx?raw";
 
 export const PopoverPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Popover"
       description="A floating panel anchored to any trigger — an arrow (or a detached bubble dot) that tracks the trigger through every clamp, all eight container surfaces with glass and liquid-glass, flip-aware placement, dismissable/Escape control, and the shared loader set."

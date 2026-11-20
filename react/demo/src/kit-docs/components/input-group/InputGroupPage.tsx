@@ -18,7 +18,7 @@ import Compound from "./examples/Compound";
 import compoundCode from "./examples/Compound.tsx?raw";
 
 export const InputGroupPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Input Group"
       description="A field with addons welded to its edges. The group owns the box — its children render unstyled — so it takes the same surface, size, corner and tone scales as the Input inside it, glass and gradient glow included."

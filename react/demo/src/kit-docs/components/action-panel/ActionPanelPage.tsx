@@ -30,7 +30,7 @@ const listCode = `<ActionPanel
 
 export default function ActionPanelPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8">
+    <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8">
       <PageHeader
         name="Action Panel"
         description="A compact composable surface for warnings, quick actions and short lists — optional accent, icon, three content lines and a consumer-owned action column."

@@ -19,7 +19,7 @@ import SplitVersusSingle from "./examples/SplitVersusSingle";
 import splitVersusSingleCode from "./examples/SplitVersusSingle.tsx?raw";
 
 export const DropdownButtonPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Dropdown Button"
       description="A Button with an optional caret trigger that opens a menu. The trigger keeps the full Button language — variant, size and tone — while the menu takes its positioning from DropdownMenu, and an empty menu hides the caret entirely."

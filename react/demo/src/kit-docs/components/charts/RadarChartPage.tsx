@@ -6,7 +6,7 @@ import Radar from "./examples/Radar";
 import radarCode from "./examples/Radar.tsx?raw";
 
 export const RadarChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Radar"
       description="A spider chart: one polygon per series on a shared set of axes, with polygon grid rings, vertex markers, dashed outlines, and a per-axis goal marker. Fills reuse the shared fill system — flat, or a radial gradient fading to the center."

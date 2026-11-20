@@ -15,13 +15,15 @@ import Paths from "./examples/Paths";
 import pathsCode from "./examples/Paths.tsx?raw";
 import Variants from "./examples/Variants";
 import variantsCode from "./examples/Variants.tsx?raw";
+import Inspector from "./examples/Inspector";
+import inspectorCode from "./examples/Inspector.tsx?raw";
 import LargeNetwork from "./examples/LargeNetwork";
 import largeCode from "./examples/LargeNetwork.tsx?raw";
 import dataCode from "./data.ts?raw";
 
 export default function NetworkGraphPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
       <PageHeader
         name="Network Graph"
         description="Explore connected systems: a fast Canvas network with zoom, pan, community filters and path highlighting. Panel provides the surface, from a crisp outline to liquid glass; nodes and connectors use the same Tailwind tones as the rest of the kit. React only."
@@ -64,6 +66,14 @@ export default function NetworkGraphPage() {
           <Variants />
         </ExampleCard>
         <ExampleCard
+          title="Inspector panel"
+          description="Opt in with inspector to slide in a details panel when a node is selected — the same animated side-column pattern as AgentMap: the inspector rides a grid-column transition beside the graph card and grows with the same 0fr→1fr reveal. The details scroll above a pinned footer, and the clickable neighbour list gets its own scroll area when a node has many connections. renderInspectorBody and renderInspectorActions replace the body and the Center/Close buttons, which are styled by inspectorButtonVariant and inspectorButtonTone."
+          code={inspectorCode}
+          filename="Inspector.tsx"
+        >
+          <Inspector />
+        </ExampleCard>
+        <ExampleCard
           title="2,000 nodes"
           description="One HiDPI Canvas, on-demand frames, batched connectors, and spatial node picking. Idle graphs do not run animation loops. Labels are suppressed above 250 visible nodes except for the active node."
           code={largeCode}
@@ -98,6 +108,47 @@ export default function NetworkGraphPage() {
             default: '"auto"',
             description:
               "Auto places the legend right when the component has at least 600px available width, then moves it below on narrower containers. Right and bottom force that placement.",
+          },
+          {
+            name: "inspector",
+            type: "boolean",
+            default: "false",
+            description:
+              "Reveal an animated details column when a node is selected, mirroring the AgentMap inspector: it lives outside the graph card and rides the same grid-column + 0fr→1fr animation. Details scroll above a pinned footer and the neighbour list gets its own scroll area when long. It docks beside the graph while the graph keeps its floor width, stacks underneath below that (see inspectorMinMainWidth / inspectorStackBelow), and closes on Escape, Close, or clicking empty canvas.",
+          },
+          {
+            name: "inspectorVariant / inspectorTone",
+            type: '"auto" | SurfaceVariant / "auto" | SurfaceTone',
+            default: '"auto" / "auto"',
+            description:
+              "Inspector Panel surface; auto inherits the graph variant and tone. Glass settings and corners follow the graph, like the legend Panel.",
+          },
+          {
+            name: "inspectorWidth / inspectorTitle",
+            type: "number / ReactNode",
+            default: "280 / kit \"Inspector\"",
+            description:
+              "Column width in pixels (clamped 180–480) when the inspector sits beside the graph, and the eyebrow label above the node name.",
+          },
+          {
+            name: "inspectorMinMainWidth / inspectorStackBelow",
+            type: "number / number",
+            default: "320 / fit-derived",
+            description:
+              "Where the inspector stops fitting beside the graph. It docks while the component is at least inspectorWidth + 16 + inspectorMinMainWidth wide (616 by default) and stacks under that floor — raise the floor when the graph needs more room. inspectorStackBelow replaces that comparison outright: 0 always docks, a large value always stacks.",
+          },
+          {
+            name: "inspectorButtonVariant / inspectorButtonTone / inspectorButtonWeight",
+            type: "ButtonVariant / TrueColor / ButtonWeight",
+            default: '"solid" / "slate" / —',
+            description:
+              "Style the built-in \"Center on node\" and \"Close\" footer buttons. Ignored when renderInspectorActions supplies custom actions.",
+          },
+          {
+            name: "renderInspectorBody / renderInspectorActions",
+            type: "(node, info) => ReactNode / (node, info, helpers) => ReactNode",
+            description:
+              "Replace the standard details body (community chip, id, connections, clickable neighbours) or the footer buttons. info adds label, community, connectionCount and neighbors; helpers expose centerOnNode() and close().",
           },
           {
             name: "nodes / edges",
@@ -150,6 +201,27 @@ export default function NetworkGraphPage() {
               "Viewport height in pixels (minimum 160). Labels appear for small graphs at useful zoom levels. Controls include zoom, fit, reset and node search.",
           },
           {
+            name: "grid / gridTone",
+            type: 'boolean | GridBackground settings / TrueColor',
+            default: 'true ("dots") / "blue"',
+            description:
+              "The decorative lattice behind the canvas, like AgentMap's. Default is a blue dot pattern on the 32px lattice, faded at the edges. Set false to hide it, or pass an object to configure pattern, size, dotSize, lineColor, opacity and fade; grid.lineColor overrides gridTone. It is aria-hidden and never intercepts canvas input.",
+          },
+          {
+            name: "hoverHighlight",
+            type: "boolean",
+            default: "true",
+            description:
+              "Previews the node under the pointer with a thin tone ring, its label and full opacity — even while a selection dims the rest. Purely visual: it never selects, fires no callbacks and does not touch the inspector. Off during disabled/loading; set false for a static canvas.",
+          },
+          {
+            name: "fullHeight / fullWidth",
+            type: "boolean",
+            default: "false / true",
+            description:
+              "Fill the parent height (which must be defined — the height prop is then ignored) or available width; false fits the content width. Same contract as AgentMap's. The inspector column and neighbour scroll area absorb the height with it.",
+          },
+          {
             name: "onViewportChange",
             type: "(viewport: NetworkGraphViewport) => void",
             description:
@@ -178,8 +250,10 @@ export default function NetworkGraphPage() {
           <p>
             Drag to pan, hold Ctrl and scroll to zoom around the pointer, and
             click to select. Touch supports dragging and tapping; use the
-            buttons to zoom. No animated physics or transitions are required.
-            Canvas rendering does not expose each connector as a DOM element.
+            buttons to zoom. No animated physics or transitions are required;
+            the optional inspector uses a short slide that honours{" "}
+            <C>prefers-reduced-motion</C>. Canvas rendering does not expose
+            each connector as a DOM element.
           </p>
         </A11yTopic>
         <A11yTopic title="Internationalization and layout">

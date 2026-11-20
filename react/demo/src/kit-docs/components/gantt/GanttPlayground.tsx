@@ -1,9 +1,10 @@
 import { SurfaceToneControl } from "../../shared/SurfaceToneControl";
-import type { SurfaceTone } from "@cjlapao/ui-kit";
+import type { SurfaceTone, SurfaceVariant } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import {
   Gantt,
   Rocket,
+  SURFACE_TONES,
   sampleGantt,
   type GanttCorner,
   type GanttLane,
@@ -29,6 +30,7 @@ const SNAPS: { label: string; value: GanttSnap }[] = [
   { label: "Week", value: "week" },
 ];
 const VARIANTS: { label: string; value: GanttVariant }[] = [
+  { label: "None (no card)", value: "none" },
   { label: "Elevated", value: "elevated" },
   { label: "Outlined", value: "outlined" },
   { label: "Subtle", value: "subtle" },
@@ -37,6 +39,19 @@ const VARIANTS: { label: string; value: GanttVariant }[] = [
   { label: "Glass", value: "glass" },
   { label: "Liquid glass", value: "liquid-glass" },
   { label: "Simple", value: "simple" },
+];
+// The zoom pill may follow the chart's surface ("Follow chart" → prop left
+// unset) or pin one of its own — e.g. an `elevated` pill on a `none` chart.
+const CONTROL_VARIANTS: { label: string; value: string }[] = [
+  { label: "Follow chart", value: "auto" },
+  ...VARIANTS,
+];
+const CONTROL_TONES: { label: string; value: string }[] = [
+  { label: "Follow chart", value: "auto" },
+  ...SURFACE_TONES.map((t) => ({
+    label: t === "none" ? "None — no tint" : t[0].toUpperCase() + t.slice(1),
+    value: t,
+  })),
 ];
 
 const CORNERS: { label: string; value: GanttCorner }[] = [
@@ -66,6 +81,11 @@ export const GanttPlayground: React.FC = () => {
   const [rowOrder, setRowOrder] = useState<string[] | undefined>(undefined);
   const [accent, setAccent] = useState<TrueColor>("blue");
   const [variant, setVariant] = useState<GanttVariant>("elevated");
+  const [controlsVariant, setControlsVariant] = useState<SurfaceVariant | "auto">("auto");
+  const [controlsTone, setControlsTone] = useState<SurfaceTone | "auto">("auto");
+  const [fullHeight, setFullHeight] = useState(false);
+  const [fullWidth, setFullWidth] = useState(false);
+  const [columnEdges, setColumnEdges] = useState(false);
   const [corner, setCorner] = useState<GanttCorner>("rounded-sm");
   const [padding, setPadding] = useState<GanttPadding>("none");
   const [snap, setSnap] = useState<GanttSnap>("day");
@@ -86,6 +106,11 @@ export const GanttPlayground: React.FC = () => {
     setLinks(INITIAL_LINKS);
     setRowOrder(undefined);
     setVariant("elevated");
+    setControlsVariant("auto");
+    setControlsTone("auto");
+    setFullHeight(false);
+    setFullWidth(false);
+    setColumnEdges(false);
     setCorner("rounded-sm");
     setPadding("none");
     setColumnWidths({});
@@ -122,6 +147,18 @@ export const GanttPlayground: React.FC = () => {
             onChange={(v) => setVariant(v as GanttVariant)}
           />
           <SelectControl
+            label="Controls variant (zoom pill)"
+            options={CONTROL_VARIANTS}
+            value={controlsVariant}
+            onChange={(v) => setControlsVariant(v as SurfaceVariant | "auto")}
+          />
+          <SelectControl
+            label="Controls tone (zoom pill)"
+            options={CONTROL_TONES}
+            value={controlsTone}
+            onChange={(v) => setControlsTone(v as SurfaceTone | "auto")}
+          />
+          <SelectControl
             label="Snap"
             options={SNAPS}
             value={snap}
@@ -146,6 +183,17 @@ export const GanttPlayground: React.FC = () => {
               onChange={setEditable}
             />
             <ToggleRow label="Today marker" checked={showToday} onChange={setShowToday} />
+            <ToggleRow
+              label="Full height (fill parent, height = min)"
+              checked={fullHeight}
+              onChange={setFullHeight}
+            />
+            <ToggleRow label="Full width" checked={fullWidth} onChange={setFullWidth} />
+            <ToggleRow
+              label="Column edges (box the fixed table)"
+              checked={columnEdges}
+              onChange={setColumnEdges}
+            />
             <ToggleRow
               label="Resizable columns (drag a header edge)"
               checked={resizableCols}
@@ -182,6 +230,10 @@ export const GanttPlayground: React.FC = () => {
       }
       preview={
         <div className="w-full">
+          {/* When full height is on, this box is the bounded parent the
+              Gantt fills — otherwise `h-full` has nothing to resolve
+              against and only the min-height would show. */}
+          <div className={fullHeight ? "h-[560px]" : undefined}>
           <Gantt
             tone={surfaceTone}
             tasks={tasks}
@@ -190,6 +242,11 @@ export const GanttPlayground: React.FC = () => {
             rowOrder={rowOrder}
             color={accent}
             variant={variant}
+            controlsVariant={controlsVariant === "auto" ? undefined : controlsVariant}
+            controlsTone={controlsTone === "auto" ? undefined : controlsTone}
+            fullHeight={fullHeight}
+            fullWidth={fullWidth}
+            columnEdges={columnEdges}
             corner={corner}
             padding={padding}
             snap={snap}
@@ -225,6 +282,7 @@ export const GanttPlayground: React.FC = () => {
             }}
             onSelect={(id) => pushLog(id ? `Selected “${id}”` : "Selection cleared")}
           />
+          </div>
           <p className="px-1 pt-2 text-[11px] leading-relaxed text-neutral-400 dark:text-neutral-500">
             Hover a bar to reveal resize / progress / link handles · drag the right-edge handle to
             draw a dependency · drag the row grip to reorder · Ctrl/Cmd + scroll to pinch zoom ·

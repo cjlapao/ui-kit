@@ -10,7 +10,7 @@ import CardStates from "./examples/CardStates";
 import cardStatesCode from "./examples/CardStates.tsx?raw";
 
 export const DetailItemCardPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Detail Item Card"
       description="A list row with an optional expandable detail. Plain by default; give it a variant and it becomes a real card. Clickable rows are keyboard-reachable buttons."

@@ -8,7 +8,7 @@ import LeadsBySource from "./examples/LeadsBySource";
 import leadsBySourceCode from "./examples/LeadsBySource.tsx?raw";
 
 export const BreakdownCardPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Breakdown Card"
       description="A whole split into parts: a donut for how much, labelled rows for of what, and a summary strip for so what — one card for the question where did it all go. Shares are computed from the values, so the numbers can never disagree with the picture."

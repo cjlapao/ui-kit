@@ -37,7 +37,10 @@ export const A11yTopic: React.FC<{
     <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
       {title}
     </h3>
-    <div className="flex flex-col gap-3 text-sm leading-6 text-neutral-600 dark:text-neutral-400">
+    {/* `[&>p]` on purpose: the prose gets a readable measure now that the page body
+        is ~1600px wide, while the blocks sharing this column (A11yCode samples)
+        keep the full width their lines need. */}
+    <div className="flex flex-col gap-3 text-sm leading-6 text-neutral-600 dark:text-neutral-400 [&>p]:max-w-[70ch]">
       {children}
     </div>
   </div>

@@ -6,7 +6,7 @@ import Truncation from "./examples/Truncation";
 import truncationCode from "./examples/Truncation.tsx?raw";
 
 export const TruncatedTextPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Truncated Text"
       description="Text that ellipsises when it overflows and reveals the full string in a tooltip when it does. It measures with a ResizeObserver, so it reacts to the container changing rather than only to the text."

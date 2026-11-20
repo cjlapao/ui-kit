@@ -18,7 +18,7 @@ import UncontrolledAndGlass from "./examples/UncontrolledAndGlass";
 import uncontrolledAndGlassCode from "./examples/UncontrolledAndGlass.tsx?raw";
 
 export const MultiSelectPillsPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Multi Select Pills"
       description="A row of pills used as a checkbox or radio group — real form semantics, not toggle buttons that merely look the part. It renders the kit's Pill, so it inherits every variant, tone, size and corner, including the glass pair."

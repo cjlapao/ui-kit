@@ -21,7 +21,7 @@ import AttentionPulse from "./examples/AttentionPulse";
 import attentionPulseCode from "./examples/AttentionPulse.tsx?raw";
 
 export const PillPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Pill"
       description="Small labels for status and metadata. Three opaque variants plus two glass ones, the full tone set, optional icons, a remove button, and a bare status dot."

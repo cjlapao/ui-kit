@@ -8,7 +8,12 @@ import {
 import Spinner, { type SpinnerColor } from "./Spinner";
 import { warnIfAriaHiddenFocusable } from "../../../common/a11y/warn";
 import { useIconRenderer } from "../contexts/IconContext";
-import { getButtonColorClasses, getControlSizeTokens } from "../theme/Theme";
+import {
+  getButtonActiveClasses,
+  getButtonActiveHoverClasses,
+  getButtonColorClasses,
+  getControlSizeTokens,
+} from "../theme/Theme";
 import { iconAccentHover, iconAccentRing } from "../theme/ButtonTypes";
 import type { IconSize } from "../types/Icon";
 import TooltipWrapper from "./TooltipWrapper";
@@ -49,6 +54,13 @@ export interface IconButtonProps
   customSizeClass?: string;
   iconClassName?: string;
   loading?: boolean;
+  /**
+   * When true, renders in a persistent lighter "on" state with hover
+   * suppressed — the same contract as `Button.active`. `accentColor`
+   * overrides the active colour. Glass buttons paint their own chrome and
+   * ignore it.
+   */
+  active?: boolean;
   spinnerVariant?: "solid" | "segments";
   spinnerColor?: SpinnerColor;
   srLabel?: string;
@@ -85,6 +97,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       customSizeClass,
       iconClassName,
       loading = false,
+      active = false,
       spinnerVariant = "segments",
       spinnerColor,
       srLabel,
@@ -118,9 +131,11 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       : null;
 
     // When accent is off but accentColor is explicitly provided,
-    // apply hover text color for non-solid variants (ghost, soft, outline, icon)
+    // apply hover text color for non-solid variants (ghost, soft, outline, icon).
+    // While `active`, the active state owns the fill instead — Button does not
+    // let the hover override paint over its "on" state either.
     const nonAccentHover =
-      !accent && accentColor && variant !== "solid"
+      !accent && !active && accentColor && variant !== "solid"
         ? (iconAccentHover[accentColor] ?? null)
         : null;
 
@@ -130,6 +145,23 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
     // Glass styling — variant="glass" auto-enables glass; glass prop overrides
     const isGlass = variant === "glass" || glass;
+
+    // `active` is Button's contract, not a second invention: a persistent
+    // lighter "on" state that *replaces* the variant's colour classes (its
+    // hover included), resolved through the theme's active slots, with
+    // `accentColor` doubling as the active-colour override. A disabled
+    // active button keeps the fill but loses the hover step. Glass paints
+    // its own chrome (fill + rim + vibrancy), so active is skipped there.
+    const isEffectivelyDisabled = (disabled ?? false) || loading;
+    const activeClasses =
+      active && !isGlass
+        ? classNames(
+            getButtonActiveClasses(variant, accentColor ?? color),
+            !isEffectivelyDisabled &&
+              getButtonActiveHoverClasses(variant, accentColor ?? color),
+          )
+        : null;
+
     // The variant's own colour classes are dropped for glass (they paint an
     // opaque fill), so the chrome — text colour, rim, focus ring — has to come
     // from here or the control ends up with none of it.
@@ -164,7 +196,7 @@ const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       !loading && "disabled:opacity-50",
       dimensionClass,
       roundedMap[rounded] ?? roundedMap.full,
-      isGlass ? (accentClasses ?? "") : (accentClasses ?? baseColorClasses),
+      isGlass ? (accentClasses ?? "") : (accentClasses ?? activeClasses ?? baseColorClasses),
       nonAccentHover,
       isGlass && "relative",
       glassClasses,

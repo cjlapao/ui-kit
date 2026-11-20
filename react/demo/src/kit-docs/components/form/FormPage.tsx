@@ -20,7 +20,7 @@ import FieldStates from "./examples/FieldStates";
 import fieldStatesCode from "./examples/FieldStates.tsx?raw";
 
 export const FormPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Form"
       description={`Three primitives that build a form: \`FormSection\` is a Panel with a header, body and footer; \`FormLayout\` is the responsive grid inside it; \`FormField\` wires a label, description, hint and error to one control — setting its id, pointing the label at it, and adding aria-invalid whenever an error is present.`}

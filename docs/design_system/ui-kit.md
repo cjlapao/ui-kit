@@ -730,8 +730,8 @@ DOM.
 
 | module | responsibility |
 |---|---|
-| `types.ts` | data model (`GanttTask`, `GanttLink`, `GanttLane`, `GanttColumn`, `GanttSnap`, `GanttLabels`) + zoom presets (`GANTT_ZOOM_PRESETS`, `GANTT_MIN_ZOOM`, `GANTT_MAX_ZOOM`) + `DEFAULT_GANTT_LABELS`. |
-| `time.ts` | pure date/scale math: `toMs`, `dateToX`/`xToDate`, `startOfDay/Week/Month/Quarter`, `addDays/Months`, `snapDate`, `computeViewRange`, `buildTimeScale` (multi-level header), `getIsoWeekNumber`, formatters. `MS_PER_DAY`, week starts Monday. |
+| `types.ts` | data model (`GanttTask`, `GanttLink`, `GanttLane`, `GanttColumn`, `GanttSnap`, `GanttLabels`) + zoom presets (`GANTT_ZOOM_PRESETS`, `GANTT_MIN_ZOOM`, `GANTT_MAX_ZOOM`, `GANTT_HOUR_PX_PER_DAY`) + `DEFAULT_GANTT_LABELS`. |
+| `time.ts` | pure date/scale math: `toMs`, `dateToX`/`xToDate`, `startOfDay/Hour/Week/Month/Quarter`, `addDays/Hours/Months`, `snapDate`, `computeViewRange`, `buildTimeScale` (multi-level header), `getIsoWeekNumber`, formatters. `MS_PER_DAY`, week starts Monday. |
 | `layout.ts` | row model: `buildRows` (flattens lanes + hierarchy into ordered rows with px geometry), `rollupProgress` / `rollupLaneProgress` (duration-weighted), `applyRowReorder`, `resolveDropBeforeId`, `topAncestorId`. `DEFAULT_ROW_HEIGHT=44`, `GROUP_ROW_HEIGHT=40`. |
 | `drag.ts` | interaction math: `applyDragDates` (move/resize with snap + min-duration clamp), `commitDragEdit` (no-op aware), `progressFromPointer`, `linkPath`/`computeLinkPaths`/`linkSourceAnchor` (FS/SS/FF/SF routing + arrowhead polygon), `todayX`, `dragDurationLabel`. |
 | `tokens.ts` | `TrueColor` → Tailwind class maps (`getGanttBarTokens`, `getGanttLaneTokens`, `getGanttColumnTokens`, `getGanttLinkTokens`, `getGanttTodayTokens`, `getGanttSelectionTokens`). No hand hex. |
@@ -770,12 +770,16 @@ arrays. It is **controlled**: `tasks`/`links`/`rowOrder` come in; edits go out v
 
 ### Time scale & zoom
 
-Zoom is `pxPerDay`. `GANTT_ZOOM_PRESETS` = Day 48 / Week 16 / Month 5 / Quarter 1.6; clamped to
-`GANTT_MIN_ZOOM=0.4`…`GANTT_MAX_ZOOM=96`. The **view range is zoom-independent**
+Zoom is `pxPerDay`. `GANTT_ZOOM_PRESETS` = Hour 288 / Day 48 / Week 16 / Month 5 / Quarter 1.6;
+clamped to `GANTT_MIN_ZOOM=0.4`…`GANTT_MAX_ZOOM=576`. The **view range is zoom-independent**
 (`computeViewRange`, ±7-day padding) so zooming is anchored exactly. `pickBaseUnit(pxPerDay)` picks the
-fine header unit (≥24px day, ≥4px week, ≥0.8px month, else quarter); `buildTimeScale` emits a
-coarse→fine multi-level header whose columns align to the real calendar with true widths. A floating
-toolbar offers preset + fine `−`/`+` zoom; `Ctrl`/`Cmd`+scroll pinch-zooms at the cursor.
+fine header unit (≥192px hour, ≥24px day, ≥4px week, ≥0.8px month, else quarter); `buildTimeScale`
+emits a coarse→fine multi-level header whose columns align to the real calendar with true widths (at
+the hour tier the fine level is whole-hour columns under a coarse day level, with a stronger border at
+midnight; hour labels merge into groups sized by column width — a label centered every 2h at the Hour
+preset, per hour again past 20px columns — so narrow columns stay legible). Past `GANTT_HOUR_PX_PER_DAY=192` px/day the grid is hourly, and `snapDate` auto-refines
+`snap="day"`/`"none"` to the hour — keyboard nudging follows the same rule. A floating toolbar offers
+preset + fine `−`/`+` zoom; `Ctrl`/`Cmd`+scroll pinch-zooms at the cursor.
 
 ### Styling & a11y
 

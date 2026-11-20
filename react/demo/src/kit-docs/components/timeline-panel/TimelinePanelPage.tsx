@@ -10,7 +10,7 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
 export const TimelinePanelPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Timeline Panel"
       description="A Panel with a vertical timeline: an SVG trunk and L-shaped branch connectors, root and current-state anchors, nested depth, inline actions and an overflow menu, plus skeleton, spinner and progress loaders and an empty state."

@@ -10,7 +10,7 @@ import DualAxis from "./examples/DualAxis";
 import dualAxisCode from "./examples/DualAxis.tsx?raw";
 
 export const LineChartPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Line"
       description="Line series: linear, smooth and step interpolation, dashed/dotted styles, square markers, area fills with gradient and dual y-axes — all with entrance and update animations."

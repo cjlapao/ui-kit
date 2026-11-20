@@ -69,7 +69,7 @@ export const IconsPage: React.FC = () => {
   ].join("\n");
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
       <PageHeader
         name="Icon Registry"
         description="Every icon the kit ships, discovered from the components directory — drop a new SVG component in and it appears here automatically. Click one for its usage code."

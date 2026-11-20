@@ -12,7 +12,7 @@ import Variants from "./examples/Variants";
 import variantsCode from "./examples/Variants.tsx?raw";
 
 export const ApiErrorStatePage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="API Error State"
       description="The failure twin of Empty State: the same surfaces, sizes and tones, with the copy and the glyph chosen from what actually went wrong. A `kind` resolves the tone, the icon, the wording and whether retrying is even worth offering — and anything you state explicitly still wins."

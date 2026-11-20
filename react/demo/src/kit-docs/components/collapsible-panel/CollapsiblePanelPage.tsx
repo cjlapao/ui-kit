@@ -21,7 +21,7 @@ import overflowCollapseCode from "./examples/OverflowCollapse.tsx?raw";
 
 
 export const CollapsiblePanelPage: React.FC = () => (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Collapsible Panel"
       description="Accordion-style panel built on Panel, so it takes every container surface, tone, corner and padding — and the container standard for its defaults: elevated, tone blue, sm padding, medium corner. Controlled or uncontrolled, with a header action, a scrollable content cap and independent ids per panel."

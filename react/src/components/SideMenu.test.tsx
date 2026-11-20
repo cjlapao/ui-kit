@@ -623,6 +623,8 @@ describe("SideMenu — nested items", () => {
     renderMenu({ items: EXPAND_ONLY });
     const row = screen.getByRole("button", { name: "Infrastructure" });
     expect(row).toHaveAttribute("aria-expanded", "false");
+    // A button's UA style centers its text; the row must align like a link.
+    expect(row).toHaveClass("text-left");
     expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
 
     fireEvent.click(row);
@@ -649,6 +651,34 @@ describe("SideMenu — nested items", () => {
     expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
     const toggle = screen.getByLabelText("Expand Infrastructure submenu");
     expect(toggle).toBeInTheDocument();
+  });
+
+  // Both bugs were seams: the row end grew to the toggle's hover fill, and the
+  // first child grew flush against the parent — two filled rows reading as one.
+  it("gives the row end and the submenu toggle a seam of their own", () => {
+    renderMenu({ items: [{ ...NESTED[0], badge: <span>4</span> }] });
+    const toggle = screen.getByLabelText("Expand Infrastructure submenu");
+    // The wrapper spaces row / actions / toggle apart, so the badge no longer
+    // touches the toggle's hover fill.
+    expect((toggle.parentElement as HTMLElement).className).toContain("gap-1");
+  });
+
+  it("clears the same seam before an expand-only row's chevron", () => {
+    renderMenu({ items: EXPAND_ONLY });
+    const row = screen.getByRole("button", { name: "Infrastructure" });
+    // The indicator is the row's last child (the icon renderer is mocked here,
+    // so the wrapper span is what carries the spacing).
+    expect(row.lastElementChild!.className).toContain("ml-1");
+  });
+
+  it("separates the submenu from its parent row", () => {
+    renderMenu({
+      items: [{ ...NESTED[0], defaultOpen: true } as (typeof NESTED)[number]],
+    });
+    const group = screen.getByRole("group", { name: "Infrastructure submenu" });
+    // Siblings get space-y-1; the parent row above them needs the same seam.
+    expect(group.className).toContain("mt-1");
+    expect(group.className).toContain("space-y-1");
   });
 
   it("renders a row with neither path nor children inert", () => {

@@ -36,7 +36,7 @@ export default function TerminalPage() {
   const [specularMode, setSpecularMode] =
     useState<PanelSpecularMode>("classic");
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
       <PageHeader
         name="Terminal"
         description="An xterm.js terminal with ANSI colors, streaming output and keyboard input. Use Terminal on its own or TerminalTabs for persistent sessions. Both use the kit's Panel variants, tones, corners and glass surfaces. Connect onData, onResize and the imperative handle to your own shell transport."

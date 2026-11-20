@@ -8,3 +8,15 @@
    Kit CSS (dist/index.css) already provides .dark classes via
    @custom-variant dark (&:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *))); */
 @custom-variant dark (&:where(.dark, .dark *):not(:where([data-color-scheme="light"], [data-color-scheme="light"] *)));
+
+/* Playground page body width — the single knob every docs page shell uses
+   (`max-w-(--docs-page-max)`). Fluid below the cap, so a page fills the space the
+   side menu leaves (1184px on a 1440px viewport) and only centres once there is
+   more than this to fill. It has to be this generous: the preview column of a
+   PlaygroundPanel gets whatever the page has left after the ~320px controls
+   column, and at the old 1024px (max-w-5xl) that left ~700px — enough to push the
+   width-adaptive components into their compact/mobile presentation in most
+   playgrounds. Raise it here to widen the whole docs site at once. */
+:root {
+  --docs-page-max: 1600px;
+}

@@ -1,6 +1,10 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import IconButton from "./IconButton";
+import {
+  getButtonActiveClasses,
+  getButtonActiveHoverClasses,
+} from "../theme/Theme";
 
 // Mock the IconContext so useIconRenderer doesn't throw
 vi.mock("../contexts/IconContext", () => ({
@@ -425,5 +429,73 @@ describe("IconButton — icon colour", () => {
     expect(span).not.toBeNull();
     expect(span!.style.color).toBe("red");
     expect(span!.textContent).toBe("Search");
+  });
+});
+
+describe("IconButton — active state", () => {
+  it("paints the persistent on-state from the shared theme slot, not a local palette", () => {
+    render(<IconButton icon="Send" srLabel="Send" active />);
+    const button = screen.getByRole("button");
+    for (const token of getButtonActiveClasses("icon", "blue").split(" ")) {
+      expect(button.className).toContain(token);
+    }
+  });
+
+  it("suppresses the variant's own hover while on", () => {
+    // Button's contract: the active state *replaces* the variant colour
+    // classes — a lingering hover on the resting fill would fight the "on".
+    render(<IconButton icon="Send" srLabel="Send" active />);
+    const button = screen.getByRole("button");
+    expect(button.className).not.toContain("hover:bg-blue-100");
+    // and the on-state has its own, measured hover step instead.
+    expect(button.className).toContain(getButtonActiveHoverClasses("icon", "blue").split(" ")[0]);
+  });
+
+  it("lets accentColor override the active colour", () => {
+    render(
+      <IconButton icon="Send" srLabel="Send" active accentColor="orange" />,
+    );
+    const button = screen.getByRole("button");
+    for (const token of getButtonActiveClasses("icon", "orange").split(" ")) {
+      expect(button.className).toContain(token);
+    }
+    // Only the colour-bearing tokens can betray the override — `text-white`
+    // and `shadow-sm` are shared by every tone's on-tile.
+    for (const token of getButtonActiveClasses("icon", "blue")
+      .split(" ")
+      .filter((t) => t.includes("blue"))) {
+      expect(button.className).not.toContain(token);
+    }
+  });
+
+  it("keeps the fill but drops the hover step when disabled", () => {
+    render(<IconButton icon="Send" srLabel="Send" active disabled />);
+    const button = screen.getByRole("button");
+    for (const token of getButtonActiveClasses("icon", "blue").split(" ")) {
+      expect(button.className).toContain(token);
+    }
+    for (const token of getButtonActiveHoverClasses("icon", "blue").split(" ")) {
+      expect(button.className).not.toContain(token);
+    }
+  });
+
+  it("leaves an inactive button on its resting variant classes", () => {
+    render(<IconButton icon="Send" srLabel="Send" />);
+    const button = screen.getByRole("button");
+    const tokens = button.className.split(" ");
+    expect(tokens).toContain("bg-blue-50");
+    // The bare on-tile must not appear; only the resting hover may mention
+    // `-100` (as `hover:bg-blue-100`).
+    expect(tokens).not.toContain("bg-blue-100");
+    expect(tokens).not.toContain("bg-blue-700");
+  });
+
+  it("ignores active on glass, which paints its own chrome", () => {
+    render(<IconButton icon="Send" srLabel="Send" active glass />);
+    const button = screen.getByRole("button");
+    expect(button.className).not.toContain(
+      getButtonActiveClasses("icon", "blue").split(" ")[0],
+    );
+    expect(button.className).toContain("backdrop-blur-sm");
   });
 });

@@ -37,7 +37,7 @@ import LiveRelease from "./examples/LiveRelease";
 import liveReleaseCode from "./examples/LiveRelease.tsx?raw";
 
 export const ConnectionFlowPage: React.FC = () => (
-  <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-8">
+  <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Connection Flow"
       description="A pipeline graph: steps along a track, parallel lanes that fan out and back in, children hanging below their parent, and arcs over the steps that were skipped. Every edge comes from one port-and-route engine — each connection has its own anchors and corridor, and the edge style changes only how the corners are drawn. Drag to move through it (bars appear on hover); plain scrolling continues through the page, Ctrl/⌘-scroll or pinch to zoom, and hover any node to light the path that reached it."

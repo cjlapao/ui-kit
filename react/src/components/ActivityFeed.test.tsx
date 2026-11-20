@@ -335,16 +335,105 @@ describe("ActivityFeed", () => {
     });
 
     it("insets the rows so the hover wash breathes and the bar has a gutter", () => {
-      // Rows carry their own horizontal padding: text never touches the
-      // wash edge, and `ScrollArea` widens the gutter to the bar's width
-      // whenever the thumb is drawn.
+      // The template row's Panel carries the inset — `xs` padding, so text
+      // never touches the wash edge and `ScrollArea` widens the gutter to
+      // the bar's width whenever the thumb is drawn.
       const { container } = render(<ActivityFeed items={items} maxHeight={240} />);
-      const li = container.querySelector("li") as HTMLElement;
-      expect(li.className).toContain("px-2");
+      const panel = container.querySelector("li > section") as HTMLElement;
+      expect(panel.className).toContain("p-2");
       expect(container.innerHTML).not.toContain("mask-image");
     });
 
-    it("makes a row with onClick activatable, with the table's hover grammar", () => {
+    it("hands an active row the selection rim and an attention row the pulse", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            { id: "a", title: "current", timestamp: "now", active: true },
+            { id: "b", title: "urgent", timestamp: "now", attention: true },
+            { id: "c", title: "plain", timestamp: "now" },
+          ]}
+        />,
+      );
+      const panels = Array.from(container.querySelectorAll("li > section")) as HTMLElement[];
+      // Untinted rows activate on the kit's blue floor; the rim is the
+      // shared outline token, so it never fights the variant's widths.
+      expect(panels[0].getAttribute("data-active")).toBe("true");
+      expect(panels[0].className).toMatch(/outline-2/);
+      expect(panels[0].className).toMatch(/outline-blue-500/);
+      expect(panels[1].className).toContain("panel-pulse");
+      expect(panels[1].style.getPropertyValue("--panel-glow")).toBe("var(--color-blue-500)");
+      expect(panels[2].className).not.toContain("panel-pulse");
+      expect(panels[2].getAttribute("data-active")).toBeNull();
+    });
+
+    it("lets attentionTone move the state hue, rim and glow together", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "a",
+              title: "current",
+              timestamp: "now",
+              active: true,
+              attention: true,
+              attentionTone: "amber",
+            },
+          ]}
+        />,
+      );
+      const row = container.querySelector("li > section") as HTMLElement;
+      // One hue for both states — the Panel's `borderColor ?? tone` rule
+      // its row Panel wears, so a selected-and-pulsing row always agrees.
+      expect(row.className).toMatch(/outline-amber-500/);
+      expect(row.style.getPropertyValue("--panel-glow")).toBe("var(--color-amber-500)");
+      expect(row.style.getPropertyValue("--panel-glow-dark")).toBe("var(--color-amber-300)");
+    });
+
+    it("swaps the list dividers for vertical air when rows carry a surface", () => {
+      const plain = render(<ActivityFeed items={items} />);
+      const tight = plain.container.querySelector("ol") as HTMLElement;
+      expect(tight.className).toContain("divide-y");
+      expect(tight.className).not.toContain("space-y");
+
+      const styled = render(<ActivityFeed items={items} rowVariant="elevated" />);
+      const gapped = styled.container.querySelector("ol") as HTMLElement;
+      expect(gapped.className).not.toContain("divide-y");
+      expect(gapped.className).toContain("space-y-2");
+    });
+
+    it("leaves the rows on the corner scale's xs step and lets rowCorner move them", () => {
+      const plain = render(<ActivityFeed items={items} />);
+      // The scale's `rounded` step is the class Tailwind calls `rounded-sm`.
+      expect(
+        (plain.container.querySelector("li > section") as HTMLElement).className,
+      ).toContain("rounded-sm");
+
+      const sharp = render(<ActivityFeed items={items} rowCorner="none" />);
+      expect(
+        (sharp.container.querySelector("li > section") as HTMLElement).className,
+      ).toContain("rounded-none");
+    });
+
+    it("drives the row Panel with rowVariant/rowTone, inheriting the card tone by default", () => {
+      const styled = render(<ActivityFeed items={items} rowVariant="glass" />);
+      const panel = styled.container.querySelector("li > section") as HTMLElement;
+      expect(panel.className).toContain("backdrop-blur"); // glass, not the default `none`
+
+      // A row tone that does not follow the card, on the plain variant —
+      // glass composites its own way and carries no surface-color token.
+      const toned = render(<ActivityFeed items={items} rowTone="rose" />);
+      const tonePanel = toned.container.querySelector("li > section") as HTMLElement;
+      expect(/--ui-surface-color:var\(--color-rose/.test(tonePanel.className)).toBe(true);
+    });
+
+    it("inherits the card's tone on the rows when rowTone is unset", () => {
+      const { container } = render(<ActivityFeed items={items} tone="blue" />);
+      const panel = container.querySelector("li > section") as HTMLElement;
+      expect(panel.className).not.toContain("backdrop-blur"); // default `none`
+      expect(/--ui-surface-color:var\(--color-blue/.test(panel.className)).toBe(true);
+    });
+
+    it("makes a row with onClick activatable, with the Panel's hover grammar", () => {
       const onClick = vi.fn();
       const { container } = render(
         <ActivityFeed
@@ -354,24 +443,157 @@ describe("ActivityFeed", () => {
           ]}
         />,
       );
-      const [rowA, rowB] = container.querySelectorAll("li");
-      fireEvent.click(rowA!);
+      // The row is a Panel now: the section is the surface, the affordance
+      // and the a11y node — role, tabIndex, the guarded click and the
+      // toned hover wash all come from the Panel API.
+      const panelA = container.querySelectorAll("li > section")[0] as HTMLElement;
+      const panelB = container.querySelectorAll("li > section")[1] as HTMLElement;
+      fireEvent.click(panelA);
       expect(onClick).toHaveBeenCalledTimes(1);
       // A row-activated control is keyboard-reachable too.
-      expect(rowA!.getAttribute("role")).toBe("button");
-      expect(rowA!.getAttribute("tabindex")).toBe("0");
-      fireEvent.keyDown(rowA!, { key: "Enter" });
+      expect(panelA.getAttribute("role")).toBe("button");
+      expect(panelA.getAttribute("tabindex")).toBe("0");
+      fireEvent.keyDown(panelA, { key: "Enter" });
       expect(onClick).toHaveBeenCalledTimes(2);
-      expect(rowA!.className).toContain("cursor-pointer");
-      expect(rowA!.className).toContain("hover:bg-neutral-50");
-      expect(rowB!.className).not.toContain("cursor-pointer");
-      expect(rowB!.getAttribute("role")).toBeNull();
+      expect(panelA.className).toContain("cursor-pointer");
+      expect(panelB.className).not.toContain("cursor-pointer");
+      expect(panelB.getAttribute("role")).toBeNull();
     });
 
     it("scrolls the skeleton too, so loading never resizes the card", () => {
       const { container } = render(<ActivityFeed items={items} maxHeight={240} loading />);
       const viewport = container.querySelector('[data-slot="scrollarea-viewport"]');
       expect(viewport!.querySelector(".animate-pulse")).not.toBeNull();
+    });
+  });
+
+  describe("custom item bodies", () => {
+    it("renders the item's body in place of the whole row content", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "custom",
+              title: "hidden title",
+              description: "hidden description",
+              code: "#412",
+              timestamp: "3m ago",
+              body: <div>custom row UI</div>,
+            },
+            { id: "null-body", title: "default row", timestamp: "now", body: null },
+            { id: "plain", title: "plain row", timestamp: "now" },
+          ]}
+        />,
+      );
+      const rows = container.querySelectorAll("li");
+      expect(rows[0]!.textContent).toContain("custom row UI");
+      // The whole default row is gone for the custom item — dot, text, code, time.
+      expect(rows[0]!.textContent).not.toContain("hidden title");
+      expect(rows[0]!.textContent).not.toContain("#412");
+      expect(rows[0]!.querySelector("time")).toBeNull();
+      expect(rows[0]!.querySelector('[aria-hidden="true"]')).toBeNull();
+      // `null` falls back to the default row, exactly like the absent field.
+      expect(rows[1]!.textContent).toContain("default row");
+      expect(rows[1]!.querySelector("time")).not.toBeNull();
+      expect(rows[2]!.textContent).toContain("plain row");
+    });
+
+    it("keeps the row wrapper — and the clickable grammar — around a custom body", () => {
+      const onClick = vi.fn();
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "custom",
+              title: "ignored",
+              timestamp: "now",
+              onClick,
+              body: <span>custom</span>,
+            },
+          ]}
+        />,
+      );
+      const row = container.querySelector("li") as HTMLElement;
+      // The feed still owns the row: the body is the Panel's only content,
+      // and the `onClick` grammar wraps it as it wraps the default row.
+      expect(row.textContent).toBe("custom");
+      const panel = row.querySelector("section") as HTMLElement;
+      expect(panel.className).toContain("p-2");
+      expect(panel.getAttribute("role")).toBe("button");
+      expect(panel.getAttribute("tabindex")).toBe("0");
+      expect(panel.className).toContain("cursor-pointer");
+      fireEvent.click(panel);
+      expect(onClick).toHaveBeenCalledTimes(1);
+      fireEvent.keyDown(panel, { key: "Enter" });
+      expect(onClick).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("loader modes", () => {
+    it("replaces the body with the feed-shaped skeleton by default", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={items}
+          loading
+          tag="live"
+          linkLabel="Full audit log"
+          filters={[{ label: "Deploys", value: "deploys" }]}
+        />,
+      );
+      const skeleton = container.querySelector(".animate-pulse");
+      expect(skeleton).not.toBeNull();
+      expect(container.querySelectorAll("li")).toHaveLength(0);
+      // The placeholder is shaped like the feed: one row per pending entry
+      // (the auto-count), each with the dot and the right-hand time bar.
+      const rows = skeleton!.querySelectorAll(":scope > div");
+      expect(rows).toHaveLength(3);
+      expect(rows[0]!.querySelector("time")).toBeNull();
+      // Skeleton mode is a rewrite: controls yield until the events land.
+      expect(container.querySelector('[role="radiogroup"]')).toBeNull();
+      expect(container.textContent).not.toContain("Full audit log");
+    });
+
+    it("pins a Loader overlay over the rows for spinner, controls yielding", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={items}
+          loading
+          loaderType="spinner"
+          tag="live"
+          filters={[{ label: "Deploys", value: "deploys" }]}
+        />,
+      );
+      // The real rows stay beneath the overlay — no skeleton swap.
+      expect(container.querySelectorAll("li")).toHaveLength(items.length);
+      expect(container.querySelector(".animate-pulse")).toBeNull();
+      // The overlay is pinned to the feed-body wrapper, not the rows.
+      const overlay = Array.from(container.querySelectorAll('[role="status"]')).find(
+        (node) => node.className.includes("absolute"),
+      );
+      expect(overlay).toBeDefined();
+      expect(overlay!.className).toContain("inset-0");
+      // Any loading style clears the controls — the overlay carries a visible
+      // label, so the card never reads as half-loaded.
+      expect(container.querySelector('[role="radiogroup"]')).toBeNull();
+      expect(container.textContent).not.toContain("live");
+      expect(overlay!.textContent).toContain("Loading");
+    });
+
+    it("draws the progress bar with its fill and label", () => {
+      const { container } = render(
+        <ActivityFeed items={items} loading loaderType="progress" loaderProgress={40} loadingMessage="Fetching the trail" />,
+      );
+      const bar = container.querySelector('[role="progressbar"]');
+      expect(bar).not.toBeNull();
+      expect(bar!.getAttribute("aria-valuenow")).toBe("40");
+      expect(container.textContent).toContain("Fetching the trail");
+      expect(container.querySelectorAll("li")).toHaveLength(items.length);
+      expect(container.querySelector('[role="radiogroup"]')).toBeNull();
+    });
+
+    it("lets skeletonRows pin the placeholder count", () => {
+      const { container } = render(<ActivityFeed items={items} loading skeletonRows={2} />);
+      expect(container.querySelectorAll(".animate-pulse > div")).toHaveLength(2);
     });
   });
 });
