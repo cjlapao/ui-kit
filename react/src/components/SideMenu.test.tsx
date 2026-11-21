@@ -9,7 +9,7 @@ import {
   act,
   renderHook,
 } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import SideMenu, {
   useSidebarIsMobile,
   type SideMenuItem,
@@ -130,13 +130,32 @@ const GROUPED_NESTED: SideMenuItem[] = [
   },
 ];
 
+// Which click navigated and which stayed put: `Link` prevents the default on
+// every click (that is how SPA navigation works), so `fireEvent`'s return
+// value cannot tell the two apart. The history `key` changes on every
+// navigation — including a re-navigation to the same path — so "did not
+// navigate" is observable too.
+const LocationProbe = () => {
+  const location = useLocation();
+  return (
+    <div
+      data-testid="location"
+      data-path={location.pathname}
+      data-key={location.key}
+    />
+  );
+};
+
 function renderMenu(props: Partial<SideMenuProps> = {}, route = "/") {
   return render(
     <MemoryRouter initialEntries={[route]}>
       <SideMenu items={ITEMS} {...props} />
+      <LocationProbe />
     </MemoryRouter>,
   );
 }
+
+const locationProbe = () => screen.getByTestId("location");
 
 const link = (name: string) => screen.getByRole("link", { name });
 const rowOf = (name: string) => link(name).parentElement as HTMLElement;
@@ -646,8 +665,10 @@ describe("SideMenu — nested items", () => {
     ).toBeNull();
   });
 
-  it("keeps clicking the row of a link with children as navigation", () => {
-    renderMenu({ items: NESTED });
+  it("keeps clicking the row of a link with children as navigation when expandOnClick is off", () => {
+    renderMenu({
+      items: [{ ...NESTED[0], expandOnClick: false } as (typeof NESTED)[number]],
+    });
     fireEvent.click(link("Infrastructure"));
     expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
     const toggle = screen.getByLabelText("Expand Infrastructure submenu");
@@ -689,6 +710,99 @@ describe("SideMenu — nested items", () => {
     expect(screen.getByText("Ghost section")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /ghost/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /ghost/i })).toBeNull();
+  });
+});
+
+// ── Expand on click ─────────────────────────────────────────────────────────
+// A row that is both a route and a group drives its sub-tree from the row
+// itself: open + navigate; on its own route, contract without navigating; on
+// a sub item, navigate without contracting. Navigation is asserted through
+// the location probe — `Link` prevents the default on every click, so
+// `fireEvent`'s return value cannot tell the two apart.
+
+describe("SideMenu — expand on click", () => {
+  const OPENED: SideMenuItem[] = [
+    { ...NESTED[0], defaultOpen: true } as (typeof NESTED)[number],
+  ];
+
+  it("opens the sub-tree and navigates when a collapsed row is clicked", () => {
+    renderMenu({ items: NESTED }, "/elsewhere");
+    expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
+    fireEvent.click(link("Infrastructure"));
+    expect(screen.getByText("Hosts")).toBeInTheDocument();
+    expect(locationProbe()).toHaveAttribute("data-path", "/infra");
+  });
+
+  it("contracts without navigating when clicked again on its own route", () => {
+    const onItemSelect = vi.fn();
+    renderMenu({ items: NESTED, onItemSelect }, "/");
+    // First click: open the sub-tree and navigate to the row's route.
+    fireEvent.click(link("Infrastructure"));
+    expect(screen.getByText("Hosts")).toBeInTheDocument();
+    expect(locationProbe()).toHaveAttribute("data-path", "/infra");
+    const key = locationProbe().getAttribute("data-key");
+
+    // Second click, now on "/infra": contract in place — the history key is
+    // unchanged, nothing was re-navigated.
+    fireEvent.click(link("Infrastructure"));
+    expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
+    expect(locationProbe()).toHaveAttribute("data-key", key);
+    // The contract click navigates nowhere: not the app's pre-navigation copy.
+    expect(onItemSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("navigates to the parent without contracting when a sub item is active", () => {
+    const onItemSelect = vi.fn();
+    // "/infra/hosts" is a descendant of the parent's "/infra": prefix
+    // matching would read it as "already there" and contract instead.
+    renderMenu({ items: OPENED, onItemSelect }, "/infra/hosts");
+    fireEvent.click(link("Infrastructure"));
+    expect(screen.getByText("Hosts")).toBeInTheDocument();
+    expect(locationProbe()).toHaveAttribute("data-path", "/infra");
+    expect(onItemSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the chevron as the route-free toggle", () => {
+    renderMenu({ items: NESTED }, "/infra");
+    fireEvent.click(screen.getByLabelText("Expand Infrastructure submenu"));
+    expect(screen.getByText("Hosts")).toBeInTheDocument();
+  });
+
+  it("a contract click does not dismiss the mobile drawer", () => {
+    setViewportMobile(true);
+    const onCloseMobile = vi.fn();
+    renderMenu({ items: OPENED, mobileOpen: true, onCloseMobile }, "/infra");
+    fireEvent.click(link("Infrastructure"));
+    expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
+    expect(onCloseMobile).not.toHaveBeenCalled();
+  });
+
+  it("in slug mode, already there is the slug match", () => {
+    const onItemSelect = vi.fn();
+    renderMenu(
+      { items: OPENED, activeItemSlug: "infra", onItemSelect },
+      "/elsewhere",
+    );
+    fireEvent.click(link("Infrastructure"));
+    expect(screen.queryByText("Hosts")).not.toBeInTheDocument();
+    // Prevented: the href never took.
+    expect(locationProbe()).toHaveAttribute("data-path", "/elsewhere");
+    expect(onItemSelect).not.toHaveBeenCalled();
+  });
+
+  it("in slug mode, a selected sub item navigates without contracting", () => {
+    const onItemSelect = vi.fn();
+    renderMenu(
+      { items: OPENED, activeItemSlug: "hosts", onItemSelect },
+      "/elsewhere",
+    );
+    // Nothing prevented here: with no app-side preventDefault in the way,
+    // the row's own route takes — what an app would turn into a content
+    // swap by cancelling the event in `onItemSelect`.
+    fireEvent.click(link("Infrastructure"));
+    expect(screen.getByText("Hosts")).toBeInTheDocument();
+    expect(locationProbe()).toHaveAttribute("data-path", "/infra");
+    expect(onItemSelect).toHaveBeenCalledTimes(1);
   });
 });
 

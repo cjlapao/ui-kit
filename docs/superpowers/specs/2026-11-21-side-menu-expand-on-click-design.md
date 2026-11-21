@@ -86,8 +86,12 @@ clicks, matching the existing link behavior.
 
 `react/src/components/SideMenu.test.tsx` — the existing "keeps clicking the row of
 a link with children as navigation" test gains an explicit `expandOnClick: false`
-(the opt-out path). New cases, asserting navigation with `fireEvent.click`'s
-return value (`false` iff prevented):
+(the opt-out path). Navigation is asserted with a `useLocation` probe rendered
+inside the `MemoryRouter` — `Link` prevents the default on **every** click (that is
+how SPA navigation works), so `fireEvent`'s return value cannot distinguish a
+prevented contract click from a navigating one; the history `key`, which changes on
+every navigation including a re-navigation to the same path, proves "did not
+navigate". New cases:
 
 - collapsed row click opens the sub-tree and is not prevented (navigates);
 - expanded + own route: second click is prevented, contracts, `onItemSelect` not

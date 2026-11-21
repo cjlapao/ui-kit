@@ -146,6 +146,15 @@ export interface SideMenuItemLink extends SideMenuItemBase {
   /** Open the sub-tree initially. */
   defaultOpen?: boolean;
   /**
+   * For rows that carry both a route and children: clicking the row opens
+   * the sub-tree and navigates; clicking again while on the row's own route
+   * contracts it without navigating (you are already there); clicking while
+   * on a sub item navigates without contracting. The chevron stays for
+   * toggling independently of the route. Set false to keep the row purely
+   * navigational. @default true
+   */
+  expandOnClick?: boolean;
+  /**
    * Work in progress on this row: a spinner takes the icon's place (in the
    * rail too) and the link is marked `aria-busy`.
    */
@@ -1196,6 +1205,18 @@ export const SideMenu = ({
       (child) => isActiveItem(child) || hasActiveDescendant(child),
     );
 
+  // Exact route match for the expand-on-click row's "already there" click.
+  // `isActivePath` matches descendants too, and a child route like
+  // "/infra/hosts" sits under its parent's "/infra" — with prefix matching
+  // the parent would contract where it should navigate. In slug mode the
+  // route is the app's to own, so its slug is the page.
+  const isOwnRoute = (link: SideMenuItemLink): boolean =>
+    activeItemSlug !== undefined
+      ? link.slug === activeItemSlug
+      : !!link.path &&
+        (location.pathname === link.path ||
+          (link.path !== "/" && location.pathname === `${link.path}/`));
+
   // ── Nested submenus ─────────────────────────────────────────────────────
   const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -1648,6 +1669,37 @@ export const SideMenu = ({
       <Link
         to={link.path}
         onClick={(event) => {
+          // Expand-on-click (default on): a row that is both a route and a
+          // group drives its sub-tree from the row itself, like the
+          // expand-only row beside it. The decision reads the true toggle
+          // state, not the visual one — searching force-opens rows that are
+          // really closed.
+          if (hasChildren && link.expandOnClick !== false) {
+            if (openSubmenus.has(link.slug)) {
+              if (isOwnRoute(link)) {
+                // Already there with the sub-tree open: this click closes
+                // it instead of re-navigating to the route it serves.
+                // `onItemSelect` is pre-navigation copy: no navigation, no
+                // call; the drawer and the hover panel stay so the
+                // contraction is seen.
+                event.preventDefault();
+                setOpenSubmenus((prev) => {
+                  const next = new Set(prev);
+                  next.delete(link.slug);
+                  return next;
+                });
+                return;
+              }
+              // On a sub item — or anywhere else — with the sub-tree open:
+              // navigate to the parent and leave it open.
+            } else {
+              setOpenSubmenus((prev) => {
+                const next = new Set(prev);
+                next.add(link.slug);
+                return next;
+              });
+            }
+          }
           onItemSelect?.(link, event);
           if (mobileOpen) onCloseMobile?.();
           if (hoverOpen) closeHover();
