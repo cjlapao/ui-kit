@@ -187,7 +187,7 @@ const TaskBoardLaneRow: React.FC<TaskBoardLaneRowProps> = ({
   trailingCell,
   fullColumns,
 }) => {
-  const { surface, text, color, stickySurface, onAddCard, dropTarget } = useTaskBoard();
+  const { surface, text, color, stickySurface, onAddCard, canAddCard, dropTarget } = useTaskBoard();
   const refusedBucket = dropTarget && !dropTarget.valid ? dropTarget.bucket : null;
   const trigger = getSurfaceTriggerTokens(color);
   const open = !lane.collapsed;
@@ -233,7 +233,11 @@ const TaskBoardLaneRow: React.FC<TaskBoardLaneRowProps> = ({
                     cards={buckets.get(bucketKey(col.id, lane.id)) ?? []}
                     label={`${col.title}, ${lane.title}`}
                   />
-                  {onAddCard && !fullColumns.has(col.id) && (
+                  {/* Where a card may be created is the app's call, per cell; an
+                      absent predicate allows it, the column cap still wins. */}
+                  {onAddCard &&
+                    !fullColumns.has(col.id) &&
+                    canAddCard?.({ column: col.id, lane: lane.id }) !== false && (
                     <button
                       type="button"
                       onClick={() => onAddCard({ column: col.id, lane: lane.id })}

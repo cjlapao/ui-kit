@@ -131,6 +131,25 @@ describe("TaskBoard — columns layout", () => {
     expect(screen.queryByRole("button", { name: /Add card/ })).toBeNull();
   });
 
+  it("canAddCard hides the button in the columns the app closes", () => {
+    const onAddCard = vi.fn();
+    renderBoard({ onAddCard, canAddCard: ({ column: id }) => id !== "blocked" });
+    expect(within(column("blocked")).queryByRole("button", { name: /Add card/ })).toBeNull();
+    fireEvent.click(within(column("ready")).getByRole("button", { name: /Add card/ }));
+    expect(onAddCard).toHaveBeenCalledWith({ column: "ready", lane: null });
+  });
+
+  it("canAddCard is asked about the target it gates", () => {
+    const canAddCard = vi.fn(() => true);
+    renderBoard({ onAddCard: () => {}, canAddCard });
+    expect(canAddCard).toHaveBeenCalledWith({ column: "ideas", lane: null });
+  });
+
+  it("omitting canAddCard leaves every column's Add card button in place", () => {
+    renderBoard({ onAddCard: () => {} });
+    expect(screen.getAllByRole("button", { name: /Add card/ })).toHaveLength(roadmap.columns.length);
+  });
+
   it("click opens a card, right-click emits the context-menu payload", () => {
     const onCardOpen = vi.fn();
     const onCardContextMenu = vi.fn();
@@ -309,5 +328,21 @@ describe("TaskBoard — lanes layout", () => {
     const north = document.querySelector('[data-lane-id="north"]') as HTMLElement;
     fireEvent.click(within(north).getAllByRole("button", { name: /Add card/ })[0]);
     expect(onAddCard).toHaveBeenCalledWith({ column: "intake", lane: "north" });
+  });
+
+  it("canAddCard gates one column × lane cell at a time", () => {
+    const onAddCard = vi.fn();
+    const canAddCard = vi.fn(
+      ({ column: col, lane }: { column: string; lane: string | null }) => !(col === "intake" && lane === "north"),
+    );
+    renderLanes({ onAddCard, canAddCard });
+    expect(canAddCard).toHaveBeenCalledWith({ column: "intake", lane: "north" });
+    const intake = (document.querySelector('[data-bucket="intake::north"]') as HTMLElement)
+      .parentElement as HTMLElement;
+    expect(within(intake).queryByRole("button", { name: /Add card/ })).toBeNull();
+    const scheduled = (document.querySelector('[data-bucket="scheduled::north"]') as HTMLElement)
+      .parentElement as HTMLElement;
+    fireEvent.click(within(scheduled).getByRole("button", { name: /Add card/ }));
+    expect(onAddCard).toHaveBeenCalledWith({ column: "scheduled", lane: "north" });
   });
 });

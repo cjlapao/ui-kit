@@ -140,6 +140,14 @@ export interface TaskBoardProps {
   onCardContextMenu?: (payload: TaskBoardContextMenuPayload) => void;
   /** Shows a column's "+ Add card" button when set. */
   onAddCard?: (target: { column: string; lane: string | null }) => void;
+  /**
+   * Gate that button per column — or per column × lane cell, in the lanes
+   * layout. Only consulted when `onAddCard` is set: it filters where the button
+   * appears, it never gates a drop or a move. Called during render with the
+   * same target `onAddCard` receives, so one map can serve both; keep it cheap
+   * and free of side effects. @default allow everywhere
+   */
+  canAddCard?: (target: { column: string; lane: string | null }) => boolean;
   /** Controlled selection. Uncontrolled when omitted. */
   selectedIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
@@ -222,6 +230,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
     onCardOpen,
     onCardContextMenu,
     onAddCard,
+    canAddCard,
     selectedIds,
     onSelectionChange,
     transport,
@@ -360,6 +369,7 @@ const TaskBoardBody: React.FC<BodyProps> = (props) => {
       onCardOpen,
       onCardContextMenu,
       onAddCard,
+      canAddCard,
       cardSurface: surface.translucent ? GLASS_CARD : SOLID_CARD,
       wellSurface,
       columnCornerClass,

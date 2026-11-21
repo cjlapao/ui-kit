@@ -66,6 +66,9 @@ const COLUMN_WIDTH_OPTIONS = [
 /** Dots shown for a card's sub tasks — the rest stack. */
 const SUBTASK_DOT_OPTIONS = [1, 2, 3, 4, 5, 6].map((n) => ({ label: String(n), value: String(n) }));
 
+/** Where the app closes card creation — the playground's `canAddCard` demo. */
+const NO_ADD_COLUMNS = new Set(["blocked", "closed"]);
+
 /** Ready accepts only Discovery; Blocked is locked. */
 function withRules(columns: TaskBoardColumn[], wip: boolean, rules: boolean): TaskBoardColumn[] {
   return columns.map((c) => ({
@@ -96,6 +99,7 @@ export const TaskBoardPlayground: React.FC = () => {
   const [editable, setEditable] = useState(true);
   const [wip, setWip] = useState(true);
   const [rules, setRules] = useState(false);
+  const [noAdd, setNoAdd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loaderType, setLoaderType] = useState<PanelLoaderType>("skeleton");
   const [error, setError] = useState(false);
@@ -190,6 +194,7 @@ export const TaskBoardPlayground: React.FC = () => {
                       <ToggleRow label="Auto-collapse empty" checked={autoCollapseEmpty} onChange={setAutoCollapseEmpty} />
                       <ToggleRow label="WIP limits" checked={wip} onChange={setWip} />
                       <ToggleRow label="Transition rules + locks" checked={rules} onChange={setRules} />
+                      <ToggleRow label="No add in Blocked / Closed" checked={noAdd} onChange={setNoAdd} />
                       <SelectControl
                         label="Max items per column"
                         options={MAX_ITEMS_OPTIONS}
@@ -254,6 +259,7 @@ export const TaskBoardPlayground: React.FC = () => {
             onCardOpen={(card) => pushLog(`onCardOpen → ${card.id}`)}
             onCardContextMenu={({ card, x, y }) => pushLog(`onCardContextMenu → ${card.id} @ ${Math.round(x)},${Math.round(y)}`)}
             onAddCard={({ column, lane }) => pushLog(`onAddCard → ${column}${lane ? ` / ${lane}` : ""}`)}
+            canAddCard={noAdd ? ({ column: id }) => !NO_ADD_COLUMNS.has(id) : undefined}
             onSelectionChange={(ids) => pushLog(`onSelectionChange → [${ids.join(", ")}]`)}
             loading={loading}
             loaderType={loaderType}

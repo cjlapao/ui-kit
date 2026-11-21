@@ -76,6 +76,8 @@ export interface TaskBoardContextValue {
   onCardOpen?: (card: TaskBoardCard) => void;
   onCardContextMenu?: (payload: TaskBoardContextMenuPayload) => void;
   onAddCard?: (target: { column: string; lane: string | null }) => void;
+  /** Filter the Add card button per column / column × lane cell; absent = allow. */
+  canAddCard?: (target: { column: string; lane: string | null }) => boolean;
   /** Card surface classes for the board's surface (solid vs translucent). */
   cardSurface: string;
   /** Column well fill. */

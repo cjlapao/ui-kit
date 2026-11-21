@@ -49,12 +49,14 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
   index = 0,
   onToggle,
 }) => {
-  const { surface, text, color, columnWidth, wellSurface, columnCornerClass, onAddCard, draggingColumnId, boardMaxItems, dropTarget } =
+  const { surface, text, color, columnWidth, wellSurface, columnCornerClass, onAddCard, canAddCard, draggingColumnId, boardMaxItems, dropTarget } =
     useTaskBoard();
   const refused = Boolean(dropTarget && !dropTarget.valid && dropTarget.bucket === bucketKey(column.id, null));
   const max = effectiveMaxItems(column, boardMaxItems);
   // At its cap the column takes no new cards — by Add card or by drop.
   const full = max !== undefined && count >= max;
+  // Where a card may be created is the app's call; an absent predicate allows it.
+  const addable = canAddCard?.({ column: column.id, lane: null }) !== false;
   const dragging = draggingColumnId === column.id;
   const tone = column.color ?? color;
   const tokens = getTaskBoardColumnTokens(tone);
@@ -197,7 +199,7 @@ export const TaskBoardColumn: React.FC<TaskBoardColumnProps> = ({
               label={`${column.title}, ${text("cardCount", { count: cards.length })}`}
             />
           </ScrollArea>
-          {onAddCard && !full && (
+          {onAddCard && addable && !full && (
             <button
               type="button"
               onClick={() => onAddCard({ column: column.id, lane: null })}
