@@ -2,9 +2,11 @@ import React from "react";
 import { CustomIcon } from "@cjlapao/ui-kit";
 import type {
   IconName,
+  PickerItem,
   SideMenuCta,
   SideMenuDetailItem,
   SideMenuItem,
+  SideMenuItemSelect,
   TrueColor,
 } from "@cjlapao/ui-kit";
 
@@ -212,6 +214,46 @@ export const GroupAction: React.FC<{ icon: IconName; label: string }> = ({ icon,
 
 const AGES = ["38min", "4h", "7d", "2d", "2d", "2d", "2d", "7d", "9d", "12d", "2w", "3w"];
 
+/**
+ * Options for the embedded context selects: icons, subtitles, group headers
+ * and tags — the furniture a plain `<select>` cannot carry.
+ */
+export const CONTEXT_OPTIONS: PickerItem[] = [
+  {
+    id: "test-qa",
+    title: "Test QA · Workspace",
+    subtitle: "qa environment",
+    group: "Workspaces",
+    icon: <CustomIcon icon="Dashboard" className="h-4 w-4" />,
+    tags: [{ label: "QA", tone: "blue" }],
+  },
+  {
+    id: "test",
+    title: "Test · Workspace",
+    group: "Workspaces",
+    icon: <CustomIcon icon="Folder" className="h-4 w-4" />,
+  },
+  {
+    id: "aeon",
+    title: "Aeon",
+    group: "Workspaces",
+    icon: <CustomIcon icon="Globe" className="h-4 w-4" />,
+  },
+  {
+    id: "staging",
+    title: "Staging",
+    group: "Environments",
+    icon: <CustomIcon icon="Container" className="h-4 w-4" />,
+  },
+  {
+    id: "prod",
+    title: "Production",
+    group: "Environments",
+    icon: <CustomIcon icon="Settings" className="h-4 w-4" />,
+    tags: [{ label: "Live", tone: "red" }],
+  },
+];
+
 export const sessionsFor = (workspace: string, count: number, from = 0) =>
   Array.from({ length: count }, (_, i) => ({
     slug: `${workspace}-s${from + i + 1}`,
@@ -229,6 +271,8 @@ export interface WorkspaceSectionOptions {
   loadingSession?: boolean;
   /** Children per page; undefined shows them all. */
   pageSize?: number;
+  /** Embedded select prepended to the open workspace's sub-list. */
+  contextSelect?: SideMenuItemSelect;
 }
 
 /** The screenshot's Workspaces section, built from the kit's own props. */
@@ -257,7 +301,7 @@ export const buildWorkspaceSection = (o: WorkspaceSectionOptions = {}): SideMenu
       icon: "Folder",
       groupName: "workspaces",
       defaultOpen: true,
-      children: agents,
+      children: o.contextSelect ? [o.contextSelect, ...agents] : agents,
       childrenPageSize: o.pageSize,
       moreChildrenLabel: (n: number) => `Show ${n} more sessions`,
     },

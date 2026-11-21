@@ -4,13 +4,17 @@ import { surfaceVariantOptions } from "../../shared/options";
 import React, { useState } from "react";
 import {
   ColorSwatches,
+  Input,
   SideMenu,
   Slider,
+  type PickerSize,
   type SidebarCollapsible,
   type SidebarSide,
   type SidebarVariant,
+  type SideMenuItemSelect,
   type SideMenuLoaderType,
   type SideMenuSearchScope,
+  type SideMenuSelectPicker,
   type TrueColor,
 } from "@cjlapao/ui-kit";
 import {
@@ -29,6 +33,7 @@ import {
 } from "../../shared/options";
 import {
   buildWorkspaceSection,
+  CONTEXT_OPTIONS,
   DEMO_CTAS,
   DEMO_DETAILS,
   DEMO_ITEMS,
@@ -80,6 +85,51 @@ export const SideMenuPlayground: React.FC = () => {
   const [pageSize, setPageSize] = useState("3");
   const [loading, setLoading] = useState(false);
   const [loaderType, setLoaderType] = useState<SideMenuLoaderType>("skeleton");
+  // Embedded selects. The playground owns the selection — the way an app
+  // owns "current context" — and the item's `picker` object stays controlled.
+  const [topSelect, setTopSelect] = useState(true);
+  const [nestedSelect, setNestedSelect] = useState(true);
+  const [selectSize, setSelectSize] = useState<PickerSize>("sm");
+  const [selectPlaceholder, setSelectPlaceholder] = useState("");
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selectedContext, setSelectedContext] = useState<string | undefined>(
+    "test-qa",
+  );
+  const [selectedContexts, setSelectedContexts] = useState<string[]>([
+    "test-qa",
+  ]);
+
+  // Both rows are the same context decision, so they share the selection:
+  // picking "Production" in either row moves the other — controlled, not two
+  // independent widgets.
+  const contextPicker: SideMenuSelectPicker = {
+    items: CONTEXT_OPTIONS,
+    size: selectSize,
+    // Empty string means "let Picker resolve the catalog default".
+    placeholder: selectPlaceholder || undefined,
+    ...(multiSelect
+      ? {
+          multi: true,
+          selectedIds: selectedContexts,
+          onMultiChange: setSelectedContexts,
+        }
+      : {
+          selectedId: selectedContext,
+          onSelect: (item) => setSelectedContext(item.id),
+        }),
+  };
+  const topContextSelect: SideMenuItemSelect = {
+    slug: "ctx-top",
+    type: "select",
+    label: "Environment",
+    picker: contextPicker,
+  };
+  const nestedContextSelect: SideMenuItemSelect = {
+    slug: "ctx-nested",
+    type: "select",
+    label: "Current context",
+    picker: contextPicker,
+  };
 
   const menu = (
     <SideMenu
@@ -110,6 +160,7 @@ export const SideMenuPlayground: React.FC = () => {
       footerDetails={showDetails ? DEMO_DETAILS : undefined}
       items={[
         ...DEMO_ITEMS,
+        ...(topSelect ? [topContextSelect] : []),
         ...(expandOnly ? EXPAND_ONLY_SECTION : []),
         ...(workspaces
           ? buildWorkspaceSection({
@@ -118,6 +169,7 @@ export const SideMenuPlayground: React.FC = () => {
               tag: groupTag ? tone : undefined,
               loadingSession,
               pageSize: pageSize === "all" ? undefined : Number(pageSize),
+              contextSelect: nestedSelect ? nestedContextSelect : undefined,
             })
           : []),
       ]}
@@ -324,6 +376,55 @@ export const SideMenuPlayground: React.FC = () => {
                     checked={showDetails}
                     onChange={setShowDetails}
                   />
+                </>
+              ),
+            },
+            {
+              id: "select-item",
+              title: "Select item",
+              controls: (
+                <>
+                  <ToggleRow
+                    label="Top-level select"
+                    checked={topSelect}
+                    onChange={setTopSelect}
+                  />
+                  <ToggleRow
+                    label="Nested select (inside new_agents)"
+                    checked={nestedSelect}
+                    onChange={setNestedSelect}
+                  />
+                  <ChoiceControl
+                    label="Picker size"
+                    options={[
+                      { label: "xs", value: "xs" },
+                      { label: "sm", value: "sm" },
+                      { label: "md", value: "md" },
+                      { label: "lg", value: "lg" },
+                      { label: "xl", value: "xl" },
+                    ]}
+                    value={selectSize}
+                    onChange={(value) => setSelectSize(value as PickerSize)}
+                  />
+                  <ToggleRow
+                    label="Multiselect"
+                    checked={multiSelect}
+                    onChange={setMultiSelect}
+                  />
+                  <Control label="Placeholder">
+                    <Input
+                      size="sm"
+                      value={selectPlaceholder}
+                      placeholder="Pick a context"
+                      onChange={(event) =>
+                        setSelectPlaceholder(event.target.value)
+                      }
+                    />
+                  </Control>
+                  <p className="text-xs text-neutral-400">
+                    Both rows share one selection — pick in either and the
+                    other follows. Collapsing the rail hides them.
+                  </p>
                 </>
               ),
             },

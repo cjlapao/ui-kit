@@ -43,6 +43,8 @@ import Chat from "./examples/Chat";
 import chatCode from "./examples/Chat.tsx?raw";
 import FooterTriggers from "./examples/FooterTriggers";
 import footerTriggersCode from "./examples/FooterTriggers.tsx?raw";
+import SelectItem from "./examples/SelectItem";
+import selectItemCode from "./examples/SelectItem.tsx?raw";
 
 export const SideMenuPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
@@ -107,6 +109,14 @@ export const SideMenuPage: React.FC = () => (
         filename="Nested.tsx"
       >
         <Nested />
+      </ExampleCard>
+      <ExampleCard
+        title="Embedded select item"
+        description="A select row: a group-header caption over a full-width Picker, at top level or nested inside an open parent — one step taller than the rows around it. Selection is fully controlled through picker.selectedId and onSelect; the menu search never hides these rows, and the icon rail hides them."
+        code={selectItemCode}
+        filename="SelectItem.tsx"
+      >
+        <SelectItem />
       </ExampleCard>
       <ExampleCard
         title="Search"
