@@ -53,6 +53,21 @@ describe("Modal — surface", () => {
     const { panel } = open({ corner: "rounded-xl" });
     expect(panel()!.className).toContain(getSurfaceCornerClass("rounded-xl"));
   });
+
+  it("answers nothing to the pointer — it is a surface, not a card", () => {
+    // The dialog forwards `onClick`/`onMouseDown` for backdrop handling, and
+    // the Panel reads an `onClick` as “this card is an action”: hover wash, rim
+    // ignition, pressed step, pointer cursor. None of that belongs on a dialog.
+    const { panel } = open();
+    const classes = panel()!.className.split(/\s+/);
+    expect(classes).not.toContain("cursor-pointer");
+    expect(classes.some((cls) => cls.startsWith("hover:"))).toBe(false);
+    expect(classes).not.toContain("group");
+    // The untinted hover veil is only ever rendered for a hoverable card.
+    expect(
+      panel()!.querySelector('div[aria-hidden="true"].bg-transparent'),
+    ).toBeNull();
+  });
 });
 
 describe("Modal — inner regions follow the surface", () => {

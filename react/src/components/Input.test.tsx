@@ -71,10 +71,23 @@ describe("Input", () => {
       <Input variant="ghost" tone="violet" placeholder="p" />,
     );
     const box = field(container);
-    expect(box).toContain("bg-violet-50");
-    expect(box).toContain("hover:bg-violet-100");
+    expect(box).toContain("bg-violet-100");
+    expect(box).toContain("hover:bg-violet-200");
+    expect(box).toContain("hover:border-violet-300");
     expect(box).toContain("dark:bg-violet-500/10");
-    expect(box).not.toContain("bg-neutral-100");
+    expect(box).not.toContain("bg-neutral-200");
+  });
+
+  it("starts the achromatic tones a rung darker, where they are visible", () => {
+    // The five hueless tones measure ΔE 1.7–2.1 off white at the tint table's
+    // first step — on a white panel a `tone="neutral"` field had no box at
+    // all, which is the bug this pins. They ride `-200` rest / `-300` hover /
+    // `-400` rim, the rung where they read as loudly as a coloured `-100`.
+    const { container } = render(<Input variant="ghost" tone="neutral" />);
+    const box = field(container);
+    expect(box).toContain("bg-neutral-200");
+    expect(box).toContain("hover:bg-neutral-300");
+    expect(box).toContain("hover:border-neutral-400");
   });
 
   /**

@@ -267,7 +267,9 @@ describe("variants", () => {
     // other pair must differ in fill or border, not just decoration.
     expect(boxes.get("elevated")).toContain("shadow-sm");
     expect(boxes.get("flat")).not.toContain("shadow-sm");
-    expect(boxes.get("ghost")).toContain("bg-neutral-100/80");
+    // Token-boundary match, not a substring: the same row carries
+    // `dark:bg-neutral-800/60`, which would satisfy a loose `toContain`.
+    expect(boxes.get("ghost")).toMatch(/(^|\s)bg-neutral-200(\s|$)/);
     expect(boxes.get("underline")).toContain("bg-transparent");
     expect(boxes.get("glass")).toContain("backdrop-blur-md");
     expect(boxes.get("gradient")).toContain("backdrop-blur-xl");

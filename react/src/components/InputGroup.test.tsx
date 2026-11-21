@@ -83,7 +83,9 @@ describe("InputGroup", () => {
           <Input />
         </InputGroup>,
       );
-      expect(group(container)).toContain("bg-violet-50");
+      // Split first: the same row carries `dark:bg-violet-500/10`, whose
+      // leading characters would satisfy a loose `toContain("bg-violet-50")`.
+      expect(group(container).split(/\s+/)).toContain("bg-violet-100");
       expect(group(container)).toContain("dark:bg-violet-500/10");
     });
 

@@ -644,6 +644,12 @@ src(`@source inline("dark:active:bg-{COLOR}-400/35");`);
 // `ring-1` is a core utility, and the neutral / white / black pairs are literals
 // in Theme.ts, so the scanner picks those up without help from this file.
 src(`@source inline("hover:border-{COLOR}-300");`);
+// The ghost field's hover rim, built at runtime by `ghostFillShades` in
+// Theme.ts: the achromatic tones sit a rung darker than the hues, and their
+// rim has to stay a rung under the `-300` hover fill or the box deepens with
+// no edge to show it. `-400` was nowhere else in this file — a missing step
+// here paints nothing, and the hover looks broken for five tones only.
+src(`@source inline("hover:border-{COLOR}-400");`);
 src(`@source inline("hover:ring-{COLOR}-300/70");`);
 src(`@source inline("dark:hover:border-{COLOR}-400");`);
 src(`@source inline("dark:hover:border-{COLOR}-500/50");`);

@@ -1393,3 +1393,34 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
 - jsdom never fires `animationend`, so a Popover's overlay stays in the DOM
   after a close: assert a close on the trigger's `aria-expanded`, which flips
   immediately, not on the node's absence.
+
+## A ghost field has to survive a white page (2026-11-21)
+
+- `ghost` rested on `bg-{tone}-50`, which is a *different colour* per tone
+  family. Measured as ΔE76 from white across the 21 TrueColors, a chromatic
+  `-50` sits 5.0–12.1 from the page while an achromatic one sits 1.4–3.0 —
+  `neutral-50` and the page are the same paint. So "the grey inputs are too
+  light" was never a grey problem; it was one token answering for two families.
+  The fix is `ghostFillShades(tone)` in `Theme.ts`: chromatic rests at `-100`,
+  the five achromatic tones at `-200`, hover one rung up, rim one rung above
+  that. One formula and a named list (`ACHROMATIC_TONES`), no per-tone table to
+  drift. Same shape as the Panel `tonalBg` fix — the answer was in the ladder,
+  not in a special case.
+- Keep the *rest* border transparent and put the rim on hover. Giving the rest
+  state a border would have made `ghost` and `flat` the same box; the hover
+  border is what says "this is a field you can type in" without redrawing it.
+  Hover stays a colour response, never geometry — same rule as everywhere else.
+- `inputVariantTokens.ghost` is a decoy: every call goes through
+  `getInputVariantTokens`, which overwrites `surface`, so the literal in the
+  table is dead text that still reads as the spec. It has to be edited in the
+  same commit as the helper or the next reader audits the wrong thing.
+- Several field tests were green for a false reason.
+  `expect(cls).toContain("bg-violet-50")` is satisfied by `dark:bg-violet-500/10`
+  sitting in the same class list — the assertion passed while the light fill
+  changed underneath it. Split the class list, or anchor at word boundaries
+  (`/(^|\s)bg-violet-100(\s|$)/`). The substring traps are the reason only two
+  tests failed for the right reason when the ladder moved.
+- Baseline before blaming the diff: eight React suites and four Vue Button
+  assertions were already red on a clean tree. `git stash push <my files>` →
+  rerun the same files → `git stash pop` costs a minute and keeps an unrelated
+  failure from being adopted.

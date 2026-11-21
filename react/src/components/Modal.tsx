@@ -803,6 +803,13 @@ const Modal: React.FC<ModalProps> = ({
         corner={isFullScreen && isNarrow ? "none" : corner}
         padding="none"
         scrollable={false}
+        // The dialog forwards `onClick`/`onMouseDown` for backdrop handling,
+        // and the Panel reads an `onClick` as "this card is an action" — hover
+        // wash, rim ignition, pressed step, pointer cursor. A dialog is a
+        // surface, not a card: the surface props above are all the Panel is
+        // here for, so both switches are switched off by hand.
+        hoverable={false}
+        clickable={false}
         // The dialog's own header / body / footer are a flex column, so the
         // Panel's children wrapper has to be one too — otherwise the body's
         // `flex-1` has no flex parent and a maximised dialog leaves the space

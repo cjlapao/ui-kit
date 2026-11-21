@@ -496,9 +496,13 @@ const inputVariantTokens: Record<InputVariant, InputVariantTokens> = {
     icon: INPUT_ICON_SOLID,
     translucent: false,
   },
+  // Untinted fallback only: `getInputVariantTokens` replaces this whole surface
+  // with the tone's own ladder below, so what lives here is what an untinted
+  // caller would get if that branch ever stopped overriding it. Kept in step
+  // with the achromatic rung of `ghostFillShades` so the two cannot drift.
   ghost: {
     surface:
-      "rounded-lg border border-transparent bg-neutral-100/80 hover:border-neutral-300 hover:bg-white dark:bg-neutral-800/60 dark:hover:border-neutral-600 dark:hover:bg-neutral-800",
+      "rounded-lg border border-transparent bg-neutral-200 hover:border-neutral-400 hover:bg-neutral-300 dark:bg-neutral-800/60 dark:hover:border-neutral-600 dark:hover:bg-neutral-800",
     text: INPUT_TEXT_SOLID,
     icon: INPUT_ICON_SOLID,
     translucent: false,
@@ -617,6 +621,39 @@ export const stripTextColor = (className: string): string =>
     .join(" ");
 
 /**
+ * The achromatic TrueColors — the five that carry no hue.
+ *
+ * They need their own fill rung in `ghost`. Measured from white in CIE L*a*b*,
+ * every hue clears the visibility floor at the `-100` step (ΔE 10–28) while
+ * these five measure 3.5–4.5 there: on a white page that is not a field, it is
+ * a smudge. A rung darker puts all five at ~9 ΔE, which is the impression a
+ * coloured `-100` already makes, so a `tone="neutral"` field reads as a field
+ * exactly as a `tone="violet"` one does.
+ */
+export const ACHROMATIC_TONES: readonly TrueColor[] = [
+  "slate",
+  "gray",
+  "zinc",
+  "neutral",
+  "stone",
+];
+
+/**
+ * The ghost fill ladder for a tone: rest, hover fill, hover rim.
+ *
+ * The rim stays one rung under the fill's hover step either way, so the hover
+ * reads as the box deepening *and* gaining an edge — the ladder's spacing is
+ * what makes it legible at a quiet tint; the achromatic tones ride the whole
+ * ladder one rung up with their fill.
+ */
+const ghostFillShades = (
+  tone: TrueColor,
+): { rest: number; hover: number; rim: number } =>
+  ACHROMATIC_TONES.includes(tone)
+    ? { rest: 200, hover: 300, rim: 400 }
+    : { rest: 100, hover: 200, rim: 300 };
+
+/**
  * The field surface tokens. `corner="auto"` (the default) leaves the radius
  * baked into the surface in place — `rounded-lg`, the theme's control corner
  * (`DEFAULT_CONTROL_CORNER`), one step looser than the container default so
@@ -636,12 +673,21 @@ export const getInputVariantTokens = (
     // Ghost's whole idea is a soft tonal fill — grey-only made it deaf to the
     // field's tone, so a `ghost` + `tone="violet"` pair looked like `ghost` +
     // nothing. Same soft fill, tinted through the tone in both schemes.
+    //
+    // The light steps are one rung darker than the tint table's first step:
+    // `-50` was measured at ΔE 1.7–2.1 off white for the achromatic tones
+    // (and 5–10 for the hues), which on a white panel left a field with no
+    // border, no edge and no visible box at all — the confirm inputs of a
+    // dialog simply disappeared. Same story `Panel`'s `tonalBg` told when it
+    // moved `-100/80` → `-200/60`. Dark mode is untouched: a translucent
+    // `-500/10` over `-900` already reads.
+    const shades = ghostFillShades(tone);
     resolved = {
       ...tokens,
       surface: [
         "rounded-lg border border-transparent",
-        `bg-${tone}-50`,
-        `hover:border-${tone}-200 hover:bg-${tone}-100`,
+        `bg-${tone}-${shades.rest}`,
+        `hover:border-${tone}-${shades.rim} hover:bg-${tone}-${shades.hover}`,
         `dark:bg-${tone}-500/10 dark:hover:bg-${tone}-500/20`,
       ].join(" "),
     };
@@ -2926,10 +2972,15 @@ const checkboxVariantTokens: Record<InputVariant, CheckboxVariantTokens> = {
     hover: "peer-hover:border-neutral-400 dark:peer-hover:border-neutral-500",
     translucent: false,
   },
+  // The same quiet step the fields rest on — `bg-neutral-100/80` measured
+  // ΔE 2.8 off white, and on a 16px box a wash that faint reads as nothing at
+  // all: a ghost checkbox next to a ghost field looked like a hole in the page
+  // rather than a control. Solid `-200` is what `ghostFillShades` puts the
+  // achromatic tones on, and a small area needs the full step, not less.
   ghost: {
-    fill: "bg-neutral-100/80 dark:bg-neutral-800/60",
+    fill: "bg-neutral-200 dark:bg-neutral-800/60",
     border: "border-transparent",
-    hover: "peer-hover:border-neutral-300 dark:peer-hover:border-neutral-600",
+    hover: "peer-hover:border-neutral-400 dark:peer-hover:border-neutral-600",
     translucent: false,
   },
   underline: {

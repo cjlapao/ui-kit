@@ -244,7 +244,7 @@ describe("InputOtp", () => {
       // The deprecated pair resolves onto the shared family: `outlined` was
       // a flat border, `filled` a soft fill — now the tone-tinted ghost.
       ["outlined", "border-neutral-300"],
-      ["filled", "bg-blue-50"],
+      ["filled", "bg-blue-100"],
     ] as const)("renders the %s variant", (variant, expected) => {
       const { container } = render(<InputOtp variant={variant} />);
       const classList = cells(container)[0].className.split(/\s+/);
@@ -317,7 +317,11 @@ describe("InputOtp", () => {
 
     it("keeps `ghost` tone-tinted like every other field", () => {
       const { container } = render(<InputOtp variant="ghost" tone="violet" />);
-      expect(cells(container)[0].className).toContain("bg-violet-50");
+      // Split, not substringed: `dark:bg-violet-500/10` on the same cell
+      // satisfies a loose `toContain("bg-violet-50")` whatever the fill is.
+      expect(cells(container)[0].className.split(/\s+/)).toContain(
+        "bg-violet-100",
+      );
     });
 
     it("glows once behind the whole group for `gradient`", () => {

@@ -86,7 +86,9 @@ describe("the field corner", () => {
     // Ghost rebuilds its surface for the tone; the corner must survive that.
     const ghost = getInputVariantTokens("ghost", "violet", "none");
     expect(ghost.surface).toContain("rounded-none");
-    expect(ghost.surface).toContain("bg-violet-50");
+    // Boundary-anchored: `dark:bg-violet-500/10` in the same string satisfies
+    // a loose `toContain("bg-violet-50")` whatever the resting fill is.
+    expect(ghost.surface).toMatch(/(^|\s)bg-violet-100(\s|$)/);
   });
 
   it("underline has no box for a corner to land on", () => {

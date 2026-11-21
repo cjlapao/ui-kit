@@ -295,10 +295,16 @@ its surface through `getInputVariantTokens(variant)`:
 |---|---|
 | `flat` | 1px `neutral-300`, solid fill |
 | `elevated` | `flat` + `shadow-sm` |
-| `ghost` | transparent border over a tinted fill, border appears on hover |
+| `ghost` | transparent border over a solid tinted fill, one rung deeper plus a rim on hover |
 | `underline` | bottom rule only, no box — drops horizontal padding and the focus ring |
 | `glass` | `border-white/50 bg-white/45 backdrop-blur-md`, the rim `Panel` uses |
 | `gradient` | translucent bar over a coloured glow |
+
+`ghost` fills the tone's `-100` step in light mode — not the tint table's first step. `-50` measured
+1.7–2.1 ΔE off white for the achromatic tones, so a `tone="neutral"` field on a white panel had no
+visible box at all; `ghostFillShades` puts the five achromatic tones on `-200`, where they read the
+same as a coloured `-100`, and steps the hover fill and rim up with them so the ladder stays one
+rung apart. `Checkbox` and `Radio` take the same resting step for their `ghost` box.
 
 Each entry carries `surface`, `text`, `icon` and `translucent`, so a control never has to decide
 what colour its placeholder should be on glass — it asks the token set.

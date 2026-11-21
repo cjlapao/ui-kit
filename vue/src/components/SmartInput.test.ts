@@ -44,6 +44,10 @@ describe("SmartInput — surface", () => {
     // `tone` no longer has a withDefaults entry — the fallback moved into the
     // component so `explicitTone` can tell a choice from a silence. This is
     // what proves the move kept the old default for everything else.
-    expect(field(mountInput({ variant: "ghost" }))).toContain("bg-blue-50");
+    // Boundary-anchored: `dark:bg-blue-500/10` in the same class list satisfies
+    // a loose `toContain("bg-blue-50")` whatever the resting fill is.
+    expect(field(mountInput({ variant: "ghost" }))).toMatch(
+      /(^|\s)bg-blue-100(\s|$)/,
+    );
   });
 });

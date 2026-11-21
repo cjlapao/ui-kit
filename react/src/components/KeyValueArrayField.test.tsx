@@ -314,7 +314,9 @@ describe("conventions", () => {
     expect(
       (screen.getAllByRole("textbox")[0].closest("span") as HTMLElement)
         .className,
-    ).toContain("bg-neutral-50"); // ghost, untinted by default
+    ).toMatch(/(^|\s)bg-neutral-200(\s|$)/); // ghost, untinted by default
+    // (Boundary-anchored: `dark:bg-neutral-500/10` on the same span is a
+    // substring of nothing here but of a looser `toContain("bg-neutral-…")`.)
     rerender(
       <I18nProvider locales={{}} locale="de" detect={false} storageKey={null}>
         <KeyValueArrayField label="Vars" value={[]} onChange={() => {}} />

@@ -323,6 +323,7 @@
 @source inline("dark:active:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-400/30");
 @source inline("dark:active:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-400/35");
 @source inline("hover:border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-300");
+@source inline("hover:border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-400");
 @source inline("hover:ring-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-300/70");
 @source inline("dark:hover:border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-400");
 @source inline("dark:hover:border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,rose,slate,gray,zinc,neutral,stone}-500/50");
