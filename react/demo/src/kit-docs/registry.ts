@@ -338,6 +338,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/input/InputPage")),
   },
   {
+    slug: "slug-input",
+    name: "Slug Input",
+    description:
+      "The Input with a live derived slug underneath — customizable rules, notes stacked below, and onValueChange handing you both halves.",
+    icon: "Link",
+    category: "Forms",
+    Page: lazy(() => import("./components/slug-input/SlugInputPage")),
+  },
+  {
     slug: "filter-bar",
     name: "Filter Bar",
     description: "Expandable search, staged filters, chips and result counts.",
