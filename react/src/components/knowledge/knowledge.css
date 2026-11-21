@@ -92,6 +92,10 @@
    definitely high already, so the cap lifts and flex sizes frame and
    viewport identically (no dead-zone gap). All sections share this scroll. */
 .kit-memory-detail .kit-memory-detail-scroll { flex: 1 1 auto; min-height: 0; max-height: 26rem; }
+/* fullHeight: the host's stretched row is the definite height, so the same
+   cap lifts as in the docked inspector — frame and viewport flex-fill the
+   column beside a full-height map instead of leaving a dead-zone gap. */
+.kit-memory-detail--full-height .kit-memory-detail-scroll { max-height: none; }
 /* The body takes the side and bottom insets; without a title it also takes
    the top inset. Remove ScrollArea's extra lane so the inset stays exact. */
 .kit-memory-detail-scroll [data-slot="scrollarea-content"] { padding-right: 0; }
@@ -179,13 +183,15 @@
    inspector simply fills the same grid area, so the columns always end on
    one line — no measured-variable race, no sticky to drift. */
 .kit-knowledge-explorer--full-height { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.kit-knowledge-explorer--full-height > .kit-knowledge-toolbar { flex: 0 0 auto; }
 .kit-knowledge-explorer--full-height > .kit-knowledge-explorer-grid { flex: 1 1 auto; min-height: 0; align-items: stretch; }
 .kit-knowledge-explorer--full-height .kit-knowledge-explorer-grid > section { display: flex; flex-direction: column; min-height: 0; }
 /* Beats the Panel root's own shrink-0 utility so the card actually grows. */
 .kit-knowledge-explorer--full-height .kit-knowledge-explorer-grid > section > * { flex: 1 1 auto; min-height: 0; }
 .kit-knowledge-explorer--full-height .kit-knowledge-explorer-grid--inspector-open:not(.kit-knowledge-explorer-grid--stacked) .kit-knowledge-inspector { height: 100%; }
-.kit-knowledge-explorer--full-height .kit-memory-library .kit-memory-results { flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-width: thin; }
+.kit-knowledge-explorer--full-height .kit-memory-library .kit-memory-results,
+/* Standalone companion of the map/detail fullHeight props: the host gives
+   the card a height, the results flex-fill the rest and scroll themselves. */
+.kit-memory-library--full-height .kit-memory-results { flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-width: thin; }
 /* The map canvas host fills the stretched panel body. */
 .kit-knowledge-canvas--fill { flex: 1 1 auto; min-height: 0; }
 @media (prefers-reduced-motion: reduce) { .kit-knowledge button, .kit-knowledge-explorer-grid, .kit-knowledge-explorer-grid--inspector-open .kit-knowledge-inspector { transition: none; } }

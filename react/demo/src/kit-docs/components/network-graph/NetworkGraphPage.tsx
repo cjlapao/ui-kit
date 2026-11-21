@@ -107,7 +107,7 @@ export default function NetworkGraphPage() {
             type: '"auto" | "right" | "bottom"',
             default: '"auto"',
             description:
-              "Auto places the legend right when the component has at least 600px available width, then moves it below on narrower containers. Right and bottom force that placement.",
+              "Auto places the legend right when the component has at least 600px available width, then moves it below on narrower containers. Right and bottom force that placement. When docked right, the zoom controls pin to the layout's bottom-right corner past the legend; the legend column stops above that reserved zone and scrolls in a ScrollArea when its content would reach it.",
           },
           {
             name: "inspector",

@@ -666,6 +666,94 @@ describe("NetworkGraph inspector docking", () => {
   });
 });
 
+describe("NetworkGraph controls and legend zone", () => {
+  const wideMode = () => {
+    const callbacks: (() => void)[] = [];
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      () => ({
+        width: 800,
+        height: 480,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 800,
+        bottom: 480,
+        toJSON() {},
+      }),
+    );
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          callbacks.push(callback);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    act(() => callbacks.forEach((callback) => callback()));
+  };
+  it("pins the controls to the layout corner with the legend docked right", () => {
+    wideMode();
+    const { container } = render(
+      <NetworkGraph {...props} legendPosition="right" />,
+    );
+    const layout = container.querySelector("[data-legend-position]")!;
+    expect(layout.querySelector(":scope > div.bottom-3.right-3")).not.toBeNull();
+    expect(
+      container.querySelector(".cj-network-graph__graph-box > .bottom-3"),
+    ).toBeNull();
+  });
+  it("floats the right legend above the reserved zone inside a ScrollArea", () => {
+    wideMode();
+    const { container } = render(
+      <NetworkGraph {...props} legendPosition="right" />,
+    );
+    const layout = container.querySelector("[data-legend-position]")!;
+    const legend = layout.querySelector(
+      ":scope > .cj-network-graph__legend-absolute",
+    ) as HTMLElement;
+    expect(legend).not.toBeNull();
+    expect(legend.style.bottom).toBe("56px");
+    expect(legend.style.width).toBe("192px");
+    expect(legend.textContent).toContain("First"); // legend content lives inside
+    expect(legend.querySelector(".overflow-hidden")).not.toBeNull(); // ScrollArea root
+    const box = container.querySelector(
+      ".cj-network-graph__graph-box",
+    ) as HTMLElement;
+    expect(box.style.marginRight).toBe("208px"); // 192 + the 16px gap
+  });
+  it("widens the reserved legend zone with legendPanel", () => {
+    wideMode();
+    const { container } = render(
+      <NetworkGraph {...props} legendPosition="right" legendPanel />,
+    );
+    const legend = container.querySelector(
+      ".cj-network-graph__legend-absolute",
+    ) as HTMLElement;
+    expect(legend.style.width).toBe("224px");
+    const box = container.querySelector(
+      ".cj-network-graph__graph-box",
+    ) as HTMLElement;
+    expect(box.style.marginRight).toBe("240px");
+  });
+  it("keeps box-corner controls and flow legend without a right legend", () => {
+    const { container } = render(<NetworkGraph {...props} legendPosition="bottom" />);
+    expect(
+      container.querySelector(".cj-network-graph__graph-box > .bottom-3"),
+    ).not.toBeNull();
+    expect(container.querySelector(".cj-network-graph__legend-absolute")).toBeNull();
+    const { container: bare } = render(
+      <NetworkGraph {...props} showCommunities={false} />,
+    );
+    expect(
+      bare.querySelector(".cj-network-graph__graph-box > .bottom-3"),
+    ).not.toBeNull();
+    expect(bare.querySelector(".cj-network-graph__legend-absolute")).toBeNull();
+  });
+});
+
 describe("NetworkGraph grid background", () => {
   const lattice = (container: HTMLElement) =>
     container.querySelector<HTMLElement>(".cj-network-graph__grid > div");

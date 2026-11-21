@@ -60,7 +60,6 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       "loadMoreError": "Weitere Elemente konnten nicht geladen werden",
       "retry": "Erneut versuchen",
       "limitReached": "Maximal {count} Memories werden angezeigt",
-      "view": "Ansicht",
       "kinds": {
         "lesson": "Lektion",
         "decision": "Entscheidung",

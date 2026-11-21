@@ -115,6 +115,16 @@ describe("memory components", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry reads only" }));
     expect(related).toHaveBeenCalledWith("retry");
   });
+  it("releases the standalone scroll cap when the host gives the card a height", () => {
+    const { container, rerender } = render(<MemoryDetail memory={records[0]} fullHeight />);
+    // Companion of KnowledgeMap's fullHeight: the card fills the stretched
+    // row and the 26rem frame cap lifts, so the body scrolls inside the card.
+    const card = container.querySelector(".kit-memory-detail")!;
+    expect(card.classList.contains("kit-memory-detail--full-height")).toBe(true);
+    expect(card.classList.contains("h-full")).toBe(true);
+    rerender(<MemoryDetail memory={records[0]} />);
+    expect(container.querySelector(".kit-memory-detail")!.classList.contains("kit-memory-detail--full-height")).toBe(false);
+  });
   it("searches through the filter bar's search section", async () => {
     render(<MemoryLibrary memories={records} />);
     // The search field lives inside the bar, collapsed behind its trigger.
@@ -253,6 +263,20 @@ describe("memory components", () => {
     const { container } = render(<MemoryLibrary memories={records} maxHeight={220} hasMore onLoadMore={loadMore} />);
     expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
     expect(container.querySelector(".kit-memory-groups")).toBeTruthy();
+  });
+  it("fills a host-given height as a standalone card, scrolling inside the results", () => {
+    const { container, rerender } = render(<MemoryLibrary memories={records} fullHeight hasMore onLoadMore={vi.fn()} />);
+    const card = container.querySelector(".kit-memory-library")!;
+    expect(card.classList.contains("kit-memory-library--full-height")).toBe(true);
+    expect(card.classList.contains("h-full")).toBe(true);
+    // The results box is the scroller now: the paging sentinel rides inside
+    // it and the Load-more button stands down, like in a capped body.
+    expect(container.querySelector(".kit-memory-results")!.lastElementChild!.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
+    // Without the flag the card stays content-sized with its button tail.
+    rerender(<MemoryLibrary memories={records} hasMore onLoadMore={vi.fn()} />);
+    expect(container.querySelector(".kit-memory-library")!.classList.contains("kit-memory-library--full-height")).toBe(false);
+    expect(screen.getByRole("button", { name: "Load more" })).toBeInTheDocument();
   });
   it("keeps the tail hidden without hasMore or while the first page loads", () => {
     const { rerender } = render(<MemoryLibrary memories={records} hasMore={false} onLoadMore={vi.fn()} />);
@@ -393,6 +417,27 @@ describe("knowledge map and composition", () => {
     rerender(<KnowledgeMap memories={records} />);
     expect(screen.queryByRole("button", { name: "Show library" })).not.toBeInTheDocument();
   });
+  it("anchors the camera pill to the card corner and finishes the scrolling legend above it", () => {
+    const many = Array.from({ length: 12 }, (_, index) => ({ ...records[0], id: `corner-${index}`, title: `Corner ${index}`, topic: `Topic ${index}` }));
+    const { container, rerender } = render(<KnowledgeMap memories={many} height={200} onTopicSelect={() => { /* the legend only filters */ }} />);
+    const layout = container.querySelector<HTMLElement>("[data-legend-position]")!;
+    const pill = layout.querySelector<HTMLElement>(".absolute.bottom-3")!;
+    // The pill anchors to the layout row, not the canvas box — a legend
+    // sharing the row can never shove the controls into the map's midriff.
+    expect(pill.parentElement).toBe(layout);
+    expect(layout.classList.contains("relative")).toBe(true);
+    // The legend scrolls in the kit's ScrollArea, capped to the column's
+    // height — it no longer carries an overflow-auto of its own.
+    const frame = layout.querySelector<HTMLElement>('[data-slot="scrollarea"]')!;
+    expect(layout.querySelector("fieldset")!.className).not.toContain("overflow-auto");
+    expect(frame.style.maxHeight).toBe("128px"); // 200 − 16 top inset − 56 pill reserve
+    // While the pill stands, the column reserves the corner it owns — the
+    // pill is 12px off the edge and roughly 38px tall, so 56 clears it.
+    expect(frame.parentElement!.style.paddingBottom).toBe("3.5rem");
+    rerender(<KnowledgeMap memories={many} height={200} showControls={false} onTopicSelect={() => { /* the legend only filters */ }} />);
+    expect(container.querySelector(".absolute.bottom-3")).not.toBeInTheDocument();
+    expect(container.querySelector<HTMLElement>('[data-slot="scrollarea"]')!.parentElement!.style.paddingBottom).toBe("1rem");
+  });
   it("previews the point under the pointer without selecting, and hoverHighlight={false} keeps the canvas static", () => {
     // A single record pins the topic-layout point dead-center of the canvas:
     // bounds collapse onto it, so screen (width/2, height/2) is its position.
@@ -437,15 +482,17 @@ describe("knowledge map and composition", () => {
     const { container } = render(<KnowledgeExplorer memories={records} onViewChange={view} />);
     expect(container.querySelector(".kit-memory-library")).toBeTruthy();
     expect(container.querySelector(".kit-knowledge-map")).not.toBeTruthy();
-    // One kit MultiToggle picks the view; the inspector never competes for it.
-    fireEvent.click(screen.getByRole("radio", { name: "Knowledge map" }));
+    // No header switch: the parts hand the main column over in place — the
+    // library's Show-map button opens the map, the map's Show library pill
+    // comes back; the inspector never competes for it.
+    fireEvent.click(screen.getByRole("radio", { name: "Show map" }));
     expect(view).toHaveBeenCalledWith("map");
     expect(container.querySelector(".kit-knowledge-map")).toBeTruthy();
     expect(container.querySelector(".kit-memory-library")).not.toBeTruthy();
     // Nothing selected — the common inspector column is mounted but shut.
     expect(container.querySelector(".kit-knowledge-explorer-grid--inspector-open")).toBeNull();
     expect(screen.getByRole("region", { name: "Memory details" })).toHaveAttribute("inert");
-    fireEvent.click(screen.getByRole("radio", { name: "Memory library" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show library" }));
     expect(container.querySelector(".kit-memory-library")).toBeTruthy();
     // Selecting opens it, and it stays common to both views.
     fireEvent.click(screen.getByRole("button", { name: /Retry reads only/ }));
@@ -454,11 +501,13 @@ describe("knowledge map and composition", () => {
     expect(inspector).not.toHaveAttribute("inert");
     expect(within(inspector).getByText("Retry reads only")).toBeVisible();
   });
-  it("hides the view switch when only one view is enabled", () => {
-    render(<KnowledgeExplorer memories={records} regions={{ map: false }} />);
-    expect(screen.queryByRole("radio", { name: "Knowledge map" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: "Memory library" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("radiogroup", { name: "View" })).not.toBeInTheDocument();
+  it("hides the hand-off buttons when only one view is enabled", () => {
+    const { rerender } = render(<KnowledgeExplorer memories={records} regions={{ map: false }} />);
+    // Library alone: no way into a map that is not there.
+    expect(screen.queryByRole("radio", { name: "Show map" })).not.toBeInTheDocument();
+    // Map alone: the pill's Show library stands down the same way.
+    rerender(<KnowledgeExplorer memories={records} regions={{ library: false }} />);
+    expect(screen.queryByRole("button", { name: "Show library" })).not.toBeInTheDocument();
   });
   it("opens the inspector only for a selection and moves it down when it stops fitting", () => {
     const callbacks: ((width: number) => void)[] = [];

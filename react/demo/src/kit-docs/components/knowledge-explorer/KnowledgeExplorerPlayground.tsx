@@ -187,9 +187,9 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
   const [searchOn, setSearchOn] = useState(true);
   // And the whole filter section — search and facets — can go together.
   const [filterBarOn, setFilterBarOn] = useState(true);
-  // The map's camera pill — the NetworkGraph cluster, floating bottom-right
-  // over the canvas; its controls ride their own tone, falling back to the
-  // card accent through the map's chain.
+  // The map's camera pill — the NetworkGraph cluster, floating at the card's
+  // bottom-right corner with the legend finishing above it; its controls ride
+  // their own tone, falling back to the card accent through the map's chain.
   const [mapControlsOn, setMapControlsOn] = useState(true);
   const [mapToneColor, setMapToneColor] = useState("");
   // The graph's passive hover preview on points; off leaves a static canvas.
@@ -499,9 +499,9 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
             or a detail action and everything follows. The main column shows
             exactly one view — the <strong>Main view</strong> choice in this
             side menu picks between the library and the map, never both (the
-            component’s own header switch is hidden here as redundant; the
-            views still hand each other over in place — the library’s toggle
-            ends in a map button, the map’s camera pill in a library button);
+            component itself carries no header switch; the views hand each
+            other over in place — the library’s toggle ends in a map button,
+            the map’s camera pill in a library button);
             the <strong>inspector</strong> is the common detail
             column on the right — it appears only while a memory is selected,
             docks beside the view while there is room (at NetworkGraph’s 16px
@@ -542,11 +542,6 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
       preview={
         <div className="w-full" style={{ height: fullHeightOn ? 640 : undefined }}>
           <KnowledgeExplorer
-            // The side menu's Main view choice already drives the column, so
-            // the component's own header switch would only echo it — hide it
-            // (direct child only: the panels keep their own toolbars; the
-            // `!` because kit CSS is unlayered and beats plain utilities).
-            className="[&>.kit-knowledge-toolbar]:hidden!"
             fullHeight={fullHeightOn || undefined}
             tone={surfaceTone}
             variant={variant}

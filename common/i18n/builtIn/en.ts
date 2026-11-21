@@ -93,7 +93,6 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       "loadMoreError": "Couldn''t load more",
       "retry": "Try again",
       "limitReached": "Showing at most {count} memories",
-      "view": "View",
       "kinds": {
         "lesson": "Lesson",
         "decision": "Decision",

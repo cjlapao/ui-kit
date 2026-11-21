@@ -60,7 +60,6 @@ export const PT_KIT_CATALOG: MessageCatalog = {
       "loadMoreError": "Não foi possível carregar mais",
       "retry": "Tentar novamente",
       "limitReached": "Mostrando no máximo {count} memórias",
-      "view": "Vista",
       "kinds": {
         "lesson": "Lição",
         "decision": "Decisão",

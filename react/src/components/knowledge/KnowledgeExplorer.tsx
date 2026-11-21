@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import MultiToggle from "../MultiToggle";
 import { filterMemories } from "../../../../common/knowledge/model";
 import { MemoryLibrary } from "./MemoryLibrary";
 import { MemoryDetail } from "./MemoryDetail";
 import { KnowledgeMap } from "./KnowledgeMap";
-import { resolveControlChain, useKnowledgeCopy, useKnowledgeState } from "./shared";
+import { useKnowledgeCopy, useKnowledgeState } from "./shared";
 import type { KnowledgeExplorerContext, KnowledgeExplorerProps, KnowledgeExplorerView, KnowledgeRegion } from "./types";
 
 /** Inspector column geometry, mirroring NetworkGraph's docked inspector. */
@@ -27,9 +26,11 @@ function follow<V>(pinned: V | "auto", base: V | undefined): V | undefined {
 /**
  * The whole knowledge workspace in one component, laid out like NetworkGraph:
  * the main column on the left holds exactly one chosen view — the map or the
- * knowledge library, switched with a kit MultiToggle — the inspector column
- * on the right holds the memory detail (common to both views, never a third
- * option in the switch). Agent traces live in their own component, not here.
+ * knowledge library — and the views hand each other over in place: the
+ * library's Show-map button opens the map, the map's Show library pill comes
+ * back. No separate header switch competes with them. The inspector column
+ * on the right holds the memory detail (common to both views). Agent traces
+ * live in their own component, not here.
  *
  * Panels work like NetworkGraph's too: the explorer's own surface props
  * (tone, variant, padding, corner…) paint the panel of whichever view is
@@ -50,7 +51,7 @@ export function KnowledgeExplorer({ memories, points, relationships, selectedId,
   filters: filtersProp, defaultFilters = {}, onFiltersChange, library, view: viewProp, defaultView = "library",
   onViewChange, inspector = true, fullHeight = false, inspectorWidth, inspectorMinMainWidth, inspectorStackBelow,
   inspectorTone = "auto", inspectorVariant = "auto", inspectorPadding = "auto", inspectorCorner = "auto", inspectorTitle,
-  map, controlsTone = "auto", size = "sm",
+  map,
   regions, renderRegion, actions, labels, loading = false, disabled = false,
   // The parts keep their own `onError` semantics; the root is a structural
   // container now, so the React handler has no home here — drop it from the
@@ -106,9 +107,6 @@ export function KnowledgeExplorer({ memories, points, relationships, selectedId,
   }, [view]);
   const context: KnowledgeExplorerContext = { selectedMemory, selectedId: selection, selectMemory: select, query, setQuery, filters, setFilters };
   const shared = { labels, disabled, loading };
-  // One chain for the explorer's own header controls: `"auto"` follows the
-  // explorer card's accent, with the kit's default blue as the floor.
-  const chain = resolveControlChain({ tone: surface.tone, variant: surface.variant, controlsTone });
   // NetworkGraph's split: the surface spread paints the panel of whichever
   // view is showing (that is the card the user sees), and the inspector
   // mirrors it while its own chrome is `"auto"`.
@@ -128,13 +126,6 @@ export function KnowledgeExplorer({ memories, points, relationships, selectedId,
     return null;
   };
   return <div className={`kit-knowledge kit-knowledge-explorer${fullHeight ? " kit-knowledge-explorer--full-height" : ""} ${className}`} aria-busy={loading || undefined} aria-disabled={disabled || undefined}>
-    {views.length > 1 && <div className="kit-knowledge-toolbar">
-      {/* The view switch: exactly one of map / library owns the main column.
-          A kit MultiToggle, so it is one segmented radiogroup, not two tabs. */}
-      <MultiToggle size={size} tone={chain.controlsTone} variant={chain.viewVariant} disabled={disabled} aria-label={copy("view")}
-        options={views.map(region => ({ value: region, label: copy(region) }))}
-        value={view} onChange={next => setInnerView(next as KnowledgeExplorerView)} />
-    </div>}
     {(view || inspectorVisible) && <div ref={gridRef} className={`kit-knowledge-explorer-grid${inspectorOpen ? " kit-knowledge-explorer-grid--inspector-open" : ""}${stacked && inspectorVisible ? " kit-knowledge-explorer-grid--stacked" : ""}${view ? "" : " kit-knowledge-explorer-grid--inspector-only"}`}
       style={{ "--kit-knowledge-inspector-width": `${width}px`, ...(viewHeight ? { "--kit-knowledge-inspector-height": `${viewHeight}px` } : {}) } as React.CSSProperties}>
       {view && <section key={view} ref={viewSectionRef} className={`kit-knowledge-region kit-knowledge-region-${view}`} aria-label={copy(view)}>{content(view)}</section>}

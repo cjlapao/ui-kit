@@ -502,6 +502,110 @@ export function NetworkGraph({
         </div>
       </>
     ) : null;
+  const legendVisible =
+    showCommunities && model.groups.length > 0 && visibleNodes.length > 0;
+  // With the legend docked right, the controls overlay the whole layout's
+  // bottom-right corner (past the legend column), so the legend gets an
+  // absolutely positioned column that stops above that reserved zone and
+  // scrolls via ScrollArea when its content would reach it.
+  const legendRight = legendVisible && legendOnRight;
+  const legendWidth = legendPanel ? 224 : 192;
+  const controls = showControls ? (
+    <div className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90">
+      <IconButton
+        icon={
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 9V5a1 1 0 0 1 1-1h4" />
+            <path d="M15 4h4a1 1 0 0 1 1 1v4" />
+            <path d="M20 15v4a1 1 0 0 1-1 1h-4" />
+            <path d="M9 20H5a1 1 0 0 1-1-1v-4" />
+          </svg>
+        }
+        size="xs"
+        variant="ghost"
+        color="slate"
+        disabled={locked}
+        srLabel={t("kit.networkGraph.fit")}
+        tooltip={t("kit.networkGraph.fit")}
+        onClick={canvas.fit}
+      />
+      <IconButton
+        icon={
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M6 12h12" />
+          </svg>
+        }
+        size="xs"
+        variant="ghost"
+        color="slate"
+        disabled={locked || canvas.zoom <= 0.05}
+        srLabel={t("kit.networkGraph.zoomOut")}
+        tooltip={t("kit.networkGraph.zoomOut")}
+        onClick={() => canvas.zoomBy(0.8)}
+      />
+      <span
+        className="min-w-[3.5ch] px-1 text-center text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400"
+        aria-label={t("kit.networkGraph.zoom")}
+      >
+        {Math.round(canvas.zoom * 100)}%
+      </span>
+      <IconButton
+        icon="Add"
+        size="xs"
+        variant="ghost"
+        color="slate"
+        disabled={locked || canvas.zoom >= 8}
+        srLabel={t("kit.networkGraph.zoomIn")}
+        tooltip={t("kit.networkGraph.zoomIn")}
+        onClick={() => canvas.zoomBy(1.25)}
+      />
+      <IconButton
+        icon="Reset"
+        size="xs"
+        variant="ghost"
+        color="slate"
+        disabled={locked}
+        srLabel={t("kit.networkGraph.reset")}
+        tooltip={t("kit.networkGraph.reset")}
+        onClick={() => {
+          select(null);
+          setFocused(null);
+          canvas.fit();
+        }}
+      />
+    </div>
+  ) : null;
+  const legendBody = legendPanel ? (
+    <Panel
+      variant={legendVariant === "auto" ? variant : legendVariant}
+      tone={resolvedLegendTone}
+      padding="xs"
+      corner={panelProps.corner}
+      glassOpacity={panelProps.glassOpacity}
+      vibrancy={panelProps.vibrancy}
+      specularMode={panelProps.specularMode}
+      scrollable={false}
+    >
+      {legendContent}
+    </Panel>
+  ) : (
+    legendContent
+  );
   return (
     <div
       ref={rootRef}
@@ -593,7 +697,7 @@ export function NetworkGraph({
         )}
         <div
           ref={layoutRef}
-          className="cj-network-graph__layout flex min-w-0 gap-4"
+          className="cj-network-graph__layout relative flex min-w-0 gap-4"
           style={{ flexDirection: legendOnRight ? "row" : "column" }}
           data-legend-position={legendOnRight ? "right" : "bottom"}
         >
@@ -604,6 +708,9 @@ export function NetworkGraph({
                 ...(fullHeight
                   ? {}
                   : { height: graphHeight, minHeight: graphHeight }),
+                ...(legendRight
+                  ? { marginRight: legendWidth + 16 }
+                  : {}),
                 ...(gridEnabled
                   ? {
                       "--cj-network-graph-grid-color": `var(--color-${gridTone}-500)`,
@@ -720,86 +827,7 @@ export function NetworkGraph({
                 setPanning(false);
               }}
             />
-            {showControls && (
-              <div className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90">
-                <IconButton
-                  icon={
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M4 9V5a1 1 0 0 1 1-1h4" />
-                      <path d="M15 4h4a1 1 0 0 1 1 1v4" />
-                      <path d="M20 15v4a1 1 0 0 1-1 1h-4" />
-                      <path d="M9 20H5a1 1 0 0 1-1-1v-4" />
-                    </svg>
-                  }
-                  size="xs"
-                  variant="ghost"
-                  color="slate"
-                  disabled={locked}
-                  srLabel={t("kit.networkGraph.fit")}
-                  tooltip={t("kit.networkGraph.fit")}
-                  onClick={canvas.fit}
-                />
-                <IconButton
-                  icon={
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M6 12h12" />
-                    </svg>
-                  }
-                  size="xs"
-                  variant="ghost"
-                  color="slate"
-                  disabled={locked || canvas.zoom <= 0.05}
-                  srLabel={t("kit.networkGraph.zoomOut")}
-                  tooltip={t("kit.networkGraph.zoomOut")}
-                  onClick={() => canvas.zoomBy(0.8)}
-                />
-                <span
-                  className="min-w-[3.5ch] px-1 text-center text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400"
-                  aria-label={t("kit.networkGraph.zoom")}
-                >
-                  {Math.round(canvas.zoom * 100)}%
-                </span>
-                <IconButton
-                  icon="Add"
-                  size="xs"
-                  variant="ghost"
-                  color="slate"
-                  disabled={locked || canvas.zoom >= 8}
-                  srLabel={t("kit.networkGraph.zoomIn")}
-                  tooltip={t("kit.networkGraph.zoomIn")}
-                  onClick={() => canvas.zoomBy(1.25)}
-                />
-                <IconButton
-                  icon="Reset"
-                  size="xs"
-                  variant="ghost"
-                  color="slate"
-                  disabled={locked}
-                  srLabel={t("kit.networkGraph.reset")}
-                  tooltip={t("kit.networkGraph.reset")}
-                  onClick={() => {
-                    select(null);
-                    setFocused(null);
-                    canvas.fit();
-                  }}
-                />
-              </div>
-            )}
+            {!legendRight && controls}
             {!visibleNodes.length && (
               <div className="cj-network-graph__empty pointer-events-none absolute inset-0 grid place-items-center p-4">
                 {emptyMessage ?? (
@@ -831,31 +859,27 @@ export function NetworkGraph({
               </div>
             )}
           </div>
-          {showCommunities && model.groups.length > 0 && visibleNodes.length > 0 && (
+          {legendRight && (
             <div
-              className="min-w-0 shrink-0"
-              style={{
-                width: legendOnRight ? (legendPanel ? 224 : 192) : "100%",
-              }}
+              className="cj-network-graph__legend-absolute absolute right-0 top-0 z-10 min-w-0"
+              style={{ width: legendWidth, bottom: 56 }}
             >
-              {legendPanel ? (
-                <Panel
-                  variant={legendVariant === "auto" ? variant : legendVariant}
-                  tone={resolvedLegendTone}
-                  padding="xs"
-                  corner={panelProps.corner}
-                  glassOpacity={panelProps.glassOpacity}
-                  vibrancy={panelProps.vibrancy}
-                  specularMode={panelProps.specularMode}
-                  scrollable={false}
-                >
-                  {legendContent}
-                </Panel>
-              ) : (
-                legendContent
-              )}
+              <ScrollArea
+                variant="auto"
+                horizontal={false}
+                className="cj-network-graph__legend-scroll h-full"
+                aria-label={t("kit.networkGraph.communities")}
+              >
+                {legendBody}
+              </ScrollArea>
             </div>
           )}
+          {legendVisible && !legendOnRight && (
+            <div className="min-w-0 shrink-0" style={{ width: "100%" }}>
+              {legendBody}
+            </div>
+          )}
+          {legendRight && controls}
         </div>
         <p id={helpId} className="text-xs opacity-70">
           {t("kit.networkGraph.instructions")}

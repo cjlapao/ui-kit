@@ -4,6 +4,7 @@ import Checkbox from "../Checkbox";
 import { GridBackground } from "../GridBackground";
 import IconButton from "../IconButton";
 import Panel from "../Panel";
+import ScrollArea from "../ScrollArea";
 import { buildKnowledgeScene } from "../../../../common/knowledge/model";
 import type { KnowledgeScenePoint, KnowledgeRelationship } from "../../../../common/knowledge/model";
 import { resolveControlChain, useKnowledgeCopy, useKnowledgeState } from "./shared";
@@ -302,16 +303,24 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
   // right in tabular figures. It filters; it is not a caption. Shown by
   // default whenever the callback exists — showLegend={false} opts out, and
   // any enabled set keeps filtering while the consumer owns its own control.
-  const legendContent = !loading && showLegend && onTopicSelect && clusters.size > 0 && <fieldset disabled={disabled} className="flex min-w-0 shrink-0 flex-col gap-3 overflow-auto" style={fullHeight ? undefined : { maxHeight: Math.max(120, height) }}>
-    <legend className="mb-3 text-xs font-semibold uppercase tracking-widest">{copy("topic")}</legend>
-    <Checkbox size={controlSize} tone={chain.controlsTone} label={copy("selectAll")}
-      checked={allTopicsOn} indeterminate={someTopicsOn && !allTopicsOn}
-      onChange={event => onTopicSelect(event.target.checked ? legendNames : [])} />
-    {[...clusters.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, cluster]) => <div key={name || "—"} className="flex items-center justify-between gap-2">
-      <Checkbox size={controlSize} tone={cluster.tone} label={name || copy("ungrouped")} checked={!hasTopicGate || topicFilter.has(name)} onChange={event => toggleTopic(name, event.target.checked)} />
-      <span className="text-xs tabular-nums opacity-60">{cluster.count}</span>
-    </div>)}
-  </fieldset>;
+  // It scrolls in the kit's ScrollArea when it outgrows the column — and it
+  // finishes before the camera pill's corner: the pill floats at the card's
+  // bottom-right (outside the canvas box, so the legend never shoves it to
+  // the middle of the map), and the legend wrapper reserves the pill's zone
+  // with bottom padding, so no checkbox ever hides behind the pill.
+  const legendCap = fullHeight ? "100%" : Math.max(96, Math.max(120, height) - 16 - (showControls ? 56 : 0));
+  const legendContent = !loading && showLegend && onTopicSelect && clusters.size > 0 && <ScrollArea horizontal={false} viewportClassName="overscroll-contain" style={{ maxHeight: legendCap }}>
+    <fieldset disabled={disabled} className="flex min-w-0 flex-col gap-3">
+      <legend className="mb-3 text-xs font-semibold uppercase tracking-widest">{copy("topic")}</legend>
+      <Checkbox size={controlSize} tone={chain.controlsTone} label={copy("selectAll")}
+        checked={allTopicsOn} indeterminate={someTopicsOn && !allTopicsOn}
+        onChange={event => onTopicSelect(event.target.checked ? legendNames : [])} />
+      {[...clusters.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, cluster]) => <div key={name || "—"} className="flex items-center justify-between gap-2">
+        <Checkbox size={controlSize} tone={cluster.tone} label={name || copy("ungrouped")} checked={!hasTopicGate || topicFilter.has(name)} onChange={event => toggleTopic(name, event.target.checked)} />
+        <span className="text-xs tabular-nums opacity-60">{cluster.count}</span>
+      </div>)}
+    </fieldset>
+  </ScrollArea>;
   const showSkeleton = loading && loaderType === "skeleton";
   return <Panel variant="elevated" padding="none" disabled={disabled} {...surface} tone={chain.cardTone} loading={loading && !showSkeleton} loaderType={loaderType} loaderMessage={loaderMessage ?? copy("loading")} flexBody={fullHeight || undefined} className={`kit-knowledge kit-knowledge-map ${className}`} aria-busy={loading}>
     {/* The map title rides the panel's own chrome; the hairline under it is
@@ -320,7 +329,7 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
     {/* Canvas and legend share one flex row (or column, when the legend
         drops below) — NetworkGraph's layoutRef contract, with the placement
         recorded on the element for CSS and tests to read. */}
-    <div ref={layoutRef} className={`flex min-w-0 gap-4${fullHeight ? " min-h-0 flex-1" : ""}`} style={{ flexDirection: legendOnRight ? "row" : "column" }} data-legend-position={legendOnRight ? "right" : "bottom"}>
+    <div ref={layoutRef} className={`relative flex min-w-0 gap-4${fullHeight ? " min-h-0 flex-1" : ""}`} style={{ flexDirection: legendOnRight ? "row" : "column" }} data-legend-position={legendOnRight ? "right" : "bottom"}>
       <div ref={hostRef} className={`kit-knowledge-canvas min-w-0 flex-1${fullHeight ? " kit-knowledge-canvas--fill" : ""}`} data-hovered={hoverId ?? undefined} style={{ height: fullHeight ? undefined : Math.max(120, height), ...(gridEnabled ? { "--kit-knowledge-map-grid-color": `var(--color-${gridTone}-500)` } : {}) } as React.CSSProperties}>
       {gridEnabled && <GridBackground className="kit-knowledge-map-grid" pattern="dots" size={32} lineColor="var(--kit-knowledge-map-grid-color, var(--color-blue-500, #3b82f6))" dotSize={1.5} opacity={0.35} fade="radial" {...gridOverrides} />}
       {showSkeleton && <div className="kit-knowledge-map-skeleton animate-pulse motion-reduce:animate-none" role="status" aria-label={typeof loaderMessage === "string" ? loaderMessage : copy("loading")}><div aria-hidden="true">{Array.from({ length: 15 }, (_, index) => <span key={index} />)}</div></div>}
@@ -348,10 +357,18 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
         onPointerUp={event => { const start = drag.current; drag.current = null; if (!start || disabled || loading || start.moved) return; const rect = event.currentTarget.getBoundingClientRect(), point = hit(event.clientX - rect.left, event.clientY - rect.top); select(point?.memoryId ?? null); }}
         onPointerCancel={() => { drag.current = null; }} onLostPointerCapture={() => { drag.current = null; }} />
       {!loading && !scene.points.length && <p className="kit-knowledge-map-empty" role="status">{copy("empty")}</p>}
-      {/* The camera pill — the NetworkGraph cluster's own approach: floating
-          bottom-right over the canvas, ghost xs IconButtons in the map's
-          control tone, a tabular percent readout between the zoom steps, and
-          a reset that clears selection and refits like the graph's. */}
+      </div>
+      {/* The legend breathes like NetworkGraph's — the canvas runs edge to
+          edge, the checkboxes keep the panel's own inset on their side, and
+          the reserved bottom padding keeps the column finishing clear of the
+          camera pill's corner. */}
+      {legendContent && <div className="min-w-0 shrink-0" style={{ width: legendOnRight ? 192 : "100%", padding: legendOnRight ? `1rem 1rem ${showControls ? "3.5rem" : "1rem"} 0` : `0 1rem ${showControls ? "3.5rem" : "1rem"} 1rem` }}>{legendContent}</div>}
+      {/* The camera pill — the NetworkGraph cluster's own look: ghost xs
+          IconButtons in the map's control tone, a tabular percent readout
+          between the zoom steps, and a reset that clears selection and refits
+          like the graph's. It anchors to the layout, not the canvas box, so
+          it holds the card's true bottom-right corner even when the legend
+          column shares the row — the legend finishes above the zone it owns. */}
       {showControls && !loading && <div className="absolute bottom-3 right-3 z-10 flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90">
         <IconButton size="xs" variant="ghost" color={chain.controlsTone} disabled={disabled} srLabel={copy("fit")} tooltip={copy("fit")} onClick={() => { cancelPan(); commitCamera(INITIAL_CAMERA); }} icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4" /><path d="M15 4h4a1 1 0 0 1 1 1v4" /><path d="M20 15v4a1 1 0 0 1-1 1h-4" /><path d="M9 20H5a1 1 0 0 1-1-1v-4" /></svg>} />
         <IconButton size="xs" variant="ghost" color={chain.controlsTone} disabled={disabled || camera.zoom <= .25} srLabel={copy("zoomOut")} tooltip={copy("zoomOut")} onClick={() => zoom(1 / 1.3)} icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true"><path d="M6 12h12" /></svg>} />
@@ -363,10 +380,6 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
             the camera itself. */}
         {onShowLibrary && <IconButton size="xs" variant="ghost" color={chain.controlsTone} disabled={disabled} srLabel={copy("showLibrary")} tooltip={copy("showLibrary")} onClick={onShowLibrary} icon="ViewRows" />}
       </div>}
-      </div>
-      {/* The legend breathes like NetworkGraph's — the canvas runs edge to
-          edge, but the checkboxes keep the panel's own inset on their side. */}
-      {legendContent && <div className="min-w-0 shrink-0" style={{ width: legendOnRight ? 192 : "100%", padding: legendOnRight ? "1rem 1rem 1rem 0" : "0 1rem 1rem" }}>{legendContent}</div>}
     </div>
     {/* The layout prose lives for the canvas's aria-describedby only — the
         legend itself says the same thing on screen, better. */}

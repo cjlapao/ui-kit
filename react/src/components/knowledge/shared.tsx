@@ -56,7 +56,6 @@ const MESSAGE_KEYS = {
   "loadMoreError": "kit.knowledge.loadMoreError",
   "retry": "kit.knowledge.retry",
   "limitReached": "kit.knowledge.limitReached",
-  "view": "kit.knowledge.view",
   "kinds.lesson": "kit.knowledge.kinds.lesson",
   "kinds.decision": "kit.knowledge.kinds.decision",
   "kinds.convention": "kit.knowledge.kinds.convention",

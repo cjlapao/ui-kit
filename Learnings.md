@@ -60,7 +60,11 @@ The React components directory is the single source of truth; Vue and both
      the icon), and a group-level `fill-rule="evenodd"` is inherited by the
      path. Keep one `<g transform>` wrapper and push `fill-rule` (plus the
      `fill`) down onto the path; drop the group's `id`/`stroke="none"`/
-     `fill="none"` no-ops. The Vue generator passes `<g>` children through
+      Nested group `fill-rule`s *chain* — take the innermost one
+      (`SwitchOn`: Page-1 said `evenodd`, the child group overrode it back to
+      `nonzero`, so the path emits with NO rule = default nonzero; copying the
+      outer `evenodd` would have filled the switch track solid).
+      The Vue generator passes `<g>` children through
      `innerHTML` untouched, so this survives conversion (verify `transform` and
      `fill-rule` appear in the emitted file).
    - **Drop invisible hit-area filler shapes** — exports include a full-canvas

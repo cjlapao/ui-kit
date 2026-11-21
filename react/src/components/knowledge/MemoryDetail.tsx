@@ -7,7 +7,7 @@ import { MemoryActionButtons, resolveControlChain, useKnowledgeCopy } from "./sh
 import type { MemoryDetailProps } from "./types";
 
 export function MemoryDetail({ memory, relatedMemories = [], onRelatedSelect, renderContent, renderBody,
-  actions, size = "xs", controlsTone = "auto", labels, disabled = false, className = "", title, bodyFooter, padding = DEFAULT_SURFACE_PADDING, ...surface }: MemoryDetailProps) {
+  actions, size = "xs", controlsTone = "auto", labels, disabled = false, className = "", title, bodyFooter, fullHeight = false, padding = DEFAULT_SURFACE_PADDING, ...surface }: MemoryDetailProps) {
   const copy = useKnowledgeCopy(labels);
   // Action row and related links share one chain on the detail card's surface.
   const chain = resolveControlChain({ tone: surface.tone, variant: surface.variant, controlsTone });
@@ -17,7 +17,7 @@ export function MemoryDetail({ memory, relatedMemories = [], onRelatedSelect, re
   // Source links carry the card's own tone ink when it is tinted — the same
   // rule as the card kind badge; the teal accent is only the untinted floor.
   const linkTone: TrueColor | undefined = chain.cardTone === "none" ? undefined : chain.cardTone;
-  return <Panel variant="elevated" disabled={disabled} {...surface} tone={chain.cardTone} padding="none" scrollable={false} flexBody className={`kit-knowledge kit-memory-detail ${className}`}>
+  return <Panel variant="elevated" disabled={disabled} {...surface} tone={chain.cardTone} padding="none" scrollable={false} flexBody className={`kit-knowledge kit-memory-detail${fullHeight ? " kit-memory-detail--full-height h-full" : ""} ${className}`}>
     {!memory ? <p className="kit-knowledge-empty">{copy("selectMemory")}</p> : <>
       {/* The title is pinned — the body scrolls under it in the kit
           ScrollArea, like NetworkGraph's inspector header. */}

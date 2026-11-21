@@ -24,7 +24,7 @@ import type { MemoryLibraryProps } from "./types";
 export function MemoryLibrary({ memories, query: queryProp, defaultQuery = "", onQueryChange, filters: filtersProp,
   defaultFilters = {}, onFiltersChange, selectedId, defaultSelectedId = null, onSelectionChange,
   view: viewProp, defaultView = "cards", onViewChange, onShowMap, groupByTopic = true, highlightedIds = [], remote = false,
-  renderMemory, emptyState, maxHeight, hasMore = false, onLoadMore, loadMode = "scroll", rootMargin, minItems,
+  renderMemory, emptyState, maxHeight, fullHeight = false, hasMore = false, onLoadMore, loadMode = "scroll", rootMargin, minItems,
   scrollResetKey, limit, onError, loadMoreLabel, showSearch = true, showFilterBar = true, size = "sm", controlsTone = "auto", searchTone = "auto",
   searchVariant = "auto", viewTone = "auto", viewVariant = "auto", actions, labels, loading = false, loaderType = "skeleton", loaderMessage, disabled = false, className = "", ...surface }: MemoryLibraryProps) {
   const copy = useKnowledgeCopy(labels);
@@ -43,13 +43,17 @@ export function MemoryLibrary({ memories, query: queryProp, defaultQuery = "", o
   const atLimit = limit !== undefined && visible.length >= limit;
   // Infinite loading rides the kit's shared `useInfiniteScroll`, the same
   // watch ActivityFeed runs: a sentinel at the results' end is observed
-  // inside the capped ScrollArea with a rootMargin lookahead, and the
-  // under-fill pass keeps fetching until the viewport is full. It only
-  // engages with a capped body — an uncapped library has no scroller to
+  // inside the capped ScrollArea — or, when the card fills a host-given
+  // height, inside the results box itself, which becomes the scroller —
+  // with a rootMargin lookahead, and the under-fill pass keeps fetching
+  // until the viewport is full. A plain uncapped card has no scroller to
   // watch, and the Load-more button covers it.
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const infinite = loadMode === "scroll" && maxHeight !== undefined && !!onLoadMore && !atLimit;
+  // A maxHeight cap wins: it brings its own ScrollArea. Without one,
+  // fullHeight turns the results box into the scroller.
+  const fill = fullHeight && maxHeight === undefined;
+  const infinite = loadMode === "scroll" && (maxHeight !== undefined || fill) && !!onLoadMore && !atLimit;
   const scroll = useInfiniteScroll({
     rootRef: viewportRef,
     sentinelRef,
@@ -73,7 +77,10 @@ export function MemoryLibrary({ memories, query: queryProp, defaultQuery = "", o
     : visible.length === 0 ? <div className="kit-knowledge-empty">{emptyState ?? copy(memories.length ? "noResults" : "empty")}</div>
     : <MemoryGrid records={shown} view={view} groupByTopic={groupByTopic} selectedId={selection} onSelect={record => select(record.id)} highlightedIds={highlightedIds} renderMemory={renderMemory} disabled={disabled || loading} labels={labels} actions={actions} cardTone={chain.cardTone} cardVariant={chain.cardVariant} />;
   const limitNote = !loading && limit !== undefined && atLimit && visible.length > 0 ? <MemoryLimitNote limit={limit} labels={labels} /> : null;
-  return <Panel variant="elevated" padding="none" disabled={disabled} {...surface} tone={chain.cardTone} loading={loading && loaderType !== "skeleton"} loaderType={loaderType} loaderMessage={loaderType ?? copy("loading")} className={`kit-knowledge kit-memory-library ${className}`} aria-busy={loading}>
+  // The explorer injects flexBody on its full-height path; keep honouring a
+  // passed-through one, but let an explicit fullHeight decide on its own.
+  const bodyFlex = fullHeight || (surface as { flexBody?: boolean }).flexBody === true;
+  return <Panel variant="elevated" padding="none" disabled={disabled} {...surface} flexBody={bodyFlex || undefined} tone={chain.cardTone} loading={loading && loaderType !== "skeleton"} loaderType={loaderType} loaderMessage={loaderType ?? copy("loading")} className={`kit-knowledge kit-memory-library${fullHeight ? " kit-memory-library--full-height h-full" : ""} ${className}`} aria-busy={loading}>
     {/* The filter section owns the search: its built-in SearchBar is the
         library's search field, showSearch or not — and showFilterBar drops
         the whole section, letting the view row lead the panel. */}
@@ -87,11 +94,15 @@ export function MemoryLibrary({ memories, query: queryProp, defaultQuery = "", o
       resultsLabel={loading ? copy("loading") : `${shown.length} / ${memories.length}`}
       size={size} controlsTone={chain.controlsTone} viewTone={chain.viewTone} viewVariant={chain.viewVariant}
       cardTone={surface.tone} cardVariant={chain.cardVariant} disabled={disabled || loading} labels={labels} />
-    {maxHeight === undefined ? <><div className="kit-memory-results" inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{limitNote}</>
-      : <ScrollArea horizontal={false} viewportRef={viewportRef} viewportClassName="overscroll-contain" style={{ maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight }}>
-        <div inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{infinite && !loading && <MemoryScrollTail sentinelRef={sentinelRef} error={scroll.error} isLoadingMore={scroll.isLoadingMore} onRetry={() => void scroll.loadMore()} tone={chain.controlsTone} labels={labels} />}{limitNote}
-      </ScrollArea>}
-    {/* The button tail: explicit `"button"` mode, or an uncapped library
+    {maxHeight !== undefined ? <ScrollArea horizontal={false} viewportRef={viewportRef} viewportClassName="overscroll-contain" style={{ maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight }}>
+      <div inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{infinite && !loading && <MemoryScrollTail sentinelRef={sentinelRef} error={scroll.error} isLoadingMore={scroll.isLoadingMore} onRetry={() => void scroll.loadMore()} tone={chain.controlsTone} labels={labels} />}{limitNote}
+    </ScrollArea>
+      /* Filling a host-given height: the box itself scrolls (the CSS rule
+         mirrors the explorer's), and the paging tail rides inside it so the
+         sentinel is watched against the scroller it actually scrolls in. */
+      : fill ? <div ref={viewportRef} className="kit-memory-results" inert={loading && loaderType !== "skeleton" || undefined}>{body}{infinite && !loading && <MemoryScrollTail sentinelRef={sentinelRef} error={scroll.error} isLoadingMore={scroll.isLoadingMore} onRetry={() => void scroll.loadMore()} tone={chain.controlsTone} labels={labels} />}{limitNote}</div>
+      : <><div className="kit-memory-results" inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{limitNote}</>}
+    {/* The button tail: explicit `"button"` mode, or a plain uncapped card
         where scroll mode has no scroller to watch. The limit note already
         closes the tail, so no button competes with it. */}
     {hasMore && onLoadMore && !loading && !infinite && !atLimit && <MemoryLoadMore onLoadMore={() => void onLoadMore()} label={loadMoreLabel} tone={chain.controlsTone} cardVariant={chain.cardVariant} disabled={disabled} labels={labels} />}

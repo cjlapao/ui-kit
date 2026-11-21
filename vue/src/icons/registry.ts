@@ -179,6 +179,8 @@ import { Send } from "./components/Send";
 import { Settings } from "./components/Settings";
 import { SettingsVertical } from "./components/SettingsVertical";
 import { Shield } from "./components/Shield";
+import { ShiftAutomatic } from "./components/ShiftAutomatic";
+import { ShiftManual } from "./components/ShiftManual";
 import { Shop } from "./components/Shop";
 import { Snapshot } from "./components/Snapshot";
 import { Sorting } from "./components/Sorting";
@@ -187,6 +189,8 @@ import { Star } from "./components/Star";
 import { Stop } from "./components/Stop";
 import { Sun } from "./components/Sun";
 import { Suspend } from "./components/Suspend";
+import { SwitchOff } from "./components/SwitchOff";
+import { SwitchOn } from "./components/SwitchOn";
 import { Taint } from "./components/Taint";
 import { Target } from "./components/Target";
 import { Task } from "./components/Task";
@@ -393,6 +397,8 @@ export type IconName =
   | "Settings"
   | "SettingsVertical"
   | "Shield"
+  | "ShiftAutomatic"
+  | "ShiftManual"
   | "Shop"
   | "Snapshot"
   | "Sorting"
@@ -401,6 +407,8 @@ export type IconName =
   | "Stop"
   | "Sun"
   | "Suspend"
+  | "SwitchOff"
+  | "SwitchOn"
   | "Taint"
   | "Target"
   | "Task"
@@ -605,6 +613,8 @@ export const iconRegistry: Record<IconName, Component> = {
   Settings: Settings,
   SettingsVertical: SettingsVertical,
   Shield: Shield,
+  ShiftAutomatic: ShiftAutomatic,
+  ShiftManual: ShiftManual,
   Shop: Shop,
   Snapshot: Snapshot,
   Sorting: Sorting,
@@ -613,6 +623,8 @@ export const iconRegistry: Record<IconName, Component> = {
   Stop: Stop,
   Sun: Sun,
   Suspend: Suspend,
+  SwitchOff: SwitchOff,
+  SwitchOn: SwitchOn,
   Taint: Taint,
   Target: Target,
   Task: Task,

@@ -7,7 +7,7 @@ export type { MemoryRecord, MemorySource, MemoryKind, MemoryStatus, MemoryFilter
 export type { ControlSize, InputVariant, SurfaceTone, SurfaceVariant, TrueColor } from "../../theme";
 export type { SurfacePadding, SurfaceCorner } from "../../theme";
 
-export type KnowledgeLabels = Partial<Record<"library" | "map" | "details" | "inspector" | "search" | "kind" | "status" | "topic" | "all" | "cards" | "list" | "showMap" | "showLibrary" | "empty" | "noResults" | "loading" | "selectMemory" | "sources" | "noSources" | "related" | "edit" | "pin" | "unpin" | "archive" | "retrievals" | "lastRetrieved" | "feedback" | "retrievalNote" | "fit" | "zoomIn" | "zoomOut" | "zoom" | "reset" | "topicLayout" | "projectionNote" | "relationships" | "previous" | "next" | "clear" | "ungrouped" | "selectAll" | "mapHelp" | "pinned" | "loadMore" | "loadingMore" | "loadMoreError" | "retry" | "limitReached" | "view" | `kinds.${MemoryKind}` | `statuses.${MemoryStatus}`, string>>;
+export type KnowledgeLabels = Partial<Record<"library" | "map" | "details" | "inspector" | "search" | "kind" | "status" | "topic" | "all" | "cards" | "list" | "showMap" | "showLibrary" | "empty" | "noResults" | "loading" | "selectMemory" | "sources" | "noSources" | "related" | "edit" | "pin" | "unpin" | "archive" | "retrievals" | "lastRetrieved" | "feedback" | "retrievalNote" | "fit" | "zoomIn" | "zoomOut" | "zoom" | "reset" | "topicLayout" | "projectionNote" | "relationships" | "previous" | "next" | "clear" | "ungrouped" | "selectAll" | "mapHelp" | "pinned" | "loadMore" | "loadingMore" | "loadMoreError" | "retry" | "limitReached" | `kinds.${MemoryKind}` | `statuses.${MemoryStatus}`, string>>;
 /** The Panel surface the knowledge components paint. `actions` is omitted:
  * in this family the name means the consumer's `MemoryCardAction[]`, which
  * the card resolves and hands to Panel's own slot — a raw PanelAction array
@@ -75,6 +75,12 @@ export interface MemoryDetailProps extends KnowledgeSurfaceProps, MemoryActions,
   /** Pinned eyebrow label above the scrollable body, as NetworkGraph's
    * inspector carries one — the explorer fills it from inspectorTitle. */
   title?: ReactNode;
+  /** @default false — stretch the scroll body to a host-given height instead
+   * of the standalone 26rem cap, the companion of KnowledgeMap's fullHeight:
+   * pass it on both sides of a stretched two-column row so the detail card
+   * fills the map's height and scrolls inside its own card, as the explorer's
+   * docked inspector does. Without a defined-height host it stays content-sized. */
+  fullHeight?: boolean;
 }
 /** Scroll and incremental loading shared by the library body and the explorer's library region. */
 export interface MemoryScrollProps {
@@ -166,6 +172,14 @@ export interface MemoryLibraryProps extends Omit<KnowledgeSurfaceProps, "onError
    * for a library with no map alongside — the toggle then keeps just its
    * cards/list pair. */
   onShowMap?: () => void;
+  /** @default false — fill a host-given height: the filter bar and view row
+   * keep their size, the results stretch into the rest of the card and
+   * scroll there instead of overflowing a clipped panel — the standalone
+   * companion of KnowledgeMap's and MemoryDetail's fullHeight, for a
+   * stretched row beside them. Scroll-mode paging watches its sentinel
+   * inside the scrolling results box; a `maxHeight` still wins when both
+   * are given. Without a defined-height host it stays content-sized. */
+  fullHeight?: boolean;
   groupByTopic?: boolean;
   highlightedIds?: readonly string[];
   renderMemory?: (memory: MemoryRecord, state: { selected: boolean; highlighted: boolean; select: () => void }) => ReactNode;
@@ -191,6 +205,8 @@ export interface KnowledgeMapProps extends KnowledgeSurfaceProps, MemorySelectio
   /**
    * Where the topic legend sits — NetworkGraph's own grammar: `"auto"`
    * places it to the right of the canvas at ≥600px and below otherwise.
+   * A legend taller than its column scrolls in the kit's ScrollArea, and it
+   * always finishes clear of the camera pill's bottom-right corner.
    * @default "auto"
    */
   legendPosition?: "auto" | "right" | "bottom";
@@ -217,9 +233,12 @@ export interface KnowledgeMapProps extends KnowledgeSurfaceProps, MemorySelectio
   fullHeight?: boolean;
   glow?: boolean;
   /**
-   * The floating camera pill over the canvas — fit, the zoom steps, the
-   * percent readout and reset, the NetworkGraph cluster's own approach.
-   * With `onShowLibrary` it also carries the library button at the end.
+   * The camera pill at the card's bottom-right corner — fit, the zoom steps,
+   * the percent readout and reset, the NetworkGraph cluster's own approach.
+   * It anchors to the map layout rather than the canvas box, so it holds the
+   * true corner even with the legend docked in the right column — the legend
+   * ends above the zone the pill owns. With `onShowLibrary` it also carries
+   * the library button at the end.
    * @default true
    */
   showControls?: boolean;
@@ -283,7 +302,7 @@ export interface KnowledgeMapSurfaceProps {
   /** @default false — fill a defined-height parent, overriding `height` (NetworkGraph's fullHeight) */
   fullHeight?: boolean;
   glow?: boolean;
-  /** @default true — the floating camera pill over the canvas */
+  /** @default true — the camera pill at the card's bottom-right corner */
   showControls?: boolean;
   /** @default true — the graph's passive hover preview on points */
   hoverHighlight?: boolean;
@@ -341,8 +360,9 @@ export interface KnowledgeExplorerProps extends KnowledgeSurfaceProps, MemorySel
   defaultFilters?: MemoryFilters;
   onFiltersChange?: (filters: MemoryFilters) => void;
   /**
-   * The main column: exactly one view at a time. The switch between them is a
-   * kit MultiToggle in the explorer's header whenever both are enabled.
+   * The main column: exactly one view at a time. The parts switch in place —
+   * the library's Show-map button opens the map, the map's Show library pill
+   * comes back — and both hide themselves when only one view is enabled.
    * @default "library"
    */
   view?: KnowledgeExplorerView;
@@ -359,9 +379,9 @@ export interface KnowledgeExplorerProps extends KnowledgeSurfaceProps, MemorySel
   inspector?: boolean;
   /**
    * Fill the height of a parent with a defined height, the NetworkGraph
-   * fullHeight contract: the toolbar keeps its size, the view panel stretches
-   * to the parent — the library results scroll inside the card, the map
-   * canvas fills it — and the docked inspector keeps the same height.
+   * fullHeight contract: the view panel stretches to the parent — the
+   * library results scroll inside the card, the map canvas fills it — and
+   * the docked inspector keeps the same height.
    * @default false
    */
   fullHeight?: boolean;
@@ -389,10 +409,6 @@ export interface KnowledgeExplorerProps extends KnowledgeSurfaceProps, MemorySel
   library?: MemoryScrollProps & MemoryControlsProps & Pick<MemoryLibraryProps, "groupByTopic" | "renderMemory" | "emptyState" | "showSearch" | "showFilterBar">;
   /** Surface and geometry for the explorer's map view. */
   map?: KnowledgeMapSurfaceProps;
-  /** @default "auto" — tone for the explorer's own header controls */
-  controlsTone?: TrueColor | "auto";
-  /** Shared size for the explorer's own header controls. @default "sm" */
-  size?: ControlSize;
   regions?: Partial<Record<KnowledgeRegion, boolean>>;
   /** Replace an enabled region. Library and map are replaced whole; the
    * `detail` override is narrower — it owns only the inspector's body,
