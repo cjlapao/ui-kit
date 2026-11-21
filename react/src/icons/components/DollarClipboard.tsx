@@ -1,0 +1,61 @@
+import { forwardRef, type SVGProps } from "react";
+
+export const DollarClipboard = forwardRef<
+  SVGSVGElement,
+  SVGProps<SVGSVGElement>
+>((props, ref) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+    ref={ref}
+  >
+      <path
+        d="M20.59,2.45V22.5H3.41v-20H8.18v1a1.92,1.92,0,0,0,1.91,1.91h3.82a1.92,1.92,0,0,0,1.91-1.91v-1Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.91"
+        strokeMiterlimit="10"
+      ></path>
+      <path
+        d="M10.09,16.77h2.39a1.43,1.43,0,0,0,1.43-1.43h0a1.43,1.43,0,0,0-1.43-1.43h-1a1.43,1.43,0,0,1-1.43-1.43h0a1.43,1.43,0,0,1,1.43-1.43h2.39"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.91"
+        strokeMiterlimit="10"
+        strokeLinecap="square"
+      ></path>
+      <line
+        x1="12"
+        y1="9.14"
+        x2="12"
+        y2="11.05"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.91"
+        strokeMiterlimit="10"
+        strokeLinecap="square"
+      ></line>
+      <line
+        x1="12"
+        y1="16.77"
+        x2="12"
+        y2="18.68"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.91"
+        strokeMiterlimit="10"
+        strokeLinecap="square"
+      ></line>
+      <path
+        d="M15.82,1.5V3.41a1.92,1.92,0,0,1-1.91,1.91H10.09A1.92,1.92,0,0,1,8.18,3.41V1.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.91"
+        strokeMiterlimit="10"
+      ></path>
+  </svg>
+));
+
+DollarClipboard.displayName = "DollarClipboard";

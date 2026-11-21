@@ -31,6 +31,7 @@ import { Calendar } from "./components/Calendar";
 import { CatalogManifest } from "./components/CatalogManifest";
 import { CatalogVersion } from "./components/CatalogVersion";
 import { CentOS } from "./components/CentOS";
+import { Certificate } from "./components/Certificate";
 import { ChartLine } from "./components/ChartLine";
 import { Chat } from "./components/Chat";
 import { ChatApproved } from "./components/ChatApproved";
@@ -49,6 +50,7 @@ import { Close } from "./components/Close";
 import { Close1 } from "./components/Close1";
 import { CloudOff } from "./components/CloudOff";
 import { Code } from "./components/Code";
+import { CodeBranch } from "./components/CodeBranch";
 import { CodeCommit } from "./components/CodeCommit";
 import { CodeCompare } from "./components/CodeCompare";
 import { CodeFork } from "./components/CodeFork";
@@ -64,8 +66,10 @@ import { Dashboard } from "./components/Dashboard";
 import { Database } from "./components/Database";
 import { Debian } from "./components/Debian";
 import { Details } from "./components/Details";
+import { Diagram } from "./components/Diagram";
 import { Docker } from "./components/Docker";
 import { DockerCopy } from "./components/DockerCopy";
+import { DollarClipboard } from "./components/DollarClipboard";
 import { Dots } from "./components/Dots";
 import { DotsVertical } from "./components/DotsVertical";
 import { Download } from "./components/Download";
@@ -116,6 +120,7 @@ import { Logout } from "./components/Logout";
 import { Map } from "./components/Map";
 import { Memory } from "./components/Memory";
 import { Minio } from "./components/Minio";
+import { Money } from "./components/Money";
 import { Moon } from "./components/Moon";
 import { NetworkNodes } from "./components/NetworkNodes";
 import { Notification } from "./components/Notification";
@@ -133,8 +138,12 @@ import { Podman } from "./components/Podman";
 import { PodmanDesktop } from "./components/PodmanDesktop";
 import { Policeman } from "./components/Policeman";
 import { Praise } from "./components/Praise";
+import { PriceTag } from "./components/PriceTag";
+import { Prices } from "./components/Prices";
 import { Project } from "./components/Project";
 import { Pull } from "./components/Pull";
+import { PullRequest } from "./components/PullRequest";
+import { PullRequestClosed } from "./components/PullRequestClosed";
 import { Push } from "./components/Push";
 import { RedHat } from "./components/RedHat";
 import { Refresh } from "./components/Refresh";
@@ -236,6 +245,7 @@ export type IconName =
   | "CatalogManifest"
   | "CatalogVersion"
   | "CentOS"
+  | "Certificate"
   | "ChartLine"
   | "Chat"
   | "ChatApproved"
@@ -254,6 +264,7 @@ export type IconName =
   | "Close1"
   | "CloudOff"
   | "Code"
+  | "CodeBranch"
   | "CodeCommit"
   | "CodeCompare"
   | "CodeFork"
@@ -269,8 +280,10 @@ export type IconName =
   | "Database"
   | "Debian"
   | "Details"
+  | "Diagram"
   | "Docker"
   | "DockerCopy"
+  | "DollarClipboard"
   | "Dots"
   | "DotsVertical"
   | "Download"
@@ -321,6 +334,7 @@ export type IconName =
   | "Map"
   | "Memory"
   | "Minio"
+  | "Money"
   | "Moon"
   | "NetworkNodes"
   | "Notification"
@@ -338,8 +352,12 @@ export type IconName =
   | "PodmanDesktop"
   | "Policeman"
   | "Praise"
+  | "PriceTag"
+  | "Prices"
   | "Project"
   | "Pull"
+  | "PullRequest"
+  | "PullRequestClosed"
   | "Push"
   | "RedHat"
   | "Refresh"
@@ -442,6 +460,7 @@ export const iconRegistry: Record<
   CatalogManifest: CatalogManifest,
   CatalogVersion: CatalogVersion,
   CentOS: CentOS,
+  Certificate: Certificate,
   ChartLine: ChartLine,
   Chat: Chat,
   ChatApproved: ChatApproved,
@@ -460,6 +479,7 @@ export const iconRegistry: Record<
   Close1: Close1,
   CloudOff: CloudOff,
   Code: Code,
+  CodeBranch: CodeBranch,
   CodeCommit: CodeCommit,
   CodeCompare: CodeCompare,
   CodeFork: CodeFork,
@@ -475,8 +495,10 @@ export const iconRegistry: Record<
   Database: Database,
   Debian: Debian,
   Details: Details,
+  Diagram: Diagram,
   Docker: Docker,
   DockerCopy: DockerCopy,
+  DollarClipboard: DollarClipboard,
   Dots: Dots,
   DotsVertical: DotsVertical,
   Download: Download,
@@ -527,6 +549,7 @@ export const iconRegistry: Record<
   Map: Map,
   Memory: Memory,
   Minio: Minio,
+  Money: Money,
   Moon: Moon,
   NetworkNodes: NetworkNodes,
   Notification: Notification,
@@ -544,8 +567,12 @@ export const iconRegistry: Record<
   PodmanDesktop: PodmanDesktop,
   Policeman: Policeman,
   Praise: Praise,
+  PriceTag: PriceTag,
+  Prices: Prices,
   Project: Project,
   Pull: Pull,
+  PullRequest: PullRequest,
+  PullRequestClosed: PullRequestClosed,
   Push: Push,
   RedHat: RedHat,
   Refresh: Refresh,

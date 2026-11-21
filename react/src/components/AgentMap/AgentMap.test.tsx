@@ -507,3 +507,18 @@ describe("AgentMap drag navigation", () => {
     expect(screen.getByText("Inspector")).toBeTruthy(); // pill clicks are not outside clicks
   });
 });
+
+describe("AgentMap blocked status", () => {
+  const stuck: AgentMapProject[] = [{ id: "stuck", name: "Stuck", agents: [{ id: "s1", name: "Loader", status: "blocked", activity: "Waiting on CI" }, { id: "s2", name: "Maker", status: "working", activity: "Building" }] }];
+  it("marks blocked agents red in hubs, orbs, legend and counts", () => {
+    const { container } = render(<AgentMap projects={stuck} />);
+    const hub = screen.getByRole("button", { name: "Stuck, 2 agents, 1 blocked" });
+    expect(hub.className).toContain("cj-agent-map__hub--attention"); // pulsing ring, red via --agent-color
+    expect(container.querySelector(".cj-agent-map__counts")!.textContent).toContain("1 blocked");
+    expect(screen.getByText("Blocked")).toBeTruthy(); // legend entry from LABELS
+    fireEvent.click(hub);
+    const agent = screen.getByRole("button", { name: "Loader, Stuck, Blocked: Waiting on CI" });
+    expect((agent.querySelector(".cj-agent-map__orb") as HTMLElement).className).toContain("cj-agent-map__attention-ring");
+    expect(screen.getAllByText("Blocked").length).toBeGreaterThan(1); // legend + agent label
+  });
+});

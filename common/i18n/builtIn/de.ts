@@ -23,6 +23,8 @@ export const DE_KIT_CATALOG: MessageCatalog = {
       "all": "Alle",
       "cards": "Karten",
       "list": "Liste",
+      "showMap": "Karte anzeigen",
+      "showLibrary": "Bibliothek anzeigen",
       "empty": "Noch keine Erinnerungen.",
       "noResults": "Keine passenden Erinnerungen.",
       "loading": "Erinnerungen werden geladen…",

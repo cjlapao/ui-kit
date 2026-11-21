@@ -56,6 +56,8 @@ export const EN_KIT_CATALOG: MessageCatalog = {
       "all": "All",
       "cards": "Cards",
       "list": "List",
+      "showMap": "Show map",
+      "showLibrary": "Show library",
       "empty": "No memories yet.",
       "noResults": "No matching memories.",
       "loading": "Loading memories…",

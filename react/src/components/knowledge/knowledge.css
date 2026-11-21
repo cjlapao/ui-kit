@@ -41,7 +41,9 @@
 .kit-memory-groups { display: grid; gap: 1.6rem; padding: 1rem; }
 .kit-memory-group-title { display: flex; align-items: center; gap: .5rem; font-size: .85rem; margin-bottom: .75rem !important; }
 .kit-memory-group-title > span { font: .65rem ui-monospace, monospace; opacity: .5; }
-.kit-memory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: .75rem; }
+/* auto-fill, not auto-fit: the tracks stay when the grid is sparse, so a
+   lone result keeps a card's width instead of stretching across the row. */
+.kit-memory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: .75rem; }
 .kit-memory-grid[data-view="list"] { grid-template-columns: 1fr; gap: .25rem; }
 .kit-memory-skeleton { padding: 1rem; }
 .kit-memory-skeleton-card { display: flex; flex-direction: column; gap: .75rem; min-height: 9rem; padding: 1rem; border: 1px solid var(--knowledge-line); border-radius: .75rem; background: var(--knowledge-soft); }
@@ -150,10 +152,11 @@
 /* The inspector stays mounted so the column can animate, but collapses to
    nothing until a memory is selected — NetworkGraph's 0fr inspector column. */
 .kit-knowledge-inspector { min-width: 0; height: 0; overflow: hidden; opacity: 0; pointer-events: none; }
-/* The inspector is a pane, not page furniture: sticky keeps it in view
-   while the document scrolls, so wheeling where nothing under the cursor
-   scrolls (a short record, the linked-steps area) can never carry the
-   pinned title out of sight. */
+/* Stacked, the inspector is a pane, not page furniture: sticky keeps it in
+   view while the document scrolls, so wheeling where nothing under the
+   cursor scrolls (a short record, the linked-steps area) can never carry the
+   pinned title out of sight. Docked it goes static again below: the column
+   already ends on the view's line, and sticky there could only drift. */
 .kit-knowledge-explorer-grid--inspector-open .kit-knowledge-inspector { height: auto; overflow: visible; opacity: 1; pointer-events: auto; transition: opacity 180ms ease 60ms; position: sticky; top: 1rem; }
 /* Docked: the inspector takes the measured view-panel height — NetworkGraph's
    fixed --cj-network-graph-height parity — as a flex column: the detail panel
@@ -164,9 +167,25 @@
 /* Bounded height even before the observer writes --kit-knowledge-inspector-
    height: a never-auto column means every scroll inside it is real, so the
    page can never end up scrolling the inspector (and its title) itself. */
-.kit-knowledge-explorer-grid--inspector-open:not(.kit-knowledge-explorer-grid--stacked) .kit-knowledge-inspector { height: var(--kit-knowledge-inspector-height, 34rem); overflow: hidden; display: flex; flex-direction: column; padding: 2px; }
+.kit-knowledge-explorer-grid--inspector-open:not(.kit-knowledge-explorer-grid--stacked) .kit-knowledge-inspector { height: var(--kit-knowledge-inspector-height, 34rem); overflow: hidden; display: flex; flex-direction: column; padding: 2px; position: static; }
 .kit-knowledge-explorer-grid--inspector-open:not(.kit-knowledge-explorer-grid--stacked) .kit-knowledge-inspector .kit-memory-detail { flex: 1 1 auto; min-height: 0; }
 /* Docked: the column height is definite, so flex bounds the scroll area —
    the frame cap lifts and frame and viewport stay exactly the same size. */
 .kit-knowledge-explorer-grid--inspector-open:not(.kit-knowledge-explorer-grid--stacked) .kit-knowledge-inspector .kit-memory-detail-scroll { max-height: none; }
+/* fullHeight — NetworkGraph's contract: the explorer fills a parent with a
+   defined height. The toolbar row keeps its size, the grid takes the rest,
+   and the panel inside the view column stretches to it: library results
+   scroll inside the card, the map canvas fills and re-measures. The docked
+   inspector simply fills the same grid area, so the columns always end on
+   one line — no measured-variable race, no sticky to drift. */
+.kit-knowledge-explorer--full-height { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.kit-knowledge-explorer--full-height > .kit-knowledge-toolbar { flex: 0 0 auto; }
+.kit-knowledge-explorer--full-height > .kit-knowledge-explorer-grid { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+.kit-knowledge-explorer--full-height .kit-knowledge-explorer-grid > section { display: flex; flex-direction: column; min-height: 0; }
+/* Beats the Panel root's own shrink-0 utility so the card actually grows. */
+.kit-knowledge-explorer--full-height .kit-knowledge-explorer-grid > section > * { flex: 1 1 auto; min-height: 0; }
+.kit-knowledge-explorer--full-height .kit-knowledge-explorer-grid--inspector-open:not(.kit-knowledge-explorer-grid--stacked) .kit-knowledge-inspector { height: 100%; }
+.kit-knowledge-explorer--full-height .kit-memory-library .kit-memory-results { flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-width: thin; }
+/* The map canvas host fills the stretched panel body. */
+.kit-knowledge-canvas--fill { flex: 1 1 auto; min-height: 0; }
 @media (prefers-reduced-motion: reduce) { .kit-knowledge button, .kit-knowledge-explorer-grid, .kit-knowledge-explorer-grid--inspector-open .kit-knowledge-inspector { transition: none; } }

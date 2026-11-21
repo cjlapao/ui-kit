@@ -48,7 +48,7 @@ function follow<V>(pinned: V | "auto", base: V | undefined): V | undefined {
 export function KnowledgeExplorer({ memories, points, relationships, selectedId,
   defaultSelectedId = null, onSelectionChange, query: queryProp, defaultQuery = "", onQueryChange,
   filters: filtersProp, defaultFilters = {}, onFiltersChange, library, view: viewProp, defaultView = "library",
-  onViewChange, inspector = true, inspectorWidth, inspectorMinMainWidth, inspectorStackBelow,
+  onViewChange, inspector = true, fullHeight = false, inspectorWidth, inspectorMinMainWidth, inspectorStackBelow,
   inspectorTone = "auto", inspectorVariant = "auto", inspectorPadding = "auto", inspectorCorner = "auto", inspectorTitle,
   map, controlsTone = "auto", size = "sm",
   regions, renderRegion, actions, labels, loading = false, disabled = false,
@@ -122,12 +122,12 @@ export function KnowledgeExplorer({ memories, points, relationships, selectedId,
     // it owns only the inspector's body, inside the MemoryDetail shell. The
     // panel, its pinned title and the scroll area stay the shell's job.
     if (region !== "detail" && renderRegion?.[region]) return renderRegion[region]!(context);
-    if (region === "library") return <MemoryLibrary {...surface} {...shared} actions={actions} {...library} memories={memories} query={query} onQueryChange={setQuery} filters={filters} onFiltersChange={setFilters} selectedId={selection} onSelectionChange={select} />;
-    if (region === "map") return <KnowledgeMap {...surface} {...shared} {...map} memories={memories} points={points} relationships={relationships} selectedId={selection} onSelectionChange={select} highlightedIds={query || filters.kind?.length || filters.status?.length ? matchingIds : []} selectedTopic={filters.topic} onTopicSelect={topics => setFilters({ ...filters, topic: topics })} />;
+    if (region === "library") return <MemoryLibrary {...surface} {...shared} actions={actions} {...library} {...(fullHeight ? { flexBody: true } : {})} onShowMap={views.includes("map") ? () => setInnerView("map") : undefined} memories={memories} query={query} onQueryChange={setQuery} filters={filters} onFiltersChange={setFilters} selectedId={selection} onSelectionChange={select} />;
+    if (region === "map") return <KnowledgeMap {...surface} {...shared} {...(fullHeight ? { fullHeight: true } : {})} {...map} onShowLibrary={views.includes("library") ? () => setInnerView("library") : undefined} memories={memories} points={points} relationships={relationships} selectedId={selection} onSelectionChange={select} highlightedIds={query || filters.kind?.length || filters.status?.length ? matchingIds : []} selectedTopic={filters.topic} onTopicSelect={topics => setFilters({ ...filters, topic: topics })} />;
     if (region === "detail") return <MemoryDetail {...surface} {...inspectorChrome} actions={actions} padding={inspectorPadding === "auto" ? undefined : inspectorPadding} labels={labels} title={inspectorTitle ?? copy("inspector")} memory={selectedMemory} relatedMemories={(selectedMemory?.relatedIds ?? []).flatMap(id => { const record = records.get(id); return record ? [record] : []; })} onRelatedSelect={disabled ? undefined : select} renderBody={renderRegion?.detail ? () => renderRegion.detail!(context) : undefined} />;
     return null;
   };
-  return <div className={`kit-knowledge kit-knowledge-explorer ${className}`} aria-busy={loading || undefined} aria-disabled={disabled || undefined}>
+  return <div className={`kit-knowledge kit-knowledge-explorer${fullHeight ? " kit-knowledge-explorer--full-height" : ""} ${className}`} aria-busy={loading || undefined} aria-disabled={disabled || undefined}>
     {views.length > 1 && <div className="kit-knowledge-toolbar">
       {/* The view switch: exactly one of map / library owns the main column.
           A kit MultiToggle, so it is one segmented radiogroup, not two tabs. */}

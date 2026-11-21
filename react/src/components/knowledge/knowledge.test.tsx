@@ -285,6 +285,21 @@ describe("memory components", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Cards" }));
     expect(document.querySelector('.kit-memory-grid[data-view="cards"]')).toBeTruthy();
   });
+  it("joins the map button to the view toggle when the host can show a map", () => {
+    const showMap = vi.fn();
+    const view = vi.fn();
+    const { rerender } = render(<MemoryLibrary memories={records} view="cards" onViewChange={view} onShowMap={showMap} />);
+    const mapButton = screen.getByRole("radio", { name: "Show map" });
+    // An action on the track, never a selectable mode: it rests unpressed.
+    expect(mapButton).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(mapButton);
+    expect(showMap).toHaveBeenCalledTimes(1);
+    expect(view).not.toHaveBeenCalled();
+    expect(document.querySelector('.kit-memory-grid[data-view="cards"]')).toBeTruthy();
+    // A library with no map alongside carries no such promise.
+    rerender(<MemoryLibrary memories={records} view="cards" onViewChange={view} />);
+    expect(screen.queryByRole("radio", { name: "Show map" })).not.toBeInTheDocument();
+  });
 });
 
 describe("knowledge map and composition", () => {
@@ -366,6 +381,17 @@ describe("knowledge map and composition", () => {
     rerender(<KnowledgeMap memories={records} selectedId="lock" onSelectionChange={select} showControls={false} />);
     expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
     expect(screen.queryByText("100%")).not.toBeInTheDocument();
+  });
+  it("caps the pill with the library button when the host can show the library", () => {
+    const showLibrary = vi.fn();
+    const { rerender } = render(<KnowledgeMap memories={records} onShowLibrary={showLibrary} />);
+    const pillButtons = [...screen.getAllByRole("button")].filter(button => button.closest(".absolute.bottom-3"));
+    expect(pillButtons[pillButtons.length - 1]).toHaveAccessibleName("Show library");
+    fireEvent.click(screen.getByRole("button", { name: "Show library" }));
+    expect(showLibrary).toHaveBeenCalledTimes(1);
+    // A map standing alone keeps the pill purely about the camera.
+    rerender(<KnowledgeMap memories={records} />);
+    expect(screen.queryByRole("button", { name: "Show library" })).not.toBeInTheDocument();
   });
   it("previews the point under the pointer without selecting, and hoverHighlight={false} keeps the canvas static", () => {
     // A single record pins the topic-layout point dead-center of the canvas:
@@ -494,6 +520,19 @@ describe("knowledge map and composition", () => {
     act(() => callbacks.forEach(callback => callback(1200)));
     expect(pinnedRoot).toHaveClass("kit-knowledge-explorer-grid--stacked");
     vi.unstubAllGlobals();
+  });
+  it("fills a defined-height parent, growing the library card and its results", () => {
+    const { container } = render(<KnowledgeExplorer memories={records} fullHeight />);
+    expect(container.querySelector(".kit-knowledge-explorer")).toHaveClass("kit-knowledge-explorer--full-height");
+    const results = container.querySelector<HTMLElement>(".kit-memory-library .kit-memory-results")!;
+    // The panel body flexes so the card stretches with the parent and the
+    // results area becomes the internal scroller (the full-height CSS rules).
+    expect(results.parentElement).toHaveClass("flex-1");
+    expect(results.parentElement).toHaveClass("min-h-0");
+    // Negative control: without fullHeight the card stays content-sized.
+    const { container: idle } = render(<KnowledgeExplorer memories={records} />);
+    expect(idle.querySelector(".kit-knowledge-explorer--full-height")).toBeNull();
+    expect(idle.querySelector(".kit-memory-library .kit-memory-results")!.parentElement).not.toHaveClass("flex-1");
   });
   it("hides the inspector while the workspace loads", () => {
     const { container, rerender } = render(<KnowledgeExplorer memories={records} defaultSelectedId="retry" />);
@@ -855,6 +894,34 @@ describe("knowledge map auto reveal and inspector fit", () => {
     expect(change).toHaveBeenCalledTimes(1);
     expect(change.mock.lastCall![0]).toEqual(expect.objectContaining({ x: 0, y: 0, zoom: 1 }));
     expect(midway.zoom).not.toBe(1);
+  });
+  it("lets fullHeight take the canvas box from the stretched host", () => {
+    vi.useFakeTimers(); mockBox(900, 480);
+    const { container } = render(<KnowledgeMap memories={records} points={points} fullHeight />);
+    const host = container.querySelector<HTMLElement>(".kit-knowledge-canvas")!;
+    expect(host).toHaveClass("kit-knowledge-canvas--fill");
+    expect(host.style.height).toBe(""); // the height prop no longer pins the box
+    // Negative control: the default mode keeps the fixed box and no fill class.
+    const { container: fixed } = render(<KnowledgeMap memories={records} points={points} />);
+    const fixedHost = fixed.querySelector<HTMLElement>(".kit-knowledge-canvas")!;
+    expect(fixedHost).not.toHaveClass("kit-knowledge-canvas--fill");
+    expect(fixedHost.style.height).toBe("360px");
+  });
+  it("fits and centers against the measured host height under fullHeight", () => {
+    vi.useFakeTimers(); mockBox(900, 480); // 480, not the 360 height prop, is the binding side here
+    const change = vi.fn();
+    const { rerender } = render(<KnowledgeMap memories={records} points={points} fullHeight onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(10)); // let the box measure commit
+    change.mockClear();
+    rerender(<KnowledgeMap memories={records} points={points} fullHeight selectedId="old" onViewportChange={change} />);
+    act(() => vi.advanceTimersByTime(300)); // the dock settles, the reveal fires
+    runTween();
+    // fitZoom = min((900-100)/600, (480-100)/300, 3) = 380/300 — the height
+    // prop would have fitted to 260/300 instead; the centering proves which.
+    const after = change.mock.lastCall![0];
+    expect(after.zoom).toBe(1);
+    expect(after.x).toBeCloseTo(0, 6);
+    expect(after.y).toBeCloseTo(-150 * (380 / 300), 1);
   });
 });
 

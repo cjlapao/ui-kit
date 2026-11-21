@@ -7,7 +7,7 @@ export type { MemoryRecord, MemorySource, MemoryKind, MemoryStatus, MemoryFilter
 export type { ControlSize, InputVariant, SurfaceTone, SurfaceVariant, TrueColor } from "../../theme";
 export type { SurfacePadding, SurfaceCorner } from "../../theme";
 
-export type KnowledgeLabels = Partial<Record<"library" | "map" | "details" | "inspector" | "search" | "kind" | "status" | "topic" | "all" | "cards" | "list" | "empty" | "noResults" | "loading" | "selectMemory" | "sources" | "noSources" | "related" | "edit" | "pin" | "unpin" | "archive" | "retrievals" | "lastRetrieved" | "feedback" | "retrievalNote" | "fit" | "zoomIn" | "zoomOut" | "zoom" | "reset" | "topicLayout" | "projectionNote" | "relationships" | "previous" | "next" | "clear" | "ungrouped" | "selectAll" | "mapHelp" | "pinned" | "loadMore" | "loadingMore" | "loadMoreError" | "retry" | "limitReached" | "view" | `kinds.${MemoryKind}` | `statuses.${MemoryStatus}`, string>>;
+export type KnowledgeLabels = Partial<Record<"library" | "map" | "details" | "inspector" | "search" | "kind" | "status" | "topic" | "all" | "cards" | "list" | "showMap" | "showLibrary" | "empty" | "noResults" | "loading" | "selectMemory" | "sources" | "noSources" | "related" | "edit" | "pin" | "unpin" | "archive" | "retrievals" | "lastRetrieved" | "feedback" | "retrievalNote" | "fit" | "zoomIn" | "zoomOut" | "zoom" | "reset" | "topicLayout" | "projectionNote" | "relationships" | "previous" | "next" | "clear" | "ungrouped" | "selectAll" | "mapHelp" | "pinned" | "loadMore" | "loadingMore" | "loadMoreError" | "retry" | "limitReached" | "view" | `kinds.${MemoryKind}` | `statuses.${MemoryStatus}`, string>>;
 /** The Panel surface the knowledge components paint. `actions` is omitted:
  * in this family the name means the consumer's `MemoryCardAction[]`, which
  * the card resolves and hands to Panel's own slot — a raw PanelAction array
@@ -160,6 +160,12 @@ export interface MemoryLibraryProps extends Omit<KnowledgeSurfaceProps, "onError
   view?: "cards" | "list";
   defaultView?: "cards" | "list";
   onViewChange?: (view: "cards" | "list") => void;
+  /** Adds a third button — the kit's Path glyph — to the view toggle: a way
+   * out of the library and into the map view, wired to whatever the host's
+   * "show the map" action is (KnowledgeExplorer flips the main view). Omit
+   * for a library with no map alongside — the toggle then keeps just its
+   * cards/list pair. */
+  onShowMap?: () => void;
   groupByTopic?: boolean;
   highlightedIds?: readonly string[];
   renderMemory?: (memory: MemoryRecord, state: { selected: boolean; highlighted: boolean; select: () => void }) => ReactNode;
@@ -202,13 +208,26 @@ export interface KnowledgeMapProps extends KnowledgeSurfaceProps, MemorySelectio
    */
   showTitleDivider?: boolean;
   height?: number;
+  /**
+   * Fill the height of a parent with a defined height (overrides `height`).
+   * The panel stretches with the parent and the canvas fills it, measured
+   * live, the NetworkGraph fullHeight contract.
+   * @default false
+   */
+  fullHeight?: boolean;
   glow?: boolean;
   /**
    * The floating camera pill over the canvas — fit, the zoom steps, the
    * percent readout and reset, the NetworkGraph cluster's own approach.
+   * With `onShowLibrary` it also carries the library button at the end.
    * @default true
    */
   showControls?: boolean;
+  /** Appends a ViewRows button to the camera pill: a way back from the map
+   * into the library view, wired to whatever the host's "show the library"
+   * action is (KnowledgeExplorer flips the main view). Omit for a map
+   * standing alone — the pill keeps just its camera controls. */
+  onShowLibrary?: () => void;
   /**
    * Preview-highlight the point under the pointer — a soft cluster-tone
    * ring, its title label and full opacity even while the topic filter dims
@@ -261,6 +280,8 @@ export type KnowledgeExplorerView = Exclude<KnowledgeRegion, "detail">;
  * showing, and the inspector follows it while its own chrome stays `"auto"`. */
 export interface KnowledgeMapSurfaceProps {
   height?: number;
+  /** @default false — fill a defined-height parent, overriding `height` (NetworkGraph's fullHeight) */
+  fullHeight?: boolean;
   glow?: boolean;
   /** @default true — the floating camera pill over the canvas */
   showControls?: boolean;
@@ -336,6 +357,14 @@ export interface KnowledgeExplorerProps extends KnowledgeSurfaceProps, MemorySel
    * @default true
    */
   inspector?: boolean;
+  /**
+   * Fill the height of a parent with a defined height, the NetworkGraph
+   * fullHeight contract: the toolbar keeps its size, the view panel stretches
+   * to the parent — the library results scroll inside the card, the map
+   * canvas fills it — and the docked inspector keeps the same height.
+   * @default false
+   */
+  fullHeight?: boolean;
   /** Inspector column width in CSS pixels. Never moves the dock/stack breakpoint. @default 340 */
   inspectorWidth?: number;
   /** The main view column's floor — the single width the dock/stack switch

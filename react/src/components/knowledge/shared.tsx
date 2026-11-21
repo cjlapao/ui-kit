@@ -19,6 +19,8 @@ const MESSAGE_KEYS = {
   "all": "kit.knowledge.all",
   "cards": "kit.knowledge.cards",
   "list": "kit.knowledge.list",
+  "showMap": "kit.knowledge.showMap",
+  "showLibrary": "kit.knowledge.showLibrary",
   "empty": "kit.knowledge.empty",
   "noResults": "kit.knowledge.noResults",
   "loading": "kit.knowledge.loading",

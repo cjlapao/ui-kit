@@ -23,7 +23,7 @@ import type { MemoryLibraryProps } from "./types";
  */
 export function MemoryLibrary({ memories, query: queryProp, defaultQuery = "", onQueryChange, filters: filtersProp,
   defaultFilters = {}, onFiltersChange, selectedId, defaultSelectedId = null, onSelectionChange,
-  view: viewProp, defaultView = "cards", onViewChange, groupByTopic = true, highlightedIds = [], remote = false,
+  view: viewProp, defaultView = "cards", onViewChange, onShowMap, groupByTopic = true, highlightedIds = [], remote = false,
   renderMemory, emptyState, maxHeight, hasMore = false, onLoadMore, loadMode = "scroll", rootMargin, minItems,
   scrollResetKey, limit, onError, loadMoreLabel, showSearch = true, showFilterBar = true, size = "sm", controlsTone = "auto", searchTone = "auto",
   searchVariant = "auto", viewTone = "auto", viewVariant = "auto", actions, labels, loading = false, loaderType = "skeleton", loaderMessage, disabled = false, className = "", ...surface }: MemoryLibraryProps) {
@@ -83,11 +83,11 @@ export function MemoryLibrary({ memories, query: queryProp, defaultQuery = "", o
       showSearch={showSearch} size={size} tone={chain.controlsTone} searchTone={chain.searchTone} variant={chain.searchVariant} cardTone={surface.tone} cardVariant={chain.cardVariant} loading={loading} loaderType={loaderType} loaderProgress={surface.loaderProgress} loaderMessage={typeof loaderMessage === "string" ? loaderMessage : undefined} disabled={disabled || loading} labels={labels} />}
     {/* The results count shares the view row — it reads with the toggle it
         describes, and the row stays one line tall. */}
-    <MemoryToolbar view={view} onViewChange={setView}
+    <MemoryToolbar view={view} onViewChange={setView} onShowMap={onShowMap}
       resultsLabel={loading ? copy("loading") : `${shown.length} / ${memories.length}`}
       size={size} controlsTone={chain.controlsTone} viewTone={chain.viewTone} viewVariant={chain.viewVariant}
       cardTone={surface.tone} cardVariant={chain.cardVariant} disabled={disabled || loading} labels={labels} />
-    {maxHeight === undefined ? <><div inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{limitNote}</>
+    {maxHeight === undefined ? <><div className="kit-memory-results" inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{limitNote}</>
       : <ScrollArea horizontal={false} viewportRef={viewportRef} viewportClassName="overscroll-contain" style={{ maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight }}>
         <div inert={loading && loaderType !== "skeleton" || undefined}>{body}</div>{infinite && !loading && <MemoryScrollTail sentinelRef={sentinelRef} error={scroll.error} isLoadingMore={scroll.isLoadingMore} onRetry={() => void scroll.loadMore()} tone={chain.controlsTone} labels={labels} />}{limitNote}
       </ScrollArea>}

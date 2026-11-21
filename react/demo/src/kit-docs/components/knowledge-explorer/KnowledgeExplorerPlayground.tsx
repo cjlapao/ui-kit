@@ -147,6 +147,9 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
   const [loaderProgress, setLoaderProgress] = useState(50);
   const [projected, setProjected] = useState(false);
   const [customDetail, setCustomDetail] = useState(false);
+  // NetworkGraph's demo: wrap the explorer in a fixed-height parent and let
+  // fullHeight fill it, so growth and the docked inspector's parity show.
+  const [fullHeightOn, setFullHeightOn] = useState(false);
   // The main column shows exactly one view; the inspector is the common
   // detail column beside it (NetworkGraph-style).
   const [view, setView] = useState<KnowledgeExplorerView>("library");
@@ -300,6 +303,11 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
                       label="Inspector (memory detail)"
                       checked={inspectorOn}
                       onChange={setInspectorOn}
+                    />
+                    <ToggleRow
+                      label="Full height (fills a 640px parent)"
+                      checked={fullHeightOn}
+                      onChange={setFullHeightOn}
                     />
                     <Control label="Title">
                       <Input
@@ -489,9 +497,12 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
           <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
             Selection is shared across the columns — pick a card, a map point
             or a detail action and everything follows. The main column shows
-            exactly one view — the <strong>Main view</strong> choice (or the
-            segmented switch above it) picks between the library and the map,
-            never both; the <strong>inspector</strong> is the common detail
+            exactly one view — the <strong>Main view</strong> choice in this
+            side menu picks between the library and the map, never both (the
+            component’s own header switch is hidden here as redundant; the
+            views still hand each other over in place — the library’s toggle
+            ends in a map button, the map’s camera pill in a library button);
+            the <strong>inspector</strong> is the common detail
             column on the right — it appears only while a memory is selected,
             docks beside the view while there is room (at NetworkGraph’s 16px
             gap), moves down under the view when the width runs out, and while
@@ -529,8 +540,14 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
         </div>
       }
       preview={
-        <div className="w-full">
+        <div className="w-full" style={{ height: fullHeightOn ? 640 : undefined }}>
           <KnowledgeExplorer
+            // The side menu's Main view choice already drives the column, so
+            // the component's own header switch would only echo it — hide it
+            // (direct child only: the panels keep their own toolbars; the
+            // `!` because kit CSS is unlayered and beats plain utilities).
+            className="[&>.kit-knowledge-toolbar]:hidden!"
+            fullHeight={fullHeightOn || undefined}
             tone={surfaceTone}
             variant={variant}
             padding={(mainPadding || undefined) as SurfacePadding | undefined}
@@ -553,7 +570,9 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
             inspectorTitle={inspectorTitleText || undefined}
             loading={dataState === "loading"}
             library={{
-              maxHeight: scroll ? 320 : undefined,
+              // Under full height the results grow with the card instead of
+              // sitting under a fixed scroll cap.
+              maxHeight: scroll && !fullHeightOn ? 320 : undefined,
               hasMore: hasMore && records.length < MAX_RECORDS,
               onLoadMore: loadMore,
               loadMode,

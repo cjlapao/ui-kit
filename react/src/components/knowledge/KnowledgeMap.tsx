@@ -20,7 +20,7 @@ interface Camera { x: number; y: number; zoom: number }
 const INITIAL_CAMERA: Camera = { x: 0, y: 0, zoom: 1 };
 
 export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIPS, selectedId, defaultSelectedId = null,
-  onSelectionChange, highlightedIds = [], selectedTopic, onTopicSelect, legendPosition = "auto", showLegend = true, showTitleDivider = false, height = 360, glow = true, showControls = true, hoverHighlight = true, grid = true, gridTone = "blue",
+  onSelectionChange, highlightedIds = [], selectedTopic, onTopicSelect, legendPosition = "auto", showLegend = true, showTitleDivider = false, height = 360, fullHeight = false, glow = true, showControls = true, onShowLibrary, hoverHighlight = true, grid = true, gridTone = "blue",
   autoRevealSelected = true, autoCenterSelected = true, autoFitOnInspector = false, onViewportChange,
   size: controlSize = "sm", controlsTone = "auto",
   onDiagnostics, labels, className = "", loading = false, loaderType = "skeleton", loaderMessage, disabled = false, ...surface }: KnowledgeMapProps) {
@@ -171,7 +171,9 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
     // docked inspector's dock animation driving the reveal choreography.
     const update = () => {
       const rect = host.getBoundingClientRect();
-      const next = { width: Math.max(1, rect.width), height: Math.max(120, height) };
+      // Full-height mode takes the canvas box from the stretched host, like
+      // NetworkGraph's fullHeight; otherwise the height prop rules.
+      const next = { width: Math.max(1, rect.width), height: fullHeight ? Math.max(120, rect.height) : Math.max(120, height) };
       const prev = sizeRef.current;
       if (prev.width === next.width && prev.height === next.height) return;
       // NetworkGraph holds its viewport across container resizes; the map
@@ -192,7 +194,7 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(update); observer.observe(host);
     return () => observer.disconnect();
-  }, [height, bounds, scene.points.length, commitCamera]);
+  }, [height, fullHeight, bounds, scene.points.length, commitCamera]);
   const panFrame = useRef<number | null>(null);
   const cancelPan = useCallback(() => { if (panFrame.current !== null) { cancelAnimationFrame(panFrame.current); panFrame.current = null; } }, []);
   // The graph's 300ms cubic ease-out pan; reduced motion jumps straight to
@@ -300,7 +302,7 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
   // right in tabular figures. It filters; it is not a caption. Shown by
   // default whenever the callback exists — showLegend={false} opts out, and
   // any enabled set keeps filtering while the consumer owns its own control.
-  const legendContent = !loading && showLegend && onTopicSelect && clusters.size > 0 && <fieldset disabled={disabled} className="flex min-w-0 shrink-0 flex-col gap-3 overflow-auto" style={{ maxHeight: Math.max(120, height) }}>
+  const legendContent = !loading && showLegend && onTopicSelect && clusters.size > 0 && <fieldset disabled={disabled} className="flex min-w-0 shrink-0 flex-col gap-3 overflow-auto" style={fullHeight ? undefined : { maxHeight: Math.max(120, height) }}>
     <legend className="mb-3 text-xs font-semibold uppercase tracking-widest">{copy("topic")}</legend>
     <Checkbox size={controlSize} tone={chain.controlsTone} label={copy("selectAll")}
       checked={allTopicsOn} indeterminate={someTopicsOn && !allTopicsOn}
@@ -311,15 +313,15 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
     </div>)}
   </fieldset>;
   const showSkeleton = loading && loaderType === "skeleton";
-  return <Panel variant="elevated" padding="none" disabled={disabled} {...surface} tone={chain.cardTone} loading={loading && !showSkeleton} loaderType={loaderType} loaderMessage={loaderMessage ?? copy("loading")} className={`kit-knowledge kit-knowledge-map ${className}`} aria-busy={loading}>
+  return <Panel variant="elevated" padding="none" disabled={disabled} {...surface} tone={chain.cardTone} loading={loading && !showSkeleton} loaderType={loaderType} loaderMessage={loaderMessage ?? copy("loading")} flexBody={fullHeight || undefined} className={`kit-knowledge kit-knowledge-map ${className}`} aria-busy={loading}>
     {/* The map title rides the panel's own chrome; the hairline under it is
         opt-in, since the elevated panel edge already separates the regions. */}
     <div className={`kit-knowledge-toolbar${showTitleDivider ? "" : " kit-knowledge-toolbar--bare"}`}><strong>{copy("map")}</strong></div>
     {/* Canvas and legend share one flex row (or column, when the legend
         drops below) — NetworkGraph's layoutRef contract, with the placement
         recorded on the element for CSS and tests to read. */}
-    <div ref={layoutRef} className="flex min-w-0 gap-4" style={{ flexDirection: legendOnRight ? "row" : "column" }} data-legend-position={legendOnRight ? "right" : "bottom"}>
-      <div ref={hostRef} className="kit-knowledge-canvas min-w-0 flex-1" data-hovered={hoverId ?? undefined} style={{ height: Math.max(120, height), ...(gridEnabled ? { "--kit-knowledge-map-grid-color": `var(--color-${gridTone}-500)` } : {}) } as React.CSSProperties}>
+    <div ref={layoutRef} className={`flex min-w-0 gap-4${fullHeight ? " min-h-0 flex-1" : ""}`} style={{ flexDirection: legendOnRight ? "row" : "column" }} data-legend-position={legendOnRight ? "right" : "bottom"}>
+      <div ref={hostRef} className={`kit-knowledge-canvas min-w-0 flex-1${fullHeight ? " kit-knowledge-canvas--fill" : ""}`} data-hovered={hoverId ?? undefined} style={{ height: fullHeight ? undefined : Math.max(120, height), ...(gridEnabled ? { "--kit-knowledge-map-grid-color": `var(--color-${gridTone}-500)` } : {}) } as React.CSSProperties}>
       {gridEnabled && <GridBackground className="kit-knowledge-map-grid" pattern="dots" size={32} lineColor="var(--kit-knowledge-map-grid-color, var(--color-blue-500, #3b82f6))" dotSize={1.5} opacity={0.35} fade="radial" {...gridOverrides} />}
       {showSkeleton && <div className="kit-knowledge-map-skeleton animate-pulse motion-reduce:animate-none" role="status" aria-label={typeof loaderMessage === "string" ? loaderMessage : copy("loading")}><div aria-hidden="true">{Array.from({ length: 15 }, (_, index) => <span key={index} />)}</div></div>}
       <canvas ref={canvasRef} className="relative" style={{ width: "100%", height: "100%", display: showSkeleton ? "none" : undefined }} tabIndex={disabled || loading ? -1 : 0} role="img" aria-label={copy("map")} aria-describedby={helpId}
@@ -356,6 +358,10 @@ export function KnowledgeMap({ memories, points, relationships = NO_RELATIONSHIP
         <span className="min-w-[3.5ch] px-1 text-center text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400" aria-label={copy("zoom")}>{Math.round(camera.zoom * 100)}%</span>
         <IconButton size="xs" variant="ghost" color={chain.controlsTone} disabled={disabled || camera.zoom >= 24} srLabel={copy("zoomIn")} tooltip={copy("zoomIn")} onClick={() => zoom(1.3)} icon="Add" />
         <IconButton size="xs" variant="ghost" color={chain.controlsTone} disabled={disabled} srLabel={copy("reset")} tooltip={copy("reset")} onClick={() => { cancelPan(); select(null); commitCamera(INITIAL_CAMERA); }} icon="Reset" />
+        {/* The way back — the same grammar as the library's map button: an
+            action at the end of the track, the ViewRows glyph, never part of
+            the camera itself. */}
+        {onShowLibrary && <IconButton size="xs" variant="ghost" color={chain.controlsTone} disabled={disabled} srLabel={copy("showLibrary")} tooltip={copy("showLibrary")} onClick={onShowLibrary} icon="ViewRows" />}
       </div>}
       </div>
       {/* The legend breathes like NetworkGraph's — the canvas runs edge to

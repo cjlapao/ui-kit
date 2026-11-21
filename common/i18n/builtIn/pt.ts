@@ -23,6 +23,8 @@ export const PT_KIT_CATALOG: MessageCatalog = {
       "all": "Todos",
       "cards": "Cartões",
       "list": "Lista",
+      "showMap": "Mostrar mapa",
+      "showLibrary": "Mostrar biblioteca",
       "empty": "Ainda não existem memórias.",
       "noResults": "Nenhuma memória correspondente.",
       "loading": "A carregar memórias…",

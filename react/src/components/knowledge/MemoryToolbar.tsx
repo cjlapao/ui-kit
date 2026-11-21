@@ -6,6 +6,10 @@ import type { KnowledgeLabels, SurfaceTone, SurfaceVariant } from "./types";
 export interface MemoryToolbarProps extends Omit<MemoryControlsProps, "searchTone" | "searchVariant"> {
   view: "cards" | "list";
   onViewChange: (view: "cards" | "list") => void;
+  /** Adds the map button (the kit's Path glyph) to the toggle — an action,
+   * never a selectable mode: the cards/list value is untouched. Omit for a
+   * library with no map alongside. */
+  onShowMap?: () => void;
   /** Results readout (e.g. `"12 / 20"`) sharing the row, on the left of the
    * toggle; `aria-live` so it announces on change. Omit for a bare toggle. */
   resultsLabel?: string;
@@ -22,10 +26,12 @@ export interface MemoryToolbarProps extends Omit<MemoryControlsProps, "searchTon
  * The library's view row: the results count on the left and, right-aligned
  * over the grid, the kit's IconToggleGroup carrying the cards/list switch —
  * one IconButton per mode on a single track, wearing the kit's ViewGrid/
- * ViewRows glyphs with their labels as accessible names and tooltips. A part
- * of MemoryLibrary; renders identically standalone.
+ * ViewRows glyphs with their labels as accessible names and tooltips. With
+ * `onShowMap` a third button joins the track — the Path glyph, a way into
+ * the map view that leaves the cards/list value alone. A part of
+ * MemoryLibrary; renders identically standalone.
  */
-export function MemoryToolbar({ view, onViewChange, resultsLabel, cardTone, cardVariant, disabled = false, labels, ...controls }: MemoryToolbarProps) {
+export function MemoryToolbar({ view, onViewChange, onShowMap, resultsLabel, cardTone, cardVariant, disabled = false, labels, ...controls }: MemoryToolbarProps) {
   const copy = useKnowledgeCopy(labels);
   const chain = resolveControlChain({ tone: cardTone, variant: cardVariant, ...controls });
   return (
@@ -35,8 +41,9 @@ export function MemoryToolbar({ view, onViewChange, resultsLabel, cardTone, card
         options={[
           { value: "cards", icon: "ViewGrid", label: copy("cards") },
           { value: "list", icon: "ViewRows", label: copy("list") },
+          ...(onShowMap ? [{ value: "map", icon: "Path", label: copy("showMap") }] : []),
         ]}
-        value={view} onChange={mode => onViewChange(mode as "cards" | "list")} />
+        value={view} onChange={mode => { if (mode === "map") onShowMap?.(); else onViewChange(mode as "cards" | "list"); }} />
     </div>
   );
 }

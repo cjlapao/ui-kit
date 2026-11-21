@@ -76,6 +76,26 @@ The React components directory is the single source of truth; Vue and both
      `baseProfile="full"` / `enable-background` are legacy leftovers,
      `fill-opacity="1"` is the default, and `stroke-width`/`stroke-linejoin`
      without any `stroke=` paints nothing. No kit icon carries any of them.
+    - **Transcribe CSS-class/inline styling before deleting it.** Illustrator-
+      style exports (`DollarClipboard`) put shared styles in
+      `<defs><style>.cls-1,.cls-2{fill:none;stroke:#020202;…}</style></defs>`
+      and reference them via `class="cls-N"`; others (`PriceTag`) hide the
+      colour in an inline `style="fill:#231f20"` on the path — React renders
+      `style` verbatim, so a hardcoded colour survives everything except an
+      explicit transcription. Delete the `<defs>`/`<style>`/`style=` and the
+      attribute-less wrapper `<g id data-name>`, but first copy each class
+      declarations onto its elements as attributes (`fill`, `stroke` →
+      `currentColor`, `stroke-width` minus the `px` suffix,
+      `stroke-miterlimit`, plus per-class extras like `stroke-linecap="square"`
+      only on the elements whose class declares it). Native `<line x1 y1 x2 y2>`
+      primitives survive verbatim (same rule as `<rect>`/`<circle>`).
+      **Generate multi-element icons by positional index, never by
+      `find()`-style prefix lookup** — a self-referential `startsWith` test
+      returns the first match for every element and silently duplicates
+      geometry; assert the element count *and* that all extracted geometries
+      are distinct, then compare asset-vs-tsx as per-element attribute *sets*
+      (parse `[\w-]+="…"` pairs; a naive `\w+` key regex mangles kebab
+      attribute names).
 2. **Drop the cleaned SVG** at `react/src/assets/icons/<Name>.svg` (PascalCase
    file name = icon name).
 3. **Create the React component** `react/src/icons/components/<Name>.tsx`

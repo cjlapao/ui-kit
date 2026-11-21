@@ -24,6 +24,8 @@ export const FR_KIT_CATALOG: MessageCatalog = {
       "all": "Tous",
       "cards": "Cartes",
       "list": "Liste",
+      "showMap": "Afficher la carte",
+      "showLibrary": "Afficher la bibliothèque",
       "empty": "Aucune mémoire.",
       "noResults": "Aucune mémoire correspondante.",
       "loading": "Chargement des mémoires…",
