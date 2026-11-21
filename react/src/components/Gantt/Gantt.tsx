@@ -948,36 +948,43 @@ export const Gantt: React.FC<GanttProps> = ({
     else el.scrollLeft = left;
   }, []);
 
-  // Open: jump to "now" instantly — no animation sweeping in from the edge.
-  // If the scroller mounts unmeasured (hidden tab, animating container) the
-  // immediate scroll lands at the edge, so a one-shot ResizeObserver brings a
-  // true centering once the first real size arrives; hosts whose observer
-  // never reports (no RO at all, inert test polyfills) keep the immediate
-  // scroll as the final answer.
+  // Open: jump to "now" instantly, and stay pinned there while the page
+  // settles. Layout is fluid early on (CSS arriving in dev, fonts, lazy
+  // rows): the scroller box AND its content are observed, so every resize
+  // re-commits the centering against fresh geometry — scrollWidth growth
+  // leaves the box untouched and is invisible to a viewport-only observer.
+  // The user's first wheel/touch takes the wheel back; hosts without RO
+  // (none, or the inert test polyfill) keep the immediate commit as final.
   useEffect(() => {
     const el = scrollRef.current;
     if (!autoScrollToToday || !el) return;
     scrollTierRef.current = pickBaseUnit(zoomRef.current);
-    let pending = true;
+    let active = true;
     let ro: ResizeObserver | null = null;
-    const cancel = () => {
-      pending = false;
+    const stop = () => {
+      if (!active) return;
+      active = false;
       ro?.disconnect();
       ro = null;
+      el.removeEventListener("wheel", stop);
+      el.removeEventListener("pointerdown", stop);
+      el.removeEventListener("touchstart", stop);
       openScrollCancelRef.current = null;
     };
-    openScrollCancelRef.current = cancel;
-    scrollBodyToToday(el, "auto");
-    if (el.clientWidth === 0 && typeof ResizeObserver === "function") {
-      ro = new ResizeObserver(() => {
-        if (pending && el.clientWidth > 0) {
-          cancel();
-          scrollBodyToToday(el, "auto");
-        }
-      });
+    openScrollCancelRef.current = stop;
+    const scrollToNow = () => {
+      if (active) scrollBodyToToday(el, "auto");
+    };
+    scrollToNow();
+    if (typeof ResizeObserver === "function") {
+      ro = new ResizeObserver(scrollToNow);
       ro.observe(el);
+      if (el.firstElementChild) ro.observe(el.firstElementChild);
     }
-    return cancel;
+    el.addEventListener("wheel", stop, { passive: true });
+    el.addEventListener("pointerdown", stop, { passive: true });
+    el.addEventListener("touchstart", stop, { passive: true });
+    return stop;
   }, [autoScrollToToday, scrollBodyToToday]);
 
   // Tier jumps (preset buttons, controlled zoom crossing tiers) re-center

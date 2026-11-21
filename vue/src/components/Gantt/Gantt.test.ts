@@ -654,6 +654,52 @@ describe("Gantt (Vue)", () => {
     }
   });
 
+  it("opens centered on today when the scroller measures scrollable at mount", () => {
+    // jsdom reports 0 sizes; stand up a real scrollable box so the open
+    // scroll exercises its full centering math — and the landed check
+    // (viewport > 0, scrollable, scrollLeft === requested) lets it finish.
+    const proto = HTMLElement.prototype;
+    const saved = {
+      clientWidth: Object.getOwnPropertyDescriptor(proto, "clientWidth"),
+      scrollWidth: Object.getOwnPropertyDescriptor(proto, "scrollWidth"),
+      scrollLeft: Object.getOwnPropertyDescriptor(proto, "scrollLeft"),
+    };
+    let applied = 0;
+    const calls: ScrollToOptions[] = [];
+    Object.defineProperty(proto, "clientWidth", { configurable: true, get: () => 600 });
+    Object.defineProperty(proto, "scrollWidth", { configurable: true, get: () => 5000 });
+    Object.defineProperty(proto, "scrollLeft", {
+      configurable: true,
+      get: () => applied,
+      set: (v: number) => {
+        applied = v;
+      },
+    });
+    const originalScrollTo = HTMLElement.prototype.scrollTo;
+    HTMLElement.prototype.scrollTo = function (this: HTMLElement, opts?: ScrollToOptions | number) {
+      const left =
+        typeof opts === "object" && opts ? opts.left ?? 0 : typeof opts === "number" ? opts : 0;
+      calls.push({ left });
+      (this as HTMLElement).scrollLeft = left;
+    } as typeof HTMLElement.prototype.scrollTo;
+    try {
+      mountGantt();
+      // One commit — centered on a positive offset, not the unmeasured clamp
+      // to the edge. The pin survives resizes, but the inert test RO never
+      // reports and nobody touches the scroller, so nothing else scrolls.
+      expect(calls).toHaveLength(1);
+      expect((calls[0].left as number) > 0).toBe(true);
+      expect(applied).toBe(calls[0].left);
+    } finally {
+      HTMLElement.prototype.scrollTo = originalScrollTo;
+      for (const key of ["clientWidth", "scrollWidth", "scrollLeft"] as const) {
+        const d = saved[key];
+        if (d) Object.defineProperty(proto, key, d);
+        else delete (proto as unknown as Record<string, unknown>)[key];
+      }
+    }
+  });
+
   it("does not touch the scroller with autoScrollToToday disabled", () => {
     const calls: unknown[] = [];
     const original = HTMLElement.prototype.scrollTo;

@@ -24,15 +24,18 @@ Date: 2026-11-19 · Follows: `2026-11-19-gantt-auto-scroll-to-today-design.md`
   center in `viewportWidth − fixedLeftWidth`, same edge clamps (right clamp still
   against the full `contentWidth − viewportWidth`). Components pass their
   `leftWidth` (grid + column widths, the exact block that overlays the scroller).
-- **Open scroll commits now, re-centers when unmeasured** — mount path always
-  performs the `auto` scroll immediately, and when the scroller measures `0`
-  at that moment (hidden tab, animating container) a one-shot
-  `ResizeObserver` re-centers on the first size `> 0` then disconnects.
+- **Open scroll commits now, pins until the user takes over** — mount path
+  always performs the `auto` scroll immediately, then keeps a
+  `ResizeObserver` (on the scroller box *and* its content child — growing
+  `scrollWidth` leaves the box untouched) re-committing the centering against
+  fresh geometry, because early layout is fluid (CSS arriving, fonts, lazy
+  rows, late column-width state) and a single mount-time measure can center
+  against stale numbers. The pin ends on the user's first `wheel` /
+  `pointerdown` / `touchstart` on the scroller, on a tier jump (which
+  cancels it and takes over with the smooth tier scroll), or on unmount.
   Hosts whose observer never reports (no RO, inert test polyfills) keep the
   immediate scroll as the final answer — so no path can hang waiting for a
-  report. A tier jump while the re-center is still pending cancels it and
-  takes over with the smooth tier scroll; same tier while pending → the
-  re-center just runs when size lands, no double scroll.
+  report, and a manual scroll after opening is never stolen.
 - **`initialSpan?: GanttZoomTier`** (`"hour" | "day" | "week" | "month" |
   "quarter"`) — uncontrolled only, ignored when `zoom` is controlled. Resolved
   via new engine `zoomForSpan(span)` which looks up `GANTT_ZOOM_PRESETS` by
