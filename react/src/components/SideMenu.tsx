@@ -15,6 +15,7 @@ import { useKitT } from "../i18n";
 import { type IconName } from "../icons/registry";
 import DropdownMenu, { type DropdownMenuOption } from "./DropdownMenu";
 import Input from "./Input";
+import Picker, { type PickerProps } from "./Picker";
 import Loader, { type LoaderColor, type LoaderProps } from "./Loader";
 import ScrollArea from "./ScrollArea";
 import Spinner from "./Spinner";
@@ -37,7 +38,7 @@ import {
   TrueColor,
 } from "../theme";
 
-export type SideMenuItemType = "link" | "group" | "divider";
+export type SideMenuItemType = "link" | "group" | "divider" | "select";
 
 /**
  * The loading treatments a `SideMenu` can show. The same set as `Panel`
@@ -141,8 +142,12 @@ export interface SideMenuItemLink extends SideMenuItemBase {
   actions?: React.ReactNode;
   /** Show `actions` only while the row is hovered or focused. */
   actionsOnHover?: boolean;
-  /** Nested sub-items. Presence makes the row collapsible. */
-  children?: SideMenuItemLink[];
+  /**
+   * Nested sub-items. Presence makes the row collapsible. Links and embedded
+   * `select` controls nest; with `childrenPageSize` set a select counts toward
+   * a page like any other child.
+   */
+  children?: SideMenuChildItem[];
   /** Open the sub-tree initially. */
   defaultOpen?: boolean;
   /**
@@ -200,10 +205,41 @@ export interface SideMenuItemDivider extends SideMenuItemBase {
   groupName?: string;
 }
 
+export interface SideMenuItemSelect extends SideMenuItemBase {
+  type: "select";
+  /**
+   * Section caption above the control — the group-header treatment
+   * (small, semibold, tracked, muted). A `Picker` always sits beside a label,
+   * so the caption is required rather than optional copy.
+   */
+  label: string;
+  /** The control. Everything except the row's own layout lives here. */
+  picker: SideMenuSelectPicker;
+}
+
+/**
+ * What nests inside a link's `children`: nav rows and embedded selects. Kept
+ * narrow on purpose — a `group` header or a `divider` inside a sub-list has no
+ * sane rendering, so the type rules it out at the call site.
+ */
+export type SideMenuChildItem = SideMenuItemLink | SideMenuItemSelect;
+
+/**
+ * Everything the embedded select hands to `Picker`, minus the props the row
+ * layout owns: the control fills its row and carries the menu's own classes.
+ * Everything else — items, selection, size, variant, tags, groups — is the
+ * app's, exactly as `<Picker>` takes it.
+ */
+export type SideMenuSelectPicker = Omit<
+  PickerProps,
+  "className" | "fullWidth" | "fullHeight"
+>;
+
 export type SideMenuItem =
   | SideMenuItemLink
   | SideMenuItemGroup
-  | SideMenuItemDivider;
+  | SideMenuItemDivider
+  | SideMenuItemSelect;
 
 /**
  * A full row above the navigation (top) or pinned above the collapse control
@@ -476,6 +512,14 @@ const RAIL_WIDTH = "w-[68px]";
 // (see `common/theme/Theme.ts`) — `PageHeader` continues the same line into
 // the main column, so the height and colour of the horizontal seam crossing
 // the shell are spelled once and cannot drift apart.
+
+/**
+ * Nav rows participate in search matching, active-state and paging; group
+ * headers, dividers and embedded selects are chrome. One predicate keeps the
+ * non-link test identical everywhere it gates.
+ */
+const isLinkItem = (item: SideMenuItem): item is SideMenuItemLink =>
+  item.type !== "group" && item.type !== "divider" && item.type !== "select";
 
 /** Row indent per nesting depth. Capped so deeper trees do not run off-screen. */
 const ROW_INDENT = ["px-3", "pl-9 pr-3", "pl-14 pr-3", "pl-20 pr-3"];
@@ -1202,7 +1246,8 @@ export const SideMenu = ({
 
   const hasActiveDescendant = (link: SideMenuItemLink): boolean =>
     !!link.children?.some(
-      (child) => isActiveItem(child) || hasActiveDescendant(child),
+      (child) =>
+        isLinkItem(child) && (isActiveItem(child) || hasActiveDescendant(child)),
     );
 
   // Exact route match for the expand-on-click row's "already there" click.
@@ -1220,20 +1265,15 @@ export const SideMenu = ({
   // ── Nested submenus ─────────────────────────────────────────────────────
   const [openSubmenus, setOpenSubmenus] = useState<Set<string>>(() => {
     const initial = new Set<string>();
-    const walk = (list: SideMenuItemLink[]) => {
-      for (const link of list) {
-        if (link.children?.length) {
-          if (link.defaultOpen) initial.add(link.slug);
-          walk(link.children);
+    const walk = (list: SideMenuItem[]) => {
+      for (const item of list) {
+        if (isLinkItem(item) && item.children?.length) {
+          if (item.defaultOpen) initial.add(item.slug);
+          walk(item.children);
         }
       }
     };
-    walk(
-      items.filter(
-        (item): item is SideMenuItemLink =>
-          item.type !== "group" && item.type !== "divider",
-      ),
-    );
+    walk(items);
     return initial;
   });
 
@@ -1260,8 +1300,9 @@ export const SideMenu = ({
     item.label.toLowerCase().includes(query) ||
     (item.description ?? "").toLowerCase().includes(query);
 
-  const matchesSubtree = (item: SideMenuItemLink): boolean =>
-    matchesItem(item) || (item.children ?? []).some(matchesSubtree);
+  const matchesSubtree = (item: SideMenuChildItem): boolean =>
+    isLinkItem(item) &&
+    (matchesItem(item) || (item.children ?? []).some(matchesSubtree));
 
   // One fork, two consumers. `searchScope="top"` stops the query at depth 0,
   // where depth is added only by `children` — a group header is presentation,
@@ -1314,25 +1355,23 @@ export const SideMenu = ({
     // Which group slugs have ≥1 visible link?
     const groupsWithVisibleLinks = new Set<string>();
     items.forEach((item) => {
-      if (
-        item.type !== "group" &&
-        item.type !== "divider" &&
-        passesGuard(item) &&
-        matchesScope(item)
-      ) {
+      if (isLinkItem(item) && passesGuard(item) && matchesScope(item)) {
         if (item.groupName) groupsWithVisibleLinks.add(item.groupName);
       }
     });
 
     return items.filter((item) => {
       if (!passesGuard(item)) return false;
-      if (item.type !== "group" && item.type !== "divider" && !matchesScope(item)) {
+      if (isLinkItem(item) && !matchesScope(item)) {
         return false;
       }
       if (item.type === "group") return groupsWithVisibleLinks.has(item.slug);
       // Standalone dividers: hide if groupName set but that group has no visible links
       if (item.type === "divider")
         return !item.groupName || groupsWithVisibleLinks.has(item.groupName);
+      // Links that matched the query, and select items: context furniture,
+      // not destinations — the query never hides them, the way it never
+      // hides the search field itself.
       return true;
     });
   }, [items, passesGuard, query, searchTopOnly]);
@@ -1342,9 +1381,7 @@ export const SideMenu = ({
     [ctas, passesGuard],
   );
 
-  const hasVisibleLink = visibleItems.some(
-    (item) => item.type !== "group" && item.type !== "divider",
-  );
+  const hasVisibleLink = visibleItems.some(isLinkItem);
 
   // ── Shell classes ───────────────────────────────────────────────────────
   // The detached card's `m-2` (floating variants only) sits outside the
@@ -1468,6 +1505,48 @@ export const SideMenu = ({
         )
       : null;
 
+  /**
+   * The embedded select: a group-header-style caption above a full-width
+   * `Picker`, riding the same indent ladder as the rows — one step taller
+   * than a plain link row, and the `space-y-1` rhythm treats it as a sibling.
+   * The rail has no room for a control, so — like a group header — it renders
+   * nothing there. The nav-density defaults (small trigger, outlined box, the
+   * menu's tone) keep the block at home in the sidebar; the item's own
+   * `picker` object overrides each of them. Selection lives entirely in the
+   * app's hands through `picker.selectedId` / `picker.onSelect`.
+   */
+  const renderSelectRow = (
+    select: SideMenuItemSelect,
+    depth: number,
+    key: string,
+    contentCollapsed: boolean,
+  ): React.ReactNode => {
+    if (contentCollapsed) return null;
+    const captionId = `${key}-caption`;
+    return (
+      <div
+        key={key}
+        role="group"
+        aria-labelledby={captionId}
+        className={`py-1.5 ${indentClass(depth)}`}
+      >
+        <span
+          id={captionId}
+          className={`mb-1 block truncate text-xs font-semibold uppercase tracking-wider ${surface.muted}`}
+        >
+          {select.label}
+        </span>
+        <Picker
+          size="sm"
+          variant="flat"
+          {...select.picker}
+          tone={select.picker.tone ?? select.picker.color ?? color}
+          fullWidth
+        />
+      </div>
+    );
+  };
+
   const renderLinkRow = (
     link: SideMenuItemLink,
     depth: number,
@@ -1480,10 +1559,14 @@ export const SideMenu = ({
     // While searching, only matching branches stay visible under a parent —
     // unless the scope stopped the query at depth 0: there a match is a whole
     // subtree, and the children are exactly what the user wants to click into.
-    const visibleChildren =
-      searchActive && !searchTopOnly
-        ? (link.children ?? []).filter(matchesSubtree)
-        : (link.children ?? []);
+    // Embedded selects are chrome: kept whenever the sub-tree renders.
+    const visibleChildren = (link.children ?? []).filter(
+      (child) =>
+        !isLinkItem(child) ||
+        !searchActive ||
+        searchTopOnly ||
+        matchesSubtree(child),
+    );
     const showChildren =
       hasChildren &&
       (searchActive || openSubmenus.has(link.slug)) &&
@@ -1495,7 +1578,9 @@ export const SideMenu = ({
     let revealLimit = paged ? (childReveal[link.slug] ?? pageSize) : visibleChildren.length;
     if (paged) {
       const activeIndex = visibleChildren.findIndex(
-        (child) => isActiveItem(child) || hasActiveDescendant(child),
+        (child) =>
+          isLinkItem(child) &&
+          (isActiveItem(child) || hasActiveDescendant(child)),
       );
       if (activeIndex >= revealLimit) revealLimit = activeIndex + 1;
     }
@@ -1774,12 +1859,19 @@ export const SideMenu = ({
             aria-label={t("kit.sidemenu.submenuAria", { label: link.label })}
           >
             {renderedChildren.map((child, index) =>
-              renderLinkRow(
-                child,
-                depth + 1,
-                `${key}-child-${index}`,
-                contentCollapsed,
-              ),
+              child.type === "select"
+                ? renderSelectRow(
+                    child,
+                    depth + 1,
+                    `${key}-child-${index}`,
+                    contentCollapsed,
+                  )
+                : renderLinkRow(
+                    child,
+                    depth + 1,
+                    `${key}-child-${index}`,
+                    contentCollapsed,
+                  ),
             )}
             {paged && remainingChildren > 0 && !contentCollapsed && (
               <button
@@ -1945,6 +2037,16 @@ export const SideMenu = ({
                     )}
                   </div>
                 </React.Fragment>
+              );
+            }
+
+            // Embedded select — a caption over a Picker, at the row's indent
+            if (item.type === "select") {
+              return renderSelectRow(
+                item,
+                0,
+                `select-${index}-${item.slug}`,
+                contentCollapsed,
               );
             }
 

@@ -14,10 +14,12 @@ import SideMenu, {
   useSidebarIsMobile,
   type SideMenuItem,
   type SideMenuItemLink,
+  type SideMenuItemSelect,
   type SideMenuProps,
   type SideMenuCta,
   type SideMenuDetailItem,
 } from "./SideMenu";
+import type { PickerItem } from "./Picker";
 
 describe("SideMenu docked corners", () => {
   it.each(["left", "right"] as const)("squares the %s edge throughout collapse", (side) => {
@@ -1693,4 +1695,162 @@ it("scales menu grain only when noise is enabled", () => {
   expect(container.querySelector("[data-sidemenu-noise]")).toHaveStyle({ backgroundSize: "100px 100px" });
   rerender(<MemoryRouter><SideMenu items={[]} noiseScale={0.5} /></MemoryRouter>);
   expect(container.querySelector("[data-sidemenu-noise]")).toBeNull();
+});
+
+// ── Embedded select items ───────────────────────────────────────────────────
+
+const CTX_OPTIONS: PickerItem[] = [
+  { id: "a", title: "Alpha" },
+  { id: "b", title: "Beta" },
+  { id: "c", title: "Gamma" },
+];
+
+const CONTEXT_SELECT: SideMenuItemSelect = {
+  slug: "ctx",
+  type: "select",
+  label: "Current context",
+  picker: {
+    items: CTX_OPTIONS,
+    placeholder: "Pick a context",
+    selectedId: "a",
+    onSelect: () => {},
+  },
+};
+
+// The Picker trigger is the only listbox-haspopup button the row renders.
+const pickerTrigger = (container: HTMLElement) =>
+  container.querySelector<HTMLButtonElement>('button[aria-haspopup="listbox"]');
+
+describe("SideMenu select items", () => {
+  it("renders the caption above the trigger and reports the pick through onSelect", () => {
+    const onSelect = vi.fn();
+    const { container } = renderMenu({
+      items: [
+        { ...CONTEXT_SELECT, picker: { ...CONTEXT_SELECT.picker, onSelect } },
+      ],
+    });
+    expect(
+      screen.getByRole("group", { name: "Current context" }),
+    ).toBeInTheDocument();
+    fireEvent.click(pickerTrigger(container)!);
+    fireEvent.click(screen.getByRole("option", { name: /Beta/ }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "b" }));
+  });
+
+  it("honors hidden", () => {
+    renderMenu({ items: [{ ...CONTEXT_SELECT, hidden: true }] });
+    expect(
+      screen.queryByRole("group", { name: "Current context" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("honors a failing guard", () => {
+    renderMenu({
+      items: [
+        {
+          ...CONTEXT_SELECT,
+          guards: [{ type: "claim", claim: "admin" }],
+        },
+      ],
+      guardEvaluator: (guards) => guards.every((g) => g.type !== "claim"),
+    });
+    expect(
+      screen.queryByRole("group", { name: "Current context" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("stays rendered while the search matches nothing", () => {
+    const { container } = renderMenu({
+      search: true,
+      items: [...ITEMS, CONTEXT_SELECT],
+    });
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Search menu items" }),
+      { target: { value: "zzz" } },
+    );
+    expect(screen.getByText(/No results for "zzz"/)).toBeInTheDocument();
+    // Context furniture, not a destination: the query never hides the control.
+    expect(pickerTrigger(container)).not.toBeNull();
+  });
+
+  it("renders nothing in the collapsed rail", () => {
+    renderMenu({
+      items: [CONTEXT_SELECT],
+      collapsible: "icon",
+      collapsed: true,
+      onToggleCollapse: () => {},
+    });
+    expect(
+      screen.queryByRole("group", { name: "Current context" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("nests inside an open parent on the child indent", () => {
+    renderMenu({
+      items: [
+        {
+          slug: "ws",
+          label: "Workspace",
+          path: "/ws",
+          icon: "Folder",
+          defaultOpen: true,
+          children: [CONTEXT_SELECT],
+        },
+      ],
+    });
+    expect(screen.getByRole("group", { name: "Current context" }).className).toContain("pl-9");
+  });
+
+  it("keeps a select-only parent expandable and never active", () => {
+    renderMenu({
+      items: [
+        {
+          slug: "ws",
+          label: "Workspace",
+          icon: "Folder",
+          children: [CONTEXT_SELECT],
+        },
+      ],
+    });
+    // Closed at first; the expand-only row is the toggle itself — a button,
+    // never a link: a select is not a route, so nothing lights it active.
+    expect(
+      screen.queryByRole("group", { name: "Current context" }),
+    ).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: /Workspace/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    expect(
+      screen.getByRole("group", { name: "Current context" }),
+    ).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByRole("link", { name: /Workspace/ })).toBeNull();
+  });
+
+  it("counts toward a childrenPageSize page like any other child", () => {
+    const sessions = (n: number): SideMenuItemLink[] =>
+      Array.from({ length: n }, (_, i) => ({
+        slug: `s${i}`,
+        label: `Session ${i}`,
+        path: `/ws/${i}`,
+      }));
+    renderMenu({
+      items: [
+        {
+          slug: "ws",
+          label: "Workspace",
+          path: "/ws",
+          defaultOpen: true,
+          childrenPageSize: 2,
+          children: [CONTEXT_SELECT, ...sessions(3)],
+        },
+      ],
+    });
+    // Page 1 = the select + the first session; the rest wait behind "Show more".
+    expect(screen.getByRole("group", { name: "Current context" })).toBeInTheDocument();
+    expect(screen.getByText("Session 0")).toBeInTheDocument();
+    expect(screen.queryByText("Session 1")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show 2 more" }));
+    expect(screen.getByText("Session 2")).toBeInTheDocument();
+  });
 });

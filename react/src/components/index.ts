@@ -294,6 +294,7 @@ export {
   type PickerItem,
   type PickerTag,
   type PickerFilter,
+  type PickerSize,
 } from "./Picker";
 export {
   default as TagPicker,
@@ -661,6 +662,9 @@ export {
   type SideMenuItemGroup,
   type SideMenuItemDivider,
   type SideMenuItemType,
+  type SideMenuItemSelect,
+  type SideMenuSelectPicker,
+  type SideMenuChildItem,
   type SideMenuDropdownItem,
   type SideMenuCta,
   type SideMenuCtaAction,
