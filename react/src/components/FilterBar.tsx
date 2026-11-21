@@ -1,7 +1,8 @@
-import React, { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import React, { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import classNames from "classnames";
 import SearchBar, { type SearchBarProps } from "./SearchBar";
 import Button, { type ButtonProps } from "./Button";
+import Input, { type InputProps } from "./Input";
 import Badge, { type BadgeVariant } from "./Badge";
 import Menu, { type MenuItem } from "./Menu";
 import CustomIcon from "./CustomIcon";
@@ -20,13 +21,36 @@ export interface FilterBarOption {
   count?: number;
   disabled?: boolean;
 }
-export interface FilterBarFilter {
+interface FilterBarFilterBase {
+  /** Unique within the bar. */
   id: string;
+  /** Category label, used by the menu rows, chips and drill-down header. */
   label: string;
-  count?: number;
   disabled?: boolean;
+}
+/** Multi-select checkbox category — the original arm, `type` optional. */
+export interface FilterBarOptionFilter extends FilterBarFilterBase {
+  /** @default "options" */
+  type?: "options";
+  count?: number;
   options: FilterBarOption[];
 }
+/** Category whose value is typed: one trimmed term, emitted as `[term]`. */
+export interface FilterBarTextFilter extends FilterBarFilterBase {
+  type: "text";
+  /**
+   * Where the entry UI appears. `"inline"` renders a text field in the bar's
+   * filter area; `"menu"` drills into the Add filter popup with an input.
+   * @default "inline"
+   */
+  display?: "inline" | "menu";
+  /**
+   * Forwarded to the kit Input (placeholder, variant, inputMode…). The
+   * value/onChange/disabled and Enter/blur/Escape keys stay owned by the bar.
+   */
+  inputProps?: Omit<InputProps, "value" | "defaultValue" | "onChange">;
+}
+export type FilterBarFilter = FilterBarOptionFilter | FilterBarTextFilter;
 export type FilterBarValue = Record<string, string[]>;
 /**
  * The three loading styles a bar can show, matching Table and ActivityFeed.
@@ -38,6 +62,19 @@ export interface FilterBarProps {
   /** Forwarded unchanged to the existing SearchBar. */
   searchProps: SearchBarProps;
   filters: FilterBarFilter[];
+  /**
+   * Content at the start of the bar, before the search region — e.g. a
+   * `DropdownButton` single-select facet. Consumer-owned: the bar's
+   * `disabled` does not reach it, and it stays mounted (hidden and inert)
+   * through the skeleton rewrite.
+   */
+  leading?: ReactNode;
+  /**
+   * Content at the end of the bar, after the action group — e.g. an
+   * "Include retracted" `Toggle`. Consumer-owned, same mounted-hidden-inert
+   * contract as `leading`.
+   */
+  trailing?: ReactNode;
   value?: FilterBarValue;
   defaultValue?: FilterBarValue;
   onChange?: (value: FilterBarValue) => void;
@@ -132,6 +169,10 @@ export interface FilterBarProps {
 function normalize(filters: FilterBarFilter[], value: FilterBarValue): FilterBarValue {
   return Object.assign(Object.create(null) as FilterBarValue, Object.fromEntries(filters.flatMap(filter => {
     const selected = new Set(Object.prototype.hasOwnProperty.call(value, filter.id) ? value[filter.id] : []);
+    if (filter.type === "text") {
+      const term = selected.size ? ([...selected][0] ?? "").trim() : "";
+      return term ? [[filter.id, [term]]] as [string, string[]][] : [];
+    }
     const values = filter.options.filter(option => selected.has(option.value)).map(option => option.value);
     return values.length ? [[filter.id, values]] : [];
   })));
@@ -139,7 +180,7 @@ function normalize(filters: FilterBarFilter[], value: FilterBarValue): FilterBar
 
 /** Caller-owned filtering with staged menu selections and the existing search API. */
 export function FilterBar({
-  searchProps, filters, value, defaultValue = {}, onChange,
+  searchProps, filters, leading, trailing, value, defaultValue = {}, onChange,
   filteredCount, totalCount, itemLabel, size = "md", color = "blue",
   showSearch = true, showFilterLabel = true, showEmptyState = true,
   showClearAll = true, showResultCount = true, showMenuCounts = true,
@@ -166,12 +207,17 @@ export function FilterBar({
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
   const [draft, setDraft] = useState<string[]>([]);
+  const [draftText, setDraftText] = useState("");
   const anchor = useRef<HTMLButtonElement>(null);
   const searchRegion = useRef<HTMLDivElement>(null);
+  const textFieldRefs = useRef(new Map<string, HTMLInputElement | null>());
+  const registerTextField = (id: string, element: HTMLInputElement | null) => { textFieldRefs.current.set(id, element); };
   const searchId = useId();
   const [expanded, setExpanded] = useState(Boolean(searchProps.initialValue));
   const searchDisabled = disabled || searchProps.disabled;
   const active = filters.find(filter => filter.id === category);
+  const inlineTextFilters = filters.filter((filter): filter is FilterBarTextFilter => filter.type === "text" && filter.display !== "menu");
+  const menuFilters = filters.filter(filter => filter.type !== "text" || filter.display === "menu");
   const motion = CONTROL_SPRING_TOKENS[spring];
   const style = { "--fb-duration": `${motion.duration}ms`, "--fb-easing": motion.easing } as React.CSSProperties;
 
@@ -180,14 +226,21 @@ export function FilterBar({
     if (value === undefined) setInternal(normalized);
     onChange?.(normalized);
   };
+  const commitText = (filter: FilterBarTextFilter, term: string) => {
+    const next = { ...applied };
+    if (term) next[filter.id] = [term]; else delete next[filter.id];
+    commit(next);
+  };
   const close = (restore = false) => {
     setOpen(false);
     setCategory(null);
     setDraft([]);
+    setDraftText("");
     if (restore) anchor.current?.focus();
   };
   const edit = (filter: FilterBarFilter) => {
     setDraft([...(applied[filter.id] ?? [])]);
+    setDraftText(applied[filter.id]?.[0] ?? "");
     setCategory(filter.id);
     setOpen(true);
   };
@@ -198,32 +251,44 @@ export function FilterBar({
   }, [expanded, searchDisabled, showSearch]);
   useEffect(() => {
     // `loading` joins `disabled`: the overlay does not reach the portal, so
-    // a checkbox popup must not float over a bar that has gone busy.
-    if (loading || disabled || (category !== null && (!active || active.disabled))) {
+    // a checkbox popup must not float over a bar that has gone busy. The
+    // same yield covers a text drill-down whose filter switched to inline.
+    if (loading || disabled || (category !== null && (!active || active.disabled
+      || (active.type === "text" && active.display !== "menu")))) {
       setOpen(false);
       setCategory(null);
       setDraft([]);
+      setDraftText("");
     }
   }, [loading, disabled, category, active]);
 
-  const items: MenuItem[] = active ? active.options.map(option => ({
-    id: option.value, label: option.label, type: "checkbox",
-    checked: draft.includes(option.value), disabled: option.disabled,
-    badge: showMenuCounts ? option.count : undefined,
-    onCheckedChange: checked => setDraft(current => checked
-      ? [...new Set([...current, option.value])]
-      : current.filter(entry => entry !== option.value)),
-  })) : filters.map(filter => ({
-    id: filter.id, label: filter.label, badge: showMenuCounts ? filter.count ?? filter.options.length : undefined,
-    disabled: filter.disabled, trailing: <CustomIcon icon="ChevronRight" size="sm" />,
-    closeOnSelect: false, command: () => edit(filter),
-  }));
+  const items: MenuItem[] = active
+    ? active.type === "text" ? [] : active.options.map(option => ({
+      id: option.value, label: option.label, type: "checkbox",
+      checked: draft.includes(option.value), disabled: option.disabled,
+      badge: showMenuCounts ? option.count : undefined,
+      onCheckedChange: checked => setDraft(current => checked
+        ? [...new Set([...current, option.value])]
+        : current.filter(entry => entry !== option.value)),
+    }))
+    // An inline text filter needs no menu row — its field is already in the bar.
+    : menuFilters.map(filter => ({
+      id: filter.id, label: filter.label,
+      badge: showMenuCounts && filter.type !== "text" ? filter.count ?? filter.options.length : undefined,
+      disabled: filter.disabled, trailing: <CustomIcon icon="ChevronRight" size="sm" />,
+      closeOnSelect: false, command: () => edit(filter),
+    }));
 
   const chips = filters.filter(filter => applied[filter.id]?.length).map(filter => ({
     id: filter.id,
-    label: `${filter.label}: ${filter.options.filter(option => applied[filter.id].includes(option.value)).map(option => option.label).join(", ")}`,
+    label: filter.type === "text"
+      ? `${filter.label}: ${applied[filter.id][0]}`
+      : `${filter.label}: ${filter.options.filter(option => applied[filter.id].includes(option.value)).map(option => option.label).join(", ")}`,
     disabled: disabled || filter.disabled,
-    edit: () => edit(filter),
+    edit: () => {
+      if (filter.type === "text" && filter.display !== "menu") textFieldRefs.current.get(filter.id)?.focus();
+      else edit(filter);
+    },
     remove: () => {
       const next = { ...applied };
       delete next[filter.id];
@@ -248,13 +313,15 @@ export function FilterBar({
     onKeyDownCapture={event => {
       // Let native Tab reach the footer instead of Menu closing on the first option.
       if (open && active && event.key === "Tab") event.stopPropagation();
-      if (open && category && event.key === "ArrowLeft") {
+      // ArrowLeft means caret in a text input, Back in the drill-down.
+      if (open && category && event.key === "ArrowLeft" && !(event.target instanceof HTMLInputElement)) {
         event.preventDefault(); event.stopPropagation(); setCategory(null); setDraft([]);
       }
       if (open && event.key === "Escape") {
         event.preventDefault(); event.stopPropagation(); close(true);
       }
     }}>
+    {leading !== undefined && <div className="fb-slot" hidden={showSkeleton} inert={showSkeleton}>{leading}</div>}
     {/* The search field stays mounted (hidden) under the skeleton exactly
         the way collapse keeps its query — unmounting SearchBar would drop
         what the user typed just because results are being refetched. */}
@@ -274,14 +341,26 @@ export function FilterBar({
         <SearchBar size={size} color={color} {...searchProps} disabled={searchDisabled} />
       </div>
     </div>
-    {showSkeleton ? <FilterBarSkeleton /> : <>
-    {showSearch && (showFilterLabel || chips.length > 0 || showEmptyState) && <span aria-hidden="true" className="h-5 border-l border-neutral-200 dark:border-neutral-700" />}
-    {showFilterLabel && <span className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 4h18l-7 8v8l-4-2v-6Z" /></svg>{t("kit.filterbar.filters")}</span>}
-    <FilterChips chips={chips} color={chipTone} variant={chipVariant} size={size} buttonTone={buttonTone} buttonStyle={buttonStyle} removeLabel={label => t("kit.filterbar.remove", { label })} />
-    {showEmptyState && !chips.length && <span className="text-neutral-400">{t("kit.filterbar.empty")}</span>}
-    <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+    {showSkeleton && <FilterBarSkeleton />}
+    {/* The filters region and the action group stay mounted (hidden + inert)
+        under the skeleton too — the search region's contract, widened:
+        uncommitted typing in a text field and consumer state inside the
+        slots survive the refetch. */}
+    <div className="fb-filters" hidden={showSkeleton} inert={showSkeleton}>
+      {showSearch && (showFilterLabel || chips.length > 0 || showEmptyState) && <span aria-hidden="true" className="h-5 border-l border-neutral-200 dark:border-neutral-700" />}
+      {showFilterLabel && <span className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-300"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 4h18l-7 8v8l-4-2v-6Z" /></svg>{t("kit.filterbar.filters")}</span>}
+      <FilterChips chips={chips} color={chipTone} variant={chipVariant} size={size} buttonTone={buttonTone} buttonStyle={buttonStyle} removeLabel={label => t("kit.filterbar.remove", { label })} />
+      {showEmptyState && !chips.length && <span className="text-neutral-400">{t("kit.filterbar.empty")}</span>}
+      <div className="fb-text-fields">
+        {inlineTextFilters.map(filter => <FilterTextField
+          key={filter.id} filter={filter} value={applied[filter.id]?.[0]}
+          size={size} color={color} disabled={disabled}
+          registerRef={registerTextField} onCommit={term => commitText(filter, term)} />)}
+      </div>
+    </div>
+    <div className="fb-actions" hidden={showSkeleton} inert={showSkeleton}>
       <Button {...actionStyle} ref={anchor} variant={buttonVariant} leadingIcon="Add"
-        disabled={disabled || !filters.length} className={classNames(buttonCorner === undefined && "rounded-full", buttonDashed && buttonVariant === "outline" && "border-dashed")}
+        disabled={disabled || !menuFilters.length} className={classNames(buttonCorner === undefined && "rounded-full", buttonDashed && buttonVariant === "outline" && "border-dashed")}
         aria-haspopup="menu" aria-expanded={open}
         onClick={() => { if (open) close(); else { setCategory(null); setOpen(true); } }}
         onKeyDown={event => { if (event.key === "ArrowDown") { event.preventDefault(); setCategory(null); setOpen(true); } }}>
@@ -296,18 +375,26 @@ export function FilterBar({
       onOpenChange={next => { if (!next) close(); }} items={items} width={320} size={size}
       variant={menuVariant} tone={menuTone} corner={menuCorner} padding={menuPadding}
       className="fb-menu" style={style} aria-label={active?.label ?? t("kit.filterbar.filterBy")}
-      renderItem={active ? item => <>
+      renderItem={active && active.type !== "text" ? item => <>
         <span aria-hidden="true" className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-neutral-300 dark:border-neutral-600">{item.checked && <CustomIcon icon="Check" size="xs" />}</span>
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
         {item.badge != null && <span className="shrink-0 text-xs text-neutral-400">{item.badge}</span>}
       </> : undefined}
-      header={active ? <Button {...actionStyle} variant={secondaryButtonVariant} leadingIcon="ChevronLeft" onClick={() => { setCategory(null); setDraft([]); }} aria-label={t("kit.filterbar.back")}><span className="uppercase tracking-wide">{active.label}</span></Button>
+      header={active ? active.type === "text"
+        ? <div className="flex flex-col gap-2">
+          <Button {...actionStyle} variant={secondaryButtonVariant} leadingIcon="ChevronLeft" onClick={() => { setCategory(null); setDraft([]); setDraftText(""); }} aria-label={t("kit.filterbar.back")}><span className="uppercase tracking-wide">{active.label}</span></Button>
+          <FilterMenuInput filter={active} draft={draftText} onChangeDraft={setDraftText}
+            size={size} color={color} disabled={disabled} onCommit={() => { commit({ ...applied, [active.id]: [draftText] }); close(true); }} />
+        </div>
+        : <Button {...actionStyle} variant={secondaryButtonVariant} leadingIcon="ChevronLeft" onClick={() => { setCategory(null); setDraft([]); }} aria-label={t("kit.filterbar.back")}><span className="uppercase tracking-wide">{active.label}</span></Button>
         : <span className="px-3 text-xs uppercase tracking-wide text-neutral-400">{t("kit.filterbar.filterBy")}</span>}
       footer={active ? <div className="flex items-center justify-between">
-        <Button {...actionStyle} variant={secondaryButtonVariant} onClick={() => setDraft(current => current.filter(entry => active.options.some(option => option.value === entry && option.disabled)))}>{t("kit.filterbar.clear")}</Button>
-        <Button {...actionStyle} variant={applyButtonVariant} onClick={() => { commit({ ...applied, [active.id]: draft }); close(true); }}>{t("kit.filterbar.done")}</Button>
+        <Button {...actionStyle} variant={secondaryButtonVariant} onClick={() => active.type === "text"
+          ? setDraftText("")
+          : setDraft(current => current.filter(entry => active.options.some(option => option.value === entry && option.disabled)))}>{t("kit.filterbar.clear")}</Button>
+        <Button {...actionStyle} variant={applyButtonVariant} onClick={() => { commit(active.type === "text" ? { ...applied, [active.id]: [draftText] } : { ...applied, [active.id]: draft }); close(true); }}>{t("kit.filterbar.done")}</Button>
       </div> : undefined} />
-    </>}
+    {trailing !== undefined && <div className="fb-slot" hidden={showSkeleton} inert={showSkeleton}>{trailing}</div>}
 
     {/* The overlay pins to the root itself — no wrapper node: the root is
         the flex-wrap layout, and an extra box would sit between the flex
@@ -347,6 +434,91 @@ const FilterBarSkeleton: React.FC = () => (
     <SkeletonBar width="5rem" />
   </div>
 );
+
+interface FilterTextFieldProps {
+  filter: FilterBarTextFilter;
+  /** The applied term, if any. */
+  value: string | undefined;
+  size: ControlSize;
+  color: TrueColor;
+  disabled: boolean;
+  registerRef: (id: string, element: HTMLInputElement | null) => void;
+  onCommit: (term: string) => void;
+}
+
+/**
+ * Inline entry field for a `type: "text"` filter. Typing stays local —
+ * nothing is emitted per keystroke — until Enter or blur commits the
+ * trimmed term (empty omits the key); Escape reverts to the applied value.
+ * Externally driven changes (Clear all, chip remove, controlled value)
+ * sync the field while it is not being edited.
+ */
+const FilterTextField: React.FC<FilterTextFieldProps> = ({ filter, value, size, color, disabled, registerRef, onCommit }) => {
+  const [editing, setEditing] = useState<string | null>(null);
+  const text = editing ?? value ?? "";
+  const commitField = () => {
+    const term = text.trim();
+    if ((value ?? "") !== term) onCommit(term);
+    setEditing(null);
+  };
+  const { className, ...inputProps } = filter.inputProps ?? {};
+  return <span className="fb-text-field">
+    <Input
+      ref={element => { registerRef(filter.id, element); }}
+      size={size} color={color}
+      {...inputProps}
+      className={classNames("w-full", className)}
+      aria-label={inputProps["aria-label"] ?? filter.label}
+      disabled={disabled || filter.disabled || inputProps.disabled}
+      value={text}
+      onChange={event => setEditing(event.target.value)}
+      onBlur={event => { commitField(); inputProps.onBlur?.(event); }}
+      onKeyDown={event => {
+        inputProps.onKeyDown?.(event);
+        if (event.defaultPrevented) return;
+        if (event.key === "Enter") { event.preventDefault(); commitField(); }
+        else if (event.key === "Escape") { event.preventDefault(); setEditing(null); }
+      }}
+    />
+  </span>;
+};
+
+interface FilterMenuInputProps {
+  filter: FilterBarTextFilter;
+  draft: string;
+  onChangeDraft: (value: string) => void;
+  size: ControlSize;
+  color: TrueColor;
+  disabled: boolean;
+  onCommit: () => void;
+}
+
+/**
+ * The drill-down's draft field, stacked under the Back button in the Menu
+ * header — outside the keyboard-handled list, so typing is never menu
+ * typeahead. Enter commits, exactly like the footer Done.
+ */
+const FilterMenuInput: React.FC<FilterMenuInputProps> = ({ filter, draft, onChangeDraft, size, color, disabled, onCommit }) => {
+  const { className, ...inputProps } = filter.inputProps ?? {};
+  // The Menu remounts this header per drill-down (keyed view), so focusing on
+  // mount is the autoFocus equivalent without the a11y-lint violation.
+  const fieldRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { fieldRef.current?.focus(); }, []);
+  return <Input
+    ref={fieldRef}
+    size={size} color={color}
+    {...inputProps}
+    className={classNames("w-full", className)}
+    aria-label={inputProps["aria-label"] ?? filter.label}
+    disabled={disabled || filter.disabled || inputProps.disabled}
+    value={draft}
+    onChange={event => onChangeDraft(event.target.value)}
+    onKeyDown={event => {
+      inputProps.onKeyDown?.(event);
+      if (!event.defaultPrevented && event.key === "Enter") { event.preventDefault(); onCommit(); }
+    }}
+  />;
+};
 
 interface Chip { id: string; label: string; disabled?: boolean; edit: () => void; remove: () => void }
 function FilterChips({ chips, color, variant, size, buttonTone, buttonStyle, removeLabel }: { chips: Chip[]; color: TrueColor; variant: BadgeVariant; size: ControlSize; buttonTone: TrueColor; buttonStyle?: React.CSSProperties; removeLabel: (label: string) => string }) {

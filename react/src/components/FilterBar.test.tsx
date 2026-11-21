@@ -260,4 +260,161 @@ describe("FilterBar", () => {
       expect(screen.getByRole("button", { name: "Add filter" })).toBeInTheDocument();
     });
   });
+
+  const textFilters = [
+    { id: "tag", label: "Tag", type: "text" as const, inputProps: { placeholder: "Tag" } },
+    { id: "loop", label: "Source loop", type: "text" as const, display: "menu" as const, inputProps: { placeholder: "Source loop slug" } },
+  ];
+  function setupText(props: Partial<FilterBarProps> = {}, customFilters = textFilters) {
+    const onChange = vi.fn();
+    const result = render(<FilterBar filters={customFilters} searchProps={{ onSearch: vi.fn() }} onChange={onChange} filteredCount={2} totalCount={5} {...props} />);
+    return { ...result, onChange };
+  }
+  function openLoop() {
+    fireEvent.click(screen.getByRole("button", { name: "Add filter" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Source loop" }));
+  }
+
+  describe("text filters", () => {
+    it("renders the inline field, excludes it from the category list, lists the menu one", () => {
+      setupText();
+      expect(screen.getByPlaceholderText("Tag")).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("Source loop slug")).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Add filter" }));
+      expect(screen.getByRole("menuitem", { name: "Source loop" })).toBeInTheDocument();
+      expect(screen.queryByRole("menuitem", { name: "Tag" })).toBeNull();
+    });
+    it("disables Add filter when only inline text filters exist", () => {
+      setupText({}, [textFilters[0]]);
+      expect(screen.getByRole("button", { name: "Add filter" })).toBeDisabled();
+    });
+    it("disables the inline field with the bar", () => {
+      setupText({ disabled: true });
+      expect(screen.getByPlaceholderText("Tag")).toBeDisabled();
+    });
+    it("keeps typing local and commits the trimmed term once on Enter", () => {
+      const { onChange } = setupText();
+      const input = screen.getByPlaceholderText("Tag");
+      fireEvent.change(input, { target: { value: "  auth  " } });
+      expect(onChange).not.toHaveBeenCalled();
+      fireEvent.keyDown(input, { key: "Enter" });
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({ tag: ["auth"] });
+      expect(screen.getByRole("button", { name: "Tag: auth" })).toBeInTheDocument();
+    });
+    it("commits on blur and omits the key when the term is blank", () => {
+      const { onChange } = setupText({ defaultValue: { tag: ["auth"] } });
+      const input = screen.getByPlaceholderText("Tag");
+      expect(input).toHaveValue("auth");
+      fireEvent.change(input, { target: { value: "   " } });
+      fireEvent.blur(input);
+      expect(onChange).toHaveBeenLastCalledWith({});
+      expect(input).toHaveValue("");
+    });
+    it("reverts the uncommitted draft on Escape without emitting", () => {
+      const { onChange } = setupText({ defaultValue: { tag: ["auth"] } });
+      const input = screen.getByPlaceholderText("Tag");
+      fireEvent.change(input, { target: { value: "typo" } });
+      fireEvent.keyDown(input, { key: "Escape" });
+      expect(input).toHaveValue("auth");
+      expect(onChange).not.toHaveBeenCalled();
+    });
+    it("focuses the field from the chip button and removes the value from its ✕", () => {
+      const { onChange } = setupText({ defaultValue: { tag: ["auth"] } });
+      fireEvent.click(screen.getByRole("button", { name: "Tag: auth" }));
+      expect(screen.getByPlaceholderText("Tag")).toHaveFocus();
+      fireEvent.click(screen.getByRole("button", { name: "Remove Tag: auth filter" }));
+      expect(onChange).toHaveBeenLastCalledWith({});
+      expect(screen.getByPlaceholderText("Tag")).toHaveValue("");
+    });
+    it("Clear all clears text values, chips and fields", () => {
+      const { onChange } = setupText({ defaultValue: { tag: ["auth"], loop: ["loop-7"] } });
+      fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({});
+      expect(screen.getByPlaceholderText("Tag")).toHaveValue("");
+    });
+    it("normalizes controlled values to the first term, trimmed; unknown ids drop", () => {
+      const onChange = vi.fn();
+      render(<FilterBar filters={textFilters} searchProps={{ onSearch: vi.fn() }} onChange={onChange} filteredCount={1} totalCount={5}
+        value={{ tag: ["  auth ", "second"], unknown: ["x"] }} />);
+      expect(screen.getByPlaceholderText("Tag")).toHaveValue("auth");
+      expect(screen.getByRole("button", { name: "Tag: auth" })).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+    it("drills into a seeded draft field; Done and Enter commit, Escape discards", () => {
+      const { onChange } = setupText();
+      openLoop();
+      const input = screen.getByPlaceholderText("Source loop slug");
+      fireEvent.change(input, { target: { value: "loop-7" } });
+      fireEvent.click(screen.getByRole("button", { name: "Done" }));
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({ loop: ["loop-7"] });
+      expect(screen.getByRole("button", { name: "Source loop: loop-7" })).toBeInTheDocument();
+      // Reopening seeds the draft from the applied value; Enter commits it.
+      openLoop();
+      const seeded = screen.getByPlaceholderText("Source loop slug");
+      expect(seeded).toHaveValue("loop-7");
+      fireEvent.change(seeded, { target: { value: "discarded" } });
+      fireEvent.keyDown(seeded, { key: "Escape" });
+      expect(onChange).toHaveBeenCalledTimes(1);
+      openLoop();
+      const again = screen.getByPlaceholderText("Source loop slug");
+      expect(again).toHaveValue("loop-7");
+      fireEvent.change(again, { target: { value: "loop-8" } });
+      fireEvent.keyDown(again, { key: "Enter" });
+      expect(onChange).toHaveBeenLastCalledWith({ loop: ["loop-8"] });
+    });
+    it("empties the draft on Clear; Done then omits the key; ArrowLeft keeps the caret", () => {
+      const { onChange } = setupText({ defaultValue: { loop: ["loop-7"] } });
+      openLoop();
+      const input = screen.getByPlaceholderText("Source loop slug");
+      fireEvent.keyDown(input, { key: "ArrowLeft" });
+      // The Back shortcut must not steal the caret from a text field.
+      expect(screen.getByPlaceholderText("Source loop slug")).toBeInTheDocument();
+      fireEvent.change(input, { target: { value: "edited" } });
+      fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+      expect(input).toHaveValue("");
+      fireEvent.click(screen.getByRole("button", { name: "Done" }));
+      expect(onChange).toHaveBeenLastCalledWith({});
+    });
+    it("opens the drill-down from the chip of a menu-mode filter", () => {
+      setupText({ defaultValue: { loop: ["loop-7"] } });
+      fireEvent.click(screen.getByRole("button", { name: "Source loop: loop-7" }));
+      expect(screen.getByPlaceholderText("Source loop slug")).toHaveValue("loop-7");
+    });
+    it("keeps uncommitted typing mounted, hidden and inert under the skeleton", () => {
+      const { rerender } = setupText();
+      const input = screen.getByPlaceholderText("Tag");
+      fireEvent.change(input, { target: { value: "half-typed" } });
+      rerender(<FilterBar filters={textFilters} searchProps={{ onSearch: vi.fn() }} onChange={vi.fn()} filteredCount={2} totalCount={5} loading loaderType="skeleton" />);
+      expect(screen.getByPlaceholderText("Tag")).toHaveValue("half-typed");
+      expect(input.closest("[hidden]")).not.toBeNull();
+      expect(input.closest("[inert]")).not.toBeNull();
+    });
+  });
+
+  describe("leading and trailing slots", () => {
+    const slotProps: FilterBarProps = {
+      filters: textFilters, searchProps: { onSearch: vi.fn() }, filteredCount: 1, totalCount: 5,
+      leading: <button type="button">Provenance: any</button>,
+      trailing: <button type="button">Include retracted</button>,
+    };
+    it("renders at both ends and nothing when omitted", () => {
+      const { container } = render(<FilterBar {...slotProps} />);
+      expect(screen.getByRole("button", { name: "Provenance: any" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "Include retracted" })).toBeVisible();
+      const { container: bare } = setupText();
+      expect(bare.querySelector(".fb-slot")).toBeNull();
+      expect(container.querySelector(".fb-slot")).not.toBeNull();
+    });
+    it("stays mounted, hidden and inert through the skeleton; visible under the spinner", () => {
+      const { rerender, container } = render(<FilterBar {...slotProps} />);
+      const prov = screen.getByRole("button", { name: "Provenance: any" });
+      rerender(<FilterBar {...slotProps} loading loaderType="skeleton" />);
+      expect(screen.queryByRole("button", { name: "Provenance: any" })).toBeNull();
+      expect(container.contains(prov)).toBe(true);
+      expect(prov.closest("[hidden]")).not.toBeNull();
+      expect(prov.closest("[inert]")).not.toBeNull();
+      rerender(<FilterBar {...slotProps} loading loaderType="spinner" />);
+      expect(screen.getByRole("button", { name: "Provenance: any" })).toBeVisible();
+    });
+  });
 });

@@ -47,11 +47,27 @@
    [hidden] attribute's UA default — the override must be explicit. */
 .fb-search-trigger[hidden] { display: none; }
 
+/* The filters region, the action group and the end slots are real layout
+   nodes so they can stay mounted, hidden and inert under the skeleton
+   rewrite — the search region's contract, widened to text fields and
+   consumer slot content. The [hidden] overrides are load-bearing for the
+   same reason as above: these rules set display, the UA default cannot. */
+.fb-filters { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
+.fb-filters[hidden] { display: none; }
+.fb-actions { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; min-width: 0; }
+.fb-actions[hidden] { display: none; }
+.fb-slot { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
+.fb-slot[hidden] { display: none; }
+
+/* Inline entry fields for type="text" filters, between the chips and the
+   action group, in declaration order. */
+.fb-text-fields { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
+.fb-text-field { display: inline-flex; width: 14rem; max-width: 100%; }
+
 /* Applied filters animate as chips. This is a real layout hook, not just
    theming: FilterChips keeps a removed chip mounted for one beat
    (data-exiting="true") and the grid-column collapse is what animates it
-   out of the row; @starting-style animates the entry. */
-.fb-chip { display: inline-grid; grid-template-columns: 1fr; max-width: 100%; opacity: 1; transform: scale(1); transition: grid-template-columns var(--fb-duration) var(--fb-easing), opacity 150ms ease-out, transform var(--fb-duration) var(--fb-easing); }
+   out of the row; @starting-style animates the entry. */.fb-chip { display: inline-grid; grid-template-columns: 1fr; max-width: 100%; opacity: 1; transform: scale(1); transition: grid-template-columns var(--fb-duration) var(--fb-easing), opacity 150ms ease-out, transform var(--fb-duration) var(--fb-easing); }
 .fb-chip > * { min-width: 0; overflow: hidden; }
 .fb-chip[data-exiting="true"] { grid-template-columns: 0fr; opacity: 0; transform: scale(.85); pointer-events: none; }
 .fb-chip[data-exiting="true"] > * { padding-left: 0; padding-right: 0; border-width: 0; }

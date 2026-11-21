@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FilterBar, ColorSwatches, type FilterBarFilter, type FilterBarLoaderType, type FilterBarValue, type ExpandableButtonSpring, type ControlSize, type SurfaceVariant, type SurfaceTone, type PanelPadding, type PanelCorner, type ButtonVariant, type ButtonWeight, type TrueColor, type BadgeVariant, type InputVariant, type GlassOpacity, type GlassVibrancy, type SurfaceTransparency } from "@cjlapao/ui-kit";
+import { DropdownButton, FilterBar, Toggle, ColorSwatches, type DropdownButtonOption, type FilterBarFilter, type FilterBarLoaderType, type FilterBarValue, type ExpandableButtonSpring, type ControlSize, type SurfaceVariant, type SurfaceTone, type PanelPadding, type PanelCorner, type ButtonVariant, type ButtonWeight, type TrueColor, type BadgeVariant, type InputVariant, type GlassOpacity, type GlassVibrancy, type SurfaceTransparency } from "@cjlapao/ui-kit";
 import { PlaygroundPanel, SelectControl, ToggleRow, Control } from "../../shared/PlaygroundPanel";
 
 import { ControlAccordion } from "../../shared/ControlAccordion";
@@ -54,12 +54,20 @@ export function FilterBarPlayground() {
   const [showClearAll, setShowClearAll] = useState(true);
   const [showResultCount, setShowResultCount] = useState(true);
   const [showMenuCounts, setShowMenuCounts] = useState(true);
+  // Slot demos: the content is consumer-owned state, the bar only lays it out.
+  const [showLeading, setShowLeading] = useState(false);
+  const [showTrailing, setShowTrailing] = useState(false);
+  const [ring, setRing] = useState("stable");
+  const [dense, setDense] = useState(false);
   const filters: FilterBarFilter[] = [
     { id: "status", label: "Status", options: ["online", "offline"].map(status => ({ value: status, label: status === "online" ? "Online" : "Offline", count: devices.filter(device => device.status === status).length })) },
     { id: "user", label: "User", options: ["Carlos", "Elena", "Dmytro"].map(user => ({ value: user, label: user, count: devices.filter(device => device.user === user).length })) },
     { id: "enrollment", label: "Enrollment", options: [{ value: "enabled", label: "Enabled", count: 4 }, { value: "disabled", label: "Disabled", count: 1 }] },
+    { id: "name", label: "Name", type: "text", inputProps: { placeholder: "Name contains" } },
   ];
-  const results = devices.filter(device => device.name.toLowerCase().includes(query.toLowerCase()) && Object.entries(value).every(([key, values]) => !values.length || values.includes(device[key as "status" | "user" | "enrollment"])));
+  const results = devices.filter(device => device.name.toLowerCase().includes(query.toLowerCase()) && Object.entries(value).every(([key, values]) => !values.length || (key === "name"
+    ? device.name.toLowerCase().includes((values[0] ?? "").toLowerCase())
+    : values.includes(device[key as "status" | "user" | "enrollment"]))));
   return <PlaygroundPanel controls={<div className="space-y-3">
     <ControlAccordion groups={[
       { id: "core", title: "Size and motion", controls: <>
@@ -107,6 +115,8 @@ export function FilterBarPlayground() {
       <ToggleRow label="Clear all" checked={showClearAll} onChange={setShowClearAll} />
       <ToggleRow label="Result count" checked={showResultCount} onChange={setShowResultCount} />
       <ToggleRow label="Menu counts" checked={showMenuCounts} onChange={setShowMenuCounts} />
+      <ToggleRow label="Leading slot" checked={showLeading} onChange={setShowLeading} />
+      <ToggleRow label="Trailing slot" checked={showTrailing} onChange={setShowTrailing} />
 
       </> },
       { id: "state", title: "Behavior", controls: <>
@@ -121,6 +131,8 @@ export function FilterBarPlayground() {
   </div>} preview={
     <div className="w-full space-y-3">
       <FilterBar searchProps={{ onSearch: setQuery, placeholder: "Search by device name", loading, autoSearch: !manual, variant: searchVariant }} filters={filters} value={value} onChange={setValue} filteredCount={results.length} totalCount={devices.length} itemLabel="devices" size={size} spring={spring} disabled={disabled}
+        leading={showLeading ? <DropdownButton size={size} variant="outline" label={`Ring: ${ring}`} options={[{ value: "stable", label: "stable" }, { value: "beta", label: "beta" }, { value: "canary", label: "canary" }] as DropdownButtonOption[]} onOptionSelect={option => setRing(option.value)} /> : undefined}
+        trailing={showTrailing ? <Toggle size={size} label="Dense rows" checked={dense} onChange={event => setDense(event.target.checked)} /> : undefined}
         loading={busy} loaderType={barLoaderType} loaderProgress={barLoaderType === "progress" ? 62 : undefined}
         variant={variant} tone={tone} corner={corner} padding={padding} transparency={transparency} glassOpacity={glassOpacity} vibrancy={vibrancy}
         buttonVariant={buttonVariant} secondaryButtonVariant={secondaryButtonVariant} applyButtonVariant={applyButtonVariant}
@@ -131,7 +143,7 @@ export function FilterBarPlayground() {
         showSearch={showSearch} showFilterLabel={showFilterLabel} showEmptyState={showEmptyState}
         showClearAll={showClearAll} showResultCount={showResultCount} showMenuCounts={showMenuCounts} />
       <div className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700">
-        {results.map(device => <div key={device.name} className="flex flex-wrap items-center justify-between gap-2 p-4"><div><strong className="text-sm">{device.name}</strong><p className="text-xs text-neutral-500">{device.user} · {device.enrollment}</p></div><span className="text-xs text-neutral-500">{device.status}</span></div>)}
+        {results.map(device => <div key={device.name} className={dense ? "flex flex-wrap items-center justify-between gap-2 p-2" : "flex flex-wrap items-center justify-between gap-2 p-4"}><div><strong className="text-sm">{device.name}</strong><p className="text-xs text-neutral-500">{device.user} · {device.enrollment}</p></div><span className="text-xs text-neutral-500">{device.status}</span></div>)}
         {!results.length && <p className="p-6 text-center text-sm text-neutral-500">No matching devices</p>}
       </div>
     </div>

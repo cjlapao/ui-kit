@@ -940,7 +940,7 @@ export { default as ContentActions, type ContentActionsProps } from "./ContentAc
 export { default as CodeBlock, type CodeBlockProps } from "./CodeBlock";
 
 export { FilterBar } from "./FilterBar";
-export type { FilterBarProps, FilterBarFilter, FilterBarOption, FilterBarValue, FilterBarLoaderType } from "./FilterBar";
+export type { FilterBarProps, FilterBarFilter, FilterBarOptionFilter, FilterBarTextFilter, FilterBarOption, FilterBarValue, FilterBarLoaderType } from "./FilterBar";
 
 export * from "./AiRobot";
 export * from "./AgentMap";

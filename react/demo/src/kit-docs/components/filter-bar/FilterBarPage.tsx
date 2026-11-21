@@ -6,11 +6,13 @@ import Controlled from "./examples/Controlled";
 import controlledCode from "./examples/Controlled.tsx?raw";
 import Loading from "./examples/Loading";
 import loadingCode from "./examples/Loading.tsx?raw";
+import TextFilters from "./examples/TextFilters";
+import textFiltersCode from "./examples/TextFilters.tsx?raw";
 import { FilterBarPlayground } from "./FilterBarPlayground";
 
 export default function FilterBarPage() {
   return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
-    <PageHeader name="Filter Bar" description="Expandable search, staged checkbox filters, removable chips and a live result summary. Built from SearchBar, Menu, Button and Badge with the kit’s shared spring motion." />
+    <PageHeader name="Filter Bar" description="Expandable search, staged checkbox filters, value-by-typing text filters, removable chips, consumer slots at both ends and a live result summary. Built from SearchBar, Menu, Button, Badge, Input and Toggle with the kit’s shared spring motion." />
     <FilterBarPlayground />
     <section className="space-y-4"><h2 className="text-lg font-semibold">Reference states</h2><p className="text-sm text-neutral-500">Start with collapsed search. Click Search to expand, Add filter to see categories, then Status to select options. Done adds the chip; click its label to edit or its × to remove.</p>
       <FilterBar searchProps={{ onSearch: () => {}, initialValue: "MacBook", autoSearch: false }} filters={[]} filteredCount={1} totalCount={5} itemLabel="devices" />
@@ -18,9 +20,11 @@ export default function FilterBarPage() {
     </section>
     <ExampleCard title="Controlled filtering" description="The consumer owns the dataset, search and filter state. Copy this complete example." code={controlledCode} filename="Controlled.tsx"><Controlled /></ExampleCard>
     <ExampleCard title="Loading" description="The whole control speaks the Table and ActivityFeed loading family — skeleton (the default) rewrites its pieces in placeholder ink, spinner and progress dim the live bar under a labelled overlay — and the strip keeps its shape in every state." code={loadingCode} filename="Loading.tsx"><Loading /></ExampleCard>
+    <ExampleCard title="Text filters and end slots" description="Filters can take their value by typing: a text field inline in the bar (Tag) or a drill-down draft with Done (Source loop). The leading DropdownButton and the trailing Toggle are slot content — consumer-owned controls the bar lays out, keeps mounted through the skeleton, and never clears with the filters." code={textFiltersCode} filename="TextFilters.tsx"><TextFilters /></ExampleCard>
     <PropsTable props={[
       { name: "searchProps", type: "SearchBarProps", description: "Existing search API: onSearch(query, signal?), debounceMs, autoSearch, initialValue, shouldClear, onClear, loading and all search styles. Search stays mounted while collapsed." },
-      { name: "filters", type: "FilterBarFilter[]", description: "Categories with unique id, label, optional count/disabled and options with value, label, optional count/disabled. Zero counts remain selectable." },
+      { name: "filters", type: "FilterBarFilter[]", description: "Categories with unique id, label, optional disabled and a type arm. Option arms (type \"options\", the default) carry count and options with value, label, optional count/disabled — zero counts remain selectable. Text arms (type \"text\") take one trimmed term: display \"inline\" (the default) puts a field in the bar, \"menu\" drills into the popup with Clear/Done; inputProps forwards placeholder, variant and friends to the kit Input. Text values emit as [term] and chip like any category." },
+      { name: "leading / trailing", type: "ReactNode", description: "Content at the start (before search) and end (after the action group) of the bar — e.g. a DropdownButton facet or an Include-retracted Toggle. Consumer-owned: bar disabled does not reach them; Clear all never clears them; they stay mounted, hidden and inert through the skeleton rewrite. Omitted props render nothing." },
       { name: "value / defaultValue / onChange", type: "FilterBarValue / (value) => void", description: "Record of category IDs to selected option values. Done commits the draft. Back, Escape or outside click discards it. Chip removal and Clear all commit immediately. Clear all preserves search." },
       { name: "filteredCount / totalCount / itemLabel", type: "number / number / string", description: "Caller supplies result counts and filters its own data. The demo uses OR within a category and AND across categories." },
       { name: "showSearch / showFilterLabel / showEmptyState", type: "boolean", default: "true", description: "Toggle the search control, Filters heading/icon and empty-selection message independently. Hiding search preserves its query and active filtering." },
@@ -36,6 +40,6 @@ export default function FilterBarPage() {
       { name: "loading / loaderType / loaderProgress / loadingMessage", type: "boolean / \"spinner\" | \"progress\" | \"skeleton\" / number / string", default: "false / skeleton / — / \"Loading\"", description: "The whole control speaks the Table and ActivityFeed loading family. skeleton — the default — rewrites the bar's own pieces in pulsing placeholder ink; spinner and progress dim the live bar beneath a labelled Loader overlay. The strip keeps its shape in every state, and an open filter popup closes the moment the bar goes busy." },
       { name: "disabled / className / aria-label", type: "boolean / string / string", description: "Disable interaction, style the root, or name the filter region." },
     ]} />
-    <p className="text-sm text-neutral-500">Keyboard: Enter or Space opens controls. Menu arrows, Home, End and typeahead navigate options. ArrowLeft returns to categories; Escape cancels and restores focus. Tab reaches Clear and Done. Labels use the kit translation catalog.</p>
+    <p className="text-sm text-neutral-500">Keyboard: Enter or Space opens controls. Menu arrows, Home, End and typeahead navigate options. ArrowLeft returns to categories; Escape cancels and restores focus. Tab reaches Clear and Done. A text field commits on Enter or blur and reverts on Escape; inside the drill-down, ArrowLeft keeps the caret while Escape still cancels. Labels use the kit translation catalog.</p>
   </div>;
 }
