@@ -234,6 +234,7 @@ export {
   type InputOtpVariant,
   type InputOtpCellContext,
 } from "./InputOtp";
+export { default as SlugInput, type SlugInputProps } from "./SlugInput";
 export {
   default as Rating,
   RATING_ORIENTATIONS,
@@ -360,6 +361,7 @@ export {
 } from "./ButtonSelector";
 export {
   default as FormField,
+  FORM_FIELD_NOTE_TOKENS,
   type FormFieldProps,
   type FormFieldLayout,
   type FormFieldValidationStatus,

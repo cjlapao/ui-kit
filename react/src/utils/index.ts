@@ -1,6 +1,7 @@
 export * from "./iconUtils";
 export * from "./focusUtils";
 export * from "./stringUtils";
+export * from "./slugify";
 export * from "./durationUtils";
 export * from "./bytesUtils";
 export * from "./numberUtils";

@@ -51,6 +51,13 @@ const sizeTokens: Record<ControlSize, { label: string; note: string }> = {
   xl: { label: "text-lg", note: "text-base" },
 };
 
+/**
+ * The note half of the scale, exported so field-level notes that live outside
+ * `FormField` (a `SlugInput` slug line, say) sit on the same type scale and
+ * the two cannot drift apart one edit at a time.
+ */
+export const FORM_FIELD_NOTE_TOKENS = sizeTokens;
+
 type ChildElementProps = {
   id?: string;
   "aria-describedby"?: string;
