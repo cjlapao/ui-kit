@@ -12,11 +12,18 @@ import { slugify, type SlugifyOptions } from "../utils/slugify";
 import Input, { type InputProps } from "./Input";
 import { FORM_FIELD_NOTE_TOKENS } from "./FormField";
 
+/** Text rendered before the slug when `slugLabel` is `true`. */
+export const DEFAULT_SLUG_LABEL = "id:";
+
 export interface SlugInputProps extends InputProps {
   /** Render the derived slug under the field. @default true */
   showSlug?: boolean;
-  /** Optional prefix shown before the slug, e.g. `"Slug:"`. */
-  slugLabel?: string;
+  /**
+   * Prefix shown before the slug. Off by default; `true` renders the built-in
+   * `"id:"`, a string renders that text instead — e.g. `"Slug:"`.
+   * @default false
+   */
+  slugLabel?: string | boolean;
   /** Rule overrides for the default algorithm. Ignored when `slugify` is set. */
   slugifyOptions?: SlugifyOptions;
   /** Replaces the default algorithm entirely. */
@@ -90,6 +97,15 @@ const SlugInput = forwardRef<HTMLInputElement, SlugInputProps>(
         : String(value);
     const slug = computeSlug(displayValue);
 
+    // `true` opts into the kit's own "id:"; a string is the caller's text.
+    // Off (falsy) or an empty string means the prefix simply does not exist.
+    const labelText =
+      typeof slugLabel === "string"
+        ? slugLabel.trim() || null
+        : slugLabel === true
+          ? DEFAULT_SLUG_LABEL
+          : null;
+
     const slugId = `${controlId}-slug`;
     const errorId = `${controlId}-error`;
     const hintId = `${controlId}-hint`;
@@ -138,7 +154,7 @@ const SlugInput = forwardRef<HTMLInputElement, SlugInputProps>(
             aria-live="polite"
             className={classNames(sizeToken.note, surface.muted)}
           >
-            {slugLabel ? `${slugLabel} ${slug}` : slug}
+            {labelText ? `${labelText} ${slug}` : slug}
           </p>
         )}
         {(helpText || error || hint) && (

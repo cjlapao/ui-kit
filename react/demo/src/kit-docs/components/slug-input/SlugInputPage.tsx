@@ -58,9 +58,10 @@ export const SlugInputPage: React.FC = () => (
         },
         {
           name: "slugLabel",
-          type: "string",
+          type: "string | boolean",
+          default: "false",
           description:
-            "Optional prefix for the slug line, e.g. `Slug:` — part of the announced text, not decoration.",
+            "Prefix for the slug line, off by default. `true` renders the kit&rsquo;s own `id:` (exported as `DEFAULT_SLUG_LABEL`); a string renders that text instead, e.g. `Slug:`. Part of the announced text, not decoration.",
         },
         {
           name: "slugifyOptions",

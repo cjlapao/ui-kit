@@ -234,7 +234,11 @@ export {
   type InputOtpVariant,
   type InputOtpCellContext,
 } from "./InputOtp";
-export { default as SlugInput, type SlugInputProps } from "./SlugInput";
+export {
+  default as SlugInput,
+  DEFAULT_SLUG_LABEL,
+  type SlugInputProps,
+} from "./SlugInput";
 export {
   default as Rating,
   RATING_ORIENTATIONS,

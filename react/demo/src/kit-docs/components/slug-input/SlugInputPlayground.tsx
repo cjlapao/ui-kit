@@ -42,6 +42,7 @@ export const SlugInputPlayground: React.FC = () => {
     useState<InputValidationStatus>("none");
   const [value, setValue] = useState("Hello, World! Foo_Bar 2024");
   const [showSlug, setShowSlug] = useState(true);
+  const [showSlugLabel, setShowSlugLabel] = useState(false);
   const [slugLabel, setSlugLabel] = useState("");
   const [separator, setSeparator] = useState("_");
   const [casing, setCasing] = useState<Casing>("lower");
@@ -127,19 +128,27 @@ export const SlugInputPlayground: React.FC = () => {
                         onChange={(event) => setAllowed(event.target.value)}
                       />
                     </Control>
-                    <Control label="Slug label">
+                    <Control label="Slug label text">
                       <Input
                         size="sm"
                         value={slugLabel}
-                        placeholder="Slug:"
+                        placeholder="id: (kit default)"
+                        disabled={!showSlugLabel}
                         onChange={(event) => setSlugLabel(event.target.value)}
                       />
                     </Control>
-                    <ToggleRow
-                      label="Show slug line"
-                      checked={showSlug}
-                      onChange={setShowSlug}
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <ToggleRow
+                        label="Show slug line"
+                        checked={showSlug}
+                        onChange={setShowSlug}
+                      />
+                      <ToggleRow
+                        label="Show slug label"
+                        checked={showSlugLabel}
+                        onChange={setShowSlugLabel}
+                      />
+                    </div>
                   </>
                 ),
               },
@@ -194,7 +203,7 @@ export const SlugInputPlayground: React.FC = () => {
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
                 showSlug={showSlug}
-                slugLabel={slugLabel || undefined}
+                slugLabel={showSlugLabel ? slugLabel.trim() || true : false}
                 slugifyOptions={{
                   separator,
                   case: casing,

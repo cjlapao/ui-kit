@@ -45,7 +45,7 @@ interface SlugifyOptions {
 | prop | default | behavior |
 | --- | --- | --- |
 | `showSlug?: boolean` | `true` | render the slug line under the field |
-| `slugLabel?: string` | — | optional prefix, e.g. `"Slug:"` |
+| `slugLabel?: string \| boolean` | `false` | prefix for the slug line: `true` renders the built-in `"id:"` (`DEFAULT_SLUG_LABEL`), a string renders that text |
 | `slugifyOptions?: SlugifyOptions` | `{}` | rule overrides |
 | `slugify?: (value: string) => string` | — | replaces the algorithm entirely |
 | `onValueChange?: (value: string, slug: string) => void` | — | every change, slug recomputed |

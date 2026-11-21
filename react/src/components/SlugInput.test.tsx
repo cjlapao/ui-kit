@@ -112,6 +112,19 @@ describe("SlugInput", () => {
     expect(screen.getByText("Slug: hello_world")).toHaveAttribute("data-slug");
   });
 
+  it("renders the built-in id: label when slugLabel is true", () => {
+    render(<SlugInput defaultValue="Hello, World!" slugLabel />);
+    expect(screen.getByText("id: hello_world")).toHaveAttribute("data-slug");
+  });
+
+  it("has no prefix at all by default, or with a blank string", () => {
+    const { rerender } = render(<SlugInput defaultValue="Hello, World!" />);
+    expect(screen.getByText("hello_world")).toHaveAttribute("data-slug");
+
+    rerender(<SlugInput defaultValue="Hello, World!" slugLabel="   " />);
+    expect(screen.getByText("hello_world")).toHaveAttribute("data-slug");
+  });
+
   it("derives the slug line from a controlled value", () => {
     render(<SlugInput value="Some Title" onChange={() => {}} />);
     expect(screen.getByText("some_title")).toHaveAttribute("data-slug");
