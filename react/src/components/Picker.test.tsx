@@ -24,6 +24,19 @@ describe("Picker panelTone", () => {
   });
 });
 
+describe("Picker popup layer", () => {
+  it("opens at the chain-resolved tier outside a menu (unchanged default)", () => {
+    render(<Picker items={ITEMS} />);
+    fireEvent.click(screen.getByRole("button"));
+    const popup = document.body.querySelector<HTMLElement>(
+      '[data-slot="picker-popup"]',
+    );
+    expect(popup).not.toBeNull();
+    // No z-indexed ancestors, no menu context → the (highest ?? 20) + 1 floor.
+    expect(popup!.style.zIndex).toBe("21");
+  });
+});
+
 describe("Picker groups", () => {
   const G = [
     { id: "a", title: "Alpha", group: "Automation" },

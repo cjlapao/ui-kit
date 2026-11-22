@@ -16,12 +16,18 @@ import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 import Copy from "./examples/Copy";
 import copyCode from "./examples/Copy.tsx?raw";
+import SubItems from "./examples/SubItems";
+import subItemsCode from "./examples/SubItems.tsx?raw";
+import Collapsible from "./examples/Collapsible";
+import collapsibleCode from "./examples/Collapsible.tsx?raw";
+import BottomBorder from "./examples/BottomBorder";
+import bottomBorderCode from "./examples/BottomBorder.tsx?raw";
 
 export const InfoRowPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Info Row"
-      description="One label/value line in a details panel — with copy-to-clipboard, a tooltip when the value is truncated, and loading, empty and error states. Its copy colour and hairline come from the surface it sits on, so a row on glass reads as well as one on a white card."
+      description="One label/value line in a details panel — with copy-to-clipboard, a tooltip when the value is truncated, and loading, empty and error states. A leading icon, stacked sub-items and an optional disclosure body cover the richer shapes a review or a trigger config asks for. Its copy colour and hairline come from the surface it sits on, so a row on glass reads as well as one on a white card."
     />
     <InfoRowPlayground />
     <section className="flex flex-col gap-5">
@@ -59,6 +65,30 @@ export const InfoRowPage: React.FC = () => (
         filename="Copy.tsx"
       >
         <Copy />
+      </ExampleCard>
+      <ExampleCard
+        title="Sub items"
+        description="A verdict row can say more than one thing: a leading `icon` in the row's tone, and `subItems` — `text value` lines stacked under the main line, indented to the title's leading edge (a sub-item's `mono` is its own). Rows like these carry no main value, and a row with sub-items survives the `hideIfEmpty` default — it is the sub-items that make it worth showing."
+        code={subItemsCode}
+        filename="SubItems.tsx"
+      >
+        <SubItems />
+      </ExampleCard>
+      <ExampleCard
+        title="Collapsible"
+        description="`collapsible` (implied whenever a `body` is present) turns the whole main line — icon, label, value, chevron — into the toggle: `role='button'`, Enter and Space, the tone wash and focus ring of a shared trigger. The body unfolds with the same `grid-template-rows: 0fr→1fr` animation the collapsible panel uses; collapsed, it is `inert` rather than `hidden`, so the transition plays and nothing inside the folded body takes a tab stop. Controls in the value cluster keep their own clicks."
+        code={collapsibleCode}
+        filename="Collapsible.tsx"
+      >
+        <Collapsible />
+      </ExampleCard>
+      <ExampleCard
+        title="Bottom border"
+        description="`bottomBorder` draws a section edge under each row — the rules of a simple key/value table. It is honoured by the `simple` and `none` variants only: the surfaced variants already frame themselves, and `plain` keeps its hairline so the last row still goes bare. The rule spans the full row width, including under any sub-items; where the caller stops opting in, the table ends."
+        code={bottomBorderCode}
+        filename="BottomBorder.tsx"
+      >
+        <BottomBorder />
       </ExampleCard>
     </section>
 
@@ -110,6 +140,24 @@ export const InfoRowPage: React.FC = () => (
         <p>
           Boolean values render as localised Yes/No text, so they are read as
           words rather than as nothing — and copy still offers the same text.
+        </p>
+      </A11yTopic>
+
+      <A11yTopic title="Disclosure rows">
+        <p>
+          A <C>collapsible</C> row&rsquo;s main line — icon, label, value and
+          chevron together — is the toggle: a real <C>role="button"</C> with
+          <C>aria-expanded</C> and <C>aria-controls</C>, answering to click,
+          Enter and Space (with <C>preventDefault</C>, so Space never scrolls
+          the page). Its accessible name is the row&rsquo;s own text; the
+          chevron is <C>aria-hidden</C>. Controls inside the value cluster stop
+          the activation from reaching the row — copying a digest must never
+          fold the body shut. The collapsed body is <C>inert</C> and{" "}
+          <C>aria-hidden</C>, not <C>hidden</C>: nothing inside it lands in the
+          tab order or the accessibility tree, yet the grid-rows transition can
+          still play. The <C>icon</C> is decorative — <C>aria-hidden</C> — the
+          way the copy affordance&rsquo;s glyph is; a sub-item line is plain
+          text, read in document order after the main line.
         </p>
       </A11yTopic>
 
@@ -223,7 +271,7 @@ export const InfoRowPage: React.FC = () => (
           type: "boolean",
           default: "true",
           description:
-            "Removes the row entirely when the value is empty — loading and error rows excepted.",
+            "Removes the row entirely when the value is empty — excepted by `loading`, `error`, non-empty `subItems`, a `body`, and `collapsible`.",
         },
         {
           name: "emptyText",
@@ -248,6 +296,58 @@ export const InfoRowPage: React.FC = () => (
           name: "mono",
           type: "boolean",
           description: "Monospace for the value — digests, ids, IPs.",
+        },
+        {
+          name: "icon",
+          type: "IconName | ReactElement",
+          description:
+            "Leading icon before the title, tinted by the row's `tone` (muted when `none`). Decorative — `aria-hidden`; the label still carries the row's name.",
+        },
+        {
+          name: "iconClassName",
+          type: "string",
+          description:
+            "Extras for the icon slot; a `text-*` class here wins over the tone tint.",
+        },
+        {
+          name: "subItems",
+          type: "InfoRowSubItem[]",
+          description:
+            "`{ text?, value?, mono?, className? }` lines stacked under the main line, indented to the title's leading edge whenever an icon is present. Booleans render localised Yes/No like the main value; a line with neither text nor value renders nothing.",
+        },
+        {
+          name: "collapsible",
+          type: "boolean",
+          description:
+            "Implied whenever `body` is present. The main line becomes the toggle — `role=\"button\"`, Enter/Space, `aria-expanded` — with the shared trigger wash and focus ring.",
+        },
+        {
+          name: "defaultExpanded",
+          type: "boolean",
+          description: "Initial open state for the uncontrolled body.",
+        },
+        {
+          name: "expanded",
+          type: "boolean",
+          description: "Controlled open state; pair it with `onToggle`.",
+        },
+        {
+          name: "onToggle",
+          type: "(expanded: boolean) => void",
+          description:
+            "Fires on every activation of the main line, controlled or not.",
+        },
+        {
+          name: "body",
+          type: "ReactNode",
+          description:
+            "App content revealed by the disclosure, animated with the collapsible panel's grid-rows transition. `inert` while collapsed — never `hidden`, which would cut the animation off.",
+        },
+        {
+          name: "bottomBorder",
+          type: "boolean",
+          description:
+            "Section rule under the row — honoured by `simple` and `none` only; the other variants ignore it (surfaced rows frame themselves, `plain` keeps its hairline).",
         },
         {
           name: "hoverable",

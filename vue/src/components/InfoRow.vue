@@ -10,6 +10,8 @@ import {
 
 } from "../theme/Theme";
 import type { GlassOpacity, GlassVibrancy } from "../theme/glass";
+import type { VNode } from "vue";
+import type { IconName } from "../types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,6 +30,25 @@ export type InfoRowPadding = SurfacePadding;
 /** How a row reports that it is still waiting for its value. */
 export const INFO_ROW_LOADERS = ["skeleton", "spinner"] as const;
 export type InfoRowLoader = (typeof INFO_ROW_LOADERS)[number];
+
+/**
+ * One secondary line stacked under the row's main line — the "Policy:
+ * `trigger_access.all-agents.sdsd.allow`" of a status row, the detail that
+ * belongs to the title rather than to a row of its own.
+ */
+export interface InfoRowSubItem {
+  /** Muted lead-in ("Policy:"). Omit to render the value alone. */
+  text?: string | number;
+  /**
+   * The detail itself. `boolean` localises to "Yes" / "No" like the main
+   * `value`.
+   */
+  value?: string | number | boolean | null;
+  /** Set when the value is an identifier, a path, a token — code-ish text. */
+  mono?: boolean;
+  /** Extra classes for the sub-item line itself. */
+  className?: string;
+}
 
 export interface InfoRowProps {
   /** Row label (left side). Use the `label` slot for composed/styled labels. */
@@ -120,6 +141,42 @@ export interface InfoRowProps {
   glassOpacity?: GlassOpacity;
   /** Backdrop vibrancy, when `variant` is a glass one. */
   vibrancy?: GlassVibrancy;
+  /**
+   * Leading icon, sitting just before the label — the check that says a
+   * status row passed. Tints with the row's `tone` (muted when `tone` is
+   * `none`); a text colour in `iconClassName` replaces that, and a custom
+   * VNode's own classes merge rather than race.
+   */
+  icon?: IconName | VNode;
+  /** Extra classes for the icon; a text colour here owns the tint. */
+  iconClassName?: string;
+  /**
+   * Secondary lines stacked under the main line, indented to the title's
+   * edge when there is an icon. Each is a muted `text` lead-in and a
+   * body-ink `value` (`font-mono` when `mono`); either half may stand
+   * alone. A row with only sub-items is never hidden by `hideIfEmpty`.
+   * Use the `sub-item` slot to take over the line markup.
+   */
+  subItems?: InfoRowSubItem[];
+  /**
+   * Make the row a disclosure: clicking (or Enter/Space on) the main line
+   * toggles the `body` slot open and closed, animated with the same
+   * grid-rows gesture as `CollapsiblePanel`. Defaults to `true` when a
+   * `body` slot is provided; pass `false` to render the body always open
+   * without the toggle affordance.
+   */
+  collapsible?: boolean;
+  /** Initial open state for uncontrolled use. @default false */
+  defaultExpanded?: boolean;
+  /** Controlled open state — pair with `v-model:expanded` or `@toggle`. */
+  expanded?: boolean;
+  /**
+   * Draw a full-width hairline under the whole row block — a section edge
+   * for a simple key/value table. Only honoured on the `simple` and `none`
+   * variants (other surfaces own their own frame, and `plain` keeps its
+   * sibling-matched `last:border-0` hairline). @default false
+   */
+  bottomBorder?: boolean;
 }
 
 // ── Size tokens ───────────────────────────────────────────────────────────────
@@ -133,6 +190,12 @@ type SizeToken = {
   /** Height of a skeleton bar, so the placeholder matches the real row. */
   bar: string;
   iconSize: ControlSize;
+  /**
+   * Indent sub-items and body content to the title's edge — the icon box
+   * (`h-4`…`h-8`) plus the main line's gap, per size. Applied only when an
+   * icon is actually rendered; without one the title *is* the left edge.
+   */
+  iconIndent: string;
 };
 
 const sizeTokens: Record<InfoRowSize, SizeToken> = {
@@ -144,6 +207,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-2",
     bar: "h-2",
     iconSize: "xs",
+    iconIndent: "pl-6",
   },
   sm: {
     defaultPadding: "py-1.5",
@@ -153,6 +217,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-2",
     bar: "h-2.5",
     iconSize: "xs",
+    iconIndent: "pl-6",
   },
   md: {
     defaultPadding: "py-2",
@@ -162,6 +227,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-3",
     bar: "h-3",
     iconSize: "sm",
+    iconIndent: "pl-8",
   },
   lg: {
     defaultPadding: "py-2.5",
@@ -171,6 +237,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-3",
     bar: "h-3.5",
     iconSize: "md",
+    iconIndent: "pl-9",
   },
   xl: {
     defaultPadding: "py-3",
@@ -180,6 +247,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-4",
     bar: "h-4",
     iconSize: "md",
+    iconIndent: "pl-10",
   },
 };
 
@@ -234,12 +302,15 @@ type CopyState = "idle" | "copied" | "failed";
 </script>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, useSlots } from "vue";
+import { computed, onUnmounted, ref, useId, useSlots } from "vue";
 import classNames from "classnames";
 import { useClassAttrs } from "../utils/attrsUtils";
+import { useIconRenderer } from "../contexts/IconContext";
+import { useKitT } from "../i18n";
 import Panel from "./Panel.vue";
 import InfoRowContent, {
   type InfoRowView,
+  type InfoRowSubItemView,
 } from "./internal/InfoRowContent.vue";
 import {
   DEFAULT_SURFACE_CORNER,
@@ -270,12 +341,48 @@ const props = withDefaults(defineProps<InfoRowProps>(), {
   noBorder: false,
   noPadding: false,
   hoverable: false,
+  defaultExpanded: false,
+  bottomBorder: false,
+  // An absent `Boolean` prop is cast to `false` by Vue unless a default of
+  // `undefined` opts out — and `undefined` here *means* something:
+  // `collapsible` falls back to "is there a body?", `expanded` to
+  // "uncontrolled". CollapsiblePanel.vue sets the same defaults.
+  collapsible: undefined,
+  expanded: undefined,
 });
 
-const emit = defineEmits<{ copy: [text: string] }>();
+const emit = defineEmits<{
+  copy: [text: string];
+  toggle: [expanded: boolean];
+  "update:expanded": [expanded: boolean];
+}>();
 
 const { classAttr, restAttrs } = useClassAttrs();
 const slots = useSlots();
+const renderIcon = useIconRenderer();
+
+// ── Collapsible body ── (the same controlled/uncontrolled pair, and the same
+// `v-model:expanded` + `toggle` double emit, CollapsiblePanel.vue runs on)
+const headerId = useId();
+const contentId = useId();
+const hasBody = computed(() => !!slots.body);
+const isControlled = computed(() => typeof props.expanded === "boolean");
+const isCollapsible = computed(() => props.collapsible ?? hasBody.value);
+const internalExpanded = ref(props.defaultExpanded);
+const isExpanded = computed(() =>
+  isControlled.value ? (props.expanded as boolean) : internalExpanded.value,
+);
+// A `collapsible: false` row with a body renders it always-open — the
+// content stands, only the toggle affordance is withheld.
+const bodyOpen = computed(() =>
+  isCollapsible.value ? isExpanded.value : true,
+);
+const handleToggle = () => {
+  const next = !isExpanded.value;
+  if (!isControlled.value) internalExpanded.value = next;
+  emit("update:expanded", next);
+  emit("toggle", next);
+};
 
 const copyState = ref<CopyState>("idle");
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -306,14 +413,18 @@ const hasError = computed(() => Boolean(props.error));
  */
 const isPlain = computed(() => props.variant === "plain");
 
-// A row that is loading, or reporting a failure, has something to say even
-// though it has no value yet — hiding it would be wrong.
+// A row that is loading, reporting a failure, carrying sub-items or holding a
+// body has something to say even though it has no value yet — hiding it would
+// be wrong.
 const isHidden = computed(
   () =>
     normalised.value.isEmpty &&
     props.hideIfEmpty &&
     !props.loading &&
-    !hasError.value,
+    !hasError.value &&
+    !resolvedSubItems.value &&
+    !hasBody.value &&
+    props.collapsible !== true,
 );
 
 /**
@@ -383,10 +494,21 @@ const copyLabel = computed(() =>
       : "Copy to clipboard",
 );
 
+// A requested section edge wins over the sibling-matched hairline: the
+// hairline's `last:border-0` is a `:last-child` rule, which outranks any
+// plain utility class, so it has to be taken out behind the edge rather than
+// left to fight it.
+const sectionEdge = computed(
+  () =>
+    props.bottomBorder &&
+    !props.noBorder &&
+    (props.variant === "simple" || props.variant === "none"),
+);
+
 const rowClass = computed(() =>
   classNames(
-    "group flex items-center transition-colors duration-300",
-    tokens.value.gap,
+    // Column, not row: the main line, the sub-items and the body stack.
+    "group flex flex-col transition-colors duration-300",
     rowPadding.value,
     !props.noPadding && tokens.value.horizontalPadding,
     props.hoverable && "rounded-md",
@@ -395,7 +517,9 @@ const rowClass = computed(() =>
     props.hoverable && copyState.value === "idle" && trigger.value.hover,
     !props.noBorder &&
       !props.hoverable &&
+      !sectionEdge.value &&
       `border-b ${text.value.divider} last:border-0`,
+    sectionEdge.value && `border-b ${text.value.divider}`,
     copyState.value === "copied" && "bg-emerald-500/10",
     copyState.value === "failed" && "bg-rose-500/10",
     // Only the plain row is the root element, so only it carries the caller's
@@ -475,6 +599,123 @@ const copyButtonClass = computed(() =>
   ),
 );
 
+// ── Leading icon ── tinted by tone (muted at `none`), a text colour in
+// `iconClassName` owning the tint instead of racing it. Derived from the
+// tone, never mapped: the tone-accent shapes are already safelisted for all
+// colours by the loader precedent above.
+const iconNode = computed(() =>
+  props.icon
+    ? renderIcon(
+        props.icon,
+        tokens.value.iconSize,
+        classNames(
+          !hasTextColor(props.iconClassName) &&
+            (props.tone === "none"
+              ? text.value.muted
+              : `text-${resolvedAccentTone.value}-500 dark:text-${resolvedAccentTone.value}-400`),
+          props.iconClassName,
+        ),
+      )
+    : null,
+);
+
+// ── Sub-items ── resolved once so the hide check and the render agree on
+// which lines actually carry something.
+const t = useKitT();
+const resolvedSubItems = computed<InfoRowSubItemView[] | null>(() => {
+  if (!props.subItems?.length) return null;
+  const lines = props.subItems
+    .map((item) => {
+      const hasText =
+        item.text !== undefined && item.text !== null && item.text !== "";
+      const nv = normaliseValue(item.value);
+      return {
+        text: item.text,
+        value:
+          typeof item.value === "boolean"
+            ? t(item.value ? "kit.inforow.yes" : "kit.inforow.no")
+            : nv.display,
+        hasText,
+        hasValue: !nv.isEmpty,
+        mono: !!item.mono,
+        lineClass: classNames(
+          "flex flex-wrap items-baseline gap-1.5 wrap-break-word",
+          item.className,
+        ),
+        textClass: classNames(tokens.value.text, text.value.muted),
+        valueClass: classNames(
+          tokens.value.text,
+          "font-medium",
+          text.value.body,
+          item.mono && "font-mono",
+        ),
+      };
+    })
+    .filter((line) => line.hasText || line.hasValue);
+  return lines.length ? lines : null;
+});
+const subItemsClass = computed(() =>
+  classNames("flex flex-col", props.icon && tokens.value.iconIndent),
+);
+
+// ── Main line ── the row of the old markup; it becomes the disclosure
+// trigger only when the row is collapsible, and it keeps `rounded-[inherit]`
+// so a hover wash follows the row's own corner.
+const mainLineClass = computed(() =>
+  classNames(
+    "flex min-w-0 items-center rounded-[inherit] text-left",
+    tokens.value.gap,
+    isCollapsible.value &&
+      classNames("cursor-pointer", trigger.value.hover, trigger.value.focusRing),
+  ),
+);
+// Bound onto the header element; empty unless the row is a toggle.
+const headerAria = computed<Record<string, unknown>>(() =>
+  isCollapsible.value
+    ? {
+        role: "button",
+        tabindex: 0,
+        "aria-expanded": isExpanded.value,
+        "aria-controls": contentId,
+      }
+    : {},
+);
+const chevronClass = computed(() =>
+  isCollapsible.value
+    ? classNames(
+        "flex shrink-0 items-center transition-transform duration-300",
+        text.value.muted,
+        isExpanded.value ? "rotate-180" : "rotate-0",
+      )
+    : null,
+);
+
+// ── Body ── the exact grid-rows gesture CollapsiblePanel's Vue twin adopted
+// from React (max-height is the outdated shape there). Rendered whenever a
+// body exists, open or not — `bodyOpen` carries a non-collapsible row's
+// always-open state.
+const bodyClass = computed(() =>
+  classNames(
+    "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
+    bodyOpen.value ? "opacity-100" : "opacity-0",
+  ),
+);
+const bodyStyle = computed(() => ({
+  gridTemplateRows: bodyOpen.value ? "1fr" : "0fr",
+}));
+// Collapsed content is inert — not focusable, not announced — rather than
+// `hidden`, which would snap the grid transition shut.
+const bodyRegionAttrs = computed<Record<string, unknown>>(() => ({
+  id: contentId,
+  role: "region",
+  "aria-labelledby": headerId,
+  "aria-hidden": !bodyOpen.value || undefined,
+  ...(bodyOpen.value ? {} : { inert: true }),
+}));
+const bodyContentClass = computed(() =>
+  classNames("w-full", tokens.value.text, text.value.body, props.icon && tokens.value.iconIndent),
+);
+
 const view = computed<InfoRowView>(() => ({
   rowClass: rowClass.value,
   labelClass: labelClass.value,
@@ -497,6 +738,21 @@ const view = computed<InfoRowView>(() => ({
   hasError: hasError.value,
   tone: resolvedAccentTone.value,
   iconSize: tokens.value.iconSize,
+  headerId: headerId,
+  contentId: contentId,
+  mainLineClass: mainLineClass.value,
+  headerAria: headerAria.value,
+  iconNode: iconNode.value,
+  chevronClass: chevronClass.value,
+  collapsible: isCollapsible.value,
+  subItems: resolvedSubItems.value,
+  subItemsClass: subItemsClass.value,
+  hasBody: hasBody.value,
+  bodyOpen: bodyOpen.value,
+  bodyClass: bodyClass.value,
+  bodyStyle: bodyStyle.value,
+  bodyRegionAttrs: bodyRegionAttrs.value,
+  bodyContentClass: bodyContentClass.value,
 }));
 </script>
 
@@ -506,9 +762,14 @@ const view = computed<InfoRowView>(() => ({
     v-bind="restAttrs"
     :view="view"
     @copy="handleCopy"
+    @toggle="handleToggle"
   >
     <template v-if="$slots.label" #label><slot name="label" /></template>
     <template v-if="$slots.value" #value><slot name="value" /></template>
+    <template v-if="$slots.body" #body><slot name="body" /></template>
+    <template v-if="$slots['sub-item']" #sub-item="slotProps">
+      <slot name="sub-item" v-bind="slotProps" />
+    </template>
   </InfoRowContent>
 
   <Panel
@@ -523,9 +784,13 @@ const view = computed<InfoRowView>(() => ({
     :glass-opacity="glassOpacity"
     :vibrancy="vibrancy"
   >
-    <InfoRowContent :view="view" @copy="handleCopy">
+    <InfoRowContent :view="view" @copy="handleCopy" @toggle="handleToggle">
       <template v-if="$slots.label" #label><slot name="label" /></template>
       <template v-if="$slots.value" #value><slot name="value" /></template>
+      <template v-if="$slots.body" #body><slot name="body" /></template>
+      <template v-if="$slots['sub-item']" #sub-item="slotProps">
+        <slot name="sub-item" v-bind="slotProps" />
+      </template>
     </InfoRowContent>
   </Panel>
 </template>

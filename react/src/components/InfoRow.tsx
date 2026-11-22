@@ -1,12 +1,14 @@
 import { getSurfaceAccentColor } from "../theme/Theme";
 import type { SurfaceTone } from "../theme/Theme";
 import type { SurfaceTransparency } from "../theme/Theme";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import classNames from "classnames";
 import Panel, { SkeletonBar } from "./Panel";
 import TooltipWrapper from "./TooltipWrapper";
 import IconButton from "./IconButton";
 import { useSurfaceText } from "../contexts/SurfaceContext";
+import { useIconRenderer } from "../contexts/IconContext";
+import { type IconName } from "../icons/registry";
 import { useKitT } from "../i18n";
 import {
   DEFAULT_SURFACE_CORNER,
@@ -40,11 +42,30 @@ export type InfoRowPadding = SurfacePadding;
 export const INFO_ROW_LOADERS = ["skeleton", "spinner"] as const;
 export type InfoRowLoader = (typeof INFO_ROW_LOADERS)[number];
 
+/**
+ * One secondary line stacked under the row's main line — the "Policy:
+ * `trigger_access.all-agents.sdsd.allow`" of a status row, the detail that
+ * belongs to the title rather than to a row of its own.
+ */
+export interface InfoRowSubItem {
+  /** Muted lead-in ("Policy:"). Omit to render the value alone. */
+  text?: React.ReactNode;
+  /**
+   * The detail itself. `boolean` localises to "Yes"/"No" like the main
+   * `value`; a ReactNode renders as-is.
+   */
+  value?: React.ReactNode;
+  /** Set when the value is an identifier, a path, a token — code-ish text. */
+  mono?: boolean;
+  /** Extra classes for the sub-item line itself. */
+  className?: string;
+}
+
 export interface InfoRowProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
   // Owned by this component, and each would otherwise land on the <div> as a
   // native attribute with different meaning.
-  "color" | "title" | "content" | "onCopy"
+  "color" | "title" | "content" | "onCopy" | "onToggle"
 > {
   /** Row label (left side). Accepts ReactNode for composed/styled labels. */
   label: React.ReactNode;
@@ -144,6 +165,51 @@ export interface InfoRowProps extends Omit<
   transparency?: SurfaceTransparency;
   /** Backdrop vibrancy, when `variant` is a glass one. */
   vibrancy?: GlassVibrancy;
+  /**
+   * Leading icon, sitting just before the label — the check that says a
+   * status row passed. Tints with the row's `tone` (muted when `tone` is
+   * `none`); a text colour in `iconClassName` replaces that, and a custom
+   * element's own classes merge rather than race.
+   */
+  icon?: IconName | React.ReactElement;
+  /** Extra classes for the icon; a text colour here owns the tint. */
+  iconClassName?: string;
+  /**
+   * Secondary lines stacked under the main line, indented to the title's
+   * edge when there is an icon. Each is a muted `text` lead-in and a
+   * body-ink `value` (`font-mono` when `mono`); either half may stand
+   * alone. A row with only sub-items is never hidden by `hideIfEmpty`.
+   */
+  subItems?: InfoRowSubItem[];
+  /**
+   * Make the row a disclosure: clicking (or Enter/Space on) the main line
+   * toggles the `body` open and closed, animated with the same grid-rows
+   * gesture as `CollapsiblePanel`. Defaults to `true` when `body` is
+   * provided; pass `false` to render the body always open without the
+   * toggle affordance... and pass `collapsible` with no body for a
+   * controlled shell whose body arrives later.
+   */
+  collapsible?: boolean;
+  /** Initial open state for uncontrolled use. @default false */
+  defaultExpanded?: boolean;
+  /** Controlled open state. Pair with `onToggle`. */
+  expanded?: boolean;
+  /** Called with the next open state whenever the row is toggled. */
+  onToggle?: (expanded: boolean) => void;
+  /**
+   * The disclosure's content — a bullet list, a nested key/value group —
+   * revealed under the main line. Rendered inert-while-collapsed, never
+   * `hidden`, so the transition survives. A row with only a body is never
+   * hidden by `hideIfEmpty`.
+   */
+  body?: React.ReactNode;
+  /**
+   * Draw a full-width hairline under the whole row block — a section edge
+   * for a simple key/value table. Only honoured on the `simple` and `none`
+   * variants (other surfaces own their own frame, and `plain` keeps its
+   * sibling-matched `last:border-0` hairline). @default false
+   */
+  bottomBorder?: boolean;
   className?: string;
 }
 
@@ -158,6 +224,12 @@ type SizeToken = {
   /** Height of a skeleton bar, so the placeholder matches the real row. */
   bar: string;
   iconSize: ControlSize;
+  /**
+   * Indent sub-items and body content to the title's edge — the icon box
+   * (`h-4`…`h-8`) plus the main line's gap, per size. Applied only when an
+   * icon is actually rendered; without one the title *is* the left edge.
+   */
+  iconIndent: string;
 };
 
 const sizeTokens: Record<InfoRowSize, SizeToken> = {
@@ -169,6 +241,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-2",
     bar: "h-2",
     iconSize: "xs",
+    iconIndent: "pl-6",
   },
   sm: {
     defaultPadding: "py-1.5",
@@ -178,6 +251,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-2",
     bar: "h-2.5",
     iconSize: "xs",
+    iconIndent: "pl-6",
   },
   md: {
     defaultPadding: "py-2",
@@ -187,6 +261,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-3",
     bar: "h-3",
     iconSize: "sm",
+    iconIndent: "pl-8",
   },
   lg: {
     defaultPadding: "py-2.5",
@@ -196,6 +271,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-3",
     bar: "h-3.5",
     iconSize: "md",
+    iconIndent: "pl-9",
   },
   xl: {
     defaultPadding: "py-3",
@@ -205,6 +281,7 @@ const sizeTokens: Record<InfoRowSize, SizeToken> = {
     gap: "gap-4",
     bar: "h-4",
     iconSize: "md",
+    iconIndent: "pl-10",
   },
 };
 
@@ -300,6 +377,17 @@ const InfoRowBody: React.FC<
   noBorder = false,
   noPadding = false,
   hoverable = false,
+  variant = "elevated",
+  tone = "none",
+  icon,
+  iconClassName,
+  subItems,
+  collapsible,
+  defaultExpanded = false,
+  expanded,
+  onToggle,
+  body,
+  bottomBorder = false,
   className,
   normalised,
   rowTone,
@@ -307,6 +395,7 @@ const InfoRowBody: React.FC<
 }) => {
   const t = useKitT();
   const text = useSurfaceText();
+  const renderIcon = useIconRenderer();
   const [copyState, setCopyState] = useState<CopyState>("idle");
   /*
     The reveal's third state. Hover and focus summon the button; a copy
@@ -344,6 +433,36 @@ const InfoRowBody: React.FC<
   const useSmartLayout = labelWidth === undefined;
   const trigger = getSurfaceTriggerTokens(rowTone);
 
+  // ── Collapsible body ── (the same controlled/uncontrolled pair
+  // CollapsiblePanel runs on)
+  const isControlled = typeof expanded === "boolean";
+  const isCollapsible = collapsible ?? body !== undefined;
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const isExpanded = isControlled ? (expanded as boolean) : internalExpanded;
+  // A `collapsible={false}` row with a body renders it always-open — the
+  // content stands, only the toggle affordance is withheld.
+  const bodyOpen = isCollapsible ? isExpanded : true;
+  const headerId = useId();
+  const contentId = useId();
+  const handleToggle = useCallback(() => {
+    const next = !isExpanded;
+    if (!isControlled) setInternalExpanded(next);
+    onToggle?.(next);
+  }, [isExpanded, isControlled, onToggle]);
+  const handleHeaderKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // Target guard: Enter/Space arriving from the copy button — the only
+      // focusable child on the line — must activate the button, never toggle
+      // the row. Same rule CollapsiblePanel's header obeys.
+      if (event.target !== event.currentTarget) return;
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleToggle();
+      }
+    },
+    [handleToggle],
+  );
+
   const handleCopy = useCallback(async () => {
     if (!copyText) return;
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -367,11 +486,37 @@ const InfoRowBody: React.FC<
   const loaderInk = `bg-${rowTone}-500/20 dark:bg-${rowTone}-500/25`;
   const loaderText = `text-${rowTone}-500 dark:text-${rowTone}-400`;
 
+  // A section edge under the *whole block* — sub-items and an open body
+  // included. Only the two borderless surface variants honour it: the framed
+  // ones own their own edge, and `plain` keeps its sibling-matched hairline
+  // contract (`last:border-0`) untouched. `noBorder` still wins.
+  const sectionEdge =
+    bottomBorder &&
+    !noBorder &&
+    (variant === "simple" || variant === "none");
+
   const valueColorClass = hasError
     ? "text-rose-600 dark:text-rose-400"
     : isEmpty
       ? text.muted
       : text.body;
+
+  // The icon follows the row's tone, like the loader — derived, never mapped:
+  // both shapes are already safelisted for all 21 colours. A text colour on
+  // `iconClassName` owns the tint instead.
+  const iconNode = icon
+    ? renderIcon(
+        icon,
+        tokens.iconSize,
+        classNames(
+          !hasTextColor(iconClassName) &&
+            (tone === "none"
+              ? text.muted
+              : `text-${rowTone}-500 dark:text-${rowTone}-400`),
+          iconClassName,
+        ),
+      )
+    : null;
 
   const valueSpan = (
     // The truncated value is the tooltip's anchor: focusable (with a
@@ -411,21 +556,62 @@ const InfoRowBody: React.FC<
         // override below honest: without it, *any* ancestor carrying a bare
         // `group` class (an accordion, a card) whose subtree holds a focused
         // button would summon every dismissed copy button inside it.
-        "group group/inforow flex items-center transition-colors duration-300",
-        tokens.gap,
+        "group group/inforow flex flex-col transition-colors duration-300",
         rowPadding,
         !noPadding && tokens.horizontalPadding,
         hoverable && "rounded-md",
         // `!copied` so the confirmation wash is never racing the hover wash for
         // the same property.
         hoverable && copyState === "idle" && trigger.hover,
-        !noBorder && !hoverable && `border-b ${text.divider} last:border-0`,
+        // The hairline's `last:border-0` is suppressed while a section edge is
+        // on — `:last-child` outranks the plain class, and without this the
+        // last row's requested border would vanish.
+        !noBorder &&
+          !hoverable &&
+          !sectionEdge &&
+          `border-b ${text.divider} last:border-0`,
+        sectionEdge && `border-b ${text.divider}`,
         copyState === "copied" && "bg-emerald-500/10",
         copyState === "failed" && "bg-rose-500/10",
         className,
       )}
       aria-busy={loading || undefined}
     >
+      {/*
+        Main line — the row's original horizontal layout, and the whole
+        toggle target when the row is a disclosure: `role="button"` and the
+        activation live here (never on the root), so clicking a sub-item or
+        reading an open body never toggles. A div with a button role, not a
+        native <button>: the value cluster holds the copy button, which would
+        be invalid nested inside one.
+      */}
+      <div
+        id={headerId}
+        {...(isCollapsible
+          ? {
+              role: "button" as const,
+              tabIndex: 0,
+              "aria-expanded": isExpanded,
+              "aria-controls": contentId,
+              onClick: handleToggle,
+              onKeyDown: handleHeaderKeyDown,
+            }
+          : {})}
+        className={classNames(
+          "flex min-w-0 items-center rounded-[inherit] text-left",
+          tokens.gap,
+          isCollapsible &&
+            classNames("cursor-pointer", trigger.hover, trigger.focusRing),
+        )}
+      >
+        {iconNode && (
+          // `flex`, or the inline box picks up descender space and stops
+          // matching the icon's own height. Decorative: the label says what
+          // the icon only signals.
+          <span className="flex shrink-0 items-center" aria-hidden="true">
+            {iconNode}
+          </span>
+        )}
       {/* Label — natural content width, capped at 30%; fixed width when labelWidth is explicit */}
       <span
         className={classNames(
@@ -442,8 +628,19 @@ const InfoRowBody: React.FC<
 
       {/* Value + copy button. No `gap`: spacing to the button lives on the
           button wrapper itself, so a hidden button claims zero pixels and the
-          value owns the full width. */}
-      <div className="relative flex flex-1 items-center justify-end min-w-0">
+          value owns the full width. While the row is a disclosure, activation
+          here belongs to the value and the copy button, not to the toggle —
+          both paths stop at the cluster. */}
+      <div
+        {...(isCollapsible
+          ? {
+              onClick: (event: React.MouseEvent) => event.stopPropagation(),
+              onKeyDown: (event: React.KeyboardEvent) =>
+                event.stopPropagation(),
+            }
+          : {})}
+        className="relative flex flex-1 items-center justify-end min-w-0"
+      >
         {loading ? (
           loaderType === "spinner" ? (
             <span
@@ -540,6 +737,116 @@ const InfoRowBody: React.FC<
           </span>
         )}
       </div>
+
+        {isCollapsible && (
+          <span
+            className={classNames(
+              // `flex`, or the inline box picks up descender space and stops
+              // matching the icon's own height.
+              "flex shrink-0 items-center transition-transform duration-300",
+              text.muted,
+              isExpanded ? "rotate-180" : "rotate-0",
+            )}
+            aria-hidden="true"
+          >
+            {renderIcon("ArrowDown", tokens.iconSize)}
+          </span>
+        )}
+      </div>
+
+      {/* Sub-items — the detail that belongs to the title, not to a row of its
+          own. Baseline-paired so "Policy:" and its mono value read as one
+          sentence at the title's edge, and allowed to reflow as one when the
+          column gets narrow. */}
+      {subItems && subItems.length > 0 && (
+        <div
+          className={classNames("flex flex-col", icon && tokens.iconIndent)}
+        >
+          {subItems.map((item, index) => {
+            // Booleans localise like the main `value`.
+            const subValue =
+              typeof item.value === "boolean"
+                ? item.value
+                  ? t("kit.inforow.yes")
+                  : t("kit.inforow.no")
+                : item.value;
+            const hasText =
+              item.text !== undefined && item.text !== null && item.text !== "";
+            const hasValue =
+              subValue !== undefined && subValue !== null && subValue !== "";
+            if (!hasText && !hasValue) return null;
+            return (
+              <div
+                key={index}
+                className={classNames(
+                  "flex flex-wrap items-baseline gap-1.5 wrap-break-word",
+                  item.className,
+                )}
+              >
+                {hasText && (
+                  <span className={classNames(tokens.text, text.muted)}>
+                    {item.text}
+                  </span>
+                )}
+                {hasValue && (
+                  <span
+                    className={classNames(
+                      tokens.text,
+                      "font-medium",
+                      text.body,
+                      item.mono && "font-mono",
+                    )}
+                  >
+                    {subValue}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/*
+        The disclosure body — the same gesture CollapsiblePanel makes:
+        `grid-template-rows: 0fr → 1fr` animates to the content's natural
+        height. `hidden` would be `display: none` and kill the transition, so
+        the collapsed region is inert instead: not focusable, not announced,
+        still animatable.
+      */}
+      {body !== undefined && (
+        <div
+          className={classNames(
+            "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
+            bodyOpen ? "opacity-100" : "opacity-0",
+          )}
+          style={{ gridTemplateRows: bodyOpen ? "1fr" : "0fr" }}
+        >
+          <div
+            id={contentId}
+            role="region"
+            aria-labelledby={headerId}
+            aria-hidden={!bodyOpen || undefined}
+            // Spread rather than passed directly so it type-checks against
+            // React 18, where `inert` is not a known prop.
+            {...(bodyOpen ? {} : ({ inert: true } as Record<string, unknown>))}
+            className="min-h-0 overflow-hidden"
+          >
+            <div
+              className={classNames(
+                // No extra padding: the row's own padding aligns the body with
+                // the main line; the icon indent aligns it with the title and
+                // the sub-items above.
+                "w-full",
+                tokens.text,
+                text.body,
+                icon && tokens.iconIndent,
+              )}
+            >
+              {body}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -582,6 +889,16 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
     noBorder: _noBorder,
     noPadding: _noPadding,
     hoverable: _hoverable,
+    icon: _icon,
+    iconClassName: _iconClassName,
+    // Read by the emptiness test below, then consumed by the body.
+    subItems,
+    collapsible,
+    body,
+    defaultExpanded: _defaultExpanded,
+    expanded: _expanded,
+    onToggle: _onToggle,
+    bottomBorder: _bottomBorder,
     ...rest
   } = props;
 
@@ -591,9 +908,19 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
     no: t("kit.inforow.no"),
   });
 
-  // A row that is loading, or reporting a failure, has something to say even
-  // though it has no value yet — hiding it would be wrong.
-  if (normalised.isEmpty && hideIfEmpty && !loading && !error) return null;
+  // A row that is loading, reporting a failure, carrying sub-items, or
+  // standing ready to reveal a body has something to say even though it has no
+  // value of its own — hiding it would be wrong.
+  if (
+    normalised.isEmpty &&
+    hideIfEmpty &&
+    !loading &&
+    !error &&
+    !subItems?.length &&
+    body === undefined &&
+    !collapsible
+  )
+    return null;
 
   // A `plain` row *is* the root element. Wrapping it in a div would make every
   // row an only child, so `last:border-0` would match all of them and the

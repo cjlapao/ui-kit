@@ -8,6 +8,12 @@ export interface GanttToolbarProps {
   tone?: SurfaceTone;
   zoom: number;
   presets: GANTT_ZOOM_PRESET[];
+  /**
+   * Grey out and block every control — the chart passes this while loading,
+   * so the span can't be changed against data that isn't there yet.
+   * @default false
+   */
+  disabled?: boolean;
 }
 export interface GanttToolbarEmits {
   (e: "zoom-to", value: number): void;
@@ -26,6 +32,7 @@ defineOptions({ name: "GanttToolbar" });
 const props = withDefaults(defineProps<GanttToolbarProps>(), {
   variant: "elevated",
   tone: "none",
+  disabled: false,
 });
 const emit = defineEmits<GanttToolbarEmits>();
 const t = useKitT();
@@ -69,12 +76,14 @@ const chrome = computed(() => getSurfaceVariantClasses(props.variant, props.tone
         v-for="p in presets"
         :key="p.label"
         type="button"
+        :disabled="disabled"
         :class="
           classNames(
             'rounded px-1.5 py-0.5 text-[10.5px] font-semibold transition-colors',
             active === p.value
               ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-600 dark:text-white'
               : 'text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200',
+            disabled && 'pointer-events-none cursor-not-allowed opacity-50',
           )
         "
         @click="emit('zoom-to', p.value)"
@@ -83,10 +92,10 @@ const chrome = computed(() => getSurfaceVariantClasses(props.variant, props.tone
       </button>
     </div>
     <div class="mx-0.5 h-4 w-px bg-neutral-200 dark:bg-neutral-700" />
-    <Button variant="ghost" size="xs" :aria-label="t('kit.gantt.zoomOut')" @click="emit('zoom-by', 1 / 1.25)">
+    <Button variant="ghost" size="xs" :disabled="disabled" :aria-label="t('kit.gantt.zoomOut')" @click="emit('zoom-by', 1 / 1.25)">
       <span class="text-xs font-semibold leading-none">−</span>
     </Button>
-    <Button variant="ghost" size="xs" :aria-label="t('kit.gantt.zoomIn')" @click="emit('zoom-by', 1.25)">
+    <Button variant="ghost" size="xs" :disabled="disabled" :aria-label="t('kit.gantt.zoomIn')" @click="emit('zoom-by', 1.25)">
       <span class="text-xs font-semibold leading-none">+</span>
     </Button>
   </div>

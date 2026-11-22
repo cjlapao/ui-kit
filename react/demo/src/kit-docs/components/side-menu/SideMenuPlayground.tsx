@@ -92,6 +92,16 @@ export const SideMenuPlayground: React.FC = () => {
   const [selectSize, setSelectSize] = useState<PickerSize>("sm");
   const [selectPlaceholder, setSelectPlaceholder] = useState("");
   const [multiSelect, setMultiSelect] = useState(false);
+  // `fullWidth` only bites on the nested row — a top-level row already sits
+  // at the base indent — so the toggle lives with the workspace knobs.
+  const [selectFullWidth, setSelectFullWidth] = useState(false);
+  // IdentityPicker-style emoji identities on the workspace rows (🤖 / 🎨).
+  const [emojiIdentities, setEmojiIdentities] = useState(false);
+  // Which workspace hosts the nested select; `ui-kit` starts collapsed, so
+  // the select appears only when that row is expanded.
+  const [selectHost, setSelectHost] = useState<"new_agents" | "ui-kit">(
+    "new_agents",
+  );
   const [selectedContext, setSelectedContext] = useState<string | undefined>(
     "test-qa",
   );
@@ -128,6 +138,7 @@ export const SideMenuPlayground: React.FC = () => {
     slug: "ctx-nested",
     type: "select",
     label: "Current context",
+    fullWidth: selectFullWidth,
     picker: contextPicker,
   };
 
@@ -170,6 +181,8 @@ export const SideMenuPlayground: React.FC = () => {
               loadingSession,
               pageSize: pageSize === "all" ? undefined : Number(pageSize),
               contextSelect: nestedSelect ? nestedContextSelect : undefined,
+              contextSelectHost: selectHost,
+              emojiIdentities,
             })
           : []),
       ]}
@@ -341,6 +354,32 @@ export const SideMenuPlayground: React.FC = () => {
                         value={pageSize}
                         onChange={setPageSize}
                       />
+                      <ToggleRow
+                        label="Nested select (inside a workspace)"
+                        checked={nestedSelect}
+                        onChange={setNestedSelect}
+                      />
+                      <ChoiceControl
+                        label="Host workspace"
+                        options={[
+                          { label: "new_agents (opens by default)", value: "new_agents" },
+                          { label: "ui-kit (collapsed — expand to reveal)", value: "ui-kit" },
+                        ]}
+                        value={selectHost}
+                        onChange={(value) =>
+                          setSelectHost(value as "new_agents" | "ui-kit")
+                        }
+                      />
+                      <ToggleRow
+                        label="Current context full width"
+                        checked={selectFullWidth}
+                        onChange={setSelectFullWidth}
+                      />
+                      <ToggleRow
+                        label="Emoji identities (🤖 / 🎨)"
+                        checked={emojiIdentities}
+                        onChange={setEmojiIdentities}
+                      />
                     </>
                   )}
                 </>
@@ -388,11 +427,6 @@ export const SideMenuPlayground: React.FC = () => {
                     label="Top-level select"
                     checked={topSelect}
                     onChange={setTopSelect}
-                  />
-                  <ToggleRow
-                    label="Nested select (inside new_agents)"
-                    checked={nestedSelect}
-                    onChange={setNestedSelect}
                   />
                   <ChoiceControl
                     label="Picker size"

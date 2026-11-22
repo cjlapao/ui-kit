@@ -54,8 +54,12 @@ export interface IdentityPickerProps extends Pick<PanelProps, "variant" | "tone"
 function initials(name: string) {
   return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(word => Array.from(word)[0]).join("").toLocaleUpperCase() || "?";
 }
+
+/** Wherever the kit renders an IdentityPicker-chosen emoji, it renders it with this stack. */
+export const IDENTITY_EMOJI_FONT_FAMILY = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+
 export function IdentityPicker({ value, defaultValue = null, onChange, onReject, name = "", emojis = IDENTITY_EMOJIS,
-  fontFamily = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif', size = "md", compact = true, disabled = false, loading = false, error,
+  fontFamily = IDENTITY_EMOJI_FONT_FAMILY, size = "md", compact = true, disabled = false, loading = false, error,
   maxImageSize = 5 * 1024 * 1024, labels: overrides, uploadLabels, className, ...surface }: IdentityPickerProps) {
   const density = identitySizeTokens[size];
   const spacing = compact ? compactIdentitySpacing[size] : density;

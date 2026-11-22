@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mount, flushPromises } from "@vue/test-utils";
+import { h } from "vue";
+import { DOMWrapper, mount, flushPromises } from "@vue/test-utils";
 
 import InfoRow, { INFO_ROW_VARIANTS, INFO_ROW_LOADERS } from "./InfoRow.vue";
 import {
@@ -281,6 +282,316 @@ describe("InfoRow", () => {
     it("uses the same size, padding and loader lists", () => {
       expect(INFO_ROW_LOADERS).toEqual(["skeleton", "spinner"]);
       expect([...SURFACE_PADDINGS]).toEqual(["none", ...CONTROL_SIZES]);
+    });
+  });
+
+  // ── icon / sub-items / collapsible body / bottom border ──────────────────
+  // Mirrors the React matrix (InfoRow.test.tsx); a `plain` row is its own
+  // root, so the main line is its first child either way.
+
+  const rowRoot = (w: ReturnType<typeof mountRow>): HTMLElement =>
+    (w.element.classList.contains("group")
+      ? w.element
+      : w.element.querySelector("div.group")) as HTMLElement;
+  const mainLine = (w: ReturnType<typeof mountRow>) =>
+    rowRoot(w).children[0] as HTMLElement;
+  const region = (w: ReturnType<typeof mountRow>) =>
+    rowRoot(w).querySelector('[role="region"]') as HTMLElement;
+  // The main line as a triggerable wrapper. `findAll` would match the root
+  // itself, so the element comes from the structural helper.
+  const lineWrapper = (w: ReturnType<typeof mountRow>) =>
+    new DOMWrapper(mainLine(w));
+
+  describe("icon", () => {
+    it("renders before the title, hidden from assistive tech", () => {
+      const w = mountRow({ value: "V", icon: "Check" });
+      const wrap = mainLine(w).children[0] as HTMLElement;
+      expect(wrap.getAttribute("aria-hidden")).toBe("true");
+      expect(wrap.innerHTML).toContain("<svg");
+    });
+
+    it("tints with the row's tone", () => {
+      const w = mountRow({ value: "V", icon: "Check", tone: "emerald" });
+      const wrap = mainLine(w).children[0] as HTMLElement;
+      expect(wrap.innerHTML).toContain("text-emerald-500");
+      expect(wrap.innerHTML).toContain("dark:text-emerald-400");
+    });
+
+    it("falls back to muted ink at tone none", () => {
+      const w = mountRow({ value: "V", icon: "Check" });
+      const wrap = mainLine(w).children[0] as HTMLElement;
+      expect(wrap.innerHTML).toContain("text-neutral-500");
+    });
+
+    it("lets iconClassName own the tint", () => {
+      const w = mountRow({
+        value: "V",
+        icon: "Check",
+        tone: "emerald",
+        iconClassName: "text-sky-500",
+      });
+      const wrap = mainLine(w).children[0] as HTMLElement;
+      expect(wrap.innerHTML).toContain("text-sky-500");
+      expect(wrap.innerHTML).not.toContain("text-emerald-500");
+    });
+
+    it("passes a custom VNode icon through", () => {
+      const w = mountRow({ value: "V", icon: h("i", { class: "my-icon" }) });
+      const wrap = mainLine(w).children[0] as HTMLElement;
+      expect(wrap.innerHTML).toContain("my-icon");
+    });
+  });
+
+  describe("sub-items", () => {
+    const subColumn = (w: ReturnType<typeof mountRow>) =>
+      rowRoot(w).children[1] as HTMLElement;
+
+    it("renders a muted lead-in and a body-ink value", () => {
+      const w = mountRow({
+        subItems: [{ text: "Policy:", value: "trigger_access.all.allow" }],
+      });
+      expect(w.text()).toContain("Policy:");
+      expect(w.text()).toContain("trigger_access.all.allow");
+      const line = subColumn(w).children[0] as HTMLElement;
+      expect((line.children[0] as HTMLElement).className).toContain(
+        "text-neutral-500",
+      );
+      expect((line.children[1] as HTMLElement).className).toContain(
+        "font-medium",
+      );
+    });
+
+    it("sets font-mono only when asked", () => {
+      const w = mountRow({
+        subItems: [
+          { text: "a", value: "1", mono: true },
+          { text: "b", value: "2" },
+        ],
+      });
+      const [monoLine, plainLine] = subColumn(w).children as HTMLCollectionOf<HTMLElement>;
+      expect((monoLine.children[1] as HTMLElement).className).toContain("font-mono");
+      expect((plainLine.children[1] as HTMLElement).className).not.toContain(
+        "font-mono",
+      );
+    });
+
+    it("indents under the icon only when one is rendered", () => {
+      const withIcon = mountRow({ icon: "Check", subItems: [{ value: "v" }] });
+      expect(subColumn(withIcon).className).toContain("pl-8");
+      const without = mountRow({ subItems: [{ value: "v" }] });
+      expect(subColumn(without).className).not.toContain("pl-8");
+    });
+
+    it("localises boolean values", () => {
+      const w = mountRow({ subItems: [{ text: "active:", value: true }] });
+      expect(w.text()).toContain("Yes");
+    });
+
+    it("skips lines with neither text nor value", () => {
+      const w = mountRow({ subItems: [{}, { text: "kept" }] });
+      expect(subColumn(w).children).toHaveLength(1);
+      expect(w.text()).toContain("kept");
+    });
+
+    it("keeps the row alive with no main value", () => {
+      const w = mountRow({ subItems: [{ text: "only" }] });
+      expect(rowRoot(w)).not.toBeNull();
+      expect(w.text()).toContain("only");
+    });
+
+    it("hands the line markup to the sub-item slot", () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", subItems: [{ text: "Policy:", value: "x.y" }] },
+        slots: { "sub-item": "<b>= {{ item.text }}</b>" },
+      });
+      expect(w.html()).toContain("<b>= Policy:</b>");
+    });
+  });
+
+  describe("collapsible body", () => {
+    const body = { body: "<ul><li>detail</li></ul>" };
+
+    it("offers no affordance without a body", () => {
+      const w = mountRow({ value: "V" });
+      expect(mainLine(w).getAttribute("role")).toBeNull();
+      // Label and value cluster only — no icon, no chevron. (The copy icon
+      // carries its own `aria-hidden`, so a root-wide query would not do.)
+      expect(mainLine(w).children).toHaveLength(2);
+    });
+
+    it("makes the main line the trigger, chevron included", () => {
+      const withBody = mount(InfoRow, {
+        props: { label: "Trigger: webhook", value: "V" },
+        slots: body,
+        attachTo: document.body,
+      });
+      const line = mainLine(withBody);
+      expect(line.getAttribute("role")).toBe("button");
+      expect(line.getAttribute("aria-expanded")).toBe("false");
+      expect(line.getAttribute("aria-controls")).toBeTruthy();
+      expect(line.getAttribute("id")).toBeTruthy();
+      const chevron = line.children[line.children.length - 1] as HTMLElement;
+      expect(chevron.className).toContain("rotate-0");
+      expect(chevron.innerHTML).toContain("<svg");
+      withBody.unmount();
+    });
+
+    it("toggles on click, emitting both events, dropping inert and flipping the chevron", async () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", value: "V" },
+        slots: body,
+        attachTo: document.body,
+      });
+      const line = lineWrapper(w);
+      await line.trigger("click");
+      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+      expect(w.emitted("toggle")?.[0]).toEqual([true]);
+      expect(w.emitted("update:expanded")?.[0]).toEqual([true]);
+      expect(region(w).hasAttribute("inert")).toBe(false);
+      const chevron = mainLine(w).children[
+        mainLine(w).children.length - 1
+      ] as HTMLElement;
+      expect(chevron.className).toContain("rotate-180");
+    });
+
+    it("toggles from Enter and Space on the main line only", async () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", value: "abc" },
+        slots: body,
+        attachTo: document.body,
+      });
+      const line = lineWrapper(w);
+      await line.trigger("keydown", { key: "Enter" });
+      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+      await line.trigger("click");
+      await line.trigger("keydown", { key: " " });
+      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("never toggles from the copy cluster", async () => {
+      const writeText = mockClipboard();
+      const w = mount(InfoRow, {
+        props: { label: "Token", value: "sk-123" },
+        slots: body,
+        attachTo: document.body,
+      });
+      await w.get("button").trigger("click");
+      await flushPromises();
+      expect(writeText).toHaveBeenCalledWith("sk-123");
+      expect(w.emitted("toggle")).toBeUndefined();
+      await w.get("button").trigger("keydown", { key: "Enter" });
+      expect(w.emitted("toggle")).toBeUndefined();
+      expect(mainLine(w).getAttribute("aria-expanded")).toBe("false");
+    });
+
+    it("keeps the collapsed region inert and hidden from AT, never display:none", () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", value: "V" },
+        slots: body,
+        attachTo: document.body,
+      });
+      const regionEl = region(w);
+      expect(regionEl.hasAttribute("inert")).toBe(true);
+      expect(regionEl.getAttribute("aria-hidden")).toBe("true");
+      expect(regionEl.hasAttribute("hidden")).toBe(false);
+      expect(regionEl.getAttribute("aria-labelledby")).toBe(
+        mainLine(w).getAttribute("id"),
+      );
+    });
+
+    it("animates with the CollapsiblePanel grid gesture", async () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", value: "V" },
+        slots: body,
+        attachTo: document.body,
+      });
+      const grid = region(w).parentElement as HTMLElement;
+      expect(grid.className).toContain("transition-[grid-template-rows,opacity]");
+      expect(grid.className).toContain("motion-reduce:transition-none");
+      expect(grid.style.gridTemplateRows).toBe("0fr");
+      await lineWrapper(w).trigger("click");
+      expect(grid.style.gridTemplateRows).toBe("1fr");
+    });
+
+    it("starts open on defaultExpanded", () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", value: "V", defaultExpanded: true },
+        slots: body,
+        attachTo: document.body,
+      });
+      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+      expect(region(w).hasAttribute("inert")).toBe(false);
+    });
+
+    it("keeps a controlled row still and only reports intent", async () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", value: "V", expanded: true },
+        slots: body,
+        attachTo: document.body,
+      });
+      await lineWrapper(w).trigger("click");
+      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+      expect(w.emitted("update:expanded")?.[0]).toEqual([false]);
+    });
+
+    it("renders an always-open body when collapsible is false", () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", value: "V", collapsible: false },
+        slots: body,
+        attachTo: document.body,
+      });
+      expect(mainLine(w).getAttribute("role")).toBeNull();
+      expect(region(w)).not.toBeNull();
+      expect(region(w).hasAttribute("inert")).toBe(false);
+      expect(w.text()).toContain("detail");
+    });
+
+    it("keeps a body-only row alive under hideIfEmpty", () => {
+      const w = mount(InfoRow, {
+        props: { label: "L" },
+        slots: body,
+        attachTo: document.body,
+      });
+      expect(w.text()).toContain("detail");
+    });
+  });
+
+  describe("bottom border", () => {
+    const rowClassesFor = (props: Record<string, unknown>) => {
+      const w = mountRow({ value: "V", ...props });
+      const cls = rowRoot(w).className;
+      w.unmount();
+      return cls;
+    };
+
+    it("draws the section edge on simple and none", () => {
+      for (const variant of ["simple", "none"]) {
+        const cls = rowClassesFor({ variant, bottomBorder: true });
+        expect(cls).toContain("border-b");
+        expect(cls).not.toContain("last:border-0");
+      }
+    });
+
+    it("is ignored by every other variant", () => {
+      for (const variant of ["elevated", "bordered", "outline"]) {
+        expect(rowClassesFor({ variant, bottomBorder: true })).toContain(
+          "last:border-0",
+        );
+      }
+    });
+
+    it("never disturbs the plain hairline", () => {
+      expect(rowClassesFor({ bottomBorder: true })).toContain("last:border-0");
+    });
+
+    it("stays off by default", () => {
+      expect(rowClassesFor({ variant: "simple" })).toContain("last:border-0");
+    });
+
+    it("stands down when noBorder says no borders at all", () => {
+      expect(rowClassesFor({ variant: "simple", bottomBorder: true, noBorder: true })).not.toContain(
+        "border-b",
+      );
     });
   });
 });

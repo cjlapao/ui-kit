@@ -568,6 +568,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/color-swatches/ColorSwatchesPage")),
   },
   {
+    slug: "custom-color-swatches",
+    name: "Custom Color Swatches",
+    description:
+      "Tone dots that open a door to your own colour: single picks one — tone or OS picker — dual paints each choice as a filled pill labelled with its hex, in an auto-computed ink you can override from the popover.",
+    icon: "Dots",
+    category: "Data",
+    Page: lazy(() => import("./components/custom-color-swatches/CustomColorSwatchesPage")),
+  },
+  {
     slug: "avatar-group",
     name: "Avatar Group",
     description:

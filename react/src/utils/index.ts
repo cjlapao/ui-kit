@@ -13,3 +13,5 @@ export * from "./smartVariables";
 export * from "./tableStorage";
 export * from "./gridStorage";
 export * from "./sanitizeSvg";
+export * from "./colorMath";
+export * from "./swatchStorage";

@@ -73,8 +73,9 @@ import {
   reorderDragSubtree,
 } from "../../../../common/gantt";
 import { getSurfaceTextTokens, getSurfaceVariantClasses, getSurfaceCornerRem } from "../../theme/Theme";
-import Panel, { type PanelCorner, type PanelPadding, type PanelVariant } from "../Panel";
+import Panel, { type PanelCorner, type PanelLoaderType, type PanelPadding, type PanelVariant } from "../Panel";
 import ScrollArea from "../ScrollArea";
+import Loader, { type LoaderColor } from "../Loader";
 import type { GlassOpacity, GlassVibrancy } from "../../theme/glass";
 import { useKitEngine, useKitT } from "../../i18n";
 import { GanttScale } from "./GanttScale";
@@ -258,8 +259,17 @@ export interface GanttProps {
    * @default "frosted"
    */
   glassOpacity?: GlassOpacity;
-  /** Show a loading skeleton. */
+  /** Show a loading state in the body (skeleton rows by default). */
   loading?: boolean;
+  /**
+   * The loading treatment `loading` shows — `"skeleton"` replaces the row
+   * area with the chart-shaped pulse; any other `Loader` variant floats that
+   * loader over the body instead, keeping any current rows visible.
+   * @default "skeleton"
+   */
+  loaderType?: PanelLoaderType;
+  /** Replace the built-in skeleton (a spinner overlay keeps its loader). */
+  loadingState?: React.ReactNode;
   /** Replace the built-in empty message. */
   emptyState?: React.ReactNode;
   /** Copy overrides. */
@@ -335,6 +345,8 @@ export const Gantt: React.FC<GanttProps> = ({
   vibrancy,
   glassOpacity,
   loading = false,
+  loaderType = "skeleton",
+  loadingState,
   emptyState,
   labels,
   renderBar,
@@ -406,8 +418,14 @@ export const Gantt: React.FC<GanttProps> = ({
     initialZoom ?? (initialSpan ? zoomForSpan(initialSpan) : 16),
   );
   const zoom = zoomProp ?? internalZoom;
+  // Zoom freezes while loading: the toolbar is disabled, but the keyboard
+  // +/− and ctrl+wheel paths must be blocked at the setter too, so the
+  // chart can't be rescaled underneath the loading state.
+  const loadingRef = useRef(false);
+  loadingRef.current = loading;
   const setZoom = useCallback(
     (z: number) => {
+      if (loadingRef.current) return;
       const clamped = Math.min(maxZoom, Math.max(minZoom, z));
       if (onZoomChange) onZoomChange(clamped);
       else setInternalZoom(clamped);
@@ -669,7 +687,9 @@ export const Gantt: React.FC<GanttProps> = ({
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("scroll", syncHeaderScale);
     };
-  }, [zoomBy, syncHeaderScale]);
+    // loading/isEmpty swap the scroller for the fixed skeleton/empty block
+    // (and back), so this must re-run to re-attach on the fresh element.
+  }, [zoomBy, syncHeaderScale, loading, tasks.length]);
 
   // Re-align the header scale when the timeline geometry changes (zoom,
   // range, columns) — the body scroller keeps its own scrollLeft, so only
@@ -941,6 +961,11 @@ export const Gantt: React.FC<GanttProps> = ({
   zoomRef.current = zoom;
   const scrollGeomRef = useRef({ todayX, leftWidth });
   scrollGeomRef.current = { todayX, leftWidth };
+  // Nothing to center on while loading or without tasks; the open scroll
+  // (re)runs when `loading` flips off, so a chart that mounts loading still
+  // lands on today when the data arrives.
+  const openScrollBlockedRef = useRef(false);
+  openScrollBlockedRef.current = loading || tasks.length === 0;
   const scrollBodyToToday = useCallback((el: HTMLElement, behavior: ScrollBehavior) => {
     const geom = scrollGeomRef.current;
     const left = todayScrollLeft(geom.todayX, el.clientWidth, el.scrollWidth, geom.leftWidth);
@@ -959,6 +984,7 @@ export const Gantt: React.FC<GanttProps> = ({
     const el = scrollRef.current;
     if (!autoScrollToToday || !el) return;
     scrollTierRef.current = pickBaseUnit(zoomRef.current);
+    if (openScrollBlockedRef.current) return;
     let active = true;
     let ro: ResizeObserver | null = null;
     const stop = () => {
@@ -973,7 +999,7 @@ export const Gantt: React.FC<GanttProps> = ({
     };
     openScrollCancelRef.current = stop;
     const scrollToNow = () => {
-      if (active) scrollBodyToToday(el, "auto");
+      if (active && !openScrollBlockedRef.current) scrollBodyToToday(el, "auto");
     };
     scrollToNow();
     if (typeof ResizeObserver === "function") {
@@ -985,18 +1011,22 @@ export const Gantt: React.FC<GanttProps> = ({
     el.addEventListener("pointerdown", stop, { passive: true });
     el.addEventListener("touchstart", stop, { passive: true });
     return stop;
-  }, [autoScrollToToday, scrollBodyToToday]);
+  }, [autoScrollToToday, loading, scrollBodyToToday]);
 
   // Tier jumps (preset buttons, controlled zoom crossing tiers) re-center
   // animated; a jump while the open scroll is still pending just takes over.
   useEffect(() => {
     if (!autoScrollToToday) return;
-    const el = scrollRef.current;
-    if (!el || scrollTierRef.current === null) return;
+    if (scrollTierRef.current === null) return;
     const tier = pickBaseUnit(zoom);
     if (scrollTierRef.current === tier) return;
     scrollTierRef.current = tier;
     openScrollCancelRef.current?.();
+    // The scroller unmounts under the skeleton/empty block, and centering
+    // is pointless while loading — the tier bookkeeping above is what
+    // must not be skipped.
+    const el = scrollRef.current;
+    if (!el || loadingRef.current) return;
     scrollBodyToToday(el, "smooth");
   }, [autoScrollToToday, zoom, scrollBodyToToday]);
   const todayTokens = getGanttTodayTokens(color);
@@ -1155,6 +1185,7 @@ export const Gantt: React.FC<GanttProps> = ({
       )}
       style={fullHeight ? { minHeight: height } : { height }}
       data-gantt
+      aria-busy={loading || undefined}
       tabIndex={0}
       aria-label={t("kit.gantt.root")}
       onKeyDown={onRootKeyDown}
@@ -1199,7 +1230,9 @@ export const Gantt: React.FC<GanttProps> = ({
                 )}
               </div>
             )}
-            {headerActionsAlign === "start" && hasNode(headerActions) && (
+            {/* Actions are host chrome — meaningless against data that is
+                still arriving, so they vanish while loading. */}
+            {headerActionsAlign === "start" && !loading && hasNode(headerActions) && (
               <div
                 data-gantt-header-region="start"
                 className="flex shrink-0 items-center gap-2"
@@ -1208,10 +1241,10 @@ export const Gantt: React.FC<GanttProps> = ({
               </div>
             )}
           </div>
-          {hasNode(actions) && (
+          {hasNode(actions) && !loading && (
             <div className="flex shrink-0 items-center gap-2">{actions}</div>
           )}
-          {headerActionsAlign === "end" && hasNode(headerActions) && (
+          {headerActionsAlign === "end" && !loading && hasNode(headerActions) && (
             <div data-gantt-header-region="end" className="flex shrink-0 items-center gap-2">
               {headerActions}
             </div>
@@ -1225,6 +1258,7 @@ export const Gantt: React.FC<GanttProps> = ({
               variant={controlsVariant ?? variant}
               zoom={zoom}
               presets={GANTT_ZOOM_PRESETS}
+              disabled={loading}
               onZoomTo={setZoom}
               onZoomBy={(f) => zoomBy(f)}
             />
@@ -1352,10 +1386,26 @@ export const Gantt: React.FC<GanttProps> = ({
             `corner` step rounding it; the frame's overflow-hidden plus the
             viewport's `rounded-[inherit]` clip the sticky columns to the
             round. */}
+        <div className="relative min-h-0 flex-1">
+          {/* Skeleton and empty are ONE block pinned to the body box, not
+              the zoom-sized scroll content — they never reflow when the
+              tier changes, and nothing scrolls inside them. */}
+          {loading && loaderType === "skeleton" ? (
+            loadingState ?? (
+              <GanttSkeleton rows={12} rowHeight={rowHeight} leftWidth={leftWidth} columnEdges={columnEdges && !tableFramed} />
+            )
+          ) : !loading && isEmpty ? (
+            <div
+              data-gantt-empty
+              className="absolute inset-0 flex items-center justify-center text-sm text-neutral-500"
+            >
+              {emptyState ?? allLabels.empty}
+            </div>
+          ) : (
         <ScrollArea
           data-gantt-frame={tableFramed ? "" : undefined}
           className={classNames(
-            "gantt-scroller min-h-0 flex-1",
+            "gantt-scroller h-full",
             tableFramed && ["border-x", "border-b", surfaceText.divider],
           )}
           style={tableFramed ? { borderRadius: `0 0 ${cornerRem} ${cornerRem}` } : undefined}
@@ -1364,13 +1414,6 @@ export const Gantt: React.FC<GanttProps> = ({
           tabIndex={-1}
         >
           <div style={{ width: leftWidth + linkLayerWidth, minWidth: "100%" }}>
-          {loading ? (
-            <GanttSkeleton rows={12} rowHeight={rowHeight} leftWidth={leftWidth} columnEdges={columnEdges && !tableFramed} />
-          ) : isEmpty ? (
-            <div className="flex items-center justify-center text-sm text-neutral-500" style={{ height: bodyHeight || 160, width: leftWidth + timelineWidth }}>
-              {emptyState ?? allLabels.empty}
-            </div>
-          ) : (
             <div className="relative" style={{ height: bodyHeight }}>
               {/* Grid lines (behind bars, above row backgrounds) */}
               <div
@@ -1390,7 +1433,7 @@ export const Gantt: React.FC<GanttProps> = ({
                       style={{ left: dateToX(c.start, range.start, zoom), width: c.width }}
                     />
                   ))}
-                {todayVisible && (
+                {todayVisible && !loading && (
                   <div
                     className={classNames("absolute inset-y-0 border-l-2", todayTokens.line)}
                     style={{ left: todayX }}
@@ -1599,9 +1642,19 @@ export const Gantt: React.FC<GanttProps> = ({
                 </div>
               )}
             </div>
-          )}
           </div>
         </ScrollArea>
+          )}
+        {loading && loaderType !== "skeleton" && (
+          <div
+            data-gantt-loader
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+          >
+            <Loader variant={loaderType} color={color as LoaderColor} />
+          </div>
+        )}
+        </div>
       </div>
     </Panel>
   );
@@ -1631,7 +1684,7 @@ const GanttSkeleton: React.FC<{
   leftWidth,
   columnEdges,
 }) => (
-  <div className="animate-pulse" aria-busy="true">
+  <div data-gantt-skeleton className="h-full overflow-hidden animate-pulse motion-reduce:animate-none" aria-busy="true">
     {Array.from({ length: rows }).map((_, i) => (
       <div key={i} className="flex" style={{ height: rowHeight }}>
         <div

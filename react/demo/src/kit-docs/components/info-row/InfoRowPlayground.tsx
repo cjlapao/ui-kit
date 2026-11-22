@@ -1,9 +1,10 @@
 import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
 import type { SurfaceTone } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
-import { InfoRow, Panel } from "@cjlapao/ui-kit";
+import { InfoRow, Panel, Toggle } from "@cjlapao/ui-kit";
 import type {
   ControlSize,
+  IconName,
   InfoRowLoader,
   InfoRowVariant,
   SurfaceCorner,
@@ -46,37 +47,73 @@ export const InfoRowPlayground: React.FC = () => {
   const [emptyValue, setEmptyValue] = useState(false);
   const [hideIfEmpty, setHideIfEmpty] = useState(false);
 
-  const rows = ["Image digest", "Region", "Replicas"].map((label, i) => (
-    <InfoRow
-      key={label}
-      label={label}
-      value={
-        emptyValue && i === 0
-          ? ""
-          : longValue && i === 0
-            ? LONG
-            : i === 0
-              ? "sha256:9f86d0"
-              : i === 1
-                ? "eu-west-1"
-                : 3
-      }
-      variant={variant}
-      tone={tone}
-      size={size}
-      padding={padding === "auto" ? undefined : padding}
-      corner={corner}
-      copyable={copyable}
-      mono={mono}
-      wrap={wrap}
-      hoverable={hoverable}
-      noBorder={noBorder}
-      loading={loading && i === 0}
-      loaderType={loaderType}
-      error={errored && i === 0 ? "Registry unreachable" : undefined}
-      hideIfEmpty={hideIfEmpty}
-    />
-  ));
+  const [icon, setIcon] = useState<"" | IconName>("");
+  const [subItems, setSubItems] = useState(false);
+  const [collapsible, setCollapsible] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [bottomBorder, setBottomBorder] = useState(false);
+  // bottomBorder only applies on the simple/none variants; the control says
+  // so rather than appearing to do nothing.
+  const bottomBorderAllowed = variant === "simple" || variant === "none";
+
+  const rows = ["Image digest", "Region", "Replicas"].map((label, i) => {
+    const isAnatomyRow = i === 0;
+    return (
+      <InfoRow
+        key={label}
+        label={label}
+        value={
+          emptyValue && i === 0
+            ? ""
+            : longValue && i === 0
+              ? LONG
+              : i === 0
+                ? "sha256:9f86d0"
+                : i === 1
+                  ? "eu-west-1"
+                  : 3
+        }
+        variant={variant}
+        tone={tone}
+        size={size}
+        padding={padding === "auto" ? undefined : padding}
+        corner={corner}
+        copyable={copyable}
+        mono={mono}
+        wrap={wrap}
+        hoverable={hoverable}
+        noBorder={noBorder}
+        loading={loading && i === 0}
+        loaderType={loaderType}
+        error={errored && i === 0 ? "Registry unreachable" : undefined}
+        hideIfEmpty={hideIfEmpty}
+        icon={icon === "" ? undefined : icon}
+        subItems={
+          subItems && isAnatomyRow
+            ? [
+                {
+                  text: "Policy:",
+                  value: "trigger_access.all-agents.sdsd.allow",
+                  mono: true,
+                },
+              ]
+            : undefined
+        }
+        collapsible={collapsible && isAnatomyRow ? true : undefined}
+        expanded={collapsible && isAnatomyRow ? expanded : undefined}
+        onToggle={collapsible && isAnatomyRow ? setExpanded : undefined}
+        body={
+          collapsible && isAnatomyRow ? (
+            <p>
+              Deployed from the release pipeline at 14:32 UTC. This body folds
+              open with the same grid-rows animation as the collapsible panel.
+            </p>
+          ) : undefined
+        }
+        bottomBorder={bottomBorder}
+      />
+    );
+  });
 
   return (
     <PlaygroundPanel
@@ -164,6 +201,66 @@ export const InfoRowPlayground: React.FC = () => {
                 ),
               },
               {
+                id: "anatomy",
+                title: "Anatomy",
+                controls: (
+                  <>
+                    <SelectControl
+                      label="Icon"
+                      options={[
+                        { label: "none", value: "" },
+                        { label: "Check", value: "Check" },
+                        { label: "Info", value: "Info" },
+                        { label: "Link", value: "Link" },
+                        { label: "Key", value: "Key" },
+                      ]}
+                      value={icon}
+                      onChange={(v) => setIcon(v as "" | IconName)}
+                    />
+                    <Control label="Anatomy">
+                      <div className="space-y-1.5">
+                        <ToggleRow
+                          label="Sub-items"
+                          checked={subItems}
+                          onChange={setSubItems}
+                        />
+                        <ToggleRow
+                          label="Collapsible"
+                          checked={collapsible}
+                          onChange={setCollapsible}
+                        />
+                        {collapsible ? (
+                          <ToggleRow
+                            label="Expanded"
+                            checked={expanded}
+                            onChange={setExpanded}
+                          />
+                        ) : null}
+                        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- the label wraps the kit Toggle; static association cannot see through the component (same pattern as ToggleRow) */}
+                        <label
+                          className={
+                            bottomBorderAllowed
+                              ? "flex cursor-pointer items-center justify-between gap-2 text-sm text-neutral-700 dark:text-neutral-300"
+                              : "flex cursor-not-allowed items-center justify-between gap-2 text-sm text-neutral-400 dark:text-neutral-500"
+                          }
+                        >
+                          <span>Bottom border</span>
+                          <Toggle
+                            size="sm"
+                            color="blue"
+                            checked={bottomBorder}
+                            disabled={!bottomBorderAllowed}
+                            onChange={(event) =>
+                              setBottomBorder(event.target.checked)
+                            }
+                          />
+                        </label>
+                      </div>
+                    </Control>
+                  </>
+                ),
+              },
+              {
                 id: "states",
                 title: "States",
                 controls: (
@@ -204,10 +301,15 @@ export const InfoRowPlayground: React.FC = () => {
             <strong>Elevated</strong> is the kit default — each row renders a{" "}
             <code>Panel</code> of its own. Switch to <code>plain</code> for the
             details-list texture: the row is then its own root element, so the
-            hairline's <code>last:border-0</code> still matches among siblings.
-            Turn on <strong>Long value</strong> and hover or tab to the value to
-            see the truncation tooltip — it is portaled, so a scrolling panel
-            cannot clip it.
+            hairline&rsquo;s <code>last:border-0</code> still matches among
+            siblings. Turn on <strong>Long value</strong> and hover or tab to
+            the value to see the truncation tooltip — it is portaled, so a
+            scrolling panel cannot clip it. In <strong>Anatomy</strong>, the
+            icon follows the row <code>tone</code>; <strong>Collapsible</strong>{" "}
+            turns the first row&rsquo;s main line into the toggle;{" "}
+            <strong>Bottom border</strong> is honoured by <code>simple</code>{" "}
+            and <code>none</code> only, so the switch is disabled on the other
+            variants.
           </p>
         </div>
       }

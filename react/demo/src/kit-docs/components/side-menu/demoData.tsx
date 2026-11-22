@@ -271,14 +271,27 @@ export interface WorkspaceSectionOptions {
   loadingSession?: boolean;
   /** Children per page; undefined shows them all. */
   pageSize?: number;
-  /** Embedded select prepended to the open workspace's sub-list. */
+  /** Embedded select prepended to the host workspace's sub-list. */
   contextSelect?: SideMenuItemSelect;
+  /**
+   * Which workspace hosts the embedded select. `ui-kit` starts collapsed, so
+   * the select only surfaces once that row is expanded — the expand-to-reveal
+   * behavior. @default "new_agents"
+   */
+  contextSelectHost?: "new_agents" | "ui-kit";
+  /**
+   * Replace the workspaces' folder icons with IdentityPicker-style emoji
+   * identities (🤖 / 🎨) — the bare large-glyph treatment.
+   */
+  emojiIdentities?: boolean;
 }
 
 /** The screenshot's Workspaces section, built from the kit's own props. */
 export const buildWorkspaceSection = (o: WorkspaceSectionOptions = {}): SideMenuItem[] => {
   const agents = sessionsFor("new_agents", 10);
   if (o.loadingSession) agents[0] = { ...agents[0], loading: true } as (typeof agents)[number];
+  const selectChildren = o.contextSelect ? [o.contextSelect] : [];
+  const host = o.contextSelectHost ?? "new_agents";
   return [
     {
       slug: "workspaces",
@@ -299,9 +312,15 @@ export const buildWorkspaceSection = (o: WorkspaceSectionOptions = {}): SideMenu
       label: "new_agents",
       path: "/ws/new_agents",
       icon: "Folder",
+      // The IdentityPicker flow: the app resolves `{type:"emoji"}` to this
+      // string and the row renders the glyph, folder icon be damned.
+      emoji: o.emojiIdentities ? "🤖" : undefined,
       groupName: "workspaces",
       defaultOpen: true,
-      children: o.contextSelect ? [o.contextSelect, ...agents] : agents,
+      children:
+        host === "new_agents"
+          ? [...selectChildren, ...agents]
+          : agents,
       childrenPageSize: o.pageSize,
       moreChildrenLabel: (n: number) => `Show ${n} more sessions`,
     },
@@ -310,8 +329,12 @@ export const buildWorkspaceSection = (o: WorkspaceSectionOptions = {}): SideMenu
       label: "ui-kit",
       path: "/ws/ui-kit",
       icon: "Folder",
+      emoji: o.emojiIdentities ? "🎨" : undefined,
       groupName: "workspaces",
-      children: sessionsFor("ui-kit", 20),
+      children:
+        host === "ui-kit"
+          ? [...selectChildren, ...sessionsFor("ui-kit", 20)]
+          : sessionsFor("ui-kit", 20),
       childrenPageSize: o.pageSize,
       moreChildrenLabel: (n: number) => `Show ${n} more sessions`,
     },

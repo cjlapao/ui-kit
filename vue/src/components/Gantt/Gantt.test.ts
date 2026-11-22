@@ -124,7 +124,8 @@ describe("Gantt (Vue)", () => {
     expect(w.find("[data-gantt-chart-actions]").exists()).toBe(true);
     // The strip sits directly above the (52px) column header strip.
     const scroller = w.find(".gantt-scroller").element as HTMLElement;
-    const columnHeader = scroller.previousElementSibling as HTMLElement;
+    // One up: the scroller lives in the body's relative box (loader anchor).
+    const columnHeader = scroller.parentElement!.previousElementSibling as HTMLElement;
     const chartHeader = columnHeader.previousElementSibling as HTMLElement;
     expect(chartHeader.textContent).toContain("Northwind Logistics GmbH");
     expect(chartHeader.textContent).not.toContain("Owner");
@@ -166,7 +167,7 @@ describe("Gantt (Vue)", () => {
   it("always renders the header strip with the zoom selector, even without header props", () => {
     const w = mountGantt();
     const scroller = w.find(".gantt-scroller").element as HTMLElement;
-    const columnHeader = scroller.previousElementSibling as HTMLElement;
+    const columnHeader = scroller.parentElement!.previousElementSibling as HTMLElement;
     const chartHeader = columnHeader.previousElementSibling as HTMLElement;
     // The strip is always present and carries the zoom selector — it never
     // floats over the scale window.
@@ -178,11 +179,122 @@ describe("Gantt (Vue)", () => {
   it("shows the empty state when there are no tasks", () => {
     const w = mountGantt({ tasks: [] });
     expect(w.text()).toContain("No tasks to display");
+    expect(w.find("[data-gantt-empty]").exists()).toBe(true);
+  });
+
+  it("lets the #empty slot replace the built-in message", () => {
+    const w = mount(Gantt as any, {
+      props: { tasks: [], links, lanes: sampleGanttLanes },
+      slots: { empty: "<span>Nothing scheduled</span>" },
+      attachTo: document.body,
+    });
+    expect(w.text()).toContain("Nothing scheduled");
+    expect(w.text()).not.toContain("No tasks to display");
   });
 
   it("shows a loading skeleton when loading", () => {
     const w = mountGantt({ loading: true });
-    expect(w.find('[aria-busy="true"]').exists()).toBe(true);
+    expect(w.find("[data-gantt-skeleton]").exists()).toBe(true);
+    expect(w.find('[data-gantt-bar="api"]').exists()).toBe(false);
+    expect(w.find("[data-gantt]").attributes("aria-busy")).toBe("true");
+  });
+
+  it("lets the #loading slot replace the built-in skeleton", () => {
+    const w = mount(Gantt as any, {
+      props: { tasks, links, lanes: sampleGanttLanes, loading: true },
+      slots: { loading: "<div data-testid='custom-loader'>Fetching…</div>" },
+      attachTo: document.body,
+    });
+    expect(w.find("[data-testid='custom-loader']").exists()).toBe(true);
+    expect(w.find("[data-gantt-skeleton]").exists()).toBe(false);
+  });
+
+  it("floats a loader over the rows for a non-skeleton loaderType", () => {
+    const w = mountGantt({ loading: true, loaderType: "spinner" });
+    const overlay = w.find("[data-gantt-loader]");
+    expect(overlay.exists()).toBe(true);
+    expect(overlay.attributes("aria-hidden")).toBe("true");
+    expect(w.find("[data-gantt-skeleton]").exists()).toBe(false);
+    // Existing rows stay visible under the loader — the point of the
+    // spinner mode: refreshing a loaded chart never blanks it.
+    expect(w.find('[data-gantt-bar="api"]').exists()).toBe(true);
+  });
+
+  it("prioritizes loading over the empty state", () => {
+    const w = mountGantt({ tasks: [], loading: true });
+    expect(w.text()).not.toContain("No tasks to display");
+    expect(w.find("[data-gantt-empty]").exists()).toBe(false);
+    expect(w.find("[data-gantt-skeleton]").exists()).toBe(true);
+  });
+
+  it("disables the span selector and hides actions while loading", () => {
+    const w = mountGantt({
+      loading: true,
+      actions: h("button", "LIVE pill"),
+      headerActions: h("button", "By epic"),
+    });
+    // Action regions are host chrome — they vanish against unfinished data.
+    expect(w.text()).not.toContain("LIVE pill");
+    expect(w.text()).not.toContain("By epic");
+    // The span selector stays visible, but nothing in it is operable.
+    const hour = w.findAll("button").find((b) => b.text() === "Hour");
+    expect(hour).toBeTruthy();
+    expect((hour!.element as HTMLButtonElement).disabled).toBe(true);
+    expect((w.find('[aria-label="Zoom in"]').element as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it("freezes every zoom path while loading", async () => {
+    const w = mountGantt({ loading: true });
+    const preset = (label: string) =>
+      w.findAll("button").find((b) => b.text() === label)!;
+    // Default zoom (16 px/day) is Week — that's the active preset.
+    expect(preset("Week").classes()).toContain("bg-white");
+    // Disabled buttons never receive a click, and the setter itself guards
+    // the paths that bypass them (keyboard +/−, ctrl+wheel): the zoom must
+    // not budge while loading.
+    await preset("Hour").trigger("click");
+    await w.find("[data-gantt]").trigger("keydown", { key: "+" });
+    expect(preset("Hour").classes()).not.toContain("bg-white");
+    expect(preset("Week").classes()).toContain("bg-white");
+  });
+
+  it("keeps the skeleton and empty as one fixed block outside the scroller", async () => {
+    const w = mountGantt({ loading: true });
+    // The skeleton is THE body — no scroller alongside it to reflow.
+    expect(w.find(".gantt-scroller").exists()).toBe(false);
+    expect(w.find("[data-gantt-skeleton]").exists()).toBe(true);
+    // A tier change (host-driven while loading) must not reshape it.
+    await w.setProps({ zoom: 288 });
+    expect(w.findAll("[data-gantt-skeleton]")).toHaveLength(1);
+    expect(w.find(".gantt-scroller").exists()).toBe(false);
+    await w.setProps({ loading: false, tasks: [] });
+    expect(w.find("[data-gantt-empty]").exists()).toBe(true);
+    expect(w.find(".gantt-scroller").exists()).toBe(false);
+  });
+
+  it("runs the open scroll when loading flips off, not while loading", async () => {
+    const calls: ScrollToOptions[] = [];
+    const original = Element.prototype.scrollTo;
+    Element.prototype.scrollTo = function (opts?: ScrollToOptions | number) {
+      if (typeof opts === "object" && opts) calls.push(opts);
+    } as typeof Element.prototype.scrollTo;
+    try {
+      const w = mountGantt({ loading: true, zoom: 288 });
+      await nextTick();
+      // Nothing to center on — the scroller is untouched while loading.
+      expect(calls).toHaveLength(0);
+      await w.setProps({ loading: false });
+      await nextTick();
+      await nextTick();
+      // Data arrived: the open scroll runs then.
+      expect(calls).toHaveLength(1);
+      expect(calls[0].behavior).toBe("auto");
+    } finally {
+      if (original) Element.prototype.scrollTo = original;
+      else delete (Element.prototype as unknown as { scrollTo?: unknown }).scrollTo;
+    }
   });
 
   it("emits select when a bar is clicked", async () => {
@@ -781,7 +893,8 @@ describe("Gantt (Vue)", () => {
     // The header hairline follows the translucent surface divider. The
     // header is the strip directly above the body scroller (jsdom drops
     // unitless numeric styles, so don't rely on the height attribute).
-    const header = w.find(".gantt-scroller").element.previousElementSibling as HTMLElement;
+    const header = w.find(".gantt-scroller").element.parentElement!
+      .previousElementSibling as HTMLElement;
     expect(header.className).toContain(getSurfaceTextTokens("glass").divider.split(" ")[0]);
 
     // The toolbar pill follows the shared surface-variant chrome.

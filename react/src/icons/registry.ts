@@ -6,6 +6,9 @@ import { AgentFlow } from "./components/AgentFlow";
 import { AiAgent } from "./components/AiAgent";
 import { Alarm } from "./components/Alarm";
 import { Apple } from "./components/Apple";
+import { Archive } from "./components/Archive";
+import { ArchiveDown } from "./components/ArchiveDown";
+import { ArchiveUp } from "./components/ArchiveUp";
 import { ArrowChevronLeft } from "./components/ArrowChevronLeft";
 import { ArrowChevronRight } from "./components/ArrowChevronRight";
 import { ArrowDown } from "./components/ArrowDown";
@@ -67,6 +70,7 @@ import { Database } from "./components/Database";
 import { Debian } from "./components/Debian";
 import { Details } from "./components/Details";
 import { Diagram } from "./components/Diagram";
+import { Disable } from "./components/Disable";
 import { Docker } from "./components/Docker";
 import { DockerCopy } from "./components/DockerCopy";
 import { DollarClipboard } from "./components/DollarClipboard";
@@ -224,6 +228,9 @@ export type IconName =
   | "AiAgent"
   | "Alarm"
   | "Apple"
+  | "Archive"
+  | "ArchiveDown"
+  | "ArchiveUp"
   | "ArrowChevronLeft"
   | "ArrowChevronRight"
   | "ArrowDown"
@@ -285,6 +292,7 @@ export type IconName =
   | "Debian"
   | "Details"
   | "Diagram"
+  | "Disable"
   | "Docker"
   | "DockerCopy"
   | "DollarClipboard"
@@ -443,6 +451,9 @@ export const iconRegistry: Record<
   AiAgent: AiAgent,
   Alarm: Alarm,
   Apple: Apple,
+  Archive: Archive,
+  ArchiveDown: ArchiveDown,
+  ArchiveUp: ArchiveUp,
   ArrowChevronLeft: ArrowChevronLeft,
   ArrowChevronRight: ArrowChevronRight,
   ArrowDown: ArrowDown,
@@ -504,6 +515,7 @@ export const iconRegistry: Record<
   Debian: Debian,
   Details: Details,
   Diagram: Diagram,
+  Disable: Disable,
   Docker: Docker,
   DockerCopy: DockerCopy,
   DollarClipboard: DollarClipboard,

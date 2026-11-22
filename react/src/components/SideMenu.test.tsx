@@ -1801,6 +1801,42 @@ describe("SideMenu select items", () => {
     expect(screen.getByRole("group", { name: "Current context" }).className).toContain("pl-9");
   });
 
+  it("fullWidth takes the parent row's indent instead of the child indent", () => {
+    const { rerender } = renderMenu({
+      items: [
+        {
+          slug: "ws",
+          label: "Workspace",
+          path: "/ws",
+          icon: "Folder",
+          defaultOpen: true,
+          children: [CONTEXT_SELECT],
+        },
+      ],
+    });
+    const group = () => screen.getByRole("group", { name: "Current context" });
+    expect(group().className).toContain("pl-9");
+    rerender(
+      <MemoryRouter initialEntries={["/"]}>
+        <SideMenu
+          items={[
+            {
+              slug: "ws",
+              label: "Workspace",
+              path: "/ws",
+              icon: "Folder",
+              defaultOpen: true,
+              children: [{ ...CONTEXT_SELECT, fullWidth: true }],
+            },
+          ]}
+        />
+      </MemoryRouter>,
+    );
+    // The parent's own indent (px-3) — no child step in.
+    expect(group().className).toContain("px-3");
+    expect(group().className).not.toContain("pl-9");
+  });
+
   it("keeps a select-only parent expandable and never active", () => {
     renderMenu({
       items: [
@@ -1852,5 +1888,62 @@ describe("SideMenu select items", () => {
     expect(screen.queryByText("Session 1")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Show 2 more" }));
     expect(screen.getByText("Session 2")).toBeInTheDocument();
+  });
+
+  it("opens the picker popup on the menu's popup layer", () => {
+    // The portaled popup can't be clipped by the (z-less) docked aside — its
+    // only enemy is paint order. It must ride the menu's layer, above any
+    // z-indexed content column the page stacks next to the sidebar.
+    const { container } = renderMenu({ items: [CONTEXT_SELECT] });
+    fireEvent.click(pickerTrigger(container)!);
+    const popup = document.body.querySelector<HTMLElement>(
+      '[data-slot="picker-popup"]',
+    );
+    expect(popup).not.toBeNull();
+    expect(popup!.style.zIndex).toBe("61");
+  });
+});
+
+// ── Emoji identities ────────────────────────────────────────────────────────
+describe("SideMenu emoji identities", () => {
+  const EMOJI_ITEMS: SideMenuItemLink[] = [
+    { slug: "e1", label: "Rocket pilot", path: "/e1", emoji: "🚀", icon: "Settings" },
+    { slug: "e2", label: "Plain row", path: "/e2" },
+  ];
+
+  it("renders the glyph in the icon slot — big, bare, decorative", () => {
+    const { container } = renderMenu({ items: EMOJI_ITEMS });
+    const glyph = container.querySelector<HTMLElement>("[data-sidemenu-emoji]");
+    expect(glyph).not.toBeNull();
+    expect(glyph!.textContent).toBe("🚀");
+    // The identity glyph is the whole identity: no chip, no tint, and the
+    // emoji font stack the IdentityPicker chose it with.
+    expect(glyph!.className).not.toMatch(/(^|\s)bg-/);
+    expect(glyph!.style.fontFamily).toContain("Apple Color Emoji");
+    expect(glyph!).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("wins over the registry icon", () => {
+    renderMenu({ items: EMOJI_ITEMS });
+    const row = link("Rocket pilot").parentElement as HTMLElement;
+    expect(row.querySelector("[data-sidemenu-emoji]")).not.toBeNull();
+    expect(row.querySelector("svg")).toBeNull();
+  });
+
+  it("keeps the emoji in the rail while the icon-less sibling falls back to initials", () => {
+    const { container } = renderMenu({ items: EMOJI_ITEMS, collapsible: true });
+    fireEvent.click(screen.getByTitle("Collapse sidebar"));
+    expect(container.querySelectorAll("[data-sidemenu-emoji]")).toHaveLength(1);
+    const initials = container.querySelectorAll("[data-sidemenu-initials]");
+    expect(initials).toHaveLength(1); // only the icon-less row needs them
+    expect(initials[0].textContent).toBe("PR");
+  });
+
+  it("the loading spinner still takes the slot", () => {
+    const { container } = renderMenu({
+      items: [{ slug: "el", label: "Launching", path: "/el", emoji: "🚀", loading: true }],
+    });
+    expect(container.querySelector("[data-sidemenu-emoji]")).toBeNull();
+    expect(container.querySelector("[data-sidemenu-loading]")).not.toBeNull();
   });
 });

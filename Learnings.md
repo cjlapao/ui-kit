@@ -1424,3 +1424,32 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   assertions were already red on a clean tree. `git stash push <my files>` →
   rerun the same files → `git stash pop` costs a minute and keeps an unrelated
   failure from being adopted.
+
+## A tri-state prop that Vue quietly made boolean (2026-11-22)
+
+- `collapsible?: boolean` on `InfoRow.vue` meant three things — *undefined: derive
+  from the `#body` slot; true/false: force it* — and Vue's prop casting collapsed
+  the first into the second: an absent `Boolean` prop arrives as `false`, so
+  `props.collapsible ?? hasBody` read `false ?? hasBody` and the body never opened
+  a disclosure. Nine red tests later the fix is one line in `withDefaults` —
+  `collapsible: undefined` — which keeps the absent-ness the `??` was written for.
+  `CollapsiblePanel.vue` had already learned this (`expanded: undefined`); the
+  trap only bites anyone writing the *next* tri-state prop, so it deserves a
+  second telling: any prop whose `undefined` carries meaning gets an explicit
+  `undefined` default, no exceptions.
+- `last:border-0` outranks the plain `border-b` class it is meant to lift —
+  a pseudo-class is specificity, and Tailwind's ordering doesn't save you. So an
+  opt-in `bottomBorder` edge cannot stack next to the hairline: the row computes
+  one edge or the other (`sectionEdge` suppresses the hairline), and the caller's
+  rule deliberately carries **no** `last:` clause — the last row of a key/value
+  table is exactly where the caller asked hardest for the edge. A `last:` there
+  would have quietly un-drawn the feature at its most visible spot.
+- In Vue tests, `wrapper.findAll("div")[0]` on a *plain* row is the row root
+  itself, not the new main-line child — a click "on the toggle" landed on the
+  root and re-emerged as a stray fallthrough emit. Resolve the node first
+  (`rowRoot(w).children[0]`), then `new DOMWrapper(node)` and trigger on that;
+  index-into-`findAll` asserts the tree, not the interaction.
+- Yesterday's baseline habit paid for itself again: the eight React suites and
+  four Vue Button assertions were still red on the shared tree before any of
+  this work — confirmed against `git log` (other commits, other components)
+  rather than adopted from the diff.

@@ -125,7 +125,8 @@ describe("Gantt component", () => {
     expect(container.querySelector("[data-gantt-chart-actions]")).toBeTruthy();
     // The strip sits directly above the (52px) column header strip.
     const scroller = container.querySelector(".gantt-scroller")!;
-    const columnHeader = scroller.previousElementSibling!;
+    // One up: the scroller lives in the body's relative box (loader anchor).
+    const columnHeader = scroller.parentElement!.previousElementSibling!;
     const chartHeader = columnHeader.previousElementSibling!;
     expect(chartHeader.textContent).toContain("Northwind Logistics GmbH");
     expect(chartHeader.textContent).not.toContain("Owner");
@@ -183,7 +184,7 @@ describe("Gantt component", () => {
   it("always renders the header strip with the zoom selector, even without header props", () => {
     const { container } = render(<Gantt tasks={tasks} />);
     const scroller = container.querySelector(".gantt-scroller")!;
-    const columnHeader = scroller.previousElementSibling!;
+    const columnHeader = scroller.parentElement!.previousElementSibling!;
     const chartHeader = columnHeader.previousElementSibling!;
     // The strip is always present and carries the zoom selector — it never
     // floats over the scale window.
@@ -193,13 +194,121 @@ describe("Gantt component", () => {
   });
 
   it("shows the empty state when there are no tasks", () => {
-    render(<Gantt tasks={[]} />);
+    const { container } = render(<Gantt tasks={[]} />);
     expect(screen.getByText("No tasks to display")).toBeTruthy();
+    expect(container.querySelector("[data-gantt-empty]")).toBeTruthy();
+  });
+
+  it("lets emptyState replace the built-in message", () => {
+    render(<Gantt tasks={[]} emptyState={<span>Nothing scheduled</span>} />);
+    expect(screen.getByText("Nothing scheduled")).toBeTruthy();
+    expect(screen.queryByText("No tasks to display")).toBeNull();
   });
 
   it("shows a loading skeleton when loading", () => {
     const { container } = render(<Gantt tasks={tasks} loading />);
-    expect(container.querySelector('[aria-busy="true"]')).toBeTruthy();
+    expect(container.querySelector("[data-gantt-skeleton]")).toBeTruthy();
+    expect(container.querySelector('[data-gantt-bar="api"]')).toBeNull();
+    expect(container.querySelector("[data-gantt]")?.getAttribute("aria-busy")).toBe("true");
+  });
+
+  it("lets loadingState replace the built-in skeleton", () => {
+    const { container } = render(
+      <Gantt tasks={tasks} loading loadingState={<div data-testid="custom-loader">Fetching…</div>} />,
+    );
+    expect(screen.getByTestId("custom-loader")).toBeTruthy();
+    expect(container.querySelector("[data-gantt-skeleton]")).toBeNull();
+  });
+
+  it("floats a loader over the rows for a non-skeleton loaderType", () => {
+    const { container } = render(<Gantt tasks={tasks} loading loaderType="spinner" />);
+    const overlay = container.querySelector("[data-gantt-loader]");
+    expect(overlay).toBeTruthy();
+    expect(overlay?.getAttribute("aria-hidden")).toBe("true");
+    expect(container.querySelector("[data-gantt-skeleton]")).toBeNull();
+    // Existing rows stay visible under the loader — the point of the
+    // spinner mode: refreshing a loaded chart never blanks it.
+    expect(container.querySelector('[data-gantt-bar="api"]')).toBeTruthy();
+  });
+
+  it("prioritizes loading over the empty state", () => {
+    const { container } = render(<Gantt tasks={[]} loading />);
+    expect(screen.queryByText("No tasks to display")).toBeNull();
+    expect(container.querySelector("[data-gantt-empty]")).toBeNull();
+    expect(container.querySelector("[data-gantt-skeleton]")).toBeTruthy();
+  });
+
+  it("disables the span selector and hides actions while loading", () => {
+    const { container } = render(
+      <Gantt
+        tasks={tasks}
+        loading
+        actions={<button type="button">LIVE pill</button>}
+        headerActions={<button type="button">By epic</button>}
+      />,
+    );
+    // Action regions are host chrome — they vanish against unfinished data.
+    expect(screen.queryByText("LIVE pill")).toBeNull();
+    expect(screen.queryByText("By epic")).toBeNull();
+    // The span selector stays visible, but nothing in it is operable.
+    expect(container.querySelector("[data-gantt-toolbar]")).toBeTruthy();
+    expect((screen.getByText("Hour") as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      (container.querySelector('[aria-label="Zoom in"]') as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("freezes every zoom path while loading", () => {
+    const { container } = render(<Gantt tasks={tasks} loading />);
+    const buttons = [...container.querySelectorAll("[data-gantt-toolbar] button")];
+    const preset = (label: string) => buttons.find((b) => b.textContent === label)!;
+    // Default zoom (16 px/day) is Week — that's the active preset.
+    expect(preset("Week").className).toContain("bg-white");
+    // Disabled buttons never receive a click, and the setter itself guards
+    // the paths that bypass them (keyboard +/−, ctrl+wheel): the zoom must
+    // not budge while loading.
+    fireEvent.click(preset("Hour"));
+    fireEvent.keyDown(container.querySelector("[data-gantt]")!, { key: "+" });
+    expect(preset("Hour").className).not.toContain("bg-white");
+    expect(preset("Week").className).toContain("bg-white");
+  });
+
+  it("keeps the skeleton and empty as one fixed block outside the scroller", () => {
+    const { container, rerender } = render(<Gantt tasks={tasks} loading />);
+    // The skeleton is THE body — no scroller alongside it to reflow.
+    expect(container.querySelector(".gantt-scroller")).toBeNull();
+    expect(container.querySelector("[data-gantt-skeleton]")!.closest(".gantt-scroller")).toBeNull();
+    // A tier change (host-driven while loading) must not reshape it.
+    rerender(<Gantt tasks={tasks} loading zoom={288} />);
+    expect(container.querySelectorAll("[data-gantt-skeleton]")).toHaveLength(1);
+    expect(container.querySelector(".gantt-scroller")).toBeNull();
+    rerender(<Gantt tasks={[]} loading={false} />);
+    const empty = container.querySelector("[data-gantt-empty]")!;
+    expect(empty).toBeTruthy();
+    expect(empty.closest(".gantt-scroller")).toBeNull();
+    expect(container.querySelector(".gantt-scroller")).toBeNull();
+  });
+
+  it("runs the open scroll when loading flips off, not while loading", () => {
+    const calls: ScrollToOptions[] = [];
+    const original = Element.prototype.scrollTo;
+    Element.prototype.scrollTo = function (opts?: ScrollToOptions | number) {
+      if (typeof opts === "object" && opts) calls.push(opts);
+    } as typeof Element.prototype.scrollTo;
+    try {
+      const { rerender } = render(
+        <Gantt tasks={tasks} lanes={sampleGanttLanes} zoom={288} loading />,
+      );
+      // Nothing to center on — the scroller is untouched while loading.
+      expect(calls).toHaveLength(0);
+      rerender(<Gantt tasks={tasks} lanes={sampleGanttLanes} zoom={288} loading={false} />);
+      // Data arrived: the open scroll runs then.
+      expect(calls).toHaveLength(1);
+      expect(calls[0].behavior).toBe("auto");
+    } finally {
+      if (original) Element.prototype.scrollTo = original;
+      else delete (Element.prototype as unknown as { scrollTo?: unknown }).scrollTo;
+    }
   });
 
   it("selects a task on click", () => {

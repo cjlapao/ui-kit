@@ -396,4 +396,340 @@ describe("post-copy auto-dismiss", () => {
     expect(reveal.className).toContain("group-hover:max-w-10");
     vi.useRealTimers();
   });
+
+  // ── icon / sub-items / collapsible body / bottom border ── (UX status-row
+  // refresh: the leading status icon, the "Policy: …" second line, the
+  // CollapsiblePanel-gesture disclosure, and the section-edge hairline)
+
+  const rowRoot = (container: HTMLElement) =>
+    container.querySelector("div.group") as HTMLElement;
+  const mainLine = (container: HTMLElement) =>
+    rowRoot(container).children[0] as HTMLElement;
+
+  describe("icon", () => {
+    /** The leading aria-hidden wrapper inside the main line. */
+    const iconWrap = (container: HTMLElement) =>
+      mainLine(container).firstElementChild as HTMLElement;
+
+    it("renders a leading icon before the label, hidden from assistive tech", () => {
+      const { container } = render(
+        <InfoRow label="Ready" value="V" icon="Check" />,
+      );
+      const wrap = iconWrap(container);
+      expect(wrap.getAttribute("aria-hidden")).toBe("true");
+      expect(wrap.querySelector("svg")).not.toBeNull();
+      // The label follows — the icon sits just before the title.
+      expect(wrap.nextElementSibling?.textContent).toBe("Ready");
+    });
+
+    it("tints with the row tone and falls back to the surface muted ink", () => {
+      const { container, unmount } = render(
+        <InfoRow label="L" value="V" icon="Check" tone="emerald" />,
+      );
+      // CustomIcon puts its classes on its own span inside the wrapper.
+      expect(iconWrap(container).querySelector("span")!.className).toContain(
+        "text-emerald-500",
+      );
+      unmount();
+      const { container: c2 } = render(
+        <InfoRow label="L" value="V" icon="Check" />,
+      );
+      const cls = iconWrap(c2).querySelector("span")!.className;
+      expect(cls).not.toContain("text-emerald-500");
+      expect(cls).toContain("text-neutral-500"); // the surface's muted ink
+    });
+
+    it("a text colour on iconClassName owns the tint", () => {
+      const { container } = render(
+        <InfoRow
+          label="L"
+          value="V"
+          icon="Check"
+          tone="emerald"
+          iconClassName="text-red-500"
+        />,
+      );
+      const cls = iconWrap(container).querySelector("span")!.className;
+      expect(cls).toContain("text-red-500");
+      expect(cls).not.toContain("text-emerald-500");
+    });
+
+    it("renders a custom element icon inside the decorative wrapper", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" icon={<svg data-testid="custom" />} />,
+      );
+      expect(screen.getByTestId("custom")).toBeTruthy();
+      expect(iconWrap(container).getAttribute("aria-hidden")).toBe("true");
+    });
+
+    it("renders no icon node when the prop is absent", () => {
+      const { container } = render(<InfoRow label="L" value="V" />);
+      // The main line's first child is the label itself.
+      expect(mainLine(container).firstElementChild?.textContent).toBe("L");
+    });
+  });
+
+  describe("sub-items", () => {
+    const subColumn = (container: HTMLElement) =>
+      rowRoot(container).children[1] as HTMLElement;
+
+    it("stacks a muted lead-in and a body-ink value under the main line", () => {
+      const { container } = render(
+        <InfoRow
+          label="Ready"
+          value="V"
+          subItems={[
+            { text: "Policy:", value: "all-agents.sdsd.allow", mono: true },
+          ]}
+        />,
+      );
+      const line = subColumn(container).firstElementChild as HTMLElement;
+      const [textEl, valueEl] = Array.from(line.children) as HTMLElement[];
+      expect(textEl.textContent).toBe("Policy:");
+      expect(textEl.className).toContain("text-neutral-500"); // muted
+      expect(valueEl.textContent).toBe("all-agents.sdsd.allow");
+      expect(valueEl.className).toContain("font-medium");
+      expect(valueEl.className).toContain("font-mono");
+      expect(valueEl.className).toContain("text-neutral-700"); // body ink
+      expect(line.className).toContain("items-baseline");
+      expect(line.className).toContain("flex-wrap");
+    });
+
+    it("drops font-mono when the sub-item is not mono", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" subItems={[{ value: "qa-ping" }]} />,
+      );
+      const line = subColumn(container).firstElementChild as HTMLElement;
+      expect(line.firstElementChild!.className).not.toContain("font-mono");
+    });
+
+    it("indents to the title edge only when an icon is rendered", () => {
+      const withIcon = render(
+        <InfoRow label="L" value="V" icon="Check" subItems={[{ value: "a" }]} />,
+      );
+      expect(subColumn(withIcon.container).className).toContain("pl-8"); // md
+      withIcon.unmount();
+      const without = render(
+        <InfoRow label="L" value="V" subItems={[{ value: "a" }]} />,
+      );
+      expect(subColumn(without.container).className).not.toContain("pl-");
+    });
+
+    it("localises boolean sub-item values", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" subItems={[{ text: "Enabled:", value: true }]} />,
+      );
+      const line = subColumn(container).firstElementChild as HTMLElement;
+      expect(line.textContent).toBe("Enabled:Yes");
+    });
+
+    it("skips sub-items with neither text nor value", () => {
+      const { container } = render(
+        <InfoRow
+          label="L"
+          value="V"
+          subItems={[{}, { text: "here" }, { value: "" }]}
+        />,
+      );
+      expect(subColumn(container).children).toHaveLength(1);
+    });
+
+    it("keeps a value-less row alive under hideIfEmpty", () => {
+      const { container } = render(
+        <InfoRow label="Ready" subItems={[{ text: "Policy:", value: "x" }]} />,
+      );
+      expect(container.querySelector("div.group")).not.toBeNull();
+    });
+  });
+
+  describe("collapsible", () => {
+    const region = (container: HTMLElement) =>
+      rowRoot(container).querySelector("[role='region']") as HTMLElement;
+    const gridWrap = (container: HTMLElement) =>
+      region(container).parentElement as HTMLElement;
+
+    it("adds no affordance when neither body nor collapsible is given", () => {
+      const { container } = render(<InfoRow label="L" value="V" />);
+      expect(mainLine(container).getAttribute("role")).toBeNull();
+      expect(rowRoot(container).querySelector("[role='region']")).toBeNull();
+      expect(mainLine(container).querySelector("span[class*='rotate-']")).toBeNull();
+    });
+
+    it("turns the main line into a toggle when a body exists", () => {
+      const { container } = render(
+        <InfoRow label="Ready" value="V" body={<span>B</span>} />,
+      );
+      const line = mainLine(container);
+      expect(line).toHaveAttribute("role", "button");
+      expect(line).toHaveAttribute("aria-expanded", "false");
+      expect(region(container).id).toBe(line.getAttribute("aria-controls"));
+      expect(region(container).getAttribute("aria-labelledby")).toBe(line.id);
+      expect(line.className).toContain("cursor-pointer");
+      const chevron = line.querySelector("span[class*='rotate-']")!;
+      expect(chevron.className).toContain("rotate-0");
+      expect(chevron.className).toContain("transition-transform");
+      expect(chevron.getAttribute("aria-hidden")).toBe("true");
+    });
+
+    it("toggles on click, firing onToggle and swapping the chevron", () => {
+      const onToggle = vi.fn();
+      const { container } = render(
+        <InfoRow label="L" value="V" body="B" onToggle={onToggle} />,
+      );
+      fireEvent.click(mainLine(container));
+      expect(onToggle).toHaveBeenCalledWith(true);
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      expect(region(container).hasAttribute("inert")).toBe(false);
+      fireEvent.click(mainLine(container));
+      expect(onToggle).toHaveBeenCalledWith(false);
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "false");
+      expect(region(container).hasAttribute("inert")).toBe(true);
+    });
+
+    it("keeps the collapsed body inert, never hidden, still animatable", () => {
+      const { container } = render(<InfoRow label="L" value="V" body="B" />);
+      const reg = region(container);
+      expect(reg).toHaveAttribute("inert");
+      expect(reg.hasAttribute("hidden")).toBe(false);
+      expect(reg.style.display).not.toBe("none");
+      expect(gridWrap(container).className).toContain(
+        "transition-[grid-template-rows,opacity]",
+      );
+      expect(gridWrap(container).className).toContain(
+        "motion-reduce:transition-none",
+      );
+      expect(gridWrap(container).style.gridTemplateRows).toBe("0fr");
+    });
+
+    it("never toggles from sub-items or the open body", () => {
+      const onToggle = vi.fn();
+      const { container } = render(
+        <InfoRow
+          label="L"
+          value="V"
+          subItems={[{ text: "Policy:", value: "x" }]}
+          body={<span data-testid="body">B</span>}
+          onToggle={onToggle}
+          defaultExpanded
+        />,
+      );
+      const line = rowRoot(container).children[1].firstElementChild as HTMLElement;
+      fireEvent.click(line);
+      fireEvent.click(screen.getByTestId("body"));
+      expect(onToggle).not.toHaveBeenCalled();
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+    });
+
+    it("the value and its copy button never toggle", async () => {
+      const onToggle = vi.fn();
+      const { container } = render(
+        <InfoRow label="L" value="abc" body="B" onToggle={onToggle} />,
+      );
+      const copyButton = screen.getByLabelText("Copy to clipboard");
+      fireEvent.click(screen.getByText("abc"));
+      await act(async () => {
+        // The copy's confirmation is an async state update; let it land.
+        fireEvent.click(copyButton);
+      });
+      fireEvent.keyDown(copyButton, {
+        key: "Enter",
+      });
+      expect(onToggle).not.toHaveBeenCalled();
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("toggles from Enter and Space on the main line only", () => {
+      const { container } = render(<InfoRow label="L" value="V" body="B" />);
+      fireEvent.keyDown(mainLine(container), { key: "Enter" });
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      // A keystroke arriving from a nested element (target guard + the
+      // cluster's stop) must not toggle.
+      fireEvent.keyDown(mainLine(container).querySelector("span")!, {
+        key: " ",
+      });
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+    });
+
+    it("honours defaultExpanded", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" body="B" defaultExpanded />,
+      );
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      expect(region(container).hasAttribute("inert")).toBe(false);
+    });
+
+    it("obeys the controlled expanded prop over its own clicks", () => {
+      const { container, rerender } = render(
+        <InfoRow label="L" value="V" body="B" expanded={false} />,
+      );
+      fireEvent.click(mainLine(container));
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "false");
+      rerender(<InfoRow label="L" value="V" body="B" expanded />);
+      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      expect(region(container).hasAttribute("inert")).toBe(false);
+    });
+
+    it("renders an always-open body without any toggle when collapsible is false", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" collapsible={false} body="B" />,
+      );
+      expect(mainLine(container).getAttribute("role")).toBeNull();
+      expect(mainLine(container).querySelector("span[class*='rotate-']")).toBeNull();
+      expect(region(container).hasAttribute("inert")).toBe(false);
+      expect(gridWrap(container).style.gridTemplateRows).toBe("1fr");
+    });
+
+    it("keeps a body-less row alive when collapsible is explicitly set", () => {
+      const { container } = render(
+        <InfoRow label="L" collapsible expanded={false} />,
+      );
+      expect(container.querySelector("div.group")).not.toBeNull();
+    });
+  });
+
+  describe("bottom border", () => {
+    it("draws a section edge on the borderless variants", () => {
+      for (const variant of ["simple", "none"] as const) {
+        const { container, unmount } = render(
+          <InfoRow label="L" value="V" variant={variant} bottomBorder />,
+        );
+        const cls = rowRoot(container).className;
+        expect(cls).toContain("border-b");
+        // No `last:border-0`: a section edge must survive on the final row.
+        expect(cls).not.toContain("last:border-0");
+        unmount();
+      }
+    });
+
+    it("keeps the sibling-matched hairline when off", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" variant="none" />,
+      );
+      expect(rowRoot(container).className).toContain("last:border-0");
+    });
+
+    it("is inert on the framed variants", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" variant="elevated" bottomBorder />,
+      );
+      // The prop changes nothing: the normal hairline stays intact.
+      expect(rowRoot(container).className).toContain("last:border-0");
+    });
+
+    it("never disturbs plain rows", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" variant="plain" bottomBorder />,
+      );
+      expect(rowRoot(container).className).toContain("last:border-0");
+    });
+
+    it("noBorder wins", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" variant="none" bottomBorder noBorder />,
+      );
+      const cls = rowRoot(container).className;
+      expect(cls).not.toContain("border-b");
+      expect(cls).not.toContain("last:border-0");
+    });
+  });
 });

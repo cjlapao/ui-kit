@@ -23,6 +23,11 @@ import Panel, { SkeletonBar } from "./Panel";
 import Pill, { type PillCorner, type PillVariant } from "./Pill";
 import Button, { getButtonLinkClasses } from "./Button";
 import {
+  MenuPopupContext,
+  MENU_POPUP_Z_INDEX,
+} from "../contexts/MenuPopupContext";
+import { IDENTITY_EMOJI_FONT_FAMILY } from "./IdentityPicker/IdentityPicker";
+import {
   SIDEBAR_IDLE_COPY,
   SIDEBAR_MOBILE_QUERY,
   SIDE_MENU_HEADER_FILL,
@@ -124,6 +129,16 @@ export interface SideMenuItemLink extends SideMenuItemBase {
    */
   path?: string;
   icon?: IconName;
+  /**
+   * The row's identity is an emoji (e.g. picked with `IdentityPicker`):
+   * rendered in the icon slot as a bare glyph at the slot's full size — no
+   * background chip, no tint; the initials fallback stands down. Wins over
+   * `icon`; a row's identity is one thing, not two.
+   *
+   * @example
+   * emoji: identity?.type === "emoji" ? identity.emoji : undefined
+   */
+  emoji?: string;
   groupName?: string;
   /**
    * Optional badge rendered to the right of the label (e.g. active job count).
@@ -213,6 +228,13 @@ export interface SideMenuItemSelect extends SideMenuItemBase {
    * so the caption is required rather than optional copy.
    */
   label: string;
+  /**
+   * Drop the child indent: the row takes its parent row's width instead of
+   * stepping one level in (at depth 1 that is the menu's full content width;
+   * top-level rows are already there). The caption rides along and the
+   * control fills the widened row. @default false
+   */
+  fullWidth?: boolean;
   /** The control. Everything except the row's own layout lives here. */
   picker: SideMenuSelectPicker;
 }
@@ -1523,12 +1545,17 @@ export const SideMenu = ({
   ): React.ReactNode => {
     if (contentCollapsed) return null;
     const captionId = `${key}-caption`;
+    // `fullWidth` releases the row from the child indent: it matches its
+    // parent's indent instead of stepping one level in.
+    const indent = select.fullWidth
+      ? indentClass(Math.max(depth - 1, 0))
+      : indentClass(depth);
     return (
       <div
         key={key}
         role="group"
         aria-labelledby={captionId}
-        className={`py-1.5 ${indentClass(depth)}`}
+        className={`py-1.5 ${indent}`}
       >
         <span
           id={captionId}
@@ -1601,7 +1628,7 @@ export const SideMenu = ({
     const tokens = getSideMenuItemTokens(link.color || color);
     // A loading row with no icon, nested deep enough to have an indent to
     // hang its spinner in (depth 0 has only the row's own 12px padding).
-    const hangingSpinner = Boolean(link.loading && !link.icon && depth > 0 && !contentCollapsed);
+    const hangingSpinner = Boolean(link.loading && !link.icon && !link.emoji && depth > 0 && !contentCollapsed);
 
     // The rail has no room for nesting: every row centres its icon (or
     // initials) at depth 0, or nested tiles would sit off the rail's axis.
@@ -1638,7 +1665,7 @@ export const SideMenu = ({
 
     const rowInner = (
       <>
-            {(link.icon || link.loading || contentCollapsed) && (
+            {(link.icon || link.emoji || link.loading || contentCollapsed) && (
               <div
                 className={`flex items-center justify-center relative shrink-0 ${
                   hangingSpinner ? "-ml-7" : ""
@@ -1661,6 +1688,18 @@ export const SideMenu = ({
                     }`}
                   >
                     <Spinner size={hangingSpinner ? "xs" : "sm"} color={link.color || color} />
+                  </span>
+                ) : link.emoji ? (
+                  // The IdentityPicker-chosen identity: the glyph fills the
+                  // slot at full size — no chip, no tint, no initials. The
+                  // emoji font stack matches IdentityPicker's own preview.
+                  <span
+                    data-sidemenu-emoji
+                    aria-hidden="true"
+                    className="inline-flex h-5 w-5 select-none items-center justify-center text-[20px] leading-none"
+                    style={{ fontFamily: IDENTITY_EMOJI_FONT_FAMILY }}
+                  >
+                    {link.emoji}
                   </span>
                 ) : !link.icon ? (
                   // Icon-less row in the rail: initials keep it visible and
@@ -2165,8 +2204,12 @@ export const SideMenu = ({
     </SideMenuButtonContext.Provider>
   );
 
+  // Everything the menu renders — docked aside, hover rail, mobile drawer —
+  // shares one popup layer so portaled popups anchored inside it (the select
+  // item's Picker, dropdowns in CTAs/actions) clear the page's content
+  // column instead of resolving to the default tier and vanishing under it.
   return (
-    <>
+    <MenuPopupContext.Provider value={MENU_POPUP_Z_INDEX}>
       {/* Mobile Backdrop */}
       {isMobile && mobileOpen && (
         // Pointer-only dismiss affordance; keyboard users have the labelled
@@ -2263,7 +2306,7 @@ export const SideMenu = ({
           )}
         </div>
       )}
-    </>
+    </MenuPopupContext.Provider>
   );
 };
 

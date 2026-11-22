@@ -31,6 +31,11 @@ export interface SideMenuItemSelect extends SideMenuItemBase {
   type: "select";
   /** Section caption above the control — same treatment as a group header's label. */
   label: string;
+  /**
+   * Drop the child indent: the row takes its parent row's width instead of
+   * stepping one level in. @default false
+   */
+  fullWidth?: boolean;
   /** The control, passed through to `Picker`. */
   picker: SideMenuSelectPicker;
 }
@@ -67,17 +72,32 @@ Example (the screenshot's expanded workspace):
 ### Rendering
 
 Expanded only, one wrapper at the row's own indent (`indentClass(depth)` — `px-3` at depth
-0, `pl-9 pr-3` as a child), so the block aligns with the labels around it:
+0, `pl-9 pr-3` as a child; `fullWidth` swaps in the parent's indent — see below), so the
+block aligns with the labels around it:
 
 - caption `<span>`: the group-header recipe verbatim — `text-xs font-semibold uppercase
   tracking-wider` + `surface.muted`;
 - below it, `<Picker {...defaults} {...item.picker} fullWidth />`, where the menu injects
-  nav-density defaults the caller can each override: `size="sm"`, `variant="outlined"`,
-  `tone` = the menu's `color`.
+  nav-density defaults the caller can each override: `size="sm"`, `variant="flat"` (the
+  bordered field treatment), `tone` = the menu's `color`.
 
 Caption + control stack the block one step taller than a ~40px link row ("a bit higher than
 the rest"); the `space-y-1` nav rhythm spaces it like any sibling row. No route, never
 route-active: selection lives entirely in `picker.selectedId` / `picker.onSelect`.
+
+`fullWidth: true` releases a nested row from the child indent — the wrapper takes
+`indentClass(depth - 1)` (the parent row's own indent; the base at depth 1, where the
+select spans the menu's full content width) instead of `indentClass(depth)`. Top-level
+rows are unaffected; the caption rides along and the control keeps filling the row.
+
+The popup rides the menu's stacking layer. The listbox is a portaled `<body>` child
+(`position: fixed`), so the aside's `overflow-hidden` cannot clip it — its only enemy is
+paint order, and a docked aside carries no z-index, so the chain-resolved default (21)
+let any z-indexed content column paint over the popup where it left the sidebar.
+SideMenu now wraps everything it renders in `MenuPopupContext` (tier **61** — one notch
+above its tallest chrome, the `z-[60]` mobile drawer); Picker and DropdownMenu open at
+`max(chainResolved, tier)`. Outside a menu the context is unset and behavior is
+bit-for-bit unchanged (pickers in modals still stack via the chain walk).
 
 ### Behaves like an item, filters like chrome
 
@@ -123,8 +143,10 @@ suites):
 - stays rendered while the menu search has no match for it;
 - renders nothing in the collapsed icon rail;
 - renders inside an open parent's children at the child indent;
+- `fullWidth: true` moves a nested row to the parent's indent (`px-3` at depth 1, not
+  `pl-9`);
 - a parent whose only child is a select is expandable and never becomes route-active;
-- a group whose only member is a select renders no group header.
+- a select counts toward a `childrenPageSize` page like any other child.
 
 ## Docs
 

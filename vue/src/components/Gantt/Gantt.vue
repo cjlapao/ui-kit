@@ -14,7 +14,7 @@ import type {
   TrueColor,
 } from "../../../../common/gantt";
 import type { VNodeChild } from "vue";
-import type { PanelCorner, PanelPadding, PanelVariant } from "../Panel.vue";
+import type { PanelCorner, PanelLoaderType, PanelPadding, PanelVariant } from "../Panel.vue";
 export type { GanttTask, GanttLink, GanttLane, GanttColumn, GanttSnap, GanttLabels, GanttZoomTier, TrueColor };
 /** The Panel surface variant driving the Gantt chrome (re-exported name). */
 export type GanttVariant = PanelVariant;
@@ -22,6 +22,8 @@ export type GanttVariant = PanelVariant;
 export type GanttCorner = PanelCorner;
 /** The shared container padding scale (re-exported Panel `padding` scale). */
 export type GanttPadding = PanelPadding;
+/** Loading treatment: `"skeleton"` (default) or any Panel `Loader` variant. */
+export type GanttLoaderType = "skeleton" | PanelLoaderType;
 export { mergeGanttLabels } from "./labels";
 
 export interface GanttProps {
@@ -133,8 +135,15 @@ export interface GanttProps {
    * @default "frosted"
    */
   glassOpacity?: "frosted" | "light" | "clear" | number;
-  /** Show a loading skeleton. */
+  /** Show a loading state in the body (skeleton rows by default). */
   loading?: boolean;
+  /**
+   * The loading treatment `loading` shows — `"skeleton"` replaces the row
+   * area with the chart-shaped pulse; any other loader variant floats that
+   * loader over the body instead, keeping any current rows visible.
+   * @default "skeleton"
+   */
+  loaderType?: GanttLoaderType;
   /** Copy overrides. */
   labels?: Partial<GanttLabels>;
   /** Custom bar content; receives the task and its live geometry. */
@@ -204,6 +213,7 @@ import {
   reorderDragSubtree,
 } from "../../../../common/gantt";
 import Panel from "../Panel.vue";
+import Loader from "../Loader.vue";
 import VNodeRenderer from "../internal/VNodeRenderer";
 import { getSurfaceTextTokens, getSurfaceVariantClasses } from "../../theme/Theme";
 import GanttScale from "./GanttScale.vue";
@@ -229,6 +239,7 @@ const props = withDefaults(defineProps<GanttProps>(), {
   corner: "rounded-sm",
   padding: "none",
   loading: false,
+  loaderType: "skeleton",
   resizableColumns: false,
 });
 const emit = defineEmits<GanttEmits>();
@@ -311,6 +322,10 @@ const interactive = computed<boolean>(() => props.editable ?? hasChangeListeners
 const internalZoom = ref(props.initialZoom ?? (props.initialSpan ? zoomForSpan(props.initialSpan) : 16));
 const zoom = computed<number>(() => (props.zoom !== undefined ? props.zoom : internalZoom.value));
 const setZoom = (z: number) => {
+  // Zoom freezes while loading: the toolbar is disabled, but the keyboard
+  // +/− and ctrl+wheel paths must be blocked at the setter too, so the
+  // chart can't be rescaled underneath the loading state.
+  if (props.loading) return;
   const clamped = Math.min(props.maxZoom, Math.max(props.minZoom, z));
   if (hasZoomListener) emit("zoom-change", clamped);
   else internalZoom.value = clamped;
@@ -545,11 +560,23 @@ const onWheel = (e: WheelEvent) => {
   const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
   zoomBy(factor, e.clientX);
 };
-onMounted(() => {
-  scrollRef.value?.addEventListener("wheel", onWheel, { passive: false });
+// The scroller unmounts under the skeleton/empty block, so this binds
+// against whatever element is current — re-run whenever those branches flip.
+let wheelEl: HTMLElement | null = null;
+const bindWheelZoom = () => {
+  const el = scrollRef.value;
+  if (el === wheelEl) return;
+  if (wheelEl) wheelEl.removeEventListener("wheel", onWheel);
+  wheelEl = el;
+  if (el) el.addEventListener("wheel", onWheel, { passive: false });
+};
+onMounted(bindWheelZoom);
+watch(() => [props.loading, props.tasks.length === 0] as const, bindWheelZoom, {
+  flush: "post",
 });
 onBeforeUnmount(() => {
-  scrollRef.value?.removeEventListener("wheel", onWheel);
+  wheelEl?.removeEventListener("wheel", onWheel);
+  wheelEl = null;
 });
 
 // ── Drag machinery ─────────────────────────────────────────────────────────
@@ -782,6 +809,10 @@ const scrollToToday = (behavior: ScrollBehavior) => {
 // untouched and is invisible to a viewport-only observer. The user's first
 // wheel/touch takes the wheel back; hosts without RO (none, or the inert test
 // polyfill) keep the immediate commit as final.
+// Nothing to center on while loading or without tasks; the open scroll
+// (re)runs when `loading` flips off, so a chart that mounts loading still
+// lands on today when the data arrives.
+const openScrollBlocked = () => props.loading || isEmpty.value;
 const runOpenScroll = () => {
   const el = scrollRef.value;
   if (!el) return;
@@ -799,7 +830,7 @@ const runOpenScroll = () => {
   };
   openScrollCancel = stop;
   const scrollToNow = () => {
-    if (active) scrollToToday("auto");
+    if (active && !openScrollBlocked()) scrollToToday("auto");
   };
   scrollToNow();
   if (typeof ResizeObserver === "function") {
@@ -814,7 +845,7 @@ const runOpenScroll = () => {
 onMounted(() => {
   if (props.autoScrollToToday && scrollTier === null) {
     scrollTier = pickBaseUnit(zoom.value);
-    runOpenScroll();
+    if (!openScrollBlocked()) runOpenScroll();
   }
 });
 onBeforeUnmount(() => openScrollCancel?.());
@@ -828,15 +859,30 @@ watch(
     }
     if (scrollTier === null) {
       scrollTier = pickBaseUnit(zoom.value);
-      runOpenScroll();
+      if (!openScrollBlocked()) runOpenScroll();
       return;
     }
     const tier = pickBaseUnit(zoom.value);
     if (scrollTier === tier) return;
     scrollTier = tier;
+    // The scroller unmounts under the skeleton/empty block, and centering
+    // is pointless while loading — the tier bookkeeping above is what
+    // must not be skipped.
+    if (props.loading || !scrollRef.value) return;
     openScrollCancel?.();
     scrollToToday("smooth");
   },
+);
+// Data arriving ends the loading state: that's the moment "today" becomes
+// centerable, so the open scroll runs then. Post-flush so the scroller the
+// v-else branch just brought back is in the DOM.
+watch(
+  () => props.loading,
+  (on) => {
+    if (on) openScrollCancel?.();
+    else if (props.autoScrollToToday && !openScrollBlocked()) runOpenScroll();
+  },
+  { flush: "post" },
 );
 const todayTokens = computed(() => getGanttTodayTokens(accentColor.value));
 const selectionTokens = computed(() => getGanttSelectionTokens(accentColor.value));
@@ -991,6 +1037,7 @@ const colJustify = (col: GanttColumn) =>
     class="select-none outline-none focus:outline-none"
     :style="{ height: typeof height === 'number' ? `${height}px` : height }"
     data-gantt
+    :aria-busy="loading ? 'true' : undefined"
     tabindex="0"
     :aria-label="t('kit.gantt.root')"
     @keydown="onRootKeyDown"
@@ -1025,19 +1072,21 @@ const colJustify = (col: GanttColumn) =>
               {{ title }}
             </div>
           </div>
+          <!-- Actions are host chrome — meaningless against data that is
+               still arriving, so they vanish while loading. -->
           <div
-            v-if="headerActionsAlign === 'start' && hasHeaderActions"
+            v-if="headerActionsAlign === 'start' && hasHeaderActions && !loading"
             data-gantt-header-region="start"
             class="flex shrink-0 items-center gap-2"
           >
             <VNodeRenderer :nodes="headerActions" />
           </div>
         </div>
-        <div v-if="hasActions" class="flex shrink-0 items-center gap-2">
+        <div v-if="hasActions && !loading" class="flex shrink-0 items-center gap-2">
           <VNodeRenderer :nodes="actions" />
         </div>
         <div
-          v-if="headerActionsAlign === 'end' && hasHeaderActions"
+          v-if="headerActionsAlign === 'end' && hasHeaderActions && !loading"
           data-gantt-header-region="end"
           class="flex shrink-0 items-center gap-2"
         >
@@ -1052,6 +1101,7 @@ const colJustify = (col: GanttColumn) =>
             :variant="variant"
             :zoom="zoom"
             :presets="GANTT_ZOOM_PRESETS"
+            :disabled="loading"
             @zoom-to="setZoom"
             @zoom-by="hZoomBy"
           />
@@ -1126,46 +1176,55 @@ const colJustify = (col: GanttColumn) =>
       </div>
 
       <!-- ── Body (the only scroller) ─────────────────────────────────── -->
-      <div
-        ref="scrollRef"
-        class="gantt-scroller min-h-0 flex-1 overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
-        @scroll="syncHeaderScale"
-      >
-        <div :style="{ width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER, minWidth: '100%' }">
-
-        <!-- ── Body ───────────────────────────────────────────────────── -->
-        <!-- Loading skeleton -->
-        <div v-if="loading" class="animate-pulse" aria-busy="true">
-          <div v-for="i in 12" :key="i" class="flex" :style="{ height: rowHeight }">
-            <div
-              class="sticky left-0 flex items-center border-b border-neutral-100 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-900"
-              :style="{ width: leftWidth }"
-            >
+      <div class="relative min-h-0 flex-1">
+        <!-- Skeleton and empty are ONE block pinned to the body box, not
+             the zoom-sized scroll content — they never reflow when the
+             tier changes, and nothing scrolls inside them. -->
+        <!-- Loading skeleton (override with the `loading` slot) -->
+        <template v-if="loading && loaderType === 'skeleton'">
+          <slot name="loading">
+            <div data-gantt-skeleton class="h-full overflow-hidden animate-pulse motion-reduce:animate-none" aria-busy="true">
+            <div v-for="i in 12" :key="i" class="flex" :style="{ height: rowHeight }">
               <div
-                class="h-3 rounded-full bg-neutral-200 dark:bg-neutral-700"
-                :style="{ width: `${40 + ((i * 37) % 45)}%` }"
-              />
+                class="sticky left-0 flex items-center border-b border-neutral-100 bg-white px-3 dark:border-neutral-800 dark:bg-neutral-900"
+                :style="{ width: leftWidth }"
+              >
+                <div
+                  class="h-3 rounded-full bg-neutral-200 dark:bg-neutral-700"
+                  :style="{ width: `${40 + ((i * 37) % 45)}%` }"
+                />
+              </div>
+              <div class="relative flex-1">
+                <div
+                  class="absolute top-1/2 h-4 -translate-y-1/2 rounded-md bg-neutral-200/80 dark:bg-neutral-700/60"
+                  :style="{ left: `${((i * 53) % 40) + 5}%`, width: `${25 + ((i * 29) % 35)}%` }"
+                />
+              </div>
             </div>
-            <div class="relative flex-1">
-              <div
-                class="absolute top-1/2 h-4 -translate-y-1/2 rounded-md bg-neutral-200/80 dark:bg-neutral-700/60"
-                :style="{ left: `${((i * 53) % 40) + 5}%`, width: `${25 + ((i * 29) % 35)}%` }"
-              />
             </div>
-          </div>
-        </div>
+          </slot>
+        </template>
 
         <!-- Empty state -->
         <div
-          v-else-if="isEmpty"
-          class="flex items-center justify-center text-sm text-neutral-500"
-          :style="{ height: bodyHeight || 160, width: leftWidth + timelineWidth }"
+          v-else-if="!loading && isEmpty"
+          data-gantt-empty
+          class="absolute inset-0 flex items-center justify-center text-sm text-neutral-500"
         >
           <slot name="empty">{{ allLabels.empty }}</slot>
         </div>
 
+        <!-- ── Body (the only scroller) ─────────────────────────────────── -->
+        <div
+          v-else
+          ref="scrollRef"
+          class="gantt-scroller h-full overflow-auto overscroll-contain [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-600 [&::-webkit-scrollbar-track]:bg-transparent"
+          @scroll="syncHeaderScale"
+        >
+        <div :style="{ width: leftWidth + timelineWidth + LINK_RIGHT_GUTTER, minWidth: '100%' }">
+
         <!-- Rows -->
-        <div v-else class="relative" :style="{ height: bodyHeight }">
+        <div class="relative" :style="{ height: bodyHeight }">
           <!-- Grid lines (behind bars, above row backgrounds) -->
           <div class="pointer-events-none absolute inset-y-0 z-0" :style="{ left: leftWidth, width: timelineWidth }">
             <template v-if="scaleLevels.length > 0">
@@ -1184,7 +1243,7 @@ const colJustify = (col: GanttColumn) =>
               />
             </template>
             <div
-              v-if="todayVisible"
+              v-if="todayVisible && !loading"
               :class="classNames('absolute inset-y-0 border-l-2', todayTokens.line)"
               :style="{ left: todayX }"
             />
@@ -1359,6 +1418,15 @@ const colJustify = (col: GanttColumn) =>
           </div>
         </div>
         </div>
+      </div>
+      <div
+        v-if="loading && loaderType !== 'skeleton'"
+        data-gantt-loader
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+      >
+        <Loader :variant="loaderType" :color="color" />
+      </div>
       </div>
     </div>
   </Panel>

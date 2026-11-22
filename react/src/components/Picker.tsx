@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import classNames from "classnames";
 import { ScrollArea } from "./ScrollArea";
 import { useFieldRow } from "../contexts/FieldRowContext";
+import { useMenuPopupZIndex } from "../contexts/MenuPopupContext";
 import { useKitT } from "../i18n";
 import Pill from "./Pill";
 import Panel from "./Panel";
@@ -360,6 +361,11 @@ const Picker: React.FC<PickerProps> = ({
   // loading included — so a row built around the picker never jumps.
   // `inRow` opts the trigger into the FieldRow's shared control band.
   const { inRow } = useFieldRow();
+  // Popups anchored inside a SideMenu ride the menu's popup layer: the chain
+  // walk cannot see the page's content column, so without the tier a picker
+  // in the (z-less) docked aside opens at the default 21 and the content
+  // paints over it the moment it leaves the sidebar.
+  const menuPopupZ = useMenuPopupZIndex();
   const growsFull = fullHeight || inRow;
   const reservedLines =
     lines ?? (items.some((i) => i.subtitle != null || i.body != null) ? 2 : 1);
@@ -443,7 +449,7 @@ const Picker: React.FC<PickerProps> = ({
     const menuWidth = dropdownRef.current.offsetWidth || menuRect.width;
     const menuHeight = dropdownRef.current.offsetHeight || menuRect.height;
     const boundary = viewportBounds();
-    const zIndex = resolveZIndex(triggerRef.current);
+    const zIndex = Math.max(resolveZIndex(triggerRef.current), menuPopupZ ?? 0);
     const offset = 4;
     const minMargin = 8;
 
@@ -492,7 +498,7 @@ const Picker: React.FC<PickerProps> = ({
       width: computedWidth,
       zIndex,
     });
-  }, [open]);
+  }, [open, menuPopupZ]);
 
   useLayoutEffect(() => {
     updatePosition();

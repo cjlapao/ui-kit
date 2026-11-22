@@ -294,6 +294,7 @@ export {
   type InfoRowPadding,
   type InfoRowVariant,
   type InfoRowLoader,
+  type InfoRowSubItem,
 } from "./InfoRow.vue";
 export {
   default as SectionCard,

@@ -28,6 +28,12 @@ interface GanttToolbarProps {
   onZoomTo: (value: number) => void;
   /** Multiply the current zoom by a factor (fine +/−). */
   onZoomBy: (factor: number) => void;
+  /**
+   * Grey out and block every control — the chart passes this while loading,
+   * so the span can't be changed against data that isn't there yet.
+   * @default false
+   */
+  disabled?: boolean;
 }
 
 /** Nearest preset to a zoom value, by relative distance. */
@@ -52,6 +58,7 @@ export const GanttToolbar: React.FC<GanttToolbarProps> = ({
   presets,
   onZoomTo,
   onZoomBy,
+  disabled = false,
 }) => {
   const t = useKitT();
   const ZOOM_LABELS: Record<string, string> = {
@@ -80,12 +87,14 @@ export const GanttToolbar: React.FC<GanttToolbarProps> = ({
           <button
             key={p.label}
             type="button"
+            disabled={disabled}
             onClick={() => onZoomTo(p.value)}
             className={classNames(
               "rounded px-1.5 py-0.5 text-[10.5px] font-semibold transition-colors",
               active === p.value
                 ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-600 dark:text-white"
                 : "text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200",
+              disabled && "pointer-events-none cursor-not-allowed opacity-50",
             )}
           >
             {ZOOM_LABELS[p.label] ?? p.label}
@@ -93,10 +102,10 @@ export const GanttToolbar: React.FC<GanttToolbarProps> = ({
         ))}
       </div>
       <div className="mx-0.5 h-4 w-px bg-neutral-200 dark:bg-neutral-700" />
-      <Button variant="ghost" size="xs" onClick={() => onZoomBy(1 / 1.25)} aria-label={t("kit.gantt.zoomOut")}>
+      <Button variant="ghost" size="xs" disabled={disabled} onClick={() => onZoomBy(1 / 1.25)} aria-label={t("kit.gantt.zoomOut")}>
         <span className="text-xs font-semibold leading-none">−</span>
       </Button>
-      <Button variant="ghost" size="xs" onClick={() => onZoomBy(1.25)} aria-label={t("kit.gantt.zoomIn")}>
+      <Button variant="ghost" size="xs" disabled={disabled} onClick={() => onZoomBy(1.25)} aria-label={t("kit.gantt.zoomIn")}>
         <span className="text-xs font-semibold leading-none">+</span>
       </Button>
     </div>

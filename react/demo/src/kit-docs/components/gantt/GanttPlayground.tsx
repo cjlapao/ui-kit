@@ -74,6 +74,11 @@ const HEADER_ALIGN: { label: string; value: string }[] = [
   { label: "End — beside the zoom pill", value: "end" },
   { label: "Start — left, after the title", value: "start" },
 ];
+const LOADER_TYPES: { label: string; value: string }[] = [
+  { label: "Skeleton (replaces rows)", value: "skeleton" },
+  { label: "Spinner (overlays rows)", value: "spinner" },
+  { label: "Progress (overlays rows)", value: "progress" },
+];
 const LANES: GanttLane[] = sampleGantt.lanes;
 const INITIAL_TASKS = sampleGantt.tasks();
 const INITIAL_LINKS = sampleGantt.links();
@@ -101,6 +106,9 @@ export const GanttPlayground: React.FC = () => {
   const [showIcon, setShowIcon] = useState(true);
   const [showPill, setShowPill] = useState(true);
   const [headerActionsAlign, setHeaderActionsAlign] = useState<"start" | "end">("end");
+  const [loading, setLoading] = useState(false);
+  const [loaderType, setLoaderType] = useState<"skeleton" | "spinner" | "progress">("skeleton");
+  const [noTasks, setNoTasks] = useState(false);
   const [groupBy, setGroupBy] = useState<"epic" | "priority">("epic");
   const [log, setLog] = useState<{ id: number; label: string }[]>([]);
   const [seq, setSeq] = useState(0);
@@ -216,7 +224,19 @@ export const GanttPlayground: React.FC = () => {
             <ToggleRow label="Header title / subtitle" checked={showTitle} onChange={setShowTitle} />
             <ToggleRow label="Header icon" checked={showIcon} onChange={setShowIcon} />
             <ToggleRow label="Live pill (actions)" checked={showPill} onChange={setShowPill} />
+            <ToggleRow label="Loading" checked={loading} onChange={setLoading} />
+            <ToggleRow
+              label="No tasks (empty state)"
+              checked={noTasks}
+              onChange={setNoTasks}
+            />
           </div>
+          <SelectControl
+            label="Loader type"
+            options={LOADER_TYPES}
+            value={loaderType}
+            onChange={(v) => setLoaderType(v as "skeleton" | "spinner" | "progress")}
+          />
           <SelectControl
             label="Header actions align"
             options={HEADER_ALIGN}
@@ -259,7 +279,9 @@ export const GanttPlayground: React.FC = () => {
           <div className={fullHeight ? "h-[560px]" : undefined}>
           <Gantt
             tone={surfaceTone}
-            tasks={tasks}
+            tasks={noTasks ? [] : tasks}
+            loading={loading}
+            loaderType={loaderType}
             links={links}
             lanes={LANES}
             rowOrder={rowOrder}

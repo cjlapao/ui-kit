@@ -9,6 +9,7 @@ import React, {
 import { createPortal } from "react-dom";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
+import { useMenuPopupZIndex } from "../contexts/MenuPopupContext";
 
 export interface DropdownMenuOption {
   label: ReactNode;
@@ -249,6 +250,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     }
   };
 
+  // Mirrors Picker: a menu anchored inside a SideMenu opens its popup on the
+  // menu's layer, above the page's content column (see MenuPopupContext).
+  const menuPopupZ = useMenuPopupZIndex();
+
   const updatePosition = useCallback(() => {
     if (!open || !anchorRef.current || !menuRef.current) {
       return;
@@ -262,7 +267,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       caretElement?.getBoundingClientRect() ?? anchorRect;
     const menuRect = menuRef.current.getBoundingClientRect();
     const boundary = resolveBoundaryBounds();
-    const zIndex = resolveAnchorLayerZIndex(anchorRef.current);
+    const zIndex = Math.max(
+      resolveAnchorLayerZIndex(anchorRef.current),
+      menuPopupZ ?? 0,
+    );
     const offset = 8;
     const minMargin = 8;
 
@@ -387,7 +395,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       }
       return nextStyle;
     });
-  }, [align, anchorRef, maxHeight, open, side, width]);
+  }, [align, anchorRef, maxHeight, menuPopupZ, open, side, width]);
 
   useLayoutEffect(() => {
     updatePosition();
