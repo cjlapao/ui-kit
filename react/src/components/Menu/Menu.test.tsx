@@ -194,6 +194,11 @@ describe("Menu selection (selectedKey)", () => {
     const portal = Array.from(document.body.children).find(el => el.getAttribute("style")?.includes("position: fixed")) as HTMLElement;
     expect(portal).toBeTruthy();
     expect(portal.style.getPropertyValue("--menu-popup-max-height")).toBe(`${window.innerHeight - 4 - 8}px`);
-    expect(portal.querySelector("[data-menu-padding] > div")?.getAttribute("style")).toContain("var(--menu-popup-max-height");
+    const frame = portal.querySelector('[data-menu-padding] > [data-slot="scrollarea"]') as HTMLElement;
+    expect(frame).toBeTruthy();
+    expect(frame.getAttribute("style")).toContain("var(--menu-popup-max-height");
+    // The kit ScrollArea does the scrolling — no raw overflow-auto div left.
+    expect(frame.querySelector('[data-slot="scrollarea-viewport"] [data-slot="scrollarea-content"]')).toBeTruthy();
+    expect(frame).toHaveAttribute("data-variant", "auto");
   });
 });

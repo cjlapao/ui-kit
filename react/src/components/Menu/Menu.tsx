@@ -3,9 +3,10 @@ import React, { cloneElement, useCallback, useEffect, useId, useLayoutEffect, us
 import { Link } from "react-router-dom";
 import classNames from "classnames";
 import Panel from "../Panel";
+import ScrollArea from "../ScrollArea";
 import CustomIcon from "../CustomIcon";
 import { CollapseChevron } from "../CollapseToggleButton";
-import { getSideMenuItemTokens, getSurfaceTriggerTokens, getSurfaceCornerClass, THIN_SCROLLBAR } from "../../theme/Theme";
+import { getSideMenuItemTokens, getSurfaceTriggerTokens, getSurfaceCornerClass } from "../../theme/Theme";
 import { MenuPopup } from "./MenuPopup";
 import type { MenuItem, MenuProps } from "./types";
 
@@ -197,8 +198,10 @@ function MenuSurface({ state, children, root = false }: { state: State; children
       <div data-menu-padding className={menuPadding[props.padding ?? "xs"]}>
       {root && props.header && <div className="mb-2 border-b border-neutral-200 pb-2 dark:border-white/10">{props.header}</div>}
       {/* The popup publishes --menu-popup-max-height (space to the viewport edge on the
-          chosen side); inline menus have no such var and fall back to 100dvh. */}
-      <div className={classNames("overflow-auto", THIN_SCROLLBAR)} style={{ maxHeight: `min(${props.maxHeight ?? 400}px, calc(100dvh - 32px), var(--menu-popup-max-height, 100dvh))` }}>{children}</div>
+          chosen side); inline menus have no such var and fall back to 100dvh. The cap
+          rides the ScrollArea frame and the max-h-[inherit] viewport scrolls inside it;
+          tabIndex -1 because the menu's roving focus already owns the keyboard. */}
+      <ScrollArea horizontal={false} tabIndex={-1} style={{ maxHeight: `min(${props.maxHeight ?? 400}px, calc(100dvh - 32px), var(--menu-popup-max-height, 100dvh))` }}>{children}</ScrollArea>
       {root && props.footer && <div className="mt-2 border-t border-neutral-200 pt-2 dark:border-white/10">{props.footer}</div>}
       </div>
     </Panel>

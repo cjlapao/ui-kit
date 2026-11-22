@@ -1486,3 +1486,19 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   also has uncommitted edits to `styles.css`/`Popover.tsx`/`StatCard.tsx` sitting
   in the same tree. With two features in flight, a green full-suite run is not the
   gate; *my files green + baseline-identical failures* is.
+
+## The menu's scroll became the kit's ScrollArea (2026-11-22)
+
+- The collision cap now rides the `ScrollArea` **frame** as an *inline* style
+  (`min(…, var(--menu-popup-max-height, 100dvh))`) and the built-in
+  `max-h-[inherit]` viewport scrolls inside it. Inline, not a class — the
+  viewport's own `overflow-auto` competes with class-set clamps in the cascade,
+  and a lost contest leaves an axis that scrolls with no bar.
+- A menu must not gain a tabbable scroll viewport: `ScrollArea` defaults
+  `tabIndex: 0` while overflowing, which would insert a stray tab stop into a
+  roving-focus menu whose focused rows already scroll into view natively.
+  `tabIndex={-1}` keeps the keyboard the menu's own.
+- `horizontal={false}` on lists: a `role="scrollbar"` that scrolls nothing is
+  a promise the region cannot keep. And for tests, `ScrollArea`'s `data-slot`
+  attributes are the stable hooks — structural CSS queries like
+  `[data-menu-padding] > div` quietly re-point at whatever renders first.
