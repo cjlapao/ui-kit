@@ -25,6 +25,8 @@ export interface MenuItem {
   items?: MenuItem[];
   /** Override the menu-level expansion mode for this parent. */
   submenuMode?: "inline" | "tiered";
+  /** Muted note rendered above this item's submenu list (inline or tiered). */
+  submenuHeader?: React.ReactNode;
   /** Custom section content or expandable detail (e.g. account usage). */
   content?: React.ReactNode;
   command?: (item: MenuItem) => void;
@@ -48,6 +50,14 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSelect?: (item: MenuItem) => void;
+  /**
+   * Id of the selected item, at any depth. A matching row gets a right-aligned
+   * check and `menuitemradio` semantics; a parent whose selection lives inside
+   * it echoes the selected descendant's text right-aligned (before its chevron)
+   * unless an explicit `trailing` is provided. Checkbox/radio rows keep their
+   * own left-side checks — `checkable` types win on the same row.
+   */
+  selectedKey?: string;
   submenuMode?: "inline" | "tiered";
   expandedKeys?: string[];
   defaultExpandedKeys?: string[];

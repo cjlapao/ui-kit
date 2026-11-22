@@ -1453,3 +1453,36 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   four Vue Button assertions were still red on the shared tree before any of
   this work — confirmed against `git log` (other commits, other components)
   rather than adopted from the diff.
+
+## MenuButton — composing Button and Menu, and proving the tree was already red (2026-11-22)
+
+- Widening a prop that *shadows* a base vocabulary prop needs the shadow removed
+  first: `title` collides with the HTML `title?: string` inside `ButtonProps`, and
+  Pill already ships `label?: string` — both had to enter the `Omit` list before
+  `MenuButtonProps.title: ReactNode` / `MenuButtonPillConfig.label: ReactNode`
+  could typecheck. And spreading the pill config onto `<Pill {...pill}>` leaks the
+  widened `label` back into Pill's own `label` slot; destructure it and pass it as
+  children instead.
+- The popup height cap rides a custom property: `MenuPopup` writes
+  `--menu-popup-max-height: innerHeight - top - 8` on the fixed portal and the
+  `MenuSurface` scroll div folds it into `min(…, var(--menu-popup-max-height, 100dvh))`.
+  jsdom makes that cheap to assert — zero rects pin `pos.top` to 4, so the property
+  is exactly `innerHeight - 12`, and the portal is just the body child whose style
+  says `position: fixed`. `Array.prototype.at` is not in the kit's lib target;
+  `branch[branch.length - 1]` it is.
+- Inline submenus are collapsed until their parent row is clicked, so a selection
+  deep in the tree must be *walked to* in tests: assert the parent's value echo,
+  click the parent, then query the `menuitemradio`. Querying the leaf directly
+  tests a closed branch and "fails" correctly but confusingly.
+- Docs shared primitives have exact prop names worth grepping before first use —
+  `PropsTable` takes `props` (not `rows`), `EventLogControl` takes `log` (not
+  `events`), and `ControlAccordion`'s `defaultOpen` lives per-group, not top-level.
+  `SurfaceCorner` has no `rounded-4xl`; the playground's option lists are the
+  ground truth for state unions.
+- The baseline habit again, upgraded: 18 failures on the shared tree were not
+  merely checked against `git log` — a `git worktree` at HEAD with symlinked
+  `node_modules` reproduced 7 of them on a pristine checkout, and the rest
+  (traceGraph i18n keys, StatTileDrilldown timeouts) belong to a parallel WIP that
+  also has uncommitted edits to `styles.css`/`Popover.tsx`/`StatCard.tsx` sitting
+  in the same tree. With two features in flight, a green full-suite run is not the
+  gate; *my files green + baseline-identical failures* is.

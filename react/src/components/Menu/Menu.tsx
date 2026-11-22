@@ -35,6 +35,17 @@ interface State {
 }
 const text = (item: MenuItem) => item.textValue ?? (typeof item.label === "string" ? item.label : item.id);
 
+/** The path from `items` down to the entry with `selectedKey`, or undefined. */
+function findSelectedBranch(items: MenuItem[] | undefined, selectedKey: string): MenuItem[] | undefined {
+  for (const item of items ?? []) {
+    if (item.hidden) continue;
+    if (item.id === selectedKey) return [item];
+    const branch = findSelectedBranch(item.items, selectedKey);
+    if (branch) return [item, ...branch];
+  }
+  return undefined;
+}
+
 function MenuList({ items, state, depth = 0, parentLabel, onBack, focusOnMount = false, grouped = false }: {
   items: MenuItem[]; state: State; depth?: number; parentLabel?: string; onBack?: () => void; focusOnMount?: boolean; grouped?: boolean;
 }) {
@@ -114,6 +125,13 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
   const itemPadding = item.padding ?? props.itemPadding;
   const tokens = getSideMenuItemTokens(itemTone);
   const checkable = item.type === "checkbox" || item.type === "radio";
+  // `selectedKey` drives the right-aligned check and the parent-row value echo;
+  // checkbox/radio rows keep their own left-side checks, so checkable wins.
+  const selected = !checkable && props.selectedKey != null && item.id === props.selectedKey;
+  const branch = !selected && nested && item.trailing == null && props.selectedKey != null
+    ? findSelectedBranch(item.items, props.selectedKey)
+    : undefined;
+  const echo = branch ? branch[branch.length - 1] : undefined;
   const activate = (event: React.MouseEvent<HTMLElement>) => {
     if (item.disabled) { event.preventDefault(); return; }
     if (nested) { event.preventDefault(); if (expanded) back(); else open(true); return; }
@@ -130,12 +148,14 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
     {item.badge != null && <span className="shrink-0 text-xs">{item.badge}</span>}
     {item.shortcut != null && <span className="shrink-0 text-xs opacity-60">{item.shortcut}</span>}
     {item.trailing}
+    {echo && <span className="shrink-0 text-xs font-normal opacity-70">{text(echo)}</span>}
+    {selected && <span aria-hidden="true" className="inline-flex h-5 w-5 shrink-0 items-center justify-center"><CustomIcon icon="Check" size="sm" /></span>}
     {nested && <CollapseChevron aria-hidden="true" className={classNames("h-3 w-3 shrink-0", !tiered && (expanded ? "-rotate-90" : "rotate-90"))} />}
   </>;
   const rowProps = {
-    id, role: checkable ? item.type === "radio" ? "menuitemradio" : "menuitemcheckbox" : "menuitem",
+    id, role: checkable ? item.type === "radio" ? "menuitemradio" : "menuitemcheckbox" : selected ? "menuitemradio" : "menuitem",
     "aria-label": label, "aria-disabled": item.disabled || undefined,
-    "aria-checked": checkable ? Boolean(item.checked) : undefined,
+    "aria-checked": checkable ? Boolean(item.checked) : selected ? true : undefined,
     "aria-expanded": nested ? expanded : undefined, "aria-haspopup": nested && tiered ? "menu" as const : undefined,
     "aria-controls": nested && expanded ? `${id}-submenu` : undefined,
     "data-menu-action": "", "data-menu-text": label, tabIndex: -1,
@@ -155,6 +175,7 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
     : item.href && !nested ? <a {...rowProps} ref={el => { anchor.current = el; }} href={item.href} target={item.target} rel={item.target === "_blank" ? "noopener noreferrer" : undefined}>{content}</a>
     : <button {...rowProps} type="button" ref={el => { anchor.current = el; }}>{content}</button>;
   const submenu = <div id={`${id}-submenu`}>
+    {item.submenuHeader != null && <div className="px-3 py-1.5 text-xs font-normal opacity-70">{item.submenuHeader}</div>}
     {item.items && <MenuList items={item.items} state={state} depth={depth + 1} parentLabel={label} onBack={back} focusOnMount={state.keyboard.current} />}
     {item.content}
   </div>;
@@ -175,7 +196,9 @@ function MenuSurface({ state, children, root = false }: { state: State; children
         (!root || props.popup || props.trigger || props.anchorRef) && "backdrop-blur-xl")}>
       <div data-menu-padding className={menuPadding[props.padding ?? "xs"]}>
       {root && props.header && <div className="mb-2 border-b border-neutral-200 pb-2 dark:border-white/10">{props.header}</div>}
-      <div className={classNames("overflow-auto", THIN_SCROLLBAR)} style={{ maxHeight: `min(${props.maxHeight ?? 400}px, calc(100dvh - 32px))` }}>{children}</div>
+      {/* The popup publishes --menu-popup-max-height (space to the viewport edge on the
+          chosen side); inline menus have no such var and fall back to 100dvh. */}
+      <div className={classNames("overflow-auto", THIN_SCROLLBAR)} style={{ maxHeight: `min(${props.maxHeight ?? 400}px, calc(100dvh - 32px), var(--menu-popup-max-height, 100dvh))` }}>{children}</div>
       {root && props.footer && <div className="mt-2 border-t border-neutral-200 pt-2 dark:border-white/10">{props.footer}</div>}
       </div>
     </Panel>

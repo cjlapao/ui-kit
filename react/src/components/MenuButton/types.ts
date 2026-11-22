@@ -1,0 +1,70 @@
+import type React from "react";
+import type { ButtonProps } from "../Button";
+import type { PillProps } from "../Pill";
+import type { MenuItem, MenuProps } from "../Menu";
+import type { IconName } from "../../icons/registry";
+
+/** Declarative form of `MenuButtonProps.pill` — maps straight onto `Pill`. */
+export interface MenuButtonPillConfig extends Omit<PillProps, "children" | "label"> {
+  /** Pill content — rendered as the Pill's children. */
+  label: React.ReactNode;
+}
+
+/**
+ * A `Button` trigger with structured slots (icon, stacked title/subtitle,
+ * trailing pill, caret) wired to a `Menu` popup — the model-picker pattern.
+ * Button vocabulary wins name collisions; every Menu-specific prop is
+ * prefixed `menu*` (the DropdownButton `menuWidth`/`menuClassName` precedent).
+ */
+export interface MenuButtonProps
+  extends Omit<ButtonProps, "children" | "leadingIcon" | "trailingIcon" | "iconOnly" | "width" | "onSelect" | "title"> {
+  // ---- trigger slots ----
+  /** Leading glyph: kit icon name or element. Rendered via Button's leadingIcon slot. */
+  icon?: IconName | React.ReactElement;
+  /** Bold first line of the trigger. */
+  title: React.ReactNode;
+  /** Muted line under the title. */
+  subtitle?: React.ReactNode;
+  /** Trailing pill. A ReactNode renders verbatim; the config form maps to `Pill`. */
+  pill?: React.ReactNode | MenuButtonPillConfig;
+  /** Trailing caret on the trigger. @default true */
+  caret?: boolean;
+  /** Caret glyph. @default "ArrowDown" */
+  caretIcon?: string | React.ReactElement;
+  // ---- menu vocabulary (passed through to Menu) ----
+  /** Menu tree — rows carry icons, labels, descriptions, badges, sub-items. */
+  items: MenuItem[];
+  /** Selected item id at any depth: right-aligned check + parent value echo. */
+  selectedKey?: string;
+  submenuMode?: MenuProps["submenuMode"];
+  onSelect?: (item: MenuItem) => void;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  expandedKeys?: string[];
+  defaultExpandedKeys?: string[];
+  onExpandedKeysChange?: (keys: string[]) => void;
+  renderItem?: MenuProps["renderItem"];
+  itemTone?: MenuProps["itemTone"];
+  itemPadding?: MenuProps["itemPadding"];
+  itemCorner?: MenuProps["itemCorner"];
+  // ---- menu surface ----
+  /** Popup width. @default 256 (Menu's) */
+  menuWidth?: number | string;
+  /** Upper bound on the popup's scroll area; the viewport cap always applies on top. */
+  menuMaxHeight?: number;
+  /** Preferred side. Flip/clamp collision handling is always on. @default "bottom" */
+  menuPlacement?: MenuProps["placement"];
+  menuVariant?: MenuProps["variant"];
+  menuTone?: MenuProps["tone"];
+  menuPadding?: MenuProps["padding"];
+  menuCorner?: MenuProps["corner"];
+  menuGlassOpacity?: MenuProps["glassOpacity"];
+  menuTransparency?: MenuProps["transparency"];
+  menuVibrancy?: MenuProps["vibrancy"];
+  menuSpecularMode?: MenuProps["specularMode"];
+  menuHeader?: React.ReactNode;
+  menuFooter?: React.ReactNode;
+  menuClassName?: string;
+  menuStyle?: React.CSSProperties;
+}

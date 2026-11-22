@@ -23,7 +23,12 @@ export function MenuPopup({ anchor, placement, width, children }: {
         viewport: { width: window.innerWidth, height: window.innerHeight },
         preferred: placement, align: "grow", offset: 4,
       });
-      setStyle({ left: position.left, top: position.top, zIndex: resolveOverlayZIndex(anchor.current), visibility: "visible" });
+      // Room left on the chosen (possibly flipped) side, below the popup's top
+      // edge. MenuSurface folds it into its scroll cap, so a menu that cannot
+      // fit shrinks and scrolls internally instead of hanging off-screen.
+      const available = Math.max(0, window.innerHeight - position.top - 8);
+      setStyle({ left: position.left, top: position.top, zIndex: resolveOverlayZIndex(anchor.current), visibility: "visible",
+        "--menu-popup-max-height": `${available}px` } as React.CSSProperties);
     };
     update();
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;

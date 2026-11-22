@@ -1,0 +1,29 @@
+import { PageHeader } from "../../shared/PageHeader";
+import { ExampleCard } from "../../shared/ExampleCard";
+import { PropsTable } from "../../shared/A11ySections";
+import { MenuButtonPlayground } from "./MenuButtonPlayground";
+import MenuButtonExamples from "./MenuButtonExamples";
+import code from "./MenuButtonExamples.tsx?raw";
+
+export default function MenuButtonPage() {
+  return <div className="space-y-6">
+    <PageHeader name="Menu Button" description="A Button trigger with icon, stacked title/subtitle, trailing pill and caret, wired to a rich Menu popup — the model-picker pattern. Selection is one prop: selectedKey renders the right-aligned check on the chosen row at any depth and echoes a selected descendant on its submenu parent. Popups always collide-detect: they flip to the free side, clamp to the viewport and cap their height to the space left, scrolling internally." />
+    <MenuButtonPlayground />
+    <ExampleCard title="Complex scenarios" description="The Claude-style model picker (subtitle rows, badge pills, submenu header notes, plan footer), a settings mode switcher (groups, separators, shortcuts, checkboxes, danger) and deeply nested tiered menus — including a bottom-right trigger demonstrating the flip and internal scroll." code={code} filename="MenuButtonExamples.tsx"><MenuButtonExamples /></ExampleCard>
+    <PropsTable title="MenuButton props" props={[
+      { name: "icon", type: "IconName | ReactElement", description: "Leading glyph, drawn through the Button's leadingIcon slot and its icon renderer." },
+      { name: "title / subtitle", type: "ReactNode", description: "The stacked trigger lines — bold first line, muted second. Title also names the popup menu." },
+      { name: "pill", type: "ReactNode | { label, ...PillProps }", description: "The compact value pill after the text block. The config form maps onto Pill (tone, variant, icon…); a ReactNode renders verbatim." },
+      { name: "caret / caretIcon", type: "boolean / string | ReactElement", default: "true / ArrowDown", description: "The trailing chevron. All Button vocabulary — variant, color, size, weight, glass, tooltip — passes through." },
+      { name: "items / selectedKey / submenuMode …", type: "MenuItem[] / string / inline | tiered", description: "Passed straight to Menu: rows carry icons, descriptions, badges, shortcuts and nested items; selectedKey drives the right-aligned check (menuitemradio) and the parent-row value echo." },
+      { name: "menuWidth / menuMaxHeight / menuPlacement", type: "number | string / number / Side", default: "256 / 400 / bottom", description: "Popup dimensions and preferred side. Collision handling is always on: side flip, viewport clamp, and a height cap to the space left on the chosen side." },
+      { name: "menuVariant / menuTone / menuPadding / menuCorner …", type: "Panel vocabulary", description: "The Menu surface, mirrored from MenuProps with the menu prefix (DropdownButton precedent) so Button names never collide." },
+      { name: "menuHeader / menuFooter / renderItem …", type: "ReactNode / callback", description: "Menu chrome pass-throughs, including open/defaultOpen/onOpenChange/onSelect and expanded-key control." },
+    ]} />
+    <PropsTable title="Menu additions (selection)" props={[
+      { name: "selectedKey", type: "string", description: "Id of the selected row at any depth. It renders the right-aligned check and menuitemradio + aria-checked semantics; checkbox/radio rows keep their own left-side checks." },
+      { name: "Value echo", type: "automatic", description: "When the selection lives inside a submenu, its parent row shows the selected entry's text right-aligned before the chevron — unless an explicit trailing is provided." },
+      { name: "submenuHeader", type: "ReactNode", description: "Muted note rendered above a parent's submenu list — the model picker's \"Higher effort means…\" copy. Root menus keep using header/footer." },
+    ]} />
+  </div>;
+}

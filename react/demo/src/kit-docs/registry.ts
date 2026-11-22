@@ -93,6 +93,15 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/menu/MenuPage")),
   },
   {
+    slug: "menu-button",
+    name: "Menu Button",
+    description:
+      "A Button trigger with icon, title, subtitle and pill wired to a rich Menu — selection checks, submenu value echo, header notes and collision-safe popups that always stay on screen.",
+    icon: "ViewRows",
+    category: "Overlays",
+    Page: lazy(() => import("./components/menu-button/MenuButtonPage")),
+  },
+  {
     slug: "page-body-layout",
     name: "Page Body Layout",
     description:

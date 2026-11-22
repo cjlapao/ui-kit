@@ -146,3 +146,54 @@ describe("Menu", () => {
     vi.useRealTimers();
   });
 });
+
+describe("Menu selection (selectedKey)", () => {
+  const tree: MenuItem[] = [
+    { id: "model", label: "Sonnet 5.5", description: "Most efficient for simpler tasks" },
+    { id: "effort", label: "Effort", submenuHeader: "Higher effort means more thorough responses.", items: [
+      { id: "low", label: "Low" }, { id: "medium", label: "Medium" },
+    ] },
+    { id: "theme", label: "Theme", trailing: "Explicit", items: [{ id: "dark", label: "Dark" }] },
+    { id: "notify", label: "Notify", type: "checkbox", checked: true },
+  ];
+  it("checks the selected row with menuitemradio semantics", () => {
+    render(<Menu items={[{ id: "a", label: "Alpha" }, { id: "b", label: "Beta" }]} selectedKey="b" />);
+    const row = screen.getByRole("menuitemradio", { name: "Beta" });
+    expect(row).toHaveAttribute("aria-checked", "true");
+    expect(row.querySelector("svg")).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Alpha" })).not.toHaveAttribute("aria-checked");
+  });
+  it("echoes the selected descendant on its parent row", () => {
+    render(<Menu items={tree} selectedKey="medium" />);
+    expect(screen.getByRole("menuitem", { name: "Effort" })).toHaveTextContent("Medium");
+  });
+  it("lets an explicit trailing suppress the echo", () => {
+    render(<Menu items={tree} selectedKey="dark" />);
+    const themed = screen.getByRole("menuitem", { name: "Theme" });
+    expect(themed).toHaveTextContent("Explicit");
+    expect(themed).not.toHaveTextContent("Dark");
+  });
+  it("keeps checkbox rows checkable-first", () => {
+    render(<Menu items={tree} selectedKey="notify" />);
+    expect(screen.getByRole("menuitemcheckbox", { name: "Notify" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitemradio")).toBeNull();
+  });
+  it("renders submenuHeader only inside the opened submenu", () => {
+    render(<Menu items={tree} />);
+    expect(screen.queryByText(/Higher effort/)).toBeNull();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Effort" }));
+    expect(screen.getByText(/Higher effort/)).toBeInTheDocument();
+  });
+  it("ignores a selectedKey that matches no row", () => {
+    render(<Menu items={tree} selectedKey="ghost" />);
+    expect(screen.queryAllByRole("menuitemradio")).toHaveLength(0);
+  });
+  it("caps the popup scroll area to the space left on the chosen side", async () => {
+    render(<Menu trigger={<button>Open</button>} items={items} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    const portal = Array.from(document.body.children).find(el => el.getAttribute("style")?.includes("position: fixed")) as HTMLElement;
+    expect(portal).toBeTruthy();
+    expect(portal.style.getPropertyValue("--menu-popup-max-height")).toBe(`${window.innerHeight - 4 - 8}px`);
+    expect(portal.querySelector("[data-menu-padding] > div")?.getAttribute("style")).toContain("var(--menu-popup-max-height");
+  });
+});
