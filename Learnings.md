@@ -29,7 +29,7 @@ The React components directory is the single source of truth; Vue and both
      convention (overlapping shapes merge; the icon reads by shape, not colour).
      A root `stroke="#000"` / `stroke="#000000"` must be dropped too (every shape
      inherits it).
-     Non-`path` primitives (`<ellipse>`, `<circle>`, `<rect>`) are fine as-is —
+     Non-`path` primitives (`<ellipse>`, `<circle>`, `<rect>`, `<polygon>`) are fine as-is —
      verify them by **attribute set**, not string prefix (junk attrs like
      `class` shift the prefix), and keep their geometry attrs byte-exact.
      When the source puts the fill on the root
@@ -1502,3 +1502,35 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   a promise the region cannot keep. And for tests, `ScrollArea`'s `data-slot`
   attributes are the stable hooks — structural CSS queries like
   `[data-menu-padding] > div` quietly re-point at whatever renders first.
+
+## A playground control that does nothing is often a frozen module graph (2026-11-23)
+
+- `Panel` grew `activeTone`/`pulseTone` and `MultiSelectPanel` grew
+  `checkboxTone`, and the report came back "the pulse colour doesn't change —
+  in the playground". It wasn't the prop: the docs app aliases
+  `@cjlapao/ui-kit` → `react/src/index.ts`, and a `vite dev` server started
+  *before* the edit keeps the transformed module graph it already resolved. The
+  **new docs file** HMRs in (the swatch row renders, so the control looks
+  alive) while the **old `Panel` module** answers it and drops the unknown
+  prop. The tell was that the same tab also couldn't resolve a component added
+  to `components/index.ts` after the server started. Restart before debugging
+  the prop — the user's own restart closed it.
+- The cheap discriminator, before reading any source: read the handoff off the
+  live page.
+  `getComputedStyle(document.querySelector('.panel-pulse')).getPropertyValue('--panel-glow')`
+  answers `var(--color-blue-500)` when the tab runs the pre-prop component and
+  `var(--color-rose-500)` when it does not — which of three hue props is at
+  fault stops being a guess.
+- Verified rather than assumed, because the feature rides on it: a custom
+  property consumed **inside `@keyframes`** (`.panel-pulse` →
+  `--_panel-glow: var(--panel-glow, currentColor)` → `color-mix` in the
+  keyframe's `box-shadow`) *is* re-resolved per frame by Chromium when the
+  property changes mid-animation. A colour-agnostic keyframe driven by a var
+  needs no animation restart when the caller changes the hue — no hue-keyed
+  `animation-name`, no remount `key`. Measure the animated state separately
+  from the `prefers-reduced-motion` static rule: measuring only the static rule
+  would have left that claim untested.
+- Playwright note for these throwaway harnesses: only `playwright-core` is
+  installed and it is CJS — import it by absolute path as a default export
+  (`const { chromium } = pw`). `NODE_PATH` does not apply to ESM resolution,
+  and a named import throws.

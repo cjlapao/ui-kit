@@ -99,6 +99,30 @@ export interface PopoverProps {
   /** Content-sized below this cap, which is itself capped at the viewport. @default 320 */
   maxWidth?: number;
   /**
+   * Stretch the panel to the trigger's width instead of sizing it to its
+   * content — the select-style dropdown. The `maxWidth` cap still clamps,
+   * and a content `min-width` still wins, so a narrow trigger never squeezes
+   * an item that needs room.
+   * @default false
+   */
+  matchTriggerWidth?: boolean;
+  /**
+   * The width the panel opens at, instead of sizing itself to its content —
+   * for dropdowns meant to fill an area far wider than their trigger. When
+   * the viewport runs short on the side `align` keeps free, the panel
+   * narrows to the room that is left; it never slides off its anchor.
+   */
+  width?: number;
+  /**
+   * Which edge of the trigger a wider-than-trigger panel keeps aligned:
+   * `start` the leading (left) edges, `center` centres the panel on the
+   * trigger, `end` the trailing (right) edges. A panel that cannot keep
+   * that edge and its width shrinks to the space on the kept side — it
+   * stays where it was told to stay.
+   * @default "start"
+   */
+  align?: "start" | "center" | "end";
+  /**
    * The indicator that connects the panel to the trigger:
    * the classic rotated-square arrow, or the detached "thinking-bubble"
    * dot that floats in the gap. `true` is the arrow (the default).
@@ -149,6 +173,15 @@ export interface PopoverProps {
   specularMode?: PanelSpecularMode;
   /** Extra classes for the overlay wrapper. */
   className?: string;
+  /**
+   * Lay the trigger wrapper flat (`display: contents`) instead of the default
+   * `inline-flex` box. A trigger that is itself a layout child — a stat tile
+   * in a dashboard grid — must not be wrapped in a box that becomes the grid
+   * item and shrinks the card. Placement is unaffected: the anchor is the
+   * trigger element (it forwards its ref), not the wrapper.
+   * @default false
+   */
+  bareTrigger?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -261,6 +294,9 @@ const Popover: React.FC<PopoverProps> = ({
   corner = DEFAULT_SURFACE_CORNER,
   padding = "sm",
   maxWidth = 320,
+  matchTriggerWidth = false,
+  width,
+  align = "start",
   arrow = true,
   dismissable = true,
   closeOnEscape = true,
@@ -280,6 +316,7 @@ const Popover: React.FC<PopoverProps> = ({
   transparency,
   specularMode,
   className,
+  bareTrigger = false,
 }) => {
   const popoverId = useId();
 
@@ -425,6 +462,39 @@ const Popover: React.FC<PopoverProps> = ({
     const anchor = anchorRef.current ?? triggerWrapperRef.current;
     if (!wrapper || !anchor) return;
     const anchorRect = anchor.getBoundingClientRect();
+    const anchorCenterX = anchorRect.left + anchorRect.width / 2;
+    // Set the width BEFORE measuring: measuring a content-sized panel and
+    // stretching it afterwards would leave every edge/grow alignment
+    // computed against the old, narrower box.
+    if (matchTriggerWidth && typeof window !== "undefined") {
+      wrapper.style.width = `${Math.min(
+        anchorRect.width,
+        maxWidth,
+        window.innerWidth - VIEWPORT_MARGIN * 2,
+      )}px`;
+    }
+    // An explicit width is decided BEFORE measuring too — and it adapts:
+    // whatever room the kept side (`align`) has to the viewport edge is the
+    // ceiling, so a menu told to "stay here" narrows instead of sliding.
+    let fixedWidth: number | undefined;
+    if (width != null && width > 0 && typeof window !== "undefined") {
+      const triggerRight = anchorRect.left + anchorRect.width;
+      const roomOnSide =
+        align === "end"
+          ? triggerRight - VIEWPORT_MARGIN
+          : align === "center"
+            ? 2 *
+              Math.min(
+                anchorCenterX - VIEWPORT_MARGIN,
+                window.innerWidth - VIEWPORT_MARGIN - anchorCenterX,
+              )
+            : window.innerWidth - VIEWPORT_MARGIN - anchorRect.left;
+      fixedWidth = Math.max(
+        0,
+        Math.min(width, roomOnSide, window.innerWidth - VIEWPORT_MARGIN * 2),
+      );
+      wrapper.style.width = `${fixedWidth}px`;
+    }
     const wrapperRect = wrapper.getBoundingClientRect();
     // `getBoundingClientRect` reports the *transformed* box, and during
     // enter/leave the overlay is scaled (0.93) — the first measurement would
@@ -432,7 +502,8 @@ const Popover: React.FC<PopoverProps> = ({
     // Read the layout size, which transforms don't touch; in jsdom there is
     // no layout (offsets are 0), and the mocked bbox is already untransformed,
     // so the fallback is exact there.
-    const wrapperWidth = wrapper.offsetWidth || wrapperRect.width;
+    const wrapperWidth =
+      fixedWidth ?? (wrapper.offsetWidth || wrapperRect.width);
     const wrapperHeight = wrapper.offsetHeight || wrapperRect.height;
     // Unlaid-out (jsdom) or zero-sized boxes would poison the maths.
     if (wrapperWidth === 0 || wrapperHeight === 0) return;
@@ -457,12 +528,39 @@ const Popover: React.FC<PopoverProps> = ({
       align: "grow",
     });
 
+    // A fixed-width panel keeps the edge it was told to keep: the resolver's
+    // "grow" alignment slides the box toward whichever side has room, which
+    // reads as the menu wandering off its trigger. Pin it back to the chosen
+    // edge, and re-anchor the caret so the arrow still points at the
+    // trigger's centre after the pin.
+    let boxLeft = resolved.left;
+    let caret = resolved.caret;
+    if (
+      fixedWidth !== undefined &&
+      (resolved.side === "top" || resolved.side === "bottom")
+    ) {
+      const target =
+        align === "end"
+          ? anchorRect.left + anchorRect.width - fixedWidth
+          : align === "center"
+            ? anchorRect.left + (anchorRect.width - fixedWidth) / 2
+            : anchorRect.left;
+      boxLeft = Math.max(
+        VIEWPORT_MARGIN,
+        Math.min(target, window.innerWidth - fixedWidth - VIEWPORT_MARGIN),
+      );
+      const caretInset = cornerRadiusPx(corner) + 8;
+      caret = Math.min(
+        Math.max(anchorCenterX - boxLeft, caretInset),
+        Math.max(caretInset, fixedWidth - caretInset),
+      );
+    }
     // The dot floats in the ACTUAL gap, not the nominal offset — clamping
     // can squeeze the gap, so measure the distance between the trigger's
     // facing edge and the box's facing edge after resolution.
     const box = {
       top: resolved.top,
-      left: resolved.left,
+      left: boxLeft,
       width: wrapperWidth,
       height: wrapperHeight,
     };
@@ -483,13 +581,13 @@ const Popover: React.FC<PopoverProps> = ({
       style: {
         position: "fixed",
         top: resolved.top,
-        left: resolved.left,
+        left: boxLeft,
         zIndex: resolveOverlayZIndex(anchor),
       },
-      placement: resolved,
+      placement: { ...resolved, left: boxLeft, caret },
       bubbleGap,
     });
-  }, [placement, corner, arrowMode]);
+  }, [placement, corner, arrowMode, matchTriggerWidth, width, align, maxWidth]);
 
   useLayoutEffect(() => {
     if (!overlayVisible || position) return;
@@ -637,10 +735,12 @@ const Popover: React.FC<PopoverProps> = ({
 
   const chrome = getPanelEdgeChrome(variant, tone, glassOpacity, vibrancy, transparency);
 
+  // An explicit `width` is the caller's decision about how wide this menu
+  // is — it replaces the content cap, keeping only the viewport guard.
   const cappedMaxWidth =
     typeof window === "undefined"
-      ? maxWidth
-      : Math.min(maxWidth, window.innerWidth - VIEWPORT_MARGIN * 2);
+      ? (width ?? maxWidth)
+      : Math.min(width ?? maxWidth, window.innerWidth - VIEWPORT_MARGIN * 2);
 
   const overlayStyle: CSSProperties = position
     ? { ...position.style, maxWidth: cappedMaxWidth }
@@ -804,7 +904,7 @@ const Popover: React.FC<PopoverProps> = ({
   return (
     <span
       ref={triggerWrapperRef}
-      className="inline-flex"
+      className={bareTrigger ? "contents" : "inline-flex"}
       onMouseEnter={triggerMode === "hover" ? enterHover : undefined}
       onMouseLeave={triggerMode === "hover" ? leaveHover : undefined}
       onFocus={triggerMode === "hover" ? focusHover : undefined}

@@ -12,12 +12,12 @@ import classNames from "classnames";
 import Button from "./Button";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import Panel from "./Panel";
+import { ScrollArea } from "./ScrollArea";
 import Spinner from "./Spinner";
 import { useSurfaceText } from "../contexts/SurfaceContext";
 import {
   DEFAULT_SURFACE_CORNER,
   getSurfacePaddingClass,
-  THIN_SCROLLBAR_FIELD,
 } from "../theme/Theme";
 import type { ControlSize, PlainSurfaceVariant, TrueColor } from "../theme/Theme";
 import type {
@@ -55,8 +55,6 @@ const GAP_CLASSES: Record<ControlSize, string> = {
 
 /** Grid row unit for the masonry span maths. */
 const MASONRY_ROW_PX = 8;
-
-const SCROLLBAR = THIN_SCROLLBAR_FIELD;
 
 export interface InfiniteScrollPanelProps<T> {
   items: T[];
@@ -124,6 +122,11 @@ export interface InfiniteScrollPanelProps<T> {
   specularMode?: PanelSpecularMode;
   /** Fixed height for the scroll area. Otherwise it fills its parent. */
   height?: number | string;
+  /**
+   * Floor for the scroll area's height, so one page — or none — still fills
+   * it and the area keeps its presence.
+   */
+  minHeight?: number | string;
   className?: string;
   /** Class for the scrolling element itself. */
   bodyClassName?: string;
@@ -164,6 +167,7 @@ function ScrollBody<T>({
   tone,
   padding = "none",
   height,
+  minHeight,
   bodyClassName,
 }: ScrollBodyProps<T>) {
   const surface = useSurfaceText();
@@ -384,23 +388,30 @@ function ScrollBody<T>({
     );
   })();
 
+  // The `ScrollArea` is the scroller — the kit's own scrollbars, not the
+  // browser's (the old `scrollbar-thin` classes belonged to a plugin this
+  // kit never installed, so the bar was always the platform default). The
+  // hook watches the *viewport* element, so `viewportRef` is what the
+  // IntersectionObserver and the reset-to-top both need.
   return (
-    <div
-      ref={containerRef}
-      className={classNames(
-        "relative flex h-full min-h-0 flex-col overflow-y-auto overflow-x-hidden",
+    <ScrollArea
+      viewportRef={containerRef}
+      horizontal={false}
+      className={classNames("h-full min-h-0", bodyClassName)}
+      viewportClassName={classNames(
+        "flex flex-col",
         // The inset lives on the scrolling element, not on the Panel around
-        // it. A browser draws a scrollbar at the *scroller's* border edge, so
-        // padding the Panel instead left the bar floating inside the card with
-        // a strip of card still visible to its right.
+        // it, so the scrollbar reaches the card's edge.
         getSurfacePaddingClass(padding),
-        // `scrollbar-thin scrollbar-track-*` came from the tailwind-scrollbar
-        // plugin, which this kit does not install — every one of those classes
-        // was inert.
-        SCROLLBAR,
-        bodyClassName,
       )}
-      style={height === undefined ? undefined : { height }}
+      // The content wrapper is the ScrollArea's measurement box; it must not
+      // participate in the flex column, so it stacks its children as blocks.
+      contentClassName="block!"
+      style={
+        height === undefined && minHeight === undefined
+          ? undefined
+          : { height, minHeight }
+      }
       aria-busy={busy}
     >
       {body}
@@ -408,7 +419,7 @@ function ScrollBody<T>({
           to watch even before the first scroll. */}
       {(hasMore || Boolean(error)) && <div ref={sentinelRef} aria-hidden="true" />}
       {footer}
-    </div>
+    </ScrollArea>
   );
 }
 

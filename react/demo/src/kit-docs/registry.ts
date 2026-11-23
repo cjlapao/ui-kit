@@ -440,6 +440,17 @@ export const DOC_COMPONENTS: DocComponent[] = [
     ),
   },
   {
+    slug: "multi-select-panel",
+    name: "Multi Select Panel",
+    description:
+      "A grid of selectable cards built from the kit's own Panel and Checkbox — Panel owns the interaction, Checkbox draws the box and carries the form value, and title, icon, subtitle and pills are each optional.",
+    icon: "Container",
+    category: "Forms",
+    Page: lazy(
+      () => import("./components/multi-select-panel/MultiSelectPanelPage"),
+    ),
+  },
+  {
     slug: "input-otp",
     name: "Input OTP",
     description:

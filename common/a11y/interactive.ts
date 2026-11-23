@@ -80,5 +80,23 @@ export function hasInteractiveDescendant(
   root: Element | null | undefined,
 ): boolean {
   if (!root || typeof root.querySelector !== "function") return false;
-  return root.querySelector(INTERACTIVE_SELECTOR) !== null;
+  const controls = root.querySelectorAll(INTERACTIVE_SELECTOR);
+  for (let index = 0; index < controls.length; index += 1) {
+    const control = controls[index];
+    // A control assistive technology cannot see *and* the keyboard cannot
+    // reach is decoration, not a competing control: it announces nothing from
+    // inside the container and steals nothing from it. `MultiSelectPanel`
+    // builds its cards this way — a real `input` kept for form submission and
+    // made inert on purpose, with the card itself carrying the role. A control
+    // that is only hidden, or only unfocusable, is still one someone can
+    // reach, so it keeps warning.
+    if (
+      control.getAttribute("tabindex") === "-1" &&
+      control.closest('[aria-hidden="true"]') !== null
+    ) {
+      continue;
+    }
+    return true;
+  }
+  return false;
 }

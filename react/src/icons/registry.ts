@@ -4,6 +4,8 @@ import { Activity } from "./components/Activity";
 import { Add } from "./components/Add";
 import { AgentFlow } from "./components/AgentFlow";
 import { AiAgent } from "./components/AiAgent";
+import { AiBrain } from "./components/AiBrain";
+import { AiSparkles } from "./components/AiSparkles";
 import { Alarm } from "./components/Alarm";
 import { Apple } from "./components/Apple";
 import { Archive } from "./components/Archive";
@@ -23,6 +25,7 @@ import { Aws } from "./components/Aws";
 import { Azure } from "./components/Azure";
 import { Back } from "./components/Back";
 import { Backup } from "./components/Backup";
+import { BarChart } from "./components/BarChart";
 import { Blocked } from "./components/Blocked";
 import { BlockerCircular } from "./components/BlockerCircular";
 import { Blueprint } from "./components/Blueprint";
@@ -31,6 +34,7 @@ import { Brain } from "./components/Brain";
 import { Bug } from "./components/Bug";
 import { Cache } from "./components/Cache";
 import { Calendar } from "./components/Calendar";
+import { CandlestickChart } from "./components/CandlestickChart";
 import { CatalogManifest } from "./components/CatalogManifest";
 import { CatalogVersion } from "./components/CatalogVersion";
 import { CentOS } from "./components/CentOS";
@@ -48,6 +52,7 @@ import { Claim } from "./components/Claim";
 import { Claims } from "./components/Claims";
 import { Clean } from "./components/Clean";
 import { CleanBrush } from "./components/CleanBrush";
+import { Clock } from "./components/Clock";
 import { Clone } from "./components/Clone";
 import { Close } from "./components/Close";
 import { Close1 } from "./components/Close1";
@@ -62,18 +67,21 @@ import { Cog } from "./components/Cog";
 import { Cogs } from "./components/Cogs";
 import { Comments } from "./components/Comments";
 import { Complete } from "./components/Complete";
+import { Component } from "./components/Component";
 import { Container } from "./components/Container";
 import { Copy } from "./components/Copy";
 import { CopyClipboard } from "./components/CopyClipboard";
 import { Dashboard } from "./components/Dashboard";
 import { Database } from "./components/Database";
 import { Debian } from "./components/Debian";
+import { Delete } from "./components/Delete";
 import { Details } from "./components/Details";
 import { Diagram } from "./components/Diagram";
 import { Disable } from "./components/Disable";
 import { Docker } from "./components/Docker";
 import { DockerCopy } from "./components/DockerCopy";
 import { DollarClipboard } from "./components/DollarClipboard";
+import { DonutChart } from "./components/DonutChart";
 import { Dots } from "./components/Dots";
 import { DotsVertical } from "./components/DotsVertical";
 import { Download } from "./components/Download";
@@ -100,6 +108,7 @@ import { HandUp } from "./components/HandUp";
 import { HealthCheck } from "./components/HealthCheck";
 import { Help } from "./components/Help";
 import { History } from "./components/History";
+import { Home } from "./components/Home";
 import { Host } from "./components/Host";
 import { Idea } from "./components/Idea";
 import { Image } from "./components/Image";
@@ -118,6 +127,7 @@ import { LinkAlt } from "./components/LinkAlt";
 import { LinkSlash } from "./components/LinkSlash";
 import { List } from "./components/List";
 import { Live } from "./components/Live";
+import { LlmModel } from "./components/LlmModel";
 import { Log } from "./components/Log";
 import { Login } from "./components/Login";
 import { Logout } from "./components/Logout";
@@ -137,6 +147,7 @@ import { Parameter } from "./components/Parameter";
 import { Path } from "./components/Path";
 import { Pause } from "./components/Pause";
 import { PauseCircular } from "./components/PauseCircular";
+import { PieChart } from "./components/PieChart";
 import { Pin } from "./components/Pin";
 import { Podman } from "./components/Podman";
 import { PodmanDesktop } from "./components/PodmanDesktop";
@@ -145,10 +156,12 @@ import { Praise } from "./components/Praise";
 import { PriceTag } from "./components/PriceTag";
 import { Prices } from "./components/Prices";
 import { Project } from "./components/Project";
+import { ProjectSolid } from "./components/ProjectSolid";
 import { Pull } from "./components/Pull";
 import { PullRequest } from "./components/PullRequest";
 import { PullRequestClosed } from "./components/PullRequestClosed";
 import { Push } from "./components/Push";
+import { RadarChart } from "./components/RadarChart";
 import { RedHat } from "./components/RedHat";
 import { Refresh } from "./components/Refresh";
 import { RemoteHost } from "./components/RemoteHost";
@@ -202,6 +215,7 @@ import { ThemeDark } from "./components/ThemeDark";
 import { ThemeLight } from "./components/ThemeLight";
 import { ThumbsUp } from "./components/ThumbsUp";
 import { Trash } from "./components/Trash";
+import { Trigger } from "./components/Trigger";
 import { UX } from "./components/UX";
 import { Ubuntu } from "./components/Ubuntu";
 import { Unlock } from "./components/Unlock";
@@ -212,6 +226,7 @@ import { ViewGrid } from "./components/ViewGrid";
 import { ViewRows } from "./components/ViewRows";
 import { VirtualMachine } from "./components/VirtualMachine";
 import { Warning } from "./components/Warning";
+import { Webhook } from "./components/Webhook";
 import { Whiteboard } from "./components/Whiteboard";
 import { Windows } from "./components/Windows";
 import { Work } from "./components/Work";
@@ -226,6 +241,8 @@ export type IconName =
   | "Add"
   | "AgentFlow"
   | "AiAgent"
+  | "AiBrain"
+  | "AiSparkles"
   | "Alarm"
   | "Apple"
   | "Archive"
@@ -245,6 +262,7 @@ export type IconName =
   | "Azure"
   | "Back"
   | "Backup"
+  | "BarChart"
   | "Blocked"
   | "BlockerCircular"
   | "Blueprint"
@@ -253,6 +271,7 @@ export type IconName =
   | "Bug"
   | "Cache"
   | "Calendar"
+  | "CandlestickChart"
   | "CatalogManifest"
   | "CatalogVersion"
   | "CentOS"
@@ -270,6 +289,7 @@ export type IconName =
   | "Claims"
   | "Clean"
   | "CleanBrush"
+  | "Clock"
   | "Clone"
   | "Close"
   | "Close1"
@@ -284,18 +304,21 @@ export type IconName =
   | "Cogs"
   | "Comments"
   | "Complete"
+  | "Component"
   | "Container"
   | "Copy"
   | "CopyClipboard"
   | "Dashboard"
   | "Database"
   | "Debian"
+  | "Delete"
   | "Details"
   | "Diagram"
   | "Disable"
   | "Docker"
   | "DockerCopy"
   | "DollarClipboard"
+  | "DonutChart"
   | "Dots"
   | "DotsVertical"
   | "Download"
@@ -322,6 +345,7 @@ export type IconName =
   | "HealthCheck"
   | "Help"
   | "History"
+  | "Home"
   | "Host"
   | "Idea"
   | "Image"
@@ -340,6 +364,7 @@ export type IconName =
   | "LinkSlash"
   | "List"
   | "Live"
+  | "LlmModel"
   | "Log"
   | "Login"
   | "Logout"
@@ -359,6 +384,7 @@ export type IconName =
   | "Path"
   | "Pause"
   | "PauseCircular"
+  | "PieChart"
   | "Pin"
   | "Podman"
   | "PodmanDesktop"
@@ -367,10 +393,12 @@ export type IconName =
   | "PriceTag"
   | "Prices"
   | "Project"
+  | "ProjectSolid"
   | "Pull"
   | "PullRequest"
   | "PullRequestClosed"
   | "Push"
+  | "RadarChart"
   | "RedHat"
   | "Refresh"
   | "RemoteHost"
@@ -424,6 +452,7 @@ export type IconName =
   | "ThemeLight"
   | "ThumbsUp"
   | "Trash"
+  | "Trigger"
   | "UX"
   | "Ubuntu"
   | "Unlock"
@@ -434,6 +463,7 @@ export type IconName =
   | "ViewRows"
   | "VirtualMachine"
   | "Warning"
+  | "Webhook"
   | "Whiteboard"
   | "Windows"
   | "Work"
@@ -449,6 +479,8 @@ export const iconRegistry: Record<
   Add: Add,
   AgentFlow: AgentFlow,
   AiAgent: AiAgent,
+  AiBrain: AiBrain,
+  AiSparkles: AiSparkles,
   Alarm: Alarm,
   Apple: Apple,
   Archive: Archive,
@@ -468,6 +500,7 @@ export const iconRegistry: Record<
   Azure: Azure,
   Back: Back,
   Backup: Backup,
+  BarChart: BarChart,
   Blocked: Blocked,
   BlockerCircular: BlockerCircular,
   Blueprint: Blueprint,
@@ -476,6 +509,7 @@ export const iconRegistry: Record<
   Bug: Bug,
   Cache: Cache,
   Calendar: Calendar,
+  CandlestickChart: CandlestickChart,
   CatalogManifest: CatalogManifest,
   CatalogVersion: CatalogVersion,
   CentOS: CentOS,
@@ -493,6 +527,7 @@ export const iconRegistry: Record<
   Claims: Claims,
   Clean: Clean,
   CleanBrush: CleanBrush,
+  Clock: Clock,
   Clone: Clone,
   Close: Close,
   Close1: Close1,
@@ -507,18 +542,21 @@ export const iconRegistry: Record<
   Cogs: Cogs,
   Comments: Comments,
   Complete: Complete,
+  Component: Component,
   Container: Container,
   Copy: Copy,
   CopyClipboard: CopyClipboard,
   Dashboard: Dashboard,
   Database: Database,
   Debian: Debian,
+  Delete: Delete,
   Details: Details,
   Diagram: Diagram,
   Disable: Disable,
   Docker: Docker,
   DockerCopy: DockerCopy,
   DollarClipboard: DollarClipboard,
+  DonutChart: DonutChart,
   Dots: Dots,
   DotsVertical: DotsVertical,
   Download: Download,
@@ -545,6 +583,7 @@ export const iconRegistry: Record<
   HealthCheck: HealthCheck,
   Help: Help,
   History: History,
+  Home: Home,
   Host: Host,
   Idea: Idea,
   Image: Image,
@@ -563,6 +602,7 @@ export const iconRegistry: Record<
   LinkSlash: LinkSlash,
   List: List,
   Live: Live,
+  LlmModel: LlmModel,
   Log: Log,
   Login: Login,
   Logout: Logout,
@@ -582,6 +622,7 @@ export const iconRegistry: Record<
   Path: Path,
   Pause: Pause,
   PauseCircular: PauseCircular,
+  PieChart: PieChart,
   Pin: Pin,
   Podman: Podman,
   PodmanDesktop: PodmanDesktop,
@@ -590,10 +631,12 @@ export const iconRegistry: Record<
   PriceTag: PriceTag,
   Prices: Prices,
   Project: Project,
+  ProjectSolid: ProjectSolid,
   Pull: Pull,
   PullRequest: PullRequest,
   PullRequestClosed: PullRequestClosed,
   Push: Push,
+  RadarChart: RadarChart,
   RedHat: RedHat,
   Refresh: Refresh,
   RemoteHost: RemoteHost,
@@ -647,6 +690,7 @@ export const iconRegistry: Record<
   ThemeLight: ThemeLight,
   ThumbsUp: ThumbsUp,
   Trash: Trash,
+  Trigger: Trigger,
   UX: UX,
   Ubuntu: Ubuntu,
   Unlock: Unlock,
@@ -657,6 +701,7 @@ export const iconRegistry: Record<
   ViewRows: ViewRows,
   VirtualMachine: VirtualMachine,
   Warning: Warning,
+  Webhook: Webhook,
   Whiteboard: Whiteboard,
   Windows: Windows,
   Work: Work,

@@ -6,6 +6,24 @@ import { resetA11yWarned } from "../../../common/a11y/warn";
 
 const panelOf = (container: HTMLElement) => container.querySelector("section")!;
 
+/**
+ * The hue a translucent fill paints in, whichever spelling that fill arrived
+ * in: any alpha-carrying colour is precomposed into the
+ * `--ui-surface-color` / `--ui-surface-alpha` pair (see
+ * `getSurfaceTransparencyClasses`), the plain utilities keep their own alpha.
+ */
+const surfaceColourOf = (cls: string, mode: "light" | "dark") => {
+  for (const token of cls.split(/\s+/)) {
+    const isDark = token.startsWith("dark:");
+    if (mode === "dark" ? !isDark : isDark) continue;
+    const match = (isDark ? token.slice(5) : token).match(
+      /^\[--ui-surface-color:var\(--color-([a-z]+-\d+|white|neutral-\d+)\)\]$/,
+    );
+    if (match) return match[1];
+  }
+  return undefined;
+};
+
 describe("Panel — outlined border", () => {
   it("draws a hairline border instead of a currentColor ring", () => {
     const { container } = render(
@@ -341,6 +359,54 @@ describe("Panel — a clickable card", () => {
     // A hoverable-only panel has always shown a pointer; that stays.
     const hoverOnly = render(<Panel hoverable>Body</Panel>);
     expect(panelOf(hoverOnly.container).className).toContain("cursor-pointer");
+  });
+});
+
+describe("Panel — how a disabled card says so", () => {
+  const sheetOf = (ui: ReactElement) =>
+    Array.from(render(ui).container.querySelectorAll("div")).filter((el) =>
+      el.className.includes("bg-white/70"),
+    );
+
+  it("lays the sheet over the body, which is right on a panel with a surface", () => {
+    expect(
+      sheetOf(
+        <Panel disabled variant="elevated" tone="blue">
+          Body
+        </Panel>,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("leaves a flat body alone when the caller brings its own disabled language", () => {
+    const onClick = vi.fn();
+    const { container } = render(
+      <Panel disabled disabledVeil={false} variant="tonal" tone="blue" onClick={onClick}>
+        Body
+      </Panel>,
+    );
+    const panel = panelOf(container);
+
+    // No second signal on top of the caller's — and the rectangle that signal
+    // used to be is exactly what a flat `tonal` body must not show.
+    expect(sheetOf(<Panel disabled disabledVeil={false}>Body</Panel>)).toHaveLength(0);
+    // The behaviour half of `disabled` is untouched by the opt-out.
+    expect(panel).toHaveAttribute("aria-disabled", "true");
+    expect(panel).toHaveAttribute("data-disabled", "true");
+    expect(panel).toHaveAttribute("tabindex", "-1");
+    expect(panel.className).toContain("cursor-not-allowed");
+    fireEvent.click(panel);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("says nothing about disabled on a live card", () => {
+    const { container } = render(
+      <Panel onClick={vi.fn()} variant="tonal" tone="blue">
+        Body
+      </Panel>,
+    );
+    expect(panelOf(container)).not.toHaveAttribute("data-disabled");
+    expect(panelOf(container)).not.toHaveAttribute("aria-disabled");
   });
 });
 
@@ -847,17 +913,6 @@ describe("Panel — active state", () => {
    */
   const classesOf = (ui: ReactElement) =>
     panelOf(render(ui).container).className;
-  const surfaceColourOf = (cls: string, mode: "light" | "dark") => {
-    for (const token of cls.split(/\s+/)) {
-      const isDark = token.startsWith("dark:");
-      if (mode === "dark" ? !isDark : isDark) continue;
-      const match = (isDark ? token.slice(5) : token).match(
-        /^\[--ui-surface-color:var\(--color-([a-z]+-\d+|white|neutral-\d+)\)\]$/,
-      );
-      if (match) return match[1];
-    }
-    return undefined;
-  };
 
   it("is off by default: no rim, no fill, no data-active", () => {
     const cls = classesOf(<Panel>Body</Panel>);
@@ -1070,5 +1125,120 @@ describe("Panel — attention pulse", () => {
     // The keyframes re-composite the Tailwind shadow variables precisely so
     // this inset ring keeps firing; its classes must survive the glow.
     expect(cls).toContain("focus-visible:ring-2");
+  });
+});
+
+describe("Panel — the hues a panel can wear", () => {
+  /**
+   * `activeTone` and `pulseTone` let the selected state and the attention call
+   * carry hues the card itself does not: an amber selection on a blue card, a
+   * rose demand on a brand-cyan one. Both default into the shared accent rule —
+   * the selection to `borderColor ?? tone`, the glow to the selection — so a
+   * caller with no opinion gets the one-hue card it always got.
+   */
+  const classesOf = (ui: ReactElement) =>
+    panelOf(render(ui).container).className;
+  const glowOf = (ui: ReactElement) => {
+    const panel = panelOf(render(ui).container);
+    return {
+      cls: panel.className,
+      glow: panel.style.getPropertyValue("--panel-glow"),
+      glowDark: panel.style.getPropertyValue("--panel-glow-dark"),
+    };
+  };
+
+  it("keeps one hue for rim, fill and glow when neither is asked for", () => {
+    const { cls, glow } = glowOf(<Panel tone="cyan" active pulse>Body</Panel>);
+    expect(cls).toContain("outline-cyan-500");
+    expect(surfaceColourOf(cls, "light")).toBe("cyan-50");
+    expect(glow).toBe("var(--color-cyan-500)");
+  });
+
+  it("dresses the whole selected state in activeTone, rim and wash together", () => {
+    const cls = classesOf(
+      <Panel variant="elevated" tone="cyan" activeTone="amber" active>
+        Body
+      </Panel>,
+    );
+    expect(cls).toContain("outline-amber-500");
+    expect(cls).toContain("dark:outline-amber-400");
+    expect(cls).not.toContain("outline-cyan-500");
+    // The wash moves with the rim: a card selected in amber is one decision,
+    // not an amber outline around a fill still wearing the card's hue.
+    expect(surfaceColourOf(cls, "light")).toBe("amber-50");
+    expect(surfaceColourOf(cls, "dark")).toBe("amber-500");
+  });
+
+  it("prefers activeTone to borderColor, and leaves borderColor the border", () => {
+    const cls = classesOf(
+      <Panel
+        variant="outlined"
+        tone="cyan"
+        borderColor="rose"
+        activeTone="amber"
+        active
+      >
+        Body
+      </Panel>,
+    );
+    expect(cls).toContain("outline-amber-500");
+    expect(cls).not.toContain("outline-rose-500");
+    // The caller's border hue is untouched — the two props answer different
+    // questions, and neither one overrules the other's own surface.
+    expect(cls).toContain("border-rose-300");
+  });
+
+  it("takes the selection hue off the tone, blue floor and all", () => {
+    // An untinted card floors to blue only while nobody has named a hue.
+    const cls = classesOf(<Panel tone="none" activeTone="emerald" active>Body</Panel>);
+    expect(cls).toContain("outline-emerald-500");
+  });
+
+  it("lets the glow answer in its own hue while the rim keeps its own", () => {
+    const { cls, glow, glowDark } = glowOf(
+      <Panel tone="cyan" active activeTone="amber" pulse pulseTone="rose">
+        Body
+      </Panel>,
+    );
+    expect(glow).toBe("var(--color-rose-500)");
+    expect(glowDark).toBe("var(--color-rose-300)");
+    expect(cls).toContain("outline-amber-500");
+    expect(cls).not.toContain("outline-rose-500");
+  });
+
+  it("follows the selection into the glow when only activeTone is given", () => {
+    // The documented agreement: selected *and* pulsing says both things in one
+    // colour, until `pulseTone` is the licence to split them.
+    const { glow } = glowOf(
+      <Panel tone="cyan" activeTone="amber" active pulse>
+        Body
+      </Panel>,
+    );
+    expect(glow).toBe("var(--color-amber-500)");
+  });
+
+  it("a dimmed card keeps silent whatever hue it was given", () => {
+    const { cls, glow, glowDark } = glowOf(
+      <Panel pulse pulseTone="rose" disabled>
+        Body
+      </Panel>,
+    );
+    expect(cls).not.toContain("panel-pulse");
+    expect(glow).toBe("");
+    expect(glowDark).toBe("");
+  });
+
+  it("a hue of its own costs the selection none of its other signals", () => {
+    const { container } = render(
+      <Panel tone="cyan" activeTone="amber" active clickable onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    const panel = panelOf(container);
+    expect(panel).toHaveAttribute("data-active", "true");
+    expect(panel.className).toContain("outline-2");
+    // An outline, not a colour alone: the state survives a colour-blind eye,
+    // and ARIA for it stays the caller's to publish.
+    expect(panel.className).toMatch(/(?:^|\s)-outline-offset-2(?:\s|$)/);
   });
 });

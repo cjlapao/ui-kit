@@ -1,11 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import StatCard, {
   STAT_CARD_LOADERS,
   STAT_CARD_PROGRESS_TYPES,
   type StatCardSize,
 } from "./StatCard";
 import StatHealthCard from "./StatHealthCard";
+import StatTile from "./StatTile";
+import StatCountTile from "./StatCountTile";
+import StatGraphTile from "./StatGraphTile";
 import { SURFACE_PADDINGS } from "../theme/Theme";
 
 describe("StatCard — content", () => {
@@ -650,5 +654,142 @@ describe("StatCard — the revamp", () => {
       );
       expect(container.innerHTML).toContain("rose");
     });
+  });
+});
+
+/**
+ * `active`, `pulse` and their two hue overrides are `Panel`'s own vocabulary,
+ * forwarded and not recomputed: the card already hands the surface its `tone`,
+ * so the selection's `borderColor ?? tone` chain, the kit's blue floor and the
+ * glow's habit of following the selection all arrive for free. A metric card
+ * and a bare panel answering the same four props must look the same at the
+ * surface, which is the point of resolving the hues in exactly one place.
+ */
+describe("StatCard — the hues a card can wear", () => {
+  const cardOf = (ui: ReactElement) =>
+    render(ui).container.querySelector("section")!;
+
+  const surfaceOf = (ui: ReactElement) => {
+    const card = cardOf(ui);
+    return {
+      cls: card.className,
+      glow: card.style.getPropertyValue("--panel-glow"),
+      glowDark: card.style.getPropertyValue("--panel-glow-dark"),
+      active: card.getAttribute("data-active"),
+    };
+  };
+
+  /** The hue of the active wash, in the same spelling `Panel`'s tests read. */
+  const surfaceColourOf = (cls: string, mode: "light" | "dark") => {
+    for (const token of cls.split(/\s+/)) {
+      const isDark = token.startsWith("dark:");
+      if (mode === "dark" ? !isDark : isDark) continue;
+      const match = (isDark ? token.slice(5) : token).match(
+        /^\[--ui-surface-color:var\(--color-([a-z]+-\d+|white|neutral-\d+)\)\]$/,
+      );
+      if (match) return match[1];
+    }
+    return undefined;
+  };
+
+  it("wears neither rim nor glow until it is asked to", () => {
+    const { cls, glow, glowDark, active } = surfaceOf(
+      <StatCard label="Revenue" value="$1.42M" tone="cyan" />,
+    );
+    expect(cls).not.toContain("panel-pulse");
+    expect(cls).not.toContain("outline-");
+    expect(glow).toBe("");
+    expect(glowDark).toBe("");
+    expect(active).toBeNull();
+  });
+
+  it("breathes the glow in the card's own hue", () => {
+    const { cls, glow, glowDark } = surfaceOf(
+      <StatCard label="Live users" value="1,204" tone="cyan" pulse />,
+    );
+    expect(cls).toContain("panel-pulse");
+    expect(glow).toBe("var(--color-cyan-500)");
+    expect(glowDark).toBe("var(--color-cyan-300)");
+  });
+
+  it("lets the glow disagree with the card while the rim keeps its hue", () => {
+    const { cls, glow, glowDark } = surfaceOf(
+      <StatCard
+        label="Failed jobs"
+        value="7"
+        tone="cyan"
+        active
+        activeTone="amber"
+        pulse
+        pulseTone="rose"
+      />,
+    );
+    expect(glow).toBe("var(--color-rose-500)");
+    expect(glowDark).toBe("var(--color-rose-300)");
+    expect(cls).toContain("outline-amber-500");
+    expect(cls).not.toContain("outline-rose-500");
+  });
+
+  it("dresses the whole selected state in activeTone, rim and wash together", () => {
+    const { cls, active } = surfaceOf(
+      <StatCard label="Revenue" value="$1.42M" tone="cyan" activeTone="amber" active />,
+    );
+    expect(active).toBeDefined();
+    expect(cls).toContain("outline-amber-500");
+    expect(cls).toContain("dark:outline-amber-400");
+    expect(cls).not.toContain("outline-cyan-500");
+    expect(surfaceColourOf(cls, "light")).toBe("amber-50");
+    expect(surfaceColourOf(cls, "dark")).toBe("amber-500");
+  });
+
+  it("selects in the card's own hue when no opinion is given", () => {
+    const { cls } = surfaceOf(
+      <StatCard label="Revenue" value="$1.42M" tone="cyan" active />,
+    );
+    expect(cls).toContain("outline-cyan-500");
+    expect(surfaceColourOf(cls, "light")).toBe("cyan-50");
+  });
+
+  it("floors an untoned card to blue, rim and glow alike", () => {
+    const { cls, glow } = surfaceOf(
+      <StatCard label="Sessions" value="12" tone="none" active pulse />,
+    );
+    expect(cls).toContain("outline-blue-500");
+    expect(glow).toBe("var(--color-blue-500)");
+  });
+
+  it("follows the selection into the glow when only activeTone is given", () => {
+    // Selected *and* pulsing says both things in one colour, until `pulseTone`
+    // is the licence to split them.
+    const { glow } = surfaceOf(
+      <StatCard label="Revenue" value="$1.42M" tone="cyan" activeTone="amber" active pulse />,
+    );
+    expect(glow).toBe("var(--color-amber-500)");
+  });
+
+  it("carries the state into every tile that wraps it", () => {
+    // `StatGraphTile` forwards with a wholesale `{...props}`, the shape most
+    // likely to be tidied into an enumerated list and quietly drop a prop.
+    const tiles: ReactElement[] = [
+      <StatTile key="tile" label="Revenue" value="$1.42M" tone="cyan" active activeTone="amber" pulse pulseTone="rose" />,
+      <StatCountTile key="count" label="Signups" value={12} tone="cyan" active activeTone="amber" pulse pulseTone="rose" />,
+      <StatGraphTile
+        key="graph"
+        label="Traffic"
+        data={[{ day: "Mon", views: 12 }]}
+        series={[{ key: "views", label: "Views" }]}
+        tone="cyan"
+        active
+        activeTone="amber"
+        pulse
+        pulseTone="rose"
+      />,
+    ];
+    for (const tile of tiles) {
+      const { cls, glow } = surfaceOf(tile);
+      expect(cls).toContain("outline-amber-500");
+      expect(cls).toContain("panel-pulse");
+      expect(glow).toBe("var(--color-rose-500)");
+    }
   });
 });

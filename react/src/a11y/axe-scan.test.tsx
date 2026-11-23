@@ -53,6 +53,7 @@ import {
   Loader,
   Modal,
   MultiProgressBar,
+  MultiSelectPanel,
   MultiSelectPills,
   MultiToggle,
   Picker,
@@ -164,6 +165,39 @@ const FIXTURES: Fixture[] = [
         legend="Tags"
         options={[{ label: "infra", value: "infra" }, { label: "app", value: "app" }]}
         value={["infra"]}
+        onChange={noop}
+      />
+    ),
+  },
+  {
+    name: "MultiSelectPanel (options, values)",
+    render: () => (
+      <MultiSelectPanel
+        name="io"
+        label="Input and output"
+        description="What the model accepts"
+        options={[
+          { value: "text", title: "Text", subtitle: "Plain text in and out" },
+          { value: "image", title: "Image", icon: "Globe", labels: ["Beta"] },
+          { value: "audio", title: "Audio", disabled: true },
+        ]}
+        value={["text"]}
+        onChange={noop}
+      />
+    ),
+  },
+  {
+    name: "MultiSelectPanel (single choice)",
+    render: () => (
+      <MultiSelectPanel
+        name="mode"
+        label="Mode"
+        selectionMode="single"
+        options={[
+          { value: "fast", title: "Fast", subtitle: "Fewer tokens" },
+          { value: "deep", title: "Deep", labels: ["Premium"] },
+        ]}
+        defaultValue={["deep"]}
         onChange={noop}
       />
     ),

@@ -1,8 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { CustomIcon, iconRegistry, SearchBar } from "@cjlapao/ui-kit";
+import {
+  CodeBlock,
+  CustomIcon,
+  iconRegistry,
+  ScrollArea,
+  SearchBar,
+} from "@cjlapao/ui-kit";
 import type { IconName } from "@cjlapao/ui-kit";
 import { PageHeader } from "../../shared/PageHeader";
-import { CodeBlock } from "../../shared/CodeBlock";
 import { GENERATED_ICONS } from "./generatedIcons";
 
 /*
@@ -74,46 +79,52 @@ export const IconsPage: React.FC = () => {
         name="Icon Registry"
         description="Every icon the kit ships, discovered from the components directory — drop a new SVG component in and it appears here automatically. Click one for its usage code."
       />
-      <div className="max-w-md">
-        <SearchBar
-          size="sm"
-          debounceMs={0}
-          placeholder={`Search ${entries.length} icons...`}
-          onSearch={setSearch}
-        />
-      </div>
-
-      {/* `items-start` keeps the gallery column at its own height — stretched
-          grid items plus auto-sized rows would inflate a short result set to
-          fill the tall aside. `auto-rows-min content-start` pins rows to tile
-          height and packs them at the top, whatever the container does. */}
+      {/* The gallery column owns the search: it spans the tiles' full width
+          and sits OUTSIDE the icon ScrollArea, so browsing the grid never
+          scrolls it away. The area is capped just under the docs viewport
+          (header + page header + search + padding ≈ 20rem) so the page body
+          itself stays still and the search is always on screen. */}
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
-        <div className="grid auto-rows-min content-start grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
-          {filtered.map(({ name, Component }) => (
-            // Explicit colour: `<button>` resets the inherited colour, so a
-            // bare `opacity-*` label computed to black on the dark theme.
-            <button
-              key={name}
-              type="button"
-              onClick={() => setSelectedName(name)}
-              className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg p-3 text-center text-neutral-700 transition hover:bg-black/5 dark:text-neutral-200 dark:hover:bg-white/10 ${
-                name === selected.name
-                  ? "bg-blue-500/10 ring-1 ring-blue-500/40"
-                  : ""
-              }`}
-              aria-pressed={name === selected.name}
-            >
-              <Component className="h-6 w-6 text-neutral-700 dark:text-neutral-200" />
-              <span className="w-full truncate text-[10px] text-neutral-500 dark:text-neutral-400">
-                {name}
-              </span>
-            </button>
-          ))}
-          {filtered.length === 0 && (
-            <p className="col-span-full py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
-              No icon matches &ldquo;{search}&rdquo;.
-            </p>
-          )}
+        <div className="flex min-w-0 flex-col gap-3">
+          <SearchBar
+            size="sm"
+            debounceMs={0}
+            placeholder={`Search ${entries.length} icons...`}
+            onSearch={setSearch}
+          />
+          {/* `items-start` keeps the gallery column at its own height — stretched
+              grid items plus auto-sized rows would inflate a short result set to
+              fill the tall aside. `auto-rows-min content-start` pins rows to tile
+              height and packs them at the top, whatever the container does. */}
+          <ScrollArea variant="hover" mask className="max-h-[calc(100dvh-20rem)] min-h-[16rem]">
+            <div className="grid auto-rows-min content-start grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
+              {filtered.map(({ name, Component }) => (
+                // Explicit colour: `<button>` resets the inherited colour, so a
+                // bare `opacity-*` label computed to black on the dark theme.
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setSelectedName(name)}
+                  className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg p-3 text-center text-neutral-700 transition hover:bg-black/5 dark:text-neutral-200 dark:hover:bg-white/10 ${
+                    name === selected.name
+                      ? "bg-blue-500/10 ring-1 ring-blue-500/40"
+                      : ""
+                  }`}
+                  aria-pressed={name === selected.name}
+                >
+                  <Component className="h-6 w-6 text-neutral-700 dark:text-neutral-200" />
+                  <span className="w-full truncate text-[10px] text-neutral-500 dark:text-neutral-400">
+                    {name}
+                  </span>
+                </button>
+              ))}
+              {filtered.length === 0 && (
+                <p className="col-span-full py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
+                  No icon matches &ldquo;{search}&rdquo;.
+                </p>
+              )}
+            </div>
+          </ScrollArea>
         </div>
 
         <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
@@ -156,7 +167,13 @@ export const IconsPage: React.FC = () => {
             </div>
           </div>
 
-          <CodeBlock code={usageCode} filename={`${selected.name}.tsx`} />
+          <CodeBlock
+            value={usageCode}
+            filename={`${selected.name}.tsx`}
+            language="tsx"
+            showLineNumbers
+            maxHeight={360}
+          />
           <p className="text-xs text-neutral-600 dark:text-neutral-300">
             Icons paint with <code>currentColor</code> — tint them with{" "}
             <code>tone</code> or plain CSS colour, size them with the{" "}

@@ -1,5 +1,6 @@
 import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
-import type { SurfaceTone } from "@cjlapao/ui-kit";
+import { HueControl } from "../../shared/HueControl";
+import type { SurfaceTone, TrueColor } from "@cjlapao/ui-kit";
 import React, { useState } from "react";
 import { Panel } from "@cjlapao/ui-kit";
 import { DEFAULT_SURFACE_CORNER } from "@cjlapao/ui-kit";
@@ -65,9 +66,18 @@ export const PanelPlayground: React.FC = () => {
   const [clickableMode, setClickableMode] = useState<string>("auto");
   const [log, pushLog] = useEventLog();
   const [disabled, setDisabled] = useState(false);
+  // The sheet `disabled` lays over the body. Try it off on a `simple` or
+  // `tonal` card: over a flat fill that translucent rectangle reads as a panel
+  // inside the panel, which is why a caller may bring its own signal instead.
+  const [disabledVeil, setDisabledVeil] = useState(true);
   // Selection, not the pointer — try it together with Disabled: a selected
   // card stays legibly selected while disabled.
   const [active, setActive] = useState(false);
+  // The two hues a card is allowed to keep to itself. `undefined` is the auto
+  // answer — selection in `borderColor ?? tone`, glow in the selection's hue —
+  // so the controls appear only with the state they tint.
+  const [activeTone, setActiveTone] = useState<TrueColor | undefined>(undefined);
+  const [pulseTone, setPulseTone] = useState<TrueColor | undefined>(undefined);
   // The attention call, inward from the rim — try it with Disabled: a
   // dimmed card stops demanding, unlike its selection rim, which stays.
   const [pulse, setPulse] = useState(false);
@@ -190,6 +200,11 @@ export const PanelPlayground: React.FC = () => {
                         onChange={setDisabled}
                       />
                       <ToggleRow
+                        label="Disabled sheet"
+                        checked={disabledVeil}
+                        onChange={setDisabledVeil}
+                      />
+                      <ToggleRow
                         label="Active"
                         checked={active}
                         onChange={setActive}
@@ -200,6 +215,24 @@ export const PanelPlayground: React.FC = () => {
                         onChange={setPulse}
                       />
                     </div>
+                    {/* Each hue control shows with the state it tints — an
+                        "auto" that paints nothing would only be noise. */}
+                    {active ? (
+                      <HueControl
+                        label="Selected hue"
+                        value={activeTone}
+                        onChange={setActiveTone}
+                        autoLabel="Auto — borderColor, then tone"
+                      />
+                    ) : null}
+                    {pulse ? (
+                      <HueControl
+                        label="Pulse hue"
+                        value={pulseTone}
+                        onChange={setPulseTone}
+                        autoLabel="Auto — the selected hue"
+                      />
+                    ) : null}
                   </>
                 ),
               },
@@ -311,7 +344,10 @@ export const PanelPlayground: React.FC = () => {
                   : false
             }
             disabled={disabled}
+            disabledVeil={disabledVeil}
             active={active}
+            activeTone={activeTone}
+            pulseTone={pulseTone}
             pulse={pulse}
             vibrancy={vibrancy}
             glassOpacity={glassOpacity}

@@ -361,6 +361,15 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         <span
           className={classNames(
             "min-w-0",
+            /* `fullWidth` should mean the label owns the row, not just the
+               wrapper around it. A label that lays itself out — pills pinned to
+               the trailing edge, say, with `margin-inline-start: auto` — spends
+               free space, and a shrink-wrapped column has none to spend: the
+               auto margin resolves to the gap and the label sits where `left`
+               would have put it. Growing here is what makes the row's own
+               alignment mean something; without `fullWidth` the row shrink-wraps
+               anyway, so the free space is zero either way. */
+            fullWidth && "grow",
             descriptionPlacement === "inline"
               ? "flex flex-wrap items-center gap-x-1.5"
               : "flex flex-col gap-0.5",

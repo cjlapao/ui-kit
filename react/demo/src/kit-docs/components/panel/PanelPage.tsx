@@ -15,6 +15,8 @@ import Glass from "./examples/Glass";
 import glassCode from "./examples/Glass.tsx?raw";
 import Clickable from "./examples/Clickable";
 import clickableCode from "./examples/Clickable.tsx?raw";
+import Hues from "./examples/Hues";
+import huesCode from "./examples/Hues.tsx?raw";
 import NestedSurfaces from "./examples/NestedSurfaces";
 import nestedSurfacesCode from "./examples/NestedSurfaces.tsx?raw";
 
@@ -76,6 +78,14 @@ export const PanelPage: React.FC = () => (
         filename="Clickable.tsx"
       >
         <Clickable />
+      </ExampleCard>
+      <ExampleCard
+        title="Hues of its own"
+        description="`activeTone` dresses the whole selected state — the 2px inset rim and the wash under it — in a hue the card does not wear; `pulseTone` does the same for the attention glow. Left unset they agree with the card (`borderColor`, then `tone`, then the kit's blue), and the glow follows the selection, so a card that is both selected and pulsing still says one thing in one colour. Hover, the pressed step and the resting surface stay on `tone`: selection is not the pointer."
+        code={huesCode}
+        filename="Hues.tsx"
+      >
+        <Hues />
       </ExampleCard>
       <ExampleCard
         title="Liquid glass"

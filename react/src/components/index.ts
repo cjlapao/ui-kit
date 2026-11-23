@@ -398,6 +398,14 @@ export {
   type MultiSelectPillOption,
 } from "./MultiSelectPills";
 export {
+  default as MultiSelectPanel,
+  MULTI_SELECT_PANEL_LABEL_ALIGNS,
+  type MultiSelectPanelLabelAlign,
+  type MultiSelectPanelProps,
+  type MultiSelectPanelOption,
+  type MultiSelectPanelSurfaceProps,
+} from "./MultiSelectPanel";
+export {
   default as SearchBar,
   type SearchBarProps,
   type SearchBarVariant,

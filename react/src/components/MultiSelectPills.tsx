@@ -72,8 +72,9 @@ export interface MultiSelectPillsProps {
   specularMode?: SpecularMode;
 }
 
-/** Space between pills. */
-const GAP_CLASSES: Record<ControlSize, string> = {
+/** Space between pills. Also the grid's column gap in `MultiSelectPanel` —
+ * one scale for the space between selectable cards, whichever shape they take. */
+export const GAP_CLASSES: Record<ControlSize, string> = {
   xs: "gap-1",
   sm: "gap-2",
   md: "gap-3",

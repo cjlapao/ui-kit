@@ -181,10 +181,10 @@ function generateIndex(): void {
 
 function generateRegistry(): void {
   let source = fs.readFileSync(path.join(repoRoot, "react/src/icons/registry.ts"), "utf8");
-  source = source.replace(/import React from "react";\n/, 'import type { Component } from "vue";\n');
+  source = source.replace(/import React from "react";\n/, 'import type { Component as VueComponent } from "vue";\n');
   source = source.replace(
     /export const iconRegistry: Record<\s*IconName,\s*React\.ForwardRefExoticComponent<React\.SVGProps<SVGSVGElement>>\s*> = \{/,
-    "export const iconRegistry: Record<IconName, Component> = {",
+    "export const iconRegistry: Record<IconName, VueComponent> = {",
   );
   if (source.includes("React.")) {
     throw new Error("registry.ts: leftover React references after transform");

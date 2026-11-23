@@ -131,6 +131,22 @@ export interface PanelProps extends Omit<
   corner?: PanelCorner;
   fullWidth?: boolean;
   disabled?: boolean;
+  /**
+   * Whether a `disabled` panel draws the translucent sheet over its body.
+   *
+   * The sheet is right on a panel that has a surface of its own to put it on,
+   * which is most of them. It is wrong on a flat body — `simple`, `tonal` —
+   * where a `white/70` rectangle inset by the body padding reads as a stray
+   * panel within the panel rather than as "this is off". A caller that brings
+   * its own disabled language, `MultiSelectPanel` for one, where the dimmed
+   * `Checkbox` already carries the state, opts out here.
+   *
+   * Presentation only: `disabled` still removes the tab stop, the pointer
+   * answer, the hover rim and the pulse, still sets `aria-disabled`, and still
+   * marks the section `data-disabled` for anyone styling from outside.
+   * @default true
+   */
+  disabledVeil?: boolean;
   flexBody?: boolean;
   maxWidth?: string | number;
   minHeight?: string | number;
@@ -189,9 +205,10 @@ export interface PanelProps extends Omit<
    * This is selection, not the pointer — the `hoverable` wash and the
    * pressed step keep layering over it, and it stays visible under the
    * `disabled` veil, because a selected card that becomes disabled should
-   * still read as selected. The hue is `borderColor ?? tone`, with the kit's
-   * blue as floor when untinted; an explicit `backgroundColor` wins over the
-   * active fill (caller's paint beats state) while the rim still ignites.
+   * still read as selected. The hue is `activeTone`, else `borderColor`, else
+   * `tone`, with the kit's blue as floor when untinted; an explicit
+   * `backgroundColor` wins over the active fill (caller's paint beats state)
+   * while the rim still ignites.
    *
    * The Panel publishes no new ARIA for it — where the card is a toggle the
    * caller owns that (`aria-pressed` on the card or its body control), as
@@ -199,6 +216,18 @@ export interface PanelProps extends Omit<
    * @default false
    */
   active?: boolean;
+  /**
+   * The hue the selected state wears — its own, not the card's.
+   *
+   * Both halves of the state follow it, rim and wash together, so a card
+   * selected in amber reads as one decision rather than as an amber outline
+   * around a blue fill. Omitted, the selection takes the shared accent hue
+   * (`borderColor ?? tone`, blue floor) and agrees with the glow. Nothing is
+   * carried by colour alone: the rim is an outline, and a caller that uses it
+   * for state still carries the ARIA.
+   * @default "auto" — `borderColor ?? tone`
+   */
+  activeTone?: TrueColor;
   /**
    * The attention call: a glow that swells INWARD from the card's own rim
    * in the accent hue, the Pill's pulse at container scale. Inward is the
@@ -208,14 +237,27 @@ export interface PanelProps extends Omit<
    * On while set, off while `disabled`: an attention call on a card the app
    * itself has dimmed is a contradiction (unlike the selection rim, which
    * stays legible under the veil — selection is information, the pulse is a
-   * demand, and a dimmed card may not demand). The hue is the shared accent
-   * rule, `borderColor ?? tone` with the kit's blue as floor, so on a card
-   * that is both `active` and pulsing the glow and the rim always agree.
+   * demand, and a dimmed card may not demand). The hue is `pulseTone`, else
+   * the selection's own `activeHue` — `borderColor ?? tone` with the kit's blue
+   * as floor — so on a card that is both `active` and pulsing the glow and the
+   * rim always agree, unless a caller asked them not to.
    * Reduced-motion users get a static inner glow instead of the swell, so
    * *which* card matters still reads.
    * @default false
    */
   pulse?: boolean;
+  /**
+   * The hue the attention glow swells in — allowed to disagree with the card.
+   *
+   * Urgency and brand are different messages: a blue product card can demand
+   * attention in rose without repainting itself. Omitted, the glow takes the
+   * selection's hue, which is how a card that is both selected and pulsing says
+   * both things in one colour. It rides the theme's steps like every other hue
+   * — `-{tone}-500`, `-{tone}-300` in the dark theme — and, like the pulse, it
+   * is silenced by `disabled`.
+   * @default "auto" — the active hue
+   */
+  pulseTone?: TrueColor;
   /**
    * @deprecated Renamed to `tone`. Still honoured as an alias — when `tone`
    * is absent it becomes the tone — so `color="rose"` finally does what it
@@ -584,6 +626,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     children,
     loading = false,
     disabled = false,
+    disabledVeil = true,
     flexBody = false,
     loaderType = "skeleton",
     loaderTitle,
@@ -596,7 +639,9 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     hoverable,
     clickable,
     active = false,
+    activeTone,
     pulse = false,
+    pulseTone,
     // Pulled out of `rest` so the card can wrap them. `onClick` becomes the
     // guarded handler below; `role`, `tabIndex` and `onKeyDown` are the
     // caller's overrides, and they win over what a clickable card would have
@@ -776,11 +821,13 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     return undefined;
   })();
 
-  // The hue the active state wears: the caller's border hue, else the tone,
-  // else the kit's blue floor — an untinted card still activates in colour,
-  // never gray.
+  // The hue the active state wears: a hue of its own if the caller asked for
+  // one, else the caller's border hue, else the tone, else the kit's blue floor
+  // — an untinted card still activates in colour, never gray.
   const activeHue: TrueColor =
-    borderColor ?? (resolvedTone === "none" ? "blue" : resolvedTone);
+    activeTone ??
+    borderColor ??
+    (resolvedTone === "none" ? "blue" : resolvedTone);
   const activePalette = getPanelToneStyles(activeHue);
   // The active fill follows the variant's own fill slot — the same per-variant
   // map `backgroundColor` uses — so a tonal card deepens tonally, a glass card
@@ -804,8 +851,11 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   // The attention call rides beside the selection state: `disabled` wins,
   // the Pill's rule — the rim is information that stays under the veil, the
   // pulse is a demand that a dimmed card may not make. Its hue is the rim's
-  // `activeHue`, so selected-and-pulsing cards always agree.
+  // `activeHue` by default, so selected-and-pulsing cards always agree;
+  // `pulseTone` is the one licence to disagree, urgency and brand being
+  // different messages.
   const pulsing = pulse && !disabled;
+  const pulseHue: TrueColor = pulseTone ?? activeHue;
 
   const isOverlay = mediaPlacement === "overlay" && Boolean(media);
   const hasMedia = Boolean(media);
@@ -831,8 +881,8 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
       // class shapes to safelist, and the dark copy rides a step brighter
       // because the variants' dark fills are dark.
       Object.assign(styles, {
-        "--panel-glow": `var(--color-${activeHue}-500)`,
-        "--panel-glow-dark": `var(--color-${activeHue}-300)`,
+        "--panel-glow": `var(--color-${pulseHue}-500)`,
+        "--panel-glow-dark": `var(--color-${pulseHue}-300)`,
       } as React.CSSProperties);
     }
     return styles;
@@ -1207,6 +1257,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
         data-variant={variant}
         data-tone={resolvedTone}
         data-active={active || undefined}
+        data-disabled={disabled || undefined}
         aria-busy={loading}
         {...rest}
         role={role ?? (isClickable ? "button" : undefined)}
@@ -1358,7 +1409,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
             isOverlay && "backdrop-blur-sm",
           )}
         >
-          {disabled && (
+          {disabled && disabledVeil && (
             <div
               className="absolute inset-0 z-10 bg-white/70 dark:bg-neutral-900/70"
               aria-hidden="true"

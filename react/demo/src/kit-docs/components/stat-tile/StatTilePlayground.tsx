@@ -102,7 +102,13 @@ const BREAKDOWN = [
  * variant here picks it up.
  */
 export const StatTilePlayground: React.FC = () => {
-  const { groups, statProps } = useStatBaseControls();
+  const {
+    groups,
+    statProps,
+    previewClassName,
+    previewItemClassName,
+    previewStageRef,
+  } = useStatBaseControls();
   const [variant, setVariant] = useState<StatVariant>("card");
 
   // Per-variant extras.
@@ -201,7 +207,8 @@ export const StatTilePlayground: React.FC = () => {
       case "count":
         return (
           <StatCountTile
-            {...statProps}
+            {...statProps} 
+           
             label={label}
             value={value}
             breakdown={breakdown ? BREAKDOWN : undefined}
@@ -210,7 +217,8 @@ export const StatTilePlayground: React.FC = () => {
       case "goal":
         return (
           <StatGoalTile
-            {...statProps}
+            {...statProps} 
+           
             label={label}
             goals={GOALS}
             ringSize={ringSize ? Number(ringSize) : undefined}
@@ -219,7 +227,8 @@ export const StatTilePlayground: React.FC = () => {
       case "chart":
         return (
           <StatChartTile
-            {...statProps}
+            {...statProps} 
+           
             label={label}
             data={datasets ? CHART_DATA : CHART_DATA.slice(0, 1)}
           />
@@ -227,7 +236,8 @@ export const StatTilePlayground: React.FC = () => {
       case "graph":
         return (
           <StatGraphTile
-            {...statProps}
+            {...statProps} 
+           
             label={label}
             value={value}
             data={GRAPH_DATA}
@@ -242,7 +252,8 @@ export const StatTilePlayground: React.FC = () => {
       case "health":
         return (
           <StatHealthCard
-            {...statProps}
+            {...statProps} 
+           
             label={label}
             value={value}
             state={health}
@@ -250,7 +261,7 @@ export const StatTilePlayground: React.FC = () => {
           />
         );
       default:
-        return <StatCard {...statProps} label={label} value={value} />;
+        return <StatCard {...statProps}  label={label} value={value} />;
     }
   })();
 
@@ -288,14 +299,17 @@ export const StatTilePlayground: React.FC = () => {
       }
       preview={
         <div
+          ref={previewStageRef}
           className={
-            // The chart and graph bodies need room; the rest read better narrow.
-            variant === "chart" || variant === "graph"
+            // Filling the test area wins; otherwise the chart and graph
+            // bodies need room and the rest read better narrow.
+            previewClassName ??
+            (variant === "chart" || variant === "graph"
               ? "w-full max-w-md"
-              : "w-full max-w-xs"
+              : "w-full max-w-xs")
           }
         >
-          {preview}
+          <div className={previewItemClassName}>{preview}</div>
         </div>
       }
     />

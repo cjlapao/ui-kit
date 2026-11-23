@@ -1,11 +1,16 @@
 import { getSurfaceAccentColor } from "../theme/Theme";
 import type { SurfaceTone } from "../theme/Theme";
-import React from "react";
+import React, { useState } from "react";
 import classNames from "classnames";
 // Direct, not `from "."`: the barrel re-exports StatCard, so going through
 // it makes this a cycle — and a partially-initialised barrel is what produces
 // "does not provide an export named default" under HMR.
 import Panel from "./Panel";
+import Popover from "./Popover";
+import StatTileDrilldownPanel, {
+  type StatCardDrilldown,
+  type StatCardDrilldownItem,
+} from "./StatTileDrilldownPanel";
 import { Pill } from "./Pill";
 import { CustomIcon } from "./CustomIcon";
 import ProgressSpinner from "./ProgressSpinner";
@@ -116,8 +121,9 @@ export interface StatCardError {
   retryLabel?: string;
 }
 
-export interface StatCardProps
-  extends Omit<React.HTMLAttributes<HTMLElement>, "title" | "color"> {
+export interface StatCardProps<
+  T extends StatCardDrilldownItem = StatCardDrilldownItem,
+> extends Omit<React.HTMLAttributes<HTMLElement>, "title" | "color"> {
   label?: React.ReactNode;
   value?: React.ReactNode;
   icon?: IconName;
@@ -180,6 +186,48 @@ export interface StatCardProps
   corner?: PanelCorner;
   /** Inner spacing, from the shared surface scale. @default "md" */
   padding?: PanelPadding;
+  /**
+   * Draws the card as the selected one — the surface rim plus a wash in the
+   * selection's hue, exactly as `Panel` draws it.
+   *
+   * This is selection, not the pointer: `hoverEffect` keeps layering over it,
+   * and a selected card that is also clicked stays selected-looking. Two things
+   * differ from a bare `Panel`. A `gradient` card paints its own background,
+   * which outranks the active wash the way `backgroundColor` does — the rim and
+   * the glow still say selected, and the wash is the one thing a dark card has
+   * no room for. And a `StatCard` has no `disabled` of its own, so nothing ever
+   * dims it. `data-active` is exposed for caller CSS.
+   * @default false
+   */
+  active?: boolean;
+  /**
+   * The hue the selected state wears — its own, not the card's. Rim and wash
+   * follow it together, so a blue KPI selected in amber reads as one decision
+   * rather than as an amber outline around a blue fill. Omitted, it takes the
+   * card's own `tone`, with the kit's blue as floor on an untoned card.
+   * @default "auto" — the card's own `tone`
+   */
+  activeTone?: TrueColor;
+  /**
+   * The attention call: a glow that swells inward from the card's own rim, the
+   * Pill's pulse at card scale — for a metric that is live, drifting, or simply
+   * the one to look at. Inward is the point: the inset shadow is clipped to the
+   * border-box and follows `corner`, so it never spills into the grid.
+   *
+   * `Panel` silences the pulse while `disabled`; a `StatCard` has no disabled
+   * state, so a card asked to pulse pulses. Reduced-motion users get the static
+   * inner glow instead of the swell, so *which* card matters still reads.
+   * @default false
+   */
+  pulse?: boolean;
+  /**
+   * The hue the glow swells in. Urgency and brand are different messages: a
+   * blue card can insist in rose without wearing rose. Omitted, the glow takes
+   * the selection's hue, so a card that is both `active` and pulsing says both
+   * things in one colour until this splits them.
+   * @default "auto" — the active hue
+   */
+  pulseTone?: TrueColor;
   /**
    * Tints the value. Separate from `tone`, which drives the surface and the
    * icon chip — and now separate from `labelTone`, which it used to tint too.
@@ -257,8 +305,24 @@ export interface StatCardProps
   spinnerTone?: TrueColor;
   /** Makes the whole card activatable. Renders a real button wrapper. */
   onClick?: () => void;
-  /** Lifts the card on hover. Only meaningful with `onClick`. */
+  /** Lifts the card on hover. Only meaningful with `onClick` or `drilldown`. */
   hoverEffect?: boolean;
+  /**
+   * The list behind the card. Set it and the card click opens an anchored,
+   * solid-surface dropdown whose rows stream in page by page from the app's
+   * `fetchItems` — the tile IS the trigger (chevron-free, keyboard-complete,
+   * lazy: nothing is fetched until first open). The card's `onClick` steps
+   * aside while it is set: one click, one action; put navigation in
+   * `onItemClick` or the `footer` instead.
+   */
+  drilldown?: StatCardDrilldown<T>;
+  /**
+   * Draw the card as a perfect square: its height follows its width. On a
+   * wide stage, cap the width from the parent (or with `style`) and the tile
+   * stays a square instead of stretching into a banner.
+   * @default false
+   */
+  square?: boolean;
   /**
    * Free-form content (a chart, a spinner, a sparkline) rendered in a
    * flexible slot after the value and trend.
@@ -369,7 +433,11 @@ const TONED_SURFACE_VARIANTS: readonly PanelVariant[] = [
 const isEmpty = (node: React.ReactNode): boolean =>
   node == null || node === "" || node === false;
 
-const StatCard: React.FC<StatCardProps> = ({
+// Generic in the drilldown item type so `renderItem`/`onItemClick` see the
+// app's own fields, not just the built-in row's. Consumers that pass no
+// `drilldown` (every tile in the family, all existing pages) get the default
+// item type and identical inference to the old non-generic `React.FC`.
+const StatCard = <T extends StatCardDrilldownItem = StatCardDrilldownItem>({
   label: labelProp,
   value: valueProp,
   icon: iconProp,
@@ -388,6 +456,10 @@ const StatCard: React.FC<StatCardProps> = ({
   variant,
   corner = "rounded-lg",
   padding = "md",
+  active = false,
+  activeTone,
+  pulse = false,
+  pulseTone,
   valueTone,
   valueSize,
   labelTone,
@@ -414,12 +486,33 @@ const StatCard: React.FC<StatCardProps> = ({
   spinnerTone,
   onClick,
   hoverEffect = false,
+  drilldown,
+  square = false,
   className,
   style,
   children,
   ...rest
-}) => {
+}: StatCardProps<T>) => {
   const tone = getSurfaceAccentColor(surfaceTone);
+
+  // ── Drilldown ─────────────────────────────────────────────────────────────
+  // The card is the trigger: one state, one action per click. `onClick` steps
+  // aside while `drilldown` is set (documented on the prop) so a click can
+  // never both navigate and open — and Popover's trigger clone finds no
+  // handler of its own to chain on the card.
+  const [drilldownOpen, setDrilldownOpen] = useState(false);
+  const hasDrilldown = !!drilldown;
+  const activatable = !!onClick || hasDrilldown;
+  const activate = () => {
+    if (hasDrilldown) {
+      // Keyboard path — the click path runs through Popover's
+      // `onVisibleChange` instead. Both must report, or `onOpenChange`
+      // would lie about Enter/Space opens.
+      const next = !drilldownOpen;
+      setDrilldownOpen(next);
+      drilldown.onOpenChange?.(next);
+    } else onClick?.();
+  };
   // ── Paging ────────────────────────────────────────────────────────────────
   // The index lives in `usePager`, shared with `PagedPanel`, so the clamping
   // and the end conditions cannot drift between the two.
@@ -612,7 +705,7 @@ const StatCard: React.FC<StatCardProps> = ({
     </div>
   );
 
-  return (
+  const card = (
     // A metric card is content-sized, so the Panel body must not scroll:
     // a 4px line-height rounding in the flex chain otherwise grows a
     // scrollbar, and the vertical bar then eats the width and a second,
@@ -623,6 +716,10 @@ const StatCard: React.FC<StatCardProps> = ({
       corner={corner}
       padding={padding}
       decoration={resolvedDecoration}
+      active={active}
+      activeTone={activeTone}
+      pulse={pulse}
+      pulseTone={pulseTone}
       loading={loading && loaderType !== "skeleton"}
       loaderType={loaderType === "skeleton" ? "spinner" : loaderType}
       loaderColor={spinnerTone ?? tone ?? "blue"}
@@ -633,26 +730,27 @@ const StatCard: React.FC<StatCardProps> = ({
       style={
         gradientBackground ? { ...style, background: gradientBackground } : style
       }
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
+      onClick={hasDrilldown ? undefined : onClick}
+      role={activatable ? "button" : undefined}
+      tabIndex={activatable ? 0 : undefined}
       onKeyDown={
-        onClick
+        activatable
           ? (event) => {
               // A `div` with a click handler is not a button: without this a
               // keyboard user could focus the card and never activate it.
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                onClick();
+                activate();
               }
             }
           : undefined
       }
       className={classNames(
         "flex flex-col",
-        onClick && "cursor-pointer",
-        onClick && !hoverEffect && "hover:shadow-md",
-        onClick && hoverEffect && "hover:-translate-y-1 hover:shadow-lg",
+        square && "aspect-square",
+        activatable && "cursor-pointer",
+        activatable && !hoverEffect && "hover:shadow-md",
+        activatable && hoverEffect && "hover:-translate-y-1 hover:shadow-lg",
         "transition-all duration-200",
         className,
       )}
@@ -906,6 +1004,39 @@ const StatCard: React.FC<StatCardProps> = ({
 
 
     </Panel>
+  );
+
+  if (!drilldown) return card;
+
+  // The overlay owns the open motion, the viewport clamp and the outside
+  // click; the panel owns the list. `bareTrigger` keeps the card a true
+  // child of the consumer's grid — no wrapper box stealing the layout.
+  return (
+    <Popover
+      trigger={card}
+      bareTrigger
+      visible={drilldownOpen}
+      onOpenChange={(next) => {
+        setDrilldownOpen(next);
+        drilldown.onOpenChange?.(next);
+      }}
+      placement={drilldown.placement ?? "auto"}
+      variant={drilldown.variant ?? "elevated"}
+      corner={drilldown.corner ?? "rounded-sm"}
+      padding={drilldown.padding ?? "none"}
+      matchTriggerWidth={drilldown.matchTileWidth}
+      width={drilldown.width}
+      align={drilldown.align ?? "start"}
+      arrow={drilldown.arrow ?? true}
+      maxWidth={drilldown.maxWidth ?? 520}
+    >
+      <StatTileDrilldownPanel
+        {...drilldown}
+        open={drilldownOpen}
+        tone={surfaceTone}
+        title={drilldown.title ?? label}
+      />
+    </Popover>
   );
 };
 

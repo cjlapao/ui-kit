@@ -21,6 +21,7 @@ import {
   INPUT_VALIDATION_STATUSES,
   INPUT_VARIANTS,
   METERGROUP_ORIENTATIONS,
+  MULTI_SELECT_PANEL_LABEL_ALIGNS,
   LOADER_GLASS_BLURS,
   LOADER_VARIANTS,
   PROGRESS_CORNERS,
@@ -112,6 +113,10 @@ export const glowIntensityOptions = toOptions(GLOW_INTENSITIES);
 export const otpVariantOptions = toOptions(OTP_VARIANTS);
 export const carouselOrientationOptions = toOptions(CAROUSEL_ORIENTATIONS);
 export const meterGroupOrientationOptions = toOptions(METERGROUP_ORIENTATIONS);
+/** Which end of the card's title row its label pills sit on. */
+export const multiSelectPanelLabelAlignOptions = toOptions(
+  MULTI_SELECT_PANEL_LABEL_ALIGNS,
+);
 export const ratingOrientationOptions = toOptions(RATING_ORIENTATIONS);
 export const sliderOrientationOptions = toOptions(SLIDER_ORIENTATIONS);
 export const sliderVariantOptions = toOptions(SLIDER_VARIANTS);

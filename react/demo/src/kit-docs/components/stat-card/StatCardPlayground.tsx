@@ -17,7 +17,13 @@ import { useStatBaseControls } from "../../shared/StatBaseControls";
  * or more options.
  */
 export const StatCardPlayground: React.FC = () => {
-  const { groups, statProps } = useStatBaseControls();
+  const {
+    groups,
+    statProps,
+    previewClassName,
+    previewItemClassName,
+    previewStageRef,
+  } = useStatBaseControls();
 
   return (
     <PlaygroundPanel
@@ -29,12 +35,23 @@ export const StatCardPlayground: React.FC = () => {
             figure, so a percentage metric is written once. The decoration comes
             from <code>Panel</code> now — the old hand-rolled quarter-circle cut
             a hard arc across the corner and was silently implied by the icon.
+            <strong> Selected</strong> and <strong>Pulse</strong> are the
+            surface's state half — <code>Panel</code>'s own <code>active</code>{" "}
+            and <code>pulse</code>, forwarded whole — and the two swatch rows are
+            the licence to let those states wear hues the card does not. On a{" "}
+            <strong>Gradient wash</strong> card the selection arrives as rim and
+            glow only, because the card's own background outranks the wash.
           </p>
         </div>
       }
       preview={
-        <div className="w-full max-w-xs">
-          <StatCard {...statProps} label="Quota used" value={72} />
+        <div
+          ref={previewStageRef}
+          className={previewClassName ?? "w-full max-w-xs"}
+        >
+          <div className={previewItemClassName}>
+            <StatCard {...statProps} label="Quota used" value={72} />
+          </div>
         </div>
       }
     />

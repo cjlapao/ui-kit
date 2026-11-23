@@ -165,6 +165,30 @@ describe("Checkbox", () => {
     });
   });
 
+  describe("fullWidth", () => {
+    const columnClasses = (container: HTMLElement) => {
+      const column = container.querySelector("label")!.lastElementChild!;
+      return column.className.split(/\s+/);
+    };
+
+    it("gives the label the row, so the label can align inside it", () => {
+      // `MultiSelectPanel` pins a card's label pills to the trailing edge with
+      // `margin-inline-start: auto`, which spends free space. A shrink-wrapped
+      // label column has none to spend, so the pills fall back beside the title
+      // and the trailing option reads exactly like the leading one.
+      const { container } = render(<Checkbox label="t" fullWidth />);
+      expect(columnClasses(container)).toContain("grow");
+    });
+
+    it("leaves the column alone when the row is the content's width", () => {
+      // Without `fullWidth` the row shrink-wraps, so there is no free space to
+      // hand out; growing would only move the label away from a right-aligned
+      // box for nothing.
+      const { container } = render(<Checkbox label="t" />);
+      expect(columnClasses(container)).not.toContain("grow");
+    });
+  });
+
   describe("validation", () => {
     it("marks an error on the input and the box", () => {
       const { container } = render(
