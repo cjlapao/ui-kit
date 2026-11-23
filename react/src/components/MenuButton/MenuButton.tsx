@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Button from "../Button";
 import Pill from "../Pill";
 import Menu from "../Menu";
@@ -64,8 +64,12 @@ export function MenuButton({
   menuStyle,
   ...buttonProps
 }: MenuButtonProps) {
+  // The trigger's tooltip must know when the popup is open — mirroring the
+  // menu's open state keeps that correct even for the uncontrolled menu.
+  const [mirrorOpen, setMirrorOpen] = useState(defaultOpen ?? false);
+  const isOpen = open ?? mirrorOpen;
   const trigger = (
-    <Button {...buttonProps} leadingIcon={icon} trailingIcon={caret ? caretIcon : undefined}>
+    <Button {...buttonProps} tooltipDisabled={isOpen || buttonProps.tooltipDisabled} leadingIcon={icon} trailingIcon={caret ? caretIcon : undefined}>
       <span className="flex min-w-0 flex-col items-start leading-tight">
         <span className="w-full min-w-0 truncate font-semibold">{title}</span>
         {subtitle != null && (
@@ -85,7 +89,10 @@ export function MenuButton({
       onSelect={onSelect}
       open={open}
       defaultOpen={defaultOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={(value) => {
+        setMirrorOpen(value);
+        onOpenChange?.(value);
+      }}
       expandedKeys={expandedKeys}
       defaultExpandedKeys={defaultExpandedKeys}
       onExpandedKeysChange={onExpandedKeysChange}

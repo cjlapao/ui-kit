@@ -215,10 +215,10 @@ export const ButtonPage: React.FC = () => (
             'Translucent chrome with backdrop vibrancy and an optional specular overlay. `variant="glass"` implies `glass`; the tuning knobs apply to either.',
         },
         {
-          name: "tooltip / tooltipPosition",
-          type: "string / TooltipPosition",
+          name: "tooltip / tooltipPosition / tooltipDisabled",
+          type: "string / TooltipPosition / boolean",
           description:
-            "Portalled styled tooltip on hover and focus, described to screen readers while visible.",
+            "Portalled styled tooltip on hover and focus, described to screen readers while visible. `tooltipDisabled` drops a visible tip and blocks new ones — MenuButton sets it while its menu is open so the tooltip never floats over the rows.",
         },
         {
           name: "fullWidth",

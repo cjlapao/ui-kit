@@ -83,6 +83,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   tooltip?: string;
   /** Position of the tooltip relative to the button. Defaults to 'top'. */
   tooltipPosition?: TooltipPosition;
+  /** Keep the tooltip suppressed — hides a visible tip and blocks new ones.
+   * MenuButton sets this while its menu is open so the tip never floats over
+   * menu rows; pass it yourself while a surface you own is open. */
+  tooltipDisabled?: boolean;
 }
 
 // `disabled:opacity-50` is applied conditionally rather than living here:
@@ -126,6 +130,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       tooltip,
       tooltipPosition,
+      tooltipDisabled,
       type = "button",
       ...props
     },
@@ -299,7 +304,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     if (tooltip) {
       return (
-        <TooltipWrapper text={tooltip} position={tooltipPosition}>
+        <TooltipWrapper text={tooltip} position={tooltipPosition} disabled={tooltipDisabled}>
           {button}
         </TooltipWrapper>
       );

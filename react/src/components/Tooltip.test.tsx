@@ -76,6 +76,34 @@ describe("Tooltip", () => {
     expect(document.querySelector('[role="tooltip"]')).toBeNull();
   });
 
+  it("drops a visible tip and blocks new ones while disabled", () => {
+    // The open-menu case: the surface the trigger owns covers the tip.
+    vi.useFakeTimers();
+    const { container, rerender } = render(
+      <Tooltip text="Explain" delay={0}>
+        label
+      </Tooltip>,
+    );
+    const trigger = container.firstElementChild as HTMLElement;
+    fireEvent.mouseEnter(trigger);
+    act(() => {
+      vi.advanceTimersByTime(10);
+    });
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+    rerender(
+      <Tooltip text="Explain" delay={0} disabled>
+        label
+      </Tooltip>,
+    );
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    // Hovering again while suppressed shows nothing — no queued reveal either.
+    fireEvent.mouseEnter(trigger);
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+  });
+
   describe("appearance", () => {
     it("has a light look and a dark look, not one dark look for both", () => {
       // It used to be `bg-neutral-900 … dark:bg-neutral-700` — dark in both

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, act } from "@testing-library/react";
 import { MenuButton } from "./MenuButton";
 import type { MenuItem } from "../Menu/types";
 
@@ -91,5 +91,30 @@ describe("MenuButton", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Alpha" }));
     expect(command).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+
+  it("keeps the trigger tooltip out of the way while the menu is open", () => {
+    vi.useFakeTimers();
+    render(<MenuButton tooltip="Pick a model" title="Model" items={items} />);
+    const trigger = screen.getByRole("button", { name: /Model/ });
+    fireEvent.mouseEnter(trigger);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+    fireEvent.click(trigger);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    // The tip would float over the rows (portal, z 9999) — the open menu owns
+    // the space now.
+    expect(document.querySelector('[role="tooltip"]')).toBeNull();
+    // Close: hovering the trigger surfaces the tooltip again.
+    fireEvent.click(trigger);
+    expect(screen.queryByRole("menu")).toBeNull();
+    fireEvent.mouseEnter(trigger);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
+    vi.useRealTimers();
   });
 });

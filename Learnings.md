@@ -1626,3 +1626,14 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   collapses — regardless of the menu-wide flag, which now only governs the root
   list. A global opt-out should never be able to freeze a nested surface that
   has its own collapse contract.
+
+## Open menu owns the space — the trigger's tooltip steps aside (2026-11-23)
+
+- A portalled tooltip (z 9999) stayed frozen over the just-opened Menu's rows:
+  the cursor rested on the trigger the whole time, so neither mouseleave nor
+  blur ever fired. Suppression is a surface-ownership rule, not a hover event:
+  `TooltipWrapper.disabled` (hides a visible tip, cancels the pending reveal,
+  and blocks new ones while set) threaded through `Button.tooltipDisabled` and
+  the standalone `Tooltip`. MenuButton mirrors the menu's open state (`open ??
+  internalOpen`, updated in the `onOpenChange` wrapper) — it must work for the
+  uncontrolled menu too, and closing hands the tooltip back to normal hover.

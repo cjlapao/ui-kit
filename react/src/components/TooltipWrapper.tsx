@@ -44,6 +44,12 @@ export interface TooltipWrapperProps {
   boundary?: HTMLElement | null;
   /** The element to attach the tooltip to. Must accept mouse and focus handlers. */
   children: React.ReactElement<React.HTMLAttributes<Element>>;
+  /**
+   * Suppress the tooltip — it hides immediately if visible and cannot appear
+   * while disabled. Use it while an overlapping surface the trigger owns (an
+   * open Menu popup, say) should not be covered by a floating tip.
+   */
+  disabled?: boolean;
 }
 
 /**
@@ -70,6 +76,7 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
   offset = 8,
   margin = 8,
   boundary,
+  disabled,
   children,
 }) => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -154,8 +161,9 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
 
   const show = useCallback(
     (e: React.MouseEvent | React.FocusEvent) => {
-      // No text → no tooltip; still forward the original handler.
-      if (text) {
+      // No text → no tooltip; a suppressed one behaves the same. Either way
+      // the child's own handlers still run.
+      if (text && !disabled) {
         setColorScheme(
           (e.currentTarget as Element)
             .closest("[data-color-scheme]")
@@ -173,7 +181,7 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
         children.props.onMouseEnter?.(e as React.MouseEvent<Element>);
       }
     },
-    [text, delay, children.props],
+    [text, delay, disabled, children.props],
   );
 
   const hide = useCallback(
@@ -192,6 +200,12 @@ const TooltipWrapper: React.FC<TooltipWrapperProps> = ({
     },
     [children.props],
   );
+
+  // Suppressed mid-flight (the menu this trigger owns just opened): cancel any
+  // pending show and pull a visible tip down at once.
+  useEffect(() => {
+    if (disabled) hide();
+  }, [disabled, hide]);
 
   // Focus as well as hover: a tooltip that only answers to a pointer is
   // invisible to anyone driving the page from the keyboard. The child still

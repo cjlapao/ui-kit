@@ -33,6 +33,10 @@ export interface TooltipProps {
   boundary?: HTMLElement | null;
   /** Extra classes applied to the outer wrapper element. */
   wrapperClassName?: string;
+  /** Keep the tooltip suppressed — hides a visible tip and blocks new ones.
+   * Use it while a surface the trigger owns (an open Menu popup, say) should
+   * not be covered by the floating tip. */
+  disabled?: boolean;
   children: React.ReactNode;
 }
 
@@ -53,6 +57,7 @@ const Tooltip: React.FC<TooltipProps> = ({
   margin,
   boundary,
   wrapperClassName,
+  disabled,
   children,
 }) => {
   if (!text) return <>{children}</>;
@@ -66,6 +71,7 @@ const Tooltip: React.FC<TooltipProps> = ({
       offset={offset}
       margin={margin}
       boundary={boundary}
+      disabled={disabled}
     >
       <div
         // `tabIndex` so the focus path TooltipWrapper offers is reachable: the
