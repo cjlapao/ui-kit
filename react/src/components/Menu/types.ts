@@ -6,7 +6,9 @@ import type { IconName } from "../../icons/registry";
 export interface MenuItem {
   /** Unique across the entire menu tree. */
   id: string;
-  type?: "item" | "group" | "separator" | "checkbox" | "radio" | "section";
+  /** `toggle` carries checkbox semantics (`checked`/`onCheckedChange`,
+   * `menuitemcheckbox`) but draws a presentational switch at the row's end. */
+  type?: "item" | "group" | "separator" | "checkbox" | "radio" | "toggle" | "section";
   label?: React.ReactNode;
   /** Used for accessibility and typeahead when label is rich content. */
   textValue?: string;
@@ -37,7 +39,12 @@ export interface MenuItem {
   /** Controlled checked state. Radio exclusivity is managed by the consumer. */
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
-  /** Checkbox/radio items stay open by default; commands close by default. */
+  /** End the menu interaction when this row activates. Explicit true closes
+   * the whole menu at any depth; explicit false keeps this row exactly where
+   * it is — including its open submenu. Unset: root rows close, plain rows
+   * inside a submenu collapse their branch back to the root list (menu stays
+   * open, focus returns to the opening row), and checkable rows stay put.
+   * Overrides the menu-wide `closeOnSelect`. */
   closeOnSelect?: boolean;
 }
 export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner" | "padding" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode"> {
@@ -58,10 +65,16 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
    * own left-side checks — `checkable` types win on the same row.
    */
   selectedKey?: string;
+  /** Submenu presentation — a tiered popup flyout by default, `inline` expands in place. */
   submenuMode?: "inline" | "tiered";
   expandedKeys?: string[];
   defaultExpandedKeys?: string[];
   onExpandedKeysChange?: (keys: string[]) => void;
+  /** Menu-wide default for the per-item `closeOnSelect` — false keeps the root
+   * list open while rows activate (multi-pick panels, live previews). It does
+   * not pin submenus: plain submenu rows still collapse their branch back to
+   * the root list. */
+  closeOnSelect?: boolean;
   placement?: "top" | "bottom" | "left" | "right";
   size?: ControlSize;
   /** Row tone; defaults to the surface tone. Individual items may override it. */

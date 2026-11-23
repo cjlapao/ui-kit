@@ -1534,3 +1534,95 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   installed and it is CJS — import it by absolute path as a default export
   (`const { chromium } = pw`). `NODE_PATH` does not apply to ESM resolution,
   and a named import throws.
+
+## Toggle rows in a menu — a switch that is not a switch (2026-11-22)
+
+- A menu row is one `<button>`, so the kit `Toggle` cannot live inside it: an
+  `<input>` inside a button is illegal HTML and the activation would double-fire.
+  `type: "toggle"` therefore draws a *presentational* span switch — `aria-hidden`,
+  no input, no second control — and the row's own `menuitemcheckbox` +
+  `aria-checked` carries the state. Same contract as the TaskBoard subtask dots:
+  controls don't live inside controls, they get mirrored.
+- The theme's toggle track tokens are input-bound (`peer-checked:bg-…`), useless
+  to a no-input span. Peel the `peer-checked:`/`dark:peer-checked:` prefixes and
+  paint the remainder from the `checked` prop — consistency without duplicating
+  the palette. Off-state is variant-invariant neutral (`bg-neutral-200
+  dark:bg-neutral-600`), on-state is the solid token, thumb travel mirrors the
+  size table's right-wall flush rule.
+- Widening `checkable` to include `toggle` was not enough: the leading glyph
+  slot keyed off `checkable`, so toggles lost their icon. The slot gates on
+  `checkbox | radio` specifically; the switch draws *last* — after `trailing`
+  and the value echo — so a row can carry text and a switch at once.
+
+## Menu defaults — tiered flyouts and an earn-your-gutter icon slot (2026-11-22)
+
+- Submenus are `tiered` by default: cascading popups are what menus actually
+  want (no unbounded vertical growth, no focus maze through inline sections),
+  so the boring default is the good one. `inline` remains for consumers that
+  want in-place disclosure — the tests that exercise its semantics now pin
+  `submenuMode="inline"` explicitly, because a default flip must not silently
+  re-target a test.
+- The leading glyph gutter is *earned*: a list reserves the 20px slot only when
+  some row in that list paints one — an `icon`, or a checkbox/radio check that
+  lands in the same slot. Per-list (each nested MenuList decides for itself),
+  all-or-nothing for alignment: one icon row keeps the gutter for the whole
+  list; a text-only list starts flush at the menu padding.
+- An eslint-disable-next-line guards the `<ul>` handlers by *next line* —
+  inserting a const between directive and JSX silently un-guards it and turns
+  the directive into an "unused directive" warning. Directives stay adjacent
+  to their target, always below other insertions.
+
+## closeOnSelect — a layered default was the missing half (2026-11-22)
+
+- The per-item stay-open flag existed but was invisible: no tests, no PropsTable
+  row, no playground control — so it read as "missing feature". An option no
+  one can discover is a feature that doesn't ship; docs surfaces are part of
+  the API.
+- Closing is now three layers, nearest wins: `item.closeOnSelect ??
+  props.closeOnSelect ?? !checkable`. A menu-wide false turns the whole menu
+  into a multi-pick/live-preview panel; a single row can still opt back in.
+  Each layer boundary got its own test — precedence bugs hide exactly where
+  two `??`s meet.
+
+## Submenu clicks end the branch, not the menu (2026-11-22)
+
+- Selecting a plain row inside a submenu no longer nukes the whole popup: the
+  chain collapses back to the root list and focus returns to the row that
+  opened it. Only clicks at the root close the menu — unless the author said
+  so: an explicit `closeOnSelect: true` (item or menu-wide) closes everything
+  at any depth. The layering thus gained a fourth question — *what* closes —
+  answered by `depth` and by explicit-vs-implicit: implicit defaults are
+  depth-aware, author intent is obeyed literally.
+- Focus restore after branch collapse goes through `data-menu-id` (now on
+  every row) rather than `getElementById` — item ids are consumer strings, so
+  they must be matched by dataset walk, never interpolated into a selector.
+- Inline sections collapse by toggling each ancestor in `findSelectedBranch`
+  that is expanded — same contract as tiered `setPath([])`, which keeps the
+  two submenu modes honest with each other.
+
+## MenuSwitch thumb frozen — the stale-CSS trap bites again (2026-11-23)
+
+- Symptom: the row-level toggle's switch changed track color but the thumb never
+  travelled. The markup was byte-for-byte the real Toggle's recipe; the class
+  simply was not in the *served* CSS. `translate-x-3` is a bare utility the kit
+  uses nowhere else (the real Toggle drives the same travel through
+  `peer-checked:translate-x-3`), so when the demo's statically imported
+  `react/dist/index.css` predates the component, only MenuSwitch-unique classes
+  go missing — everything else looks styled and the bug reads as a component
+  defect. Rebuild after *any* new kit literal
+  (`cd react && ./node_modules/.bin/tailwindcss -i ./src/styles.css -o
+  ./dist/index.css`) and `grep "\.translate-x-3 {"` before believing a control
+  is broken. jsdom can't catch this: the class is on the node either way, so
+  pair the class-composition test with the CSS rebuild ritual.
+
+## Menu-wide closeOnSelect=false protects the root, not submenus (2026-11-23)
+
+- "Never close" meant the whole popup freezes, but a submenu is its own
+  interaction: selecting a plain row in an open submenu must still end that
+  branch (collapse to root, focus back on the opening row) even when the menu
+  opted out of closing. The activate check split from one `explicit ?? !checkable`
+  gate into three: explicit true closes everything; row-level false pins the
+  row and its submenu (the effort-row flow); implicit + plain + depth>0 always
+  collapses — regardless of the menu-wide flag, which now only governs the root
+  list. A global opt-out should never be able to freeze a nested surface that
+  has its own collapse contract.

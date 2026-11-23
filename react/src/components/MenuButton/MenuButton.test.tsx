@@ -84,4 +84,12 @@ describe("MenuButton", () => {
     expect(trigger).toHaveAttribute("data-size", "lg");
     expect(trigger).toHaveClass("font-semibold");
   });
+  it("forwards closeOnSelect so plain rows keep the menu open", () => {
+    const command = vi.fn();
+    render(<MenuButton title="Pick" items={[{ id: "a", label: "Alpha", command }]} closeOnSelect={false} />);
+    fireEvent.click(screen.getByRole("button", { name: /Pick/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Alpha" }));
+    expect(command).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
 });

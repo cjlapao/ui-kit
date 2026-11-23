@@ -41,18 +41,19 @@ function ModelSelectorExample() {
       id: "effort",
       label: "Effort",
       trailing: effortLabel,
-      submenuMode: "tiered",
       submenuHeader: "Higher effort means more thorough responses, but takes longer and uses your limits faster.",
       items: EFFORTS.map(e => ({ id: e.id, label: e.label, badge: e.badge, closeOnSelect: false, command: (item: MenuItem) => setEffort(item.id) })),
     },
     {
       id: "more-models",
       label: "More models",
-      submenuMode: "tiered",
       items: MORE_MODELS.map(m => ({
         id: m.id,
         label: m.label,
         badge: m.credits ? <Pill size="xs" tone="neutral" icon="Info">Requires usage credits</Pill> : undefined,
+        // Picking a model ends the whole interaction — an explicit closeOnSelect
+        // closes the menu even though the row lives inside a submenu.
+        closeOnSelect: true,
         command: (item: MenuItem) => setModel({ id: item.id, label: m.label }),
       })),
     },
@@ -68,7 +69,6 @@ function ModelSelectorExample() {
       weight="semibold"
       items={items}
       selectedKey={model.id}
-      submenuMode="tiered"
       menuPlacement="top"
       menuWidth={340}
       menuMaxHeight={360}
@@ -97,8 +97,8 @@ function ModeSwitcherExample() {
     ] },
     { id: "sep", type: "separator" },
     { id: "safety", type: "group", label: "Safety", items: [
-      { id: "notify", label: "Notify on completion", type: "checkbox", checked: notify, onCheckedChange: value => { setNotify(value); setLog(`Notify → ${value}`); } },
-      { id: "autosave", label: "Autosave drafts", type: "checkbox", checked: autosave, onCheckedChange: value => { setAutosave(value); setLog(`Autosave → ${value}`); } },
+      { id: "notify", label: "Notify on completion", type: "toggle", checked: notify, onCheckedChange: value => { setNotify(value); setLog(`Notify → ${value}`); } },
+      { id: "autosave", label: "Autosave drafts", type: "toggle", checked: autosave, onCheckedChange: value => { setAutosave(value); setLog(`Autosave → ${value}`); } },
     ] },
     { id: "sep-2", type: "separator" },
     { id: "reset", label: "Reset preferences", icon: "Warning", danger: true, command: () => { setMode("manual"); setNotify(true); setAutosave(false); setLog("Preferences reset"); } },
@@ -136,17 +136,17 @@ function NestedActionExample() {
   const [toc, setToc] = useState(true);
   const [last, setLast] = useState("Nothing exported yet");
   const items: MenuItem[] = [
-    { id: "export-as", label: "Export as", icon: "File", submenuMode: "tiered", items: [
-      { id: "documents", label: "Documents", icon: "Folder", submenuMode: "tiered", items: [
+    { id: "export-as", label: "Export as", icon: "File", items: [
+      { id: "documents", label: "Documents", icon: "Folder", items: [
         { id: "pdf", label: "PDF", shortcut: "⌘E", command: () => setLast("Exported PDF") },
         { id: "docx", label: "DOCX", command: () => setLast("Exported DOCX") },
       ] },
-      { id: "images", label: "Images", icon: "Folder", submenuMode: "tiered", items: [
+      { id: "images", label: "Images", icon: "Folder", items: [
         { id: "png", label: "PNG", command: () => setLast("Exported PNG") },
         { id: "svg", label: "SVG", command: () => setLast("Exported SVG") },
       ] },
     ] },
-    { id: "include", label: "Include", icon: "ViewRows", submenuMode: "tiered", items: [
+    { id: "include", label: "Include", icon: "ViewRows", items: [
       { id: "lines", label: "Line numbers", type: "checkbox", checked: lines, onCheckedChange: setLines },
       { id: "metadata", label: "Metadata", type: "checkbox", checked: metadata, onCheckedChange: setMetadata },
       { id: "toc", label: "Table of contents", type: "checkbox", checked: toc, onCheckedChange: setToc },
@@ -161,7 +161,7 @@ function NestedActionExample() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="flex flex-col gap-3">
-        <MenuButton icon="File" title="Export" pill={{ label: "PDF", tone: "blue" }} items={items} submenuMode="tiered" />
+        <MenuButton icon="File" title="Export" pill={{ label: "PDF", tone: "blue" }} items={items} />
         <p className="text-xs text-neutral-500" aria-live="polite">{last}</p>
       </div>
       <div className="flex h-72 items-end justify-end overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 dark:border-white/10 dark:bg-white/5" aria-label="Bottom-right collision demo — the menu flips up and scrolls">
@@ -181,7 +181,7 @@ export default function MenuButtonExamples() {
       </section>
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">Settings / mode switcher</h3>
-        <p className="text-xs text-neutral-500">Groups, separators, shortcuts, checkboxes, disabled and danger rows; the pill tracks the live state.</p>
+        <p className="text-xs text-neutral-500">Groups, separators, shortcuts, trailing switch toggles, disabled and danger rows; the pill tracks the live state.</p>
         <div className="flex min-h-24 items-center"><ModeSwitcherExample /></div>
       </section>
       <section className="flex flex-col gap-2">

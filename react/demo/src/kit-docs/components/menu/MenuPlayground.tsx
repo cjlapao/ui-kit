@@ -13,16 +13,19 @@ export function MenuPlayground() {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [size, setSize] = useState<ControlSize>("md");
   const [padding, setPadding] = useState<SurfacePadding>("xs");
-  const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  const [corner, setCorner] = useState<SurfaceCorner>("rounded-sm");
   const [itemTone, setItemTone] = useState<TrueColor>("neutral");
   const [followTone, setFollowTone] = useState(true);
   const [itemPadding, setItemPadding] = useState<"auto" | SurfacePadding>("auto");
   const [itemCorner, setItemCorner] = useState<SurfaceCorner>("rounded-sm");
-  const [submenuMode, setSubmenuMode] = useState<MenuProps["submenuMode"]>("inline");
+  const [submenuMode, setSubmenuMode] = useState<MenuProps["submenuMode"]>("tiered");
   const [placement, setPlacement] = useState<MenuProps["placement"]>("bottom");
   const [popup, setPopup] = useState(false);
   const [withIcons, setWithIcons] = useState(true);
   const [withChrome, setWithChrome] = useState(false);
+  const [closeMode, setCloseMode] = useState("auto");
+  const [withToggleRow, setWithToggleRow] = useState(true);
+  const [autosave, setAutosave] = useState(true);
   const [disabled, setDisabled] = useState(true);
   const [checked, setChecked] = useState(true);
   const [scheme, setScheme] = useState("System");
@@ -39,6 +42,7 @@ export function MenuPlayground() {
     { id: "separator", type: "separator" },
     { id: "preferences", type: "group", label: "Preferences", items: [
       { id: "notifications", type: "checkbox", label: "Notifications", checked, onCheckedChange: value => { setChecked(value); pushLog(`onCheckedChange → ${value}`); } },
+      ...(withToggleRow ? [{ id: "autosave", type: "toggle" as const, label: "Autosave drafts", icon: withIcons ? "Star" : undefined, checked: autosave, onCheckedChange: (value: boolean) => { setAutosave(value); pushLog(`onCheckedChange → autosave ${value}`); } }] : []),
       ...["Light", "Dark", "System"].map(label => ({ id: label, label, type: "radio" as const, checked: scheme === label, onCheckedChange: () => { setScheme(label); pushLog(`onCheckedChange → ${label}`); } })),
     ] },
     { id: "logout", label: "Log out", danger: true },
@@ -57,10 +61,12 @@ export function MenuPlayground() {
       <SelectControl label="Item padding" options={[{ value: "auto", label: "Auto (follows size)" }, ...panelPaddingOptions]} value={itemPadding} onChange={v => setItemPadding(v as "auto" | SurfacePadding)} />
       <SelectControl label="Item corner" options={panelCornerOptions} value={itemCorner} onChange={v => setItemCorner(v as SurfaceCorner)} />
       <ToggleRow label="Show icons" checked={withIcons} onChange={setWithIcons} />
+      <ToggleRow label="Autosave toggle row" checked={withToggleRow} onChange={setWithToggleRow} />
       <ToggleRow label="Disabled archive item" checked={disabled} onChange={setDisabled} />
     </> },
     { id: "behavior", title: "Behavior", controls: <>
-      <SelectControl label="Submenus" options={[{value:"inline",label:"Inline"},{value:"tiered",label:"Tiered"}]} value={submenuMode ?? "inline"} onChange={v => setSubmenuMode(v as MenuProps["submenuMode"])} />
+      <SelectControl label="Submenus" options={[{value:"tiered",label:"Tiered"},{value:"inline",label:"Inline"}]} value={submenuMode ?? "tiered"} onChange={v => setSubmenuMode(v as MenuProps["submenuMode"])} />
+      <SelectControl label="Select closes" options={[{ value: "auto", label: "Auto (per kind)" }, { value: "always", label: "Always" }, { value: "never", label: "Never" }]} value={closeMode} onChange={setCloseMode} />
       <ToggleRow label="Popup" checked={popup} onChange={setPopup} />
       <SelectControl label="Placement" options={["top","bottom","left","right"].map(value => ({value,label:value}))} value={placement ?? "bottom"} onChange={v => setPlacement(v as MenuProps["placement"])} />
       <ToggleRow label="Header and footer" checked={withChrome} onChange={setWithChrome} />
@@ -69,7 +75,7 @@ export function MenuPlayground() {
     preview={<div className="w-full space-y-4"><div className="flex min-h-80 items-start justify-center">
       <Menu key={popup ? "popup" : "inline"} aria-label="Playground commands" items={items} variant={variant} tone={tone} size={size} padding={padding} corner={corner}
         itemTone={followTone ? undefined : itemTone} itemPadding={itemPadding === "auto" ? undefined : itemPadding} itemCorner={itemCorner}
-        submenuMode={submenuMode} placement={placement} trigger={popup ? <Button>Open menu</Button> : undefined}
+        submenuMode={submenuMode} closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"} placement={placement} trigger={popup ? <Button>Open menu</Button> : undefined}
         header={withChrome ? <div className="px-3 py-2 font-semibold">Workspace</div> : undefined}
         footer={withChrome ? <div className="px-3 py-2 text-xs text-neutral-500">Signed in as Alex Morgan</div> : undefined}
         onSelect={item => pushLog(`onSelect → ${item.id}`)} onOpenChange={open => pushLog(`onOpenChange → ${open}`)}

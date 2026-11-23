@@ -37,6 +37,8 @@ export interface MenuButtonProps
   /** Selected item id at any depth: right-aligned check + parent value echo. */
   selectedKey?: string;
   submenuMode?: MenuProps["submenuMode"];
+  /** Menu-wide default for the per-item closeOnSelect flag. */
+  closeOnSelect?: MenuProps["closeOnSelect"];
   onSelect?: (item: MenuItem) => void;
   open?: boolean;
   defaultOpen?: boolean;

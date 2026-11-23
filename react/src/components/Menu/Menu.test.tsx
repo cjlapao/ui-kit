@@ -41,6 +41,8 @@ describe("Menu", () => {
     const { container } = render(<Menu items={items} />);
     expect(container.querySelector("[data-menu-padding]")).toHaveClass("p-1", "sm:p-1.5");
     expect(container.querySelector("[data-menu-padding]")).not.toHaveClass("p-2", "sm:p-3");
+    // Surface corner matches the rows' rounded-sm default token (rounded-lg class).
+    expect(container.querySelector("section")).toHaveClass("rounded-lg");
   });
   it("navigates across groups, skips disabled items, and supports typeahead", () => {
     render(<Menu items={items} />);
@@ -55,7 +57,7 @@ describe("Menu", () => {
     expect(first).toHaveFocus();
   });
   it("expands inline and returns focus to the parent with Left Arrow", async () => {
-    render(<Menu items={items} />);
+    render(<Menu items={items} submenuMode="inline" />);
     const parent = screen.getByRole("menuitem", { name: "Reports" });
     fireEvent.keyDown(parent, { key: "ArrowRight" });
     await waitFor(() => expect(screen.getByRole("menuitem", { name: "Monthly" })).toHaveFocus());
@@ -65,7 +67,7 @@ describe("Menu", () => {
   });
   it("leaves controlled expansion with its owner", () => {
     const change = vi.fn();
-    render(<Menu items={items} expandedKeys={[]} onExpandedKeysChange={change} />);
+    render(<Menu items={items} submenuMode="inline" expandedKeys={[]} onExpandedKeysChange={change} />);
     fireEvent.click(screen.getByRole("menuitem", { name: "Reports" }));
     expect(change).toHaveBeenCalledWith(["reports"]);
     expect(screen.queryByRole("menuitem", { name: "Monthly" })).toBeNull();
@@ -108,7 +110,10 @@ describe("Menu", () => {
     fireEvent.pointerDown(child);
     expect(screen.getAllByRole("menu")).toHaveLength(2);
     fireEvent.click(child);
-    expect(screen.queryByRole("menu")).toBeNull();
+    // Branch collapse: the submenu unmounts, the root menu stays open.
+    expect(screen.getAllByRole("menu")).toHaveLength(1);
+    expect(screen.queryByRole("menuitem", { name: "Monthly" })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: "Reports" })).toBeInTheDocument();
   });
   it("mixes inline sections with tiered rows and supports static outside dismissal", () => {
     render(<Menu submenuMode="tiered" items={[
@@ -200,5 +205,165 @@ describe("Menu selection (selectedKey)", () => {
     // The kit ScrollArea does the scrolling — no raw overflow-auto div left.
     expect(frame.querySelector('[data-slot="scrollarea-viewport"] [data-slot="scrollarea-content"]')).toBeTruthy();
     expect(frame).toHaveAttribute("data-variant", "auto");
+  });
+});
+
+describe("Menu toggle items", () => {
+  it("draws a trailing switch with menuitemcheckbox semantics", () => {
+    render(<Menu items={[{ id: "autosave", label: "Autosave", type: "toggle", checked: true, onCheckedChange: vi.fn() }]} />);
+    const row = screen.getByRole("menuitemcheckbox", { name: "Autosave" });
+    expect(row).toHaveAttribute("aria-checked", "true");
+    expect(row.querySelector("[data-menu-switch]")).toHaveAttribute("data-menu-switch", "on");
+  });
+  it("flips onCheckedChange without closing the menu", () => {
+    const onCheckedChange = vi.fn();
+    render(<Menu trigger={<button>Open</button>} items={[{ id: "autosave", label: "Autosave", type: "toggle", checked: false, onCheckedChange }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Autosave" }));
+    expect(onCheckedChange).toHaveBeenCalledWith(true);
+    // Checkbox-like rows stay open — toggling is not an exit.
+    expect(screen.getByRole("menuitemcheckbox", { name: "Autosave" })).toBeInTheDocument();
+  });
+  it("keeps the leading icon slot instead of a check glyph", () => {
+    render(<Menu items={[{ id: "autosave", label: "Autosave", type: "toggle", icon: "Star", checked: false, onCheckedChange: vi.fn() }]} />);
+    const row = screen.getByRole("menuitemcheckbox", { name: "Autosave" });
+    expect(row.querySelector("[data-menu-switch]")).toHaveAttribute("data-menu-switch", "off");
+    expect(row.querySelector("span[aria-hidden=\"true\"] svg")).toBeTruthy();
+  });
+  it("slides the switch thumb to the far wall when checked", () => {
+    // Regression: the thumb sat still because its travel utility never made
+    // it into the shipped CSS. The checked class pair must be present.
+    render(<Menu items={[
+      { id: "on", label: "On", type: "toggle", checked: true, onCheckedChange: vi.fn() },
+      { id: "off", label: "Off", type: "toggle", checked: false, onCheckedChange: vi.fn() },
+    ]} />);
+    const thumb = screen.getByRole("menuitemcheckbox", { name: "On" }).querySelector<HTMLElement>("[data-menu-switch] > span");
+    expect(thumb).toHaveClass("-translate-y-1/2");
+    expect(thumb).toHaveClass("translate-x-3");
+    const offThumb = screen.getByRole("menuitemcheckbox", { name: "Off" }).querySelector<HTMLElement>("[data-menu-switch] > span");
+    expect(offThumb).not.toHaveClass("translate-x-3");
+  });
+});
+
+describe("Menu defaults", () => {
+  it("opens submenus as tiered popups by default", () => {
+    render(<Menu items={[{ id: "parent", label: "Parent", items: [{ id: "child", label: "Child" }] }]} />);
+    const parent = screen.getByRole("menuitem", { name: "Parent" });
+    expect(parent).toHaveAttribute("aria-haspopup", "menu");
+    fireEvent.click(parent);
+    const child = screen.getByRole("menuitem", { name: "Child" });
+    expect(child).toBeInTheDocument();
+    // Tiered: the popup is its own menu, not an inline continuation of the list.
+    expect(child.closest("ul")).not.toBe(parent.closest("ul"));
+  });
+  it("drops the leading gutter when no row paints an icon", () => {
+    render(<Menu items={[{ id: "a", label: "Alpha" }, { id: "b", label: "Beta", trailing: "⌘B" }]} />);
+    expect(screen.getByRole("menuitem", { name: "Alpha" }).querySelector("span[aria-hidden]")).toBeNull();
+  });
+  it("reserves the gutter on every row once one row carries an icon", () => {
+    render(<Menu items={[{ id: "a", label: "Alpha", icon: "Star" }, { id: "b", label: "Beta" }]} />);
+    expect(screen.getByRole("menuitem", { name: "Beta" }).querySelector("span[aria-hidden]")).toBeTruthy();
+  });
+  it("reserves the gutter for checkbox rows even without icons", () => {
+    render(<Menu items={[{ id: "a", label: "Alpha" }, { id: "b", label: "Beta", type: "checkbox", checked: false, onCheckedChange: vi.fn() }]} />);
+    expect(screen.getByRole("menuitem", { name: "Alpha" }).querySelector("span[aria-hidden]")).toBeTruthy();
+  });
+});
+
+describe("Menu closeOnSelect", () => {
+  it("keeps the popup open while plain rows act when the menu opts out", () => {
+    const command = vi.fn();
+    render(<Menu closeOnSelect={false} trigger={<button>Open</button>} items={[{ id: "a", label: "Alpha", command }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Alpha" }));
+    expect(command).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+  });
+  it("lets a row override the menu-wide opt-out", () => {
+    render(<Menu closeOnSelect={false} trigger={<button>Open</button>} items={[{ id: "a", label: "Alpha", closeOnSelect: true }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Alpha" }));
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+  it("lets a checkable row opt back into closing", () => {
+    render(<Menu trigger={<button>Open</button>} items={[{ id: "a", label: "Alpha", type: "checkbox", checked: false, closeOnSelect: true, onCheckedChange: vi.fn() }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Alpha" }));
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+});
+
+describe("Menu submenu selection", () => {
+  it("collapses the submenu chain back to the root and keeps the menu open", async () => {
+    const command = vi.fn();
+    render(<Menu trigger={<button>Open</button>} items={[{ id: "reports", label: "Reports", items: [{ id: "monthly", label: "Monthly", command }]}]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Reports" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Monthly" }));
+    expect(command).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("menuitem", { name: "Monthly" })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: "Reports" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Reports" })).toHaveFocus());
+  });
+  it("collapses every level from the deepest submenu row", async () => {
+    render(<Menu trigger={<button>Open</button>} items={[{ id: "export", label: "Export", items: [{ id: "docs", label: "Documents", items: [{ id: "pdf", label: "PDF", command: vi.fn() }]}]}]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Export" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Documents" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "PDF" }));
+    expect(screen.getAllByRole("menu")).toHaveLength(1);
+    expect(screen.queryByRole("menuitem", { name: "PDF" })).toBeNull();
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Export" })).toHaveFocus());
+  });
+  it("closes the whole menu for an explicit closeOnSelect inside a submenu", () => {
+    render(<Menu trigger={<button>Open</button>} items={[{ id: "more", label: "More", items: [{ id: "opus", label: "Opus", closeOnSelect: true }]}]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "More" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Opus" }));
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+  it("collapses submenus even when the menu opts out of closing", async () => {
+    // A menu-wide false keeps the ROOT open — it does not pin submenus: a
+    // plain submenu row still ends its branch and lands focus back on the
+    // opening row.
+    const command = vi.fn();
+    render(<Menu closeOnSelect={false} trigger={<button>Open</button>} items={[{ id: "reports", label: "Reports", items: [{ id: "monthly", label: "Monthly", command }]}]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Reports" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Monthly" }));
+    expect(command).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("menu")).toHaveLength(1);
+    expect(screen.queryByRole("menuitem", { name: "Monthly" })).toBeNull();
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Reports" })).toHaveFocus());
+  });
+  it("keeps the submenu open for a row-level opt-out", () => {
+    // The effort-row flow: the author pins this specific row, submenu stays.
+    const command = vi.fn();
+    render(<Menu trigger={<button>Open</button>} items={[{ id: "effort", label: "Effort", items: [{ id: "low", label: "Low", closeOnSelect: false, command }]}]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Effort" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Low" }));
+    expect(command).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("menu")).toHaveLength(2);
+    expect(screen.getByRole("menuitem", { name: "Low" })).toBeInTheDocument();
+  });
+  it("collapses inline sections without closing the menu", async () => {
+    const command = vi.fn();
+    render(<Menu submenuMode="inline" items={[{ id: "reports", label: "Reports", items: [{ id: "monthly", label: "Monthly", command }]}]} />);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Reports" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Monthly" }));
+    expect(command).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Monthly" })).toBeNull();
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Reports" })).toHaveFocus());
+  });
+  it("leaves checkable submenu rows sitting open where they are", () => {
+    const check = vi.fn();
+    render(<Menu trigger={<button>Open</button>} items={[{ id: "include", label: "Include", items: [{ id: "toc", label: "TOC", type: "checkbox", checked: false, onCheckedChange: check }]}]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Include" }));
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "TOC" }));
+    expect(check).toHaveBeenCalledWith(true);
+    expect(screen.getAllByRole("menu")).toHaveLength(2);
   });
 });

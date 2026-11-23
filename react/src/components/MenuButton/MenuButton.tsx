@@ -35,6 +35,7 @@ export function MenuButton({
   items,
   selectedKey,
   submenuMode,
+  closeOnSelect,
   onSelect,
   open,
   defaultOpen,
@@ -80,6 +81,7 @@ export function MenuButton({
       items={items}
       selectedKey={selectedKey}
       submenuMode={submenuMode}
+      closeOnSelect={closeOnSelect}
       onSelect={onSelect}
       open={open}
       defaultOpen={defaultOpen}

@@ -32,9 +32,12 @@ export function MenuButtonPlayground() {
   // Menu
   const [menuVariant, setMenuVariant] = useState<SurfaceVariant>("outlined");
   const [menuTone, setMenuTone] = useState<SurfaceTone>("none");
-  const [menuCorner, setMenuCorner] = useState<SurfaceCorner>("rounded-xl");
+  const [menuCorner, setMenuCorner] = useState<SurfaceCorner>("rounded-sm");
   const [menuPadding, setMenuPadding] = useState<SurfacePadding>("xs");
-  const [submenuMode, setSubmenuMode] = useState<NonNullable<MenuProps["submenuMode"]>>("inline");
+  const [submenuMode, setSubmenuMode] = useState<NonNullable<MenuProps["submenuMode"]>>("tiered");
+  const [closeMode, setCloseMode] = useState("auto");
+  const [withToggleRow, setWithToggleRow] = useState(true);
+  const [livePreview, setLivePreview] = useState(true);
   const [placement, setPlacement] = useState<NonNullable<MenuProps["placement"]>>("bottom");
   const [selectedKey, setSelectedKey] = useState("new-file");
   const [withFooter, setWithFooter] = useState(true);
@@ -54,6 +57,7 @@ export function MenuButtonPlayground() {
     { id: "preferences", type: "group", label: "Preferences", items: [
       { id: "notifications", label: "Notifications", description: "Ping me when agents finish", icon: "Info", badge: <Pill size="xs" tone="amber">Beta</Pill> },
       { id: "compact", label: "Quiet mode", type: "checkbox", checked: !notifications, onCheckedChange: value => { setNotifications(!value); pushLog(`Quiet mode → ${!value}`); } },
+      ...(withToggleRow ? [{ id: "live-preview", label: "Live preview", description: "Render edits as you type", type: "toggle" as const, checked: livePreview, onCheckedChange: (value: boolean) => { setLivePreview(value); pushLog(`Live preview → ${value}`); } }] : []),
     ] },
     { id: "logout", label: "Log out", icon: "Warning", danger: true },
   ];
@@ -84,9 +88,11 @@ export function MenuButtonPlayground() {
       <p className="px-1 text-[11px] leading-snug text-neutral-500">Collision handling is always on: the popup flips to the free side and caps its height to the space left, scrolling internally.</p>
     </> },
     { id: "behavior", title: "Behavior", controls: <>
-      <SelectControl label="Submenus" options={[{ value: "inline", label: "Inline" }, { value: "tiered", label: "Tiered" }]} value={submenuMode} onChange={v => setSubmenuMode(v as NonNullable<MenuProps["submenuMode"]>)} />
+      <SelectControl label="Submenus" options={[{ value: "tiered", label: "Tiered" }, { value: "inline", label: "Inline" }]} value={submenuMode} onChange={v => setSubmenuMode(v as NonNullable<MenuProps["submenuMode"]>)} />
+      <SelectControl label="Select closes" options={[{ value: "auto", label: "Auto (per kind)" }, { value: "always", label: "Always" }, { value: "never", label: "Never" }]} value={closeMode} onChange={setCloseMode} />
       <SelectControl label="Selected" options={LEAVES} value={selectedKey} onChange={setSelectedKey} />
       <ToggleRow label="Footer" checked={withFooter} onChange={setWithFooter} />
+      <ToggleRow label="Live preview toggle row" checked={withToggleRow} onChange={setWithToggleRow} />
     </> },
   ]} /><EventLogControl log={log} /></div>} preview={
     <div className="flex min-h-64 items-center justify-center">
@@ -106,6 +112,7 @@ export function MenuButtonPlayground() {
         items={items}
         selectedKey={selectedKey}
         submenuMode={submenuMode}
+        closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"}
         menuPlacement={placement}
         menuVariant={menuVariant}
         menuTone={menuTone}

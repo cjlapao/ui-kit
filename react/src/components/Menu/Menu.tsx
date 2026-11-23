@@ -1,4 +1,4 @@
-import { getSurfaceAccentColor } from "../../theme/Theme";
+import { getSurfaceAccentColor, getToggleVariantTokens } from "../../theme/Theme";
 import React, { cloneElement, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import classNames from "classnames";
@@ -66,6 +66,10 @@ function MenuList({ items, state, depth = 0, parentLabel, onBack, focusOnMount =
     return () => cancelAnimationFrame(frame);
   }, [focusOnMount]);
   useEffect(() => () => clearTimeout(timer.current), []);
+  // The leading glyph gutter is only reserved when some row in this list
+  // actually paints one — an icon, or a checkbox/radio check that lands in
+  // the same slot. A text-only list starts flush at the menu padding.
+  const gutter = items.some(other => !other.hidden && (other.icon != null || other.type === "checkbox" || other.type === "radio"));
   // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- menu/group list delegates keyboard navigation to native item controls
   return <ul ref={list} id={depth === 0 && !grouped ? `${state.owner}-menu` : undefined} role={grouped ? "group" : "menu"} aria-label={parentLabel ?? state.props["aria-label"] ?? "Menu"} className="m-0 list-none space-y-0.5 p-0"
     onFocusCapture={event => {
@@ -94,14 +98,14 @@ function MenuList({ items, state, depth = 0, parentLabel, onBack, focusOnMount =
         timer.current = setTimeout(() => { buffer.current = ""; }, 600);
       }
     }}>
-    {items.filter(item => !item.hidden).map(item => <MenuRow key={item.id} item={item} state={state} depth={depth} />)}
+    {items.filter(item => !item.hidden).map(item => <MenuRow key={item.id} item={item} state={state} depth={depth} gutter={gutter} />)}
   </ul>;
 }
 
-function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: number }) {
+function MenuRow({ item, state, depth, gutter = true }: { item: MenuItem; state: State; depth: number; gutter?: boolean }) {
   const anchor = useRef<HTMLElement | null>(null);
   const { props } = state;
-  const tiered = (item.submenuMode ?? props.submenuMode) === "tiered";
+  const tiered = (item.submenuMode ?? props.submenuMode ?? "tiered") === "tiered";
   const nested = Boolean(item.items?.some(child => !child.hidden) || item.content != null);
   const expanded = tiered ? state.path[depth] === item.id : state.expanded.includes(item.id);
   const label = text(item);
@@ -125,7 +129,7 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
   const itemTone = getSurfaceAccentColor(item.tone ?? props.itemTone ?? props.tone ?? "none");
   const itemPadding = item.padding ?? props.itemPadding;
   const tokens = getSideMenuItemTokens(itemTone);
-  const checkable = item.type === "checkbox" || item.type === "radio";
+  const checkable = item.type === "checkbox" || item.type === "radio" || item.type === "toggle";
   // `selectedKey` drives the right-aligned check and the parent-row value echo;
   // checkbox/radio rows keep their own left-side checks, so checkable wins.
   const selected = !checkable && props.selectedKey != null && item.id === props.selectedKey;
@@ -133,24 +137,48 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
     ? findSelectedBranch(item.items, props.selectedKey)
     : undefined;
   const echo = branch ? branch[branch.length - 1] : undefined;
+  // A selection inside a submenu ends the *branch*, not the menu: the chain
+  // collapses back to the root list and focus lands on the row that opened
+  // it. An author-set closeOnSelect true (or a click at the root) still closes
+  // everything. Inline sections collapse through their ancestors' toggle.
+  const collapseToRoot = () => {
+    const chain = findSelectedBranch(state.props.items, item.id);
+    if (tiered) state.setPath([]);
+    else for (const ancestor of chain?.slice(0, -1) ?? []) if (state.expanded.includes(ancestor.id)) state.toggle(ancestor.id);
+    state.cancelLeave();
+    const rootParentId = chain?.[0]?.id;
+    if (rootParentId != null) requestAnimationFrame(() => {
+      const rows = document.getElementById(`${state.owner}-menu`)?.querySelectorAll<HTMLElement>("[data-menu-id]") ?? [];
+      for (const row of rows) if (row.dataset.menuId === rootParentId) { row.focus(); break; }
+    });
+  };
   const activate = (event: React.MouseEvent<HTMLElement>) => {
     if (item.disabled) { event.preventDefault(); return; }
     if (nested) { event.preventDefault(); if (expanded) back(); else open(true); return; }
     if (checkable) item.onCheckedChange?.(item.type === "radio" ? true : !item.checked);
     item.command?.(item); props.onSelect?.(item);
-    if (item.closeOnSelect ?? !checkable) state.close(true);
+    // Three tiers: explicit true closes everything at any depth; explicit
+    // false (row-level) keeps the row exactly where it is — even its submenu.
+    // Implicit: plain rows close, and from inside a submenu that means
+    // collapsing the branch, never the menu. A menu-wide false only protects
+    // the root list — selecting still collapses submenus.
+    const closeEverything = item.closeOnSelect ?? props.closeOnSelect;
+    if (closeEverything === true) state.close(true);
+    else if (item.closeOnSelect == null && !checkable && depth > 0) collapseToRoot();
+    else if (closeEverything == null && !checkable) state.close(true);
   };
   const content = props.renderItem?.(item, { expanded, checked: Boolean(item.checked) }) ?? <>
-    <span aria-hidden="true" className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
-      {checkable ? item.checked && (item.type === "radio" ? <span className="h-1.5 w-1.5 rounded-full bg-current" /> : <CustomIcon icon="Check" size="sm" />)
+    {gutter && <span aria-hidden="true" className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+      {item.type === "checkbox" || item.type === "radio" ? item.checked && (item.type === "radio" ? <span className="h-1.5 w-1.5 rounded-full bg-current" /> : <CustomIcon icon="Check" size="sm" />)
         : React.isValidElement(item.icon) ? item.icon : typeof item.icon === "string" ? <CustomIcon icon={item.icon} size="sm" /> : null}
-    </span>
+    </span>}
     <span className="min-w-0 flex-1"><span className="block truncate">{item.label}</span>{item.description && <span className="block text-xs font-normal opacity-70">{item.description}</span>}</span>
     {item.badge != null && <span className="shrink-0 text-xs">{item.badge}</span>}
     {item.shortcut != null && <span className="shrink-0 text-xs opacity-60">{item.shortcut}</span>}
     {item.trailing}
     {echo && <span className="shrink-0 text-xs font-normal opacity-70">{text(echo)}</span>}
     {selected && <span aria-hidden="true" className="inline-flex h-5 w-5 shrink-0 items-center justify-center"><CustomIcon icon="Check" size="sm" /></span>}
+    {item.type === "toggle" && <MenuSwitch checked={Boolean(item.checked)} disabled={item.disabled} />}
     {nested && <CollapseChevron aria-hidden="true" className={classNames("h-3 w-3 shrink-0", !tiered && (expanded ? "-rotate-90" : "rotate-90"))} />}
   </>;
   const rowProps = {
@@ -159,7 +187,7 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
     "aria-checked": checkable ? Boolean(item.checked) : selected ? true : undefined,
     "aria-expanded": nested ? expanded : undefined, "aria-haspopup": nested && tiered ? "menu" as const : undefined,
     "aria-controls": nested && expanded ? `${id}-submenu` : undefined,
-    "data-menu-action": "", "data-menu-text": label, tabIndex: -1,
+    "data-menu-action": "", "data-menu-text": label, "data-menu-id": item.id, tabIndex: -1,
     className: classNames("flex w-full items-center gap-2 text-left font-medium outline-none transition-colors", itemPadding === undefined ? rowSizes[props.size ?? "md"] : [rowSizes[props.size ?? "md"].split(" ").filter(token => token.startsWith("text-")), menuPadding[itemPadding]],
       getSurfaceCornerClass(item.corner ?? props.itemCorner ?? "rounded-sm"),
       getSurfaceTriggerTokens(itemTone).focusRing,
@@ -187,10 +215,30 @@ function MenuRow({ item, state, depth }: { item: MenuItem; state: State; depth: 
   )}</li>;
 }
 
+// The on-state track reuses the kit Toggle's solid-blue token with the
+// `peer-checked:` input prefixes peeled off — the menu switch has no input,
+// it is painted directly from the `checked` prop.
+const SWITCH_ON_TRACK = getToggleVariantTokens("blue", "solid").track
+  .split(" ")
+  .map(cls => cls.replace("dark:peer-checked:", "dark:").replace("peer-checked:", ""))
+  .join(" ");
+
+/**
+ * The trailing switch of `type: "toggle"` rows — the kit Toggle's xs solid
+ * treatment at menu density, presentational only: the row is the single
+ * button (a `menuitemcheckbox` carries the state), so this mirrors the thumb
+ * and stays `aria-hidden`. No input, no second control inside a control.
+ */
+function MenuSwitch({ checked, disabled }: { checked: boolean; disabled?: boolean }) {
+  return <span aria-hidden="true" data-menu-switch={checked ? "on" : "off"} className={classNames("relative inline-flex h-4 w-7 shrink-0 items-center overflow-hidden rounded-full border border-transparent transition-colors duration-200 ease-in-out", checked ? SWITCH_ON_TRACK : "bg-neutral-200 dark:bg-neutral-600", disabled && "opacity-40")}>
+    <span className={classNames("pointer-events-none absolute top-1/2 left-0.5 h-3 w-3 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out dark:bg-neutral-200", checked && "translate-x-3")} />
+  </span>;
+}
+
 function MenuSurface({ state, children, root = false }: { state: State; children: React.ReactNode; root?: boolean }) {
   const { props } = state;
   return <div data-menu-owner={state.owner} onMouseEnter={state.cancelLeave} onMouseLeave={state.scheduleLeave}>
-    <Panel variant={props.variant ?? "outlined"} tone={props.tone ?? "none"} corner={props.corner} padding="none"
+    <Panel variant={props.variant ?? "outlined"} tone={props.tone ?? "none"} corner={props.corner ?? "rounded-sm"} padding="none"
       glassOpacity={props.glassOpacity} transparency={props.transparency} vibrancy={props.vibrancy} specularMode={props.specularMode}
       style={root ? props.style : undefined}
       className={classNames(root ? props.className : undefined,
