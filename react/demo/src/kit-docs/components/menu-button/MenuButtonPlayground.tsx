@@ -19,6 +19,7 @@ export function MenuButtonPlayground() {
   const [withIcon, setWithIcon] = useState(true);
   const [withSubtitle, setWithSubtitle] = useState(true);
   const [withPill, setWithPill] = useState(true);
+  const [withTooltip, setWithTooltip] = useState(true);
   const [pillTone, setPillTone] = useState<TrueColor>("neutral");
   const [caret, setCaret] = useState(true);
   // Button
@@ -69,6 +70,7 @@ export function MenuButtonPlayground() {
       <ToggleRow label="Pill" checked={withPill} onChange={setWithPill} />
       {withPill && <Control label="Pill tone"><ColorSwatches selectable size="sm" value={pillTone} onSelect={setPillTone} defaultExpanded /></Control>}
       <ToggleRow label="Caret" checked={caret} onChange={setCaret} />
+      <ToggleRow label="Trigger tooltip" checked={withTooltip} onChange={setWithTooltip} />
     </> },
     { id: "button", title: "Button", defaultOpen: true, controls: <>
       <SelectControl label="Variant" options={buttonVariantOptions} value={variant} onChange={v => setVariant(v as ButtonVariant)} />
@@ -101,6 +103,7 @@ export function MenuButtonPlayground() {
         title="Acme workspace"
         subtitle={withSubtitle ? "Free plan · 3 agents" : undefined}
         pill={withPill ? { label: "Pro", tone: pillTone } : undefined}
+        tooltip={withTooltip ? "Switch models and effort" : undefined}
         caret={caret}
         variant={variant}
         color={color}

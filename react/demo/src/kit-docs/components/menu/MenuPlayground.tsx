@@ -21,6 +21,7 @@ export function MenuPlayground() {
   const [submenuMode, setSubmenuMode] = useState<MenuProps["submenuMode"]>("tiered");
   const [placement, setPlacement] = useState<MenuProps["placement"]>("bottom");
   const [popup, setPopup] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [withIcons, setWithIcons] = useState(true);
   const [withChrome, setWithChrome] = useState(false);
   const [closeMode, setCloseMode] = useState("auto");
@@ -75,10 +76,10 @@ export function MenuPlayground() {
     preview={<div className="w-full space-y-4"><div className="flex min-h-80 items-start justify-center">
       <Menu key={popup ? "popup" : "inline"} aria-label="Playground commands" items={items} variant={variant} tone={tone} size={size} padding={padding} corner={corner}
         itemTone={followTone ? undefined : itemTone} itemPadding={itemPadding === "auto" ? undefined : itemPadding} itemCorner={itemCorner}
-        submenuMode={submenuMode} closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"} placement={placement} trigger={popup ? <Button>Open menu</Button> : undefined}
+        submenuMode={submenuMode} closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"} placement={placement} trigger={popup ? <Button tooltip="Run a command" tooltipDisabled={menuOpen}>Open menu</Button> : undefined}
         header={withChrome ? <div className="px-3 py-2 font-semibold">Workspace</div> : undefined}
         footer={withChrome ? <div className="px-3 py-2 text-xs text-neutral-500">Signed in as Alex Morgan</div> : undefined}
-        onSelect={item => pushLog(`onSelect → ${item.id}`)} onOpenChange={open => pushLog(`onOpenChange → ${open}`)}
+        onSelect={item => pushLog(`onSelect → ${item.id}`)} onOpenChange={open => { setMenuOpen(open); pushLog(`onOpenChange → ${open}`); }}
         onExpandedKeysChange={keys => pushLog(`onExpandedKeysChange → ${keys.join(", ") || "none"}`)} />
     </div><EventLogControl log={log} /></div>} />;
 }
