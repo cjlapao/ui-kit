@@ -23,7 +23,7 @@ export const ActivityFeedPage: React.FC = () => (
       <ExampleCard title="Audit Log" description="The full trail — filterable, counted, with a door to the long form." code={auditLogCode} filename="AuditLog.tsx"><AuditLog /></ExampleCard>
       <ExampleCard title="Deploy Stream" description="No filters, no link, just events and a tail — the leanest the component gets." code={deployStreamCode} filename="DeployStream.tsx"><DeployStream /></ExampleCard>
       <ExampleCard title="Custom Rows" description="An item's body replaces the row's whole content — the feed keeps drawing the row itself, so complex UI sits in the same rhythm as the default rows." code={customRowsCode} filename="CustomRows.tsx"><CustomRows /></ExampleCard>
-      <ExampleCard title="Sub-items" description="Some events have a story under them: subItems opens a row into a disclosure — one level, read-only — each entry either the feed's own row template or a custom body. Sub-row dots sit one step off the parent's in both themes, each sub rests on the nested panels' depth step so the rows read as unique, and every sub-row washes under the pointer in its own tone or a hoverTone of its own. The row itself is the toggle when it has no onClick; with one, the chevron becomes a separate button." code={subItemsCode} filename="SubItems.tsx"><SubItems /></ExampleCard>
+      <ExampleCard title="Sub-items" description="Some events have a story under them: subItems opens a row into a disclosure — one level — each entry either the feed's own row template or a custom body. A sub may carry its own onClick: the hover wash becomes a real button and its click fires alone, folding nothing and never reaching the row's action, while a plain sub stays the row's context. Sub-row dots sit one step off the parent's in both themes, each sub rests on the nested panels' depth step so the rows read as unique, and every sub-row washes under the pointer in its own tone or a hoverTone of its own. The row itself is the toggle when it has no onClick; with one, the chevron becomes a separate button." code={subItemsCode} filename="SubItems.tsx"><SubItems /></ExampleCard>
     </section>
     <section className="flex flex-col gap-5">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">API</h2>
@@ -55,12 +55,16 @@ export const ActivityFeedPage: React.FC = () => (
           <code>subItems</code> with <code>defaultExpanded</code> /{" "}
           <code>expanded</code> / <code>onToggle</code> (the{" "}
           <code>toggle(id, expanded)</code> event in Vue) — InfoRow's
-          grid-rows disclosure, one level deep and read-only: each
-          sub-item — <code>{`{ title?, description?, code?, actor?, timestamp?, tone?, hoverTone?, count?, body?, actions? }`}</code> — is
+          grid-rows disclosure, one level deep: each
+          sub-item — <code>{`{ title?, description?, code?, actor?, timestamp?, tone?, hoverTone?, onClick?, count?, body?, actions? }`}</code> — is
           either the feed's own row template (dot, actor, title,
           description, code, time, count badge) or a custom{" "}
           <code>body</code> node, indented to the title's edge and never
-          its own filter match; its dot sits one step off the parent's in
+          its own filter match; an <code>onClick</code> turns the wash into
+          its own button — the click fires alone, never folding the parent
+          nor reaching the row's action, while a sub without one stays the
+          row's own context and its clicks keep bubbling to the parent
+          card; its dot sits one step off the parent's in
           both themes — darker on light, lighter on dark — each sub rests
           one depth step off the surface it nestles in, the nested panels'
           own ladder, so subs read as their own rows — and the

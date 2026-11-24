@@ -5,9 +5,13 @@ import {
 
 /**
  * Some events have a story under them. `subItems` opens a row into a
- * disclosure — InfoRow's grid-rows animation, one level deep, read-only —
+ * disclosure — InfoRow's grid-rows animation, one level deep —
  * and each entry is either the feed's own row template or a custom `body`
- * node, sitting one indent in. Sub-row dots sit one step off the parent's
+ * node, sitting one indent in. A sub may carry its own `onClick`: the wash
+ * turns into a real button and the click fires alone — it never folds the
+ * parent nor reaches the row's action, while a sub without one still
+ * reads as the row's own context.
+ * Sub-row dots sit one step off the parent's
  * in both themes — darker on light, lighter on dark — each sub rests one
  * depth step off the surface it nestles in, the nested panels' own ladder,
  * so subs read as their own rows; and every sub-row washes under the
@@ -49,6 +53,9 @@ export default function SubItems() {
           // Hover in a hue of its own; the row above washes in its own
           // tone by default, so only this one needs the field.
           hoverTone: "amber",
+          // Its own `onClick`: the wash is a real button, and the click
+          // fires alone — the row, which is the toggle here, stays open.
+          onClick: () => {},
         },
         {
           // A sub-row may be any node — the indent column holds it the
@@ -87,7 +94,14 @@ export default function SubItems() {
       // clicking the chevron opens the list.
       onClick: () => {},
       subItems: [
-        { title: "GET /api/invoices", code: "p95 1.2s", timestamp: "2h ago" },
+        {
+          title: "GET /api/invoices",
+          code: "p95 1.2s",
+          timestamp: "2h ago",
+          // A sub's own click stays separate from the row's: clicking this
+          // opens the query, not the report the row's `onClick` opens.
+          onClick: () => {},
+        },
         { title: "POST /api/checkout", code: "p95 940ms", timestamp: "2h ago" },
         {
           title: "GET /api/search",

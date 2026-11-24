@@ -110,7 +110,16 @@ const DEPLOY_SUBS: ActivityFeedSubItem[] = [
     // A zone on a sub-row: open this menu and the row stays put.
     actions: dotsMenu("Pod actions", POD_MENU),
   },
-  { actor: "web", title: "rolled 3 pods", count: 3, code: "svc/web", timestamp: "57m ago" },
+  // Its own `onClick`: the wash turns into a button and the click fires
+  // alone — the deploy row, the toggle, stays open through it.
+  {
+    actor: "web",
+    title: "rolled 3 pods",
+    count: 3,
+    code: "svc/web",
+    timestamp: "57m ago",
+    onClick: () => {},
+  },
   {
     // A custom sub-row: any node fills the indent column the same. The
     // wash is the wrapper's, so it gets one too — emerald, its bar's hue.
@@ -136,7 +145,14 @@ const DEPLOY_SUBS: ActivityFeedSubItem[] = [
 ];
 
 const SEC_SUBS: ActivityFeedSubItem[] = [
-  { title: "staging keys rotated", code: "env/staging", timestamp: "2m ago" },
+  // A sub's click stays its own even while the row carries an `onClick`
+  // — the chevron folds, the row activates, and neither happens here.
+  {
+    title: "staging keys rotated",
+    code: "env/staging",
+    timestamp: "2m ago",
+    onClick: () => {},
+  },
   {
     title: "production keys queued",
     description: "awaiting the approval window",
