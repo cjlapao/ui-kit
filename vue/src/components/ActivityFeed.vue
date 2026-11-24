@@ -71,9 +71,10 @@ export interface ActivityFeedItem {
   attentionTone?: TrueColor;
   /**
    * Entries this one expands into, revealed by a disclosure cloned from
-   * InfoRow's animation — one level deep, read-only context for the row
-   * (filters and the header count stay top-level affairs). Each sub-item is
-   * either the feed's own row template or a custom `body` node.
+   * InfoRow's animation — one level deep, context for the row (filters and
+   * the header count stay top-level affairs). Each sub-item is either the
+   * feed's own row template or a custom `body` node, and may activate
+   * through its own `onClick` — never folding the parent with it.
    */
   subItems?: ActivityFeedSubItem[];
   /**
@@ -93,8 +94,9 @@ export interface ActivityFeedItem {
 
 /**
  * One entry of a row's disclosure — the feed's row template at one level
- * in, or a custom node. Read-only: no click, no category, no filter match;
- * a sub-item is context, not an event of its own.
+ * in, or a custom node. No category, no filter match, no `active` — context
+ * that may activate through its own `onClick`, which fires alone: it never
+ * folds the parent nor reaches the parent row's action.
  */
 export interface ActivityFeedSubItem {
   /** What happened, in one line. */
@@ -120,6 +122,13 @@ export interface ActivityFeedSubItem {
    * every template sub-row is hoverable in its own colour by default.
    */
   hoverTone?: TrueColor;
+  /**
+   * The sub-row's own activation. Fires alone: it never folds the parent's
+   * disclosure and never fires the parent row's `onClick`. Unset keeps the
+   * sub-row a read-only context row — its clicks pass through to the
+   * parent card, as they always have.
+   */
+  onClick?: () => void;
   /** Entries this line aggregates — rendered as a count badge. */
   count?: number;
   /**
@@ -533,6 +542,11 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
       // margins let the wash breathe into the column's gap.
       const subTone = sub.tone ?? item.tone ?? dotFloor.value;
       const hover = getSubItemHoverClasses(sub.hoverTone ?? subTone);
+      // A sub-row with its own `onClick` is a real button — the hover wash
+      // it already wears becomes the honest affordance, and Enter/Space come
+      // native. Its click stops at itself: the parent neither folds nor
+      // activates when the click belonged to a sub.
+      const subClick = sub.onClick;
       return {
         hasBody: sub.body != null,
         body: sub.body,
@@ -547,7 +561,15 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
           getSurfaceCornerClass(props.subRowCorner),
           NESTED_PANEL_WASH[1],
           hover.wash,
+          ...(subClick != null
+            ? [
+                "w-full border-0 bg-transparent text-left",
+                getSurfaceTriggerTokens(resolvedAccentTone.value).focusRing,
+              ]
+            : []),
         ),
+        clickable: subClick != null,
+        onClick: subClick,
         entry: entryView(
           sub,
           classNames(

@@ -94,9 +94,9 @@ export interface ActivityFeedItem {
   /**
    * Rows nested under this one, revealed by the row's disclosure. The
    * disclosure — and its chevron — exists iff this is non-empty. Sub-items
-   * are read-only context rows: they never filter (filters match this row),
-   * never carry the row's own `onClick`/`active`/`attention`, and never
-   * nest further — the `body` escape hatch is how a sub-row gets interactive.
+   * are context rows: they never filter (filters match this row), never
+   * carry the row's `active`/`attention`, and never nest further — a
+   * sub-row activates through its own `onClick` or the `body` escape hatch.
    */
   subItems?: ActivityFeedSubItem[];
   /**
@@ -122,8 +122,8 @@ export interface ActivityFeedItem {
  * timestamp, the feed's own row grammar indented to the title's edge) or a
  * custom `body`, the same "type one or the custom one" split top-level rows
  * have. A sub-row's `body` replaces the standard fields entirely, keeping
- * the indent — the escape hatch for anything interactive, since sub-rows
- * carry no `onClick` of their own.
+ * the indent — the escape hatch for anything richer than a sub-row's own
+ * `onClick` can express.
  */
 export interface ActivityFeedSubItem {
   /** What happened, in one line — the standard sub-row's title. */
@@ -153,6 +153,13 @@ export interface ActivityFeedSubItem {
    * every template sub-row is hoverable in its own colour by default.
    */
   hoverTone?: TrueColor;
+  /**
+   * The sub-row's own activation. Fires alone: it never folds the parent's
+   * disclosure and never fires the parent row's `onClick`. Unset keeps the
+   * sub-row a read-only context row — its clicks pass through to the
+   * parent card, as they always have.
+   */
+  onClick?: () => void;
   /** Entries this sub-row aggregates — the same ×n pill grammar as the main row. */
   count?: number;
   /**
@@ -597,17 +604,15 @@ const FeedRow = ({
                 // each sub reads as its own row, not flat ink.
                 const subTone = sub.tone ?? item.tone ?? dotFloor;
                 const hover = getSubItemHoverClasses(sub.hoverTone ?? subTone);
-                return (
-                  <div
-                    key={index}
-                    className={classNames(
-                      "group flex items-start gap-3 transition-colors duration-200 motion-reduce:transition-none",
-                      SUB_ROW_PADDING[subRowPadding].row,
-                      getSurfaceCornerClass(subRowCorner),
-                      NESTED_PANEL_WASH[1],
-                      hover.wash,
-                    )}
-                  >
+                const wash = classNames(
+                  "group flex items-start gap-3 transition-colors duration-200 motion-reduce:transition-none",
+                  SUB_ROW_PADDING[subRowPadding].row,
+                  getSurfaceCornerClass(subRowCorner),
+                  NESTED_PANEL_WASH[1],
+                  hover.wash,
+                );
+                const content = (
+                  <>
                     {sub.body != null
                       ? sub.body
                       : entryContent(
@@ -619,6 +624,36 @@ const FeedRow = ({
                           ),
                         )}
                     {sub.actions != null && actionsZone(sub.actions)}
+                  </>
+                );
+                // A sub-row with its own `onClick` is a real button — the
+                // hover wash it already wears becomes the honest affordance
+                // and Enter/Space come native. Its click stops at itself:
+                // the parent neither folds (toggle mode) nor activates
+                // (`onClick` mode) when the click belonged to a sub.
+                const subClick = sub.onClick;
+                if (subClick != null) {
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      className={classNames(
+                        wash,
+                        "w-full border-0 bg-transparent text-left",
+                        getSurfaceTriggerTokens(cardAccent).focusRing,
+                      )}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        subClick();
+                      }}
+                    >
+                      {content}
+                    </button>
+                  );
+                }
+                return (
+                  <div key={index} className={wash}>
+                    {content}
                   </div>
                 );
               })}

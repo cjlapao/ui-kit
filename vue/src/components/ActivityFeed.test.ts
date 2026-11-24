@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { h } from "vue";
 import ActivityFeed, { type ActivityFeedItem } from "./ActivityFeed.vue";
@@ -700,6 +700,94 @@ describe("ActivityFeed", () => {
         expect.arrayContaining(SUB_ROW_PADDING.lg.column.split(/\s+/)),
       );
       expect(column.classes()).not.toContain("gap-4.5");
+      wrapper.unmount();
+    });
+
+    it("fires a clickable sub-item's own onClick without folding the parent", async () => {
+      const onSubClick = vi.fn();
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            { ...deploy, defaultExpanded: true, subItems: [{ title: "clicky", onClick: onSubClick }] },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const button = wrapper.find('[role="region"] .pl-5 > button');
+      expect(button.attributes("type")).toBe("button");
+      await button.trigger("click");
+      expect(onSubClick).toHaveBeenCalledTimes(1);
+      // The click stopped at the sub: no toggle intent, the row is as open
+      // as it was.
+      expect(wrapper.emitted("toggle")).toBeUndefined();
+      expect(wrapper.find("li > section").attributes("aria-expanded")).toBe("true");
+      wrapper.unmount();
+    });
+
+    it("fires a sub-item's onClick alone — the row's onClick stays a stranger", async () => {
+      const onClick = vi.fn();
+      const onSubClick = vi.fn();
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              onClick,
+              subItems: [
+                { title: "clicky", onClick: onSubClick },
+                { title: "plain" },
+              ],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      await wrapper.find('[role="region"] .pl-5 > button').trigger("click");
+      expect(onSubClick).toHaveBeenCalledTimes(1);
+      expect(onClick).not.toHaveBeenCalled();
+      wrapper.unmount();
+    });
+
+    it("lets a plain sub-item's click keep bubbling to the parent's onClick", async () => {
+      const onClick = vi.fn();
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              onClick,
+              subItems: [{ title: "plain context" }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      await wrapper.find('[role="region"] .pl-5 > div').trigger("click");
+      expect(onClick).toHaveBeenCalledTimes(1);
+      wrapper.unmount();
+    });
+
+    it("renders plain sub-rows as plain divs — no button, no listener", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              subItems: [{ title: "a" }, { title: "b" }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      expect(wrapper.findAll("[role='region'] .pl-5 > *").map((row) => row.element.tagName)).toEqual(
+        ["DIV", "DIV"],
+      );
       wrapper.unmount();
     });
 

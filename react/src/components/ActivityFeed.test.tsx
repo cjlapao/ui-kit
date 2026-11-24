@@ -824,6 +824,91 @@ describe("ActivityFeed", () => {
       expect(tokens(column)).not.toContain("gap-4.5");
     });
 
+    it("fires a clickable sub-item's own onClick without folding the parent", () => {
+      const onSubClick = vi.fn();
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              defaultExpanded: true,
+              subItems: [{ title: "clicky", onClick: onSubClick }],
+            },
+          ]}
+        />,
+      );
+      const button = container.querySelector<HTMLButtonElement>('[role="region"] .pl-5 > button')!;
+      expect(button.type).toBe("button");
+      fireEvent.click(button);
+      expect(onSubClick).toHaveBeenCalledTimes(1);
+      // The click stopped at the sub: the row never folded — its grid is
+      // still fully open.
+      const grid = container.querySelector('[role="region"]')!.parentElement as HTMLElement;
+      expect(grid.style.gridTemplateRows).toBe("1fr");
+    });
+
+    it("fires a sub-item's onClick alone — the row's onClick stays a stranger", () => {
+      const onClick = vi.fn();
+      const onSubClick = vi.fn();
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              onClick,
+              subItems: [
+                { title: "clicky", onClick: onSubClick },
+                { title: "plain" },
+              ],
+            },
+          ]}
+        />,
+      );
+      fireEvent.click(container.querySelector<HTMLButtonElement>('[role="region"] .pl-5 > button')!);
+      expect(onSubClick).toHaveBeenCalledTimes(1);
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it("lets a plain sub-item's click keep bubbling to the parent's onClick", () => {
+      const onClick = vi.fn();
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              onClick,
+              subItems: [{ title: "plain context" }],
+            },
+          ]}
+        />,
+      );
+      fireEvent.click(container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!);
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it("renders plain sub-rows as plain divs — no button, no listener", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              subItems: [{ title: "a" }, { title: "b" }],
+            },
+          ]}
+        />,
+      );
+      const rows = container.querySelectorAll<HTMLElement>("[role=\"region\"] .pl-5 > *");
+      expect(Array.from(rows, (row) => row.tagName)).toEqual(["DIV", "DIV"]);
+    });
+
     it("renders a custom-body sub-item in place of the fields, keeping the indent", () => {
       const { container } = render(
         <ActivityFeed

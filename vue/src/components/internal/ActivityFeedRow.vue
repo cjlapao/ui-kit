@@ -17,6 +17,9 @@ export interface ActivityFeedSubRowView {
   actions?: VNodeChild;
   /** The row wrapper: hover `group`, the toned wash and the breathing room. */
   subRowClass: string;
+  /** The sub-row's own activation — with it the wrapper is a real button. */
+  clickable: boolean;
+  onClick?: () => void;
   entry: ActivityFeedEntryView;
 }
 
@@ -112,6 +115,17 @@ const regionHandlers = {
   click: (event: Event) => event.stopPropagation(),
   keydown: (event: Event) => event.stopPropagation(),
 };
+
+// A clickable sub-row's click stops at itself: the parent neither folds
+// (toggle mode — the region's swallow above already covers that) nor
+// activates (`onClick` mode) when the click belonged to a sub. Plain
+// sub-rows stay plain: no handler, so their clicks keep bubbling to the
+// parent card as they always have.
+function subRowClick(sub: ActivityFeedSubRowView, event: MouseEvent): void {
+  if (sub.onClick == null) return;
+  event.stopPropagation();
+  sub.onClick();
+}
 
 // The right-side zone's containment — the same swallow, because the Vue
 // Panel guards nothing: a menu trigger's click must open its menu and
@@ -212,10 +226,13 @@ const regionAttrs = computed<Record<string, unknown>>(() => ({
              and clip-room padding in lockstep — see `SUB_ROW_PADDING` in
              nestedPanel. -->
         <div :class="view.subColumnClass">
-          <div
+          <component
+            :is="sub.clickable ? 'button' : 'div'"
             v-for="(sub, index) in view.subRows"
             :key="index"
+            :type="sub.clickable ? 'button' : undefined"
             :class="sub.subRowClass"
+            @click="subRowClick(sub, $event)"
           >
             <VNodeRenderer v-if="sub.hasBody" :nodes="sub.body" />
             <ActivityFeedEntry v-else :entry="sub.entry" />
@@ -229,7 +246,7 @@ const regionAttrs = computed<Record<string, unknown>>(() => ({
             >
               <VNodeRenderer :nodes="sub.actions" />
             </div>
-          </div>
+          </component>
         </div>
       </div>
     </div>
