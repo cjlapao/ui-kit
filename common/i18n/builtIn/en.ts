@@ -7,6 +7,7 @@
 //
 // Source components (React, unless noted):
 //   accordion  Accordion.tsx            (title defaults "Loading"/"No items")
+//   activityfeed ActivityFeed.tsx/.vue  (chevron toggle aria labels)
 //   combobox   Combobox.tsx             (emptyMessage, trailingIconLabel)
 //   datepicker DatePicker/ + Calendar   (Today, Clear, aria labels, "Date")
 //   help       HelpButton.tsx/.vue      ("Help" fallbacks, Show/Close help)
@@ -37,6 +38,10 @@ import type { MessageCatalog } from "../types";
 
 export const EN_KIT_CATALOG: MessageCatalog = {
   kit: {
+    activityfeed: {
+      showSubitems: "Show sub-items",
+      hideSubitems: "Hide sub-items",
+    },
     codeBlock: {
       code: "Code",
       edit: "Edit code",

@@ -38,6 +38,8 @@ export interface InfoRowView {
   copyButtonClass: string;
   label?: string;
   displayText: string | number | null;
+  /** False only for an empty value with `emptyText: null` and no `#value` slot. */
+  showValueSpan: boolean;
   copyText: string | null;
   loading: boolean;
   loaderType: "skeleton" | "spinner";
@@ -49,7 +51,8 @@ export interface InfoRowView {
   hasError: boolean;
   tone: TrueColor;
   iconSize: ControlSize;
-  /** The main line — trigger element while the row is collapsible. */
+  /** The main line — layout only, and the region's label anchor; the
+   *  disclosure's toggle (role/tabindex) is bound on the row root. */
   headerId: string;
   contentId: string;
   mainLineClass: string;
@@ -104,13 +107,26 @@ const measure = () => {
 };
 
 /**
- * Handlers for the main line, bound only while the row is collapsible.
- * The target guard is what keeps Enter on the copy button from reaching
- * the toggle — the event bubbles to the header, but it did not start
- * there.
+ * Handlers for the whole control, bound only while the row is collapsible —
+ * the toggle is the entire row, so it lives on the root, not the main line.
+ *
+ * The click guard keeps real content clickable: a link, nested button, input
+ * or editable region inside the row (the usual case for a rich sub-item)
+ * activates itself and never folds the row. The keydown target guard is what
+ * keeps Enter on the copy button from reaching the toggle — the keystroke
+ * bubbles to the root, but it did not start there.
  */
 const headerHandlers = {
-  click: () => emit("toggle"),
+  click: (event: MouseEvent) => {
+    const target = event.target;
+    if (target instanceof HTMLElement) {
+      const interactive = target.closest(
+        "a,button,input,select,textarea,summary,[role='button'],[contenteditable='true']",
+      );
+      if (interactive && interactive !== event.currentTarget) return;
+    }
+    emit("toggle");
+  },
   keydown: (event: KeyboardEvent) => {
     if (event.target !== event.currentTarget) return;
     if (event.key === "Enter" || event.key === " ") {
@@ -124,18 +140,30 @@ const clusterHandlers = {
   click: (event: Event) => event.stopPropagation(),
   keydown: (event: Event) => event.stopPropagation(),
 };
+// The body is the app's content — reading it, following its links or pressing
+// keys in it must never fold the row; its activation stops at this wrapper.
+const bodyHandlers = {
+  click: (event: Event) => event.stopPropagation(),
+  keydown: (event: Event) => event.stopPropagation(),
+};
 </script>
 
 <template>
-  <div :class="view.rowClass" :aria-busy="view.loading || undefined">
-    <!-- The main line: label row normally, disclosure trigger when the row
-         is collapsible (role/tabindex/aria come in via `headerAria`). -->
-    <div
-      :id="view.headerId"
-      :class="view.mainLineClass"
-      v-bind="view.headerAria"
-      v-on="view.collapsible ? headerHandlers : {}"
-    >
+  <div
+    :class="view.rowClass"
+    :aria-busy="view.loading || undefined"
+    v-bind="view.headerAria"
+    v-on="view.collapsible ? headerHandlers : {}"
+  >
+    <!-- While the row is a disclosure, the whole control is the toggle:
+         role, tab stop and activation live on the root above — the block the
+         wash paints; the cluster and body handlers keep real content out of
+         it. (The comment lives INSIDE the root: a comment beside it would
+         make this template a fragment and break attribute fall-through.) -->
+    <!-- The main line: label row normally, layout always — the disclosure's
+         trigger is the whole control (bound on the root above); this keeps
+         the region's `aria-labelledby` anchor id. -->
+    <div :id="view.headerId" :class="view.mainLineClass">
       <span
         v-if="view.iconNode"
         class="flex shrink-0 items-center"
@@ -180,7 +208,7 @@ const clusterHandlers = {
         </TooltipWrapper>
 
         <span
-          v-else
+          v-else-if="view.showValueSpan"
           ref="valueRef"
           :class="view.valueClass"
           @mouseenter="measure"
@@ -236,7 +264,12 @@ const clusterHandlers = {
 
     <!-- Disclosure body: the grid-rows gesture, inert while collapsed so it
          is neither focusable nor announced without snapping the transition. -->
-    <div v-if="view.hasBody" :class="view.bodyClass" :style="view.bodyStyle">
+    <div
+      v-if="view.hasBody"
+      :class="view.bodyClass"
+      :style="view.bodyStyle"
+      v-on="view.collapsible ? bodyHandlers : {}"
+    >
       <div v-bind="view.bodyRegionAttrs" class="min-h-0 overflow-hidden">
         <div :class="view.bodyContentClass">
           <slot name="body" />

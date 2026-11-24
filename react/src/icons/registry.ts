@@ -29,6 +29,8 @@ import { BarChart } from "./components/BarChart";
 import { Blocked } from "./components/Blocked";
 import { BlockerCircular } from "./components/BlockerCircular";
 import { Blueprint } from "./components/Blueprint";
+import { Book } from "./components/Book";
+import { BookBookmark } from "./components/BookBookmark";
 import { Box } from "./components/Box";
 import { Brain } from "./components/Brain";
 import { Bug } from "./components/Bug";
@@ -151,6 +153,7 @@ import { PieChart } from "./components/PieChart";
 import { Pin } from "./components/Pin";
 import { Podman } from "./components/Podman";
 import { PodmanDesktop } from "./components/PodmanDesktop";
+import { PoliceHat } from "./components/PoliceHat";
 import { Policeman } from "./components/Policeman";
 import { Praise } from "./components/Praise";
 import { PriceTag } from "./components/PriceTag";
@@ -167,6 +170,7 @@ import { Refresh } from "./components/Refresh";
 import { RemoteHost } from "./components/RemoteHost";
 import { ReportFeedback } from "./components/ReportFeedback";
 import { Reset } from "./components/Reset";
+import { Reset2 } from "./components/Reset2";
 import { Restart } from "./components/Restart";
 import { ReverseProxy } from "./components/ReverseProxy";
 import { ReverseProxyCORS } from "./components/ReverseProxyCORS";
@@ -182,6 +186,7 @@ import { Revert } from "./components/Revert";
 import { Revoke } from "./components/Revoke";
 import { Roadmap } from "./components/Roadmap";
 import { Robot } from "./components/Robot";
+import { Robot2 } from "./components/Robot2";
 import { RobotSolid } from "./components/RobotSolid";
 import { Rocket } from "./components/Rocket";
 import { Role } from "./components/Role";
@@ -191,6 +196,7 @@ import { Save } from "./components/Save";
 import { Scale } from "./components/Scale";
 import { Script } from "./components/Script";
 import { Search } from "./components/Search";
+import { SearchEye } from "./components/SearchEye";
 import { Send } from "./components/Send";
 import { Settings } from "./components/Settings";
 import { SettingsVertical } from "./components/SettingsVertical";
@@ -203,6 +209,7 @@ import { Sorting } from "./components/Sorting";
 import { Stamp } from "./components/Stamp";
 import { Star } from "./components/Star";
 import { Stop } from "./components/Stop";
+import { Success } from "./components/Success";
 import { Sun } from "./components/Sun";
 import { Suspend } from "./components/Suspend";
 import { SwitchOff } from "./components/SwitchOff";
@@ -214,6 +221,8 @@ import { ThemeAuto } from "./components/ThemeAuto";
 import { ThemeDark } from "./components/ThemeDark";
 import { ThemeLight } from "./components/ThemeLight";
 import { ThumbsUp } from "./components/ThumbsUp";
+import { Toolbox } from "./components/Toolbox";
+import { Tools } from "./components/Tools";
 import { Trash } from "./components/Trash";
 import { Trigger } from "./components/Trigger";
 import { UX } from "./components/UX";
@@ -266,6 +275,8 @@ export type IconName =
   | "Blocked"
   | "BlockerCircular"
   | "Blueprint"
+  | "Book"
+  | "BookBookmark"
   | "Box"
   | "Brain"
   | "Bug"
@@ -388,6 +399,7 @@ export type IconName =
   | "Pin"
   | "Podman"
   | "PodmanDesktop"
+  | "PoliceHat"
   | "Policeman"
   | "Praise"
   | "PriceTag"
@@ -404,6 +416,7 @@ export type IconName =
   | "RemoteHost"
   | "ReportFeedback"
   | "Reset"
+  | "Reset2"
   | "Restart"
   | "ReverseProxy"
   | "ReverseProxyCORS"
@@ -419,6 +432,7 @@ export type IconName =
   | "Revoke"
   | "Roadmap"
   | "Robot"
+  | "Robot2"
   | "RobotSolid"
   | "Rocket"
   | "Role"
@@ -428,6 +442,7 @@ export type IconName =
   | "Scale"
   | "Script"
   | "Search"
+  | "SearchEye"
   | "Send"
   | "Settings"
   | "SettingsVertical"
@@ -440,6 +455,7 @@ export type IconName =
   | "Stamp"
   | "Star"
   | "Stop"
+  | "Success"
   | "Sun"
   | "Suspend"
   | "SwitchOff"
@@ -451,6 +467,8 @@ export type IconName =
   | "ThemeDark"
   | "ThemeLight"
   | "ThumbsUp"
+  | "Toolbox"
+  | "Tools"
   | "Trash"
   | "Trigger"
   | "UX"
@@ -504,6 +522,8 @@ export const iconRegistry: Record<
   Blocked: Blocked,
   BlockerCircular: BlockerCircular,
   Blueprint: Blueprint,
+  Book: Book,
+  BookBookmark: BookBookmark,
   Box: Box,
   Brain: Brain,
   Bug: Bug,
@@ -626,6 +646,7 @@ export const iconRegistry: Record<
   Pin: Pin,
   Podman: Podman,
   PodmanDesktop: PodmanDesktop,
+  PoliceHat: PoliceHat,
   Policeman: Policeman,
   Praise: Praise,
   PriceTag: PriceTag,
@@ -642,6 +663,7 @@ export const iconRegistry: Record<
   RemoteHost: RemoteHost,
   ReportFeedback: ReportFeedback,
   Reset: Reset,
+  Reset2: Reset2,
   Restart: Restart,
   ReverseProxy: ReverseProxy,
   ReverseProxyCORS: ReverseProxyCORS,
@@ -657,6 +679,7 @@ export const iconRegistry: Record<
   Revoke: Revoke,
   Roadmap: Roadmap,
   Robot: Robot,
+  Robot2: Robot2,
   RobotSolid: RobotSolid,
   Rocket: Rocket,
   Role: Role,
@@ -666,6 +689,7 @@ export const iconRegistry: Record<
   Scale: Scale,
   Script: Script,
   Search: Search,
+  SearchEye: SearchEye,
   Send: Send,
   Settings: Settings,
   SettingsVertical: SettingsVertical,
@@ -678,6 +702,7 @@ export const iconRegistry: Record<
   Stamp: Stamp,
   Star: Star,
   Stop: Stop,
+  Success: Success,
   Sun: Sun,
   Suspend: Suspend,
   SwitchOff: SwitchOff,
@@ -689,6 +714,8 @@ export const iconRegistry: Record<
   ThemeDark: ThemeDark,
   ThemeLight: ThemeLight,
   ThumbsUp: ThumbsUp,
+  Toolbox: Toolbox,
+  Tools: Tools,
   Trash: Trash,
   Trigger: Trigger,
   UX: UX,

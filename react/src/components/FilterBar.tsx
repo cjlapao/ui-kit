@@ -35,6 +35,19 @@ export interface FilterBarOptionFilter extends FilterBarFilterBase {
   count?: number;
   options: FilterBarOption[];
 }
+/**
+ * Single-select category — the valueset is a radio group drawn as a checkmark
+ * menu: exactly one option is checked and activating a row applies it on the
+ * spot, so the bar never stages a selection here. Activating the checked row
+ * again omits the key, which is how the category goes back to "no filter".
+ */
+export interface FilterBarSingleFilter extends FilterBarFilterBase {
+  type: "single";
+  /** Category-row badge, same rule as the options arm. */
+  count?: number;
+  /** The valueset. Reuses `FilterBarOption`: value, label, optional count/disabled. */
+  options: FilterBarOption[];
+}
 /** Category whose value is typed: one trimmed term, emitted as `[term]`. */
 export interface FilterBarTextFilter extends FilterBarFilterBase {
   type: "text";
@@ -50,7 +63,7 @@ export interface FilterBarTextFilter extends FilterBarFilterBase {
    */
   inputProps?: Omit<InputProps, "value" | "defaultValue" | "onChange">;
 }
-export type FilterBarFilter = FilterBarOptionFilter | FilterBarTextFilter;
+export type FilterBarFilter = FilterBarOptionFilter | FilterBarTextFilter | FilterBarSingleFilter;
 export type FilterBarValue = Record<string, string[]>;
 /**
  * The three loading styles a bar can show, matching Table and ActivityFeed.
@@ -174,6 +187,13 @@ function normalize(filters: FilterBarFilter[], value: FilterBarValue): FilterBar
       return term ? [[filter.id, [term]]] as [string, string[]][] : [];
     }
     const values = filter.options.filter(option => selected.has(option.value)).map(option => option.value);
+    if (filter.type === "single") {
+      // One value out of the valueset, and the first *supplied* one wins: a
+      // consumer handing over two can never light up two rows.
+      const known = new Set(values);
+      const first = [...selected].find(entry => known.has(entry));
+      return first !== undefined ? [[filter.id, [first]]] as [string, string[]][] : [];
+    }
     return values.length ? [[filter.id, values]] : [];
   })));
 }
@@ -216,6 +236,7 @@ export function FilterBar({
   const [expanded, setExpanded] = useState(Boolean(searchProps.initialValue));
   const searchDisabled = disabled || searchProps.disabled;
   const active = filters.find(filter => filter.id === category);
+  const singleActive = active?.type === "single";
   const inlineTextFilters = filters.filter((filter): filter is FilterBarTextFilter => filter.type === "text" && filter.display !== "menu");
   const menuFilters = filters.filter(filter => filter.type !== "text" || filter.display === "menu");
   const motion = CONTROL_SPRING_TOKENS[spring];
@@ -244,6 +265,36 @@ export function FilterBar({
     setCategory(filter.id);
     setOpen(true);
   };
+  /** A single-select has no draft: the row activation is the commit, and the
+   * popup closes with focus back on the trigger — Done's contract, in one click. */
+  const pickSingle = (filter: FilterBarSingleFilter, option: FilterBarOption) => {
+    const next = { ...applied };
+    if (applied[filter.id]?.[0] === option.value) delete next[filter.id]; else next[filter.id] = [option.value];
+    commit(next);
+    close(true);
+  };
+  /** The drill-down's Clear. Text and single carry no staging, so their Clear
+   * acts on the value (and closes); the staged arm only empties its draft. */
+  const clearActive = (filter: FilterBarFilter) => {
+    if (filter.type === "text") { setDraftText(""); return; }
+    if (filter.type === "single") {
+      const next = { ...applied };
+      delete next[filter.id];
+      commit(next);
+      close(true);
+      return;
+    }
+    setDraft(current => current.filter(entry => filter.options.some(option => option.value === entry && option.disabled)));
+  };
+  const singleRows = (filter: FilterBarSingleFilter): MenuItem[] => {
+    const selected = applied[filter.id]?.[0];
+    return filter.options.map(option => ({
+      id: option.value, label: option.label, type: "radio",
+      checked: selected === option.value, disabled: option.disabled,
+      badge: showMenuCounts ? option.count : undefined,
+      onCheckedChange: () => pickSingle(filter, option),
+    }));
+  };
   const previouslyExpanded = useRef(expanded);
   useLayoutEffect(() => {
     if (showSearch && expanded && !previouslyExpanded.current && !searchDisabled) searchRegion.current?.querySelector("input")?.focus();
@@ -263,7 +314,7 @@ export function FilterBar({
   }, [loading, disabled, category, active]);
 
   const items: MenuItem[] = active
-    ? active.type === "text" ? [] : active.options.map(option => ({
+    ? active.type === "text" ? [] : active.type === "single" ? singleRows(active) : active.options.map(option => ({
       id: option.value, label: option.label, type: "checkbox",
       checked: draft.includes(option.value), disabled: option.disabled,
       badge: showMenuCounts ? option.count : undefined,
@@ -376,7 +427,10 @@ export function FilterBar({
       variant={menuVariant} tone={menuTone} corner={menuCorner} padding={menuPadding}
       className="fb-menu" style={style} aria-label={active?.label ?? t("kit.filterbar.filterBy")}
       renderItem={active && active.type !== "text" ? item => <>
-        <span aria-hidden="true" className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-neutral-300 dark:border-neutral-600">{item.checked && <CustomIcon icon="Check" size="xs" />}</span>
+        {/* The checkbox arm paints a box for its multi-pick; the single arm
+            drops the border and keeps only the check, so the valueset reads
+            as a checkmark menu with both arms' labels and counts aligned. */}
+        <span aria-hidden="true" className={classNames("inline-flex h-4 w-4 shrink-0 items-center justify-center", !singleActive && "rounded border border-neutral-300 dark:border-neutral-600")}>{item.checked && <CustomIcon icon="Check" size="xs" />}</span>
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
         {item.badge != null && <span className="shrink-0 text-xs text-neutral-400">{item.badge}</span>}
       </> : undefined}
@@ -389,10 +443,10 @@ export function FilterBar({
         : <Button {...actionStyle} variant={secondaryButtonVariant} leadingIcon="ChevronLeft" onClick={() => { setCategory(null); setDraft([]); }} aria-label={t("kit.filterbar.back")}><span className="uppercase tracking-wide">{active.label}</span></Button>
         : <span className="px-3 text-xs uppercase tracking-wide text-neutral-400">{t("kit.filterbar.filterBy")}</span>}
       footer={active ? <div className="flex items-center justify-between">
-        <Button {...actionStyle} variant={secondaryButtonVariant} onClick={() => active.type === "text"
-          ? setDraftText("")
-          : setDraft(current => current.filter(entry => active.options.some(option => option.value === entry && option.disabled)))}>{t("kit.filterbar.clear")}</Button>
-        <Button {...actionStyle} variant={applyButtonVariant} onClick={() => { commit(active.type === "text" ? { ...applied, [active.id]: [draftText] } : { ...applied, [active.id]: draft }); close(true); }}>{t("kit.filterbar.done")}</Button>
+        <Button {...actionStyle} variant={secondaryButtonVariant} onClick={() => clearActive(active)}>{t("kit.filterbar.clear")}</Button>
+        {/* Nothing is staged on the single arm — a row already applied itself,
+            so there is nothing for Done to confirm. */}
+        {active.type !== "single" && <Button {...actionStyle} variant={applyButtonVariant} onClick={() => { commit(active.type === "text" ? { ...applied, [active.id]: [draftText] } : { ...applied, [active.id]: draft }); close(true); }}>{t("kit.filterbar.done")}</Button>}
       </div> : undefined} />
     {trailing !== undefined && <div className="fb-slot" hidden={showSkeleton} inert={showSkeleton}>{trailing}</div>}
 

@@ -112,8 +112,14 @@ export interface InfoRowProps {
    * Set to `false` to show the `emptyText` placeholder instead. @default true
    */
   hideIfEmpty?: boolean;
-  /** Placeholder shown when `hideIfEmpty` is `false` and the value is empty. @default "—" */
-  emptyText?: string;
+  /**
+   * Placeholder shown when `hideIfEmpty` is `false` and the value is empty.
+   * Pass `null` to render no placeholder at all: an empty row then shows its
+   * label, sub-items and body with no dash. Loading and error states still
+   * paint in the value area either way, and a `#value` slot owns the area
+   * regardless. @default "—"
+   */
+  emptyText?: string | null;
   /** Allow the value to wrap to multiple lines instead of truncating. */
   wrap?: boolean;
   /**
@@ -472,6 +478,19 @@ const canTooltip = computed(
     !hasError.value,
 );
 
+// An empty value with `emptyText: null` renders no value span at all — no
+// dash, no tooltip anchor, nothing to measure. A `#value` slot is caller
+// content and owns the area outright; loading and error are states, not
+// decoration — they still paint.
+const showValueSpan = computed(
+  () =>
+    !!slots.value ||
+    !normalised.value.isEmpty ||
+    props.loading ||
+    hasError.value ||
+    props.emptyText !== null,
+);
+
 const useSmartLayout = computed(() => props.labelWidth === undefined);
 
 const handleCopy = async () => {
@@ -511,10 +530,20 @@ const rowClass = computed(() =>
     "group flex flex-col transition-colors duration-300",
     rowPadding.value,
     !props.noPadding && tokens.value.horizontalPadding,
-    props.hoverable && "rounded-md",
+    // A disclosure washes the whole row, not just its main line: the sub-items
+    // and body belong to the same row, and a wash that stops at the main line
+    // reads as a rendering bug. Same shape as `hoverable`'s — rounded box on
+    // the root, which spans every strip.
+    (props.hoverable || isCollapsible.value) && "rounded-md",
     // `idle` so the confirmation wash is never racing the hover wash for the
     // same property.
-    props.hoverable && copyState.value === "idle" && trigger.value.hover,
+    (props.hoverable || isCollapsible.value) &&
+      copyState.value === "idle" &&
+      trigger.value.hover,
+    // The pointer and the focus ring mark the toggle, and the toggle is the
+    // whole control.
+    isCollapsible.value &&
+      classNames("cursor-pointer", trigger.value.focusRing),
     !props.noBorder &&
       !props.hoverable &&
       !sectionEdge.value &&
@@ -658,18 +687,17 @@ const subItemsClass = computed(() =>
   classNames("flex flex-col", props.icon && tokens.value.iconIndent),
 );
 
-// ── Main line ── the row of the old markup; it becomes the disclosure
-// trigger only when the row is collapsible, and it keeps `rounded-[inherit]`
-// so a hover wash follows the row's own corner.
+// ── Main line ── the row of the old markup; layout only, even when the row
+// is a disclosure — the toggle is the whole control, so its pointer and ring
+// live on the root (which carries `rounded-md`, and keeps the region's
+// `aria-labelledby` anchor pointing here).
 const mainLineClass = computed(() =>
   classNames(
     "flex min-w-0 items-center rounded-[inherit] text-left",
     tokens.value.gap,
-    isCollapsible.value &&
-      classNames("cursor-pointer", trigger.value.hover, trigger.value.focusRing),
   ),
 );
-// Bound onto the header element; empty unless the row is a toggle.
+// Bound onto the row root while the row is a toggle; empty otherwise.
 const headerAria = computed<Record<string, unknown>>(() =>
   isCollapsible.value
     ? {
@@ -696,7 +724,10 @@ const chevronClass = computed(() =>
 // always-open state.
 const bodyClass = computed(() =>
   classNames(
-    "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
+    // `cursor-auto`: the row's toggle pointer belongs to the chrome, not to
+    // the app's content — reading and selecting the body must not look
+    // clickable.
+    "grid cursor-auto transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
     bodyOpen.value ? "opacity-100" : "opacity-0",
   ),
 );
@@ -727,6 +758,7 @@ const view = computed<InfoRowView>(() => ({
   displayText: normalised.value.isEmpty
     ? props.emptyText
     : normalised.value.display,
+  showValueSpan: showValueSpan.value,
   copyText: normalised.value.copyText,
   loading: props.loading,
   loaderType: props.loaderType,

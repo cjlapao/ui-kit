@@ -43,9 +43,14 @@ From the UX team, as clarified:
 - **Sub-items and the body are separate features.** `subItems` render unconditionally
   under the main line (screenshot row 1); the collapsible region renders a `body`
   (children/slot) — the bullets in screenshot row 2 are just what the app put in it.
-- **The main line is the only toggle.** Icon + label + value + chevron form the
-  `role="button"` region; the copy cluster stops propagation; sub-items and the body never
-  toggle on click (mirrors `CollapsiblePanel`'s header/actions split).
+- **The whole control is the toggle.** (Revised 2026-11-23: the first cut made
+  the main line the only toggle; the wash already spanned the whole row, so
+  the pointer, focus ring and activation moved to the row root to match.)
+  The row root carries `role="button"`, the tab stop and `aria-expanded`/
+  `aria-controls`; the main line keeps only the region's label anchor. The
+  copy cluster and the body stop propagation; a target guard keeps links,
+  nested buttons, inputs and editable regions anywhere in the row — rich
+  sub-items especially — activating themselves instead of folding the row.
 - **Both kits use the grid technique** — `grid-template-rows: 0fr → 1fr` + opacity, 300ms
   `ease-in-out`, `motion-reduce` opt-out, rotating `ArrowDown` chevron. That is React
   `CollapsiblePanel`'s current technique (it replaced the old `max-height` guess); Vue's
@@ -128,7 +133,9 @@ button's `group/inforow` reveal scope stays on the root. Only the row's *childre
 ```
 root  div (flex flex-col, transition-colors duration-300, padding/hover/hairline/
       bottomBorder classes, aria-busy, onMouseLeave re-arm, group group/inforow)
-├─ main line  div (flex items-center, tokens.gap)      ← role="button" region iff collapsible
+      ← role="button", tabIndex, aria-expanded/aria-controls, click + guarded
+        keydown, cursor-pointer + focus ring — the whole control is the toggle
+├─ main line  div (flex items-center, tokens.gap)      ← layout only; keeps id=headerId (region label anchor)
 │    icon span?  ·  label span (classes unchanged)  ·  value+copy cluster (unchanged)  ·  chevron span?
 ├─ sub-items?  div (flex flex-col; pl-[iconIndent] only when an icon is present)
 │    each: one baseline row (flex items-baseline gap-1.5, wrapping)
@@ -244,10 +251,13 @@ mirroring them:
 - **Sub-items**: `text value` line renders both; text-only renders `text` alone; `mono`
   adds `font-mono`; the indent class appears only with an `icon`; sub-items (and `body`,
   `collapsible`) keep a no-value row visible under `hideIfEmpty`.
-- **Collapsible**: main line has `role="button"` + `aria-expanded` + `aria-controls`;
-  click and Enter/Space on the line toggle (and call `onToggle`/emit); Enter on the copy
-  button does **not** toggle; collapsed body is `inert` and carries the grid classes;
-  chevron rotates (`rotate-180` when expanded); `expanded` prop controls it.
+- **Collapsible** (revised: whole control is the toggle): the **row root** has
+  `role="button"` + `aria-expanded` + `aria-controls` + the cursor/focus-ring;
+  the main line keeps only `id=headerId`. Click anywhere on the row (main line
+  or a sub-item) and Enter/Space on the root toggle (and call `onToggle`/emit);
+  click on the open body, and Enter/click on the copy button, do **not** toggle;
+  collapsed body is `inert` and carries the grid classes; chevron rotates
+  (`rotate-180` when expanded); `expanded` prop controls it.
 - **Bottom border**: `border-b` on `simple` and `none` when set; absent by default;
   absent on `elevated`/`plain`/`glass` even when set; `plain` hairline unchanged.
 

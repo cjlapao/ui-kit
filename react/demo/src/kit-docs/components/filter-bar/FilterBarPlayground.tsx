@@ -59,10 +59,16 @@ export function FilterBarPlayground() {
   const [showTrailing, setShowTrailing] = useState(false);
   const [ring, setRing] = useState("stable");
   const [dense, setDense] = useState(false);
+  // The same facet, both ways: a staged checkbox arm, or a valueset that can
+  // only hold one value and applies the pick on click.
+  const [singleEnrollment, setSingleEnrollment] = useState(true);
+  const enrollmentOptions = [{ value: "enabled", label: "Enabled", count: 4 }, { value: "disabled", label: "Disabled", count: 1 }];
   const filters: FilterBarFilter[] = [
     { id: "status", label: "Status", options: ["online", "offline"].map(status => ({ value: status, label: status === "online" ? "Online" : "Offline", count: devices.filter(device => device.status === status).length })) },
     { id: "user", label: "User", options: ["Carlos", "Elena", "Dmytro"].map(user => ({ value: user, label: user, count: devices.filter(device => device.user === user).length })) },
-    { id: "enrollment", label: "Enrollment", options: [{ value: "enabled", label: "Enabled", count: 4 }, { value: "disabled", label: "Disabled", count: 1 }] },
+    singleEnrollment
+      ? { id: "enrollment", label: "Enrollment", type: "single" as const, options: enrollmentOptions }
+      : { id: "enrollment", label: "Enrollment", options: enrollmentOptions },
     { id: "name", label: "Name", type: "text", inputProps: { placeholder: "Name contains" } },
   ];
   const results = devices.filter(device => device.name.toLowerCase().includes(query.toLowerCase()) && Object.entries(value).every(([key, values]) => !values.length || (key === "name"
@@ -126,6 +132,7 @@ export function FilterBarPlayground() {
       <SelectControl label="Loader type" options={[{ value: "skeleton", label: "Skeleton (default)" }, { value: "spinner", label: "Spinner" }, { value: "progress", label: "Progress" }]} value={barLoaderType}
         onChange={next => setBarLoaderType(next as FilterBarLoaderType)} />
       <ToggleRow label="Manual search (Enter)" checked={manual} onChange={setManual} />
+      <ToggleRow label="Single-select Enrollment" checked={singleEnrollment} onChange={setSingleEnrollment} />
       </> },
     ]} />
   </div>} preview={

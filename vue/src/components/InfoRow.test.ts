@@ -123,6 +123,44 @@ describe("InfoRow", () => {
       expect(w.text()).toContain("—");
     });
 
+    it("renders no placeholder at all when emptyText is null", async () => {
+      const w = mountRow({ value: "", hideIfEmpty: false, emptyText: null });
+      expect(w.find("span").exists()).toBe(true); // the row itself stands
+      expect(w.text()).not.toContain("—");
+      expect(w.text()).toContain("L");
+      // Loading and error are states, not decoration — they still paint.
+      await w.setProps({ loading: true });
+      expect(w.html()).toContain("animate-pulse");
+      await w.setProps({ loading: false, error: "Lookup failed" });
+      expect(w.text()).toContain("Lookup failed");
+    });
+
+    it("keeps a sub-item row clean of the dash when emptyText is null", () => {
+      // The Image-digest shape: the row lives for its sub-items, and the
+      // empty value must not greet it with a floating "—".
+      const w = mountRow({
+        value: "",
+        subItems: [{ text: "Policy:", value: "allow" }],
+        emptyText: null,
+      });
+      expect(w.text()).not.toContain("—");
+      expect(w.text()).toContain("Policy:");
+    });
+
+    it("still hides the whole row under hideIfEmpty when there is no placeholder", () => {
+      const w = mountRow({ value: "", emptyText: null });
+      expect(w.find("span").exists()).toBe(false);
+    });
+
+    it("lets a `value` slot own the area even with no placeholder", () => {
+      const w = mount(InfoRow, {
+        props: { label: "L", value: "", emptyText: null },
+        slots: { value: "<em>rich</em>" },
+      });
+      expect(w.html()).toContain("<em>rich</em>");
+      expect(w.text()).not.toContain("—");
+    });
+
     it("suppresses the copy button for a `value` slot", () => {
       const w = mount(InfoRow, {
         props: { label: "L" },
@@ -414,22 +452,50 @@ describe("InfoRow", () => {
     it("offers no affordance without a body", () => {
       const w = mountRow({ value: "V" });
       expect(mainLine(w).getAttribute("role")).toBeNull();
+      expect(rowRoot(w).getAttribute("role")).toBeNull();
       // Label and value cluster only — no icon, no chevron. (The copy icon
       // carries its own `aria-hidden`, so a root-wide query would not do.)
       expect(mainLine(w).children).toHaveLength(2);
     });
 
-    it("makes the main line the trigger, chevron included", () => {
+    it("washes the whole row on hover, not just the main line", () => {
+      const withBody = mount(InfoRow, {
+        props: { label: "L", value: "V", tone: "emerald" },
+        slots: body,
+        attachTo: document.body,
+      });
+      const { hover, focusRing } = getSurfaceTriggerTokens("emerald");
+      // The wash, the pointer and the focus ring all live on the root — the
+      // whole control is the toggle, wash and affordances alike; the main
+      // line is layout only.
+      const root = rowRoot(withBody);
+      expect(root.className).toContain(hover.split(" ")[0]);
+      expect(root.className).toContain("rounded-md");
+      expect(root.className).toContain("cursor-pointer");
+      expect(root.className).toContain(focusRing.split(" ")[0]);
+      const line = mainLine(withBody);
+      expect(line.className).not.toContain(hover.split(" ")[0]);
+      withBody.unmount();
+    });
+
+    it("makes the whole control the trigger, chevron included", () => {
       const withBody = mount(InfoRow, {
         props: { label: "Trigger: webhook", value: "V" },
         slots: body,
         attachTo: document.body,
       });
+      const root = rowRoot(withBody);
       const line = mainLine(withBody);
-      expect(line.getAttribute("role")).toBe("button");
-      expect(line.getAttribute("aria-expanded")).toBe("false");
-      expect(line.getAttribute("aria-controls")).toBeTruthy();
-      expect(line.getAttribute("id")).toBeTruthy();
+      // Role, tab stop and aria live on the root — the block the wash paints.
+      expect(root.getAttribute("role")).toBe("button");
+      expect(root.getAttribute("tabindex")).toBe("0");
+      expect(root.getAttribute("aria-expanded")).toBe("false");
+      expect(root.getAttribute("aria-controls")).toBe(region(withBody).id);
+      // The main line is layout only; it keeps the region's label anchor.
+      expect(line.getAttribute("role")).toBeNull();
+      expect(region(withBody).getAttribute("aria-labelledby")).toBe(
+        line.getAttribute("id"),
+      );
       const chevron = line.children[line.children.length - 1] as HTMLElement;
       expect(chevron.className).toContain("rotate-0");
       expect(chevron.innerHTML).toContain("<svg");
@@ -442,9 +508,10 @@ describe("InfoRow", () => {
         slots: body,
         attachTo: document.body,
       });
-      const line = lineWrapper(w);
-      await line.trigger("click");
-      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+      // A click anywhere inside bubbles to the root — the whole control is
+      // the toggle.
+      await lineWrapper(w).trigger("click");
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("true");
       expect(w.emitted("toggle")?.[0]).toEqual([true]);
       expect(w.emitted("update:expanded")?.[0]).toEqual([true]);
       expect(region(w).hasAttribute("inert")).toBe(false);
@@ -454,18 +521,71 @@ describe("InfoRow", () => {
       expect(chevron.className).toContain("rotate-180");
     });
 
-    it("toggles from Enter and Space on the main line only", async () => {
+    it("toggles when the click lands on a sub-item — the whole control answers", async () => {
+      const w = mount(InfoRow, {
+        props: {
+          label: "L",
+          value: "V",
+          subItems: [{ text: "Policy:", value: "x" }],
+        },
+        slots: body,
+        attachTo: document.body,
+      });
+      const subLine = rowRoot(w).children[1].children[0] as HTMLElement;
+      await new DOMWrapper(subLine).trigger("click");
+      expect(w.emitted("toggle")?.[0]).toEqual([true]);
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("keeps the open body and interactive content out of the toggle", async () => {
+      const w = mount(InfoRow, {
+        props: {
+          label: "L",
+          value: "V",
+          subItems: [{ text: "docs" }],
+          defaultExpanded: true,
+        },
+        slots: {
+          ...body,
+          "sub-item": `<template #default="{ item }"><a href="#docs" data-testid="link">{{ item.text }}</a></template>`,
+        },
+        attachTo: document.body,
+      });
+      // The body is the app's content: its clicks stop at the wrapper. And
+      // the row-level guard keeps real interactive content — here a link a
+      // sub-item slot put in — out of the toggle.
+      await new DOMWrapper(region(w).querySelector("li")!).trigger("click");
+      await w.get('[data-testid="link"]').trigger("click");
+      expect(w.emitted("toggle")).toBeUndefined();
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("toggles from Enter and Space on the row itself, never from a child", async () => {
       const w = mount(InfoRow, {
         props: { label: "L", value: "abc" },
         slots: body,
         attachTo: document.body,
       });
-      const line = lineWrapper(w);
-      await line.trigger("keydown", { key: "Enter" });
-      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
-      await line.trigger("click");
-      await line.trigger("keydown", { key: " " });
-      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+      const row = new DOMWrapper(rowRoot(w));
+      // dispatched by hand so `preventDefault` is observable: a row-level
+      // Space must not scroll the page.
+      const enter = new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+      });
+      expect(rowRoot(w).dispatchEvent(enter)).toBe(false);
+      await w.vm.$nextTick();
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("true");
+      // A keystroke arriving from a nested element (target guard + the
+      // cluster's stop) must not toggle.
+      await new DOMWrapper(mainLine(w).querySelector("span")!).trigger(
+        "keydown",
+        { key: " " },
+      );
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("true");
+      await row.trigger("keydown", { key: " " });
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("false");
     });
 
     it("never toggles from the copy cluster", async () => {
@@ -481,7 +601,7 @@ describe("InfoRow", () => {
       expect(w.emitted("toggle")).toBeUndefined();
       await w.get("button").trigger("keydown", { key: "Enter" });
       expect(w.emitted("toggle")).toBeUndefined();
-      expect(mainLine(w).getAttribute("aria-expanded")).toBe("false");
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("false");
     });
 
     it("keeps the collapsed region inert and hidden from AT, never display:none", () => {
@@ -519,7 +639,7 @@ describe("InfoRow", () => {
         slots: body,
         attachTo: document.body,
       });
-      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("true");
       expect(region(w).hasAttribute("inert")).toBe(false);
     });
 
@@ -530,7 +650,7 @@ describe("InfoRow", () => {
         attachTo: document.body,
       });
       await lineWrapper(w).trigger("click");
-      expect(mainLine(w).getAttribute("aria-expanded")).toBe("true");
+      expect(rowRoot(w).getAttribute("aria-expanded")).toBe("true");
       expect(w.emitted("update:expanded")?.[0]).toEqual([false]);
     });
 
@@ -541,6 +661,8 @@ describe("InfoRow", () => {
         attachTo: document.body,
       });
       expect(mainLine(w).getAttribute("role")).toBeNull();
+      expect(rowRoot(w).getAttribute("role")).toBeNull();
+      expect(rowRoot(w).className).not.toContain("cursor-pointer");
       expect(region(w)).not.toBeNull();
       expect(region(w).hasAttribute("inert")).toBe(false);
       expect(w.text()).toContain("detail");

@@ -1,5 +1,9 @@
 <script lang="ts">
-import { getSurfaceAccentColor, type SurfaceTone } from "../theme/Theme";
+import {
+  getSurfaceAccentColor,
+  getSurfaceTriggerTokens,
+  type SurfaceTone,
+} from "../theme/Theme";
 import type { VNodeChild } from "vue";
 /** One entry in the feed. */
 export interface ActivityFeedItem {
@@ -57,6 +61,54 @@ export interface ActivityFeedItem {
    * Panel given a `borderColor`.
    */
   attentionTone?: TrueColor;
+  /**
+   * Entries this one expands into, revealed by a disclosure cloned from
+   * InfoRow's animation — one level deep, read-only context for the row
+   * (filters and the header count stay top-level affairs). Each sub-item is
+   * either the feed's own row template or a custom `body` node.
+   */
+  subItems?: ActivityFeedSubItem[];
+  /**
+   * Opens the disclosure on mount. Uncontrolled: the feed remembers the
+   * toggle from then on, per row id — like the filter, it survives a
+   * filter switch. Ignored while `expanded` is set.
+   * @default false
+   */
+  defaultExpanded?: boolean;
+  /**
+   * Controls the disclosure: the row opens exactly while this is `true`,
+   * and clicks only report intent through the feed's `toggle` emit — the
+   * prop moves nothing on its own.
+   */
+  expanded?: boolean;
+}
+
+/**
+ * One entry of a row's disclosure — the feed's row template at one level
+ * in, or a custom node. Read-only: no click, no category, no filter match;
+ * a sub-item is context, not an event of its own.
+ */
+export interface ActivityFeedSubItem {
+  /** What happened, in one line. */
+  title?: string;
+  /** Supporting copy. */
+  description?: string;
+  /** A monospaced reference — a PR number, a ticket id. */
+  code?: string;
+  /** Who did it. */
+  actor?: string;
+  /** Pre-formatted; the `<time>` draws only when there is one. */
+  timestamp?: string;
+  /** Status dot tone. Unset climbs: parent's tone, then the card's. */
+  tone?: TrueColor;
+  /** Entries this line aggregates — rendered as a count badge. */
+  count?: number;
+  /**
+   * Replaces this sub-row's entire content, exactly as `body` does for a
+   * row — the indent column holds it either way. `undefined` or `null`
+   * draws the template.
+   */
+  body?: VNodeChild;
 }
 
 /** A feed filter; the value `"all"` always matches. */
@@ -87,7 +139,11 @@ import Loader from "./Loader.vue";
 import MultiToggle from "./MultiToggle.vue";
 import Panel from "./Panel.vue";
 import Pill from "./Pill.vue";
-import VNodeRenderer from "./internal/VNodeRenderer";
+import ActivityFeedRow, {
+  type ActivityFeedRowView,
+  type ActivityFeedSubRowView,
+} from "./internal/ActivityFeedRow.vue";
+import type { ActivityFeedEntryView } from "./internal/ActivityFeedEntry.vue";
 import { useClassAttrs } from "../utils/attrsUtils";
 import { useKitT } from "../i18n";
 import {
@@ -232,6 +288,8 @@ const emit = defineEmits<{
   (event: "filterChange", value: string): void;
   (event: "link"): void;
   (event: "loadMore"): void;
+  /** A row's disclosure was toggled — the intent, with the row's id. */
+  (event: "toggle", id: string, expanded: boolean): void;
 }>();
 
 const { classAttr, restAttrs } = useClassAttrs();
@@ -270,9 +328,6 @@ const ctaVariantResolved = computed(
 const loadMoreVariantResolved = computed(
   () => props.loadMoreVariant ?? SURFACE_TO_BUTTON_VARIANT[props.variant],
 );
-/** An untoned entry wears the card's tone; a neutral card stays quiet. */
-const dotClass = (item: ActivityFeedItem) =>
-  getTrueColorDotClass(item.tone ?? (resolvedAccentTone.value === "neutral" ? "neutral" : resolvedAccentTone.value));
 /** The card's color for controls, `undefined` handing them their default. */
 const controlColor = computed(() => (resolvedAccentTone.value === "neutral" ? undefined : resolvedAccentTone.value));
 
@@ -305,6 +360,120 @@ const eventsWord = computed(() => {
       : ` ${n === 1 ? "event" : "events"}`;
   return `${n}${of}${noun}`;
 });
+
+// ── Sub-items disclosure ── InfoRow's gesture, per row: the open-set is
+// uncontrolled state keyed by row id, so a row left open survives a filter
+// switch, and a controlled row answers only to its `expanded` prop.
+const openMap = ref<Record<string, boolean>>({});
+
+function isOpen(item: ActivityFeedItem): boolean {
+  return typeof item.expanded === "boolean"
+    ? item.expanded
+    : openMap.value[item.id] ?? item.defaultExpanded ?? false;
+}
+
+function toggleItem(item: ActivityFeedItem) {
+  const next = !isOpen(item);
+  // A controlled row moves when its caller moves the prop — the click only
+  // reports intent, the same contract the filter keeps.
+  if (typeof item.expanded !== "boolean") {
+    openMap.value = { ...openMap.value, [item.id]: next };
+  }
+  emit("toggle", item.id, next);
+}
+
+/** The dot ladder's floor: an untoned entry climbs to the card's accent,
+ *  and a neutral card keeps neutral dots. */
+const dotFloor = computed<TrueColor>(() =>
+  resolvedAccentTone.value === "neutral" ? "neutral" : resolvedAccentTone.value,
+);
+
+/** The fields the standard row template draws, shared by rows and sub-rows. */
+type EntryFields = Pick<
+  ActivityFeedSubItem,
+  "title" | "description" | "code" | "actor" | "timestamp" | "count"
+>;
+
+/** The standard row content's parts, settled — rows and sub-rows share the
+ *  template verbatim; only the dot's resolved tone differs per level. */
+function entryView(entry: EntryFields, dot: TrueColor): ActivityFeedEntryView {
+  return {
+    dotClass: classNames(
+      getTrueColorDotClass(dot),
+      "mt-1.5 size-2 shrink-0 rounded-full",
+    ),
+    actor: entry.actor,
+    title: entry.title,
+    description: entry.description,
+    code: entry.code,
+    timestamp: entry.timestamp,
+    hasCount: entry.count !== undefined && entry.count > 1,
+    count: entry.count,
+  };
+}
+
+/** InfoRow's disclosure chevron, one step from rotating: muted, and never its own story. */
+const CHEVRON_BASE =
+  "flex shrink-0 items-center text-neutral-400 transition-transform duration-300 dark:text-neutral-500";
+
+/** One row, settled: surface decisions resolved, disclosure state read, the
+ *  chevron's classes composed — the internals carry markup, not choices. */
+function rowView(item: ActivityFeedItem): ActivityFeedRowView {
+  const subItems = item.subItems;
+  const hasSubs = !!subItems?.length;
+  const open = isOpen(item);
+  const rowIsToggle = hasSubs && !item.onClick;
+  const rotation = open ? "rotate-180" : "rotate-0";
+  return {
+    variant: props.rowVariant,
+    tone: props.rowTone ?? props.tone,
+    corner: props.rowCorner,
+    active: item.active,
+    pulse: item.attention,
+    borderColor: item.attentionTone,
+    // The toggle rides the Panel's card action when the row has no action
+    // of its own; otherwise the row's `onClick` stays untouched and the
+    // chevron button does the toggling.
+    cardAction: item.onClick ?? (hasSubs ? () => toggleItem(item) : undefined),
+    hasBody: item.body != null,
+    body: item.body,
+    entry: entryView(item, item.tone ?? dotFloor.value),
+    hasSubs,
+    open,
+    rowIsToggle,
+    chevronIsButton: hasSubs && !!item.onClick,
+    chevronClass: classNames(
+      CHEVRON_BASE,
+      rowIsToggle
+        ? rotation
+        : [
+            "rounded-sm border-0 bg-transparent p-0",
+            getSurfaceTriggerTokens(resolvedAccentTone.value).focusRing,
+            rotation,
+          ],
+    ),
+    chevronLabel:
+      hasSubs && !rowIsToggle
+        ? open
+          ? t("kit.activityfeed.hideSubitems")
+          : t("kit.activityfeed.showSubitems")
+        : undefined,
+    gridClass: classNames(
+      // `cursor-auto`: the row's toggle pointer belongs to the chrome, not
+      // to the app's content — reading and selecting sub-rows must not look
+      // clickable.
+      "grid cursor-auto transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
+      open ? "opacity-100" : "opacity-0",
+    ),
+    gridStyle: { gridTemplateRows: open ? "1fr" : "0fr" },
+    subRows: (subItems ?? []).map((sub): ActivityFeedSubRowView => ({
+      hasBody: sub.body != null,
+      body: sub.body,
+      // One level in: the dot climbs the sub's tone, the parent's, the card.
+      entry: entryView(sub, sub.tone ?? item.tone ?? dotFloor.value),
+    })),
+  };
+}
 </script>
 
 <template>
@@ -413,65 +582,10 @@ const eventsWord = computed(() => {
           "
         >
         <li v-for="item in visible" :key="item.id">
-          <!-- The template row is a Panel, not hand-rolled chrome: `rowVariant`
-               (default `none`), `rowTone` (default: the component's own tone)
-               and `rowCorner` (default `rounded`, the corner scale's xs step)
-               on `xs` padding. Hover, cursor and click come from the Panel
-               API — an `onClick` handed to it turns the row into the card
-               action, and a click on a nested control stays that control's. -->
-          <Panel
-            :variant="rowVariant"
-            :tone="rowTone ?? tone"
-            :corner="rowCorner"
-            padding="xs"
-            :active="item.active"
-            :pulse="item.attention"
-            :border-color="item.attentionTone"
-            v-bind="item.onClick ? { onClick: item.onClick } : null"
-          >
-            <div class="flex items-start gap-3">
-              <!-- The item's `body` replaces the row's entire content — the
-                   Panel stays, so custom rows keep the feed's row grammar. -->
-              <VNodeRenderer v-if="item.body != null" :nodes="item.body" />
-              <template v-else>
-                <span
-                  :class="
-                    classNames(
-                      dotClass(item),
-                      'mt-1.5 size-2 shrink-0 rounded-full',
-                    )
-                  "
-                  aria-hidden="true"
-                />
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <span class="min-w-0 truncate text-sm font-medium">
-                      <span v-if="item.actor" class="font-semibold">{{ item.actor }} </span>
-                      {{ item.title }}
-                    </span>
-                    <Pill v-if="item.count !== undefined && item.count > 1" size="sm" resolvedAccentTone="neutral">
-                      ×{{ item.count }}
-                    </Pill>
-                  </div>
-                  <p
-                    v-if="item.description"
-                    class="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400"
-                  >
-                    {{ item.description }}
-                  </p>
-                  <code
-                    v-if="item.code"
-                    class="mt-1 inline-block rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] tracking-tighter text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
-                    >{{ item.code }}</code
-                  >
-                </div>
-                <time
-                  class="shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400 dark:text-neutral-500"
-                  >{{ item.timestamp }}</time
-                >
-              </template>
-            </div>
-          </Panel>
+          <!-- The template row — Panel surface, content and the sub-items
+               disclosure — lives in `internal/ActivityFeedRow.vue`; the view
+               object hands it settled classes, not inputs. -->
+          <ActivityFeedRow :view="rowView(item)" @toggle="toggleItem(item)" />
         </li>
         </ol>
       </div>

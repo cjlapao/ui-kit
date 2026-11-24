@@ -399,4 +399,272 @@ describe("ActivityFeed", () => {
       wrapper.unmount();
     });
   });
+
+  describe("sub-items disclosure", () => {
+    const deploy: ActivityFeedItem = {
+      id: "deploy",
+      title: "deployed the release",
+      actor: "CI",
+      timestamp: "1h ago",
+      tone: "blue",
+      subItems: [
+        { actor: "api", title: "rolled 4 pods", count: 4, code: "svc/api", timestamp: "59m ago" },
+        { title: "cache warm-up", description: "warmed 12k keys", tone: "green" },
+      ],
+    };
+
+    it("renders standard sub-rows with their fields, indented under the title", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: { items: [deploy] },
+        attachTo: document.body,
+      });
+      const row = wrapper.findAll("li")[0]!;
+      const region = row.find('[role="region"]');
+      // Collapsed at rest: inert + aria-hidden — never `hidden` — and the
+      // grid carries 0fr, InfoRow's gesture exactly.
+      expect(region.attributes("inert")).toBeDefined();
+      expect(region.attributes("aria-hidden")).toBe("true");
+      expect(region.attributes("hidden")).toBeUndefined();
+      const grid = region.element.parentElement as HTMLElement;
+      expect(grid.classList.contains("transition-[grid-template-rows,opacity]")).toBe(true);
+      expect(grid.classList.contains("motion-reduce:transition-none")).toBe(true);
+      expect(grid.style.gridTemplateRows).toBe("0fr");
+      // The region answers to its row: labelled by the main line.
+      const labelledBy = region.attributes("aria-labelledby")!;
+      expect(document.getElementById(labelledBy)!.textContent).toContain("deployed the release");
+      // Column indent = dot (size-2) + gap-3 = the title's leading edge.
+      const subs = row.findAll(".pl-5 > div");
+      expect(subs).toHaveLength(2);
+      expect(subs[0]!.text()).toContain("rolled 4 pods");
+      expect(subs[0]!.text()).toContain("×4");
+      expect(subs[0]!.find("time").text()).toBe("59m ago");
+      expect(subs[1]!.text()).toContain("warmed 12k keys");
+      // A sub-line without a timestamp draws no <time> at all.
+      expect(subs[1]!.find("time").exists()).toBe(false);
+      wrapper.unmount();
+    });
+
+    it("resolves the sub-row dot down the ladder — sub, then parent, then card", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          tone: "amber" as const,
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "blue" as const,
+              subItems: [{ title: "explicit", tone: "rose" as const }, { title: "inherits parent" }],
+            },
+            {
+              id: "q",
+              title: "untoned parent",
+              timestamp: "now",
+              subItems: [{ title: "card floor" }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const dots = wrapper.findAll('[role="region"] .pl-5 > div > span:first-child');
+      expect(dots[0]!.classes()).toContain("bg-rose-500");
+      expect(dots[1]!.classes()).toContain("bg-blue-500");
+      expect(dots[2]!.classes()).toContain("bg-amber-500");
+      wrapper.unmount();
+    });
+
+    it("renders a custom-body sub-item in place of the fields, keeping the indent", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "mix",
+              title: "aggregated",
+              timestamp: "now",
+              subItems: [
+                { title: "standard sub" },
+                { title: "ignored", body: h("span", null, "custom sub UI") },
+              ],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const subs = wrapper.findAll('[role="region"] .pl-5 > div');
+      expect(subs[1]!.text()).toBe("custom sub UI");
+      expect(subs[1]!.text()).not.toContain("ignored");
+      // Same row grammar for the wrapper — the indent column holds both.
+      expect(subs[1]!.classes()).toContain("gap-3");
+      expect(subs[0]!.text()).toContain("standard sub");
+      wrapper.unmount();
+    });
+
+    it("leaves rows without sub-items exactly as they were — no chevron, no region, no tab stop", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            { id: "a", title: "t", timestamp: "now" },
+            { id: "b", title: "t2", timestamp: "now", subItems: [] },
+          ],
+        },
+        attachTo: document.body,
+      });
+      for (const row of wrapper.findAll("li")) {
+        expect(row.find('[role="region"]').exists()).toBe(false);
+        expect(row.find("button").exists()).toBe(false);
+        // Only the dot carries aria-hidden — no chevron joined it.
+        expect(row.findAll('[aria-hidden="true"]')).toHaveLength(1);
+      }
+      wrapper.unmount();
+    });
+
+    describe("row-is-the-toggle (no onClick)", () => {
+      it("toggles through the row Panel's card action, a11y pair included", async () => {
+        const wrapper = mount(ActivityFeed, {
+          props: { items: [deploy] },
+          attachTo: document.body,
+        });
+        const panel = wrapper.find("li > section");
+        expect(panel.attributes("aria-expanded")).toBe("false");
+        expect(panel.classes()).toContain("cursor-pointer");
+        const contentId = panel.attributes("aria-controls");
+        expect(contentId).toBeTruthy();
+        await panel.trigger("click");
+        expect(wrapper.emitted("toggle")?.[0]).toEqual(["deploy", true]);
+        expect(panel.attributes("aria-expanded")).toBe("true");
+        expect(document.getElementById(contentId!)!.hasAttribute("inert")).toBe(false);
+        // The chevron is decorative here — the row is the toggle.
+        const chevron = panel.find(".rotate-180");
+        expect(chevron.exists()).toBe(true);
+        expect(chevron.attributes("aria-hidden")).toBe("true");
+        wrapper.unmount();
+      });
+
+      it("never folds while the reader clicks or keys inside the region", async () => {
+        const wrapper = mount(ActivityFeed, {
+          props: { items: [{ ...deploy, defaultExpanded: true }] },
+          attachTo: document.body,
+        });
+        expect(wrapper.find('[role="region"]').exists()).toBe(true);
+        const sub = wrapper.find(".pl-5 > div");
+        await sub.trigger("click");
+        await sub.trigger("keydown", { key: "Enter" });
+        expect(wrapper.emitted("toggle")).toBeUndefined();
+        expect(wrapper.find("li > section").attributes("aria-expanded")).toBe("true");
+        wrapper.unmount();
+      });
+
+      it("keeps an uncontrolled row open across a filter switch", async () => {
+        const wrapper = mount(ActivityFeed, {
+          props: {
+            items: [
+              { ...deploy, category: "deploys" },
+              { id: "other", title: "flagged", timestamp: "now", category: "alerts" },
+            ] as ActivityFeedItem[],
+            filters: [
+              { label: "Deploys", value: "deploys" },
+              { label: "Alerts", value: "alerts" },
+            ],
+          },
+          attachTo: document.body,
+        });
+        await wrapper.find("li > section").trigger("click");
+        expect(wrapper.find("li > section").attributes("aria-expanded")).toBe("true");
+        await wrapper
+          .findAll("button")
+          .find((b) => b.text() === "Alerts")!
+          .trigger("click");
+        expect(wrapper.find('[role="region"]').exists()).toBe(false); // hidden with its parent
+        await wrapper
+          .findAll("button")
+          .find((b) => b.text() === "All")!
+          .trigger("click");
+        expect(wrapper.find("li > section").attributes("aria-expanded")).toBe("true"); // as open as left
+        wrapper.unmount();
+      });
+    });
+
+    describe("chevron-button mode (row keeps its onClick)", () => {
+      it("keeps the row action and the disclosure strangers to each other", async () => {
+        let fired = 0;
+        const wrapper = mount(ActivityFeed, {
+          props: {
+            items: [{ ...deploy, onClick: () => { fired += 1; } }] as ActivityFeedItem[],
+          },
+          attachTo: document.body,
+        });
+        const panel = wrapper.find("li > section");
+        // The disclosure's a11y pair lives on the chevron, not the row.
+        expect(panel.attributes("aria-expanded")).toBeUndefined();
+        const chevron = wrapper
+          .findAll("button")
+          .find((b) => b.attributes("aria-label") === "Show sub-items")!;
+        expect(chevron.attributes("aria-expanded")).toBe("false");
+        await panel.trigger("click");
+        expect(fired).toBe(1);
+        expect(wrapper.emitted("toggle")).toBeUndefined();
+        await chevron.trigger("click");
+        expect(wrapper.emitted("toggle")?.[0]).toEqual(["deploy", true]);
+        expect(fired).toBe(1); // the disclosure never reaches the row action
+        expect(
+          wrapper
+            .findAll("button")
+            .find((b) => b.attributes("aria-label") === "Hide sub-items")!
+            .attributes("aria-expanded"),
+        ).toBe("true");
+        wrapper.unmount();
+      });
+    });
+
+    describe("controlled rows", () => {
+      it("answer only to the prop, and only report intent", async () => {
+        const wrapper = mount(ActivityFeed, {
+          props: {
+            items: [{ ...deploy, expanded: true }] as ActivityFeedItem[],
+          },
+          attachTo: document.body,
+        });
+        const panel = wrapper.find("li > section");
+        expect(panel.attributes("aria-expanded")).toBe("true");
+        await panel.trigger("click");
+        expect(wrapper.emitted("toggle")?.[0]).toEqual(["deploy", false]);
+        // The prop did not move, so neither did the row.
+        expect(panel.attributes("aria-expanded")).toBe("true");
+        expect(wrapper.find('[role="region"]').attributes("inert")).toBeUndefined();
+        wrapper.unmount();
+      });
+
+      it("lets an explicit expanded win the seeding against defaultExpanded", () => {
+        const wrapper = mount(ActivityFeed, {
+          props: {
+            items: [{ ...deploy, expanded: false, defaultExpanded: true }] as ActivityFeedItem[],
+          },
+          attachTo: document.body,
+        });
+        expect(wrapper.find("li > section").attributes("aria-expanded")).toBe("false");
+        expect(wrapper.find('[role="region"]').attributes("inert")).toBeDefined();
+        wrapper.unmount();
+      });
+    });
+
+    it("never lets a sub-item match a filter — and hides them with their parent", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            { ...deploy, category: "deploys" },
+            { id: "other", title: "flagged", timestamp: "now", category: "alerts" },
+          ] as ActivityFeedItem[],
+          filters: [
+            { label: "Deploys", value: "deploys" },
+            { label: "Alerts", value: "alerts" },
+          ],
+          defaultFilter: "alerts",
+        },
+        attachTo: document.body,
+      });
+      expect(wrapper.text()).not.toContain("rolled 4 pods");
+      expect(wrapper.find('[role="region"]').exists()).toBe(false);
+      wrapper.unmount();
+    });
+  });
 });

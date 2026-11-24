@@ -40,6 +40,22 @@ The React components directory is the single source of truth; Vue and both
      `grep -o 'fill="[^"]*"'` / `stroke=` on the result: only `none` or
      `currentColor` are allowed. (The hardcoded colour isn't always black —
      `#292929` greys appear too; same fix.)
+     - **Periodic monochrome audit** (run after ~10 additions): scan
+       `react/src/assets/icons/*.svg` for `(fill|stroke)="…"` outside
+       `none|currentColor` and the components for hex/`style=`. Found legacy
+       drift — the assets were the stale side, the `.tsx` is the runtime
+       source of truth and the asset should be mirrored to it: `UX`/`Complete`
+       carried `fill="#000000"` on the **root** (fixed to `none` + per-path
+       `currentColor`), `Windows` root fill shadowed an inner
+       `fill="currentColor"` group, `Close1`/`Library` had path-level black,
+       `Image.svg` kept a full-canvas `fill="white"` rect its `.tsx` had
+       already dropped. Exempt by user decision: brand icons (`Docker`,
+       `PodmanDesktop` incl. real `<linearGradient>` defs + `style=`),
+       `ReverseProxyOld` (Old-variant) and **orphan assets** with no
+       component/registry entry (`tags.svg`, `Cluster.svg` — grep the registry
+       first; editing dead files is churn). Gotcha: `grep … | head || echo
+       "clean"` never prints "clean" — the pipe status is `head`'s, the
+       fallback is dead code; count with `grep -c` first.
    - **Drop identity `<defs>`/`clipPath` export junk.** Figma exports wrap
      content in `<g clip-path="url(#clipN_…)">` plus a `<defs>` whose rect
      equals the full viewBox — a clip that clips nothing. Delete the attribute,

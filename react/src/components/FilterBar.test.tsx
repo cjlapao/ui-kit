@@ -391,6 +391,140 @@ describe("FilterBar", () => {
     });
   });
 
+  const singleFilters = [
+    { id: "status", label: "Status", options: [{ value: "online", label: "Online", count: 3 }, { value: "offline", label: "Offline", count: 8 }] },
+    { id: "enrollment", label: "Enrollment", type: "single" as const, options: [{ value: "enabled", label: "Enabled", count: 4 }, { value: "disabled", label: "Disabled", count: 1 }, { value: "unknown", label: "Unknown", disabled: true }] },
+  ];
+  function setupSingle(props: Partial<FilterBarProps> = {}, customFilters = singleFilters) {
+    const onChange = vi.fn();
+    const result = render(<FilterBar filters={customFilters} searchProps={{ onSearch: vi.fn() }} onChange={onChange} filteredCount={2} totalCount={5} {...props} />);
+    return { ...result, onChange };
+  }
+  function openEnrollment() {
+    fireEvent.click(screen.getByRole("button", { name: "Add filter" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Enrollment" }));
+  }
+
+  describe("single-select filters", () => {
+    it("lists the arm in the categories and drills into a radio group without a Done", () => {
+      setupSingle();
+      openEnrollment();
+      expect(screen.getByRole("menuitemradio", { name: "Enabled" })).toHaveAttribute("aria-checked", "false");
+      expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+      // Nothing is staged, so there is nothing for Done to confirm.
+      expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
+    });
+    it("applies the pick in one commit, closes the popup and restores focus", () => {
+      const { onChange } = setupSingle();
+      openEnrollment();
+      fireEvent.click(screen.getByRole("menuitemradio", { name: "Enabled" }));
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({ enrollment: ["enabled"] });
+      expect(screen.queryByRole("menuitemradio")).toBeNull();
+      expect(screen.getByRole("button", { name: "Add filter" })).toHaveFocus();
+      expect(screen.getByRole("button", { name: "Enrollment: Enabled" })).toBeInTheDocument();
+    });
+    it("moves the check to the picked value and keeps every other category", () => {
+      const { onChange } = setupSingle({ defaultValue: { enrollment: ["enabled"], status: ["online"] } });
+      openEnrollment();
+      expect(screen.getByRole("menuitemradio", { name: "Enabled" })).toHaveAttribute("aria-checked", "true");
+      expect(screen.getByRole("menuitemradio", { name: "Disabled" })).toHaveAttribute("aria-checked", "false");
+      fireEvent.click(screen.getByRole("menuitemradio", { name: "Disabled" }));
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({ enrollment: ["disabled"], status: ["online"] });
+    });
+    it("re-clicking the checked row takes the category back to none", () => {
+      const { onChange } = setupSingle({ defaultValue: { enrollment: ["enabled"] } });
+      openEnrollment();
+      fireEvent.click(screen.getByRole("menuitemradio", { name: "Enabled" }));
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({});
+      expect(screen.queryByRole("button", { name: "Enrollment: Enabled" })).toBeNull();
+    });
+    it("Clear removes the value and closes the drill-down", () => {
+      const { onChange } = setupSingle({ defaultValue: { enrollment: ["enabled"] } });
+      openEnrollment();
+      fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({});
+      expect(screen.queryByRole("menuitemradio")).toBeNull();
+      expect(screen.getByRole("button", { name: "Add filter" })).toHaveFocus();
+    });
+    it("paints a bare check on the selected row, keeping the checkbox arm's square", () => {
+      setupSingle({ defaultValue: { enrollment: ["enabled"] } });
+      openEnrollment();
+      const gutter = (name: string) => screen.getByRole("menuitemradio", { name }).firstElementChild as HTMLElement;
+      // The valueset drops the box: an empty gutter, or the check alone.
+      expect(gutter("Enabled")).not.toHaveClass("border");
+      expect(gutter("Enabled").firstChild).not.toBeNull();
+      expect(gutter("Disabled")).not.toHaveClass("border");
+      expect(gutter("Disabled").firstChild).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+      fireEvent.click(screen.getByRole("menuitem", { name: "Status" }));
+      expect(screen.getByRole("menuitemcheckbox", { name: "Online" }).firstElementChild).toHaveClass("border");
+    });
+    it("makes each value a real button, so Enter and Space activate it", () => {
+      setupSingle();
+      openEnrollment();
+      expect(screen.getByRole("menuitemradio", { name: "Enabled" }).tagName).toBe("BUTTON");
+    });
+    it("never activates a disabled option", () => {
+      const { onChange } = setupSingle();
+      openEnrollment();
+      const row = screen.getByRole("menuitemradio", { name: "Unknown" });
+      expect(row).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(row);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+    it("hides option counts with showMenuCounts", () => {
+      setupSingle({ showMenuCounts: false });
+      openEnrollment();
+      expect(screen.queryByText("4")).toBeNull();
+    });
+    it("normalizes a controlled multi-value to the first matching option", () => {
+      const onChange = vi.fn();
+      render(<FilterBar filters={singleFilters} searchProps={{ onSearch: vi.fn() }} onChange={onChange} filteredCount={1} totalCount={5}
+        value={{ enrollment: ["disabled", "enabled"], status: ["ghost"] }} />);
+      expect(onChange).not.toHaveBeenCalled();
+      // An unknown value drops the category outright; the first supplied
+      // value of the valueset wins, not the first option declared.
+      expect(screen.queryByRole("button", { name: /^Status:/ })).toBeNull();
+      expect(screen.getByRole("button", { name: "Enrollment: Disabled" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Add filter" }));
+      fireEvent.click(screen.getByRole("menuitem", { name: "Enrollment" }));
+      // Two values in, one row checked.
+      expect(screen.getByRole("menuitemradio", { name: "Disabled" })).toHaveAttribute("aria-checked", "true");
+      expect(screen.getByRole("menuitemradio", { name: "Enabled" })).toHaveAttribute("aria-checked", "false");
+    });
+    it("opens the drill-down from the chip and removes the value from its ✕", () => {
+      const { onChange } = setupSingle({ defaultValue: { enrollment: ["enabled"] } });
+      fireEvent.click(screen.getByRole("button", { name: "Enrollment: Enabled" }));
+      expect(screen.getByRole("menuitemradio", { name: "Enabled" })).toHaveAttribute("aria-checked", "true");
+      fireEvent.click(screen.getByRole("button", { name: "Remove Enrollment: Enabled filter" }));
+      expect(onChange).toHaveBeenLastCalledWith({});
+    });
+    it("Back and Escape leave the applied value untouched", () => {
+      const { onChange } = setupSingle({ defaultValue: { enrollment: ["enabled"] } });
+      openEnrollment();
+      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+      expect(screen.getByRole("menuitem", { name: "Enrollment" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("menuitem", { name: "Enrollment" }));
+      fireEvent.keyDown(screen.getByRole("menuitemradio", { name: "Disabled" }), { key: "Escape" });
+      expect(screen.queryByRole("menuitemradio")).toBeNull();
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Enrollment: Enabled" })).toBeInTheDocument();
+    });
+    it("Clear all clears single values alongside the other arms", () => {
+      const { onChange } = setupSingle({ defaultValue: { enrollment: ["enabled"], status: ["online"] } });
+      fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+      expect(onChange).toHaveBeenCalledExactlyOnceWith({});
+    });
+    it("closes an open drill-down when the bar goes busy", () => {
+      const props = { filters: singleFilters, searchProps: { onSearch: vi.fn() }, filteredCount: 2, totalCount: 5 };
+      const { rerender } = render(<FilterBar {...props} />);
+      openEnrollment();
+      expect(screen.getByRole("menuitemradio", { name: "Enabled" })).toBeInTheDocument();
+      rerender(<FilterBar {...props} loading loaderType="spinner" />);
+      expect(screen.queryByRole("menuitemradio")).toBeNull();
+    });
+  });
+
   describe("leading and trailing slots", () => {
     const slotProps: FilterBarProps = {
       filters: textFilters, searchProps: { onSearch: vi.fn() }, filteredCount: 1, totalCount: 5,

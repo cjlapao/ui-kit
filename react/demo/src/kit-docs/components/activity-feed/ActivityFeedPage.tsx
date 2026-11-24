@@ -8,12 +8,14 @@ import DeployStream from "./examples/DeployStream";
 import deployStreamCode from "./examples/DeployStream.tsx?raw";
 import CustomRows from "./examples/CustomRows";
 import customRowsCode from "./examples/CustomRows.tsx?raw";
+import SubItems from "./examples/SubItems";
+import subItemsCode from "./examples/SubItems.tsx?raw";
 
 export const ActivityFeedPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Activity Feed"
-      description="The audit log as a living feed: newest first, toned dots for what happened, a segment control for who or what kind, count badges for what aggregated, and a tail that says there is more. Rows are dense on purpose — feeds are skimmed, not read. `maxHeight` caps the body in a `ScrollArea`, so Load more grows the list while the card and the tail button stay put."
+      description="The audit log as a living feed: newest first, toned dots for what happened, a segment control for who or what kind, count badges for what aggregated, and a tail that says there is more. Rows fold open into one level of sub-items — InfoRow's own animation — when an event has a story under them. Rows are dense on purpose — feeds are skimmed, not read. `maxHeight` caps the body in a `ScrollArea`, so Load more grows the list while the card and the tail button stay put."
     />
     <ActivityFeedPlayground />
     <section className="flex flex-col gap-5">
@@ -21,13 +23,14 @@ export const ActivityFeedPage: React.FC = () => (
       <ExampleCard title="Audit Log" description="The full trail — filterable, counted, with a door to the long form." code={auditLogCode} filename="AuditLog.tsx"><AuditLog /></ExampleCard>
       <ExampleCard title="Deploy Stream" description="No filters, no link, just events and a tail — the leanest the component gets." code={deployStreamCode} filename="DeployStream.tsx"><DeployStream /></ExampleCard>
       <ExampleCard title="Custom Rows" description="An item's body replaces the row's whole content — the feed keeps drawing the row itself, so complex UI sits in the same rhythm as the default rows." code={customRowsCode} filename="CustomRows.tsx"><CustomRows /></ExampleCard>
+      <ExampleCard title="Sub-items" description="Some events have a story under them: subItems opens a row into a disclosure — one level, read-only — each entry either the feed's own row template or a custom body. The row itself is the toggle when it has no onClick; with one, the chevron becomes a separate button." code={subItemsCode} filename="SubItems.tsx"><SubItems /></ExampleCard>
     </section>
     <section className="flex flex-col gap-5">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-400 dark:text-neutral-500">API</h2>
       <div className="max-w-3xl text-sm leading-6 text-neutral-500 dark:text-neutral-400">
         <p>
           Props are <code>title</code>, <code>items</code>{" "}
-          (<code>{`{ id, title, description?, code?, actor?, timestamp, tone?, category?, count?, body?, onClick?, active?, attention?, attentionTone? }`}</code>),{" "}
+          (<code>{`{ id, title, description?, code?, actor?, timestamp, tone?, category?, count?, body?, onClick?, active?, attention?, attentionTone?, subItems?, defaultExpanded?, expanded? }`}</code>),{" "}
           where <code>body</code> — a node in React, a VNode in Vue — replaces
           the row's entire content (dot, text and timestamp all stop being
           drawn) while the feed keeps drawing the row itself — a{" "}
@@ -45,6 +48,21 @@ export const ActivityFeedPage: React.FC = () => (
           <code>borderColor</code>: <code>borderColor ?? tone</code>, blue
           floor), shared by rim and glow so a selected-and-pulsing row always
           agrees,{" "}
+          <code>subItems</code> with <code>defaultExpanded</code> /{" "}
+          <code>expanded</code> / <code>onToggle</code> (the{" "}
+          <code>toggle(id, expanded)</code> event in Vue) — InfoRow's
+          grid-rows disclosure, one level deep and read-only: each
+          sub-item is either the feed's own row template (dot, actor,
+          title, description, code, time, count badge) or a custom{" "}
+          <code>body</code> node, indented to the title's edge and never
+          its own filter match — with no <code>onClick</code> the row
+          itself is the toggle (chevron as decoration, the{" "}
+          <code>aria-expanded</code> pair riding the row's Panel), with
+          one the row's action stays untouched and the chevron becomes a
+          real button; <code>defaultExpanded</code> seeds the
+          uncontrolled open state, which the feed remembers per row id
+          across filter switches, while <code>expanded</code> keeps a row
+          controlled and clicks only report intent,{" "}
           <code>filters</code> with <code>defaultFilter</code> /{" "}
           <code>onFilterChange</code> (the <code>filterChange</code> event in
           Vue), <code>tag</code>, <code>linkLabel</code> / <code>onLink</code>,{" "}

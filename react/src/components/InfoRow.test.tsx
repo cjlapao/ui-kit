@@ -147,6 +147,58 @@ describe("InfoRow", () => {
       expect(screen.getByText("—")).toBeTruthy();
     });
 
+    it("renders no placeholder at all when emptyText is null", () => {
+      const { container, rerender } = render(
+        <InfoRow label="L" value="" hideIfEmpty={false} emptyText={null} />,
+      );
+      expect(container.firstElementChild).not.toBeNull();
+      expect(screen.queryByText("—")).toBeNull();
+      expect(screen.getByText("L")).toBeTruthy();
+      // Loading and error are states, not decoration — they still paint.
+      rerender(
+        <InfoRow
+          label="L"
+          value=""
+          loading
+          hideIfEmpty={false}
+          emptyText={null}
+        />,
+      );
+      expect(container.innerHTML).toContain("animate-pulse");
+      rerender(
+        <InfoRow
+          label="L"
+          value=""
+          error="Lookup failed"
+          hideIfEmpty={false}
+          emptyText={null}
+        />,
+      );
+      expect(screen.getAllByText("Lookup failed").length).toBeGreaterThan(0);
+    });
+
+    it("keeps a sub-item row clean of the dash when emptyText is null", () => {
+      // The Image-digest shape: the row lives for its sub-items, and the
+      // empty value must not greet it with a floating "—".
+      render(
+        <InfoRow
+          label="Image digest"
+          value=""
+          subItems={[{ text: "Policy:", value: "allow" }]}
+          emptyText={null}
+        />,
+      );
+      expect(screen.queryByText("—")).toBeNull();
+      expect(screen.getByText("Policy:")).toBeTruthy();
+    });
+
+    it("still hides the whole row under hideIfEmpty when there is no placeholder", () => {
+      const { container } = render(
+        <InfoRow label="L" value="" emptyText={null} />,
+      );
+      expect(container.firstElementChild).toBeNull();
+    });
+
     it("suppresses the copy button for a ReactNode value", () => {
       render(<InfoRow label="L" value={<em>rich</em>} />);
       expect(screen.queryByLabelText("Copy to clipboard")).toBeNull();
@@ -551,24 +603,50 @@ describe("post-copy auto-dismiss", () => {
     it("adds no affordance when neither body nor collapsible is given", () => {
       const { container } = render(<InfoRow label="L" value="V" />);
       expect(mainLine(container).getAttribute("role")).toBeNull();
+      expect(rowRoot(container).getAttribute("role")).toBeNull();
       expect(rowRoot(container).querySelector("[role='region']")).toBeNull();
       expect(mainLine(container).querySelector("span[class*='rotate-']")).toBeNull();
     });
 
-    it("turns the main line into a toggle when a body exists", () => {
+    it("turns the whole control into a toggle when a body exists", () => {
       const { container } = render(
         <InfoRow label="Ready" value="V" body={<span>B</span>} />,
       );
+      const { focusRing } = getSurfaceTriggerTokens("none");
+      const root = rowRoot(container);
       const line = mainLine(container);
-      expect(line).toHaveAttribute("role", "button");
-      expect(line).toHaveAttribute("aria-expanded", "false");
-      expect(region(container).id).toBe(line.getAttribute("aria-controls"));
+      // The toggle is the entire control: role, tab stop and focus ring live
+      // on the root — the block the wash paints.
+      expect(root).toHaveAttribute("role", "button");
+      expect(root).toHaveAttribute("tabindex", "0");
+      expect(root).toHaveAttribute("aria-expanded", "false");
+      expect(root.className).toContain("cursor-pointer");
+      expect(root.className).toContain(focusRing.split(" ")[0]);
+      expect(region(container).id).toBe(root.getAttribute("aria-controls"));
+      // The main line is layout only — it keeps the region's label anchor.
+      expect(line.getAttribute("role")).toBeNull();
       expect(region(container).getAttribute("aria-labelledby")).toBe(line.id);
-      expect(line.className).toContain("cursor-pointer");
       const chevron = line.querySelector("span[class*='rotate-']")!;
       expect(chevron.className).toContain("rotate-0");
       expect(chevron.className).toContain("transition-transform");
       expect(chevron.getAttribute("aria-hidden")).toBe("true");
+    });
+
+    it("washes the whole row on hover, not just the main line", () => {
+      const { container } = render(
+        <InfoRow label="L" value="V" tone="emerald" body="B" />,
+      );
+      const { hover, focusRing } = getSurfaceTriggerTokens("emerald");
+      // The wash, the pointer and the focus ring all live on the root — the
+      // whole control is the toggle, wash and affordances alike; the main
+      // line is layout only.
+      const root = rowRoot(container);
+      expect(root.className).toContain(hover.split(" ")[0]);
+      expect(root.className).toContain("rounded-md");
+      expect(root.className).toContain("cursor-pointer");
+      expect(root.className).toContain(focusRing.split(" ")[0]);
+      const line = mainLine(container);
+      expect(line.className).not.toContain(hover.split(" ")[0]);
     });
 
     it("toggles on click, firing onToggle and swapping the chevron", () => {
@@ -578,11 +656,11 @@ describe("post-copy auto-dismiss", () => {
       );
       fireEvent.click(mainLine(container));
       expect(onToggle).toHaveBeenCalledWith(true);
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      expect(rowRoot(container)).toHaveAttribute("aria-expanded", "true");
       expect(region(container).hasAttribute("inert")).toBe(false);
       fireEvent.click(mainLine(container));
       expect(onToggle).toHaveBeenCalledWith(false);
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "false");
+      expect(rowRoot(container)).toHaveAttribute("aria-expanded", "false");
       expect(region(container).hasAttribute("inert")).toBe(true);
     });
 
@@ -601,23 +679,42 @@ describe("post-copy auto-dismiss", () => {
       expect(gridWrap(container).style.gridTemplateRows).toBe("0fr");
     });
 
-    it("never toggles from sub-items or the open body", () => {
+    it("toggles when the click lands on a sub-item — the whole control answers", () => {
       const onToggle = vi.fn();
       const { container } = render(
         <InfoRow
           label="L"
           value="V"
           subItems={[{ text: "Policy:", value: "x" }]}
+          body="B"
+          onToggle={onToggle}
+        />,
+      );
+      const subStrip = rowRoot(container).children[1] as HTMLElement;
+      fireEvent.click(subStrip.firstElementChild as HTMLElement);
+      expect(onToggle).toHaveBeenCalledWith(true);
+      expect(rowRoot(container)).toHaveAttribute("aria-expanded", "true");
+    });
+
+    it("keeps the open body and interactive content out of the toggle", () => {
+      const onToggle = vi.fn();
+      const { container } = render(
+        <InfoRow
+          label="L"
+          value="V"
+          subItems={[{ text: <a href="#docs">docs</a> }]}
           body={<span data-testid="body">B</span>}
           onToggle={onToggle}
           defaultExpanded
         />,
       );
-      const line = rowRoot(container).children[1].firstElementChild as HTMLElement;
-      fireEvent.click(line);
+      // The body is the app's content: its clicks stop at the region wrapper,
+      // and the row-level guard keeps real interactive content (a link) out
+      // of the toggle even when it sits in the sub-items.
       fireEvent.click(screen.getByTestId("body"));
+      fireEvent.click(screen.getByRole("link", { name: "docs" }));
       expect(onToggle).not.toHaveBeenCalled();
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      expect(rowRoot(container)).toHaveAttribute("aria-expanded", "true");
     });
 
     it("the value and its copy button never toggle", async () => {
@@ -635,26 +732,28 @@ describe("post-copy auto-dismiss", () => {
         key: "Enter",
       });
       expect(onToggle).not.toHaveBeenCalled();
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "false");
+      expect(rowRoot(container)).toHaveAttribute("aria-expanded", "false");
     });
 
-    it("toggles from Enter and Space on the main line only", () => {
+    it("toggles from Enter and Space on the row itself, never from a child", () => {
       const { container } = render(<InfoRow label="L" value="V" body="B" />);
-      fireEvent.keyDown(mainLine(container), { key: "Enter" });
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      const root = rowRoot(container);
+      // preventDefault on both keys — no page scroll from the row's Space.
+      expect(fireEvent.keyDown(root, { key: "Enter" })).toBe(false);
+      expect(root).toHaveAttribute("aria-expanded", "true");
       // A keystroke arriving from a nested element (target guard + the
       // cluster's stop) must not toggle.
-      fireEvent.keyDown(mainLine(container).querySelector("span")!, {
-        key: " ",
-      });
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      fireEvent.keyDown(root.querySelector("span")!, { key: " " });
+      expect(root).toHaveAttribute("aria-expanded", "true");
+      expect(fireEvent.keyDown(root, { key: " " })).toBe(false);
+      expect(root).toHaveAttribute("aria-expanded", "false");
     });
 
     it("honours defaultExpanded", () => {
       const { container } = render(
         <InfoRow label="L" value="V" body="B" defaultExpanded />,
       );
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      expect(rowRoot(container)).toHaveAttribute("aria-expanded", "true");
       expect(region(container).hasAttribute("inert")).toBe(false);
     });
 
@@ -663,9 +762,9 @@ describe("post-copy auto-dismiss", () => {
         <InfoRow label="L" value="V" body="B" expanded={false} />,
       );
       fireEvent.click(mainLine(container));
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "false");
+      expect(rowRoot(container)).toHaveAttribute("aria-expanded", "false");
       rerender(<InfoRow label="L" value="V" body="B" expanded />);
-      expect(mainLine(container)).toHaveAttribute("aria-expanded", "true");
+      expect(rowRoot(container)).toHaveAttribute("aria-expanded", "true");
       expect(region(container).hasAttribute("inert")).toBe(false);
     });
 
@@ -674,6 +773,8 @@ describe("post-copy auto-dismiss", () => {
         <InfoRow label="L" value="V" collapsible={false} body="B" />,
       );
       expect(mainLine(container).getAttribute("role")).toBeNull();
+      expect(rowRoot(container).getAttribute("role")).toBeNull();
+      expect(rowRoot(container).className).not.toContain("cursor-pointer");
       expect(mainLine(container).querySelector("span[class*='rotate-']")).toBeNull();
       expect(region(container).hasAttribute("inert")).toBe(false);
       expect(gridWrap(container).style.gridTemplateRows).toBe("1fr");

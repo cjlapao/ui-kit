@@ -68,7 +68,7 @@ export const InfoRowPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Sub items"
-        description="A verdict row can say more than one thing: a leading `icon` in the row's tone, and `subItems` — `text value` lines stacked under the main line, indented to the title's leading edge (a sub-item's `mono` is its own). Rows like these carry no main value, and a row with sub-items survives the `hideIfEmpty` default — it is the sub-items that make it worth showing."
+        description="A verdict row can say more than one thing: a leading `icon` in the row's tone, and `subItems` — `text value` lines stacked under the main line, indented to the title's leading edge (a sub-item's `mono` is its own). Rows like these carry no main value, and a row with sub-items survives the `hideIfEmpty` default — it is the sub-items that make it worth showing, with `emptyText={null}` keeping the empty value from painting a dash on the right edge."
         code={subItemsCode}
         filename="SubItems.tsx"
       >
@@ -76,7 +76,7 @@ export const InfoRowPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Collapsible"
-        description="`collapsible` (implied whenever a `body` is present) turns the whole main line — icon, label, value, chevron — into the toggle: `role='button'`, Enter and Space, the tone wash and focus ring of a shared trigger. The body unfolds with the same `grid-template-rows: 0fr→1fr` animation the collapsible panel uses; collapsed, it is `inert` rather than `hidden`, so the transition plays and nothing inside the folded body takes a tab stop. Controls in the value cluster keep their own clicks."
+        description="`collapsible` (implied whenever a `body` is present) makes the whole row the toggle — main line, sub-items and all: `role='button'` on the row, Enter and Space, and the focus ring of a shared trigger, exactly where the hover wash lands. The body unfolds with the same `grid-template-rows: 0fr→1fr` animation the collapsible panel uses; collapsed, it is `inert` rather than `hidden`, so the transition plays and nothing inside the folded body takes a tab stop. The open body, the value cluster and any links or inputs inside the row keep their own clicks."
         code={collapsibleCode}
         filename="Collapsible.tsx"
       >
@@ -145,14 +145,16 @@ export const InfoRowPage: React.FC = () => (
 
       <A11yTopic title="Disclosure rows">
         <p>
-          A <C>collapsible</C> row&rsquo;s main line — icon, label, value and
-          chevron together — is the toggle: a real <C>role="button"</C> with
+          A <C>collapsible</C> row makes the whole control the toggle — main
+          line, sub-items and all: a real <C>role="button"</C> on the row with{" "}
           <C>aria-expanded</C> and <C>aria-controls</C>, answering to click,
           Enter and Space (with <C>preventDefault</C>, so Space never scrolls
           the page). Its accessible name is the row&rsquo;s own text; the
-          chevron is <C>aria-hidden</C>. Controls inside the value cluster stop
-          the activation from reaching the row — copying a digest must never
-          fold the body shut. The collapsed body is <C>inert</C> and{" "}
+          chevron is <C>aria-hidden</C>. The open body stops the activation
+          from reaching the row, and so do the value-cluster controls —
+          copying a digest must never fold the body shut — while a guard keeps
+          any real link or input in the row out of the toggle too, so it
+          activates itself instead. The collapsed body is <C>inert</C> and{" "}
           <C>aria-hidden</C>, not <C>hidden</C>: nothing inside it lands in the
           tab order or the accessibility tree, yet the grid-rows transition can
           still play. The <C>icon</C> is decorative — <C>aria-hidden</C> — the
@@ -275,9 +277,10 @@ export const InfoRowPage: React.FC = () => (
         },
         {
           name: "emptyText",
-          type: "string",
+          type: "string | null",
           default: '"—"',
-          description: "Placeholder when `hideIfEmpty` is off.",
+          description:
+            "Placeholder when `hideIfEmpty` is off. Pass `null` to render no placeholder at all — the row shows its label, sub-items and body with no dash, while loading and error still paint in the value area.",
         },
         {
           name: "wrap",
@@ -319,7 +322,7 @@ export const InfoRowPage: React.FC = () => (
           name: "collapsible",
           type: "boolean",
           description:
-            "Implied whenever `body` is present. The main line becomes the toggle — `role=\"button\"`, Enter/Space, `aria-expanded` — with the shared trigger wash and focus ring.",
+            "Implied whenever `body` is present. The whole control becomes the toggle — `role=\"button\"` on the row, Enter/Space, `aria-expanded` — with the trigger's cursor and focus ring; the hover wash fills the whole row, sub-items and open body included. The open body, the value cluster and any links or inputs keep their own clicks.",
         },
         {
           name: "defaultExpanded",
@@ -335,7 +338,7 @@ export const InfoRowPage: React.FC = () => (
           name: "onToggle",
           type: "(expanded: boolean) => void",
           description:
-            "Fires on every activation of the main line, controlled or not.",
+            "Fires on every activation of the row, controlled or not.",
         },
         {
           name: "body",

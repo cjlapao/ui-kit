@@ -135,8 +135,13 @@ export interface InfoRowProps extends Omit<
    * Set to `false` to show the `emptyText` placeholder instead. @default true
    */
   hideIfEmpty?: boolean;
-  /** Placeholder shown when `hideIfEmpty` is `false` and the value is empty. @default "—" */
-  emptyText?: string;
+  /**
+   * Placeholder shown when `hideIfEmpty` is `false` and the value is empty.
+   * Pass `null` to render no placeholder at all: an empty row then shows its
+   * label, sub-items and body with no dash. Loading and error states still
+   * paint in the value area either way. @default "—"
+   */
+  emptyText?: string | null;
   /** Allow the value to wrap to multiple lines instead of truncating. */
   wrap?: boolean;
   /**
@@ -430,6 +435,10 @@ const InfoRowBody: React.FC<
     copyable && copyText !== null && !isEmpty && !loading && !hasError;
   const canTooltip =
     tooltipOnTruncate && !wrap && copyText !== null && !loading && !hasError;
+  // An empty value with `emptyText={null}` renders no value span at all —
+  // no dash, no tooltip anchor, nothing to measure. Loading and error are
+  // states, not decoration: they still paint in the value area.
+  const omitValue = isEmpty && emptyText === null && !hasError && !loading;
   const useSmartLayout = labelWidth === undefined;
   const trigger = getSurfaceTriggerTokens(rowTone);
 
@@ -449,11 +458,28 @@ const InfoRowBody: React.FC<
     if (!isControlled) setInternalExpanded(next);
     onToggle?.(next);
   }, [isExpanded, isControlled, onToggle]);
+  const handleRootClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      // The whole control is the toggle — but real content inside it keeps
+      // its own clicks: links, nested buttons, inputs and any editable
+      // region activate themselves, never the row. (The copy cluster also
+      // stops propagation of its own; this guard covers sub-items.)
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const interactive = target.closest(
+          "a,button,input,select,textarea,summary,[role='button'],[contenteditable='true']",
+        );
+        if (interactive && interactive !== event.currentTarget) return;
+      }
+      handleToggle();
+    },
+    [handleToggle],
+  );
   const handleHeaderKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      // Target guard: Enter/Space arriving from the copy button — the only
-      // focusable child on the line — must activate the button, never toggle
-      // the row. Same rule CollapsiblePanel's header obeys.
+      // Target guard: Enter/Space arriving from a focused child — the copy
+      // button is the usual one — must activate that child, never toggle the
+      // row. Same rule CollapsiblePanel's header obeys.
       if (event.target !== event.currentTarget) return;
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -545,9 +571,25 @@ const InfoRowBody: React.FC<
     </span>
   );
 
+  // When the row is a disclosure, the whole control is the toggle: the role,
+  // tab stop and activation live on the root — the block the wash paints —
+  // while the copy cluster and the body region stop propagation, and a guard
+  // keeps any interactive content (links in sub-items) out of the toggle. A
+  // div with a button role, not a native <button>: the row legitimately
+  // holds buttons inside it.
   return (
     <div
       {...rootProps}
+      {...(isCollapsible
+        ? {
+            role: "button" as const,
+            tabIndex: 0,
+            "aria-expanded": isExpanded,
+            "aria-controls": contentId,
+            onClick: handleRootClick,
+            onKeyDown: handleHeaderKeyDown,
+          }
+        : {})}
       // Leaving the row re-arms the hover reveal — the dismissal is about
       // settling after an action, not about disabling the affordance.
       onMouseLeave={() => setDismissed(false)}
@@ -559,10 +601,17 @@ const InfoRowBody: React.FC<
         "group group/inforow flex flex-col transition-colors duration-300",
         rowPadding,
         !noPadding && tokens.horizontalPadding,
-        hoverable && "rounded-md",
+        // A disclosure washes the whole row, not just its main line: the
+        // sub-items and body belong to the same row, and a wash that stops at
+        // the main line reads as a rendering bug. Same shape as `hoverable`'s
+        // — rounded box on the root, which spans every strip.
+        (hoverable || isCollapsible) && "rounded-md",
         // `!copied` so the confirmation wash is never racing the hover wash for
         // the same property.
-        hoverable && copyState === "idle" && trigger.hover,
+        (hoverable || isCollapsible) && copyState === "idle" && trigger.hover,
+        // The pointer and the focus ring mark the toggle, and the toggle is
+        // the whole control.
+        isCollapsible && classNames("cursor-pointer", trigger.focusRing),
         // The hairline's `last:border-0` is suppressed while a section edge is
         // on — `:last-child` outranks the plain class, and without this the
         // last row's requested border would vanish.
@@ -578,30 +627,16 @@ const InfoRowBody: React.FC<
       aria-busy={loading || undefined}
     >
       {/*
-        Main line — the row's original horizontal layout, and the whole
-        toggle target when the row is a disclosure: `role="button"` and the
-        activation live here (never on the root), so clicking a sub-item or
-        reading an open body never toggles. A div with a button role, not a
-        native <button>: the value cluster holds the copy button, which would
-        be invalid nested inside one.
+        Main line — the row's original horizontal layout, and layout only:
+        when the row is a disclosure, the toggle is the whole control, so the
+        role, tab stop and activation live on the root, not here. It keeps the
+        region's `aria-labelledby` anchor as the row's accessible name.
       */}
       <div
         id={headerId}
-        {...(isCollapsible
-          ? {
-              role: "button" as const,
-              tabIndex: 0,
-              "aria-expanded": isExpanded,
-              "aria-controls": contentId,
-              onClick: handleToggle,
-              onKeyDown: handleHeaderKeyDown,
-            }
-          : {})}
         className={classNames(
           "flex min-w-0 items-center rounded-[inherit] text-left",
           tokens.gap,
-          isCollapsible &&
-            classNames("cursor-pointer", trigger.hover, trigger.focusRing),
         )}
       >
         {iconNode && (
@@ -662,7 +697,7 @@ const InfoRowBody: React.FC<
               className="animate-pulse motion-reduce:animate-none"
             />
           )
-        ) : canTooltip && truncated && copyText ? (
+        ) : omitValue ? null : canTooltip && truncated && copyText ? (
           <TooltipWrapper text={copyText}>{valueSpan}</TooltipWrapper>
         ) : (
           valueSpan
@@ -815,8 +850,21 @@ const InfoRowBody: React.FC<
       */}
       {body !== undefined && (
         <div
+          // The body is the app's content — reading it, following its links or
+          // pressing keys in it must never fold the row; its activation stops
+          // at this wrapper, outside the whole-control toggle.
+          {...(isCollapsible
+            ? {
+                onClick: (event: React.MouseEvent) => event.stopPropagation(),
+                onKeyDown: (event: React.KeyboardEvent) =>
+                  event.stopPropagation(),
+              }
+            : {})}
           className={classNames(
-            "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
+            // `cursor-auto`: the row's toggle pointer belongs to the chrome,
+            // not to the app's content — reading and selecting the body must
+            // not look clickable.
+            "grid cursor-auto transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
             bodyOpen ? "opacity-100" : "opacity-0",
           )}
           style={{ gridTemplateRows: bodyOpen ? "1fr" : "0fr" }}

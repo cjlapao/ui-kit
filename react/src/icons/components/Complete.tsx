@@ -3,7 +3,7 @@ import { forwardRef, type SVGProps } from "react";
 export const Complete = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
   (props, ref) => (
     <svg
-      fill="#000000"
+      fill="none"
       viewBox="0 0 1920 1920"
       xmlns="http://www.w3.org/2000/svg"
       {...props}

@@ -4,6 +4,10 @@ import type { MessageCatalog } from "../types";
 
 export const ES_KIT_CATALOG: MessageCatalog = {
   kit: {
+    activityfeed: {
+      showSubitems: "Mostrar subelementos",
+      hideSubitems: "Ocultar subelementos",
+    },
     codeBlock: {
       code: "Código",
       edit: "Editar código",

@@ -5,8 +5,8 @@ import { InfoRow, Panel } from "@cjlapao/ui-kit";
  * what passed, and the policy that granted it hangs below as a sub-item —
  * muted lead-in, monospaced detail, indented to the title's edge. These
  * rows have no main value at all, and a row with sub-items is never hidden
- * by `hideIfEmpty`, so they survive on their content alone (`emptyText=""`
- * keeps the placeholder off the right edge).
+ * by `hideIfEmpty`, so they survive on their content alone — `emptyText={null}`
+ * renders no placeholder at all, keeping the right edge clean.
  */
 const CHECKS = [
   { label: "Workspace access", policy: "trigger_access.all-agents.sdsd.allow" },
@@ -26,7 +26,7 @@ export default function SubItems() {
           icon="Check"
           tone="emerald"
           label={row.label}
-          emptyText=""
+          emptyText={null}
           subItems={[{ text: "Policy:", value: row.policy, mono: true }]}
         />
       ))}

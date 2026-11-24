@@ -552,6 +552,231 @@ describe("ActivityFeed", () => {
     });
   });
 
+  describe("sub-items disclosure", () => {
+    const deploy: ActivityFeedItem = {
+      id: "deploy",
+      title: "deployed the release",
+      actor: "CI",
+      timestamp: "1h ago",
+      tone: "blue",
+      subItems: [
+        { actor: "api", title: "rolled 4 pods", count: 4, code: "svc/api", timestamp: "59m ago" },
+        { title: "cache warm-up", description: "warmed 12k keys", tone: "green" },
+      ],
+    };
+
+    it("renders standard sub-rows with their fields, indented under the title", () => {
+      const { container } = render(<ActivityFeed items={[deploy]} />);
+      const row = container.querySelectorAll("li")[0]!;
+      const region = row.querySelector('[role="region"]')!;
+      // Collapsed at rest: inert + aria-hidden — never `hidden` — and the
+      // grid carries 0fr, InfoRow's gesture exactly.
+      expect(region.hasAttribute("inert")).toBe(true);
+      expect(region.getAttribute("aria-hidden")).toBe("true");
+      expect(region.hasAttribute("hidden")).toBe(false);
+      const grid = region.parentElement as HTMLElement;
+      expect(grid.className).toContain("transition-[grid-template-rows,opacity]");
+      expect(grid.className).toContain("motion-reduce:transition-none");
+      expect(grid.style.gridTemplateRows).toBe("0fr");
+      expect(grid.style.opacity).toBe("");
+      // The region answers to its row: labelled by the main line,
+      // controlled from the toggle.
+      const labelledBy = region.getAttribute("aria-labelledby")!;
+      expect(document.getElementById(labelledBy)!.textContent).toContain("deployed the release");
+      // Column indent = dot (size-2) + gap-3 = the title's leading edge.
+      const subs = region.querySelectorAll(".pl-5 > div");
+      expect(subs).toHaveLength(2);
+      expect(subs[0]!.textContent).toContain("rolled 4 pods");
+      expect(subs[0]!.textContent).toContain("×4");
+      expect(subs[0]!.querySelector("time")!.textContent).toBe("59m ago");
+      expect(subs[1]!.textContent).toContain("warmed 12k keys");
+      // A sub-line without a timestamp draws no <time> at all.
+      expect(subs[1]!.querySelector("time")).toBeNull();
+    });
+
+    it("resolves the sub-row dot down the ladder — sub, then parent, then card", () => {
+      const { container } = render(
+        <ActivityFeed
+          tone="amber"
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "blue",
+              subItems: [{ title: "explicit", tone: "rose" }, { title: "inherits parent" }],
+            },
+            {
+              id: "q",
+              title: "untoned parent",
+              timestamp: "now",
+              subItems: [{ title: "card floor" }],
+            },
+          ]}
+        />,
+      );
+      const dots = Array.from(
+        container.querySelectorAll<HTMLElement>('[role="region"] .pl-5 > div > span:first-child'),
+      );
+      expect(dots[0]!.className).toContain("bg-rose-500");
+      expect(dots[1]!.className).toContain("bg-blue-500");
+      expect(dots[2]!.className).toContain("bg-amber-500");
+    });
+
+    it("renders a custom-body sub-item in place of the fields, keeping the indent", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "mix",
+              title: "aggregated",
+              timestamp: "now",
+              subItems: [
+                { title: "standard sub" },
+                { title: "ignored", body: <span>custom sub UI</span> },
+              ],
+            },
+          ]}
+        />,
+      );
+      const subs = container.querySelectorAll('[role="region"] .pl-5 > div');
+      expect(subs[1]!.textContent).toBe("custom sub UI");
+      expect(subs[1]!.textContent).not.toContain("ignored");
+      // Same row grammar for the wrapper — the indent column holds both.
+      expect(subs[1]!.className).toContain("flex items-start gap-3");
+      expect(subs[0]!.textContent).toContain("standard sub");
+    });
+
+    it("leaves rows without sub-items exactly as they were — no chevron, no region, no tab stop", () => {
+      const { container } = render(
+        <ActivityFeed items={[{ id: "a", title: "t", timestamp: "now" }, { id: "b", title: "t2", timestamp: "now", subItems: [] }]} />,
+      );
+      for (const row of Array.from(container.querySelectorAll("li"))) {
+        expect(row.querySelector('[role="region"]')).toBeNull();
+        expect(row.querySelector("button")).toBeNull();
+        // Only the dot carries aria-hidden — no chevron joined it.
+        expect(row.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
+      }
+    });
+
+    describe("row-is-the-toggle (no onClick)", () => {
+      it("toggles through the row Panel's card action, a11y pair included", () => {
+        const onToggle = vi.fn();
+        const { container } = render(
+          <ActivityFeed items={[{ ...deploy, onToggle }]} />,
+        );
+        const panel = container.querySelector("li > section") as HTMLElement;
+        expect(panel.getAttribute("aria-expanded")).toBe("false");
+        expect(panel.getAttribute("role")).toBe("button");
+        expect(panel.getAttribute("tabindex")).toBe("0");
+        expect(panel.className).toContain("cursor-pointer");
+        const contentId = panel.getAttribute("aria-controls");
+        expect(contentId).toBeTruthy();
+        fireEvent.click(panel);
+        expect(onToggle).toHaveBeenCalledWith(true);
+        expect(panel.getAttribute("aria-expanded")).toBe("true");
+        expect(document.getElementById(contentId!)!.hasAttribute("inert")).toBe(false);
+        // The chevron is decorative here — the row is the toggle.
+        const chevron = panel.querySelector(".rotate-180");
+        expect(chevron).not.toBeNull();
+        expect(chevron!.getAttribute("aria-hidden")).toBe("true");
+        // Enter rides the same guarded path.
+        fireEvent.keyDown(panel, { key: "Enter" });
+        expect(onToggle).toHaveBeenCalledWith(false);
+      });
+
+      it("never folds while the reader clicks or keys inside the region", () => {
+        const onToggle = vi.fn();
+        const { container } = render(
+          <ActivityFeed items={[{ ...deploy, defaultExpanded: true, onToggle }]} />,
+        );
+        const region = container.querySelector('[role="region"]')!;
+        fireEvent.click(region.querySelector(".pl-5 > div")!);
+        fireEvent.keyDown(region.querySelector(".pl-5 > div")!, { key: "Enter" });
+        expect(onToggle).not.toHaveBeenCalled();
+        expect(container.querySelector("li > section")!.getAttribute("aria-expanded")).toBe("true");
+      });
+
+      it("keeps an uncontrolled row open across a filter switch", () => {
+        const both: ActivityFeedItem[] = [
+          { ...deploy, category: "deploys" },
+          { id: "other", title: "flagged", timestamp: "now", category: "alerts" },
+        ];
+        const { container } = render(
+          <ActivityFeed items={both} filters={[{ label: "Deploys", value: "deploys" }, { label: "Alerts", value: "alerts" }]} />,
+        );
+        const panel = () => container.querySelector("li > section") as HTMLElement;
+        fireEvent.click(panel()); // open
+        expect(panel().getAttribute("aria-expanded")).toBe("true");
+        fireEvent.click(screen.getByRole("radio", { name: "Alerts" }));
+        expect(container.querySelector('[role="region"]')).toBeNull(); // hidden with its parent
+        fireEvent.click(screen.getByRole("radio", { name: "All" }));
+        expect(panel().getAttribute("aria-expanded")).toBe("true"); // as open as left
+      });
+    });
+
+    describe("chevron-button mode (row keeps its onClick)", () => {
+      it("keeps the row action and the disclosure strangers to each other", () => {
+        const onClick = vi.fn();
+        const onToggle = vi.fn();
+        const { container } = render(
+          <ActivityFeed items={[{ ...deploy, onClick, onToggle }]} />,
+        );
+        const panel = container.querySelector("li > section") as HTMLElement;
+        // The disclosure's a11y pair lives on the chevron, not the row.
+        expect(panel.getAttribute("aria-expanded")).toBeNull();
+        const chevron = screen.getByRole("button", { name: "Show sub-items" });
+        expect(chevron.getAttribute("aria-expanded")).toBe("false");
+        fireEvent.click(panel);
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(onToggle).not.toHaveBeenCalled();
+        fireEvent.click(chevron);
+        expect(onToggle).toHaveBeenCalledWith(true);
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(screen.getByRole("button", { name: "Hide sub-items" }).getAttribute("aria-expanded")).toBe("true");
+      });
+    });
+
+    describe("controlled rows", () => {
+      it("answer only to the prop, and only report intent", () => {
+        const onToggle = vi.fn();
+        const { container } = render(
+          <ActivityFeed items={[{ ...deploy, expanded: true, onToggle }]} />,
+        );
+        const panel = container.querySelector("li > section") as HTMLElement;
+        expect(panel.getAttribute("aria-expanded")).toBe("true");
+        fireEvent.click(panel);
+        expect(onToggle).toHaveBeenCalledWith(false);
+        // The prop did not move, so neither did the row.
+        expect(panel.getAttribute("aria-expanded")).toBe("true");
+        expect(container.querySelector('[role="region"]')!.hasAttribute("inert")).toBe(false);
+      });
+
+      it("lets an explicit expanded win the seeding against defaultExpanded", () => {
+        const { container } = render(
+          <ActivityFeed items={[{ ...deploy, expanded: false, defaultExpanded: true }]} />,
+        );
+        expect(container.querySelector("li > section")!.getAttribute("aria-expanded")).toBe("false");
+        expect(container.querySelector('[role="region"]')!.hasAttribute("inert")).toBe(true);
+      });
+    });
+
+    it("never lets a sub-item match a filter — and hides them with their parent", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            { ...deploy, category: "deploys" },
+            { id: "other", title: "flagged", timestamp: "now", category: "alerts" },
+          ]}
+          filters={[{ label: "Deploys", value: "deploys" }, { label: "Alerts", value: "alerts" }]}
+          defaultFilter="alerts"
+        />,
+      );
+      expect(screen.queryByText("rolled 4 pods")).not.toBeInTheDocument();
+      expect(container.querySelector('[role="region"]')).toBeNull();
+    });
+  });
+
   describe("loader modes", () => {
     it("replaces the body with the feed-shaped skeleton by default", () => {
       const { container } = render(

@@ -4,6 +4,10 @@ import type { MessageCatalog } from "../types";
 
 export const DE_KIT_CATALOG: MessageCatalog = {
   kit: {
+    activityfeed: {
+      showSubitems: "Unterpunkte anzeigen",
+      hideSubitems: "Unterpunkte ausblenden",
+    },
     codeBlock: {
       code: "Code",
       edit: "Code bearbeiten",

@@ -1,8 +1,9 @@
-import { getSurfaceAccentColor } from "../theme/Theme";
+import { getSurfaceAccentColor, getSurfaceTriggerTokens } from "../theme/Theme";
 import type { SurfaceTone } from "../theme/Theme";
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import classNames from "classnames";
+import { useIconRenderer } from "../contexts/IconContext";
 import Button, { type ButtonVariant } from "./Button";
 import EmptyState from "./EmptyState";
 import Loader from "./Loader";
@@ -76,6 +77,68 @@ export interface ActivityFeedItem {
    * layout can't express. The row itself stays the kit's: the same Panel,
    * so the same `xs` inset, dividers and — with `onClick` — hover, focus
    * and click behaviour. `undefined` or `null` draws the default row.
+   */
+  body?: ReactNode;
+  /**
+   * Rows nested under this one, revealed by the row's disclosure. The
+   * disclosure — and its chevron — exists iff this is non-empty. Sub-items
+   * are read-only context rows: they never filter (filters match this row),
+   * never carry the row's own `onClick`/`active`/`attention`, and never
+   * nest further — the `body` escape hatch is how a sub-row gets interactive.
+   */
+  subItems?: ActivityFeedSubItem[];
+  /**
+   * Initial open state for uncontrolled use. The feed keys its open-set by
+   * `id`, so this seeds a row only while its id is absent from the set —
+   * a row appended by Load more still honours it.
+   * @default false
+   */
+  defaultExpanded?: boolean;
+  /**
+   * Controlled open state, InfoRow's `expanded` carried on the data item —
+   * feed rows are data, not components. Pair with `onToggle`; while this is
+   * a boolean the feed's internal open-set never speaks for the row.
+   */
+  expanded?: boolean;
+  /** Called with the next open state whenever the row's disclosure toggles. */
+  onToggle?: (expanded: boolean) => void;
+}
+
+/**
+ * One row nested under an item, revealed by the row's disclosure — either
+ * the kit's standard sub-row (dot + actor/title + description + code chip +
+ * timestamp, the feed's own row grammar indented to the title's edge) or a
+ * custom `body`, the same "type one or the custom one" split top-level rows
+ * have. A sub-row's `body` replaces the standard fields entirely, keeping
+ * the indent — the escape hatch for anything interactive, since sub-rows
+ * carry no `onClick` of their own.
+ */
+export interface ActivityFeedSubItem {
+  /** What happened, in one line — the standard sub-row's title. */
+  title?: string;
+  /** Supporting copy. */
+  description?: string;
+  /** A monospaced reference — the same chip the main row draws. */
+  code?: string;
+  /** Who did it. */
+  actor?: string;
+  /**
+   * Pre-formatted ("3m ago", "09:12"); optional here where the main row
+   * always has one — a sub-line is context, not necessarily a clock.
+   */
+  timestamp?: string;
+  /**
+   * Status dot tone. Unset follows the parent item's `tone`, then the
+   * card's accent — the same ladder the dots always climbed.
+   */
+  tone?: TrueColor;
+  /** Entries this sub-row aggregates — the same ×n pill grammar as the main row. */
+  count?: number;
+  /**
+   * Replaces the sub-row's entire content — the top-level `body` one level
+   * in. Set and the fields above stop being drawn; the node renders inside
+   * the region at the title's edge. `undefined` or `null` draws the standard
+   * sub-row.
    */
   body?: ReactNode;
 }
@@ -239,6 +302,230 @@ export interface ActivityFeedProps
   rowCorner?: SurfaceCorner;
 }
 
+/** The fields the standard row template draws, shared by rows and sub-rows. */
+interface EntryFields {
+  title?: string;
+  description?: string;
+  code?: string;
+  actor?: string;
+  timestamp?: string;
+  count?: number;
+}
+
+/**
+ * The standard row content, shared verbatim by the feed's rows and its
+ * sub-rows — dot, actor/title, count pill, description, code chip, time.
+ * `dotClass` arrives resolved because the ladder differs per level: rows
+ * climb `item.tone` then the card's accent, sub-rows climb `sub.tone`, the
+ * parent's `tone`, then the card. The `<time>` draws only when there is a
+ * timestamp — a sub-line is context, not necessarily a clock.
+ */
+const entryContent = (entry: EntryFields, dotClass: string) => (
+  <>
+    <span
+      className={classNames(dotClass, "mt-1.5 size-2 shrink-0 rounded-full")}
+      aria-hidden="true"
+    />
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 truncate text-sm font-medium">
+          {entry.actor && <span className="font-semibold">{entry.actor} </span>}
+          {entry.title}
+        </span>
+        {entry.count !== undefined && entry.count > 1 && (
+          <Pill size="sm" tone="neutral">
+            ×{entry.count}
+          </Pill>
+        )}
+      </div>
+      {entry.description && (
+        <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+          {entry.description}
+        </p>
+      )}
+      {entry.code && (
+        <code className="mt-1 inline-block rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] tracking-tighter text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+          {entry.code}
+        </code>
+      )}
+    </div>
+    {entry.timestamp && (
+      <time className="shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
+        {entry.timestamp}
+      </time>
+    )}
+  </>
+);
+
+/** InfoRow's disclosure chevron, one step from rotating: muted, and never its own story. */
+const CHEVRON_BASE =
+  "flex shrink-0 items-center text-neutral-400 transition-transform duration-300 dark:text-neutral-500";
+
+/**
+ * One row: the feed's Panel, its content (template or `body`) and — when the
+ * item carries `subItems` — the disclosure. The toggle is hybrid, and both
+ * of its modes ride the Panel API rather than hand-rolled button semantics:
+ *
+ * - **No `onClick`**: the toggle goes to the row Panel as its card action,
+ *   so the cursor, toned wash, focus ring, Enter/Space and the descendant
+ *   guard are all the Panel's; the chevron is an `aria-hidden` span and the
+ *   row carries `aria-expanded`/`aria-controls`.
+ * - **With `onClick`**: the row keeps its action untouched and the chevron
+ *   is the toggle — a real button, natively keyboard-operable, stopping its
+ *   own click so the row action stays a stranger to it.
+ *
+ * Inside the region, clicks never fold the row: while the row is the toggle
+ * the grid wrapper stops click and keydown — reading or selecting sub-item
+ * content is not an activation, InfoRow's body rule carried here. A row
+ * without `subItems` renders exactly the tree it rendered before the
+ * disclosure existed: no chevron, no region, no new tab stops.
+ */
+const FeedRow = ({
+  item,
+  rowVariant,
+  rowTone,
+  rowCorner,
+  cardSurfaceTone,
+  cardAccent,
+  open,
+  onToggle,
+}: {
+  item: ActivityFeedItem;
+  rowVariant: SurfaceVariant;
+  /** Unset rows follow the card's own surface tone. */
+  rowTone?: SurfaceTone;
+  rowCorner: SurfaceCorner;
+  cardSurfaceTone: SurfaceTone;
+  cardAccent: TrueColor;
+  open: boolean;
+  onToggle: () => void;
+}) => {
+  const t = useKitT();
+  const renderIcon = useIconRenderer();
+  const headerId = useId();
+  const contentId = useId();
+  const subItems = item.subItems;
+  const hasSubs = !!subItems?.length;
+  const rowIsToggle = hasSubs && !item.onClick;
+  // The dot ladder's floor, the row's standing rule: neutral cards keep
+  // neutral dots.
+  const dotFloor = cardAccent === "neutral" ? "neutral" : cardAccent;
+  const chevron = hasSubs ? (
+    rowIsToggle ? (
+      <span
+        className={classNames(CHEVRON_BASE, open ? "rotate-180" : "rotate-0")}
+        aria-hidden="true"
+      >
+        {renderIcon("ArrowDown", "sm")}
+      </span>
+    ) : (
+      <button
+        type="button"
+        className={classNames(
+          CHEVRON_BASE,
+          "rounded-sm border-0 bg-transparent p-0",
+          getSurfaceTriggerTokens(cardAccent).focusRing,
+          open ? "rotate-180" : "rotate-0",
+        )}
+        aria-label={
+          open
+            ? t("kit.activityfeed.hideSubitems")
+            : t("kit.activityfeed.showSubitems")
+        }
+        aria-expanded={open}
+        aria-controls={contentId}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggle();
+        }}
+      >
+        {renderIcon("ArrowDown", "sm")}
+      </button>
+    )
+  ) : null;
+
+  return (
+    // The template row is a Panel, not hand-rolled chrome: `rowVariant`
+    // (default `none`), `rowTone` (default: the component's own tone) and
+    // `rowCorner` (default `rounded`, the corner scale's xs step) on `xs`
+    // padding. Hover, focus and activation come from the Panel API rather
+    // than copied row classes — the toggle, like an `onClick`, is the
+    // Panel's guarded card action, and a click that belongs to a nested
+    // control — the link, a custom body's buttons — stays that control's.
+    <Panel
+      variant={rowVariant}
+      tone={rowTone ?? cardSurfaceTone}
+      corner={rowCorner}
+      padding="xs"
+      onClick={item.onClick ?? (hasSubs ? onToggle : undefined)}
+      active={item.active}
+      pulse={item.attention}
+      borderColor={item.attentionTone}
+      {...(rowIsToggle
+        ? { "aria-expanded": open, "aria-controls": contentId }
+        : undefined)}
+    >
+      <div id={headerId} className="flex items-start gap-3">
+        {item.body != null
+          ? item.body
+          : entryContent(
+              item,
+              getTrueColorDotClass(item.tone ?? dotFloor),
+            )}
+        {chevron}
+      </div>
+      {hasSubs && (
+        // InfoRow's grid-rows gesture, class for class: `0fr → 1fr` plus
+        // opacity, never `hidden` — `inert` while collapsed keeps the
+        // region unfocusable and unannounced without snapping the
+        // transition.
+        <div
+          className={classNames(
+            "grid cursor-auto transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
+            open ? "opacity-100" : "opacity-0",
+          )}
+          style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+          {...(rowIsToggle
+            ? {
+                onClick: (event: React.MouseEvent) => event.stopPropagation(),
+                onKeyDown: (event: React.KeyboardEvent) =>
+                  event.stopPropagation(),
+              }
+            : undefined)}
+        >
+          <div
+            id={contentId}
+            role="region"
+            aria-labelledby={headerId}
+            aria-hidden={open ? undefined : true}
+            // React 18's types predate `inert`; the cast that predates it
+            // in InfoRow ships again.
+            {...(open ? {} : ({ inert: true } as Record<string, unknown>))}
+            className="min-h-0 overflow-hidden"
+          >
+            {/* Dot (size-2) + gap-3 puts the column at the title's leading
+                edge — sub-rows read as the row's own, one level in. */}
+            <div className="flex flex-col gap-1.5 pl-5">
+              {subItems?.map((sub, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  {sub.body != null
+                    ? sub.body
+                    : entryContent(
+                        sub,
+                        getTrueColorDotClass(
+                          sub.tone ?? item.tone ?? dotFloor,
+                        ),
+                      )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+};
+
 /**
  * The audit log as a living feed: newest first, toned dots for what
  * happened, a segment control for who or what kind, and a tail that says
@@ -296,6 +583,11 @@ export const ActivityFeed = ({
   // tone of its own and only the filter moves.
   const filterColor = filterTone ?? controlColor;
   const [active, setActive] = useState(defaultFilter);
+  // The disclosure's uncontrolled open-set, keyed by item id — a row seeds
+  // from `defaultExpanded` only while its id is absent, so Load-more rows
+  // keep their ask. Ids key the list too, so the set survives filter
+  // switches: hide a row and it returns as open as you left it.
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
 
   const options = useMemo(
     () => [{ label: "All", value: "all" }, ...filters],
@@ -373,52 +665,6 @@ export const ActivityFeed = ({
     </>
   ) : null;
 
-  // The row's content, dropped into the template row's Panel. An item
-  // `body` replaces the whole content; the Panel stays, so custom rows keep
-  // the feed's row grammar — and its hover, focus and click behaviour.
-  const rowBody = (item: ActivityFeedItem) =>
-    item.body != null ? (
-      item.body
-    ) : (
-      <>
-        <span
-          className={classNames(
-            getTrueColorDotClass(item.tone ?? (tone === "neutral" ? "neutral" : tone)),
-            "mt-1.5 size-2 shrink-0 rounded-full",
-          )}
-          aria-hidden="true"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="min-w-0 truncate text-sm font-medium">
-              {item.actor && (
-                <span className="font-semibold">{item.actor} </span>
-              )}
-              {item.title}
-            </span>
-            {item.count !== undefined && item.count > 1 && (
-              <Pill size="sm" tone="neutral">
-                ×{item.count}
-              </Pill>
-            )}
-          </div>
-          {item.description && (
-            <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-              {item.description}
-            </p>
-          )}
-          {item.code && (
-            <code className="mt-1 inline-block rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] tracking-tighter text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-              {item.code}
-            </code>
-          )}
-        </div>
-        <time className="shrink-0 pt-0.5 text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
-          {item.timestamp}
-        </time>
-      </>
-    );
-
   // The body is built before the layout so the three states — rows, skeleton
   // and empty — share one scroller when `maxHeight` caps the card. Swapping
   // states never resizes the card or drops the scroll area around them, and
@@ -481,32 +727,35 @@ export const ActivityFeed = ({
           : "space-y-2",
       )}
     >
-      {visible.map((item) => (
-        // The template row is a Panel, not hand-rolled chrome: `rowVariant`
-        // (default `none`), `rowTone` (default: the component's own tone)
-        // and `rowCorner` (default `rounded`, the corner scale's xs step)
-        // on `xs` padding. Hover, focus and activation come from the Panel
-        // API rather than copied row classes — an `onClick` alone makes the
-        // row a guarded button (role, tabIndex, Enter/Space, the focus ring
-        // and the toned hover wash), and a click that belongs to a nested
-        // control — the link, a custom body's buttons — stays that
-        // control's, which the old hand-rolled role="button" li got wrong:
-        // it fired the row alongside.
-        <li key={item.id}>
-          <Panel
-            variant={rowVariant}
-            tone={rowTone ?? surfaceTone}
-            corner={rowCorner}
-            padding="xs"
-            onClick={item.onClick}
-            active={item.active}
-            pulse={item.attention}
-            borderColor={item.attentionTone}
-          >
-            <div className="flex items-start gap-3">{rowBody(item)}</div>
-          </Panel>
-        </li>
-      ))}
+      {visible.map((item) => {
+        // Controlled rows — InfoRow's `expanded` carried on the data —
+        // answer only to the caller; uncontrolled rows ride the feed's
+        // open-set. `onToggle` fires either way: a controlled row's
+        // caller is the only one who can move it.
+        const controlled = typeof item.expanded === "boolean";
+        const open = controlled
+          ? (item.expanded as boolean)
+          : (openMap[item.id] ?? item.defaultExpanded ?? false);
+        return (
+          <li key={item.id}>
+            <FeedRow
+              item={item}
+              rowVariant={rowVariant}
+              rowTone={rowTone}
+              rowCorner={rowCorner}
+              cardSurfaceTone={surfaceTone}
+              cardAccent={tone}
+              open={open}
+              onToggle={() => {
+                if (!controlled) {
+                  setOpenMap((map) => ({ ...map, [item.id]: !open }));
+                }
+                item.onToggle?.(!open);
+              }}
+            />
+          </li>
+        );
+      })}
     </ol>
   );
 

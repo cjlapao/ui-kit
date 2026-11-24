@@ -46,6 +46,9 @@ export const InfoRowPlayground: React.FC = () => {
   const [longValue, setLongValue] = useState(false);
   const [emptyValue, setEmptyValue] = useState(false);
   const [hideIfEmpty, setHideIfEmpty] = useState(false);
+  // The companion of Empty value: `emptyText={null}` renders no placeholder
+  // at all, keeping the right edge of a chrome-only row clean.
+  const [noPlaceholder, setNoPlaceholder] = useState(false);
 
   const [icon, setIcon] = useState<"" | IconName>("");
   const [subItems, setSubItems] = useState(false);
@@ -87,6 +90,9 @@ export const InfoRowPlayground: React.FC = () => {
         loaderType={loaderType}
         error={errored && i === 0 ? "Registry unreachable" : undefined}
         hideIfEmpty={hideIfEmpty}
+        emptyText={
+          isAnatomyRow && emptyValue && noPlaceholder ? null : undefined
+        }
         icon={icon === "" ? undefined : icon}
         subItems={
           subItems && isAnatomyRow
@@ -286,6 +292,13 @@ export const InfoRowPlayground: React.FC = () => {
                         checked={emptyValue}
                         onChange={setEmptyValue}
                       />
+                      {emptyValue && (
+                        <ToggleRow
+                          label="No placeholder"
+                          checked={noPlaceholder}
+                          onChange={setNoPlaceholder}
+                        />
+                      )}
                       <ToggleRow
                         label="Hide if empty"
                         checked={hideIfEmpty}
@@ -306,7 +319,8 @@ export const InfoRowPlayground: React.FC = () => {
             the value to see the truncation tooltip — it is portaled, so a
             scrolling panel cannot clip it. In <strong>Anatomy</strong>, the
             icon follows the row <code>tone</code>; <strong>Collapsible</strong>{" "}
-            turns the first row&rsquo;s main line into the toggle;{" "}
+            makes the whole first row the toggle (the open body and any links
+            keep their own clicks);{" "}
             <strong>Bottom border</strong> is honoured by <code>simple</code>{" "}
             and <code>none</code> only, so the switch is disabled on the other
             variants.

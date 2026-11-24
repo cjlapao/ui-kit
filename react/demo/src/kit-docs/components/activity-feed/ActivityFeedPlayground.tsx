@@ -10,6 +10,7 @@ import {
   Pill,
   type ActivityFeedItem,
   type ActivityFeedLoaderType,
+  type ActivityFeedSubItem,
   type ButtonVariant,
   type SurfacePadding,
   type SurfaceVariant,
@@ -59,6 +60,43 @@ const FILTERS = [
 const AGENTS = ["CI", "Ada", "Grace", "Watchdog"];
 const VERBS = ["restarted a pod", "pruned stale branches", "archived an audit export", "cleared the feature flag"];
 
+// Sub-items for the two rows the playground opens: the deploy row gives
+// its click up (the row becomes the toggle, chevron as decoration), the
+// security row keeps its click (the chevron becomes a button of its own).
+const DEPLOY_SUBS: ActivityFeedSubItem[] = [
+  { actor: "api", title: "rolled 4 pods", count: 4, code: "svc/api", timestamp: "58m ago" },
+  { actor: "web", title: "rolled 3 pods", count: 3, code: "svc/web", timestamp: "57m ago" },
+  {
+    // A custom sub-row: any node fills the indent column the same.
+    body: (
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="min-w-0 truncate text-sm font-medium">
+            <span className="font-semibold">cache </span>warming up
+          </span>
+          <span className="ms-auto shrink-0 text-xs tabular-nums text-neutral-400 dark:text-neutral-500">
+            82%
+          </span>
+        </div>
+        <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+          <div className="h-full w-4/5 rounded-full bg-emerald-500" />
+        </div>
+      </div>
+    ),
+  },
+];
+
+const SEC_SUBS: ActivityFeedSubItem[] = [
+  { title: "staging keys rotated", code: "env/staging", timestamp: "2m ago" },
+  {
+    title: "production keys queued",
+    description: "awaiting the approval window",
+    code: "env/prod",
+    timestamp: "1m ago",
+    tone: "amber",
+  },
+];
+
 export const ActivityFeedPlayground: React.FC = () => {
   const [items, setItems] = useState(BASE_ITEMS);
   const [filters, setFilters] = useState(true);
@@ -93,6 +131,12 @@ export const ActivityFeedPlayground: React.FC = () => {
   // The per-item `body` override: on, and every item swaps its whole
   // content for a custom node — the default row disappears entirely.
   const [customBody, setCustomBody] = useState(false);
+  // The disclosure: on, the security row grows sub-items around its
+  // existing click (chevron-button mode) and the deploy row opens into
+  // per-service lines with its click handed to the toggle (row-as-toggle
+  // mode). The seed toggle ships the deploy row already open.
+  const [subItems, setSubItems] = useState(false);
+  const [subsExpanded, setSubsExpanded] = useState(true);
   // Each override carries a Panel of its own, so the row surface can be
   // played with independently of the card's variant and tone.
   const [bodyVariant, setBodyVariant] = useState<SurfaceVariant>("elevated");
@@ -164,9 +208,18 @@ export const ActivityFeedPlayground: React.FC = () => {
       attentionTone: (attentionRow && item.id === "4"
         ? attentionTone || undefined
         : undefined) as ActivityFeedItem["attentionTone"],
+      // The disclosure is independent of the content override: a row may
+      // carry a custom body and still fold open.
+      ...(subItems
+        ? item.id === "3"
+          ? { onClick: undefined, defaultExpanded: subsExpanded, subItems: DEPLOY_SUBS }
+          : item.id === "1"
+            ? { subItems: SEC_SUBS }
+            : {}
+        : {}),
       ...(customBody ? { body: override(item) } : {}),
     }));
-  }, [items, customBody, bodyVariant, bodyTone, activeRow, attentionRow, attentionTone]);
+  }, [items, customBody, bodyVariant, bodyTone, activeRow, attentionRow, attentionTone, subItems, subsExpanded]);
 
   return (
     <PlaygroundPanel
@@ -216,6 +269,10 @@ export const ActivityFeedPlayground: React.FC = () => {
                           onChange={(v) => setBodyVariant(v as SurfaceVariant)} />
                         <SurfaceToneControl label="Body tone" value={bodyTone} onChange={setBodyTone} />
                       </>
+                    )}
+                    <ToggleRow label="sub-items" checked={subItems} onChange={setSubItems} />
+                    {subItems && (
+                      <ToggleRow label="sub-items open" checked={subsExpanded} onChange={setSubsExpanded} />
                     )}
                   </>
                 ),
@@ -271,7 +328,12 @@ export const ActivityFeedPlayground: React.FC = () => {
             and demand, layering with the hover and with each other — and{" "}
             <strong>attention tone</strong> moves that hue the Panel's own
             way: <code>borderColor ?? tone</code>, blue floor, one hue for
-            rim and glow.
+            rim and glow. <strong>Sub-items</strong> opens the security row
+            around its existing click — the chevron takes the disclosure as
+            a button of its own — and the deploy row hands its click to the
+            toggle, so the whole row folds open with InfoRow's grid-rows
+            animation; <strong>sub-items open</strong> seeds that row
+            expanded, and its third line is a custom <code>body</code>.
           </p>
         </div>
       }
