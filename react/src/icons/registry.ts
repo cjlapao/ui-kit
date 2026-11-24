@@ -198,6 +198,7 @@ import { Script } from "./components/Script";
 import { Search } from "./components/Search";
 import { SearchEye } from "./components/SearchEye";
 import { Send } from "./components/Send";
+import { Server } from "./components/Server";
 import { Settings } from "./components/Settings";
 import { SettingsVertical } from "./components/SettingsVertical";
 import { Shield } from "./components/Shield";
@@ -444,6 +445,7 @@ export type IconName =
   | "Search"
   | "SearchEye"
   | "Send"
+  | "Server"
   | "Settings"
   | "SettingsVertical"
   | "Shield"
@@ -691,6 +693,7 @@ export const iconRegistry: Record<
   Search: Search,
   SearchEye: SearchEye,
   Send: Send,
+  Server: Server,
   Settings: Settings,
   SettingsVertical: SettingsVertical,
   Shield: Shield,

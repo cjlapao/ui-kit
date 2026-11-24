@@ -198,6 +198,7 @@ export * from "./components/Script";
 export * from "./components/Search";
 export * from "./components/SearchEye";
 export * from "./components/Send";
+export * from "./components/Server";
 export * from "./components/Settings";
 export * from "./components/SettingsVertical";
 export * from "./components/Shield";
