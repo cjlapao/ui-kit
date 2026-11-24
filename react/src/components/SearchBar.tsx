@@ -81,6 +81,19 @@ export interface SearchBarProps {
    * @default "elevated"
    */
   variant?: SearchBarVariant;
+  /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * State colours stay with `tone` — focus border, ring, icons and the glow all
+   * follow it — while the fill follows this hue through the variant's own
+   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * `elevated` their border, and `underline` has no box to paint. `neutral`
+   * means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** Shared control size scale. @default "md" */
   size?: ControlSize;
   /** Accent colour for focus ring, icon highlight, and clear-button hover. Default: 'blue' */
@@ -134,6 +147,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   shouldClear = false,
   leadingIcon = "Search",
   variant = "elevated",
+  backgroundColor,
   size = "md",
   color: colorProp,
   gradientFrom,
@@ -279,6 +293,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const linesMinHeight = lines ? getFieldMinHeightClass(size, lines) : "";
   const variantTokens = getInputVariantTokens(variant, color, "auto", {
     explicitTone: colorProp,
+    backgroundColor,
   });
 
   const bar = (

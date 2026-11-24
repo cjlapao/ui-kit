@@ -74,6 +74,8 @@ export interface ConnectionFlowProps {
   tone?: SurfaceTone;
   size?: ControlSize;
   corner?: SurfaceCorner;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   edgeStyle?: ConnectionFlowEdgeStyle;
   /**
    * Surface treatment for the node cards, on the same container scale `Panel`
@@ -247,6 +249,7 @@ const ConnectionFlow = React.forwardRef<
     tone: surfaceTone = "none",
     size = "md",
     corner = DEFAULT_SURFACE_CORNER,
+    raisedSurface = false,
     edgeStyle = "orthogonal",
     maxVisibleItems = 2,
     itemProgress = "bar",
@@ -851,6 +854,7 @@ const ConnectionFlow = React.forwardRef<
       tone={surfaceTone}
       corner={corner}
       padding="none"
+      raisedSurface={raisedSurface}
       flexBody
       // Title, subtitle and loading are drawn by the flow's own header:
       // Panel's carries no icon chip and no progress, and `variant="plain"`

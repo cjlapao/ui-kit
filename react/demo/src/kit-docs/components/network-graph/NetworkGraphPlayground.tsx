@@ -34,6 +34,7 @@ export function NetworkGraphPlayground() {
   const [variant, setVariant] = useState<SurfaceVariant>("glass");
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [opacity, setOpacity] = useState<GlassOpacity>("frosted");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
   const [count, setCount] = useState("180");
@@ -129,6 +130,12 @@ export function NetworkGraphPlayground() {
                         { label: "High", value: "high" },
                       ]}
                       onChange={(v) => setVibrancy(v as GlassVibrancy)}
+                    />
+                    {/* One depth step up, for graphs that blend into the page. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),
@@ -364,6 +371,7 @@ export function NetworkGraphPlayground() {
             variant={variant}
             tone={tone}
             corner={corner}
+            raisedSurface={raisedSurface}
             glassOpacity={opacity}
             vibrancy={vibrancy}
             height={440}

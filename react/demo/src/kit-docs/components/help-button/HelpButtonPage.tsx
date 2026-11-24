@@ -15,7 +15,7 @@ export const HelpButtonPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Help Button"
-      description="An icon trigger that opens a floating panel of Markdown or node content — the full 21-colour tone set, every container surface, the shared size scale, auto-aware placement, and a loading skeleton shaped like the copy."
+      description="An icon trigger that opens a floating panel of Markdown or node content — the full 21-colour tone set, every container surface (plus `raisedSurface`, which forces the first nested-panels depth step — the tinted-card-on-matching-background fix), the shared size scale, auto-aware placement, and a loading skeleton shaped like the copy."
     />
     <HelpButtonPlayground />
     <section className="flex flex-col gap-5">

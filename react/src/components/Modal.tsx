@@ -230,6 +230,8 @@ export interface ModalProps
   transparency?: SurfaceTransparency;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Icon for the maximise toggle. @default "Scale" */
   maximizeIcon?: IconName;
 }
@@ -290,6 +292,7 @@ const Modal: React.FC<ModalProps> = ({
   transparency,
   vibrancy,
   specularMode,
+  raisedSurface = false,
   maximizeIcon = "Scale",
   onMouseDown,
   onClick,
@@ -820,6 +823,7 @@ const Modal: React.FC<ModalProps> = ({
         transparency={transparency}
         vibrancy={vibrancy}
         specularMode={specularMode}
+        raisedSurface={raisedSurface}
         className={contentClasses}
         style={contentStyle}
         role={role}

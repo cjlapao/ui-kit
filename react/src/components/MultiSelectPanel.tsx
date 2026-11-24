@@ -40,6 +40,7 @@ export type MultiSelectPanelSurfaceProps = Pick<
   | "transparency"
   | "hoverable"
   | "hoverShadow"
+  | "hoverColor"
   | "decoration"
   | "pulse"
   | "pulseTone"
@@ -49,6 +50,7 @@ export type MultiSelectPanelSurfaceProps = Pick<
   | "glassOpacity"
   | "vibrancy"
   | "specularMode"
+  | "raisedSurface"
 >;
 
 export interface MultiSelectPanelOption {
@@ -72,9 +74,11 @@ export interface MultiSelectPanelOption {
   /** Beats the group's `variant` for this card. */
   variant?: MultiSelectPanelSurfaceProps["variant"];
   /**
-   * Beats the group's `tone`. Everything the hue was already driving follows
-   * it — the hover wash, and, unless they are given hues of their own, the box
-   * accent and the selection rim.
+   * Beats the group's `tone`. The box accent and the selection rim follow it
+   * unless they are given hues of their own, and so does the hover — though a
+   * card that is the *selected* one answers the pointer in the group's selection
+   * hue instead, so a card selected in amber hovers amber whatever this says.
+   * `hoverColor` overrides that.
    */
   tone?: SurfaceTone;
   /**
@@ -87,6 +91,13 @@ export interface MultiSelectPanelOption {
    * follows the group, whose default is the card's own selection hue.
    */
   pulseTone?: TrueColor;
+  /**
+   * Beats the group's `hoverColor` — this card's hover wash, pressed step and
+   * hover rim. `undefined` follows the group, whose default is the hue the card
+   * is selected in *while it is*, else its own tone: the selected card hovers in
+   * the colour of its own state, and nobody else borrows it.
+   */
+  hoverColor?: TrueColor;
   /** Beats the group's `corner`. */
   corner?: MultiSelectPanelSurfaceProps["corner"];
   /** Beats the group's `padding`. */
@@ -217,6 +228,7 @@ export const MultiSelectPanel: React.FC<MultiSelectPanelProps> = ({
   transparency,
   hoverable,
   hoverShadow,
+  hoverColor,
   decoration,
   pulse,
   pulseTone,
@@ -226,6 +238,7 @@ export const MultiSelectPanel: React.FC<MultiSelectPanelProps> = ({
   glassOpacity,
   vibrancy,
   specularMode,
+  raisedSurface = false,
   className,
 }) => {
   const groupId = useId();
@@ -486,6 +499,7 @@ export const MultiSelectPanel: React.FC<MultiSelectPanelProps> = ({
               transparency={transparency}
               hoverable={hoverable}
               hoverShadow={hoverShadow}
+              hoverColor={option.hoverColor ?? hoverColor}
               decoration={decoration}
               pulse={option.pulse ?? pulse}
               pulseTone={option.pulseTone ?? pulseTone}
@@ -495,6 +509,7 @@ export const MultiSelectPanel: React.FC<MultiSelectPanelProps> = ({
               glassOpacity={glassOpacity}
               vibrancy={vibrancy}
               specularMode={specularMode}
+              raisedSurface={raisedSurface}
               className="h-full"
               data-multiselect-card={option.value}
             >

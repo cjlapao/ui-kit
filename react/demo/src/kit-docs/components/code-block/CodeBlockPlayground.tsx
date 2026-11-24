@@ -21,6 +21,9 @@ export function CodeBlockPlayground() {
   const [color, setColor] = useState<TrueColor>("blue");
   const [variant, setVariant] = useState<SurfaceVariant>("subtle");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  // The one flip that saves a code block painted the same tint as the page —
+  // the forced first nesting step makes the card's edge show again.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [readOnly, setReadOnly] = useState(true);
   const [showTitle, setShowTitle] = useState(true);
   const [showCopy, setShowCopy] = useState(true);
@@ -34,6 +37,7 @@ export function CodeBlockPlayground() {
       <Control label="Color"><ColorSwatches selectable size="sm" value={color} onSelect={setColor} defaultExpanded /></Control>
       <SelectControl label="Variant" options={surfaceVariantOptions} value={variant} onChange={(next) => setVariant(next as SurfaceVariant)} />
       <SelectControl label="Corner" options={panelCornerOptions} value={corner} onChange={(next) => setCorner(next as SurfaceCorner)} />
+      <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
       <SelectControl label="Language" options={Object.keys(samples).map((name) => ({ label: name, value: name }))} value={language} onChange={(next) => { setLanguage(next); setValue(samples[next]); }} />
       <Control label="Filename">
         <input aria-label="Filename" value={filename} onChange={(event) => setFilename(event.target.value)} className="w-full rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700" />
@@ -48,6 +52,6 @@ export function CodeBlockPlayground() {
       <ToggleRow label="Wrap lines" checked={wrapLines} onChange={setWrapLines} />
       <p className="text-xs opacity-70">Turn off Read only to edit the preview. Line numbers apply to display mode. Changing language loads a new sample.</p>
     </div>}
-    preview={<CodeBlock tone={surfaceTone} value={value} onChange={setValue} language={language} filename={filename} color={color} variant={variant} corner={corner} readOnly={readOnly} showTitle={showTitle} showCopy={showCopy} showLineNumbers={showLineNumbers} wrapLines={wrapLines} maxHeight={maxHeight} />}
+    preview={<CodeBlock tone={surfaceTone} value={value} onChange={setValue} language={language} filename={filename} color={color} variant={variant} corner={corner} raisedSurface={raisedSurface} readOnly={readOnly} showTitle={showTitle} showCopy={showCopy} showLineNumbers={showLineNumbers} wrapLines={wrapLines} maxHeight={maxHeight} />}
   />;
 }

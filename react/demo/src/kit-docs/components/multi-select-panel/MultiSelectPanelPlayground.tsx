@@ -113,6 +113,7 @@ export const MultiSelectPanelPlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("blue");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-sm");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [checkboxVariant, setCheckboxVariant] = useState<InputVariant>("flat");
   // The three hues a card may keep to itself. `undefined` is the auto answer —
   // box in the card's tone, selection in `borderColor ?? tone`, glow in the
@@ -122,6 +123,7 @@ export const MultiSelectPanelPlayground: React.FC = () => {
   );
   const [activeTone, setActiveTone] = useState<TrueColor | undefined>(undefined);
   const [pulseTone, setPulseTone] = useState<TrueColor | undefined>(undefined);
+  const [hoverColor, setHoverColor] = useState<TrueColor | undefined>(undefined);
   const [labelTone, setLabelTone] = useState<TrueColor>("blue");
   const [labelVariant, setLabelVariant] = useState<PillVariant>("outline");
   const [labelAlign, setLabelAlign] =
@@ -182,10 +184,12 @@ export const MultiSelectPanelPlayground: React.FC = () => {
       tone={tone}
       corner={corner}
       padding={padding}
+      raisedSurface={raisedSurface}
       checkboxVariant={checkboxVariant}
       checkboxTone={checkboxTone}
       activeTone={activeTone}
       pulseTone={pulseTone}
+      hoverColor={hoverColor}
       labelTone={labelTone}
       labelVariant={labelVariant}
       labelAlign={labelAlign}
@@ -272,6 +276,12 @@ export const MultiSelectPanelPlayground: React.FC = () => {
                       value={padding}
                       onChange={(v) => setPadding(v as SurfacePadding)}
                     />
+                    {/* Every card takes the first depth step — handy when the tint matches its backdrop. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
+                    />
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <ToggleRow
                         label="Pulse"
@@ -320,6 +330,15 @@ export const MultiSelectPanelPlayground: React.FC = () => {
                         autoLabel="Auto — the selected hue"
                       />
                     ) : null}
+                    {/* Always on show: these cards are the control, so they
+                        answer the pointer whatever else is set — and the one that
+                        is selected does so in the hue its rim already wears. */}
+                    <HueControl
+                      label="Hover hue"
+                      value={hoverColor}
+                      onChange={setHoverColor}
+                      autoLabel="Auto — the selected hue while selected, else the card’s tone"
+                    />
                   </div>
                 ),
               },

@@ -65,6 +65,8 @@ export interface DynamicFormFieldProps {
   helpTone?: TrueColor;
   /** Rows shown by a free-form `List` before it scrolls. @default 4 */
   listRows?: number;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 /**
@@ -134,6 +136,7 @@ const props = withDefaults(defineProps<DynamicFormFieldProps>(), {
   readOnly: false,
   helpTitle: "What is this?",
   listRows: 4,
+  raisedSurface: false,
 });
 const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
@@ -258,6 +261,7 @@ const onNumberInput = (next: string) =>
             tone,
             corner,
             padding,
+            raisedSurface,
             bodyClassName: 'flex flex-col gap-2',
             scrollable: false,
           }

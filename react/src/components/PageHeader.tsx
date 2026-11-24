@@ -60,6 +60,8 @@ export interface PageHeaderProps extends React.HTMLAttributes<HTMLElement> {
   transparency?: PanelProps["transparency"];
   vibrancy?: PanelProps["vibrancy"];
   specularMode?: PanelProps["specularMode"];
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Tone of the `floating-glass` frosted fill — the same token, name and
    * default as the `SideMenu`'s `color`, so a paired menu and header set to
@@ -121,6 +123,7 @@ export const PageHeader = ({
   transparency,
   vibrancy,
   specularMode,
+  raisedSurface = false,
   padding,
   paddingTop,
   paddingRight,
@@ -178,6 +181,7 @@ export const PageHeader = ({
       {sharedSurface && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" style={{ borderRadius: "inherit" }}>
           <Panel variant={variant as SurfaceVariant} tone={tone} glassOpacity={glassOpacity} transparency={transparency} vibrancy={vibrancy} specularMode={specularMode}
+            raisedSurface={raisedSurface}
             padding="none" corner="none" className="h-full w-full" style={{ borderRadius: "inherit" }} />
         </div>
       )}

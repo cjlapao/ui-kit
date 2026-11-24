@@ -45,7 +45,7 @@ const defaults: Omit<IdentityPickerLabels, "description"> = {
   search: "Search emoji (e.g. rocket, fire, code)", recommended: "Recommended", all: "All",
   categories: "Emoji categories", empty: "No emoji match your search.", initials: "Initials", automatic: "Use automatic initials", preview: "Identity preview",
 };
-export interface IdentityPickerProps extends Pick<PanelProps, "variant" | "tone" | "padding" | "corner" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode"> {
+export interface IdentityPickerProps extends Pick<PanelProps, "variant" | "tone" | "padding" | "corner" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode" | "raisedSurface"> {
   value?: IdentityValue;
   defaultValue?: IdentityValue;
   onChange?: (value: IdentityValue) => void;

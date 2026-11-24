@@ -105,6 +105,13 @@ export const TextareaPage: React.FC = () => (
           description: "Accent colour of the focus indicator.",
         },
         {
+          name: "backgroundColor",
+          type: "TrueColor",
+          default: '"none"',
+          description:
+            "The hue the fill wears when it should disagree with tone — the focus border, ring, icons and the gradient glow keep following tone, so a rose-filled field still focuses blue. Each variant paints that fill with its own recipe rather than one fixed tone step (glass stays sheer, gradient keeps its blur); underline has no box to paint, so there it is a no-op, and neutral restores the variant's own resting fill.",
+        },
+        {
           name: "validationStatus",
           type: '"none" | "error" | "success"',
           default: '"none"',

@@ -25,6 +25,8 @@ export interface VariablePickerProps {
   /** Pre-fills the search box — used when the picker is opened by typing. */
   initialSearch?: string;
   title?: string;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 </script>
 
@@ -51,6 +53,7 @@ const props = withDefaults(defineProps<VariablePickerProps>(), {
   panelTone: "none",
   size: "md",
   initialSearch: "",
+  raisedSurface: false,
 });
 
 const emit = defineEmits<{
@@ -137,6 +140,7 @@ const rowClass = (groupTone?: TrueColor) => {
     v-bind="restAttrs"
     :variant="variant"
     :tone="panelTone"
+    :raised-surface="raisedSurface"
     padding="none"
     :scrollable="false"
     :class="classNames('w-[26rem] max-w-[calc(100vw-2rem)]', classAttr)"

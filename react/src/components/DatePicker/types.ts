@@ -98,6 +98,21 @@ export interface DatePickerProps extends Omit<
   color?: TrueColor;
   /** @default "flat" */
   variant?: InputVariant;
+  /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * State colours stay with `tone` — focus border, ring, icons and the glow all
+   * follow it — while the fill follows this hue through the variant's own
+   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * `elevated` their border, and `underline` has no box to paint. `neutral`
+   * means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`. The calendar popup
+   * is a `Panel` and keeps its own `panelTone`/`panelVariant`, which this does
+   * not touch.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
   glowIntensity?: GlowIntensity;
   /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
@@ -140,6 +155,13 @@ export interface DatePickerProps extends Omit<
   /** @default `"auto"` — the theme's container corner (no radius pinned) */
   panelCorner?: SurfaceCorner;
   panelClassName?: string;
+  /**
+   * Forwarded to the calendar's Panel — forces at least the first
+   * nested-panels depth step so a tinted calendar stays visible on a
+   * matching background. See Panel's `raisedSurface`.
+   * @default false
+   */
+  raisedSurface?: boolean;
 
   // ── Events & copy ─────────────────────────────────────────────────────────
   onShow?: () => void;

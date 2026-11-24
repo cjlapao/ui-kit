@@ -129,6 +129,8 @@ export const useStatBaseControls = (): StatBaseControls => {
   // inherits wholesale — see `StatCardProps`.
   const [active, setActive] = useState(false);
   const [activeTone, setActiveTone] = useState<TrueColor | undefined>();
+  const [hoverable, setHoverable] = useState(false);
+  const [hoverColor, setHoverColor] = useState<TrueColor | undefined>();
   const [pulse, setPulse] = useState(false);
   const [pulseTone, setPulseTone] = useState<TrueColor | undefined>();
 
@@ -210,7 +212,7 @@ export const useStatBaseControls = (): StatBaseControls => {
     },
     {
       id: "selection",
-      title: "Selected & pulsing",
+      title: "Selected, pulsing & hover",
       controls: (
         <div className="space-y-1.5">
           <ToggleRow label="Selected" checked={active} onChange={setActive} />
@@ -229,6 +231,19 @@ export const useStatBaseControls = (): StatBaseControls => {
               value={pulseTone}
               onChange={setPulseTone}
               autoLabel="Auto — the selected hue"
+            />
+          ) : null}
+          {/* The card only answers the pointer when it is clickable, which the
+              preview is not — so the hover needs asking for. Its swatch is the
+              interesting one: with Selected on and a Selected hue set, that is the
+              hue the hover takes on this card, until this says otherwise. */}
+          <ToggleRow label="Hoverable" checked={hoverable} onChange={setHoverable} />
+          {hoverable ? (
+            <HueControl
+              label="Hover hue"
+              value={hoverColor}
+              onChange={setHoverColor}
+              autoLabel="Auto — the selected hue while selected, else the card's own"
             />
           ) : null}
         </div>
@@ -369,6 +384,8 @@ export const useStatBaseControls = (): StatBaseControls => {
     activeTone,
     pulse,
     pulseTone,
+    hoverable,
+    hoverColor,
     gradient,
     labelTone: (labelTone || undefined) as TrueColor | undefined,
     labelSize: (labelSize || undefined) as ControlSize | undefined,

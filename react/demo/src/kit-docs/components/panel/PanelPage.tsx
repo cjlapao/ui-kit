@@ -81,7 +81,7 @@ export const PanelPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Hues of its own"
-        description="`activeTone` dresses the whole selected state — the 2px inset rim and the wash under it — in a hue the card does not wear; `pulseTone` does the same for the attention glow. Left unset they agree with the card (`borderColor`, then `tone`, then the kit's blue), and the glow follows the selection, so a card that is both selected and pulsing still says one thing in one colour. Hover, the pressed step and the resting surface stay on `tone`: selection is not the pointer."
+        description="`activeTone` dresses the whole selected state — the 2px inset rim and the wash under it — in a hue the card does not wear; `pulseTone` does the same for the attention glow. Left unset they agree with the card (`borderColor`, then `tone`, then the kit's blue), and the glow follows the selection, so a card that is both selected and pulsing still says one thing in one colour. The chosen card's hover asks the selection as well: put the pointer on the fifth card and the wash arrives in the hue its rim already wears, while the unchosen cards keep hovering in their own tone — the follow belongs to the state, not to the hue. `hoverColor` overrules that, which is also the way back for a card that should keep hovering in its brand hue. The resting surface stays on `tone`, and `borderColor` stays the border."
         code={huesCode}
         filename="Hues.tsx"
       >

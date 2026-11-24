@@ -82,7 +82,7 @@ export const TagPickerPage: React.FC = () => (
           type: '"auto" | SurfaceVariant / SurfaceCorner',
           default: '"auto"',
           description:
-            "The dropdown card&rsquo;s surface and radius. auto follows the field&rsquo;s variant through SURFACE_VARIANT_FOR_FIELD — the mapping SmartInput&rsquo;s suggestion card uses — and resolves the corner through the theme&rsquo;s scale. The popup used to be a hardcoded white box.",
+            "The dropdown card&rsquo;s surface and radius. auto follows the field&rsquo;s variant through SURFACE_VARIANT_FOR_FIELD — the mapping SmartInput&rsquo;s suggestion card uses — and resolves the corner through the theme&rsquo;s scale. The popup used to be a hardcoded white box. `raisedSurface` forces the card&rsquo;s first nested-panels depth step — the tinted-card-on-matching-background fix.",
         },
         {
           name: "readOnly / disabled / loading",

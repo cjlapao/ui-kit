@@ -185,6 +185,13 @@ export default function ActionPanelPage() {
               "The complete shared Panel surface system, including transparency, glass and specular options.",
           },
           {
+            name: "raisedSurface",
+            type: "boolean",
+            default: "false",
+            description:
+              "Forces the underlying Panel's first nested-panels depth step — the tinted-card-on-matching-background fix.",
+          },
+          {
             name: "role / aria-*",
             type: "HTML attributes",
             description:

@@ -95,11 +95,11 @@ export const KeyValueArrayFieldPage: React.FC = () => (
             "The add button disables at the cap with a &ldquo;limit reached&rdquo; note; `isVisible={false}` renders nothing (form builders).",
         },
         {
-          name: "variant / tone / corner / padding",
-          type: "PlainSurfaceVariant / TrueColor / SurfaceCorner / ControlSize",
-          default: '"outlined" / "blue" / "auto" / "sm"',
+          name: "variant / tone / corner / padding / raisedSurface",
+          type: "PlainSurfaceVariant / TrueColor / SurfaceCorner / ControlSize / boolean",
+          default: '"outlined" / "blue" / "auto" / "sm" / false',
           description:
-            "The card renders a real `Panel`, so every container surface comes for free; `plain` drops the card and keeps the rows.",
+            "The card renders a real `Panel`, so every container surface comes for free; `plain` drops the card and keeps the rows. `raisedSurface` forces the first nested-panels depth step on that Panel — the tinted-card-on-matching-background fix.",
         },
         {
           name: "inputVariant / size",

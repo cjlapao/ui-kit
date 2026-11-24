@@ -123,4 +123,22 @@ describe("PasswordInput", () => {
       unmount();
     }
   });
+
+  it("hands a fill hue through to the field box", () => {
+    // `backgroundColor` is inherited from `InputProps` and carried by the
+    // `{...props}` spread — the exact arrangement that stops being true the day
+    // someone destructures one more prop out of it, so the fill landing on the
+    // box gets asserted here rather than assumed. The states keep the tone.
+    const { container } = render(
+      <PasswordInput aria-label="Secret" tone="blue" backgroundColor="rose" />,
+    );
+    const box = container.querySelector("span.group")!.className;
+    expect(box).toContain("bg-rose-50");
+    expect(box).toContain("focus-within:border-blue-400");
+    // And it stays a theme decision: destructured away from the `<input>`, not
+    // forwarded to the DOM as an unknown attribute.
+    expect(
+      container.querySelector("input")!.getAttribute("backgroundcolor"),
+    ).toBeNull();
+  });
 });

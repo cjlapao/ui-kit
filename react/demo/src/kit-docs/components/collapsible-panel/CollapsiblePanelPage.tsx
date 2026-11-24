@@ -141,6 +141,7 @@ export const CollapsiblePanelPage: React.FC = () => (
         { name: "disabled", type: "boolean", default: "false", description: "Toggling off, header out of the tab order, aria-disabled on." },
         { name: "loading", type: "boolean", default: "false", description: "The Panel skeleton over the card." },
         { name: "…Panel props", type: "PanelProps", description: "variant, tone, padding, corner, className and the rest forward to the underlying Panel — standing on the container standard: elevated, tone blue, sm padding, medium corner." },
+        { name: "raisedSurface", type: "boolean", default: "false", description: "Forces the underlying Panel's first nested-panels depth step — the tinted-card-on-matching-background fix." },
       ]}
     />
   </div>

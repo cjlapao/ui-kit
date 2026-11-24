@@ -73,6 +73,7 @@ export const PopoverPlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [placement, setPlacement] = useState<PopoverPlacement>("auto");
   const [maxWidth, setMaxWidth] = useState("320");
   const [arrow, setArrow] = useState<boolean | "bubble">(true);
@@ -117,6 +118,12 @@ export const PopoverPlayground: React.FC = () => {
                       options={panelPaddingOptions}
                       value={padding}
                       onChange={(v) => setPadding(v as SurfacePadding)}
+                    />
+                    {/* The bubble takes the first depth step when its tint matches the page. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),
@@ -241,6 +248,7 @@ export const PopoverPlayground: React.FC = () => {
               tone={tone}
               corner={corner}
               padding={padding}
+              raisedSurface={raisedSurface}
               placement={placement}
               maxWidth={Number(maxWidth)}
               arrow={arrow}

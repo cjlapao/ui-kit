@@ -109,7 +109,9 @@ export const PageHeaderPage: React.FC = () => (
               seam never breaks — drift is a red test, not a visual bug. The
               floating pair borrows the SideMenu&rsquo;s detached-card chrome
               (rim, shadow) from the very <C>getSidebarSurfaceTokens</C> the
-              menu renders, so paired cards can&rsquo;t drift either.
+              menu renders, so paired cards can&rsquo;t drift either.{" "}
+              <C>raisedSurface</C> forces the first nested-panels depth step on
+              the wrapped card — the tinted-card-on-matching-background fix.
             </>
           ),
         },

@@ -147,6 +147,7 @@ const rootClass = computed(() =>
     v-else
     v-bind="restAttrs"
     :tone="props.tone ?? 'none'"
+    :raised-surface="raisedSurface"
     padding="none"
     :body-class-name="total === 0 && !loading ? 'h-full' : ''"
     :loading="false"

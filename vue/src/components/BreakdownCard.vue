@@ -67,6 +67,8 @@ const props = withDefaults(
     /** @default "md" */
     padding?: SurfacePadding;
     corner?: SurfaceCorner;
+    /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+    raisedSurface?: boolean;
   }>(),
   {
     caption: "",
@@ -76,6 +78,7 @@ const props = withDefaults(
     variant: "outlined",
     tone: "none",
     padding: "md",
+    raisedSurface: false,
   },
 );
 
@@ -117,6 +120,7 @@ const share = (value: number) => (total.value > 0 ? `${Math.round((value / total
     :tone="tone"
     :padding="padding"
     :corner="corner"
+    :raised-surface="raisedSurface"
     :class="classNames('w-full', classAttr)"
   >
     <div class="flex flex-col gap-5">

@@ -94,6 +94,8 @@ export interface WorkflowTrackerStyleProps {
   vibrancy?: PanelProps["vibrancy"];
   /** Specular highlight for the see-through variants, forwarded to `Panel`. */
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Inset inside each card. The panels lay out their own sections. @default "none" */
   padding?: PanelPadding;
   /**
@@ -162,6 +164,7 @@ export const buildCardProps = ({
   glassOpacity = "light",
   vibrancy,
   specularMode,
+  raisedSurface = false,
   padding = "none",
 }: WorkflowTrackerStyleProps): PanelProps => ({
   variant,
@@ -170,6 +173,7 @@ export const buildCardProps = ({
   glassOpacity,
   vibrancy,
   specularMode,
+  raisedSurface,
   padding,
   scrollable: false,
 });

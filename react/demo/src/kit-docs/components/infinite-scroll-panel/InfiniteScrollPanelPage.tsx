@@ -13,7 +13,7 @@ export const InfiniteScrollPanelPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Infinite Scroll Panel"
-      description="A scrolling list that fetches the next page as the end comes into view, with masonry, grid, balanced-column and list layouts — plus first-load, empty, end and retry states."
+      description="A scrolling list that fetches the next page as the end comes into view, with masonry, grid, balanced-column and list layouts — plus first-load, empty, end and retry states. The card is a Panel, so `raisedSurface` can force the first nested-panels depth step — the tinted-card-on-matching-background fix."
     />
     <InfiniteScrollPanelPlayground />
     <section className="flex flex-col gap-5">

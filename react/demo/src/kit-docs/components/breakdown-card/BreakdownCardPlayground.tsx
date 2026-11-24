@@ -59,6 +59,9 @@ export const BreakdownCardPlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
   const [padding, setPadding] = useState<SurfacePadding>("md");
+  // For the day the card's tint and its background agree and the card goes
+  // missing — the toggle forces the first nesting step back in.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [showStats, setShowStats] = useState(true);
   const [showCta, setShowCta] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -89,6 +92,7 @@ export const BreakdownCardPlayground: React.FC = () => {
                       onChange={(v) => setVariant(v as SurfaceVariant)} />
                     <SelectControl label="Padding" options={panelPaddingOptions} value={padding}
                       onChange={(v) => setPadding(v as SurfacePadding)} />
+                    <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
                   </>
                 ),
               },
@@ -126,6 +130,7 @@ export const BreakdownCardPlayground: React.FC = () => {
             items={items}
             variant={variant}
             padding={padding}
+            raisedSurface={raisedSurface}
             stats={showStats ? [{ label: "Total", value: "Σ" }, { label: "Parts", value: String(items.length) }] : []}
             loading={loading}
             ctaLabel={showCta ? "See the whole story" : ""}

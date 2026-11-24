@@ -56,6 +56,7 @@ const Replicas: React.FC<{ names: string[]; tone: TrueColor }> = ({
 export const SplitViewPlayground: React.FC = () => {
   const [tone, setTone] = useState<TrueColor>("blue");
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [toneAuto, setToneAuto] = useState(false);
   const [searchVariant, setSearchVariant] = useState<string>("");
@@ -173,6 +174,12 @@ export const SplitViewPlayground: React.FC = () => {
                       label="Surface tone follows accent"
                       checked={toneAuto}
                       onChange={setToneAuto}
+                    />
+                    {/* The shell's first depth step — for split views that vanish into the page. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                     <ChoiceControl
                       label="Size"
@@ -312,6 +319,7 @@ export const SplitViewPlayground: React.FC = () => {
             tone={tone}
             surfaceTone={toneAuto ? "auto" : surfaceTone}
             variant={variant}
+            raisedSurface={raisedSurface}
             searchVariant={
               (searchVariant || undefined) as InputVariant | undefined
             }

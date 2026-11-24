@@ -90,6 +90,18 @@ export interface DynamicFormFieldProps {
    * @default "auto"
    */
   inputVariant?: InputVariant | "auto";
+  /**
+   * The hue the control's *fill* wears, when it should disagree with the
+   * field's `tone`. State colours — focus border, ring, icons and the glow
+   * — stay with the tone, while the fill follows this hue through
+   * `inputVariant`'s own recipe: `glass` keeps its sheerness, `gradient` its
+   * blur, `flat` and `elevated` their border, and `underline` has no box to
+   * paint. `neutral` means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   disabled?: boolean;
   readOnly?: boolean;
   /**
@@ -109,6 +121,8 @@ export interface DynamicFormFieldProps {
   vibrancy?: GlassVibrancy;
   /** Specular highlight, for the see-through variants. */
   specularMode?: SpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 /**
@@ -170,6 +184,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   corner = DEFAULT_SURFACE_CORNER,
   padding = "md",
   inputVariant = "auto",
+  backgroundColor,
   disabled = false,
   readOnly = false,
   helpTitle,
@@ -180,6 +195,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   transparency,
   vibrancy,
   specularMode,
+  raisedSurface = false,
 }) => {
   const tone = getSurfaceAccentColor(surfaceTone);
   const t = useKitT();
@@ -226,6 +242,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
     size,
     tone,
     variant: resolvedInputVariant,
+    backgroundColor,
     disabled,
     validationStatus: error ? ("error" as const) : ("none" as const),
   };
@@ -307,6 +324,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
             tone={tone}
             variant="plain"
             inputVariant={resolvedInputVariant}
+            backgroundColor={backgroundColor}
           />
         );
       case CapsuleBlueprintValueType.List:
@@ -389,6 +407,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
         transparency={transparency}
       vibrancy={vibrancy}
       specularMode={specularMode}
+      raisedSurface={raisedSurface}
       bodyClassName="flex flex-col gap-2"
       scrollable={false}
     >

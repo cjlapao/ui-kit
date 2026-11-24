@@ -62,6 +62,22 @@ export interface InputProps extends Omit<
   color?: TrueColor;
   /** Visual surface style. @default "flat" */
   variant?: InputVariant;
+  /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * `tone` is six decisions under one name — focus border, focus ring, focused
+   * icons, the inline button's ring, the gradient's glow, and the fill. This
+   * takes the last one off the table: every state colour keeps following
+   * `tone`, so a `backgroundColor="rose"` field still focuses blue. The fill
+   * follows the variant's own recipe rather than one fixed tone step — `glass`
+   * stays sheer and blurred, `flat` keeps its border, `gradient` keeps its
+   * glow, and `underline` paints no box so it is a no-op. `neutral` means the
+   * variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
   gradientFrom?: string;
   /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
@@ -106,6 +122,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     tone,
     color,
     variant = "flat",
+    backgroundColor,
     gradientFrom,
     gradientTo,
     glowIntensity = DEFAULT_GLOW_INTENSITY,
@@ -142,6 +159,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   const tokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(variant, effectiveTone, "auto", {
     explicitTone: tone ?? color,
+    backgroundColor,
   });
   const isUnderline = variant === "underline";
   const hasStatus = validationStatus !== "none";

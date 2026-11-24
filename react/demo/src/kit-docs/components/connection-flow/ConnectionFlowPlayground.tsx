@@ -44,6 +44,9 @@ export const ConnectionFlowPlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [variant, setVariant] = useState<PanelVariant | "plain">("outlined");
+  // When the card's tint and the page's agree, the flow loses its frame —
+  // this forces the nesting ladder's first step back.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [edgeStyle, setEdgeStyle] =
     useState<ConnectionFlowEdgeStyle>("orthogonal");
   const [ringSize, setRingSize] = useState<ConnectionFlowRingSize>("md");
@@ -133,6 +136,11 @@ export const ConnectionFlowPlayground: React.FC = () => {
                       options={panelCornerOptions}
                       value={corner}
                       onChange={(value) => setCorner(value as SurfaceCorner)}
+                    />
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),
@@ -354,6 +362,7 @@ export const ConnectionFlowPlayground: React.FC = () => {
             size={size}
             tone={tone}
             corner={corner}
+            raisedSurface={raisedSurface}
             edgeStyle={edgeStyle}
             ringSize={ringSize}
             flowState={flowState}

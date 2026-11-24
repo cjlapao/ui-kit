@@ -179,6 +179,8 @@ export interface SplitViewProps {
   autoExpand?: boolean;
   /** Controlled expanded id (only meaningful when autoExpand=false) */
   expandedValue?: string;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -296,6 +298,7 @@ const props = withDefaults(defineProps<SplitViewProps>(), {
   borderLeft: false,
   autoExpand: true,
   panelScrollable: true,
+  raisedSurface: false,
 });
 
 const emit = defineEmits<{
@@ -1102,6 +1105,7 @@ const rootClass = computed(() =>
                 :variant="builtInHeader.detailsVariant"
                 :tone="builtInHeader.detailsTone"
                 :decoration="builtInHeader.detailsDecoration"
+                :raised-surface="raisedSurface"
                 corner="none"
                 padding="none"
                 :class="

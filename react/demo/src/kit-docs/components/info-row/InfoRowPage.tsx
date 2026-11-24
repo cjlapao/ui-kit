@@ -232,6 +232,13 @@ export const InfoRowPage: React.FC = () => (
             "Only visible with a surface variant — a plain row draws none.",
         },
         {
+          name: "raisedSurface",
+          type: "boolean",
+          default: "false",
+          description:
+            "Forwards to the row's Panel — forces at least the first nested-panels depth step, the tinted-card-on-matching-background fix. Like the corner, invisible on a plain row.",
+        },
+        {
           name: "labelWidth",
           type: "string",
           description:

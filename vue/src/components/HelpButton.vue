@@ -45,6 +45,8 @@ export interface HelpButtonProps {
   maxWidth?: number;
   /** When true the panel body is a pulsing skeleton shaped like the help copy. @default false */
   loading?: boolean;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -464,6 +466,7 @@ const props = withDefaults(defineProps<HelpButtonProps>(), {
   icon: "Help",
   maxWidth: 360,
   loading: false,
+  raisedSurface: false,
 });
 
 const { classAttr, restAttrs } = useClassAttrs();
@@ -608,6 +611,7 @@ const panelClass = computed(() =>
           :variant="variant"
           :tone="props.tone ?? 'none'"
           :corner="corner"
+          :raised-surface="raisedSurface"
           padding="none"
           :scrollable="false"
         >

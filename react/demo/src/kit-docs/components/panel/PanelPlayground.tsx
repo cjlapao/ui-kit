@@ -78,6 +78,7 @@ export const PanelPlayground: React.FC = () => {
   // so the controls appear only with the state they tint.
   const [activeTone, setActiveTone] = useState<TrueColor | undefined>(undefined);
   const [pulseTone, setPulseTone] = useState<TrueColor | undefined>(undefined);
+  const [hoverColor, setHoverColor] = useState<TrueColor | undefined>(undefined);
   // The attention call, inward from the rim — try it with Disabled: a
   // dimmed card stops demanding, unlike its selection rim, which stays.
   const [pulse, setPulse] = useState(false);
@@ -242,6 +243,18 @@ export const PanelPlayground: React.FC = () => {
                         autoLabel="Auto — the selected hue"
                       />
                     ) : null}
+                    {/* The hover asks the selection what to wear, so this one
+                        matters most when a selected hue is set — but it always
+                        paints, so it stays put. Hidden only when the pointer is
+                        off, where it could do nothing. */}
+                    {hoverableMode !== "off" ? (
+                      <HueControl
+                        label="Hover hue"
+                        value={hoverColor}
+                        onChange={setHoverColor}
+                        autoLabel="Auto — the selected hue, while selected; else the panel's own"
+                      />
+                    ) : null}
                   </>
                 ),
               },
@@ -356,6 +369,7 @@ export const PanelPlayground: React.FC = () => {
             disabledVeil={disabledVeil}
             active={active}
             activeTone={activeTone}
+            hoverColor={hoverColor}
             pulseTone={pulseTone}
             pulse={pulse}
             vibrancy={vibrancy}

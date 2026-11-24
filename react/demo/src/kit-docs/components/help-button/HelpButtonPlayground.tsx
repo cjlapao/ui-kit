@@ -71,6 +71,9 @@ export const HelpButtonPlayground: React.FC = () => {
   const [tone, setTone] = useState<TrueColor>("blue");
   const [size, setSize] = useState<ControlSize>("md");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
+  // For the tinted help panel that opens onto a page of the very same tint —
+  // the forced first nesting step gives the popover its edge back.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [placement, setPlacement] = useState<HelpButtonPlacement>("auto");
   const [contentType, setContentType] = useState("markdown");
   const [maxWidth, setMaxWidth] = useState("360");
@@ -107,6 +110,11 @@ export const HelpButtonPlayground: React.FC = () => {
                       options={panelCornerOptions}
                       value={corner}
                       onChange={(v) => setCorner(v as SurfaceCorner)}
+                    />
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),
@@ -181,6 +189,7 @@ export const HelpButtonPlayground: React.FC = () => {
               color={tone}
               size={size}
               corner={corner}
+              raisedSurface={raisedSurface}
               placement={placement}
               maxWidth={Number(maxWidth)}
               loading={loading}

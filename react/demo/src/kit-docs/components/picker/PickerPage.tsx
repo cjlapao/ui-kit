@@ -76,7 +76,7 @@ export const PickerPage: React.FC = () => (
       props={[
         { name: "item.body / item.textValue", type: "ReactNode / string", description: "Body replaces the standard text block, preserving icon and tags. Use non-interactive JSX rather than nested buttons/links. textValue provides searchable/accessibility text and multi-select labels; falls back to title, then id. Raw HTML strings are not parsed." },
         { name: "corner", type: "SurfaceCorner", default: '"auto"', description: "Trigger radius on the shared scale, matching Select. Auto uses the theme field corner; underline stays square." },
-        { name: "panelCorner", type: "SurfaceCorner", default: '"auto"', description: "Independent dropdown radius on the shared Panel corner scale. The last row clips to these corners without outer padding." },
+        { name: "panelCorner", type: "SurfaceCorner", default: '"auto"', description: "Independent dropdown radius on the shared Panel corner scale. The last row clips to these corners without outer padding. The dropdown card also takes `raisedSurface` — it forces the first nested-panels depth step, the tinted-card-on-matching-background fix." },
         { name: "leadingIcon", type: "string | ReactElement", description: "Fixed trigger icon, by registry name or custom element. Overrides the selected item's trigger icon and also appears on placeholders and in multi-select mode. Dropdown item icons remain independent." },
         { name: "hideCaret", type: "boolean", default: "false", description: "Removes the decorative caret and its space. The trigger remains a keyboard-accessible button with aria-expanded and aria-haspopup." },
         {

@@ -82,6 +82,19 @@ export interface InputOtpProps extends Omit<
    * @default "flat"
    */
   variant?: InputOtpVariant | LegacyInputOtpVariant;
+  /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * State colours stay with `tone` — focus border, ring, icons and the glow all
+   * follow it — while the fill follows this hue through the variant's own
+   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * `elevated` their border, and `underline` has no box to paint. `neutral`
+   * means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** @default "md" */
   size?: InputOtpSize;
   /**
@@ -192,6 +205,7 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     mask = false,
     integerOnly = false,
     variant = "flat",
+    backgroundColor,
     size = "md",
     corner = "auto",
     tone: toneProp,
@@ -367,7 +381,7 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     // The family's corner scale is the card one; `corner` (below) overrides
     // the radius on the pill scale, so the tokens stay on `auto`.
     "auto",
-    { explicitTone: toneProp },
+    { explicitTone: toneProp, backgroundColor },
   );
   const fieldTone = getFieldToneTokens(tone);
   const glow = getGlowTokens(glowIntensity);

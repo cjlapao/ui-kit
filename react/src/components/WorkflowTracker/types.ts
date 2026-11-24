@@ -224,6 +224,10 @@ export interface WorkflowTrackerProps
   vibrancy?: PanelProps["vibrancy"];
   /** Specular highlight for the see-through variants, forwarded to `Panel`. */
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the cards' Panels — forces at least the first nested-panels
+   * depth step so tinted cards stay visible on a matching background. See
+   * Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Corner rounding of the three cards. Defaults to the Panel's own default. */
   corner?: PanelCorner;
   /**

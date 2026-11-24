@@ -89,6 +89,7 @@ export const WorkflowTrackerPlayground: React.FC = () => {
   const [iconCorner, setIconCorner] =
     useState<WorkflowTrackerCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<WorkflowTrackerPadding>("none");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [loading, setLoading] = useState(false);
   const [interactive, setInteractive] = useState(false);
   const [showIcon, setShowIcon] = useState(true);
@@ -188,6 +189,12 @@ export const WorkflowTrackerPlayground: React.FC = () => {
                     options={panelPaddingOptions}
                     value={padding}
                     onChange={(v) => setPadding(v as WorkflowTrackerPadding)}
+                  />
+                  {/* One depth step up, so all four cards survive a matching page. */}
+                  <ToggleRow
+                    label="Raised surface"
+                    checked={raisedSurface}
+                    onChange={setRaisedSurface}
                   />
                 </>
               ),
@@ -320,6 +327,7 @@ export const WorkflowTrackerPlayground: React.FC = () => {
               corner={corner}
               iconCorner={iconCorner}
               padding={padding}
+              raisedSurface={raisedSurface}
               glassOpacity={glassOpacity}
               vibrancy={vibrancy}
               specularMode={specularMode}

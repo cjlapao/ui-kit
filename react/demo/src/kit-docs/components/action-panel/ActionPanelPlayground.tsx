@@ -42,6 +42,7 @@ export function ActionPanelPlayground() {
   const [iconSize, setIconSize] = useState<ControlSize>("sm");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [actionLayout, setActionLayout] =
     useState<ActionPanelActionLayout>("inline");
   const [accent, setAccent] = useState(true);
@@ -90,6 +91,13 @@ export function ActionPanelPlayground() {
                     options={panelCornerOptions}
                     value={corner}
                     onChange={(value) => setCorner(value as SurfaceCorner)}
+                  />
+                  {/* The alert row one depth step up — tinted card on a
+                      matching background, impossible to mistake for the page. */}
+                  <ToggleRow
+                    label="Raised surface"
+                    checked={raisedSurface}
+                    onChange={setRaisedSurface}
                   />
                 </>
               ),
@@ -176,6 +184,7 @@ export function ActionPanelPlayground() {
           iconSize={iconSize}
           padding={padding}
           corner={corner}
+          raisedSurface={raisedSurface}
           icon={showIcon ? "Warning" : undefined}
           title={
             showTitle ? (

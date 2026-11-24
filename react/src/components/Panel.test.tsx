@@ -895,6 +895,159 @@ describe("Panel — hover, pressed and rim", () => {
     expect(both).not.toMatch(/(?:^|\s)transition-shadow(?:\s|$)/);
     expect(both).toContain("hover:shadow-xl");
   });
+
+  /**
+   * The hue the pointer asks for is the hue the card is *chosen* in — but only
+   * while it actually is chosen. A selected card that washes in some other hue
+   * under the pointer is two opinions about one card; a whole group of
+   * *unchosen* cards hovering in the colour of a state they do not have is the
+   * same bug wearing a costume, and a group hands its `activeTone` to every card
+   * it owns, so the gate belongs here rather than in every caller. `hoverColor`
+   * stays the explicit override above it, and the depth of the step stays the
+   * theme's.
+   */
+  it("hovers in the hue the card is chosen in", () => {
+    const cls = classes(
+      <Panel
+        variant="tonal"
+        tone="cyan"
+        active
+        activeTone="amber"
+        onClick={vi.fn()}
+      >
+        Body
+      </Panel>,
+    );
+    expect(stepFor(cls, "light", "hover")).toBe("amber-300/70");
+    expect(stepFor(cls, "dark", "hover")).toBe("amber-400/25");
+    expect(stepFor(cls, "light", "pressed")).toBe("amber-400/70");
+    expect(cls).toContain("hover:ring-amber-300/70");
+    // At rest the card is already wearing the selection hue — a tonal fill
+    // arrives rewritten into the variable pair, the spelling that paints (see
+    // `stepFor`) — and nothing the pointer does goes back to cyan.
+    expect(cls).toMatch(/\[--ui-surface-color:var\(--color-amber-/);
+    expect(cls).not.toMatch(/hover:\[--ui-surface-color:var\(--color-cyan-/);
+    expect(cls).not.toMatch(/(?:hover|active):bg-cyan-/);
+  });
+
+  /**
+   * The other half of the gate, and the one a group depends on: `activeTone` is
+   * handed to every card in a `MultiSelectPanel`, chosen or not, so an unchosen
+   * card must keep hovering in its own tone. Without this the whole grid hovers
+   * in the colour of a state only one of them has.
+   */
+  it("leaves an unchosen card hovering in its own tone, activeTone and all", () => {
+    const cls = classes(
+      <Panel variant="tonal" tone="cyan" activeTone="amber" onClick={vi.fn()}>
+        Body
+      </Panel>,
+    );
+    expect(stepFor(cls, "light", "hover")).toBe("cyan-300/70");
+    expect(stepFor(cls, "dark", "hover")).toBe("cyan-400/25");
+    expect(cls).toContain("hover:ring-cyan-300/70");
+    expect(cls).not.toMatch(/(?:hover|active):bg-amber-/);
+    // The hue is still waiting on the card — it just does not speak until the
+    // card is the selected one.
+    expect(cls).not.toContain("outline-amber-500");
+  });
+
+  it("lets an explicit hoverColor overrule the selection hue", () => {
+    const cls = classes(
+      <Panel
+        variant="tonal"
+        tone="cyan"
+        active
+        activeTone="amber"
+        hoverColor="rose"
+        onClick={vi.fn()}
+      >
+        Body
+      </Panel>,
+    );
+    expect(stepFor(cls, "light", "hover")).toBe("rose-300/70");
+    expect(cls).toContain("hover:ring-rose-300/70");
+    // Which is exactly what `hoverColor` is for: the selection keeps its hue and
+    // the pointer is pinned somewhere else by hand.
+    expect(cls).toContain("outline-amber-500");
+    expect(cls).not.toMatch(/(?:^|\s)hover:ring-amber-/);
+  });
+
+  /**
+   * `borderColor` feeds the selection hue as well, and on `border`-rim variants
+   * the hover ignites a border — so this is the seam a future tidy-up would fold
+   * into `activeHue`, repainting every neutral hairline in the kit as an accent
+   * nobody asked for. It stays out, and this is the test that keeps it out.
+   */
+  it("does not take its hover hue from borderColor", () => {
+    const cls = classes(
+      <Panel
+        variant="outlined"
+        tone="cyan"
+        borderColor="neutral"
+        onClick={vi.fn()}
+      >
+        Body
+      </Panel>,
+    );
+    expect(stepFor(cls, "light", "hover")).toMatch(/^cyan-/);
+    expect(cls).toContain("hover:border-cyan-300");
+    expect(cls).not.toMatch(/(?:hover|active):bg-neutral-/);
+
+    // It does still dress the selection, which is precisely the temptation.
+    const selected = classes(
+      <Panel
+        variant="outlined"
+        tone="cyan"
+        borderColor="neutral"
+        active
+        onClick={vi.fn()}
+      >
+        Body
+      </Panel>,
+    );
+    expect(selected).toContain("outline-neutral-500");
+  });
+
+  it("gives a hue to a card that had none, and the veil to one that has none", () => {
+    // The side effect worth naming: an untinted panel with a chosen hue now has
+    // a hue, so it takes a real tinted step where it used to take the neutral
+    // veil. A panel with no opinions at all must keep the veil.
+    const hasVeil = (ui: ReactElement) =>
+      Array.from(render(ui).container.querySelectorAll("div")).some((el) =>
+        el.className.includes("group-hover:bg-"),
+      );
+
+    const chosen = (
+      <Panel variant="elevated" active activeTone="emerald" onClick={vi.fn()}>
+        Body
+      </Panel>
+    );
+    expect(stepFor(classes(chosen), "light", "hover")).toMatch(/^emerald-/);
+    expect(hasVeil(chosen)).toBe(false);
+
+    const bare = <Panel onClick={vi.fn()}>Body</Panel>;
+    expect(stepFor(classes(bare), "light", "hover")).toBeUndefined();
+    expect(hasVeil(bare)).toBe(true);
+  });
+
+  it("stays quiet when disabled, chosen hue or not", () => {
+    const cls = classes(
+      <Panel
+        variant="tonal"
+        tone="cyan"
+        active
+        activeTone="amber"
+        disabled
+        onClick={vi.fn()}
+      >
+        Body
+      </Panel>,
+    );
+    for (const mode of ["light", "dark"] as const)
+      for (const state of ["hover", "pressed"] as const)
+        expect(stepFor(cls, mode, state)).toBeUndefined();
+    expect(cls).not.toMatch(/(?:^|\s)(?:dark:)?hover:ring-/);
+  });
 });
 
 describe("Panel — active state", () => {

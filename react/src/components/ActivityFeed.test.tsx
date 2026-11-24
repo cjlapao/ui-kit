@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { getButtonColorClasses, getSurfaceVariantClasses } from "../theme";
+import { getButtonColorClasses, getSurfaceCornerClass, getSurfaceVariantClasses } from "../theme";
 import ActivityFeed, { type ActivityFeedItem, type ActivityFeedProps } from "./ActivityFeed";
+import { SUB_ROW_PADDING } from "../../../common/theme/nestedPanel";
 
 const items: ActivityFeedItem[] = [
   {
@@ -675,7 +676,7 @@ describe("ActivityFeed", () => {
       expect(tokens(wrapper)).toEqual(
         expect.arrayContaining([
           "group",
-          "rounded-md",
+          getSurfaceCornerClass("rounded-sm"),
           "transition-colors",
           "motion-reduce:transition-none",
           "hover:bg-amber-100",
@@ -764,6 +765,63 @@ describe("ActivityFeed", () => {
       expect(tokens(wrapper)).toEqual(
         expect.arrayContaining(["bg-black/[0.04]", "dark:bg-white/[0.04]"]),
       );
+    });
+
+    it("corners the sub-row washes on the scale's sm step, a rung above the rows", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[{ id: "p", title: "parent", timestamp: "now", subItems: [{ title: "sub" }] }]}
+        />,
+      );
+      const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+      // Asserted through the accessor — the test rides the scale, not a
+      // frozen class. The wash rests one rung above the rows' xs step.
+      expect(tokens(wrapper)).toContain(getSurfaceCornerClass("rounded-sm"));
+    });
+
+    it("lets subRowCorner dial the washes' corner", () => {
+      const { container } = render(
+        <ActivityFeed
+          subRowCorner="rounded-xl"
+          items={[{ id: "p", title: "parent", timestamp: "now", subItems: [{ title: "sub" }] }]}
+        />,
+      );
+      const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+      expect(tokens(wrapper)).toContain(getSurfaceCornerClass("rounded-xl"));
+      expect(tokens(wrapper)).not.toContain(getSurfaceCornerClass("rounded-sm"));
+    });
+
+    it("rides the sub-row padding ladder, md at rest", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[{ id: "p", title: "parent", timestamp: "now", subItems: [{ title: "sub" }] }]}
+        />,
+      );
+      const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+      const column = container.querySelector<HTMLElement>('[role="region"] .pl-5')!;
+      // Asserted through the map — the test rides the ladder, not frozen
+      // classes; bleed = padding, column py = bleed + the button's spill.
+      expect(tokens(wrapper)).toEqual(expect.arrayContaining(SUB_ROW_PADDING.md.row.split(/\s+/)));
+      expect(tokens(column)).toEqual(
+        expect.arrayContaining(SUB_ROW_PADDING.md.column.split(/\s+/)),
+      );
+    });
+
+    it("lets subRowPadding grow wash, bleed, gap, and clip room in lockstep", () => {
+      const { container } = render(
+        <ActivityFeed
+          subRowPadding="lg"
+          items={[{ id: "p", title: "parent", timestamp: "now", subItems: [{ title: "sub" }] }]}
+        />,
+      );
+      const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+      const column = container.querySelector<HTMLElement>('[role="region"] .pl-5')!;
+      expect(tokens(wrapper)).toEqual(expect.arrayContaining(SUB_ROW_PADDING.lg.row.split(/\s+/)));
+      expect(tokens(wrapper)).not.toContain("-mx-3");
+      expect(tokens(column)).toEqual(
+        expect.arrayContaining(SUB_ROW_PADDING.lg.column.split(/\s+/)),
+      );
+      expect(tokens(column)).not.toContain("gap-4.5");
     });
 
     it("renders a custom-body sub-item in place of the fields, keeping the indent", () => {

@@ -104,6 +104,19 @@ export interface TextareaProps extends Omit<
   size?: TextareaSize;
   /** Surface treatment, matching `Input`. @default "elevated" */
   variant?: TextareaVariant;
+  /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * State colours stay with `tone` — focus border, ring, icons and the glow all
+   * follow it — while the fill follows this hue through the variant's own
+   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * `elevated` their border, and `underline` has no box to paint. `neutral`
+   * means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** Accent tone for the focus indicator. @default "blue" */
   tone?: TrueColor;
   validationStatus?: TextareaValidationStatus;
@@ -132,6 +145,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     {
       size = "md",
       variant = "elevated",
+      backgroundColor,
       tone: toneProp,
       validationStatus = "none",
       className,
@@ -167,6 +181,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const { inRow } = useFieldRow();
     const variantTokens = getInputVariantTokens(variant, tone, "auto", {
       explicitTone: toneProp,
+      backgroundColor,
     });
     const resizeClass = resizeClasses[resize] ?? resizeClasses.vertical;
     const glow = getGlowTokens(glowIntensity);

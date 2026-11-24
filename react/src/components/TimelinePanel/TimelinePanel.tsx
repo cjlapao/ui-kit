@@ -661,6 +661,7 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
   vibrancy,
   glassOpacity,
   specularMode,
+  raisedSurface = false,
 }) => {
   const tone = getSurfaceAccentColor(surfaceTone);
   const isDark = useIsDark();
@@ -801,6 +802,7 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
       vibrancy={vibrancy}
       glassOpacity={glassOpacity}
       specularMode={specularMode}
+      raisedSurface={raisedSurface}
       scrollable={false}
       bodyClassName="!space-y-0"
       aria-busy={loading}

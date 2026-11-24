@@ -105,3 +105,23 @@ the nesting copy.
 
 `npx tsc --noEmit` (react) + Panel suites; `npx vue-tsc --noEmit` (vue) +
 Vue Panel suites; demo tsc baseline. Commits by explicit pathspec.
+
+## Follow-up (user-approved same day) — kit-wide forwarding
+
+The toggle is exposed on every component whose body is a Panel:
+`raisedSurface?: boolean` forwarded to the component's own **outermost**
+Panel render site (its body/frame). Components whose whole body is multiple
+sibling Panels forward to all siblings; inner Panels used for dropdowns,
+menus, list rows or section chrome are left alone. By user decision the
+popup family (Menu, Popover, Picker/Combobox/TagPicker/VariablePicker,
+HelpButton, CollapsibleHelpText, CalendarPanel, MultiSelectPanel) and the
+floaters (Modal, SidePanel) are wired too; GradientBackdrop (decorative) is
+not. App-widget composites (AgentMap, NetworkGraph, TraceGraph,
+ConnectionFlow, Gantt, Terminal/TerminalTabs, TaskBoard, WorkflowTracker)
+forward to the frame only.
+
+Where a wrapper already spreads its full props (or its interface extends
+`PanelProps`) into the body Panel, the prop flows without redeclaration —
+verified per file rather than assumed. Tests: none added — the wash itself
+is tested in Panel, and the forwarding lines are covered by `tsc` plus each
+component's existing suite.

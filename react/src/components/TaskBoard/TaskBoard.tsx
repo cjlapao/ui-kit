@@ -183,6 +183,8 @@ export interface TaskBoardProps {
   glassOpacity?: GlassOpacity;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** @default "skeleton" — a board-shaped skeleton; other types overlay Panel's loader. */
   loaderType?: PanelLoaderType;
   /** Accent for focus, selection and the drop line. @default "blue" */
@@ -570,6 +572,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = (props) => {
     glassOpacity,
     vibrancy,
     specularMode,
+    raisedSurface = false,
     loading,
     loaderType = "skeleton",
     className,
@@ -593,6 +596,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = (props) => {
       glassOpacity={glassOpacity}
       vibrancy={vibrancy}
       specularMode={specularMode}
+      raisedSurface={raisedSurface}
       loading={Boolean(loading) && loaderType !== "skeleton"}
       loaderType={loaderType}
       flexBody

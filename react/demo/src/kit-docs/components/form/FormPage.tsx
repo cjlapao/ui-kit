@@ -163,6 +163,13 @@ export const FormPage: React.FC = () => (
           description:
             "Header, body and footer padding, on the shared scale (the footer is deliberately tighter).",
         },
+        {
+          name: "raisedSurface",
+          type: "boolean",
+          default: "false",
+          description:
+            "Forwards to the body Panel — forces at least the first nested-panels depth step, the tinted-card-on-matching-background fix.",
+        },
       ]}
     />
     <A11ySection>

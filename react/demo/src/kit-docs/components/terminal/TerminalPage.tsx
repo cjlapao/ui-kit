@@ -39,7 +39,7 @@ export default function TerminalPage() {
     <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
       <PageHeader
         name="Terminal"
-        description="An xterm.js terminal with ANSI colors, streaming output and keyboard input. Use Terminal on its own or TerminalTabs for persistent sessions. Both use the kit's Panel variants, tones, corners and glass surfaces. Connect onData, onResize and the imperative handle to your own shell transport."
+        description="An xterm.js terminal with ANSI colors, streaming output and keyboard input. Use Terminal on its own or TerminalTabs for persistent sessions. Both use the kit's Panel variants, tones, corners and glass surfaces — `raisedSurface` included, forcing the first nested-panels depth step, the tinted-card-on-matching-background fix. Connect onData, onResize and the imperative handle to your own shell transport."
       />
       <PlaygroundPanel
         controls={

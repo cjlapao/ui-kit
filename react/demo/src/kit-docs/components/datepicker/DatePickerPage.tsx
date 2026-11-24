@@ -167,6 +167,13 @@ export const DatePickerPage: React.FC = () => (
             'The calendar&rsquo;s own Panel surface, independent of the field&rsquo;s — a flat field can drop an elevated panel. `panelVariant="auto"` follows the field&rsquo;s variant (glass field → glass calendar, flat → outlined, ghost/underline → subtle); `panelTone="auto"` resolves neutral — the field&rsquo;s accent already lives in the selected days; `panelCorner` defaults to the theme&rsquo;s container corner rather than a pinned radius.',
         },
         {
+          name: "raisedSurface",
+          type: "boolean",
+          default: "false",
+          description:
+            "Forces the calendar card&rsquo;s first nested-panels depth step — the tinted-card-on-matching-background fix.",
+        },
+        {
           name: "readonly / disabled",
           type: "boolean",
           default: "false",

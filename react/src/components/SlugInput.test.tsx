@@ -144,4 +144,19 @@ describe("SlugInput", () => {
     render(<SlugInput placeholder="Type a title" size="lg" tone="emerald" />);
     expect(screen.getByPlaceholderText("Type a title")).toBeInTheDocument();
   });
+
+  it("hands a fill hue through to the field box", () => {
+    // The same `{...rest}` as the placeholder above, but this one is a theme
+    // decision rather than a DOM attribute: it has to survive the spread and
+    // reach the box, and never arrive on the `<input>` as an unknown attribute.
+    const { container } = render(
+      <SlugInput defaultValue="Title" tone="blue" backgroundColor="rose" />,
+    );
+    const box = container.querySelector("span.group")!.className;
+    expect(box).toContain("bg-rose-50");
+    expect(box).toContain("focus-within:border-blue-400");
+    expect(
+      screen.getByRole("textbox").getAttribute("backgroundcolor"),
+    ).toBeNull();
+  });
 });

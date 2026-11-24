@@ -82,6 +82,9 @@ export const DetailItemCardPlayground: React.FC = () => {
   const [corner, setCorner] =
     useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
+  // A tinted row on a matching-tint host goes missing; the forced first
+  // nesting step paints the wash back in so the card has an edge again.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [withIcon, setWithIcon] = useState(true);
   const [withBadges, setWithBadges] = useState(true);
   const [withDetail, setWithDetail] = useState(true);
@@ -113,6 +116,7 @@ export const DetailItemCardPlayground: React.FC = () => {
     tone,
     corner,
     padding,
+    raisedSurface,
     badgesAlignment,
     disabled,
     glassOpacity,
@@ -153,6 +157,7 @@ export const DetailItemCardPlayground: React.FC = () => {
                         onChange={(v) => setPadding(v as PanelPadding)}
                       />
                     </Control>
+                    <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
                   </>
                 ),
               },

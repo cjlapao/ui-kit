@@ -22,6 +22,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import { ChoiceControl } from "../../shared/PlaygroundPanel";
 import {
@@ -38,6 +39,12 @@ export const InputPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [size, setSize] = useState<InputSize>("md");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The fill's own hue, for when it should disagree with the tone — focus,
+  // ring and glow keep following `tone`; only the fill comes over here.
+  // `undefined` is the honest default: the fill follows the tone today.
+  const [backgroundColor, setBackgroundColor] = useState<TrueColor | undefined>(
+    undefined,
+  );
   const [validationStatus, setValidationStatus] =
     useState<InputValidationStatus>("none");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>(
@@ -99,6 +106,16 @@ export const InputPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    {/* The fill may wear a hue the states do not — pick it
+                      from colour as well. "None" is the variant's own resting
+                      fill: the tone's hue for `glass` and `ghost`, white for the
+                      rest, which is what every field did before this prop. */}
+                    <HueControl
+                      label="Fill hue"
+                      value={backgroundColor}
+                      onChange={setBackgroundColor}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <Control label="Placeholder">
                       <Input
                         size="sm"
@@ -224,6 +241,7 @@ export const InputPlayground: React.FC = () => {
                 variant={variant}
                 size={size}
                 tone={tone}
+                backgroundColor={backgroundColor}
                 validationStatus={validationStatus}
                 glowIntensity={glowIntensity}
                 placeholder={placeholder}

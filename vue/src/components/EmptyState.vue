@@ -100,6 +100,8 @@ export interface EmptyStateProps {
   corner?: SurfaceCorner;
   /** Container padding, on the shared container scale. @default "lg" */
   padding?: SurfacePadding;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Density — icon, type scale, gaps and the action button's default size.
    * @default "md"
@@ -185,6 +187,7 @@ const props = withDefaults(defineProps<EmptyStateProps>(), {
   variant: "outlined",
   corner: DEFAULT_SURFACE_CORNER,
   padding: "lg",
+  raisedSurface: false,
   dashed: true,
   icon: "Add",
   showIcon: true,
@@ -314,6 +317,7 @@ const handleAction = () => {
             tone: surfaceTone,
             corner,
             padding,
+            raisedSurface,
             fullWidth,
             glassOpacity,
             vibrancy,

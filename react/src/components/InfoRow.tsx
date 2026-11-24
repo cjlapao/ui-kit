@@ -170,6 +170,8 @@ export interface InfoRowProps extends Omit<
   transparency?: SurfaceTransparency;
   /** Backdrop vibrancy, when `variant` is a glass one. */
   vibrancy?: GlassVibrancy;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Leading icon, sitting just before the label — the check that says a
    * status row passed. Tints with the row's `tone` (muted when `tone` is
@@ -917,6 +919,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
     glassOpacity,
     transparency,
     vibrancy,
+    raisedSurface = false,
     className,
     // Everything below is read by the body, not here.
     label: _label,
@@ -997,6 +1000,7 @@ export const InfoRow: React.FC<InfoRowProps> = (props) => {
       glassOpacity={glassOpacity}
         transparency={transparency}
       vibrancy={vibrancy}
+      raisedSurface={raisedSurface}
       className={className}
     >
       <InfoRowBody

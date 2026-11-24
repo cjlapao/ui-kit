@@ -157,6 +157,8 @@ export interface TableProps<T> {
   bordered?: boolean;
   /** Corner radius of the container, on the shared surface corner scale. */
   corner?: SurfaceCorner;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Palette tone of the table: the header band, tone accents, and — unless
    * overridden by `color` — the controls inside the table (action buttons,
@@ -933,6 +935,7 @@ function TableComponent<T>({
   storagePrefix,
   storage,
   color,
+  raisedSurface = false,
 }: TableProps<T>) {
   const tone = getSurfaceAccentColor(surfaceTone);
   const t = useKitT();
@@ -1948,6 +1951,7 @@ function TableComponent<T>({
       padding="none"
       corner={corner}
       scrollable={false}
+      raisedSurface={raisedSurface}
       flexBody={fullHeight}
       className={wrapperClasses}
       style={style}

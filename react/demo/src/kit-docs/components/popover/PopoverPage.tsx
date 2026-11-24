@@ -25,7 +25,7 @@ export const PopoverPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Popover"
-      description="A floating panel anchored to any trigger — an arrow (or a detached bubble dot) that tracks the trigger through every clamp, all eight container surfaces with glass and liquid-glass, flip-aware placement, dismissable/Escape control, and the shared loader set."
+      description="A floating panel anchored to any trigger — an arrow (or a detached bubble dot) that tracks the trigger through every clamp, all eight container surfaces with glass and liquid-glass (`raisedSurface` forces the panel's first nested-panels depth step — the tinted-card-on-matching-background fix), flip-aware placement, dismissable/Escape control, and the shared loader set."
     />
     <PopoverPlayground />
     <section className="flex flex-col gap-5">

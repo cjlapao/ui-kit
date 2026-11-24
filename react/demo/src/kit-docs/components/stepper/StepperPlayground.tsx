@@ -64,6 +64,7 @@ const steps: Step[] = [
 export const StepperPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
   const [tone, setTone] = useState<SurfaceTone>("none");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [size, setSize] = useState<ControlSize>("md");
   const [orientation, setOrientation] =
     useState<StepperOrientation>("horizontal");
@@ -110,6 +111,12 @@ export const StepperPlayground: React.FC = () => {
                       onChange={(v) => setVariant(v as PanelVariant)}
                     />
                     <SurfaceToneControl label="Tone" value={tone} onChange={setTone} />
+                    {/* The step strip's Panel takes the first depth step on command. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
+                    />
                     <SelectControl
                       label="Size"
                       options={controlSizeOptions}
@@ -217,6 +224,7 @@ export const StepperPlayground: React.FC = () => {
             steps={steps}
             variant={variant}
             tone={tone}
+            raisedSurface={raisedSurface}
             size={size}
             orientation={orientation}
             nodeCorner={nodeCorner}

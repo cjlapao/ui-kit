@@ -47,7 +47,7 @@ export interface MenuItem {
    * Overrides the menu-wide `closeOnSelect`. */
   closeOnSelect?: boolean;
 }
-export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner" | "padding" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode"> {
+export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner" | "padding" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode" | "raisedSurface"> {
   items: MenuItem[];
   /** Inline by default. Supplying trigger or anchorRef makes it a popup. */
   popup?: boolean;

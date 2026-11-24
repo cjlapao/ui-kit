@@ -108,6 +108,19 @@ export interface SelectProps extends Omit<
    */
   variant?: SelectVariant;
   /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * State colours stay with `tone` — focus border, ring, icons and the glow all
+   * follow it — while the fill follows this hue through the variant's own
+   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * `elevated` their border, and `underline` has no box to paint. `neutral`
+   * means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
+  /**
    * Field radius. `auto` keeps the control corner shared with every other
    * field; an explicit token replaces it.
    * @default "auto"
@@ -153,6 +166,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     tone,
     color,
     variant = "flat",
+    backgroundColor,
     corner = "auto",
     gradientFrom,
     gradientTo,
@@ -203,6 +217,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   const tokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
     explicitTone: tone ?? color,
+    backgroundColor,
   });
   const glow = getGlowTokens(glowIntensity);
   const [glowFrom, glowTo] = resolveGlowGradient(

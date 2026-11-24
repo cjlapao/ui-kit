@@ -33,6 +33,8 @@ export interface ChatProps {
   tone?: SurfaceTone;
   /** @default "none" */
   padding?: SurfacePadding;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 </script>
 
@@ -93,6 +95,7 @@ const props = withDefaults(defineProps<ChatProps>(), {
   variant: "outlined",
   tone: "none",
   padding: "none",
+  raisedSurface: false,
 });
 
 const emit = defineEmits<{ (event: "event", payload: ChatEvent): void }>();
@@ -514,6 +517,7 @@ const bubbleHtml = (message: ChatMessage) => renderChatMarkdown(message.content)
     :variant="variant"
     :tone="tone"
     :padding="padding"
+    :raised-surface="raisedSurface"
     :class="classNames('relative overflow-hidden', classAttr)"
     :style="{ height: typeof height === 'number' ? `${height}px` : height }"
   >

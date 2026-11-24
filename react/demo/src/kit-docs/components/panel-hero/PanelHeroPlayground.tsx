@@ -35,6 +35,7 @@ export const PanelHeroPlayground: React.FC = () => {
   const [subtitleSize, setSubtitleSize] = useState<ControlSize>("xs");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [decoration, setDecoration] = useState<PanelDecoration>("both");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("soft");
   const [titleAs, setTitleAs] = useState<PanelHeroTitleElement>("p");
@@ -87,6 +88,12 @@ export const PanelHeroPlayground: React.FC = () => {
                       options={panelCornerOptions}
                       value={corner}
                       onChange={(v) => setCorner(v as SurfaceCorner)}
+                    />
+                    {/* Lift the banner a depth step when it wears the page's own colour. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                     <ChoiceControl
                       label="Decoration"
@@ -152,6 +159,7 @@ export const PanelHeroPlayground: React.FC = () => {
             subtitleSize={subtitleSize}
             padding={padding}
             corner={corner}
+            raisedSurface={raisedSurface}
             decoration={decoration}
             glowIntensity={glowIntensity}
             titleAs={titleAs}

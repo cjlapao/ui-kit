@@ -50,6 +50,7 @@ export const CollapsiblePanelPlayground: React.FC = () => {
   const [corner, setCorner] =
     useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [disabled, setDisabled] = useState(false);
   const [withActions, setWithActions] = useState(true);
@@ -94,6 +95,13 @@ export const CollapsiblePanelPlayground: React.FC = () => {
                     options={panelPaddingOptions}
                     value={padding}
                     onChange={(v) => setPadding(v as PanelPadding)}
+                  />
+                  {/* One nested-panels depth step up — the log card lifts off
+                      a background of the same tint. */}
+                  <ToggleRow
+                    label="Raised surface"
+                    checked={raisedSurface}
+                    onChange={setRaisedSurface}
                   />
                 </>
               ),
@@ -179,6 +187,7 @@ export const CollapsiblePanelPlayground: React.FC = () => {
             tone={tone}
             corner={corner}
             padding={padding}
+            raisedSurface={raisedSurface}
             glassOpacity={glassOpacity}
             vibrancy={vibrancy}
             specularMode={specularMode}

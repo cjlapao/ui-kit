@@ -32,7 +32,9 @@ export const BreakdownCardPage: React.FC = () => (
           card's own shape in placeholder ink while the numbers are in flight),
           and the usual card surface —{" "}
           <code>variant</code>, <code>tone</code>, <code>padding</code>,{" "}
-          <code>corner</code>; everything else lands on the card. Each item's{" "}
+          <code>corner</code>, plus <code>raisedSurface</code> (forces the
+          first nested-panels depth step — the tinted-card-on-matching-
+          background fix); everything else lands on the card. Each item's{" "}
           <code>tone</code> paints its slice and its legend dot — the kit's
           TrueColors, no raw hex anywhere. The donut renders through the
           kit's own <code>Chart.Pie</code> (a native SVG donut in the Vue

@@ -17,6 +17,7 @@ export type TerminalSurfaceProps = Pick<
   | "glassOpacity"
   | "vibrancy"
   | "specularMode"
+  | "raisedSurface"
   | "borderColor"
   | "backgroundColor"
   | "maxWidth"

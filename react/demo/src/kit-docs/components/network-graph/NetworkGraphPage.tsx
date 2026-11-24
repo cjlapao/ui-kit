@@ -167,7 +167,7 @@ export default function NetworkGraphPage() {
             type: "SurfaceVariant / TrueColor / SurfaceCorner",
             default: '"elevated" / "blue" / "rounded-md"',
             description:
-              "Shared Panel surface tokens, including glass, liquid-glass, outlined, tonal, subtle, simple and default.",
+              "Shared Panel surface tokens, including glass, liquid-glass, outlined, tonal, subtle, simple and default. `raisedSurface` forces the graph card’s first nested-panels depth step — the tinted-card-on-matching-background fix.",
           },
           {
             name: "glassOpacity / vibrancy / specularMode",

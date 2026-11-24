@@ -52,6 +52,9 @@ export const DynamicFormFieldPlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [padding, setPadding] = useState<SurfacePadding>("md");
+  // A field card wearing its host panel's own tint needs the forced first
+  // nesting step before anyone can tell where it starts.
+  const [raisedSurface, setRaisedSurface] = useState(false);
 
   const [showError, setShowError] = useState(false);
   const [disabled, setDisabled] = useState(false);
@@ -113,6 +116,11 @@ export const DynamicFormFieldPlayground: React.FC = () => {
                       options={panelPaddingOptions}
                       value={padding}
                       onChange={(v) => setPadding(v as SurfacePadding)}
+                    />
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),
@@ -196,6 +204,7 @@ export const DynamicFormFieldPlayground: React.FC = () => {
             tone={tone}
             corner={corner}
             padding={padding}
+            raisedSurface={raisedSurface}
             disabled={disabled}
             readOnly={readOnly}
             error={showError ? "That value is not accepted." : undefined}

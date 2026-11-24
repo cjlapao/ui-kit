@@ -40,6 +40,7 @@ export const TagPickerPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [panelVariant, setPanelVariant] = useState<"auto" | SurfaceVariant>("auto");
   const [panelTone, setPanelTone] = useState<"auto" | SurfaceTone>("auto");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [validationStatus, setValidationStatus] =
     useState<ValidationStatus>("none");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("subtle");
@@ -72,6 +73,7 @@ export const TagPickerPlayground: React.FC = () => {
       variant={variant}
       panelVariant={panelVariant}
       panelTone={panelTone}
+      raisedSurface={raisedSurface}
       validationStatus={validationStatus}
       glowIntensity={glowIntensity}
       multi={multi}
@@ -127,6 +129,12 @@ export const TagPickerPlayground: React.FC = () => {
                       onPanelVariant={setPanelVariant}
                       panelTone={panelTone}
                       onPanelTone={setPanelTone}
+                    />
+                    {/* Local to this playground: the dropdown card earns its depth step. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),

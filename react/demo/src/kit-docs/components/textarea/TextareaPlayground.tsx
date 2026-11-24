@@ -24,6 +24,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import {
   controlSizeOptions,
   glassOpacityOptions,
@@ -51,6 +52,12 @@ export const TextareaPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InputVariant>("elevated");
   const [size, setSize] = useState<ControlSize>("md");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The fill's own hue, for when it should disagree with the tone — focus and
+  // ring keep following `tone`; only the fill comes over here. `undefined` is
+  // the honest default: the fill follows the tone today.
+  const [backgroundColor, setBackgroundColor] = useState<TrueColor | undefined>(
+    undefined,
+  );
   const [glowIntensity, setGlowIntensity] =
     useState<GlowIntensity>(DEFAULT_GLOW_INTENSITY);
   const [validationStatus, setValidationStatus] =
@@ -100,6 +107,16 @@ export const TextareaPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    {/* The fill may wear a hue the states do not — pick it
+                      from colour as well. "None" is the variant's own resting
+                      fill: the tone's hue for `glass` and `ghost`, white for the
+                      rest, which is what every field did before this prop. */}
+                    <HueControl
+                      label="Fill hue"
+                      value={backgroundColor}
+                      onChange={setBackgroundColor}
+                      autoLabel="None — the variant’s own fill"
+                    />
                   </>
                 ),
               },
@@ -236,6 +253,7 @@ export const TextareaPlayground: React.FC = () => {
               size={size}
               variant={variant}
               tone={tone}
+              backgroundColor={backgroundColor}
               validationStatus={validationStatus}
               resize={resize}
               disabled={disabled}

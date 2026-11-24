@@ -171,6 +171,8 @@ export interface PopoverProps {
   glassOpacity?: GlassOpacity;
   /** Specular highlight mode for the glass variants — forwarded to the Panel. */
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Extra classes for the overlay wrapper. */
   className?: string;
   /**
@@ -315,6 +317,7 @@ const Popover: React.FC<PopoverProps> = ({
   glassOpacity = "frosted",
   transparency,
   specularMode,
+  raisedSurface = false,
   className,
   bareTrigger = false,
 }) => {
@@ -1027,6 +1030,7 @@ const Popover: React.FC<PopoverProps> = ({
               glassOpacity={glassOpacity}
               transparency={transparency}
               specularMode={specularMode}
+              raisedSurface={raisedSurface}
             >
               <div className="max-h-[55vh] overflow-y-auto">
                 <div className={getSurfacePaddingClass(padding)}>

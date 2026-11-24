@@ -36,7 +36,9 @@ export const ChatPage: React.FC = () => (
           (<code>200</code>) and <code>pageSize</code> (<code>50</code>) — the
           memory window and the page it refills with — <code>height</code>,{" "}
           <code>showRail</code>, <code>placeholder</code>, and the usual card
-          surface. <code>renderMessage</code> (the <code>message</code> slot in
+          surface — <code>raisedSurface</code> forces the first nested-panels
+          depth step, the tinted-card-on-matching-background fix.{" "}
+          <code>renderMessage</code> (the <code>message</code> slot in
           Vue) replaces any bubble; <code>onEvent</code> (the <code>event</code>{" "}
           emit) reports every creation, send, receipt, abort and storage
           failure — the seam the component grows through.

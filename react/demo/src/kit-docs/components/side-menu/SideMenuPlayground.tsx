@@ -46,6 +46,7 @@ export const SideMenuPlayground: React.FC = () => {
   const [cardTone, setCardTone] = useState<SurfaceTone>("none");
   const [cardVariant, setCardVariant] = useState<SurfaceVariant>("outlined");
   const [variant, setVariant] = useState<SidebarVariant>("sidebar");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [collapsible, setCollapsible] = useState<SidebarCollapsible>("icon");
   const [side, setSide] = useState<SidebarSide>("left");
   const [tone, setTone] = useState<TrueColor>("blue");
@@ -148,6 +149,7 @@ export const SideMenuPlayground: React.FC = () => {
       title="Playground"
       color={tone}
       variant={variant}
+      raisedSurface={raisedSurface}
       side={side}
       collapsible={collapsible}
       openOnHover={openOnHover}
@@ -232,6 +234,12 @@ export const SideMenuPlayground: React.FC = () => {
                       defaultExpanded
                     />
                   </Control>
+                  {/* One depth step up, so the menu survives a page of its own colour. */}
+                  <ToggleRow
+                    label="Raised surface"
+                    checked={raisedSurface}
+                    onChange={setRaisedSurface}
+                  />
                 </>
               ),
             },

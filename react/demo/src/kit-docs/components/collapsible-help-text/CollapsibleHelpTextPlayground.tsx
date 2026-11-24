@@ -48,6 +48,9 @@ export const CollapsibleHelpTextPlayground: React.FC = () => {
   const [corner, setCorner] =
     useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
+  // The card disappears when it and its host settle on the same tint —
+  // this forces the nesting ladder's first step back into play.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [showIcon, setShowIcon] = useState(true);
   const [showTitle, setShowTitle] = useState(true);
   const [longCopy, setLongCopy] = useState(true);
@@ -93,6 +96,7 @@ export const CollapsibleHelpTextPlayground: React.FC = () => {
                     value={padding}
                     onChange={(v) => setPadding(v as PanelPadding)}
                   />
+                  <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
                 </>
               ),
             },
@@ -177,6 +181,7 @@ export const CollapsibleHelpTextPlayground: React.FC = () => {
               variant={variant}
               corner={corner}
               padding={padding}
+              raisedSurface={raisedSurface}
               maxLength={maxLength}
               glassOpacity={glassOpacity}
               vibrancy={vibrancy}

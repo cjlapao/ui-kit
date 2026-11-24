@@ -87,7 +87,7 @@ export const MultiSelectPanelPage: React.FC = () => (
           name: "options",
           type: "MultiSelectPanelOption[]",
           description:
-            "`{ value, title, subtitle?, icon?, labels?, disabled?, variant?, tone?, corner?, padding?, pulse?, pulseTone?, activeTone?, checkboxTone?, checkboxVariant? }`. `title` is the only required field; `icon` is a registry name or any node; `labels` are the pills on the title row. Every surface and hue field beats the group's equivalent for that card.",
+            "`{ value, title, subtitle?, icon?, labels?, disabled?, variant?, tone?, corner?, padding?, pulse?, pulseTone?, activeTone?, hoverColor?, checkboxTone?, checkboxVariant? }`. `title` is the only required field; `icon` is a registry name or any node; `labels` are the pills on the title row. Every surface and hue field beats the group's equivalent for that card.",
         },
         {
           name: "label / description",
@@ -161,14 +161,14 @@ export const MultiSelectPanelPage: React.FC = () => (
           type: "SurfaceVariant / SurfaceTone / SurfaceCorner / SurfacePadding",
           default: '"elevated" / "blue" / "rounded-sm" / "sm"',
           description:
-            'The `Panel` surface every card wears, and the defaults an option may outvote with `variant`, `tone`, `corner`, `padding` and `pulse`. `tone` is one hue for the card, its rim when selected and the checkbox box, so a card and its box read as one thing; `tone="none"` leaves the card untinted and keeps the box readable.',
+            'The `Panel` surface every card wears, and the defaults an option may outvote with `variant`, `tone`, `corner`, `padding` and `pulse`. `tone` is one hue for the card, its rim when selected and the checkbox box, so a card and its box read as one thing; `tone="none"` leaves the card untinted and keeps the box readable. `raisedSurface` forces every card’s first nested-panels depth step — the tinted-card-on-matching-background fix.',
         },
         {
-          name: "activeTone / pulseTone",
+          name: "activeTone / pulseTone / hoverColor",
           type: "TrueColor",
-          default: "the card’s hue / the selected hue",
+          default: "the card’s hue / the selected hue / the selected hue, then the card’s tone",
           description:
-            "The two hues a card may keep to itself. `activeTone` dresses the whole selected state — rim and wash together — so a blue card can be selected in amber; `pulseTone` is the colour of the attention glow, which by default rides the selection so a selected-and-pulsing card says both things in one colour. Omitted, both fall back through `borderColor` to the card's own tone. Per-option as `activeTone` / `pulseTone`.",
+            "The hues a card may keep to itself. `activeTone` dresses the whole selected state — rim and wash together — so a blue card can be selected in amber; `pulseTone` is the colour of the attention glow, which by default rides the selection so a selected-and-pulsing card says both things in one colour. Omitted, both fall back through `borderColor` to the card's own tone. `hoverColor` is the hue the card wears under the pointer, and by default that is the hue it is selected in — but only while it is: the selected card hovers in the colour of its own state while its neighbours keep hovering in their tone, rather than the whole grid wearing a state one card has. Give it a hue to keep a card hovering in its brand colour. Per-option as `activeTone` / `pulseTone` / `hoverColor`.",
         },
         {
           name: "transparency / hoverable / hoverShadow / decoration / borderColor / backgroundColor",

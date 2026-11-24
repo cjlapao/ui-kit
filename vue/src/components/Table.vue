@@ -145,6 +145,8 @@ export interface TableProps<T> {
    * focus rings) independently of `tone`. Defaults to `tone`.
    */
   color?: TrueColor;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   striped?: boolean;
   noBorders?: boolean;
   hoverable?: boolean;
@@ -572,6 +574,7 @@ const props = withDefaults(defineProps<TableProps<T>>(), {
   stickyActions: false,
   loading: false,
   loaderType: "spinner",
+  raisedSurface: false,
   manualSorting: false,
   showColumnSelector: false,
   resizableColumns: false,
@@ -1967,6 +1970,7 @@ const handleNextPage = () => {
     :tone="props.tone ?? 'none'"
     padding="none"
     :corner="corner"
+    :raised-surface="raisedSurface"
     :scrollable="false"
     :flex-body="fullHeight"
     :class="wrapperClasses"

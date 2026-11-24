@@ -308,6 +308,8 @@ export interface SplitViewProps {
    * correctly without a double-scroll or broken `h-full` percentage height.
    */
   panelScrollable?: boolean;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 
   /**
    * When true (default), clicking a list item immediately opens its detail panel —
@@ -477,6 +479,7 @@ const SplitView: React.FC<SplitViewProps> = ({
   expandedValue,
   onExpand,
   panelScrollable = true,
+  raisedSurface = false,
 }) => {
   const t = useKitT();
   const effectiveTone = tone ?? color ?? "blue";
@@ -824,6 +827,7 @@ const SplitView: React.FC<SplitViewProps> = ({
               decoration={detailsDecoration}
               corner="none"
               padding="none"
+              raisedSurface={raisedSurface}
               className={classNames(
                 "w-full shadow-none px-3 py-4",
                 headerDetails.className,

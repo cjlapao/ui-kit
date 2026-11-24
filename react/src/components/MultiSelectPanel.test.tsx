@@ -642,5 +642,60 @@ describe("MultiSelectPanel", () => {
         cardEl(selected.container, "text").style.getPropertyValue("--panel-glow"),
       ).toBe("var(--color-amber-500)");
     });
+
+    /**
+     * The hover asks the *selection*, so the card that is selected previews its
+     * own state and the rest of the group keeps hovering in the tone they were
+     * given — which is why these three assertions are the forwarding's insurance:
+     * a card that stops forwarding `hoverColor` fails nothing else here.
+     */
+    const hoverHueOf = (cls: string): string | undefined => {
+      for (const token of cls.split(/\s+/)) {
+        const utility = token.match(/^hover:bg-([a-z]+)-\d+/);
+        const variable = token.match(
+          /^hover:\[--ui-surface-color:var\(--color-([a-z]+)-\d+\)\]$/,
+        );
+        const hue = utility?.[1] ?? variable?.[1];
+        if (hue) return hue;
+      }
+      return undefined;
+    };
+
+    it("hovers the chosen card in the group's hue and the rest in their own", () => {
+      const { container } = renderGroup({
+        tone: "cyan",
+        activeTone: "amber",
+        defaultValue: ["text"],
+      });
+      // The selected card hovers in the hue its rim and wash already wear…
+      expect(hoverHueOf(cardEl(container, "text").className)).toBe("amber");
+      // …while its unselected neighbours borrow nothing from it, even though
+      // every one of them was handed the group's `activeTone`.
+      expect(hoverHueOf(cardEl(container, "image").className)).toBe("cyan");
+      expect(hoverHueOf(cardEl(container, "speech").className)).toBe("cyan");
+    });
+
+    it("hovers in the card's own tone when nobody names a hue", () => {
+      const { container } = renderGroup({ tone: "cyan" });
+      expect(hoverHueOf(cardEl(container, "text").className)).toBe("cyan");
+    });
+
+    it("lets hoverColor overrule the selection hue, the group's and one card's", () => {
+      const { container } = renderGroup({
+        tone: "cyan",
+        activeTone: "amber",
+        hoverColor: "rose",
+        defaultValue: ["text", "image"],
+        options: [
+          { value: "text", title: "Text" },
+          { value: "image", title: "Image", hoverColor: "lime" },
+        ],
+      });
+      // Both cards are selected, so both would hover in the selection's amber.
+      // The group's `hoverColor` beats that…
+      expect(hoverHueOf(cardEl(container, "text").className)).toBe("rose");
+      // …and one card's beats both.
+      expect(hoverHueOf(cardEl(container, "image").className)).toBe("lime");
+    });
   });
 });

@@ -57,6 +57,7 @@ export const PickerPlayground: React.FC = () => {
   const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
   const [panelVariant, setPanelVariant] = useState<"auto" | SurfaceVariant>("auto");
   const [panelTone, setPanelTone] = useState<"auto" | SurfaceTone>("auto");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [validationStatus, setValidationStatus] =
     useState<ValidationStatus>("none");
@@ -86,6 +87,7 @@ export const PickerPlayground: React.FC = () => {
       corner={corner}
       panelVariant={panelVariant}
       panelTone={panelTone}
+      raisedSurface={raisedSurface}
       panelCorner={panelCorner}
       variant={variant}
       validationStatus={validationStatus}
@@ -166,6 +168,12 @@ export const PickerPlayground: React.FC = () => {
                       onPanelVariant={setPanelVariant}
                       panelTone={panelTone}
                       onPanelTone={setPanelTone}
+                    />
+                    {/* Local to this playground: the dropdown card earns its depth step. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),

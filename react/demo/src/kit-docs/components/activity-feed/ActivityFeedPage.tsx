@@ -41,7 +41,11 @@ export const ActivityFeedPage: React.FC = () => (
           while <code>rowVariant</code> / <code>rowTone</code> /
           <code>rowCorner</code> set that row Panel's surface (default{" "}
           <code>"none"</code>, the card's own tone, and the corner scale's
-          xs step, <code>"rounded"</code>) and the row's own{" "}
+          xs step, <code>"rounded"</code>) — <code>subRowCorner</code> and{" "}
+          <code>subRowPadding</code> dial the sub-row washes, resting on the
+          corner scale's sm step (<code>"rounded-sm"</code>) and the padding
+          ladder's <code>"md"</code> rung, with bleed, row gap, the column's
+          gutter, and clip room moving in lockstep — and the row's own{" "}
           <code>active</code> / <code>attention</code> hand it the Panel's{" "}
           <code>active</code> rim and <code>pulse</code> glow — with{" "}
           <code>attentionTone</code> the Panel's own hue override (the row{" "}
@@ -98,7 +102,9 @@ export const ActivityFeedPage: React.FC = () => (
           <code>filterVariant</code> — every control on the card follows the
           card's own variant by default (the filter track speaks the same
           surface vocabulary) unless told otherwise — and the usual card
-          surface. The card's{" "}
+          surface, plus <code>raisedSurface</code>, which forces the first
+          nested-panels depth step — the tinted-card-on-matching-background
+          fix. The card's{" "}
           <code>tone</code> is not only the surface: untoned entries inherit
           it for their dots, and the filters, the link and the tail button all
           wear it, while a neutral card stays quiet. The All segment is

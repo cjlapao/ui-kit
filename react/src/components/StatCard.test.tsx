@@ -792,4 +792,102 @@ describe("StatCard — the hues a card can wear", () => {
       expect(glow).toBe("var(--color-rose-500)");
     }
   });
+
+  /** The hue of the hover wash, in either of the two spellings `Panel` writes. */
+  const hoverHueOf = (cls: string): string | undefined => {
+    for (const token of cls.split(/\s+/)) {
+      const utility = token.match(/^hover:bg-([a-z]+)-\d+/);
+      const variable = token.match(
+        /^hover:\[--ui-surface-color:var\(--color-([a-z]+)-\d+\)\]$/,
+      );
+      const hue = utility?.[1] ?? variable?.[1];
+      if (hue) return hue;
+    }
+    return undefined;
+  };
+
+  /**
+   * The pointer asks the selection what to wear, but only the card that *is*
+   * selected: a KPI chosen in amber answers the hover in amber too, while its
+   * unselected neighbours in the same dashboard keep hovering in their own tone.
+   * `hoverColor` remains the way back for a card that should keep hovering in its
+   * brand hue.
+   */
+  it("hovers in the hue the card is chosen in", () => {
+    const { cls } = surfaceOf(
+      <StatCard
+        label="Revenue"
+        value="$1.42M"
+        tone="cyan"
+        active
+        activeTone="amber"
+        onClick={() => {}}
+      />,
+    );
+    expect(hoverHueOf(cls)).toBe("amber");
+    expect(cls).toContain("hover:ring-amber-300/70");
+    // The card is still its own hue at rest.
+    expect(cls).not.toMatch(/(?:hover|active):bg-cyan-/);
+
+    // The same card with the selection taken away hovers in its own hue again —
+    // the follow is the state's, not the hue's, and a grid of neighbours that
+    // were all handed the group's `activeTone` depends on that.
+    const neighbour = surfaceOf(
+      <StatCard
+        label="Revenue"
+        value="$1.42M"
+        tone="cyan"
+        activeTone="amber"
+        onClick={() => {}}
+      />,
+    );
+    expect(hoverHueOf(neighbour.cls)).toBe("cyan");
+    expect(neighbour.cls).not.toContain("hover:ring-amber-300/70");
+  });
+
+  it("answers the pointer without being clickable, and only when asked", () => {
+    const lifted = cardOf(
+      <StatCard label="Revenue" value="$1.42M" tone="cyan" hoverable />,
+    );
+    expect(hoverHueOf(lifted.className)).toBe("cyan");
+    expect(lifted.className).toContain("cursor-pointer");
+    // A card nobody clicks stays a card: the hover is an answer to the pointer,
+    // not a claim to be a control.
+    expect(lifted.getAttribute("role")).toBeNull();
+
+    const still = cardOf(
+      <StatCard label="Revenue" value="$1.42M" tone="cyan" />,
+    );
+    expect(hoverHueOf(still.className)).toBeUndefined();
+  });
+
+  it("lets hoverColor overrule the chosen hue, on a card and on a tile", () => {
+    const { cls } = surfaceOf(
+      <StatCard
+        label="Revenue"
+        value="$1.42M"
+        tone="cyan"
+        active
+        activeTone="amber"
+        hoverColor="rose"
+        onClick={() => {}}
+      />,
+    );
+    expect(hoverHueOf(cls)).toBe("rose");
+    expect(cls).toContain("outline-amber-500");
+
+    const tile = surfaceOf(
+      <StatTile
+        label="Revenue"
+        value="$1.42M"
+        tone="cyan"
+        active
+        activeTone="amber"
+        hoverColor="rose"
+        onClick={() => {}}
+      />,
+    );
+    expect(hoverHueOf(tile.cls)).toBe("rose");
+    expect(tile.cls).toContain("outline-amber-500");
+  });
 });

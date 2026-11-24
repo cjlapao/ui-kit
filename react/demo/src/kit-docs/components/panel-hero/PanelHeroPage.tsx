@@ -151,7 +151,7 @@ export const PanelHeroPage: React.FC = () => (
           type: '"gradient" | PanelVariant',
           default: "gradient",
           description:
-            "The saturated band, or any Panel surface — which brings its own fill, ring and glass props.",
+            "The saturated band, or any Panel surface — which brings its own fill, ring and glass props, plus `raisedSurface` (forces the first nested-panels depth step — the tinted-card-on-matching-background fix).",
         },
         {
           name: "titleSize / subtitleSize",

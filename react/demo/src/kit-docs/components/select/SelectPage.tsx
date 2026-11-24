@@ -107,6 +107,13 @@ export const SelectPage: React.FC = () => (
             "Focus border/ring, caret-on-focus, validation-neutral icon accent, and the styled picker&rsquo;s hover/selected colours (travelling as CSS variables, nothing to safelist). `color` works as a deprecated alias.",
         },
         {
+          name: "backgroundColor",
+          type: "TrueColor",
+          default: '"none"',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border/ring, the caret and the picker&rsquo;s own hover/selected colours keep following `tone`, so a rose-filled select still focuses blue. The fill keeps the variant&rsquo;s own recipe rather than one fixed tone step — `glass` stays sheer, `ghost` repaints its washes in the new hue while its hover rim stays in `tone`; `underline` has no box to paint, so it is a no-op there, and `neutral` restores the variant&rsquo;s own resting fill.",
+        },
+        {
           name: "corner",
           type: "SurfaceCorner",
           default: '"auto"',

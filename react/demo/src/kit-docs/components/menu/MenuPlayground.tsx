@@ -14,6 +14,7 @@ export function MenuPlayground() {
   const [size, setSize] = useState<ControlSize>("md");
   const [padding, setPadding] = useState<SurfacePadding>("xs");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-sm");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [itemTone, setItemTone] = useState<TrueColor>("neutral");
   const [followTone, setFollowTone] = useState(true);
   const [itemPadding, setItemPadding] = useState<"auto" | SurfacePadding>("auto");
@@ -55,6 +56,8 @@ export function MenuPlayground() {
       <Control label="Surface tone"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
       <SelectControl label="Surface padding" options={panelPaddingOptions} value={padding} onChange={v => setPadding(v as SurfacePadding)} />
       <SelectControl label="Surface corner" options={panelCornerOptions} value={corner} onChange={v => setCorner(v as SurfaceCorner)} />
+      {/* The get-out-of-flat clause: forces the first nested-panels depth step. */}
+      <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
     </> },
     { id: "items", title: "Menu items", controls: <>
       <ToggleRow label="Items follow surface tone" checked={followTone} onChange={setFollowTone} />
@@ -74,7 +77,7 @@ export function MenuPlayground() {
     </> },
   ]} /><p className="text-xs text-neutral-500">Item styles are independent of the surface. Individual MenuItem entries can override tone, padding, and corner. Danger rows keep their warning tone.</p></div>}
     preview={<div className="w-full space-y-4"><div className="flex min-h-80 items-start justify-center">
-      <Menu key={popup ? "popup" : "inline"} aria-label="Playground commands" items={items} variant={variant} tone={tone} size={size} padding={padding} corner={corner}
+      <Menu key={popup ? "popup" : "inline"} aria-label="Playground commands" items={items} variant={variant} tone={tone} size={size} padding={padding} corner={corner} raisedSurface={raisedSurface}
         itemTone={followTone ? undefined : itemTone} itemPadding={itemPadding === "auto" ? undefined : itemPadding} itemCorner={itemCorner}
         submenuMode={submenuMode} closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"} placement={placement} trigger={popup ? <Button tooltip="Run a command" tooltipDisabled={menuOpen}>Open menu</Button> : undefined}
         header={withChrome ? <div className="px-3 py-2 font-semibold">Workspace</div> : undefined}

@@ -49,6 +49,8 @@ export interface FormSectionProps {
   glassOpacity?: GlassOpacity;
   transparency?: SurfaceTransparency;
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 const FormSection: React.FC<FormSectionProps> = ({
@@ -65,6 +67,7 @@ const FormSection: React.FC<FormSectionProps> = ({
   glassOpacity,
   transparency,
   specularMode,
+  raisedSurface = false,
 }) => {
   const pad = paddingMap[padding] ?? paddingMap.md;
   // Heading, description and divider all come from the surface, so a glass
@@ -83,6 +86,7 @@ const FormSection: React.FC<FormSectionProps> = ({
       glassOpacity={glassOpacity}
         transparency={transparency}
       specularMode={specularMode}
+      raisedSurface={raisedSurface}
       className={className}
       bodyClassName="!space-y-0"
     >

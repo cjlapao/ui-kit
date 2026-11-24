@@ -104,6 +104,8 @@ export interface PanelHeroProps extends Omit<
   vibrancy?: GlassVibrancy;
   /** Specular highlight, for the see-through variants. */
   specularMode?: SpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 const TITLE_SIZES: Record<ControlSize, string> = {
@@ -250,6 +252,7 @@ const PanelHero: React.FC<PanelHeroProps> = ({
   transparency,
   vibrancy,
   specularMode,
+  raisedSurface = false,
   className,
   children,
   ...rest
@@ -290,6 +293,7 @@ const PanelHero: React.FC<PanelHeroProps> = ({
         transparency={transparency}
         vibrancy={vibrancy}
         specularMode={specularMode}
+        raisedSurface={raisedSurface}
         scrollable={false}
         {...rest}
       >

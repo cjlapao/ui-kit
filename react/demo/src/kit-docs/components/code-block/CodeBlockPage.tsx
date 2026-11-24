@@ -39,6 +39,7 @@ export default function CodeBlockPage() {
       { name: "color", type: "TrueColor", default: "blue", description: "Shared surface and copy-button tone." },
       { name: "variant", type: "SurfaceVariant", default: "subtle", description: "Shared Panel surface treatment." },
       { name: "corner", type: "SurfaceCorner", default: "rounded-md", description: "Shared surface corner radius." },
+      { name: "raisedSurface", type: "boolean", default: "false", description: "Forwards to the body Panel — forces at least the first nested-panels depth step; the tinted-card-on-matching-background fix. No-op outside the tinted variants." },
       { name: "editorLabel", type: "string", default: "Edit code", description: "Accessible name for the textarea; default is localized." },
       { name: "className / native div attributes", type: "HTMLAttributes<HTMLDivElement>", description: "Applied to the root, including style and accessible attributes. Children are owned by the component." },
     ]} />

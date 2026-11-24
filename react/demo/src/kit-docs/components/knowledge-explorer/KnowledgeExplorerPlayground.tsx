@@ -143,6 +143,9 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
   const [mainPadding, setMainPadding] = useState("none");
   const [mainCorner, setMainCorner] = useState("");
+  // Rides the surface bag — lifts whichever view panel is showing, not the
+  // inspector, which keeps its own chain.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [loaderType, setLoaderType] = useState<PanelLoaderType>("skeleton");
   const [loaderProgress, setLoaderProgress] = useState(50);
   const [projected, setProjected] = useState(false);
@@ -276,6 +279,13 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
                       options={MAIN_CORNER_OPTIONS}
                       value={mainCorner}
                       onChange={setMainCorner}
+                    />
+                    {/* The tinted-card-on-matching-background fix, one depth
+                        step up for whichever view's panel is on stage. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                     {dataState === "loading" && (
                       <>
@@ -547,6 +557,7 @@ export const KnowledgeExplorerPlayground: React.FC = () => {
             variant={variant}
             padding={(mainPadding || undefined) as SurfacePadding | undefined}
             corner={(mainCorner || undefined) as SurfaceCorner | undefined}
+            raisedSurface={raisedSurface}
             loaderType={loaderType}
             loaderProgress={loaderType === "progress" ? loaderProgress : undefined}
             memories={dataState === "empty" ? [] : records}

@@ -157,7 +157,7 @@ export const SidePanelPage: React.FC = () => (
           type: "PanelVariant | legacy sidebar variant",
           default: "outlined",
           description:
-            "The shared Panel surface family. Legacy sidebar, inset, floating, and floating-glass names remain accepted.",
+            "The shared Panel surface family. Legacy sidebar, inset, floating, and floating-glass names remain accepted. `raisedSurface` forces the first nested-panels depth step — the tinted-card-on-matching-background fix.",
         },
         {
           name: "glassOpacity / vibrancy / specularMode",

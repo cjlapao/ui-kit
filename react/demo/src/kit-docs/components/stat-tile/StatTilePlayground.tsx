@@ -110,6 +110,9 @@ export const StatTilePlayground: React.FC = () => {
     previewStageRef,
   } = useStatBaseControls();
   const [variant, setVariant] = useState<StatVariant>("card");
+  // Playground-side companion to the shared core group: every tile in the
+  // family takes StatCard's depth-step switch through the same spread.
+  const [raisedSurface, setRaisedSurface] = useState(false);
 
   // Per-variant extras.
   const [breakdown, setBreakdown] = useState(true);
@@ -203,11 +206,11 @@ export const StatTilePlayground: React.FC = () => {
   const preview = (() => {
     switch (variant) {
       case "tile":
-        return <StatTile {...statProps} title={label} value={value} />;
+        return <StatTile {...statProps} raisedSurface={raisedSurface} title={label} value={value} />;
       case "count":
         return (
           <StatCountTile
-            {...statProps} 
+            {...statProps} raisedSurface={raisedSurface}
            
             label={label}
             value={value}
@@ -217,7 +220,7 @@ export const StatTilePlayground: React.FC = () => {
       case "goal":
         return (
           <StatGoalTile
-            {...statProps} 
+            {...statProps} raisedSurface={raisedSurface}
            
             label={label}
             goals={GOALS}
@@ -227,7 +230,7 @@ export const StatTilePlayground: React.FC = () => {
       case "chart":
         return (
           <StatChartTile
-            {...statProps} 
+            {...statProps} raisedSurface={raisedSurface}
            
             label={label}
             data={datasets ? CHART_DATA : CHART_DATA.slice(0, 1)}
@@ -236,7 +239,7 @@ export const StatTilePlayground: React.FC = () => {
       case "graph":
         return (
           <StatGraphTile
-            {...statProps} 
+            {...statProps} raisedSurface={raisedSurface}
            
             label={label}
             value={value}
@@ -252,7 +255,7 @@ export const StatTilePlayground: React.FC = () => {
       case "health":
         return (
           <StatHealthCard
-            {...statProps} 
+            {...statProps} raisedSurface={raisedSurface}
            
             label={label}
             value={value}
@@ -261,7 +264,7 @@ export const StatTilePlayground: React.FC = () => {
           />
         );
       default:
-        return <StatCard {...statProps}  label={label} value={value} />;
+        return <StatCard {...statProps} raisedSurface={raisedSurface}  label={label} value={value} />;
     }
   })();
 
@@ -286,7 +289,23 @@ export const StatTilePlayground: React.FC = () => {
                   </>
                 ),
               },
-              ...groups,
+              ...groups.map((group) =>
+                group.id === "core"
+                  ? {
+                      ...group,
+                      controls: (
+                        <>
+                          {group.controls}
+                          <ToggleRow
+                            label="Raised surface"
+                            checked={raisedSurface}
+                            onChange={setRaisedSurface}
+                          />
+                        </>
+                      ),
+                    }
+                  : group,
+              ),
             ]}
           />
           <p className="text-xs text-neutral-500 dark:text-neutral-400">

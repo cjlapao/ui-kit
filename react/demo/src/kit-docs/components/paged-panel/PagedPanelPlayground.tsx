@@ -35,6 +35,7 @@ export const PagedPanelPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [variant, setVariant] = useState<PanelVariant>("elevated");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [perPageTitles, setPerPageTitles] = useState(false);
   const [withSubtitle, setWithSubtitle] = useState(false);
   const [empty, setEmpty] = useState(false);
@@ -70,6 +71,12 @@ export const PagedPanelPlayground: React.FC = () => {
                       options={surfaceVariantOptions}
                       value={variant}
                       onChange={(v) => setVariant(v as PanelVariant)}
+                    />
+                    {/* One depth step up, so the card survives a matching page. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),
@@ -158,6 +165,7 @@ export const PagedPanelPlayground: React.FC = () => {
             size={size}
             tone={tone}
             variant={variant}
+            raisedSurface={raisedSurface}
             bare={bare}
           />
         </div>

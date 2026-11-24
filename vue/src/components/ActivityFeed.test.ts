@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import { h } from "vue";
 import ActivityFeed, { type ActivityFeedItem } from "./ActivityFeed.vue";
-import { getButtonColorClasses, getSurfaceVariantClasses } from "../theme";
+import { getButtonColorClasses, getSurfaceCornerClass, getSurfaceVariantClasses } from "../theme";
+import { SUB_ROW_PADDING } from "../../../common/theme/nestedPanel";
 
 const items: ActivityFeedItem[] = [
   { id: "1", title: "deployed the release", actor: "Ada", timestamp: "3m ago", tone: "green", category: "deploys", code: "#412" },
@@ -531,7 +532,7 @@ describe("ActivityFeed", () => {
       expect(sub.classes()).toEqual(
         expect.arrayContaining([
           "group",
-          "rounded-md",
+          getSurfaceCornerClass("rounded-sm"),
           "transition-colors",
           "motion-reduce:transition-none",
           "hover:bg-amber-100",
@@ -626,6 +627,79 @@ describe("ActivityFeed", () => {
       expect(sub.classes()).toEqual(
         expect.arrayContaining(["bg-black/[0.04]", "dark:bg-white/[0.04]"]),
       );
+      wrapper.unmount();
+    });
+
+    it("corners the sub-row washes on the scale's sm step, a rung above the rows", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            { id: "p", title: "parent", timestamp: "now", subItems: [{ title: "sub" }] },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const sub = wrapper.find('[role="region"] .pl-5 > div');
+      // Asserted through the accessor — the test rides the scale, not a
+      // frozen class. The wash rests one rung above the rows' xs step.
+      expect(sub.classes()).toContain(getSurfaceCornerClass("rounded-sm"));
+      wrapper.unmount();
+    });
+
+    it("lets subRowCorner dial the washes' corner", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          subRowCorner: "rounded-xl" as const,
+          items: [
+            { id: "p", title: "parent", timestamp: "now", subItems: [{ title: "sub" }] },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const sub = wrapper.find('[role="region"] .pl-5 > div');
+      expect(sub.classes()).toContain(getSurfaceCornerClass("rounded-xl"));
+      expect(sub.classes()).not.toContain(getSurfaceCornerClass("rounded-sm"));
+      wrapper.unmount();
+    });
+
+    it("rides the sub-row padding ladder, md at rest", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            { id: "p", title: "parent", timestamp: "now", subItems: [{ title: "sub" }] },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const sub = wrapper.find('[role="region"] .pl-5 > div');
+      const column = wrapper.find('[role="region"] .pl-5');
+      // Asserted through the map — the test rides the ladder, not frozen
+      // classes; bleed = padding, column py = bleed + the button's spill.
+      expect(sub.classes()).toEqual(expect.arrayContaining(SUB_ROW_PADDING.md.row.split(/\s+/)));
+      expect(column.classes()).toEqual(
+        expect.arrayContaining(SUB_ROW_PADDING.md.column.split(/\s+/)),
+      );
+      wrapper.unmount();
+    });
+
+    it("lets subRowPadding grow wash, bleed, gap, and clip room in lockstep", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          subRowPadding: "lg" as const,
+          items: [
+            { id: "p", title: "parent", timestamp: "now", subItems: [{ title: "sub" }] },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const sub = wrapper.find('[role="region"] .pl-5 > div');
+      const column = wrapper.find('[role="region"] .pl-5');
+      expect(sub.classes()).toEqual(expect.arrayContaining(SUB_ROW_PADDING.lg.row.split(/\s+/)));
+      expect(sub.classes()).not.toContain("-mx-3");
+      expect(column.classes()).toEqual(
+        expect.arrayContaining(SUB_ROW_PADDING.lg.column.split(/\s+/)),
+      );
+      expect(column.classes()).not.toContain("gap-4.5");
       wrapper.unmount();
     });
 

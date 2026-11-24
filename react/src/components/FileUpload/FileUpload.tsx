@@ -18,7 +18,7 @@ const defaultLabels: FileUploadLabels = {
   title: "Drop files here", description: "Drag and drop, or browse your device.", browse: "Choose files",
   remove: "Remove", loading: "Processing files…", empty: "No files selected", selectedFiles: "Selected files",
 };
-export interface FileUploadProps extends Pick<PanelProps, "variant" | "tone" | "padding" | "corner" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode"> {
+export interface FileUploadProps extends Pick<PanelProps, "variant" | "tone" | "padding" | "corner" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode" | "raisedSurface"> {
   /** Render inside an existing surface without an extra surrounding Panel. */
   embedded?: boolean;
   /** Horizontal dropzone and no redundant empty-file caption. @default false */

@@ -15,7 +15,7 @@ export const StepperPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Stepper"
-      description="A multi-step workflow on the shared panel surface — clickable steps with a line or progress connector, the full tone set, per-step and whole-stepper loaders (including a skeleton), an optional progress bar, and both orientations."
+      description="A multi-step workflow on the shared panel surface — clickable steps with a line or progress connector, the full tone set, per-step and whole-stepper loaders (including a skeleton), an optional progress bar, both orientations, and `raisedSurface` for the first nested-panels depth step (the tinted-card-on-matching-background fix)."
     />
     <StepperPlayground />
     <section className="flex flex-col gap-5">

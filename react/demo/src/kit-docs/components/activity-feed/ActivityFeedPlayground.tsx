@@ -192,6 +192,9 @@ export const ActivityFeedPlayground: React.FC = () => {
   const [bodyTone, setBodyTone] = useState<SurfaceTone>("none");
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
   const [tone, setTone] = useState<SurfaceTone>("none");
+  // Flip it when the card and its background agree on the same tint and the
+  // card stops being findable — this forces the ladder's first step back in.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   // The rows are Panels too — `rowVariant`/`rowTone` play their surface
   // independently of the card's. Tone starts by following the card, the
   // kit's own default.
@@ -200,6 +203,10 @@ export const ActivityFeedPlayground: React.FC = () => {
   const [itemToneFollowsCard, setItemToneFollowsCard] = useState(true);
   // `rounded` is the corner scale's xs step — the row's own default.
   const [itemCorner, setItemCorner] = useState<SurfaceCorner>("rounded");
+  // The sub-row washes corner and pad through the kit's own scales; the
+  // defaults are the feed's (the corner scale's sm step, padding `md`).
+  const [subCorner, setSubCorner] = useState<SurfaceCorner>("rounded-sm");
+  const [subPadding, setSubPadding] = useState<SurfacePadding>("md");
   const [ctaVariant, setCtaVariant] = useState("");
   const [loadMoreVariant, setLoadMoreVariant] = useState("");
   const [filterVariant, setFilterVariant] = useState("");
@@ -351,6 +358,10 @@ export const ActivityFeedPlayground: React.FC = () => {
                       onChange={(v) => setItemVariant(v as SurfaceVariant)} />
                     <SelectControl label="Item corner" options={panelCornerOptions} value={itemCorner}
                       onChange={(v) => setItemCorner(v as SurfaceCorner)} />
+                    <SelectControl label="Sub-row corner" options={panelCornerOptions} value={subCorner}
+                      onChange={(v) => setSubCorner(v as SurfaceCorner)} />
+                    <SelectControl label="Sub-row padding" options={panelPaddingOptions} value={subPadding}
+                      onChange={(v) => setSubPadding(v as SurfacePadding)} />
                     <ToggleRow label="item tone follows card" checked={itemToneFollowsCard} onChange={setItemToneFollowsCard} />
                     {!itemToneFollowsCard && (
                       <SurfaceToneControl label="Item tone" value={itemTone} onChange={setItemTone} />
@@ -364,6 +375,7 @@ export const ActivityFeedPlayground: React.FC = () => {
                       onChange={(v) => setFilterTone(v)} />
                     <SelectControl label="Padding" options={panelPaddingOptions} value={padding}
                       onChange={(v) => setPadding(v as SurfacePadding)} />
+                    <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
                   </>
                 ),
               },
@@ -417,9 +429,12 @@ export const ActivityFeedPlayground: React.FC = () => {
             maxHeight={scroll ? 280 : undefined}
             variant={variant}
             tone={tone}
+            raisedSurface={raisedSurface}
             rowVariant={itemVariant}
             rowTone={itemToneFollowsCard ? undefined : itemTone}
             rowCorner={itemCorner}
+            subRowCorner={subCorner}
+            subRowPadding={subPadding}
             ctaVariant={(ctaVariant || undefined) as ButtonVariant | undefined}
             loadMoreVariant={(loadMoreVariant || undefined) as ButtonVariant | undefined}
             filterVariant={(filterVariant || undefined) as SurfaceVariant | undefined}

@@ -126,6 +126,8 @@ export interface GanttProps {
    * @default "none"
    */
   padding?: GanttPadding;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Backdrop vibrancy for the liquid-glass variant (Panel pass-through).
    */
@@ -238,6 +240,7 @@ const props = withDefaults(defineProps<GanttProps>(), {
   tone: "none",
   corner: "rounded-sm",
   padding: "none",
+  raisedSurface: false,
   loading: false,
   loaderType: "skeleton",
   resizableColumns: false,
@@ -1030,6 +1033,7 @@ const colJustify = (col: GanttColumn) =>
     :tone="tone"
     :padding="padding"
     :corner="corner"
+    :raised-surface="raisedSurface"
     :vibrancy="vibrancy"
     :glass-opacity="glassOpacity"
     :flex-body="true"

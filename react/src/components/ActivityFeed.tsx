@@ -18,13 +18,14 @@ import {
   getTrueColorDotClass,
   getTrueColorSubDotClass,
   getSubItemHoverClasses,
+  getSurfaceCornerClass,
   SURFACE_TO_BUTTON_VARIANT,
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
   type TrueColor,
 } from "../theme";
-import { NESTED_PANEL_WASH } from "../../../common/theme/nestedPanel";
+import { NESTED_PANEL_WASH, SUB_ROW_PADDING } from "../../../common/theme/nestedPanel";
 
 /** One entry in the feed. */
 export interface ActivityFeedItem {
@@ -327,6 +328,21 @@ export interface ActivityFeedProps
    * @default "rounded" — the corner scale's xs step
    */
   rowCorner?: SurfaceCorner;
+  /**
+   * The corner every sub-row wash wears, through the same corner scale as
+   * `rowCorner` — rows rest on its xs step, washes one step up on sm.
+   * @default "rounded-sm" — the corner scale's sm step
+   */
+  subRowCorner?: SurfaceCorner;
+  /**
+   * The padding ladder every sub-row wash rides — bleed, row gap, and the
+   * column's gutter and clip-room padding move in lockstep (see
+   * `SUB_ROW_PADDING`).
+   * @default "md"
+   */
+  subRowPadding?: SurfacePadding;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 /** The fields the standard row template draws, shared by rows and sub-rows. */
@@ -438,6 +454,8 @@ const FeedRow = ({
   rowVariant,
   rowTone,
   rowCorner,
+  subRowCorner,
+  subRowPadding,
   cardSurfaceTone,
   cardAccent,
   open,
@@ -448,6 +466,10 @@ const FeedRow = ({
   /** Unset rows follow the card's own surface tone. */
   rowTone?: SurfaceTone;
   rowCorner: SurfaceCorner;
+  /** The corner every sub-row wash wears. */
+  subRowCorner: SurfaceCorner;
+  /** The padding ladder every sub-row wash rides. */
+  subRowPadding: SurfacePadding;
   cardSurfaceTone: SurfaceTone;
   cardAccent: TrueColor;
   open: boolean;
@@ -559,11 +581,10 @@ const FeedRow = ({
           >
             {/* Dot (size-2) + gap-3 puts the column at the title's leading
                 edge — sub-rows read as the row's own, one level in. The
-                `py-1.5` is the zone's breathing room: an `xs` IconButton is
-                a 28px box riding the 20px band (4px of spill), the washes
-                bleed 2px with their negative margins, and the region clips
-                — six pixels or the first row's dots arrive shaved. */}
-            <div className="flex flex-col gap-1.5 py-1.5 pl-5">
+                map's `column` carries the row gap and the clip-room
+                padding (bleed + the actions zone's 4px button spill) in
+                lockstep — see `SUB_ROW_PADDING` in nestedPanel. */}
+            <div className={classNames("flex flex-col pl-5", SUB_ROW_PADDING[subRowPadding].column)}>
               {subItems?.map((sub, index) => {
                 // The tone ladder ends here; the dot then steps one off the
                 // parent's in both themes, and the hover hue is the sub's
@@ -580,7 +601,9 @@ const FeedRow = ({
                   <div
                     key={index}
                     className={classNames(
-                      "group -mx-1.5 -my-0.5 flex items-start gap-3 rounded-md px-1.5 py-0.5 transition-colors duration-200 motion-reduce:transition-none",
+                      "group flex items-start gap-3 transition-colors duration-200 motion-reduce:transition-none",
+                      SUB_ROW_PADDING[subRowPadding].row,
+                      getSurfaceCornerClass(subRowCorner),
                       NESTED_PANEL_WASH[1],
                       hover.wash,
                     )}
@@ -649,6 +672,9 @@ export const ActivityFeed = ({
   rowVariant = "none",
   rowTone,
   rowCorner = "rounded",
+  subRowCorner = "rounded-sm",
+  subRowPadding = "md",
+  raisedSurface = false,
   className = "",
   ...rest
 }: ActivityFeedProps) => {
@@ -824,6 +850,8 @@ export const ActivityFeed = ({
               rowVariant={rowVariant}
               rowTone={rowTone}
               rowCorner={rowCorner}
+              subRowCorner={subRowCorner}
+              subRowPadding={subRowPadding}
               cardSurfaceTone={surfaceTone}
               cardAccent={tone}
               open={open}
@@ -847,6 +875,7 @@ export const ActivityFeed = ({
       tone={surfaceTone}
       padding={padding}
       corner={corner}
+      raisedSurface={raisedSurface}
       className={classNames("w-full", className)}
     >
       <div className="flex flex-col gap-4">

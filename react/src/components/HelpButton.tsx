@@ -52,6 +52,8 @@ export interface HelpButtonProps {
   variant?: SurfaceVariant;
   /** Corner radius of the panel, on the shared container scale. @default "rounded-md" */
   corner?: SurfaceCorner;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Size of the trigger icon button, on the shared control scale. @default "xs" */
   size?: ControlSize;
   /** Icon for the trigger button. Defaults to "Help". */
@@ -292,6 +294,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
   color = "sky",
   variant = "elevated",
   corner = DEFAULT_SURFACE_CORNER,
+  raisedSurface = false,
   size = "xs",
   icon = "Help",
   maxWidth = 360,
@@ -417,6 +420,7 @@ const HelpButton: React.FC<HelpButtonProps> = ({
             tone={tone}
             corner={corner}
             padding="none"
+            raisedSurface={raisedSurface}
             scrollable={false}
           >
             <div className="flex flex-col">

@@ -57,6 +57,7 @@ export const ModalPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<PanelCorner>(DEFAULT_CORNER);
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [draggable, setDraggable] = useState(true);
   const [showMaximizeButton, setShowMaximizeButton] = useState(true);
   const [showMaximized, setShowMaximized] = useState(false);
@@ -109,6 +110,8 @@ export const ModalPlayground: React.FC = () => {
                       value={corner}
                       onChange={(value) => setCorner(value as PanelCorner)}
                     />
+                    {/* Lifting the dialog off a background that matches its tint. */}
+                    <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
                   </>
                 ),
               },
@@ -226,6 +229,7 @@ export const ModalPlayground: React.FC = () => {
             tone={tone}
             position={position}
             corner={corner}
+            raisedSurface={raisedSurface}
             draggable={draggable}
             showMaximizeButton={showMaximizeButton}
             showMaximized={showMaximized}

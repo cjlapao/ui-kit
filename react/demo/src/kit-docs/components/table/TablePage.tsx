@@ -64,7 +64,7 @@ export const TablePage: React.FC = () => (
           type: '"outlined" | "tonal" | "subtle" | "glass" | "liquid-glass" / TrueColor | neutral',
           default: '"outlined" / "neutral"',
           description:
-            "The table sits on the panel surface family; tone tints the card and the header wash. Neutral keeps the data quiet - the sensible reading default - and only an explicit tone washes rows and headers.",
+            "The table sits on the panel surface family; tone tints the card and the header wash. Neutral keeps the data quiet - the sensible reading default - and only an explicit tone washes rows and headers. `raisedSurface` forces the card's first nested-panels depth step — the tinted-card-on-matching-background fix.",
         },
         {
           name: "color",

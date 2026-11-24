@@ -80,6 +80,8 @@ export interface HeroProps {
   gradientTo?: string;
   /** Halo behind the banner. @default "soft" */
   glowIntensity?: GlowIntensity;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 </script>
 
@@ -118,6 +120,7 @@ const props = withDefaults(defineProps<HeroProps>(), {
   rounded: true,
   decoration: "both",
   glowIntensity: "soft",
+  raisedSurface: false,
 });
 
 const TITLE_SIZES: Record<ControlSize, string> = {
@@ -223,6 +226,7 @@ const chipClass = computed(() =>
     :tone="props.tone ?? 'none'"
     :corner="effectiveCorner"
     :padding="padding"
+    :raised-surface="raisedSurface"
     :decoration="decoration"
     :scrollable="false"
     v-bind="$attrs"

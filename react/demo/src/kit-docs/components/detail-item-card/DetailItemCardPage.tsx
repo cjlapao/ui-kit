@@ -13,7 +13,7 @@ export const DetailItemCardPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Detail Item Card"
-      description="A list row with an optional expandable detail. Plain by default; give it a variant and it becomes a real card. Clickable rows are keyboard-reachable buttons."
+      description="A list row with an optional expandable detail. Plain by default; give it a variant and it becomes a real card — with `raisedSurface` forcing the first nested-panels depth step when card and background share a tint. Clickable rows are keyboard-reachable buttons."
     />
     <DetailItemCardPlayground />
     <section className="flex flex-col gap-5">

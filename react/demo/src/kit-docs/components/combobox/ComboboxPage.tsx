@@ -100,11 +100,11 @@ export const ComboboxPage: React.FC = () => (
             "The kit default accent for the focus ring, the check, and the row wash - under the mouse and under the keyboard cursor alike (in tone on the selected row). The suggestion list is the field\u2019s shadow: it tints like the field does.",
         },
         {
-          name: "panelVariant / panelCorner",
-          type: '"auto" | SurfaceVariant / SurfaceCorner',
-          default: '"auto" / "auto"',
+          name: "panelVariant / panelCorner / raisedSurface",
+          type: '"auto" | SurfaceVariant / SurfaceCorner / boolean',
+          default: '"auto" / "auto" / false',
           description:
-            "The popup is a Panel from the container family, portaled to the body and placed against the viewport with a flip when there is more room above. Auto pairs its surface with the field through `SURFACE_VARIANT_FOR_FIELD` - a glass field opens a glass popup, not an opaque slab.",
+            "The popup is a Panel from the container family, portaled to the body and placed against the viewport with a flip when there is more room above. Auto pairs its surface with the field through `SURFACE_VARIANT_FOR_FIELD` - a glass field opens a glass popup, not an opaque slab. `raisedSurface` forwards to that card, forcing the first nested-panels depth step - the tinted-card-on-matching-background fix.",
         },
         {
           name: "validationStatus (error)",

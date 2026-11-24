@@ -16,6 +16,9 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
   const [padding, setPadding] = useState<SurfacePadding>("sm");
+  // The card on a background of its own tint needs the forced first nesting
+  // step before the eye can find it — both upload components take it.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [size, setSize] = useState<ControlSize>("md");
   const [compact, setCompact] = useState(true);
   const [disabled, setDisabled] = useState(false);
@@ -29,7 +32,7 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
   const [log, pushLog] = useEventLog();
   // Canonical order regardless of the order the toggles were flipped in.
   const modes = IDENTITY_MODE_ORDER.filter(mode => offer[mode]);
-  const surface = { variant, tone, corner, padding, size, compact, disabled, loading, error: error ? "An example validation error. Please choose another file." : undefined };
+  const surface = { variant, tone, corner, padding, raisedSurface, size, compact, disabled, loading, error: error ? "An example validation error. Please choose another file." : undefined };
   return <PlaygroundPanel controls={<div className="space-y-3"><ControlAccordion groups={[
     { id: "core", title: "Core", controls: <>
       <ToggleRow label="Compact layout" checked={compact} onChange={setCompact} />
@@ -38,6 +41,7 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
       <Control label="Tone"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
       <SelectControl label="Corner" options={panelCornerOptions} value={corner} onChange={value => setCorner(value as SurfaceCorner)} />
       <SelectControl label="Padding" options={panelPaddingOptions} value={padding} onChange={value => setPadding(value as SurfacePadding)} />
+      <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
     </> },
     ...(fileOnly ? [] : [{ id: "modes", title: "Modes", controls: <>
       {IDENTITY_MODE_ORDER.map(mode => <ToggleRow key={mode} label={MODE_TOGGLE_LABELS[mode]} checked={offer[mode]} onChange={checked => setOffer(current => ({ ...current, [mode]: checked }))} />)}

@@ -57,6 +57,9 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<PanelCorner>("auto");
   const [padding, setPadding] = useState<PanelPadding>("sm");
+  // The card inside the "In a panel" host stops existing the moment its tint
+  // matches — the forced first nesting step puts it back on the map.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [inputVariant, setInputVariant] = useState<"auto" | InputVariant>(
     "auto",
   );
@@ -117,6 +120,7 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
       tone={tone}
       corner={corner}
       padding={padding}
+      raisedSurface={raisedSurface}
       inputVariant={inputVariant}
       size={size}
       disabled={disabled}
@@ -176,6 +180,11 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
                         onChange={(v) => setPadding(v as PanelPadding)}
                       />
                     </div>
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
+                    />
                     <ChoiceControl
                       label="Size"
                       options={controlSizeOptions}

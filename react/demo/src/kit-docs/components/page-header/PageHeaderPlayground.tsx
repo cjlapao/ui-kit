@@ -66,6 +66,7 @@ export const PageHeaderPlayground: React.FC = () => {
   const [gutterBottom, setGutterBottom] = useState<GutterChoice>("default");
   const [gutterLeft, setGutterLeft] = useState<GutterChoice>("default");
   const [corner, setCorner] = useState<PanelCorner>("rounded-md");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const asGutter = (choice: GutterChoice) =>
     choice === "default" ? undefined : choice;
 
@@ -159,6 +160,12 @@ export const PageHeaderPlayground: React.FC = () => {
                         { value: "rounded-xl", label: "rounded-xl" },
                       ]}
                     />
+                    {/* The bar lifts one depth step when its fill agrees with the page. */}
+                    <ToggleRow
+                      label="raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
+                    />
                   </>
                 ),
               },
@@ -226,6 +233,7 @@ export const PageHeaderPlayground: React.FC = () => {
                 paddingBottom={asGutter(gutterBottom)}
                 paddingLeft={asGutter(gutterLeft)}
                 corner={corner}
+                raisedSurface={raisedSurface}
                 start={hasStart ? startGroup : undefined}
                 center={hasCenter ? centerGroup : undefined}
                 end={hasEnd ? endGroup : undefined}

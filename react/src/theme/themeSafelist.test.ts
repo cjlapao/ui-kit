@@ -6,6 +6,7 @@ import {
   getBadgeColorClasses,
   getBreadcrumbToneTokens,
   getAppDividerToneTokens,
+  getInputVariantTokens,
   getCollapsibleHelpToneTokens,
   getMultiToggleColorTokens,
   getMultiToggleVariantTokens,
@@ -20,6 +21,7 @@ import {
   getSurfaceHoverTokens,
   getSurfaceTriggerTokens,
   getSurfaceVariantClasses,
+  INPUT_VARIANTS,
   SURFACE_VARIANTS,
   SURFACE_TRANSPARENCIES,
   getTabsColorTokens,
@@ -75,6 +77,16 @@ const generatedClasses = (): Set<string> => {
     // The sustained-selection rim (`Panel active`) — same template-literal
     // grammar as the hover rim, same obligation on the generator.
     collect(getSurfaceActiveTokens(tone), out);
+    // The field fill override. `fieldFillFor` and the `ghost` ladder both build
+    // their classes by template literal, so every variant × hue pair has to be
+    // in the stylesheet; `fieldFillFor`'s `neutral` answers are plain literals,
+    // which is the one case the scanner already sees on its own.
+    for (const variant of INPUT_VARIANTS) {
+      collect(
+        getInputVariantTokens(variant, tone, "auto", { backgroundColor: tone }),
+        out,
+      );
+    }
     collect(getMultiToggleColorTokens(tone), out);
     collect(getMultiToggleVariantTokens(tone), out);
     collect(getStatTileColorClasses(tone), out);

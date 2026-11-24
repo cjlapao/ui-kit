@@ -60,6 +60,9 @@ export const EmptyStatePlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<SurfacePadding>("lg");
+  // The one flip for a tinted placeholder parked on a background of the very
+  // same tint — it forces the nesting ladder's first step back in.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [size, setSize] = useState<EmptyStateSize>("md");
   const [icon, setIcon] = useState<IconName>("Add");
   const [title, setTitle] = useState("All caught up");
@@ -120,6 +123,11 @@ export const EmptyStatePlayground: React.FC = () => {
                             onChange={(v) => setPadding(v as SurfacePadding)}
                           />
                         </Control>
+                        <ToggleRow
+                          label="Raised surface"
+                          checked={raisedSurface}
+                          onChange={setRaisedSurface}
+                        />
                       </>
                     )}
                     <Control label="Size">
@@ -327,6 +335,7 @@ export const EmptyStatePlayground: React.FC = () => {
               tone={tone}
               corner={corner}
               padding={padding}
+              raisedSurface={raisedSurface}
               size={size}
               dashed={dashed}
               icon={icon}

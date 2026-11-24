@@ -166,7 +166,7 @@ export const PagedPanelPage: React.FC = () => (
           name: "…panel props",
           type: "PanelProps",
           description:
-            "Variant, corner, padding and the rest pass through to the wrapping Panel (unless bare).",
+            "Variant, corner, padding and the rest pass through to the wrapping Panel (unless bare) — including `raisedSurface`, which forces the first nested-panels depth step, the tinted-card-on-matching-background fix.",
         },
       ]}
     />

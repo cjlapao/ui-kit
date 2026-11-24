@@ -186,6 +186,8 @@ export interface EmptyStateProps
   vibrancy?: GlassVibrancy;
   /** Specular highlight, for the see-through variants. */
   specularMode?: SpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 interface EmptyStateBodyProps
@@ -360,6 +362,7 @@ const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
       transparency,
       vibrancy,
       specularMode,
+      raisedSurface = false,
       className,
       ...rest
     },
@@ -453,6 +456,7 @@ const EmptyState = React.forwardRef<HTMLElement, EmptyStateProps>(
         transparency={transparency}
         vibrancy={vibrancy}
         specularMode={specularMode}
+        raisedSurface={raisedSurface}
         scrollable={false}
         bodyClassName="flex flex-1 flex-col items-center justify-center"
         flexBody

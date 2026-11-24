@@ -77,6 +77,8 @@ export interface InfiniteScrollPanelProps<T> {
   glassOpacity?: GlassOpacity;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Fixed height for the scroll area. Otherwise it fills its parent. */
   height?: number | string;
 }
@@ -133,6 +135,7 @@ const props = withDefaults(defineProps<InfiniteScrollPanelProps<T>>(), {
   tone: "none",
   corner: () => DEFAULT_SURFACE_CORNER,
   padding: "none",
+  raisedSurface: false,
 });
 const accentTone = computed(() => getSurfaceAccentColor(props.tone));
 
@@ -317,6 +320,7 @@ const keyFor = (item: T, index: number) =>
       glassOpacity,
       vibrancy,
       specularMode,
+      raisedSurface,
       // No inset here: the scrolling body owns it, so its scrollbar reaches
       // the card's edge.
       padding: 'none',

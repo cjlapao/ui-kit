@@ -528,6 +528,33 @@ export type InputVariantOptions = {
    * for violet gets violet glass.
    */
   explicitTone?: TrueColor;
+  /**
+   * The hue the field's *fill* wears, when the caller wants it to disagree with
+   * the tone.
+   *
+   * `tone` is six decisions wearing one name: the focus border, the focus ring,
+   * the focused icon, the inline button's ring, the gradient's glow, and — in
+   * `ghost` and tinted `glass` only — the fill. That last one is what this
+   * option separates. Everything the pointer and the keyboard ask for keeps
+   * following `tone`, because those come out of `getFieldToneTokens` and this
+   * function never touches it; only the `bg-*` colour utilities are replaced,
+   * through `stripFillClass`, which cannot match a border, a shadow, a blur or
+   * a radius.
+   *
+   * The fill follows the *variant's own* recipe rather than one fixed tone step
+   * — `fieldFillFor` is that map — so a `glass` field asked for rose stays sheer
+   * and blurred, a `flat` one stays bordered, and a `gradient` one keeps its
+   * glow. In `ghost` it is the washes only, both schemes: the hover rim is an
+   * affordance the pointer asks for, of the family the focus border belongs to,
+   * so it stays in `tone`. `Panel`'s `backgroundColor` answers the same question
+   * per container variant; this is the control-side counterpart.
+   *
+   * `underline` has no fill to repaint, so the option is a documented no-op
+   * there. `neutral` means "the variant's own resting fill", which is how
+   * `Panel` reads it too — for `ghost` that is the achromatic rung, which is
+   * what `ghostFillShades("neutral")` already builds.
+   */
+  backgroundColor?: TrueColor;
 };
 
 const INPUT_TEXT_SOLID =
@@ -697,12 +724,20 @@ export const ACHROMATIC_TONES: readonly TrueColor[] = [
 ];
 
 /**
- * The ghost fill ladder for a tone: rest, hover fill, hover rim.
+ * The ghost ladder for a hue: rest, hover fill, hover rim.
  *
  * The rim stays one rung under the fill's hover step either way, so the hover
  * reads as the box deepening *and* gaining an edge — the ladder's spacing is
  * what makes it legible at a quiet tint; the achromatic tones ride the whole
  * ladder one rung up with their fill.
+ *
+ * Consulted twice when a caller splits the field with
+ * `InputVariantOptions.backgroundColor`: once for the background hue, whose
+ * `rest`/`hover` paint the box, and once for the `tone`, whose `rim` is the
+ * hover edge. Under one hue the three rungs keep their relationship; under two
+ * the rim belongs to the affordance's colour and takes its rung from there, so a
+ * `tone="gray"` field with a rose background hovers to the achromatic `-400`
+ * edge it always used while the wash moves to rose.
  */
 const ghostFillShades = (
   tone: TrueColor,
@@ -710,6 +745,53 @@ const ghostFillShades = (
   ACHROMATIC_TONES.includes(tone)
     ? { rest: 200, hover: 300, rim: 400 }
     : { rest: 100, hover: 200, rim: 300 };
+
+/**
+ * The fill each variant paints at rest, per hue, when a caller asks for a
+ * background of its own through `InputVariantOptions.backgroundColor`.
+ *
+ * One entry per variant that has a fill at all, and the depths are the
+ * variant's own — not one tone step imposed on six different boxes:
+ *
+ * - `flat` / `elevated` take `-50`, one rung paler than `ghost`'s first step.
+ *   Those two carry a real border, so the box is already legible and the fill
+ *   only has to read as tinted; `-100` started eating the dark-copy contrast
+ *   the achromatic tones barely have left there.
+ * - `glass` repeats the recipe the `explicitTone` branch already emits, because
+ *   this option is a hue selector for the fill, not a new kind of paint.
+ * - `gradient` stays sheer: the glow behind the field is where its hue was
+ *   already coming from, and an opaque body would bury the blur.
+ * - Both dark steps are the translucent `-500/…` pair every other field fill
+ *   uses over `-900`, so a tinted field reads as tint rather than as a slab.
+ * - `neutral` is "paint it back to the default", the reading `Panel` gives the
+ *   same value; for `ghost` that is the achromatic ladder, which
+ *   `ghostFillShades("neutral")` builds by itself.
+ *
+ * `ghost` and `underline` are absent on purpose: the first builds its ladder
+ * through `ghostFillShades` so rest, hover and rim keep one rung relationship,
+ * the second paints no box.
+ */
+const fieldFillFor = (
+  variant: InputVariant,
+  hue: TrueColor,
+): string | undefined => {
+  if (hue === "neutral") {
+    return variant === "glass"
+      ? "bg-white/45 dark:bg-white/10"
+      : variant === "gradient"
+        ? "bg-white/80 dark:bg-neutral-900/70"
+        : variant === "underline"
+          ? undefined
+          : "bg-white dark:bg-neutral-900";
+  }
+  return variant === "flat" || variant === "elevated"
+    ? `bg-${hue}-50 dark:bg-${hue}-500/10`
+    : variant === "glass"
+      ? `bg-${hue}-100/45 dark:bg-${hue}-500/10`
+      : variant === "gradient"
+        ? `bg-${hue}-50/80 dark:bg-${hue}-500/15`
+        : undefined;
+};
 
 /**
  * The field surface tokens. `corner="auto"` (the default) leaves the radius
@@ -739,14 +821,32 @@ export const getInputVariantTokens = (
     // dialog simply disappeared. Same story `Panel`'s `tonalBg` told when it
     // moved `-100/80` → `-200/60`. Dark mode is untouched: a translucent
     // `-500/10` over `-900` already reads.
-    const shades = ghostFillShades(tone);
+    //
+    // The two sides of a ghost field answer to two different callers. The wash
+    // — rest, hover, and both dark steps — is the field's *paint*, so it wears
+    // `backgroundColor` when one was named. The hover rim is not paint: it is a
+    // state the pointer asks for, of the same family as the focus border and the
+    // focus ring that come out of `getFieldToneTokens`, so it keeps answering in
+    // `tone`. A caller asking for a rose background asked about the box's colour,
+    // not about the colour its affordances light up in — which is also what this
+    // option's own docstring has promised since it was written ("only the `bg-*`
+    // colour utilities are replaced"); the rim ignoring it was the bug.
+    //
+    // `ghostFillShades` is rung-relative, so each hue carries its own spacing and
+    // the achromatic tones stay one rung up on whichever side they land on. When
+    // nobody overrides, both sides read the same hue and the ladder is exactly
+    // what it has always been — the byte-identical assertion in
+    // `inputVariants.test.ts` is what keeps that true.
+    const bgHue = options?.backgroundColor ?? tone;
+    const shades = ghostFillShades(bgHue);
+    const rim = ghostFillShades(tone);
     resolved = {
       ...tokens,
       surface: [
         "rounded-lg border border-transparent",
-        `bg-${tone}-${shades.rest}`,
-        `hover:border-${tone}-${shades.rim} hover:bg-${tone}-${shades.hover}`,
-        `dark:bg-${tone}-500/10 dark:hover:bg-${tone}-500/20`,
+        `bg-${bgHue}-${shades.rest}`,
+        `hover:border-${tone}-${rim.rim} hover:bg-${bgHue}-${shades.hover}`,
+        `dark:bg-${bgHue}-500/10 dark:hover:bg-${bgHue}-500/20`,
       ].join(" "),
     };
   }
@@ -765,6 +865,23 @@ export const getInputVariantTokens = (
       ...resolved,
       surface: `${stripFillClass(resolved.surface)} bg-${tint}-100/45 dark:bg-${tint}-500/10`,
     };
+  }
+  if (options?.backgroundColor && variant !== "ghost") {
+    // Last word on the fill, and only on the fill. It runs after the `glass`
+    // tint branch rather than before it for that reason: that branch writes the
+    // whole fill string, so an override applied first would be quietly
+    // overwritten by the tone. `stripFillClass` matches `bg-*` *colour*
+    // utilities and nothing else, which is what makes it structurally
+    // impossible for this option to move a border, a blur, a shadow or the
+    // radius — and why `underline`, which paints no box, gets an honest no-op
+    // out of `fieldFillFor`.
+    const fill = fieldFillFor(variant, options.backgroundColor);
+    if (fill) {
+      resolved = {
+        ...resolved,
+        surface: `${stripFillClass(resolved.surface)} ${fill}`,
+      };
+    }
   }
   if (corner === "auto") return resolved;
   return {

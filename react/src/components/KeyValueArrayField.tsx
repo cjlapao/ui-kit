@@ -98,6 +98,8 @@ export interface KeyValueArrayFieldProps {
   transparency?: SurfaceTransparency;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Surface of the row inputs. `"auto"` follows the card variant through
    * `INPUT_VARIANT_FOR_SURFACE` — a glass card gets glass inputs, a tinted
@@ -105,6 +107,18 @@ export interface KeyValueArrayFieldProps {
    * @default "auto"
    */
   inputVariant?: "auto" | InputVariant;
+  /**
+   * The hue the row inputs' *fill* wears, when it should disagree with `tone`.
+   * State colours — focus border, ring, icons and the glow — stay with the
+   * tone, while the fill follows this hue through the row inputs' own variant
+   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * `elevated` their border, and `underline` has no box to paint. `neutral`
+   * means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** Scale of the inputs and buttons. @default "sm" */
   size?: KeyValueArrayFieldSize;
   className?: string;
@@ -128,6 +142,8 @@ interface RowsProps extends Pick<
   containerVariant?: KeyValueArrayFieldVariant;
   /** The RESOLVED row-input surface — never "auto". */
   inputVariant?: InputVariant;
+  /** The hue the row inputs' *fill* wears — state colours stay with `tone`. */
+  backgroundColor?: TrueColor;
   tone: TrueColor;
   pairs: KeyValuePair[];
   rowIds: string[];
@@ -155,6 +171,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
   maxRows,
   disabled,
   inputVariant = "flat",
+  backgroundColor,
   size = "sm",
   containerVariant,
   tone,
@@ -234,6 +251,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
                     size={size}
                     tone={tone}
                     variant={inputVariant}
+                    backgroundColor={backgroundColor}
                     fullHeight
                     disabled={disabled}
                     placeholder={keyLabel}
@@ -255,6 +273,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
                     size={size}
                     tone={tone}
                     variant={inputVariant}
+                    backgroundColor={backgroundColor}
                     disabled={disabled}
                     placeholder={valueLabel}
                     aria-label={`${valueLabel} ${index + 1}`}
@@ -350,7 +369,9 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   transparency,
   vibrancy,
   specularMode,
+  raisedSurface = false,
   inputVariant = "auto",
+  backgroundColor,
   size = "sm",
   className,
 }) => {
@@ -447,6 +468,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
       maxRows={maxRows}
       disabled={disabled}
       inputVariant={resolvedInputVariant}
+      backgroundColor={backgroundColor}
       size={size}
       containerVariant={variant}
       tone={tone}
@@ -477,6 +499,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
         transparency={transparency}
       vibrancy={vibrancy}
       specularMode={specularMode}
+      raisedSurface={raisedSurface}
       scrollable={false}
       className={className}
     >

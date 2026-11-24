@@ -90,6 +90,7 @@ export const AccordionPlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<PanelCorner>(DEFAULT_CONTROL_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [size, setSize] = useState<ControlSize>("md");
   const [indicator, setIndicator] = useState<AccordionIndicator>("chevron");
   const [indicatorPlacement, setIndicatorPlacement] =
@@ -169,6 +170,13 @@ export const AccordionPlayground: React.FC = () => {
                     options={panelPaddingOptions}
                     value={padding}
                     onChange={(v) => setPadding(v as PanelPadding)}
+                  />
+                  {/* Same card, one depth step up — for when the page tint
+                      matches the panel and the list has to win anyway. */}
+                  <ToggleRow
+                    label="Raised surface"
+                    checked={raisedSurface}
+                    onChange={setRaisedSurface}
                   />
                   <ChoiceControl
                     label="Size"
@@ -280,6 +288,7 @@ export const AccordionPlayground: React.FC = () => {
             tone={tone}
             corner={corner}
             padding={padding}
+            raisedSurface={raisedSurface}
             size={size}
             indicator={indicator}
             indicatorPlacement={indicatorPlacement}

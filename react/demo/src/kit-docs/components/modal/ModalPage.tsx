@@ -68,7 +68,7 @@ export const ModalPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="Glass"
-        description="The see-through surface variants let the app behind the dialog stay visible."
+        description="The see-through surface variants let the app behind the dialog stay visible — and `raisedSurface` forces the dialog's first nested-panels depth step, the tinted-card-on-matching-background fix."
         code={glassCode}
         filename="Glass.tsx"
       >

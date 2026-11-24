@@ -139,6 +139,7 @@ export const TablePlayground: React.FC = () => {
   // "auto" = the toolbar menus follow the table's surface.
   const [panelVariant, setPanelVariant] = useState<string>("auto");
   const [tone, setTone] = useState<SurfaceTone>("none");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   // "" = the interior controls follow the table tone.
   const [controlTone, setControlTone] = useState("");
   const [density, setDensity] = useState<TableDensity>("default");
@@ -204,6 +205,12 @@ export const TablePlayground: React.FC = () => {
                     <Control label="Tone">
                       <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
+                    {/* One depth step up, so the grid never dissolves into the page. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
+                    />
                     <SelectControl
                       label="Control tone"
                       options={[
@@ -370,6 +377,7 @@ export const TablePlayground: React.FC = () => {
             variant={variant}
             panelVariant={panelVariant as "auto" | SurfaceVariant}
             tone={tone}
+            raisedSurface={raisedSurface}
             color={controlTone ? (controlTone as TrueColor) : undefined}
             density={density}
             bordered={bordered}

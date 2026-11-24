@@ -19,6 +19,7 @@ export function TraceGraphPlayground() {
   const [fallback, setFallback] = useState(false), [backend, setBackend] = useState("");
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [variant, setVariant] = useState<SurfaceVariant>("outlined");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [selected, setSelected] = useState<TraceGraphNode | null>(null);
   const [diagnostics, setDiagnostics] = useState(0);
   const fixture = useMemo(() => createTraceFixture(turns), [turns]);
@@ -46,6 +47,8 @@ export function TraceGraphPlayground() {
     <ToggleRow label="Tone: none (untinted)" checked={untinted} onChange={setUntinted} />
     <ChoiceControl label="Corner" options={["auto", "none", "rounded", "rounded-sm", "rounded-md", "rounded-lg", "rounded-xl"].map(value => ({ label: value, value }))} value={corner ?? "auto"} onChange={value => setCorner(value as TraceGraphProps["corner"])} />
     <ChoiceControl label="Padding" options={["none", "xs", "sm", "md", "lg"].map(value => ({ label: value, value }))} value={padding ?? "none"} onChange={value => setPadding(value as TraceGraphProps["padding"])} />
+    {/* One depth step up, so a tinted canvas never merges with the page. */}
+    <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
     <ToggleRow label="Play live events" checked={playing} onChange={value => { setPlaying(value); if (value && count >= fixture.nodes.length) setCount(1); if (value) setFollow("following"); }} />
     <ToggleRow label="Animation" checked={animation} onChange={setAnimation} />
     <ChoiceControl label="Glow" options={["all", "active", "none"].map(value => ({ label: value, value }))} value={glow} onChange={value => setGlow(value as "all" | "active" | "none")} />
@@ -64,7 +67,7 @@ export function TraceGraphPlayground() {
       <span>{backend || "initializing"} · Follow: {follow}{diagnostics ? ` · ${diagnostics} diagnostics` : ""}</span>
     </div>
     <div className="rounded-2xl bg-gradient-to-br from-violet-50/40 via-white to-cyan-50/30 dark:from-violet-950/30 dark:via-neutral-950 dark:to-cyan-950/20">
-      <TraceGraph key={`${turns}-${layout}`} ref={ref} {...data} layout={layout} height={440} variant={variant} tone={untinted ? "none" : tone} corner={corner} padding={padding}
+      <TraceGraph key={`${turns}-${layout}`} ref={ref} {...data} layout={layout} height={440} variant={variant} tone={untinted ? "none" : tone} corner={corner} padding={padding} raisedSurface={raisedSurface}
         followMode={follow} onFollowModeChange={setFollow} animation={animation} glow={glow} showLabels={showLabels}
         sparkles={sparkles} sparkleIntensity={sparkleIntensity} sparkleSpeed={sparkleSpeed} pulseScale={pulseScale}
         junctionGlowIntensity={junctionGlowIntensity}

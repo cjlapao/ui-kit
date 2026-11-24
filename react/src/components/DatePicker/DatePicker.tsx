@@ -89,6 +89,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       tone,
       color,
       variant = "flat",
+      backgroundColor,
       glowIntensity = DEFAULT_GLOW_INTENSITY,
       gradientFrom,
       gradientTo,
@@ -103,6 +104,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       panelTone = "auto",
       panelCorner = "auto",
       panelClassName,
+      raisedSurface = false,
       onShow,
       onHide,
       onInvalidInputChange,
@@ -522,6 +524,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       "auto",
       {
         explicitTone: tone ?? color,
+        backgroundColor,
       },
     );
     const isUnderline = variant === "underline";
@@ -575,6 +578,7 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         panelTone={resolvedPanelTone}
         panelCorner={panelCorner}
         panelClassName={panelClassName}
+        raisedSurface={raisedSurface}
         tone={effectiveTone}
         fieldVariant={variant}
         fieldSize={size}

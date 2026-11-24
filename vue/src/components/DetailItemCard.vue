@@ -37,6 +37,8 @@ export interface DetailItemCardProps {
   glassOpacity?: GlassOpacity;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 </script>
 
@@ -63,6 +65,7 @@ const props = withDefaults(defineProps<DetailItemCardProps>(), {
   tone: "none",
   corner: () => DEFAULT_SURFACE_CORNER,
   padding: "sm",
+  raisedSurface: false,
 });
 const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
 
@@ -123,6 +126,7 @@ const panelProps = computed(() =>
         tone: props.tone,
         corner: props.corner,
         padding: props.padding,
+        raisedSurface: props.raisedSurface,
         glassOpacity: props.glassOpacity,
         vibrancy: props.vibrancy,
         specularMode: props.specularMode,

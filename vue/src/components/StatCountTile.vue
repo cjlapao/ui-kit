@@ -12,6 +12,8 @@ export interface StatCountTileBreakdown {
 export interface StatCountTileProps {
   variant?: SurfaceVariant;
   tone?: SurfaceTone;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   title?: string;
   count?: string | number;
   breakdown?: StatCountTileBreakdown[];
@@ -57,6 +59,7 @@ const props = withDefaults(defineProps<StatCountTileProps>(), {
   withDecoration: false,
   withHoverEffect: false,
   loading: false,
+  raisedSurface: false,
 });
 
 const { classAttr, restAttrs } = useClassAttrs();
@@ -128,6 +131,7 @@ const countClass = computed(() =>
   <Panel
     :variant="variant"
     :tone="tone"
+    :raised-surface="raisedSurface"
     corner="rounded"
     padding="none"
     :flex-body="true"

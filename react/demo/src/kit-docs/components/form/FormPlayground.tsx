@@ -63,6 +63,9 @@ export const FormPlayground: React.FC = () => {
   const [variant, setVariant] = useState<PanelVariant>("elevated");
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [padding, setPadding] = useState<ControlSize>("md");
+  // When the section lands on a panel wearing its own tint, the forced first
+  // nesting step is what gives the card its edge back.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [columns, setColumns] = useState<FormLayoutColumns>(2);
   const [align, setAlign] = useState<FormLayoutAlign>("start");
   const [fieldLayout, setFieldLayout] = useState<FormFieldLayout>("stacked");
@@ -96,6 +99,7 @@ export const FormPlayground: React.FC = () => {
       variant={variant}
       tone={tone}
       padding={padding}
+      raisedSurface={raisedSurface}
       specularMode={isLiquidGlass ? specularMode : undefined}
       vibrancy={isLiquidGlass ? vibrancy : undefined}
       glassOpacity={isLiquidGlass ? glassOpacity : undefined}
@@ -181,6 +185,11 @@ export const FormPlayground: React.FC = () => {
                       options={controlSizeOptions}
                       value={padding}
                       onChange={(v) => setPadding(v as ControlSize)}
+                    />
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),

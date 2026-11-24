@@ -111,6 +111,8 @@ export interface TimelinePanelProps {
   vibrancy?: GlassVibrancy;
   glassOpacity?: GlassOpacity;
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   // ── State ─────────────────────────────────────────────────────────────────
   loading?: boolean;
   /**

@@ -100,6 +100,8 @@ export interface InfoRowProps {
   corner?: SurfaceCorner;
   /** Vertical padding override. When omitted, padding is derived from `size`. */
   padding?: InfoRowPadding;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Show a copy-to-clipboard button.
    * Shown automatically when the resolved value is a string or number. @default true
@@ -336,6 +338,7 @@ const props = withDefaults(defineProps<InfoRowProps>(), {
   variant: "plain",
   tone: "none",
   corner: DEFAULT_SURFACE_CORNER,
+  raisedSurface: false,
   copyable: true,
   mono: false,
   hideIfEmpty: true,
@@ -811,6 +814,7 @@ const view = computed<InfoRowView>(() => ({
     :variant="panelVariant"
     :color="resolvedAccentTone"
     :corner="corner"
+    :raised-surface="raisedSurface"
     padding="none"
     :scrollable="false"
     :glass-opacity="glassOpacity"

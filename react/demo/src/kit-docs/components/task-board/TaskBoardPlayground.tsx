@@ -86,6 +86,7 @@ export const TaskBoardPlayground: React.FC = () => {
   const [surfaceTone, setSurfaceTone] = useState<SurfaceTone>("none");
   const [variant, setVariant] = useState<TaskBoardVariant>("elevated");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [columnCorner, setColumnCorner] = useState<SurfaceCorner>("rounded-md");
   const [toned, setToned] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -179,6 +180,8 @@ export const TaskBoardPlayground: React.FC = () => {
                     <Control label="Accent">
                       <ColorSwatches selectable size="sm" value={color} onSelect={setColor} defaultExpanded />
                     </Control>
+                    {/* The board lifts one depth step when it wears the page's colour. */}
+                    <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
                   </>
                 ),
               },
@@ -270,6 +273,7 @@ export const TaskBoardPlayground: React.FC = () => {
             }}
             variant={variant}
             corner={corner}
+            raisedSurface={raisedSurface}
             columnCorner={columnCorner}
             padding={padding}
             color={color}

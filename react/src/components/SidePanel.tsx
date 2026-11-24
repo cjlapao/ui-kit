@@ -276,6 +276,8 @@ export interface SidePanelProps {
   vibrancy?: PanelProps["vibrancy"];
   /** Highlight treatment for translucent surfaces. */
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Detach the panel from its container's edges, so it reads as a floating
    * card rather than a wall: a gap on the two edges beside the docked one —
@@ -428,6 +430,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   transparency,
   vibrancy,
   specularMode,
+  raisedSurface = false,
   surfaceTone = "none",
   size = "md",
   side = "right",
@@ -934,6 +937,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               transparency={transparency}
               vibrancy={vibrancy}
               specularMode={specularMode}
+              raisedSurface={raisedSurface}
               padding="none"
               corner="none"
               className="h-full w-full"

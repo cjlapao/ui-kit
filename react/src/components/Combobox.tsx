@@ -119,6 +119,20 @@ export interface ComboboxProps extends Omit<
   color?: TrueColor;
   /** Entry style. @default "flat" */
   variant?: ComboboxVariant;
+  /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * State colours stay with `tone` — focus border, ring, icons and the glow
+   * all follow it — while the fill follows this hue through the entry
+   * variant's own recipe: `glass` keeps its sheerness, `gradient` its blur,
+   * `flat` and `elevated` their border, and `underline` has no box to paint.
+   * `neutral` means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`. The popup is untouched —
+   * it keeps following `panelVariant` and `panelTone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** @default "none" */
   validationStatus?: ComboboxValidationStatus;
   /** @deprecated Use `validationStatus="error"`. */
@@ -150,6 +164,8 @@ export interface ComboboxProps extends Omit<
   panelTone?: "auto" | SurfaceTone;
   /** Corner scale of the popup. @default "auto" */
   panelCorner?: SurfaceCorner;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Classes for the field box. */
   className?: string;
   /** Classes for the drop-down. */
@@ -181,6 +197,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       tone,
       color,
       variant = "flat",
+      backgroundColor,
       validationStatus = "none",
       error = false,
       placeholder,
@@ -195,6 +212,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       panelVariant = "auto",
       panelTone = "auto",
       panelCorner = "auto",
+      raisedSurface = false,
       className,
       listClassName,
       lines,
@@ -423,6 +441,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
               corner={panelCorner}
               padding="none"
               scrollable={false}
+              raisedSurface={raisedSurface}
               className={listClassName}
             >
               {/* The kit's own ScrollArea does the scrolling - the same
@@ -554,6 +573,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
           lines={lines}
           tone={accent}
           variant={variant}
+          backgroundColor={backgroundColor}
           validationStatus={status}
           disabled={disabled}
           readOnly={readOnly}

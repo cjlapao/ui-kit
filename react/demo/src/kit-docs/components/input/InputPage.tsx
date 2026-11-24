@@ -24,6 +24,8 @@ import Password from "./examples/Password";
 import passwordCode from "./examples/Password.tsx?raw";
 import InRow from "./examples/InRow";
 import inRowCode from "./examples/InRow.tsx?raw";
+import FillVsTone from "./examples/FillVsTone";
+import fillVsToneCode from "./examples/FillVsTone.tsx?raw";
 
 export const InputPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
@@ -85,6 +87,14 @@ export const InputPage: React.FC = () => (
         <EveryTone />
       </ExampleCard>
       <ExampleCard
+        title="A fill of its own"
+        description="`backgroundColor` moves only the fill: focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so all four of these rest in rose and still focus blue. Each variant paints that fill with its own recipe — the pale wash of `flat`, the sheer blur of `glass`, the wash-and-rim ladder of `ghost`, the translucent fill under the gradient's glow — rather than one fixed tone step; hover the ghost field and its wash deepens in rose while its edge comes up in blue. `underline` paints no box, so there the prop does nothing, and `neutral` is the way back to the variant's own resting fill."
+        code={fillVsToneCode}
+        filename="FillVsTone.tsx"
+      >
+        <FillVsTone />
+      </ExampleCard>
+      <ExampleCard
         title="Password"
         description="PasswordInput is the same field with a built-in reveal toggle."
         code={passwordCode}
@@ -124,6 +134,13 @@ export const InputPage: React.FC = () => (
           default: '"flat"',
           description:
             "Surface style — flat, filled, outlined, elevated, underline, glass and the gradient glow, shared byte-for-byte with Textarea and SearchBar via the theme.",
+        },
+        {
+          name: "backgroundColor",
+          type: "TrueColor",
+          default: '"none"',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — every state colour (focus border, ring, focused icons, the gradient glow) keeps following `tone`, so a rose-filled field still focuses blue. The fill keeps the variant&rsquo;s own recipe rather than one fixed tone step — `glass` stays sheer, `ghost` repaints its washes in the new hue while its hover rim stays in `tone`; `underline` paints no box, so it is a no-op there, and `neutral` restores the variant&rsquo;s own resting fill.",
         },
         {
           name: "validationStatus",

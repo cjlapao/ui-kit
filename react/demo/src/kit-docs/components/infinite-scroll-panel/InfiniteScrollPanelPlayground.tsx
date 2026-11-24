@@ -58,6 +58,9 @@ export const InfiniteScrollPanelPlayground: React.FC = () => {
   const [corner, setCorner] =
     useState<PanelCorner>(DEFAULT_SURFACE_CORNER);
   const [padding, setPadding] = useState<PanelPadding>("sm");
+  // The card over a gradient that happens to match its tint needs the forced
+  // first nesting step before the frame shows up at all.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [layout, setLayout] = useState<InfiniteScrollLayout>("masonry");
   const [gap, setGap] = useState<ControlSize>("md");
   const [maxColumns, setMaxColumns] = useState(4);
@@ -123,6 +126,7 @@ export const InfiniteScrollPanelPlayground: React.FC = () => {
                         onChange={(v) => setPadding(v as PanelPadding)}
                       />
                     </Control>
+                    <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
                     <Control label="Layout">
                       <MultiToggle
                         fullWidth
@@ -249,6 +253,7 @@ export const InfiniteScrollPanelPlayground: React.FC = () => {
               tone={tone}
               corner={corner}
               padding={padding}
+              raisedSurface={raisedSurface}
               layout={layout}
               gap={gap}
               maxColumns={maxColumns}

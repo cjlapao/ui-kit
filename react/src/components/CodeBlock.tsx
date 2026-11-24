@@ -33,6 +33,8 @@ export interface CodeBlockProps extends Omit<React.HTMLAttributes<HTMLDivElement
   variant?: SurfaceVariant;
   corner?: SurfaceCorner;
   editorLabel?: string;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 type SyntaxNode = ReturnType<typeof refractor.highlight>["children"][number];
@@ -72,7 +74,7 @@ export default function CodeBlock({
   value, onChange, readOnly = true, language, filename,
   showTitle = true, showCopy = true, showLineNumbers = false, wrapLines = false,
   maxHeight, tone = "none", color = "blue", variant = "subtle", corner = "rounded-md",
-  editorLabel, className, ...rest
+  editorLabel, raisedSurface = false, className, ...rest
 }: CodeBlockProps) {
   const t = useKitT();
   const [copyState, setCopyState] = useState<"idle" | "success" | "error">("idle");
@@ -108,7 +110,7 @@ export default function CodeBlock({
   const copyLabel = t(copyState === "success" ? "kit.codeBlock.copied" : "kit.codeBlock.copy");
   return (
     <div {...rest} className={["ui-code-block relative w-full min-w-0", className].filter(Boolean).join(" ")}>
-      <Panel className="ui-code-block-surface" tone={tone} variant={variant} corner={corner} padding="none" bodyClassName="min-w-0 overflow-hidden">
+      <Panel className="ui-code-block-surface" tone={tone} variant={variant} corner={corner} padding="none" raisedSurface={raisedSurface} bodyClassName="min-w-0 overflow-hidden">
         {(showTitle || showCopy) && (
           <div data-slot="code-block-header" className={`relative flex min-w-0 items-center gap-3 px-4 py-2 ${showTitle ? "justify-between border-b border-current/10" : "justify-end"}`}>
             {showTitle && <span className="truncate font-mono text-xs">{filename || language || t("kit.codeBlock.code")}</span>}

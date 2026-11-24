@@ -15,7 +15,7 @@ export default function FileUploadPage() {
       { name: "compact", type: "boolean", default: "false", description: "Arrange the upload glyph, prompt and browse action in one row. Hides the redundant empty-file caption; selected files and errors remain visible." },
       { name: "embedded", type: "boolean", default: "false", description: "Omit the surrounding Panel when composing the upload control inside another surface, as IdentityPicker does." },
       { name: "preview / labels", type: "boolean / partial labels", default: "true", description: "Optional image previews and copy overrides. Unsupported images use a file icon. Temporary object URLs are revoked when files change or the component unmounts." },
-      { name: "variant / tone / size / padding / corner", type: "Shared kit scales", description: "Shared panel surface and control styling, including glass options." },
+      { name: "variant / tone / size / padding / corner / raisedSurface", type: "Shared kit scales / boolean", description: "Shared panel surface and control styling, including glass options. `raisedSurface` forces the first nested-panels depth step on the card — the tinted-card-on-matching-background fix." },
       { name: "disabled / loading / error", type: "boolean / boolean / ReactNode", description: "Locks browse/drop/remove while disabled or loading. Loading is app-controlled, with errors announced accessibly." },
     ]} />
   </div>;

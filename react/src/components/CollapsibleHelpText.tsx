@@ -94,6 +94,8 @@ export interface CollapsibleHelpTextProps
   /** Accessible name of the trigger while expanded. @default "Show less" */
   collapseLabel?: string;
   renderMarkdown?: (text: string) => React.ReactNode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 // ── Body ──────────────────────────────────────────────────────────────────────
@@ -265,6 +267,7 @@ export const CollapsibleHelpText: React.FC<CollapsibleHelpTextProps> = ({
   expandLabel,
   collapseLabel,
   renderMarkdown,
+  raisedSurface = false,
   ...rest
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -320,6 +323,7 @@ export const CollapsibleHelpText: React.FC<CollapsibleHelpTextProps> = ({
       vibrancy={vibrancy}
       specularMode={specularMode}
       scrollable={false}
+      raisedSurface={raisedSurface}
       className={className}
       {...rest}
     >

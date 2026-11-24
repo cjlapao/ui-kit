@@ -217,14 +217,18 @@ export interface PanelProps extends Omit<
    */
   active?: boolean;
   /**
-   * The hue the selected state wears — its own, not the card's.
+   * The hue the chosen state wears — its own, not the card's.
    *
-   * Both halves of the state follow it, rim and wash together, so a card
-   * selected in amber reads as one decision rather than as an amber outline
-   * around a blue fill. Omitted, the selection takes the shared accent hue
-   * (`borderColor ?? tone`, blue floor) and agrees with the glow. Nothing is
-   * carried by colour alone: the rim is an outline, and a caller that uses it
-   * for state still carries the ARIA.
+   * Everything the card does to say *this one* follows it: the rim, the wash,
+   * and — while the card is the chosen one — the hover that answers the pointer
+   * on it, so a card selected in amber reads as one decision rather than as an
+   * amber outline around a fill that turns cyan when the pointer arrives. The
+   * cards in the same group that are *not* chosen keep hovering in their own
+   * tone: the follow belongs to the state, not to the hue. Omitted, the
+   * selection takes the shared accent hue (`borderColor ?? tone`, blue floor),
+   * the hover takes the card's own tone, and the glow agrees with whichever of
+   * those the rim is wearing. Nothing is carried by colour alone: the rim is an
+   * outline, and a caller that uses it for state still carries the ARIA.
    * @default "auto" — `borderColor ?? tone`
    */
   activeTone?: TrueColor;
@@ -265,8 +269,15 @@ export interface PanelProps extends Omit<
    */
   color?: TrueColor;
   /**
-   * Hue the hover, pressed and rim steps take. Defaults to the Panel's own
-   * `tone`; with neither, a neutral veil is used instead.
+   * Hue the hover, pressed and rim steps take.
+   *
+   * Defaults to the hue the selection wears — `activeTone`, when the caller gave
+   * the Panel one *and* this card is the chosen one — and to the Panel's own
+   * `tone` otherwise; with neither, a neutral veil is used instead. It is also
+   * the way back: a caller who gave a card an `activeTone` and still wants it to
+   * hover in its brand hue passes that hue here, which is likewise how a
+   * `borderColor` asked for as an accent gets its hover (a border hue is
+   * otherwise deliberately left alone).
    *
    * Only the hue is yours to pick — the depth of the step stays the theme's,
    * because it is measured against the variant's fill. An untinted `elevated`
@@ -803,17 +814,40 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   })();
 
   /**
-   * The hue the hover wears: an explicit `hoverColor`, else the Panel's own
-   * tone. `undefined` means there is no hue at all, and the neutral veil takes
-   * the wash instead.
+   * The hue the hover wears: an explicit `hoverColor`, else — only while the
+   * card is *chosen* — the hue the caller gave the selection, else the Panel's
+   * own tone. `undefined` means there is no hue at all, and the neutral veil
+   * takes the wash instead.
    *
-   * `neutral` now counts as a hue where the old check folded it into the veil.
+   * The middle step is the whole point, and the gate on `active` is the whole
+   * subtlety. A card selected in amber that washes cyan under the pointer reads
+   * as two opinions about the same card, so the chosen card's hover takes the
+   * hue the rim and the wash already wear. But a group hands its `activeTone` to
+   * every card it has, whether or not that card is the one chosen — and a grid
+   * where all the *unchosen* cards hover in the colour of a state they do not
+   * have is a worse version of the same confusion. So the follow belongs to the
+   * chosen card alone: `activeTone` is this card's rim, wash and hover while it
+   * is selected, and everyone else keeps hovering in their own tone.
+   * `hoverColor` outranks the whole chain, which is how you pin a card's hover
+   * to its brand hue regardless of where its selection went.
+   *
+   * `borderColor` is deliberately NOT in this chain even though it feeds
+   * `activeHue`, and on `border`-rim variants the hover ignites a border. It is
+   * a resting-edge override, routinely asked for as a neutral hairline around a
+   * branded card — a grey hover is not what that caller wants — and unlike
+   * `activeTone` it shipped long ago, so folding it in would repaint existing
+   * hovers on nobody's request. `hoverColor` is the answer for a caller who
+   * means their border as an accent. Locked by a test.
+   *
+   * `neutral` counts as a hue where the old check folded it into the veil.
    * A `tonal` neutral card has a `neutral-200` fill, and the depth-aware step
    * is the one measured against that fill; the veil was only ever measured
    * against white.
    */
   const hoverHue =
-    hoverColor ?? (resolvedTone === "none" ? undefined : resolvedTone);
+    hoverColor ??
+    (active ? activeTone : undefined) ??
+    (resolvedTone === "none" ? undefined : resolvedTone);
   const hoverTokens = getSurfaceHoverTokens(variant, hoverHue ?? "none");
   /** Whether the wash comes from the tone or from the neutral veil. */
   const isTintedHover = hoverHue !== undefined;

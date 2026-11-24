@@ -60,6 +60,7 @@ export const DatePickerPlayground: React.FC = () => {
   );
   const [panelTone, setPanelTone] = useState<SurfaceTone | "auto">("none");
   const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [appendTo, setAppendTo] = useState<DatePickerAppendTo>("body");
   const [weekStartsOn, setWeekStartsOn] = useState<0 | 1>(1);
 
@@ -102,6 +103,7 @@ export const DatePickerPlayground: React.FC = () => {
       panelVariant={panelVariant}
       panelTone={panelTone}
       panelCorner={panelCorner}
+      raisedSurface={raisedSurface}
       appendTo={appendTo}
       weekStartsOn={weekStartsOn}
       showClear={showClear}
@@ -228,6 +230,13 @@ export const DatePickerPlayground: React.FC = () => {
                       onChange={(value) =>
                         setPanelCorner(value as SurfaceCorner)
                       }
+                    />
+                    {/* The calendar card one depth step up — tinted card on a
+                        matching background, popup still legible. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                     <SelectControl
                       label="Append to"

@@ -268,6 +268,17 @@ export const AccordionPage: React.FC = () => (
           description:
             "variant, tone, padding, corner, hoverable, glass props and the rest forward to the underlying Panel — standing on the container standard: elevated, tone blue, sm padding, medium corner.",
         },
+        {
+          name: "raisedSurface",
+          type: "boolean",
+          default: "false",
+          description: (
+            <>
+              Forces the underlying Panel&rsquo;s first nested-panels depth
+              step — the tinted-card-on-matching-background fix.
+            </>
+          ),
+        },
       ]}
     />
   </div>

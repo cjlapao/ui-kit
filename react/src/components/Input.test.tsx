@@ -186,6 +186,126 @@ describe("Input", () => {
     });
   });
 
+  /**
+   * The fill may wear a hue the states do not. `tone` drives six decisions —
+   * focus border, focus ring, icons, the inline button's ring, the gradient's
+   * glow and the fill — and `backgroundColor` takes the last one off the table,
+   * per variant. So the assertions come in pairs on purpose: a rose fill *and*
+   * a blue focus in the same class string is the entire feature, and either
+   * half alone is a field that does nothing new.
+   */
+  describe("a field given a background hue", () => {
+    it("paints a flat field in the hue and still focuses in the tone", () => {
+      const { container } = render(
+        <Input variant="flat" tone="blue" backgroundColor="rose" />,
+      );
+      const cls = field(container);
+      expect(cls).toContain("bg-rose-50");
+      expect(cls).toContain("dark:bg-rose-500/10");
+      // The border is the box's edge, not its paint: it stays the variant's.
+      expect(cls).toContain("border-neutral-300");
+      expect(cls).toContain("focus-within:border-blue-400");
+      expect(cls).toContain("focus-within:ring-blue-400/60");
+    });
+
+    it("keeps glass sheer, blurred and rimmed while the body turns rose", () => {
+      const { container } = render(
+        <Input variant="glass" tone="blue" backgroundColor="rose" />,
+      );
+      const cls = field(container);
+      expect(cls).toContain("bg-rose-100/45");
+      // The tone must not win this one: `glass` tints from `explicitTone`, and
+      // the override is applied after that branch for exactly this reason.
+      expect(cls).not.toContain("bg-blue-100/45");
+      expect(cls).toContain("border-black/15");
+      expect(cls).toContain("backdrop-blur-md");
+      expect(cls).toContain("shadow-sm");
+    });
+
+    it("keeps the gradient's glow in the tone and its body in the hue", () => {
+      const { container } = render(
+        <Input variant="gradient" tone="blue" backgroundColor="rose" />,
+      );
+      const cls = field(container);
+      expect(cls).toContain("bg-rose-50/80");
+      expect(cls).toContain("dark:bg-rose-500/15");
+      expect(cls).not.toContain("bg-white/80");
+      // Sheer on purpose — an opaque body would bury both of these.
+      expect(cls).toContain("backdrop-blur-xl");
+    });
+
+    it("moves ghost's washes to the hue and keeps its rim and focus in the tone", () => {
+      const { container } = render(
+        <Input variant="ghost" tone="blue" backgroundColor="rose" />,
+      );
+      const cls = field(container);
+      // The paint.
+      expect(cls).toContain("bg-rose-100");
+      expect(cls).toContain("hover:bg-rose-200");
+      expect(cls).not.toContain("bg-blue-100");
+      // The affordances the pointer and the keyboard ask for. The hover rim was
+      // painted with the fill until a caller noticed a rose field answering the
+      // mouse in rose — it belongs with the focus border, not the background.
+      expect(cls).toContain("hover:border-blue-300");
+      expect(cls).not.toContain("border-rose-");
+      expect(cls).toContain("focus-within:ring-blue-400/60");
+    });
+
+    it("does nothing to underline, which has no box to paint", () => {
+      const { container } = render(
+        <Input variant="underline" tone="blue" backgroundColor="rose" />,
+      );
+      const cls = field(container);
+      expect(cls).toContain("bg-transparent");
+      expect(cls).not.toContain("bg-rose-");
+    });
+
+    it("takes the variant's own fill back on neutral, over a tinted tone", () => {
+      const { container } = render(
+        <Input variant="glass" tone="blue" backgroundColor="neutral" />,
+      );
+      const cls = field(container);
+      expect(cls).toContain("bg-white/45");
+      expect(cls).not.toContain("bg-blue-100/45");
+    });
+
+    it("survives the border stripper a validation status runs over the string", () => {
+      // `stripBorderColor` edits this same class string on error, and the pair of
+      // strippers over one string is where fills have gone missing before.
+      const { container } = render(
+        <Input
+          variant="flat"
+          tone="blue"
+          backgroundColor="rose"
+          validationStatus="error"
+        />,
+      );
+      const cls = field(container);
+      expect(cls).toContain("bg-rose-50");
+      expect(cls).toContain("border-rose-500");
+    });
+
+    it("paints every hue the palette offers", () => {
+      // The source half of the safelist contract: a class the theme builds by
+      // template literal is only real if the stylesheet carries it.
+      for (const hue of TRUE_COLORS) {
+        if (hue === "neutral") continue; // the variant's own fill, tested above
+        const { container, unmount } = render(
+          <Input variant="flat" backgroundColor={hue} />,
+        );
+        expect(field(container)).toContain(`bg-${hue}-50`);
+        unmount();
+      }
+    });
+
+    it("leaves a field nobody tinted exactly as it was", () => {
+      const { container } = render(<Input variant="flat" tone="blue" />);
+      const cls = field(container);
+      expect(cls).toContain("bg-white");
+      expect(cls).not.toContain("bg-rose-50");
+    });
+  });
+
   describe("tones", () => {
     it("emits the tone it was given, for every tone", () => {
       // The hand-written 21-entry map had two wrong: `red` emitted `rose-*` and

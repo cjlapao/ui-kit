@@ -73,6 +73,7 @@ export const TimelinePanelPlayground: React.FC = () => {
   const [tone, setTone] = useState<SurfaceTone>("none");
   const [corner, setCorner] = useState<TimelinePanelCorner>("none");
   const [padding, setPadding] = useState<TimelinePanelPadding>("sm");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [loaderType, setLoaderType] =
     useState<TimelinePanelLoaderType>("spinner");
   const [actionSize, setActionSize] = useState<ControlSize>("sm");
@@ -117,6 +118,12 @@ export const TimelinePanelPlayground: React.FC = () => {
                     options={panelPaddingOptions}
                     value={padding}
                     onChange={(v) => setPadding(v as TimelinePanelPadding)}
+                  />
+                  {/* The panel takes the first depth step when fill and backdrop agree. */}
+                  <ToggleRow
+                    label="Raised surface"
+                    checked={raisedSurface}
+                    onChange={setRaisedSurface}
                   />
                 </>
               ),
@@ -232,6 +239,7 @@ export const TimelinePanelPlayground: React.FC = () => {
               tone={tone}
               corner={corner}
               padding={padding}
+              raisedSurface={raisedSurface}
               lineColor={customLine ? "#8b5cf6" : undefined}
               showTrunkDots={trunkDots}
               actionSize={actionSize}

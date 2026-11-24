@@ -31,7 +31,7 @@ export const StatCardPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
     <PageHeader
       name="Stat Card"
-      description="A metric in a card — label, big value, optional trend pill, icon, optional progress, and a full-size surface underneath. Every Panel variant, tone and corner works; `gradient` paints the surface itself."
+      description="A metric in a card — label, big value, optional trend pill, icon, optional progress, and a full-size surface underneath. Every Panel variant, tone and corner works; `gradient` paints the surface itself, and `raisedSurface` forces the first nested-panels depth step — the tinted-card-on-matching-background fix."
     />
     <StatCardPlayground />
     <section className="flex flex-col gap-5">
@@ -41,7 +41,7 @@ export const StatCardPage: React.FC = () => (
       <ExampleCard title="Loading and error" description="The three loader treatments, skeleton by default and shaped like the card so the grid keeps its layout — the spinner and progress types cover the card instead, keeping the previous value readable underneath." code={statesCode} filename="States.tsx"><States /></ExampleCard>
       <ExampleCard title="Progress: spinner or bar" description="One feature, two renderings. The bar spans the full width at the bottom; `syncValueToProgress` drives it from the card's own figure so a percentage is written once." code={progressCode} filename="Progress.tsx"><Progress /></ExampleCard>
       <ExampleCard title="Label and value typography" description="Each carries its own tone and type scale, falling back to the card's `size`. They used to share one `valueTone`, so a muted label over a coloured figure — the common case — was impossible." code={typographyCode} filename="Typography.tsx"><Typography /></ExampleCard>
-      <ExampleCard title="Selected &amp; pulsing" description="The state half of the Panel surface, forwarded whole: `active` for the selection rim and wash, `pulse` for the glow that swells inward from the rim, and `activeTone` / `pulseTone` for the hues they wear when those should disagree with the card. Every Stat tile takes them the same way. A `gradient` card is the exception worth knowing — its own background outranks the wash, so there the selection reads as rim and glow." code={selectionCode} filename="Selection.tsx"><Selection /></ExampleCard>
+      <ExampleCard title="Selected, pulsing &amp; hovering" description="The state half of the Panel surface, forwarded whole: `active` for the selection rim and wash, `pulse` for the glow that swells inward from the rim, and `activeTone` / `pulseTone` for the hues they wear when those should disagree with the card. The hover wears the hue the card is chosen in, but only while it is — the pointer never contradicts the state, and unchosen cards keep hovering in their own tone. `hoverColor` overrules that, while `hoverable` lets a card nobody clicks answer the pointer anyway. Every Stat tile takes them the same way. A `gradient` card is the exception worth knowing — its own background outranks the wash, so there the selection reads as rim and glow." code={selectionCode} filename="Selection.tsx"><Selection /></ExampleCard>
       <ExampleCard
         title="Basic"
         description="A label, a value, and a trend pill. The trend's direction picks its tone — up is emerald, down is rose, neutral is slate."

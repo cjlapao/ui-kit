@@ -56,6 +56,7 @@ export interface NetworkGraphProps extends Pick<
   | "glassOpacity"
   | "vibrancy"
   | "specularMode"
+  | "raisedSurface"
   | "className"
   | "style"
   | "loading"

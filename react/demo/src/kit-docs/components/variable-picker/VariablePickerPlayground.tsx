@@ -55,6 +55,7 @@ export const VariablePickerPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
   const [corner, setCorner] = useState<SurfaceCorner>("auto");
   const [tone, setTone] = useState<TrueColor>("blue");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [withResolve, setWithResolve] = useState(true);
   const [empty, setEmpty] = useState(false);
   const [log, pushLog] = useEventLog();
@@ -99,6 +100,12 @@ export const VariablePickerPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    {/* The dropdown card takes its depth step here, not in the shared widget. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
+                    />
                     <Control label="Content">
                       <div className="space-y-1.5">
                         <ToggleRow
@@ -141,6 +148,7 @@ export const VariablePickerPlayground: React.FC = () => {
           variant={variant}
           corner={corner}
           tone={tone}
+          raisedSurface={raisedSurface}
           onSelect={(v) => pushLog(`selected \`${v.fullToken}\` — onSelect`)}
           onClose={() => pushLog("closed — onClose")}
           resolve={

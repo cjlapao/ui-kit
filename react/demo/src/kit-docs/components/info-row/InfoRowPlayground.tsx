@@ -34,6 +34,9 @@ export const InfoRowPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
   const [padding, setPadding] = useState<SurfacePadding | "auto">("auto");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  // A row whose Panel wears the page's own tint needs the forced first
+  // nesting step before the eye can tell row from background.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [loaderType, setLoaderType] = useState<InfoRowLoader>("skeleton");
 
   const [copyable, setCopyable] = useState(true);
@@ -81,6 +84,7 @@ export const InfoRowPlayground: React.FC = () => {
         size={size}
         padding={padding === "auto" ? undefined : padding}
         corner={corner}
+        raisedSurface={raisedSurface}
         copyable={copyable}
         mono={mono}
         wrap={wrap}
@@ -161,6 +165,11 @@ export const InfoRowPlayground: React.FC = () => {
                       options={panelCornerOptions}
                       value={corner}
                       onChange={(v) => setCorner(v as SurfaceCorner)}
+                    />
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                     <SelectControl
                       label="Loader"

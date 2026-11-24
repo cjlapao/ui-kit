@@ -36,6 +36,8 @@ export interface StatTileProgress {
 export interface StatTileProps {
   variant?: SurfaceVariant;
   tone?: SurfaceTone;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   title?: string;
   value?: string | number;
   subtitle?: string;
@@ -79,6 +81,7 @@ const props = withDefaults(defineProps<StatTileProps>(), {
   withDecoration: false,
   withHoverEffect: false,
   loading: false,
+  raisedSurface: false,
 });
 
 const slots = useSlots();
@@ -188,6 +191,7 @@ const metaSectionClass = computed(() =>
   <Panel
     :variant="variant"
     :tone="tone"
+    :raised-surface="raisedSurface"
     corner="rounded"
     padding="none"
     :flex-body="true"

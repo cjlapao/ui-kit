@@ -63,6 +63,8 @@ export interface VariablePickerProps {
    * @default "auto"
    */
   corner?: SurfaceCorner;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Pre-fills the search box — used when the picker is opened by typing. */
   initialSearch?: string;
   title?: string;
@@ -138,6 +140,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
   variant = "elevated",
   panelTone = "auto",
   corner = "auto",
+  raisedSurface = false,
   initialSearch = "",
   title,
   className,
@@ -238,6 +241,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
       tone={panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone}
       corner={corner}
       padding="none"
+      raisedSurface={raisedSurface}
       scrollable={false}
       className={classNames("w-[26rem] max-w-[calc(100vw-2rem)]", className)}
       onKeyDown={handleKeyDown}

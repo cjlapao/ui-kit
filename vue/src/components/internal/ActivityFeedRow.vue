@@ -31,6 +31,8 @@ export interface ActivityFeedRowView {
   variant: SurfaceVariant;
   tone: SurfaceTone;
   corner: SurfaceCorner;
+  /** Handed down from the feed's `raisedSurface` — the row is a body Panel. */
+  raisedSurface?: boolean;
   active?: boolean;
   pulse?: boolean;
   borderColor?: TrueColor;
@@ -55,6 +57,8 @@ export interface ActivityFeedRowView {
   chevronLabel?: string;
   gridClass: string;
   gridStyle: { gridTemplateRows: string };
+  /** The sub-row column: fixed indent plus the padding ladder's gap + clip room. */
+  subColumnClass: string;
   subRows: ActivityFeedSubRowView[];
 }
 </script>
@@ -147,6 +151,7 @@ const regionAttrs = computed<Record<string, unknown>>(() => ({
     :variant="view.variant"
     :tone="view.tone"
     :corner="view.corner"
+    :raised-surface="view.raisedSurface"
     padding="xs"
     :active="view.active"
     :pulse="view.pulse"
@@ -203,11 +208,10 @@ const regionAttrs = computed<Record<string, unknown>>(() => ({
       <div v-bind="regionAttrs" class="min-h-0 overflow-hidden">
         <!-- Dot (size-2) + gap-3 puts the column at the title's leading
              edge — sub-rows read as the row's own, one level in. The
-             `py-1.5` is the zone's breathing room: an `xs` IconButton is a
-             28px box riding the 20px band (4px of spill), the washes bleed
-             2px with their negative margins, and the region clips — six
-             pixels or the first row's dots arrive shaved. -->
-        <div class="flex flex-col gap-1.5 py-1.5 pl-5">
+             view's `subColumnClass` carries the padding ladder's row gap
+             and clip-room padding in lockstep — see `SUB_ROW_PADDING` in
+             nestedPanel. -->
+        <div :class="view.subColumnClass">
           <div
             v-for="(sub, index) in view.subRows"
             :key="index"

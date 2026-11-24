@@ -178,7 +178,7 @@ export const SplitViewPage: React.FC = () => (
           type: "SurfaceVariant",
           default: "elevated",
           description:
-            "The Panel surface family, elevated as everywhere else. The list pane tints translucently over the variant rather than filling it.",
+            "The Panel surface family, elevated as everywhere else. The list pane tints translucently over the variant rather than filling it. `raisedSurface` forces the card's first nested-panels depth step — the tinted-card-on-matching-background fix.",
         },
         {
           name: "surfaceTone",

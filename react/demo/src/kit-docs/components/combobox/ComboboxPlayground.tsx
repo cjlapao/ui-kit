@@ -81,6 +81,9 @@ export const ComboboxPlayground: React.FC = () => {
   );
   const [panelTone, setPanelTone] = useState<"auto" | SurfaceTone>("auto");
   const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
+  // For the day the popup card and the page agree on a tint and the list
+  // floats in invisibly — this forces the nesting ladder's first step.
+  const [raisedSurface, setRaisedSurface] = useState(false);
 
   const [disabled, setDisabled] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
@@ -151,6 +154,11 @@ export const ComboboxPlayground: React.FC = () => {
                       options={panelCornerOptions}
                       value={panelCorner}
                       onChange={(v) => setPanelCorner(v as SurfaceCorner)}
+                    />
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                     <SelectControl
                       label="Validation"
@@ -229,6 +237,7 @@ export const ComboboxPlayground: React.FC = () => {
             panelVariant={panelVariant}
             panelTone={panelTone}
             panelCorner={panelCorner}
+            raisedSurface={raisedSurface}
             validationStatus={validationStatus}
             disabled={disabled}
             readOnly={readOnly}

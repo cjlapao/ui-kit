@@ -88,11 +88,11 @@ export const DynamicFormFieldPage: React.FC = () => (
             "The shared field scale, passed straight to whichever control the type calls for - so a blueprint form lines up with the app's own Inputs.",
         },
         {
-          name: "tone / corner / padding",
-          type: "TrueColor / SurfaceCorner / SurfacePadding",
-          default: '"blue" / auto / "md"',
+          name: "tone / corner / padding / raisedSurface",
+          type: "TrueColor / SurfaceCorner / SurfacePadding / boolean",
+          default: '"blue" / auto / "md" / false',
           description:
-            "Card decoration through the theme's scales - the blue default is the kit's, drawing a tonal wash blue and putting the accent on every focus ring and badge; the entry takes its tone from the same prop.",
+            "Card decoration through the theme's scales - the blue default is the kit's, drawing a tonal wash blue and putting the accent on every focus ring and badge; the entry takes its tone from the same prop. `raisedSurface` forces the first nested-panels depth step on the card - the tinted-card-on-matching-background fix.",
         },
         {
           name: "required (via parameter)",

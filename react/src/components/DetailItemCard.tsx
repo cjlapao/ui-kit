@@ -55,6 +55,8 @@ export interface DetailItemCardProps
   transparency?: SurfaceTransparency;
   vibrancy?: GlassVibrancy;
   specularMode?: PanelSpecularMode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 interface DetailBodyProps
@@ -67,6 +69,7 @@ interface DetailBodyProps
     | "glassOpacity"
     | "vibrancy"
     | "specularMode"
+    | "raisedSurface"
     | "className"
     | "defaultExpanded"
     | "expanded"
@@ -260,6 +263,7 @@ const DetailItemCard: React.FC<DetailItemCardProps> = ({
   transparency,
   vibrancy,
   specularMode,
+  raisedSurface = false,
   className,
   ...rest
 }) => {
@@ -298,6 +302,7 @@ const DetailItemCard: React.FC<DetailItemCardProps> = ({
       vibrancy={vibrancy}
       specularMode={specularMode}
       scrollable={false}
+      raisedSurface={raisedSurface}
       className={className}
     >
       {body}

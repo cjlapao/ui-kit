@@ -58,6 +58,8 @@ export interface BreakdownCardProps
   /** @default "md" */
   padding?: SurfacePadding;
   corner?: SurfaceCorner;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 /**
@@ -78,6 +80,7 @@ export const BreakdownCard = ({
   tone: surfaceTone = "none",
   padding = "md",
   corner,
+  raisedSurface = false,
   className = "",
   ...rest
 }: BreakdownCardProps) => {
@@ -90,6 +93,7 @@ export const BreakdownCard = ({
       tone={surfaceTone}
       padding={padding}
       corner={corner}
+      raisedSurface={raisedSurface}
       className={classNames("w-full", className)}
     >
       <div className="flex flex-col gap-5">

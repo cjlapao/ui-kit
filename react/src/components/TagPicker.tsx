@@ -223,6 +223,19 @@ export interface TagPickerProps {
   size?: TagPickerSize;
   /** Visual surface style, from the shared field system. @default "flat" */
   variant?: InputVariant;
+  /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * State colours stay with `tone` — focus border, ring, icons and the glow all
+   * follow it — while the fill follows this hue through the variant's own
+   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * `elevated` their border, and `underline` has no box to paint. `neutral`
+   * means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
   gradientFrom?: string;
   /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
@@ -257,6 +270,8 @@ export interface TagPickerProps {
    * @default "auto"
    */
   panelCorner?: SurfaceCorner;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /**
    * Maximum number of tag pills shown before a "+N" overflow pill appears.
    * Set to 0 or undefined to show all tags. Default: 3
@@ -300,6 +315,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
   itemColor = null,
   size = "md",
   variant = "flat",
+  backgroundColor,
   gradientFrom,
   gradientTo,
   glowIntensity = DEFAULT_GLOW_INTENSITY,
@@ -307,6 +323,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
   panelVariant = "auto",
   panelTone = "auto",
   panelCorner = "auto",
+  raisedSurface = false,
   tagLimit = 3,
   highlightNew = true,
   className,
@@ -353,6 +370,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
     "auto",
     {
       explicitTone: tone ?? color,
+      backgroundColor,
     },
   );
   const hasStatus = validationStatus !== "none";
@@ -657,6 +675,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                 glass popup instead of the opaque white slab this used to be. */}
             <Panel
               variant={resolvedPanelVariant}
+              raisedSurface={raisedSurface}
               tone={panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone}
               corner={panelCorner}
               padding="none"

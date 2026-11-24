@@ -13,7 +13,7 @@ export interface DotStepperStep extends StepperStep {
   tooltip?: string;
 }
 
-export interface DotStepperProps extends Pick<PanelProps, "variant" | "tone" | "padding" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode" | "className" | "style"> {
+export interface DotStepperProps extends Pick<PanelProps, "variant" | "tone" | "padding" | "glassOpacity" | "transparency" | "vibrancy" | "specularMode" | "raisedSurface" | "className" | "style"> {
   steps: DotStepperStep[];
   /** Zero-based. currentStepId takes precedence. */
   currentIndex?: number;

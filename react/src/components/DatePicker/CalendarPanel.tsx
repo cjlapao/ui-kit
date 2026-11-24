@@ -37,6 +37,8 @@ export interface CalendarPanelProps {
   panelTone: SurfaceTone;
   panelCorner: SurfaceCorner;
   panelClassName?: string;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Field accent — selected cells, focus rings and the button bar. */
   tone: TrueColor;
   /**
@@ -131,6 +133,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
   panelTone,
   panelCorner = DEFAULT_SURFACE_CORNER,
   panelClassName,
+  raisedSurface = false,
   tone,
   fieldVariant,
   fieldSize,
@@ -524,6 +527,7 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({
       corner={panelCorner}
       padding="none"
       scrollable={false}
+      raisedSurface={raisedSurface}
       className={classNames("w-[max-content] min-w-[236px]", panelClassName)}
     >
       <div

@@ -190,20 +190,23 @@ export interface StatCardProps<
    * Draws the card as the selected one — the surface rim plus a wash in the
    * selection's hue, exactly as `Panel` draws it.
    *
-   * This is selection, not the pointer: `hoverEffect` keeps layering over it,
-   * and a selected card that is also clicked stays selected-looking. Two things
-   * differ from a bare `Panel`. A `gradient` card paints its own background,
-   * which outranks the active wash the way `backgroundColor` does — the rim and
-   * the glow still say selected, and the wash is the one thing a dark card has
-   * no room for. And a `StatCard` has no `disabled` of its own, so nothing ever
-   * dims it. `data-active` is exposed for caller CSS.
+   * This is selection, not the pointer: the hover wash and the pressed step keep
+   * layering over it (see `hoverable`), and a selected card that is also clicked
+   * stays selected-looking. Two things differ from a bare `Panel`. A `gradient`
+   * card paints its own background, which outranks the active wash the way
+   * `backgroundColor` does — the rim and the glow still say selected, and the
+   * wash is the one thing a dark card has no room for. And a `StatCard` has no
+   * `disabled` of its own, so nothing ever dims it. `data-active` is exposed for
+   * caller CSS.
    * @default false
    */
   active?: boolean;
   /**
-   * The hue the selected state wears — its own, not the card's. Rim and wash
-   * follow it together, so a blue KPI selected in amber reads as one decision
-   * rather than as an amber outline around a blue fill. Omitted, it takes the
+   * The hue the card wears when it is chosen — its own, not the card's. Rim,
+   * wash and the hover follow it together while the card is the chosen one, so a
+   * blue KPI selected in amber reads as one decision rather than as an amber
+   * outline around a fill that turns cyan when the pointer arrives; its
+   * unselected neighbours keep hovering in their own tone. Omitted, it takes the
    * card's own `tone`, with the kit's blue as floor on an untoned card.
    * @default "auto" — the card's own `tone`
    */
@@ -228,6 +231,30 @@ export interface StatCardProps<
    * @default "auto" — the active hue
    */
   pulseTone?: TrueColor;
+  /**
+   * The hue the hover, the pressed step and the hover rim take.
+   *
+   * `Panel` resolves it as `hoverColor ?? (active ? activeTone : undefined) ??
+   * tone`, so a *selected* card that was given a hue of its own answers the
+   * pointer in that hue too, while its unselected neighbours keep hovering in
+   * their own tone. Pass the brand hue here to pin a card's hover back to it
+   * regardless of where its selection went.
+   * @default "auto" — the hue it is selected in, else the card's own `tone`
+   */
+  hoverColor?: TrueColor;
+  /**
+   * Makes the surface answer the pointer — the wash, the pressed step, the hover
+   * rim — even when the card is not clickable.
+   *
+   * Off, hover follows clickability as it always has: a card with `onClick` or
+   * `drilldown` washes, one without stays still. `true` is for a card someone
+   * else makes interactive — a grid that selects on its behalf, a link wrapped
+   * around it — where the pointer still deserves an answer from the surface.
+   * Not to be confused with `hoverEffect`, which *lifts* the card rather than
+   * tinting it; a card can want either or both.
+   * @default "auto" — true when the card has `onClick` or `drilldown`
+   */
+  hoverable?: boolean;
   /**
    * Tints the value. Separate from `tone`, which drives the surface and the
    * icon chip — and now separate from `labelTone`, which it used to tint too.
@@ -328,6 +355,8 @@ export interface StatCardProps<
    * flexible slot after the value and trend.
    */
   children?: React.ReactNode;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 const SIZE_TOKENS: Record<
@@ -456,6 +485,7 @@ const StatCard = <T extends StatCardDrilldownItem = StatCardDrilldownItem>({
   variant,
   corner = "rounded-lg",
   padding = "md",
+  raisedSurface = false,
   active = false,
   activeTone,
   pulse = false,
@@ -486,6 +516,8 @@ const StatCard = <T extends StatCardDrilldownItem = StatCardDrilldownItem>({
   spinnerTone,
   onClick,
   hoverEffect = false,
+  hoverColor,
+  hoverable,
   drilldown,
   square = false,
   className,
@@ -720,12 +752,15 @@ const StatCard = <T extends StatCardDrilldownItem = StatCardDrilldownItem>({
       activeTone={activeTone}
       pulse={pulse}
       pulseTone={pulseTone}
+      hoverColor={hoverColor}
+      hoverable={hoverable}
       loading={loading && loaderType !== "skeleton"}
       loaderType={loaderType === "skeleton" ? "spinner" : loaderType}
       loaderColor={spinnerTone ?? tone ?? "blue"}
       loaderProgress={progressValue}
       flexBody
       scrollable={false}
+      raisedSurface={raisedSurface}
       data-gradient={onGradient || undefined}
       style={
         gradientBackground ? { ...style, background: gradientBackground } : style

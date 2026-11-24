@@ -4,10 +4,18 @@ import { StatCard } from "@cjlapao/ui-kit";
  * The card's state, drawn by the surface underneath it.
  *
  * `active` ignites the selection rim and wash; `pulse` breathes a glow inward
- * from the rim — the same four props `Panel` answers, forwarded untouched, so
- * every Stat tile in the family takes them the same way. `activeTone` and
- * `pulseTone` let those two states wear hues the card itself does not: an
- * urgent rose on a blue card is a different message from a blue card.
+ * from the rim — the same props `Panel` answers, forwarded untouched, so every
+ * Stat tile in the family takes them the same way. `activeTone` and `pulseTone`
+ * let those two states wear hues the card itself does not: an urgent rose on a
+ * blue card is a different message from a blue card.
+ *
+ * The pointer card is the one to try. `activeTone` is not only the colour of the
+ * rim and wash once the card is chosen — while it *is* chosen the hover wears
+ * that hue too, so the pointer never contradicts the state. The follow belongs to
+ * the state, not to the hue: an unchosen card keeps hovering in its own tone.
+ * `hoverable` is what lets a card answer the pointer without being clickable, and
+ * `hoverColor` pins a card's hover back to its brand hue when the selection has
+ * gone somewhere else.
  *
  * The last card is the honest caveat. A `gradient` card paints its own
  * background, which outranks the active wash the way `backgroundColor` does —
@@ -49,6 +57,16 @@ export default function Selection() {
         pulse
         pulseTone="rose"
         subtitle="urgent without repainting"
+      />
+      <StatCard
+        label="Put a pointer on this one"
+        value="violet"
+        icon="Clock"
+        tone="cyan"
+        hoverable
+        active
+        activeTone="violet"
+        subtitle="the hover wears the chosen hue"
       />
       <StatCard
         label="On the gradient wash"

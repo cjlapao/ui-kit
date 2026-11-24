@@ -663,6 +663,23 @@ src(`@source inline("dark:hover:border-{COLOR}-500/50");`);
 src(`@source inline("dark:hover:ring-{COLOR}-500/30");`);
 L("");
 
+// ── Field background override — fieldFillFor() in Theme.ts ────────
+// `InputVariantOptions.backgroundColor` repaints a field's fill in a hue of the
+// caller's choosing, per variant: `-50` on flat/elevated, `-100/45` on glass,
+// `-50/80` on gradient, the translucent `-500/10` and `-500/15` dark steps, and
+// the `ghost` ladder through `ghostFillShades` as before.
+//
+// Every one of those shapes is already declared above, which is worth saying
+// out loud because the obvious next edit is to "add the missing lines" here and
+// duplicate a shape. `bg-{COLOR}-50` and `bg-{COLOR}-100/{20,45,50}` came in
+// with the chips and badges, `dark:bg-{COLOR}-500/{5,10,15,25}` with the Panel
+// glass, `bg-{COLOR}-50/80` with `InputGroup`'s box, and the ghost hover rung
+// with the hover block just above. What is new is not a shape but a producer:
+// `themeSafelist.test.ts` now walks this getter across all six variants and 21
+// hues, so a fifth recipe added in Theme.ts has to show up here or the build
+// says so — which is the failure mode that has bitten this file repeatedly.
+L("");
+
 // ── Panel active state — getSurfaceActiveTokens() in Theme.ts ────
 // The selected card's 2px inset rim. `outline-2` and `-outline-offset-2` are
 // core utilities; only the two colour shapes are tone-interpolated. They ride

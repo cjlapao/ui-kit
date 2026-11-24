@@ -43,6 +43,7 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
   glassOpacity = "light",
   vibrancy,
   specularMode,
+  raisedSurface = false,
   corner = DEFAULT_SURFACE_CORNER,
   iconCorner = DEFAULT_SURFACE_CORNER,
   padding = "none",
@@ -81,6 +82,7 @@ export const WorkflowTracker: React.FC<WorkflowTrackerProps> = ({
     glassOpacity,
     vibrancy,
     specularMode,
+    raisedSurface,
     padding,
     translucentSurfaces,
   };

@@ -16,6 +16,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -50,6 +51,13 @@ export const SelectPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SelectVariant>("flat");
   const [size, setSize] = useState<SelectSize>("md");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The fill's own hue, for when it should disagree with the tone — focus,
+  // caret and the picker's own colours keep following `tone`; only the fill
+  // comes over here. `undefined` is the honest default: the fill follows the
+  // tone today.
+  const [backgroundColor, setBackgroundColor] = useState<TrueColor | undefined>(
+    undefined,
+  );
   const [corner, setCorner] = useState<SurfaceCorner | "auto">("auto");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("subtle");
   const [validationStatus, setValidationStatus] =
@@ -93,6 +101,7 @@ export const SelectPlayground: React.FC = () => {
       variant={variant}
       size={size}
       tone={tone}
+      backgroundColor={backgroundColor}
       corner={corner}
       glowIntensity={glowIntensity}
       validationStatus={validationStatus}
@@ -147,6 +156,16 @@ export const SelectPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    {/* The fill may wear a hue the states do not — pick it
+                      from colour as well. "None" is the variant's own resting
+                      fill: the tone's hue for `glass` and `ghost`, white for the
+                      rest, which is what every field did before this prop. */}
+                    <HueControl
+                      label="Fill hue"
+                      value={backgroundColor}
+                      onChange={setBackgroundColor}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <SelectControl
                       label="Corner"
                       options={panelCornerOptions}

@@ -48,6 +48,7 @@ export const SidePanelPlayground: React.FC = () => {
    */
   const [inset, setInset] = useState<"auto" | SurfacePadding>("auto");
   const [corner, setCorner] = useState<SurfaceCorner>("rounded-md");
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [motion, setMotion] = useState<"layout" | "slide">("layout");
 
   return (
@@ -107,6 +108,12 @@ export const SidePanelPlayground: React.FC = () => {
                       ]}
                       value={inset}
                       onChange={(v) => setInset(v as "auto" | SurfacePadding)}
+                    />
+                    {/* The docked card takes the first depth step when fill meets its match. */}
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                     <ChoiceControl
                       label="Motion"
@@ -246,6 +253,7 @@ export const SidePanelPlayground: React.FC = () => {
             motion={motion}
             inset={inset === "auto" ? undefined : inset}
             corner={corner}
+            raisedSurface={raisedSurface}
             width={280}
             height={200}
             footer={

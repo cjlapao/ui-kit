@@ -40,7 +40,7 @@ export const VariablePickerPage: React.FC = () => (
           type: "SurfaceVariant",
           default: '"elevated"',
           description:
-            "The card's own surface - this picker IS the card, so unlike Picker and TagPicker it takes the winner directly rather than an &ldquo;auto&rdquo;. Composites like SmartInput resolve their panelVariant through SURFACE_VARIANT_FOR_FIELD and hand over the result; a glass card pairs a glass search box, per the field-in-glass rule.",
+            "The card's own surface - this picker IS the card, so unlike Picker and TagPicker it takes the winner directly rather than an &ldquo;auto&rdquo;. Composites like SmartInput resolve their panelVariant through SURFACE_VARIANT_FOR_FIELD and hand over the result; a glass card pairs a glass search box, per the field-in-glass rule. `raisedSurface` forces the card's first nested-panels depth step — the tinted-card-on-matching-background fix.",
         },
         {
           name: "corner",

@@ -63,6 +63,8 @@ export interface ChatProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "o
   tone?: SurfaceTone;
   /** @default "none" */
   padding?: SurfacePadding;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
 }
 
 const formatTime = (iso: string) => {
@@ -102,6 +104,7 @@ export const Chat = ({
   variant = "outlined",
   tone: surfaceTone = "none",
   padding = "none",
+  raisedSurface = false,
   className = "",
   style,
   ...rest
@@ -572,6 +575,7 @@ export const Chat = ({
       variant={variant}
       tone={surfaceTone}
       padding={padding}
+      raisedSurface={raisedSurface}
       className={classNames("relative overflow-hidden", className)}
       style={{ ...style, height }}
     >

@@ -176,13 +176,14 @@ import {
   getTrueColorDotClass,
   getTrueColorSubDotClass,
   getSubItemHoverClasses,
+  getSurfaceCornerClass,
   SURFACE_TO_BUTTON_VARIANT,
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
   type TrueColor,
 } from "../theme";
-import { NESTED_PANEL_WASH } from "../../../common/theme/nestedPanel";
+import { NESTED_PANEL_WASH, SUB_ROW_PADDING } from "../../../common/theme/nestedPanel";
 
 defineOptions({ name: "ActivityFeed", inheritAttrs: false });
 
@@ -265,6 +266,8 @@ const props = withDefaults(
     /** @default "md" */
     padding?: SurfacePadding;
     corner?: SurfaceCorner;
+    /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+    raisedSurface?: boolean;
     /**
      * The surface every template row's Panel wears. @default "none"
      */
@@ -279,6 +282,19 @@ const props = withDefaults(
      * @default "rounded" — the corner scale's xs step
      */
     rowCorner?: SurfaceCorner;
+    /**
+     * The corner every sub-row wash wears, through the same corner scale as
+     * `rowCorner` — rows rest on its xs step, washes one step up on sm.
+     * @default "rounded-sm" — the corner scale's sm step
+     */
+    subRowCorner?: SurfaceCorner;
+    /**
+     * The padding ladder every sub-row wash rides — bleed, row gap, and the
+     * column's gutter and clip-room padding move in lockstep (see
+     * `SUB_ROW_PADDING`).
+     * @default "md"
+     */
+    subRowPadding?: SurfacePadding;
   }>(),
   {
     title: "Recent activity",
@@ -306,9 +322,12 @@ const props = withDefaults(
     variant: "outlined",
     tone: "none",
     padding: "md",
+    raisedSurface: false,
     rowVariant: "none",
     rowTone: undefined,
     rowCorner: "rounded",
+    subRowCorner: "rounded-sm",
+    subRowPadding: "md",
   },
 );
 const resolvedAccentTone = computed(() => getSurfaceAccentColor(props.tone ?? "none"));
@@ -459,6 +478,7 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
     variant: props.rowVariant,
     tone: props.rowTone ?? props.tone,
     corner: props.rowCorner,
+    raisedSurface: props.raisedSurface,
     active: item.active,
     pulse: item.attention,
     borderColor: item.attentionTone,
@@ -502,6 +522,9 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
       open ? "opacity-100" : "opacity-0",
     ),
     gridStyle: { gridTemplateRows: open ? "1fr" : "0fr" },
+    // The sub-row column: fixed indent plus the map's lockstepped gap and
+    // clip-room padding (bleed + the actions zone's 4px button spill).
+    subColumnClass: classNames("flex flex-col pl-5", SUB_ROW_PADDING[props.subRowPadding].column),
     subRows: (subItems ?? []).map((sub): ActivityFeedSubRowView => {
       // One level in: the dot climbs the sub's tone, the parent's, the
       // card — then steps one off that in both themes. The hover hue is
@@ -519,7 +542,9 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
         // off whatever surface the row nestles on — so each sub reads as
         // its own row, not flat ink.
         subRowClass: classNames(
-          "group -mx-1.5 -my-0.5 flex items-start gap-3 rounded-md px-1.5 py-0.5 transition-colors duration-200 motion-reduce:transition-none",
+          "group flex items-start gap-3 transition-colors duration-200 motion-reduce:transition-none",
+          SUB_ROW_PADDING[props.subRowPadding].row,
+          getSurfaceCornerClass(props.subRowCorner),
           NESTED_PANEL_WASH[1],
           hover.wash,
         ),
@@ -544,6 +569,7 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
     :tone="props.tone ?? 'none'"
     :padding="padding"
     :corner="corner"
+    :raised-surface="raisedSurface"
     :class="classNames('w-full', classAttr)"
   >
     <div class="flex flex-col gap-4">

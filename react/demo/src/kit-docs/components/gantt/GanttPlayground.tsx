@@ -97,6 +97,9 @@ export const GanttPlayground: React.FC = () => {
   const [columnEdges, setColumnEdges] = useState(false);
   const [corner, setCorner] = useState<GanttCorner>("rounded-sm");
   const [padding, setPadding] = useState<GanttPadding>("none");
+  // A tinted chart on a tinted page is a rumour, not a card — the forced
+  // first nesting step draws the edge back.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [snap, setSnap] = useState<GanttSnap>("day");
   const [editable, setEditable] = useState(true);
   const [showToday, setShowToday] = useState(true);
@@ -198,6 +201,7 @@ export const GanttPlayground: React.FC = () => {
             value={padding}
             onChange={(v) => setPadding(v as GanttPadding)}
           />
+          <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
           <div className="flex flex-col gap-2.5">
             <ToggleRow
               label="Editable (drag / resize / reorder)"
@@ -294,6 +298,7 @@ export const GanttPlayground: React.FC = () => {
             columnEdges={columnEdges}
             corner={corner}
             padding={padding}
+            raisedSurface={raisedSurface}
             snap={snap}
             editable={editable}
             showToday={showToday}

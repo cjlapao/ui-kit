@@ -224,6 +224,19 @@ export interface PickerProps {
   color?: TrueColor;
   /** Visual surface style, from the shared field system. @default "flat" */
   variant?: InputVariant;
+  /**
+   * The hue the field's *fill* wears, when it should disagree with `tone`.
+   *
+   * State colours stay with `tone` — focus border, ring, icons and the glow all
+   * follow it — while the fill follows this hue through the variant's own
+   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * `elevated` their border, and `underline` has no box to paint. `neutral`
+   * means the variant's own resting fill.
+   * In `ghost`, only the washes follow this hue — the hover rim is an
+   * affordance the pointer asks for, so it stays in `tone`.
+   * @default "none" — whatever the variant paints today
+   */
+  backgroundColor?: TrueColor;
   /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
   gradientFrom?: string;
   /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
@@ -254,6 +267,8 @@ export interface PickerProps {
    * @default "auto"
    */
   panelCorner?: SurfaceCorner;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Disables the trigger. */
   disabled?: boolean;
 
@@ -308,6 +323,7 @@ const Picker: React.FC<PickerProps> = ({
   tone,
   color,
   variant = "flat",
+  backgroundColor,
   gradientFrom,
   gradientTo,
   glowIntensity = DEFAULT_GLOW_INTENSITY,
@@ -315,6 +331,7 @@ const Picker: React.FC<PickerProps> = ({
   panelVariant = "auto",
   panelTone = "auto",
   panelCorner = "auto",
+  raisedSurface = false,
   disabled = false,
   multi = false,
   selectedIds: selectedIdsProp,
@@ -374,6 +391,7 @@ const Picker: React.FC<PickerProps> = ({
   const fieldTokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
     explicitTone: tone ?? color,
+    backgroundColor,
   });
   const hasStatus = validationStatus !== "none";
   // The dropdown is a surface from the container family, following the
@@ -672,6 +690,7 @@ const Picker: React.FC<PickerProps> = ({
                 glass popup instead of an opaque slab. */}
             <Panel
               variant={resolvedPanelVariant}
+              raisedSurface={raisedSurface}
               tone={panelTone === "auto" ? PANEL_TONE_FOR_FIELD : panelTone}
               // "auto" resolves through the same corner scale the field
               // uses - a hardcoded `rounded-lg` here could not follow the

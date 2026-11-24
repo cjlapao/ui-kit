@@ -259,6 +259,8 @@ export interface GanttProps {
    * @default "frosted"
    */
   glassOpacity?: GlassOpacity;
+  /** Forwarded to the body Panel — forces at least the first nested-panels depth step so a tinted card stays visible on a matching background. See Panel's `raisedSurface`. @default false */
+  raisedSurface?: boolean;
   /** Show a loading state in the body (skeleton rows by default). */
   loading?: boolean;
   /**
@@ -344,6 +346,7 @@ export const Gantt: React.FC<GanttProps> = ({
   padding = "none",
   vibrancy,
   glassOpacity,
+  raisedSurface = false,
   loading = false,
   loaderType = "skeleton",
   loadingState,
@@ -1174,6 +1177,7 @@ export const Gantt: React.FC<GanttProps> = ({
       corner={corner}
       vibrancy={vibrancy}
       glassOpacity={glassOpacity}
+      raisedSurface={raisedSurface}
       flexBody
       scrollable={false}
       fullWidth={fullWidth}

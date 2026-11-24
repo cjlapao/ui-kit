@@ -1102,6 +1102,7 @@ reference that pattern, not re-teach it.
 | 2026-11-18 | CSS / Layout | **A `display: table` content wrapper sizes from descendants' min-content — a `truncate` label cannot fight it from inside.** `ScrollArea`'s content is `table min-w-full`: one long unbreakable token in any row (a file path in a sub-step label) sets the table's min-content width past the viewport, and the rows then render past the card — `overflow-x: hidden` on the viewport makes it invisible clipping/scroll offset, `horizontal={false}` stops the bar but not the geometry; the only reliable cap is pinning the table itself: `contentClassName="table-fixed w-full"` (fixed layout + width, not min-width — fixed layout still honors max-content when `width: auto`). The symptom to trust is `scrollWidth > clientWidth` on a scroller that renders no bar, and text hanging out the panel's PADDING edge in a screenshot. | WorkflowTrackerRail, ScrollArea |
 | 2026-11-20 | Cross-kit | **Panel's `pulse` attention state is React-only; Vue knowingly lags** (the 2026-11-19 `active` row records its own; same scope rule). `react/src/components/Panel.tsx` gained `pulse?: boolean` — the Pill's inward glow at container scale: `.panel-pulse` in `react/src/styles.css` animates an **inset** box-shadow swell (`0 → inset 0 0 10px 3px @38%` at 55%, 2s ease-in-out infinite) from the section's own rim, re-compositing the five `--tw-*-shadow` variables inside every keyframe so the variants' resting `shadow-xl`/rings and the `focus-visible` inset ring survive. Inward is not a detail: an outer halo is sheared by the Panel's `overflow-hidden` (the rim lesson again) and paints over neighbours, while an inset shadow is the element's own paint — clipped to the border-box, following the corner radius, immune to the clipping. Hue rides inline `--panel-glow`/`--panel-glow-dark` custom properties from the accent rule (`borderColor ?? tone ??` kit blue — so a selected-and-pulsing card's rim and glow always agree): keyframes stay colour-agnostic, **zero safelist work**, dark rides `-300` a step brighter. `disabled` wins over the pulse — deliberately unlike the rim: selection is information, a pulse is a demand. `panel-` joined `CONTRACT_PREFIXES` in `styles.contract.test.ts` (the `pill-` precedent) so the raw hook cannot ship ruleless. `vue/src/components/Panel.vue` is untouched: no `pulse` prop; a Vue port needs only the prop, the class and the two custom properties — the keyframes live in the shared stylesheet, not the component. | Panel.tsx, styles.css, styles.contract.test.ts |
 | 2026-11-19 | Cross-kit | **Panel's `active` selection state is React-only; Vue knowingly lags** (divergence recorded, not silently fixed, per task scope). `react/src/components/Panel.tsx` gained `active?: boolean`: a 2px inset outline rim (`getSurfaceActiveTokens` — `outline-2 -outline-offset-2 outline-{c}-500 dark:outline-{c}-400`; an outline because `border-2`/`ring-2` would fight the variants' resting width classes for one property and an outer ring is clipped by the Panel's own `overflow-hidden`) plus a variant-aware fill swap — tonal/simple take `tonalBg`, glass/default `glassBg`, liquid-glass `liquidBg`, the pale rest `subtleBg` — so no variant flattens onto one wash. The hue follows the accent rule (`borderColor ?? tone ??` kit blue), an explicit `backgroundColor` beats the fill while the rim still ignites (caller's paint wins over state; selection stays legible), the rim survives the disabled veil, and `data-active` is the caller's CSS hook — Panel adds no ARIA, the caller owns `aria-pressed`. `vue/src/components/Panel.vue` is untouched: no `active` prop. A Vue port needs the same nine-branch fill map, the rim OUTSIDE `getSurfaceTransparencyClasses` (fills go inside — a plain `bg-*` outside it competes with `ui-surface-fill` for `background-color`), and the two safelist shapes, which the shared generator already emits (`outline-{COLOR}-500`, `dark:outline-{COLOR}-400`). | Panel.tsx, Theme.ts, generate-safelist.mjs |
+| 2026-11-24 | Cross-kit | **The field family's `backgroundColor` fill override is React-only; Vue knowingly lags** (divergence recorded, not silently fixed — the same scope rule as the Panel `active` and `pulse` rows above, and the caller chose React-now deliberately rather than by omission). The shared half is already in place: `common/theme/Theme.ts` carries `InputVariantOptions.backgroundColor`, `fieldFillFor(variant, hue)` and the re-hued `ghostFillShades(hue)`, and the Vue fields call that getter directly (`Input.vue:183`, `Select.vue:195`, `InputGroup.vue:145`, `SmartInput.vue:136`) — so a port is component work only: declare the prop in each `defineProps` beside `variant`, add it to those four options bags, and thread it through the wrappers that forward `variant`. Untouched today: no Vue prop, no Vue test, no Vue demo control. The contract that has to travel with the port lives in `react/src/theme/inputVariants.test.ts` (`field background override`) — byte-identical output when the option is absent, fill-and-nothing-else when present — and because it asserts against `common/`, a Vue pass that leaves the React suite unchanged is the proof neither side moved. | common/theme/Theme.ts, react field family |
 
 ## A Panel cannot be positioned by its caller - position a shell around it
 
@@ -1653,3 +1654,79 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   the standalone `Tooltip`. MenuButton mirrors the menu's open state (`open ??
   internalOpen`, updated in the `onOpenChange` wrapper) — it must work for the
   uncontrolled menu too, and closing hands the tooltip back to normal hover.
+
+## A field's fill is one of six decisions `tone` makes — splitting it belongs in the theme (2026-11-24)
+
+- `tone` on a field drives focus border, focus ring, icons, the inline button's
+  ring, the gradient's glow **and** the resting fill. A caller who wanted a
+  tinted field with brand-neutral states had no way to ask for it — the only
+  lever moved all six. `InputVariantOptions.backgroundColor` takes the fill off
+  that list, in `getInputVariantTokens` (the single owner of field surface
+  tokens), so the ten field controls get it by forwarding one option and no
+  component can be fixed by a local patch that leaves the others wrong. The
+  states keep coming from `getFieldToneTokens`/`resolveGlowGradient`, which is
+  what makes the decoupling structural rather than a naming promise.
+- **Per-variant recipe, not one tone step.** `flat`/`elevated` take `-50`,
+  `glass` `-100/45` (sheer, over its own blur), `gradient` `-50/80` (sheer, so
+  the glow behind the field still reads), dark rides `-500/10` and `-500/15`;
+  `ghost` re-hues the washes of its own `ghostFillShades` ladder rather than being
+  painted.
+  `underline` has no box, so there the option is a documented no-op, and
+  `neutral` means "the variant's own resting fill" (the Panel precedent) rather
+  than a hue. A flat `bg-{hue}-100` for all six would have erased the difference
+  between `flat` and `glass`.
+- **Ordering, not just content:** the override is applied *after* the `glass`
+  `explicitTone` branch, because that branch writes the whole fill itself.
+  Applied before it, the tone silently wins on exactly the variant that most
+  wants the option, and the bug reads as "the prop does nothing on glass". Same
+  family as the two-strippers-over-one-string trap: `stripFillClass` runs first
+  so the old fill cannot survive underneath the new one.
+- **A `hover:` class is still an affordance, not paint.** In `ghost` the washes —
+  rest, hover step, both dark steps — follow `backgroundColor`; the hover rim stays
+  in `tone`. The first cut moved the rim with the fill on the ladder-legibility
+  argument (the rim sits one rung under the hover step, so the box reads as
+  deepening *and* gaining an edge). That argument only holds while both sides read
+  the same hue: under an override it produced a rose field answering the pointer in
+  rose, which is precisely what the caller had not asked for, and it contradicted
+  this option's own docstring ("only the `bg-*` colour utilities are replaced")
+  from the day it was written. The ladder survives the split because
+  `ghostFillShades` is called twice — `rest`/`hover` from the background hue, `rim`
+  from the tone — so the rim keeps its rung whatever the wash wears. Worth keeping
+  as the general rule: *a state class earns its hue from whatever the state answers
+  to, and a pointer or keyboard state answers to the tone.*
+- The regression bar is code, not intention: with the option absent the getter
+  is byte-identical for all six variants; with it present, every non-fill token
+  (border width/sides, blur, shadow, radius, the hover rim) plus
+  `text`/`icon`/`translucent` are untouched. `fieldFillFor` returning only `bg-*`
+  *colour* utilities is what makes that invariant structural — and the comparison
+  exempts nothing but `bg-*`, which is exactly how the rim regression was
+  catchable in the first place.
+- **Forwarding wrappers: grep the render sites, don't trust the shared object.**
+  `DynamicFormField`'s `Map` branch renders `<KeyValueArrayField>` with an
+  explicit prop list instead of spreading `shared`, so a hue added to `shared`
+  alone tinted three of four branches and quietly skipped the key/value rows — a
+  partial feature that no test fails. Every explicit prop list in a wrapper is a
+  gap of that shape. Conversely `PasswordInput`/`SlugInput` inherit through
+  `{...rest}` and now *test* it, including that the prop never lands on the
+  `<input>` as an unknown DOM attribute.
+
+## The safelist guard is only green against a rebuilt stylesheet (2026-11-24)
+
+- `themeSafelist.test.ts` asserts generated classes against `dist/index.css`, so
+  it passes just as happily on a build from *before* the change: a green run is
+  no evidence that a class the theme has only just started emitting is in the
+  bundle. Rebuild (`cd react && npm run build`, or the tailwind one-liner in the
+  MenuSwitch row above) before trusting it. The trap is symmetric — a stale
+  stylesheet also hides a class that *was* removed.
+- What that caught here: the field override's first pass added
+  `@source inline("bg-{COLOR}-50/80")` on the theory it was a new shape. It was
+  already declared twice above, once for `InputGroup`'s box, and the stale `dist`
+  had the class in it, so the test never contradicted the wrong theory. The
+  right entry was a comment recording that **no shape is new** — the reflex is to
+  "add the missing shape" and duplicate one, and duplicated `@source inline`
+  lines make the file's real coverage impossible to read.
+- What is genuinely new is a *producer*, not a shape: `themeSafelist.test.ts`
+  now walks `getInputVariantTokens` across six variants × 21 hues with the
+  override set. A fifth recipe added in `Theme.ts` later has to show up in the
+  generator or the build says so — which is the failure mode this file has
+  accumulated rows about for months.
