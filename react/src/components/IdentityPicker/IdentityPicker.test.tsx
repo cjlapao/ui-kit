@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import IdentityPicker from "./IdentityPicker";
+import IdentityPicker, { type IdentityMode } from "./IdentityPicker";
 import { IDENTITY_EMOJIS } from "./emojis";
 
 describe("IdentityPicker", () => {
@@ -107,4 +107,81 @@ it("switches compact arrangements without losing selected identity", () => {
   expect(screen.queryByRole("combobox", {name:"Emoji categories"})).toBeNull();
   expect(screen.getByRole("button", {name:"Recommended"})).toBeInTheDocument();
   expect(screen.getByRole("img", {name:"Identity preview: 🚀"})).toBeInTheDocument();
+});
+
+describe("IdentityPicker modes", () => {
+  it("still offers all three kinds and their subtitle by default", () => {
+    render(<IdentityPicker />);
+    expect(screen.getAllByRole("tab").map(tab => tab.textContent?.trim())).toEqual(["Emoji picker", "Upload image", "Monogram"]);
+    expect(screen.getByText("Choose an emoji, upload an image, or use monogram initials.")).toBeInTheDocument();
+  });
+  it("drops the tab bar entirely when a single mode remains", () => {
+    const onChange = vi.fn();
+    render(<IdentityPicker modes={["emoji"]} onChange={onChange} />);
+    expect(screen.queryByRole("tab")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Rocket" }));
+    expect(onChange).toHaveBeenLastCalledWith({ type: "emoji", emoji: "🚀" });
+    expect(screen.getByText("Choose an emoji.")).toBeInTheDocument();
+  });
+  // A filtered-out panel is never handed to Tabs, so its controls leave the document
+  // instead of sitting around hidden behind an inactive tab.
+  it("renders only the dropzone when image is the only offered mode", () => {
+    render(<IdentityPicker modes={["image"]} />);
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getByRole("group", { name: "Drop an image here" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Rocket" })).toBeNull();
+    expect(screen.queryByPlaceholderText(/Search emoji/)).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Initials" })).toBeNull();
+  });
+  it("renders only the initials field when monogram is the only offered mode", () => {
+    render(<IdentityPicker modes={["monogram"]} />);
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "Initials" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Choose files")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Rocket" })).toBeNull();
+  });
+  it("keeps exactly the two offered tabs", () => {
+    render(<IdentityPicker modes={["emoji", "monogram"]} />);
+    expect(screen.getAllByRole("tab").map(tab => tab.textContent?.trim())).toEqual(["Emoji picker", "Monogram"]);
+    expect(screen.queryByRole("tab", { name: "Upload image" })).toBeNull();
+    expect(screen.queryByLabelText("Choose files")).toBeNull();
+    expect(screen.getByText("Choose an emoji or use monogram initials.")).toBeInTheDocument();
+  });
+  it("follows the order of the modes array", () => {
+    render(<IdentityPicker modes={["monogram", "emoji"]} />);
+    expect(screen.getAllByRole("tab").map(tab => tab.textContent?.trim())).toEqual(["Monogram", "Emoji picker"]);
+  });
+  it("collapses duplicate and unknown mode names", () => {
+    render(<IdentityPicker modes={["emoji", "emoji", "hologram"] as IdentityMode[]} />);
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getByRole("button", { name: "Rocket" })).toBeInTheDocument();
+  });
+  it("keeps the preview and reset when no modes are offered", () => {
+    render(<IdentityPicker name="Project Atlas" modes={[]} />);
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(screen.getByRole("img", { name: "Identity preview: PA" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset" })).toBeEnabled();
+    expect(screen.queryByText(/Choose an emoji/)).toBeNull();
+  });
+  it("keeps a value outside the allowed modes visible and never emits it", () => {
+    const onChange = vi.fn();
+    render(<IdentityPicker value={{ type: "image", src: "https://example.com/logo.png" }} modes={["emoji"]} onChange={onChange} />);
+    expect(screen.getByRole("img", { name: "Identity preview" })).toHaveAttribute("src", "https://example.com/logo.png");
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+  it("falls back to the first offered tab when the value names a hidden mode", () => {
+    render(<IdentityPicker value={{ type: "monogram", text: "PA" }} modes={["emoji", "image"]} />);
+    expect(screen.getByRole("tab", { name: "Emoji picker" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Monogram" })).toBeNull();
+  });
+  it("still opens on the tab matching the value when that mode is offered", () => {
+    render(<IdentityPicker value={{ type: "monogram", text: "PA" }} />);
+    expect(screen.getByRole("tab", { name: "Monogram" })).toHaveAttribute("aria-selected", "true");
+  });
+  it("lets an app override the composed subtitle", () => {
+    render(<IdentityPicker modes={["emoji"]} labels={{ description: "Pick a glyph." }} />);
+    expect(screen.getByText("Pick a glyph.")).toBeInTheDocument();
+    expect(screen.queryByText(/Choose an emoji/)).toBeNull();
+  });
 });

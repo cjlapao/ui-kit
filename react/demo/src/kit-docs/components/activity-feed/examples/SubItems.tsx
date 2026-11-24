@@ -7,11 +7,17 @@ import {
  * Some events have a story under them. `subItems` opens a row into a
  * disclosure — InfoRow's grid-rows animation, one level deep, read-only —
  * and each entry is either the feed's own row template or a custom `body`
- * node, sitting one indent in. The toggle is hybrid: the deploy row has no
- * `onClick` of its own, so the whole row is the control and the chevron is
- * decoration; the alert row keeps its action, so the chevron becomes a
- * separate button and the two never interfere. `defaultExpanded` seeds the
- * open row; the feed remembers the rest per row id.
+ * node, sitting one indent in. Sub-row dots sit one step off the parent's
+ * in both themes — darker on light, lighter on dark — each sub rests one
+ * depth step off the surface it nestles in, the nested panels' own ladder,
+ * so subs read as their own rows; and every sub-row washes under the
+ * pointer, in its own tone or a `hoverTone` of its own; the custom sub
+ * wears emerald to match its bar. The toggle is hybrid: the
+ * deploy row has no `onClick` of its own, so the whole row is the control
+ * and the chevron is decoration; the alert row keeps its action, so the
+ * chevron becomes a separate button and the two never interfere.
+ * `defaultExpanded` seeds the open row; the feed remembers the rest per
+ * row id.
  */
 export default function SubItems() {
   const items: ActivityFeedItem[] = [
@@ -40,11 +46,16 @@ export default function SubItems() {
           count: 3,
           code: "svc/web",
           timestamp: "58m ago",
+          // Hover in a hue of its own; the row above washes in its own
+          // tone by default, so only this one needs the field.
+          hoverTone: "amber",
         },
         {
           // A sub-row may be any node — the indent column holds it the
           // same, so a custom sub sits in the same rhythm as the
-          // template ones.
+          // template ones. The wash is the wrapper's, so even a custom
+          // sub gets one: emerald, to match its bar.
+          hoverTone: "emerald",
           body: (
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">

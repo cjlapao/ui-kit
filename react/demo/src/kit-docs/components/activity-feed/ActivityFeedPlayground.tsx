@@ -5,13 +5,16 @@ import type { ReactNode } from "react";
 import {
   ActivityFeed,
   Button,
+  IconButton,
   Input,
+  Menu,
   Panel,
   Pill,
   type ActivityFeedItem,
   type ActivityFeedLoaderType,
   type ActivityFeedSubItem,
   type ButtonVariant,
+  type MenuItem,
   type SurfacePadding,
   type SurfaceVariant,
   type TrueColor,
@@ -60,14 +63,60 @@ const FILTERS = [
 const AGENTS = ["CI", "Ada", "Grace", "Watchdog"];
 const VERBS = ["restarted a pod", "pruned stale branches", "archived an audit export", "cleared the feature flag"];
 
+// The `actions` zone, shown as its common use: a ghost DotsVertical
+// IconButton triggering a Menu popup. The zone swallows clicks and keys,
+// so opening a menu never folds the row nor fires its action — menus are
+// on rows and sub-rows below, in both disclosure modes.
+const dotsMenu = (label: string, items: MenuItem[]) => (
+  <Menu
+    popup
+    items={items}
+    trigger={<IconButton icon="DotsVertical" variant="ghost" size="xs" srLabel={label} />}
+  />
+);
+
+const DEPLOY_MENU: MenuItem[] = [
+  { id: "view", label: "View deployment", icon: "Eye" },
+  { id: "copy", label: "Copy id", icon: "Copy" },
+  { id: "sep", type: "separator" },
+  { id: "archive", label: "Archive", icon: "Archive", danger: true },
+];
+
+const POD_MENU: MenuItem[] = [
+  { id: "logs", label: "View logs", icon: "Code" },
+  { id: "restart", label: "Restart pods", icon: "Restart", danger: true },
+];
+
+const CACHE_MENU: MenuItem[] = [
+  { id: "pause", label: "Pause warm-up", icon: "Settings" },
+  { id: "skip", label: "Skip", icon: "Close1" },
+];
+
+const SEC_MENU: MenuItem[] = [
+  { id: "rotate", label: "Rotate now", icon: "Refresh" },
+  { id: "revoke", label: "Revoke key", icon: "Trash", danger: true },
+];
+
 // Sub-items for the two rows the playground opens: the deploy row gives
 // its click up (the row becomes the toggle, chevron as decoration), the
 // security row keeps its click (the chevron becomes a button of its own).
 const DEPLOY_SUBS: ActivityFeedSubItem[] = [
-  { actor: "api", title: "rolled 4 pods", count: 4, code: "svc/api", timestamp: "58m ago" },
+  {
+    actor: "api",
+    title: "rolled 4 pods",
+    count: 4,
+    code: "svc/api",
+    timestamp: "58m ago",
+    // A zone on a sub-row: open this menu and the row stays put.
+    actions: dotsMenu("Pod actions", POD_MENU),
+  },
   { actor: "web", title: "rolled 3 pods", count: 3, code: "svc/web", timestamp: "57m ago" },
   {
-    // A custom sub-row: any node fills the indent column the same.
+    // A custom sub-row: any node fills the indent column the same. The
+    // wash is the wrapper's, so it gets one too — emerald, its bar's hue.
+    // The zone rides alongside the custom body.
+    hoverTone: "emerald",
+    actions: dotsMenu("Cache actions", CACHE_MENU),
     body: (
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -212,9 +261,21 @@ export const ActivityFeedPlayground: React.FC = () => {
       // carry a custom body and still fold open.
       ...(subItems
         ? item.id === "3"
-          ? { onClick: undefined, defaultExpanded: subsExpanded, subItems: DEPLOY_SUBS }
+          ? {
+              onClick: undefined,
+              defaultExpanded: subsExpanded,
+              subItems: DEPLOY_SUBS,
+              // Row-as-toggle mode: the dots open a menu and the
+              // disclosure never flinches.
+              actions: dotsMenu("Deployment actions", DEPLOY_MENU),
+            }
           : item.id === "1"
-            ? { subItems: SEC_SUBS }
+            ? {
+                subItems: SEC_SUBS,
+                // Chevron-button mode: the zone sits between the
+                // content and the caret.
+                actions: dotsMenu("Security actions", SEC_MENU),
+              }
             : {}
         : {}),
       ...(customBody ? { body: override(item) } : {}),

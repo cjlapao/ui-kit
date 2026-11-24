@@ -9,15 +9,27 @@ export interface NestedPanelSurface {
 
 const TINTED_VARIANTS: readonly SurfaceVariant[] = ["simple", "tonal", "subtle", "glass", "liquid-glass"];
 
-/** Compute a bounded step from the nearest panel, not the nearest DOM element. */
+/**
+ * Compute a bounded step from the nearest panel, not the nearest DOM element.
+ *
+ * `force` is the caller's explicit floor — the Panel's `raisedSurface` ask:
+ * "give me at least the first depth step even though no parent earned one".
+ * It bypasses the ladder's matching rules (parent identity, the
+ * `nestedSurface`/`backgroundColor` eligibility) because the caller is
+ * explicitly requesting the step — but only inside the tinted set, and never
+ * removes a step the auto ladder already earned: the floor is a `max`.
+ */
 export function nestedPanelSurface(
   parent: NestedPanelSurface | null,
   variant: SurfaceVariant,
   tone: SurfaceTone,
   eligible: boolean,
+  force: boolean = false,
 ): NestedPanelSurface {
-  const matches = eligible && TINTED_VARIANTS.includes(variant) && parent?.eligible && parent.variant === variant && parent.tone === tone;
-  return { variant, tone, eligible, depth: matches ? Math.min(parent.depth + 1, 3) : 0 };
+  const tinted = TINTED_VARIANTS.includes(variant);
+  const matches = eligible && tinted && parent?.eligible && parent.variant === variant && parent.tone === tone;
+  const depth = matches ? Math.min(parent.depth + 1, 3) : 0;
+  return { variant, tone, eligible, depth: force && tinted ? Math.max(depth, 1) : depth };
 }
 
 // Static classes keep the treatment visible to Tailwind's scanner.

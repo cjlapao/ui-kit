@@ -2,7 +2,7 @@ import { getSurfaceAccentColor } from "../../theme/Theme";
 import React, { useId, useState } from "react";
 import classNames from "classnames";
 import Panel, { type PanelProps } from "../Panel";
-import Tabs from "../Tabs";
+import Tabs, { type TabItem } from "../Tabs";
 import SearchBar from "../SearchBar";
 import Input from "../Input";
 import Select from "../Select";
@@ -19,12 +19,28 @@ export type IdentityValue =
   | { type: "image"; src: string; file?: never }
   | { type: "monogram"; text: string }
   | null;
+/** One of the identity kinds `IdentityPicker` can offer. */
+export type IdentityMode = "emoji" | "image" | "monogram";
+const ALL_IDENTITY_MODES: IdentityMode[] = ["emoji", "image", "monogram"];
+// Verb phrases, joined into the default subtitle so it only advertises offered modes.
+const MODE_PHRASES: Record<IdentityMode, string> = {
+  emoji: "choose an emoji", image: "upload an image", monogram: "use monogram initials",
+};
+function describeModes(modes: IdentityMode[]) {
+  if (!modes.length) return "";
+  const phrases = modes.map(mode => MODE_PHRASES[mode]);
+  const sentence = phrases.length === 1 ? phrases[0]
+    : phrases.length === 2 ? `${phrases[0]} or ${phrases[1]}`
+    : `${phrases.slice(0, -1).join(", ")}, or ${phrases[phrases.length - 1]}`;
+  return `${sentence[0].toLocaleUpperCase()}${sentence.slice(1)}.`;
+}
 export interface IdentityPickerLabels {
   title: string; description: string; reset: string; emoji: string; upload: string; monogram: string;
   search: string; recommended: string; all: string; empty: string; initials: string; automatic: string; preview: string; categories: string;
 }
-const defaults: IdentityPickerLabels = {
-  title: "Project identity", description: "Choose an emoji, upload an image, or use monogram initials.",
+// The default subtitle is composed from the offered modes, so `description` is filled in below.
+const defaults: Omit<IdentityPickerLabels, "description"> = {
+  title: "Project identity",
   reset: "Reset", emoji: "Emoji picker", upload: "Upload image", monogram: "Monogram",
   search: "Search emoji (e.g. rocket, fire, code)", recommended: "Recommended", all: "All",
   categories: "Emoji categories", empty: "No emoji match your search.", initials: "Initials", automatic: "Use automatic initials", preview: "Identity preview",
@@ -43,6 +59,13 @@ export interface IdentityPickerProps extends Pick<PanelProps, "variant" | "tone"
   size?: ControlSize;
   /** Space-saving arrangement. Set false for category chips and stacked fields. @default true */
   compact?: boolean;
+  /**
+   * Identity kinds to offer, in the order to show them. Unknown names and duplicates are
+   * dropped; omit for all three. With one mode the tab bar disappears and that panel
+   * renders on its own, and with none only the preview and reset remain.
+   * @default ["emoji", "image", "monogram"]
+   */
+  modes?: IdentityMode[];
   disabled?: boolean;
   loading?: boolean;
   error?: React.ReactNode;
@@ -60,7 +83,7 @@ export const IDENTITY_EMOJI_FONT_FAMILY = '"Apple Color Emoji", "Segoe UI Emoji"
 
 export function IdentityPicker({ value, defaultValue = null, onChange, onReject, name = "", emojis = IDENTITY_EMOJIS,
   fontFamily = IDENTITY_EMOJI_FONT_FAMILY, size = "md", compact = true, disabled = false, loading = false, error,
-  maxImageSize = 5 * 1024 * 1024, labels: overrides, uploadLabels, className, ...surface }: IdentityPickerProps) {
+  maxImageSize = 5 * 1024 * 1024, modes, labels: overrides, uploadLabels, className, ...surface }: IdentityPickerProps) {
   const density = identitySizeTokens[size];
   const spacing = compact ? compactIdentitySpacing[size] : density;
   const monogramLayout = compact
@@ -90,62 +113,74 @@ export function IdentityPicker({ value, defaultValue = null, onChange, onReject,
   const previewClass = classNames("flex shrink-0 items-center justify-center overflow-hidden border border-neutral-200 dark:border-neutral-600", density.preview, getSurfaceCornerClass(surface.corner ?? "rounded-md"), tokens.bg);
   const preview = selected?.type === "image" ? <ImagePreview file={selected.file} src={selected.src} alt={labels.preview} className="h-full w-full object-contain" />
     : <span style={{ fontFamily }} aria-hidden="true">{selected?.type === "emoji" ? selected.emoji : selected?.type === "monogram" ? selected.text : automatic}</span>;
+  // One entry per identity kind; `modes` decides which of these the app offers.
+  const panels: Record<IdentityMode, TabItem> = {
+    emoji: { id: `${tabsId}-emoji`, label: labels.emoji, disabled: locked, panel: <div className={spacing.panel}>
+      {compact ? <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1"><SearchBar onSearch={setQuery} debounceMs={0} placeholder={labels.search} color={tone} size={size} variant="flat" disabled={locked} /></div>
+        <div className="w-36 max-w-[45%] shrink-0"><Select aria-label={labels.categories} style={{ lineHeight: categoryLineHeight, height: categoryLineHeight, minHeight: 0, alignItems: "center" }} value={category} onChange={event => setCategory(event.target.value)} size={size} tone={tone} variant="flat" disabled={locked}>
+          <option value="recommended">{labels.recommended}</option><option value="all">{labels.all}</option>
+          {categories.map(label => <option key={label} value={label}>{label}</option>)}
+        </Select></div>
+      </div> : <>
+        <SearchBar onSearch={setQuery} debounceMs={0} placeholder={labels.search} color={tone} size={size} variant="flat" disabled={locked} />
+        <div className="flex flex-wrap gap-1" aria-label={labels.categories}>
+          {[{ id: "recommended", label: labels.recommended }, { id: "all", label: labels.all }, ...categories.map(label => ({ id: label, label }))].map(categoryOption => <Button key={categoryOption.id} size={density.action} variant={category === categoryOption.id ? "soft" : "ghost"} color={tone} aria-pressed={category === categoryOption.id} disabled={locked} onClick={() => setCategory(categoryOption.id)}>{categoryOption.label}</Button>)}
+        </div>
+      </>}
+      <div className={classNames("grid grid-cols-4 gap-1 overflow-y-auto p-1 sm:grid-cols-8", spacing.gridHeight, THIN_SCROLLBAR)} aria-label={labels.emoji}>
+        {filtered.map(emoji => <button key={emoji.emoji} type="button" title={emoji.label} aria-label={emoji.label} aria-pressed={selected?.type === "emoji" && selected.emoji === emoji.emoji} disabled={locked}
+          className={classNames("flex min-w-0 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-40", density.tile, getSurfaceCornerClass(surface.corner ?? "rounded-sm"), getSurfaceTriggerTokens(tone).focusRing,
+            selected?.type === "emoji" && selected.emoji === emoji.emoji ? [tokens.bg, tokens.text, "ring-1 ring-inset ring-current"] : tokens.hoverBg)} style={{ fontFamily }}
+          onClick={() => change({ type: "emoji", emoji: emoji.emoji })}
+          onKeyDown={event => {
+            const keys = ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"];
+            if (!keys.includes(event.key)) return;
+            event.preventDefault();
+            const buttons = Array.from(event.currentTarget.parentElement!.querySelectorAll<HTMLButtonElement>("button"));
+            const index = buttons.indexOf(event.currentTarget);
+            const columns = getComputedStyle(event.currentTarget.parentElement!).gridTemplateColumns.split(" ").filter(Boolean).length || 4;
+            const delta = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : event.key === "ArrowDown" ? columns : -columns;
+            const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : Math.max(0, Math.min(buttons.length - 1, index + delta));
+            buttons[next]?.focus();
+          }}>{emoji.emoji}</button>)}
+      </div>
+      {!filtered.length && <p role="status" className="py-4 text-center text-sm text-neutral-500">{labels.empty}</p>}
+    </div> },
+    image: { id: `${tabsId}-upload`, label: labels.upload, disabled: locked, panel: <div className={spacing.panel}><FileUpload embedded compact={compact}
+      variant={surface.variant} tone={surface.tone ?? "none"} corner={surface.corner} padding="none" size={size} accept="image/png,image/svg+xml" maxSize={maxImageSize}
+      disabled={disabled} loading={loading} labels={{ title: "Drop an image here", description: "SVG or PNG · drag and drop, or browse your device", ...uploadLabels }}
+      value={selected?.type === "image" && selected.file ? [selected.file] : []} onReject={onReject}
+      onChange={files => change(files[0] ? { type: "image", file: files[0] } : null)} /></div> },
+    monogram: { id: `${tabsId}-monogram`, label: labels.monogram, disabled: locked, panel: <div className={monogramLayout}>
+      <label className={classNames("block", density.description, compact && "min-w-0 flex-1")}><span className="mb-2 block">{labels.initials}</span><Input aria-label={labels.initials} size={size} tone={tone} disabled={locked}
+        value={selected?.type === "monogram" ? selected.text : automatic} maxLength={4} onChange={event => change({ type: "monogram", text: event.target.value.toLocaleUpperCase() })} /></label>
+      <Button size={size} variant="soft" color={tone} disabled={locked} onClick={() => change({ type: "monogram", text: automatic })}>{labels.automatic}</Button>
+    </div> },
+  };
+
+  // An allowlist: only the modes the app supports survive, in the order it asked for.
+  const allowed = Array.from(new Set((modes ?? ALL_IDENTITY_MODES).filter(mode => mode in panels)));
+  const items = allowed.map(mode => panels[mode]);
+  // Composed from the offered modes unless the app supplies its own copy.
+  const description = overrides?.description ?? describeModes(allowed);
+  // A value whose own mode is hidden would name a tab that no longer exists.
+  const wantedTab = `${tabsId}-${selected?.type === "image" ? "upload" : selected?.type === "monogram" ? "monogram" : "emoji"}`;
+  const defaultTab = items.some(item => item.id === wantedTab) ? wantedTab : items[0]?.id;
   return <Panel {...surface} variant={surface.variant ?? "outlined"} tone={surface.tone ?? "none"} padding={surface.padding ?? (compact ? "xs" : "sm")} className={className} aria-busy={loading || undefined}>
     <div className={classNames("flex items-start", density.headerGap)}>
       <div className={previewClass} role={selected?.type === "image" ? undefined : "img"} aria-label={selected?.type === "image" ? undefined : `${labels.preview}: ${selected?.type === "emoji" ? selected.emoji : selected?.type === "monogram" ? selected.text : automatic}`}>{preview}</div>
-      <div className="min-w-0 flex-1"><h3 className={classNames("font-semibold", density.title)}>{labels.title}</h3><p className={classNames("mt-1 text-neutral-500 dark:text-neutral-400", density.description)}>{labels.description}</p></div>
+      <div className="min-w-0 flex-1"><h3 className={classNames("font-semibold", density.title)}>{labels.title}</h3>{description && <p className={classNames("mt-1 text-neutral-500 dark:text-neutral-400", density.description)}>{description}</p>}</div>
       <Button size={density.action} variant="ghost" color="neutral" disabled={locked} onClick={() => change(null)}>{labels.reset}</Button>
     </div>
-    <div className={spacing.section}>
-      <Tabs panelIdPrefix={tabsId} defaultValue={`${tabsId}-${selected?.type === "image" ? "upload" : selected?.type === "monogram" ? "monogram" : "emoji"}`} variant="segmented" color={tone} size={size} fullWidth
+    {items.length > 1 && <div className={spacing.section}>
+      <Tabs panelIdPrefix={tabsId} defaultValue={defaultTab} variant="segmented" color={tone} size={size} fullWidth
         containerClassName=""
         listClassName="rounded-xl border border-neutral-200 bg-neutral-50 p-1 dark:border-neutral-700 dark:bg-white/5"
         className="[&_[role=tab]]:rounded-lg"
-        items={[
-        { id: `${tabsId}-emoji`, label: labels.emoji, disabled: locked, panel: <div className={spacing.panel}>
-          {compact ? <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1"><SearchBar onSearch={setQuery} debounceMs={0} placeholder={labels.search} color={tone} size={size} variant="flat" disabled={locked} /></div>
-            <div className="w-36 max-w-[45%] shrink-0"><Select aria-label={labels.categories} style={{ lineHeight: categoryLineHeight, height: categoryLineHeight, minHeight: 0, alignItems: "center" }} value={category} onChange={event => setCategory(event.target.value)} size={size} tone={tone} variant="flat" disabled={locked}>
-              <option value="recommended">{labels.recommended}</option><option value="all">{labels.all}</option>
-              {categories.map(label => <option key={label} value={label}>{label}</option>)}
-            </Select></div>
-          </div> : <>
-            <SearchBar onSearch={setQuery} debounceMs={0} placeholder={labels.search} color={tone} size={size} variant="flat" disabled={locked} />
-            <div className="flex flex-wrap gap-1" aria-label={labels.categories}>
-              {[{ id: "recommended", label: labels.recommended }, { id: "all", label: labels.all }, ...categories.map(label => ({ id: label, label }))].map(categoryOption => <Button key={categoryOption.id} size={density.action} variant={category === categoryOption.id ? "soft" : "ghost"} color={tone} aria-pressed={category === categoryOption.id} disabled={locked} onClick={() => setCategory(categoryOption.id)}>{categoryOption.label}</Button>)}
-            </div>
-          </>}
-          <div className={classNames("grid grid-cols-4 gap-1 overflow-y-auto p-1 sm:grid-cols-8", spacing.gridHeight, THIN_SCROLLBAR)} aria-label={labels.emoji}>
-            {filtered.map(emoji => <button key={emoji.emoji} type="button" title={emoji.label} aria-label={emoji.label} aria-pressed={selected?.type === "emoji" && selected.emoji === emoji.emoji} disabled={locked}
-              className={classNames("flex min-w-0 items-center justify-center transition-colors disabled:cursor-not-allowed disabled:opacity-40", density.tile, getSurfaceCornerClass(surface.corner ?? "rounded-sm"), getSurfaceTriggerTokens(tone).focusRing,
-                selected?.type === "emoji" && selected.emoji === emoji.emoji ? [tokens.bg, tokens.text, "ring-1 ring-inset ring-current"] : tokens.hoverBg)} style={{ fontFamily }}
-              onClick={() => change({ type: "emoji", emoji: emoji.emoji })}
-              onKeyDown={event => {
-                const keys = ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"];
-                if (!keys.includes(event.key)) return;
-                event.preventDefault();
-                const buttons = Array.from(event.currentTarget.parentElement!.querySelectorAll<HTMLButtonElement>("button"));
-                const index = buttons.indexOf(event.currentTarget);
-                const columns = getComputedStyle(event.currentTarget.parentElement!).gridTemplateColumns.split(" ").filter(Boolean).length || 4;
-                const delta = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : event.key === "ArrowDown" ? columns : -columns;
-                const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : Math.max(0, Math.min(buttons.length - 1, index + delta));
-                buttons[next]?.focus();
-              }}>{emoji.emoji}</button>)}
-          </div>
-          {!filtered.length && <p role="status" className="py-4 text-center text-sm text-neutral-500">{labels.empty}</p>}
-        </div> },
-        { id: `${tabsId}-upload`, label: labels.upload, disabled: locked, panel: <div className={spacing.panel}><FileUpload embedded compact={compact}
-          variant={surface.variant} tone={surface.tone ?? "none"} corner={surface.corner} padding="none" size={size} accept="image/png,image/svg+xml" maxSize={maxImageSize}
-          disabled={disabled} loading={loading} labels={{ title: "Drop an image here", description: "SVG or PNG · drag and drop, or browse your device", ...uploadLabels }}
-          value={selected?.type === "image" && selected.file ? [selected.file] : []} onReject={onReject}
-          onChange={files => change(files[0] ? { type: "image", file: files[0] } : null)} /></div> },
-        { id: `${tabsId}-monogram`, label: labels.monogram, disabled: locked, panel: <div className={monogramLayout}>
-          <label className={classNames("block", density.description, compact && "min-w-0 flex-1")}><span className="mb-2 block">{labels.initials}</span><Input aria-label={labels.initials} size={size} tone={tone} disabled={locked}
-            value={selected?.type === "monogram" ? selected.text : automatic} maxLength={4} onChange={event => change({ type: "monogram", text: event.target.value.toLocaleUpperCase() })} /></label>
-          <Button size={size} variant="soft" color={tone} disabled={locked} onClick={() => change({ type: "monogram", text: automatic })}>{labels.automatic}</Button>
-        </div> },
-      ]} />
-    </div>
+        items={items} />
+    </div>}
+    {items.length === 1 && <div className={spacing.section}>{items[0].panel}</div>}
     {error && <div role="alert" className="mt-3 text-sm text-rose-700 dark:text-rose-300">{error}</div>}
   </Panel>;
 }

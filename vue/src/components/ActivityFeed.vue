@@ -33,6 +33,14 @@ export interface ActivityFeedItem {
    */
   body?: VNodeChild;
   /**
+   * The row's extra right-side zone — menus, icon buttons, anything.
+   * Rendered after the content (custom `body` included) and before the
+   * disclosure chevron. Clicks inside the zone never activate the row or
+   * fold its disclosure: the feed swallows them at the zone's edge, so a
+   * menu trigger opens its menu and nothing else. Drawn only when set.
+   */
+  actions?: VNodeChild;
+  /**
    * Activates the whole row: the template row is a Panel, and this becomes
    * its card action — the pointer cursor and the toned hover wash included.
    * (The Vue Panel's card action is click-only, as everywhere in this kit;
@@ -99,8 +107,19 @@ export interface ActivityFeedSubItem {
   actor?: string;
   /** Pre-formatted; the `<time>` draws only when there is one. */
   timestamp?: string;
-  /** Status dot tone. Unset climbs: parent's tone, then the card's. */
+  /**
+   * Status dot tone. Unset climbs: parent's tone, then the card's. Wherever
+   * the tone comes from, the sub-row's dot sits one step off the parent's in
+   * both themes — darker on light, lighter on dark
+   * (`TRUE_COLOR_SUB_DOT_CLASSES`) — so nesting reads even when inherited.
+   */
   tone?: TrueColor;
+  /**
+   * The hue the sub-row wears under the pointer: a toned row wash and a dot
+   * lifted to full strength. Unset inherits the tone the dot resolves to, so
+   * every template sub-row is hoverable in its own colour by default.
+   */
+  hoverTone?: TrueColor;
   /** Entries this line aggregates — rendered as a count badge. */
   count?: number;
   /**
@@ -109,6 +128,13 @@ export interface ActivityFeedSubItem {
    * draws the template.
    */
   body?: VNodeChild;
+  /**
+   * The sub-row's extra right-side zone — the row's `actions` one level in.
+   * Rendered after the content (custom `body` included), at the sub-row's
+   * right edge; clicks inside never reach the row's toggle or action.
+   * Drawn only when set.
+   */
+  actions?: VNodeChild;
 }
 
 /** A feed filter; the value `"all"` always matches. */
@@ -148,12 +174,15 @@ import { useClassAttrs } from "../utils/attrsUtils";
 import { useKitT } from "../i18n";
 import {
   getTrueColorDotClass,
+  getTrueColorSubDotClass,
+  getSubItemHoverClasses,
   SURFACE_TO_BUTTON_VARIANT,
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
   type TrueColor,
 } from "../theme";
+import { NESTED_PANEL_WASH } from "../../../common/theme/nestedPanel";
 
 defineOptions({ name: "ActivityFeed", inheritAttrs: false });
 
@@ -395,13 +424,11 @@ type EntryFields = Pick<
 >;
 
 /** The standard row content's parts, settled — rows and sub-rows share the
- *  template verbatim; only the dot's resolved tone differs per level. */
-function entryView(entry: EntryFields, dot: TrueColor): ActivityFeedEntryView {
+ *  template verbatim; the caller settles the dot's classes, because the
+ *  ladder and the hover grammar differ per level. */
+function entryView(entry: EntryFields, dotClass: string): ActivityFeedEntryView {
   return {
-    dotClass: classNames(
-      getTrueColorDotClass(dot),
-      "mt-1.5 size-2 shrink-0 rounded-full",
-    ),
+    dotClass: classNames(dotClass, "mt-1.5 size-2 shrink-0 rounded-full"),
     actor: entry.actor,
     title: entry.title,
     description: entry.description,
@@ -412,9 +439,13 @@ function entryView(entry: EntryFields, dot: TrueColor): ActivityFeedEntryView {
   };
 }
 
-/** InfoRow's disclosure chevron, one step from rotating: muted, and never its own story. */
+/**
+ * InfoRow's disclosure chevron, one step from rotating: muted, and never
+ * its own story. The `h-5` band is the title's own line box — the caret
+ * centers on the first line, as the time and the actions zone do.
+ */
 const CHEVRON_BASE =
-  "flex shrink-0 items-center text-neutral-400 transition-transform duration-300 dark:text-neutral-500";
+  "flex h-5 shrink-0 items-center text-neutral-400 transition-transform duration-300 dark:text-neutral-500";
 
 /** One row, settled: surface decisions resolved, disclosure state read, the
  *  chevron's classes composed — the internals carry markup, not choices. */
@@ -437,7 +468,12 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
     cardAction: item.onClick ?? (hasSubs ? () => toggleItem(item) : undefined),
     hasBody: item.body != null,
     body: item.body,
-    entry: entryView(item, item.tone ?? dotFloor.value),
+    hasActions: item.actions != null,
+    actions: item.actions,
+    entry: entryView(
+      item,
+      getTrueColorDotClass(item.tone ?? dotFloor.value),
+    ),
     hasSubs,
     open,
     rowIsToggle,
@@ -466,12 +502,37 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
       open ? "opacity-100" : "opacity-0",
     ),
     gridStyle: { gridTemplateRows: open ? "1fr" : "0fr" },
-    subRows: (subItems ?? []).map((sub): ActivityFeedSubRowView => ({
-      hasBody: sub.body != null,
-      body: sub.body,
-      // One level in: the dot climbs the sub's tone, the parent's, the card.
-      entry: entryView(sub, sub.tone ?? item.tone ?? dotFloor.value),
-    })),
+    subRows: (subItems ?? []).map((sub): ActivityFeedSubRowView => {
+      // One level in: the dot climbs the sub's tone, the parent's, the
+      // card — then steps one off that in both themes. The hover hue is
+      // the sub's `hoverTone` or the tone the dot resolved to; the wrapper
+      // is the `group` the dot's hover reads from, and its negative
+      // margins let the wash breathe into the column's gap.
+      const subTone = sub.tone ?? item.tone ?? dotFloor.value;
+      const hover = getSubItemHoverClasses(sub.hoverTone ?? subTone);
+      return {
+        hasBody: sub.body != null,
+        body: sub.body,
+        hasActions: sub.actions != null,
+        actions: sub.actions,
+        // The resting fill is the nested panels' own depth step — one step
+        // off whatever surface the row nestles on — so each sub reads as
+        // its own row, not flat ink.
+        subRowClass: classNames(
+          "group -mx-1.5 -my-0.5 flex items-start gap-3 rounded-md px-1.5 py-0.5 transition-colors duration-200 motion-reduce:transition-none",
+          NESTED_PANEL_WASH[1],
+          hover.wash,
+        ),
+        entry: entryView(
+          sub,
+          classNames(
+            getTrueColorSubDotClass(subTone),
+            "transition-colors duration-200 motion-reduce:transition-none",
+            hover.dot,
+          ),
+        ),
+      };
+    }),
   };
 }
 </script>

@@ -957,7 +957,7 @@ export { PageBodyLayout, PAGE_BODY_LAYOUT_VARIANTS, type PageBodyLayoutProps, ty
 export { Menu, MENU_VARIANTS, type MenuItem, type MenuProps } from "./Menu";
 export { MenuButton, type MenuButtonProps, type MenuButtonPillConfig } from "./MenuButton";
 export { FileUpload, type FileUploadProps, type FileUploadLabels, type FileRejection } from "./FileUpload";
-export { IdentityPicker, IDENTITY_EMOJIS, type IdentityPickerProps, type IdentityPickerLabels, type IdentityValue, type IdentityEmoji } from "./IdentityPicker";
+export { IdentityPicker, IDENTITY_EMOJIS, type IdentityPickerProps, type IdentityPickerLabels, type IdentityValue, type IdentityMode, type IdentityEmoji } from "./IdentityPicker";
 export { DotStepper, type DotStepperProps, type DotStepperStep } from "./DotStepper";
 
 // Composable knowledge and memory views

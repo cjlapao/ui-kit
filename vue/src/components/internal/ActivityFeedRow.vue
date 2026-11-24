@@ -12,6 +12,11 @@ import type { ActivityFeedEntryView } from "./ActivityFeedEntry.vue";
 export interface ActivityFeedSubRowView {
   hasBody: boolean;
   body?: VNodeChild;
+  /** The sub-row's right-side zone — menus, icon buttons, anything. */
+  hasActions: boolean;
+  actions?: VNodeChild;
+  /** The row wrapper: hover `group`, the toned wash and the breathing room. */
+  subRowClass: string;
   entry: ActivityFeedEntryView;
 }
 
@@ -34,6 +39,9 @@ export interface ActivityFeedRowView {
   /** Main line: the item's `body` when it has one, else the entry view. */
   hasBody: boolean;
   body?: VNodeChild;
+  /** The row's right-side zone — menus, icon buttons, anything. */
+  hasActions: boolean;
+  actions?: VNodeChild;
   entry: ActivityFeedEntryView;
   /** Disclosure. */
   hasSubs: boolean;
@@ -101,6 +109,14 @@ const regionHandlers = {
   keydown: (event: Event) => event.stopPropagation(),
 };
 
+// The right-side zone's containment — the same swallow, because the Vue
+// Panel guards nothing: a menu trigger's click must open its menu and
+// neither fold the row nor fire its action. Menu popups portal out of the
+// row, so opening them is unaffected. The `h-5 items-center` band centers
+// its controls on the title's first line — the same optical line the time
+// and the caret ride.
+const ACTIONS_WRAPPER = "flex h-5 shrink-0 items-center gap-1";
+
 // One binding for the Panel: the card action, plus the disclosure's a11y
 // pair when the row is the toggle. With an `onClick` the row's action is
 // the Panel's story alone and the chevron button carries its own pair.
@@ -142,6 +158,17 @@ const regionAttrs = computed<Record<string, unknown>>(() => ({
            stays, so custom rows keep the feed's row grammar. -->
       <VNodeRenderer v-if="view.hasBody" :nodes="view.body" />
       <ActivityFeedEntry v-else :entry="view.entry" />
+      <!-- The row's extra right-side zone, before the caret: whatever the
+           consumer hands over, its clicks and keys die at this wrapper so
+           the row stays a stranger to them. -->
+      <div
+        v-if="view.hasActions"
+        :class="ACTIONS_WRAPPER"
+        @click.stop
+        @keydown.stop
+      >
+        <VNodeRenderer :nodes="view.actions" />
+      </div>
       <!-- The disclosure's chevron, InfoRow's one step from rotating. The
            row's own toggle keeps it decorative — the Panel is the control;
            with a row action in the way, it becomes a real button. -->
@@ -175,15 +202,29 @@ const regionAttrs = computed<Record<string, unknown>>(() => ({
     >
       <div v-bind="regionAttrs" class="min-h-0 overflow-hidden">
         <!-- Dot (size-2) + gap-3 puts the column at the title's leading
-             edge — sub-rows read as the row's own, one level in. -->
-        <div class="flex flex-col gap-1.5 pl-5">
+             edge — sub-rows read as the row's own, one level in. The
+             `py-1.5` is the zone's breathing room: an `xs` IconButton is a
+             28px box riding the 20px band (4px of spill), the washes bleed
+             2px with their negative margins, and the region clips — six
+             pixels or the first row's dots arrive shaved. -->
+        <div class="flex flex-col gap-1.5 py-1.5 pl-5">
           <div
             v-for="(sub, index) in view.subRows"
             :key="index"
-            class="flex items-start gap-3"
+            :class="sub.subRowClass"
           >
             <VNodeRenderer v-if="sub.hasBody" :nodes="sub.body" />
             <ActivityFeedEntry v-else :entry="sub.entry" />
+            <!-- The sub-row's own zone, trailing the time — swallowed here
+                 so a click inside never reaches the row's toggle. -->
+            <div
+              v-if="sub.hasActions"
+              :class="ACTIONS_WRAPPER"
+              @click.stop
+              @keydown.stop
+            >
+              <VNodeRenderer :nodes="sub.actions" />
+            </div>
           </div>
         </div>
       </div>

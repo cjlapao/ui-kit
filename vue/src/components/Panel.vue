@@ -135,6 +135,25 @@ export interface PanelProps {
   /** Set false to keep the normal fill inside a matching parent panel. */
   nestedSurface?: boolean;
   /**
+   * Force at least the first nested-panels depth step, even outside a
+   * matching parent panel — the fix for a tinted card on a neutral page
+   * background, where the fill, rim and page all agree in neutral and the
+   * card disappears.
+   *
+   * The card takes the same wash the nesting ladder paints (`bg-black/4%`
+   * light, `dark:bg-white/4%`), so both themes are covered by construction.
+   * It is a floor, never an override: a card physically nested two levels
+   * deep keeps its deeper step. Unlike the auto ladder, the forced step is
+   * not cancelled by `backgroundColor` or `nestedSurface={false}` — the
+   * toggle is the caller explicitly asking for the step, and
+   * `backgroundColor="neutral"` paints exactly the invisibility being fixed.
+   * A documented no-op outside the ladder's tinted variants
+   * (`simple`/`tonal`/`subtle`/`glass`/`liquid-glass`): `elevated` and
+   * `outlined` separate from the page with fill, rim and shadow instead.
+   * @default false
+   */
+  raisedSurface?: boolean;
+  /**
    * controls if the panel body should be scrollable
    * @default true
    */
@@ -237,6 +256,7 @@ const props = withDefaults(defineProps<PanelProps>(), {
   actionLayout: "auto",
   variant: "elevated",
   nestedSurface: true,
+  raisedSurface: false,
 
   padding: "md",
   corner: "rounded-sm",
@@ -269,7 +289,7 @@ const { classAttr, restAttrs } = useClassAttrs();
 
 const resolvedTone = computed(() => props.tone ?? props.color ?? "none");
 const parentPanel = inject(NestedPanelKey, null);
-const nestedPanel = computed(() => nestedPanelSurface(parentPanel?.value ?? null, props.variant, resolvedTone.value, props.nestedSurface && !props.backgroundColor));
+const nestedPanel = computed(() => nestedPanelSurface(parentPanel?.value ?? null, props.variant, resolvedTone.value, props.nestedSurface && !props.backgroundColor, props.raisedSurface));
 provide(NestedPanelKey, nestedPanel);
 const palette = computed(() => getPanelToneStyles(resolvedTone.value));
 const colorPalette = palette;

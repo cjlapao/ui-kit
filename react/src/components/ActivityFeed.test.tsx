@@ -623,6 +623,149 @@ describe("ActivityFeed", () => {
       expect(dots[2]!.className).toContain("bg-amber-500");
     });
 
+    // Exact tokens, not substrings: a sub-dot's hover lift embeds
+    // `group-hover:bg-{c}-500`, whose substring would let the resting step
+    // drift unnoticed.
+    const tokens = (el: HTMLElement) => el.className.split(/\s+/);
+
+    it("steps sub-row dots one off the parent's in both themes", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "blue",
+              subItems: [{ title: "explicit", tone: "rose" }, { title: "inherits parent" }],
+            },
+          ]}
+        />,
+      );
+      const mainDot = Array.from(
+        container.querySelectorAll<HTMLElement>('li [aria-hidden="true"].size-2'),
+      ).find((el) => !el.closest('[role="region"]'))!;
+      expect(tokens(mainDot)).toEqual(expect.arrayContaining(["bg-blue-500", "dark:bg-blue-400"]));
+      const subDots = Array.from(
+        container.querySelectorAll<HTMLElement>('[role="region"] .pl-5 > div > span:first-child'),
+      );
+      expect(tokens(subDots[0]!)).toEqual(
+        expect.arrayContaining(["bg-rose-600", "dark:bg-rose-300"]),
+      );
+      expect(tokens(subDots[1]!)).toEqual(
+        expect.arrayContaining(["bg-blue-600", "dark:bg-blue-300"]),
+      );
+    });
+
+    it("washes the sub-row and lifts its dot in the hover tone", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "blue",
+              subItems: [{ title: "sub", hoverTone: "amber" }],
+            },
+          ]}
+        />,
+      );
+      const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+      expect(tokens(wrapper)).toEqual(
+        expect.arrayContaining([
+          "group",
+          "rounded-md",
+          "transition-colors",
+          "motion-reduce:transition-none",
+          "hover:bg-amber-100",
+          "dark:hover:bg-amber-500/20",
+        ]),
+      );
+      const dot = wrapper.querySelector<HTMLElement>("span:first-child")!;
+      // Resting from the parent's blue, hover in the explicit amber.
+      expect(tokens(dot)).toEqual(
+        expect.arrayContaining([
+          "bg-blue-600",
+          "dark:bg-blue-300",
+          "group-hover:bg-amber-500",
+          "dark:group-hover:bg-amber-400",
+          "transition-colors",
+          "motion-reduce:transition-none",
+        ]),
+      );
+    });
+
+    it("inherits the resolved tone for the hover when no hoverTone is set", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "emerald",
+              subItems: [{ title: "sub" }],
+            },
+          ]}
+        />,
+      );
+      const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+      expect(tokens(wrapper)).toEqual(
+        expect.arrayContaining(["hover:bg-emerald-100", "dark:hover:bg-emerald-500/20"]),
+      );
+      const dot = wrapper.querySelector<HTMLElement>("span:first-child")!;
+      expect(tokens(dot)).toEqual(
+        expect.arrayContaining([
+          "group-hover:bg-emerald-500",
+          "dark:group-hover:bg-emerald-400",
+        ]),
+      );
+    });
+
+    it("washes custom-body sub-rows without drawing a dot", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "sky",
+              subItems: [{ title: "ignored", body: <span>custom sub UI</span> }],
+            },
+          ]}
+        />,
+      );
+      const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+      expect(tokens(wrapper)).toEqual(
+        expect.arrayContaining(["hover:bg-sky-100", "dark:hover:bg-sky-500/20"]),
+      );
+      // The wash is the wrapper's; the custom node answers for everything inside.
+      expect(wrapper.querySelector('[aria-hidden="true"]')).toBeNull();
+    });
+
+    it("rests sub-rows on the nested panels' depth step", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              subItems: [{ title: "sub" }],
+            },
+          ]}
+        />,
+      );
+      // Same ladder nested Panels climb — one step off the surface they sit
+      // on, lighter in dark — so subs read as their own rows, not flat ink.
+      const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
+      expect(tokens(wrapper)).toEqual(
+        expect.arrayContaining(["bg-black/[0.04]", "dark:bg-white/[0.04]"]),
+      );
+    });
+
     it("renders a custom-body sub-item in place of the fields, keeping the indent", () => {
       const { container } = render(
         <ActivityFeed
@@ -774,6 +917,147 @@ describe("ActivityFeed", () => {
       );
       expect(screen.queryByText("rolled 4 pods")).not.toBeInTheDocument();
       expect(container.querySelector('[role="region"]')).toBeNull();
+    });
+  });
+
+  describe("actions zone", () => {
+    // The zone is the wrapper's own literal class list — stable to match.
+    const zoneOf = (parent: Element) =>
+      parent.querySelector<HTMLElement>(":scope > div.flex.h-5.shrink-0.items-center.gap-1");
+    // The header carries the id the region answers to — Panel's own overlay
+    // siblings make a positional selector lie about which div is the header.
+    const headerOf = (container: HTMLElement) =>
+      document.getElementById(
+        container.querySelector('[role="region"]')!.getAttribute("aria-labelledby")!,
+      )!;
+
+    it("draws the zone on the right — before the caret, after the sub-row's time", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "act",
+              title: "deployed the release",
+              timestamp: "3m ago",
+              actions: <span>row menu</span>,
+              subItems: [
+                { title: "rolled pods", timestamp: "2m ago", actions: <span>sub menu</span> },
+              ],
+            },
+          ]}
+        />,
+      );
+      const header = headerOf(container);
+      const zone = zoneOf(header);
+      expect(zone).not.toBeNull();
+      expect(zone!.textContent).toBe("row menu");
+      // Right before the caret — the chevron stays the header's last child.
+      expect(zone!.nextElementSibling).toBe(header.lastElementChild);
+      expect(header.lastElementChild!.getAttribute("aria-hidden")).toBe("true");
+      // One optical line: the time, the dots and the caret all ride the
+      // title's 20px first-line band, centered.
+      expect(zone!.className.split(/\s+/)).toEqual(
+        expect.arrayContaining(["h-5", "items-center"]),
+      );
+      expect(header.lastElementChild!.className.split(/\s+/)).toContain("h-5");
+      // In the sub-row the zone trails the timestamp.
+      const wrapper = container.querySelector('[role="region"] .pl-5 > div')!;
+      const subZone = zoneOf(wrapper);
+      expect(subZone).not.toBeNull();
+      expect(subZone!.textContent).toBe("sub menu");
+      expect(subZone!.previousElementSibling!.tagName).toBe("TIME");
+    });
+
+    it("swallows clicks and keys — the row toggle stays still", () => {
+      const onToggle = vi.fn();
+      const inside = vi.fn();
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "act",
+              title: "deployed",
+              timestamp: "3m ago",
+              onToggle,
+              actions: <span onClick={inside}>row menu</span>,
+              subItems: [{ title: "sub", timestamp: "2m ago" }],
+            },
+          ]}
+        />,
+      );
+      const panel = container.querySelector("li > section")!;
+      const zone = zoneOf(headerOf(container))!;
+      // A plain span, so nothing but the zone's own swallow protects the row.
+      fireEvent.click(zone.firstElementChild!);
+      expect(inside).toHaveBeenCalledTimes(1);
+      expect(onToggle).not.toHaveBeenCalled();
+      expect(panel.getAttribute("aria-expanded")).toBe("false");
+      fireEvent.keyDown(zone.firstElementChild!, { key: "Enter" });
+      expect(onToggle).not.toHaveBeenCalled();
+    });
+
+    it("keeps the row action a stranger to the zone", () => {
+      const onClick = vi.fn();
+      const onToggle = vi.fn();
+      const inside = vi.fn();
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "act",
+              title: "t",
+              timestamp: "now",
+              onClick,
+              onToggle,
+              actions: <span onClick={inside}>menu</span>,
+              subItems: [{ title: "sub", timestamp: "now" }],
+            },
+          ]}
+        />,
+      );
+      const zone = zoneOf(headerOf(container))!;
+      fireEvent.click(zone.firstElementChild!);
+      expect(inside).toHaveBeenCalledTimes(1);
+      expect(onClick).not.toHaveBeenCalled();
+      expect(onToggle).not.toHaveBeenCalled();
+      // The chevron still owns the disclosure.
+      fireEvent.click(screen.getByRole("button", { name: "Show sub-items" }));
+      expect(onToggle).toHaveBeenCalledWith(true);
+    });
+
+    it("draws alongside a custom body — row and sub-row", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            {
+              id: "act",
+              title: "t",
+              timestamp: "now",
+              body: <b>custom UI</b>,
+              actions: <span>row menu</span>,
+              subItems: [{ title: "x", body: <b>custom sub UI</b>, actions: <span>sub menu</span> }],
+            },
+          ]}
+        />,
+      );
+      const header = headerOf(container);
+      expect(header.querySelector("b")!.textContent).toBe("custom UI");
+      expect(zoneOf(header)!.textContent).toBe("row menu");
+      const wrapper = container.querySelector('[role="region"] .pl-5 > div')!;
+      expect(wrapper.querySelector("b")!.textContent).toBe("custom sub UI");
+      expect(zoneOf(wrapper)!.textContent).toBe("sub menu");
+    });
+
+    it("draws no zone without actions", () => {
+      const { container } = render(
+        <ActivityFeed
+          items={[
+            { id: "a", title: "t", timestamp: "now", subItems: [{ title: "s", timestamp: "now" }] },
+          ]}
+        />,
+      );
+      expect(zoneOf(container.querySelector("li > section > div")!)).toBeNull();
+      expect(zoneOf(container.querySelector('[role="region"] .pl-5 > div')!)).toBeNull();
     });
   });
 

@@ -52,7 +52,7 @@ export const PanelPage: React.FC = () => (
 <Panel variant="glass" transparency="low">Less transparent glass</Panel>`}>
         <Transparency />
       </ExampleCard>
-      <ExampleCard title="Nested surfaces" description="Matching simple, tonal, subtle, glass and liquid-glass panels automatically take a subtle background step. Set nestedSurface to false to keep the original fill." filename="NestedSurfaces.tsx" code={nestedSurfacesCode}>
+      <ExampleCard title="Nested surfaces" description="Matching simple, tonal, subtle, glass and liquid-glass panels automatically take a subtle background step. Set nestedSurface to false to keep the original fill. A card that sits on the neutral page itself — where fill and background agree and it disappears — takes the same first step with raisedSurface." filename="NestedSurfaces.tsx" code={nestedSurfacesCode}>
         <NestedSurfaces />
       </ExampleCard>
       <ExampleCard

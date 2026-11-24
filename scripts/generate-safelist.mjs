@@ -422,6 +422,13 @@ src(`@source inline("group-hover:text-{COLOR}-700");`);
 src(`@source inline("dark:group-hover:text-{COLOR}-300");`);
 L("");
 
+// ActivityFeed sub-row hover (getSubItemHoverClasses). The dot lifts under
+// its row's `group` to the full dot step; the wash steps themselves are
+// covered by the hover:bg-{COLOR}-100 / dark:hover:bg-{COLOR}-500/20 lines.
+src(`@source inline("group-hover:bg-{COLOR}-500");`);
+src(`@source inline("dark:group-hover:bg-{COLOR}-400");`);
+L("");
+
 // Alert. These were coming from the legacy hand-written safelist-classes.css,
 // which predates TRUE_COLORS and is missing `gray`, `zinc` and `stone` — so a
 // `subtle` alert in those three tones had no copy colour at all in light mode,

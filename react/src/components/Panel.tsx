@@ -286,6 +286,25 @@ export interface PanelProps extends Omit<
   /** Set false to keep the normal fill inside a matching parent panel. */
   nestedSurface?: boolean;
   /**
+   * Force at least the first nested-panels depth step, even outside a
+   * matching parent panel — the fix for a tinted card on a neutral page
+   * background, where the fill, rim and page all agree in neutral and the
+   * card disappears.
+   *
+   * The card takes the same wash the nesting ladder paints (`bg-black/4%`
+   * light, `dark:bg-white/4%`), so both themes are covered by construction.
+   * It is a floor, never an override: a card physically nested two levels
+   * deep keeps its deeper step. Unlike the auto ladder, the forced step is
+   * not cancelled by `backgroundColor` or `nestedSurface={false}` — the
+   * toggle is the caller explicitly asking for the step, and
+   * `backgroundColor="neutral"` paints exactly the invisibility being fixed.
+   * A documented no-op outside the ladder's tinted variants
+   * (`simple`/`tonal`/`subtle`/`glass`/`liquid-glass`): `elevated` and
+   * `outlined` separate from the page with fill, rim and shadow instead.
+   * @default false
+   */
+  raisedSurface?: boolean;
+  /**
    * controls if the panel body should be scrollable
    * @default true
    */
@@ -662,6 +681,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
     borderColor,
     backgroundColor,
     nestedSurface = true,
+    raisedSurface = false,
     scrollable = true,
     vibrancy = "medium",
     glassOpacity = "frosted",
@@ -674,7 +694,7 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
   // The deprecated `color` prop is honoured as an alias of `tone`.
   const resolvedTone = resolvePanelTone(tone, color);
   const parentPanel = React.useContext(NestedPanelContext);
-  const nestedPanel = nestedPanelSurface(parentPanel, variant, resolvedTone, nestedSurface && !backgroundColor);
+  const nestedPanel = nestedPanelSurface(parentPanel, variant, resolvedTone, nestedSurface && !backgroundColor, raisedSurface);
   const palette = getPanelToneStyles(resolvedTone);
   // A translucent card composites over whatever the app puts behind it, so the
   // light end of the neutral scale disappears — subtitles and descriptions on

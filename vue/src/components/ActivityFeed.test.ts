@@ -467,9 +467,165 @@ describe("ActivityFeed", () => {
         attachTo: document.body,
       });
       const dots = wrapper.findAll('[role="region"] .pl-5 > div > span:first-child');
-      expect(dots[0]!.classes()).toContain("bg-rose-500");
-      expect(dots[1]!.classes()).toContain("bg-blue-500");
-      expect(dots[2]!.classes()).toContain("bg-amber-500");
+      // Exact tokens: the hover lift embeds `group-hover:bg-{c}-500`, so a
+      // substring check would let the resting step drift unnoticed.
+      expect(dots[0]!.classes()).toEqual(
+        expect.arrayContaining(["bg-rose-600", "dark:bg-rose-300"]),
+      );
+      expect(dots[1]!.classes()).toEqual(
+        expect.arrayContaining(["bg-blue-600", "dark:bg-blue-300"]),
+      );
+      expect(dots[2]!.classes()).toEqual(
+        expect.arrayContaining(["bg-amber-600", "dark:bg-amber-300"]),
+      );
+      wrapper.unmount();
+    });
+
+    it("steps sub-row dots one off the parent's in both themes", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "blue" as const,
+              subItems: [{ title: "explicit", tone: "rose" as const }, { title: "inherits parent" }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const mainDot = wrapper
+        .findAll('li [aria-hidden="true"].size-2')
+        .filter((el) => !el.element.closest('[role="region"]'))[0]!;
+      expect(mainDot.classes()).toEqual(
+        expect.arrayContaining(["bg-blue-500", "dark:bg-blue-400"]),
+      );
+      const subDots = wrapper.findAll('[role="region"] .pl-5 > div > span:first-child');
+      expect(subDots[0]!.classes()).toEqual(
+        expect.arrayContaining(["bg-rose-600", "dark:bg-rose-300"]),
+      );
+      expect(subDots[1]!.classes()).toEqual(
+        expect.arrayContaining(["bg-blue-600", "dark:bg-blue-300"]),
+      );
+      wrapper.unmount();
+    });
+
+    it("washes the sub-row and lifts its dot in the hover tone", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "blue" as const,
+              subItems: [{ title: "sub", hoverTone: "amber" as const }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const sub = wrapper.find('[role="region"] .pl-5 > div');
+      expect(sub.classes()).toEqual(
+        expect.arrayContaining([
+          "group",
+          "rounded-md",
+          "transition-colors",
+          "motion-reduce:transition-none",
+          "hover:bg-amber-100",
+          "dark:hover:bg-amber-500/20",
+        ]),
+      );
+      const dot = sub.find("span:first-child");
+      // Resting from the parent's blue, hover in the explicit amber.
+      expect(dot.classes()).toEqual(
+        expect.arrayContaining([
+          "bg-blue-600",
+          "dark:bg-blue-300",
+          "group-hover:bg-amber-500",
+          "dark:group-hover:bg-amber-400",
+          "transition-colors",
+          "motion-reduce:transition-none",
+        ]),
+      );
+      wrapper.unmount();
+    });
+
+    it("inherits the resolved tone for the hover when no hoverTone is set", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "emerald" as const,
+              subItems: [{ title: "sub" }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const sub = wrapper.find('[role="region"] .pl-5 > div');
+      expect(sub.classes()).toEqual(
+        expect.arrayContaining(["hover:bg-emerald-100", "dark:hover:bg-emerald-500/20"]),
+      );
+      const dot = sub.find("span:first-child");
+      expect(dot.classes()).toEqual(
+        expect.arrayContaining([
+          "group-hover:bg-emerald-500",
+          "dark:group-hover:bg-emerald-400",
+        ]),
+      );
+      wrapper.unmount();
+    });
+
+    it("washes custom-body sub-rows without drawing a dot", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              tone: "sky" as const,
+              subItems: [{ title: "ignored", body: h("span", "custom sub UI") }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const sub = wrapper.find('[role="region"] .pl-5 > div');
+      expect(sub.classes()).toEqual(
+        expect.arrayContaining(["hover:bg-sky-100", "dark:hover:bg-sky-500/20"]),
+      );
+      // The wash is the wrapper's; the custom node answers for everything inside.
+      expect(sub.find('[aria-hidden="true"]').exists()).toBe(false);
+      wrapper.unmount();
+    });
+
+    it("rests sub-rows on the nested panels' depth step", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "p",
+              title: "parent",
+              timestamp: "now",
+              subItems: [{ title: "sub" }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      // Same ladder nested Panels climb — one step off the surface they sit
+      // on, lighter in dark — so subs read as their own rows, not flat ink.
+      const sub = wrapper.find('[role="region"] .pl-5 > div');
+      expect(sub.classes()).toEqual(
+        expect.arrayContaining(["bg-black/[0.04]", "dark:bg-white/[0.04]"]),
+      );
       wrapper.unmount();
     });
 
@@ -664,6 +820,159 @@ describe("ActivityFeed", () => {
       });
       expect(wrapper.text()).not.toContain("rolled 4 pods");
       expect(wrapper.find('[role="region"]').exists()).toBe(false);
+      wrapper.unmount();
+    });
+  });
+
+  describe("actions zone", () => {
+    // The zone is the wrapper's own literal class list — stable to match.
+    const zoneOf = (parent: Element) =>
+      parent.querySelector<HTMLElement>(":scope > div.flex.h-5.shrink-0.items-center.gap-1");
+    const headerOf = (wrapper: ReturnType<typeof mount>) =>
+      document.getElementById(
+        wrapper.find('[role="region"]').attributes("aria-labelledby")!,
+      )!;
+
+    it("draws the zone on the right — before the caret, after the sub-row's time", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "act",
+              title: "deployed the release",
+              timestamp: "3m ago",
+              actions: h("span", "row menu"),
+              subItems: [
+                { title: "rolled pods", timestamp: "2m ago", actions: h("span", "sub menu") },
+              ],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const header = headerOf(wrapper);
+      const zone = zoneOf(header);
+      expect(zone).not.toBeNull();
+      expect(zone!.textContent).toBe("row menu");
+      // Right before the caret — the chevron stays the header's last child.
+      expect(zone!.nextElementSibling).toBe(header.lastElementChild);
+      expect(header.lastElementChild!.getAttribute("aria-hidden")).toBe("true");
+      // One optical line: the time, the dots and the caret all ride the
+      // title's 20px first-line band, centered.
+      expect(zone!.className.split(/\s+/)).toEqual(
+        expect.arrayContaining(["h-5", "items-center"]),
+      );
+      expect(header.lastElementChild!.className.split(/\s+/)).toContain("h-5");
+      // In the sub-row the zone trails the timestamp.
+      const subWrapper = wrapper.find('[role="region"] .pl-5 > div').element;
+      const subZone = zoneOf(subWrapper);
+      expect(subZone).not.toBeNull();
+      expect(subZone!.textContent).toBe("sub menu");
+      expect(subZone!.previousElementSibling!.tagName).toBe("TIME");
+      wrapper.unmount();
+    });
+
+    it("swallows clicks and keys — the row toggle stays still", async () => {
+      let inside = 0;
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "act",
+              title: "deployed",
+              timestamp: "3m ago",
+              actions: h("span", { onClick: () => { inside += 1; } }, "row menu"),
+              subItems: [{ title: "sub", timestamp: "2m ago" }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const panel = wrapper.find("li > section");
+      const zone = zoneOf(headerOf(wrapper))!;
+      // A plain span: the Vue Panel guards nothing, so only the zone's
+      // own swallow keeps the row still.
+      const span = zone.querySelector("span")!;
+      span.click();
+      await wrapper.vm.$nextTick();
+      expect(inside).toBe(1);
+      expect(wrapper.emitted("toggle")).toBeUndefined();
+      expect(panel.attributes("aria-expanded")).toBe("false");
+      span.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      await wrapper.vm.$nextTick();
+      expect(wrapper.emitted("toggle")).toBeUndefined();
+      wrapper.unmount();
+    });
+
+    it("keeps the row action a stranger to the zone", async () => {
+      let fired = 0;
+      let inside = 0;
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "act",
+              title: "t",
+              timestamp: "now",
+              onClick: () => { fired += 1; },
+              actions: h("span", { onClick: () => { inside += 1; } }, "menu"),
+              subItems: [{ title: "sub", timestamp: "now" }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const zone = zoneOf(headerOf(wrapper))!;
+      zone.querySelector("span")!.click();
+      await wrapper.vm.$nextTick();
+      expect(inside).toBe(1);
+      expect(fired).toBe(0);
+      expect(wrapper.emitted("toggle")).toBeUndefined();
+      // The chevron still owns the disclosure.
+      const chevron = wrapper
+        .findAll("button")
+        .find((b) => b.attributes("aria-label") === "Show sub-items")!;
+      await chevron.trigger("click");
+      expect(wrapper.emitted("toggle")?.[0]).toEqual(["act", true]);
+      wrapper.unmount();
+    });
+
+    it("draws alongside a custom body — row and sub-row", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            {
+              id: "act",
+              title: "t",
+              timestamp: "now",
+              body: h("b", "custom UI"),
+              actions: h("span", "row menu"),
+              subItems: [{ title: "x", body: h("b", "custom sub UI"), actions: h("span", "sub menu") }],
+            },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      const header = headerOf(wrapper);
+      expect(header.querySelector("b")!.textContent).toBe("custom UI");
+      expect(zoneOf(header)!.textContent).toBe("row menu");
+      const subWrapper = wrapper.find('[role="region"] .pl-5 > div').element;
+      expect(subWrapper.querySelector("b")!.textContent).toBe("custom sub UI");
+      expect(zoneOf(subWrapper)!.textContent).toBe("sub menu");
+      wrapper.unmount();
+    });
+
+    it("draws no zone without actions", () => {
+      const wrapper = mount(ActivityFeed, {
+        props: {
+          items: [
+            { id: "a", title: "t", timestamp: "now", subItems: [{ title: "s", timestamp: "now" }] },
+          ] as ActivityFeedItem[],
+        },
+        attachTo: document.body,
+      });
+      expect(zoneOf(headerOf(wrapper))).toBeNull();
+      expect(zoneOf(wrapper.find('[role="region"] .pl-5 > div').element)).toBeNull();
       wrapper.unmount();
     });
   });

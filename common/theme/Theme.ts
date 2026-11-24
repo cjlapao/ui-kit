@@ -103,6 +103,64 @@ export function getTrueColorDotClass(tone: TrueColor): string {
 }
 
 /**
+ * The fill class for a **sub-row** dot: one step off the parent's dot in
+ * both directions — `600` in light (darker than the row's 500), `300` in
+ * dark (lighter than the row's 400). A nested item that inherits its
+ * parent's tone still reads as one level in, because no sub-dot ever sits
+ * at the same step as the dot above it. Literal per colour, as above.
+ */
+export const TRUE_COLOR_SUB_DOT_CLASSES: Record<TrueColor, string> = {
+  red: "bg-red-600 dark:bg-red-300",
+  orange: "bg-orange-600 dark:bg-orange-300",
+  amber: "bg-amber-600 dark:bg-amber-300",
+  yellow: "bg-yellow-600 dark:bg-yellow-300",
+  lime: "bg-lime-600 dark:bg-lime-300",
+  green: "bg-green-600 dark:bg-green-300",
+  emerald: "bg-emerald-600 dark:bg-emerald-300",
+  teal: "bg-teal-600 dark:bg-teal-300",
+  cyan: "bg-cyan-600 dark:bg-cyan-300",
+  sky: "bg-sky-600 dark:bg-sky-300",
+  blue: "bg-blue-600 dark:bg-blue-300",
+  indigo: "bg-indigo-600 dark:bg-indigo-300",
+  violet: "bg-violet-600 dark:bg-violet-300",
+  purple: "bg-purple-600 dark:bg-purple-300",
+  fuchsia: "bg-fuchsia-600 dark:bg-fuchsia-300",
+  rose: "bg-rose-600 dark:bg-rose-300",
+  slate: "bg-slate-600 dark:bg-slate-300",
+  gray: "bg-gray-600 dark:bg-gray-300",
+  zinc: "bg-zinc-600 dark:bg-zinc-300",
+  neutral: "bg-neutral-600 dark:bg-neutral-300",
+  stone: "bg-stone-600 dark:bg-stone-300",
+};
+
+/** Sub-row dot fill for a TrueColor — one step off `getTrueColorDotClass`. */
+export function getTrueColorSubDotClass(tone: TrueColor): string {
+  return TRUE_COLOR_SUB_DOT_CLASSES[tone];
+}
+
+/** The hover pair a sub-row wears: its row wash and its dot lift. */
+export type SubItemHoverClasses = {
+  /** The row wash — the kit's plain-depth hover wash steps. */
+  wash: string;
+  /** The dot lift: resting shift steps to the full dot step on hover. */
+  dot: string;
+};
+
+/**
+ * The hover grammar for an `ActivityFeed` sub-row. The wash reuses the
+ * plain-depth steps from `surfaceHoverWash` (`{c}-100` light, `{c}-500/20`
+ * dark); the dot lifts to the full-strength `getTrueColorDotClass` steps,
+ * so a hovered sub-row's dot temporarily becomes what a main-row dot
+ * always is. Template-literal classes, so all four shapes need
+ * `@source inline()` lines in `scripts/generate-safelist.mjs`;
+ * `themeSafelist.test.ts` walks this getter per tone.
+ */
+export const getSubItemHoverClasses = (tone: TrueColor): SubItemHoverClasses => ({
+  wash: `hover:bg-${tone}-100 dark:hover:bg-${tone}-500/20`,
+  dot: `group-hover:bg-${tone}-500 dark:group-hover:bg-${tone}-400`,
+});
+
+/**
  * The ink class for a TrueColor: the 500 step in light mode, the 400 step
  * in dark — what SVG strokes (`stroke-current`) and legends use where a
  * fill class would not apply. Literal per colour, as above.

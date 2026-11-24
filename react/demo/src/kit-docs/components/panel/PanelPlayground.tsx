@@ -81,6 +81,10 @@ export const PanelPlayground: React.FC = () => {
   // The attention call, inward from the rim — try it with Disabled: a
   // dimmed card stops demanding, unlike its selection rim, which stays.
   const [pulse, setPulse] = useState(false);
+  // The forced depth step — try it on a `tonal`/`simple` card over the
+  // neutral page: the wash the nesting ladder gives matching children,
+  // forced here so a tinted card on a matching background stays visible.
+  const [raisedSurface, setRaisedSurface] = useState(false);
   const [specularMode, setSpecularMode] =
     useState<PanelSpecularMode>("classic");
   const [vibrancy, setVibrancy] = useState<GlassVibrancy>("medium");
@@ -141,6 +145,11 @@ export const PanelPlayground: React.FC = () => {
                       options={panelDecorationOptions}
                       value={decoration}
                       onChange={(v) => setDecoration(v as PanelDecoration)}
+                    />
+                    <ToggleRow
+                      label="Raised surface"
+                      checked={raisedSurface}
+                      onChange={setRaisedSurface}
                     />
                   </>
                 ),
@@ -353,6 +362,7 @@ export const PanelPlayground: React.FC = () => {
             glassOpacity={glassOpacity}
             transparency={transparency === "auto" ? undefined : transparency}
             specularMode={specularMode}
+            raisedSurface={raisedSurface}
           >
             This panel uses the {variant} variant, {corner} corners and{" "}
             {padding} padding.

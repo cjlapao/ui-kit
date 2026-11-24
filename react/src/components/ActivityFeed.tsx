@@ -16,12 +16,15 @@ import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useKitT } from "../i18n";
 import {
   getTrueColorDotClass,
+  getTrueColorSubDotClass,
+  getSubItemHoverClasses,
   SURFACE_TO_BUTTON_VARIANT,
   type SurfaceCorner,
   type SurfacePadding,
   type SurfaceVariant,
   type TrueColor,
 } from "../theme";
+import { NESTED_PANEL_WASH } from "../../../common/theme/nestedPanel";
 
 /** One entry in the feed. */
 export interface ActivityFeedItem {
@@ -80,6 +83,14 @@ export interface ActivityFeedItem {
    */
   body?: ReactNode;
   /**
+   * The row's extra right-side zone — menus, icon buttons, anything.
+   * Rendered after the content (custom `body` included) and before the
+   * disclosure chevron. Clicks and keys inside the zone never activate the
+   * row or fold its disclosure: the feed swallows them at the zone's edge,
+   * so a menu trigger opens its menu and nothing else. Drawn only when set.
+   */
+  actions?: ReactNode;
+  /**
    * Rows nested under this one, revealed by the row's disclosure. The
    * disclosure — and its chevron — exists iff this is non-empty. Sub-items
    * are read-only context rows: they never filter (filters match this row),
@@ -129,9 +140,18 @@ export interface ActivityFeedSubItem {
   timestamp?: string;
   /**
    * Status dot tone. Unset follows the parent item's `tone`, then the
-   * card's accent — the same ladder the dots always climbed.
+   * card's accent — the same ladder the dots always climbed. Wherever the
+   * tone comes from, a sub-row's dot sits one step off the parent's in both
+   * themes — darker on light, lighter on dark (`TRUE_COLOR_SUB_DOT_CLASSES`)
+   * — so nesting reads even when the tone is inherited.
    */
   tone?: TrueColor;
+  /**
+   * The hue the sub-row wears under the pointer: a toned row wash and a dot
+   * lifted to full strength. Unset inherits the tone the dot resolves to, so
+   * every template sub-row is hoverable in its own colour by default.
+   */
+  hoverTone?: TrueColor;
   /** Entries this sub-row aggregates — the same ×n pill grammar as the main row. */
   count?: number;
   /**
@@ -141,6 +161,13 @@ export interface ActivityFeedSubItem {
    * sub-row.
    */
   body?: ReactNode;
+  /**
+   * The sub-row's extra right-side zone — the row's `actions` one level in.
+   * Rendered after the content (custom `body` included), at the sub-row's
+   * right edge; clicks and keys inside never reach the row's toggle or
+   * action. Drawn only when set.
+   */
+  actions?: ReactNode;
 }
 
 /** A feed filter; the value `"all"` always matches. */
@@ -357,9 +384,35 @@ const entryContent = (entry: EntryFields, dotClass: string) => (
   </>
 );
 
-/** InfoRow's disclosure chevron, one step from rotating: muted, and never its own story. */
+/**
+ * InfoRow's disclosure chevron, one step from rotating: muted, and never
+ * its own story. The `h-5` band is the title's own line box — the caret
+ * centers on the first line, as the time and the actions zone do.
+ */
 const CHEVRON_BASE =
-  "flex shrink-0 items-center text-neutral-400 transition-transform duration-300 dark:text-neutral-500";
+  "flex h-5 shrink-0 items-center text-neutral-400 transition-transform duration-300 dark:text-neutral-500";
+
+/**
+ * The extra right-side zone's containment. The kit swallows click and
+ * keydown here so a menu trigger never fires the row's action or folds its
+ * disclosure — the Vue Panel guards nothing and React's guard covers only
+ * the card action's clicks, so the wrapper is what makes both kits agree.
+ * Menu popups portal out of the row, so opening them is unaffected. The
+ * `h-5 items-center` grammar centers its controls on the title's first
+ * line — controls taller than the band (an `xs` IconButton is a 28px box)
+ * spill evenly, so their optical centers ride the same line as the time
+ * and the caret.
+ */
+const ACTIONS_WRAPPER = "flex h-5 shrink-0 items-center gap-1";
+const ZONE_SWALLOW = {
+  onClick: (event: React.MouseEvent) => event.stopPropagation(),
+  onKeyDown: (event: React.KeyboardEvent) => event.stopPropagation(),
+};
+const actionsZone = (actions: React.ReactNode) => (
+  <div className={ACTIONS_WRAPPER} {...ZONE_SWALLOW}>
+    {actions}
+  </div>
+);
 
 /**
  * One row: the feed's Panel, its content (template or `body`) and — when the
@@ -472,6 +525,7 @@ const FeedRow = ({
               item,
               getTrueColorDotClass(item.tone ?? dotFloor),
             )}
+        {item.actions != null && actionsZone(item.actions)}
         {chevron}
       </div>
       {hasSubs && (
@@ -504,20 +558,47 @@ const FeedRow = ({
             className="min-h-0 overflow-hidden"
           >
             {/* Dot (size-2) + gap-3 puts the column at the title's leading
-                edge — sub-rows read as the row's own, one level in. */}
-            <div className="flex flex-col gap-1.5 pl-5">
-              {subItems?.map((sub, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  {sub.body != null
-                    ? sub.body
-                    : entryContent(
-                        sub,
-                        getTrueColorDotClass(
-                          sub.tone ?? item.tone ?? dotFloor,
-                        ),
-                      )}
-                </div>
-              ))}
+                edge — sub-rows read as the row's own, one level in. The
+                `py-1.5` is the zone's breathing room: an `xs` IconButton is
+                a 28px box riding the 20px band (4px of spill), the washes
+                bleed 2px with their negative margins, and the region clips
+                — six pixels or the first row's dots arrive shaved. */}
+            <div className="flex flex-col gap-1.5 py-1.5 pl-5">
+              {subItems?.map((sub, index) => {
+                // The tone ladder ends here; the dot then steps one off the
+                // parent's in both themes, and the hover hue is the sub's
+                // `hoverTone` or the tone the dot resolved to — so every
+                // template sub-row washes by default. The wrapper is the
+                // `group` the dot's hover reads from; negative margins let
+                // the wash breathe into the column's gap without moving the
+                // row. The resting fill is the nested panels' own depth step
+                // — one step off whatever surface the row nestles on — so
+                // each sub reads as its own row, not flat ink.
+                const subTone = sub.tone ?? item.tone ?? dotFloor;
+                const hover = getSubItemHoverClasses(sub.hoverTone ?? subTone);
+                return (
+                  <div
+                    key={index}
+                    className={classNames(
+                      "group -mx-1.5 -my-0.5 flex items-start gap-3 rounded-md px-1.5 py-0.5 transition-colors duration-200 motion-reduce:transition-none",
+                      NESTED_PANEL_WASH[1],
+                      hover.wash,
+                    )}
+                  >
+                    {sub.body != null
+                      ? sub.body
+                      : entryContent(
+                          sub,
+                          classNames(
+                            getTrueColorSubDotClass(subTone),
+                            "transition-colors duration-200 motion-reduce:transition-none",
+                            hover.dot,
+                          ),
+                        )}
+                    {sub.actions != null && actionsZone(sub.actions)}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
