@@ -209,7 +209,7 @@ function MenuRow({ item, state, depth, gutter = true }: { item: MenuItem; state:
     {item.content}
   </div>;
   return <li role="presentation">{row}{nested && expanded && (
-    tiered ? <MenuPopup anchor={anchor} placement="right" width={props.width ?? 256}>
+    tiered ? <MenuPopup anchor={anchor} placement="right" width={props.width} maxWidth={props.maxWidth}>
       <MenuSurface state={state}>{submenu}</MenuSurface>
     </MenuPopup> : <div className="ml-4 border-l border-neutral-200 pl-1 dark:border-white/10">{submenu}</div>
   )}</li>;
@@ -315,6 +315,6 @@ export function Menu(props: MenuProps) {
       onKeyDown: event => { original.onKeyDown?.(event); if (!event.defaultPrevented && (event.key === "ArrowDown" || event.key === "ArrowUp")) { event.preventDefault(); requestOpen(true); } },
     });
   }
-  return <>{trigger}{popup ? open && <MenuPopup anchor={anchor} placement={props.placement ?? "bottom"} width={props.width ?? 256}>{surface}</MenuPopup> : <div style={{ width: props.width ?? 256, maxWidth: "100%" }}>{surface}</div>}</>;
+  return <>{trigger}{popup ? open && <MenuPopup anchor={anchor} placement={props.placement ?? "bottom"} width={props.width} maxWidth={props.maxWidth}>{surface}</MenuPopup> : <div style={{ minWidth: props.width ?? 256, maxWidth: props.maxWidth != null ? `min(${props.maxWidth}px, 100%)` : "100%" }}>{surface}</div>}</>;
 }
 export default Menu;

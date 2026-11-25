@@ -13,6 +13,8 @@ import Sides from "./examples/Sides";
 import sidesCode from "./examples/Sides.tsx?raw";
 import Floating from "./examples/Floating";
 import floatingCode from "./examples/Floating.tsx?raw";
+import ActionsAndPills from "./examples/ActionsAndPills";
+import actionsAndPillsCode from "./examples/ActionsAndPills.tsx?raw";
 
 export const SidePanelPage: React.FC = () => (
   <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-8 px-4 py-8 sm:px-8">
@@ -40,6 +42,14 @@ export const SidePanelPage: React.FC = () => (
         filename="Floating.tsx"
       >
         <Floating />
+      </ExampleCard>
+      <ExampleCard
+        title="Actions strip and header pills"
+        description="subHeader is a non-scrolling strip right under the title section — filters here stay put while the list scrolls beneath it. headerPills carries the count and a quick toggle, centred with the close button; headerActions stays free for the panel's real buttons. The footer is sticky too, never scrolling with the body."
+        code={actionsAndPillsCode}
+        filename="ActionsAndPills.tsx"
+      >
+        <ActionsAndPills />
       </ExampleCard>
     </section>
 
@@ -121,9 +131,32 @@ export const SidePanelPage: React.FC = () => (
             "Extra nodes beside the close button — save/cancel, menus, whatever the panel is for.",
         },
         {
+          name: "headerPills",
+          type: "ReactNode",
+          description:
+            "Pills and quick actions in the title row just before the close button, vertically centred with it — a status pill, a count, a quick toggle. Separate from headerActions so buttons and pills coexist: [collapse] [headerActions] [headerPills] [close].",
+        },
+        {
+          name: "subHeader",
+          type: "ReactNode",
+          description: (
+            <>
+              Non-scrolling strip between the title section and the body —
+              filters, tabs, context actions; anything that belongs to the
+              panel as a whole. Like the footer it stays put while the body
+              scrolls. Borderless like the rest of the chrome (surfaces are
+              variant-driven); style it through the{" "}
+              <C>data-sp-sub-header</C> hook. Padding follows the header&rsquo;s
+              <C>size</C> with a tighter <C>py</C>, so it reads as a strip, not
+              a second header.
+            </>
+          ),
+        },
+        {
           name: "footer",
           type: "ReactNode",
-          description: "Sticky footer at the bottom of the panel.",
+          description:
+            "Sticky footer at the bottom of the panel — flex-none outside the scroll container, so it never scrolls with the body. Where the action buttons usually live.",
         },
         {
           name: "width",

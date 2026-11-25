@@ -84,7 +84,13 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
   itemPadding?: PanelProps["padding"];
   /** Row corners. @default "rounded-sm" (rounded-lg) */
   itemCorner?: PanelProps["corner"];
+  /** Floor for the popup width; content may widen the menu up to `maxWidth`.
+   * Also the fixed width of inline menus that fit. @default 256 */
   width?: number | string;
+  /** Cap for content-driven popup growth (long titles/descriptions widen the
+   * menu instead of clipping); the viewport always clamps on top
+   * (100vw − 16px). @default 380 */
+  maxWidth?: number;
   maxHeight?: number;
   header?: React.ReactNode;
   footer?: React.ReactNode;

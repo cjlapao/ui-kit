@@ -1211,3 +1211,97 @@ describe("SidePanel — docked zone-floor publish", () => {
     expect(row.style.getPropertyValue("--page-zone-min-right")).toBe("");
   });
 });
+
+describe("SidePanel — subHeader and headerPills", () => {
+  it("renders the strip between the header and the scroll container, outside the scroll", () => {
+    const { container } = render(
+      <SidePanel isOpen title="Details" subHeader={<span>Filter row</span>}>
+        <p>Body copy</p>
+      </SidePanel>,
+    );
+    const strip = container.querySelector("[data-sp-sub-header]") as HTMLElement;
+    expect(strip).toBeTruthy();
+    expect(strip.textContent).toBe("Filter row");
+    // It is a sibling of the two, not a guest of the scrolling body.
+    const content = container.querySelector("[data-sp-content]") as HTMLElement;
+    expect(strip.parentElement).toBe(content);
+    expect(strip.className).toContain("flex-none");
+    // The header is directly above, the scroll container directly below.
+    expect(strip.previousElementSibling?.querySelector("h3")).toBeTruthy();
+    const body = strip.nextElementSibling as HTMLElement;
+    expect(body.className).toContain("overflow-y-auto");
+    expect(body.textContent).toBe("Body copy");
+    expect(strip.closest(".overflow-y-auto")).toBeNull();
+  });
+
+  it("renders no strip element when subHeader is absent", () => {
+    const { container } = render(
+      <SidePanel isOpen title="Details">
+        <p>Body copy</p>
+      </SidePanel>,
+    );
+    expect(container.querySelector("[data-sp-sub-header]")).toBeNull();
+  });
+
+  it("sizes the strip with the header's `size` — same px, tighter py", () => {
+    const { container, rerender } = render(<SidePanel isOpen title="D" subHeader="S" />);
+    const strip = () => container.querySelector("[data-sp-sub-header]") as HTMLElement;
+    expect(strip().className).toContain("px-4");
+    expect(strip().className).toContain("py-2"); // tighter than the md header's py-3
+    rerender(<SidePanel isOpen size="sm" title="D" subHeader="S" />);
+    expect(strip().className).toContain("px-3");
+    expect(strip().className).toContain("py-1.5");
+  });
+
+  it("puts the pills between headerActions and the close button, in the centred row", () => {
+    const { container } = render(
+      <SidePanel
+        isOpen
+        title="Details"
+        onClose={() => {}}
+        headerActions={<button type="button">Act</button>}
+        headerPills={<span>3 new</span>}
+      />,
+    );
+    const pills = container.querySelector("[data-sp-header-pills]") as HTMLElement;
+    expect(pills).toBeTruthy();
+    expect(pills.textContent).toBe("3 new");
+    const row = pills.parentElement as HTMLElement;
+    expect(row.className).toContain("items-center"); // centred with the close button by construction
+    const act = screen.getByRole("button", { name: "Act" });
+    const close = screen.getByRole("button", { name: "Close panel" });
+    // [headerActions] [headerPills] [close]
+    expect(act.compareDocumentPosition(pills) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(pills.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Coexisting, not replacing: both sections render when both are given.
+    expect(row.contains(act)).toBe(true);
+    expect(row.contains(close)).toBe(true);
+  });
+
+  it("renders no pills element when headerPills is absent", () => {
+    const { container } = render(<SidePanel isOpen title="Details" onClose={() => {}} />);
+    expect(container.querySelector("[data-sp-header-pills]")).toBeNull();
+  });
+
+  it("collapse hides the strip and the pills with the rest of the content", () => {
+    const { container } = render(
+      <SidePanel
+        isOpen
+        collapsible
+        title="Inspector"
+        subHeader={<span>Filter row</span>}
+        headerPills={<span>3 new</span>}
+      >
+        <p>Body</p>
+      </SidePanel>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Collapse panel" }));
+    const content = container.querySelector("[data-sp-content]") as HTMLElement;
+    // Both live under the content box, so the blanket hiding covers them.
+    expect(container.querySelector("[data-sp-sub-header]")?.parentElement).toBe(content);
+    expect(container.querySelector("[data-sp-header-pills]")?.parentElement?.parentElement?.parentElement).toBe(content);
+    expect(content.hasAttribute("inert")).toBe(true);
+    expect(content.getAttribute("aria-hidden")).toBe("true");
+    expect(content.className).toContain("opacity-0");
+  });
+});

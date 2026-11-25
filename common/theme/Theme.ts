@@ -140,23 +140,29 @@ export function getTrueColorSubDotClass(tone: TrueColor): string {
 
 /** The hover pair a sub-row wears: its row wash and its dot lift. */
 export type SubItemHoverClasses = {
-  /** The row wash — the kit's plain-depth hover wash steps. */
+  /** The row wash — the hue at full strength, alpha doing the loudness. */
   wash: string;
   /** The dot lift: resting shift steps to the full dot step on hover. */
   dot: string;
 };
 
 /**
- * The hover grammar for an `ActivityFeed` sub-row. The wash reuses the
- * plain-depth steps from `surfaceHoverWash` (`{c}-100` light, `{c}-500/20`
- * dark); the dot lifts to the full-strength `getTrueColorDotClass` steps,
- * so a hovered sub-row's dot temporarily becomes what a main-row dot
- * always is. Template-literal classes, so all four shapes need
- * `@source inline()` lines in `scripts/generate-safelist.mjs`;
- * `themeSafelist.test.ts` walks this getter per tone.
+ * The hover grammar for an `ActivityFeed` sub-row. The wash never leaves
+ * the veil: the sub rests on the nested panels' `black/[0.04]` (light) /
+ * `white/[0.04]` (dark) depth step, and the hover paints the tone over it
+ * with alpha (`{c}-500/15` light, `{c}-500/20` dark) — the same grammar at
+ * both ends. The plain-depth solid `{c}-100` was measured for panels at
+ * rest on white, and here it swapped a 4% veil for a full pastel: the
+ * light-mode jump read as glare while the dark side, which had stayed a
+ * veil, looked right. The dot lifts to the full-strength
+ * `getTrueColorDotClass` steps, so a hovered sub-row's dot temporarily
+ * becomes what a main-row dot always is. Template-literal classes, so all
+ * four shapes need `@source inline()` lines in
+ * `scripts/generate-safelist.mjs`; `themeSafelist.test.ts` walks this
+ * getter per tone.
  */
 export const getSubItemHoverClasses = (tone: TrueColor): SubItemHoverClasses => ({
-  wash: `hover:bg-${tone}-100 dark:hover:bg-${tone}-500/20`,
+  wash: `hover:bg-${tone}-500/15 dark:hover:bg-${tone}-500/20`,
   dot: `group-hover:bg-${tone}-500 dark:group-hover:bg-${tone}-400`,
 });
 

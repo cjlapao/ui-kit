@@ -51,8 +51,10 @@ export interface MenuButtonProps
   itemPadding?: MenuProps["itemPadding"];
   itemCorner?: MenuProps["itemCorner"];
   // ---- menu surface ----
-  /** Popup width. @default 256 (Menu's) */
+  /** Minimum popup width (floor); content widens the menu up to `menuMaxWidth`. @default 256 (Menu's) */
   menuWidth?: number | string;
+  /** Cap for content-driven popup growth; the viewport clamp always applies on top. @default 380 (Menu's) */
+  menuMaxWidth?: number;
   /** Upper bound on the popup's scroll area; the viewport cap always applies on top. */
   menuMaxHeight?: number;
   /** Preferred side. Flip/clamp collision handling is always on. @default "bottom" */

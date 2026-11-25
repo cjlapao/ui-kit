@@ -117,4 +117,10 @@ describe("MenuButton", () => {
     expect(document.querySelector('[role="tooltip"]')).not.toBeNull();
     vi.useRealTimers();
   });
+  it("menuMaxWidth sets the popup growth cap next to the width floor", () => {
+    render(<MenuButton title="Model" open menuWidth={300} menuMaxWidth={460} items={items} />);
+    const popup = Array.from(document.querySelectorAll<HTMLElement>("div")).find(el => el.style.position === "fixed")!;
+    expect(popup.style.minWidth).toBe("300px");
+    expect(popup.style.maxWidth).toBe("min(460px, calc(100vw - 16px))");
+  });
 });

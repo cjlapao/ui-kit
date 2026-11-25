@@ -366,4 +366,23 @@ describe("Menu submenu selection", () => {
     expect(check).toHaveBeenCalledWith(true);
     expect(screen.getAllByRole("menu")).toHaveLength(2);
   });
+  it("floors the popup at width and caps content growth at maxWidth, with the viewport clamp on top", () => {
+    render(<Menu trigger={<button>Open</button>} open items={[{ id: "a", label: "Alpha" }]} />);
+    const popup = Array.from(document.querySelectorAll<HTMLElement>("div")).find(el => el.style.position === "fixed")!;
+    expect(popup.style.minWidth).toBe("256px");
+    expect(popup.style.maxWidth).toBe("min(380px, calc(100vw - 16px))");
+    expect(popup.style.width).toBe(""); // content-driven, never fixed
+  });
+  it("width and maxWidth pass through to the popup as floor and cap", () => {
+    render(<Menu trigger={<button>Open</button>} open width={300} maxWidth={460} items={[{ id: "a", label: "Alpha" }]} />);
+    const popup = Array.from(document.querySelectorAll<HTMLElement>("div")).find(el => el.style.position === "fixed")!;
+    expect(popup.style.minWidth).toBe("300px");
+    expect(popup.style.maxWidth).toBe("min(460px, calc(100vw - 16px))");
+  });
+  it("inline menus floor and cap instead of fixing a width", () => {
+    const { container } = render(<Menu width={300} maxWidth={460} items={[{ id: "a", label: "Alpha" }]} />);
+    const box = Array.from(container.querySelectorAll<HTMLElement>("div")).find(el => el.style.minWidth === "300px")!;
+    expect(box.style.maxWidth).toBe("min(460px, 100%)");
+    expect(box.style.width).toBe("");
+  });
 });

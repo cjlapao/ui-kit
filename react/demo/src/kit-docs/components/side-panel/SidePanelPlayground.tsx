@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import {
   Button,
   ColorSwatches,
+  Pill,
   SidePanel,
   SIDE_PANEL_SIDES,
   SIDE_PANEL_VARIANTS,
@@ -40,6 +41,8 @@ export const SidePanelPlayground: React.FC = () => {
   const [noiseScale, setNoiseScale] = useState("auto");
   const [overlay, setOverlay] = useState(false);
   const [withFooter, setWithFooter] = useState(true);
+  const [withSubHeader, setWithSubHeader] = useState(true);
+  const [withHeaderPills, setWithHeaderPills] = useState(true);
   /**
    * "auto" plus the padding scale, not a toggle. `inset` is optional and
    * defaults from the variant — `floating` and `floating-glass` float on
@@ -165,6 +168,16 @@ export const SidePanelPlayground: React.FC = () => {
                         onChange={setWithFooter}
                       />
                       <ToggleRow
+                        label="Action strip (subHeader)"
+                        checked={withSubHeader}
+                        onChange={setWithSubHeader}
+                      />
+                      <ToggleRow
+                        label="Header pills"
+                        checked={withHeaderPills}
+                        onChange={setWithHeaderPills}
+                      />
+                      <ToggleRow
                         label="Noise texture"
                         checked={noise}
                         onChange={setNoise}
@@ -256,6 +269,33 @@ export const SidePanelPlayground: React.FC = () => {
             raisedSurface={raisedSurface}
             width={280}
             height={200}
+            subHeader={
+              withSubHeader ? (
+                <div className="flex items-center gap-1">
+                  <Button size="xs" variant="solid" color={getSurfaceAccentColor(tone)}>
+                    All
+                  </Button>
+                  <Button size="xs" variant="ghost" color="slate">
+                    Open
+                  </Button>
+                  <Button size="xs" variant="ghost" color="slate">
+                    Done
+                  </Button>
+                </div>
+              ) : undefined
+            }
+            headerPills={
+              withHeaderPills ? (
+                <>
+                  <Pill size="xs" tone={tone}>
+                    3 new
+                  </Pill>
+                  <Pill size="xs" tone="green" variant="outline" icon="Check">
+                    Done
+                  </Pill>
+                </>
+              ) : undefined
+            }
             footer={
               withFooter ? (
                 <div className="flex justify-end gap-2">

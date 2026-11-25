@@ -679,7 +679,7 @@ describe("ActivityFeed", () => {
           getSurfaceCornerClass("rounded-sm"),
           "transition-colors",
           "motion-reduce:transition-none",
-          "hover:bg-amber-100",
+          "hover:bg-amber-500/15",
           "dark:hover:bg-amber-500/20",
         ]),
       );
@@ -713,7 +713,7 @@ describe("ActivityFeed", () => {
       );
       const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
       expect(tokens(wrapper)).toEqual(
-        expect.arrayContaining(["hover:bg-emerald-100", "dark:hover:bg-emerald-500/20"]),
+        expect.arrayContaining(["hover:bg-emerald-500/15", "dark:hover:bg-emerald-500/20"]),
       );
       const dot = wrapper.querySelector<HTMLElement>("span:first-child")!;
       expect(tokens(dot)).toEqual(
@@ -740,7 +740,7 @@ describe("ActivityFeed", () => {
       );
       const wrapper = container.querySelector<HTMLElement>('[role="region"] .pl-5 > div')!;
       expect(tokens(wrapper)).toEqual(
-        expect.arrayContaining(["hover:bg-sky-100", "dark:hover:bg-sky-500/20"]),
+        expect.arrayContaining(["hover:bg-sky-500/15", "dark:hover:bg-sky-500/20"]),
       );
       // The wash is the wrapper's; the custom node answers for everything inside.
       expect(wrapper.querySelector('[aria-hidden="true"]')).toBeNull();
@@ -841,6 +841,9 @@ describe("ActivityFeed", () => {
       );
       const button = container.querySelector<HTMLButtonElement>('[role="region"] .pl-5 > button')!;
       expect(button.type).toBe("button");
+      // The kit ships no preflight — the button must carry its own font
+      // reset or the UA default renders it smaller than plain sub-rows.
+      expect(button.className).toContain("[font:inherit]");
       fireEvent.click(button);
       expect(onSubClick).toHaveBeenCalledTimes(1);
       // The click stopped at the sub: the row never folded — its grid is

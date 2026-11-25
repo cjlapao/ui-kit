@@ -458,7 +458,13 @@ export const ScrollArea = ({
           ref={contentRef}
           data-slot="scrollarea-content"
           className={classNames(
-            virtualScroll ? "h-full min-w-full" : "table min-w-full",
+            // Table layout exists to size content past the viewport for a
+            // horizontal axis; with the axis locked it only harms — a nowrap
+            // row (a truncated menu title) sets the table's minimum width
+            // and inflates the whole content box, which `overflow-x: hidden`
+            // then slices mid-word. Block content wraps instead and measures
+            // exactly to the viewport.
+            virtualScroll ? "h-full min-w-full" : horizontal ? "table min-w-full" : "block min-w-full",
             // The overlay bar's lane is reserved in the content *always*:
             // the auto/hover bar appears on gesture, and a gutter tied to
             // its visibility would jog the text sideways on every scroll.

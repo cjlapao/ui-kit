@@ -535,7 +535,7 @@ describe("ActivityFeed", () => {
           getSurfaceCornerClass("rounded-sm"),
           "transition-colors",
           "motion-reduce:transition-none",
-          "hover:bg-amber-100",
+          "hover:bg-amber-500/15",
           "dark:hover:bg-amber-500/20",
         ]),
       );
@@ -571,7 +571,7 @@ describe("ActivityFeed", () => {
       });
       const sub = wrapper.find('[role="region"] .pl-5 > div');
       expect(sub.classes()).toEqual(
-        expect.arrayContaining(["hover:bg-emerald-100", "dark:hover:bg-emerald-500/20"]),
+        expect.arrayContaining(["hover:bg-emerald-500/15", "dark:hover:bg-emerald-500/20"]),
       );
       const dot = sub.find("span:first-child");
       expect(dot.classes()).toEqual(
@@ -600,7 +600,7 @@ describe("ActivityFeed", () => {
       });
       const sub = wrapper.find('[role="region"] .pl-5 > div');
       expect(sub.classes()).toEqual(
-        expect.arrayContaining(["hover:bg-sky-100", "dark:hover:bg-sky-500/20"]),
+        expect.arrayContaining(["hover:bg-sky-500/15", "dark:hover:bg-sky-500/20"]),
       );
       // The wash is the wrapper's; the custom node answers for everything inside.
       expect(sub.find('[aria-hidden="true"]').exists()).toBe(false);
@@ -715,6 +715,9 @@ describe("ActivityFeed", () => {
       });
       const button = wrapper.find('[role="region"] .pl-5 > button');
       expect(button.attributes("type")).toBe("button");
+      // No preflight in the built stylesheet — the button carries its own
+      // font reset so it never renders smaller than a plain sub-row.
+      expect(button.classes()).toContain("[font:inherit]");
       await button.trigger("click");
       expect(onSubClick).toHaveBeenCalledTimes(1);
       // The click stopped at the sub: no toggle intent, the row is as open

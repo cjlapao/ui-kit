@@ -162,10 +162,17 @@ const SHELL_CONTAINMENT: React.CSSProperties = {
   containIntrinsicSize: "auto",
 };
 
+/**
+ * `stripPad` is the `subHeader`'s vertical rhythm: the header's `px`, a
+ * tighter `py`. The strip sits directly under the header and must read as a
+ * strip, not a second header — the Modal tabs-strip precedent (`py-2` under
+ * a `py-4` header).
+ */
 const SIZE_TOKENS: Record<
   ControlSize,
   {
     pad: string;
+    stripPad: string;
     title: string;
     subtitle: string;
     icon: IconSize;
@@ -173,30 +180,35 @@ const SIZE_TOKENS: Record<
 > = {
   xs: {
     pad: "px-2 py-1.5",
+    stripPad: "px-2 py-1",
     title: "text-xs",
     subtitle: "text-[10px]",
     icon: "xs",
   },
   sm: {
     pad: "px-3 py-2",
+    stripPad: "px-3 py-1.5",
     title: "text-xs",
     subtitle: "text-[11px]",
     icon: "xs",
   },
   md: {
     pad: "px-4 py-3",
+    stripPad: "px-4 py-2",
     title: "text-sm",
     subtitle: "text-xs",
     icon: "sm",
   },
   lg: {
     pad: "px-5 py-3.5",
+    stripPad: "px-5 py-2.5",
     title: "text-base",
     subtitle: "text-sm",
     icon: "sm",
   },
   xl: {
     pad: "px-6 py-4",
+    stripPad: "px-6 py-3",
     title: "text-lg",
     subtitle: "text-sm",
     icon: "md",
@@ -239,7 +251,26 @@ export interface SidePanelProps {
   icon?: React.ReactNode;
   /** Extra nodes rendered in the header next to the close button */
   headerActions?: React.ReactNode;
-  /** Sticky footer rendered at the bottom of the panel */
+  /**
+   * Pills and quick actions rendered in the title row just before the close
+   * button — a status pill, a count, a quick toggle. Vertically centred with
+   * the close button (same `items-center` row), and separate from
+   * `headerActions` so buttons and pills can coexist:
+   * `[collapse] [headerActions] [headerPills] [close]`.
+   */
+  headerPills?: React.ReactNode;
+  /**
+   * Non-scrolling strip between the title section and the body — filters,
+   * tabs, context actions; anything that belongs to the panel as a whole and
+   * must stay put while the body scrolls. Borderless like the rest of the
+   * chrome (surfaces are variant-driven); style it through the
+   * `data-sp-sub-header` hook.
+   */
+  subHeader?: React.ReactNode;
+  /**
+   * Sticky footer rendered at the bottom of the panel — `flex-none` outside
+   * the scroll container, so it never scrolls with the body.
+   */
   footer?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -416,6 +447,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   minHeight = 120,
   maxHeight = 600,
   headerActions,
+  headerPills,
+  subHeader,
   footer,
   children,
   className,
@@ -1035,6 +1068,15 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   t("kit.sidepanel.collapse"),
                 )}
               {headerActions}
+              {headerPills && (
+                /* Centring with the close button is structural: pills and the
+                  close button are siblings of this `items-center` row, so the
+                  cluster's `pt-0.5` keeps the whole line (close included)
+                  optically level with the title. */
+                <div data-sp-header-pills className="flex items-center gap-1">
+                  {headerPills}
+                </div>
+              )}
               {onClose && !collapsible && (
                 <IconButton
                   icon="Close"
@@ -1047,6 +1089,23 @@ export const SidePanel: React.FC<SidePanelProps> = ({
               )}
             </div>
           </div>
+
+          {/* ── Sub-header strip ───────────────────────────────────── */}
+          {/* `flex-none` *outside* the scroll container below, so it stays
+            put while the body scrolls. Borderless like the rest of the
+            chrome — a hardcoded hairline would cut straight through a glass
+            surface (the Modal lesson) — consumers style it through
+            `data-sp-sub-header`. Inside `data-sp-content`, so collapsing
+            hides it with everything else (`inert` + `opacity-0`), and the
+            top/bottom panels stack it on the same flex column for free. */}
+          {subHeader && (
+            <div
+              data-sp-sub-header
+              className={classNames("relative flex-none", sizeToken.stripPad)}
+            >
+              {subHeader}
+            </div>
+          )}
 
           {/* ── Body ───────────────────────────────────────────────── */}
           <div className="relative flex-1 min-h-0 overflow-y-auto">

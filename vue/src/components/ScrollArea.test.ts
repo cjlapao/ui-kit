@@ -36,6 +36,18 @@ describe("ScrollArea", () => {
     expect(w.find('[data-slot="scrollarea-corner"]').exists()).toBe(true);
   });
 
+  it("lays content out as a block when the horizontal axis is locked, table while it can scroll", () => {
+    // Same rule as React: a `table` content box can be inflated past the
+    // viewport by a nowrap row, and the locked axis would clip it mid-word.
+    const locked = mount(ScrollArea, { props: { horizontal: false }, slots: { default: "<p/>" } });
+    const lockedContent = locked.find('[data-slot="scrollarea-content"]');
+    expect(lockedContent.classes()).toContain("block");
+    expect(lockedContent.classes()).toContain("min-w-full");
+    expect(lockedContent.classes()).not.toContain("table");
+    const both = mount(ScrollArea, { slots: { default: "<p/>" } });
+    expect(both.find('[data-slot="scrollarea-content"]').classes()).toContain("table");
+  });
+
   it("hides the bars while everything fits, and keeps the viewport out of the tab order", () => {
     const w = mount(ScrollArea, { props: { variant: "always" }, slots: { default: "<p/>" } });
     for (const bar of tracks(w)) expect(bar.attributes("data-state")).toBe("hidden");

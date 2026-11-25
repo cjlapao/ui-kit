@@ -639,7 +639,16 @@ const FeedRow = ({
                       type="button"
                       className={classNames(
                         wash,
-                        "w-full border-0 bg-transparent text-left",
+                        // The kit's built stylesheet carries no Tailwind
+                        // preflight, so a bare `<button>` keeps the UA
+                        // default font (`13.333px Arial`) and its count /
+                        // time render smaller than the div wrapper beside
+                        // it — the divergence only shows in consumer apps
+                        // that load the kit CSS without a global reset.
+                        // `[font:inherit]` makes the button a typographic
+                        // no-op so it matches the plain sub-row exactly,
+                        // the way `.kit-knowledge button` already does.
+                        "w-full border-0 bg-transparent text-left [font:inherit]",
                         getSurfaceTriggerTokens(cardAccent).focusRing,
                       )}
                       onClick={(event) => {

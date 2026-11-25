@@ -48,6 +48,7 @@ export function MenuButton({
   itemPadding,
   itemCorner,
   menuWidth,
+  menuMaxWidth,
   menuMaxHeight,
   menuPlacement,
   menuVariant,
@@ -101,6 +102,7 @@ export function MenuButton({
       itemPadding={itemPadding}
       itemCorner={itemCorner}
       width={menuWidth}
+      maxWidth={menuMaxWidth}
       maxHeight={menuMaxHeight}
       placement={menuPlacement}
       variant={menuVariant}

@@ -423,8 +423,12 @@ src(`@source inline("dark:group-hover:text-{COLOR}-300");`);
 L("");
 
 // ActivityFeed sub-row hover (getSubItemHoverClasses). The dot lifts under
-// its row's `group` to the full dot step; the wash steps themselves are
-// covered by the hover:bg-{COLOR}-100 / dark:hover:bg-{COLOR}-500/20 lines.
+// its row's `group` to the full dot step. The wash stays a veil at both ends
+// — tone at full strength, alpha doing the loudness (`-500/15` light,
+// `-500/20` dark) — so it no longer borrows the solid `hover:bg-{COLOR}-100`
+// the panels use on white; the light `/15` needs its own line (the dark
+// `-500/20` is shared with the surface hovers above).
+src(`@source inline("hover:bg-{COLOR}-500/15");`);
 src(`@source inline("group-hover:bg-{COLOR}-500");`);
 src(`@source inline("dark:group-hover:bg-{COLOR}-400");`);
 L("");

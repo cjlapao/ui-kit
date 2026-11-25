@@ -563,7 +563,13 @@ function rowView(item: ActivityFeedItem): ActivityFeedRowView {
           hover.wash,
           ...(subClick != null
             ? [
-                "w-full border-0 bg-transparent text-left",
+                // `[font:inherit]` — the kit's built stylesheet ships no
+                // Tailwind preflight, so a bare `<button>` keeps the UA
+                // default `13.333px Arial` and its count / time render
+                // smaller than the plain sub-row beside it; make the button
+                // a typographic no-op so the two match, as `.kit-knowledge
+                // button` already does.
+                "w-full border-0 bg-transparent text-left [font:inherit]",
                 getSurfaceTriggerTokens(resolvedAccentTone.value).focusRing,
               ]
             : []),

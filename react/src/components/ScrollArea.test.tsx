@@ -307,6 +307,31 @@ describe("ScrollArea", () => {
       expect(viewport().style.overflowX).toBe("hidden");
     });
 
+    it("lays content out as a block, never a table, so a nowrap row cannot inflate the locked axis", () => {
+      // A `table` content box is never narrower than its widest unbreakable
+      // content — a truncated menu title would inflate it past the viewport,
+      // where the hidden axis slices text mid-word. Block wraps instead.
+      render(
+        <ScrollArea horizontal={false}>
+          <p>content</p>
+        </ScrollArea>,
+      );
+      const content = document.querySelector('[data-slot="scrollarea-content"]')!;
+      expect(content).toHaveClass("block", "min-w-full");
+      expect(content).not.toHaveClass("table");
+    });
+
+    it("keeps the table layout while the axis can scroll — content must be able to widen", () => {
+      render(
+        <ScrollArea>
+          <p>content</p>
+        </ScrollArea>,
+      );
+      const content = document.querySelector('[data-slot="scrollarea-content"]')!;
+      expect(content).toHaveClass("table", "min-w-full");
+      expect(content).not.toHaveClass("block");
+    });
+
     it("still scrolls, and still shows the bar, vertically", () => {
       render(
         <ScrollArea variant="always" horizontal={false}>

@@ -20,7 +20,7 @@ export default function MenuPage() {
       { name: "variant / tone / corner / padding / size", type: "Shared kit scales", default: "outlined / neutral / rounded-sm / xs / md", description: "Shared surface and content scales; the surface corner matches the rows' rounded-sm default, and padding uses the compact menu scale (xs: p-1 sm:p-1.5). Glass opacity, vibrancy and specularMode are also supported, and `raisedSurface` forces the popup's first nested-panels depth step — the tinted-card-on-matching-background fix." },
       { name: "itemTone / itemPadding / itemCorner", type: "TrueColor / SurfacePadding / SurfaceCorner", default: "surface tone / follows size / rounded-sm", description: "Independent item defaults. Each MenuItem can override these with tone, padding, and corner. Danger styling stays semantic." },
       { name: "header / footer / renderItem", type: "ReactNode / ReactNode / callback", description: "Custom account chrome and row content. Row rendering preserves the command target, semantics and keyboard behavior." },
-      { name: "placement / width / maxHeight", type: "Side / number|string / number", default: "bottom / 256 / 400", description: "Popup placement and dimensions; overlays flip and clamp at viewport edges, follow scrolling and stack above their anchors." },
+      { name: "placement / width / maxWidth / maxHeight", type: "Side / number|string / number / number", default: "bottom / 256 / 380 / 400", description: "Popup placement and dimensions. `width` floors the popup; long rows then widen it to fit — never past `maxWidth`, with the viewport (100vw − 16px) clamping on top. Overlays flip and clamp at viewport edges, follow scrolling and stack above their anchors." },
     ]} />
   </div>;
 }

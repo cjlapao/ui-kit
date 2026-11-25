@@ -266,7 +266,7 @@ function onRootPointerLeave(event: PointerEvent) {
       <div
         ref="contentRef"
         data-slot="scrollarea-content"
-        :class="classNames('table min-w-full', props.contentClassName)"
+        :class="classNames(props.horizontal ? 'table min-w-full' : 'block min-w-full', props.contentClassName)"
       >
         <slot />
       </div>

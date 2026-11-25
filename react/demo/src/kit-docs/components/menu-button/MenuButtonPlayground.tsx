@@ -40,6 +40,7 @@ export function MenuButtonPlayground() {
   const [withToggleRow, setWithToggleRow] = useState(true);
   const [livePreview, setLivePreview] = useState(true);
   const [placement, setPlacement] = useState<NonNullable<MenuProps["placement"]>>("bottom");
+  const [menuMaxWidth, setMenuMaxWidth] = useState("380");
   const [selectedKey, setSelectedKey] = useState("new-file");
   const [withFooter, setWithFooter] = useState(true);
   const [notifications, setNotifications] = useState(true);
@@ -87,6 +88,7 @@ export function MenuButtonPlayground() {
       <SelectControl label="Menu corner" options={panelCornerOptions} value={menuCorner} onChange={v => setMenuCorner(v as SurfaceCorner)} />
       <SelectControl label="Menu padding" options={panelPaddingOptions} value={menuPadding} onChange={v => setMenuPadding(v as SurfacePadding)} />
       <SelectControl label="Placement" options={[{ value: "bottom", label: "Bottom" }, { value: "top", label: "Top" }, { value: "left", label: "Left" }, { value: "right", label: "Right" }]} value={placement} onChange={v => setPlacement(v as NonNullable<MenuProps["placement"]>)} />
+      <SelectControl label="Menu max width" options={[{ value: "288", label: "288 px" }, { value: "380", label: "380 px (default)" }, { value: "480", label: "480 px" }, { value: "600", label: "600 px" }]} value={menuMaxWidth} onChange={setMenuMaxWidth} />
       <p className="px-1 text-[11px] leading-snug text-neutral-500">Collision handling is always on: the popup flips to the free side and caps its height to the space left, scrolling internally.</p>
     </> },
     { id: "behavior", title: "Behavior", controls: <>
@@ -117,6 +119,7 @@ export function MenuButtonPlayground() {
         submenuMode={submenuMode}
         closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"}
         menuPlacement={placement}
+        menuMaxWidth={Number(menuMaxWidth)}
         menuVariant={menuVariant}
         menuTone={menuTone}
         menuCorner={menuCorner}

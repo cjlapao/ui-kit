@@ -4,10 +4,13 @@ import { resolveTooltipPlacement } from "../../../../common/tooltip/placement";
 import { resolveOverlayZIndex } from "../../../../common/utils/overlayZIndex";
 
 /** Shared viewport collision and stacking rules used by the kit's overlays. */
-export function MenuPopup({ anchor, placement, width, children }: {
+export function MenuPopup({ anchor, placement, width = 256, maxWidth = 380, children }: {
   anchor: React.RefObject<HTMLElement | null>;
   placement: "top" | "bottom" | "left" | "right";
-  width: number | string;
+  /** Floor: the popup never renders narrower than this. @default 256 */
+  width?: number | string;
+  /** Cap for content-driven growth; the viewport (100vw − 16px) clamps on top. @default 380 */
+  maxWidth?: number;
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -37,7 +40,9 @@ export function MenuPopup({ anchor, placement, width, children }: {
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => { observer?.disconnect(); window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
-  }, [anchor, placement, width]);
+  }, [anchor, placement, width, maxWidth]);
   if (typeof document === "undefined") return null;
-  return createPortal(<div ref={ref} style={{ position: "fixed", width, maxWidth: "calc(100vw - 16px)", ...style }}>{children}</div>, document.body);
+  // No fixed width: the popup shrink-wraps to its longest row, floored at
+  // `width` and capped at `maxWidth` (the viewport clamp rides on top).
+  return createPortal(<div ref={ref} style={{ position: "fixed", minWidth: width, maxWidth: `min(${maxWidth}px, calc(100vw - 16px))`, ...style }}>{children}</div>, document.body);
 }
