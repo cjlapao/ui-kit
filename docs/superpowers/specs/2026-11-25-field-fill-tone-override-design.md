@@ -47,6 +47,7 @@ Rejected: `fillColor` (owned by the chart family for the area under a line, `cha
 | `SmartInput` | `inputFillTone` | the trigger field | the suggestions panel and its rows |
 | `DatePicker` | `inputFillTone` | the field box | the calendar card, today and selected day cells, clear and today buttons |
 | `VariablePicker` | `inputFillTone` | the inner `SearchBar`'s box, nothing else | the card (`variant`, `panelTone`, `corner`, `raisedSurface`), row hover and selected (`tone`), the missing-value rose |
+| `IdentityPicker` | `inputFillTone` | the three fields nested in the card — emoji search, category select, initials input — on one shared value | the card (`variant`, `tone`, `raisedSurface`), emoji tiles and their selected ring, category chips, the segmented tabs, the dropzone |
 | `KeyValueArrayField` | `inputFillTone` | both inputs of every row, shared | row add/remove buttons, row focus borders |
 | `DynamicFormField` | `inputFillTone` | every field it renders — `shared` **and** the Map branch | the `MultiSelectPanel` container, label and description colours, validation border |
 
@@ -58,7 +59,7 @@ Rejected: `fillColor` (owned by the chart family for the area under a line, `cha
 | `scripts/generate-safelist.mjs` | the comment naming the producer; no shape is new, so no `@source inline` line |
 | `react/src/theme/inputVariants.test.ts`, `themeSafelist.test.ts` | option key and `describe` rename |
 | `Input.test.tsx`, `PasswordInput.test.tsx`, `SlugInput.test.tsx` | prop rename in the existing fill cases |
-| **new** `react/src/components/fieldFamilyFillContract.test.tsx` | 16 rows × five assertions, `expectFillOnly` defined once |
+| **new** `react/src/components/fieldFamilyFillContract.test.tsx` | 18 rows × five assertions, `expectFillOnly` defined once |
 
 ## Catalog C — demo
 
@@ -83,3 +84,5 @@ Rows are data — a render, whatever setup the widget needs to exist, and an opt
 ## History
 
 The two local commits (`385da752`, `ec195e58`) are unreleased, so they are squashed into one that introduces `fillTone` from the start; a log entry that announces a public prop and renames it before it ships is noise.
+
+*Addendum, same day.* The catalogue had a hole in it, and the playground found it before any test did: `IdentityPicker` is a Panel-shaped card holding three fields (emoji search, category select, initials input) and it appeared in neither Catalog A nor Catalog D — it simply was not thought about, because the audit walked out from the *field* components and this one files itself under identity/upload. It now carries `inputFillTone` on all three nested fields with one shared value, two contract rows (the emoji tab and the monogram tab, since the initials input is not in the DOM until its mode is offered), a playground control and an API row. The lesson for the next pass: the enumeration has to walk the components that *contain* a `getInputVariantTokens` consumer, not the ones that are one. The remaining candidates found that way, none of them yet judged — `FilterBar`, `SplitView`, `Chat`, `SideMenu`, `Table`, `TaskBoardColumnEditor`, `SmartGridLayout`, `SmartGridItemPalette`.

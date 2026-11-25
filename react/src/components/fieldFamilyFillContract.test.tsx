@@ -7,7 +7,7 @@
  * the pointer asks for and so belongs to the tone, not the paint. Every card
  * keeps following `panelTone`.
  *
- * One table, five assertions, sixteen controls. The assertions are deliberately
+ * One table, five assertions, eighteen controls. The assertions are deliberately
  * hue-blind to *intent*: they only ask which class tokens mention the hue, so a
  * leak into a rim, a border, a pill or a menu row fails the same way — which is
  * exactly how the ghost hover-rim regression would have been caught the day it
@@ -25,6 +25,7 @@ import DatePicker from "./DatePicker/DatePicker";
 import DynamicFormField from "./DynamicFormField";
 import Input from "./Input";
 import InputGroup from "./InputGroup";
+import IdentityPicker from "./IdentityPicker/IdentityPicker";
 import InputOtp from "./InputOtp";
 import KeyValueArrayField, { type KeyValuePair } from "./KeyValueArrayField";
 import PasswordInput from "./PasswordInput";
@@ -245,6 +246,33 @@ const ROWS: Row[] = [
         onChange={vi.fn()}
         tone={TONE}
         inputFillTone={HUE}
+      />
+    ),
+  },
+  {
+    // A card holding three fields. Both rows matter: the emoji tab is where the
+    // search box and the category select sit side by side and have to agree,
+    // and the monogram tab is the field nobody sees until the tab is offered.
+    name: "IdentityPicker (search and category)",
+    draw: () => (
+      <IdentityPicker
+        name="Project Atlas"
+        modes={["emoji"]}
+        tone={TONE}
+        inputFillTone={HUE}
+        onChange={vi.fn()}
+      />
+    ),
+  },
+  {
+    name: "IdentityPicker (initials)",
+    draw: () => (
+      <IdentityPicker
+        name="Project Atlas"
+        modes={["monogram"]}
+        tone={TONE}
+        inputFillTone={HUE}
+        onChange={vi.fn()}
       />
     ),
   },

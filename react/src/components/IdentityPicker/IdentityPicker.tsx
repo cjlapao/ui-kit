@@ -9,7 +9,7 @@ import Select from "../Select";
 import Button from "../Button";
 import FileUpload, { type FileRejection } from "../FileUpload";
 import { ImagePreview } from "../FileUpload/ImagePreview";
-import { getSideMenuItemTokens, getSurfaceCornerClass, getSurfaceTriggerTokens, THIN_SCROLLBAR, type ControlSize } from "../../theme/Theme";
+import { getSideMenuItemTokens, getSurfaceCornerClass, getSurfaceTriggerTokens, THIN_SCROLLBAR, type ControlSize, type TrueColor } from "../../theme/Theme";
 import { compactIdentitySpacing, identitySizeTokens } from "./sizeTokens";
 import { IDENTITY_EMOJIS, type IdentityEmoji } from "./emojis";
 
@@ -60,6 +60,18 @@ export interface IdentityPickerProps extends Pick<PanelProps, "variant" | "tone"
   /** Space-saving arrangement. Set false for category chips and stacked fields. @default true */
   compact?: boolean;
   /**
+   * The hue the *fields inside the card* wear on their fill — the emoji search, the
+   * category select, the initials input — when that should disagree with `tone`. It is
+   * not the card's fill: that is `variant`, `tone` and `raisedSurface`, and on everything
+   * Panel-shaped `backgroundColor` means the card, so this component needs the two words
+   * to mean different things. All three fields take one value because a card whose search
+   * box is rose and whose category box is white reads as one control in two states, not
+   * as two decisions. Focus border, ring and `ghost`'s hover rim keep following `tone`,
+   * and so do the emoji tiles, the category chips and the segmented tabs.
+   * @default "none" — whatever the variant paints today
+   */
+  inputFillTone?: TrueColor;
+  /**
    * Identity kinds to offer, in the order to show them. Unknown names and duplicates are
    * dropped; omit for all three. With one mode the tab bar disappears and that panel
    * renders on its own, and with none only the preview and reset remain.
@@ -83,7 +95,7 @@ export const IDENTITY_EMOJI_FONT_FAMILY = '"Apple Color Emoji", "Segoe UI Emoji"
 
 export function IdentityPicker({ value, defaultValue = null, onChange, onReject, name = "", emojis = IDENTITY_EMOJIS,
   fontFamily = IDENTITY_EMOJI_FONT_FAMILY, size = "md", compact = true, disabled = false, loading = false, error,
-  maxImageSize = 5 * 1024 * 1024, modes, labels: overrides, uploadLabels, className, ...surface }: IdentityPickerProps) {
+  maxImageSize = 5 * 1024 * 1024, modes, labels: overrides, uploadLabels, className, inputFillTone, ...surface }: IdentityPickerProps) {
   const density = identitySizeTokens[size];
   const spacing = compact ? compactIdentitySpacing[size] : density;
   const monogramLayout = compact
@@ -117,13 +129,13 @@ export function IdentityPicker({ value, defaultValue = null, onChange, onReject,
   const panels: Record<IdentityMode, TabItem> = {
     emoji: { id: `${tabsId}-emoji`, label: labels.emoji, disabled: locked, panel: <div className={spacing.panel}>
       {compact ? <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1"><SearchBar onSearch={setQuery} debounceMs={0} placeholder={labels.search} color={tone} size={size} variant="flat" disabled={locked} /></div>
-        <div className="w-36 max-w-[45%] shrink-0"><Select aria-label={labels.categories} style={{ lineHeight: categoryLineHeight, height: categoryLineHeight, minHeight: 0, alignItems: "center" }} value={category} onChange={event => setCategory(event.target.value)} size={size} tone={tone} variant="flat" disabled={locked}>
+        <div className="min-w-0 flex-1"><SearchBar onSearch={setQuery} debounceMs={0} placeholder={labels.search} color={tone} size={size} variant="flat" fillTone={inputFillTone} disabled={locked} /></div>
+        <div className="w-36 max-w-[45%] shrink-0"><Select aria-label={labels.categories} style={{ lineHeight: categoryLineHeight, height: categoryLineHeight, minHeight: 0, alignItems: "center" }} value={category} onChange={event => setCategory(event.target.value)} size={size} tone={tone} variant="flat" fillTone={inputFillTone} disabled={locked}>
           <option value="recommended">{labels.recommended}</option><option value="all">{labels.all}</option>
           {categories.map(label => <option key={label} value={label}>{label}</option>)}
         </Select></div>
       </div> : <>
-        <SearchBar onSearch={setQuery} debounceMs={0} placeholder={labels.search} color={tone} size={size} variant="flat" disabled={locked} />
+        <SearchBar onSearch={setQuery} debounceMs={0} placeholder={labels.search} color={tone} size={size} variant="flat" fillTone={inputFillTone} disabled={locked} />
         <div className="flex flex-wrap gap-1" aria-label={labels.categories}>
           {[{ id: "recommended", label: labels.recommended }, { id: "all", label: labels.all }, ...categories.map(label => ({ id: label, label }))].map(categoryOption => <Button key={categoryOption.id} size={density.action} variant={category === categoryOption.id ? "soft" : "ghost"} color={tone} aria-pressed={category === categoryOption.id} disabled={locked} onClick={() => setCategory(categoryOption.id)}>{categoryOption.label}</Button>)}
         </div>
@@ -153,7 +165,7 @@ export function IdentityPicker({ value, defaultValue = null, onChange, onReject,
       value={selected?.type === "image" && selected.file ? [selected.file] : []} onReject={onReject}
       onChange={files => change(files[0] ? { type: "image", file: files[0] } : null)} /></div> },
     monogram: { id: `${tabsId}-monogram`, label: labels.monogram, disabled: locked, panel: <div className={monogramLayout}>
-      <label className={classNames("block", density.description, compact && "min-w-0 flex-1")}><span className="mb-2 block">{labels.initials}</span><Input aria-label={labels.initials} size={size} tone={tone} disabled={locked}
+      <label className={classNames("block", density.description, compact && "min-w-0 flex-1")}><span className="mb-2 block">{labels.initials}</span><Input aria-label={labels.initials} size={size} tone={tone} fillTone={inputFillTone} disabled={locked}
         value={selected?.type === "monogram" ? selected.text : automatic} maxLength={4} onChange={event => change({ type: "monogram", text: event.target.value.toLocaleUpperCase() })} /></label>
       <Button size={size} variant="soft" color={tone} disabled={locked} onClick={() => change({ type: "monogram", text: automatic })}>{labels.automatic}</Button>
     </div> },
