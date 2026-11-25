@@ -21,6 +21,8 @@ export function MenuPlayground() {
   const [itemCorner, setItemCorner] = useState<SurfaceCorner>("rounded-sm");
   const [submenuMode, setSubmenuMode] = useState<MenuProps["submenuMode"]>("tiered");
   const [placement, setPlacement] = useState<MenuProps["placement"]>("bottom");
+  const [align, setAlign] = useState<MenuProps["align"]>("grow");
+  const [widthFloor, setWidthFloor] = useState("256");
   const [maxWidth, setMaxWidth] = useState("380");
   const [popup, setPopup] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -74,6 +76,8 @@ export function MenuPlayground() {
       <SelectControl label="Select closes" options={[{ value: "auto", label: "Auto (per kind)" }, { value: "always", label: "Always" }, { value: "never", label: "Never" }]} value={closeMode} onChange={setCloseMode} />
       <ToggleRow label="Popup" checked={popup} onChange={setPopup} />
       <SelectControl label="Placement" options={["top","bottom","left","right"].map(value => ({value,label:value}))} value={placement ?? "bottom"} onChange={v => setPlacement(v as MenuProps["placement"])} />
+      <SelectControl label="Popup align" options={[{value:"grow",label:"Grow (default)"},{value:"start",label:"Start — pin leading edge"},{value:"end",label:"End — pin trailing edge"}]} value={align ?? "grow"} onChange={v => setAlign(v as MenuProps["align"])} />
+      <SelectControl label="Popup width floor" options={[{value:"256",label:"256 px (default)"},{value:"trigger",label:"Match trigger"}]} value={widthFloor} onChange={setWidthFloor} />
       <SelectControl label="Popup max width" options={[{ value: "288", label: "288 px" }, { value: "380", label: "380 px (default)" }, { value: "480", label: "480 px" }, { value: "600", label: "600 px" }]} value={maxWidth} onChange={setMaxWidth} />
       <ToggleRow label="Header and footer" checked={withChrome} onChange={setWithChrome} />
     </> },
@@ -81,7 +85,7 @@ export function MenuPlayground() {
     preview={<div className="w-full space-y-4"><div className="flex min-h-80 items-start justify-center">
       <Menu key={popup ? "popup" : "inline"} aria-label="Playground commands" items={items} variant={variant} tone={tone} size={size} padding={padding} corner={corner} raisedSurface={raisedSurface}
         itemTone={followTone ? undefined : itemTone} itemPadding={itemPadding === "auto" ? undefined : itemPadding} itemCorner={itemCorner}
-        submenuMode={submenuMode} closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"} placement={placement} maxWidth={Number(maxWidth)} trigger={popup ? <Button tooltip="Run a command" tooltipDisabled={menuOpen}>Open menu</Button> : undefined}
+        submenuMode={submenuMode} closeOnSelect={closeMode === "auto" ? undefined : closeMode === "always"} placement={placement} align={align} width={widthFloor === "trigger" ? "trigger" : Number(widthFloor)} maxWidth={Number(maxWidth)} trigger={popup ? <Button tooltip="Run a command" tooltipDisabled={menuOpen}>Open menu</Button> : undefined}
         header={withChrome ? <div className="px-3 py-2 font-semibold">Workspace</div> : undefined}
         footer={withChrome ? <div className="px-3 py-2 text-xs text-neutral-500">Signed in as Alex Morgan</div> : undefined}
         onSelect={item => pushLog(`onSelect → ${item.id}`)} onOpenChange={open => { setMenuOpen(open); pushLog(`onOpenChange → ${open}`); }}

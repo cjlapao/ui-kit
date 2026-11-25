@@ -86,10 +86,16 @@ export interface TooltipPlacementInput {
    * (right edges aligned). What a popover should do: the panel reads as
    * anchored to the button it came from, not floating over its centre.
    *
-   * The caret maths below are identical for both — the caret always tracks
-   * the trigger's centre after clamping.
+   * `"start"` pins the box's leading edge (left for `top`/`bottom`, top for
+   * `left`/`right`) to the trigger's leading edge; `"end"` pins the box's
+   * trailing edge to the trigger's trailing edge — regardless of which way
+   * has room, so a right-anchored menu stays flush right. Both clamp into
+   * the bounds like every other alignment.
+   *
+   * The caret maths below are identical for all of them — the caret always
+   * tracks the trigger's centre after clamping.
    */
-  align?: "center" | "grow";
+  align?: "center" | "grow" | "start" | "end";
 }
 
 export interface TooltipPlacement {
@@ -156,19 +162,20 @@ const resolveBounds = (input: TooltipPlacementInput): TooltipRect => {
 };
 
 /**
- * The `"grow"` alignment along one axis: the box starts at the trigger's
- * near edge and grows toward the side that has room — right/down when the
- * whole box fits there, otherwise left/up — then gets clamped into the
- * bounds. Growing right means the box's leading edge sits on the trigger's
- * leading edge; growing left means its trailing edge sits on the trigger's
- * trailing edge.
+ * The edge-aligned modes along one axis. `"grow"`: the box starts at the
+ * trigger's near edge and grows toward the side that has room — right/down
+ * when the whole box fits there, otherwise left/up. `"start"`: the box's
+ * leading edge sits on the trigger's leading edge. `"end"`: the box's
+ * trailing edge sits on the trigger's trailing edge. All three then get
+ * clamped into the bounds.
  */
-const growAlong = (
+const alignAlong = (
   axis: "x" | "y",
   trigger: TooltipRect,
   span: number,
   bounds: TooltipRect,
   margin: number,
+  mode: "grow" | "start" | "end",
 ): number => {
   const from = axis === "x" ? trigger.left : trigger.top;
   const to =
@@ -177,8 +184,14 @@ const growAlong = (
       : trigger.top + trigger.height;
   const boundStart = axis === "x" ? bounds.left : bounds.top;
   const boundSpan = axis === "x" ? bounds.width : bounds.height;
-  const growsPositive = from + span <= boundStart + boundSpan - margin;
-  const value = growsPositive ? from : to - span;
+  const value =
+    mode === "start"
+      ? from
+      : mode === "end"
+        ? to - span
+        : from + span <= boundStart + boundSpan - margin
+          ? from
+          : to - span;
   const min = boundStart + margin;
   const max = boundStart + boundSpan - span - margin;
   return clamp(value, min, max);
@@ -253,29 +266,29 @@ export const resolveTooltipPlacement = (
       side === "top"
         ? trigger.top - offset - tooltip.height
         : trigger.top + trigger.height + offset;
-    if (align === "grow") {
-      left = growAlong("x", trigger, tooltip.width, bounds, margin);
-    } else {
+    if (align === "center") {
       // Centre on the trigger, then keep the whole box inside the bounds.
       left = clamp(
         triggerCenterX - tooltip.width / 2,
         bounds.left + margin,
         bounds.left + bounds.width - tooltip.width - margin,
       );
+    } else {
+      left = alignAlong("x", trigger, tooltip.width, bounds, margin, align);
     }
   } else {
     left =
       side === "left"
         ? trigger.left - offset - tooltip.width
         : trigger.left + trigger.width + offset;
-    if (align === "grow") {
-      top = growAlong("y", trigger, tooltip.height, bounds, margin);
-    } else {
+    if (align === "center") {
       top = clamp(
         triggerCenterY - tooltip.height / 2,
         bounds.top + margin,
         bounds.top + bounds.height - tooltip.height - margin,
       );
+    } else {
+      top = alignAlong("y", trigger, tooltip.height, bounds, margin, align);
     }
   }
 

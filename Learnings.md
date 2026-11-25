@@ -1784,6 +1784,57 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   value `text-rose-500` — and a leak detector that flags a semantic colour gets
   weakened inside a week.
 
+## A legacy component retires by absorbing its semantics, not by rewriting its callers — Menu takes DropdownMenu's popup vocabulary (2026-11-25)
+
+- Deprecating `DropdownMenu` looked like a migration ("port the eight call
+  sites") and was really an absorption ("say everything it says"). Menu was
+  already the richer widget — submenus, checks, typeahead, Panel surfaces —
+  but four observable behaviours kept the old component irreplaceable:
+  `align: "end"`, `width: "trigger"`, the split-button caret as the alignment
+  reference, and the SideMenu popup tier. A replacement that cannot *say* what
+  the legacy thing says gets forked, not adopted.
+- **Alignment belongs in the pure geometry, not the component.** `start`/`end`
+  joined `center`/`grow` in `common/tooltip/placement.ts` as one more edge
+  mode of `alignAlong`, so the parity is testable as arithmetic
+  (`tooltipPlacement.test.ts`) and both kits inherit it for free. The
+  component-side test (`Menu.test.tsx`) then only proves the plumbing — mock
+  `getBoundingClientRect` (the portal is the element containing
+  `[role="menu"]`, the trigger is the button) and assert the pixel the math
+  implies. One number per test; the interesting assertion is always
+  `end ≠ grow ≠ center` at the same geometry.
+- **`"end"` is not `"grow"` pretending.** Grow asks "which way has room" and
+  an edge-pinned menu must not: `end` differs from `grow` exactly when the box
+  fits right (grow starts at the trigger's left edge, end keeps the right
+  edges flush), and `start` differs from `grow` exactly when it does not
+  (grow retreats, start holds and lets the clamp move it) — the two geometries
+  where an untested mode hides, so each got its own number. The z-tier came
+  last: `resolveOverlayZIndex` already walked the anchor chain, but a docked
+  SideMenu's aside carries no z-index, so the popup must take
+  `max(chain, useMenuPopupZIndex() ?? 0)` — the same `max` the
+  DropdownMenu/Picker pair learned the hard way.
+- The trigger-width floor (`width: "trigger"`) moved `minWidth` from the
+  portal's static style into the measured style state, because a floor that
+  reads the anchor can only exist after the anchor is measured. The numeric
+  path still lands as `minWidth: 256` → `"256px"`; existing floor assertions
+  pass untouched — parity with the old tests is part of parity with the old
+  component.
+- Housekeeping that outed itself: a `TagPicker`/`Picker` highlight-wash suite
+  failed on one run of an "unchanged" tree and passed on the next, which reads
+  as flakiness and was not — a parallel editor was mid-refactor of those exact
+  files (the `POPUP_ROW_WASH` token extraction) while the tests ran, and the
+  mtimes said so. A failing run is only evidence about the tree you can still
+  reproduce; check mtimes and `git diff` before believing any same-tree
+  green/red pair.
+- The menu's "right padding looks off" report was one measured pixel delta —
+  rows sat 8px from the panel's left edge and 21px from its right — and one
+  root cause: `ScrollArea` reserves the overlay bar's lane as a permanent
+  `pr-2.5` inside its content, and embedding it inside an already-padded
+  surface stacks a second inset that only the right edge pays. A lane belongs
+  to exactly one owner; `gutter={false}` refunds it when the surface's own
+  row padding (≥10px) already clears the thumb. The report never mentioned a
+  number, so the first fix was measuring the screenshot instead of reading
+  the JSX.
+
 ## A borderless variant that gains an edge has to move its hover rung with it (2026-11-25)
 
 - `tonal` was the one Panel variant with a tinted fill and no edge of its own:

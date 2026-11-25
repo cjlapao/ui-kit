@@ -232,6 +232,25 @@ describe("ScrollArea", () => {
     expect(content.className).toContain("pr-2.5");
   });
 
+  it("refunds the lane when the caller's own padding is the lane (gutter=false)", () => {
+    // A padded menu list trails its rows with ≥10px already; keeping the
+    // content lane on top of that would hang the rows further from the
+    // right panel edge than from the left.
+    render(
+      <ScrollArea gutter={false}>
+        <p>content</p>
+      </ScrollArea>,
+    );
+    const content = document.querySelector(
+      '[data-slot="scrollarea-content"]',
+    ) as HTMLElement;
+    expect(content.className).not.toContain("pr-2.5");
+    // The bar itself is untouched — the lane refund is content-side only.
+    expect(
+      document.querySelector('[data-slot="scrollarea-scrollbar"][data-orientation="vertical"]'),
+    ).toBeTruthy();
+  });
+
   it("the content wrapper stretches for horizontal scroll sizing", () => {
     render(
       <ScrollArea>

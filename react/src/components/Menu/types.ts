@@ -76,6 +76,14 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
    * the root list. */
   closeOnSelect?: boolean;
   placement?: "top" | "bottom" | "left" | "right";
+  /**
+   * Popup alignment with the anchor along the axis the placement runs away
+   * from (left/right for `top`/`bottom`, top/bottom for `left`/`right`).
+   * `"grow"` (default) pins the near edge and grows toward the room;
+   * `"start"` pins the leading edges; `"end"` pins the trailing edges —
+   * right-anchored kebab/caret menus stay flush right. Popup-only.
+   */
+  align?: "start" | "end" | "grow";
   size?: ControlSize;
   /** Row tone; defaults to the surface tone. Individual items may override it. */
   itemTone?: PanelProps["tone"];
@@ -85,8 +93,10 @@ export interface MenuProps extends Pick<PanelProps, "variant" | "tone" | "corner
   /** Row corners. @default "rounded-sm" (rounded-lg) */
   itemCorner?: PanelProps["corner"];
   /** Floor for the popup width; content may widen the menu up to `maxWidth`.
+   * `"trigger"` floors it at the anchor's own width (legacy DropdownMenu's
+   * `width: "trigger"`; inline menus ignore it and keep the 256 default).
    * Also the fixed width of inline menus that fit. @default 256 */
-  width?: number | string;
+  width?: number | string | "trigger";
   /** Cap for content-driven popup growth (long titles/descriptions widen the
    * menu instead of clipping); the viewport always clamps on top
    * (100vw − 16px). @default 380 */

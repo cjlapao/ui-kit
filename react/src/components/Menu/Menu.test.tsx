@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Menu, type MenuItem } from "./Menu";
+import { MenuPopupContext } from "../../contexts/MenuPopupContext";
 
 const items: MenuItem[] = [
   { id: "documents", label: "Documents", type: "group", items: [
@@ -205,6 +206,12 @@ describe("Menu selection (selectedKey)", () => {
     // The kit ScrollArea does the scrolling — no raw overflow-auto div left.
     expect(frame.querySelector('[data-slot="scrollarea-viewport"] [data-slot="scrollarea-content"]')).toBeTruthy();
     expect(frame).toHaveAttribute("data-variant", "auto");
+    // The menu refunds the ScrollArea's content lane (gutter=false): the
+    // rows' own trailing padding is the thumb's lane, so a row sits at an
+    // equal inset from both panel edges instead of hanging ~10px looser on
+    // the right.
+    const content = frame.querySelector('[data-slot="scrollarea-content"]') as HTMLElement;
+    expect(content.className).not.toContain("pr-2.5");
   });
 });
 
@@ -384,5 +391,66 @@ describe("Menu submenu selection", () => {
     const box = Array.from(container.querySelectorAll<HTMLElement>("div")).find(el => el.style.minWidth === "300px")!;
     expect(box.style.maxWidth).toBe("min(460px, 100%)");
     expect(box.style.width).toBe("");
+  });
+});
+
+// The gaps that kept the legacy DropdownMenu alive as Menu's only popup
+// option: edge alignment, trigger-width matching, the split-button caret as
+// the alignment reference, and the SideMenu popup tier.
+describe("Menu popup DropdownMenu parity", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const rectOf = (r: Partial<DOMRect>): DOMRect => ({ top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}), ...r }) as DOMRect;
+  // The trigger button measures as `anchor`, the portal (the div containing
+  // the role=menu list) as `popup`, an optional caret span gets its own box.
+  const mockLayout = (anchor: Partial<DOMRect>, popup: Partial<DOMRect>, caret?: Partial<DOMRect>) =>
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      if (this.hasAttribute("data-dropdown-caret")) return rectOf(caret ?? {});
+      if (this.querySelector('[role="menu"]')) return rectOf(popup);
+      if (this.tagName === "BUTTON") return rectOf(anchor);
+      return rectOf({});
+    });
+  const popupEl = () => Array.from(document.querySelectorAll<HTMLElement>("div")).find(el => el.style.position === "fixed")!;
+  // jsdom viewport: 1024 × 768. A 100×20 anchor at y=100 leaves room below,
+  // so the popup always takes the preferred bottom side.
+  const anchorAt = (left: number, width = 100) => ({ top: 100, left, width, height: 20 });
+  const popupBox = { width: 256, height: 100 };
+
+  it("align='end' pins the popup's right edge to the anchor even when it fits right", () => {
+    // Anchor 700..800: grow would start at 700; end must sit at 800 − 256.
+    mockLayout(anchorAt(700), popupBox);
+    render(<Menu trigger={<button>Open</button>} open align="end" items={[{ id: "a", label: "Alpha" }]} />);
+    expect(popupEl().style.left).toBe("544px");
+  });
+  it("align='start' pins the leading edge while grow retreats from the clipped side", () => {
+    // Anchor 850..950: a 256-wide popup cannot grow right — grow retreats to
+    // 950 − 256 = 694; start keeps asking for 850 and only the clamp moves it.
+    mockLayout(anchorAt(850), popupBox);
+    const grown = render(<Menu trigger={<button>Open</button>} open items={[{ id: "a", label: "Alpha" }]} />);
+    expect(popupEl().style.left).toBe("694px");
+    grown.unmount();
+    mockLayout(anchorAt(850), popupBox);
+    render(<Menu trigger={<button>Open</button>} open align="start" items={[{ id: "a", label: "Alpha" }]} />);
+    expect(popupEl().style.left).toBe(`${1024 - 256 - 8}px`);
+  });
+  it("width='trigger' floors the popup at the anchor's width", () => {
+    mockLayout({ ...anchorAt(100), width: 420 }, popupBox);
+    render(<Menu trigger={<button>Open</button>} open width="trigger" items={[{ id: "a", label: "Alpha" }]} />);
+    expect(popupEl().style.minWidth).toBe("420px");
+  });
+  it("a split-button caret owns cross-axis alignment, not the outer container", () => {
+    // Container 700..900 with the caret's 820..840 hugging its right edge:
+    // end alignment reads off the caret, so the popup right edge lands at 840.
+    mockLayout(anchorAt(700, 200), popupBox, { top: 100, left: 820, width: 20, height: 20 });
+    render(<Menu trigger={<button>Open <span data-dropdown-caret /></button>} open align="end" items={[{ id: "a", label: "Alpha" }]} />);
+    expect(popupEl().style.left).toBe(`${840 - 256}px`);
+  });
+  it("stacks at the enclosing SideMenu popup tier when one provides it", () => {
+    mockLayout(anchorAt(400), popupBox);
+    const { unmount } = render(<MenuPopupContext.Provider value={61}><Menu trigger={<button>Open</button>} open items={[{ id: "a", label: "Alpha" }]} /></MenuPopupContext.Provider>);
+    expect(popupEl().style.zIndex).toBe("61");
+    unmount();
+    render(<Menu trigger={<button>Open</button>} open items={[{ id: "a", label: "Alpha" }]} />);
+    // Outside a menu layer the anchor chain still wins (default tier 20 + 1).
+    expect(popupEl().style.zIndex).toBe("21");
   });
 });

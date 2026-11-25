@@ -849,6 +849,14 @@ export const DOC_COMPONENTS: DocComponent[] = [
     Page: lazy(() => import("./components/stat-card/StatCardPage")),
   },
   {
+    slug: "diagram-flow",
+    name: "Diagram Flow",
+    description: "Editable workflow diagrams with branches, nested steps and retry paths.",
+    icon: "Blueprint",
+    category: "Data",
+    Page: lazy(() => import("./components/diagram-flow/DiagramFlowPage")),
+  },
+  {
     slug: "connection-flow",
     name: "Connection Flow",
     description:

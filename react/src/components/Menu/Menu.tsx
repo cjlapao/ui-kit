@@ -249,8 +249,12 @@ function MenuSurface({ state, children, root = false }: { state: State; children
       {/* The popup publishes --menu-popup-max-height (space to the viewport edge on the
           chosen side); inline menus have no such var and fall back to 100dvh. The cap
           rides the ScrollArea frame and the max-h-[inherit] viewport scrolls inside it;
-          tabIndex -1 because the menu's roving focus already owns the keyboard. */}
-      <ScrollArea horizontal={false} tabIndex={-1} style={{ maxHeight: `min(${props.maxHeight ?? 400}px, calc(100dvh - 32px), var(--menu-popup-max-height, 100dvh))` }}>{children}</ScrollArea>
+          tabIndex -1 because the menu's roving focus already owns the keyboard.
+          gutter false: the row's own trailing px-* (≥8px, and the bar's ink is a 4px
+          thumb inside its 10px track) already clears the lane, so the content lane
+          would only stack a second inset on the right — the rows then hung further
+          from the panel edge on the right than on the left. */}
+      <ScrollArea gutter={false} horizontal={false} tabIndex={-1} style={{ maxHeight: `min(${props.maxHeight ?? 400}px, calc(100dvh - 32px), var(--menu-popup-max-height, 100dvh))` }}>{children}</ScrollArea>
       {root && props.footer && <div className="mt-2 border-t border-neutral-200 pt-2 dark:border-white/10">{props.footer}</div>}
       </div>
     </Panel>
@@ -315,6 +319,6 @@ export function Menu(props: MenuProps) {
       onKeyDown: event => { original.onKeyDown?.(event); if (!event.defaultPrevented && (event.key === "ArrowDown" || event.key === "ArrowUp")) { event.preventDefault(); requestOpen(true); } },
     });
   }
-  return <>{trigger}{popup ? open && <MenuPopup anchor={anchor} placement={props.placement ?? "bottom"} width={props.width} maxWidth={props.maxWidth}>{surface}</MenuPopup> : <div style={{ minWidth: props.width ?? 256, maxWidth: props.maxWidth != null ? `min(${props.maxWidth}px, 100%)` : "100%" }}>{surface}</div>}</>;
+  return <>{trigger}{popup ? open && <MenuPopup anchor={anchor} placement={props.placement ?? "bottom"} width={props.width} maxWidth={props.maxWidth} align={props.align ?? "grow"}>{surface}</MenuPopup> : <div style={{ minWidth: props.width === "trigger" ? 256 : props.width ?? 256, maxWidth: props.maxWidth != null ? `min(${props.maxWidth}px, 100%)` : "100%" }}>{surface}</div>}</>;
 }
 export default Menu;

@@ -68,6 +68,17 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Classes for the content wrapper, for the rare caller that needs the
    * scrolling box itself styled apart from the frame. */
   contentClassName?: string;
+  /**
+   * Whether the content pays the overlay bar's lane (a constant 10px right
+   * inset). A surface that already trails its rows with ≥10px of padding —
+   * a padded menu list — should refund it, or the lane stacks on top of
+   * that padding and the content sits further from the right edge than
+   * from the left, with the bar floating over dead space. The thumb still
+   * never touches real content, because the caller's own padding is the
+   * lane now.
+   * @default true
+   */
+  gutter?: boolean;
   /** Classes for the scrolling viewport itself — the element that actually
    * carries `overflow: auto`. For the caller that has to reach the scroller's
    * behaviour (an `overscroll-contain`, say, so a wheel at the end of the
@@ -128,6 +139,7 @@ export const ScrollArea = ({
   vertical = true,
   tabIndex = 0,
   contentClassName,
+  gutter = true,
   viewportClassName,
   viewportRef: viewportRefProp,
   children,
@@ -469,8 +481,12 @@ export const ScrollArea = ({
             // the auto/hover bar appears on gesture, and a gutter tied to
             // its visibility would jog the text sideways on every scroll.
             // A constant 10px inset is the calmer contract — the thumb then
-            // never sits on the caller's content, or its hover state.
-            "pr-2.5",
+            // never sits on the caller's content, or its hover state. A
+            // surface whose rows already trail ≥10px of padding — a padded
+            // menu list — refunds the lane with `gutter={false}`: its own
+            // padding is the lane then, and the content keeps an equal inset
+            // on both edges.
+            gutter && "pr-2.5",
             contentClassName,
           )}
         >

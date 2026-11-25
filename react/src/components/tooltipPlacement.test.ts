@@ -328,4 +328,34 @@ describe("tooltip placement", () => {
       expect(centred).toEqual(explicit);
     });
   });
+
+  describe("start/end alignment (legacy DropdownMenu parity)", () => {
+    // 100 px trigger (centre cx±50), 200 px box, 1000 px viewport, margin 8.
+    it("pins the leading edge for start and the trailing edge for end", () => {
+      const t = trigger(500, 400); // left 450, right 550 — room on both sides
+      const start = place("bottom", 500, 400, { align: "start" });
+      const end = place("bottom", 500, 400, { align: "end" });
+      expect(start.left).toBe(t.left); // 450 — same as grow when it fits right
+      // End flush-right no matter which way has room: right edge on the
+      // trigger's right edge. This is what `grow` would NOT do here (450).
+      expect(end.left).toBe(t.left + t.width - TOOLTIP.width); // 350
+      expect(end.left).not.toBe(start.left);
+      expect(end.left).not.toBe(500 - TOOLTIP.width / 2); // not centred
+    });
+
+    it("keeps the requested edge even when grow would retreat", () => {
+      const t = trigger(850, 400, 100, 30); // left 800 — the box doesn't fit right
+      const grow = place("bottom", 850, 400, { align: "grow" });
+      const start = place("bottom", 850, 400, { align: "start" });
+      expect(grow.left).toBe(t.left + t.width - TOOLTIP.width); // retreats: 700
+      // Start still asks for the leading edge; only the viewport clamp moves it.
+      expect(start.left).toBe(VIEWPORT.width - TOOLTIP.width - 8); // 792
+    });
+
+    it("aligns along the vertical axis for side placements", () => {
+      const t = trigger(500, 200, 100, 30); // top 185, bottom 215
+      expect(place("right", 500, 200, { align: "start" }).top).toBe(t.top);
+      expect(place("right", 500, 200, { align: "end" }).top).toBe(t.top + t.height - TOOLTIP.height); // 175
+    });
+  });
 });

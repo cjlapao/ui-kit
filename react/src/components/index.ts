@@ -973,3 +973,6 @@ export type { FilterBarProps, FilterBarFilter, FilterBarOptionFilter, FilterBarT
 export * from "./AiRobot";
 export * from "./AgentMap";
 export { GridBackground, GRID_BACKGROUND_PATTERNS, type GridBackgroundPattern, type GridBackgroundProps } from "./GridBackground";
+
+// DiagramFlow
+export * from "./DiagramFlow";

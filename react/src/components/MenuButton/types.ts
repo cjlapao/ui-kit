@@ -51,8 +51,12 @@ export interface MenuButtonProps
   itemPadding?: MenuProps["itemPadding"];
   itemCorner?: MenuProps["itemCorner"];
   // ---- menu surface ----
-  /** Minimum popup width (floor); content widens the menu up to `menuMaxWidth`. @default 256 (Menu's) */
-  menuWidth?: number | string;
+  /** Popup alignment with the trigger. `"end"` keeps a right-anchored trigger's
+   * menu flush right; @default "grow" (Menu's). */
+  menuAlign?: MenuProps["align"];
+  /** Minimum popup width (floor); content widens the menu up to `menuMaxWidth`.
+   * `"trigger"` floors at the trigger's own width. @default 256 (Menu's) */
+  menuWidth?: MenuProps["width"];
   /** Cap for content-driven popup growth; the viewport clamp always applies on top. @default 380 (Menu's) */
   menuMaxWidth?: number;
   /** Upper bound on the popup's scroll area; the viewport cap always applies on top. */
