@@ -21,7 +21,8 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
   // step before the eye can find it — both upload components take it.
   const [raisedSurface, setRaisedSurface] = useState(false);
   // The three fields inside the card (search, category, initials) may wear a fill hue
-  // the card itself does not. `undefined` leaves them on the variant's own fill.
+  // and an accent the card itself does not. `undefined` leaves each on the card's own.
+  const [inputTone, setInputTone] = useState<TrueColor | undefined>(undefined);
   const [inputFillTone, setInputFillTone] = useState<TrueColor | undefined>(undefined);
   const [size, setSize] = useState<ControlSize>("md");
   const [compact, setCompact] = useState(true);
@@ -44,7 +45,10 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
       <SelectControl label="Size" options={controlSizeOptions} value={size} onChange={value => setSize(value as ControlSize)} />
       <Control label="Tone"><SurfaceToneSwatches value={tone} onSelect={setTone} /></Control>
       {/* The card's tone paints the card, tiles, chips and tabs; this moves only the fill of the fields nested inside it. Hidden on the upload-only playground, which has no fields. */}
-      {fileOnly ? null : <HueControl label="Input fill tone" value={inputFillTone} onChange={setInputFillTone} autoLabel="None — the variant’s own fill" />}
+      {fileOnly ? null : <>
+        <HueControl label="Input tone" value={inputTone} onChange={setInputTone} autoLabel="Auto — the card's accent" />
+        <HueControl label="Input fill tone" value={inputFillTone} onChange={setInputFillTone} autoLabel="None — the variant’s own fill" />
+      </>}
       <SelectControl label="Corner" options={panelCornerOptions} value={corner} onChange={value => setCorner(value as SurfaceCorner)} />
       <SelectControl label="Padding" options={panelPaddingOptions} value={padding} onChange={value => setPadding(value as SurfacePadding)} />
       <ToggleRow label="Raised surface" checked={raisedSurface} onChange={setRaisedSurface} />
@@ -62,7 +66,7 @@ export function IdentityPickerPlayground({ fileOnly = false }: { fileOnly?: bool
   ]} /><p className="text-xs text-neutral-500">Selection stays local. The app owns upload requests and persisted values.</p></div>}
     preview={<div className="w-full max-w-2xl space-y-4">{fileOnly
       ? <FileUpload {...surface} value={files} onChange={value => { setFiles(value); pushLog(`onChange → ${value.map(file => file.name).join(", ") || "empty"}`); }} onReject={value => pushLog(`onReject → ${value.map(item => item.code).join(", ")}`)} multiple={multiple} accept={accept === "all" ? undefined : accept} maxSize={5 * 1024 * 1024} maxFiles={4} />
-      : <IdentityPicker {...surface} name="Project Atlas" modes={modes} inputFillTone={inputFillTone} value={identity} onChange={value => { setIdentity(value); pushLog(`onChange → ${value?.type ?? "reset"}`); }} onReject={value => pushLog(`onReject → ${value.map(item => item.code).join(", ")}`)} />}
+      : <IdentityPicker {...surface} name="Project Atlas" modes={modes} inputTone={inputTone} inputFillTone={inputFillTone} value={identity} onChange={value => { setIdentity(value); pushLog(`onChange → ${value?.type ?? "reset"}`); }} onReject={value => pushLog(`onReject → ${value.map(item => item.code).join(", ")}`)} />}
       <p className="text-xs text-neutral-500">{fileOnly ? `Selected: ${files.length} file(s)` : `Value: ${identity === null ? "null" : identity.type === "emoji" ? identity.emoji : identity.type === "monogram" ? identity.text : identity.file?.name ?? identity.src}`}</p>
       <EventLogControl log={log} />
     </div>} />;

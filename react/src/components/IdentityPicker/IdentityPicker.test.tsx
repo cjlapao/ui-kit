@@ -185,3 +185,32 @@ describe("IdentityPicker modes", () => {
     expect(screen.queryByText(/Choose an emoji/)).toBeNull();
   });
 });
+
+describe("three hues, three owners", () => {
+  // The combination the two props exist for — a neutral card holding white
+  // fields that still focus blue. Asserted on rendered classes, because the
+  // entire question is which element ends up wearing which hue.
+  const classes = (el: Element) => (el.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
+  const wearing = (hue: string) => Array.from(document.body.querySelectorAll<HTMLElement>("[class]")).filter(
+    (el) => classes(el).some((token) => /(^|:)focus/.test(token) && new RegExp(`(?:border|ring|outline)-${hue}-400`).test(token)));
+
+  it("paints the fields with inputFillTone and their states with inputTone, leaving the card's furniture on tone", () => {
+    render(<IdentityPicker name="Project Atlas" modes={["emoji"]} tone="emerald" inputTone="blue" inputFillTone="neutral" />);
+    // Both fields: the search bar and the category select.
+    const fields = wearing("blue");
+    expect(fields.length).toBeGreaterThanOrEqual(2);
+    // Neither field leaks the card's accent into its own classes...
+    for (const field of fields) expect(classes(field).filter((token) => token.includes("emerald"))).toEqual([]);
+    // ...while the fill really did come over (neutral is the variant's own rest,
+    // which for `flat` is a white box, not a grey one).
+    for (const field of fields) expect(classes(field)).toContain("bg-white");
+    // And the furniture — tabs, chips, tiles, preview — is still emerald.
+    expect(Array.from(document.body.querySelectorAll<HTMLElement>("[class]")).flatMap(classes).some((token) => token.includes("emerald"))).toBe(true);
+  });
+
+  it("keeps the fields on the card's accent when inputTone is not given", () => {
+    render(<IdentityPicker name="Project Atlas" modes={["emoji"]} tone="emerald" />);
+    expect(wearing("emerald").length).toBeGreaterThanOrEqual(2);
+    expect(wearing("blue")).toEqual([]);
+  });
+});
