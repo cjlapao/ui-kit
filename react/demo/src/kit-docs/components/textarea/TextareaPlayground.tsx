@@ -55,7 +55,7 @@ export const TextareaPlayground: React.FC = () => {
   // The fill's own hue, for when it should disagree with the tone — focus and
   // ring keep following `tone`; only the fill comes over here. `undefined` is
   // the honest default: the fill follows the tone today.
-  const [backgroundColor, setBackgroundColor] = useState<TrueColor | undefined>(
+  const [fillTone, setFillTone] = useState<TrueColor | undefined>(
     undefined,
   );
   const [glowIntensity, setGlowIntensity] =
@@ -112,9 +112,9 @@ export const TextareaPlayground: React.FC = () => {
                       fill: the tone's hue for `glass` and `ghost`, white for the
                       rest, which is what every field did before this prop. */}
                     <HueControl
-                      label="Fill hue"
-                      value={backgroundColor}
-                      onChange={setBackgroundColor}
+                      label="Fill tone"
+                      value={fillTone}
+                      onChange={setFillTone}
                       autoLabel="None — the variant’s own fill"
                     />
                   </>
@@ -253,7 +253,7 @@ export const TextareaPlayground: React.FC = () => {
               size={size}
               variant={variant}
               tone={tone}
-              backgroundColor={backgroundColor}
+              fillTone={fillTone}
               validationStatus={validationStatus}
               resize={resize}
               disabled={disabled}

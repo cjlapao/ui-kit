@@ -110,9 +110,12 @@ export interface DatePickerProps extends Omit<
    * affordance the pointer asks for, so it stays in `tone`. The calendar popup
    * is a `Panel` and keeps its own `panelTone`/`panelVariant`, which this does
    * not touch.
+   * It is the field's own surface: today's date, the selected day and the range
+   * ends keep following `tone`, so a rose field still marks the calendar in
+   * blue.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  inputFillTone?: TrueColor;
   /** How prominent the gradient glow is. @default `"subtle"` (`DEFAULT_GLOW_INTENSITY`). */
   glowIntensity?: GlowIntensity;
   /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */

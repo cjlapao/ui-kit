@@ -105,7 +105,7 @@ export const TextareaPage: React.FC = () => (
           description: "Accent colour of the focus indicator.",
         },
         {
-          name: "backgroundColor",
+          name: "fillTone",
           type: "TrueColor",
           default: '"none"',
           description:

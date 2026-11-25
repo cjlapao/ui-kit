@@ -101,12 +101,12 @@ describe("input variant tokens", () => {
 // `tone` used to be one knob for six decisions, and the fill was one of them:
 // `ghost` tinted its ladder through the tone, tinted `glass` tinted through it,
 // and the four variants with no tonal fill could not ask for one at any price.
-// `InputVariantOptions.backgroundColor` separates the fill from the rest, and
+// `InputVariantOptions.fillTone` separates the fill from the rest, and
 // the two assertions that hold the change together are here rather than in a
 // reviewer's head: omitting the option changes nothing whatsoever, and supplying
 // it changes the fill and nothing else.
 
-describe("field background override", () => {
+describe("field fill override", () => {
   /** A resting fill — `bg-rose-100/45`, `dark:bg-rose-500/10` — hover excluded. */
   const fillTokens = (surface: string): string[] =>
     surface
@@ -145,11 +145,11 @@ describe("field background override", () => {
   it("changes nothing at all when the option is absent", () => {
     for (const variant of INPUT_VARIANTS) {
       const before = tokens(variant);
-      // `backgroundColor: undefined` is what every component that declares the
+      // `fillTone: undefined` is what every component that declares the
       // prop and has not been given one passes. It has to be the same field it
       // was before the option existed — that is the bar every caller already in
       // the product is standing on.
-      expect(tokens(variant, { backgroundColor: undefined })).toEqual(before);
+      expect(tokens(variant, { fillTone: undefined })).toEqual(before);
       expect(before.surface).not.toContain("bg-rose-");
     }
   });
@@ -158,7 +158,7 @@ describe("field background override", () => {
     for (const variant of INPUT_VARIANTS) {
       const baseline = tokens(variant);
       for (const hue of TRUE_COLORS) {
-        const painted = tokens(variant, { backgroundColor: hue });
+        const painted = tokens(variant, { fillTone: hue });
         // Everything that is not part of the fill has to survive byte for byte,
         // and the copy goes untouched with it. Checked with the same stripper
         // the implementation leans on, so a stray `border-*` or `shadow-*` in
@@ -176,7 +176,7 @@ describe("field background override", () => {
     for (const variant of INPUT_VARIANTS) {
       if (variant === "underline") continue; // paints no box, by design
       for (const hue of TRUE_COLORS) {
-        const fills = fillTokens(tokens(variant, { backgroundColor: hue }).surface);
+        const fills = fillTokens(tokens(variant, { fillTone: hue }).surface);
         // Two surviving fills is one fight over `background-color` whose winner
         // Tailwind's emission order picks — the exact failure `stripFillClass`
         // exists to make impossible.
@@ -206,19 +206,19 @@ describe("field background override", () => {
         if (hue === "neutral") continue;
         expect(
           tokens(variant as "flat" | "elevated" | "glass" | "gradient", {
-            backgroundColor: hue,
+            fillTone: hue,
           }).surface,
         ).toContain(recipe(hue));
       }
     },
   );
 
-  it("moves ghost's washes to the background hue and leaves its rim in the tone", () => {
+  it("moves ghost's washes to the fill hue and leaves its rim in the tone", () => {
     // Rest, hover and both dark steps are the paint and follow the override. The
     // hover rim is what the field says back to the pointer — the same family as
     // the focus border and ring — so it answers in `tone` (violet here). Moving
     // it with the fill is the bug this assertion exists to keep out.
-    const surface = tokens("ghost", { backgroundColor: "rose" }).surface;
+    const surface = tokens("ghost", { fillTone: "rose" }).surface;
     expect(surface).toContain("bg-rose-100");
     expect(surface).toContain("hover:bg-rose-200");
     expect(surface).toContain("dark:bg-rose-500/10");
@@ -232,7 +232,7 @@ describe("field background override", () => {
     // one hue, because the rung comes from `ghostFillShades(tone)` and a hue that
     // leaked into the rim would leak for the achromatic rungs too.
     for (const hue of TRUE_COLORS) {
-      const surface = tokens("ghost", { backgroundColor: hue }).surface;
+      const surface = tokens("ghost", { fillTone: hue }).surface;
       expect(surface).toContain("hover:border-violet-300");
       expect(surface).not.toMatch(/hover:border-(?!violet-)/);
     }
@@ -243,7 +243,7 @@ describe("field background override", () => {
     // rides a rung up for them — the override goes through the same function,
     // not a copy of its table. Only for the washes, though: the rim reads the
     // tone's ladder, violet's `-300` here rather than slate's `-400`.
-    const surface = tokens("ghost", { backgroundColor: "slate" }).surface;
+    const surface = tokens("ghost", { fillTone: "slate" }).surface;
     expect(surface).toContain("bg-slate-200");
     expect(surface).toContain("hover:bg-slate-300");
     expect(surface).toContain("hover:border-violet-300");
@@ -254,19 +254,19 @@ describe("field background override", () => {
     // Glass is the case that proves the ordering: the `explicitTone` branch has
     // already painted violet by this point, and the override is what puts the
     // untinted glass back. Apply it before that branch and this fails.
-    expect(tokens("flat", { backgroundColor: "neutral" }).surface).toContain(
+    expect(tokens("flat", { fillTone: "neutral" }).surface).toContain(
       "bg-white dark:bg-neutral-900",
     );
-    expect(tokens("elevated", { backgroundColor: "neutral" }).surface).toContain(
+    expect(tokens("elevated", { fillTone: "neutral" }).surface).toContain(
       "bg-white dark:bg-neutral-900",
     );
-    const glass = tokens("glass", { backgroundColor: "neutral" }).surface;
+    const glass = tokens("glass", { fillTone: "neutral" }).surface;
     expect(glass).toContain("bg-white/45 dark:bg-white/10");
     expect(glass).not.toContain("violet");
     expect(
-      tokens("gradient", { backgroundColor: "neutral" }).surface,
+      tokens("gradient", { fillTone: "neutral" }).surface,
     ).toContain("bg-white/80 dark:bg-neutral-900/70");
-    const ghost = tokens("ghost", { backgroundColor: "neutral" }).surface;
+    const ghost = tokens("ghost", { fillTone: "neutral" }).surface;
     expect(ghost).toContain("bg-neutral-200");
     // `neutral` is the paint going back to the variant's own; the rim never left.
     expect(ghost).toContain("hover:border-violet-300");
@@ -274,7 +274,7 @@ describe("field background override", () => {
 
   it("does nothing to underline, which paints no box", () => {
     for (const hue of TRUE_COLORS) {
-      expect(tokens("underline", { backgroundColor: hue })).toEqual(
+      expect(tokens("underline", { fillTone: hue })).toEqual(
         tokens("underline"),
       );
     }
@@ -287,7 +287,7 @@ describe("field background override", () => {
     // option had started answering for state as well.
     for (const variant of INPUT_VARIANTS) {
       for (const hue of TRUE_COLORS) {
-        const surface = tokens(variant, { backgroundColor: hue }).surface;
+        const surface = tokens(variant, { fillTone: hue }).surface;
         expect(surface).not.toMatch(/focus/);
         expect(surface).not.toMatch(/(?:^|\s)(?:dark:)?ring-/);
       }

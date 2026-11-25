@@ -189,15 +189,15 @@ describe("Input", () => {
   /**
    * The fill may wear a hue the states do not. `tone` drives six decisions —
    * focus border, focus ring, icons, the inline button's ring, the gradient's
-   * glow and the fill — and `backgroundColor` takes the last one off the table,
+   * glow and the fill — and `fillTone` takes the last one off the table,
    * per variant. So the assertions come in pairs on purpose: a rose fill *and*
    * a blue focus in the same class string is the entire feature, and either
    * half alone is a field that does nothing new.
    */
-  describe("a field given a background hue", () => {
+  describe("a field given a fill hue", () => {
     it("paints a flat field in the hue and still focuses in the tone", () => {
       const { container } = render(
-        <Input variant="flat" tone="blue" backgroundColor="rose" />,
+        <Input variant="flat" tone="blue" fillTone="rose" />,
       );
       const cls = field(container);
       expect(cls).toContain("bg-rose-50");
@@ -210,7 +210,7 @@ describe("Input", () => {
 
     it("keeps glass sheer, blurred and rimmed while the body turns rose", () => {
       const { container } = render(
-        <Input variant="glass" tone="blue" backgroundColor="rose" />,
+        <Input variant="glass" tone="blue" fillTone="rose" />,
       );
       const cls = field(container);
       expect(cls).toContain("bg-rose-100/45");
@@ -224,7 +224,7 @@ describe("Input", () => {
 
     it("keeps the gradient's glow in the tone and its body in the hue", () => {
       const { container } = render(
-        <Input variant="gradient" tone="blue" backgroundColor="rose" />,
+        <Input variant="gradient" tone="blue" fillTone="rose" />,
       );
       const cls = field(container);
       expect(cls).toContain("bg-rose-50/80");
@@ -236,7 +236,7 @@ describe("Input", () => {
 
     it("moves ghost's washes to the hue and keeps its rim and focus in the tone", () => {
       const { container } = render(
-        <Input variant="ghost" tone="blue" backgroundColor="rose" />,
+        <Input variant="ghost" tone="blue" fillTone="rose" />,
       );
       const cls = field(container);
       // The paint.
@@ -253,7 +253,7 @@ describe("Input", () => {
 
     it("does nothing to underline, which has no box to paint", () => {
       const { container } = render(
-        <Input variant="underline" tone="blue" backgroundColor="rose" />,
+        <Input variant="underline" tone="blue" fillTone="rose" />,
       );
       const cls = field(container);
       expect(cls).toContain("bg-transparent");
@@ -262,7 +262,7 @@ describe("Input", () => {
 
     it("takes the variant's own fill back on neutral, over a tinted tone", () => {
       const { container } = render(
-        <Input variant="glass" tone="blue" backgroundColor="neutral" />,
+        <Input variant="glass" tone="blue" fillTone="neutral" />,
       );
       const cls = field(container);
       expect(cls).toContain("bg-white/45");
@@ -276,7 +276,7 @@ describe("Input", () => {
         <Input
           variant="flat"
           tone="blue"
-          backgroundColor="rose"
+          fillTone="rose"
           validationStatus="error"
         />,
       );
@@ -291,7 +291,7 @@ describe("Input", () => {
       for (const hue of TRUE_COLORS) {
         if (hue === "neutral") continue; // the variant's own fill, tested above
         const { container, unmount } = render(
-          <Input variant="flat" backgroundColor={hue} />,
+          <Input variant="flat" fillTone={hue} />,
         );
         expect(field(container)).toContain(`bg-${hue}-50`);
         unmount();

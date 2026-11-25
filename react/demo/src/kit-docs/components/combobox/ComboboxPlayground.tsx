@@ -16,6 +16,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { SurfaceToneSwatches } from "../../shared/SurfaceToneControl";
+import { HueControl } from "../../shared/HueControl";
 import { ControlAccordion } from "../../shared/ControlAccordion";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
@@ -73,6 +74,7 @@ export const ComboboxPlayground: React.FC = () => {
   const [size, setSize] = useState<ControlSize>("md");
   const [variant, setVariant] = useState<ComboboxVariant>("flat");
   const [tone, setTone] = useState<TrueColor>("blue");
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [validationStatus, setValidationStatus] =
     useState<ComboboxValidationStatus>("none");
 
@@ -124,6 +126,12 @@ export const ComboboxPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Input fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <SelectControl
                       label="Popup surface"
                       options={[
@@ -234,6 +242,7 @@ export const ComboboxPlayground: React.FC = () => {
             size={size}
             variant={variant}
             tone={tone}
+            inputFillTone={fill}
             panelVariant={panelVariant}
             panelTone={panelTone}
             panelCorner={panelCorner}

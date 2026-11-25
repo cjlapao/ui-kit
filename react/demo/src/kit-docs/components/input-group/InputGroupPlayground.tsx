@@ -23,6 +23,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -42,6 +43,9 @@ export const InputGroupPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InputGroupVariant>("elevated");
   const [size, setSize] = useState<InputGroupSize>("md");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The fill's own hue, for when it should disagree with the tone — focus and
+  // ring keep following `tone`; only the fill comes over here.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [corner, setCorner] = useState<SurfaceCorner | "auto">("auto");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("subtle");
   const [validationStatus, setValidationStatus] =
@@ -66,6 +70,7 @@ export const InputGroupPlayground: React.FC = () => {
         variant={variant}
         size={size}
         tone={tone}
+        fillTone={fill}
         corner={corner}
         glowIntensity={glowIntensity}
         validationStatus={validationStatus}
@@ -94,6 +99,7 @@ export const InputGroupPlayground: React.FC = () => {
           variant={variant}
           size={size}
           tone={tone}
+          fillTone={fill}
           corner={corner}
           glowIntensity={glowIntensity}
           leadingAddon="Amount"
@@ -110,6 +116,7 @@ export const InputGroupPlayground: React.FC = () => {
           variant={variant}
           size={size}
           tone={tone}
+          fillTone={fill}
           corner={corner}
           glowIntensity={glowIntensity}
           leadingAddon="Search"
@@ -157,6 +164,12 @@ export const InputGroupPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <SelectControl
                       label="Corner"
                       options={panelCornerOptions}

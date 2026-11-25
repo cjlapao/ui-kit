@@ -114,11 +114,14 @@ export interface KeyValueArrayFieldProps {
    * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
    * `elevated` their border, and `underline` has no box to paint. `neutral`
    * means the variant's own resting fill.
+   * Both inputs of every row share one value — a record does not tint some of
+   * its fields and leave the rest white. The row's buttons and its focus states
+   * keep following `tone`.
    * In `ghost`, only the washes follow this hue — the hover rim is an
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  inputFillTone?: TrueColor;
   /** Scale of the inputs and buttons. @default "sm" */
   size?: KeyValueArrayFieldSize;
   className?: string;
@@ -143,7 +146,7 @@ interface RowsProps extends Pick<
   /** The RESOLVED row-input surface — never "auto". */
   inputVariant?: InputVariant;
   /** The hue the row inputs' *fill* wears — state colours stay with `tone`. */
-  backgroundColor?: TrueColor;
+  inputFillTone?: TrueColor;
   tone: TrueColor;
   pairs: KeyValuePair[];
   rowIds: string[];
@@ -171,7 +174,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
   maxRows,
   disabled,
   inputVariant = "flat",
-  backgroundColor,
+  inputFillTone,
   size = "sm",
   containerVariant,
   tone,
@@ -251,7 +254,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
                     size={size}
                     tone={tone}
                     variant={inputVariant}
-                    backgroundColor={backgroundColor}
+                    fillTone={inputFillTone}
                     fullHeight
                     disabled={disabled}
                     placeholder={keyLabel}
@@ -273,7 +276,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
                     size={size}
                     tone={tone}
                     variant={inputVariant}
-                    backgroundColor={backgroundColor}
+                    fillTone={inputFillTone}
                     disabled={disabled}
                     placeholder={valueLabel}
                     aria-label={`${valueLabel} ${index + 1}`}
@@ -371,7 +374,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   specularMode,
   raisedSurface = false,
   inputVariant = "auto",
-  backgroundColor,
+  inputFillTone,
   size = "sm",
   className,
 }) => {
@@ -468,7 +471,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
       maxRows={maxRows}
       disabled={disabled}
       inputVariant={resolvedInputVariant}
-      backgroundColor={backgroundColor}
+      inputFillTone={inputFillTone}
       size={size}
       containerVariant={variant}
       tone={tone}

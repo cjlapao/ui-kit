@@ -127,12 +127,14 @@ export interface ComboboxProps extends Omit<
    * variant's own recipe: `glass` keeps its sheerness, `gradient` its blur,
    * `flat` and `elevated` their border, and `underline` has no box to paint.
    * `neutral` means the variant's own resting fill.
+   * It is the field's own surface: the body card is `panelTone`'s and
+   * `panelVariant`'s, and the option rows keep `tone`.
    * In `ghost`, only the washes follow this hue — the hover rim is an
    * affordance the pointer asks for, so it stays in `tone`. The popup is untouched —
    * it keeps following `panelVariant` and `panelTone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  inputFillTone?: TrueColor;
   /** @default "none" */
   validationStatus?: ComboboxValidationStatus;
   /** @deprecated Use `validationStatus="error"`. */
@@ -197,7 +199,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
       tone,
       color,
       variant = "flat",
-      backgroundColor,
+      inputFillTone,
       validationStatus = "none",
       error = false,
       placeholder,
@@ -573,7 +575,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
           lines={lines}
           tone={accent}
           variant={variant}
-          backgroundColor={backgroundColor}
+          fillTone={inputFillTone}
           validationStatus={status}
           disabled={disabled}
           readOnly={readOnly}

@@ -18,6 +18,7 @@ import {
 } from "../../shared/PlaygroundPanel";
 import { PanelSurfaceControls } from "../../shared/PanelSurfaceControls";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -52,6 +53,9 @@ export const PickerPlayground: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | undefined>("a");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The field's own fill hue, for when it should disagree with the tone — the
+  // dropdown card stays `panelTone`'s and `panelVariant`'s.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [size, setSize] = useState<ControlSize>("md");
   const [corner, setCorner] = useState<SurfaceCorner>("auto");
   const [panelCorner, setPanelCorner] = useState<SurfaceCorner>("auto");
@@ -83,6 +87,7 @@ export const PickerPlayground: React.FC = () => {
       }
       groupSelectable={grouped}
       tone={tone}
+      inputFillTone={fill}
       size={size}
       corner={corner}
       panelVariant={panelVariant}
@@ -145,6 +150,12 @@ export const PickerPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Input fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <ChoiceControl
                       label="Size"
                       options={controlSizeOptions}

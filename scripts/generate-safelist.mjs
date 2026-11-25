@@ -668,7 +668,7 @@ src(`@source inline("dark:hover:ring-{COLOR}-500/30");`);
 L("");
 
 // ── Field background override — fieldFillFor() in Theme.ts ────────
-// `InputVariantOptions.backgroundColor` repaints a field's fill in a hue of the
+// `InputVariantOptions.fillTone` repaints a field's fill in a hue of the
 // caller's choosing, per variant: `-50` on flat/elevated, `-100/45` on glass,
 // `-50/80` on gradient, the translucent `-500/10` and `-500/15` dark steps, and
 // the `ghost` ladder through `ghostFillShades` as before.

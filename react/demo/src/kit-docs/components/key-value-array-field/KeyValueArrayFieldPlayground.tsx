@@ -16,6 +16,7 @@ import type {
   PanelCorner,
   PanelPadding,
   PanelSpecularMode,
+  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   ChoiceControl,
@@ -25,6 +26,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -55,6 +57,9 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
   const [pairs, setPairs] = useState(INITIAL);
   const [variant, setVariant] = useState<KeyValueArrayFieldVariant>("outlined");
   const [tone, setTone] = useState<SurfaceTone>("none");
+  // The row inputs' own fill hue, for when it should disagree with the tone —
+  // the row buttons and the focus states keep following `tone`.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [corner, setCorner] = useState<PanelCorner>("auto");
   const [padding, setPadding] = useState<PanelPadding>("sm");
   // The card inside the "In a panel" host stops existing the moment its tint
@@ -118,6 +123,7 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
       addLabel={addLabel || undefined}
       variant={variant}
       tone={tone}
+      inputFillTone={fill}
       corner={corner}
       padding={padding}
       raisedSurface={raisedSurface}
@@ -155,6 +161,12 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
                     <Control label="Tone">
                       <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
+                    <HueControl
+                      label="Input fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <SelectControl
                       label="Controls variant"
                       options={[

@@ -6,7 +6,7 @@ export default function FillVsTone() {
       {/*
         The pairing the prop exists for: `tone="blue"` stays in charge of
         every state colour — focus border, ring, icon highlight, the glow, and
-        `ghost`'s hover rim — while `backgroundColor="rose"` moves only the
+        `ghost`'s hover rim — while `fillTone="rose"` moves only the
         fill, so all four fields rest in rose and still focus blue. Shown in
         four variants because the fill follows each variant's own recipe in the
         new hue — the pale wash of `flat`, the sheer blur of `glass`, the
@@ -20,25 +20,25 @@ export default function FillVsTone() {
       <Input
         variant="flat"
         tone="blue"
-        backgroundColor="rose"
+        fillTone="rose"
         placeholder="Flat — rose fill, blue focus"
       />
       <Input
         variant="glass"
         tone="blue"
-        backgroundColor="rose"
+        fillTone="rose"
         placeholder="Glass — sheer rose, blue focus"
       />
       <Input
         variant="ghost"
         tone="blue"
-        backgroundColor="rose"
+        fillTone="rose"
         placeholder="Ghost — rose wash, blue hover rim"
       />
       <Input
         variant="gradient"
         tone="blue"
-        backgroundColor="rose"
+        fillTone="rose"
         placeholder="Gradient — rose fill, blue glow"
       />
     </div>

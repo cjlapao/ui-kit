@@ -88,7 +88,7 @@ export const InputPage: React.FC = () => (
       </ExampleCard>
       <ExampleCard
         title="A fill of its own"
-        description="`backgroundColor` moves only the fill: focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so all four of these rest in rose and still focus blue. Each variant paints that fill with its own recipe — the pale wash of `flat`, the sheer blur of `glass`, the wash-and-rim ladder of `ghost`, the translucent fill under the gradient's glow — rather than one fixed tone step; hover the ghost field and its wash deepens in rose while its edge comes up in blue. `underline` paints no box, so there the prop does nothing, and `neutral` is the way back to the variant's own resting fill."
+        description="`fillTone` moves only the fill: focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so all four of these rest in rose and still focus blue. Each variant paints that fill with its own recipe — the pale wash of `flat`, the sheer blur of `glass`, the wash-and-rim ladder of `ghost`, the translucent fill under the gradient's glow — rather than one fixed tone step; hover the ghost field and its wash deepens in rose while its edge comes up in blue. `underline` paints no box, so there the prop does nothing, and `neutral` is the way back to the variant's own resting fill."
         code={fillVsToneCode}
         filename="FillVsTone.tsx"
       >
@@ -136,7 +136,7 @@ export const InputPage: React.FC = () => (
             "Surface style — flat, filled, outlined, elevated, underline, glass and the gradient glow, shared byte-for-byte with Textarea and SearchBar via the theme.",
         },
         {
-          name: "backgroundColor",
+          name: "fillTone",
           type: "TrueColor",
           default: '"none"',
           description:

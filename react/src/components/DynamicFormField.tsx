@@ -97,11 +97,15 @@ export interface DynamicFormFieldProps {
    * `inputVariant`'s own recipe: `glass` keeps its sheerness, `gradient` its
    * blur, `flat` and `elevated` their border, and `underline` has no box to
    * paint. `neutral` means the variant's own resting fill.
+   * Every field this one renders shares the value, including the ones in its Map
+   * branch. The `MultiSelectPanel` container keeps its own
+   * `panelVariant`/`panelTone`; labels, help text and the validation border keep
+   * following `tone`.
    * In `ghost`, only the washes follow this hue — the hover rim is an
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  inputFillTone?: TrueColor;
   disabled?: boolean;
   readOnly?: boolean;
   /**
@@ -184,7 +188,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   corner = DEFAULT_SURFACE_CORNER,
   padding = "md",
   inputVariant = "auto",
-  backgroundColor,
+  inputFillTone,
   disabled = false,
   readOnly = false,
   helpTitle,
@@ -242,7 +246,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
     size,
     tone,
     variant: resolvedInputVariant,
-    backgroundColor,
+    fillTone: inputFillTone,
     disabled,
     validationStatus: error ? ("error" as const) : ("none" as const),
   };
@@ -324,7 +328,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
             tone={tone}
             variant="plain"
             inputVariant={resolvedInputVariant}
-            backgroundColor={backgroundColor}
+            inputFillTone={inputFillTone}
           />
         );
       case CapsuleBlueprintValueType.List:

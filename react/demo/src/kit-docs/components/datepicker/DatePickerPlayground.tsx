@@ -27,6 +27,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -50,6 +51,9 @@ export const DatePickerPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [size, setSize] = useState<InputSize>("md");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The field's own fill hue, for when it should disagree with the tone — the
+  // calendar card stays `panelTone`'s and `panelVariant`'s.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [validationStatus, setValidationStatus] =
     useState<InputValidationStatus>("none");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>(
@@ -98,6 +102,7 @@ export const DatePickerPlayground: React.FC = () => {
       variant={variant}
       size={size}
       tone={tone}
+      inputFillTone={fill}
       validationStatus={validationStatus}
       glowIntensity={glowIntensity}
       panelVariant={panelVariant}
@@ -169,6 +174,12 @@ export const DatePickerPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Input fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <SelectControl
                       label="Week starts on"
                       options={weekStartsOnOptions}

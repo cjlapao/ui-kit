@@ -10,6 +10,7 @@ import type {
   InputVariant,
   SurfaceCorner,
   SurfacePadding,
+  TrueColor,
 } from "@cjlapao/ui-kit";
 import {
   Control,
@@ -18,6 +19,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -50,6 +52,9 @@ export const DynamicFormFieldPlayground: React.FC = () => {
     "auto",
   );
   const [tone, setTone] = useState<SurfaceTone>("none");
+  // The fields' own fill hue, for when it should disagree with the tone —
+  // labels, help text and the validation border keep following `tone`.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [padding, setPadding] = useState<SurfacePadding>("md");
   // A field card wearing its host panel's own tint needs the forced first
@@ -105,6 +110,12 @@ export const DynamicFormFieldPlayground: React.FC = () => {
                     <Control label="Tone">
                       <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
+                    <HueControl
+                      label="Input fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <SelectControl
                       label="Corner"
                       options={panelCornerOptions}
@@ -202,6 +213,7 @@ export const DynamicFormFieldPlayground: React.FC = () => {
             variant={variant}
             inputVariant={inputVariant}
             tone={tone}
+            inputFillTone={fill}
             corner={corner}
             padding={padding}
             raisedSurface={raisedSurface}

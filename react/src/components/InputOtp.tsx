@@ -94,7 +94,7 @@ export interface InputOtpProps extends Omit<
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  fillTone?: TrueColor;
   /** @default "md" */
   size?: InputOtpSize;
   /**
@@ -205,7 +205,7 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     mask = false,
     integerOnly = false,
     variant = "flat",
-    backgroundColor,
+    fillTone,
     size = "md",
     corner = "auto",
     tone: toneProp,
@@ -381,7 +381,7 @@ const InputOtp = forwardRef<HTMLDivElement, InputOtpProps>(function InputOtp(
     // The family's corner scale is the card one; `corner` (below) overrides
     // the radius on the pill scale, so the tokens stay on `auto`.
     "auto",
-    { explicitTone: toneProp, backgroundColor },
+    { explicitTone: toneProp, fillTone },
   );
   const fieldTone = getFieldToneTokens(tone);
   const glow = getGlowTokens(glowIntensity);

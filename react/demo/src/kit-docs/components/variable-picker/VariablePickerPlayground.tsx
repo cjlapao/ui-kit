@@ -17,6 +17,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -55,6 +56,9 @@ export const VariablePickerPlayground: React.FC = () => {
   const [variant, setVariant] = useState<SurfaceVariant>("elevated");
   const [corner, setCorner] = useState<SurfaceCorner>("auto");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The search field's own fill hue — the card stays `variant`'s and
+  // `panelTone`'s.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [raisedSurface, setRaisedSurface] = useState(false);
   const [withResolve, setWithResolve] = useState(true);
   const [empty, setEmpty] = useState(false);
@@ -100,6 +104,12 @@ export const VariablePickerPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Input fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     {/* The dropdown card takes its depth step here, not in the shared widget. */}
                     <ToggleRow
                       label="Raised surface"
@@ -148,6 +158,7 @@ export const VariablePickerPlayground: React.FC = () => {
           variant={variant}
           corner={corner}
           tone={tone}
+          inputFillTone={fill}
           raisedSurface={raisedSurface}
           onSelect={(v) => pushLog(`selected \`${v.fullToken}\` — onSelect`)}
           onClose={() => pushLog("closed — onClose")}

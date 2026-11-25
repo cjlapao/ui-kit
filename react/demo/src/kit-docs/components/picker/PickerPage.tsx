@@ -136,6 +136,13 @@ export const PickerPage: React.FC = () => (
             "Straight from the field system shared with Input, Select and SearchBar — same surfaces, same scale, same focus treatment, so a Picker stacked beside an Input lines up.",
         },
         {
+          name: "inputFillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It is the field&rsquo;s own fill only — the card or menu this control opens is `panelTone`&rsquo;s and `panelVariant`&rsquo;s, and option rows keep `tone`, so a rose trigger still opens a neutral menu.",
+        },
+        {
           name: "escapeBoundary",
           type: "boolean",
           default: "—",

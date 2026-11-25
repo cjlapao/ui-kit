@@ -25,6 +25,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -60,6 +61,9 @@ export const SmartInputPlayground: React.FC = () => {
   const [value, setValue] = useState(SMART_INPUT_SAMPLES.missing);
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The field's own fill hue, for when it should disagree with the tone — the
+  // picker card stays `panelTone`'s and `panelVariant`'s.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [corner, setCorner] = useState<SurfaceCorner>("auto");
   const [size, setSize] = useState<SmartInputSize>("md");
   const [panelTone, setPanelTone] = useState<"auto" | SurfaceTone>("auto");
@@ -129,6 +133,7 @@ export const SmartInputPlayground: React.FC = () => {
       resolve={resolve}
       variant={variant}
       tone={tone}
+      inputFillTone={fill}
       corner={corner}
       size={size}
       panelVariant={panelVariant}
@@ -188,6 +193,12 @@ export const SmartInputPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Input fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <ChoiceControl
                       label="Size"
                       options={controlSizeOptions}

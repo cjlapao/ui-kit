@@ -93,7 +93,7 @@ export interface SearchBarProps {
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  fillTone?: TrueColor;
   /** Shared control size scale. @default "md" */
   size?: ControlSize;
   /** Accent colour for focus ring, icon highlight, and clear-button hover. Default: 'blue' */
@@ -147,7 +147,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   shouldClear = false,
   leadingIcon = "Search",
   variant = "elevated",
-  backgroundColor,
+  fillTone,
   size = "md",
   color: colorProp,
   gradientFrom,
@@ -293,7 +293,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const linesMinHeight = lines ? getFieldMinHeightClass(size, lines) : "";
   const variantTokens = getInputVariantTokens(variant, color, "auto", {
     explicitTone: colorProp,
-    backgroundColor,
+    fillTone,
   });
 
   const bar = (

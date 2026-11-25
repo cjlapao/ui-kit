@@ -17,6 +17,7 @@ import {
 } from "../../shared/PlaygroundPanel";
 import { PanelSurfaceControls } from "../../shared/PanelSurfaceControls";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -36,6 +37,10 @@ const ITEMS = [
 export const TagPickerPlayground: React.FC = () => {
   const [value, setValue] = useState<string[]>(["prod"]);
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The field's own fill hue, for when it should disagree with the tone — the
+  // dropdown card stays `panelTone`'s and `panelVariant`'s, and the tag pills
+  // answer `itemColor`.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [size, setSize] = useState<ControlSize>("md");
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [panelVariant, setPanelVariant] = useState<"auto" | SurfaceVariant>("auto");
@@ -69,6 +74,7 @@ export const TagPickerPlayground: React.FC = () => {
         pushLog(`create → ${label}`);
       }}
       tone={tone}
+      inputFillTone={fill}
       size={size}
       variant={variant}
       panelVariant={panelVariant}
@@ -110,6 +116,12 @@ export const TagPickerPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Input fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <ChoiceControl
                       label="Size"
                       options={controlSizeOptions}

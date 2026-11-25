@@ -232,11 +232,14 @@ export interface PickerProps {
    * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
    * `elevated` their border, and `underline` has no box to paint. `neutral`
    * means the variant's own resting fill.
+   * It is the field's own surface: the card this control opens is `panelTone`'s
+   * and `panelVariant`'s, and the option rows' hover and selected states are
+   * `tone`'s — a rose trigger still opens a neutral menu.
    * In `ghost`, only the washes follow this hue — the hover rim is an
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  inputFillTone?: TrueColor;
   /** Start colour of the gradient glow. Defaults to the tone's 600 shade. */
   gradientFrom?: string;
   /** End colour of the gradient glow. Defaults to the tone's 400 shade. */
@@ -323,7 +326,7 @@ const Picker: React.FC<PickerProps> = ({
   tone,
   color,
   variant = "flat",
-  backgroundColor,
+  inputFillTone,
   gradientFrom,
   gradientTo,
   glowIntensity = DEFAULT_GLOW_INTENSITY,
@@ -391,7 +394,7 @@ const Picker: React.FC<PickerProps> = ({
   const fieldTokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
     explicitTone: tone ?? color,
-    backgroundColor,
+    fillTone: inputFillTone,
   });
   const hasStatus = validationStatus !== "none";
   // The dropdown is a surface from the container family, following the

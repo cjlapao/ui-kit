@@ -102,6 +102,13 @@ export const KeyValueArrayFieldPage: React.FC = () => (
             "The card renders a real `Panel`, so every container surface comes for free; `plain` drops the card and keeps the rows. `raisedSurface` forces the first nested-panels depth step on that Panel — the tinted-card-on-matching-background fix.",
         },
         {
+          name: "inputFillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It is those fields&rsquo; own fill only, and both inputs of every row share one value — a record does not tint some of its fields and leave the rest white.",
+        },
+        {
           name: "inputVariant / size",
           type: '"auto" | InputVariant / ControlSize',
           default: '"auto" / "sm"',

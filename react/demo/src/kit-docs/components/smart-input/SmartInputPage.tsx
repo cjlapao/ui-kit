@@ -100,6 +100,13 @@ export const SmartInputPage: React.FC = () => (
             "The shared input surfaces — `glass` really blurs, `gradient` really glows — and the accent for the focus border/ring (the shared field tokens, on every tone) and the picker trigger.",
         },
         {
+          name: "inputFillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It is the field&rsquo;s own fill only — the card or menu this control opens is `panelTone`&rsquo;s and `panelVariant`&rsquo;s, and option rows keep `tone`, so a rose trigger still opens a neutral menu.",
+        },
+        {
           name: "corner",
           type: "SurfaceCorner",
           default: '"auto"',

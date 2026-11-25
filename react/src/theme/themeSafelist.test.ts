@@ -83,7 +83,7 @@ const generatedClasses = (): Set<string> => {
     // which is the one case the scanner already sees on its own.
     for (const variant of INPUT_VARIANTS) {
       collect(
-        getInputVariantTokens(variant, tone, "auto", { backgroundColor: tone }),
+        getInputVariantTokens(variant, tone, "auto", { fillTone: tone }),
         out,
       );
     }

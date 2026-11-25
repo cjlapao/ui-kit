@@ -552,15 +552,21 @@ export type InputVariantOptions = {
    * and blurred, a `flat` one stays bordered, and a `gradient` one keeps its
    * glow. In `ghost` it is the washes only, both schemes: the hover rim is an
    * affordance the pointer asks for, of the family the focus border belongs to,
-   * so it stays in `tone`. `Panel`'s `backgroundColor` answers the same question
-   * per container variant; this is the control-side counterpart.
+   * so it stays in `tone`.
+   *
+   * The name is `fillTone`, not `backgroundColor`, because that word is already
+   * taken by the card: `Panel`, `StatCard` and `MultiSelectPanel` take
+   * `backgroundColor` for a container's fill. The difference in name *is* the
+   * distinction — a control's fill answers `fillTone`, a card's background
+   * answers `backgroundColor` — and `VariablePicker`, which is a card holding a
+   * search field, needs the two words to mean different things to be usable.
    *
    * `underline` has no fill to repaint, so the option is a documented no-op
    * there. `neutral` means "the variant's own resting fill", which is how
    * `Panel` reads it too — for `ghost` that is the achromatic rung, which is
    * what `ghostFillShades("neutral")` already builds.
    */
-  backgroundColor?: TrueColor;
+  fillTone?: TrueColor;
 };
 
 const INPUT_TEXT_SOLID =
@@ -738,7 +744,7 @@ export const ACHROMATIC_TONES: readonly TrueColor[] = [
  * ladder one rung up with their fill.
  *
  * Consulted twice when a caller splits the field with
- * `InputVariantOptions.backgroundColor`: once for the background hue, whose
+ * `InputVariantOptions.fillTone`: once for the background hue, whose
  * `rest`/`hover` paint the box, and once for the `tone`, whose `rim` is the
  * hover edge. Under one hue the three rungs keep their relationship; under two
  * the rim belongs to the affordance's colour and takes its rung from there, so a
@@ -754,7 +760,7 @@ const ghostFillShades = (
 
 /**
  * The fill each variant paints at rest, per hue, when a caller asks for a
- * background of its own through `InputVariantOptions.backgroundColor`.
+ * background of its own through `InputVariantOptions.fillTone`.
  *
  * One entry per variant that has a fill at all, and the depths are the
  * variant's own — not one tone step imposed on six different boxes:
@@ -830,7 +836,7 @@ export const getInputVariantTokens = (
     //
     // The two sides of a ghost field answer to two different callers. The wash
     // — rest, hover, and both dark steps — is the field's *paint*, so it wears
-    // `backgroundColor` when one was named. The hover rim is not paint: it is a
+    // `fillTone` when one was named. The hover rim is not paint: it is a
     // state the pointer asks for, of the same family as the focus border and the
     // focus ring that come out of `getFieldToneTokens`, so it keeps answering in
     // `tone`. A caller asking for a rose background asked about the box's colour,
@@ -843,7 +849,7 @@ export const getInputVariantTokens = (
     // nobody overrides, both sides read the same hue and the ladder is exactly
     // what it has always been — the byte-identical assertion in
     // `inputVariants.test.ts` is what keeps that true.
-    const bgHue = options?.backgroundColor ?? tone;
+    const bgHue = options?.fillTone ?? tone;
     const shades = ghostFillShades(bgHue);
     const rim = ghostFillShades(tone);
     resolved = {
@@ -872,7 +878,7 @@ export const getInputVariantTokens = (
       surface: `${stripFillClass(resolved.surface)} bg-${tint}-100/45 dark:bg-${tint}-500/10`,
     };
   }
-  if (options?.backgroundColor && variant !== "ghost") {
+  if (options?.fillTone && variant !== "ghost") {
     // Last word on the fill, and only on the fill. It runs after the `glass`
     // tint branch rather than before it for that reason: that branch writes the
     // whole fill string, so an override applied first would be quietly
@@ -881,7 +887,7 @@ export const getInputVariantTokens = (
     // impossible for this option to move a border, a blur, a shadow or the
     // radius — and why `underline`, which paints no box, gets an honest no-op
     // out of `fieldFillFor`.
-    const fill = fieldFillFor(variant, options.backgroundColor);
+    const fill = fieldFillFor(variant, options.fillTone);
     if (fill) {
       resolved = {
         ...resolved,

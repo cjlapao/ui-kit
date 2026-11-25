@@ -42,7 +42,7 @@ export const InputPlayground: React.FC = () => {
   // The fill's own hue, for when it should disagree with the tone — focus,
   // ring and glow keep following `tone`; only the fill comes over here.
   // `undefined` is the honest default: the fill follows the tone today.
-  const [backgroundColor, setBackgroundColor] = useState<TrueColor | undefined>(
+  const [fillTone, setFillTone] = useState<TrueColor | undefined>(
     undefined,
   );
   const [validationStatus, setValidationStatus] =
@@ -111,9 +111,9 @@ export const InputPlayground: React.FC = () => {
                       fill: the tone's hue for `glass` and `ghost`, white for the
                       rest, which is what every field did before this prop. */}
                     <HueControl
-                      label="Fill hue"
-                      value={backgroundColor}
-                      onChange={setBackgroundColor}
+                      label="Fill tone"
+                      value={fillTone}
+                      onChange={setFillTone}
                       autoLabel="None — the variant’s own fill"
                     />
                     <Control label="Placeholder">
@@ -241,7 +241,7 @@ export const InputPlayground: React.FC = () => {
                 variant={variant}
                 size={size}
                 tone={tone}
-                backgroundColor={backgroundColor}
+                fillTone={fillTone}
                 validationStatus={validationStatus}
                 glowIntensity={glowIntensity}
                 placeholder={placeholder}

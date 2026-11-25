@@ -100,6 +100,13 @@ export const ComboboxPage: React.FC = () => (
             "The kit default accent for the focus ring, the check, and the row wash - under the mouse and under the keyboard cursor alike (in tone on the selected row). The suggestion list is the field\u2019s shadow: it tints like the field does.",
         },
         {
+          name: "inputFillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It is the field&rsquo;s own fill only — the card or menu this control opens is `panelTone`&rsquo;s and `panelVariant`&rsquo;s, and option rows keep `tone`, so a rose trigger still opens a neutral menu.",
+        },
+        {
           name: "panelVariant / panelCorner / raisedSurface",
           type: '"auto" | SurfaceVariant / SurfaceCorner / boolean',
           default: '"auto" / "auto" / false',

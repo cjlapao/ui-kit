@@ -60,6 +60,13 @@ export const PasswordInputPage: React.FC = () => (
             "Everything: `variant`, `size`, `tone`, `validationStatus`, the glow trio, icons, and every native attribute. The one omission is `type` — this component owns it, since &ldquo;mask it&rdquo; *is* the component. Markup is asserted byte-identical to a bare `Input` at the same settings, so a styling bug can&rsquo;t live here.",
         },
         {
+          name: "fillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. The fill keeps the variant&rsquo;s own recipe rather than one fixed tone step; `underline` paints no box, so it is a no-op there, and `neutral` restores the variant&rsquo;s own resting fill.",
+        },
+        {
           name: "revealable",
           type: "boolean",
           default: "true",

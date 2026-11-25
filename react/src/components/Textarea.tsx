@@ -116,7 +116,7 @@ export interface TextareaProps extends Omit<
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  fillTone?: TrueColor;
   /** Accent tone for the focus indicator. @default "blue" */
   tone?: TrueColor;
   validationStatus?: TextareaValidationStatus;
@@ -145,7 +145,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     {
       size = "md",
       variant = "elevated",
-      backgroundColor,
+      fillTone,
       tone: toneProp,
       validationStatus = "none",
       className,
@@ -181,7 +181,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const { inRow } = useFieldRow();
     const variantTokens = getInputVariantTokens(variant, tone, "auto", {
       explicitTone: toneProp,
-      backgroundColor,
+      fillTone,
     });
     const resizeClass = resizeClasses[resize] ?? resizeClasses.vertical;
     const glow = getGlowTokens(glowIntensity);

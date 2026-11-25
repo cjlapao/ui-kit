@@ -14,6 +14,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -32,6 +33,9 @@ export const PasswordInputPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [size, setSize] = useState<InputSize>("md");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The fill's own hue, for when it should disagree with the tone — focus and
+  // ring keep following `tone`; only the fill comes over here.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [validationStatus, setValidationStatus] =
     useState<InputValidationStatus>("none");
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("subtle");
@@ -51,6 +55,7 @@ export const PasswordInputPlayground: React.FC = () => {
       variant={variant}
       size={size}
       tone={tone}
+      fillTone={fill}
       validationStatus={validationStatus}
       glowIntensity={glowIntensity}
       placeholder={placeholder}
@@ -98,6 +103,12 @@ export const PasswordInputPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <ChoiceControl
                       label="Validation"
                       options={inputValidationOptions}

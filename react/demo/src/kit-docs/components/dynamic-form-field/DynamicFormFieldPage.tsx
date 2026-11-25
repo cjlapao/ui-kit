@@ -95,6 +95,13 @@ export const DynamicFormFieldPage: React.FC = () => (
             "Card decoration through the theme's scales - the blue default is the kit's, drawing a tonal wash blue and putting the accent on every focus ring and badge; the entry takes its tone from the same prop. `raisedSurface` forces the first nested-panels depth step on the card - the tinted-card-on-matching-background fix.",
         },
         {
+          name: "inputFillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It is the field&rsquo;s own fill only — the multi-select panel a Map field opens is a card, and cards answer `panelVariant` and `panelTone`, so a rose field still opens a neutral list.",
+        },
+        {
           name: "required (via parameter)",
           type: "is_required | required",
           description:

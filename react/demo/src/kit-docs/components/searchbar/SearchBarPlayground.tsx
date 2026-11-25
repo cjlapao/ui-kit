@@ -23,6 +23,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -37,6 +38,9 @@ export const SearchBarPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InputVariant>("elevated");
   const [size, setSize] = useState<ControlSize>("md");
   const [color, setColor] = useState<TrueColor>("blue");
+  // The fill's own hue, for when it should disagree with the tone — focus and
+  // ring keep following `color`; only the fill comes over here.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>(
     DEFAULT_GLOW_INTENSITY,
   );
@@ -107,6 +111,12 @@ export const SearchBarPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                   </>
                 ),
               },
@@ -247,6 +257,7 @@ export const SearchBarPlayground: React.FC = () => {
               variant={variant}
               size={size}
               color={color}
+              fillTone={fill}
               glowIntensity={glowIntensity}
               disabled={disabled}
               loading={loading || searching}

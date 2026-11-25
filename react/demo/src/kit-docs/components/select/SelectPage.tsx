@@ -107,7 +107,7 @@ export const SelectPage: React.FC = () => (
             "Focus border/ring, caret-on-focus, validation-neutral icon accent, and the styled picker&rsquo;s hover/selected colours (travelling as CSS variables, nothing to safelist). `color` works as a deprecated alias.",
         },
         {
-          name: "backgroundColor",
+          name: "fillTone",
           type: "TrueColor",
           default: '"none"',
           description:

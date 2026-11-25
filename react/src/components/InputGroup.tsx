@@ -177,7 +177,7 @@ export interface InputGroupProps {
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  fillTone?: TrueColor;
   /**
    * Group radius. `auto` keeps the control corner shared with every other
    * field; an explicit token replaces it.
@@ -208,7 +208,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
   tone,
   color,
   variant = "elevated",
-  backgroundColor,
+  fillTone,
   corner = "auto",
   gradientFrom,
   gradientTo,
@@ -228,7 +228,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
   // ghost group stayed grey no matter what tone sat beside it.)
   const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
     explicitTone: tone ?? color,
-    backgroundColor,
+    fillTone,
   });
   const glow = getGlowTokens(glowIntensity);
   const [glowFrom, glowTo] = resolveGlowGradient(

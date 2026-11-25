@@ -150,13 +150,13 @@ describe("SlugInput", () => {
     // decision rather than a DOM attribute: it has to survive the spread and
     // reach the box, and never arrive on the `<input>` as an unknown attribute.
     const { container } = render(
-      <SlugInput defaultValue="Title" tone="blue" backgroundColor="rose" />,
+      <SlugInput defaultValue="Title" tone="blue" fillTone="rose" />,
     );
     const box = container.querySelector("span.group")!.className;
     expect(box).toContain("bg-rose-50");
     expect(box).toContain("focus-within:border-blue-400");
     expect(
-      screen.getByRole("textbox").getAttribute("backgroundcolor"),
+      screen.getByRole("textbox").getAttribute("filltone"),
     ).toBeNull();
   });
 });

@@ -160,6 +160,13 @@ export const DatePickerPage: React.FC = () => (
             "The same field system as Input — the box is drawn byte-identically, the gradient glow is the shared two-lobe shadow, tone tints focus and the selected days.",
         },
         {
+          name: "inputFillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It is the field&rsquo;s own fill only — the card or menu this control opens is `panelTone`&rsquo;s and `panelVariant`&rsquo;s, and option rows keep `tone`, so a rose trigger still opens a neutral menu.",
+        },
+        {
           name: "panelVariant / panelTone / panelCorner / panelClassName",
           type: '\"auto\" | SurfaceVariant / \"auto\" | TrueColor / SurfaceCorner / string',
           default: '"auto" / "auto" / "auto" (theme corner, today = md) / —',

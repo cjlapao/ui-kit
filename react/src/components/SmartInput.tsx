@@ -104,11 +104,13 @@ export interface SmartInputProps {
    * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
    * `elevated` their border, and `underline` has no box to paint. `neutral`
    * means the variant's own resting fill.
+   * It is the field's own surface: the suggestions panel is `panelTone`'s and
+   * `panelVariant`'s, and its rows keep `tone`.
    * In `ghost`, only the washes follow this hue — the hover rim is an
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  inputFillTone?: TrueColor;
   /** Accent colour for focus and the picker trigger. @default "blue" */
   tone?: TrueColor;
   /**
@@ -166,7 +168,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   disabled = false,
   size = "md",
   variant = "flat",
-  backgroundColor,
+  inputFillTone,
   tone: toneProp,
   corner = "auto",
   gradientFrom,
@@ -209,7 +211,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
   const { inRow } = useFieldRow();
   const surface = getInputVariantTokens(variant, tone, corner, {
     explicitTone: toneProp,
-    backgroundColor,
+    fillTone: inputFillTone,
   });
   // Tone goes through the shared field tokens — the `ring-${tone}-400`
   // template strings this used to build only reach Tailwind if a safelist

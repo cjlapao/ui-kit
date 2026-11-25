@@ -1102,8 +1102,9 @@ reference that pattern, not re-teach it.
 | 2026-11-18 | CSS / Layout | **A `display: table` content wrapper sizes from descendants' min-content — a `truncate` label cannot fight it from inside.** `ScrollArea`'s content is `table min-w-full`: one long unbreakable token in any row (a file path in a sub-step label) sets the table's min-content width past the viewport, and the rows then render past the card — `overflow-x: hidden` on the viewport makes it invisible clipping/scroll offset, `horizontal={false}` stops the bar but not the geometry; the only reliable cap is pinning the table itself: `contentClassName="table-fixed w-full"` (fixed layout + width, not min-width — fixed layout still honors max-content when `width: auto`). The symptom to trust is `scrollWidth > clientWidth` on a scroller that renders no bar, and text hanging out the panel's PADDING edge in a screenshot. | WorkflowTrackerRail, ScrollArea |
 | 2026-11-20 | Cross-kit | **Panel's `pulse` attention state is React-only; Vue knowingly lags** (the 2026-11-19 `active` row records its own; same scope rule). `react/src/components/Panel.tsx` gained `pulse?: boolean` — the Pill's inward glow at container scale: `.panel-pulse` in `react/src/styles.css` animates an **inset** box-shadow swell (`0 → inset 0 0 10px 3px @38%` at 55%, 2s ease-in-out infinite) from the section's own rim, re-compositing the five `--tw-*-shadow` variables inside every keyframe so the variants' resting `shadow-xl`/rings and the `focus-visible` inset ring survive. Inward is not a detail: an outer halo is sheared by the Panel's `overflow-hidden` (the rim lesson again) and paints over neighbours, while an inset shadow is the element's own paint — clipped to the border-box, following the corner radius, immune to the clipping. Hue rides inline `--panel-glow`/`--panel-glow-dark` custom properties from the accent rule (`borderColor ?? tone ??` kit blue — so a selected-and-pulsing card's rim and glow always agree): keyframes stay colour-agnostic, **zero safelist work**, dark rides `-300` a step brighter. `disabled` wins over the pulse — deliberately unlike the rim: selection is information, a pulse is a demand. `panel-` joined `CONTRACT_PREFIXES` in `styles.contract.test.ts` (the `pill-` precedent) so the raw hook cannot ship ruleless. `vue/src/components/Panel.vue` is untouched: no `pulse` prop; a Vue port needs only the prop, the class and the two custom properties — the keyframes live in the shared stylesheet, not the component. | Panel.tsx, styles.css, styles.contract.test.ts |
 | 2026-11-19 | Cross-kit | **Panel's `active` selection state is React-only; Vue knowingly lags** (divergence recorded, not silently fixed, per task scope). `react/src/components/Panel.tsx` gained `active?: boolean`: a 2px inset outline rim (`getSurfaceActiveTokens` — `outline-2 -outline-offset-2 outline-{c}-500 dark:outline-{c}-400`; an outline because `border-2`/`ring-2` would fight the variants' resting width classes for one property and an outer ring is clipped by the Panel's own `overflow-hidden`) plus a variant-aware fill swap — tonal/simple take `tonalBg`, glass/default `glassBg`, liquid-glass `liquidBg`, the pale rest `subtleBg` — so no variant flattens onto one wash. The hue follows the accent rule (`borderColor ?? tone ??` kit blue), an explicit `backgroundColor` beats the fill while the rim still ignites (caller's paint wins over state; selection stays legible), the rim survives the disabled veil, and `data-active` is the caller's CSS hook — Panel adds no ARIA, the caller owns `aria-pressed`. `vue/src/components/Panel.vue` is untouched: no `active` prop. A Vue port needs the same nine-branch fill map, the rim OUTSIDE `getSurfaceTransparencyClasses` (fills go inside — a plain `bg-*` outside it competes with `ui-surface-fill` for `background-color`), and the two safelist shapes, which the shared generator already emits (`outline-{COLOR}-500`, `dark:outline-{COLOR}-400`). | Panel.tsx, Theme.ts, generate-safelist.mjs |
-| 2026-11-24 | Cross-kit | **The field family's `backgroundColor` fill override is React-only; Vue knowingly lags** (divergence recorded, not silently fixed — the same scope rule as the Panel `active` and `pulse` rows above, and the caller chose React-now deliberately rather than by omission). The shared half is already in place: `common/theme/Theme.ts` carries `InputVariantOptions.backgroundColor`, `fieldFillFor(variant, hue)` and the re-hued `ghostFillShades(hue)`, and the Vue fields call that getter directly (`Input.vue:183`, `Select.vue:195`, `InputGroup.vue:145`, `SmartInput.vue:136`) — so a port is component work only: declare the prop in each `defineProps` beside `variant`, add it to those four options bags, and thread it through the wrappers that forward `variant`. Untouched today: no Vue prop, no Vue test, no Vue demo control. The contract that has to travel with the port lives in `react/src/theme/inputVariants.test.ts` (`field background override`) — byte-identical output when the option is absent, fill-and-nothing-else when present — and because it asserts against `common/`, a Vue pass that leaves the React suite unchanged is the proof neither side moved. | common/theme/Theme.ts, react field family |
+| 2026-11-24 | Cross-kit | **The field family's `backgroundColor` fill override is React-only; Vue knowingly lags** *(superseded 2026-11-25: the prop is `fillTone`/`inputFillTone` now — see the row below; the mechanics and the Vue gap are unchanged)* (divergence recorded, not silently fixed — the same scope rule as the Panel `active` and `pulse` rows above, and the caller chose React-now deliberately rather than by omission). The shared half is already in place: `common/theme/Theme.ts` carries `InputVariantOptions.backgroundColor`, `fieldFillFor(variant, hue)` and the re-hued `ghostFillShades(hue)`, and the Vue fields call that getter directly (`Input.vue:183`, `Select.vue:195`, `InputGroup.vue:145`, `SmartInput.vue:136`) — so a port is component work only: declare the prop in each `defineProps` beside `variant`, add it to those four options bags, and thread it through the wrappers that forward `variant`. Untouched today: no Vue prop, no Vue test, no Vue demo control. The contract that has to travel with the port lives in `react/src/theme/inputVariants.test.ts` (`field background override`) — byte-identical output when the option is absent, fill-and-nothing-else when present — and because it asserts against `common/`, a Vue pass that leaves the React suite unchanged is the proof neither side moved. | common/theme/Theme.ts, react field family |
 | 2026-11-24 | Cross-kit | **`SidePanel`'s `subHeader` strip and `headerPills` slot are React-only; Vue knowingly lags** (divergence recorded, not silently fixed — the same standing rule as the 2026-11-17 Vue-`SidePanel` row: the Vue component is the legacy port and porting it is component work, not decision work). React gained a `flex-none` non-scrolling strip between the header and the scroll container (`data-sp-sub-header`, strip padding off the `size` token — header `px`, tighter `py`, the Modal tabs-strip precedent) and a pills slot in the header's right cluster, `[collapse] [headerActions] [headerPills] [close]` (`data-sp-header-pills`, centred with the close button by `items-center` siblinghood, no per-size optical code). Both live inside `data-sp-content`, so collapsing hides them with the blanket `inert` + `opacity-0` for free. Vue has neither; its `footer` already matches — sticky in both kits. A port is one named slot between the header and body divs and one before the close `IconButton`. | vue/src/components/SidePanel.vue |
+| 2026-11-25 | Cross-kit | **The rename the 2026-11-24 row above predates:** the field-family fill override is `fillTone` on the six controls that *are* a field and `inputFillTone` on the eight that *have* one (`Picker`, `TagPicker`, `Combobox`, `SmartInput`, `DatePicker`, `KeyValueArrayField`, `DynamicFormField`, and `VariablePicker`'s search field — a new prop there, since its card fill was never its problem). `Panel`, `StatCard` and `MultiSelectPanel` keep `backgroundColor`: the card fill and the field fill are two different decisions and the two names are what keeps them so. Vue is still behind by exactly the same list — no Vue prop, no Vue test, no Vue demo control — and now behind on the *vocabulary* as well, which a port has to adopt rather than translate: a Vue `Input.vue` that declares `backgroundColor` would read as a card fill to anyone who has also opened `Panel.vue`. The portable half is `react/src/components/fieldFamilyFillContract.test.tsx`, which asserts the rule across all sixteen controls against `common/` and is the thing a Vue pass has to leave untouched. | react field family, Theme.ts |
 
 ## A Panel cannot be positioned by its caller - position a shell around it
 
@@ -1731,3 +1732,54 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   override set. A fifth recipe added in `Theme.ts` later has to show up in the
   generator or the build says so — which is the failure mode this file has
   accumulated rows about for months.
+
+## A prop's name is the component's vocabulary — `fillTone` where the control *is* the field, `inputFillTone` where it *has* one (2026-11-25)
+
+- The override landed as `backgroundColor` and lasted one day. The word was
+  already the **card's**: `Panel`, `StatCard` and `MultiSelectPanel` take
+  `backgroundColor` for the surface they paint. `VariablePicker` is a card
+  holding a search field, so in its own prop list the word could not mean
+  "paint the field, not the card" — the bug report wrote itself. Now the rule is
+  one line and it is a role test, not a look test: `fillTone` where the control
+  *is* the field, `inputFillTone` where it *has* one, mirroring
+  `inputVariant`/`inputClassName` those composites already carry. The theme
+  keeps a single option, `fillTone`, because `getInputVariantTokens` only ever
+  paints a field; composites map theirs into that bag. One option in the theme,
+  two public names is not duplication — the two names are the only place the
+  card/field distinction is written down.
+- **The names that lost, and what each would have cost:** `fillColor` is already
+  the chart family's (`react/src/components/chart/props.ts`); `fieldTone` reads
+  as a second `tone` on a component that has one; `fieldColor` worse, because
+  `color` is a literal *alias* of `tone` on six of these components, so it would
+  have joined a family of aliases meaning the opposite of what it says;
+  `backgroundTone` still reads as "the card's tone"; `surfaceTone`/`surfaceColor`
+  collide with the existing `SurfaceTone` type. What survived says what it
+  paints (fill) and what it accepts (a `TrueColor`), and nothing else. Naming is
+  cheapest before the first commit and gets more expensive every day after — the
+  whole cost here was a day of grep.
+- **A JSX site takes the *target's* word, not the caller's.** The mechanical
+  rename produced `fillTone={inputFillTone}` on a `<KeyValueArrayField>` at
+  `DynamicFormField.tsx:331` and the same at `KeyValueArrayField.tsx:474` for its
+  internal `Rows` — `TS2322: Property 'fillTone' does not exist`. Composite→composite
+  forwards keep `inputFillTone`; composite→`<Input>`/`<SearchBar>` forwards use
+  `fillTone`. Worth noting *how* this was caught: the props are typed interfaces,
+  not `Record<string, unknown>` bags, so the compiler read the catalogue for me.
+- **The contract suite is the durable half, and it found three things on its own
+  first run** (`react/src/components/fieldFamilyFillContract.test.tsx`, sixteen
+  rows, hue and tone deliberately disagreeing). Popups portal into
+  `document.body`, so a container-scoped leak scan silently checks nothing —
+  every popup assertion had to move to the body. Four of the five `open()`
+  helpers were no-ops (wrong trigger, or a controlled value discarding the typed
+  text), and only became visible once each row asserted the reveal had *added
+  nodes* — a contract whose setup quietly does nothing is worse than no
+  contract, because it reads like coverage. And `InputGroup`'s focus affordance
+  is an `outline`, not a border, so "the tone still owns the affordance" has to
+  accept `border|ring|outline` or it fails a component that was always correct.
+- **Prove it can fail.** Adding ` border-${options.fillTone}-400}` to the fill
+  assembly in `Theme.ts` reddened all sixteen rows; deleting it returned them to
+  green. Nobody should trust a cross-component contract they have never watched
+  reject something.
+- The hue under test is `fuchsia`, not the `rose` the design notes reach for.
+  Rose is the kit's semantic error colour — `VariablePicker` paints a missing
+  value `text-rose-500` — and a leak detector that flags a semantic colour gets
+  weakened inside a week.

@@ -14,6 +14,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -38,6 +39,9 @@ export const SlugInputPlayground: React.FC = () => {
   const [variant, setVariant] = useState<InputVariant>("flat");
   const [size, setSize] = useState<InputSize>("md");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The fill's own hue, for when it should disagree with the tone — focus and
+  // ring keep following `tone`; only the fill comes over here.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [validationStatus, setValidationStatus] =
     useState<InputValidationStatus>("none");
   const [value, setValue] = useState("Hello, World! Foo_Bar 2024");
@@ -95,6 +99,12 @@ export const SlugInputPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <ToggleRow
                       label="Disabled"
                       checked={disabled}
@@ -198,6 +208,7 @@ export const SlugInputPlayground: React.FC = () => {
                 variant={variant}
                 size={size}
                 tone={tone}
+                fillTone={fill}
                 validationStatus={validationStatus}
                 placeholder="My First Post!"
                 value={value}

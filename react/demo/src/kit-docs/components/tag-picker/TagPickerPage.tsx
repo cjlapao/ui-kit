@@ -12,6 +12,8 @@ import Create from "./examples/Create";
 import createCode from "./examples/Create.tsx?raw";
 import Variants from "./examples/Variants";
 import variantsCode from "./examples/Variants.tsx?raw";
+import FillVsPills from "./examples/FillVsPills";
+import fillVsPillsCode from "./examples/FillVsPills.tsx?raw";
 import States from "./examples/States";
 import statesCode from "./examples/States.tsx?raw";
 
@@ -76,6 +78,13 @@ export const TagPickerPage: React.FC = () => (
           type: "ControlSize / InputVariant / ValidationStatus",
           description:
             "Straight from the field system shared with Input, Select, SearchBar and Picker — same surfaces, same scale, same focus treatment, so a TagPicker stacked beside an Input lines up.",
+        },
+        {
+          name: "inputFillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It is the field&rsquo;s own fill only — the card or menu this control opens is `panelTone`&rsquo;s and `panelVariant`&rsquo;s, and option rows keep `tone`, so a rose trigger still opens a neutral menu. The tag pills answer `itemColor`, falling back to `tone`.",
         },
         {
           name: "panelVariant / panelCorner",
@@ -144,6 +153,14 @@ export const TagPickerPage: React.FC = () => (
         filename="Variants.tsx"
       >
         <Variants />
+      </ExampleCard>
+      <ExampleCard
+        title="A fill of its own, pills of their own"
+        description="Three hues, three owners: `inputFillTone` paints the trigger's fill, `tone` still owns the focus border and ring, and the pills answer `itemColor` — falling back to `tone`, never to the fill, which is why the lower picker is rose with blue pills. Open either one and the menu stays neutral: that surface is `panelTone`'s."
+        code={fillVsPillsCode}
+        filename="FillVsPills.tsx"
+      >
+        <FillVsPills />
       </ExampleCard>
       <ExampleCard
         title="Loading, disabled, read-only and error"

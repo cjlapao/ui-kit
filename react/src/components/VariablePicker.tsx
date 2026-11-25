@@ -57,6 +57,18 @@ export interface VariablePickerProps {
    */
   panelTone?: "auto" | SurfaceTone;
   /**
+   * The hue the *search field's* fill wears, when it should disagree with
+   * `tone`. It is not the card's fill — that is `variant` and `panelTone`.
+   * The name is deliberate: on everything Panel-shaped, `backgroundColor`
+   * means the card, and this component is a card holding a field, so it needs
+   * both words to mean different things. The card's `variant` already decides
+   * the field's variant (a glass card gets a glass box); this picks only the
+   * fill's hue. Focus border, ring and `ghost`'s hover rim keep following
+   * `tone`, and so do the variable rows.
+   * @default "none" — whatever the variant paints today
+   */
+  inputFillTone?: TrueColor;
+  /**
    * The card's radius, on the shared corner scale — `"auto"` resolves to
    * the theme's container corner through `Panel`; composites pass their
    * `panelCorner` straight through.
@@ -139,6 +151,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
   size = "md",
   variant = "elevated",
   panelTone = "auto",
+  inputFillTone,
   corner = "auto",
   raisedSurface = false,
   initialSearch = "",
@@ -255,6 +268,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
         <SearchBar
           size={size}
           color={tone}
+          fillTone={inputFillTone}
           // The same pairing every composite observes from the other side:
           // an input inside glass is glass, so the search box takes the
           // glass treatment when the card it lives in is glass.

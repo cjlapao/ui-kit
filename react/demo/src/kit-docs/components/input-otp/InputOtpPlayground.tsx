@@ -15,6 +15,7 @@ import {
   ToggleRow,
 } from "../../shared/PlaygroundPanel";
 import { ControlAccordion } from "../../shared/ControlAccordion";
+import { HueControl } from "../../shared/HueControl";
 import { EventLogControl, useEventLog } from "../../shared/EventLog";
 import {
   controlSizeOptions,
@@ -35,6 +36,9 @@ export const InputOtpPlayground: React.FC = () => {
   const [size, setSize] = useState<InputOtpSize>("md");
   const [corner, setCorner] = useState<PillCorner | "auto">("auto");
   const [tone, setTone] = useState<TrueColor>("blue");
+  // The fill's own hue, for when it should disagree with the tone — focus and
+  // ring keep following `tone`; only the fill comes over here.
+  const [fill, setFill] = useState<TrueColor | undefined>(undefined);
   const [glowIntensity, setGlowIntensity] = useState<GlowIntensity>("subtle");
   const [mask, setMask] = useState(false);
   const [integerOnly, setIntegerOnly] = useState(false);
@@ -58,6 +62,7 @@ export const InputOtpPlayground: React.FC = () => {
       size={size}
       corner={corner}
       tone={tone}
+      fillTone={fill}
       glowIntensity={glowIntensity}
       mask={mask}
       integerOnly={integerOnly}
@@ -109,6 +114,12 @@ export const InputOtpPlayground: React.FC = () => {
                         defaultExpanded
                       />
                     </Control>
+                    <HueControl
+                      label="Fill tone"
+                      value={fill}
+                      onChange={setFill}
+                      autoLabel="None — the variant’s own fill"
+                    />
                     <SelectControl
                       label="Corner"
                       options={[

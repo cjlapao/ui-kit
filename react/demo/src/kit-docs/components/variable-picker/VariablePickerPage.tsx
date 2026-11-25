@@ -57,6 +57,13 @@ export const VariablePickerPage: React.FC = () => (
             "size is on the shared control scale, matched to whatever opened the picker (it was a component-local sm | md | lg); tone accents the tabs and rings where a group has none.",
         },
         {
+          name: "inputFillTone",
+          type: "TrueColor",
+          default: '"none" — the variant\'s own fill',
+          description:
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It paints the search field&rsquo;s fill, NOT the card — the card is `variant` and `panelTone`.",
+        },
+        {
           name: "initialSearch / title",
           type: "string",
           description:

@@ -119,7 +119,7 @@ export interface SelectProps extends Omit<
    * affordance the pointer asks for, so it stays in `tone`.
    * @default "none" — whatever the variant paints today
    */
-  backgroundColor?: TrueColor;
+  fillTone?: TrueColor;
   /**
    * Field radius. `auto` keeps the control corner shared with every other
    * field; an explicit token replaces it.
@@ -166,7 +166,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
     tone,
     color,
     variant = "flat",
-    backgroundColor,
+    fillTone,
     corner = "auto",
     gradientFrom,
     gradientTo,
@@ -217,7 +217,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
   const tokens = getFieldToneTokens(effectiveTone);
   const variantTokens = getInputVariantTokens(variant, effectiveTone, corner, {
     explicitTone: tone ?? color,
-    backgroundColor,
+    fillTone,
   });
   const glow = getGlowTokens(glowIntensity);
   const [glowFrom, glowTo] = resolveGlowGradient(
