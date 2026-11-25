@@ -6,6 +6,7 @@ afterEach(() => {
 });
 import { fireEvent, render, screen } from "@testing-library/react";
 import TagPicker, { type TagPickerItem } from "./TagPicker";
+import { POPUP_ROW_WASH } from "../theme/Theme";
 import { I18nProvider } from "../i18n";
 
 const ITEMS: TagPickerItem[] = [
@@ -27,6 +28,12 @@ const Harness = ({
 
 import { useState } from "react";
 import type { TagPickerProps } from "./TagPicker";
+
+// The keyboard cursor's wash, read from the theme rather than restated here: a
+// retune of the constant retunes these assertions instead of vacating them.
+const CURSOR_WASH = POPUP_ROW_WASH.cursor.split(" ");
+const NO_WASH = [...CURSOR_WASH, ...POPUP_ROW_WASH.hover.split(" ")];
+
 
 const openDropdown = () => {
   fireEvent.click(screen.getByRole("button", { name: "Toggle options" }));
@@ -269,7 +276,7 @@ describe("TagPicker - the highlight is position, not selection", () => {
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
     const active = screen.getAllByRole("option")[1];
     expect(active).toHaveAttribute("data-active", "true");
-    expect(active.className.split(" ")).toContain("bg-neutral-50");
+    expect(active.className.split(" ")).toEqual(expect.arrayContaining(CURSOR_WASH));
     expect(active.className.split(" ")).not.toContain("bg-blue-50");
     // aria-selected="false" is correct (and required) in a multi-selectable
     // listbox - the WASH is the lie-detector, not the attribute.
@@ -294,13 +301,13 @@ describe("TagPicker - a click leaves no residue", () => {
     openDropdown();
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
     const first = screen.getAllByRole("option")[0];
-    expect(first.className.split(" ")).toContain("bg-neutral-50");
+    expect(first.className.split(" ")).toEqual(expect.arrayContaining(CURSOR_WASH));
     fireEvent.click(first);
     expect(first).toHaveAttribute("data-active", "true");
-    expect(first.className.split(" ")).not.toContain("bg-neutral-50");
+    expect(first.className.split(" ")).not.toEqual(expect.arrayContaining(CURSOR_WASH));
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
-    expect(screen.getAllByRole("option")[1].className.split(" ")).toContain(
-      "bg-neutral-50",
+    expect(screen.getAllByRole("option")[1].className.split(" ")).toEqual(
+      expect.arrayContaining(CURSOR_WASH),
     );
   });
 });

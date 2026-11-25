@@ -18,6 +18,7 @@ import { useIconRenderer } from "../contexts/IconContext";
 import { useFieldRow } from "../contexts/FieldRowContext";
 import {
   PANEL_TONE_FOR_FIELD,
+  POPUP_ROW_WASH,
   SURFACE_VARIANT_FOR_FIELD,
   TRUE_COLORS,
   VALIDATION_STATUSES,
@@ -526,7 +527,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(
                                     toneClasses.wash,
                                     "ring-1 ring-inset ring-neutral-400/40 dark:ring-white/25",
                                   )
-                                : "bg-neutral-50 dark:bg-neutral-800/60"),
+                                : POPUP_ROW_WASH.cursor),
                             selected
                               ? classNames(toneClasses.selected, "font-medium")
                               : "text-neutral-900 dark:text-neutral-100",

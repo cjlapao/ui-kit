@@ -18,6 +18,7 @@ import Panel from "./Panel";
 import Spinner from "./Spinner";
 import CustomIcon from "./CustomIcon";
 import {
+  POPUP_ROW_WASH,
   type ControlSize,
   DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
@@ -823,7 +824,7 @@ const Picker: React.FC<PickerProps> = ({
                     // removed, while nothing is selected.
                     "flex w-full select-none items-center justify-between border-b border-black/5 px-4 py-1.5 text-xs dark:border-white/10",
                     effectiveSelectedIds.length > 0
-                      ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
+                      ? `cursor-pointer ${POPUP_ROW_WASH.hover}`
                       : "invisible",
                     popupText.muted,
                   )}
@@ -943,7 +944,7 @@ const Picker: React.FC<PickerProps> = ({
                                 onClick={() => handleToggleGroup(g)}
                                 className={classNames(
                                   headerClass,
-                                  "cursor-pointer border-0 bg-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
+                                  `cursor-pointer border-0 bg-transparent ${POPUP_ROW_WASH.hover}`,
                                 )}
                               >
                                 {label}
@@ -973,7 +974,7 @@ const Picker: React.FC<PickerProps> = ({
                             "m-0 flex w-full cursor-pointer select-none items-center gap-3 border-0 px-4 py-2.5 outline-none transition-colors",
                             isSelected
                               ? colorTokens.optionSelectedBg
-                              : "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
+                              : POPUP_ROW_WASH.hover,
                             // The highlight is where the KEYBOARD is, never
                             // a claim of selection - in multi mode an
                             // unchecked row can carry it, and a solid grey
@@ -987,7 +988,7 @@ const Picker: React.FC<PickerProps> = ({
                               cursorByKeyboard &&
                               (isSelected
                                 ? "[&_p:first-child]:underline [&_p:first-child]:underline-offset-2"
-                                : "bg-neutral-50 dark:bg-neutral-800/60"),
+                                : POPUP_ROW_WASH.cursor),
                           )}
                         >
                           {/* Multi: always show checkbox. Single: only show checkmark for selected item. */}

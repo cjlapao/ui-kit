@@ -16,6 +16,7 @@ import Pill from "./Pill";
 import { ScrollArea } from "./ScrollArea";
 import Spinner from "./Spinner";
 import {
+  POPUP_ROW_WASH,
   type ControlSize,
   DEFAULT_GLOW_INTENSITY,
   FIELD_STATUS_CLASSES,
@@ -829,7 +830,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                               ? isNew
                                 ? "bg-emerald-50 dark:bg-emerald-900/20"
                                 : colorTokens.optionSelectedBg
-                              : "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
+                              : POPUP_ROW_WASH.hover,
                             // The highlight is where the KEYBOARD is, never a
                             // claim of selection - a checked row's tone wash
                             // gains an inset ring, an unchecked one the same
@@ -839,7 +840,7 @@ const TagPicker: React.FC<TagPickerProps> = ({
                               cursorByKeyboard &&
                               (isSelected
                                 ? "ring-1 ring-inset ring-neutral-400/40 dark:ring-white/25"
-                                : "bg-neutral-50 dark:bg-neutral-800/60"),
+                                : POPUP_ROW_WASH.cursor),
                           )}
                         >
                           {/* Checkmark slot */}
@@ -939,9 +940,9 @@ const TagPicker: React.FC<TagPickerProps> = ({
                       onClick={handleCreate}
                       className={classNames(
                         "flex cursor-pointer select-none items-center gap-2 border-t border-black/5 px-4 py-2.5 text-sm transition-colors dark:border-white/10",
-                        "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
+                        POPUP_ROW_WASH.hover,
                         focusedIndex === filtered.length &&
-                          "bg-neutral-50 dark:bg-neutral-800/60",
+                          POPUP_ROW_WASH.cursor,
                       )}
                     >
                       <svg

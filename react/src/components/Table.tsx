@@ -1,4 +1,4 @@
-import { getSurfaceAccentColor } from "../theme/Theme";
+import { POPUP_ROW_WASH, getSurfaceAccentColor } from "../theme/Theme";
 /* eslint-disable jsx-a11y/no-interactive-element-to-noninteractive-role -- Explicit cell/row roles preserve semantics inside the presentational header/body tables. */
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -2085,7 +2085,7 @@ function TableComponent<T>({
                                       className={classNames(
                                         "flex items-center gap-2.5 px-3 py-1.5 text-sm select-none",
                                         hideable
-                                          ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
+                                          ? `cursor-pointer ${POPUP_ROW_WASH.hover}`
                                           : "cursor-not-allowed opacity-40",
                                       )}
                                     >
@@ -2222,7 +2222,7 @@ function TableComponent<T>({
                             <div className="py-1">
                               <label
                                 htmlFor={`table-groupby-none-${uid}`}
-                                className="flex items-center gap-2.5 px-3 py-1.5 text-sm select-none cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
+                                className={`flex items-center gap-2.5 px-3 py-1.5 text-sm select-none cursor-pointer ${POPUP_ROW_WASH.hover}`}
                               >
                                 <input
                                   type="radio"
@@ -2246,7 +2246,7 @@ function TableComponent<T>({
                                   <label
                                     key={col.id}
                                     htmlFor={`table-groupby-${uid}-${col.id}`}
-                                    className="flex items-center gap-2.5 px-3 py-1.5 text-sm select-none cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
+                                    className={`flex items-center gap-2.5 px-3 py-1.5 text-sm select-none cursor-pointer ${POPUP_ROW_WASH.hover}`}
                                   >
                                     <input
                                       type="radio"
@@ -2389,7 +2389,7 @@ function TableComponent<T>({
                                 return (
                                   <div
                                     key={col.id}
-                                    className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800/60"
+                                    className={`flex items-center gap-2 px-3 py-1.5 text-sm ${POPUP_ROW_WASH.hover}`}
                                   >
                                     <span className="flex-1 truncate text-neutral-700 dark:text-neutral-200">
                                       {label}

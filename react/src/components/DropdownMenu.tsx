@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import classNames from "classnames";
 import { useIconRenderer } from "../contexts/IconContext";
 import { useMenuPopupZIndex } from "../contexts/MenuPopupContext";
+import { POPUP_ROW_WASH } from "../theme";
 
 export interface DropdownMenuOption {
   label: ReactNode;
@@ -490,7 +491,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
                   ? "cursor-not-allowed opacity-50"
                   : item.danger
                     ? "text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10"
-                    : "hover:bg-neutral-100 dark:hover:bg-neutral-800",
+                    : POPUP_ROW_WASH.hover,
                 itemClassName,
               )}
             >

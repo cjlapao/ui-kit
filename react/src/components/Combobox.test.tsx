@@ -2,11 +2,17 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, within } from "@testing-library/react";
 
 import Combobox, { getComboboxToneClasses } from "./Combobox";
+import { POPUP_ROW_WASH } from "../theme/Theme";
 import {
   CONTROL_SIZES,
   TRUE_COLORS,
   VALIDATION_STATUSES,
 } from "../theme/Theme";
+
+// The keyboard cursor's wash, read from the theme rather than restated here: a
+// retune of the constant retunes these assertions instead of vacating them.
+const CURSOR_WASH = POPUP_ROW_WASH.cursor.split(" ");
+
 
 const FRUIT = ["Apple", "Apricot", "Banana", "Cherry"];
 
@@ -303,7 +309,7 @@ describe("Combobox - the popup", () => {
     const onPlain = document
       .getElementById(`${plainField.getAttribute("aria-controls")}-0`)!
       .className.split(" ");
-    expect(onPlain).toContain("bg-neutral-50");
+    expect(onPlain).toEqual(expect.arrayContaining(CURSOR_WASH));
     expect(onPlain.some((c) => c.startsWith("bg-blue-"))).toBe(false);
   });
 

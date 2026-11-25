@@ -10,6 +10,7 @@ import { useSurfaceText } from "../contexts/SurfaceContext";
 import { useKitT } from "../i18n";
 import {
   PANEL_TONE_FOR_FIELD,
+  POPUP_ROW_WASH,
   getSurfaceTriggerTokens,
   isGlassSurface,
 } from "../theme/Theme";
@@ -104,7 +105,7 @@ const VariableRow: React.FC<{
         // one tab hovers green and the next purple - reads as selection
         // across a menu. The colour identity already rides the badge, the
         // tab and the focus ring.
-        "hover:bg-neutral-50 dark:hover:bg-neutral-800/60",
+        POPUP_ROW_WASH.hover,
         trigger.focusRing,
       )}
     >

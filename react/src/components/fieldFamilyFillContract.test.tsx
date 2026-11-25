@@ -150,7 +150,7 @@ const ROWS: Row[] = [
   {
     name: "SearchBar",
     draw: () => (
-      <SearchBar onSearch={() => {}} tone={TONE} fillTone={HUE} />
+      <SearchBar onSearch={() => {}} color={TONE} fillTone={HUE} />
     ),
   },
   {
@@ -319,7 +319,7 @@ const toneAffordances = (root: Element) =>
 
 describe("the field family's fill contract", () => {
   it.each(ROWS)("$name", ({ draw, open }) => {
-    const { container } = render(draw());
+    render(draw());
 
     // 1. The fill moved: some element wears the hue as a `bg-*` paint, at the
     //    variant's own recipe (every row here rests in `flat`).

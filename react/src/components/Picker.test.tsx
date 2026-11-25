@@ -2,9 +2,15 @@ import { I18nProvider } from "../i18n";
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import Picker from "./Picker";
+import { POPUP_ROW_WASH } from "../theme/Theme";
 import TagPicker from "./TagPicker";
 import SplitView from "./SplitView";
 import { TRUE_COLORS, getSurfaceCornerClass } from "../theme/Theme";
+
+// The keyboard cursor's wash, read from the theme rather than restated here: a
+// retune of the constant retunes these assertions instead of vacating them.
+const CURSOR_WASH = POPUP_ROW_WASH.cursor.split(" ");
+const NO_WASH = [...CURSOR_WASH, ...POPUP_ROW_WASH.hover.split(" ")];
 
 const ITEMS = [
   { id: "a", title: "Alpha" },
@@ -504,7 +510,7 @@ describe("TagPicker — the shared field system", () => {
     );
     const cls = triggerOf(container).className;
     expect(cls).toContain("opacity-75");
-    expect(cls).not.toContain("bg-neutral-50");
+    expect(cls.split(" ")).not.toEqual(expect.arrayContaining(NO_WASH));
   });
 
   it("`tone` and its `color` alias agree", () => {
@@ -579,7 +585,9 @@ describe("Picker — multi highlight is position, not selection", () => {
     // And a highlighted row that is NOT checked is only ever a whisper.
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowUp" });
     const activeUnselected = screen.getAllByRole("option")[0];
-    expect(activeUnselected.className).toContain("bg-neutral-50");
+    expect(activeUnselected.className.split(" ")).toEqual(
+      expect.arrayContaining(CURSOR_WASH),
+    );
     expect(activeUnselected.className).not.toContain("bg-blue-50");
     expect(activeUnselected).not.toHaveAttribute("aria-selected");
   });
@@ -602,27 +610,27 @@ describe("Picker — multi highlight is position, not selection", () => {
 
   it("washes only on the keyboard's initiative - a click leaves no residue", () => {
     // The reported bug: deselecting a row kept showing the position wash,
-    // loudest on the glass popup where bg-neutral-50 reads as a grey band.
+    // loudest on the glass popup where the old `bg-neutral-50` read as a grey band.
     // The wash is the keyboard's focus-visible marker; mouse answers
     // itself via the checkbox.
     const { onMultiChange } = multi();
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
     const first = screen.getAllByRole("option")[0];
-    expect(first.className.split(" ")).toContain("bg-neutral-50");
+    expect(first.className.split(" ")).toEqual(expect.arrayContaining(CURSOR_WASH));
     // Deselect through the mouse: cursor moves for the keyboard's sake,
     // but no wash is parked on the row.
     onMultiChange.mockClear();
     fireEvent.click(first);
     expect(first).toHaveAttribute("data-active", "true");
-    expect(first.className.split(" ")).not.toContain("bg-neutral-50");
+    expect(first.className.split(" ")).not.toEqual(expect.arrayContaining(CURSOR_WASH));
     // And one arrow press brings it back.
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
     expect(screen.getAllByRole("option")[1]).toHaveAttribute(
       "data-active",
       "true",
     );
-    expect(screen.getAllByRole("option")[1].className.split(" ")).toContain(
-      "bg-neutral-50",
+    expect(screen.getAllByRole("option")[1].className.split(" ")).toEqual(
+      expect.arrayContaining(CURSOR_WASH),
     );
   });
 
@@ -632,7 +640,7 @@ describe("Picker — multi highlight is position, not selection", () => {
     expect(selected).toHaveAttribute("aria-selected", "true");
     // Opening starts on the selected row: its tone wash stays the fill.
     expect(selected.className.split(" ")).toContain("bg-blue-50");
-    expect(selected.className.split(" ")).not.toContain("bg-neutral-50");
+    expect(selected.className.split(" ")).not.toEqual(expect.arrayContaining(CURSOR_WASH));
   });
 });
 

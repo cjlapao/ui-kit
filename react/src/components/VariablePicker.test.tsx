@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "../i18n";
 import { VariablePicker } from "./VariablePicker";
+import { POPUP_ROW_WASH } from "../theme/Theme";
 import type { SmartVariableGroup } from "../types/Variables";
 
 const GROUPS: SmartVariableGroup[] = [
@@ -127,7 +128,7 @@ describe("VariablePicker (behaviours)", () => {
     render(<VariablePicker groups={GROUPS} onSelect={() => {}} />);
     const row = screen.getByRole("button", { name: /Region/ });
     const classes = row.className.split(" ");
-    expect(classes).toContain("hover:bg-neutral-50");
+    expect(classes).toEqual(expect.arrayContaining(POPUP_ROW_WASH.hover.split(" ")));
     // The focus-visible ring legitimately carries the group's violet;
     // only a violet HOVER wash would be the tone-tinted-menu bug.
     expect(

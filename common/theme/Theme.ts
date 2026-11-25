@@ -1712,6 +1712,31 @@ export const THIN_SCROLLBAR =
 export const THIN_SCROLLBAR_FIELD =
   "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-600 hover:[&::-webkit-scrollbar-thumb]:bg-neutral-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent";
 
+/**
+ * The wash a row inside a popup wears — under the pointer, and under the keyboard
+ * cursor. One definition for the whole family (`Picker`, `TagPicker`, `Combobox`,
+ * `VariablePicker`, `DropdownMenu`, the calendar) because the arithmetic that made
+ * it a constant is identical everywhere: these rows sit on a *card*, and a card's
+ * dark background is not `neutral-900` but a blend — `--ui-surface-color` at
+ * `--ui-surface-alpha` over `--ui-surface-base`. A neutral `simple` card composites
+ * to roughly `neutral-800`, which is exactly where the old wash lived:
+ * `dark:hover:bg-neutral-800/60` landed one luminance unit from the surface it was
+ * meant to stand out of, so the pointer crossed an untinted list with nothing to
+ * show for it. A solid step can collide with the card by construction; a blend
+ * cannot, because there is no base it does not lighten. The same two classes read
+ * on a white popover, on `neutral-900` and on a tinted card alike.
+ *
+ * Deliberately neutral, not the tone: a row wash that took the popup's hue read as
+ * selection two rows down from the one that is selected — which is why
+ * `VariablePicker`'s per-group colours ride the badge and the tab, never the row.
+ */
+export const POPUP_ROW_WASH = {
+  /** Pointer feedback. Lightens in dark, darkens in light — never a step. */
+  hover: "hover:bg-neutral-900/5 dark:hover:bg-neutral-100/10",
+  /** Where the keyboard is, never a claim of selection: the same whisper as hover. */
+  cursor: "bg-neutral-900/5 dark:bg-neutral-100/10",
+} as const;
+
 const surfacePaddingClasses: Record<SurfacePadding, string> = {
   none: "p-0",
   xs: "p-2 sm:p-3",
