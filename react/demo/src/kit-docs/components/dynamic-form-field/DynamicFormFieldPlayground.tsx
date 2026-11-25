@@ -55,6 +55,8 @@ export const DynamicFormFieldPlayground: React.FC = () => {
   // The fields' own fill hue, for when it should disagree with the tone —
   // labels, help text and the validation border keep following `tone`.
   const [fill, setFill] = useState<TrueColor | undefined>(undefined);
+  // The fields' accent for focus, ring and caret — separate from the container's.
+  const [accent, setAccent] = useState<TrueColor | undefined>(undefined);
   const [corner, setCorner] = useState<SurfaceCorner>(DEFAULT_CONTROL_CORNER);
   const [padding, setPadding] = useState<SurfacePadding>("md");
   // A field card wearing its host panel's own tint needs the forced first
@@ -110,6 +112,12 @@ export const DynamicFormFieldPlayground: React.FC = () => {
                     <Control label="Tone">
                       <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
+                    <HueControl
+                      label="Input tone"
+                      value={accent}
+                      onChange={setAccent}
+                      autoLabel="Auto — the field’s tone"
+                    />
                     <HueControl
                       label="Input fill tone"
                       value={fill}
@@ -213,6 +221,7 @@ export const DynamicFormFieldPlayground: React.FC = () => {
             variant={variant}
             inputVariant={inputVariant}
             tone={tone}
+            inputTone={accent}
             inputFillTone={fill}
             corner={corner}
             padding={padding}

@@ -381,3 +381,68 @@ describe("DynamicFormField - localised copy", () => {
     ).toBeInTheDocument();
   });
 });
+
+const classes = (el: Element) => (el.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
+/** The element wearing a hue in a focus affordance, looking up from an input. */
+const accentWornBy = (from: HTMLElement | null, hue: string) => {
+  const worn = new RegExp(`(?:border|ring|outline)-${hue}-400`);
+  for (let node: HTMLElement | null = from; node; node = node.parentElement) {
+    if (classes(node).some((token) => token.includes("focus") && worn.test(token))) return node;
+  }
+  return null;
+};
+
+describe("the fields' accent apart from the field's", () => {
+  // A Map field renders the kit's key/value editor; those rows are fields the
+  // outer field only *has*, so they answer inputTone while the card around them
+  // answers `tone`.
+  const mapField = (over: Partial<DynamicFormFieldProps> = {}) =>
+    render(
+      <DynamicFormField
+        parameter={param({ value_type: CapsuleBlueprintValueType.Map })}
+        value={[{ key: "ENV", value: "production" }]}
+        onChange={() => {}}
+        inputVariant="flat"
+        tone="emerald"
+        {...over}
+      />,
+    );
+
+  it("hands inputTone and inputFillTone down to the Map branch's rows", () => {
+    mapField({ inputTone: "blue", inputFillTone: "neutral" });
+    const inputs = screen.getAllByRole("textbox"); // key + value of the one row
+    expect(inputs).toHaveLength(2);
+    for (const input of inputs) {
+      const box = accentWornBy(input, "blue");
+      expect(box, "the nested rows answer inputTone").toBeTruthy();
+      expect(classes(box!).filter((token) => token.includes("emerald"))).toEqual([]);
+      expect(classes(box!)).toContain("bg-white");
+    }
+  });
+
+  it("keeps the Map rows on the field's tone when inputTone is not given", () => {
+    mapField();
+    for (const input of screen.getAllByRole("textbox")) {
+      expect(accentWornBy(input, "emerald"), "the nested rows followed the field").toBeTruthy();
+      expect(accentWornBy(input, "blue")).toBeNull();
+    }
+  });
+
+  it("moves the checkbox's accent with the rest of the fields", () => {
+    render(
+      <DynamicFormField
+        parameter={param({ value_type: CapsuleBlueprintValueType.Boolean })}
+        onChange={() => {}}
+        tone="emerald"
+        inputTone="blue"
+      />,
+    );
+    // The visual box is a sibling of the real control, not its parent — the
+    // `peer-` variants are how the two are wired — so this one is checked on
+    // the token itself: `peer-focus-visible:ring-{tone}-400`.
+    const tokens = Array.from(document.body.querySelectorAll("[class]")).flatMap(classes);
+    // Light mode rings 500, dark rings 400 — both are the same affordance.
+    expect(tokens.filter((token) => /peer-focus-visible:ring-blue-(400|500)$/.test(token)).length, "the checkbox is a field too").toBeGreaterThan(0);
+    expect(tokens.filter((token) => token.startsWith("peer-focus-visible:ring-emerald-"))).toEqual([]);
+  });
+});

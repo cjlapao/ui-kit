@@ -92,20 +92,34 @@ export interface DynamicFormFieldProps {
   inputVariant?: InputVariant | "auto";
   /**
    * The hue the control's *fill* wears, when it should disagree with the
-   * field's `tone`. State colours — focus border, ring, icons and the glow
-   * — stay with the tone, while the fill follows this hue through
-   * `inputVariant`'s own recipe: `glass` keeps its sheerness, `gradient` its
-   * blur, `flat` and `elevated` their border, and `underline` has no box to
-   * paint. `neutral` means the variant's own resting fill.
+   * field's `tone`. State colours — focus border, ring, icons and the glow —
+   * follow `inputTone`, or the field's `tone` while that is unset; the fill
+   * follows this hue through `inputVariant`'s own recipe: `glass` keeps its
+   * sheerness, `gradient` its blur, `flat` and `elevated` their border, and
+   * `underline` has no box to paint. `neutral` means the variant's own resting
+   * fill.
    * Every field this one renders shares the value, including the ones in its Map
    * branch. The `MultiSelectPanel` container keeps its own
    * `panelVariant`/`panelTone`; labels, help text and the validation border keep
    * following `tone`.
    * In `ghost`, only the washes follow this hue — the hover rim is an
-   * affordance the pointer asks for, so it stays in `tone`.
+   * affordance the pointer asks for, so it stays in the fields' accent.
    * @default "none" — whatever the variant paints today
    */
   inputFillTone?: TrueColor;
+  /**
+   * The accent the control answers for its states — focus border, ring, caret and
+   * `ghost`'s hover rim — when that should disagree with the field's `tone`. The two props
+   * come apart together: `tone="neutral"` with `inputFillTone="neutral"` and
+   * `inputTone="blue"` is a neutral field of a white control that still focuses blue,
+   * instead of a grey one that apologises when touched. Omit it and the fields follow
+   * `tone`, as they always did.
+   * Every field this one renders shares the value, the checkbox and the Map branch's
+   * key/value rows included. The `MultiSelectPanel` container, the labels, the help block
+   * and the validation border are the field's own chrome and keep answering `tone`.
+   * @default "auto" — the field's tone
+   */
+  inputTone?: TrueColor;
   disabled?: boolean;
   readOnly?: boolean;
   /**
@@ -189,6 +203,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   padding = "md",
   inputVariant = "auto",
   inputFillTone,
+  inputTone,
   disabled = false,
   readOnly = false,
   helpTitle,
@@ -202,6 +217,9 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   raisedSurface = false,
 }) => {
   const tone = getSurfaceAccentColor(surfaceTone);
+  // The fields may answer a different accent from the field that contains them. The
+  // labels, the help block, the validation border and the panel are its own chrome.
+  const fieldTone = inputTone ?? tone;
   const t = useKitT();
   const generatedId = useId();
   // The card decides the entry style unless the caller overrides it -
@@ -244,7 +262,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
 
   const shared = {
     size,
-    tone,
+    tone: fieldTone,
     variant: resolvedInputVariant,
     fillTone: inputFillTone,
     disabled,
@@ -286,7 +304,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
             required={required}
             disabled={disabled || readOnly}
             size={size}
-            tone={tone}
+            tone={fieldTone}
             validationStatus={shared.validationStatus}
             onChange={(event) => handleChange(event.target.checked)}
           />
@@ -329,6 +347,7 @@ const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
             variant="plain"
             inputVariant={resolvedInputVariant}
             inputFillTone={inputFillTone}
+            inputTone={inputTone}
           />
         );
       case CapsuleBlueprintValueType.List:

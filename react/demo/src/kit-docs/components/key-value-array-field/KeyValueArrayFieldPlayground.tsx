@@ -60,6 +60,8 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
   // The row inputs' own fill hue, for when it should disagree with the tone —
   // the row buttons and the focus states keep following `tone`.
   const [fill, setFill] = useState<TrueColor | undefined>(undefined);
+  // The fields' accent for focus, ring and caret — separate from the container's.
+  const [accent, setAccent] = useState<TrueColor | undefined>(undefined);
   const [corner, setCorner] = useState<PanelCorner>("auto");
   const [padding, setPadding] = useState<PanelPadding>("sm");
   // The card inside the "In a panel" host stops existing the moment its tint
@@ -123,7 +125,8 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
       addLabel={addLabel || undefined}
       variant={variant}
       tone={tone}
-      inputFillTone={fill}
+      inputTone={accent}
+            inputFillTone={fill}
       corner={corner}
       padding={padding}
       raisedSurface={raisedSurface}
@@ -161,6 +164,12 @@ export const KeyValueArrayFieldPlayground: React.FC = () => {
                     <Control label="Tone">
                       <SurfaceToneSwatches value={tone} onSelect={setTone} />
                     </Control>
+                    <HueControl
+                      label="Input tone"
+                      value={accent}
+                      onChange={setAccent}
+                      autoLabel="Auto — the card’s accent"
+                    />
                     <HueControl
                       label="Input fill tone"
                       value={fill}

@@ -109,19 +109,32 @@ export interface KeyValueArrayFieldProps {
   inputVariant?: "auto" | InputVariant;
   /**
    * The hue the row inputs' *fill* wears, when it should disagree with `tone`.
-   * State colours — focus border, ring, icons and the glow — stay with the
-   * tone, while the fill follows this hue through the row inputs' own variant
-   * recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
+   * State colours — focus border, ring, icons and the glow — follow
+   * `inputTone`, or `tone` while that is unset; the fill follows this hue
+   * through the row inputs' own variant recipe: `glass` keeps its sheerness, `gradient` its blur, `flat` and
    * `elevated` their border, and `underline` has no box to paint. `neutral`
    * means the variant's own resting fill.
    * Both inputs of every row share one value — a record does not tint some of
-   * its fields and leave the rest white. The row's buttons and its focus states
-   * keep following `tone`.
+   * its fields and leave the rest white. The row's buttons keep following
+   * `tone`; the focus states follow `inputTone` once the rows are given an
+   * accent of their own.
    * In `ghost`, only the washes follow this hue — the hover rim is an
-   * affordance the pointer asks for, so it stays in `tone`.
+   * affordance the pointer asks for, so it stays in the fields' accent.
    * @default "none" — whatever the variant paints today
    */
   inputFillTone?: TrueColor;
+  /**
+   * The accent the row inputs answer for their states — focus border, ring, caret and
+   * `ghost`'s hover rim — when that should disagree with `tone`. The two props come apart
+   * together: `tone="neutral"` with `inputFillTone="neutral"` and `inputTone="blue"` is a
+   * neutral card of white inputs that still focus blue, instead of grey ones that
+   * apologise when touched. Omit it and the inputs follow `tone`, as they always did.
+   * The add button, the help block and the headings stay `tone`'s — they are the card's
+   * furniture, not the fields' — and the remove button keeps its semantic rose whatever
+   * either of these says.
+   * @default "auto" — the card's accent
+   */
+  inputTone?: TrueColor;
   /** Scale of the inputs and buttons. @default "sm" */
   size?: KeyValueArrayFieldSize;
   className?: string;
@@ -145,8 +158,10 @@ interface RowsProps extends Pick<
   containerVariant?: KeyValueArrayFieldVariant;
   /** The RESOLVED row-input surface — never "auto". */
   inputVariant?: InputVariant;
-  /** The hue the row inputs' *fill* wears — state colours stay with `tone`. */
+  /** The hue the row inputs' *fill* wears — state colours stay with `inputTone`. */
   inputFillTone?: TrueColor;
+  /** The accent the row inputs answer for their states; falls back to `tone`. */
+  inputTone?: TrueColor;
   tone: TrueColor;
   pairs: KeyValuePair[];
   rowIds: string[];
@@ -175,6 +190,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
   disabled,
   inputVariant = "flat",
   inputFillTone,
+  inputTone,
   size = "sm",
   containerVariant,
   tone,
@@ -197,6 +213,10 @@ const KeyValueRows: React.FC<RowsProps> = ({
     BUTTON_VARIANT_FOR_FIELD[inputVariant] !== "ghost"
       ? "glass"
       : BUTTON_VARIANT_FOR_FIELD[inputVariant];
+  // The inputs may answer a different accent from the card they sit in. The add
+  // button, the help block and the headings are the card's furniture and never
+  // come here; the remove button is semantic rose and answers to neither.
+  const fieldTone = inputTone ?? tone;
 
   return (
     <div
@@ -252,7 +272,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
                 <div className="min-w-0 flex-1">
                   <Input
                     size={size}
-                    tone={tone}
+                    tone={fieldTone}
                     variant={inputVariant}
                     fillTone={inputFillTone}
                     fullHeight
@@ -274,7 +294,7 @@ const KeyValueRows: React.FC<RowsProps> = ({
                 <div className="min-w-0 flex-[1.4]">
                   <Input
                     size={size}
-                    tone={tone}
+                    tone={fieldTone}
                     variant={inputVariant}
                     fillTone={inputFillTone}
                     disabled={disabled}
@@ -375,6 +395,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
   raisedSurface = false,
   inputVariant = "auto",
   inputFillTone,
+  inputTone,
   size = "sm",
   className,
 }) => {
@@ -472,6 +493,7 @@ const KeyValueArrayField: React.FC<KeyValueArrayFieldProps> = ({
       disabled={disabled}
       inputVariant={resolvedInputVariant}
       inputFillTone={inputFillTone}
+      inputTone={inputTone}
       size={size}
       containerVariant={variant}
       tone={tone}

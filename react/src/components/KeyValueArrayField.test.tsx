@@ -325,3 +325,44 @@ describe("conventions", () => {
     expect(screen.getByText("Noch keine Einträge.")).toBeTruthy();
   });
 });
+
+const classes = (el: Element) => (el.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
+/** The element wearing a hue in a focus affordance, looking up from an input. */
+const accentWornBy = (from: HTMLElement | null, hue: string) => {
+  const worn = new RegExp(`(?:border|ring|outline)-${hue}-400`);
+  for (let node: HTMLElement | null = from; node; node = node.parentElement) {
+    if (classes(node).some((token) => token.includes("focus") && worn.test(token))) return node;
+  }
+  return null;
+};
+
+describe("three hues, three owners", () => {
+  // The combination the two props exist for: a neutral card of white inputs
+  // that still focus blue. Asserted on the rendered classes because the whole
+  // question is which element ends up wearing which hue.
+  it("paints the row inputs with inputFillTone and their states with inputTone, leaving the card's furniture on tone", () => {
+    render(<KeyValueArrayField label="Vars" value={PAIRS} onChange={() => {}} tone="emerald" inputTone="blue" inputFillTone="neutral" inputVariant="flat" />);
+    const inputs = screen.getAllByRole("textbox");
+    expect(inputs).toHaveLength(4); // two rows × key + value
+    for (const input of inputs) {
+      const box = accentWornBy(input, "blue");
+      expect(box, "the input answers inputTone, not the card").toBeTruthy();
+      expect(classes(box!).filter((token) => token.includes("emerald"))).toEqual([]);
+      // The fill came over too, and `neutral` on `flat` is a white box rather
+      // than the grey one the word suggests.
+      expect(classes(box!)).toContain("bg-white");
+    }
+    // The add button is the card's furniture and stayed on `tone`…
+    expect(classes(screen.getByRole("button", { name: /add/i })).join(" ")).toContain("emerald");
+    // …and the remove button answers to neither of them.
+    expect(classes(screen.getAllByRole("button", { name: /remove/i })[0]).join(" ")).toContain("rose");
+  });
+
+  it("keeps the row inputs on the card's accent when inputTone is not given", () => {
+    render(<KeyValueArrayField label="Vars" value={PAIRS} onChange={() => {}} tone="emerald" inputVariant="flat" />);
+    for (const input of screen.getAllByRole("textbox")) {
+      expect(accentWornBy(input, "emerald"), "the fields followed the card").toBeTruthy();
+      expect(accentWornBy(input, "blue")).toBeNull();
+    }
+  });
+});

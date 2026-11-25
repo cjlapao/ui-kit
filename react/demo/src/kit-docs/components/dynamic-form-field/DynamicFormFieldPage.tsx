@@ -95,11 +95,18 @@ export const DynamicFormFieldPage: React.FC = () => (
             "Card decoration through the theme's scales - the blue default is the kit's, drawing a tonal wash blue and putting the accent on every focus ring and badge; the entry takes its tone from the same prop. `raisedSurface` forces the first nested-panels depth step on the card - the tinted-card-on-matching-background fix.",
         },
         {
+          name: "inputTone",
+          type: "TrueColor",
+          default: '"auto" — the field\'s tone',
+          description:
+            "The accent the field answers for its states — focus border, ring, caret and `ghost`&rsquo;s hover rim — when that should disagree with `tone`. Every field it renders shares the value, the checkbox and the Map branch&rsquo;s key/value rows included. The multi-select panel a Map field opens, the labels, the help block and the validation border are the field&rsquo;s own chrome and keep answering `tone`.",
+        },
+        {
           name: "inputFillTone",
           type: "TrueColor",
           default: '"none" — the variant\'s own fill',
           description:
-            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim keep following `tone`, so a rose-filled field still focuses blue. It is the field&rsquo;s own fill only — the multi-select panel a Map field opens is a card, and cards answer `panelVariant` and `panelTone`, so a rose field still opens a neutral list.",
+            "The hue the field&rsquo;s *fill* wears when it should disagree with `tone` — focus border, ring, icons, the gradient glow and `ghost`&rsquo;s hover rim follow `inputTone`, or `tone` while that is unset, so a rose-filled field can still focus blue — or whichever hue you name. It is the field&rsquo;s own fill only — the multi-select panel a Map field opens is a card, and cards answer `panelVariant` and `panelTone`, so a rose field still opens a neutral list.",
         },
         {
           name: "required (via parameter)",
