@@ -366,7 +366,11 @@ export const variantBaseStyles: Record<PanelVariant, string> = {
   // currentColor, which painted a near-black rule in light mode.
   outlined: "border bg-white/90 dark:bg-neutral-900/80",
   subtle: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
-  tonal: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
+  // A real 1px border, like `outlined` above: the tone supplies the colour
+  // (`palette.tonalBorder` at the render site) and the width lives here, so a
+  // `borderColor` override can never leave a widthless colour or a colourless
+  // width behind. Mirrors `SURFACE_VARIANT_BASE.tonal`.
+  tonal: "border shadow-sm ring-1 ring-transparent",
   default:
     "border bg-white/80 backdrop-blur-xl shadow-2xl dark:bg-neutral-900/70",
   glass:
@@ -409,11 +413,13 @@ export type PanelEdgeChrome = {
  * visible sides, while the hidden half of a full border would show through a
  * translucent panel.
  *
- * The borderless variants (subtle, tonal, simple) take the tone's own `border`
+ * The borderless variants (subtle, simple) take the tone's own `border`
  * colour for the arrow: their panel edge is `ring-transparent` in light mode,
  * and a transparent V on a near-white tint is an invisible arrow. The tone
  * edge gives the tip a visible outline while the fill still matches the panel
- * exactly, so the join carries no colour step.
+ * exactly, so the join carries no colour step. `tonal` is no longer one of
+ * them — it wears `palette.tonalBorder` as a real edge, and the arrow has to
+ * continue that same 1px border rather than drawing a heavier one outside it.
  */
 export const getPanelEdgeChrome = (
   variant: SurfaceVariant,
@@ -439,7 +445,11 @@ export const getPanelEdgeChrome = (
         backdrop: "",
       };
     case "tonal":
-      return { fill: palette.tonalBg, border: palette.border, backdrop: "" };
+      return {
+        fill: palette.tonalBg,
+        border: palette.tonalBorder,
+        backdrop: "",
+      };
     case "default":
       return {
         fill: "bg-white/80 dark:bg-neutral-900/70",
@@ -971,9 +981,12 @@ const Panel = React.forwardRef<HTMLElement, PanelProps>(function Panel(
         );
       case "tonal":
         return classNames(
+          // `border` (width) is in the base, `tonalBorder` (colour) is the
+          // tone's own edge — one step past the fill, not the fill's own
+          // shade. `borderColor` replaces the colour and keeps the width.
           variantBaseStyles.tonal,
           effectiveBgClass ?? activeFill ?? palette.tonalBg,
-          effectiveBorderClass,
+          effectiveBorderClass ?? palette.tonalBorder,
         );
       case "default":
         return classNames(

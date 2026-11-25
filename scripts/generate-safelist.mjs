@@ -664,6 +664,11 @@ src(`@source inline("hover:border-{COLOR}-400");`);
 src(`@source inline("hover:ring-{COLOR}-300/70");`);
 src(`@source inline("dark:hover:border-{COLOR}-400");`);
 src(`@source inline("dark:hover:border-{COLOR}-500/50");`);
+// The tinted-depth rim ignition (`Panel variant="tonal"`): a card resting on a
+// `{c}-300` edge has to ignite a step *past* that edge, and in dark the step
+// one place further along is the brighter `{c}-400` at half alpha — `{c}-500/50`
+// over a `{c}-500/15` fill measures 1.59:1, which is a frame, not a rim.
+src(`@source inline("dark:hover:border-{COLOR}-400/50");`);
 src(`@source inline("dark:hover:ring-{COLOR}-500/30");`);
 L("");
 

@@ -139,6 +139,15 @@ describe("Panel — hover, pressed and rim", () => {
     const glass = card({ variant: "glass", tone: "blue", hoverable: true }, false);
     expect(glass).toContain("border");
     expect(glass).toContain("hover:border-blue-500");
+
+    // `tonal` is where the two kits now agree: `variantBaseStyles.tonal`
+    // carries a real `border` in this file too, so the ignition follows the
+    // property that exists — at the deeper rung, because this variant rests
+    // on a `{c}-300` edge rather than starting from nothing.
+    const tonal = card({ variant: "tonal", tone: "blue", hoverable: true }, false);
+    expect(tonal).toContain("hover:border-blue-400");
+    expect(tonal).toContain("dark:hover:border-blue-400/50");
+    expect(tonal).not.toMatch(/(?:^|\s)(?:dark:)?hover:ring-/);
   });
 
   it("lifts an untinted card with the veil, at a step you can see", () => {
@@ -153,5 +162,64 @@ describe("Panel — hover, pressed and rim", () => {
     expect(veil).toBeDefined();
     expect(veil!.classes()).toContain("dark:group-hover:bg-white/10");
     expect(veil!.classes().join(" ")).not.toContain("bg-white/[0.04]");
+  });
+});
+
+/**
+ * The Vue half of the tonal edge. React's `SURFACE_VARIANT_BASE.tonal` and this
+ * file's `variantBaseStyles.tonal` both carry a real `border` now, with the
+ * colour coming from `palette.tonalBorder` — the tone's own hairline, one step
+ * past the fill (`{c}-300` light / `{c}-500/25` dark) where neither existing
+ * hairline fitted in both modes. Measured in
+ * `react/src/theme/tonalRim.test.ts`; asserted here as class lists, because
+ * jsdom computes no colours and cannot see a rim either way.
+ */
+describe("Panel — tonal border", () => {
+  const classesOf = (props: Record<string, unknown>) =>
+    mount(Panel, { props, slots: { default: "Body" } })
+      .classes()
+      .join(" ");
+
+  it.each(["blue", "lime", "gray", "indigo", "rose"] as const)(
+    "gives a %s card a hairline of its own — width and colour together",
+    (tone) => {
+      const cls = classesOf({ variant: "tonal", tone });
+      expect(cls).toMatch(/(?:^|\s)border(?:\s|$)/);
+      expect(cls).toContain(`border-${tone}-300`);
+      expect(cls).toContain(`dark:border-${tone}-500/25`);
+      // A `border-*` colour with no width paints nothing; a bare `border` with
+      // no colour is currentColor. Both halves have to be present at once.
+      expect(cls).toMatch(/(?:^|\s)ring-transparent(?:\s|$)/);
+    },
+  );
+
+  it("declines the two hairlines that do not fit a toned fill", () => {
+    const cls = classesOf({ variant: "tonal", tone: "blue" });
+    // `palette.border`'s dark rung is a frame over `{c}-500/15` (1.59:1);
+    // `outlineBorder`'s light rung would not have been visible (1.06:1).
+    expect(cls).not.toContain("dark:border-blue-500/50");
+    expect(cls).not.toContain("border-blue-200");
+  });
+
+  it("still honours an explicit borderColor, width and all", () => {
+    const cls = classesOf({ variant: "tonal", tone: "blue", borderColor: "rose" });
+    expect(cls).toContain("border-rose-300");
+    expect(cls).not.toContain("border-blue-300");
+    expect(cls).toMatch(/(?:^|\s)border(?:\s|$)/);
+  });
+
+  it("gives the untinted card the neutral hairline", () => {
+    const cls = classesOf({ variant: "tonal", tone: "none" });
+    expect(cls).toContain("border-neutral-200");
+    expect(cls).toContain("dark:border-white/10");
+  });
+
+  it("leaves the chrome-less sibling without an edge of its own", () => {
+    // `simple` is the same fill with no chrome — the fix is `tonal`'s, not the
+    // tinted family's, and a test here is what keeps a tidy-up from folding
+    // the two together.
+    const cls = classesOf({ variant: "simple", tone: "blue" });
+    expect(cls).not.toMatch(/(?:^|\s)border(?:\s|$)/);
+    expect(cls).not.toContain("border-blue-300");
   });
 });

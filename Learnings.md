@@ -1783,3 +1783,55 @@ the Panel inside as a plain block. Table's toolbar menus are the reference.
   Rose is the kit's semantic error colour — `VariablePicker` paints a missing
   value `text-rose-500` — and a leak detector that flags a semantic colour gets
   weakened inside a week.
+
+## A borderless variant that gains an edge has to move its hover rung with it (2026-11-25)
+
+- `tonal` was the one Panel variant with a tinted fill and no edge of its own:
+  `dark:ring-white/5` at rest, and a `hover:ring-{c}-300/70` ignition borrowed
+  from `outlined`, which starts from nothing. Giving it a resting hairline
+  meant re-deriving the hover step too — `{c}-300/70` laid over white is
+  *lighter* than the solid `{c}-300` it now had to beat, so the pointer would
+  have faded the very edge that had just appeared. The rule the fill already
+  obeyed (`surfaceTintDepth`: `plain` / `sheer` / `tinted`) is the rule the rim
+  obeys: one step past wherever the variant already sits, not one step past
+  zero. And the ignition follows the property the variant actually wears —
+  `surfaceRimKind.tonal` moved from `ring` to `border` in the same edit, or the
+  deeper colour would have been written into a transparent ring.
+- The existing hairlines each fitted one mode, which is why a third token is
+  the right shape rather than a reuse: `border-{c}-300` reads 1.18:1 against a
+  `tonal` fill in light but `border-{c}-500/25` only manages 1.06:1 in dark,
+  and `outlined`'s `dark:border-{c}-500/50` is 1.59:1 over `tonal`'s
+  `{c}-500/15` — a frame, not an edge. `tonalBorder` is therefore the light
+  half of `border` plus the dark half of `outlineBorder`, and every rung is
+  measured over the composite of the fill, not over the page: a rim has to
+  beat its own surface (1.10:1) before it has to beat the background (1.20:1).
+- Three arguments for `border` over `ring` on a Panel, not one: `ring-1` with
+  no ring colour is `currentColor` (the kit has now been bitten by this
+  repeatedly, and a `tonal` card's text colour is a tone's 700-shade); the
+  Popover arrow is a rotated square that draws two *border* sides, so
+  `getPanelEdgeChrome` has to be handed the same token the panel wears or the
+  arrow reads as a heavier V than the card it points at; and `active` already
+  paints a 2px inset `outline` over the resting border, so a resting border is
+  the one edge that survives the pressed state unchanged.
+- `common/safelist.css` is a committed *generated* file, and `npm run build`
+  does not regenerate it. Adding the missing
+  `@source inline("dark:hover:border-{COLOR}-400/50")` line to
+  `scripts/generate-safelist.mjs` left `themeSafelist.test.ts` red until
+  `node scripts/generate-safelist.mjs` was run by hand — which reads like a
+  Tailwind limitation and is a stale artifact. The guard is only as good as
+  `generator → safelist.css → build → dist/index.css`, in that order, every
+  time. (Second lesson in the same file: check whether a shape is genuinely
+  new before adding it — `hover:border-{c}-400` was already declared twice.)
+- Four copies of the variant base map had to move together:
+  `SURFACE_VARIANT_BASE.tonal`, React's `variantBaseStyles.tonal`, Vue's, and
+  Vue TimelinePanel's — plus Vue Toolbar's private copy of the same table. A
+  fifth file, Vue's `panelRimKind`, is the one that says which property *Vue*
+  ignites, so tonal had to move in both tables or the hover would have lit a
+  ring that no longer exists.
+- jsdom computes no colours, so a class-list test cannot see an edge at all —
+  it can only assert that a string is present. The rim's existence is
+  arithmetic: `react/src/theme/tonalRim.test.ts` composites each palette token
+  over the page and asserts ratio floors per tone, with a canary half that
+  pins the *rejected* rung (the old `{c}-300/70` / `{c}-500/30`) as a failure,
+  asserting direction per tone and the minimum across all 21 — a single
+  average ratio would have passed the exact version that shipped wrong.

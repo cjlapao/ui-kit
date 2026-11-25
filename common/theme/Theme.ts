@@ -1274,7 +1274,10 @@ const surfaceRimKind: Record<SurfaceVariant, SurfaceRimKind> = {
   elevated: "ring",
   outlined: "border",
   subtle: "ring",
-  tonal: "ring",
+  // `SURFACE_VARIANT_BASE.tonal` carries a real `border` in both kits, so the
+  // rim ignites `border-*` — igniting a ring nobody renders is the hover that
+  // exists only in the stylesheet.
+  tonal: "border",
   default: "border",
   glass: "border",
   simple: "ring",
@@ -1297,7 +1300,9 @@ export type SurfaceHoverTokens = {
  *
  * 1. The step is taken from the variant's own fill (`surfaceTintDepth`), never
  *    from a fixed shade. This is what makes `tonal`, `simple`, `glass` and
- *    `liquid-glass` answer a pointer at all.
+ *    `liquid-glass` answer a pointer at all. The rim obeys the same rule: it
+ *    steps one place past the edge the variant already wears, so a resting
+ *    hairline is never the darkest thing on the card.
  * 2. In dark the wash always goes *lighter*. `getSurfaceTriggerTokens().hover`
  *    gets away with `-600/15` because it sits on an unfilled row; a Panel is
  *    already sitting on `{c}-500/15`, so the row-scale step lands under it.
@@ -1325,20 +1330,30 @@ export const getSurfaceHoverTokens = (
   tone: SurfaceTone = DEFAULT_SURFACE_TONE,
   rimKind: SurfaceRimKind = surfaceRimKind[variant] ?? "none",
 ): SurfaceHoverTokens => {
-  const step = surfaceHoverWash[surfaceTintDepth[variant] ?? "plain"];
+  const depth = surfaceTintDepth[variant] ?? "plain";
+  const step = surfaceHoverWash[depth];
   const color = getSurfaceAccentColor(tone);
   const tinted = tone !== "none";
 
   const rim = (() => {
     if (rimKind === "none") return "";
-    if (rimKind === "border")
-      return TRANSLUCENT_SURFACE_VARIANTS.includes(variant)
-        ? tinted
+    if (rimKind === "border") {
+      if (TRANSLUCENT_SURFACE_VARIANTS.includes(variant))
+        return tinted
           ? `hover:border-${color}-500 dark:hover:border-${color}-400`
-          : "hover:border-white/80 dark:hover:border-white/25"
-        : tinted
-          ? `hover:border-${color}-300 dark:hover:border-${color}-500/50`
-          : "hover:border-neutral-300 dark:hover:border-neutral-600";
+          : "hover:border-white/80 dark:hover:border-white/25";
+      // Same rule as the wash: a step measured from where the surface sits,
+      // not from the top of the ramp. A `tonal` card rests on a `{c}-300`
+      // edge already — `palette.tonalBorder` — so the rung that used to
+      // ignite a rimless variant would *lighten* it under the pointer.
+      // Rimless variants (`outlined`, and anything a kit hands `"border"`
+      // without a resting edge) keep the lighter rung: it is their first step.
+      if (!tinted)
+        return "hover:border-neutral-300 dark:hover:border-neutral-600";
+      return depth === "tinted"
+        ? `hover:border-${color}-400 dark:hover:border-${color}-400/50`
+        : `hover:border-${color}-300 dark:hover:border-${color}-500/50`;
+    }
     return tinted
       ? `hover:ring-1 hover:ring-${color}-300/70 dark:hover:ring-${color}-500/30`
       : "hover:ring-1 hover:ring-black/10 dark:hover:ring-white/15";
@@ -2396,6 +2411,19 @@ type PanelToneConfig = {
   badge: string;
   subtleBg: string;
   tonalBg: string;
+  /**
+   * The edge the `tonal` fill needs, which neither existing hairline is.
+   * Measured against the tonal fill itself, each hairline fitted in only one
+   * mode: `border`'s light rung reads (1.18:1) while its dark `{c}-500/50`
+   * measures 1.59:1 — a frame, not an edge; `outlineBorder`'s dark rung reads
+   * (1.13:1) while its light `{c}-200` measures 1.06:1 on the `{c}-200/60`
+   * fill, the same one-step-off-the-fill mistake as a divider that sinks into
+   * the tinted card it belongs to. So this is `border`'s light half plus
+   * `outlineBorder`'s dark half: the hue the fill already wears, stepped one
+   * place further along the direction that fill travelled — deeper than the
+   * page in light, brighter than `neutral-900` in dark.
+   */
+  tonalBorder: string;
   glassBg: string;
   glassBorder: string;
   liquidBg: string;
@@ -2706,6 +2734,8 @@ const createTheme = (): ThemeDefinition => {
       badge: `bg-${color}-100 text-${color}-700 dark:bg-${color}-500/20 dark:text-${color}-100`,
       subtleBg: `bg-${color}-50/80 dark:bg-${color}-500/10`,
       tonalBg: `bg-${color}-200/60 dark:bg-${color}-500/15`,
+      // The fill's own edge — see `PanelToneConfig.tonalBorder`.
+      tonalBorder: `border-${color}-300 dark:border-${color}-500/25`,
       glassBg: `bg-${color}-50/50 dark:bg-${color}-500/15`,
       glassBorder: `border-${color}-500 dark:border-${color}-400`,
       liquidBg: `bg-${color}-50/30 dark:bg-${color}-500/10`,
@@ -3393,7 +3423,12 @@ export const SURFACE_VARIANT_BASE: Record<SurfaceVariant, string> = {
   // currentColor, which painted a near-black rule in light mode.
   outlined: "border bg-white/90 dark:bg-neutral-900/80",
   subtle: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
-  tonal: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
+  // A real 1px border, like `outlined` — the colour comes from the tone
+  // (`palette.tonalBorder`) and the width never leaves this line. A ring
+  // colour on the vestigial `ring-1` is the currentColor trap this kit keeps
+  // falling into, and the `dark:ring-white/5` haze this used to carry was an
+  // achromatic film over a hue: it read as two opinions about one edge.
+  tonal: "border shadow-sm ring-1 ring-transparent",
   default:
     "border bg-white/80 backdrop-blur-xl shadow-2xl dark:bg-neutral-900/70",
   glass:
@@ -3452,7 +3487,11 @@ const getRawSurfaceVariantClasses = (
         bgClass ?? palette.subtleBg,
       ].join(" ");
     case "tonal":
-      return [base, bgClass ?? palette.tonalBg, borderClass ?? ""].join(" ");
+      return [
+        base,
+        bgClass ?? palette.tonalBg,
+        borderClass ?? palette.tonalBorder,
+      ].join(" ");
     case "default":
       return [base, borderClass ?? SURFACE_GLASS_RIM].join(" ");
     case "glass":
@@ -3481,6 +3520,9 @@ export const getPanelToneStyles = (tone: SurfaceTone = DEFAULT_SURFACE_TONE): Pa
     ...currentTheme.panel.neutral,
     subtleBg: "bg-white dark:bg-neutral-900",
     tonalBg: "bg-white dark:bg-neutral-900",
+    // An untinted card gets the neutral hairline, at the weight `elevated`'s
+    // ring carries on the same ground (1.26:1 / 1.32:1 against the page).
+    tonalBorder: "border-neutral-200 dark:border-white/10",
     glassBg: "bg-white/40 dark:bg-neutral-900/20",
     liquidBg: "bg-white/45 dark:bg-neutral-900/15",
     decorationShape: "",

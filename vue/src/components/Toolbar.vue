@@ -79,7 +79,9 @@ const variantBaseStyles: Record<SurfaceVariant, string> = {
     "bg-white shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10",
   outlined: "border bg-white/90 dark:bg-neutral-900/80",
   subtle: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
-  tonal: "shadow-sm ring-1 ring-transparent dark:ring-white/5",
+  // A real 1px border, like Panel's map — the tone supplies the colour
+  // (`palette.tonalBorder` below), this line supplies the width.
+  tonal: "border shadow-sm ring-1 ring-transparent",
   default:
     "border bg-white/80 backdrop-blur-xl shadow-2xl dark:bg-neutral-900/70",
   glass:
@@ -105,7 +107,13 @@ const variantClasses = computed(() => {
         palette.subtleBg,
       );
     case "tonal":
-      return classNames(variantBaseStyles.tonal, palette.tonalBg);
+      // The edge travels with the fill: `variantBaseStyles.tonal` carries the
+      // `border` width, this carries the tone's own hairline colour.
+      return classNames(
+        variantBaseStyles.tonal,
+        palette.tonalBg,
+        palette.tonalBorder,
+      );
     case "default":
       return classNames(variantBaseStyles.default, GLASS_RIM);
     case "glass":

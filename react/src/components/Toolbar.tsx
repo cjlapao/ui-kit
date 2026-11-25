@@ -116,7 +116,13 @@ export const Toolbar = ({
           palette.subtleBg,
         );
       case "tonal":
-        return classNames(variantBaseStyles.tonal, palette.tonalBg);
+        // The edge travels with the fill: `variantBaseStyles.tonal` carries the
+        // `border` width, this carries the tone's own hairline colour.
+        return classNames(
+          variantBaseStyles.tonal,
+          palette.tonalBg,
+          palette.tonalBorder,
+        );
       case "default":
         return classNames(variantBaseStyles.default, GLASS_RIM);
       case "glass":

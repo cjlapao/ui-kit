@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ReactElement } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import Panel from "./Panel";
+import Panel, { getPanelEdgeChrome } from "./Panel";
+import { getPanelToneStyles } from "../../../common/theme/Theme";
 import { resetA11yWarned } from "../../../common/a11y/warn";
 
 const panelOf = (container: HTMLElement) => container.querySelector("section")!;
@@ -59,6 +60,87 @@ describe("Panel — outlined border", () => {
 
     expect(panelOf(container).className).toContain("border-rose-300");
     expect(panelOf(container).className).not.toContain("border-neutral-200");
+  });
+});
+
+describe("Panel — tonal border", () => {
+  /**
+   * The two traps this variant fell into on the way here, checked together: a
+   * `border-*` colour with no width in the class list paints nothing, and a
+   * bare `border` with no colour falls back to `currentColor`. A tonal card
+   * needs both halves at once, for every tone.
+   */
+  it.each(["blue", "lime", "gray", "indigo", "rose"] as const)(
+    "gives a %s card a hairline of its own",
+    (tone) => {
+      const { container } = render(
+        <Panel variant="tonal" tone={tone}>
+          Body
+        </Panel>,
+      );
+      const cls = panelOf(container).className;
+
+      expect(cls).toMatch(/(?:^|\s)border(?:\s|$)/);
+      expect(cls).toContain(`border-${tone}-300`);
+      expect(cls).toContain(`dark:border-${tone}-500/25`);
+      // The vestigial ring stays pinned transparent: `ring-1` with no ring
+      // colour is the near-black rule this kit keeps re-learning.
+      expect(cls).toMatch(/(?:^|\s)ring-transparent(?:\s|$)/);
+    },
+  );
+
+  it("measures its edge against the fill, not the page", () => {
+    const { container } = render(
+      <Panel variant="tonal" tone="blue">
+        Body
+      </Panel>,
+    );
+    const cls = panelOf(container).className;
+
+    // `palette.border`'s dark rung over a `{c}-500/15` fill measures 1.59:1 —
+    // a frame, not an edge — and `outlineBorder`'s light rung would have
+    // measured 1.06:1 against the `{c}-200/60` fill, i.e. simply not been
+    // there. Both are the rungs this token deliberately declines.
+    expect(cls).not.toContain("dark:border-blue-500/50");
+    expect(cls).not.toContain("border-blue-200");
+  });
+
+  it("still honours an explicit borderColor, width and all", () => {
+    const { container } = render(
+      <Panel variant="tonal" tone="blue" borderColor="rose">
+        Body
+      </Panel>,
+    );
+    const cls = panelOf(container).className;
+
+    expect(cls).toContain("border-rose-300");
+    expect(cls).not.toContain("border-blue-300");
+    expect(cls).toMatch(/(?:^|\s)border(?:\s|$)/);
+  });
+
+  it("gives the untinted card the neutral hairline", () => {
+    const { container } = render(
+      <Panel variant="tonal" tone="none">
+        Body
+      </Panel>,
+    );
+    const cls = panelOf(container).className;
+
+    expect(cls).toContain("border-neutral-200");
+    expect(cls).toContain("dark:border-white/10");
+  });
+
+  it("hands the Popover arrow the same edge it wears", () => {
+    // The arrow is a rotated square drawing two border sides; handed
+    // `palette.border` it drew a heavier V than the panel it belongs to.
+    const tonalEdge = getPanelEdgeChrome("tonal", "blue");
+    expect(tonalEdge.border).toBe(getPanelToneStyles("blue").tonalBorder);
+
+    // `simple` is still the chrome-less sibling: its panel has no edge of its
+    // own, so its arrow keeps the tone's stronger one to be visible at all.
+    expect(getPanelEdgeChrome("simple", "blue").border).toBe(
+      getPanelToneStyles("blue").border,
+    );
   });
 });
 
@@ -786,17 +868,18 @@ describe("Panel — hover, pressed and rim", () => {
   });
 
   it("ignites the rim the variant actually wears", () => {
-    // `tonal` rests on `ring-1 ring-transparent`, and a ring colour with no
-    // width is inert — the hover has to bring the width with it.
-    const ring = classes(
+    // `tonal` rests on a real 1px border now (`palette.tonalBorder`), so the
+    // hover has to deepen *that* property — and deepening it one shade is not
+    // enough either: the resting edge is `{c}-300`, so an ignition at
+    // `{c}-300/70` would leave the edge lighter than it started.
+    const tonal = classes(
       <Panel variant="tonal" tone="blue" hoverable>
         Body
       </Panel>,
     );
-    expect(ring).toMatch(/(?:^|\s)hover:ring-1(?:\s|$)/);
-    expect(ring).toContain("hover:ring-blue-300/70");
-    expect(ring).toContain("dark:hover:ring-blue-500/30");
-    expect(ring).not.toContain("hover:border-blue");
+    expect(tonal).toContain("hover:border-blue-400");
+    expect(tonal).toContain("dark:hover:border-blue-400/50");
+    expect(tonal).not.toMatch(/(?:^|\s)(?:dark:)?hover:ring-/);
 
     const border = classes(
       <Panel variant="outlined" tone="blue" hoverable>
@@ -921,7 +1004,8 @@ describe("Panel — hover, pressed and rim", () => {
     expect(stepFor(cls, "light", "hover")).toBe("amber-300/70");
     expect(stepFor(cls, "dark", "hover")).toBe("amber-400/25");
     expect(stepFor(cls, "light", "pressed")).toBe("amber-400/70");
-    expect(cls).toContain("hover:ring-amber-300/70");
+    expect(cls).toContain("hover:border-amber-400");
+    expect(cls).toContain("dark:hover:border-amber-400/50");
     // At rest the card is already wearing the selection hue — a tonal fill
     // arrives rewritten into the variable pair, the spelling that paints (see
     // `stepFor`) — and nothing the pointer does goes back to cyan.
@@ -944,7 +1028,8 @@ describe("Panel — hover, pressed and rim", () => {
     );
     expect(stepFor(cls, "light", "hover")).toBe("cyan-300/70");
     expect(stepFor(cls, "dark", "hover")).toBe("cyan-400/25");
-    expect(cls).toContain("hover:ring-cyan-300/70");
+    expect(cls).toContain("hover:border-cyan-400");
+    expect(cls).toContain("dark:hover:border-cyan-400/50");
     expect(cls).not.toMatch(/(?:hover|active):bg-amber-/);
     // The hue is still waiting on the card — it just does not speak until the
     // card is the selected one.
@@ -965,11 +1050,12 @@ describe("Panel — hover, pressed and rim", () => {
       </Panel>,
     );
     expect(stepFor(cls, "light", "hover")).toBe("rose-300/70");
-    expect(cls).toContain("hover:ring-rose-300/70");
+    expect(cls).toContain("hover:border-rose-400");
     // Which is exactly what `hoverColor` is for: the selection keeps its hue and
-    // the pointer is pinned somewhere else by hand.
+    // the pointer is pinned somewhere else by hand. Checked on the property the
+    // rim ignites now, so the assertion still means something.
     expect(cls).toContain("outline-amber-500");
-    expect(cls).not.toMatch(/(?:^|\s)hover:ring-amber-/);
+    expect(cls).not.toMatch(/(?:^|\s)(?:dark:)?hover:border-amber-/);
   });
 
   /**

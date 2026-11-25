@@ -53,8 +53,10 @@ const variantShellStyles: Record<PanelVariant, string> = {
     "bg-white/90 text-neutral-900 ring-1 dark:bg-neutral-900/80 dark:text-neutral-100 dark:ring-white/10",
   subtle:
     "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  // A real 1px border, mirroring Panel: the tone supplies the colour
+  // (`palette.tonalBorder` in `variantClass`), this line supplies the width.
   tonal:
-    "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+    "text-neutral-900 border shadow-sm ring-1 ring-transparent dark:text-neutral-100",
   default:
     "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass:
@@ -386,7 +388,11 @@ const variantClass = computed(() => {
         palette.value.subtleBg,
       );
     case "tonal":
-      return classNames(variantShellStyles.tonal, palette.value.tonalBg);
+      return classNames(
+        variantShellStyles.tonal,
+        palette.value.tonalBg,
+        palette.value.tonalBorder,
+      );
     case "glass":
       return classNames(
         variantShellStyles.glass,

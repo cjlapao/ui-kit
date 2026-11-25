@@ -68,7 +68,7 @@ Hover rungs, against what they have to survive:
 | --- | --- | --- |
 | light `hover:border-{c}-400` | **1.178:1** | 1.265:1 (worst lime) |
 | dark `dark:hover:border-{c}-400/50` | **1.807:1** | 1.613:1 (worst indigo) |
-| rejected `hover:ring-{c}-300/70` (today) | lighter than the resting rim | — |
+| rejected `hover:ring-{c}-300/70` (today) | worst tone **1.074:1** light (lime), **1.067:1** dark (gray) — and in light it moves the *wrong way* on every tone: `-{c}-300` at 70% alpha over white is lighter than the solid `-{c}-300` it now has to beat | — |
 
 `tone="none"` (fill `bg-white dark:bg-neutral-900`): `border-neutral-200
 dark:border-white/10` → 1.259:1 / 1.324:1, the weight `elevated`'s ring

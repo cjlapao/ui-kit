@@ -192,8 +192,13 @@ const variantBaseStyles: Record<PanelVariant, string> = {
     "bg-white/90 text-neutral-900 ring-1 dark:bg-neutral-900/80 dark:text-neutral-100 dark:ring-white/10",
   subtle:
     "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+  // A real 1px border, like React's map — the colour comes from the tone
+  // (`palette.tonalBorder` at the render site), the width from here. Not a
+  // `ring-1`: this kit has already learned twice that a rim colour on a
+  // property with no width paints nothing, and the `dark:ring-white/5` haze
+  // this used to carry was an achromatic film over a hue.
   tonal:
-    "text-neutral-900 shadow-sm ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
+    "text-neutral-900 border shadow-sm ring-1 ring-transparent dark:text-neutral-100",
   default:
     "bg-white/80 backdrop-blur-xl text-neutral-900 shadow-2xl ring-1 ring-transparent dark:text-neutral-100 dark:ring-white/5",
   glass:
@@ -319,7 +324,10 @@ const panelRimKind: Record<PanelVariant, SurfaceRimKind> = {
   elevated: "ring",
   outlined: "ring",
   subtle: "ring",
-  tonal: "ring",
+  // `variantBaseStyles.tonal` carries a real `border` in this kit too, so the
+  // ignition follows the property that exists here — a ring colour on a
+  // borderless base would be the invisible hover all over again.
+  tonal: "border",
   default: "ring",
   // The `glass` case below adds an explicit `border`, so it ignites a border.
   glass: "border",
@@ -487,9 +495,12 @@ const variantClasses = computed(() => getSurfaceTransparencyClasses(classNames((
       );
     case "tonal":
       return classNames(
+        // `border` (width) is in the base, `tonalBorder` (colour) is the
+        // tone's own edge — one step past the fill, not the fill's own shade.
+        // `borderColor` replaces the colour and keeps the width.
         variantBaseStyles.tonal,
         effectiveBgClass.value ?? activeFill.value ?? palette.value.tonalBg,
-        effectiveBorderClass.value,
+        effectiveBorderClass.value ?? palette.value.tonalBorder,
       );
     case "default":
       return classNames(
