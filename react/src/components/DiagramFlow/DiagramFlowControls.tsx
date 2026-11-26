@@ -1,8 +1,10 @@
 import IconButton from '../IconButton';
+import { useKitT } from '../../i18n';
 import type { DiagramFlowOutcome } from './model';
 
 interface Props {
   readOnly: boolean;
+  locked?: boolean;
   canNode: boolean;
   canDelete: boolean;
   canUndo: boolean;
@@ -37,23 +39,24 @@ function Action({ name, label, disabled, onClick }: { name: string; label: strin
   return <IconButton icon={icon} size="xs" variant="ghost" color="slate" disabled={disabled} srLabel={label} tooltip={label} onClick={onClick} />;
 }
 export default function DiagramFlowControls(p: Props) {
+  const t = useKitT();
   return <div data-diagram-controls data-mode={p.readOnly ? 'read-only' : 'edit'} className="absolute bottom-3 right-3 z-30 flex max-w-[calc(100%-1.5rem)] items-center gap-0.5 overflow-x-auto rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90">
     {!p.readOnly && <>
-      <Action name="add" label="Add step" onClick={p.onAdd} />
-      <Action name="branch" label="Add branch" disabled={!p.canNode} onClick={p.onBranch} />
-      <Action name="child" label="Add child" disabled={!p.canNode} onClick={p.onChild} />
-      <Action name="connect" label="Connect" disabled={!p.canNode} onClick={p.onConnect} />
-      <Action name="align" label="Align to grid" onClick={p.onAlign} />
-      <Action name="undo" label="Undo" disabled={!p.canUndo} onClick={p.onUndo} />
-      <Action name="redo" label="Redo" disabled={!p.canRedo} onClick={p.onRedo} />
-      <Action name="delete" label="Delete" disabled={!p.canDelete} onClick={p.onDelete} />
+      <Action name="add" label={t('kit.diagramFlow.addStep')} onClick={p.onAdd} />
+      <Action name="branch" label={t('kit.diagramFlow.addBranch')} disabled={!p.canNode} onClick={p.onBranch} />
+      <Action name="child" label={t('kit.diagramFlow.addChild')} disabled={!p.canNode} onClick={p.onChild} />
+      <Action name="connect" label={t('kit.diagramFlow.connect')} disabled={!p.canNode} onClick={p.onConnect} />
+      <Action name="align" label={t('kit.diagramFlow.align')} onClick={p.onAlign} />
+      <Action name="undo" label={t('kit.diagramFlow.undo')} disabled={!p.canUndo} onClick={p.onUndo} />
+      <Action name="redo" label={t('kit.diagramFlow.redo')} disabled={!p.canRedo} onClick={p.onRedo} />
+      <Action name="delete" label={t('kit.diagramFlow.delete')} disabled={!p.canDelete} onClick={p.onDelete} />
       <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-neutral-200 dark:bg-neutral-700" />
     </>}
-      {!p.readOnly && p.outcome && <label className="flex items-center gap-1 px-1 text-xs text-neutral-600 dark:text-neutral-300">Outcome <select aria-label="Connection outcome" value={p.outcome} onChange={event => p.onOutcome(event.target.value as DiagramFlowOutcome)} className="max-w-24 rounded border border-neutral-300 bg-white px-1 py-0.5 text-xs dark:border-neutral-600 dark:bg-neutral-900"><option value="unknown">Unknown</option><option value="success">Success</option><option value="failure">Failure</option></select></label>}
-      <Action name="fit" label="Fit diagram" onClick={p.onFit} />
-      <Action name="minus" label="Zoom out" disabled={p.zoom <= .1} onClick={p.onZoomOut} />
-      <span className="min-w-[3.5ch] px-1 text-center text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400" aria-label="Zoom">{Math.round(p.zoom * 100)}%</span>
-      <IconButton icon="Add" size="xs" variant="ghost" color="slate" disabled={p.zoom >= 2} srLabel="Zoom in" tooltip="Zoom in" onClick={p.onZoomIn} />
-      <IconButton icon="Reset" size="xs" variant="ghost" color="slate" srLabel="Reset view" tooltip="Reset view" onClick={p.onReset} />
+      {!p.readOnly && p.outcome && <label className="flex items-center gap-1 px-1 text-xs text-neutral-600 dark:text-neutral-300">{t('kit.diagramFlow.outcome')} <select aria-label={t('kit.diagramFlow.connectionOutcome')} value={p.outcome} onChange={event => p.onOutcome(event.target.value as DiagramFlowOutcome)} className="max-w-24 rounded border border-neutral-300 bg-white px-1 py-0.5 text-xs dark:border-neutral-600 dark:bg-neutral-900"><option value="unknown">{t('kit.diagramFlow.unknown')}</option><option value="success">{t('kit.diagramFlow.success')}</option><option value="failure">{t('kit.diagramFlow.failure')}</option></select></label>}
+      <Action name="fit" label={t('kit.diagramFlow.fit')} disabled={p.locked} onClick={p.onFit} />
+      <Action name="minus" label={t('kit.diagramFlow.zoomOut')} disabled={p.locked || p.zoom <= .1} onClick={p.onZoomOut} />
+      <span className="min-w-[3.5ch] px-1 text-center text-[11px] tabular-nums text-neutral-500 dark:text-neutral-400" aria-label={t('kit.diagramFlow.zoom')}>{Math.round(p.zoom * 100)}%</span>
+      <IconButton icon="Add" size="xs" variant="ghost" color="slate" disabled={p.locked || p.zoom >= 2} srLabel={t('kit.diagramFlow.zoomIn')} tooltip={t('kit.diagramFlow.zoomIn')} onClick={p.onZoomIn} />
+      <IconButton icon="Reset" size="xs" variant="ghost" color="slate" disabled={p.locked} srLabel={t('kit.diagramFlow.reset')} tooltip={t('kit.diagramFlow.reset')} onClick={p.onReset} />
   </div>;
 }

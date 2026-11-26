@@ -1,8 +1,9 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { routeBetween, routePolyline, routeCrossings, type Box, type PortSide } from './router';
 import Panel, { type PanelProps } from '../Panel';
 import ScrollArea from '../ScrollArea';
+import GridBackground, { type GridBackgroundProps } from '../GridBackground';
 import ProgressSpinner from '../ProgressSpinner';
 import DotStepper from '../DotStepper';
 import DiagramFlowControls from './DiagramFlowControls';
@@ -10,10 +11,13 @@ import { placeDiagramCaptions } from './captions';
 import ConnectionFlowNodeBody from '../ConnectionFlow/ConnectionFlowNodeBody';
 import { DEFAULT_LAYOUT_OPTIONS, NODE_METRICS, dotTiming, measureNode, nodeTone, routeLength, type ConnectionFlowItemProgress, type ConnectionFlowNode, type ConnectionFlowProgressType, type LaidOutNode } from '../../connectionFlow';
 import type { ControlSize } from '../../theme/Theme';
+import { useKitT } from '../../i18n';
 import { DIAGRAM_SIDES, freeDiagramPort, nearestDiagramSide, type DiagramPort } from './ports';
 import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowConnection, type DiagramFlowGraph, type DiagramFlowNode, type DiagramFlowOperation, type DiagramFlowOutcome, type DiagramFlowPanelProps } from './model';
 
-export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChange' | 'onClick' | 'height' | 'size'> {
+export type DiagramFlowGridProps = Pick<GridBackgroundProps, 'pattern' | 'lineColor' | 'dotSize' | 'opacity' | 'fade' | 'fadeStart'>;
+
+export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChange' | 'onClick' | 'height' | 'size' | 'clickable' | 'scrollable'> {
   graph: DiagramFlowGraph;
   onChange: (graph: DiagramFlowGraph, operation: DiagramFlowOperation) => void;
   onConnectionEdit?: (connection: DiagramFlowConnection) => void;
@@ -29,7 +33,10 @@ export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChang
   /** Called after an atomic node creation request, including its optional connection. */
   onNodeCreate?: (node: DiagramFlowNode, connection?: DiagramFlowConnection) => void;
   height?: number;
+  /** Spacing for both snapping and the background lattice. @default 20 */
   gridSize?: number;
+  /** Show the background lattice or customize its appearance. @default true */
+  grid?: boolean | DiagramFlowGridProps;
   readOnly?: boolean;
   /** Create a connected node when a connector is dropped in empty space. @default false */
   autoCreate?: boolean;
@@ -48,12 +55,16 @@ export interface DiagramFlowProps extends Omit<PanelProps, 'children' | 'onChang
   maxVisibleItems?: number;
 }
 const WIDTH = 180, HEIGHT = 76;
+const STATUS_KEYS = { pending: 'kit.diagramFlow.statusPending', running: 'kit.diagramFlow.statusRunning', succeeded: 'kit.diagramFlow.statusSucceeded', failed: 'kit.diagramFlow.statusFailed', skipped: 'kit.diagramFlow.statusSkipped' } as const;
+const SIDE_KEYS = { top: 'kit.diagramFlow.top', right: 'kit.diagramFlow.right', bottom: 'kit.diagramFlow.bottom', left: 'kit.diagramFlow.left' } as const;
+const ENDPOINT_KEYS = { source: 'kit.diagramFlow.source', target: 'kit.diagramFlow.target' } as const;
 
 /** Controlled diagram editor; the application owns execution and persistence. */
 type ConnectionGesture = { kind: 'create'; sourceId: string; outcome: DiagramFlowOutcome; side?: PortSide } | { kind: 'reconnect'; edgeId: string; endpoint: 'source' | 'target' };
 type PointerConnection = { gesture: ConnectionGesture; pointerId: number; x: number; y: number; startX: number; startY: number };
 
-export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeEdit, onNodeClick, onConnectionClick, onConnect, onReconnect, onNodeCreate, height = 560, gridSize = 20, readOnly = false, autoCreate = false, nodePanelProps, animated = true, dotSpeed = 120, dotInterval = 700, size = 'md', progressType = 'bar', itemProgress = 'bar', maxVisibleItems = 2, className, style, variant = 'outlined', tone = 'none', padding = 'none', ...surfaceProps }: DiagramFlowProps) {
+export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeEdit, onNodeClick, onConnectionClick, onConnect, onReconnect, onNodeCreate, height = 560, gridSize = 20, grid = true, readOnly = false, autoCreate = false, nodePanelProps, animated = true, dotSpeed = 120, dotInterval = 700, size = 'md', progressType = 'bar', itemProgress = 'bar', maxVisibleItems = 2, className, style, variant = 'outlined', tone = 'none', padding = 'none', ...surfaceProps }: DiagramFlowProps) {
+  const t = useKitT();
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const root = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLDivElement>(null);
@@ -67,6 +78,12 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
   const connectionDragRef = useRef<PointerConnection | null>(null);
   const suppressClick = useRef(false);
   const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const pendingZoomScroll = useRef<{ left: number; top: number } | null>(null);
+  const pan = useRef<{ pointerId: number; x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
+  const suppressPanClick = useRef(false);
+  const [panning, setPanning] = useState(false);
   const [history, setHistory] = useState<{ past: DiagramFlowGraph[]; future: DiagramFlowGraph[] }>({ past: [], future: [] });
   const lastGraph = useRef(graph);
   const expectedGraph = useRef<DiagramFlowGraph | null>(null);
@@ -103,6 +120,37 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     document.addEventListener('keydown', escape);
     return () => document.removeEventListener('keydown', escape);
   }, []);
+  useLayoutEffect(() => {
+    const view = viewport.current;
+    const target = pendingZoomScroll.current;
+    if (view && target) {
+      view.scrollLeft = target.left;
+      view.scrollTop = target.top;
+      pendingZoomScroll.current = null;
+    }
+  }, [zoom]);
+  useEffect(() => {
+    const view = viewport.current;
+    if (!view || locked) return;
+    const wheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      const previous = zoomRef.current;
+      const next = Math.max(.1, Math.min(2, previous * Math.exp(-Math.max(-100, Math.min(100, event.deltaY)) * .008)));
+      if (next === previous) return;
+      const rect = view.getBoundingClientRect();
+      const x = event.clientX - rect.left, y = event.clientY - rect.top;
+      const scroll = pendingZoomScroll.current ?? { left: view.scrollLeft, top: view.scrollTop };
+      pendingZoomScroll.current = { left: (scroll.left + x) * next / previous - x, top: (scroll.top + y) * next / previous - y };
+      zoomRef.current = next;
+      setZoom(next);
+    };
+    view.addEventListener('wheel', wheel, { passive: false });
+    return () => view.removeEventListener('wheel', wheel);
+  }, [locked]);
+  useEffect(() => {
+    if (locked) { pan.current = null; setPanning(false); }
+  }, [locked]);
   const errors = useMemo(() => validateDiagramFlow(graph), [graph]);
   const layoutOptions = useMemo(() => ({ ...DEFAULT_LAYOUT_OPTIONS, metrics: NODE_METRICS[size], itemProgress, maxVisibleItems }), [size, itemProgress, maxVisibleItems]);
   const nodes = useMemo(() => graph.nodes.map(n => preview?.id === n.id ? { ...n, position: { x: preview.x, y: preview.y } } : n), [graph.nodes, preview]);
@@ -123,7 +171,8 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
   const offsetY = 60 - Math.min(0, ...nodes.map(n => n.position.y - 80));
   const width = Math.max(900, ...nodes.map(n => n.position.x + offsetX + nodeSize(n).width + 140));
   const canvasHeight = Math.max(500, ...nodes.map(n => n.position.y + offsetY + nodeSize(n).height + 140));
-  const snap = (value: number) => Math.round(value / Math.max(1, gridSize)) * Math.max(1, gridSize);
+  const spacing = Number.isFinite(gridSize) ? Math.max(1, gridSize) : 20;
+  const snap = (value: number) => Math.round(value / spacing) * spacing;
   const nextId = (prefix: string) => { let id: string; do { id = `${prefix}-${uid}-${++sequence.current}`; } while (graph.nodes.some(n => n.id === id) || graph.connections.some(e => e.id === id)); return id; };
   const commit = (operation: DiagramFlowOperation) => {
     const next = applyDiagramFlowOperation(graph, operation);
@@ -153,7 +202,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     if (!moving) return;
     const size = nodeSize(moving);
     if (graph.nodes.some(n => { const other = nodeSize(n); return n.id !== id && position.x < n.position.x + other.width + 16 && position.x + size.width + 16 > n.position.x && position.y < n.position.y + other.height + 16 && position.y + size.height + 16 > n.position.y; })) {
-      setNotice('That position overlaps another step.');
+      setNotice(t('kit.diagramFlow.overlapPosition'));
       return;
     }
     setNotice('');
@@ -167,7 +216,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     const nextWidth = Math.max(120, snap(width));
     const nextHeight = Math.max(60, minHeight, snap(height));
     if (graph.nodes.some(n => { const other = nodeSize(n); return n.id !== id && node.position.x < n.position.x + other.width + 16 && node.position.x + nextWidth + 16 > n.position.x && node.position.y < n.position.y + other.height + 16 && node.position.y + nextHeight + 16 > n.position.y; })) {
-      setNotice('That size overlaps another step.'); return;
+      setNotice(t('kit.diagramFlow.overlapSize')); return;
     }
     setNotice('');
     commit({ type: 'update-node', node: { ...node, width: nextWidth, height: nextHeight } });
@@ -177,19 +226,19 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     let x = source ? source.position.x + (child ? 40 : 260) : 0;
     let y = source ? source.position.y + (child ? 140 : 120) : 0;
     while (graph.nodes.some(n => { const size = nodeSize(n); return x < n.position.x + size.width + 20 && x + WIDTH + 20 > n.position.x && y < n.position.y + size.height + 20 && y + HEIGHT + 20 > n.position.y; })) y += 120;
-    const node: DiagramFlowNode = { id, title: 'New step', position: { x: snap(x), y: snap(y) }, ...(child && source ? { parentId: source.id } : source?.parentId ? { parentId: source.parentId } : {}) };
+    const node: DiagramFlowNode = { id, title: t('kit.diagramFlow.newStep'), position: { x: snap(x), y: snap(y) }, ...(child && source ? { parentId: source.id } : source?.parentId ? { parentId: source.parentId } : {}) };
     const connection: DiagramFlowConnection | undefined = source && !child ? { id: nextId('edge'), sourceId: source.id, targetId: id, outcome: 'unknown' } : undefined;
     commit({ type: 'create', node, connection }); setSelected(id); setSelectedEdge(null);
   };
   const finishConnection = (gesture: ConnectionGesture, nodeId: string, side?: PortSide) => {
     if (gesture.kind === 'create') {
-      if (gesture.sourceId === nodeId) { setNotice('A step cannot connect to itself.'); return; }
+      if (gesture.sourceId === nodeId) { setNotice(t('kit.diagramFlow.selfConnect')); return; }
       if (commit({ type: 'connect', connection: { id: nextId('edge'), sourceId: gesture.sourceId, targetId: nodeId, outcome: gesture.outcome, ...(gesture.side ? { fromSide: gesture.side } : {}), ...(side ? { toSide: side } : {}) } })) setNotice('');
     } else {
       const edge = graph.connections.find(e => e.id === gesture.edgeId);
       if (!edge) return;
       const updated = { ...edge, [gesture.endpoint === 'source' ? 'sourceId' : 'targetId']: nodeId, ...(side ? { [gesture.endpoint === 'source' ? 'fromSide' : 'toSide']: side } : {}) };
-      if (updated.sourceId === updated.targetId) { setNotice('A step cannot connect to itself.'); return; }
+      if (updated.sourceId === updated.targetId) { setNotice(t('kit.diagramFlow.selfConnect')); return; }
       if (updated.sourceId !== edge.sourceId || updated.targetId !== edge.targetId || updated.fromSide !== edge.fromSide || updated.toSide !== edge.toSide) commit({ type: 'update-connection', connection: updated });
       setNotice('');
     }
@@ -255,7 +304,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     if (!autoCreate || editDisabled || gesture.kind !== 'create') return null;
     const source = graph.nodes.find(node => node.id === gesture.sourceId);
     if (!source || nodeDisabled(source)) return null;
-    const node: DiagramFlowNode = { id: '', title: 'New step', position: { x: snap(point.x - offsetX - WIDTH / 2), y: snap(point.y - offsetY - HEIGHT / 2) }, ...(source.parentId ? { parentId: source.parentId } : {}) };
+    const node: DiagramFlowNode = { id: '', title: t('kit.diagramFlow.newStep'), position: { x: snap(point.x - offsetX - WIDTH / 2), y: snap(point.y - offsetY - HEIGHT / 2) }, ...(source.parentId ? { parentId: source.parentId } : {}) };
     const size = nodeSize(node);
     const blocked = graph.nodes.some(existing => { const other = nodeSize(existing); return node.position.x < existing.position.x + other.width + 16 && node.position.x + size.width + 16 > existing.position.x && node.position.y < existing.position.y + other.height + 16 && node.position.y + size.height + 16 > existing.position.y; });
     return { node, source, size, blocked };
@@ -264,7 +313,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     const candidate = createCandidate(point, gesture);
     if (!candidate || gesture.kind !== 'create') return false;
     if (candidate.blocked) {
-      setNotice('There is not enough space for a new step.'); return true;
+      setNotice(t('kit.diagramFlow.noSpace')); return true;
     }
     const id = nextId('node');
     const node = { ...candidate.node, id };
@@ -299,7 +348,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
       const point = pointAt(event.clientX, event.clientY);
       const target = point && dropAt(point, active.gesture);
       if (target) finishConnection(active.gesture, target.node.id, target.port.side);
-      else if (!point || !createAt(point, active.gesture)) setNotice('Connection canceled. Drop on a step to connect.');
+      else if (!point || !createAt(point, active.gesture)) setNotice(t('kit.diagramFlow.canceled'));
     },
     onPointerCancel: () => { connectionDragRef.current = null; setConnectionDrag(null); },
     onLostPointerCapture: () => { connectionDragRef.current = null; setConnectionDrag(null); },
@@ -353,17 +402,24 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
     setZoom(next);
     requestAnimationFrame(() => { view.scrollLeft = Math.max(0, (minX + maxX) * next / 2 - view.clientWidth / 2); view.scrollTop = Math.max(0, (minY + maxY) * next / 2 - view.clientHeight / 2); });
   };
-  return <Panel {...surfaceProps} ref={root} data-diagram-flow variant={variant} tone={tone} padding={padding} clickable={false} scrollable={false} className={`overflow-hidden ${className ?? ''}`} style={style}>
+  return <Panel {...surfaceProps} ref={root} aria-label={surfaceProps['aria-label'] ?? t('kit.diagramFlow.name')} data-diagram-flow variant={variant} tone={tone} padding={padding} clickable={false} scrollable={false} className={`overflow-hidden ${className ?? ''}`} style={style}>
     <style>{`[data-diagram-flow]{--diagram-caption-fill:var(--color-neutral-100,#f5f5f5);--diagram-caption-text:var(--color-neutral-700,#404040)} .dark [data-diagram-flow]{--diagram-caption-fill:var(--color-neutral-800,#262626);--diagram-caption-text:var(--color-neutral-100,#f5f5f5)}`}</style>
-    <div role="status" className="min-h-6 px-3 text-xs text-neutral-500">{errors.length ? `Invalid graph: ${errors.join('; ')}` : notice || (routes.length < graph.connections.length ? 'Some connections cannot be routed. Move steps or free a connection point.' : connecting ? 'Choose a step to connect, or press Escape to cancel.' : 'Select a step or connection. Drag steps or connection handles.')}</div>
-    <div className="relative"><ScrollArea viewportRef={viewport} gutter={false} contentClassName="block" style={{ height }}><div style={{ width: canvasWidth * zoom, height: canvasHeightWithCaptions * zoom, position: 'relative', backgroundImage: 'radial-gradient(#a3a3a3 0.7px, transparent 0.7px)', backgroundSize: `${Math.max(1, gridSize) * zoom}px ${Math.max(1, gridSize) * zoom}px` }}>
+    <div role="status" className="min-h-6 px-3 text-xs text-neutral-500">{errors.length ? t('kit.diagramFlow.invalid', { errors: errors.join('; ') }) : notice || (routes.length < graph.connections.length ? t('kit.diagramFlow.unroutable') : connecting ? t('kit.diagramFlow.chooseTarget') : t('kit.diagramFlow.instructions'))}</div>
+    <div className="relative"><ScrollArea viewportRef={viewport} gutter={false} contentClassName="block" style={{ height }}><div style={{ width: canvasWidth * zoom, height: canvasHeightWithCaptions * zoom, position: 'relative' }}>
       <div ref={canvas} style={{ position: 'absolute', width: canvasWidth, height: canvasHeightWithCaptions, transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
-        <button type="button" tabIndex={-1} aria-label="Clear diagram selection" onClick={() => { setSelected(null); setSelectedEdge(null); setConnecting(null); setNotice(''); }} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, padding: 0, background: 'transparent', cursor: 'default' }} />
-        <svg aria-label="Connections" style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}>
+        {grid !== false && <GridBackground data-diagram-grid aria-hidden="true" pattern="dots" lineColor="#a3a3a3" dotSize={.7} opacity={.7} {...(typeof grid === 'object' ? grid : {})} size={spacing} style={{ inset: 'auto', left: (offsetX % spacing) - spacing, top: (offsetY % spacing) - spacing, right: 0, bottom: 0 }} />}
+        <button type="button" tabIndex={-1} aria-label={t('kit.diagramFlow.clear')} disabled={locked}
+          onPointerDown={event => { const view = viewport.current; if (locked || event.button !== 0 || !view || pan.current) return; event.currentTarget.setPointerCapture(event.pointerId); pan.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: view.scrollLeft, top: view.scrollTop, moved: false }; }}
+          onPointerMove={event => { const current = pan.current, view = viewport.current; if (!current || current.pointerId !== event.pointerId || !view || locked) return; const dx = event.clientX - current.x, dy = event.clientY - current.y; if (!current.moved && Math.hypot(dx, dy) <= 4) return; current.moved = true; setPanning(true); view.scrollLeft = current.left - dx; view.scrollTop = current.top - dy; }}
+          onPointerUp={event => { const current = pan.current; if (!current || current.pointerId !== event.pointerId) return; pan.current = null; setPanning(false); if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (current.moved) { suppressPanClick.current = true; setTimeout(() => { suppressPanClick.current = false; }, 0); } }}
+          onPointerCancel={() => { pan.current = null; setPanning(false); }} onLostPointerCapture={() => { pan.current = null; setPanning(false); }}
+          onClick={() => { if (suppressPanClick.current) { suppressPanClick.current = false; return; } setSelected(null); setSelectedEdge(null); setConnecting(null); setNotice(''); }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0, padding: 0, background: 'transparent', cursor: panning ? 'grabbing' : 'default', touchAction: locked ? 'auto' : 'none' }} />
+        <svg aria-label={t('kit.diagramFlow.connections')} style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none' }}>
           <defs><marker id={`${uid}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" /></marker></defs>
           {routes.map(({ edge, route }) => <g key={edge.id}>
             {selectedEdge === edge.id && <path d={route.d} fill="none" stroke="#60a5fa" strokeWidth="8" opacity=".35" pointerEvents="none" />}
-            <path d={route.d} fill="none" stroke="transparent" strokeWidth="12" pointerEvents="stroke" style={{ outline: 'none', cursor: 'pointer' }} tabIndex={locked ? -1 : 0} role="button" aria-label={`${edge.outcome} connection from ${byId.get(edge.sourceId)?.title} to ${byId.get(edge.targetId)?.title}${edge.label || edge.conditionLabel ? `, ${edge.label || edge.conditionLabel}` : ''}`} onClick={() => { if (locked) return; setSelectedEdge(edge.id); setSelected(null); onConnectionClick?.(edge); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedEdge(edge.id); setSelected(null); onConnectionClick?.(edge); } else if (!editDisabled && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); commit({ type: 'remove-connection', id: edge.id }); setSelectedEdge(null); } }} onDoubleClick={() => { if (!locked) onConnectionEdit?.(edge); }} />
+            <path d={route.d} fill="none" stroke="transparent" strokeWidth="12" pointerEvents="stroke" style={{ outline: 'none', cursor: 'pointer' }} tabIndex={locked ? -1 : 0} role="button" aria-label={t('kit.diagramFlow.edgeLabel', { outcome: t(`kit.diagramFlow.${edge.outcome}`).toLocaleLowerCase(), source: byId.get(edge.sourceId)?.title ?? edge.sourceId, target: byId.get(edge.targetId)?.title ?? edge.targetId, label: edge.label || edge.conditionLabel ? `, ${edge.label || edge.conditionLabel}` : '' })} onClick={() => { if (locked) return; setSelectedEdge(edge.id); setSelected(null); onConnectionClick?.(edge); }} onKeyDown={e => { if (locked) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedEdge(edge.id); setSelected(null); onConnectionClick?.(edge); } else if (!editDisabled && (e.key === 'Delete' || e.key === 'Backspace')) { e.preventDefault(); commit({ type: 'remove-connection', id: edge.id }); setSelectedEdge(null); } }} onDoubleClick={() => { if (!locked) onConnectionEdit?.(edge); }} />
             <path d={route.d} fill="none" stroke={edge.outcome === 'failure' ? '#e11d48' : edge.outcome === 'success' ? '#059669' : '#94a3b8'} strokeWidth={selectedEdge === edge.id ? 3 : 2} strokeDasharray={edge.outcome === 'failure' ? '6 4' : undefined} markerEnd={`url(#${uid}-arrow)`} pointerEvents="none" />
             {edge.animated && animated && (() => { const group = dotGroups.get(edge.sourceId) ?? []; const index = group.findIndex(item => item.edge.id === edge.id); const span = Math.max(1, ...group.map(item => routeLength(item.route.points))); const timing = dotTiming(routeLength(route.points), Math.max(0, index), group.length, span, dotSpeed, Math.max(1, dotInterval) / 1000); return <circle data-diagram-flow-dot={edge.id} r={3} fill={edge.outcome === 'failure' ? '#fb7185' : edge.outcome === 'success' ? '#34d399' : '#cbd5e1'} opacity={0} className="motion-reduce:hidden" pointerEvents="none"><animateMotion path={route.d} dur={`${timing.cycle.toFixed(3)}s`} begin={`${timing.begin.toFixed(3)}s`} repeatCount="indefinite" calcMode="linear" keyPoints="0;1;1" keyTimes={`0;${timing.arrival.toFixed(4)};1`} /><animate attributeName="opacity" dur={`${timing.cycle.toFixed(3)}s`} begin={`${timing.begin.toFixed(3)}s`} repeatCount="indefinite" calcMode="discrete" values="1;0" keyTimes={`0;${timing.arrival.toFixed(4)}`} /></circle>; })()}
           </g>)}
@@ -374,30 +430,30 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
           {previewPath && <path data-diagram-connection-preview d={previewPath} stroke="#3b82f6" strokeWidth="2" strokeDasharray="5 4" fill="none" pointerEvents="none" />}
           {createPreview && <rect data-diagram-create-preview x={createPreview.node.position.x + offsetX} y={createPreview.node.position.y + offsetY} width={createPreview.size.width} height={createPreview.size.height} rx={12} fill={createPreview.blocked ? '#f43f5e' : '#3b82f6'} fillOpacity="0.1" stroke={createPreview.blocked ? '#f43f5e' : '#3b82f6'} strokeWidth={2} strokeDasharray="6 5" pointerEvents="none" />}
         </svg>
-        {nodes.map(node => { const panel = { variant: 'outlined' as const, padding: 'sm' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps }; const dimensions = nodeSize(node); const flowNode: ConnectionFlowNode = node; const stepperReadOnly = node.dotStepper?.readOnly ?? !(node.dotStepper?.onStepSelect || node.dotStepper?.renderActiveContent); const hasControls = (!!node.dotStepper && !stepperReadOnly) || (node.items?.length ?? 0) > (node.maxItems ?? maxVisibleItems) || expanded.has(node.id); const laid: LaidOutNode = { id: node.id, node: flowNode, outline: '', x: node.position.x, y: node.position.y, ...dimensions, anchorY: dimensions.height / 2, column: 0, depth: 0, tone: nodeTone(flowNode), scrollable: true }; return <Panel key={node.id} {...panel} disabled={nodeDisabled(node)} clickable={hasControls ? false : panel.clickable} role={hasControls ? 'group' : undefined} tabIndex={hasControls ? (panel.disabled ? -1 : 0) : undefined} data-diagram-node={node.id} aria-label={`${node.title} ${node.status ?? 'pending'}${node.join === 'all' ? `, join ${node.joinReady ? 'ready' : 'waiting'}` : ''}`} aria-pressed={hasControls ? undefined : selected === node.id} active={!!panel.active || selected === node.id || dropTarget?.node.id === node.id} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onClick={() => activateNode(node)} onDoubleClick={() => { if (!locked) onNodeEdit?.(node); }}
+        {nodes.map(node => { const panel = { variant: 'outlined' as const, padding: 'sm' as const, ...nodePanelProps, ...(node.tone ? { tone: node.tone } : {}), ...node.panelProps }; const dimensions = nodeSize(node); const flowNode: ConnectionFlowNode = node; const stepperReadOnly = node.dotStepper?.readOnly ?? !(node.dotStepper?.onStepSelect || node.dotStepper?.renderActiveContent); const hasControls = (!!node.dotStepper && !stepperReadOnly) || (node.items?.length ?? 0) > (node.maxItems ?? maxVisibleItems) || expanded.has(node.id); const laid: LaidOutNode = { id: node.id, node: flowNode, outline: '', x: node.position.x, y: node.position.y, ...dimensions, anchorY: dimensions.height / 2, column: 0, depth: 0, tone: nodeTone(flowNode), scrollable: true }; return <Panel key={node.id} {...panel} disabled={nodeDisabled(node)} clickable={hasControls ? false : panel.clickable} role={hasControls ? 'group' : undefined} tabIndex={hasControls ? (nodeDisabled(node) ? -1 : 0) : undefined} data-diagram-node={node.id} aria-label={t('kit.diagramFlow.nodeLabel', { title: node.title, status: t(STATUS_KEYS[node.status ?? 'pending']), join: node.join === 'all' ? `, ${t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting').toLocaleLowerCase()}` : '' })} aria-pressed={hasControls ? undefined : selected === node.id} active={!!panel.active || selected === node.id || dropTarget?.node.id === node.id} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id) setHoveredNode(null); }} onClick={() => activateNode(node)} onDoubleClick={() => { if (!locked) onNodeEdit?.(node); }}
           onPointerDown={event => { if (editDisabled || connecting || event.button !== 0 || (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, [data-no-drag]'))) return; event.currentTarget.setPointerCapture(event.pointerId); drag.current = { id: node.id, x: event.clientX, y: event.clientY, original: node.position, moved: false }; }}
           onPointerMove={event => { const d = drag.current; if (!d || d.id !== node.id) return; const dx = (event.clientX - d.x) / zoom, dy = (event.clientY - d.y) / zoom; if (Math.hypot(dx, dy) < 4 && !d.moved) return; d.moved = true; setPreview({ id: node.id, x: snap(d.original.x + dx), y: snap(d.original.y + dy) }); }}
           onPointerUp={event => { const d = drag.current; drag.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (d?.moved) { suppressClick.current = true; setTimeout(() => { suppressClick.current = false; }, 0); move(node.id, { x: snap(d.original.x + (event.clientX - d.x) / zoom), y: snap(d.original.y + (event.clientY - d.y) / zoom) }); } setPreview(null); }}
-          onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); return; } if (editDisabled || connecting) return; const delta: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }; const direction = delta[event.key]; if (direction) { event.preventDefault(); move(node.id, { x: snap(node.position.x + direction[0] * gridSize), y: snap(node.position.y + direction[1] * gridSize) }); } }}
+          onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); return; } if (editDisabled || connecting) return; const delta: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }; const direction = delta[event.key]; if (direction) { event.preventDefault(); move(node.id, { x: snap(node.position.x + direction[0] * spacing), y: snap(node.position.y + direction[1] * spacing) }); } }}
           onPointerCancel={() => { drag.current = null; setPreview(null); }}
           className={`text-left ${dropTarget?.node.id === node.id ? 'ring-4 ring-blue-400/60 ring-offset-2' : ''} ${panel.className ?? ''}`}
           style={{ ...panel.style, position: 'absolute', left: node.position.x + offsetX, top: node.position.y + offsetY, ...nodeSize(node), touchAction: 'none' }}>
-          {hasControls && <button type="button" disabled={panel.disabled} className="sr-only focus:not-sr-only" onClick={event => { event.stopPropagation(); activateNode(node); }}>Select {node.title}</button>}
+          {hasControls && <button type="button" disabled={nodeDisabled(node)} className="sr-only focus:not-sr-only" onClick={event => { event.stopPropagation(); activateNode(node); }}>{t('kit.diagramFlow.selectNode', { title: node.title })}</button>}
           <div className="flex h-full min-h-0 gap-2 overflow-y-auto">
-            <div className="min-w-0 flex-1"><ConnectionFlowNodeBody node={laid} metrics={NODE_METRICS[size]} options={layoutOptions} scrollable expanded={expanded} onToggleExpanded={id => setExpanded(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} showProgress={(node.progressType ?? progressType) === 'bar'} />{node.dotStepper && <div data-no-drag data-diagram-stepper={node.id} className="mt-2 max-w-full overflow-x-auto"><DotStepper variant="none" {...node.dotStepper} readOnly={stepperReadOnly} aria-label={node.dotStepper['aria-label'] ?? `${node.title} steps`} /></div>}{node.join === 'all' && <span className="text-xs text-neutral-500">Join {node.joinReady ? 'ready' : 'waiting'}</span>}</div>
+            <div className="min-w-0 flex-1"><ConnectionFlowNodeBody node={laid} metrics={NODE_METRICS[size]} options={layoutOptions} scrollable expanded={expanded} moreLabel={count => t('kit.diagramFlow.more', { count })} lessLabel={t('kit.diagramFlow.less')} onToggleExpanded={id => setExpanded(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; })} showProgress={(node.progressType ?? progressType) === 'bar'} />{node.dotStepper && <div data-no-drag data-diagram-stepper={node.id} className="mt-2 max-w-full overflow-x-auto"><DotStepper variant="none" {...node.dotStepper} readOnly={stepperReadOnly} aria-label={node.dotStepper['aria-label'] ?? t('kit.diagramFlow.nodeSteps', { title: node.title })} /></div>}{node.join === 'all' && <span className="text-xs text-neutral-500">{t(node.joinReady ? 'kit.diagramFlow.joinReady' : 'kit.diagramFlow.joinWaiting')}</span>}</div>
             {(node.progressType ?? progressType) === 'spinner' && node.progress !== undefined && <ProgressSpinner size="xs" color={nodeTone(flowNode)} value={node.progress * 100} showValue={false} />}
           </div>
         </Panel>; })}
-        {!editDisabled && selectedNode && !nodeDisabled(selectedNode) && (() => { const size = nodeSize(selectedNode); return <button type="button" data-diagram-resize={selectedNode.id} aria-label={`Resize ${selectedNode.title}`} title="Drag or use arrow keys to resize" className="absolute z-20 flex items-end justify-end rounded-sm border border-blue-500 bg-white text-blue-600 shadow focus-visible:outline focus-visible:outline-2 dark:bg-neutral-900" style={{ left: selectedNode.position.x + offsetX + size.width - 10, top: selectedNode.position.y + offsetY + size.height - 10, width: 20, height: 20, cursor: 'nwse-resize', touchAction: 'none' }}
+        {!editDisabled && selectedNode && !nodeDisabled(selectedNode) && (() => { const size = nodeSize(selectedNode); return <button type="button" data-diagram-resize={selectedNode.id} aria-label={t('kit.diagramFlow.resize', { title: selectedNode.title })} title={t('kit.diagramFlow.resizeHint')} className="absolute z-20 flex items-end justify-end rounded-sm border border-blue-500 bg-white text-blue-600 shadow focus-visible:outline focus-visible:outline-2 dark:bg-neutral-900" style={{ left: selectedNode.position.x + offsetX + size.width - 10, top: selectedNode.position.y + offsetY + size.height - 10, width: 20, height: 20, cursor: 'nwse-resize', touchAction: 'none' }}
           onPointerDown={event => { if (event.button !== 0) return; event.stopPropagation(); event.currentTarget.setPointerCapture(event.pointerId); resize.current = { id: selectedNode.id, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, ...size }; }}
           onPointerMove={event => { const r = resize.current; if (!r || r.pointerId !== event.pointerId) return; setSizePreview({ id: r.id, width: Math.max(120, snap(r.width + (event.clientX - r.startX) / zoom)), height: Math.max(60, snap(r.height + (event.clientY - r.startY) / zoom)) }); }}
           onPointerUp={event => { const r = resize.current; if (!r || r.pointerId !== event.pointerId) return; resize.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); setSizePreview(null); if (Math.hypot(event.clientX - r.startX, event.clientY - r.startY) >= 4) resizeNode(r.id, r.width + (event.clientX - r.startX) / zoom, r.height + (event.clientY - r.startY) / zoom); }}
           onPointerCancel={() => { resize.current = null; setSizePreview(null); }} onLostPointerCapture={() => { resize.current = null; setSizePreview(null); }}
-          onKeyDown={event => { const directions: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }; const delta = directions[event.key]; if (delta) { event.preventDefault(); resizeNode(selectedNode.id, size.width + delta[0] * gridSize, size.height + delta[1] * gridSize); } }}>
+          onKeyDown={event => { const directions: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }; const delta = directions[event.key]; if (delta) { event.preventDefault(); resizeNode(selectedNode.id, size.width + delta[0] * spacing, size.height + delta[1] * spacing); } }}>
           <span aria-hidden="true" className="text-xs leading-none">◢</span></button>; })()}
         {dropTarget && <svg aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 h-full w-full" style={{ overflow: 'visible' }}>{dropTarget.choices.map(port => <circle key={port.side} data-diagram-drop-side={port.side} cx={port.x} cy={port.y} r={port.side === dropTarget.port.side ? 8 : 5} fill={port.side === dropTarget.port.side ? '#3b82f6' : '#fff'} stroke="#3b82f6" strokeWidth="2" />)}</svg>}
-        {!editDisabled && nodes.filter(node => !nodeDisabled(node)).flatMap(node => portsFor(node).map(port => <button key={`${node.id}-${port.side}`} type="button" data-diagram-port={port.side} data-diagram-port-node={node.id} aria-label={`Connect from ${node.title}, ${port.side}`} title={`Connect from ${node.title}`} {...handleGesture({ kind: 'create', sourceId: node.id, outcome: 'unknown', side: port.side })} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || (event.relatedTarget.getAttribute('data-diagram-node') !== node.id && event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id)) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || (event.relatedTarget.getAttribute('data-diagram-node') !== node.id && event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id)) setHoveredNode(null); }} className="absolute rounded-full border-2 border-white bg-slate-500 shadow-md transition-opacity hover:bg-blue-500 focus-visible:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400" style={{ left: port.x - 8, top: port.y - 8, width: 16, height: 16, touchAction: 'none', opacity: hoveredNode === node.id || connectionDrag?.gesture.kind === 'create' && connectionDrag.gesture.sourceId === node.id ? 1 : 0, pointerEvents: hoveredNode === node.id ? 'auto' : 'none' }} />))}
-        {!editDisabled && routes.filter(({ edge }) => edge.id === selectedEdge).flatMap(({ edge, route }) => (['source', 'target'] as const).map((endpoint, i) => { const point = i ? route.points[route.points.length - 1] : route.points[0]; return <button key={`${edge.id}-${endpoint}`} type="button" data-diagram-endpoint={endpoint} aria-label={`Change ${endpoint} of ${edge.outcome} connection from ${byId.get(edge.sourceId)?.title} to ${byId.get(edge.targetId)?.title}`} title={`Change ${endpoint}`} {...handleGesture({ kind: 'reconnect', edgeId: edge.id, endpoint })} className="absolute rounded-full border-2 border-blue-600 bg-white shadow focus-visible:outline focus-visible:outline-2" style={{ left: point.x - 9, top: point.y - 9, width: 18, height: 18, touchAction: 'none' }} />; }))}
+        {!editDisabled && nodes.filter(node => !nodeDisabled(node)).flatMap(node => portsFor(node).map(port => <button key={`${node.id}-${port.side}`} type="button" data-diagram-port={port.side} data-diagram-port-node={node.id} aria-label={t('kit.diagramFlow.portLabel', { title: node.title, side: t(SIDE_KEYS[port.side]) })} title={t('kit.diagramFlow.portLabel', { title: node.title, side: t(SIDE_KEYS[port.side]) })} {...handleGesture({ kind: 'create', sourceId: node.id, outcome: 'unknown', side: port.side })} onPointerEnter={() => setHoveredNode(node.id)} onPointerLeave={event => { if (!(event.relatedTarget instanceof Element) || (event.relatedTarget.getAttribute('data-diagram-node') !== node.id && event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id)) setHoveredNode(null); }} onFocus={() => setHoveredNode(node.id)} onBlur={event => { if (!(event.relatedTarget instanceof Element) || (event.relatedTarget.getAttribute('data-diagram-node') !== node.id && event.relatedTarget.getAttribute('data-diagram-port-node') !== node.id)) setHoveredNode(null); }} className="absolute rounded-full border-2 border-white bg-slate-500 shadow-md transition-opacity hover:bg-blue-500 focus-visible:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-400" style={{ left: port.x - 8, top: port.y - 8, width: 16, height: 16, touchAction: 'none', opacity: hoveredNode === node.id || connectionDrag?.gesture.kind === 'create' && connectionDrag.gesture.sourceId === node.id ? 1 : 0, pointerEvents: hoveredNode === node.id ? 'auto' : 'none' }} />))}
+        {!editDisabled && routes.filter(({ edge }) => edge.id === selectedEdge).flatMap(({ edge, route }) => (['source', 'target'] as const).map((endpoint, i) => { const point = i ? route.points[route.points.length - 1] : route.points[0]; return <button key={`${edge.id}-${endpoint}`} type="button" data-diagram-endpoint={endpoint} aria-label={t('kit.diagramFlow.endpointLabel', { endpoint: t(ENDPOINT_KEYS[endpoint]), outcome: t(`kit.diagramFlow.${edge.outcome}`).toLocaleLowerCase(), source: byId.get(edge.sourceId)?.title ?? edge.sourceId, target: byId.get(edge.targetId)?.title ?? edge.targetId })} title={t('kit.diagramFlow.endpointTitle', { endpoint: t(ENDPOINT_KEYS[endpoint]) })} {...handleGesture({ kind: 'reconnect', edgeId: edge.id, endpoint })} className="absolute rounded-full border-2 border-blue-600 bg-white shadow focus-visible:outline focus-visible:outline-2" style={{ left: point.x - 9, top: point.y - 9, width: 18, height: 18, touchAction: 'none' }} />; }))}
       </div>
     </div></ScrollArea>
     <DiagramFlowControls readOnly={editDisabled} locked={locked} canNode={!!selectedNode} canDelete={!!selected || !!selectedEdge} canUndo={!!history.past.length} canRedo={!!history.future.length} outcome={selectedConnection?.outcome} zoom={zoom}
@@ -405,7 +461,7 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
       onConnect={() => selectedNode && setConnecting({ kind: 'create', sourceId: selectedNode.id, outcome: 'unknown' })}
       onAlign={() => {
         const aligned = graph.nodes.map(n => ({ ...n, position: { x: snap(n.position.x), y: snap(n.position.y) } }));
-        if (aligned.some((a, i) => aligned.some((b, j) => { const x = nodeSize(a), y = nodeSize(b); return i !== j && a.position.x < b.position.x + y.width + 16 && a.position.x + x.width + 16 > b.position.x && a.position.y < b.position.y + y.height + 16 && a.position.y + x.height + 16 > b.position.y; }))) { setNotice('Alignment would overlap steps.'); return; }
+        if (aligned.some((a, i) => aligned.some((b, j) => { const x = nodeSize(a), y = nodeSize(b); return i !== j && a.position.x < b.position.x + y.width + 16 && a.position.x + x.width + 16 > b.position.x && a.position.y < b.position.y + y.height + 16 && a.position.y + x.height + 16 > b.position.y; }))) { setNotice(t('kit.diagramFlow.overlapPosition')); return; }
         setNotice(''); commit({ type: 'replace', graph: { ...graph, nodes: aligned } });
       }}
       onUndo={() => travel('undo')} onRedo={() => travel('redo')}

@@ -5,6 +5,8 @@ import DiagramFlow from './DiagramFlow';
 import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowGraph } from './model';
 import { freeDiagramPort } from './ports';
 import { placeDiagramCaptions } from './captions';
+import { routeCrossings } from './router';
+import { I18nProvider } from '../../i18n/I18nContext';
 
 const graph: DiagramFlowGraph = {
   nodes: [{ id: 'a', title: 'A', position: { x: 0, y: 0 } }, { id: 'b', title: 'B', position: { x: 260, y: 0 } }, { id: 'c', title: 'C', position: { x: 520, y: 0 }, join: 'all' }],
@@ -14,6 +16,83 @@ function Editor() { const [value, setValue] = useState(graph); return <><Diagram
 const current = () => JSON.parse(screen.getByTestId('graph').textContent!) as DiagramFlowGraph;
 
 describe('DiagramFlow', () => {
+  it('aligns the shared grid with snapping and scales it with the canvas', () => {
+    const { container, rerender } = render(<DiagramFlow graph={graph} onChange={vi.fn()} gridSize={30} grid={{ pattern: 'dots', lineColor: 'red', dotSize: 2, opacity: .4, fade: 'radial' }} />);
+    const grid = container.querySelector<HTMLElement>('[data-diagram-grid]')!;
+    const lattice = grid.firstElementChild as HTMLElement;
+    const node = container.querySelector<HTMLElement>('[data-diagram-node="a"]')!;
+    expect(lattice.style.backgroundSize).toBe('30px 30px');
+    expect(lattice.style.backgroundImage).toContain('red 2px');
+    expect(lattice.style.opacity).toBe('0.4');
+    expect((parseFloat(node.style.left) - parseFloat(grid.style.left)) % 30).toBe(0);
+    expect((parseFloat(node.style.top) - parseFloat(grid.style.top)) % 30).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expect(grid.parentElement).toHaveStyle({ transform: 'scale(1.25)' });
+    expect(lattice.style.backgroundSize).toBe('30px 30px');
+    rerender(<DiagramFlow graph={graph} onChange={vi.fn()} grid={false} />);
+    expect(container.querySelector('[data-diagram-grid]')).toBeNull();
+  });
+  it('pans from empty space without changing selection and clears selection on a click', () => {
+    const { container } = render(<Editor />);
+    const view = container.querySelector<HTMLDivElement>('[data-slot="scrollarea-viewport"]')!;
+    const background = screen.getByRole('button', { name: 'Clear diagram selection' });
+    background.setPointerCapture = vi.fn(); background.hasPointerCapture = () => true; background.releasePointerCapture = vi.fn();
+    view.scrollLeft = 120; view.scrollTop = 90;
+    fireEvent.click(screen.getByRole('button', { name: 'A pending' }));
+    fireEvent.pointerDown(background, { pointerId: 1, button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(background, { pointerId: 1, clientX: 102, clientY: 102 });
+    expect(background).toHaveStyle({ cursor: 'default' });
+    fireEvent.pointerMove(background, { pointerId: 1, clientX: 70, clientY: 80 });
+    expect(background).toHaveStyle({ cursor: 'grabbing' });
+    expect(view.scrollLeft).toBe(150); expect(view.scrollTop).toBe(110);
+    fireEvent.pointerUp(background, { pointerId: 1, clientX: 70, clientY: 80 });
+    fireEvent.click(background);
+    expect(screen.getByRole('button', { name: 'Delete' })).not.toBeDisabled();
+    fireEvent.click(background);
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  });
+  it('zooms around the pointer only on Ctrl-wheel, including in read-only mode', () => {
+    const { container } = render(<DiagramFlow graph={graph} onChange={vi.fn()} readOnly />);
+    const view = container.querySelector<HTMLDivElement>('[data-slot="scrollarea-viewport"]')!;
+    view.getBoundingClientRect = () => ({ left: 10, top: 20, right: 410, bottom: 320, width: 400, height: 300, x: 10, y: 20, toJSON: () => ({}) });
+    view.scrollLeft = 100; view.scrollTop = 80;
+    expect(fireEvent.wheel(view, { deltaY: -100, clientX: 110, clientY: 70 })).toBe(true);
+    expect(screen.getByLabelText('Zoom')).toHaveTextContent('100%');
+    expect(fireEvent.wheel(view, { deltaY: -100, clientX: 110, clientY: 70, ctrlKey: true })).toBe(false);
+    expect(screen.getByLabelText('Zoom')).toHaveTextContent('200%');
+    expect(view.scrollLeft).toBe(300); expect(view.scrollTop).toBe(210);
+  });
+  it('leaves wheel zoom inactive while disabled', () => {
+    const { container } = render(<DiagramFlow graph={graph} onChange={vi.fn()} disabled />);
+    const view = container.querySelector<HTMLDivElement>('[data-slot="scrollarea-viewport"]')!;
+    expect(fireEvent.wheel(view, { deltaY: -100, ctrlKey: true })).toBe(true);
+    expect(screen.getByLabelText('Zoom')).toHaveTextContent('100%');
+  });
+  it('adds a hop only to the horizontal path at a crossing', () => {
+    const paths = routeCrossings([
+      { id: 'horizontal', style: 'orthogonal', points: [{ x: 0, y: 50 }, { x: 100, y: 50 }] },
+      { id: 'vertical', style: 'orthogonal', points: [{ x: 50, y: 0 }, { x: 50, y: 100 }] },
+    ]);
+    expect(paths.get('horizontal')).toMatch(/A/);
+    expect(paths.has('vertical')).toBe(false);
+  });
+  it('forwards surface options to a Panel and locks controls when disabled', () => {
+    const onNodeClick = vi.fn();
+    const { container } = render(<DiagramFlow graph={graph} onChange={vi.fn()} onNodeClick={onNodeClick} variant="tonal" tone="blue" padding="md" disabled />);
+    const surface = container.querySelector('[data-diagram-flow]')!;
+    expect(surface).toHaveAttribute('data-variant', 'tonal');
+    expect(surface).toHaveAttribute('data-tone', 'blue');
+    expect(surface).toHaveAttribute('data-disabled', 'true');
+    expect(screen.getByRole('button', { name: 'Fit diagram' })).toBeDisabled();
+    fireEvent.click(container.querySelector('[data-diagram-node="a"]')!);
+    expect(onNodeClick).not.toHaveBeenCalled();
+  });
+  it('localizes controls and accessible labels', () => {
+    render(<I18nProvider locale="es" locales={{}}><DiagramFlow graph={graph} onChange={vi.fn()} /></I18nProvider>);
+    expect(screen.getByRole('button', { name: 'Añadir paso' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'A pendiente' })).toBeTruthy();
+    expect(screen.getByLabelText('Diagrama de flujo')).toBeTruthy();
+  });
   it('places wrapped captions clear of cards and other labels', () => {
     const cards = [{ x: 0, y: 0, width: 100, height: 80 }, { x: 400, y: 0, width: 100, height: 80 }];
     const captions = placeDiagramCaptions([

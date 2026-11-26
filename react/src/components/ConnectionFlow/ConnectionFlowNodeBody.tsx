@@ -32,6 +32,9 @@ export interface ConnectionFlowNodeBodyProps {
   /** Nodes whose item list is expanded. */
   expanded: ReadonlySet<string>;
   onToggleExpanded: (id: string) => void;
+  /** Optional labels for embedding the body in a localized host. */
+  moreLabel?: (count: number) => string;
+  lessLabel?: string;
 }
 
 /** One row of a card. */
@@ -129,6 +132,8 @@ const ConnectionFlowNodeBody: React.FC<ConnectionFlowNodeBodyProps> = ({
   scrollable = false,
   expanded,
   onToggleExpanded,
+  moreLabel,
+  lessLabel,
 }) => {
   const tone = getToneClasses(node.tone);
   const glyph = nodeIcon(node.node);
@@ -217,7 +222,7 @@ const ConnectionFlowNodeBody: React.FC<ConnectionFlowNodeBodyProps> = ({
                 onToggleExpanded(node.id);
               }}
             >
-              {shown.hidden > 0 ? `Show ${shown.hidden} more` : "Show less"}
+              {shown.hidden > 0 ? (moreLabel?.(shown.hidden) ?? `Show ${shown.hidden} more`) : (lessLabel ?? "Show less")}
             </button>
           )}
         </div>
