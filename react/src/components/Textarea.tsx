@@ -218,6 +218,14 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           validationStatus !== "none" ? statusClasses[validationStatus] : null,
           className,
         ),
+      // The deps are the *inputs* of `variantTokens`, not just `variant`:
+      // the memo reads `variantTokens.surface`/`.text`, and a ghost field's
+      // wash follows `fillTone` while its rim follows `tone`. Omitting the
+      // fill inputs left a field whose classes went stale whenever only
+      // `fillTone` changed — the playground symptom was a ghost +
+      // `fillTone="neutral"` + `tone="blue"` field keeping its old wash and
+      // hover rim until the tone was touched again (which moves `focusClass`,
+      // the only dep any of those props can reach).
       [
         className,
         inRow,
@@ -228,6 +236,9 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         sizeToken.text,
         validationStatus,
         variant,
+        tone,
+        toneProp,
+        fillTone,
       ],
     );
 

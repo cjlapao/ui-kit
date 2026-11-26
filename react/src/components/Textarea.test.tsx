@@ -78,6 +78,32 @@ describe("Textarea — surfaces", () => {
     expect(cls).toContain("dark:bg-amber-500/10");
     expect(cls).not.toContain("bg-white/45");
   });
+
+  it("follows fillTone when it arrives after mount", () => {
+    // The classes memo once omitted the `variantTokens` inputs: a caller who
+    // set `fillTone` after the first render (the playground's HueControl, an
+    // app hydrating its theme) kept the previous wash and hover rim forever —
+    // a ghost + `fillTone="neutral"` + `tone="blue"` field hopped to neutral
+    // only once the tone was touched, because `focusClass` was the only dep
+    // those props could reach.
+    const { rerender } = render(<Textarea variant="ghost" tone="blue" />);
+    expect(field().className).toContain("bg-blue-100");
+
+    rerender(<Textarea variant="ghost" tone="blue" fillTone="neutral" />);
+    const cls = field().className;
+    expect(cls).toContain("bg-neutral-200");
+    expect(cls).toContain("hover:bg-neutral-300");
+    expect(cls).toContain("hover:border-blue-300");
+    expect(cls).not.toContain("bg-blue-100");
+
+    // And the reverse trip, so the rim is proven to move with `tone` while
+    // the wash stays with `fillTone`.
+    rerender(<Textarea variant="ghost" tone="emerald" fillTone="neutral" />);
+    const moved = field().className;
+    expect(moved).toContain("bg-neutral-200");
+    expect(moved).toContain("hover:border-emerald-300");
+    expect(moved).not.toContain("hover:border-blue-300");
+  });
 });
 
 describe("Textarea — label, help text and counter", () => {
