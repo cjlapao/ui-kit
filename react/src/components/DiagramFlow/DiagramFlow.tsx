@@ -12,7 +12,7 @@ import ConnectionFlowNodeBody from '../ConnectionFlow/ConnectionFlowNodeBody';
 import { DEFAULT_LAYOUT_OPTIONS, NODE_METRICS, dotTiming, measureNode, nodeTone, routeLength, type ConnectionFlowItemProgress, type ConnectionFlowNode, type ConnectionFlowProgressType, type LaidOutNode } from '../../connectionFlow';
 import type { ControlSize } from '../../theme/Theme';
 import { useKitT } from '../../i18n';
-import { DIAGRAM_SIDES, freeDiagramPort, nearestDiagramSide, type DiagramPort } from './ports';
+import { DIAGRAM_SIDES, alignedDiagramPorts, freeDiagramPort, nearestDiagramSide, type DiagramPort } from './ports';
 import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowConnection, type DiagramFlowGraph, type DiagramFlowNode, type DiagramFlowOperation, type DiagramFlowOutcome, type DiagramFlowPanelProps } from './model';
 
 export type DiagramFlowGridProps = Pick<GridBackgroundProps, 'pattern' | 'lineColor' | 'dotSize' | 'opacity' | 'fade' | 'fadeStart'>;
@@ -256,9 +256,11 @@ export default function DiagramFlow({ graph, onChange, onConnectionEdit, onNodeE
       const sides: [PortSide, PortSide] = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? ['right', 'left'] : ['left', 'right']) : (dy >= 0 ? ['bottom', 'top'] : ['top', 'bottom']);
       const findPort = (box: Box, side: PortSide, used: DiagramPort[]) =>
         [side, ...DIAGRAM_SIDES.filter(s => s !== side)].map(s => freeDiagramPort(box, s, used)).find(p => p !== null);
-      const fromPort = findPort(a, edge.fromSide ?? sides[0], allocations.get(from.id) ?? []);
-      const toPort = findPort(b, edge.toSide ?? sides[1], allocations.get(to.id) ?? []);
-      if (!fromPort || !toPort) return [];
+      const fromUsed = allocations.get(from.id) ?? [], toUsed = allocations.get(to.id) ?? [];
+      const initialFrom = findPort(a, edge.fromSide ?? sides[0], fromUsed);
+      const initialTo = findPort(b, edge.toSide ?? sides[1], toUsed);
+      if (!initialFrom || !initialTo) return [];
+      const [fromPort, toPort] = alignedDiagramPorts(a, initialFrom.side, fromUsed, b, initialTo.side, toUsed) ?? [initialFrom, initialTo];
       const route = routeBetween({ box: a, t: fromPort.t, sides: [fromPort.side] }, { box: b, t: toPort.t, sides: [toPort.side] }, obstacles, { style: 'orthogonal', clearance: 12, stub: 22, radius: 8, strictObstacles: true, occupied });
       if (!route) return [];
       occupied.push(route.points);

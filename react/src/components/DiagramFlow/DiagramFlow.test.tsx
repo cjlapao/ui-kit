@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import DiagramFlow from './DiagramFlow';
 import { applyDiagramFlowOperation, validateDiagramFlow, type DiagramFlowGraph } from './model';
-import { freeDiagramPort } from './ports';
+import { alignedDiagramPorts, freeDiagramPort } from './ports';
 import { placeDiagramCaptions } from './captions';
 import { routeCrossings } from './router';
 import { I18nProvider } from '../../i18n/I18nContext';
@@ -16,6 +16,27 @@ function Editor() { const [value, setValue] = useState(graph); return <><Diagram
 const current = () => JSON.parse(screen.getByTestId('graph').textContent!) as DiagramFlowGraph;
 
 describe('DiagramFlow', () => {
+  it('routes a straight connection between top-aligned nodes with different heights', () => {
+    const uneven: DiagramFlowGraph = { nodes: [{ id: 'a', title: 'A', position: { x: 0, y: 0 }, height: 80 }, { id: 'b', title: 'B', position: { x: 260, y: 0 }, height: 100 }], connections: [{ id: 'ab', sourceId: 'a', targetId: 'b', outcome: 'success' }] };
+    render(<DiagramFlow graph={uneven} onChange={vi.fn()} />);
+    const path = screen.getByRole('button', { name: 'success connection from A to B' }).getAttribute('d')!;
+    expect(path).not.toMatch(/[QA]/);
+    const coords = [...path.matchAll(/[ML] ([\d.]+) ([\d.]+)/g)].map(match => Number(match[2]));
+    expect(coords.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(coords).size).toBe(1);
+  });
+  it('aligns vertical and horizontal facing ports while respecting occupied ports', () => {
+    const a = { x: 0, y: 0, width: 180, height: 80 }, b = { x: 260, y: 0, width: 180, height: 100 };
+    const first = alignedDiagramPorts(a, 'right', [], b, 'left', [])!;
+    expect(first[0].y).toBe(first[1].y);
+    const second = alignedDiagramPorts(a, 'right', [first[0]], b, 'left', [first[1]])!;
+    expect(second[0].y).toBe(second[1].y);
+    expect(Math.abs(second[0].y - first[0].y)).toBeGreaterThanOrEqual(18);
+    const bottom = { x: 20, y: 150, width: 140, height: 80 };
+    const vertical = alignedDiagramPorts(a, 'bottom', [], bottom, 'top', [])!;
+    expect(vertical[0].x).toBe(vertical[1].x);
+    expect(alignedDiagramPorts(a, 'left', [], b, 'right', [])).toBeNull();
+  });
   it('aligns the shared grid with snapping and scales it with the canvas', () => {
     const { container, rerender } = render(<DiagramFlow graph={graph} onChange={vi.fn()} gridSize={30} grid={{ pattern: 'dots', lineColor: 'red', dotSize: 2, opacity: .4, fade: 'radial' }} />);
     const grid = container.querySelector<HTMLElement>('[data-diagram-grid]')!;
