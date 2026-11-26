@@ -1,0 +1,68 @@
+# .github/workflows/publish-selfhost.yml
+# Self-hosted-runner twin of publish.yml; publish.yml is disabled via `if: ${{ false }}`.
+name: Publish (self-hosted)
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: publish-selfhost-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-react:
+    runs-on: [self-hosted, linux, x64]
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish --provenance --access public
+
+  publish-vue:
+    runs-on: [self-hosted, linux, x64]
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: vue
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish --provenance --access public
+
+  publish-cli:
+    runs-on: [self-hosted, linux, x64]
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: tools/i18n-cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm test
+      - run: npm publish --provenance --access public

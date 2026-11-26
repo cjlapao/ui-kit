@@ -24,16 +24,17 @@ interface Props {
   onReset: () => void;
 }
 const paths: Record<string, string> = {
-  add: 'M12 5v14M5 12h14', branch: 'M5 4v16M5 8h5a5 5 0 0 1 5 5v2M12 12l3 3 3-3',
-  child: 'M5 4v10a4 4 0 0 0 4 4h7M13 15l3 3-3 3', connect: 'M9 15l6-6M7 17l-1 1a3 3 0 0 1-4-4l4-4a3 3 0 0 1 4 0M17 7l1-1a3 3 0 0 1 4 4l-4 4a3 3 0 0 1-4 0',
+  branch: 'M5 4v16M5 8h5a5 5 0 0 1 5 5v2M12 12l3 3 3-3',
+  child: 'M5 4v10a4 4 0 0 0 4 4h7M13 15l3 3-3 3',
   align: 'M4 5h16M7 9h10v4H7zM9 16h6v4H9z', undo: 'M9 7 4 12l5 5M4 12h9a6 6 0 0 1 6 6', redo: 'm15 7 5 5-5 5M20 12h-9a6 6 0 0 0-6 6',
-  delete: 'M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 10v7M14 10v7', fit: 'M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4', minus: 'M6 12h12',
+  fit: 'M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4', minus: 'M6 12h12',
 };
 function Glyph({ name }: { name: string }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
 }
 function Action({ name, label, disabled, onClick }: { name: string; label: string; disabled?: boolean; onClick: () => void }) {
-  return <IconButton icon={<Glyph name={name} />} size="xs" variant="ghost" color="slate" disabled={disabled} srLabel={label} tooltip={label} onClick={onClick} />;
+  const icon = name === 'add' ? 'Add' : name === 'connect' ? 'Link' : name === 'delete' ? 'Trash' : <Glyph name={name} />;
+  return <IconButton icon={icon} size="xs" variant="ghost" color="slate" disabled={disabled} srLabel={label} tooltip={label} onClick={onClick} />;
 }
 export default function DiagramFlowControls(p: Props) {
   return <div data-diagram-controls data-mode={p.readOnly ? 'read-only' : 'edit'} className="absolute bottom-3 right-3 z-30 flex max-w-[calc(100%-1.5rem)] items-center gap-0.5 overflow-x-auto rounded-lg border border-neutral-200 bg-white/90 p-1 shadow-sm backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/90">

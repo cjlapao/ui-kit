@@ -32,8 +32,19 @@ describe('DiagramFlow', () => {
     expect(controls.className).toContain('bottom-3');
     expect(controls.className).toContain('right-3');
     expect(controls.closest('.overflow-auto')).toBeNull();
+    expect(controls.className).not.toContain('flex-col');
+    expect(controls).toHaveAttribute('data-mode', 'edit');
+    expect(container.querySelector('[data-slot="scrollarea-viewport"]')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reset view' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     expect(screen.getByLabelText('Zoom')).toHaveTextContent('125%');
+  });
+  it('uses a compact read-only control panel', () => {
+    const { container } = render(<DiagramFlow graph={graph} onChange={vi.fn()} readOnly />);
+    expect(container.querySelector('[data-diagram-controls]')).toHaveAttribute('data-mode', 'read-only');
+    expect(screen.queryByRole('button', { name: 'Add step' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Fit diagram' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reset view' })).toBeTruthy();
   });
   it('creates a branch atomically without changing existing connections', () => {
     const next = applyDiagramFlowOperation(graph, { type: 'create', node: { id: 'e', title: 'E', position: { x: 260, y: 120 } }, connection: { id: 'be', sourceId: 'b', targetId: 'e', outcome: 'success' } })!;
@@ -156,6 +167,63 @@ describe('DiagramFlow', () => {
 });
 
 describe('DiagramFlow connection interactions', () => {
+  it('creates one connected node from an empty-space drop when enabled and supports undo', () => {
+    const onConnect = vi.fn(), onNodeCreate = vi.fn();
+    function App() { const [value, setValue] = useState(graph); return <><DiagramFlow graph={value} onChange={setValue} onConnect={onConnect} onNodeCreate={onNodeCreate} autoCreate /><output data-testid="graph">{JSON.stringify(value)}</output></>; }
+    const { container } = render(<App />);
+    const port = screen.getByRole('button', { name: 'Connect from A, bottom' });
+    port.setPointerCapture = vi.fn(); port.hasPointerCapture = vi.fn(() => true); port.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(port, { button: 0, pointerId: 9, clientX: 230, clientY: 216 });
+    fireEvent.pointerMove(port, { pointerId: 9, clientX: 300, clientY: 400 });
+    expect(container.querySelector('[data-diagram-create-preview]')).toBeTruthy();
+    fireEvent.pointerUp(port, { pointerId: 9, clientX: 300, clientY: 400 });
+    expect(current().nodes).toHaveLength(4);
+    expect(current().connections).toHaveLength(3);
+    expect(onNodeCreate).toHaveBeenCalledOnce();
+    expect(onConnect).toHaveBeenCalledOnce();
+    expect(onNodeCreate.mock.calls[0][1]).toMatchObject({ sourceId: 'a', targetId: current().nodes[3].id, outcome: 'unknown' });
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(current().nodes).toHaveLength(3);
+    expect(current().connections).toHaveLength(2);
+  });
+  it('does not create a node on empty drops by default or when the placement overlaps', () => {
+    const onChange = vi.fn(), onNodeCreate = vi.fn();
+    const { rerender } = render(<DiagramFlow graph={graph} onChange={onChange} onNodeCreate={onNodeCreate} />);
+    const port = screen.getByRole('button', { name: 'Connect from A, bottom' });
+    port.setPointerCapture = vi.fn(); port.hasPointerCapture = vi.fn(() => true); port.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(port, { button: 0, pointerId: 9, clientX: 230, clientY: 216 });
+    fireEvent.pointerUp(port, { pointerId: 9, clientX: 300, clientY: 400 });
+    expect(onChange).not.toHaveBeenCalled();
+    rerender(<DiagramFlow graph={graph} onChange={onChange} onNodeCreate={onNodeCreate} autoCreate />);
+    fireEvent.pointerDown(port, { button: 0, pointerId: 9, clientX: 230, clientY: 216 });
+    fireEvent.pointerUp(port, { pointerId: 9, clientX: 335, clientY: 250 });
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onNodeCreate).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toHaveTextContent('not enough space');
+  });
+  it('connects an existing target without auto-creating a node', () => {
+    const onConnect = vi.fn(), onNodeCreate = vi.fn(), onChange = vi.fn();
+    render(<DiagramFlow graph={graph} onChange={onChange} onConnect={onConnect} onNodeCreate={onNodeCreate} autoCreate />);
+    const port = screen.getByRole('button', { name: 'Connect from A, right' });
+    port.setPointerCapture = vi.fn(); port.hasPointerCapture = vi.fn(() => true); port.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(port, { button: 0, pointerId: 4, clientX: 320, clientY: 170 });
+    fireEvent.pointerUp(port, { pointerId: 4, clientX: 700, clientY: 170 });
+    expect(onConnect).toHaveBeenCalledOnce();
+    expect(onConnect.mock.calls[0][0]).toMatchObject({ sourceId: 'a', targetId: 'c' });
+    expect(onNodeCreate).not.toHaveBeenCalled();
+    expect(onChange.mock.calls[0][0].nodes).toHaveLength(3);
+  });
+  it('cancels an auto-create drag without committing a node', () => {
+    const onChange = vi.fn();
+    render(<DiagramFlow graph={graph} onChange={onChange} autoCreate />);
+    const port = screen.getByRole('button', { name: 'Connect from A, bottom' });
+    port.setPointerCapture = vi.fn(); port.hasPointerCapture = vi.fn(() => true); port.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(port, { button: 0, pointerId: 9, clientX: 230, clientY: 216 });
+    fireEvent.pointerMove(port, { pointerId: 9, clientX: 300, clientY: 400 });
+    fireEvent.pointerCancel(port, { pointerId: 9 });
+    fireEvent.pointerUp(port, { pointerId: 9, clientX: 300, clientY: 400 });
+    expect(onChange).not.toHaveBeenCalled();
+  });
   it('reveals neutral ports on hover and hides them in read-only mode', () => {
     const { rerender } = render(<DiagramFlow graph={graph} onChange={vi.fn()} />);
     const port = screen.getByRole('button', { name: 'Connect from A, right' });

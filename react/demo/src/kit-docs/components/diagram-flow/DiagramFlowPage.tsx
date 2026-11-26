@@ -34,17 +34,21 @@ const initial: DiagramFlowGraph = {
 export default function DiagramFlowPage() {
   const [graph, setGraph] = useState(initial);
   const [lastAction, setLastAction] = useState('');
+  const [readOnly, setReadOnly] = useState(false);
+  const [autoCreate, setAutoCreate] = useState(false);
   const [panel, setPanel] = useState<DiagramFlowPanelProps>({ variant: 'outlined', tone: 'none', padding: 'sm' });
   return <div className="mx-auto flex w-full max-w-(--docs-page-max) flex-col gap-6 px-4 py-8 sm:px-8">
     <PageHeader name="Diagram Flow" description="Edit explicit workflow branches, joins, nested sequences and retry paths. The application owns conditions and execution state." />
-    <p className="text-sm text-neutral-500">Hover over a step and drag a port to another step. Select a step to resize it, or select a connection to change its outcome or drag either endpoint. Double-click a step or connection to edit its label.</p>
+    <p className="text-sm text-neutral-500">Hover over a step and drag a port to another step. Enable auto-create to drop a new step into empty space. Select a step to resize it, or select a connection to change its outcome or drag either endpoint.</p>
     <p className="text-sm text-neutral-500">Set a node’s <code>dotStepper</code> to the same props as DotStepper, including <code>steps</code> and <code>currentIndex</code>. Progress is application-owned; provide <code>onStepSelect</code> for interactive dots.</p>
     <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-700 dark:text-neutral-200">
       <label>Node variant <select className="ml-2 rounded border px-2 py-1 dark:bg-neutral-900" value={panel.variant} onChange={event => setPanel(current => ({ ...current, variant: event.target.value as DiagramFlowPanelProps['variant'] }))}>{['outlined', 'tonal', 'elevated', 'subtle', 'glass'].map(value => <option key={value}>{value}</option>)}</select></label>
       <label>Node tone <select className="ml-2 rounded border px-2 py-1 dark:bg-neutral-900" value={panel.tone} onChange={event => setPanel(current => ({ ...current, tone: event.target.value as DiagramFlowPanelProps['tone'] }))}>{['none', 'blue', 'emerald', 'amber', 'rose'].map(value => <option key={value}>{value}</option>)}</select></label>
       <label>Node padding <select className="ml-2 rounded border px-2 py-1 dark:bg-neutral-900" value={panel.padding} onChange={event => setPanel(current => ({ ...current, padding: event.target.value as DiagramFlowPanelProps['padding'] }))}>{['none', 'sm', 'md', 'lg'].map(value => <option key={value}>{value}</option>)}</select></label>
+      <label className="flex items-center gap-2"><input type="checkbox" checked={readOnly} onChange={event => setReadOnly(event.target.checked)} />Read only</label>
+      <label className="flex items-center gap-2"><input type="checkbox" checked={autoCreate} onChange={event => setAutoCreate(event.target.checked)} />Auto-create nodes</label>
     </div>
-    <DiagramFlow graph={graph} onChange={setGraph} height={680} nodePanelProps={panel}
+    <DiagramFlow graph={graph} onChange={setGraph} height={680} nodePanelProps={panel} readOnly={readOnly} autoCreate={autoCreate}
       onNodeClick={node => setLastAction(`Selected ${node.title}`)}
       onConnectionClick={edge => setLastAction(`Selected ${edge.outcome} connection`)}
       onConnect={edge => setLastAction(`Connected ${edge.sourceId} to ${edge.targetId}`)}

@@ -3,8 +3,11 @@ name: Publish
 on:
   push:
     tags: ["v*"]
+# DISABLED 2026-11-26 — superseded by publish-selfhost.yml (self-hosted runners).
+# Delete the `if: ${{ false }}` line under each job to re-enable.
 jobs:
   publish-react:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -24,6 +27,7 @@ jobs:
       - run: npm publish --provenance --access public
 
   publish-vue:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,6 +47,7 @@ jobs:
       - run: npm publish --provenance --access public
 
   publish-cli:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

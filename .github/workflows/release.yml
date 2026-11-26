@@ -13,6 +13,9 @@ on:
 
 jobs:
   release:
+    # DISABLED 2026-11-26 — superseded by release-selfhost.yml (self-hosted runners).
+    # Delete the `if: ${{ false }}` line below to re-enable.
+    if: ${{ false }}
     name: Bump and Create PR
     runs-on: ubuntu-latest
     permissions:

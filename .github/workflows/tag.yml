@@ -6,6 +6,9 @@ on:
 
 jobs:
   tag:
+    # DISABLED 2026-11-26 — superseded by tag-selfhost.yml (self-hosted runners).
+    # Delete the `if: ${{ false }}` line below to re-enable.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
